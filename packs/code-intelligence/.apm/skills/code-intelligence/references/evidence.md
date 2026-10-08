@@ -122,7 +122,7 @@ result sitting at the cap is a partial subgraph. The response carries per-node
 depth, so you can at least say how far you got.
 
 `wicked-estate traverse` clamps `--depth` and `--max-nodes` when they exceed the
-ceiling and writes `CLAMPED: <param>=<actual>` to stderr, even under `--json`.
+ceiling and writes `CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>` to stderr, even under `--json`. The value after `used` is the one applied.
 Check stderr when you need to know whether the value you passed was honoured.
 
 ---
@@ -141,9 +141,9 @@ MCP `BlastRadius` also returns the `confidence` envelope, plus per-dependent
 `depth` and `summary.top_by_pagerank`. The CLI does not offer per-row depth or a
 ranked-dependents view.
 
-The `blast-radius` traversal excludes structural `contains` edges (source-read
-from `main.rs`), so its dependent count can be lower than what MCP `BlastRadius`
-reports for the same symbol.
+Structural `contains` and `defines` edges are excluded from the confidence
+evidence (source-read from `main.rs`); they do not affect which rows appear in
+the result.
 
 ---
 

@@ -170,10 +170,11 @@ Three rules are load-bearing:
   a flat list. Where an edge is load-bearing for your conclusion, verify it
   against source before relying on it.
 - **Freshness differs by command.** Bridged commands (`traverse`, `rank`,
-  `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr even under
-  `--json`. `blast-radius` and `path` suppress it under `--json`. Run a bare
-  `wicked-estate stats` before blast-radius or path queries when freshness
-  matters, and say which revision you answered from.
+  `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`;
+  in text mode, diagnostics go to stdout (source-read from `tool_bridge.rs`;
+  pinned on `rank --json`). `blast-radius` and `path` suppress it under `--json`.
+  Run a bare `wicked-estate stats` before blast-radius or path queries when
+  freshness matters, and say which revision you answered from.
 
 Wherever you report a result, quote the command that produced it exactly as
 run, flags and all. `--depth 1` and the default depth answer different

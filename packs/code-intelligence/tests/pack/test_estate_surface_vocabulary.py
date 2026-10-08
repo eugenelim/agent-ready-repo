@@ -34,8 +34,9 @@ RUNTIME_ROOT = PACK_ROOT / ".apm"
 
 #: Every subcommand `wicked-estate` dispatches. `hotspots` is an alias of `rank`.
 #: 0.21.0 adds `lineage`, `traverse`, `rules-inventory`, `rules-recall`, and
-#: `supports` (4 bridged commands plus `hotspots`) for a total of 40 names:
-#: 35 top-level arms in main.rs + 4 bridged commands + the hotspots alias.
+#: `supports` for a total of 40 names: 35 top-level arms in main.rs (including
+#: `lineage` and `supports`) plus 4 bridged rows (`traverse`, `rank`,
+#: `rules-inventory`, `rules-recall`) plus the `hotspots` alias on bridged `rank`.
 CLI_VERBS = frozenset(
     {
         "annotate",

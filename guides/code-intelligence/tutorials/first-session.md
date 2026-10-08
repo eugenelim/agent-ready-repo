@@ -81,6 +81,8 @@ That second sentence is the part worth learning.
 - **`depth_horizon_reached`** is true when the traversal hit its depth limit.
   Use `blast-radius <name> --depth N` (max 24) to go further. When it is false,
   the depth was not the constraint.
+- **`node_cap_reached`** is true when the walk hit its node budget. No flag
+  raises it; report the list as a floor.
 
 A blast radius is a floor, not a total. An answer that gives you a number
 without these is overclaiming.

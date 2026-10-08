@@ -30,7 +30,7 @@ larger surface — 40 names, several with no MCP equivalent.
 
 | Surface | Maturity | Why |
 | --- | --- | --- |
-| CLI | **validated** | Exercised end to end against a real index; tests pin the returned shapes of `resolve`, `blast-radius` (with `--depth` and `confidence` summary), `path`, `lineage`, `traverse`, `rank` (with `--seeds`), `rules-inventory`, `rules-recall`, and other verbs on a small fixture |
+| CLI | **validated** | Exercised end to end against a real index; tests pin the returned shapes of `resolve`, `blast-radius` (with `--depth` and `confidence` summary), `path`, `lineage`, `traverse`, `rank` (with `--seeds`), `rules-inventory` (top-level keys; per-engine entry fields are source-read), `rules-recall`, and other verbs on a small fixture |
 | MCP | **contract-complete** | Mapped from upstream's registered tools and conformance schemas. Never executed by this pack |
 
 The memory, knowledge, and proposal domains are **MCP-only**. Register the server
@@ -57,7 +57,10 @@ only if you need them, and prefer `--readonly`. The richer MCP response shapes
 | Graph size and freshness | `wicked-estate stats` |
 
 **Trap worth knowing:** `lineage` takes an exact SymbolId only — a name returns
-an empty result with exit 0, not an error. Always `resolve` first.
+an empty result with exit 0, not an error. Always `resolve` first. `rank --seeds`
+biases a graph-wide ranking — seeded output includes symbols the seeds cannot
+reach. To rank a dependent set, keep only the rows whose `symbol` is in your set
+and report missing members as unranked.
 
 ## What the CLI reports about completeness
 
@@ -73,10 +76,11 @@ an empty result with exit 0, not an error. Always `resolve` first.
   still exits 0. With a bound flag true, a route may lie beyond the search.
   `path` follows every dependency edge kind, so read each hop's `kind`. Endpoint
   `line` counts from 0; use `line_1based`.
-- **Bridged commands** (`traverse`, `rank`, `rules-inventory`, `rules-recall`)
-  write `STALENESS:` to stderr even under `--json`. `blast-radius` and `path`
-  suppress it under `--json`; use bare `wicked-estate stats` to check freshness
-  before those.
+- Commands served by the same retrieval tools as the MCP server (`traverse`, `rank`,
+  `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`;
+  in text mode, diagnostics go to stdout (source-read from `tool_bridge.rs`;
+  pinned on `rank --json`). `blast-radius` and `path` suppress it under `--json`;
+  use bare `wicked-estate stats` to check freshness before those.
 
 ## What does not exist on the CLI
 

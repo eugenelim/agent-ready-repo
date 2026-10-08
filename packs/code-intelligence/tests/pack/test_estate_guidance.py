@@ -2,8 +2,9 @@
 
 Tests cover:
 
-- Pin scanner over the shipped surface and its planted samples.
-  See the floor and pin criteria in the spec for the policy.
+- Pin scanner over the shipped surface and its planted samples. Every
+  ``cargo install wicked-estate(-mcp)?`` occurrence must carry the correct
+  0.21.0 pin and ``--locked``.
 - Retired-claim scanner over the shipped surface and its planted
   samples. Patterns map to the gaps.md groups and the 0.21 MCP-only CLI,
   rank-without-seeds, source-selectors, staleness, and stale-version groups.
@@ -420,11 +421,7 @@ def main(paths: list[str], scanner: str = "pin") -> int:
 
 
 def test_pin_scanner_shipped_surface_is_clean() -> None:
-    """Every cargo install occurrence in the shipped surface carries the correct 0.21.0 pin.
-
-    Fails until T2 updates pack.toml, scripts/estate_preflight.py, and all prose
-    install commands.
-    """
+    """Every cargo install occurrence in the shipped surface carries the correct 0.21.0 pin."""
     result = main(
         [str(p) for p in _SHIPPED_SURFACE],
         scanner="pin",
@@ -472,12 +469,11 @@ def test_pin_scanner_planted_samples(tmp_path: Path) -> None:
 
 
 def test_retired_claim_scanner_shipped_surface_is_clean() -> None:
-    """The retired-claim scanner finds no match in the shipped surface.
+    """The retired-claim scanner finds no stale-gap claim in the shipped surface.
 
-    Fails until T2 rewrites the prose to remove stale gap claims.  Pattern
-    groups: paths absent, silent depth, no CLI depth, no CLI edge evidence,
-    stale counts, stale version, MCP-only CLI, rank without seeds, source
-    selectors, staleness channels.
+    Pattern groups: paths absent, silent depth, no CLI depth, no CLI edge
+    evidence, stale counts, stale version, MCP-only CLI, rank without seeds,
+    source selectors, staleness channels.
     """
     result = main(
         [str(p) for p in _SHIPPED_SURFACE],
@@ -522,11 +518,7 @@ def test_retired_claim_planted_samples(tmp_path: Path) -> None:
 
 
 def test_route_teaching_wicked_estate_path() -> None:
-    """SKILL.md, capability-map.md, and investigation-patterns.md each contain 'wicked-estate path'.
-
-    Fails until T2 adds the path command to the skill and references.  The
-    capability gaps.md §Paths is closed by 0.18.0.
-    """
+    """SKILL.md, capability-map.md, and investigation-patterns.md each contain 'wicked-estate path'."""
     skill_md = RUNTIME_ROOT / "skills" / "code-intelligence" / "SKILL.md"
     capability_map = (
         RUNTIME_ROOT / "skills" / "code-intelligence" / "references" / "capability-map.md"
@@ -545,12 +537,7 @@ def test_route_teaching_wicked_estate_path() -> None:
 
 
 def test_blast_radius_depth_flag_taught() -> None:
-    """SKILL.md and capability-map.md each have a line containing both 'blast-radius' and '--depth'.
-
-    Fails until T2 documents the --depth flag.  The silent-depth gap from
-    gaps.md §Completeness is resolved by the new searched_depth and
-    depth_horizon_reached fields.
-    """
+    """SKILL.md and capability-map.md each have a line containing both 'blast-radius' and '--depth'."""
     skill_md = RUNTIME_ROOT / "skills" / "code-intelligence" / "SKILL.md"
     capability_map = (
         RUNTIME_ROOT / "skills" / "code-intelligence" / "references" / "capability-map.md"
@@ -563,10 +550,7 @@ def test_blast_radius_depth_flag_taught() -> None:
 
 
 def test_lineage_command_taught_in_core_references() -> None:
-    """SKILL.md, capability-map.md, and investigation-patterns.md each contain 'wicked-estate lineage'.
-
-    Fails until T2 adds the lineage command to the skill and references.
-    """
+    """SKILL.md, capability-map.md, and investigation-patterns.md each contain 'wicked-estate lineage'."""
     skill_md = RUNTIME_ROOT / "skills" / "code-intelligence" / "SKILL.md"
     capability_map = (
         RUNTIME_ROOT / "skills" / "code-intelligence" / "references" / "capability-map.md"
@@ -585,10 +569,7 @@ def test_lineage_command_taught_in_core_references() -> None:
 
 
 def test_traverse_and_rules_commands_taught_in_capability_map() -> None:
-    """capability-map.md contains 'wicked-estate traverse', 'wicked-estate rules-inventory', and 'wicked-estate rules-recall'.
-
-    Fails until T2 adds these commands to capability-map.md.
-    """
+    """capability-map.md contains 'wicked-estate traverse', 'wicked-estate rules-inventory', and 'wicked-estate rules-recall'."""
     capability_map = (
         RUNTIME_ROOT / "skills" / "code-intelligence" / "references" / "capability-map.md"
     )
@@ -602,11 +583,7 @@ def test_traverse_and_rules_commands_taught_in_capability_map() -> None:
 
 
 def test_rank_seeds_composition_taught() -> None:
-    """investigation-patterns.md and agents/impact-analyst.md each contain 'rank --seeds'.
-
-    Fails until T2 documents the seed-then-filter composition for ordering a
-    dependent set by importance.
-    """
+    """investigation-patterns.md and agents/impact-analyst.md each contain 'rank --seeds'."""
     investigation = (
         RUNTIME_ROOT
         / "skills"
@@ -622,10 +599,7 @@ def test_rank_seeds_composition_taught() -> None:
 
 
 def test_eval_case_covers_route_question() -> None:
-    """evals.json contains a case whose prompt mentions 'reach' and whose assertions name both 'wicked-estate path' and 'depth_bounded'.
-
-    Fails until T3 adds the route-and-depth eval case.
-    """
+    """evals.json contains a case whose prompt mentions 'reach' and whose assertions name both 'wicked-estate path' and 'depth_bounded'."""
     evals_path = (
         RUNTIME_ROOT / "skills" / "code-intelligence" / "evals" / "evals.json"
     )
@@ -652,10 +626,7 @@ def test_eval_case_covers_route_question() -> None:
 
 
 def test_eval_cases_cover_lineage_and_rank_seeds() -> None:
-    """evals.json has a case asserting both 'wicked-estate lineage' and 'resolve', and a case asserting 'rank --seeds'.
-
-    Fails until T3 adds the required eval cases.
-    """
+    """evals.json has a case asserting both 'wicked-estate lineage' and 'resolve', and a case asserting 'rank --seeds'."""
     evals_path = (
         RUNTIME_ROOT / "skills" / "code-intelligence" / "evals" / "evals.json"
     )
@@ -684,9 +655,8 @@ def test_eval_cases_cover_lineage_and_rank_seeds() -> None:
 def test_eval_blast_radius_confidence_claim_absent() -> None:
     """No expected_output or assertion in evals.json says the CLI blast radius lacks confidence.
 
-    In 0.21.0, blast-radius --json carries a confidence summary object. An eval
-    that says the CLI lacks confidence is stale and must be corrected. Fails
-    until T3 updates eval 6.
+    blast-radius --json carries a confidence {min, avg, edge_count} summary object.
+    An eval asserting the CLI lacks confidence is stale.
     """
     evals_path = (
         RUNTIME_ROOT / "skills" / "code-intelligence" / "evals" / "evals.json"

@@ -48,3 +48,16 @@ In a scratch git repository holding a two-file fixture indexed with 0.21.0:
 
 No capture. The one trap worth keeping — a seeded `rank` is a graph-wide bias, not a filter — is now in the pack's
 own references.
+
+## Review round 1 fixes
+
+- Post-gates review sustained 13 adversarial and 4 experience findings after adjudication (2 and 4 refuted). The fix
+  pass corrected the `source` selector row, the `rules-inventory` shape (now pinned by live key assertions), sentences
+  that credited MCP `TraverseGraph`/`Lineage` with fields the CLI returns, the `contains` exclusion (scoped to the
+  `confidence` edge set), the `CLAMPED:` line format, the memory/knowledge/proposal section count, the per-mode
+  `STALENESS:` channel, the missing-`--db` test (missing file in an existing directory), empty-edge vacuity, test
+  docstrings citing plan tasks, and four guide wording points.
+- Whole-file read: the fix implementer read each of the 13 files it changed whole —
+  `capability-map.md`, `gaps.md`, `evidence.md`, `investigation-patterns.md`, `SKILL.md`, the four guides, and four
+  test modules — and found one further stale sentence (`gaps.md`, MCP `TraverseGraph` "adds" per-node depth), fixed.
+- With the binary first on `PATH`: 190 passed, 0 skipped, in 30.6 s. Guide scanners exit 0. Lint pass.

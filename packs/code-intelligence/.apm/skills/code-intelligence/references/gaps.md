@@ -89,8 +89,7 @@ over the graph. JSON: `{nodes, edges, depths, truncated, searched_depth, depth_h
 each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Over-ceiling
 `--depth` or `--max-nodes` is clamped with `CLAMPED:` on stderr.
 
-MCP `TraverseGraph` offers the same capability; its response adds per-node depth.
-The CLI and MCP forms are equivalent in structure.
+MCP `TraverseGraph` offers the same capability. The CLI and MCP forms are equivalent in structure; `traverse --json` returns per-node depth in its `depths` field.
 
 ## 6. Paths — **Direct**
 
@@ -140,7 +139,6 @@ The two surfaces differ substantially, and the MCP form is the richer one:
 | Depth cut reported | `searched_depth`, `depth_horizon_reached`, `node_cap_reached` | `depth_horizon_reached`, `node_cap_reached`, `searched_depth` |
 | Unbound references | `unresolved` | `unresolved_callers` |
 | Output cut | `truncated_dependents` | `truncated` + `total` |
-| Contains-edge rows | excluded (source-read) | may appear |
 
 *Note:* use `blast-radius <name> --depth 1 --json` to get direct dependents
 only. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents). When

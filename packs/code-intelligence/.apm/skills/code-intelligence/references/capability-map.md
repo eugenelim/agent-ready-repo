@@ -49,7 +49,7 @@ then `WICKED_ESTATE_DB`, then `.wicked-estate/graph.db`.
 | Inventory nodes by kind or annotation | `wicked-estate nodes [--kind K] [--annotated-with K[=V]] --json` | Per node: `symbol_id`, `name`, `kind`, `file`, `line`, `signature`, `annotation_summary {count, by_type, has_advisory}`, and up to 20 `annotations[]`. **There is no symbol filter** — `--kind` and `--annotated-with` are the only narrowing options, and an unfiltered call returns the whole graph (61,182 rows on one manual index of this repository, 2026-09-30). Never use this to look up one symbol. `nodes --symbol` is not a valid flag and exits non-zero. |
 | Add requirement and rule fields | `wicked-estate nodes --json --semantics` | Adds `requirement`, `requirement_validated`, `rule_confidence`, and distinct `out_edges[]` per node. This is a **whole-graph export** that costs an extra semantics read and edge fetch *per node*; scope it with `--kind` or accept the cost deliberately. |
 | Fetch source | `wicked-estate source <name> --json` | The exact source slice for matching symbols, with `file:line` provenance. |
-| Fetch source in bulk | `wicked-estate source --symbols <ids> [--file <path>] [--cluster <id>] [--json]` | `{nodes[], summary}` for the selected set. Text mode honours `--symbols`; `--cluster`, `--file`, and `--signatures-only` are also honoured in text mode (source-read). `--max-total-chars N` and `--max-node-chars N` require `--json` — without it, the command exits non-zero. `--symbols` without a positional name errors; with one, the name wins. Under `--json`, precedence is `--symbols` > `--cluster` > `--file` > `<name>`. |
+| Fetch source in bulk | `wicked-estate source --symbols <ids> [--file <path>] [--cluster <id>] [--json]` | `{nodes[], summary}` for the selected set. Text mode honours `--symbols`; `--cluster`, `--file`, and `--signatures-only` are also honoured in text mode (source-read). `--max-total-chars N` and `--max-node-chars N` require `--json` — without it, the command exits non-zero. `--symbols` takes precedence over a positional name in both modes (text mode pinned; full JSON precedence is `--symbols` > `--cluster` > `--file` > `<name>`). |
 | Semantic search | `wicked-estate semantic "<query>"` | Embedding-ranked symbol matches. **Requires the index to have been built with `--embeddings`**; otherwise unavailable. |
 
 MCP equivalents: `SearchEntity` (name search, ranked, `limit` ≤ 100),
@@ -64,7 +64,7 @@ the server advertises **only** when an embedding backend is available.
 
 | Intent | CLI | Returns |
 | --- | --- | --- |
-| Blast radius / who depends on this | `wicked-estate blast-radius <name> [--depth N] [--json]` | JSON: `{target, dependents[], unresolved, truncated_dependents, searched_depth, depth_horizon_reached, node_cap_reached, confidence}` where `confidence {min, avg, edge_count}` summarises the edges that admitted the rows. Default depth 12, max 24. Text adds an `evidence:` line. The `blast-radius` traversal excludes structural `contains` edges (source-read), so MCP `BlastRadius` can report higher figures. Read [Completeness](#completeness-fields) below before quoting it. |
+| Blast radius / who depends on this | `wicked-estate blast-radius <name> [--depth N] [--json]` | JSON: `{target, dependents[], unresolved, truncated_dependents, searched_depth, depth_horizon_reached, node_cap_reached, confidence}` where `confidence {min, avg, edge_count}` summarises the edges that admitted the rows. Default depth 12, max 24. Text adds an `evidence:` line. Structural `contains` and `defines` edges are excluded from the confidence evidence (source-read from `main.rs`); the traversal itself walks all edge kinds. Read [Completeness](#completeness-fields) below before quoting it. |
 | Route from one symbol to another | `wicked-estate path <from> <to> [--max-depth N] --json` | `{from, to, hops[], found, depth_bounded, node_bounded, unresolved}`. Each hop: `{source, target, kind, confidence, provenance, resolved_by}`. Each endpoint: `{symbol, name, kind, file, line, line_1based}` — `line` is 0-based; use `line_1based`. Follows every dependency edge kind; read each hop's `kind`. `found:false` is proven absence only when `unresolved` is null and both bound flags are false. An unknown name sets `unresolved: "from"` or `"to"` and still exits 0. With `depth_bounded:true`, raise `--max-depth` (max 16); with `node_bounded:true`, report the answer as bounded — no flag raises the node budget. |
 | Bounded neighbourhood | `wicked-estate graph-view [--focus <name>] [--limit N] [--include-tests] [--include-trivial] [--ignore <pat>]` | A filtered subgraph. `--limit N` controls rows; each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Upstream does not commit to the JSON shape of `graph-view` output. |
 | Walk the graph by direction and edge kind | `wicked-estate traverse <symbol> [--depth N] [--direction dependencies\|dependents\|both] [--edge-kinds a,b] [--max-nodes N] [--json]` | JSON: `{nodes, edges, depths, truncated, searched_depth, depth_horizon_reached, node_cap_reached}`; each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Over-ceiling `--depth` or `--max-nodes` is clamped with `CLAMPED:` written to stderr. A `--direction` value outside the closed set exits 1. |
@@ -80,10 +80,10 @@ MCP `BlastRadius` returns richer output than the CLI form. Each dependent carrie
 `top_files`, and `top_by_pagerank` — a ranked-dependents view the CLI does not
 offer — and `depth_horizon_reached`, `node_cap_reached`, `searched_depth`.
 
-MCP `TraverseGraph` adds `max_nodes` (≤ 1000) control and per-node depth in the
-response. `wicked-estate traverse` does the same walk on the CLI; the JSON
-structures are equivalent, and `traverse` reports `CLAMPED:` to stderr when
-depth or max-nodes is clamped (source-read from `tool_bridge.rs`).
+MCP `TraverseGraph` covers the same intent; the JSON structures are equivalent.
+`wicked-estate traverse` supports `--max-nodes` and reports per-node depth in
+the `depths` field; it writes `CLAMPED:` to stderr when depth or max-nodes is
+clamped (source-read from `tool_bridge.rs`).
 
 MCP `Path` is the equivalent of `wicked-estate path`. It takes `from`, `to`,
 `depth` (1–16, default 8), and `max_nodes` (1–5000, default 1000) — inputs
@@ -110,9 +110,7 @@ placeholder entry, and a real `STALENESS: commits_behind=N` entry when the
 graph is behind HEAD (source-read). A depth above 24 or an unsupported
 `--relation` exits 1.
 
-MCP `Lineage` covers the same intent and adds `depth_horizon_reached`,
-`node_cap_reached`, and `searched_depth` in the same call. The richer MCP
-response shapes — per-dependent `depth` on `BlastRadius`, `Communities`
+MCP `Lineage` covers the same intent. The richer MCP response shapes — per-dependent `depth` and `summary.top_by_pagerank` on `BlastRadius`, `Communities`
 summaries, `ContextBundle` — are MCP-only.
 
 ---
@@ -144,7 +142,7 @@ equivalent and is sufficient for most work.
 
 | Intent | CLI | Returns |
 | --- | --- | --- |
-| Inventory rules-engine nodes | `wicked-estate rules-inventory [--json]` | `[{name, kind, file, invoked_by: [code_files]}]` for every `RuleSet` and `Rule` node, and the code that invokes them. Takes no parameters. An unknown flag exits 1. |
+| Inventory rules-engine nodes | `wicked-estate rules-inventory [--json]` | `{engines, total, rule_nodes: {total, in_rule_sets, ungrouped}}` (pinned by live key assertions). `engines` has one entry per `RuleSet` node; per-engine fields `{symbol, name, kind, file, invoked_by}` are source-read from `wicked-estate-retrieve` `RulesInventory` (the fixture has no RuleSet). `rule_nodes` counts `Rule` nodes (not listed). An unknown flag exits 1. |
 | Recall conformance rules | `wicked-estate rules-recall [--severity \| --rule-type \| --language \| --layer \| --framework \| --scope \| --projects \| --limit] [--json]` | Faceted, severity-ordered rules. Filters: `framework`, `language`, `layer`, `rule_type` (`pattern` \| `policy`), `scope`, `severity` (`info` \| `warn` \| `error` \| `critical`), `limit`, `projects` (array of strings — a project-scoped rule is returned only when its project is listed; omit/empty for global rules only). Results within a severity are ordered by weight then id. An unknown flag exits 1. |
 | Symbols satisfying a requirement | `wicked-estate by-requirement <requirement>` | Symbols annotated as satisfying that requirement, with `file:line`. Not listed in `--help`; it is in the CLI's dispatch table. |
 | Requirement linkage per symbol | `wicked-estate nodes --json --semantics` | Adds `requirement` and `requirement_validated` to each node. |
@@ -170,8 +168,8 @@ result, not a contradiction. Do not run the write to make the read succeed.
 | Graph identity and size | `wicked-estate stats` | Node and edge counts by kind, a **graph-wide `unresolved` total**, database size, git provenance when indexed from a checkout, and the per-repository registry in a multi-repo graph. |
 | Symbol fingerprint | `wicked-estate fingerprint <name>` | A stable hex fingerprint for the symbol, for detecting change across revisions. |
 | What changed since a revision | `wicked-estate changed-since <sha> --json` | Symbols in files changed since that git SHA. |
-| Index freshness | `wicked-estate stats` or bridged commands (`traverse`, `rank`, `rules-inventory`, `rules-recall`) | `STALENESS: N commit(s) in '<label>' since last index`. Bridged commands write this to stderr even under `--json`. `blast-radius` and `path` suppress `STALENESS:` under `--json` so machine output stays one document; use bare `wicked-estate stats` to check freshness before those. `lineage --json` carries staleness in its `diagnostics` array (source-read). |
-| Clamped output | `wicked-estate traverse`, `rank`, and other bridged commands | When `--depth` or `--max-nodes` exceeds the ceiling, the command clamps and writes `CLAMPED: <param>=<actual>` to stderr, even under `--json`. |
+| Index freshness | `wicked-estate stats` or bridged commands (`traverse`, `rank`, `rules-inventory`, `rules-recall`) | `STALENESS: N commit(s) in '<label>' since last index`. Under `--json`, bridged commands write this to stderr; in text mode, diagnostics go to stdout (source-read from `tool_bridge.rs`; pinned on `rank --json`). `blast-radius` and `path` suppress `STALENESS:` under `--json` so machine output stays one document; use bare `wicked-estate stats` to check freshness before those. `lineage --json` carries staleness in its `diagnostics` array (source-read). |
+| Clamped output | `wicked-estate traverse`, `rank`, and other bridged commands | When `--depth` or `--max-nodes` exceeds the ceiling, the command clamps and writes `CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>` to stderr, even under `--json`. The value after `used` is the one applied. |
 
 ---
 
@@ -219,9 +217,9 @@ symbols between two graphs; it does not diff two revisions of one graph.
 
 ---
 
-## Memory and knowledge — MCP only
+## Memory, knowledge, and proposals — MCP only
 
-Fourteen tools across two domains, none with a CLI verb. This pack does not
+Eighteen tools across three domains, none with a CLI verb. This pack does not
 build a workflow on them, and deliberately ships no separate skill for them:
 they are optional, they are unavailable in the default CLI-only setup, and a
 skill that only fires when an optional server is registered triggers unreliably.

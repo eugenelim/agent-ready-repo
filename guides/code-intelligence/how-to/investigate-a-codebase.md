@@ -43,10 +43,12 @@ you get a bare list, ask:
 
 > How complete is that?
 
-Four things should come back: unresolved references, whether output was
-truncated, whether the depth horizon was reached (`depth_horizon_reached`), and
-which revision the index describes. When `depth_horizon_reached` is true, use
-`blast-radius <name> --depth N` (max 24) to look further.
+Five things should come back: unresolved references, whether output was
+truncated, whether the depth horizon was reached (`depth_horizon_reached`),
+whether the node cap was hit (`node_cap_reached`), and which revision the index
+describes. When `depth_horizon_reached` is true, use `blast-radius <name> --depth N`
+(max 24) to look further. A true `node_cap_reached` means the walk hit its node
+budget; no flag raises it.
 
 ## When architecture is the question
 

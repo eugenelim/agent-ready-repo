@@ -120,7 +120,7 @@ def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
     """Both runtime-dependency entries declare >=0.21, matching the preflight floor.
 
     The floor in pack.toml and the preflight's MINIMUM_VERSION must agree so they
-    cannot drift independently.  This test fails until T2 updates both values to 0.21.
+    cannot drift independently.
     """
     preflight = _load_preflight()
     assert preflight.MINIMUM_VERSION == (0, 21), (

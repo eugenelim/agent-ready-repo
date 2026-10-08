@@ -516,11 +516,13 @@ def test_traverse_json_shape_and_edge_keys(graph: Path) -> None:
         "depth_horizon_reached",
         "node_cap_reached",
     }, f"traverse --json missing keys; got {set(payload)}"
-    if payload["edges"]:
-        edge = payload["edges"][0]
-        assert set(edge) >= {"kind", "confidence", "provenance", "resolved_by"}, (
-            f"edge missing required keys; got {set(edge)}"
-        )
+    assert payload["edges"], (
+        "traverse helper --direction dependents must return at least one edge on the fixture"
+    )
+    edge = payload["edges"][0]
+    assert set(edge) >= {"kind", "confidence", "provenance", "resolved_by"}, (
+        f"edge missing required keys; got {set(edge)}"
+    )
 
 
 def test_traverse_clamping_and_staleness(graph: Path) -> None:
@@ -558,14 +560,30 @@ def test_traverse_clamping_and_staleness(graph: Path) -> None:
 
 
 def test_rules_inventory_and_recall_json(graph: Path) -> None:
-    """rules-inventory --json and rules-recall --json each exit 0 with stdout that parses as JSON; rules-recall --bogus exits non-zero."""
+    """rules-inventory --json and rules-recall --json each exit 0 with stdout that parses as JSON; rules-recall --bogus exits non-zero.
+
+    rules-inventory returns {engines, total, rule_nodes: {total, in_rule_sets, ungrouped}}.
+    Per-engine entry fields {symbol, name, kind, file, invoked_by} are source-read from
+    wicked-estate-retrieve RulesInventory (the fixture has no RuleSet, so engines is empty).
+    rules-recall returns {rules, total, returned}.
+    """
     inv = run("rules-inventory", "--json", db=graph)
     assert inv.returncode == 0, "rules-inventory --json must exit 0"
-    json.loads(inv.stdout)  # must parse
+    inv_payload = json.loads(inv.stdout)
+    assert set(inv_payload) >= {"engines", "total", "rule_nodes"}, (
+        f"rules-inventory must carry engines, total, rule_nodes; got {set(inv_payload)}"
+    )
+    rn = inv_payload["rule_nodes"]
+    assert set(rn) >= {"total", "in_rule_sets", "ungrouped"}, (
+        f"rule_nodes must carry total, in_rule_sets, ungrouped; got {set(rn)}"
+    )
 
     recall = run("rules-recall", "--json", db=graph)
     assert recall.returncode == 0, "rules-recall --json must exit 0"
-    json.loads(recall.stdout)  # must parse
+    recall_payload = json.loads(recall.stdout)
+    assert set(recall_payload) >= {"rules", "total", "returned"}, (
+        f"rules-recall must carry rules, total, returned; got {set(recall_payload)}"
+    )
 
     bogus = run("rules-recall", "--bogus", "x", db=graph)
     assert bogus.returncode != 0, "rules-recall --bogus must exit non-zero"
@@ -577,8 +595,12 @@ def test_rules_inventory_and_recall_json(graph: Path) -> None:
 def test_traverse_missing_db_exits_nonzero_without_creating_file(
     tmp_path: Path,
 ) -> None:
-    """traverse with a missing --db exits non-zero and does not create the file."""
-    missing_db = tmp_path / "no_such_dir" / "graph.db"
+    """traverse with a missing --db exits non-zero and does not create the file.
+
+    The path points at a missing file inside an existing directory so the test
+    distinguishes "cannot open" from "cannot create the parent directory".
+    """
+    missing_db = tmp_path / "graph.db"
     assert not missing_db.exists()
 
     result = subprocess.run(
@@ -605,6 +627,9 @@ def test_graph_view_json_edge_shape(graph: Path) -> None:
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert "edges" in payload, "graph-view stdout must be a JSON object with an 'edges' key"
+    assert payload["edges"], (
+        "graph-view --limit 5 must return at least one edge on the fixture"
+    )
     for edge in payload["edges"]:
         assert set(edge) >= {"kind", "confidence", "provenance", "resolved_by"}, (
             f"graph-view edge missing required keys; got {set(edge)}"
