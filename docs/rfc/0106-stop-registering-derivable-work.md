@@ -1,10 +1,10 @@
 # RFC-0106: Stop registering derivable work, and give the remaining facts per-item homes
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** Platform Core maintainer
 - **Date opened:** 2026-10-08
-- **Date closed:**
+- **Date closed:** 2026-10-08
 - **Decision weight:** standard
 - **Related:** [RFC-0105](0105-artifact-derived-navigation-and-workspace-retirement.md), [RFC-0103](0103-cross-artifact-reference-grammar.md), [RFC-0064](0064-ini-001-ai-native-ecosystem.md), [ADR-0119](../adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md), [Workspace registry retirement](../product/intents/FEAT-0034-workspace-registry-retirement.md), [Intent graph navigation](../product/intents/FEAT-0002-intent-graph-navigation.md), [Intent navigation delivery brief](../product/briefs/intent-navigation-delivery.md)
 
@@ -158,10 +158,12 @@ FEAT-0034's de-risk found three such facts, recorded in its [De-risk record](../
 
 - **Specs under FEAT-0034:** header-derived dispatch, resume, and ready-spec selection in `work-loop` and `workspace-status`, with their behavioural-equivalence record; the `Depends on:` reader and the `needs` migration; captured-item files, their reader, and their migration; removal or replacement of the first-in-list suggestion. Each one stops its registration writer in the release it ships.
 - **Brief change and spec, slice 5 of the intent navigation delivery brief:** on acceptance, the brief's slice 5 takes on typed `Discovery:` in the writers, the forward check, and the one-time sweep of legacy values, which it currently holds back pending this decision.
-- **RFC-0103 errata entry, applied on the day this RFC is accepted and dated that day.** Wording first approved by eugenelim on 2026-10-08, then corrected the same day for two citation errors. The corrected wording below awaits the owner's approval:
-
-  > **D1's adoption condition is amended for `Discovery:` by [RFC-0106](0106-stop-registering-derivable-work.md) D2.** D1 holds that a pointer field adopts `<kind>:<slug>` "only once every artifact it can name has a kind and a slug rule". `Discovery:` now adopts the typed form for its intent targets only. A value names the kind the traceability graph registers for its target: `intent:<slug>`, or, as RFC-0106 D2 provides, the ladder kind of an intent `recognize_ladder` already claims, such as `capability:<slug>`. A value naming a research document, a notes file, or any other non-intent file stays a repository-relative path. It is provenance, not a graph edge, so the absence of a research kind no longer blocks the field. This record's other rules are unchanged: D1 still refuses an ambiguous bare slug in every field, and D2 still refuses an ordinal in place of a slug. `Contract:` is unaffected and still waits on its own decision.
-
-  If RFC-0106 D2 changes before acceptance, the wording returns to the owner for approval.
+- **RFC-0103 errata entry:** applied to RFC-0103 § Errata on 2026-10-08, the day this RFC was accepted, with wording approved by eugenelim the same day.
 - **Contract updates, each in the release its writer stops:** RFC-0064 D4 and its writer rows, `docs/product/AGENTS.md`, FEAT-0005, FEAT-0001, and a partial supersession of ADR-0119 D4, each citing this RFC.
 - **Guides:** the core orientation guide routes outstanding-work questions to `navigate-intents`, in the navigator's release, owned by the `intent-navigation` spec's Durable Outputs.
+
+## Errata
+
+- 2026-10-08: D2's follow-ons omitted a change it needs. The shipped delivery resolver's `Discovery:` classifier accepts only `intent:<slug>` or an intents path, so a `Discovery:` written with a ladder kind, such as `outcome:<slug>`, would lose its direct-delivery relation. The resolver must resolve every reference kind before slice 5's writers and sweep run. That change is the intent navigation delivery brief's slice 7, `delivery-resolver-ladder-discovery`. Found by the brief's shaping review after acceptance; no decision changes.
+- 2026-10-08: the Follow-on line saying slice 5 "currently holds back" typed `Discovery:` pending this decision is stale since acceptance; the intent navigation delivery brief's slice 5 now carries the `Discovery:` writers, forward check, and sweep, after slice 7.
+- 2026-10-08: supersedes the two entries above on where D2's work lands. The owner regrouped the brief so that slice 7, `typed-discovery-pointers`, carries all of D2 end to end: the resolver change, the `Discovery:` writers, the forward check, and the sweep. Slice 5 keeps only `Parent intent:` and `Brief:`.

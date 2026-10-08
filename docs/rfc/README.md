@@ -106,4 +106,4 @@
 | 0103 | [Pointer grammar update — `<kind>:<slug>` for `Parent intent:` and `Brief:`, and `intent:` as a node kind](0103-cross-artifact-reference-grammar.md) | Accepted | 2026-09-22 | 2026-09-22 |
 | 0104 | [The `code-intelligence` pack](0104-code-intelligence-pack.md) | Accepted | 2026-09-30 | 2026-09-30 |
 | 0105 | [Artifact-derived navigation and workspace retirement](0105-artifact-derived-navigation-and-workspace-retirement.md) | Accepted | 2026-10-02 | 2026-10-03 |
-| 0106 | [Stop registering derivable work, and give the remaining facts per-item homes](0106-stop-registering-derivable-work.md) | Draft | 2026-10-08 |  |
+| 0106 | [Stop registering derivable work, and give the remaining facts per-item homes](0106-stop-registering-derivable-work.md) | Accepted | 2026-10-08 | 2026-10-08 |

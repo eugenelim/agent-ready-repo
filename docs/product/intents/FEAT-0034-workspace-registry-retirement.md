@@ -45,7 +45,7 @@ The feature must preserve the parent's two inherited constraints: any replacemen
 
 ## Unresolved questions
 
-- Which accepted artifact or external projection owns human priority and dependency choices after the registry retires. If RFC-0106 is accepted, its D3 answers it: a dependency is `Depends on:` on the waiting item, and any human priority is a header field on the item.
+- Which accepted artifact or external projection owns human priority and dependency choices after the registry retires. [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D3 answers it: a dependency is `Depends on:` on the waiting item, and any human priority is a header field on the item.
 - Whether any external adopter depends on behavior not visible in tracked repository files.
 - Whether array order carries priority anywhere beyond the known index-based join and `next_queue` projection.
 - Which legacy records require a temporary compatibility seam, and what evidence closes it.
@@ -164,9 +164,9 @@ No kill line was crossed. Orientation needs no registry fact that the headers ca
 
 What travels into `decompose-intent`:
 
-- **C1 — A dependency edge lives on the item that waits.** Write each edge as a header field on the waiting artifact, naming its prerequisite by typed reference. One edit touches one file, and no shared list is needed. The field must be a named dependency field distinct from FEAT-0002's non-blocking `Related intents:`. RFC-0106 D3 proposes the name `Depends on:`, with comma-separated RFC-0103 typed references. The three intents that already carry `Depends on:` say their enforceable edge is the registry `needs` entry, and no script reads that field today. The spec names the field and its reader.
+- **C1 — A dependency edge lives on the item that waits.** Write each edge as a header field on the waiting artifact, naming its prerequisite by typed reference. One edit touches one file, and no shared list is needed. The field must be a named dependency field distinct from FEAT-0002's non-blocking `Related intents:`. RFC-0106 D3 names it `Depends on:`, with comma-separated RFC-0103 typed references. The three intents that already carry `Depends on:` say their enforceable edge is the registry `needs` entry, and no script reads that field today. The spec names the field and its reader.
 - **C2 — A captured item gets its own file with a status line.** Give the 24 file-less items their own records first. Give the 49 file-backed items without a status line one, and move the 2 that point at a verification ledger to an item-specific record. The 3 edges that wait on file-less items move once those items have files.
-- **C3 — Order is decided, not migrated.** The first-in-list suggestion is either replaced by a deterministic rule over derived facts or removed. If the owner wants human priority recorded, it goes on each item as a header field, never as a list. Removing the suggestion needs RFC-0105 D3's deliberate-removal authority, which RFC-0106 D3 proposes to supply.
+- **C3 — Order is decided, not migrated.** The first-in-list suggestion is either replaced by a deterministic rule over derived facts or removed. If the owner wants human priority recorded, it goes on each item as a header field, never as a list. Removing the suggestion needs RFC-0105 D3's deliberate-removal authority, which RFC-0106 D3 supplies.
 - **C4 — Derived status must read the leading status word.** The derived outstanding view must agree with the artifact's own status for the 59 specs with trailing text and the 16 written in another form. Settled 2026-10-08: the terminality reader now reads the leading word, and the 16 status lines use the standard form.
 - **C5 — Stop registration in the order the authority allows.** The headers can supply orientation now. Each registry writer that an accepted contract requires stays in place until that contract is amended. The owner findings below list those contracts.
 
@@ -174,7 +174,7 @@ What travels into `decompose-intent`:
 
 These conflict with accepted records or sit with another artifact, so they are recorded here and not acted on.
 
-- **ADR-0119 D4 says an intent's lifecycle state comes from the workspace record.** Derived orientation reads it from `Status:` instead, as RFC-0105 D3 and the `intent-navigation` spec do. In practice all 100 registered intents are Draft, and 36 Accepted intents are not registered. Stopping intent registration needs an amendment to D4 or a superseding record; RFC-0106 D1 proposes the partial supersession.
+- **ADR-0119 D4 says an intent's lifecycle state comes from the workspace record.** Derived orientation reads it from `Status:` instead, as RFC-0105 D3 and the `intent-navigation` spec do. In practice all 100 registered intents are Draft, and 36 Accepted intents are not registered. Stopping intent registration needs an amendment to D4 or a superseding record; RFC-0106 D1 decides the partial supersession, recorded when intent registration stops.
 - **RFC-0105 D3 names priority as workspace-only state, but no canonical source records it.** The registry and the skill both call list order non-semantic. The disposition record should say whether the first-in-list suggestion is kept somewhere or removed, and cite the authority.
 - **The derived outstanding view would have listed 75 shipped specs as outstanding.** Settled 2026-10-08 by the pre-work repairs under C4; the `intent-navigation` spec's AC-0058 reads the leading status word.
 - **Four accepted contracts still require registration.**
@@ -222,9 +222,9 @@ Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it m
 
 The specification this intent decomposes into owns the comparison's implementation and its run cadence.
 
-### RFC-0106 inputs, if it is accepted
+### RFC-0106 inputs
 
-If [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) is accepted, its D1 table and D3 assign these to specifications this intent decomposes into, beyond C1 to C5. Its acceptance is the authority under RFC-0105 D3 for each change of accepted behaviour below.
+[RFC-0106](../../rfc/0106-stop-registering-derivable-work.md)'s D1 table and D3 assign these to specifications this intent decomposes into, beyond C1 to C5. RFC-0106 is the authority under RFC-0105 D3 for each change of accepted behaviour below.
 
 - **Dispatch and resume from headers.** `work-loop` and `workspace-status` treat a spec as ready from its own `Status:`, its sibling `plan.md`, and its `Depends on:` targets, and as active from its own `Status:`. The specification's behavioural-equivalence record reproduces, or records an accepted removal for, each case the canonical reconciliation handles today: a cross-repository dependency settled by its containing brief's coordination receipt; a local dependency on a pruned target settled by its completion receipt; a dependency on a defect; a cooled dependency; a brief whose child scope is unknown; and the provenance and fail-closed findings that keep a spec out of the ready set. The `unregistered_work` refusal, emitted by `workspace-status`'s spec selector and relayed by `work-loop`, is removed without a replacement, as an accepted removal under RFC-0106 D1, recorded in the equivalence record. The 2026-10-08 de-risk tested orientation only, so this is untested.
 - **Choosing among several ready specs.** An argless `work-loop` start that finds more than one ready spec lists them and asks, replacing selection of the first `canonical.ready` item. No rule may choose one automatically; RFC-0106 D3 allows a stated deterministic rule only for the suggestions.
