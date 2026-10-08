@@ -54,7 +54,7 @@ The three-tier guard keeps an implementing agent inside the accepted removal.
 ### Always do
 
 - Edit `packs/core/.apm/` sources and regenerate projections; never treat an installed adapter projection as the source.
-- Keep ordinary reconciliation fail-closed for every former accepted legacy shape while preserving canonical-entry behavior.
+- Keep ordinary reconciliation fail-closed for every former accepted legacy shape while preserving canonical-entry behavior, except that a canonical entry is refused dispatch while a historical alias for the same artifact survives.
 - Run the RFC-0083 fixture, writer, seed, guide, migration, recovery, and rollback evidence against the exact release candidate.
 - Preserve migration ledgers, canonical artifacts, artifact receipts, and exact rollback bytes.
 
@@ -69,7 +69,7 @@ The three-tier guard keeps an implementing agent inside the accepted removal.
 
 - Edit the shipped `work-intake-migration-docs` spec or the accepted RFC-0083 body to make the removal pass.
 - Delete or rewrite canonical artifacts, migration ledgers, authorization records, artifact receipts, or Git history.
-- Preserve an ordinary accepted-legacy reader through a renamed helper, alternate alias, new parser module, or hidden fallback. "Ordinary" here means canonical reconciliation, which decides dispatch, and the surfaces projected from it: CLI `explain`, CLI and MCP `blocked`, and `selected-membership`. The following other surfaces keep reading historical shapes as non-dispatchable input, unchanged: the `extract_initiatives` listings, the Type 1/2/3 scans, engine `explain_item`, prune, and Type 2 `repair-plan`/`repair-apply`.
+- Preserve an ordinary accepted-legacy reader through a renamed helper, alternate alias, new parser module, or hidden fallback. "Ordinary" here means canonical reconciliation, which decides dispatch, and the surfaces projected from it: CLI `explain`, CLI and MCP `blocked`, and `selected-membership`. The following other surfaces keep reading historical shapes as non-dispatchable input, unchanged: the `extract_initiatives` listings (including the information-only shaping lists), the Type 1/2/3 scans, engine `explain_item`, prune, and Type 2 `repair-plan`/`repair-apply`. Canonical reconciliation may decode a historical alias only to refuse: a canonical entry stays non-dispatchable while any historical entry that the retained decoder maps to the same artifact path survives anywhere in the workspace.
 - Add a new top-level directory, dependency, migration schema, or module boundary for this removal.
 - Treat a passing release clock, version bump, build, or spec approval as a substitute for the remaining RFC-0083 gates.
 

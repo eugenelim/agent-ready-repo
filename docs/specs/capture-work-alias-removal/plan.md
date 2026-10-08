@@ -54,13 +54,13 @@ Most construction tests live under **Tasks** below.
 
 ### Design decisions
 
-Ordinary reconciliation and explicit migration stop sharing one accepted-legacy result. The historical decoder may remain behind migration-plan, apply, recovery, and rollback seams, but `run_canonical_reconciliation` no longer returns accepted legacy memberships or uses legacy aliases in duplicate, cooling, dependency, or dispatch derivation. Removing all legacy decoding was rejected because it would also remove the reviewed recovery mechanism and contradict the preserved ledger and rollback boundary. Traces to: AC-0003–AC-0005. Owned by: T1.
+Ordinary reconciliation and explicit migration stop sharing one accepted-legacy result. The historical decoder may remain behind migration-plan, apply, recovery, and rollback seams, but `run_canonical_reconciliation` no longer returns accepted legacy memberships or lets a legacy alias create a membership, cooling, satisfied dependency, or dispatch. A surviving alias may only refuse dispatch of its canonical twin (owner decision, 2026-10-08; implemented by T7). Removing all legacy decoding was rejected because it would also remove the reviewed recovery mechanism and contradict the preserved ledger and rollback boundary. Traces to: AC-0003–AC-0005. Owned by: T1.
 
 The `capture-work` skill directory, pack registration, activation evals, alias-equivalence behavior case, and alias-only router branch leave together. Historical prose filenames and fixture identifiers are not renamed merely to reach zero textual matches; the current-surface audit classifies each surviving match by role. Traces to: AC-0001, AC-0002, AC-0007, AC-0008. Owned by: T2, T3.
 
 ### Interfaces & contracts
 
-The published Core skill inventory contains `work-intake` and no `capture-work` entry. Ordinary workspace status accepts only canonical target entries as lifecycle memberships. Only explicit repair commands (migration, prune, Type 2 repair) and the unchanged status-analysis layer (`extract_initiatives` listings, Type 1/2/3 scans, engine `explain_item`) decode the historical shapes defined by RFC-0083, and none of them dispatches. No new API contract, compatibility alias, fallback command, or result schema is introduced. Traces to: AC-0001–AC-0005. Owned by: T1, T2.
+The published Core skill inventory contains `work-intake` and no `capture-work` entry. Ordinary workspace status accepts only canonical target entries as lifecycle memberships. Only explicit repair commands (migration, prune, Type 2 repair) and the unchanged status-analysis layer (`extract_initiatives` listings, Type 1/2/3 scans, engine `explain_item`) decode the historical shapes defined by RFC-0083, and none of them dispatches. Canonical reconciliation decodes an alias only to refuse dispatch of its canonical twin (T7). No new API contract, compatibility alias, fallback command, or result schema is introduced. Traces to: AC-0001–AC-0005. Owned by: T1, T2.
 
 ### Component / module decomposition
 
@@ -250,9 +250,53 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 
 **Done when:** The current-surface audit has no instructional alias use or installed-compatibility claim; the AC-0007 hand-rewrite audit has no match that starts a new migration from a legacy finding; the product-engineering redirects, the work-loop sentence and its eval case, the migration guide and `mutate.md` edits, and the `workspace.toml` header comment are in place; and every guide, journey, site, and link check is green.
 
+### T7: Review corrections keep dispatch fail-closed and restore lost test coverage
+
+**Depends on:** T1, T2
+
+**Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`, `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/**`, `tests/roster/test_cooling_scope_closure.py`, `tests/roster/test_workspace_status_progressive_disclosure.py`, `tests/roster/test_status_projection_and_context_exclusion.py`, `tests/roster/test_selection_scoped_membership_absence.py`, `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `packs/core/.apm/skills/workspace-status/evals/**`
+
+**Review shape:** DEEP but localized: one refusal guard and test restorations.
+
+**Grounding:** Implementation review round 1 (ledger section "Implementation review — round 1") and the owner's alias-refusal decision recorded there. The owner reversed the shaping-listing decision, so T1's status-analysis outcome stands unchanged.
+
+**Tests:**
+- Alias refusal: the guard maps each historical entry through the retained decoder's canonical-alias rule `_legacy_canonical_alias`, whose branches are: work-collection `spec/<slug>` strings and the five-key `type = "spec"` `[backlog].open` object map to `docs/specs/<slug>/spec.md`; brief path strings map to that brief path; shaping-queue `{slug, type}` objects of type `research` or `design` map to `docs/product/research/<slug>.md` or `docs/product/design/<slug>.md`. Shapes the decoder maps nowhere (for example a bare shaping slug or a top-level `{slug, type}` shaping object) never refuse. A canonical entry whose path matches a surviving alias stays non-dispatchable with a `duplicate_membership` finding on the canonical path and its existing next-action text. Cases: a `spec/alpha` alias in the same collection, in each other work collection, in another initiative, and as the five-key `[backlog].open` spec object; a brief path string beside a canonical brief entry; a shaping research or design object beside its canonical entry; a negative control where an unmapped shape does not refuse; and controls where the same workspace without the alias dispatches. The alias cases in `test_t2_legacy_aliases_do_not_participate_in_duplicate_detection` (`test_workspace_status_engine_autonomous.py`) flip to expect the refusal. The alias itself still reports `unsupported_legacy`, and no legacy membership, cooling, or satisfied dependency comes from it. Update `test_capture_work_removal.py` and any test that asserted no alias-derived duplicate.
+- A workspace-status eval case covers the alias refusal: the agent reports the canonical entry as blocked by the leftover alias and tells the user to delete the alias.
+- A security-reviewer pass over the refusal guard is recorded in the verification ledger, and its findings are resolved.
+- CLI `explain`: a canonical path under two initiatives returns exit 0, `selector_status: "ambiguous"`, and two `matches` with both `ini_slug` values; a matched canonical item asserts the documented `explained_item` keys; former-legacy `not_found` cases stay separate. `_canonical_explain` and `_explain_selector_targets` docstrings describe canonical-only resolution, and their dead `legacy_memberships`/`legacy_path` candidate matching is removed while the `spec/<slug>` selector spelling still maps to the canonical path.
+- Cooling realness: `assert_migration_fixture_is_real` also proves the cooled fixture's lifecycle record resolves the legacy artifact's locator in the status `cooling` projection.
+- Extractor positions: a test pins `extract_legacy_migration_memberships` `(ini_slug, collection, entry_index)` for every RFC-0083 section 10 shape across top-level and initiative collections, including multi-entry lists and the scalar `brief_queue.executing` form.
+- Focused-test hygiene: the duplicate AC-0003 matrix test either adds a shape the stub lacks or is removed (the stub stays byte-identical), and the cooling test name matches what it asserts.
+- Refresh the backend-script SHA-256 pins and update every test file in Touches whose expectation the guard moves.
+- Record `no stub (implementation-discovered)`: review findings define these cases.
+
+**Done when:** Every bullet above holds, every test file in Touches passes, and `make lint-ruff lint-mypy` is green.
+
+### T8: Review corrections make current guidance match Core 3.0.0
+
+**Depends on:** T3, T7
+
+**Touches:** `guides/**/*.md`, `docs/guides/**/*.md`, `docs/architecture/*.md`, `packs/core/README.md`, `packs/core/DESIGN.md`, `packs/core/JOURNEY.md`, `packs/core/.apm/skills/workspace-status/**/*.md`, `packs/core/.apm/skills/work-intake/**/*.md`, `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/work-loop/evals/**`, `packs/product-engineering/.apm/skills/frame-situation/SKILL.md`, `packs/product-engineering/.apm/skills/diverge-solutions/SKILL.md`, `workspace.toml`
+
+**Review shape:** WIDE prose reconciliation against the sustained experience and adversarial findings.
+
+**Grounding:** Implementation review round 1 adjudications under `.context/reviews/09925534-68c8-4cf6-894a-a085439b8d0f/impl/`.
+
+**Tests:**
+- Each sustained guidance finding is resolved: the session-start next-action row, the schema reference migration subsection and line 42, the shared explanation's compatibility-window section, the product-engineering frame-a-situation note, architecture flow 6 and lines 14 and 80, the hand-rewrite pointer to the schema Target Entry, Lifecycle Membership, and Legacy Forms sections, JOURNEY lines 18 and 72, the recovery page's duplicated procedure, the README "compatibility forms" phrase, and the schema findings-table columns.
+- The recovery guide and `references/mutate.md` tell users to recover with the operation ID recorded in `.workspace-migrations.json`, and do not present a re-derived plan's ID as usable for an operation planned under an earlier Core version.
+- Guidance that says former legacy entries never dispatch also states that old shaping entries still appear in the information-only shaping lists until rewritten. This includes `work-loop/SKILL.md` (whose Step 0 eval case is updated with it) and the product-engineering `frame-situation` and `diverge-solutions` skills, whose content change rides T4's product-engineering patch release.
+- The hand-rewrite instruction says to replace the legacy entry in the same edit, because a canonical entry is refused dispatch while its old alias survives. The schema findings table documents that `duplicate_membership` cause and its action.
+- No work-intake eval expectation moves: T8 changes only explanatory prose there; workspace-status eval coverage for the changed behavior lives in T7.
+- Re-run the T3 audits (AC-0007 `capture-work`, AC-0008 installed-compatibility, AC-0007 hand-rewrite) with search terms widened to `compatibility window`, `reviewed route selection`, `migration planner`, and `supported legacy`; every match is fixed or classified historical, recovery-only, or hand-rewrite.
+- Record `no stub (mode)`: content and link gates verify prose.
+
+**Done when:** Every bullet above holds, and the guide, guide-index, journey, and documentation-link checks are green.
+
 ### T4: Core 3.0.0 and the synchronized AgentBundle runtime are release-ready
 
-**Depends on:** T1, T2, T3
+**Depends on:** T1, T2, T3, T7, T8
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `tools/check-core-release.py`, `tools/test_check_core_release.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`, `packages/agentbundle/tests/**`, `web/src/content/journeys/core.md`, `packs/product-engineering/pack.toml`, `packs/product-engineering/.claude-plugin/plugin.json`, `packs/{code-intelligence,governance-extras,iac-terraform,monorepo-extras,release-engineering}/pack.toml`, `packs/{code-intelligence,governance-extras,iac-terraform,monorepo-extras,release-engineering}/.claude-plugin/plugin.json`, `tests/roster/test_shipped_pack_manifests.py`, `packs/governance-extras/tests/skills/new-rfc/test_project_knowledge_handoff.py`, `packs/code-intelligence/tests/pack/test_manifest.py`, `packs/monorepo-extras/README.md`, `profiles/full-ceremony.toml`, generated self-host projections and marketplace metadata
 
@@ -272,6 +316,8 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - Change the `core` requirement in code-intelligence, governance-extras, iac-terraform, monorepo-extras, and release-engineering from `^2.0` to `^3.0`, bump each pack's two version owners to the same next patch version, and record each in the changelog. `agentbundle catalogue verify --root .` reports no `CAT-V-007` against Core 3.0.0.
 - Update the pins of those values: `tests/roster/test_shipped_pack_manifests.py` and `packs/governance-extras/tests/skills/new-rfc/test_project_knowledge_handoff.py` expect `^3.0`; `packs/code-intelligence/tests/pack/test_manifest.py` expects code-intelligence's new patch version in both manifests; `packs/monorepo-extras/README.md` and the `profiles/full-ceremony.toml` comments state `^3.0`. All three test files pass.
 - In `packages/agentbundle/tests/test_workspace_mcp_tools.py`, the MCP `workspace_status` result for a former legacy entry carries an `unsupported_legacy` finding, is absent from `ready` and `blocked`, and leaves the `legacy_memberships` key present and empty; `workspace_mcp.py` is unchanged.
+- In `packages/agentbundle/tests/test_workspace_mcp_tools.py`, after the package-data resync, a canonical entry with a surviving historical alias appears in MCP `blocked` with a `duplicate_membership` finding and not in `ready`.
+- The Core 3.0.0 Highlights are outcome-led bullets: send intake to `work-intake`, rewrite an `unsupported_legacy` entry by hand, and use `repair-plan --migration-selection`, `repair-apply`, and `repair-rollback` only to recover or roll back an operation already in the migration ledger. The agentbundle Highlight uses plain words without the RFC number.
 - Bump product-engineering's two version owners to the same next patch version and record it in the changelog, because T3 changes its shipped guidance.
 - Record `no stub (mode)`: version, changelog, build, and projection properties are goal-based.
 
@@ -340,3 +386,5 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - 2026-10-07: owner approved the bounded T1 amendment for explicit migration consumers and retained rollback verification.
 - 2026-10-08: amended spec approved by owner
 - 2026-10-08: amended plan approved by owner
+- 2026-10-08: second amended spec approved by owner
+- 2026-10-08: second amended plan approved by owner

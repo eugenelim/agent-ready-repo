@@ -446,3 +446,75 @@ the same amendment for the owner's spec/plan re-approval.
   2718 passed, 6 skipped, 29 min. `lint-web-journey-parity.py` fails on the
   generated `web/src/content/journeys/core.md`, which T4 regenerates; the site
   build and rendered-link checks also run in T4.
+
+### T4
+
+- An implementer set Core to 3.0.0 and added the release checker's `--kind
+  major` mode (5 new tests). It moved the five dependent packs to `^3.0` in
+  patch releases (code-intelligence 0.1.4, governance-extras 1.0.1,
+  iac-terraform 0.1.12, monorepo-extras 0.1.10, release-engineering 0.1.11),
+  set product-engineering to 0.13.23, wrote the changelog entries, synced the
+  package data, and regenerated projections and web journeys.
+- Controller corrections: AgentBundle went to 0.52.0, not 0.51.1, because the
+  package follows pre-1.0 semver and the MCP `workspace_status` output change
+  is breaking; the package changelog gained its entry. The Core 3.0.0
+  Highlight's nonexistent `workspace-status migrate` was corrected. The
+  `legacy_entry` finding-table rows were restored as migration-only, and the
+  work-loop Step-0 contract pin was refreshed after review.
+- The owner authorized local commits on 2026-10-08. Candidate commits on
+  `feat/capture-work-alias-removal-core3`: `5c7322ff2`, `068a6555f`,
+  `aa4054013`, and the projection regeneration after them; `make build-self`
+  ran without force on the clean tree.
+- Results: `check-core-release.py --kind major` passes and the default patch
+  mode refuses 3.0.0. `catalogue self-host --check` and `catalogue verify`
+  pass. `catalogue lint --deep` reports 75 warnings and no errors.
+  `lint-web-journey-parity.py` passes. The pin, prune, projection, and release
+  test files ran 133 passed. The 0.52.0 wheel's engine and prune modules are
+  byte-identical to the Core sources. `make lint-ruff lint-mypy` passes.
+
+### Implementation review — round 1 (2026-10-08)
+
+- Reports and adjudications are under `.context/reviews/09925534-68c8-4cf6-894a-a085439b8d0f/impl/`.
+  Sustained: experience 1 Blocker, 4 Concerns, 7 Nits; adversarial 1 Blocker,
+  1 Concern, 2 Nits, plus 1 indeterminate (the cooling realness check), which
+  the base-revision helper settles; quality 2 Concerns, 3 Nits. Security: clean
+  after adjudication; its finding was refuted against the approved plan.
+- Owner decisions, 2026-10-08 (controlled amendment):
+  1. Legacy shaping entries are no longer listed: the shaping parsers reject
+     historical shapes, so `shaping.*`, `top_level_backlog`, and the MCP
+     shaping list hold only canonical-era content. Closeout still counts the
+     leftover entry as residue. (The adversarial adjudication refuted the
+     dispatch risk, because MCP documents `shaping[]` as informational; the
+     owner's choice stands on clarity.)
+  2. Canonical reconciliation refuses dispatch of a canonical entry while a
+     historical alias for the same artifact survives anywhere in the
+     workspace. The alias is decoded only to refuse, never to admit.
+- Tooling defect: the first `contract-amendment` call (no evidence refs)
+  prepared its `pending_transition` marker and then failed, because T1–T3
+  were complete without evidence bindings. Replay of that exact call can never
+  succeed, and corrected calls conflict with the marker. With owner
+  authorization on 2026-10-08, the controller cleared only that marker from
+  `state.json`, after checking that its `transition_id` (`b96cc7f7…`),
+  sequence (31), event, and empty evidence matched. No other field changed, and
+  `loop-cohort identity` passes. The defect (prepare before validate) is for
+  the work-loop maintainers.
+- Amendment (sequence 32): the spec's Never-do line records both owner
+  decisions. The plan adds T7 (code and test corrections) and T8 (guidance
+  corrections) before T4, and T4's Highlights bullet takes the changelog
+  findings. T1–T3 stay complete, with evidence bound to their ledger sections.
+- Amendment review (sequence 33) sustained gaps that came from the shaping
+  decision. Emptying the shaping lists would also disable the work-loop
+  shaping guard and change `shape:`/`research:` need resolution, because those
+  lists only ever held legacy entries. The owner reversed that decision on
+  2026-10-08: the shaping lists, guard, and need resolution stay as at HEAD,
+  and guidance says old shaping entries still appear in the information-only
+  lists. The alias-refusal clause is now scoped to the decoder's alias
+  mapping, and T7, T8, and T4 are revised for the review's other findings.
+- Round 11 (`11-pre-execute-adversarial-reviewer-raw.md`, 9 findings) was not adjudicated: the owner's reversal of the shaping decision answers Blockers 1 and 2 and Concern 3, and the revision applies the rest directly. Round 12 reviews the result and will be adjudicated.
+- Round 12: adjudication sustained 2 Blockers and 1 Nit and refuted 1 (the request for a separate AC). Applied: T7's alias mapping lists the decoder's four branches with matching cases and a negative control; T8 Touches add the work-loop skill and eval and the two product-engineering skills. `findings-remain` fired at sequence 36.
+  The saved round 12 adjudication is a condensed copy, so `review inspect` classifies it `invalid (sustained-line-shape)`. Its decisions match the adjudicator's report.
+- Round 13 (`13-pre-execute-adversarial-reviewer-raw.md`): Nits only, both
+  deferred unacted. Nit 1 (`plan.md:57`, `:63` `Owned by` omits T7) is in
+  working-material Design text that names T7 in its prose. Nit 2 (`plan.md:258`,
+  T7 Touches omits the ledger): the controller, not the implementer, writes
+  ledger evidence for every task, as for T1–T4.
