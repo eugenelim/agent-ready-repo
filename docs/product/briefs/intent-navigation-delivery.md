@@ -4,7 +4,7 @@
 - **Received:** 2026-10-08
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Draft
-- **Slices confirmed:** 2026-10-08 by eugenelim, lifecycle owner: slices 1 to 6, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change.
+- **Slices confirmed:** 2026-10-08 by eugenelim, lifecycle owner: slices 1 to 7, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0002-intent-graph-navigation.md`](../intents/FEAT-0002-intent-graph-navigation.md), re-decomposed to this brief by the owner on 2026-10-08.
 - **Parent intent:** intent:intent-graph-navigation
 
@@ -106,6 +106,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `intent-navigation-export` | <auto> |
 | `graph-well-formed-authoring` | <auto> |
 | `lint-traceability-intent-parity` | <auto> |
+| `typed-discovery-pointers` | <auto> |
 
 ## Governance references (optional)
 
