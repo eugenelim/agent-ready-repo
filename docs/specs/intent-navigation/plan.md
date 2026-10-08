@@ -102,17 +102,17 @@ Owned by: T4
 
 **Depends on:** none
 
-**Touches:** `packs/core/tests/skills/navigate-intents/`
+**Touches:** `packs/core/tests/skills/navigate-intents/`, `docs/specs/intent-navigation/spec.md` (`Status:` to `Implementing`), `docs/product/briefs/intent-navigation-delivery.md` (`Status:` from `Ready` to `Executing`, in the same commit as the spec's status move, because `lint-brief-coverage.py` refuses a `Ready` brief with an `Implementing` child), `workspace.toml` (in that same commit, the spec's entry moves from `["ini-010".work].queue` to `.active` and the brief's from `["ini-010".brief_queue].ready` to `.executing`, so status and membership move together)
 
 **Tests:**
-- `packs/core/tests/skills/navigate-intents/fixtures/` holds a `mixed/` corpus and one `negative/<case>/` corpus per AC-0007 state, per AC-0009 code, per AC-0064 resolver diagnostic, and per AC-0042 confinement case, plus a brief whose `Parent intent:` line sits inside a multi-line comment, and an intent with `Level: capability` and `Kind: outcome`.
+- `packs/core/tests/skills/navigate-intents/fixtures/` holds a `mixed/` corpus and one committed `negative/<case>/` corpus per AC-0007 state, per AC-0009 code other than `unsafe_input` and `input_too_large`, and per AC-0064 resolver diagnostic, plus a brief whose `Parent intent:` line sits inside a multi-line comment, and an intent with `Level: capability` and `Kind: outcome`. The five AC-0042 confinement cases and AC-0009's `unsafe_input` and `input_too_large` cases are not committed corpora; the next bullet says how they are built.
   - `mixed/` carries capability, feature, outcome, and opportunity intents; a tombstone with `Reissued as:`; briefs, including the seeded template; specs with typed, path, and markdown-link `Discovery:` values and with `Brief:`; statuses with text after the status word; `none` parents with and without a comment; and a cross-type slug collision.
   - Symlink, FIFO, hard-link, and swap cases, and the intent over 1,000,000 bytes, are built in a temporary directory at test time, not committed.
   - Repair fixtures: a brief whose `Parent intent:` mixes one accepted value with malformed ones (AC-0064), and a value matching no recognized shape (AC-0071's `unrecognized`).
   - Every corpus carries `expected-outstanding.json`, a hand-written list of its non-terminal artifacts.
 - `test_derivation_contract.py`, `test_query_contract.py`, `test_text_tree.py`, and `test_outstanding.py` load modules by path under names prefixed `core_navigate_intents_`, and every test fails because the modules are absent.
 
-**Done when:** the four test files collect and fail on import of the absent modules, and nothing else fails.
+**Done when:** the four test files collect and fail on import of the absent modules, nothing else fails, and `python3 packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py --root .` passes with the spec at `Implementing` and the brief at `Executing`, and `python3 -m pytest tests/roster/test_workspace_status_projection.py -q -k test_no_fail_closed_lifecycle_findings` passes over the real `workspace.toml`.
 
 ### T2: The shared derivation resolves every admitted pointer field-scoped and kind-checked
 
@@ -159,22 +159,23 @@ Owned by: T4
 
 **Depends on:** T3, T4
 
-**Touches:** `packs/core/.apm/skills/navigate-intents/SKILL.md` (activation wording), `packs/core/.apm/skills/navigate-intents/evals/eval_queries.json`, `packs/core/pack.toml`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`, `Makefile`, `tools/lint-ci-parity.py`, `tools/repo/build_gate_chain.py`, `tools/test_build_gate_chain.py`, `.claude/skills/navigate-intents/`, `.agents/skills/navigate-intents/`, `docs/specs/intent-navigation/notes/verification-ledger.md`
+**Touches:** `packs/core/.apm/skills/navigate-intents/SKILL.md` (activation wording), `packs/core/.apm/skills/navigate-intents/evals/eval_queries.json`, `packs/core/pack.toml`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`, `Makefile`, `tools/lint-ci-parity.py`, `tools/repo/build_gate_chain.py`, `tools/test_build_gate_chain.py`, `tools/test_local_ci_shared_test_deduplication.py`, `.claude/skills/navigate-intents/`, `.agents/skills/navigate-intents/`, `docs/specs/intent-navigation/notes/verification-ledger.md`
 
 **Tests:**
 - `eval_queries.json` carries AC-0033's positives and AC-0034's near-misses; `[pack.evals].skills` lists `navigate-intents`; `agentbundle catalogue lint --root . --deep` passes its eval-shape check.
 - A dispatched `pack-evals` run records each prompt's trigger rate in the ledger.
 - `tests/roster/test_skill_census.py` and `tools/test_build_gate_chain.py` pass, and the build gate chain runs `tools/test_check_closure_terminality_parity.py`.
+- The new `Makefile` suite line changes the recipe that `tools/test_local_ci_shared_test_deduplication.py` pins, so both `APPROVED_STANDALONE_PLAN_DIGEST` and `APPROVED_COMPOSED_PLAN_DIGEST` are re-pinned with a note in the file's established form naming the added line as the sole cause and the prior pins as current before it; `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py -q` passes.
 - `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' packs/core/.apm/skills/navigate-intents/`, the canonical pattern from `packs/AGENTS.local.md`, returns no match, so ADR and RFC near-miss prompts use unnumbered wording.
 - `agentbundle catalogue self-host --root . --write`, then `agentbundle catalogue verify --root .` passes.
 
-**Done when:** the listed tests and `catalogue verify` pass, and the ledger holds the activation run.
+**Done when:** the listed tests, including `tools/test_local_ci_shared_test_deduplication.py`, and `catalogue verify` pass, and the ledger holds the activation run.
 
 ### T6: Orientation, architecture, and pack documentation match the capability
 
 **Depends on:** T5
 
-**Touches:** `docs/specs/intent-navigation/notes/verification-ledger.md` (the post-dispatch record), `guides/core/how-to/navigate-intents.md`, `guides/core/how-to/orient-at-session-start.md`, `guides/core/README.md`, `packs/core/README.md`, `packs/core/docs/index.md`, `packs/core/JOURNEY.md`, `packs/core/DESIGN.md`
+**Touches:** `docs/specs/intent-navigation/notes/verification-ledger.md` (the post-dispatch record), `guides/core/how-to/navigate-intents.md`, `guides/core/how-to/orient-at-session-start.md`, `guides/core/README.md`, `packs/core/README.md`, `packs/core/docs/index.md`, `packs/core/JOURNEY.md`, `packs/core/DESIGN.md`, `web/src/content/journeys/core.md` (regenerated by `tools/build-site.py --journeys-only`, never hand-edited)
 
 **Tests:**
 - `tools/lint-guide-titles.py`, `tools/validate_guides.py`, and `tools/lint-guides-no-repo-only-refs.py` pass.
@@ -198,3 +199,6 @@ Owned by: T4
 
 - 2026-10-08: spec approved by eugenelim
 - 2026-10-08: plan approved by eugenelim
+- 2026-10-08: revised before execution, with owner approval, from a sustained pre-EXECUTE review: T5 owns the command-plan digest re-pin in `tools/test_local_ci_shared_test_deduplication.py`; T1 moves the brief to `Executing` with the spec's move to `Implementing`, moves both `workspace.toml` memberships in the same commit, and states which negative cases are committed and which are built at test time; T6 owns the regenerated `web/src/content/journeys/core.md`.
+- 2026-10-08: spec re-approved by eugenelim after the pre-EXECUTE revision
+- 2026-10-08: plan re-approved by eugenelim after the pre-EXECUTE revision
