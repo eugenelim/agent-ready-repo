@@ -1,7 +1,7 @@
 # Plan: Code-intelligence golden composition example
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/code-intelligence/.apm/skills/code-intelligence/SKILL.md`; `references/capability-map.md`; `references/evidence.md`; `references/gaps.md`; `references/investigation-patterns.md`; `scripts/estate_preflight.py`; `packs/code-intelligence/tests/`; `packs/code-intelligence/README.md`; `packs/AGENTS.md#version-bump-rule`; `packs/AGENTS.local.md#marketplace-and-release-pipeline`; `packs/core/.apm/skills/repository-exploration/SKILL.md` (the Core inquiry owner this example composes with); `docs/specs/optional-intelligence-exploration-composition/plan.md` T2 (the analogous behavior-evaluation protocol); `tools/lint-pack-test-boundary.py` check 8 (pack tests read only their own pack).
 
 > **Plan contract:** this is the implementation strategy. It may change

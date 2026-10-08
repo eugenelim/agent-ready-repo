@@ -1,6 +1,6 @@
 # Spec: Code-intelligence golden composition example
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079 and RFC-0104
@@ -116,40 +116,40 @@ may inspect only their own pack.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The task-fit path is complete: the worked example starts from a
+- [x] **AC-0001.** The task-fit path is complete: the worked example starts from a
   repository question, selects a current Wicked Estate capability by meaning,
   shows its exact native invocation, and carries the provider's material
   evidence limits into the answer.
-- [ ] **AC-0002.** The fallback path is complete: the same example shows absence
+- [x] **AC-0002.** The fallback path is complete: the same example shows absence
   or poor fit, labels repository search or source inspection as a different
   evidence class, and still reaches the Core-owned acceptance question without
   provider setup.
-- [ ] **AC-0003.** Ownership is explicit: the example separately labels Core-owned
+- [x] **AC-0003.** Ownership is explicit: the example separately labels Core-owned
   question, fallback, attribution, authority, and verification rules and
   pack-owned prerequisites, commands, mapping, fields, gaps, and patterns.
-- [ ] **AC-0004.** Native details remain canonical: the example links to the
+- [x] **AC-0004.** Native details remain canonical: the example links to the
   existing capability map, evidence guide, gaps assessment, preflight, and
   investigation-pattern reference rather than creating a second normative copy
   of their details.
-- [ ] **AC-0005.** Provider tests remain pack-local: assertions about Wicked Estate
+- [x] **AC-0005.** Provider tests remain pack-local: assertions about Wicked Estate
   versions, commands, index state, output vocabulary, and preflight live under
   `packs/code-intelligence/tests/` and do not enter Core tests.
-- [ ] **AC-0006.** The reusable outcome stays provider-neutral: the outcome-level
+- [x] **AC-0006.** The reusable outcome stays provider-neutral: the outcome-level
   evaluation names no Wicked Estate command, field, transport, or graph shape
   as a condition for answering the Core inquiry.
-- [ ] **AC-0007.** The pack remains standalone: the `code-intelligence` pack builds
+- [x] **AC-0007.** The pack remains standalone: the `code-intelligence` pack builds
   and its existing skill, agents, preflight, and investigation paths pass
   without FEAT-0029 or FEAT-0030 being delivered.
-- [ ] **AC-0008.** The example is nonnormative: the skill and README state that
+- [x] **AC-0008.** The example is nonnormative: the skill and README state that
   other providers may expose fewer, different, or new capabilities and need not
   emulate Wicked Estate.
-- [ ] **AC-0009.** The pattern set stays open: tests reject language that calls the
+- [x] **AC-0009.** The pattern set stays open: tests reject language that calls the
   five current investigation patterns complete, exhaustive, required, or the
   provider-neutral contract.
-- [ ] **AC-0010.** Absence changes no Core dependency: Core manifests, runtime
+- [x] **AC-0010.** Absence changes no Core dependency: Core manifests, runtime
   dependencies, installation behavior, and baseline acceptance tests remain
   free of the code-intelligence pack and Wicked Estate.
-- [ ] **AC-0011.** The target code-intelligence version is derived from the
+- [x] **AC-0011.** The target code-intelligence version is derived from the
   approved-baseline versions and `packs/AGENTS.md#version-bump-rule`;
   `packs/code-intelligence/pack.toml`,
   `packs/code-intelligence/.claude-plugin/plugin.json`, and the regenerated
@@ -157,7 +157,7 @@ may inspect only their own pack.
   code-intelligence entry in `docs/product/changelog.md` includes outcome-led
   `Highlights` when the verified diff changes what consumers can do, or the PR
   records the required explicit no-`Highlights` reason.
-- [ ] **AC-0012.** New or changed provider-evidence-bearing content in worked
+- [x] **AC-0012.** New or changed provider-evidence-bearing content in worked
   examples, evaluation fixtures, verification records, and authored release
   prose retains only synthetic, public, or task-minimized provider evidence and
   treats provider output as untrusted data; it excludes credentials, protected

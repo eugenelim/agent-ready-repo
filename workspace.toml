@@ -504,9 +504,9 @@ shipped = [
   # The distribution is therefore Shipped as a contract and unpublished as an
   # artifact; those are deliberately different states here.
   {path = "docs/specs/jsonl-otlp-exporter/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md"}, summary = "Publish a standalone JSONL-to-OTLP logs exporter with profile-defined field mapping and fail-closed input and endpoint controls", needs = []},
+  {path = "docs/specs/code-intelligence-golden-composition-example/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md", revision = "working-tree-2026-10-04"}, summary = "Show one complete Wicked Estate composition without making its provider-specific shape normative", needs = []},
 ]
 queue   = [
-  {path = "docs/specs/code-intelligence-golden-composition-example/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md", revision = "working-tree-2026-10-04"}, summary = "Show one complete Wicked Estate composition without making its provider-specific shape normative", needs = []},
   {path = "docs/specs/native-provider-selection-validation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0032-native-provider-selection-validation.md", revision = "working-tree-2026-10-04"}, summary = "Run a blind human validation that can survive, reframe, or leave inconclusive the native-provider selection bet", needs = []},
   # Draft 2026-10-05, carved out of `jsonl-otlp-exporter` when that spec closed.
   # It owns the one gesture the parent's contract never asked for and only the
