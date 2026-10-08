@@ -2195,8 +2195,15 @@ open = [
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
+  # Confirmed delivery slices of docs/product/briefs/intent-navigation-delivery.md, registered as Draft
+  # specs in the only initiative-free collection that admits them; the brief's Spec map owns the set.
+  { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
+  { path = "docs/specs/lint-traceability-intent-parity/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "lint-traceability classifies intent ladder kinds from the preamble only, with a parity check against the navigator", needs = [] },
+  { path = "docs/specs/close-work-intent-graph-convergence/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "close-work takes intent and brief parent edges from the shared intent derivation", needs = [] },
+  { path = "docs/specs/related-intents-field/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "The Related intents: intent field, its validation, and its display in the query and tree", needs = [] },
+  { path = "docs/specs/intent-navigation-export/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "The offline HTML view of the intent graph, and publication of navigate-intents", needs = [] },
+  { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
-  { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
   # Delivery-system coexistence — CAP-0004's family. The capability and its
   # three feature intents are Accepted and their three briefs are Ready, so all
@@ -2366,7 +2373,9 @@ executing = [
 # this entry is non-dispatchable. `needs` is empty deliberately -- slice 1 takes
 # no blocking edge on the supersession work handed to
 # `intent-identity-and-registration`; it consumes whichever form has landed.
-ready = []
+ready = [
+  { path = "docs/product/briefs/intent-navigation-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0002-intent-graph-navigation.md" }, summary = "See every intent and its artifact-backed outstanding work from preamble headers: navigate-intents, close-work convergence, the Related intents field, the offline view, well-formed graph pointers, and lint parity", needs = [] },
+]
 draft = []
 # Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
 # the brief's `Status: Shipped` and `Cut-closed:` record.
@@ -2410,6 +2419,8 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
+  # Slice 1 of `intent-navigation-delivery`, Approved 2026-10-08; it builds on `feature/intent-navigation`.
+  { path = "docs/specs/intent-navigation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Navigator core: header-derived intent graph, bounded query, text tree, and outstanding-work view", needs = [] },
 ]
 active  = [
 ]
