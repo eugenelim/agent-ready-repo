@@ -453,6 +453,10 @@ The review retry cap reached 5/5. The spec owner directed a one-time override on
 
 Round 9 re-ran the four composition cases that load `code-intelligence` — `composition-provider-fit`, `composition-provider-absent`, `composition-poor-fit`, and `composition-untrusted-output` — against the current text of the composition example and SKILL.md. All four passed. The grader reported `code-intelligence: 10/13 evals passed ⚠ 2 errored` for the final set (case 3 fails as before, pre-existing; cases 2 and 6 errored by design). No pack content changed in this repair.
 
+### (l) Review round 7
+
+Round-7 adversarial review raised one Nit: the final sentence of the introductory paragraph in `eval-runs.md` gave a false reason for not re-running the earlier cases — claiming those cases do not read the changed text, when in fact they do load SKILL.md and therefore ran against the older wording of the routing sentence. The sentence was replaced with a true reason: the round-4 repair changed the composition example's dynamic-dispatch limits text and reworded the question in SKILL.md's composition-example routing sentence; the earlier cases load SKILL.md, so their runs used the older wording of that one sentence, which only routes readers to the example and bears on none of their assertions; they do not read the composition example. Adjudicated and fixed under the spec owner's second one-time retry-cap override on 2026-10-07. No pack content changed.
+
 ## Acceptance-criteria evidence map
 
 | AC | Description (short) | Evidence |
