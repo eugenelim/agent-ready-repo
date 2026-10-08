@@ -61,3 +61,10 @@ own references.
   `capability-map.md`, `gaps.md`, `evidence.md`, `investigation-patterns.md`, `SKILL.md`, the four guides, and four
   test modules — and found one further stale sentence (`gaps.md`, MCP `TraverseGraph` "adds" per-node depth), fixed.
 - With the binary first on `PATH`: 190 passed, 0 skipped, in 30.6 s. Guide scanners exit 0. Lint pass.
+
+## Review round 2 fixes
+
+- Two adversarial concerns sustained: the `source` precedence clause claimed a text-mode pin no test holds (relabelled
+  source-read), and the `traverse` step claimed the same direct set as `blast-radius --depth 1` (rewritten: `traverse`
+  takes one exact symbol and keeps file and import-transit nodes that `blast-radius` filters, source-read). The docs
+  reviewer's one round-2 finding was refuted. Pack suites 190 passed with the binary first on `PATH`.

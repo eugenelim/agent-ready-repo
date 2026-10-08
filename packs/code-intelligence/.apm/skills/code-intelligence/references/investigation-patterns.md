@@ -111,8 +111,11 @@ this work".
 
    That gives the direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
 
-   `wicked-estate traverse <name> --direction dependents --depth 1 --json`
-   also gives the direct set with per-node depth in the `depths` field.
+   `wicked-estate traverse <id> --direction dependents --depth 1 --json` walks
+   one exact symbol and reports per-node depth in `depths`. It is not the same
+   set as `blast-radius --depth 1`: it refuses an ambiguous name, and it keeps
+   the file and import-transit nodes that `blast-radius` filters out
+   (source-read). Use it when you need the raw neighbourhood of one symbol.
 
 5. **Select the important paths from the list.** A hundred-row list pasted back
    is not impact analysis. Five paths read properly is.
