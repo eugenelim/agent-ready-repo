@@ -274,7 +274,7 @@ Grading command: `agentbundle pack evals run --pack code-intelligence --mode in-
 
 Final tally: `code-intelligence: 10/13 evals passed ⚠ 2 errored`.
 
-- **10 passed:** the four composition cases that load `code-intelligence` and cases `1`, `4`, and `7` (round 7); case `5` (counted from its round-8 pass — branch record is one fail and one pass, with one `origin/main` pass, which cannot separate run-to-run variation from a regression); `composition-core-only` (round 2); `cognitive-load-output-quality` (round 3). Each is graded from its run's evidence record or handoff in `eval-runs.md`.
+- **10 passed:** the four composition cases that load `code-intelligence` (round 9); cases `1`, `4`, and `7` (round 7); case `5` (counted from its round-8 pass — branch record is one fail and one pass, with one `origin/main` pass, which cannot separate run-to-run variation from a regression); `composition-core-only` (round 2); `cognitive-load-output-quality` (round 3). Each is graded from its run's evidence record or handoff in `eval-runs.md`.
 - **1 failed, pre-existing:** case `3` fails its observed/interpretation-labels assertion. The same case run against the `origin/main` skill fails the same way: it supplies no files, so an honest run declines to map an empty workspace. This delivery does not change the case or the skill text it exercises.
 - **2 errored by design:** cases `2` and `6` were not re-run. Their prompts supply no provider output, and their prompts, fixtures, and skill paths are unchanged.
 - **Not re-run after the supplied-output sentence:** `composition-core-only` (loads neither `code-intelligence` nor the example) and `cognitive-load-output-quality` (supplies no provider output; last run round 3).
@@ -445,22 +445,30 @@ Neither (a) nor (b) is required by the accepted spec or shows an incorrect state
 
 Round-4 security review was clean. Round 5 did not re-run security review because the round-4 repair touched no security-relevant text.
 
+### (k) Review round 6 and round 9 evaluations
+
+The round-6 post-gates adversarial review raised one sustained finding: the eval record claimed its graded composition runs used the shipped example, but commit 3882774f8 (the round-4 review repair) had since changed the example's shared-limits dynamic-dispatch bullet and the SKILL.md question wording, so the round-7 composition-case records were graded against an earlier text.
+
+The review retry cap reached 5/5. The spec owner directed a one-time override on 2026-10-07 to run this records-only repair: eval-runs.md and verification-ledger.md are updated; no pack content changes.
+
+Round 9 re-ran the four composition cases that load `code-intelligence` — `composition-provider-fit`, `composition-provider-absent`, `composition-poor-fit`, and `composition-untrusted-output` — against the current text of the composition example and SKILL.md. All four passed. The grader reported `code-intelligence: 10/13 evals passed ⚠ 2 errored` for the final set (case 3 fails as before, pre-existing; cases 2 and 6 errored by design). No pack content changed in this repair.
+
 ## Acceptance-criteria evidence map
 
 | AC | Description (short) | Evidence |
 | --- | --- | --- |
-| AC-0001 | Task-fit path complete | `composition-provider-fit` round 7 (all 7 assertions pass); `test_example_walks_the_provider_fit_path` |
-| AC-0002 | Fallback path complete | `composition-provider-absent`, `composition-poor-fit` (all assertions pass); `test_example_walks_the_fallback_paths` |
+| AC-0001 | Task-fit path complete | `composition-provider-fit` round 9 (all 7 assertions pass); `test_example_walks_the_provider_fit_path` |
+| AC-0002 | Fallback path complete | `composition-provider-absent`, `composition-poor-fit` (all assertions pass, round 9); `test_example_walks_the_fallback_paths` |
 | AC-0003 | Ownership explicit | Cold-read audit updated for round-3 repairs (this ledger: 101 sentences, 0 ambiguous); `test_example_labels_every_owner`; `test_core_owned_rules_name_no_provider_detail` |
 | AC-0004 | Native details canonical | `test_example_links_canonical_references`; `test_example_copies_no_canonical_detail` |
 | AC-0005 | Provider tests pack-local | Core-boundary scan (invocation grep empty); `lint-pack-test-boundary` pass; `test_composition_cases_are_pinned` |
-| AC-0006 | Reusable outcome provider-neutral | `composition-core-only` pass; `composition-provider-absent` pass; `test_core_owned_rules_name_no_provider_detail`; `test_core_only_case_names_no_provider` |
+| AC-0006 | Reusable outcome provider-neutral | `composition-core-only` pass (round 2); `composition-provider-absent` pass (round 9); `test_core_owned_rules_name_no_provider_detail`; `test_core_only_case_names_no_provider` |
 | AC-0007 | Pack remains standalone | `test_estate_cli_contract.py` ran (not skipped) — 33 tests passed in that module alone; the 58-count covers the whole `tests/skills/code-intelligence/` directory; `agentbundle catalogue verify` ok; `test_composition_cases_are_pinned` (existing cases unchanged) |
 | AC-0008 | Example nonnormative | `test_skill_and_readme_route_to_the_example`; guide checks pass; governance-citation grep zero hits in shipped content |
 | AC-0009 | Pattern set stays open | `test_investigation_patterns_stay_open` |
 | AC-0010 | No Core reverse dependency | Core-boundary scan clean; `git diff origin/main --stat -- packs/core` empty; `composition-core-only` pass |
 | AC-0011 | Release pipeline | Release record (this ledger): 0.1.3 baseline, patch derivation, three surfaces all 0.1.4, marketplace diff limited to `version`, Highlights written |
-| AC-0012 | Minimized retained evidence | Diff-scoped artifact review redone against final artifacts (this ledger: all exclusion classes clean, deliberate synthetic values noted); `test_example_retains_only_synthetic_evidence`; `test_composition_fixtures_retain_only_synthetic_evidence` |
+| AC-0012 | Minimized retained evidence | Diff-scoped artifact review redone against final artifacts (this ledger: all exclusion classes clean, deliberate synthetic values noted); eval-runs.md records updated in round 9 with no new synthetic values; `test_example_retains_only_synthetic_evidence`; `test_composition_fixtures_retain_only_synthetic_evidence` |
 
 ## Validation-hook disposition
 
