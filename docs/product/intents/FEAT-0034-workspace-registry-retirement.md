@@ -8,7 +8,7 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:workspace-coordination-reorganization
 - **De-risked:** 2026-10-08
-- **Shaping-reviewed:** 2026-10-02
+- **Shaping-reviewed:** 2026-10-08
 - **Decomposed:** no
 
 ## Outcome
@@ -45,7 +45,7 @@ The feature must preserve the parent's two inherited constraints: any replacemen
 
 ## Unresolved questions
 
-- Which accepted artifact or external projection owns human priority and dependency choices after the registry retires.
+- Which accepted artifact or external projection owns human priority and dependency choices after the registry retires. If RFC-0106 is accepted, its D3 answers it: a dependency is `Depends on:` on the waiting item, and any human priority is a header field on the item.
 - Whether any external adopter depends on behavior not visible in tracked repository files.
 - Whether array order carries priority anywhere beyond the known index-based join and `next_queue` projection.
 - Which legacy records require a temporary compatibility seam, and what evidence closes it.
@@ -164,9 +164,9 @@ No kill line was crossed. Orientation needs no registry fact that the headers ca
 
 What travels into `decompose-intent`:
 
-- **C1 — A dependency edge lives on the item that waits.** Write each edge as a header field on the waiting artifact, naming its prerequisite by typed reference. One edit touches one file, and no shared list is needed. The field must be a named dependency field distinct from FEAT-0002's non-blocking `Related intents:`. The three intents that already carry `Depends on:` say their enforceable edge is the registry `needs` entry, and no script reads that field today. The spec names the field and its reader.
+- **C1 — A dependency edge lives on the item that waits.** Write each edge as a header field on the waiting artifact, naming its prerequisite by typed reference. One edit touches one file, and no shared list is needed. The field must be a named dependency field distinct from FEAT-0002's non-blocking `Related intents:`. RFC-0106 D3 proposes the name `Depends on:`, with comma-separated RFC-0103 typed references. The three intents that already carry `Depends on:` say their enforceable edge is the registry `needs` entry, and no script reads that field today. The spec names the field and its reader.
 - **C2 — A captured item gets its own file with a status line.** Give the 24 file-less items their own records first. Give the 49 file-backed items without a status line one, and move the 2 that point at a verification ledger to an item-specific record. The 3 edges that wait on file-less items move once those items have files.
-- **C3 — Order is decided, not migrated.** The first-in-list suggestion is either replaced by a deterministic rule over derived facts or removed. If the owner wants human priority recorded, it goes on each item as a header field, never as a list. Removing the suggestion needs RFC-0105 D3's deliberate-removal authority.
+- **C3 — Order is decided, not migrated.** The first-in-list suggestion is either replaced by a deterministic rule over derived facts or removed. If the owner wants human priority recorded, it goes on each item as a header field, never as a list. Removing the suggestion needs RFC-0105 D3's deliberate-removal authority, which RFC-0106 D3 proposes to supply.
 - **C4 — Derived status must read the leading status word.** The derived outstanding view must agree with the artifact's own status for the 59 specs with trailing text and the 16 written in another form. Settled 2026-10-08: the terminality reader now reads the leading word, and the 16 status lines use the standard form.
 - **C5 — Stop registration in the order the authority allows.** The headers can supply orientation now. Each registry writer that an accepted contract requires stays in place until that contract is amended. The owner findings below list those contracts.
 
@@ -174,7 +174,7 @@ What travels into `decompose-intent`:
 
 These conflict with accepted records or sit with another artifact, so they are recorded here and not acted on.
 
-- **ADR-0119 D4 says an intent's lifecycle state comes from the workspace record.** Derived orientation reads it from `Status:` instead, as RFC-0105 D3 and the `intent-navigation` spec do. In practice all 100 registered intents are Draft, and 36 Accepted intents are not registered. Stopping intent registration needs an amendment to D4 or a superseding record.
+- **ADR-0119 D4 says an intent's lifecycle state comes from the workspace record.** Derived orientation reads it from `Status:` instead, as RFC-0105 D3 and the `intent-navigation` spec do. In practice all 100 registered intents are Draft, and 36 Accepted intents are not registered. Stopping intent registration needs an amendment to D4 or a superseding record; RFC-0106 D1 proposes the partial supersession.
 - **RFC-0105 D3 names priority as workspace-only state, but no canonical source records it.** The registry and the skill both call list order non-semantic. The disposition record should say whether the first-in-list suggestion is kept somewhere or removed, and cite the authority.
 - **The derived outstanding view would have listed 75 shipped specs as outstanding.** Settled 2026-10-08 by the pre-work repairs under C4; the `intent-navigation` spec's AC-0058 reads the leading status word.
 - **Four accepted contracts still require registration.**
@@ -197,6 +197,15 @@ validation_hook:
   activity: to-validate. A staged trial run by the owner after navigate-intents ships, with the comparisons scaffolded by plan-validation. Not run. External adopters stay outside this trial and are covered by RFC-0105 D3's compatibility-closure gate.
 ```
 
+A second hook covers dispatch, which the 2026-10-08 de-risk did not test:
+
+```
+validation_hook:
+  assumption: Header-derived readiness (own Status:, sibling plan.md, Depends on: targets) admits exactly the specs that workspace-status's canonical reconciliation admits as ready or active today, apart from removals that are recorded and accepted.
+  kill_condition: Keep spec registration and its writers if replaying argless and named work-loop starts and resumes over a frozen corpus finds even one spec whose ready or active result differs from canonical.ready or canonical.active with no accepted removal entry, checked for each dispatch case under § RFC-0106 inputs. A spec admitted because the retired unregistered_work refusal no longer applies passes, as an accepted removal.
+  activity: to-validate. The dispatch specification's equivalence replay, run before the spec registration writer stops. Not run.
+```
+
 ### Registry comparison, owned here
 
 Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it measures the registry, not the navigator. The weekly comparison the validation hook names compares `navigate-intents`' `outstanding` result with every `workspace.toml` entry in a non-terminal collection, and classes each difference.
@@ -213,9 +222,22 @@ Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it m
 
 The specification this intent decomposes into owns the comparison's implementation and its run cadence.
 
+### RFC-0106 inputs, if it is accepted
+
+If [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) is accepted, its D1 table and D3 assign these to specifications this intent decomposes into, beyond C1 to C5. Its acceptance is the authority under RFC-0105 D3 for each change of accepted behaviour below.
+
+- **Dispatch and resume from headers.** `work-loop` and `workspace-status` treat a spec as ready from its own `Status:`, its sibling `plan.md`, and its `Depends on:` targets, and as active from its own `Status:`. The specification's behavioural-equivalence record reproduces, or records an accepted removal for, each case the canonical reconciliation handles today: a cross-repository dependency settled by its containing brief's coordination receipt; a local dependency on a pruned target settled by its completion receipt; a dependency on a defect; a cooled dependency; a brief whose child scope is unknown; and the provenance and fail-closed findings that keep a spec out of the ready set. The `unregistered_work` refusal is an accepted removal under RFC-0106 D1, recorded in the equivalence record, with header-derived readiness as its replacement guard. The 2026-10-08 de-risk tested orientation only, so this is untested.
+- **Choosing among several ready specs.** An argless `work-loop` start that finds more than one ready spec lists them and asks, replacing selection of the first `canonical.ready` item, unless the specification states a deterministic rule instead, as RFC-0106 D3 allows for this and for the suggestions.
+- **Shaping-item routing.** `work-loop`'s shaping-item guard matches a captured-item file that carries a `Type:` line, routes it by today's type-to-skill mapping, and matches nothing else. Today the guard matches no registry entry, so routing such a file is an intended change, recorded in the equivalence record.
+- **Cross-pack shaping intake.** Producers such as `run-okr-cascade`, which registers each OKR gap as an intent entry, write a captured-item file instead. The specification owns this jointly with the producing pack.
+- **Captured-item file shape, reader, and migration.** C2's file also carries a `Kind:` line from the registry entry's `kind`, and a `Type:` line only where the entry carries a shaping `type`. Slug-only entries with no `kind` get one assigned by the migration, listed in its equivalence record. A reader for those files is part of the same specification.
+- **Dependency edge migration.** Beyond C1's field and reader, the specification migrates the 98 `needs` edges into `Depends on:` headers, compared edge for edge before and after.
+- **Brief coverage evidence.** `author-delivery-brief` and the brief coverage lint take a spec's membership from its own `Brief:` header, so spec registration stops serving as that evidence.
+- **When registration stops.** Registration for an artifact type stops in the release in which the last responsibility its entries feed ships its replacement, and the contract that required it is amended in that release.
+
 ## Shaping review
 
-The isolated intent-mode review completed cleanly on 2026-10-02 using an attributed packet derived from artifact revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`. Stamping the review date and this binding note is nonmaterial; it changes no outcome, opportunity, assumption, altitude, boundary, or projection. The later cascading-impact section only identifies consumers already covered by the closed-inventory boundary; it adds no retirement authority and does not alter that review's contract.
+The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`, the text before this binding note. Adding the note is nonmaterial.
 
 ## Decomposition
 

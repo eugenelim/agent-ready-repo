@@ -38,7 +38,7 @@ It does not own where non-derivable operational coordination state lives after t
 
 ## Unresolved questions
 
-- Whether the migration can complete while workspace registration is still a compatibility requirement, and which retirement gate removes that requirement. Dependent on `FEAT-0034`.
+- Whether the migration can complete while workspace registration is still a compatibility requirement, and which retirement gate removes that requirement. Dependent on `FEAT-0034`. If [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) is accepted, its D1 answers it: intent registration stops in the release in which every responsibility intent entries feed has a replacement or an accepted removal. Orientation's replacement is the intent navigation delivery brief's slice 1, the others are FEAT-0034 specifications, and lifecycle collection moves need none.
 - Whether retiring the shaping folders breaks any consumer. No inventory has been taken.
 
 ## Projection
@@ -48,7 +48,7 @@ Not yet selected. Outbound tracker projection is [CAP-0004](CAP-0004-external-tr
 ## Assumptions
 
 - Every current initiative and shaping document reduces to an intent at some altitude, a delivery brief, or an explicit retirement. **Partly evidenced** — four of the five known cases have been classified by inspection; the fifth, INI-003's double meaning, has not.
-- The ladder can move to canonical intent parentage and lifecycle before the workspace registry retires, using a bounded compatibility registration that does not regain authority over either fact. **Untested here and dependent on `FEAT-0034`** — `backlog.open` is currently the only initiative-free collection and admits a non-defect entry at `Status: Draft` only, so a Ready or Accepted artifact has no initiative-free compatibility home today.
+- The ladder can move to canonical intent parentage and lifecycle before the workspace registry retires, using a bounded compatibility registration that does not regain authority over either fact. **Untested here and dependent on `FEAT-0034`** — `backlog.open` is currently the only initiative-free collection and admits a non-defect entry at `Status: Draft` only, so a Ready or Accepted artifact has no initiative-free compatibility home today. If RFC-0106 is accepted, the end state needs no such home, because an intent's lifecycle comes from its own `Status:` and intents stop being registered; until its replacements ship, the constraint stands.
 - Retiring the folders breaks no consumer. **Untested** — an inventory of what reads `docs/product/initiatives/` and `docs/product/shaping/` has not been taken.
 
 **Not de-risked.** No assumption above carries a kill condition. Re-enter `frame-intent` → `de-risk-intent` → `decompose-intent` before decomposing this intent. The riskiest is likely the second, because it is the one that is already producing failures rather than merely predicted to.
