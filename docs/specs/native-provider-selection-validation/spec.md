@@ -1,6 +1,6 @@
-# Spec: Native-provider selection validation
+# Spec: Code-intelligence real-world usage validation
 
-- **Status:** Approved
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079
@@ -9,168 +9,222 @@
 - **Contract:** none
 - **Shape:** data
 
-> **Spec contract:** this document defines what "done" means. The implementing
-> PR must match this spec, or update it. Verification must be derivable from it.
+> **Spec contract:** this document defines what "done" means. Verification must
+> be derivable from it. This pair is reopened for the owner's scope amendment;
+> the earlier approval does not approve these revised criteria.
 
 ## Outcome
 
-CAP-0011's owner receives a blind, question-level result showing whether people
-can select suitable native provider actions and carry their limits without a
-catalogue-defined schema or RFC-derived coaching. The result unambiguously
-routes the parent assumption to survive, do not survive unchanged, or
-inconclusive under rules fixed before any live session.
+CAP-0011's owner receives evidence of whether maintainers or adopters can use
+the `code-intelligence` pack to understand their own legacy apps and investigate
+a real change after setup and training. Findings are checked against source.
+The result distinguishes useful findings, incorrect claims, setup problems,
+help needed, and evidence gaps, then recommends retaining or changing the
+pack's grounding and exploration role or onboarding.
 
 ## What Changes
 
-- A frozen six-question protocol, participant instrument, environment preflight,
-  observation form, and scoring rule become durable research artifacts.
-- The exercise targets three consenting maintainers or adopters across an
-  authorized editor/LSP environment and an authorized indexed graph environment;
-  missing participant or environment coverage is recorded as inconclusive.
-- A minimized result record applies the predeclared disposition rule and routes
-  the outcome to CAP-0011's owner without changing the parent automatically.
+- A self-serve protocol and participant worksheet link the first-session guide
+  for setup and provide skill practice, task prompts, source checks, and fill-in
+  response fields for an actual app task.
+- Participants use their own authorized existing legacy-app repositories.
+  Training and sample prompts are built into the documents. Help is optional;
+  participants do not need a facilitator to complete and return the worksheet.
+- A minimized result records what was useful, what failed, what remains
+  unknown, and a recommendation for CAP-0011's owner.
+- Blind provider selection, unaided recognition of tool limits, and comparison
+  across native provider shapes are outside this delivery. No new intent or
+  backlog work is created for those future questions.
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Validation protocol | Thresholds and blindness must predate observation | `docs/product/research/native-provider-selection-validation/protocol.md` | FEAT-0032 owner | Approval revision and synthetic-case check | Result cites the frozen revision used by every session |
-| Human-facing instrument | A human, not the agent, runs each session | `docs/product/research/native-provider-selection-validation/instrument.md` | Human facilitator | Dry-run and prompt audit | Instrument contains no answer key or RFC/golden-example vocabulary |
-| Minimized observations and result | The parent needs question-level evidence and a disposition | `docs/product/research/native-provider-selection-validation/result.md` | Human facilitator and FEAT-0032 owner | Three coded sessions or an explicit execution gap, coverage check, scoring table, disposition | No personal, credential, private-source, or customer data is retained |
-| Parent decision route | Evidence cannot mutate CAP-0011 by itself | `docs/product/intents/CAP-0011-optional-code-intelligence-composition.md` or a successor intent chosen by its owner | CAP-0011 owner | Explicit survive/reframe/kill decision after reviewing the result | Closeout links the owner decision or records it as still pending |
+| Guided protocol | Declare the method before observation | `docs/product/research/native-provider-selection-validation/protocol.md` | FEAT-0032 owner | Approved revision, observation fields, interpretation rules | Result cites the revision used and any deviations |
+| Self-serve participant worksheet | Teach pack use and collect participants' coded responses | `docs/product/research/native-provider-selection-validation/instrument.md` | Participant; FEAT-0032 owner maintains the blank template | Linked setup, practice, task prompts, source checks, fill-in fields | Unassisted reader dry-run completes the flow or reports setup blockers |
+| First-session walkthrough | Reuse the existing public setup and usage guide | `guides/code-intelligence/tutorials/first-session.md` | Pack documentation owner | Copyable prompts and clear checkpoints | Worksheet links the guide; source and guide checks pass |
+| Minimized observations and result | Support a bounded usefulness judgment | `docs/product/research/native-provider-selection-validation/result.md` | Participants and FEAT-0032 owner | Coded task observations, source-verification summaries, gaps, recommendation | No identifying data or raw app content retained |
+| Parent decision route | Keep the owner responsible for the decision | `docs/product/intents/CAP-0011-optional-code-intelligence-composition.md` | CAP-0011 owner | Linked owner decision or explicit pending field in the result | No automatic change to the parent verdict |
 
 ## Agent Rules
 
 ### Always do
 
-- Freeze the questions, success rule, failure rule, inconclusive rule, and
-  observation fields before the first participant sees the instrument.
-- Give participants only the repository questions, ordinary exposed tool
-  metadata, authorized native surfaces, and safety constraints needed to act.
-- Use participant codes and provider-shape labels; retain question-level choices,
-  explanations, material limits, fallback reasons, and environment coverage.
-- Separate environment or metadata failure from participant performance and
-  classify inadequate coverage as inconclusive.
-- Route the recorded disposition to CAP-0011's owner for a separate decision.
+- Approve the guided protocol revision before invitations or participant attempts.
+- Make `instrument.md` the participant entry point and response worksheet.
+  Link setup to the existing first-session guide; avoid duplicate setup commands.
+- Teach the `code-intelligence` skill through prompts and source checks. Allow
+  practice, follow-up questions, and optional help; record assistance as evidence.
+- Let participants fill in and return their coded response fields themselves.
+  Provide an approved feedback channel; require no facilitator or app access.
+- Anchor the exercise to a real pending change in an existing legacy app.
+- Verify important claims in source and distinguish graph evidence, verified
+  facts, incorrect claims, and unresolved questions.
+- Keep authorized app content local; retain only short coded summaries.
+- Report the actual sample and environment coverage without generalizing beyond it.
+- Route the result to CAP-0011's owner for a separate decision.
 
 ### Ask first
 
-- Recruit a participant, schedule or record a live session, or use a repository
-  that is not already authorized for the participant and facilitator.
-- Retain quotations, recordings, screenshots, source snippets, personal data,
-  organization names, repository names, or provider account identifiers.
-- Change the protocol, thresholds, questions, coaching boundary, or evidence
-  fields after any participant result is visible.
+- Distribute the study invitation or collect responses, make recordings, or use an app or
+  agent environment that is not already authorized for the intended activity.
+- Change the approved method after observations become visible. Keep deviations
+  explicit; revised methods require separate approval and cannot retroactively repair observations.
 
 ### Never do
 
-- Request, collect, expose, or store participant credentials, tokens, protected
-  configuration, private endpoints, customer data, or private repository content.
-- Supply RFC-0079, the golden example, an answer key, expected provider names,
-  or the material-limit vocabulary being tested before scoring completes.
-- Count an unexplained repository-native fallback as success when a task-fit
-  native action is exposed.
-- Normalize provider metadata or results into a shared provider schema.
-- Weaken a threshold, substitute a participant, or reinterpret inadequate
-  environment coverage to obtain a preferred disposition.
+- Collect credentials, protected configuration, private endpoints, customer
+  data, personal or repository identity, or app source in committed records.
+- Require public source: authorized private app use may remain entirely within
+  the participant's approved environment, with no repository access granted to
+  the research team and no private content retained.
+- Treat coaching as failure, score unaided provider selection, require a second
+  provider shape, or apply the historical five-of-six pass line.
+- Convert a successful guided trial into proof of arbitrary-provider
+  generalization or population-wide adoption.
+- Normalize provider interfaces into a shared schema or change Core's
+  no-provider path.
+- Invent observations, omit failures, or interpret an execution gap as a
+  negative usefulness result.
 
 ## Testing Strategy
 
-Protocol logic uses **TDD-style synthetic cases**: survive, do-not-survive for
-unexplained fallback, do-not-survive for coaching dependence, and inconclusive
-for missing environment coverage must each map to exactly one disposition.
-Instrument blindness and data minimization use **goal-based document checks**.
-The three live sessions use **manual QA**: a human facilitator records only the
-approved coded observations, and a second reader verifies scoring against the
-frozen protocol.
+Goal-based document checks cover the guided method, training steps, sample
+prompts, observation fields, privacy boundaries, and links. Guide validators
+check the existing public walkthrough. An unassisted reader dry-run checks the
+entry point, linked setup, prompts, fill-in fields, and return path on authorized
+content before invitations. Participant-completed worksheets supply self-reported
+usefulness evidence; a live observed session is not required. A second reader checks that
+interpretation follows the approved qualitative rules and is supported by the
+minimized observations. Historical blind classifier checks are not delivery gates.
 
-- **VI-0001 — frozen protocol (AC-0001):** goal-based document check over the
-  approved revision and session timestamps.
-- **VI-0002 — question set (AC-0002):** instrument audit against the six named
-  questions.
-- **VI-0003 — participant coverage (AC-0003):** manual QA over coded completed
-  sessions or the execution-gap record.
-- **VI-0004 — environment coverage (AC-0004):** manual QA over minimized live-
-  environment coverage fields.
-- **VI-0005 — provider-fit scoring (AC-0005):** goal-based scoring check over
-  coded provider-fit question records.
-- **VI-0006 — baseline scoring (AC-0006):** goal-based scoring check over coded
-  authority and co-change records.
-- **VI-0007 — survive rule (AC-0007):** synthetic classifier case and final
-  scoring table.
-- **VI-0008 — failure rule (AC-0008):** synthetic classifier cases and final
-  scoring table.
-- **VI-0009 — inconclusive rule (AC-0009):** missing-coverage and safety-stop
-  synthetic cases plus the result record.
-- **VI-0010 — minimized record (AC-0010):** forbidden-field fixture and manual
-  privacy audit.
-- **VI-0011 — reproducible score (AC-0011):** independent manual rescoring
-  receipt.
-- **VI-0012 — owner route (AC-0012):** result owner-decision field and linked or
-  pending decision record.
+- **VI-0013 (AC-0013):** Approved method revision and pre-session receipt.
+- **VI-0014 (AC-0014):** Worksheet/link audit; unassisted reader dry-run.
+- **VI-0015 (AC-0015):** Consent/access preflight and coded completed tasks or gaps.
+- **VI-0016 (AC-0016):** Coded actual app, host, pack, and index-readiness coverage.
+- **VI-0017 (AC-0017):** Source-verification summaries for important findings.
+- **VI-0018 (AC-0018):** Investigation checklist and feedback on usefulness.
+- **VI-0019 (AC-0019):** Evidence-linked retain-role recommendation.
+- **VI-0020 (AC-0020):** Evidence-linked change-role/onboarding recommendation.
+- **VI-0021 (AC-0021):** Explicit execution-gap or insufficient-evidence record.
+- **VI-0022 (AC-0022):** Field allowlist check and manual free-text privacy audit.
+- **VI-0023 (AC-0023):** Independent interpretation receipt.
+- **VI-0024 (AC-0024):** Owner-decision link or explicit pending field.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The protocol is frozen first: the approved protocol revision
-  contains all six questions, scoring fields, thresholds, disposition rules,
-  privacy rules, and environment requirements before the first live session.
-- [ ] **AC-0002.** The question set matches CAP-0011: the instrument tests symbol
-  definition, incoming callers, transitive blast radius, a dependency path,
-  repository authority, and historical co-change without embedding expected
-  provider choices.
-- [ ] **AC-0003.** Participant coverage is explicit: a `survive` or `do not
-  survive unchanged` result counts only after three consenting maintainers or
-  adopters each route all six questions independently and without answer
-  coaching; fewer, interrupted, or non-independent sessions are recorded as
-  `inconclusive` under AC-0009.
-- [ ] **AC-0004.** Environment coverage is explicit: a `survive` or `do not
-  survive unchanged` result counts only after sessions use at least two
-  authorized live host/provider environments that collectively expose an
-  editor/LSP shape and an indexed graph CLI or MCP shape; fewer than two live
-  environments or failure to obtain both shapes is recorded as `inconclusive`
-  under AC-0009.
-- [ ] **AC-0005.** Counted provider-fit answers are explained: a provider-fit
-  question counts only when the participant selects an exposed native action or
-  explains why that exposed action is unsuitable and records one material
-  evidence limit.
-- [ ] **AC-0006.** Baseline choices are deliberate: authority and co-change
-  answers count only when the participant selects repository-native evidence
-  and explains why the exposed semantic providers do not establish the claim.
-- [ ] **AC-0007.** The survive line is fixed: the result is `survive` only when at
-  least two of three participants independently clear at least five of six
-  questions, both native shapes satisfy AC-0004, and no counted answer invents a
-  shared provider contract.
-- [ ] **AC-0008.** Failure remains actionable: with adequate participants and
-  environment coverage, missing the AC-0007 line, needing withheld vocabulary,
-  or inventing a shared provider contract yields `do not survive unchanged`.
-  An unexplained fallback on a provider-fit question fails that question under
-  AC-0005 and is handled by the same AC-0007 threshold rather than a second
-  fallback threshold.
-- [ ] **AC-0009.** Inadequate execution is not failure: fewer than three completed
-  sessions, fewer than two authorized live host/provider environments, failure
-  to expose both provider shapes, unavailable ordinary tool metadata, or a
-  session interrupted for safety yields `inconclusive` and does not lower
-  AC-0007 or satisfy AC-0008.
-- [ ] **AC-0010.** The record is minimized: the committed result contains only
-  participant codes, a prior-RFC-familiarity boolean, provider-shape labels,
-  question-level choices, explanations, material limits, coverage, scores, and
-  disposition; it contains no personal data, credentials, organization or
-  repository identity, private source, screenshots, recordings, or raw provider
-  output.
-- [ ] **AC-0011.** Scoring is independently reproducible: a second reader applies
-  the frozen protocol to the minimized observations and reaches the recorded
-  scores and disposition without unpublished context.
-- [ ] **AC-0012.** The result does not govern itself: the record names the CAP-0011
-  owner as decider and links the subsequent survive, reframe, or kill decision,
-  or states that the owner decision remains pending.
+- [ ] **AC-0013.** Before observations, the owner approves a guided protocol
+  revision declaring recruitment scope, planned session coverage, the task
+  workflow, observation fields, interpretation rules, and privacy boundaries.
+  The result cites that revision and records deviations.
+- [ ] **AC-0014.** `instrument.md` is a self-serve fill-in Markdown worksheet.
+  A participant reads its goal and app/task requirements, follows its link to
+  first-session steps 1–5 for setup, returns for practice and investigation
+  prompts, and fills in coded response fields before submitting through the
+  provided feedback channel. No facilitator is required. The prompts cover
+  definition/callers, wider impact, a dependency path, repository authority,
+  and historical co-change; setup blockers can be submitted without guessing
+  answers to unattempted steps.
+- [ ] **AC-0015.** Consenting maintainers or adopters use their own authorized
+  existing legacy-app repositories and actual pending changes. The result
+  reports planned attempts and returned worksheets, completed or stopped steps,
+  and optional assistance. Evidence is labeled participant self-report, with
+  source checks performed locally rather than independently observed. Missing or interrupted
+  sessions are explicit gaps; there is no three-person pass threshold.
+- [ ] **AC-0016.** Completed sessions use the installed code-intelligence pack
+  in an authorized live agent environment with a usable local index. The result
+  records coded host/setup coverage and failures. There is no requirement for
+  two environments or different provider shapes.
+- [ ] **AC-0017.** Important findings are checked against actual source by the
+  participant. Coded observations distinguish verified claims, incorrect or
+  unsupported claims, and unresolved evidence gaps. Participants need not
+  independently discover a provider or recite expected limit wording.
+- [ ] **AC-0018.** Each completed investigation produces a local checklist for
+  the chosen change. Feedback states which findings helped, what still required
+  manual investigation, and where setup or assistance was needed. Authority
+  uses governing documents and co-change uses Git history; the code graph alone
+  establishes neither claim.
+- [ ] **AC-0019.** A `retain role` recommendation cites relevant,
+  source-verified findings participants used in their actual investigation,
+  along with setup/help costs and remaining limits. It is bounded to observed
+  use and does not assert an adoption rate or provider generalization.
+- [ ] **AC-0020.** A `change role or onboarding` recommendation cites setup
+  barriers, incorrect claims, hidden gaps, or a lack of usable verified findings
+  that prevented a usable result. It identifies the affected workflow and
+  proposed correction without applying a blind pass/fail score.
+- [ ] **AC-0021.** An `insufficient evidence` result names missing execution or
+  interpretive evidence instead of inventing observations or a verdict. When
+  verified useful findings and blocking problems coexist, the result retains
+  both and explains its bounded recommendation; unresolved interpretation is
+  insufficient evidence. No numerical blind threshold is relaxed or reused.
+- [ ] **AC-0022.** Committed records contain only participant codes, coded
+  environment/setup labels, setup outcomes and readiness summaries, generic task
+  class, assistance summaries, verified usefulness, incorrect claims, gaps, participant-written generic feedback, coded recruitment
+  scope, planned and actual session/setup coverage, approved protocol and worksheet
+  revisions, deviations, completed/interrupted/missing activity with generic
+  reasons, interpretation, second-reader agreement or disagreement, and owner-route
+  fields. No personal data, credentials, organization or repository identity,
+  file paths, symbol names, app source or source snippets, protected configuration,
+  private endpoints, customer data, quotations, screenshots, recordings,
+  transcripts, or raw tool/error output is retained. Free text receives manual
+  privacy review against these exclusions as well as field checks.
+- [ ] **AC-0023.** A second reader reproduces the evidence-to-recommendation
+  reasoning from the minimized observations without unpublished context,
+  records disagreements, and confirms that training and help were not treated
+  as selection failure. Unresolved disagreements take AC-0021.
+- [ ] **AC-0024.** The result names CAP-0011's owner as decider and links the
+  subsequent role/onboarding decision or explicitly records it as pending.
+  The result cannot mutate the parent verdict itself.
 
 ## Follow-ons
 
-- CAP-0011 owner: apply the recorded disposition; a `do not survive unchanged`
-  result requires a refreshed capability intent before implementation expands.
-- FEAT-0031 owner: run its separate cold-reader generalization hook if the
-  golden example still risks being copied as a universal provider contract.
+None created. Blind selection remains outside this delivery, as recorded in
+[CAP-0011's current validation scope](../../product/intents/CAP-0011-optional-code-intelligence-composition.md#current-validation-scope).
 
 ## Assumptions
 
-none
+None. Recruitment scope and planned coverage are declared before sessions
+under AC-0013; participant consent and authorization are execution preconditions.
+
+## Amendment
+
+- 2026-10-08: owner requested removal of the blind task and guided real-world
+  pack validation. Reopened this existing contract as Draft; earlier blind
+  criteria and construction receipts are historical, not current gates.
+  The existing FEAT-0032 identifier and directory are retained. The child intent
+  is historical discovery input; CAP-0011's current scope and this owner-directed
+  amendment govern the revised contract. No new intent or backlog item is created.
+
+- 2026-10-08: owner requested self-serve participation: instrument → linked
+  first-session setup → prompts and participant-filled response fields. No
+  facilitator is required. The pair remains open for renewed review/approval.
+
+## Retired identifiers
+
+The owner removed the blind validation contract on 2026-10-08. Its identifiers
+remain historical evidence references and must not be reused for guided use.
+
+- `AC-0001`
+- `AC-0002`
+- `AC-0003`
+- `AC-0004`
+- `AC-0005`
+- `AC-0006`
+- `AC-0007`
+- `AC-0008`
+- `AC-0009`
+- `AC-0010`
+- `AC-0011`
+- `AC-0012`
+- `VI-0001`
+- `VI-0002`
+- `VI-0003`
+- `VI-0004`
+- `VI-0005`
+- `VI-0006`
+- `VI-0007`
+- `VI-0008`
+- `VI-0009`
+- `VI-0010`
+- `VI-0011`
+- `VI-0012`

@@ -15,8 +15,8 @@
 
 - **Input (steerable):** The share of repository inquiry surfaces that can
   prove both their existing no-provider path and an attributed provider-assisted
-  path, including at least two materially different native provider shapes
-  across the capability.
+  path, with current real-world validation focused on guided use of the
+  `code-intelligence` pack on actual legacy-app work.
 - **Outcome (lagging):** Ongoing development can use the best code evidence
   exposed in the active environment for grounding, debugging, review,
   implementation, and other repository questions without making Core depend on
@@ -65,18 +65,41 @@ workflows; replace repository-native inquiry; absorb the existing
 `internal-repo-topology`, or `code-graph-review-benchmark` outcomes; or claim
 that graph assistance improves review before the benchmark establishes it.
 
+### Current validation scope
+
+Validate whether maintainers and adopters can use the `code-intelligence` pack
+to understand their existing legacy apps and investigate the impact of a real
+change through the grounding and exploration roles above. Give them a self-serve worksheet, linked setup
+instructions, pack-specific training, and sample prompts. Check whether the
+findings are relevant, can be verified in source, and help with their chosen
+task. Record setup friction, help needed, errors, and evidence gaps alongside
+useful findings.
+
+Blind selection from ordinary provider descriptions, unaided recognition of
+tool limits, and live generalization across different native provider shapes
+are out of the current validation scope. They remain future research questions
+only; this decision creates no new intent or backlog item for them. Guided pack
+use does not prove those claims and is not conditional on passing a blind test.
+
+**Owner scope decision (2026-10-08):** replace the unrun blind validation hook
+with guided real-world pack use. Retain the construction evidence below as
+feasibility evidence, not as adoption evidence or a prerequisite for the trial.
+
 ## Assumptions
 
-- **Riskiest assumption:** Provider descriptions and active host surfaces expose
+- **Riskiest current assumption:** After setup and training, maintainers and
+  adopters can use the pack to obtain useful, source-verifiable evidence for a
+  real change in their existing legacy apps while recognizing the evidence gaps.
+- **Deferred assumption:** Provider descriptions and active host surfaces expose
   enough meaning for inquiry owners to make bounded, task-fit choices and
   preserve material evidence limits without a catalogue-defined schema. If
   this is false, native-shape composition becomes unreliable or recreates the
   common broker and provider contract this capability is meant to avoid.
 - Existing grounding and exploration owners can be identified precisely enough
   to compose optional evidence without creating a new central router.
-- At least two materially different provider shapes can improve suitable
-  inquiries while preserving an equivalent no-provider outcome and acceptance
-  bar.
+- **Deferred generalization:** At least two materially different provider shapes
+  can improve suitable inquiries while preserving an equivalent no-provider
+  outcome and acceptance bar.
 - Code intelligence can contribute to agentic development loops through their
   existing repository questions, not only to standalone code archaeology.
 - Downstream owners can keep provider-specific mechanics local while sharing
@@ -90,6 +113,11 @@ that graph assistance improves review before the benchmark establishes it.
 
 ## De-risking
 
+### Construction feasibility (2026-10-04)
+
+This records the original construction probe and its original thresholds.
+It does not score the current guided trial or establish real-world usefulness.
+
 - **Door:** one-way. Several independently owned Core surfaces and adopter
   integrations may rely on the resulting ownership and trust boundary, making
   a later reversal costly even though each individual integration is optional.
@@ -98,7 +126,8 @@ that graph assistance improves review before the benchmark establishes it.
   enough task meaning and material limits for an inquiry owner to choose a
   relevant action, preserve a no-provider baseline, and explain the evidence
   without a catalogue-defined provider schema.
-- **Test target:** The riskiest assumption named above.
+- **Test target:** The native-description sufficiency assumption, now deferred
+  from the current real-world validation scope.
 - **Kill condition (predeclared 2026-10-04):** Kill or reframe native-shape
   composition if fewer than five of six representative repository questions
   can select either a suitable provider action or the repository-native
@@ -132,20 +161,31 @@ that graph assistance improves review before the benchmark establishes it.
 - **Verdict:** **Survived.** The result clears the predeclared five-of-six line
   at six of six and covers two native provider shapes without an invented
   provider contract. CAP-0011 may be decomposed for further shaping while the
-  adoption and independent-selection claim remains subject to the real-world
-  hook. RFC-0079 was accepted on 2026-10-04, so the children may now project
-  delivery contracts without that projection approving or sequencing delivery.
+  adoption claim remains subject to real-world validation. Independent selection
+  remains unvalidated and is deferred. RFC-0079 was accepted on 2026-10-04, so
+  the children may now project delivery contracts without that projection
+  approving or sequencing delivery.
 - **Adversarial review (2026-10-04):** The construction probe was primed by
   RFC-0079 and can clear a question through the baseline even when an exposed
   provider should be task-fit. That does not undo the feasibility result or
   permit a post-hoc change to its kill condition. It prevents the result from
-  counting as independent-selection or adoption evidence and tightens the
-  unrun hook below.
+  counting as independent-selection or adoption evidence. The owner's current
+  scope decision defers the independent-selection test; it does not convert the
+  primed construction result into that evidence.
+
+### Current real-world validation hook
+
+Use the [self-serve participant worksheet](../research/native-provider-selection-validation/instrument.md)
+and [first-session walkthrough](../../../guides/code-intelligence/tutorials/first-session.md)
+to guide people through an actual task in their own authorized app repository.
+Participants complete and return that worksheet themselves; a facilitator is
+not required. Training and optional help are part of this activity, not a failure
+condition.
 
 ```yaml validation_hook
-assumption: Native provider descriptions expose enough meaning for inquiry owners to make bounded, task-fit choices and preserve material evidence limits without a catalogue-defined schema.
-kill_condition: Kill or reframe if fewer than two of three participants independently clear at least five of six questions, if provider-fit questions pass mainly through unexplained repository-native fallback, or if participants need RFC-0079's golden-example vocabulary to identify the native action and its material evidence limits.
-activity: Ask three Core maintainers or adopters in at least two live host and provider environments to route the same six questions with RFC-0079's examples withheld. Count a provider-fit question only when the participant independently selects an exposed native provider action or explains why it is unsuitable, carries a material evidence limit, and invents no shared provider contract.
+assumption: With setup instructions and pack-specific training, maintainers and adopters can use the code-intelligence pack to obtain useful, source-verifiable evidence for grounding and exploration on a real change in their existing legacy apps while preserving material evidence limits.
+kill_condition: Reframe the pack's role or onboarding if guided real-task use cannot produce relevant findings that participants verify in source and use in their investigation, or if setup barriers, incorrect claims, or hidden evidence gaps prevent a usable result. Do not interpret this as a verdict on unaided selection or arbitrary-provider generalization.
+activity: Invite maintainers or adopters to complete the self-serve instrument on their own authorized legacy-app repositories and actual pending changes. The instrument links the first-session guide for setup, teaches skill activation through sample prompts, asks participants to check important findings against source, and provides coded response fields they fill in and return. No facilitator is required; help is optional and recorded. Retain only coded summaries of setup, assistance, useful findings, errors, remaining gaps, and participant feedback. Judge usefulness in the grounding and exploration role; do not apply the old blind six-question pass line or require a second provider shape.
 ```
 
 ## Decomposition
@@ -155,7 +195,7 @@ CAP-0011 Optional code intelligence composition
 ├─ FEAT-0029 Optional intelligence in repository grounding
 ├─ FEAT-0030 Optional intelligence in repository exploration
 ├─ FEAT-0031 Code-intelligence golden composition example
-└─ FEAT-0032 Native-provider selection validation
+└─ FEAT-0032 Code-intelligence real-world usage validation
 ```
 
 1. [FEAT-0029](FEAT-0029-optional-intelligence-grounding-composition.md)
@@ -167,8 +207,11 @@ CAP-0011 Optional code intelligence composition
    may ask richer repository questions without gaining provider ceremony.
 3. [FEAT-0031](FEAT-0031-code-intelligence-golden-composition-example.md)
    owns the worked provider-specific example and its pack-local evaluations.
-4. [FEAT-0032](FEAT-0032-native-provider-selection-validation.md) owns the
-   blind live validation that can still reframe or kill the native-shape bet.
+4. [FEAT-0032](FEAT-0032-native-provider-selection-validation.md) is the existing
+   validation child, redirected by the owner to guided real-world pack use.
+   Its earlier blind contract is not the current trial's acceptance gate.
+   Keep the existing identifier; do not create a replacement validation intent
+   or a new blind-selection backlog item.
 
 ### Decomposition decisions
 
@@ -177,8 +220,9 @@ CAP-0011 Optional code intelligence composition
   tested independently. This is a value cut, not a Core component split.
 - The golden example stays separate because provider commands and evidence
   mechanics belong to the optional pack, not to either Core seam.
-- Live selection validation stays separate from implementation so a failed
-  result can reshape the parent without being rationalized by sunk delivery.
+- Guided real-world validation stays separate from implementation so usefulness,
+  setup problems, and evidence errors can change the pack's role or onboarding
+  without being rationalized by sunk delivery.
 - `grounding-probe-extensions`, `repository-grounding-preservation`,
   `internal-repo-topology`, and `code-graph-review-benchmark` remain independent
   work. None becomes a child or a prerequisite by implication.
@@ -194,5 +238,5 @@ CAP-0011 Optional code intelligence composition
 
 - **Mode:** repo-origin
 - **Locator:** `docs/rfc/0079-codebase-context-pack.md`
-- **Revision:** `working-tree-2026-10-04`
+- **Revision:** `working-tree-2026-10-08`
 - **Authority:** eugenelim, RFC author and capability owner

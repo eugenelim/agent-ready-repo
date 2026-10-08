@@ -1,98 +1,200 @@
 ---
 title: Your first code-intelligence session
-summary: Install the indexer, index a repository, and answer a real question about it — including how to read the completeness numbers the answer carries.
+summary: Run the pack on your existing legacy app, trace one real behavior, and identify what a planned change could affect using copy-and-paste prompts.
 pack: code-intelligence
 kind: tutorial
 ---
 
 # Your first code-intelligence session
 
-By the end you will have indexed a repository and asked it what breaks if you
-change something — and you will know how much to trust the answer.
+Use your existing legacy app to answer a practical question: what could break
+when you change a function? You will finish with a source-backed explanation
+of one behavior, a list of affected code, and checks to consider before editing.
 
-**Time:** about ten minutes, most of it the one-off install.
+Here is the request you will work toward:
 
-## 1. Install the indexer
+```text
+Use the code-intelligence skill to find what depends on the function I plan
+to change. Check the important callers in source and tell me what you could
+not establish. Do not change application code.
+```
 
-The pack drives a command-line tool it does not bundle.
+This walkthrough uses Claude Code. Setup installs tools and writes a local
+index. The investigation steps read your app without editing it. Use a repository
+and agent environment you are authorized to use; keep app source and findings
+inside that environment.
+
+## 1. Choose one change in your app
+
+Open a local checkout of your legacy app. Pick a function involved in a change
+you already need to make.
+
+For example: **add a field to an existing request and find where the app reads,
+validates, and saves it.** Start with the request handler. You will trace today's
+behavior before assessing the proposed change.
+
+Write down these three details for your own use:
+
+```text
+Change: Add an optional field to an existing request.
+Entry point: <actual handler or function name>
+File: <path to that function>
+```
+
+Replace the change with your real task if needed. Use that same task throughout
+the walkthrough. In each prompt below, replace angle-bracket placeholders with
+your app's names.
+
+**Check:** you can point to the function and explain the intended change in one
+sentence. You do not need a demo repository or a rewritten app.
+
+## 2. Install the packs in that checkout
+
+Run these commands from the root of your app repository:
+
+```bash
+agentbundle install --pack core --scope repo --adapter claude-code
+agentbundle install --pack code-intelligence --scope repo --adapter claude-code
+```
+
+These commands add agent guidance to the checkout. If Core is already installed
+for this adapter, skip the first command; if both packs are installed, skip both.
+Use `agentbundle list-installed --no-check` to see the installed packs. To update
+an existing installation, follow [Upgrade packs](../../_shared/how-to/upgrade-packs.md).
+
+If `agentbundle` is missing, follow the
+[CLI installation instructions](../../_shared/reference/agentbundle.md#install-agentbundle)
+first. Keep the app's existing instructions when the installer reports a conflict.
+
+**Check:** the installed-pack listing includes `core` and `code-intelligence`
+for `claude-code`.
+
+## 3. Install the code indexer
+
+The pack uses Wicked Estate to build a searchable map of your code. Check
+whether its command is available:
+
+```bash
+wicked-estate --version
+```
+
+If it is absent or older than 0.21, run:
 
 ```bash
 cargo install wicked-estate --version 0.21.0 --locked
 ```
 
-This compiles from source and takes several minutes. It needs `cargo` already
-on your `PATH`; the pack will not install a Rust toolchain for you.
+This compiles from source and can take several minutes. If `cargo` is missing
+or your machine blocks installation, use your usual IT/support route to prepare the
+tool. You do not need an MCP server for this walkthrough.
 
-## 2. Keep the index out of version control
+**Check:** `wicked-estate --version` reports 0.21 or newer.
 
-Indexing writes a database into your working tree, and it is large — a few
-hundred megabytes on a mid-size repository.
+## 4. Build the app's index
 
-```bash
-echo '.wicked-estate/' >> .gitignore
+Add this line to the app's `.gitignore` if it is not already present:
+
+```text
+.wicked-estate/
 ```
 
-Do this before the next step, not after.
-
-## 3. Index the repository
+Then, from the app repository root, run:
 
 ```bash
 wicked-estate index .
+wicked-estate stats
 ```
 
-On a 4,600-file repository this takes around fifteen seconds and reports what it
-found:
+Indexing writes `.wicked-estate/graph.db`; it does not change application code.
+The time needed depends on the app. `stats` should report nodes and edges.
+If it reports `STALENESS:`, rebuild the index before continuing. If indexing
+fails or produces an empty graph, stop before treating answers as graph-backed.
+Keep the error locally. For a self-serve trial, record the blocked step and a
+generic reason in your response worksheet; optional IT/support help is fine.
 
+**Check:** `stats` shows a populated graph without a staleness warning.
+
+## 5. Open the agent and check readiness
+
+Start a fresh Claude Code session in the app checkout. Paste:
+
+```text
+Use the installed code-intelligence skill. Locate its bundled
+scripts/estate_preflight.py and run it with --check --root pointing to this
+repository. Then run wicked-estate stats here and check for staleness.
+Tell me whether the pack and graph are ready. Do not install tools, rebuild
+the index, or edit application code in this step.
 ```
-indexed . (.wicked-estate/graph.db) → 65981 nodes, 104379 edges, 4634 files
+
+**Check:** the preflight reports `status: ready`, and the agent confirms a
+populated graph without a staleness warning. If it cannot find the skill,
+check the pack installation and reopen the session. A text-search fallback
+can still help, but it does not show that this graph trial is working.
+
+If you started from a self-serve trial worksheet, return to it now for the
+investigation prompts and fill-in response fields. Otherwise, continue below.
+
+## 6. Trace today's behavior
+
+Paste this prompt, using the entry point from step 1:
+
+```text
+Use the code-intelligence skill to investigate <entry point> in <file>.
+My planned change is: <one-sentence change>.
+
+Trace what happens today from this entry point through validation and storage,
+where those exist. Read the source for the important connections.
+Separate what the graph shows, what you verified in source, and what remains
+unclear. Give file and line references. Do not edit code or the graph.
 ```
 
-## 4. Check the pack agrees
+**Check:** you get a short explanation of the actual code path with source
+references. Open one cited file and check the claim yourself. If the agent
+chose the wrong function, supply the correct file and ask it to resolve that
+function before continuing.
 
-```bash
-python scripts/estate_preflight.py --check
+## 7. Find what the change could affect
+
+Paste:
+
+```text
+Use the code-intelligence skill to analyze the impact of changing <entry point>
+in <file> to <one-sentence change>.
+
+Find its callers and other dependents. Read the important dependent code and
+explain whether it uses the behavior being changed. Distinguish direct callers
+from wider dependencies where the evidence supports that distinction.
+Put unresolved references, truncated results, traversal limits, and staleness
+at the top. Give file and line references. Do not edit code or the graph.
 ```
 
-`status: ready` means the binary and the index are both in place. Exit 2 is a
-missing binary, 3 a missing index, 4 a version below the 0.21 floor the pack
-was verified against.
+**Check:** the report identifies affected code and explains each claimed impact.
+It also states what the index could not see. If connections are unresolved or
+the search hit a limit, treat the list as the known affected code, not every
+possible dependency.
 
-## 5. Ask a real question
+For hosts that expose the pack's subagents, you can ask for the same work by
+name: `code-investigator` traces behavior; `impact-analyst` examines change
+impact. The prompts above use the main skill and do not require subagents.
 
-In your agent, in ordinary language:
+## 8. Turn the findings into your next step
 
-> What breaks if I change `parse_config`?
+Paste:
 
-The agent resolves the name, computes the blast radius, picks dependents worth
-reading, and reads them. What comes back should look like:
+```text
+From the findings above, list the existing tests and code paths I should inspect
+before making this change. Tie each item to a verified source reference.
+Separate confirmed checks from gaps that need manual investigation.
+Do not implement the change or claim the app is safe to change.
+```
 
-> 23 resolved dependents, 4 unresolved references, no truncation. I read five
-> of them; four call `parse_config` directly on the changing path.
+**Check:** you have a short inspection checklist tied to your real task. You
+decide whether the evidence is enough to proceed. Rebuild the index after code
+changes before relying on it for a new analysis.
 
-## 6. Read the numbers, not just the list
+For a self-serve trial, submit only your worksheet's coded summaries through
+the feedback channel you were given.
+Keep source, screenshots, raw tool output, repository identity, and customer
+data local. No facilitator is needed to complete the walkthrough.
 
-That second sentence is the part worth learning.
-
-- **`unresolved`** counts references the indexer could not bind. Non-zero means
-  there may be dependents you were not shown — dynamic dispatch and reflection
-  both produce these.
-- **`truncated_dependents`** means you are looking at a prefix, not the whole
-  list.
-- **`depth_horizon_reached`** is true when the traversal hit its depth limit.
-  Use `blast-radius <name> --depth N` (max 24) to go further. When it is false,
-  the depth was not the constraint.
-- **`node_cap_reached`** is true when the walk hit its node budget. No flag
-  raises it; report the list as a floor.
-
-A blast radius is a floor, not a total. An answer that gives you a number
-without these is overclaiming.
-
-## What to do next
-
-Ask the same repository how it is organised, and watch the answer separate what
-the graph showed from what the agent concluded from it:
-
-> How is this codebase organised?
-
-Then read [Investigate a codebase](../how-to/investigate-a-codebase.md) for the
-other patterns.
+For another task, see [Investigate a codebase](../how-to/investigate-a-codebase.md).
