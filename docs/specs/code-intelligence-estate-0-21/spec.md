@@ -1,6 +1,6 @@
 # Spec: Code-intelligence pack on Wicked Estate 0.21
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0104
@@ -92,44 +92,44 @@ Every check below is either a pack test under `packs/code-intelligence/tests/` o
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.21` when the binary reports version 0.20.0.
-- [ ] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.21.0 and an index exists.
-- [ ] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.21"`, equal to the preflight's `MINIMUM_VERSION`.
-- [ ] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.21.0 --locked`, and `0.21.0` equals the preflight's `PINNED_VERSION`.
-- [ ] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.21.0 --locked` and rejects the planted `cargo install wicked-estate --version 0.18.0 --locked`.
-- [ ] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
-- [ ] **AC-0007.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.21"`, and its CLI verbs include `lineage`, `traverse`, `rules-inventory`, `rules-recall`, and `supports`.
-- [ ] **AC-0008.** A 0.21.0 binary dispatches every CLI verb in the vocabulary allowlist.
-- [ ] **AC-0009.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
-- [ ] **AC-0010.** On the fixture, `blast-radius <name> --json` returns exactly the keys `target`, `dependents`, `unresolved`, `truncated_dependents`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, `confidence`, and `confidence` holds `min`, `avg`, `edge_count`.
-- [ ] **AC-0011.** On the fixture, `blast-radius helper` (text) prints a line starting `evidence:`.
-- [ ] **AC-0012.** On the fixture, `nodes --symbol <id> --json` and `blast-radius helper --bogus 1` each exit non-zero.
-- [ ] **AC-0013.** On the fixture, `rank --json` stdout parses as one JSON document with keys `hotspots`, `total`, `truncated`, and each hotspot carries `symbol`, `name`, `kind`, `file`, `line_1based`, `score`.
-- [ ] **AC-0014.** On the fixture, `rank --limit 2 --json` returns two hotspots.
-- [ ] **AC-0015.** On the fixture, `rank --seeds <id-of-entry> --json` exits 0 and its hotspots include the `other.py` `handle`, which `entry` cannot reach; `rank --seeds handle` exits non-zero because `handle` names two symbols.
-- [ ] **AC-0016.** On the fixture, `source --symbols <one handle id>` in text mode exits 0 and prints exactly one body, and `source helper --max-total-chars 10` without `--json` exits non-zero.
-- [ ] **AC-0017.** On the fixture, `lineage --symbol <entry id> --json` stdout parses to keys `content` and `diagnostics`; `content.searched_depth` is 8; `content.dependencies` lists `handle` at depth 1 and `helper` at depth 2; and the `helper` row's `line` is one less than the `line` `resolve helper --json` reports.
-- [ ] **AC-0018.** On the fixture, `lineage --symbol entry --json` (a name, not an id) exits 0 with an empty `content.dependencies`.
-- [ ] **AC-0019.** On the fixture, `lineage --symbol <entry id> --depth 25` and `lineage --symbol <entry id> --relation flow_to` each exit non-zero.
-- [ ] **AC-0020.** On the fixture, `traverse helper --direction dependents --json` stdout parses to keys `nodes`, `edges`, `depths`, `truncated`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, and each edge carries `kind`, `confidence`, `provenance`, `resolved_by`.
-- [ ] **AC-0021.** On the fixture, `traverse helper --direction sideways` exits non-zero; `traverse helper --depth 99 --json` and `traverse helper --max-nodes 999999 --json` each write a line starting `CLAMPED:` to stderr while stdout still parses as JSON; and `rank --json` writes a line starting `STALENESS:` to stderr while stdout parses as JSON.
-- [ ] **AC-0022.** On the fixture, `rules-inventory --json` and `rules-recall --json` each exit 0 with stdout that parses as JSON, and `rules-recall --bogus x` exits non-zero.
-- [ ] **AC-0023.** `traverse helper --db <missing path>` exits non-zero and does not create the file.
-- [ ] **AC-0024.** The retired-claim scanner finds no match in the shipped surface.
-- [ ] **AC-0025.** The retired-claim scanner matches every sentence in its planted stale sample, every pattern has a stale sample, and no sentence in its planted current sample matches.
-- [ ] **AC-0026.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
-- [ ] **AC-0027.** `SKILL.md`, `references/capability-map.md`, and `references/investigation-patterns.md` each contain `wicked-estate lineage`.
-- [ ] **AC-0028.** `references/capability-map.md` contains `wicked-estate traverse`, `wicked-estate rules-inventory`, and `wicked-estate rules-recall`.
-- [ ] **AC-0029.** `references/investigation-patterns.md` and `agents/impact-analyst.md` each contain `rank --seeds`.
-- [ ] **AC-0030.** `evals/evals.json` contains a case whose assertions contain both `wicked-estate lineage` and `resolve`, and a case whose assertions contain `rank --seeds`.
-- [ ] **AC-0031.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.5`.
-- [ ] **AC-0032.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.5`.
-- [ ] **AC-0033.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.5\] — \d{4}-\d{2}-\d{2}$`.
-- [ ] **AC-0034.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty.
-- [ ] **AC-0035.** `agentbundle catalogue verify --root .` exits 0.
-- [ ] **AC-0036.** On the fixture, `graph-view --limit 5` stdout parses as JSON and every edge carries `kind`, `confidence`, `provenance`, `resolved_by`.
-- [ ] **AC-0037.** The `packs/AGENTS.local.md` internal-citation grep, run over the five pack test modules this change edits, finds no match.
-- [ ] **AC-0038.** No `expected_output` or assertion in `evals/evals.json` says the CLI blast radius lacks confidence.
+- [x] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.21` when the binary reports version 0.20.0.
+- [x] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.21.0 and an index exists.
+- [x] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.21"`, equal to the preflight's `MINIMUM_VERSION`.
+- [x] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.21.0 --locked`, and `0.21.0` equals the preflight's `PINNED_VERSION`.
+- [x] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.21.0 --locked` and rejects the planted `cargo install wicked-estate --version 0.18.0 --locked`.
+- [x] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
+- [x] **AC-0007.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.21"`, and its CLI verbs include `lineage`, `traverse`, `rules-inventory`, `rules-recall`, and `supports`.
+- [x] **AC-0008.** A 0.21.0 binary dispatches every CLI verb in the vocabulary allowlist.
+- [x] **AC-0009.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
+- [x] **AC-0010.** On the fixture, `blast-radius <name> --json` returns exactly the keys `target`, `dependents`, `unresolved`, `truncated_dependents`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, `confidence`, and `confidence` holds `min`, `avg`, `edge_count`.
+- [x] **AC-0011.** On the fixture, `blast-radius helper` (text) prints a line starting `evidence:`.
+- [x] **AC-0012.** On the fixture, `nodes --symbol <id> --json` and `blast-radius helper --bogus 1` each exit non-zero.
+- [x] **AC-0013.** On the fixture, `rank --json` stdout parses as one JSON document with keys `hotspots`, `total`, `truncated`, and each hotspot carries `symbol`, `name`, `kind`, `file`, `line_1based`, `score`.
+- [x] **AC-0014.** On the fixture, `rank --limit 2 --json` returns two hotspots.
+- [x] **AC-0015.** On the fixture, `rank --seeds <id-of-entry> --json` exits 0 and its hotspots include the `other.py` `handle`, which `entry` cannot reach; `rank --seeds handle` exits non-zero because `handle` names two symbols.
+- [x] **AC-0016.** On the fixture, `source --symbols <one handle id>` in text mode exits 0 and prints exactly one body, and `source helper --max-total-chars 10` without `--json` exits non-zero.
+- [x] **AC-0017.** On the fixture, `lineage --symbol <entry id> --json` stdout parses to keys `content` and `diagnostics`; `content.searched_depth` is 8; `content.dependencies` lists `handle` at depth 1 and `helper` at depth 2; and the `helper` row's `line` is one less than the `line` `resolve helper --json` reports.
+- [x] **AC-0018.** On the fixture, `lineage --symbol entry --json` (a name, not an id) exits 0 with an empty `content.dependencies`.
+- [x] **AC-0019.** On the fixture, `lineage --symbol <entry id> --depth 25` and `lineage --symbol <entry id> --relation flow_to` each exit non-zero.
+- [x] **AC-0020.** On the fixture, `traverse helper --direction dependents --json` stdout parses to keys `nodes`, `edges`, `depths`, `truncated`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, and each edge carries `kind`, `confidence`, `provenance`, `resolved_by`.
+- [x] **AC-0021.** On the fixture, `traverse helper --direction sideways` exits non-zero; `traverse helper --depth 99 --json` and `traverse helper --max-nodes 999999 --json` each write a line starting `CLAMPED:` to stderr while stdout still parses as JSON; and `rank --json` writes a line starting `STALENESS:` to stderr while stdout parses as JSON.
+- [x] **AC-0022.** On the fixture, `rules-inventory --json` and `rules-recall --json` each exit 0 with stdout that parses as JSON, and `rules-recall --bogus x` exits non-zero.
+- [x] **AC-0023.** `traverse helper --db <missing path>` exits non-zero and does not create the file.
+- [x] **AC-0024.** The retired-claim scanner finds no match in the shipped surface.
+- [x] **AC-0025.** The retired-claim scanner matches every sentence in its planted stale sample, every pattern has a stale sample, and no sentence in its planted current sample matches.
+- [x] **AC-0026.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
+- [x] **AC-0027.** `SKILL.md`, `references/capability-map.md`, and `references/investigation-patterns.md` each contain `wicked-estate lineage`.
+- [x] **AC-0028.** `references/capability-map.md` contains `wicked-estate traverse`, `wicked-estate rules-inventory`, and `wicked-estate rules-recall`.
+- [x] **AC-0029.** `references/investigation-patterns.md` and `agents/impact-analyst.md` each contain `rank --seeds`.
+- [x] **AC-0030.** `evals/evals.json` contains a case whose assertions contain both `wicked-estate lineage` and `resolve`, and a case whose assertions contain `rank --seeds`.
+- [x] **AC-0031.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.5`.
+- [x] **AC-0032.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.5`.
+- [x] **AC-0033.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.5\] — \d{4}-\d{2}-\d{2}$`.
+- [x] **AC-0034.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty.
+- [x] **AC-0035.** `agentbundle catalogue verify --root .` exits 0.
+- [x] **AC-0036.** On the fixture, `graph-view --limit 5` stdout parses as JSON and every edge carries `kind`, `confidence`, `provenance`, `resolved_by`.
+- [x] **AC-0037.** The `packs/AGENTS.local.md` internal-citation grep, run over the five pack test modules this change edits, finds no match.
+- [x] **AC-0038.** No `expected_output` or assertion in `evals/evals.json` says the CLI blast radius lacks confidence.
 
 ## Follow-ons
 
