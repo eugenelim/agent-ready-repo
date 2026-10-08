@@ -26,12 +26,13 @@
 Inherits the parent's outcome, boundary, and exclusions. Within them, this child owns:
 
 - the graph over the intent corpus, **derived from artifact headers on demand and never persisted**, and what it must expose: altitude, status, parent, related edges, direct features, and intents that carry no classification;
-- the **two surfaces over that one derivation**: a bounded query that returns identities, header facts, edges and paths but never artifact bodies, and a human view emitted on demand as a single self-contained file to a scratch location, leaving no repository footprint. The view is a consumer of the derivation, never a second source of truth;
+- the public read-only `navigate-intents` skill defined by [RFC-0105](../../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md), with **two surfaces over the artifact-derived graph**: a bounded query that returns identities, header facts, edges and paths but never artifact bodies, and a human view emitted on demand as a single self-contained HTML file to a scratch location, leaving no repository footprint. The view is a consumer of the derivation, never a second source of truth;
+- the portable view's offline core: intent identities, canonical header metadata, and admitted edges. Intent bodies, brief and spec bodies, attachments, and support material remain source-linked unless an implementation deliberately embeds them within its tested portability budget;
 - the view's design route — `information-architecture` owns its structure and widget hierarchy through the analytical genre method, `interaction-design` its behaviour, and `frontend-engineering` the single-file build; the workspace genre method in `information-architecture` is the alternative route if it proves to be a sustained-work surface rather than a read-and-act one;
 - how a related-intent edge is recorded on the artifact and read into the view;
 - how an unclassified legacy intent is surfaced without inventing an altitude for it.
 
-It does not own identity or placement (`intent-identity-and-registration`), the downstream mapping to a brief or spec (`intent-delivery-traceability`), operational coordination state (`workspace-coordination-reorganization`), or rendering the graph into a tracker (`external-tracker-projection`). It does not decide the mechanism: no generator, format, or hosting surface is chosen at this altitude.
+It does not own identity or placement (`intent-identity-and-registration`), the downstream mapping to a brief or spec (`intent-delivery-traceability`), operational coordination state (`workspace-coordination-reorganization`), or rendering the graph into a tracker (`external-tracker-projection`). It never reads `workspace.toml` as its inventory, lifecycle authority, or graph source, and it never mutates an intent or coordination record. It does not require a shared renderer with decision navigation or choose a schema, component system, payload encoding, compression method, search implementation, layout, interaction model, or fixed size threshold. Under RFC-0105 D5, later design work is advisory and may change without RFC errata while the accepted RFC and feature specification remain satisfied.
 
 
 **Inbound 2026-09-24 — a second consumer already builds part of this graph, and the convergence is recorded here because nothing re-reads that consumer's boundary when this intent is shaped.** [FEAT-0005](FEAT-0005-lifecycle-and-closure.md) § Boundary was amended that day to move eligibility computation into that child, because this intent is `Status: Draft` with `Decomposed:` absent and its closure check could not wait. That child may build an **in-memory descendant set** by inverting declared up-edges, bounded by three conditions that [FEAT-0005](FEAT-0005-lifecycle-and-closure.md) § Boundary states and owns. They are deliberately not reproduced here — read them there, because a copy would drift the moment that section is amended. Persistence, publication and any surface a second consumer reads remain this intent's, undiminished, and **no ordering edge runs in either direction**. When this capability lands, treat that child's per-decision resolution as a candidate consumer to absorb rather than a rival to leave standing — otherwise the repository keeps two independent edge-inversion implementations.
@@ -101,6 +102,7 @@ The view is a designed surface, not an incidental dump. Its structure and widget
 - A related-intent edge can be recorded on the artifact without turning it into a dependency edge that a reconciler reads as blocking. **Untested.**
 - The typed reference grammar exists before feature intents become graph nodes. **This is a hard dependency on** `intent-identity-and-registration`, not an assumption this child can test on its own.
 - A generated view can expose altitude and status without restating either, so status keeps the single home `docs/product/AGENTS.md` gives it. **Untested.**
+- Intent status and hierarchy prompts can activate `navigate-intents` without diverting decision navigation, authoring, or mutation requests. **Untested.**
 
 **Not de-risked.** No assumption above has been tested, and no kill condition has been declared for any of them. The parent's surviving verdict covers the parent's own bet, not this one. Re-enter `frame-intent` → `de-risk-intent` → `decompose-intent` before decomposing this intent.
 
@@ -112,3 +114,5 @@ The view is a designed surface, not an incidental dump. Its structure and widget
 - **Authority:** eugenelim, lifecycle owner
 
 Authored in this repository's shaping loop on 2026-09-18, under [ADR-0119](../../adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md), which retired the Initiative ladder into this intent graph.
+
+RFC-0105 D1, D3, D4, and D5 narrowed the public skill, workspace-independence, portable-content, and design-authority boundaries on 2026-10-02. It did not waive this feature's de-risk, dependency, or decomposition gates.

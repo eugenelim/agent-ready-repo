@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/security-event.v1.schema.json",
+  "title": "security-event.v1",
+  "description": "Security event emitted by the primitive or broker to the audit sink. Sensitive payloads never enter diagnostics. Audit failure cannot turn denial into allow. Security maintainers approve redaction schema; sinks ignore additive fields and reject unknown major versions.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/runtime-security-primitives.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_id",
+    "correlation_id",
+    "event_type",
+    "outcome",
+    "reason_code",
+    "timestamp"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Sinks ignore additive fields and reject unknown major versions."
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for the security-sensitive operation this event records."
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Correlation identifier linking this event to its originating capability grant or request."
+    },
+    "event_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Type of security event (e.g., file-read, file-write, process-launch, capability-issue, policy-denial)."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["allowed", "denied"],
+      "description": "Whether the operation was allowed or denied. A denial code is required when outcome is denied."
+    },
+    "reason_code": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable, redacted reason code for the outcome. No sensitive payloads, request content, or personal identifiers."
+    },
+    "timestamp": {
+      "type": "string",
+      "minLength": 1,
+      "description": "RFC 3339 instant when this event was emitted, before the operation was acknowledged."
+    }
+  }
+}

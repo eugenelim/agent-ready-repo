@@ -1,7 +1,7 @@
 [pack]
 name = "governance-extras"
-version = "0.11.3"
-description = "Write the RFC, record the ADR, and keep track of which ones are still open. Templates come with it, so nobody argues about format."
+version = "1.0.0"
+description = "Write the RFC, record the ADR, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Governance Extras"
 license = "Apache-2.0 OR MIT"
@@ -34,14 +34,14 @@ version = "^2.0"
 # Pack activation evals: the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is
 # measured by `agentbundle pack evals run`. All three governance-extras skills are
-# user-triggered judgment/authoring skills, so all three are covered; new-adr,
+# user-triggered judgment/authoring skills, so all three are covered; new-adr
 # and new-rfc also ship Tier-4 LLM-judge rubrics
 # (evals/evals.json, keyed by file presence, graded via --mode judge);
-# rfc-status is read-only and ships eval_queries.json only. No skill is
+# navigate-decisions is read-only and ships eval_queries.json only. No skill is
 # excluded — the pack has no reviewer-internal / non-prompt skill (unlike
 # core's security-checklists).
 [pack.evals]
-skills = ["new-adr", "new-rfc", "rfc-status"]
+skills = ["new-adr", "new-rfc", "navigate-decisions"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
@@ -60,8 +60,8 @@ email = "eugenelim@users.noreply.github.com"
 audience-posture = "mixed"
 surfaces         = ["claude-code"]
 prerequisites    = ["core pack installed at repo scope"]
-verification     = "Run rfc-status and confirm it lists the RFC lifecycle states without error."
-recovery         = "If rfc-status fails, confirm governance-extras is installed at repo scope; check that docs/rfc/ exists in your repo."
+verification     = "Run navigate-decisions with operation summary and confirm it reports ADR and RFC counts without error."
+recovery         = "If navigate-decisions fails, confirm governance-extras is installed at repo scope; check that docs/adr/ and docs/rfc/ exist in your repo."
 level-b          = true
 writes-to-repo   = true
 starter-task     = "Record an architectural decision your team has already made"

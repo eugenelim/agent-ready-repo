@@ -656,6 +656,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest contract backward-traceability registry (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest navigate-decisions file_safety mirror (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest repair-round predicate parity (spec contract vs shipped guard)":
         LOCAL("test-after-build-check"),
     "pytest spec-retirement candidate contract (roster-owned)":
@@ -675,6 +677,65 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest visual-target exclusive property (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual-authority supersession (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest delivery contract bundle (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # AC-0014 Slice 1 guard: asserts code registry and doc matrix agree on
+    # Slice 1 writer boundaries and profiles; must run before any writer task.
+    "pytest content-safety boundary matrix (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Slice 1 security-primitive schema parity: validates that records emitted
+    # by _security_capability.py, _confined_mutation.py, and _security_events.py
+    # satisfy their canonical contracts/delivery/ schemas, and that each module's
+    # own validate_*_dict() refuses four classes of invalid input with stable
+    # denial codes.  LOCAL("test-after-build-check") is correct: that target's
+    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    "pytest security-primitives schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T6 delivery-subject schema parity: validates that records emitted by
+    # _subject_projection.project_delivery_subject() satisfy
+    # contracts/delivery/delivery-subject.v1.schema.json, and that
+    # validate_subject_dict() refuses four classes of invalid input with stable
+    # denial codes.  LOCAL("test-after-build-check") is correct: that target's
+    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    "pytest delivery-subject schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Slice 1 T4 acceptance schema parity: validates that records emitted by
+    # _acceptance.py satisfy their canonical contracts/delivery/ schemas, and
+    # that each validate_*_dict() refuses four classes of invalid input with
+    # stable denial codes.  LOCAL("test-after-build-check") is correct: that
+    # target's run-test-suite includes pytest tests/ -q, which discovers this
+    # roster file.
+    "pytest acceptance schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T3c containment-attestation schema parity: validates that records emitted
+    # by _containment.py satisfy contracts/delivery/containment-attestation.v1.
+    # schema.json, pins DELIVERY_CONTROL_PATHS to contracts/adapter.toml, and
+    # asserts validate_attestation_dict() refuses four classes of invalid input
+    # with stable denial codes.  LOCAL("test-after-build-check") is correct:
+    # that target's run-test-suite includes pytest tests/ -q, which discovers
+    # this roster file.
+    "pytest containment-attestation schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T7 evidence-store schema parity: validates that records emitted by
+    # _evidence_store.py satisfy their canonical contracts/delivery/ schemas, and
+    # that each validate_*_dict() refuses four classes of invalid input with
+    # stable denial codes.  LOCAL("test-after-build-check") is correct: that
+    # target's run-test-suite includes pytest tests/ -q, which discovers this
+    # roster file.
+    "pytest evidence-store schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T9a conformance roll-up: verifies byte-identity of both adapter projections
+    # to the pack source and imports key modules from the projected paths.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest T9a conformance roll-up (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T9a clean-environment fence: static import analysis and subprocess
+    # agentbundle-free fence — each with red evidence.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest T9a clean-environment fence (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual handoff golden path (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -969,6 +1030,7 @@ _GATE_MAIN_CHECKS = (
     "pytest experience-design output-addressing contracts (roster-owned)",
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
+    "pytest navigate-decisions file_safety mirror (roster-owned)",
     "pytest repair-round predicate parity (spec contract vs shipped guard)",
     "pytest spec-retirement candidate contract (roster-owned)",
     "pytest spec-retirement candidate CLI (roster-owned)",
@@ -979,6 +1041,15 @@ _GATE_MAIN_CHECKS = (
     "pytest visual-target release surface (roster-owned)",
     "pytest visual-target exclusive property (roster-owned)",
     "pytest visual-authority supersession (roster-owned)",
+    "pytest delivery contract bundle (roster-owned)",
+    "pytest content-safety boundary matrix (roster-owned)",
+    "pytest security-primitives schema parity (roster-owned)",
+    "pytest delivery-subject schema parity (roster-owned)",
+    "pytest acceptance schema parity (roster-owned)",
+    "pytest containment-attestation schema parity (roster-owned)",
+    "pytest evidence-store schema parity (roster-owned)",
+    "pytest T9a conformance roll-up (roster-owned)",
+    "pytest T9a clean-environment fence (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
@@ -1184,6 +1255,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/governance-extras/tests/skills/navigate-decisions/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
+            "the build gate chain step `test-navigate-decisions`, which this lint does not trace."
         ),
     'packs/core/tests/skills/explain-diff/':
         NO_PR_GATE(

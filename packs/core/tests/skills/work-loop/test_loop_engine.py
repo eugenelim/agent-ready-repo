@@ -4032,7 +4032,7 @@ def test_engine_names_only_in_process_python_siblings_and_never_spawns_python() 
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
         and _re.search(r"\.py$", node.value)
     }
-    allowed = {"_statelock.py", "_loop_guards.py", "loop-cohort.py"}
+    allowed = {"_statelock.py", "_loop_guards.py", "loop-cohort.py", "_compat_facade.py"}
     assert literals <= allowed, (
         f"the engine names other Python scripts: {sorted(literals - allowed)}"
     )

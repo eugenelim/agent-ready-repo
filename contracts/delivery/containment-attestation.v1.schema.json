@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/containment-attestation.v1.schema.json",
+  "title": "containment-attestation.v1",
+  "description": "Containment attestation from the verified launcher to the supervisor and broker. Authority is narrower than the grant; only verified read coverage can support complete access attestation. Missing, unverifiable, or broader enforcement refuses. Security owners approve guarantees; adapters cannot omit required denial or coverage.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/runtime-security-primitives.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "host_mechanism",
+    "principal_or_sandbox",
+    "roots",
+    "limits"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Security owners approve guarantees; unknown versions refuse."
+    },
+    "host_mechanism": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Host isolation mechanism (e.g., os-sandbox, restricted-principal, verified-container). Same-process wrappers are not permitted."
+    },
+    "principal_or_sandbox": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity of the security principal or sandbox instance that enforces the containment."
+    },
+    "roots": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Filesystem roots the contained child may access. Must be narrower than the grant."
+    },
+    "read_enforcement": {
+      "type": "string",
+      "enum": ["allowlist", "trace"],
+      "description": "Enforced product read mode. Absent means read access is not proven complete."
+    },
+    "trace_coverage": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Description of trace coverage when read_enforcement is trace."
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed"],
+      "description": "Network access attested by this containment. Absent means no network access is attested.",
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "description": "Whether network access is attested for the contained child."
+        }
+      }
+    },
+    "children": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed"],
+      "description": "Child-process authority attested by this containment. Absent means no child processes are attested.",
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "description": "Whether child processes are attested for the contained child."
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "description": "Resource limits attested by this containment.",
+      "properties": {
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum bytes attested for the contained child."
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Wall-clock timeout in seconds attested for the contained child."
+        }
+      }
+    }
+  }
+}

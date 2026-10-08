@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/security-capability.v1.schema.json",
+  "title": "security-capability.v1",
+  "description": "Security capability grant issued by the capability issuer. Omitted network and child fields deny all. Delegation cannot widen authority or claim unsupported read coverage. Missing containment or grant refuses. Security owners approve; unknown versions refuse.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/runtime-security-primitives.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "grant_id",
+    "roots",
+    "operations",
+    "trust_class",
+    "writes",
+    "control_denies",
+    "limits"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Security owners approve; unknown versions refuse."
+    },
+    "grant_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for this capability grant."
+    },
+    "roots": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Write roots this grant covers. Empty means no write roots are granted."
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1},
+      "description": "Permitted operations (e.g., read, write, append, execute)."
+    },
+    "trust_class": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Trust class of the grantee (e.g., trusted-adapter, contained-child)."
+    },
+    "writes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_roots"],
+      "description": "Write permissions granted to this capability.",
+      "properties": {
+        "allowed_roots": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "description": "Canonical roots where writes are permitted. Empty means no writes are allowed."
+        }
+      }
+    },
+    "product_read_proof_mode": {
+      "type": "string",
+      "enum": ["allowlist", "trace", "none"],
+      "description": "Product read proof mode. Absent means deny all product reads."
+    },
+    "control_denies": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Control-plane paths and operations explicitly denied to this grant."
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed"],
+      "description": "Network access grant. Absent means deny all network access.",
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "description": "Whether any network access is granted."
+        },
+        "allowed_destinations": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "description": "Specific allowed network destinations when allowed is true."
+        }
+      }
+    },
+    "children": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed"],
+      "description": "Child-process authority. Absent means deny all child processes.",
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "description": "Whether child processes may be launched under this grant."
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "description": "Resource limits for this grant.",
+      "properties": {
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum bytes this grant may read or write."
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum wall-clock seconds for any operation under this grant."
+        }
+      }
+    }
+  }
+}

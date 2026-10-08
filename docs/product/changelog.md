@@ -83,6 +83,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SKILL.md` § Evidence discipline now asks for every command quoted exactly as run, flags included, and for an output a caller supplied to be reported under the command it stands for, so a run record is reproducible without inspecting a tool trace.
 - `SKILL.md`, `README.md`, and the how-to guide route to the composition example and state that other providers may expose fewer, different, or new capabilities and need not emulate Wicked Estate.
 
+## [core][2.29.1] — 2026-10-07
+
+No `Highlights`: this release adds maintainer-only shadow acceptance services behind an opt-in flag and changes no skill outcome or user task; adopters receive no new invocation. The omission is a recorded decision rather than an oversight.
+
+### Added
+
+- Callable shadow acceptance services now ship in `packs/core`. The services — acceptance projection, approval import, evidence transactions, subject projection, security primitives, content-safety guard, and the compatibility facade — are standard-library-only scripts in the `work-loop` skill. With `WORK_LOOP_SHADOW_SERVICES=1`, the engine records an evidence receipt after each transition. When the plan locks, it also imports the approval against the approved spec and plan digests, projects the delivery subject when the tree allows (it skips a dirty tree or an oversized manifest), and derives a verdict, all under the feature's `.shadow-acceptance/` folder. The current engine keeps all authority, and every result stays non-authoritative shadow evidence until a separately accepted governance record enables a cutover. Maintainers can verify parity, run import and reversal checks, and confirm cross-adapter conformance without reading the delivery spec.
+
 ## [core][2.29.0] — 2026-10-06
 
 ### Highlights
@@ -138,6 +146,26 @@ decision rather than an oversight.
 
 - `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
 - The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
+
+## [governance-extras][1.0.0] — 2026-10-04
+
+### Highlights
+
+- `navigate-decisions` replaces the retired `rfc-status` skill. It queries both ADRs and RFCs for exact lifecycle, checked supersession lineage, contextual references, guidance context, and record detail. It also exports a self-contained offline HTML explorer with list, lifecycle-graph, guidance-context, and record-detail views.
+
+### Changed
+
+- **Breaking:** `rfc-status` is removed. Use `navigate-decisions` with a `summary` prompt (or ask "show me the RFC landscape") to get the counts and lifecycle view `rfc-status` provided. All `rfc-status` activation prompts now route to `navigate-decisions`.
+
+### Migration
+
+Run `navigate-decisions summary` (or ask "how many RFCs are in each lifecycle state?") in place of `rfc-status`. For exact record detail, use `navigate-decisions record ADR-NNNN` or `navigate-decisions record RFC-NNNN`. For offline review, export with `navigate-decisions export`.
+
+## [iac-terraform][0.1.11] — 2026-10-04
+
+### Changed
+
+- The `governance-extras` dependency range is widened to `^1.0` (from `^0.11`). The `iac-terraform` pack behavior is unchanged; this update tracks the governance-extras major release that replaced `rfc-status` with `navigate-decisions`.
 
 ## [frontend-engineering][0.4.5] — 2026-10-04
 

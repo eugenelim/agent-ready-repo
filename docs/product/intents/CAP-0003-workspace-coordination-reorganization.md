@@ -7,6 +7,8 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:graph-powered-sdlc
+- **De-risked:** 2026-10-02
+- **Decomposed:** 2026-10-02 children
 
 ## Outcome
 
@@ -37,8 +39,8 @@ It does not own the intent corpus's identity or placement (`intent-identity-and-
 
 ## Unresolved questions
 
-- Whether the non-derivable operational state is small enough that relocating it beats living with the hot file.
-- Whether every reader, writer, projection, fixture and external adopter of `workspace.toml` can be inventoried.
+- Which canonical owner receives each workspace-only fact when more than one destination is lawful, especially priority and dependency choices.
+- Whether the repository inventory is complete for external adopter behavior that cannot be observed from tracked files.
 - Whether array order is load-bearing beyond index-based duplicate identity.
 
 ## Projection
@@ -54,12 +56,80 @@ Both were found while testing the parent's assumption and are recorded here so t
 
 ## Assumptions
 
-- The non-derivable operational state is small enough that relocating it is cheaper than living with the contention. **Untested** — the parent's de-risk classified the state but did not size the change.
-- Every reader, writer, projection, fixture, and external adopter of `workspace.toml` can be inventoried, and an equivalence corpus can be built before any shape is chosen. The 2026-09-13 survey names this inventory as required and does not supply it. **Untested.**
+- The non-derivable operational state is small enough that relocating it is cheaper than living with the contention. **Disproved as stated.** The fresh inventory below found a broad operative surface. The surviving target is a staged, gated retirement whose specification assigns each fact and consumer before removal; it is not a small or direct relocation.
+- Every repository reader, writer, projection, fixture, seed, and guide can be inventoried, and an equivalence corpus can be built before a replacement shape is chosen. **Supported for tracked repository consumers by the closed inventory below.** External adopter behavior remains `to-validate` through the compatibility review and equivalence replay.
 - Whether array order is a priority anywhere beyond index-based duplicate identity and the `next_queue` projection is an open question the survey recorded and did not close. **Untested**, and it needs permutation or metamorphic tests over every parser and writer.
 - Removing the contention does not merely relocate it to an assembly or regeneration step that needs a single owner. The survey found this relocation in four independent prior-art families. **Untested here.**
+- **Knowledge surface:** in-repo skill implementations, package projections, manifests, tests, fixtures, seeds, guides, and governance records that read or name `workspace.toml` or `workspace-status`.
 
-**Not de-risked.** No assumption above has been tested, and no kill condition has been declared for any of them. The parent's surviving verdict covers the parent's own bet, not this one. Re-enter `frame-intent` → `de-risk-intent` → `decompose-intent` before decomposing this intent.
+## De-risk record
+
+- **Status:** survived on 2026-10-02 as a staged, gated retirement; external-adopter closure remains `to-validate`
+- **Reversibility triage:** one-way door. Removing a published coordination format and its safety behavior is expensive to reverse after adopters and workflows migrate.
+- **Prototype-approach:** `validate-first`. The cheapest probe that can fail is a closed consumer-and-state inventory over the current repository, followed by an ownership disposition for each required behavior.
+
+### Riskiest assumption
+
+Every required behavior and non-derivable fact currently carried by `workspace.toml` and `workspace-status` can be inventoried and assigned to a canonical artifact, an owning lifecycle workflow, an external projection, or an explicitly retained compatibility seam without recreating another repository-wide mutable registry.
+
+What would have to be true: the repository's readers, writers, projections, fixtures, seeds, and guidance form a closed discoverable set; each dependency, priority, provenance, lifecycle, cooling, dispatch, repair, rollback, and prune responsibility has a lawful owner; and removing the hot file does not move the same write contention into a generated replacement.
+
+### Kill condition, predeclared 2026-10-02
+
+Kill full workspace retirement as one feature and recut the capability around a retained narrow compatibility record if either condition holds:
+
+1. the fresh tracked-file inventory cannot reduce every operative `workspace.toml` or `workspace-status` consumer to a named reader, writer, projection, fixture, seed, guide, or historical-only reference; or
+2. any required current behavior or non-derivable fact has no destination outside a repository-wide mutable registry and no separately accepted removal authority.
+
+One unowned required behavior is enough to kill. The line is recorded before the consumer inventory and disposition run; the earlier corpus-size survey is grounding only.
+
+### Probe
+
+A fresh tracked-file inventory reduced the operative surface to seven named consumer classes:
+
+1. the `workspace-status` skill, its reconciliation engine, repair-plan/apply, rollback, and prune paths;
+2. lifecycle readers and writers in `work-intake`, `author-delivery-brief`, `work-loop`, `close-work`, `new-spec`, and `new-rfc`;
+3. runtime and generated projections, including the workspace MCP surface and packaged workspace engines;
+4. the core manifest, workspace seed, install snapshots, and build checks;
+5. tracker-ingress and status routes that register or report work;
+6. focused tests, fixtures, roster checks, and tool tests; and
+7. current guides and architecture documents, separated from frozen historical records.
+
+The same inventory assigned each behavior or fact to a destination class without requiring a replacement repository-wide mutable registry:
+
+- identity, lifecycle, altitude, and parentage belong to canonical artifact metadata and `navigate-intents`;
+- dependency and priority need an accepted canonical owner or external projection before migration;
+- dispatch readiness remains with specs, plans, and `work-loop` preflight;
+- cooling and retirement remain with closeout and lifecycle records;
+- repair, reconcile, rollback, and prune move only to the workflow that owns the affected artifact or lifecycle;
+- tracker-origin refresh remains an ingress or tracker-projection responsibility; and
+- legacy records may use a temporary compatibility seam until the closure gate removes it.
+
+### Verdict — survived, with the migration shape narrowed
+
+Neither predeclared kill condition fired. Every operative tracked-file reference fit a named consumer class, and no required behavior or fact lacked a non-registry destination class or an accepted-removal route. Full retirement therefore remains a viable target and may decompose into one staged migration feature governed by RFC-0105's four gates.
+
+The probe did disprove the smaller assumption that this is a cheap relocation: the consumer surface is broad. The child must treat consumer inventory, state disposition, behavioral equivalence, and compatibility closure as acceptance gates, and must retain the old surfaces until all four pass. The later maintainer review and external-adopter check remain open validation rather than being inferred from repository search.
+
+### Validation hook
+
+```yaml
+validation_hook:
+  assumption: Workspace coordination can retire without losing required behavior or recreating its contention elsewhere.
+  kill_condition: Any operative consumer or required behavior is absent from the migration inventory, or a replay differs without an accepted removal decision.
+  activity: to-validate — maintainers review the closed inventory, then replay the equivalence corpus through the old and replacement paths before the retiring change is approved.
+```
+
+## Decomposition
+
+- [Workspace registry retirement](FEAT-0034-workspace-registry-retirement.md) — the staged migration and gated retirement of `workspace-status` and `workspace.toml`, including consumer inventory, fact disposition, behavioral equivalence, and compatibility closure.
+
+### Decomposition decisions
+
+- **One child owns one irreversible migration outcome.** Splitting by reader, writer, or storage layer would create technical slices that cannot retire anything safely on their own. The four RFC-0105 gates remain acceptance gates inside one feature.
+- **The child is staged, not small.** The de-risk inventory disproved a cheap-relocation assumption and found a broad surface. One feature keeps the evidence and final retirement decision coherent while allowing its specification and delivery plan to sequence many slices.
+- **Intent navigation is a sibling feature under another capability.** It can replace read-only orientation only after its own intent lifecycle passes; this child owns removal of the old compatibility surfaces, not the new navigator's implementation.
+- **No replacement registry is implied.** Each fact moves to a canonical artifact, an owning lifecycle workflow, an external projection, temporary migration state, or accepted removal. A central mutable replacement would fail the capability guardrail.
 
 ## Source
 

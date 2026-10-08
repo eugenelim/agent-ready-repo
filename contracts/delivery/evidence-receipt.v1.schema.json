@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/evidence-receipt.v1.schema.json",
+  "title": "evidence-receipt.v1",
+  "description": "Evidence receipt from an execution or review-failure producer through the evidence port. Freshness is exact-subject or path-set; review failures use exact-subject. Malformed, stale, or refused receipts are inadmissible. Canonical schema owns fields; readers precede writers; unknown majors are inadmissible.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "acceptance_fingerprint",
+    "lineage",
+    "selector",
+    "freshness_mode",
+    "observation",
+    "outcome",
+    "producer"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Contract owners approve; readers precede writers; unknown majors are inadmissible."
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for this evidence receipt."
+    },
+    "acceptance_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Acceptance fingerprint of the delivery subject this receipt addresses. An exact-subject receipt for a changed fingerprint is stale."
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterion_ref"],
+      "description": "Lineage binding this receipt to its criterion and any completeness attestation.",
+      "properties": {
+        "criterion_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the acceptance-property.v1 criterion this receipt addresses."
+        },
+        "attestation_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the completeness attestation for path-set receipts."
+        }
+      }
+    },
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["term"],
+      "description": "Which named observation term in the criterion this receipt satisfies.",
+      "properties": {
+        "term": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Named observation term from the criterion's required_observations."
+        }
+      }
+    },
+    "freshness_mode": {
+      "type": "string",
+      "enum": ["exact-subject", "path-set"],
+      "description": "Freshness mode for this receipt. An exact-subject receipt requires the current acceptance fingerprint. A path-set receipt also requires matching claim, policy, attestation, reads, command, toolchain, configuration, environment, and bytes."
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Observation metadata. Digests and controlled raw-output references are optional audit data, never verdict inputs.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Observation type (e.g., test-result, command-result, manual-observation, review-failure)."
+        }
+      }
+    },
+    "outcome": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Normalized outcome value matching a term in the criterion's required_observations."
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "identity"],
+      "description": "Producer that submitted this receipt.",
+      "properties": {
+        "class": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Producer class matching the criterion's permitted producer_class."
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable producer identity (no real names, emails, or personal identifiers in repository artifacts)."
+        }
+      }
+    },
+    "task_projection_revision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional execution provenance: task-projection revision at the time of observation. Not a verdict input."
+    }
+  }
+}

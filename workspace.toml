@@ -92,6 +92,7 @@ executing = [
   # gates on U1 and D2 on S1, at slice granularity. D2 and D3 stay unconfirmed.
   {path = "docs/product/briefs/phase-scoped-policy-delivery.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Key policy-family selection to the recorded FSM phase and inline the matching families into the acting agent's brief, extending the existing module-index mechanism", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
+  {path = "docs/product/briefs/acceptance-centered-work-loop.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/architecture/acceptance-centered-work-loop.md", revision = "sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02"}, summary = "Replace workflow-engine authority with an acceptance-centered, runtime-neutral work loop through eight independently shippable slices", needs = []},
 ]
 ready     = [
   {path = "docs/product/briefs/repository-grounding-preservation.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make Core recognize shared-substrate changes, derive bounded disposable consumer maps, and require preservation evidence without adapt-to-project, code intelligence, Pi, or whole-repository ingestion", needs = []},
@@ -232,6 +233,14 @@ shipped   = [
 active  = [
 ]
 shipped = [
+  # Shipped 2026-10-07. Slice 1 of the acceptance-centered work loop: shadow
+  # acceptance services behind WORK_LOOP_SHADOW_SERVICES=1, with the current engine
+  # keeping all authority. Evidence map, benchmarks, and owner decisions are in
+  # notes/verification-ledger.md; follow-ups are in [backlog].open.
+  {path = "docs/specs/acceptance-authority-and-evidence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:4f43ad971588c13cbef0180ba01e0fa3822673df62441b342caa201664b259c1", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Make accepted criteria and their evidence authoritative through atomic approval import, legacy subject projection, evidence transactions, a derived verdict, shared security primitives, capability refusal, and content-safety decisions without moving orchestration ownership", needs = []},
+  # Shipped 2026-10-07 (FEAT-0033, RFC-0105). AC-0020 closed on the owner's
+  # accepted session after the 2026-10-07 amendment.
+  {path = "docs/specs/decision-navigation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0033-decision-navigation.md"}, summary = "Replace rfc-status with bounded ADR/RFC queries and list, lifecycle, guidance-context, and detail views in one safe offline explorer", needs = []},
   # Shipped 2026-10-06. Delivered across #1506 (waves 1-4) and its closeout.
   # Registered 2026-10-05 from a Type 1 finding — the spec and plan were
   # approved 2026-10-02 with no workspace membership, so nothing could dispatch
@@ -507,6 +516,8 @@ shipped = [
   {path = "docs/specs/code-intelligence-golden-composition-example/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md", revision = "working-tree-2026-10-04"}, summary = "Show one complete Wicked Estate composition without making its provider-specific shape normative", needs = []},
 ]
 queue   = [
+  {path = "docs/specs/delivery-knowledge-projection/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:8e2cf33151320b16cf8a12bf852531f262e57b5470dc8105ed121087b0347410", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Project reusable observations from durable delivery facts without giving delivery ownership of knowledge lifecycle state", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-authority-and-evidence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/structured-review-boundary/spec.md"}]},
+  {path = "docs/specs/structured-review-boundary/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:8e2cf33151320b16cf8a12bf852531f262e57b5470dc8105ed121087b0347410", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Expose selected review obligations and current typed reviewer reports through an opaque boundary, reducing finding disposition to reachable actual failure without leaking reviewer mechanics into delivery policy", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-authority-and-evidence/spec.md"}]},
   {path = "docs/specs/native-provider-selection-validation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0032-native-provider-selection-validation.md", revision = "working-tree-2026-10-04"}, summary = "Run a blind human validation that can survive, reframe, or leave inconclusive the native-provider selection bet", needs = []},
   # Draft 2026-10-05, carved out of `jsonl-otlp-exporter` when that spec closed.
   # It owns the one gesture the parent's contract never asked for and only the
@@ -647,6 +658,8 @@ open = [
   # resolvable after its successor spec moves to Platform Core's ready queue.
   # The approved spec owns implementation; this note is only the historical
   # anchor and retires through a governed amendment of that shipped spec.
+  {path = "docs/specs/acceptance-authority-and-evidence/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "Clean the caller-supplied operation and correlation IDs at the effect broker (request_effect) so an odd value is never stored or escapes unaudited; pin the evidence-store task_projection_revision, authority identity, and nested-value schema checks with tests that fail when each is removed; and take any later in-class finding routed here by the security stop rule or the owner's 2026-10-07 review cap", needs = []},
+  {path = "docs/specs/acceptance-authority-and-evidence/notes/spec-review-retry-cap-dead-end.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "After a contract amendment, spec review inherits the code-review retry count, and findings-remain from SPEC-PLAN-REVIEW refuses the owner override, so an amended spec cannot loop back to drafting", needs = []},
   {path = "docs/specs/work-intake-migration-docs/notes/capture-work-alias-removal.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md"}, summary = "Preserve the historical capture-work-alias-removal deferral anchor while the approved removal spec is queued for Platform Core", needs = []},
   # The consumer half of the decomposed visual-target contract. Registered here
   # because `visual-target-field` ships a frontmatter field that nothing reads,
@@ -2207,7 +2220,7 @@ open = [
   { path = "docs/specs/flow-distribution-sample-honest/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/delivery-state-and-flow-visibility.md", parent = "docs/product/briefs/delivery-state-and-flow-visibility.md" }, summary = "Cycle time, throughput and percentiles over those observations, reporting the strongest claim the sample supports and naming it", needs = [{type = "local", kind = "spec", path = "docs/specs/delivery-state-observation/spec.md"}] },
   { path = "docs/specs/delivery-forecast-with-uncertainty/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "A delivery forecast carrying its range and its sample, distinguishable from a committed date", needs = [{type = "local", kind = "spec", path = "docs/specs/flow-distribution-sample-honest/spec.md"}] },
   { path = "docs/specs/progress-review-two-answers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "Place the forecast beside the intent's declared outcome, read verbatim from its Outcome section, with both separations intact", needs = [{type = "local", kind = "spec", path = "docs/specs/delivery-forecast-with-uncertainty/spec.md"}] },
-  { path = "docs/product/intents/CAP-0002-decision-graph.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make the accepted decision corpus navigable as a generated read-only graph so a session reads the constraints that apply instead of rediscovering them from record headers; supersession is the checked backbone and Related is weaker adjacency; needs its own de-risk before decomposition", needs = [] },
+  { path = "docs/product/intents/FEAT-0035-decision-context-checks.md", kind = "intent", source = { mode = "repo-origin", ref = "docs/product/intents/CAP-0002-decision-graph.md" }, summary = "Test lightweight decision-context checks that cite bounded reference policy without inferring applicability, enforcing behavior, or burdening ordinary maintenance", needs = [] },
   # Work-item capture and disposition — delivery for CAP-0005 and its four
   # feature intents, all Accepted and therefore de-registered. These specs are
   # where the work stays visible. Each names exactly one parent feature intent
