@@ -15,7 +15,7 @@ contract:
     - "Approve the plan"
     - "Approve each local refresh field decision"
     - "Confirm every remote tracker mutation separately"
-    - "Author the reviewed route and fresh confirmation for each legacy workspace migration effect"
+    - "Recover or roll back an operation already recorded in a migration ledger, using the operation ID from `.workspace-migrations.json`"
     - "Confirm semantic freshness and every exact close-work mutation separately"
     - "Merge the PR"
   decisionGateIds:
@@ -69,7 +69,7 @@ skills:
     description: "Deprecated compatibility alias for author-delivery-brief continue."
     humanTouches: 0
   - name: workspace-status
-    description: "Reads workspace.toml, surfaces canonical and legacy findings, and provides the explicit plan/apply/rollback repair surface for reviewed migrations."
+    description: "Reads workspace.toml, reconciles canonical entries, surfaces unsupported-legacy findings for former legacy entries, and provides the explicit repair surface for recovering or rolling back a recorded migration operation."
     humanTouches: 0
   - name: project-knowledge
     description: "Captures, distills, and enquires over committed project knowledge through one progressive skill. Capture writes observations; distill proposes topic changes; enquire reads active committed topics."

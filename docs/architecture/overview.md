@@ -94,8 +94,8 @@ One file per non-trivial subsystem:
   applies authorized local changes through execution locks and conflict-aware
   compare-and-swap writes; configured tracker processors may perform separately
   confirmed remote mutations within their declared capability boundaries. The
-  same boundary now includes ledger-first migration and exact rollback for
-  accepted legacy workspace entries; see the
+  same boundary now includes ledger-first recovery and exact rollback for
+  operations already recorded in a migration ledger; see the
   [maintainer reference](../guides/reference/work-intake-maintenance.md).
 
 ## Packages

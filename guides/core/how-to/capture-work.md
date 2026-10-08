@@ -43,8 +43,13 @@ Write a target entry directly in the correct collection:
 {path = "docs/specs/<slug>/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "<current outcome>", needs = []}
 ```
 
-Then remove the legacy record. Run `workspace-status` to confirm the entry
-reconciles as expected.
+Then remove the legacy record in the same edit. Run `workspace-status` to
+confirm the entry reconciles as expected. For the full set of accepted shapes and
+collections, see the
+[Target Entry](../reference/workspace-toml-schema.md#target-entry),
+[Lifecycle Membership](../reference/workspace-toml-schema.md#lifecycle-membership),
+and [Legacy Forms](../reference/workspace-toml-schema.md#legacy-forms) sections
+of the schema reference.
 
 ## Verify the result
 

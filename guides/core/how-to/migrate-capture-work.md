@@ -12,16 +12,7 @@ from a previous run — either `pending` (interrupted apply), `applied` (ready
 for optional rollback), or `rollback_pending` (interrupted rollback).
 
 To update a former legacy workspace entry that is not in a migration ledger,
-rewrite it in canonical form by hand. Ordinary status no longer accepts legacy
-shapes; they surface as `unsupported_legacy` findings. Write a target entry
-directly:
-
-```toml
-{path = "docs/specs/<slug>/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "<current outcome>", needs = []}
-```
-
-Then remove the legacy record. Run `workspace-status` to confirm the entry
-reconciles as expected.
+see [Move from capture-work to work-intake](capture-work.md).
 
 ## Recover an interrupted apply
 
@@ -94,6 +85,11 @@ python3 .agents/skills/workspace-status/scripts/workspace_status.py \
 Migration planning rejects `--plan-file`. `artifact_missing` names the owning
 processor as the next action. Manual, sensitive, stale, duplicate, unsafe, or
 impossible routes fail without writes.
+
+The plan reports a derived operation ID. For recovery of an operation already in
+`.workspace-migrations.json`, use the operation ID recorded there — not the
+re-derived plan's ID. A re-derived plan's ID does not match an operation planned
+under an earlier Core version.
 
 ## Verify the result
 

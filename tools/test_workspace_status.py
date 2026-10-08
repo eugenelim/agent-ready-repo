@@ -1511,11 +1511,12 @@ _WL_FINISH_END = r'Conventional commit format'
 # queue/active/shipped).
 # Moved 2026-10-08 for core 3.0.0: Step 0 now says former legacy entries
 # surface as `unsupported_legacy` findings instead of describing retained
-# `legacy_memberships`. Reviewed as the pin requires; the engine needs no edit,
+# `legacy_memberships`, and that old shaping entries stay only in the
+# information-only shaping lists. Reviewed as the pin requires; the engine needs no edit,
 # because canonical reconciliation already emits that finding and ownership is
 # unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "c8ee493ec93d1a654d64382c6b87ee80afaaee65fb9758fcad2a5dfe547b7d15"
+    "6fd9a3fb045b2ce19b675f3547656b95a35a08a7e34eb92563b520101efe5d8c"
 )
 # Reconciled 2026-08-21: the finish-time lint now resolves from the installed
 # skill directory. Status ownership is unchanged, so the engine needs no edit.

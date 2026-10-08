@@ -548,3 +548,21 @@ the same amendment for the owner's spec/plan re-approval.
   After it, the workspace-status, tools, and disclosure suites ran 548 passed
   with only the stale engine SHA pin failing; the refreshed pin then ran 19
   passed. `make lint-ruff lint-mypy` and `git diff --check` pass.
+
+### T8
+
+- An implementer resolved the 12 sustained guidance findings in 16 files. It
+  added the information-only shaping-list note to the work-loop Step 0 (and
+  its eval case), the two product-engineering skills, and the frame-a-situation
+  guide. It also documented the `duplicate_membership` alias cause after the
+  schema findings table, and added the ledger-operation-ID rule to the recovery
+  guide and `mutate.md`.
+- Deviation: T8's Step 0 edit moved the work-loop contract pin in
+  `tools/test_workspace_status.py`, a completed-task file; the controller
+  refreshed that pin (`6fd9a3fb…`) with a review comment.
+- Widened audit (`compatibility window`, `reviewed route selection`,
+  `migration planner`, `supported legacy`) over current guidance: one match,
+  an unrelated monorepo-extras package-versioning phrase.
+- Checks: 6 guide and journey validators pass. Guide tool tests,
+  `test_work_intake_surface.py`, and `tools/test_workspace_status.py` ran 146
+  passed. `make lint-ruff lint-mypy` and `git diff --check` pass.

@@ -108,9 +108,10 @@ Add this to your active initiative's `[shaping_queue]` backlog in
 2. **Manual edit** — open `workspace.toml`, find `["ini-NNN".shaping_queue]`, and
    add the entry to the `backlog` array.
 
-A short `{slug = "...", type = "shape"}` entry is the legacy shape. It still
-reads during the compatibility window but is **never dispatchable**, so
-`workspace-status` cannot offer it as work.
+A short `{slug = "...", type = "shape"}` entry is the former legacy shape. It
+surfaces as `unsupported_legacy` in `workspace-status` and is never
+dispatchable. Old shaping entries still appear in the information-only shaping
+lists until rewritten.
 
 Once added, `workspace-status` will surface it as a ready `shape`-typed item and
 suggest running `identify-opportunities` (or the appropriate entry-point skill).

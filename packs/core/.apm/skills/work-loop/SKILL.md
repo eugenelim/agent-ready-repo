@@ -170,7 +170,7 @@ If `workspace.toml` is present, read it and Surface an orientation block:
      Any matching `canonical.blocked` or `canonical.findings` entry blocks
      autonomous start with its stable `code`, `path`, and `next_action`;
      `missing_plan`, `unapproved_spec`, and comment-only changes are refusals.
-     Former legacy entries surface as `unsupported_legacy` findings and never dispatch.
+     Former legacy entries surface as `unsupported_legacy` findings and never dispatch. Old shaping entries still appear in the information-only shaping lists until rewritten.
      - Supplied spec path: continue only when the path has a matching
        `canonical.ready` evaluation for a new start or matching `canonical.active`
        evaluation for a resume. Otherwise stop and surface the matching canonical

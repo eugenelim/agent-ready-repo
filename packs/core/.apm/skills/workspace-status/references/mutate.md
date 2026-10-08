@@ -34,6 +34,11 @@ operation from a previous run. For a `pending` (interrupted apply) or
 with a new current-session confirmation. For an `applied` operation, author a
 rollback confirmation to restore the exact legacy TOML slice.
 
+The plan file includes a derived operation ID. For recovery of an existing
+operation, use the operation ID recorded in `.workspace-migrations.json` — not
+the re-derived plan's ID. A re-derived plan's ID does not match an operation
+planned under an earlier Core version.
+
 To update a workspace entry that has no prior ledger operation, rewrite it in
 canonical form by hand: write the canonical target entry in the correct
 collection, remove the legacy record, and run `workspace-status` to confirm.

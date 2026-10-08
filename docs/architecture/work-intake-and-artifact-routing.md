@@ -11,7 +11,8 @@ session-local.
 
 Tracker adapters acquire and normalize; they do not classify artifacts or write
 repository state. `workspace-status` reads and reconciles repository state and
-owns the temporary reviewed migration transaction for accepted legacy entries.
+retains the accepted-legacy parser only for recovering or rolling back an
+operation already recorded in the migration ledger.
 Configured refresh processors compare tracker-origin artifacts and may apply
 authorized local changes or separately confirmed coordination actions.
 
@@ -77,8 +78,8 @@ nowhere else to put and rolls up delivery across the per-component slices.
   into a Draft coordination brief; `continue` makes an existing brief Ready and
   confirms spec slices.
 - `workspace-status` reports canonical ready, active, blocked, shipped,
-  authority, refresh, reconciliation, retained legacy state, and read-only
-  closeout orientation.
+  authority, refresh, reconciliation, unsupported-legacy findings, and
+  read-only closeout orientation.
 - `close-work` pauses resumable work, verifies delivery evidence and durable
   semantic owners, recommends one of RFC-0096's six dispositions, and owns
   separately authorized coordination or immediate-disposal effects.
@@ -221,10 +222,11 @@ invocation already supplies bounded content at the matching pinned revision.
 5. Refresh resolves the exact configured processor, acquires and compares one
    source revision, presents field decisions, and applies guarded local changes
    only after authorization. Remote coordination remains separately confirmed.
-6. A supported legacy membership stays visible and non-dispatchable until a
-   human supplies a reviewed route selection. Planning is read-only; apply is
-   ledger-first; rollback restores the exact legacy slice without deleting the
-   canonical artifact.
+6. A former legacy entry surfaces as `unsupported_legacy` and is rewritten in
+   canonical form by hand. The migration tooling — `repair-plan
+   --migration-selection`, `repair-apply`, and `repair-rollback` — only recovers
+   or rolls back an operation already recorded in the migration ledger; rollback
+   restores the exact legacy slice without deleting the canonical artifact.
 7. A semantic destination request resolves an explicit destination first,
    unless mandatory repository policy rejects it; then declared repository
    policy or optional configuration, established repository convention, and an
@@ -389,7 +391,7 @@ projects the completion receipt, Wave 7b classifies history, and Wave 7c prunes
 proven-eligible artifacts.
 Wave 7 owns historical migration and pruning behavior.
 
-## 7. Observability, evidence, and the compatibility window
+## 7. Observability and evidence
 
 `workspace.toml`, canonical artifacts, and `workspace-status` provide the
 observable routing and lifecycle record. Provenance records the source locator

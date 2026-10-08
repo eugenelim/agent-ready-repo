@@ -1161,12 +1161,13 @@
     {
       "id": "step0-legacy-entry-is-unsupported",
       "prompt": "You are starting work-loop with no arguments. Canonical workspace-status preflight reports one `unsupported_legacy` finding for a former legacy entry in workspace.toml and one canonical ready spec. What do you do with the legacy finding?",
-      "expected_output": "Surface the `unsupported_legacy` finding with its stable code and next action, then continue with the canonical ready spec. The legacy finding never dispatches. Direct the user to rewrite the former legacy entry in canonical form by hand; the migration tooling is only for recovering or rolling back an operation already recorded in `.workspace-migrations.json`.",
+      "expected_output": "Surface the `unsupported_legacy` finding with its stable code and next action, then continue with the canonical ready spec. The legacy finding never dispatches. Direct the user to rewrite the former legacy entry in canonical form by hand; note that old shaping entries still appear in the information-only shaping lists until rewritten. The migration tooling is only for recovering or rolling back an operation already recorded in `.workspace-migrations.json`.",
       "assertions": [
         "Response surfaces the `unsupported_legacy` finding and its next action",
         "Response does NOT dispatch or start from the legacy entry",
         "Response continues with the canonical ready spec",
         "Response directs the user to rewrite the entry in canonical form by hand",
+        "Response notes that old shaping entries still appear in the information-only shaping lists until rewritten",
         "Response does NOT describe the former entry as a retained legacy membership"
       ]
     },

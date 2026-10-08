@@ -70,7 +70,7 @@ Information-oriented, dry and complete.
 - [Spec `Shape:` and the plan's `## Design (LLD)`](reference/spec-shape-and-lld.md) — the fields, what they mean, and how the stack is derived.
 - [Product brief fields](reference/product-brief-fields.md) — the brief field list and the linkage it stamps on derived specs.
 - [Work-intake routing and lifecycle](reference/work-intake-routing-and-lifecycle.md) — exact routes, states, processors, and mutation boundaries.
-- [workspace.toml schema reference](reference/workspace-toml-schema.md) — target entries, compatibility forms, findings, migration policy, and ledger state.
+- [workspace.toml schema reference](reference/workspace-toml-schema.md) — target entries, former legacy forms, findings, migration policy, and ledger state.
 
 ## Explanation
 

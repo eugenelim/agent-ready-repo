@@ -62,18 +62,18 @@ The same boundary applies to refresh. The configured profile owns acquisition;
 the shared lifecycle evaluator owns whether local requirements may change; a
 separate fresh confirmation authorizes one exact remote coordination action.
 
-## Migration changes representation, not meaning
+## Former legacy entries and migration recovery
 
-Legacy workspace entries are readable during the compatibility window but are
-never dispatchable. Migration preserves the exact legacy TOML slice in a
-durable ledger, links it to an already-created canonical artifact, and replaces
-only the workspace representation. Rollback restores that slice without
-deleting the artifact.
+Former legacy workspace entries surface as `unsupported_legacy` findings and
+are never dispatchable. Rewrite each one in canonical form by hand.
 
-A person chooses the target route and authors the reviewed selection. Apply
-and rollback each require a new current-session confirmation. The tooling can
-show candidates and bindings, but it cannot choose or author those human
-inputs.
+The migration tooling — `repair-plan --migration-selection`, `repair-apply`,
+and `repair-rollback` — only recovers or rolls back an operation already
+recorded in `.workspace-migrations.json`. It preserves the exact legacy TOML
+slice in a durable ledger and restores that slice on rollback without deleting
+the canonical artifact. Apply and rollback each require a new current-session
+confirmation. The tooling can show candidates and bindings, but it cannot
+choose or author those human inputs.
 
 ## The practical rule
 

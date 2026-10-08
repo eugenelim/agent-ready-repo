@@ -39,7 +39,8 @@ soft priority, or suggested order. If that context matters, write it to the
 canonical artifact first and index the pointer here.
 
 Human decision: A person chooses the canonical artifact route, approves
-requirement-bearing artifacts, and decides how to migrate a legacy entry.
+requirement-bearing artifacts, and rewrites a former legacy entry in canonical
+form by hand.
 
 Repositories that enable tracker refresh also carry a global
 `[authorization.refresh]` role policy outside initiative entries. See
@@ -353,7 +354,7 @@ finding identifier as a path only after confirming it is one.
 | `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
 | `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
 | `legacy_entry` | Historical form decoded only by migration recovery or rollback; ordinary reconciliation never emits it. | Materialize and register a canonical target entry. |
-| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. Rewrite a former legacy entry in canonical form by hand. | Route the item manually; do not infer a target entry. |
+| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. | Route the item manually; do not infer a target entry. |
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
@@ -376,6 +377,15 @@ finding identifier as a path only after confirming it is one.
 | `invalid_completion_receipt` | A local completion receipt has the wrong fields, value types, grammar, or outcome. | Replace it with a valid reviewed completion receipt for that dependency. |
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
 | `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is inconsistent, or a locator-only entry has no dispatch integration. | Install or select a consistent versioned configuration, then rerun. |
+
+An `unsupported_legacy` entry is never dispatchable. Rewrite it in canonical
+form by hand: write the target entry in the correct collection and remove the
+former record in the same edit, then run `workspace-status` to confirm.
+
+A canonical entry receives `duplicate_membership` when a historical alias for the
+same artifact path survives elsewhere in the workspace. The canonical entry stays
+non-dispatchable until the alias is removed. Replace the legacy alias in the same
+edit as creating the canonical entry to avoid that refusal.
 
 ## Minimal Intent
 
@@ -430,7 +440,13 @@ correct collection and remove the former record.
 
 ### Migration authorization and ledger
 
-Repositories that apply or roll back legacy-entry migrations declare one
+Use the migration tooling only when `.workspace-migrations.json` already records
+an operation from a previous run. Ordinary reconciliation does not produce a
+`legacy_entry` finding; to update a workspace entry that has no prior ledger
+record, rewrite it in canonical form by hand (see
+[Move from capture-work to work-intake](../how-to/capture-work.md)).
+
+Repositories that recover or roll back legacy-entry migrations declare one
 closed global policy outside initiative tables:
 
 ```toml
@@ -449,8 +465,9 @@ collection/index/exact-slice digest, selected five-field target entry and
 membership, owning processor, provenance, and positive privacy attestation.
 The agent may show candidates but must not author or edit that selection.
 
-Apply creates `.workspace-migrations.json` at the repository root. The ledger
-stores repository identity and ordered operations with:
+Apply completes a recorded operation by writing to `.workspace-migrations.json`
+at the repository root. The ledger stores repository identity and ordered
+operations with:
 
 - operation ID and immutable digest;
 - exact legacy TOML slice and original membership;
