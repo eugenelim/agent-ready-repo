@@ -16,6 +16,10 @@ breaking.
   `unsupported_legacy` finding, omits it from `ready` and `blocked`, and
   returns an empty `legacy_memberships` list. Prune keeps decoding legacy
   aliases as a repair operation.
+- A canonical workspace entry that has a surviving historical alias (for
+  example, a matching `spec/<slug>` string form) is reported as `blocked` with
+  a `duplicate_membership` finding and does not appear in `ready`. Remove the
+  old alias and the canonical entry dispatches normally.
 
 ## [0.51.0] — 2026-10-03
 

@@ -68,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- The workspace-status MCP tool now surfaces a former legacy entry (a bare `spec/<slug>` string or other RFC-0083 legacy shape) as an `unsupported_legacy` finding rather than a `legacy_entry` membership. The entry is absent from `ready` and `blocked`; ordinary reconciliation no longer accepts legacy shapes as lifecycle members.
+- The workspace-status MCP tool now surfaces a former legacy entry (a bare `spec/<slug>` string or other accepted legacy shape) as an `unsupported_legacy` finding. The entry is absent from `ready` and `blocked`; ordinary reconciliation no longer accepts legacy shapes as lifecycle members.
+- A canonical entry with a surviving historical alias appears in `blocked` with a `duplicate_membership` finding and does not appear in `ready`. Delete the alias and the canonical entry dispatches normally.
 
 ### Changed
 
@@ -78,7 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- The `capture-work` skill and its accepted-legacy compatibility reader are removed. Use `work-intake` as the only supported intake name. A former `spec/<slug>` or other legacy workspace entry surfaces as an `unsupported_legacy` finding and cannot dispatch; rewrite it in canonical form by hand using `work-intake`. The retained migration tooling (`workspace-status repair-plan --migration-selection` and `repair-apply`) only recovers or rolls back an operation already recorded in the migration ledger.
+- Send all intake requests to `work-intake`. The `capture-work` skill is removed and has no replacement alias.
+- A former `spec/<slug>` or other legacy workspace entry surfaces as an `unsupported_legacy` finding and cannot dispatch. Rewrite it in canonical form using `work-intake` and delete the old alias in the same edit — a canonical entry is refused dispatch while its old alias survives anywhere in the workspace.
+- Use `workspace-status repair-plan --migration-selection`, `repair-apply`, and `repair-rollback` only to recover or roll back an operation already recorded in the migration ledger.
 
 ### Removed
 

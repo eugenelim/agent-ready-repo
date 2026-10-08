@@ -214,6 +214,60 @@ backlog = []
     assert str(root) not in repr(result)
 
 
+def test_t4_canonical_entry_with_surviving_alias_is_blocked(tmp_path: Path) -> None:
+    """Canonical entry + surviving historical alias → blocked with duplicate_membership (T4)."""
+    mod = _load_module()
+    root = tmp_path / "workspace"
+    root.mkdir()
+    (root / "workspace.toml").write_text(
+        """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/alpha/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "canonical", needs = []},
+  "spec/alpha",
+]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+""",
+        encoding="utf-8",
+    )
+    spec_dir = root / "docs" / "specs" / "alpha"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text(
+        "# Spec: alpha\n\n- **Status:** Approved\n- **Brief:** none\n",
+        encoding="utf-8",
+    )
+    (spec_dir / "plan.md").write_text("# Plan: alpha\n", encoding="utf-8")
+
+    result = mod._WorkspaceStatusTool(root, _FakeBridge()).call()
+
+    # The canonical entry must not appear in ready — the surviving alias blocks it.
+    assert all(item.get("slug") != "alpha" for item in result["ready"])
+    # The canonical entry appears in blocked with a duplicate_membership finding.
+    blocked_slugs = [item.get("slug") for item in result["blocked"]]
+    assert "alpha" in blocked_slugs, f"expected 'alpha' in blocked slugs; got {blocked_slugs}"
+    blocked_alpha = next(
+        item for item in result["blocked"] if item.get("slug") == "alpha"
+    )
+    assert any(
+        f["code"] == "duplicate_membership" for f in blocked_alpha["findings"]
+    ), f"expected duplicate_membership finding; got {blocked_alpha['findings']}"
+    # The legacy alias itself surfaces as unsupported_legacy.
+    assert any(
+        f["code"] == "unsupported_legacy" and f["path"] == "spec/alpha"
+        for f in result["canonical"]["findings"]
+    )
+
+
 def test_t2_mcp_projects_refresh_authority_without_owned_fields(tmp_path: Path) -> None:
     mod = _load_module()
     root = tmp_path / "workspace"
