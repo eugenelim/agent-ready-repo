@@ -34,15 +34,43 @@ def _load(name: str):
     Skill directories are not packages and are not importable by name; every
     loader in this pack resolves its own sibling directory the same way.
     """
-    spec = importlib.util.spec_from_file_location(name, _MODULE_PATHS[name])
+    key = f"core_close_work_terminality_{name}"
+    spec = importlib.util.spec_from_file_location(key, _MODULE_PATHS[name])
     assert spec and spec.loader, f"no module at {_MODULE_PATHS[name]}"
     module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
+    sys.modules[key] = module
     spec.loader.exec_module(module)
     return module
 
 
 ct = _load("closure_terminality")
+
+
+@pytest.mark.parametrize(
+    ("status", "intent", "brief", "spec"),
+    [
+        ("Shipped (2026-09-11)", False, True, True),
+        ("Archived — note", False, False, True),
+        ("Shipped <!-- c -->", False, True, True),
+        ("Approved → Shipped (x)", False, False, False),
+        ("Draft", False, False, False),
+        ("Fulfilled (2026-09-11)", True, False, False),
+        ("Withdrawn — note", True, True, False),
+        ("Cancelled<!-- c -->", True, True, False),
+        ("Accepted → Fulfilled (x)", False, False, False),
+        ("Ready → Shipped (x)", False, False, False),
+        ("Shipped<!-- c --> (x)", False, True, True),
+        ("  Shipped  ", False, True, True),
+        (" <!-- c -->", False, False, False),
+    ],
+)
+def test_raw_status_classifies_by_leading_token(
+    status: str, intent: bool, brief: bool, spec: bool,
+) -> None:
+    """Annotations affect no kind's terminality; the leading word decides."""
+    assert ct.is_intent_terminal(status) is intent
+    assert ct.is_brief_terminal(status) is brief
+    assert ct.is_spec_terminal(status) is spec
 
 
 # ── AC-0005: the intent projection ────────────────────────────────────────────
@@ -204,6 +232,33 @@ def test_spec_parity_check_reds_when_projection_adds_a_status() -> None:
 # ── The terminus vocabulary projection, pinned like the three status ones ─────
 
 ci = _load("closure_index")
+
+
+def test_annotated_descendants_classify_without_changing_recorded_status() -> None:
+    """All three descendant call sites accept raw values and preserve them."""
+    records = {
+        "child": ci.DescendantRecord("child", "intent", "Fulfilled (x)", ""),
+        "cut": ci.DescendantRecord("cut", "brief", "Shipped <!-- c -->", ""),
+        "slice": ci.DescendantRecord("slice", "spec", "Archived — note", ""),
+    }
+    original = {slug: record.status for slug, record in records.items()}
+    verdict = ci._classify_ancestor("parent", "Accepted", "children", records, ct)
+    assert isinstance(verdict, ci.ClosureEligible)
+    assert {slug: record.status for slug, record in records.items()} == original
+
+    raw = "Approved → Shipped (x)"
+    records["live"] = ci.DescendantRecord("live", "spec", raw, "")
+    verdict = ci._classify_ancestor("parent", "Accepted", "children", records, ct)
+    assert isinstance(verdict, ci.ClosureNotEligible)
+    assert verdict.live_descendants == (("live", raw),)
+
+
+def test_annotated_terminal_ancestor_refusal_preserves_raw_status() -> None:
+    """The ancestor call site classifies the token but displays the full value."""
+    raw = "Fulfilled (2026-09-11)"
+    verdict = ci._classify_ancestor("parent", raw, "closed-empty", {}, ct)
+    assert isinstance(verdict, ci.ClosureRefuse)
+    assert verdict.reason == f"already-closed: status is {raw!r}"
 
 
 def test_the_terminus_projection_agrees_with_its_upstream() -> None:

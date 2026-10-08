@@ -1,6 +1,6 @@
 **Mode:** light (user-directed)
 
-**Status:** Shipped
+- **Status:** Shipped
 
 **Objective:** Add rendering directives to all output-producing skill SKILL.md files so agents know which output shape each skill emits — table, status-list, mermaid, key-value, diff, tree, narrative — without loading the full catalog. Also create the reference catalog and update the skill authoring guide.
 

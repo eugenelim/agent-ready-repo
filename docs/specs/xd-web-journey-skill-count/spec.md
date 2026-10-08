@@ -1,6 +1,6 @@
 ---
 **Feature:** xd-web-journey-skill-count
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** light (no risk trigger fired)
 ---
 

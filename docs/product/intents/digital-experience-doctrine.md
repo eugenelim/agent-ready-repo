@@ -7,7 +7,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
-- **Parent intent:** none — see Placement
+- **Parent intent:** none <!-- see Placement -->
 - **Governed by:** [RFC-0071 Digital Experience Doctrine](../../rfc/0071-digital-experience-doctrine.md) (Accepted)
 - **De-risked:** 2026-10-01
 - **Shaping-reviewed:** 2026-10-01

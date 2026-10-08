@@ -6,7 +6,7 @@
 - **Status:** Draft
 - **Source / provenance:** Repository-origin capability 4 from
   [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
-- **Parent intent:**
+- **Parent intent:** none
   [`docs/product/intents/cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
 
 ## Outcome

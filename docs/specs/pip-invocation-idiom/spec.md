@@ -1,6 +1,6 @@
 # Spec: cross-OS `python -m pip` invocation idiom
 
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** light (no risk trigger fired)
 
 ## Objective

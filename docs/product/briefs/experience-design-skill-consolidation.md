@@ -5,7 +5,7 @@
 - **Owner:** Repository maintainers (`ini-003`)
 - **Status:** Executing
 - **Source / provenance:** Direct maintainer request, 2026-09-24, after an investigation into `creative-direction` measured the pack and found the larger lever outside that skill. The measurements and their methods are recorded in [`experience-design-consolidation-analysis.md`](../research/experience-design-consolidation-analysis.md), which is this brief's durable evidence. That note also records a prior-art study whose source is unnamed; it informed the shape of the standalone `creative-direction` slice, is unverifiable by a later reader, and is **not** part of this brief's evidence.
-- **Parent intent:** none — raised directly, not projected from an intent.
+- **Parent intent:** none <!-- raised directly, not projected from an intent -->
 
 ## Outcome
 
