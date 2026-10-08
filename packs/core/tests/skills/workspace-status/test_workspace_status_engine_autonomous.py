@@ -560,7 +560,7 @@ def test_t2_unsupported_legacy_findings_are_individually_attributable() -> None:
     assert sorted(f.path for f in unsupported) == sorted(slugs)
 
 
-def test_t2_legacy_aliases_do_not_participate_in_duplicate_detection() -> None:
+def test_surviving_alias_refuses_dispatch_of_canonical_twin() -> None:
     """Alias refusal: a surviving alias refuses dispatch of its canonical twin.
 
     A canonical entry is non-dispatchable (duplicate_membership) while any
@@ -687,6 +687,22 @@ def test_t2_legacy_aliases_do_not_participate_in_duplicate_detection() -> None:
                 }
             },
             "docs/specs/backlog-alias/spec.md",
+        ),
+        (
+            "work spec alias in shipped collection",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [
+                            canonical_entry("docs/specs/shipped-alias/spec.md", "spec"),
+                        ],
+                        "active": [],
+                        "shipped": ["spec/shipped-alias"],
+                    },
+                }
+            },
+            "docs/specs/shipped-alias/spec.md",
         ),
         (
             "typed shaping alias across collections",
@@ -854,6 +870,68 @@ def test_t2_legacy_aliases_do_not_participate_in_duplicate_detection() -> None:
     assert "legacy_entry" not in {finding.code for finding in result.findings}
     assert [finding.code for finding in result.findings].count("unsupported_legacy") == 4
     assert result.legacy_memberships == []
+
+
+def test_alias_refusal_dispatch_control(tmp_path: Path) -> None:
+    """Dispatch is true for an Approved spec without the alias and false with it.
+
+    Uses a real spec.md and plan.md on disk so the engine can confirm dispatch
+    eligibility. The alias alone causes the canonical entry to be non-dispatchable.
+    """
+    mod = _load_engine()
+
+    spec_path = "docs/specs/dispatch-control/spec.md"
+    spec_file = tmp_path / spec_path
+    spec_file.parent.mkdir(parents=True, exist_ok=True)
+    spec_file.write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Body\n",
+        encoding="utf-8",
+    )
+    (spec_file.parent / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+    def canonical() -> dict:
+        return {
+            "path": spec_path,
+            "kind": "spec",
+            "source": {"mode": "repo-origin"},
+            "summary": "Dispatch control spec",
+            "needs": [],
+        }
+
+    without_alias = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [canonical()],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    result_without = mod.run_canonical_reconciliation(without_alias, tmp_path)
+    evaluation_without = result_without.dispatch_by_path[spec_path]
+    assert evaluation_without.dispatchable, (
+        "canonical spec without alias must be dispatchable"
+    )
+
+    with_alias = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [canonical(), "spec/dispatch-control"],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    result_with = mod.run_canonical_reconciliation(with_alias, tmp_path)
+    evaluation_with = result_with.dispatch_by_path[spec_path]
+    assert not evaluation_with.dispatchable, (
+        "canonical spec with surviving alias must not be dispatchable"
+    )
+    assert "duplicate_membership" in {
+        finding.code for finding in evaluation_with.findings
+    }
 
 
 def test_t2_legacy_aliases_do_not_satisfy_dependent_work(tmp_path: Path) -> None:

@@ -10,9 +10,13 @@ after both are valid. An eligible explicit direct-light request remains
 session-local.
 
 Tracker adapters acquire and normalize; they do not classify artifacts or write
-repository state. `workspace-status` reads and reconciles repository state and
-retains the accepted-legacy parser only for recovering or rolling back an
-operation already recorded in the migration ledger.
+repository state. `workspace-status` reads and reconciles repository state. The historical
+accepted-legacy decoder is retained in four places: canonical reconciliation
+(refuse-only alias decoding, making the canonical twin non-dispatchable while
+the alias survives), the repair seams (migration recovery and rollback, prune,
+and Type 2 repair), and the information-only status-analysis readers
+(`extract_initiatives` listings, Type 1/2/3 scans, and `explain_item`). None
+of these four surfaces dispatches a former legacy shape.
 Configured refresh processors compare tracker-origin artifacts and may apply
 authorized local changes or separately confirmed coordination actions.
 
@@ -414,9 +418,10 @@ accepted legacy reader and `capture-work` forwarding alias are removed in Core
 3.0.0 under RFC-0083's release count, advance notice, fixture/writer/guide/
 rollback evidence, and check-before-effect Approver authorization. Ordinary
 reconciliation no longer accepts former legacy shapes; they surface as
-`unsupported_legacy` findings. The explicit migration tooling retains the
-accepted-legacy parser for recovering or rolling back an operation already
-recorded in the migration ledger.
+`unsupported_legacy` findings. The historical decoder is retained in canonical reconciliation (refuse-only
+alias decoding), the repair seams (migration recovery and rollback, prune, and
+Type 2 repair), and the information-only status-analysis readers. None
+dispatches a former legacy shape.
 
 Rollback returns to the preceding dual-reader release and uses the
 ledger to restore legacy workspace representation. It preserves target

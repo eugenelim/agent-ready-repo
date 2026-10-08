@@ -35,7 +35,10 @@ work-intake: remember that export retries need idempotent replay; stop without i
 
 If `workspace-status` reports an `unsupported_legacy` finding for an entry in
 `workspace.toml`, rewrite it in canonical form by hand. Ordinary reconciliation
-no longer accepts legacy shapes; they are never dispatchable.
+no longer accepts legacy shapes; they are never dispatchable. Old shaping
+entries (for example, `{slug = "...", type = "design"}`) still appear in the
+information-only shaping lists (the lists the agent reads but that do not drive
+dispatch) until you rewrite them too.
 
 Write a target entry directly in the correct collection:
 
@@ -43,8 +46,10 @@ Write a target entry directly in the correct collection:
 {path = "docs/specs/<slug>/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "<current outcome>", needs = []}
 ```
 
-Then remove the legacy record in the same edit. Run `workspace-status` to
-confirm the entry reconciles as expected. For the full set of accepted shapes and
+Then remove the legacy record in the same edit — a canonical entry stays blocked
+with a `duplicate_membership` finding while its old alias survives anywhere in
+the workspace. Run `workspace-status` to confirm the entry reconciles as
+expected. For the full set of accepted shapes and
 collections, see the
 [Target Entry](../reference/workspace-toml-schema.md#target-entry),
 [Lifecycle Membership](../reference/workspace-toml-schema.md#lifecycle-membership),

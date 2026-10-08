@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - Send all intake requests to `work-intake`. The `capture-work` skill is removed and has no replacement alias.
-- A former `spec/<slug>` or other legacy workspace entry surfaces as an `unsupported_legacy` finding and cannot dispatch. Rewrite it in canonical form using `work-intake` and delete the old alias in the same edit — a canonical entry is refused dispatch while its old alias survives anywhere in the workspace.
+- A former `spec/<slug>` or other legacy workspace entry surfaces as an `unsupported_legacy` finding and cannot dispatch. Rewrite it in canonical form by hand and delete the old alias in the same edit — a canonical entry is refused dispatch while its old alias survives anywhere in the workspace.
 - Use `workspace-status repair-plan --migration-selection`, `repair-apply`, and `repair-rollback` only to recover or roll back an operation already recorded in the migration ledger.
 
 ### Removed
@@ -93,10 +93,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - Skills and examples in the product-engineering pack that previously directed users to `capture-work` now direct them to `work-intake`, matching the Core 3.0.0 surface.
+- `frame-situation` and `diverge-solutions` note that old shaping entries still appear in the information-only shaping lists until rewritten in canonical form.
 
 ### Changed
 
 - `map-capabilities`, `place-bet`, and `diverge-solutions` skill guidance and examples reference `work-intake` instead of `capture-work`.
+- `frame-situation` and `diverge-solutions` add a note that former legacy shaping entries remain visible in the information-only shaping lists until replaced with canonical entries.
 
 ## [release-engineering][0.1.11] — 2026-10-08
 

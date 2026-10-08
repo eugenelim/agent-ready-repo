@@ -593,3 +593,27 @@ the same amendment for the owner's spec/plan re-approval.
   restrictions, not three. All three findings are applied without a separate
   adjudication. `findings-remain` follows.
 - Round 15: `Clean — ready to commit.`; `reviewers-clean` follows.
+
+## Execution after the third re-approval — 2026-10-08
+
+- The owner re-approved the spec and plan; sequence 53 (`plan-locked`). The
+  schedule runs T9, T4, T5, then T6.
+
+### T9
+
+- An implementer applied every round-2 correction (13 files plus a
+  cross-initiative eval fixture for the new eval 17). Mutation check: the new
+  real-artifacts dispatch control fails when the guard is disabled.
+- Security review of the restored `mutate.md` (`impl/4-security-reviewer-raw.md`):
+  adjudication sustained 1 Blocker, 1 Concern, and 1 Nit. The page still told
+  the agent to "author a rollback confirmation", the no-ledger hand rewrite let
+  the agent choose the target, and the candidates were unnamed. Fixed: the
+  human authors every recovery and rollback confirmation out of band; the user
+  makes the hand rewrite unless they ask and name the target; the page names
+  `candidate_routes`. The re-review (`impl/5-security-reviewer-raw.md`) left
+  one Nit, which the controller applied directly: the `SKILL.md`
+  `unsupported_legacy` row now names the user as the actor.
+- Gates: the T9 test and guide-tool set ran 695 passed, 2 skipped, 81 s; the
+  guide and journey validators pass. After the `mutate.md` fix, workspace-status
+  and disclosure ran 296 passed. `make lint-ruff lint-mypy` and
+  `git diff --check` pass.

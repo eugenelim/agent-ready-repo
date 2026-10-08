@@ -5085,9 +5085,9 @@ def _repair_entry_eligibility(
         }
         if blocking_codes - {"impossible_transition", "unapproved_spec"}:
             return False, "type2-queue-canonical-blocked"
-        # Canonical reconciliation no longer counts legacy aliases, so the repair
-        # seam does: moving an entry that a historical alias also lists would
-        # leave the spec in two lifecycle collections.
+        # Defence in depth: canonical reconciliation already refuses dispatch
+        # while a historical alias survives, but the repair seam also checks so
+        # moving the entry does not leave the spec in two lifecycle collections.
         if any(
             _legacy_canonical_alias(membership.entry) == spec_path
             for membership in extract_legacy_migration_memberships(workspace)

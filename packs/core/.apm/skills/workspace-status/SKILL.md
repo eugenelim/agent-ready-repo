@@ -215,14 +215,14 @@ identifier to the repository root without checking it is a path first.
 | `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
 | `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
 | `legacy_entry` | Historical form decoded only by migration recovery or rollback; ordinary reconciliation never emits it. | Materialize and register a canonical target entry. |
-| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. Rewrite a former legacy entry in canonical form by hand. | Route the item manually; do not infer a target entry. |
+| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. The user rewrites a former legacy entry in canonical form by hand and chooses its target collection. | Route the item manually; do not infer a target entry. |
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
 | `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
 | `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
 | `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |
-| `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. | Remove the duplicate after choosing the authoritative membership. |
+| `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. A surviving historical alias for the same artifact path is one cause: the canonical entry is blocked while the alias survives anywhere in the workspace. | Remove the duplicate after choosing the authoritative membership. If a legacy alias is the cause, tell the user to delete the alias from `workspace.toml`. |
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
 | `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names no registered brief. | Declare `source.parent` on the named entry — a brief path that resolves to a registered brief entry, or `none` only when that spec has no parent brief. A value naming nothing registered does not clear it. A value naming the wrong registered brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |

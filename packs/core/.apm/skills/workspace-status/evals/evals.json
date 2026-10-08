@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "workspace status",
-      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start \u2014 spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog \u2014 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently \u2014 all classification and backlog data comes from the backend JSON.",
+      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start — spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog — 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently — all classification and backlog data comes from the backend JSON.",
       "assertions": [
         "Invokes the backend script rather than independently parsing workspace.toml or recomputing the DAG",
         "Reports the active initiative name from the JSON output ('Example Initiative')",
@@ -72,7 +72,7 @@
         "produces": [],
         "output_contains": [],
         "output_excludes": [
-          "Backlog \u2014",
+          "Backlog —",
           "Traceback",
           "workspace-status error:"
         ]
@@ -433,6 +433,34 @@
       ],
       "files": [
         "evals/files/alias-refusal/workspace.toml"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "duplicate_membership",
+          "spec/example-spec",
+          "delete"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "prompt": "workspace status",
+      "expected_output": "The agent invokes the workspace-status backend and reports that docs/specs/example-spec/spec.md has a duplicate_membership finding, which blocks it from dispatch. It explains that a surviving historical alias (spec/example-spec) in a different initiative (ini-002) is the cause, and tells the user to delete that legacy string entry from workspace.toml. It does not dispatch the canonical entry, does not delete the alias itself, and does not modify the workspace.",
+      "assertions": [
+        "Reports docs/specs/example-spec/spec.md as blocked (duplicate_membership finding)",
+        "Identifies the leftover legacy alias spec/example-spec as the cause",
+        "Notes the alias is in a different initiative from the canonical entry",
+        "Tells the user to delete the legacy string entry from workspace.toml",
+        "Does not dispatch the canonical entry",
+        "Does not modify the workspace"
+      ],
+      "files": [
+        "evals/files/alias-refusal-cross-initiative/workspace.toml"
       ],
       "expect": {
         "produces": [],

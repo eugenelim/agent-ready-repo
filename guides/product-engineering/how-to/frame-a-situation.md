@@ -113,8 +113,9 @@ surfaces as `unsupported_legacy` in `workspace-status` and is never
 dispatchable. Old shaping entries still appear in the information-only shaping
 lists until rewritten.
 
-Once added, `workspace-status` will surface it as a ready `shape`-typed item and
-suggest running `identify-opportunities` (or the appropriate entry-point skill).
+Once you add the canonical entry, `workspace-status` will surface it as a ready
+item and suggest running `identify-opportunities` (or the appropriate
+entry-point skill).
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: workspace.toml schema reference
-summary: Exact target entries, lifecycle collections, compatibility forms, and validation limits for the workspace index.
+summary: Exact target entries, lifecycle collections, former legacy forms, and validation limits for the workspace index.
 pack: core
 kind: reference
 ---
@@ -13,8 +13,8 @@ names hard dependencies. It is not a requirements document.
 
 Use this reference when you need to answer: “How should this artifact be
 represented in `workspace.toml`, and is the entry safe to dispatch?” The result
-is either a valid target entry in one lifecycle collection or a
-non-dispatchable compatibility or reconciliation finding.
+is either a valid target entry in one lifecycle collection or an
+`unsupported_legacy` or reconciliation finding.
 
 ## Contract at a Glance
 
