@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][2.30.1] — 2026-10-08
+
+### Highlights
+
+- Close work whose descendants have terminal statuses with dates or notes, such as `Shipped (2026-09-11)` or `Archived — note`. The closure check now reads the leading status word and preserves the full value in its evidence.
+
+### Fixed
+
+- Intent, brief, and spec terminality now follows the leading-token rule used by the spec-status lint. Annotations and transition notes no longer change the classification; `Approved → Shipped (x)` remains non-terminal.
+
 ## [core][2.30.0] — 2026-10-07
 
 ### Highlights

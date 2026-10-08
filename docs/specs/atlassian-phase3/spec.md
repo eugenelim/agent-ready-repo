@@ -1,6 +1,6 @@
 ---
 **Feature:** atlassian-phase3
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** full (multi-feature, structural/public-interface, unfamiliar territory)
 ---
 

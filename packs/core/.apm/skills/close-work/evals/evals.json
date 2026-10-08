@@ -147,6 +147,16 @@
         "Refuses the spec-route feature rather than silently dropping the broken spec",
         "Writes no status"
       ]
+    },
+    {
+      "id": 19,
+      "prompt": "Check an Accepted intent whose descendants have statuses Fulfilled (x), Shipped (2026-09-11), Archived — note, and Shipped <!-- c -->. Then check it with an extra spec whose status is Approved → Shipped (x). Preserve all status values in the evidence.",
+      "expected_output": "The first check is eligible because all four descendants have terminal leading status words. The second is not-eligible and lists the Approved → Shipped (x) spec with its full original status. Intent, brief, and spec classification uses the same leading-token annotation rule, and neither check rewrites any status.",
+      "assertions": [
+        "Classifies annotated terminal intent, brief, and spec statuses by the leading token",
+        "Treats Approved → Shipped (x) as non-terminal",
+        "Preserves full status values in evidence and writes no status"
+      ]
     }
   ]
 }

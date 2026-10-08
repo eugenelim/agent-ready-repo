@@ -1,6 +1,6 @@
 # Spec: packages-governance-marker-sweep
 
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** light (no risk trigger fired)
 
 ## Objective

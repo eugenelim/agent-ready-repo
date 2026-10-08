@@ -2,7 +2,7 @@
 
 # Spec: self-host preferred-adapter fix
 
-**Status:** Shipped
+- **Status:** Shipped
 
 ## Objective
 

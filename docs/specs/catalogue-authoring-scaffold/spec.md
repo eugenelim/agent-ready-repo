@@ -5,7 +5,7 @@ status: Shipped
 
 # Catalogue Authoring Scaffold
 
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** Full (multi-feature, structural change, new module boundary)
 
 ## Objective

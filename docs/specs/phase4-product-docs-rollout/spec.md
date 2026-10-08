@@ -1,6 +1,6 @@
 ---
 **Feature:** phase4-product-docs-rollout
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** full (multi-feature, structural/public-interface, unfamiliar territory)
 ---
 

@@ -1,6 +1,6 @@
 ---
 **Feature:** pack-journeys-phase2b
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** Full (risk triggers: multi-feature dependent tasks, structural change, public-interface change)
 **Constrained by:** Phase 2B brief (`.context/attachments/mVGtEe/pasted_text_2026-07-28_13-02-51.txt`)
 ---
