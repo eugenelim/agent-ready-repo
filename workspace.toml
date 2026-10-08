@@ -2197,12 +2197,10 @@ open = [
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
   # Confirmed delivery slices of docs/product/briefs/intent-navigation-delivery.md, registered as Draft
   # specs in the only initiative-free collection that admits them; the brief's Spec map owns the set.
-  { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
   { path = "docs/specs/lint-traceability-intent-parity/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "lint-traceability classifies intent ladder kinds from the preamble only, with a parity check against the navigator", needs = [] },
   { path = "docs/specs/close-work-intent-graph-convergence/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "close-work takes intent and brief parent edges from the shared intent derivation", needs = [] },
   { path = "docs/specs/related-intents-field/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "The Related intents: intent field, its validation, and its display in the query and tree", needs = [] },
   { path = "docs/specs/intent-navigation-export/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "The offline HTML view of the intent graph, and publication of navigate-intents", needs = [] },
-  { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
   # Delivery-system coexistence — CAP-0004's family. The capability and its
@@ -2374,7 +2372,8 @@ executing = [
 # no blocking edge on the supersession work handed to
 # `intent-identity-and-registration`; it consumes whichever form has landed.
 ready = [
-  { path = "docs/product/briefs/intent-navigation-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0002-intent-graph-navigation.md" }, summary = "See every intent and its artifact-backed outstanding work from preamble headers: navigate-intents, close-work convergence, the Related intents field, the offline view, well-formed graph pointers, and lint parity", needs = [] },
+  # Ready confirmed 2026-10-08 after clean review of the dependency-graph scope addition.
+  { path = "docs/product/briefs/intent-navigation-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0002-intent-graph-navigation.md" }, summary = "See every intent and its artifact-backed outstanding work from preamble headers: navigate-intents, close-work convergence, related edges, the offline view, well-formed pointers, lint parity, and intent dependency graphs", needs = [] },
 ]
 draft = []
 # Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
@@ -2421,6 +2420,11 @@ backlog = [
 queue   = [
   # Slice 1 of `intent-navigation-delivery`, Approved 2026-10-08; it builds on `feature/intent-navigation`.
   { path = "docs/specs/intent-navigation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Navigator core: header-derived intent graph, bounded query, text tree, and outstanding-work view", needs = [] },
+  # Slices 5 and 7, approved together on 2026-10-08, each target the default branch.
+  { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
+  { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
+  # Slice 8, approved 2026-10-08, extends slices 1 and 4 and targets the default branch after both land.
+  { path = "docs/specs/intent-dependency-graphs/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Read-only intent dependency graphs from typed Depends on headers, in bounded JSON, text, and offline HTML", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-navigation/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/intent-navigation-export/spec.md"}] },
 ]
 active  = [
 ]
