@@ -214,7 +214,8 @@ identifier to the repository root without checking it is a path first.
 | --- | --- | --- |
 | `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
 | `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
-| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. | Rewrite the entry in canonical form by hand; do not infer a target entry. |
+| `legacy_entry` | Historical form decoded only by migration recovery or rollback; ordinary reconciliation never emits it. | Materialize and register a canonical target entry. |
+| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. Rewrite a former legacy entry in canonical form by hand. | Route the item manually; do not infer a target entry. |
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
