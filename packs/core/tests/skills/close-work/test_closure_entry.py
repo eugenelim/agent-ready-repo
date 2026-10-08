@@ -25,6 +25,7 @@ import dataclasses
 import importlib.util
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -56,6 +57,84 @@ def _load(name: str, key: str):
 # Unique keys keep this suite isolated from T2 and T3 module caches.
 ci = _load("closure_index", "closure_index__entry_t4")
 ct = _load("closure_terminality", "closure_terminality__entry_t4")
+
+
+# ── Snapshot helpers for _snapshot_provider injection ─────────────────────────
+
+
+def _snapshot(
+    *,
+    relations: list[dict[str, Any]] | None = None,
+    provenance: list[dict[str, Any]] | None = None,
+    diagnostics: list[dict[str, Any]] | None = None,
+    artifacts: dict[str, str] | None = None,
+    classifications: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a minimal valid delivery snapshot for test injection.
+
+    When *artifacts* is omitted, the dict is auto-populated from the spec and
+    brief identifiers present in *relations* using the canonical path grammar.
+    """
+    _rels = relations or []
+    if artifacts is None:
+        _arts: dict[str, str] = {}
+        for _rel in _rels:
+            for _id_key, _prefix, _path_tmpl in (
+                ("spec", "spec:", "docs/specs/{slug}/spec.md"),
+                ("brief", "brief:", "docs/product/briefs/{slug}.md"),
+            ):
+                _val = _rel.get(_id_key, "")
+                if _val.startswith(_prefix) and _val not in _arts:
+                    _slug = _val[len(_prefix):]
+                    _arts[_val] = _path_tmpl.format(slug=_slug)
+    else:
+        _arts = artifacts
+    return {
+        "schema_version": 1,
+        "complete": True,
+        "relations": _rels,
+        "classifications": classifications or [],
+        "provenance": provenance or [],
+        "diagnostics": diagnostics or [],
+        "artifacts": _arts,
+    }
+
+
+def _direct(intent_slug: str, spec_slug: str) -> dict[str, Any]:
+    """Build a direct-delivery relation record."""
+    return {
+        "type": "direct-delivery",
+        "route": "spec",
+        "intent": f"intent:{intent_slug}",
+        "spec": f"spec:{spec_slug}",
+        "basis": {"intent": "Decomposed", "spec": "Discovery"},
+    }
+
+
+def _coord(intent_slug: str, brief_slug: str, spec_slug: str) -> dict[str, Any]:
+    """Build a coordinated-delivery relation record."""
+    return {
+        "type": "coordinated-delivery",
+        "route": "brief",
+        "intent": f"intent:{intent_slug}",
+        "brief": f"brief:{brief_slug}",
+        "spec": f"spec:{spec_slug}",
+        "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+    }
+
+
+def _prov(spec_slug: str, intent_slug: str) -> dict[str, Any]:
+    """Build a contextual-provenance record for a Discovery: reference.
+
+    Mirrors the resolver's output: the ``intent`` field carries the canonical
+    identifier; ``target`` carries the same value for backward compatibility.
+    """
+    return {
+        "subject": f"spec:{spec_slug}",
+        "field": "Discovery",
+        "intent": f"intent:{intent_slug}",
+        "target": f"intent:{intent_slug}",
+    }
 
 
 # ── Fixture helpers ───────────────────────────────────────────────────────────
@@ -207,7 +286,14 @@ def test_ac0001_terminal_transition_fires_check_on_ancestor(tmp_path: Path) -> N
         "Discovery": "docs/product/intents/my-ancestor.md",
     }
     # Step 1: resolve intent ancestors from the transitioning spec.
-    ancestors = ci.resolve_intent_ancestors(spec_slug, "spec", spec_fields, tmp_path)
+    # The ancestor has Decomposed: closed-empty (not a delivery intent), so the
+    # resolver would produce a contextual-provenance record. Inject a snapshot
+    # with that provenance record; the ancestor has no tracking branch so
+    # _snapshot_provider is required for resolve_intent_ancestors.
+    snap = _snapshot(provenance=[_prov(spec_slug, ancestor_slug)])
+    ancestors = ci.resolve_intent_ancestors(
+        spec_slug, "spec", spec_fields, tmp_path, _snapshot_provider=lambda _r: snap
+    )
     assert len(ancestors) == 1
     ancestor_slug_found, ancestor_status, ancestor_terminus = ancestors[0]
     assert ancestor_slug_found == ancestor_slug
@@ -301,7 +387,11 @@ def test_ac0002_spec_brief_field_resolves_ancestor_via_brief(tmp_path: Path) -> 
         "Brief": f"brief:{brief_slug}",
         "Discovery": "",
     }
-    ancestors = ci.resolve_intent_ancestors(spec_slug, "spec", spec_fields, tmp_path)
+    # Inject a snapshot with a coordinated-delivery relation for this spec.
+    snap = _snapshot(relations=[_coord(parent_slug, brief_slug, spec_slug)])
+    ancestors = ci.resolve_intent_ancestors(
+        spec_slug, "spec", spec_fields, tmp_path, _snapshot_provider=lambda _r: snap
+    )
     assert any(a[0] == parent_slug for a in ancestors), (
         f"Expected {parent_slug!r} in ancestors, got {ancestors!r}"
     )
@@ -340,7 +430,11 @@ def test_ac0002_spec_brief_none_uses_discovery(tmp_path: Path) -> None:
         "Brief": "none",
         "Discovery": "docs/product/intents/disc-parent.md",
     }
-    ancestors = ci.resolve_intent_ancestors(spec_slug, "spec", spec_fields, tmp_path)
+    # disc-parent has Decomposed: spec → direct-delivery relation for disc-spec.
+    snap = _snapshot(relations=[_direct(parent_slug, spec_slug)])
+    ancestors = ci.resolve_intent_ancestors(
+        spec_slug, "spec", spec_fields, tmp_path, _snapshot_provider=lambda _r: snap
+    )
     assert len(ancestors) == 1
     assert ancestors[0][0] == parent_slug
 
@@ -349,18 +443,36 @@ def test_ac0002_spec_brief_none_uses_discovery(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "discovery_value",
+    "discovery_value,inject_prov,expected_count",
     [
-        "docs/product/intents/form-ancestor.md",
-        "`docs/product/intents/form-ancestor.md`",
-        "[intent](docs/product/intents/form-ancestor.md)",
+        # Bare-path and backtick-path: resolver emits a provenance record with
+        # the resolved intent identifier.  close-work follows the ``intent`` field.
+        (
+            "docs/product/intents/form-ancestor.md",
+            True,
+            1,
+        ),
+        (
+            "`docs/product/intents/form-ancestor.md`",
+            True,
+            1,
+        ),
+        # Markdown-link form: the resolver classifies this as malformed and
+        # emits no provenance record.  close-work sees no edges and returns
+        # an empty ancestor list.
+        (
+            "[intent](docs/product/intents/form-ancestor.md)",
+            False,
+            0,
+        ),
     ],
     ids=["bare-path", "backtick-path", "markdown-link"],
 )
 def test_ac0003_discovery_three_forms_resolve_same_ancestor(
-    tmp_path: Path, discovery_value: str
+    tmp_path: Path, discovery_value: str, inject_prov: bool, expected_count: int
 ) -> None:
-    """Discovery: in all three corpus forms resolves to the same intent ancestor."""
+    """Discovery: corpus forms: bare-path and backtick-path resolve to the ancestor;
+    markdown-link is classified as malformed so no provenance record is emitted."""
     intents_dir = tmp_path / "docs" / "product" / "intents"
     intents_dir.mkdir(parents=True)
 
@@ -370,10 +482,88 @@ def test_ac0003_discovery_three_forms_resolve_same_ancestor(
         f"- **Status:** Accepted\n"
         f"- **Decomposed:** 2026-09-01 closed-empty\n"
     )
+    # The resolver emits a provenance record only for safe Discovery: forms.
     spec_fields = {"Slug": "test-spec", "Discovery": discovery_value}
-    ancestors = ci.resolve_intent_ancestors("test-spec", "spec", spec_fields, tmp_path)
-    assert len(ancestors) == 1
-    assert ancestors[0][0] == parent_slug
+    provenance = [_prov("test-spec", parent_slug)] if inject_prov else []
+    snap = _snapshot(provenance=provenance)
+    ancestors = ci.resolve_intent_ancestors(
+        "test-spec", "spec", spec_fields, tmp_path, _snapshot_provider=lambda _r: snap
+    )
+    assert len(ancestors) == expected_count, (
+        f"discovery_value={discovery_value!r}: expected {expected_count} ancestor(s), "
+        f"got {ancestors!r}"
+    )
+    if expected_count > 0:
+        assert ancestors[0][0] == parent_slug
+
+
+# ── Defect regression: resolver failure (AC-0018 fail-closed) ─────────────────
+
+
+def test_resolver_failure_in_resolve_intent_ancestors_surfaces_code(tmp_path: Path) -> None:
+    """A failing _snapshot_provider must surface delivery-resolver-unavailable.
+
+    AC-0018: resolver invocation failure yields delivery-resolver-unavailable
+    without a fallback.  Returning an empty-ancestor success is forbidden.
+    """
+    spec_fields = {"Slug": "my-spec", "Discovery": "docs/product/intents/cap.md"}
+
+    def _failing_provider(_root: Path) -> dict:
+        raise RuntimeError("connection refused")
+
+    with pytest.raises(ci._ClosureDeliveryRefusal) as exc_info:
+        ci.resolve_intent_ancestors(
+            "my-spec", "spec", spec_fields, tmp_path,
+            _snapshot_provider=_failing_provider,
+        )
+    assert exc_info.value.reason == "delivery-resolver-unavailable"
+
+
+# ── Defect regression: path-form Discovery provenance target ──────────────────
+
+
+@pytest.mark.parametrize(
+    "discovery_value",
+    [
+        "docs/product/intents/my-cap.md",
+        "`docs/product/intents/my-cap.md`",
+    ],
+    ids=["bare-path", "backtick-path"],
+)
+def test_path_form_provenance_target_reaches_non_feature_ancestor(
+    tmp_path: Path,
+    discovery_value: str,
+) -> None:
+    """Provenance ``intent`` field resolves bare-path and backtick Discovery: to ancestor.
+
+    The resolver stores the resolved intent identifier in the ``intent`` field of
+    the provenance record.  close-work uses ``intent`` (then falls back to
+    ``target``) to look up the ancestor slug; path-form targets are not followed.
+    """
+    intents_dir = tmp_path / "docs" / "product" / "intents"
+    intents_dir.mkdir(parents=True)
+
+    cap_slug = "my-cap"
+    (intents_dir / "my-cap.md").write_text(
+        f"- **Slug:** {cap_slug}\n"
+        "- **Status:** Accepted\n"
+        "- **Decomposed:** 2026-09-01 closed-empty\n"
+    )
+    spec_fields = {"Slug": "test-spec", "Discovery": discovery_value}
+    # Provenance record with the resolved intent identifier in the ``intent`` field.
+    prov_record = {
+        "subject": "spec:test-spec",
+        "field": "Discovery",
+        "intent": f"intent:{cap_slug}",
+        "target": f"intent:{cap_slug}",
+    }
+    snap = _snapshot(provenance=[prov_record])
+    ancestors = ci.resolve_intent_ancestors(
+        "test-spec", "spec", spec_fields, tmp_path,
+        _snapshot_provider=lambda _r: snap,
+    )
+    assert len(ancestors) == 1, f"Expected 1 ancestor, got {ancestors!r}"
+    assert ancestors[0][0] == cap_slug
 
 
 def test_ac0003_non_intent_discovery_contributes_no_edge(tmp_path: Path) -> None:
@@ -393,9 +583,14 @@ def test_ac0003_non_intent_discovery_contributes_no_edge(tmp_path: Path) -> None
         "Slug": "my-spec",
         "Discovery": "docs/specs/other-spec/spec.md",
     }
-    ancestors = ci.resolve_intent_ancestors("my-spec", "spec", spec_fields, tmp_path)
+    # Empty snapshot: no delivery relations or provenance records for my-spec,
+    # so no ancestor is found regardless of the Discovery: value.
+    snap = _snapshot()
+    ancestors = ci.resolve_intent_ancestors(
+        "my-spec", "spec", spec_fields, tmp_path, _snapshot_provider=lambda _r: snap
+    )
     assert ancestors == [], (
-        f"Expected no ancestors from a non-intent Discovery: target, got {ancestors!r}"
+        f"Expected no ancestors from empty snapshot, got {ancestors!r}"
     )
 
 
@@ -493,11 +688,22 @@ def test_ac0017_not_eligible_names_all_live_descendants(tmp_path: Path) -> None:
     # Sanity: the fixture should have 8 live and 1 terminal descendant.
     assert len(expected_live) == 8, f"Fixture setup error: expected 8 live, got {expected_live}"
 
+    # The children have Decomposed: spec, so the snapshot is needed for the
+    # spec-terminus sub-walk. wic-child-d has two specs (projection-mismatch in
+    # the real resolver), but the test uses a synthetic snapshot so both are found.
+    snap = _snapshot(relations=[
+        _direct("wic-child-a", "spec-a"),
+        _direct("wic-child-b", "spec-b"),
+        _direct("wic-child-c", "spec-c"),
+        _direct("wic-child-d", "spec-d"),
+        _direct("wic-child-d", "work-item-capture"),
+    ])
     # Inject _freshness_checker=lambda: True because tmp_path is not a git
     # repository; this test targets AC-0017, not AC-0022.
     verdict = ci.check_ancestor_closure(
         _ANCESTOR_SLUG, "Accepted", "children", tmp_path,
         _freshness_checker=lambda: True,
+        _snapshot_provider=lambda _r: snap,
     )
     assert isinstance(verdict, ci.ClosureNotEligible), (
         f"Expected ClosureNotEligible, got {verdict!r}"
@@ -528,11 +734,20 @@ def test_ac0016_eligible_when_all_descendants_terminal(tmp_path: Path) -> None:
     ]
     assert live == [], f"Fixture setup error: expected all terminal, found live: {live}"
 
+    # Same snapshot shape as AC-0017: same children, same spec mapping.
+    snap = _snapshot(relations=[
+        _direct("wic-child-a", "spec-a"),
+        _direct("wic-child-b", "spec-b"),
+        _direct("wic-child-c", "spec-c"),
+        _direct("wic-child-d", "spec-d"),
+        _direct("wic-child-d", "work-item-capture"),
+    ])
     # Inject _freshness_checker=lambda: True because tmp_path is not a git
     # repository; this test targets AC-0016, not AC-0022.
     verdict = ci.check_ancestor_closure(
         _ANCESTOR_SLUG, "Accepted", "children", tmp_path,
         _freshness_checker=lambda: True,
+        _snapshot_provider=lambda _r: snap,
     )
     assert isinstance(verdict, ci.ClosureEligible), (
         f"Expected ClosureEligible, got {verdict!r}"

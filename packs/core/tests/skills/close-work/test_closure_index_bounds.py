@@ -37,7 +37,7 @@ import os
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable
 
 import pytest
 
@@ -66,6 +66,70 @@ def _load(name: str):
 
 
 ci = _load("closure_index")
+
+# ── Snapshot helpers for _snapshot_provider injection ─────────────────────────
+
+
+def _snapshot(
+    *,
+    relations: list[dict[str, Any]] | None = None,
+    provenance: list[dict[str, Any]] | None = None,
+    diagnostics: list[dict[str, Any]] | None = None,
+    artifacts: dict[str, str] | None = None,
+    classifications: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a minimal valid delivery snapshot for test injection.
+
+    When *artifacts* is omitted, the dict is auto-populated from the spec and
+    brief identifiers present in *relations* using the canonical path grammar.
+    """
+    _rels = relations or []
+    if artifacts is None:
+        _arts: dict[str, str] = {}
+        for _rel in _rels:
+            for _id_key, _prefix, _path_tmpl in (
+                ("spec", "spec:", "docs/specs/{slug}/spec.md"),
+                ("brief", "brief:", "docs/product/briefs/{slug}.md"),
+            ):
+                _val = _rel.get(_id_key, "")
+                if _val.startswith(_prefix) and _val not in _arts:
+                    _slug = _val[len(_prefix):]
+                    _arts[_val] = _path_tmpl.format(slug=_slug)
+    else:
+        _arts = artifacts
+    return {
+        "schema_version": 1,
+        "complete": True,
+        "relations": _rels,
+        "classifications": classifications or [],
+        "provenance": provenance or [],
+        "diagnostics": diagnostics or [],
+        "artifacts": _arts,
+    }
+
+
+def _direct(intent_slug: str, spec_slug: str) -> dict[str, Any]:
+    """Build a direct-delivery relation record."""
+    return {
+        "type": "direct-delivery",
+        "route": "spec",
+        "intent": f"intent:{intent_slug}",
+        "spec": f"spec:{spec_slug}",
+        "basis": {"intent": "Decomposed", "spec": "Discovery"},
+    }
+
+
+def _coord(intent_slug: str, brief_slug: str, spec_slug: str) -> dict[str, Any]:
+    """Build a coordinated-delivery relation record."""
+    return {
+        "type": "coordinated-delivery",
+        "route": "brief",
+        "intent": f"intent:{intent_slug}",
+        "brief": f"brief:{brief_slug}",
+        "spec": f"spec:{spec_slug}",
+        "basis": {"brief": "Parent intent", "intent": "Decomposed", "spec": "Brief"},
+    }
+
 
 # ── Fixture helpers ───────────────────────────────────────────────────────────
 
@@ -181,6 +245,7 @@ def _build(
     ancestor_slug: str,
     ancestor_terminus: str,
     reader: Callable | None = None,
+    snapshot_provider: Callable | None = None,
 ) -> dict:
     return ci._build_descendant_closure(
         ancestor_slug,
@@ -188,6 +253,7 @@ def _build(
         ROOT,
         _reader=reader or fs.reader,
         _dir_lister=fs.dir_lister,
+        _snapshot_provider=snapshot_provider,
     )
 
 
@@ -271,9 +337,9 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
     the cached fields without a second reader call, keeping B's count at 1.
     """
     # Ancestor A (children terminus)
-    a_slug = "ancestor-A"
-    b_slug = "child-B"
-    c_slug = "child-C"
+    a_slug = "ancestor-a"
+    b_slug = "child-b"
+    c_slug = "child-c"
     s_b_slug = "spec-of-B"
     s_c_slug = "spec-of-C"
     shared_slug = "shared-candidate"
@@ -304,7 +370,13 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
         ),
     }
     fs = FakeFS(files)
-    result = _build(fs, a_slug, "children")
+    # Inject a snapshot mapping each child intent to its spec. SHARED has no
+    # relation so it is never opened — the max-reads assertion still holds.
+    snap = _snapshot(relations=[
+        _direct(b_slug, s_b_slug),
+        _direct(c_slug, s_c_slug),
+    ])
+    result = _build(fs, a_slug, "children", snapshot_provider=lambda _r: snap)
 
     # B, C, S_B, and S_C should all be in the result.
     assert b_slug in result
@@ -312,16 +384,14 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
     assert s_b_slug in result
     assert s_c_slug in result
 
-    # The shared candidate file is in the specs collection and is encountered
-    # in BOTH B's and C's spec scans, but should be read at most once.
+    # SHARED is not in any snapshot relation, so it is never opened (0 reads).
     assert fs.read_counter[str(SPECS_DIR / shared_slug / "spec.md")] <= 1, (
-        "shared candidate opened more than once despite visited set"
+        "shared candidate should not be opened (not in snapshot)"
     )
 
-    # B's intent file: read once as A's child, then used as Discovery: target.
-    # The field cache must prevent a second reader call.
+    # B's intent file: read once as A's child; not read again.
     assert fs.read_counter[b_path] <= 1, (
-        "B's intent file opened more than once (diamond: child scan + Discovery: lookup)"
+        "B's intent file opened more than once (diamond: child scan only)"
     )
 
     # The maximum across ALL files must be 1.
@@ -362,61 +432,73 @@ def test_ac0025_children_terminus_never_opens_briefs_or_specs() -> None:
 
 
 def test_ac0025_brief_terminus_opens_briefs_and_specs_not_intents() -> None:
-    """A ``brief`` terminus opens only the briefs and specs directories (AC-0025).
+    """A ``brief`` terminus enumerates no collection directories (AC-0025).
 
-    The fixture has files in the intents directory too. The intents directory
-    should never appear in the dir_lister access log.
+    Delivery termini (``brief`` and ``spec``) now read only the specific files
+    named in the canonical snapshot, never calling dir_lister on any collection.
+    The intents directory must still never appear in the dir_lister access log.
+    The brief and spec ARE found (via snapshot), but via targeted reads, not
+    collection scans.
     """
     a_slug = "root-intent"
     br_slug = "child-brief"
     sp_slug = "child-spec"
     files = {
         str(INTENTS_DIR / f"{a_slug}.md"): _intent(a_slug, decomposed="brief"),
-        # These should NOT be accessed via dir_lister.
         str(INTENTS_DIR / "unrelated-intent.md"): _intent("unrelated-intent"),
-        # These should be accessed.
         str(BRIEFS_DIR / f"{br_slug}.md"): _brief(br_slug, parent=a_slug),
         str(SPECS_DIR / sp_slug / "spec.md"): _spec(sp_slug, brief=br_slug),
     }
+    snap = _snapshot(relations=[_coord(a_slug, br_slug, sp_slug)])
     fs = FakeFS(files)
-    _build(fs, a_slug, "brief")
+    result = _build(fs, a_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    assert str(BRIEFS_DIR) in fs.accessed_dirs, "briefs dir should be accessed"
-    assert str(SPECS_DIR) in fs.accessed_dirs, "specs dir should be accessed for briefs' specs"
+    # Delivery terminus reads specific files; no collection directory is listed.
+    assert str(BRIEFS_DIR) not in fs.accessed_dirs, (
+        "brief terminus: snapshot-based delivery reads files directly, not via dir_lister"
+    )
+    assert str(SPECS_DIR) not in fs.accessed_dirs, (
+        "brief terminus: specs read directly from snapshot relation, not via dir_lister"
+    )
     assert str(INTENTS_DIR) not in fs.accessed_dirs, (
         "intents dir must not be accessed for 'brief' terminus"
     )
+    # Verify descendants are found via targeted reads.
+    assert br_slug in result, "brief must be found via snapshot"
+    assert sp_slug in result, "spec must be found via snapshot"
 
 
 def test_ac0025_spec_terminus_opens_only_specs_directory() -> None:
-    """A ``spec`` terminus opens only the specs directory (AC-0025).
+    """A ``spec`` terminus enumerates no collection directories (AC-0025).
 
-    The fixture has files in the intents and briefs directories. Neither
-    should appear in the dir_lister access log.
+    Delivery termini (``spec`` and ``brief``) now read only the specific files
+    named in the canonical snapshot, never calling dir_lister on any collection.
+    The spec IS found (via snapshot), but via a targeted read, not a collection
+    scan. No directory appears in the dir_lister access log.
     """
     a_slug = "root-intent"
     sp_slug = "child-spec"
-    a_path = f"docs/product/intents/{a_slug}.md"
     files = {
         str(INTENTS_DIR / f"{a_slug}.md"): _intent(a_slug, decomposed="spec"),
-        str(SPECS_DIR / sp_slug / "spec.md"): _spec(sp_slug, discovery=a_path),
-        # Unrelated files in other collections.
+        str(SPECS_DIR / sp_slug / "spec.md"): _spec(sp_slug),
         str(BRIEFS_DIR / "unrelated-brief.md"): _brief("unrelated-brief"),
     }
+    snap = _snapshot(relations=[_direct(a_slug, sp_slug)])
     fs = FakeFS(files)
-    _build(fs, a_slug, "spec")
+    result = _build(fs, a_slug, "spec", snapshot_provider=lambda _r: snap)
 
-    assert str(SPECS_DIR) in fs.accessed_dirs, "specs dir should be accessed"
+    # Delivery terminus reads specific files; no collection directory is listed.
+    assert str(SPECS_DIR) not in fs.accessed_dirs, (
+        "spec terminus: snapshot-based delivery reads files directly, not via dir_lister"
+    )
     assert str(BRIEFS_DIR) not in fs.accessed_dirs, (
         "briefs dir must not be accessed for 'spec' terminus"
     )
-    # NOTE: The intents directory is NOT listed via dir_lister, but the
-    # ancestor's intent FILE may be read directly as a Discovery: resolution
-    # target. That is a targeted read, not a collection scan, and does not
-    # violate AC-0025.
     assert str(INTENTS_DIR) not in fs.accessed_dirs, (
         "intents dir must not be opened as a collection for 'spec' terminus"
     )
+    # Verify the spec is found via targeted read.
+    assert sp_slug in result, "spec must be found via snapshot"
 
 
 # ── AC-0037: reads bounded by collection size ─────────────────────────────────
@@ -623,28 +705,34 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
         _intent("private-intent", parent=ancestor_slug), encoding="utf-8"
     )
 
-    # ── Case 1: brief terminus — exercises briefs (flat) + specs (nested) ────
-    # Ancestor has Decomposed: brief; the module resolves briefs then their specs.
+    # ── Case 1: brief terminus — exercises real reader seam ──────────────────
+    # The brief terminus now uses the canonical snapshot for membership; inject
+    # a snapshot provider while keeping no _reader or _dir_lister (both defaults
+    # still run for any children-terminus calls and for the spec file reads).
+    # The snapshot includes only non-_-prefixed artifacts, mirroring what the
+    # real resolver would produce.
+    snap_brief = _snapshot(relations=[_coord(ancestor_slug, brief_slug, spec_slug)])
     result_brief = ci._build_descendant_closure(
         ancestor_slug,
         "brief",
         tmp_path,
-        # No _reader or _dir_lister: both defaults run against the real tree.
+        # No _reader or _dir_lister: defaults run against the real tree.
+        _snapshot_provider=lambda _r: snap_brief,
     )
 
     assert brief_slug in result_brief, (
-        "_default_dir_lister should find flat .md files in the briefs directory"
+        "brief terminus: brief must be found via snapshot + default reader"
     )
     assert spec_slug in result_brief, (
-        "_default_dir_lister should find spec.md files nested one level under docs/specs/"
+        "brief terminus: spec must be found via snapshot + default reader"
     )
-    # _-prefixed brief excluded.
+    # Artifacts not in the snapshot are excluded regardless of what dir_lister
+    # would return; _-prefixed exclusion is the resolver's responsibility.
     assert "internal-brief" not in result_brief, (
-        "_-prefixed brief file must be excluded by _default_dir_lister"
+        "_-prefixed brief not in snapshot must not appear"
     )
-    # _-prefixed spec subdirectory excluded.
     assert "hidden-spec" not in result_brief, (
-        "_-prefixed spec subdirectory must be excluded by _default_dir_lister"
+        "_-prefixed spec not in snapshot must not appear"
     )
 
     # ── Case 2: children terminus — exercises intents (flat) ─────────────────
@@ -708,53 +796,63 @@ def _make_spec_terminus_tree(tmp_path: Path, discovery_value: str) -> tuple[Path
 
 
 @pytest.mark.parametrize(
-    "discovery_value,label",
+    "escaping_path,label",
     [
-        ("../../../etc/passwd", "bare dotdot path"),
-        ("`../../../etc/passwd`", "backtick dotdot path"),
-        ("[link](../../../etc/passwd)", "markdown link dotdot"),
-        ("/etc/passwd", "absolute path outside root"),
+        ("../../etc/passwd", "dotdot path"),
+        ("/etc/passwd", "absolute path"),
+        ("docs\\specs\\..\\..\\etc\\passwd", "backslash path"),
     ],
 )
 def test_confinement_escaping_discovery_contributes_no_edge(
-    tmp_path: Path, discovery_value: str, label: str
+    tmp_path: Path, escaping_path: str, label: str
 ) -> None:
-    """An escaping Discovery: value in any corpus form contributes no edge.
+    """A snapshot whose artifacts dict carries an escaping path yields delivery-resolver-unavailable.
 
-    The default confined reader raises ``UnsafeContentError`` (a ValueError
-    subclass) when a path escapes the root; ``_get_fields`` treats that as
-    an unreadable artifact and contributes no descendant.
-
-    The ancestor itself IS found (it is the starting point, not a descendant);
-    only the escaping spec contributes no edge.
+    _validate_snapshot_dict checks every artifacts path for safety (no ``..``
+    segments, no absolute paths, no backslashes).  When the injected provider
+    returns a snapshot with an unsafe path, the validation raises inside
+    ``_get_snapshot()`` and the whole decision refuses rather than following the
+    escape.  No file outside the root is opened.
     """
-    root, ancestor_slug, spec_slug = _make_spec_terminus_tree(tmp_path, discovery_value)
+    import pytest as _pytest
 
-    # Call with no injected seams: default confined reader runs.
-    result = ci._build_descendant_closure(ancestor_slug, "spec", root)
+    root, ancestor_slug, spec_slug = _make_spec_terminus_tree(tmp_path, "safe-discovery")
 
-    assert spec_slug not in result, (
-        f"{label}: escaping Discovery: should contribute no edge, "
-        f"but '{spec_slug}' appeared in result"
+    # Inject a snapshot that names the spec but maps it to an escaping path.
+    unsafe_snap = _snapshot(
+        relations=[_direct(ancestor_slug, spec_slug)],
+        artifacts={f"spec:{spec_slug}": escaping_path},
+    )
+    with _pytest.raises(ci._ClosureDeliveryRefusal) as exc_info:
+        ci._build_descendant_closure(
+            ancestor_slug, "spec", root, _snapshot_provider=lambda _r: unsafe_snap
+        )
+    assert exc_info.value.reason == "delivery-resolver-unavailable", (
+        f"{label}: escaping artifacts path must yield delivery-resolver-unavailable, "
+        f"got {exc_info.value.reason!r}"
     )
 
 
 def test_confinement_symlink_outside_root_contributes_no_edge(
     tmp_path: Path,
 ) -> None:
-    """A Discovery: value pointing to a symlink outside the root contributes no edge.
+    """A snapshot artifacts path pointing to a symlinked spec yields an unreadable record.
 
     file_safety.py rejects symlinks via O_NOFOLLOW / post-open inode check.
+    When the spec's artifacts path resolves to a symlink, ``_get_fields``
+    catches the ValueError from the confined reader and returns empty fields.
+    The spec record is added to the result with an empty Status (contributing
+    no terminal edge), but no file content from outside the root is read.
     """
     root = tmp_path / "repo"
     outside = tmp_path / "outside"
     root.mkdir()
     outside.mkdir()
 
-    # A real intent file lives outside the repo root.
-    outside_intent = outside / "leaked-intent.md"
-    outside_intent.write_text(
-        _intent("leaked-intent"), encoding="utf-8"
+    # A real spec content file lives outside the repo root.
+    outside_spec = outside / "leaked-spec.md"
+    outside_spec.write_text(
+        "- **Status:** Shipped\n", encoding="utf-8"
     )
 
     intents_dir = root / "docs" / "product" / "intents"
@@ -769,22 +867,27 @@ def test_confinement_symlink_outside_root_contributes_no_edge(
         _intent(ancestor_slug, decomposed="spec"), encoding="utf-8"
     )
 
-    # Symlink inside the repo root pointing to the outside file.
-    symlink_path = intents_dir / "symlink-to-outside.md"
-    symlink_path.symlink_to(outside_intent)
+    # Create the spec directory and a symlink pointing to the outside file.
+    spec_dir = specs_dir / spec_slug
+    spec_dir.mkdir()
+    symlink_path = spec_dir / "spec.md"
+    symlink_path.symlink_to(outside_spec)
 
-    # The spec's Discovery: points to the symlink (by relative path from root).
-    discovery_value = "docs/product/intents/symlink-to-outside.md"
-    spec_feature = specs_dir / "symlink-test-feature"
-    spec_feature.mkdir()
-    (spec_feature / "spec.md").write_text(
-        _spec(spec_slug, discovery=discovery_value), encoding="utf-8"
+    # Snapshot names the spec with a valid canonical path — the symlink check
+    # happens at file-open time via the confined reader, not at validation time.
+    snap = _snapshot(
+        relations=[_direct(ancestor_slug, spec_slug)],
+        artifacts={f"spec:{spec_slug}": f"docs/specs/{spec_slug}/spec.md"},
+    )
+    result = ci._build_descendant_closure(
+        ancestor_slug, "spec", root, _snapshot_provider=lambda _r: snap
     )
 
-    result = ci._build_descendant_closure(ancestor_slug, "spec", root)
-
-    assert spec_slug not in result, (
-        "symlink-pointing-outside should contribute no edge (file_safety rejects symlinks)"
+    # The spec is found via the snapshot relation but its file is unreadable
+    # (symlink rejected by the confined reader), so Status is empty.
+    assert spec_slug in result, "spec named in snapshot must appear in result"
+    assert result[spec_slug].status == "", (
+        "symlinked spec file must be unreadable; Status should be empty"
     )
 
 
@@ -815,8 +918,14 @@ def test_confinement_valid_discovery_within_root_resolves_correctly(
         _spec(spec_slug, discovery=discovery_value), encoding="utf-8"
     )
 
-    result = ci._build_descendant_closure(ancestor_slug, "spec", root)
+    # Inject a snapshot naming the spec as a direct-delivery descendant.
+    # The spec file is then opened via the default confined reader, confirming
+    # that a valid in-root read succeeds end-to-end.
+    snap = _snapshot(relations=[_direct(ancestor_slug, spec_slug)])
+    result = ci._build_descendant_closure(
+        ancestor_slug, "spec", root, _snapshot_provider=lambda _r: snap
+    )
 
     assert spec_slug in result, (
-        "a valid in-root Discovery: must resolve correctly with the confined reader"
+        "a spec named in the snapshot must be found via the confined reader"
     )

@@ -58,9 +58,20 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 
 | Verdict | What it means | What you decide |
 | --- | --- | --- |
-| **refuse** | A required precondition is absent — the ancestor is not yet `Accepted`, is already closed, has no ratified `Decomposed:` value, or its terminus is inconsistent with the actual descendant set | Resolve the named precondition, then re-run closeout |
+| **refuse** | A required precondition is absent; the refusal names it | Resolve the named precondition and re-run closeout |
 | **not-eligible** | At least one descendant in the full closure remains in a non-terminal state; each live descendant is named with its current state | Wait for the named descendants to complete, or close them first, then re-run closeout |
 | **eligible** | Every descendant in the full closure is terminal; an evidence packet is presented with the date, ratified decomposition, and each descendant's final state | Confirm the closure by supplying your name and the evidence you reviewed |
+
+**Delivery codes that `close-work` can name:**
+
+- `delivery-resolver-unavailable` — The skill-local resolver is absent, failed, or returned an incomplete snapshot. To fix an absent resolver, reinstall or upgrade Core so the resolver script (`intent_delivery_relations.py` inside the `close-work` skill's `scripts/` folder) is present. To diagnose an incomplete snapshot, run `python3 <path-to-close-work-scripts>/intent_delivery_relations.py --root .` directly. Two outcomes: if `diagnostics` holds `delivery-resource-limit`, its `limit` and `root` name the exceeded budget and folder; if `diagnostics` is empty and the exit code is 1, an unsafe entry such as a link, special file, or non-UTF-8 file exists under `docs/specs/`, `docs/product/intents/`, or `docs/product/briefs/`.
+- `delivery-target-missing` — Either no spec (for a `spec`-route feature) or brief (for a `brief`-route feature) names this feature — add a `Discovery: intent:<slug>` field to a spec, or a `Parent intent: intent:<slug>` field to a brief; or a spec's `Discovery:` or `Brief:` value names an intent or brief that does not exist — correct that value.
+- `delivery-projection-mismatch` — More than one spec or brief claims this feature when only one is expected. Fix the duplicate `Discovery:` or `Parent intent:` fields so only one artifact names this feature.
+- `delivery-relation-ambiguous` — One artifact gives two different values for the same delivery field (`Discovery:`, `Brief:`, `Parent intent:`, or `Decomposed:`). Keep one value.
+- `delivery-reference-malformed` — A delivery field holds a value in an unrecognised form. Accepted forms: spec `Discovery:` takes `intent:<slug>` or `docs/product/intents/<file>.md`; spec `Brief:` takes `brief:<slug>`; brief `Parent intent:` takes `<kind>:<slug>` where `<kind>` is one of `outcome`, `opportunity`, `capability`, or `intent`; feature `Decomposed:` takes `YYYY-MM-DD <route>`. Fix the field to match the accepted form.
+- `delivery-reference-unsafe` — A delivery field contains an absolute path or a `..` traversal. Use the safe typed form for the affected field: spec `Discovery:` takes `intent:<slug>`; spec `Brief:` takes `brief:<slug>`; brief `Parent intent:` takes `<kind>:<slug>` where `<kind>` is one of `outcome`, `opportunity`, `capability`, or `intent`.
+
+When the broken field belongs to a spec or brief rather than to the feature itself, `close-work` refuses every feature that artifact could belong to and names the code. Fix that artifact's field, then re-run closeout.
 
 ## Choose the immediate disposition
 

@@ -169,9 +169,24 @@ CORE_COLLECTIONS = {
     # Re-pinned 2026-10-02: 72 -> 73. One addition, nothing removed or renamed:
     # test_tombstone_keeps_slug_without_duplicating_reissued_intent, which pins
     # that an intent tombstone's retained `Slug:` yields no second `intent:` node.
+    # Re-pinned 2026-10-05: 73 -> 103. Thirty additions, nothing removed or
+    # renamed, and the surviving 73 keep their relative order. All thirty cover
+    # the lint reading feature-delivery edges from the shared delivery resolver:
+    # `test_vi1201_*` (snapshot-driven edges and diagnostics), `test_vi1203_*`
+    # (fail-closed resolver invocation), `test_defect_*` and `test_fix*_*`
+    # (no-fallback wiring, local contextual provenance, one break one class).
+    # Re-pinned 2026-10-06: 103 -> 98. Five removals, nothing added or renamed,
+    # and the surviving 98 keep their relative order. Removed nodes duplicate
+    # VI-1705 or used the retired module-global seam and could not fail for
+    # the behaviour their names stated (T12):
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-unavailable]
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-bad-json]
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-timeout]
+    # - test_vi1203_hostile_stderr_not_forwarded
+    # - test_vi1203_incomplete_snapshot_is_hard_violation
     SHARED_TESTS[2]: (
-        73,
-        "8099b6e1c8f83e1e0d42daaaff590c8d3651be8cef11cf31354b3d605848998b",
+        98,
+        "76badbf27b65da283276695e8c31aaa12caf74ba56a446e18d72cc7726b9afcf",
     ),
 }
 
@@ -986,11 +1001,20 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # returns an empty error list. The baseline is bare `origin/main`, which this
 # branch is merged up to and whose Makefile differs from this worktree's by the
 # single line above and nothing else.
+# Bumped 2026-10-07 for Core's new cross-consumer integration suite.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added
+# `run-test-suite` line, `$(PYTHON) -m pytest packs/core/tests/integration/ -q`,
+# after the `packs/core/tests/pack/` line, and none removed or reordered. It is
+# a new process, so each plan gains one entry (standalone 76 -> 77, composed
+# 75 -> 76) and every later entry shifts by one.
+# (2) The superseded pins `26c57c19…` and `198ae517…` are current at
+# `origin/main` `9d39eae8b`. They were set in `1b8dbe3f3` for the
+# `navigate-decisions` suite, and the Makefile has not changed since.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "26c57c1925a0d4b2d4949a166e24a4ed6fada6dbe42864e1d18a3cab32163be8"
+    "b666effcb2861baf09dff99c477b7d31539d5ec793d86f6e8ae3d0f069193967"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "198ae5173a5ef58b2d7d2fdd273fb2f4cbdb7a06e192f79fdd113608ff7a75c1"
+    "45dfc4643613f69c1bf99b666afe85f1205dd174354aff8068b741c8996e156d"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

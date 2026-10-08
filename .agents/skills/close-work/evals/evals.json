@@ -117,6 +117,36 @@
         "Presents an evidence packet with the required fields",
         "States that the check writes no status — the human confirms first"
       ]
+    },
+    {
+      "id": 16,
+      "prompt": "Run the closure eligibility check on this feature intent. The skill-local delivery resolver (intent_delivery_relations.py beside closure_index.py) is absent.",
+      "expected_output": "The check returns a refuse verdict with reason delivery-resolver-unavailable. It does not fall back to a local inversion of Discovery: or Brief: fields. No status is written.",
+      "assertions": [
+        "Returns refuse with delivery-resolver-unavailable reason",
+        "Performs no local Discovery: or Brief: field inversion",
+        "Writes no status"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Run the closure eligibility check on a feature intent whose delivery snapshot reports delivery-target-missing. The intent has Decomposed: pointing to a spec route but no spec's Discovery: field names it.",
+      "expected_output": "The check returns a refuse verdict citing delivery-diagnostic: delivery-target-missing. It reads the delivery diagnostic from the canonical snapshot and does not attempt to resolve the delivery set independently.",
+      "assertions": [
+        "Returns refuse citing delivery-diagnostic",
+        "Sources diagnostic from the canonical snapshot, not from local field inversion",
+        "Writes no status"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "Run the closure eligibility check on a spec-route feature intent whose only delivering spec is shipped. Another spec in the repository carries a broken Discovery: field that the delivery snapshot flags with delivery-reference-unsafe.",
+      "expected_output": "The check returns a refuse verdict naming delivery-reference-unsafe. It refuses every spec-route feature when any spec's own Discovery: reference is unsafe, rather than dropping the spec from the descendant set. No status is written.",
+      "assertions": [
+        "Returns refuse with delivery-reference-unsafe reason",
+        "Refuses the spec-route feature rather than silently dropping the broken spec",
+        "Writes no status"
+      ]
     }
   ]
 }

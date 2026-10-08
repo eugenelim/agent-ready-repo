@@ -2199,7 +2199,6 @@ open = [
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/FEAT-0002-intent-graph-navigation.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Expose intent altitude, status, parent, related edges, direct features, and unclassified legacy intents through a graph derived from artifact headers on demand and never persisted, with a single-file human view as a separate consumer; needs its own de-risk before decomposition", needs = [] },
-  { path = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Make a feature intent's mapping to its independently shippable spec, or to a delivery brief and its child specs, visible from the intent side; needs its own de-risk before decomposition", needs = [] },
   { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
   # Delivery-system coexistence — CAP-0004's family. The capability and its
   # three feature intents are Accepted and their three briefs are Ready, so all
@@ -2433,6 +2432,10 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # FEAT-0003's single delivery unit. Delivered 2026-10-07 and moved from
+  # `active` to `shipped` in the change that set the spec `Shipped` and the plan
+  # `Done`.
+  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
   # The final slice of `intent-identity-and-registration`. Delivered
   # 2026-10-03 and moved from `active` to `shipped` in the change that set the
   # spec `Shipped` and the plan `Done`. Ships the installed retire-and-issue

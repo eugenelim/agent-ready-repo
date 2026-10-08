@@ -263,7 +263,14 @@ def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
     }
     assert exclusions == {
         "architect": ["agent"],
-        "core": ["agent", "command", "hook-body", "hook-wiring", "kiro-ide-hook"],
+        "core": [
+            "adapter-root-bins",
+            "agent",
+            "command",
+            "hook-body",
+            "hook-wiring",
+            "kiro-ide-hook",
+        ],
         "credential-brokers": ["adapter-root-bins", "shared-libs", "user-libs"],
         "desk-research": ["agent"],
         "experience-design": ["agent"],
@@ -1183,7 +1190,8 @@ def test_default_build_emits_complete_agent_plugin_roster(
     assert set(exclusions) == {
         'agent-plugin: pack "architect" excluded by dropped primitives ["agent"]',
         'agent-plugin: pack "core" excluded by dropped primitives '
-        '["agent","command","hook-body","hook-wiring","kiro-ide-hook"]',
+        '["adapter-root-bins","agent","command","hook-body","hook-wiring",'
+        '"kiro-ide-hook"]',
         'agent-plugin: pack "credential-brokers" excluded by dropped primitives '
         '["adapter-root-bins","shared-libs","user-libs"]',
         'agent-plugin: pack "desk-research" excluded by dropped primitives ["agent"]',

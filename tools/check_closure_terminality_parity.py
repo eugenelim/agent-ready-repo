@@ -117,9 +117,14 @@ def _walk_is_not_vacuous(root: Path, closure_index) -> list[str]:
             continue
         terminus = parts[-1]
         seen[terminus] = seen.get(terminus, 0) + 1
-        found = closure_index._build_descendant_closure(
-            root=root, ancestor_slug=slug, ancestor_terminus=terminus
-        )
+        try:
+            found = closure_index._build_descendant_closure(
+                root=root, ancestor_slug=slug, ancestor_terminus=terminus
+            )
+        except closure_index._ClosureDeliveryRefusal:
+            # A refused ancestor (an unresolved delivery mapping) resolves no
+            # descendant here; the per-terminus count still needs one that does.
+            found = {}
         if found:
             resolved[terminus] = resolved.get(terminus, 0) + 1
     failures: list[str] = []

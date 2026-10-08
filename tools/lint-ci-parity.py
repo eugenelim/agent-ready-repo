@@ -1221,6 +1221,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'packs/core/tests/integration/':
+        NO_PR_GATE(
+            "Pack integration suite. `make test` runs it in the core batch; no workflow names it, "
+            "so it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
     'packs/core/tests/skills/adapt-to-project/':
         PR_GATED_IF(
             _PACK_HOOK_LINUX,
