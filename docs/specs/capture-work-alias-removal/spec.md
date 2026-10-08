@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0083](../../rfc/0083-work-intake-and-artifact-routing.md), including its 2026-10-02 Errata
 - **Brief:** none
-- **Discovery:** [`capture-work-alias-removal`](../../product/intents/capture-work-alias-removal.md)
+- **Discovery:** `intent:capture-work-alias-removal`
 - **Contract:** none
 - **Shape:** mixed
 

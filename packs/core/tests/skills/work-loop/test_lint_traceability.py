@@ -59,8 +59,18 @@ def symlink_or_skip(
     return True
 
 
+def _ensure_resolver(root: Path) -> None:  # noqa: ARG001
+    """After T9 the linter finds its resolver beside its own scripts/ directory.
+
+    Subprocess-based tests no longer need to install anything into
+    root/.agentbundle/bin/; the sibling copy ships with the skill.  This
+    function is kept as a no-op so call sites don't need to change.
+    """
+
+
 def run_raw(root: Path, *extra: str) -> tuple[int, str, str]:
     """Invoke the linter exactly as given — no flags added."""
+    _ensure_resolver(root)
     proc = subprocess.run(
         [sys.executable, str(LINTER), "--root", str(root), *extra],
         capture_output=True, text=True,
@@ -1590,7 +1600,7 @@ def test_stdlib_only() -> None:
     import ast
     tree = ast.parse(LINTER.read_text(encoding="utf-8"))
     stdlib = {"__future__", "argparse", "json", "re", "subprocess", "sys",
-              "pathlib", "tomllib", "os", "importlib"}
+              "pathlib", "tomllib", "os", "importlib", "typing"}
     mods: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -1689,3 +1699,631 @@ def test_every_detail_line_carries_the_detail_prefix(tmp_path: Path) -> None:
             continue
         expect(ln.startswith(("  - ", "lint-traceability:")),
                f"line is neither a detail nor a summary line: {ln!r}")
+
+
+# --------------------------------------------------------------------------
+# VI-1201 / VI-1202 / VI-1203 — delivery relation wiring via canonical snapshot
+# --------------------------------------------------------------------------
+
+# Resolver source installed temporarily for real-subprocess tests.
+_RESOLVER_SOURCE = (
+    Path(__file__).resolve().parents[3]
+    / ".apm"
+    / "adapter-root-bins"
+    / "intent_delivery_relations.py"
+)
+
+_EMPTY_SNAPSHOT: dict = {
+    "schema_version": 1,
+    "complete": True,
+    "relations": [],
+    "classifications": [],
+    "provenance": [],
+    "diagnostics": [],
+    "artifacts": {},
+}
+
+
+def _load_linter(suffix: str) -> object:
+    """Load lint-traceability as a fresh module instance (each call is isolated)."""
+    ms = importlib.util.spec_from_file_location(f"_trace_vi_{suffix}", str(LINTER))
+    assert ms is not None and ms.loader is not None
+    mod = importlib.util.module_from_spec(ms)
+    ms.loader.exec_module(mod)
+    return mod
+
+
+def _install_resolver(root: Path) -> None:  # noqa: ARG001
+    """After T9 the linter finds its resolver beside its own scripts/ directory.
+
+    In-process tests that need a specific resolver path use the _resolver_path
+    seam on _run_resolver.  This function is kept as a no-op so call sites that
+    no longer need the installation can be updated at their own pace.
+    """
+
+
+def write_feature_intent(root: Path, slug: str, route: str = "spec") -> None:
+    """Write a feature-level intent with the given delivery route."""
+    write(
+        root / "docs" / "product" / "intents" / f"{slug}.md",
+        f"# Intent\n\n"
+        f"- **Slug:** `{slug}`\n"
+        f"- **Level:** feature\n"
+        f"- **Decomposed:** 2026-10-04 {route}\n",
+    )
+
+
+# ---- VI-1201: direct delivery -----------------------------------------------
+
+
+def test_vi1201_direct_delivery_edge_wired_from_snapshot(tmp_path: Path) -> None:
+    """A direct-delivery relation in the snapshot creates intent→spec edge.
+    _wire_up must not receive a feature-intent Discovery candidate."""
+    mod = _load_linter("direct")
+
+    write_brief(tmp_path, "anchor")
+    write_feature_intent(tmp_path, "alpha")
+    write_spec(tmp_path, "alpha-delivery", discovery="intent:alpha")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "relations": [{
+            "type": "direct-delivery",
+            "intent": "intent:alpha",
+            "spec": "spec:alpha-delivery",
+            "route": "spec",
+            "basis": {"intent": "Decomposed", "spec": "Discovery"},
+        }],
+        "provenance": [],
+    }
+
+    # Guard: _wire_up must NOT receive a feature-intent delivery candidate.
+    original = mod._wire_up
+    received: list[list[str]] = []
+
+    def guarded(g, *, consumer, candidates, local_ids, rollup):
+        received.append(list(candidates))
+        for c in candidates:
+            if c.startswith("intent:"):
+                raise AssertionError(
+                    f"_wire_up received a feature-intent delivery pointer: {c!r}"
+                )
+        return original(g, consumer=consumer, candidates=candidates,
+                        local_ids=local_ids, rollup=rollup)
+
+    mod._wire_up = guarded
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    expect(("intent:alpha", "spec:alpha-delivery") in g.edges,
+           f"direct-delivery edge must be wired: {g.edges!r}")
+    expect(not any("intent:alpha" in c for calls in received for c in calls),
+           f"intent: must not reach _wire_up: {received!r}")
+
+
+def test_vi1201_coordinated_delivery_edges_wired_from_snapshot(tmp_path: Path) -> None:
+    """A coordinated-delivery relation wires brief→spec and intent→brief."""
+    mod = _load_linter("coord")
+
+    write_brief(tmp_path, "coord-brief")
+    write_feature_intent(tmp_path, "beta", route="brief")
+    write_spec(tmp_path, "beta-delivery", brief="brief:coord-brief")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "relations": [{
+            "type": "coordinated-delivery",
+            "intent": "intent:beta",
+            "brief": "brief:coord-brief",
+            "spec": "spec:beta-delivery",
+            "route": "brief",
+            "basis": {"intent": "Decomposed", "brief": "Parent intent", "spec": "Brief"},
+        }],
+    }
+
+    # Guard: _wire_up must not receive delivery brief pointer for delivery specs.
+    original = mod._wire_up
+    received: list[list[str]] = []
+
+    def guarded(g, *, consumer, candidates, local_ids, rollup):
+        received.append(list(candidates))
+        if consumer == "spec:beta-delivery":
+            for c in candidates:
+                if c.startswith("brief:"):
+                    raise AssertionError(
+                        f"_wire_up received a delivery brief pointer for delivery spec: {c!r}"
+                    )
+        return original(g, consumer=consumer, candidates=candidates,
+                        local_ids=local_ids, rollup=rollup)
+
+    mod._wire_up = guarded
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    expect(("brief:coord-brief", "spec:beta-delivery") in g.edges,
+           f"brief→spec edge wired: {g.edges!r}")
+    expect(("intent:beta", "brief:coord-brief") in g.edges,
+           f"intent→brief edge wired: {g.edges!r}")
+
+
+def test_vi1201_explicit_empty_no_delivery_edge(tmp_path: Path) -> None:
+    """A direct-light or closed-empty classification produces no delivery edge."""
+    mod = _load_linter("empty")
+    write_brief(tmp_path, "anchor")
+    write_feature_intent(tmp_path, "gamma", route="direct-light")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "classifications": [{
+            "classification": "no-durable-child",
+            "intent": "intent:gamma",
+            "route": "direct-light",
+        }],
+    }
+
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    delivery_edges = [e for e in g.edges if "gamma" in e[0] or "gamma" in e[1]]
+    expect(not delivery_edges,
+           f"no delivery edge for explicit-empty intent: {delivery_edges!r}")
+    expect(not g.dangling,
+           f"no DANGLING for explicit-empty: {g.dangling!r}")
+
+
+def test_vi1201_dual_provenance_spec_in_direct_and_coordinated(tmp_path: Path) -> None:
+    """A spec participates in both direct-delivery and coordinated-delivery."""
+    mod = _load_linter("dual")
+    write_brief(tmp_path, "coord-b")
+    write_feature_intent(tmp_path, "feat1")
+    write_feature_intent(tmp_path, "feat2", route="brief")
+    write_spec(tmp_path, "dual-spec", discovery="intent:feat1", brief="brief:coord-b")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "relations": [
+            {
+                "type": "direct-delivery",
+                "intent": "intent:feat1",
+                "spec": "spec:dual-spec",
+                "route": "spec",
+                "basis": {"intent": "Decomposed", "spec": "Discovery"},
+            },
+            {
+                "type": "coordinated-delivery",
+                "intent": "intent:feat2",
+                "brief": "brief:coord-b",
+                "spec": "spec:dual-spec",
+                "route": "brief",
+                "basis": {"intent": "Decomposed", "brief": "Parent intent", "spec": "Brief"},
+            },
+        ],
+    }
+
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    expect(("intent:feat1", "spec:dual-spec") in g.edges,
+           f"direct-delivery edge present: {g.edges!r}")
+    expect(("brief:coord-b", "spec:dual-spec") in g.edges,
+           f"coordinated-delivery edge present: {g.edges!r}")
+    expect(not g.dangling,
+           f"no DANGLING for dual-provenance spec: {g.dangling!r}")
+
+
+def test_vi1201_missing_direct_target_is_dangling(tmp_path: Path) -> None:
+    """delivery-target-missing on a spec subject → hard DANGLING violation."""
+    mod = _load_linter("miss_direct")
+    write_brief(tmp_path, "anchor")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [{
+            "code": "delivery-target-missing",
+            "subject": "spec:missing-spec",
+            "field": "Discovery",
+        }],
+    }
+
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    expect(any("missing-spec" in d for d in g.dangling),
+           f"missing spec subject → DANGLING: {g.dangling!r}")
+
+
+def test_vi1201_missing_brief_is_dangling(tmp_path: Path) -> None:
+    """delivery-target-missing on a brief subject → hard DANGLING violation."""
+    mod = _load_linter("miss_brief")
+    write_brief(tmp_path, "anchor")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [{
+            "code": "delivery-target-missing",
+            "subject": "brief:ghost-brief",
+            "field": "Parent intent",
+        }],
+    }
+
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    expect(any("ghost-brief" in d for d in g.dangling),
+           f"missing brief subject → DANGLING: {g.dangling!r}")
+
+
+def test_vi1201_direct_projection_mismatch_informational_default_fail_strict(
+    tmp_path: Path,
+) -> None:
+    """delivery-projection-mismatch on a feature intent → informational (default),
+    FAIL under --strict."""
+    mod = _load_linter("mismatch_direct")
+    write_brief(tmp_path, "anchor")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [{
+            "code": "delivery-projection-mismatch",
+            "subject": "intent:feat",
+            "targets": ["spec:foo", "spec:bar"],
+        }],
+    }
+
+    # Use build_standalone directly to check delivery_diagnostics.
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    expect(any("delivery-projection-mismatch" in d for d in g.delivery_diagnostics),
+           f"mismatch in delivery_diagnostics: {g.delivery_diagnostics!r}")
+    expect(not any("delivery-projection-mismatch" in d for d in g.dangling),
+           f"mismatch must not be in dangling: {g.dangling!r}")
+
+
+def test_vi1201_brief_projection_mismatch_informational(tmp_path: Path) -> None:
+    """delivery-projection-mismatch for a brief-route intent → delivery_diagnostics."""
+    mod = _load_linter("mismatch_brief")
+    write_brief(tmp_path, "anchor")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [{
+            "code": "delivery-projection-mismatch",
+            "subject": "intent:feat-b",
+            "targets": ["brief:b1", "brief:b2"],
+        }],
+    }
+
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=lambda _r: snapshot)
+
+    expect(any("delivery-projection-mismatch" in d for d in g.delivery_diagnostics),
+           f"brief mismatch in delivery_diagnostics: {g.delivery_diagnostics!r}")
+
+
+def test_vi1201_delivery_diag_strict_exit_one(tmp_path: Path) -> None:
+    """Delivery diagnostics cause exit 1 under --strict."""
+    write_brief(tmp_path, "anchor")
+    write_spec(tmp_path, "foo", brief="anchor")
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [{
+            "code": "delivery-projection-mismatch",
+            "subject": "intent:feat",
+            "targets": ["spec:a", "spec:b"],
+        }],
+    }
+
+    mod = _load_linter("diag_strict")
+
+    out_lines, hard, exit_default = mod.check(
+        tmp_path, False, snapshot_provider=lambda _r: snapshot
+    )
+    expect(exit_default == 0,
+           f"delivery mismatch: exit 0 in default mode, got {exit_default}")
+    expect(any("delivery-projection-mismatch" in ln for ln in out_lines),
+           f"mismatch reported in output: {out_lines!r}")
+
+    out_lines2, hard2, exit_strict = mod.check(
+        tmp_path, True, snapshot_provider=lambda _r: snapshot
+    )
+    expect(exit_strict == 1,
+           f"delivery mismatch: exit 1 under --strict, got {exit_strict}")
+
+
+# ---- VI-1201: real subprocess path with installed resolver ------------------
+
+
+def test_vi1201_real_subprocess_resolver_installed(tmp_path: Path) -> None:
+    """At least one test exercises the real subprocess path: run lint-traceability.py
+    as a subprocess against a fixture corpus with delivery relations.
+
+    After T9 the linter ships its own resolver copy beside its scripts/ directory;
+    no explicit installation into tmp_path is needed.
+    """
+    assert _RESOLVER_SOURCE.exists(), "resolver source not found"
+
+    # Feature intent with direct route
+    write_feature_intent(tmp_path, "resolved-feat")
+    write_spec(tmp_path, "resolved-spec", discovery="intent:resolved-feat")
+    # Also a brief for the anchor
+    write_brief(tmp_path, "anchor-b")
+
+    rc, out, err = run(tmp_path, "--verbose")
+
+    # The lint should exit 0 (delivery-target-missing on the feature intent is
+    # informational, not a DANGLING, because subject=intent:... not spec/brief).
+    expect(rc == 0, f"real resolver subprocess → exit 0, got {rc}: {err}")
+    expect("DANGLING" not in err or "delivery-resolver-unavailable" not in err,
+           f"real resolver must not raise delivery-resolver-unavailable: {err}")
+
+
+# ---- VI-1203: resolver failure modes ----------------------------------------
+
+
+@pytest.mark.parametrize("bad_text,label", [
+    ("not json {{{", "malformed-json"),
+    ('{"schema_version":1,"complete":true,"relations":[],"classifications":[],'
+     '"provenance":[],"diagnostics":[],"artifacts":{},"extra":1}', "extra-key"),
+    ('{"schema_version":2,"complete":true,"relations":[],"classifications":[],'
+     '"provenance":[],"diagnostics":[],"artifacts":{}}', "wrong-schema-version"),
+    ('{"schema_version":1,"complete":true,"relations":"not-a-list",'
+     '"classifications":[],"provenance":[],"diagnostics":[],"artifacts":{}}', "non-list-relations"),
+], ids=["malformed-json", "extra-key", "wrong-schema-version", "non-list-relations"])
+def test_vi1203_parse_and_validate_rejects_bad_input(
+    bad_text: str, label: str
+) -> None:
+    """_parse_and_validate_snapshot raises ValueError on every structural problem."""
+    mod = _load_linter(f"parse_{label}")
+    raised = False
+    try:
+        mod._parse_and_validate_snapshot(bad_text)
+    except ValueError as exc:
+        raised = True
+        expect("delivery-resolver-unavailable" in str(exc),
+               f"{label}: raised with correct prefix: {exc}")
+    expect(raised, f"{label}: must raise ValueError")
+
+
+def test_vi1203_nan_in_snapshot_is_rejected(tmp_path: Path) -> None:
+    """NaN/Infinity in the snapshot JSON is rejected."""
+    mod = _load_linter("nan")
+    import json as _json
+    # Build JSON with NaN using allow_nan=True (Python's json can produce it)
+    nan_text = _json.dumps(
+        {"schema_version": 1, "complete": True, "relations": [float("nan")],
+         "classifications": [], "provenance": [], "diagnostics": [], "artifacts": {}},
+        allow_nan=True,
+    )
+    raised = False
+    try:
+        mod._parse_and_validate_snapshot(nan_text)
+    except ValueError as exc:
+        raised = True
+        expect("delivery-resolver-unavailable" in str(exc),
+               f"NaN rejected with correct prefix: {exc}")
+    expect(raised, "NaN in snapshot must raise ValueError")
+
+
+def test_vi1203_oversize_stdout_rejected_by_run_resolver(tmp_path: Path) -> None:
+    """A resolver that emits > 16 MiB of stdout is rejected by _run_resolver.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at the stub.
+    """
+    assert _RESOLVER_SOURCE.exists(), "resolver source not found"
+
+    stub = tmp_path / "oversize_resolver.py"
+    stub.write_text(
+        "import sys\n"
+        "sys.stdout.reconfigure(encoding='utf-8')\n"
+        "sys.stdout.write('x' * (16 * 1024 * 1024 + 1))\n",
+        encoding="utf-8",
+    )
+
+    mod = _load_linter("oversize")
+    raised = False
+    try:
+        mod._run_resolver(tmp_path, _resolver_path=stub)
+    except ValueError as exc:
+        raised = True
+        expect("delivery-resolver-unavailable" in str(exc),
+               f"oversize stdout raises with correct prefix: {exc}")
+    expect(raised, "oversize stdout must raise ValueError")
+
+
+def test_vi1203_nonzero_exit_rejected_by_run_resolver(tmp_path: Path) -> None:
+    """A resolver subprocess that exits non-zero → delivery-resolver-unavailable.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at the stub.
+    """
+    stub = tmp_path / "nonzero_resolver.py"
+    stub.write_text("import sys; sys.exit(1)\n", encoding="utf-8")
+
+    mod = _load_linter("nonzero")
+    raised = False
+    try:
+        mod._run_resolver(tmp_path, _resolver_path=stub)
+    except ValueError as exc:
+        raised = True
+        expect("delivery-resolver-unavailable" in str(exc),
+               f"non-zero exit raises with correct prefix: {exc}")
+    expect(raised, "non-zero exit must raise ValueError")
+
+
+def test_vi1203_binary_absent_is_hard_violation(tmp_path: Path) -> None:
+    """_run_resolver always raises ValueError on any absent-binary failure.
+    The opt-out from delivery checking is at the _has_any_anchor level in
+    build_standalone, not inside _run_resolver — so _run_resolver never
+    silently returns None.
+
+    After T9 the seam (_resolver_path kwarg) is used to point _run_resolver
+    at a nonexistent path, exercising the absent-resolver branch.
+    """
+    mod = _load_linter("absent")
+    nonexistent = tmp_path / "no_such_resolver.py"
+    with pytest.raises(ValueError, match="delivery-resolver-unavailable"):
+        mod._run_resolver(tmp_path, _resolver_path=nonexistent)
+
+
+def test_vi1203_non_delivery_checks_run_when_resolver_fails(tmp_path: Path) -> None:
+    """When the resolver fails, non-delivery checks (orphan, dangling, cycle)
+    are still computed and reported."""
+    write_brief(tmp_path, "anchor")
+    write_spec(tmp_path, "alpha", brief="anchor", component="ghost-local")  # dangling component
+
+    def failing(_root: Path) -> dict:
+        raise ValueError("delivery-resolver-unavailable: simulated")
+
+    mod = _load_linter("fail_nondelivery")
+
+    out_lines, hard, exit_hint = mod.check(tmp_path, False, snapshot_provider=failing)
+
+    # Both the resolver failure AND the dangling component must be reported.
+    expect(exit_hint == 1, f"resolver fail + dangling → exit 1, got {exit_hint}")
+    expect(any("delivery-resolver-unavailable" in h for h in hard),
+           f"resolver failure in hard violations: {hard!r}")
+    expect(any("ghost-local" in h for h in hard),
+           f"dangling component still reported: {hard!r}")
+
+
+def test_vi1203_no_retired_fallback_when_resolver_fails(tmp_path: Path) -> None:
+    """When the resolver fails, _wire_up must NOT receive feature-delivery
+    Discovery:/Brief: pointers — no retired fallback wires delivery."""
+    write_brief(tmp_path, "b")
+    write_feature_intent(tmp_path, "feat-x")
+    write_spec(tmp_path, "feat-spec", discovery="intent:feat-x", brief="b")
+
+    def failing(_root: Path) -> dict:
+        raise ValueError("delivery-resolver-unavailable: simulated")
+
+    mod = _load_linter("fail_no_fallback")
+
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {},
+                         snapshot_provider=failing)
+
+    # With failing resolver, spec gets only Contract:/Parent intent: candidates.
+    # Neither Discovery: nor Brief: may wire any edge — no snapshot confirmed
+    # whether this brief carries a feature-delivery relation.
+    expect(("intent:feat-x", "spec:feat-spec") not in g.edges,
+           f"no delivery edge wired from local Discovery: on resolver failure: {g.edges!r}")
+    expect(("brief:b", "spec:feat-spec") not in g.edges,
+           f"no Brief: edge wired when no valid snapshot: {g.edges!r}")
+
+
+# ---- Defects found in controller review of T3 --------------------------------
+
+
+def test_defect_bin_dir_exists_binary_absent_is_hard_violation(tmp_path: Path) -> None:
+    """_run_resolver must raise ValueError (hard violation) when the resolver path
+    is absent, not return None.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at a
+    nonexistent path regardless of what exists in .agentbundle/bin/.
+    """
+    mod = _load_linter("bindir_absent_binary")
+    nonexistent = tmp_path / "no_such_resolver.py"
+    with pytest.raises(ValueError, match="delivery-resolver-unavailable"):
+        mod._run_resolver(tmp_path, _resolver_path=nonexistent)
+
+
+def test_defect_no_brief_wired_when_no_valid_snapshot(tmp_path: Path) -> None:
+    """When no valid snapshot exists (resolver fails), Brief: must not be parsed
+    to wire any edge — the snapshot is required to confirm this brief is not a
+    feature-delivery brief."""
+    write_brief(tmp_path, "b")
+    write_spec(tmp_path, "plain", brief="b")
+
+    def failing(_root: Path) -> dict:
+        raise ValueError("delivery-resolver-unavailable: simulated")
+
+    mod = _load_linter("no_snap_no_brief")
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {}, snapshot_provider=failing)
+
+    expect(("brief:b", "spec:plain") not in g.edges,
+           f"Brief: edge must not be wired without a valid snapshot: {g.edges!r}")
+
+
+# ---- Round-2 controller defects ------------------------------------------------
+
+
+def test_fix1_contextual_provenance_uses_local_discovery(tmp_path: Path) -> None:
+    """When the snapshot carries a contextual-provenance record for (spec, 'Discovery'),
+    the lint reads the spec's local Discovery: value as the _wire_up candidate —
+    restoring the structural edge the old local-parsing path provided, without
+    treating the value as a feature-delivery pointer."""
+    # Spec with a path-shaped (not-intent-shaped) Discovery: value.
+    write_spec(tmp_path, "ctx-spec",
+               discovery="docs/product/research/ctx-notes.md")
+    write_brief(tmp_path, "anchor")
+
+    # Snapshot: no delivery relation; contextual-provenance record for Discovery field.
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "provenance": [{"subject": "spec:ctx-spec", "field": "Discovery"}],
+    }
+
+    mod = _load_linter("fix1_ctx_prov")
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {}, snapshot_provider=lambda _: snapshot)
+
+    # The local Discovery: value must produce a candidate for _wire_up.
+    # Because "docs/product/research/ctx-notes.md" resolves as unresolvable
+    # cross-repo, the spec should NOT appear as an orphan (it has an asserted producer).
+    orphans = mod.classify_standalone(g, True)
+    orphan_ids = {nid for nid, _, _ in orphans}
+    expect("spec:ctx-spec" not in orphan_ids,
+           f"contextual-provenance spec must not be an orphan: {orphan_ids!r}")
+
+
+def test_fix2_delivery_diagnostic_spec_excluded_from_orphan(tmp_path: Path) -> None:
+    """A spec that appears in delivery diagnostic targets must not also be
+    reported as a backward orphan — one break, one class (delivery diagnostic wins)."""
+    write_brief(tmp_path, "b")
+    write_spec(tmp_path, "diag-target")  # no Discovery, no Contract → would be orphan
+
+    snapshot = {
+        **_EMPTY_SNAPSHOT,
+        "diagnostics": [{
+            "code": "delivery-projection-mismatch",
+            "subject": "intent:some-feature",
+            "targets": ["spec:diag-target"],
+        }],
+    }
+
+    mod = _load_linter("fix2_diag_orphan")
+    g = mod.Graph()
+    mod.build_standalone(tmp_path, {}, g, {}, snapshot_provider=lambda _: snapshot)
+
+    orphans = mod.classify_standalone(g, True)
+    orphan_ids = {nid for nid, _, _ in orphans}
+    expect("spec:diag-target" not in orphan_ids,
+           f"spec in delivery-diagnostic targets must not be a backward orphan: {orphan_ids!r}")
+
+
+def test_fix3_bin_dir_absent_is_hard_violation(tmp_path: Path) -> None:
+    """_run_resolver must raise delivery-resolver-unavailable when the resolver
+    path is absent — the same as any other failure.  The 'no anchor' early exit
+    still wins at the build_standalone / check() level; _run_resolver itself
+    always fails closed.
+
+    After T9 the seam (_resolver_path kwarg) points _run_resolver at a
+    nonexistent path so this branch can be exercised without touching the
+    sibling copy.
+    """
+    mod = _load_linter("fix3_no_bindir")
+    nonexistent = tmp_path / "no_such_resolver.py"
+    with pytest.raises(ValueError, match="delivery-resolver-unavailable") as raised:
+        mod._run_resolver(tmp_path, _resolver_path=nonexistent)
+    # AC-0018: the message carries repository-relative context only.
+    assert str(tmp_path) not in str(raised.value)

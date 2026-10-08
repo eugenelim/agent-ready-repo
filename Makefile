@@ -609,6 +609,7 @@ $(PYTHON) tools/test-pages-concurrency.py
 $(PYTHON) -m pytest tests/ -q
 $(PYTHON) -m pytest packs/core/tests/hooks/ -q
 $(PYTHON) -m pytest packs/core/tests/pack/ -q
+$(PYTHON) -m pytest packs/core/tests/integration/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/author-brief/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/author-delivery-brief/ $(2) -q

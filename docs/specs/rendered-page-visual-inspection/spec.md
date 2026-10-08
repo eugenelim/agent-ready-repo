@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Brief:** none
-- **Discovery:** [`docs/product/intents/rendered-page-visual-inspection.md`](../../product/intents/rendered-page-visual-inspection.md)
+- **Discovery:** `intent:rendered-page-visual-inspection`
 - **Contract:** none
 - **Shape:** mixed
 
