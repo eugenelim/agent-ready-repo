@@ -2373,10 +2373,10 @@ executing = [
 # this entry is non-dispatchable. `needs` is empty deliberately -- slice 1 takes
 # no blocking edge on the supersession work handed to
 # `intent-identity-and-registration`; it consumes whichever form has landed.
-ready = []
-draft = [
+ready = [
   { path = "docs/product/briefs/intent-navigation-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0002-intent-graph-navigation.md" }, summary = "See every intent and its artifact-backed outstanding work from preamble headers: navigate-intents, close-work convergence, the Related intents field, the offline view, well-formed graph pointers, and lint parity", needs = [] },
 ]
+draft = []
 # Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
 # the brief's `Status: Shipped` and `Cut-closed:` record.
 shipped = [

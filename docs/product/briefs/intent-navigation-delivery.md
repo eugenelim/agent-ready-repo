@@ -3,7 +3,8 @@
 - **Slug:** `intent-navigation-delivery`
 - **Received:** 2026-10-08
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-10-08 by eugenelim, lifecycle owner, on a delivery-brief shaping review with no blocking findings at revision `29c64f87160f2ec3`.
 - **Slices confirmed:** 2026-10-08 by eugenelim, lifecycle owner: slices 1 to 7, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0002-intent-graph-navigation.md`](../intents/FEAT-0002-intent-graph-navigation.md), re-decomposed to this brief by the owner on 2026-10-08.
 - **Parent intent:** intent:intent-graph-navigation
