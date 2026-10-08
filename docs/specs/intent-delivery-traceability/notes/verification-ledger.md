@@ -184,9 +184,11 @@ longer matches the resolver.
 
 ## 2026-10-07 — `main` released Core 2.29.0 from another change
 
-After this delivery passed review, `main` gained six commits. One of them,
-#1513 (`repository-exploration`), released Core `2.29.0`, the version owner
-decision 6 assigned here. This falsifies T13's version. The branch was rebased
+After this delivery passed review at `ff170f0ad`, `main` gained eight commits
+up to `9d39eae8b`. Two of them released Core: #1513 (`repository-exploration`)
+released `2.29.0`, the version owner decision 6 assigned here, and #1515
+(acceptance-authority shadow services) released `2.29.1`. This falsifies T13's
+version. The branch was rebased
 onto `origin/main` (`9d39eae8b`), which also moved the Makefile the plan-digest
 pins read.
 
@@ -195,6 +197,14 @@ pins read.
 8. **Release version.** Rebase onto `origin/main` and take Core `2.30.0`
    everywhere this delivery states its version, superseding decision 6's
    `2.29.0`.
+
+The version rule in `packs/AGENTS.md` bumps patch for changed content and minor
+for new primitives. The owner reads this delivery's new resolver, which ships
+as a script in two skills and changes what both consumers return, as a minor
+change, as decision 6 already did. `tools/check-core-release.py --base
+origin/main` therefore refuses with `version is 2.30.0, expected the patch
+successor 2.29.2`; that check expects patch releases and runs in no CI workflow
+or Makefile target.
 
 ## 2026-10-07 — Completion evidence handoff, superseding the earlier record
 

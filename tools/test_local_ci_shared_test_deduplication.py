@@ -1007,8 +1007,9 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # after the `packs/core/tests/pack/` line, and none removed or reordered. It is
 # a new process, so each plan gains one entry (standalone 76 -> 77, composed
 # 75 -> 76) and every later entry shifts by one.
-# (2) The superseded pins `26c57c19…` and `198ae517…` are `origin/main`'s
-# (`1b8dbe3f3`) current values, set there for the `navigate-decisions` suite.
+# (2) The superseded pins `26c57c19…` and `198ae517…` are current at
+# `origin/main` `9d39eae8b`. They were set in `1b8dbe3f3` for the
+# `navigate-decisions` suite, and the Makefile has not changed since.
 APPROVED_STANDALONE_PLAN_DIGEST = (
     "b666effcb2861baf09dff99c477b7d31539d5ec793d86f6e8ae3d0f069193967"
 )
