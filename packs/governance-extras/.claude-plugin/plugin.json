@@ -1,5 +1,5 @@
 {
   "name": "governance-extras",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Write the RFC, record the ADR, and navigate the full ADR and RFC decision corpus. Templates come with it, so nobody argues about format."
 }

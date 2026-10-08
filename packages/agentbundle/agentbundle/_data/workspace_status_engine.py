@@ -442,6 +442,10 @@ class Initiative:
     work: InitiativeWork
     shaping: InitiativeShaping
     brief_queue: BriefQueue | None
+    # An open shaping or brief entry that no canonical parse accepted. Ordinary
+    # reconciliation drops it from the typed lists above, so closeout reads this
+    # flag to keep an unsupported entry from passing as an empty initiative.
+    has_unsupported_open_entry: bool = False
 
 
 @dataclasses.dataclass
@@ -2546,13 +2550,12 @@ def _parse_membership_entry(
     status: str,
 ) -> tuple[
     WorkspaceMembership | None,
-    LegacyWorkspaceMembership | None,
     list[RoutingFinding],
     str | None,
 ]:
     parsed, findings = parse_workspace_entry(raw)
     if parsed is not None:
-        return WorkspaceMembership(parsed, ini_slug, collection, status), None, [], None
+        return WorkspaceMembership(parsed, ini_slug, collection, status), [], None
     raw_path = raw.get("path") if isinstance(raw, dict) else None
     if _is_repository_relative_path(raw_path):
         findings = [
@@ -2560,23 +2563,19 @@ def _parse_membership_entry(
             if not finding.path else finding
             for finding in findings
         ]
-    legacy = parse_legacy_workspace_entry(collection, raw)
-    if legacy.finding.code == "legacy_entry":
-        return None, LegacyWorkspaceMembership(legacy, ini_slug, collection, status), [
-            legacy.finding
-        ], None
+    legacy = _legacy_path_finding(collection, raw)
     if legacy.finding.code == "invalid_artifact_path" and not _is_target_like_entry(raw):
-        return None, None, [legacy.finding], None
+        return None, [legacy.finding], None
     if legacy.finding.code == "unsupported_legacy" and not _is_target_like_entry(raw):
-        return None, None, [legacy.finding], None
+        return None, [legacy.finding], None
     if findings:
         blocks_dependencies = any(
             finding.code in {"invalid_entry", "invalid_artifact_path"}
             for finding in findings
         )
         blocked_path = _target_like_blocked_path(raw) if blocks_dependencies else None
-        return None, None, findings, blocked_path
-    return None, None, [legacy.finding], None
+        return None, findings, blocked_path
+    return None, [legacy.finding], None
 
 
 def _extract_canonical_memberships(
@@ -2588,7 +2587,6 @@ def _extract_canonical_memberships(
     list[ParseBlockedWorkspaceMembership],
 ]:
     memberships: list[WorkspaceMembership] = []
-    legacy_memberships: list[LegacyWorkspaceMembership] = []
     findings: list[RoutingFinding] = []
     parse_blocked_memberships: list[ParseBlockedWorkspaceMembership] = []
     for section_name, top_level_names in _TOP_LEVEL_ENTRY_COLLECTIONS.items():
@@ -2605,17 +2603,12 @@ def _extract_canonical_memberships(
             for entry_index, raw_entry in enumerate(entries):
                 (
                     membership,
-                    legacy_membership,
                     entry_findings,
                     blocked_path,
                 ) = _parse_membership_entry(raw_entry, collection, "", "")
                 if membership is not None:
                     memberships.append(
                         dataclasses.replace(membership, entry_index=entry_index)
-                    )
-                if legacy_membership is not None:
-                    legacy_memberships.append(
-                        dataclasses.replace(legacy_membership, entry_index=entry_index)
                     )
                 if blocked_path is not None:
                     parse_blocked_memberships.append(
@@ -2665,17 +2658,12 @@ def _extract_canonical_memberships(
                 for entry_index, raw_entry in enumerate(entries):
                     (
                         membership,
-                        legacy_membership,
                         entry_findings,
                         blocked_path,
                     ) = _parse_membership_entry(raw_entry, collection, ini_slug, status)
                     if membership is not None:
                         memberships.append(
                             dataclasses.replace(membership, entry_index=entry_index)
-                        )
-                    if legacy_membership is not None:
-                        legacy_memberships.append(
-                            dataclasses.replace(legacy_membership, entry_index=entry_index)
                         )
                     if blocked_path is not None:
                         parse_blocked_memberships.append(
@@ -2687,7 +2675,73 @@ def _extract_canonical_memberships(
                             )
                         )
                     findings.extend(entry_findings)
-    return memberships, legacy_memberships, findings, parse_blocked_memberships
+    return memberships, [], findings, parse_blocked_memberships
+
+
+def extract_legacy_migration_memberships(workspace: dict) -> list[LegacyWorkspaceMembership]:
+    """Return accepted legacy memberships for explicit migration operations only."""
+
+    memberships: list[LegacyWorkspaceMembership] = []
+    for section_name, top_level_names in _TOP_LEVEL_ENTRY_COLLECTIONS.items():
+        section = workspace.get(section_name, {})
+        if not isinstance(section, dict):
+            continue
+        for list_name in top_level_names:
+            entries = section.get(list_name, [])
+            if not isinstance(entries, list):
+                continue
+            collection = _collection_label(section_name, list_name)
+            for entry_index, raw_entry in enumerate(entries):
+                legacy = parse_legacy_workspace_entry(collection, raw_entry)
+                if legacy.finding.code == "legacy_entry":
+                    memberships.append(
+                        LegacyWorkspaceMembership(
+                            legacy,
+                            "",
+                            collection,
+                            "",
+                            entry_index=entry_index,
+                        )
+                    )
+    for raw_ini_slug, section in workspace.items():
+        if not isinstance(raw_ini_slug, str) or not _CANONICAL_INITIATIVE_RE.fullmatch(
+            raw_ini_slug
+        ):
+            continue
+        if not isinstance(section, dict):
+            continue
+        status = section.get("status", "")
+        status = status if isinstance(status, str) else ""
+        for section_name, initiative_names in _INITIATIVE_ENTRY_COLLECTIONS.items():
+            subsection = section.get(section_name, {})
+            if not isinstance(subsection, dict):
+                continue
+            for list_name in initiative_names:
+                entries = subsection.get(list_name, [])
+                if entries is None:
+                    entries = []
+                if (
+                    section_name == "brief_queue"
+                    and list_name == "executing"
+                    and isinstance(entries, str)
+                ):
+                    entries = [] if entries == "" else [entries]
+                if not isinstance(entries, list):
+                    continue
+                collection = _collection_label(section_name, list_name)
+                for entry_index, raw_entry in enumerate(entries):
+                    legacy = parse_legacy_workspace_entry(collection, raw_entry)
+                    if legacy.finding.code == "legacy_entry":
+                        memberships.append(
+                            LegacyWorkspaceMembership(
+                                legacy,
+                                raw_ini_slug,
+                                collection,
+                                status,
+                                entry_index=entry_index,
+                            )
+                        )
+    return memberships
 
 
 def _membership_status(membership: WorkspaceMembership) -> str | None:
@@ -2993,12 +3047,9 @@ def resolve_selected_memberships(
     workspace: dict, selected_artifact_paths: list[str]
 ) -> dict[str, list[dict]]:
     """Resolve selected occurrences from already-parsed workspace state."""
-    (
-        memberships,
-        legacy_memberships,
-        findings,
-        parse_blocked_memberships,
-    ) = _extract_canonical_memberships(workspace)
+    memberships, _legacy_memberships, findings, parse_blocked_memberships = (
+        _extract_canonical_memberships(workspace)
+    )
     if any(finding.code == "invalid_workspace" for finding in findings):
         raise ValueError("invalid workspace")
 
@@ -3020,22 +3071,6 @@ def resolve_selected_memberships(
                 "collection": membership.collection,
                 "entry_index": membership.entry_index,
                 "form": "canonical",
-            }
-        )
-    for legacy_membership in legacy_memberships:
-        path = _legacy_canonical_alias(legacy_membership.entry)
-        if (
-            legacy_membership.collection not in _SELECTED_SPEC_COLLECTIONS
-            or path not in occurrences_by_path
-        ):
-            continue
-        occurrences_by_path[path].append(
-            {
-                "canonical_artifact_path": path,
-                "initiative": legacy_membership.ini_slug or None,
-                "collection": legacy_membership.collection,
-                "entry_index": legacy_membership.entry_index,
-                "form": "legacy",
             }
         )
     for blocked_membership in parse_blocked_memberships:
@@ -3086,8 +3121,6 @@ def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, ob
     except OSError:
         return {"error": {"code": "invalid_workspace"}}
     try:
-        # The pure seam calls _extract_canonical_memberships(...) and
-        # _legacy_canonical_alias(...) for selected identity resolution.
         occurrences_by_path = resolve_selected_memberships(
             workspace, selected_artifact_paths
         )
@@ -3105,26 +3138,6 @@ def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, ob
             for selector, artifact_path in zip(selectors, selected_artifact_paths, strict=True)
         ]
     }
-
-
-def _legacy_membership_is_cooled(
-    membership: LegacyWorkspaceMembership,
-    root: Path | None,
-    cooled: frozenset[Path],
-) -> bool:
-    """True when a legacy membership's canonical artifact is cooled.
-
-    A legacy entry stores `spec/alpha`, so the canonical alias has to be
-    recovered before the membership key applies. Resolving the stored form
-    directly yields `<root>/spec/alpha`, which cannot equal any cooled path
-    whatever the lifecycle record says, so the check silently never fires.
-    """
-    if root is None or not cooled:
-        return False
-    alias = _legacy_canonical_alias(membership.entry)
-    if alias is None:
-        return False
-    return _confined_artifact_path(root, alias) in cooled
 
 
 def _membership_is_cooled(
@@ -3148,7 +3161,6 @@ def _brief_child_spec_states(
     workspace: dict,
     root: Path | None,
     cooled: frozenset[Path],
-    legacy_memberships: list[LegacyWorkspaceMembership],
 ) -> tuple[dict[str, set[str]], frozenset[str], frozenset[str]]:
     """Map each brief to its children's observed states; flag unevaluable scope.
 
@@ -3196,21 +3208,10 @@ def _brief_child_spec_states(
     # with no repair available — declaring a resolving path was already done,
     # and declaring empty would be false.
     #
-    # Legacy memberships are included because a bare-string brief queue entry
-    # carries `kind = "brief"` and a real path, and a child declaring it has
-    # declared the truth. Reading them here decides attribution only; it
-    # dispatches nothing, which is the line the routing contract draws.
-    # Two comprehensions rather than one over an unpacked pair: the canonical
-    # and legacy membership types differ, so unpacking them together widens the
-    # element type to `object` and the attribute access stops type-checking.
     brief_membership_paths = {
         membership.entry.path
         for membership in memberships
         if membership.entry.kind == "brief" and membership.entry.path is not None
-    } | {
-        legacy.entry.path
-        for legacy in legacy_memberships
-        if legacy.entry.kind == "brief" and legacy.entry.path is not None
     }
     for membership in memberships:
         entry = membership.entry
@@ -3656,7 +3657,7 @@ def cooled_work_entry_paths(
     initiative parse builds `queue` and `active` by list comprehension over those
     same arrays. So index `i` names the same element on both sides.
     """
-    memberships, legacy_memberships, _findings, _blocked = (
+    memberships, _legacy_memberships, _findings, _blocked = (
         _extract_canonical_memberships(workspace)
     )
     by_initiative: dict[str, set[tuple[str, int]]] = {}
@@ -3666,13 +3667,6 @@ def cooled_work_entry_paths(
         if _membership_is_cooled(membership, root, cooled):
             by_initiative.setdefault(membership.ini_slug, set()).add(
                 (membership.collection, membership.entry_index)
-            )
-    for legacy in legacy_memberships:
-        if not legacy.collection.startswith("work."):
-            continue
-        if _legacy_membership_is_cooled(legacy, root, cooled):
-            by_initiative.setdefault(legacy.ini_slug, set()).add(
-                (legacy.collection, legacy.entry_index)
             )
     return by_initiative
 
@@ -3694,13 +3688,12 @@ def run_canonical_reconciliation(
         path = blocked.canonical_artifact_path
         parse_blocked_path_counts[path] = parse_blocked_path_counts.get(path, 0) + 1
     # Cooling is applied at evaluation and emission, never here. Every fact
-    # derived below — by_path, duplicate_paths, cycle_paths, legacy_alias_counts
-    # and the structural loop — must see a cooled artifact as *cooled*, not as
-    # *absent*, or a lifecycle record silently erases unrelated conclusions
-    # about it. What the cooled set governs is the artifact *body*: for a cooled
-    # membership the structural loop and _brief_child_spec_states skip the
-    # predicates that would have to open it, keeping the ones derived from the
-    # workspace entry alone.
+    # derived below — by_path, duplicate_paths, cycle_paths, and the structural
+    # loop — must see a cooled artifact as *cooled*, not as *absent*, or a
+    # lifecycle record silently erases unrelated conclusions about it. What the
+    # cooled set governs is the artifact *body*: for a cooled membership the
+    # structural loop and _brief_child_spec_states skip the predicates that would
+    # have to open it, keeping the ones derived from the workspace entry alone.
     parse_blocked_paths = set(parse_blocked_path_counts)
     local_memberships = [
         membership for membership in memberships if membership.entry.path is not None
@@ -3709,44 +3702,24 @@ def run_canonical_reconciliation(
     for membership in local_memberships:
         assert membership.entry.path is not None
         by_path.setdefault(membership.entry.path, []).append(membership)
-    legacy_alias_counts: dict[str, int] = {}
-    for legacy_membership in legacy_memberships:
-        alias = _legacy_canonical_alias(legacy_membership.entry)
-        if alias is not None:
-            legacy_alias_counts[alias] = legacy_alias_counts.get(alias, 0) + 1
     duplicate_paths = {
         path
         for path, items in by_path.items()
-        if len(items) + legacy_alias_counts.get(path, 0) > 1
-    }
-    mixed_parse_legacy_duplicate_paths = {
-        path
-        for path in parse_blocked_paths
-        if path not in by_path and legacy_alias_counts.get(path, 0) > 0
+        if len(items) > 1
     }
     parse_only_duplicate_paths = {
         path
         for path, count in parse_blocked_path_counts.items()
         if count > 1 and path not in by_path
     }
-    legacy_only_duplicate_paths = {
-        path
-        for path, count in legacy_alias_counts.items()
-        if count > 1 and path not in by_path
-    }
-    legacy_only_duplicate_findings = [
+    parse_only_duplicate_findings = [
         _finding("duplicate_membership", path, "duplicate lifecycle entry")
-        for path in sorted(
-            legacy_only_duplicate_paths
-            | mixed_parse_legacy_duplicate_paths
-            | parse_only_duplicate_paths
-        )
+        for path in sorted(parse_only_duplicate_paths)
     ]
     cycle_paths = _dependency_cycles(local_memberships)
     brief_child_states, briefs_with_cooled_children, cooled_scope_unknown = (
         _brief_child_spec_states(
             local_memberships, workspace, root, cooled,
-            legacy_memberships=legacy_memberships,
         )
     )
     # Emitted here rather than in `_structural_findings`, whose findings add
@@ -3762,8 +3735,6 @@ def run_canonical_reconciliation(
     )
     duplicate_paths.update(path for path in parse_blocked_paths if path in by_path)
     structurally_blocked_paths: set[str] = {
-        *legacy_only_duplicate_paths,
-        *mixed_parse_legacy_duplicate_paths,
         *parse_only_duplicate_paths,
         *parse_blocked_paths,
     }
@@ -3827,7 +3798,7 @@ def run_canonical_reconciliation(
     }
     findings = [
         *parse_findings,
-        *legacy_only_duplicate_findings,
+        *parse_only_duplicate_findings,
         *cooled_membership_findings,
         *cooled_scope_findings,
         *(finding for evaluation in evaluations for finding in evaluation.findings),
@@ -3835,18 +3806,32 @@ def run_canonical_reconciliation(
     return CanonicalWorkspaceResult(
         cooled=cooled,
         memberships=memberships,
-        # Emission, not derivation: `legacy_alias_counts` above still counts a
-        # cooled legacy entry, so cooling one half of a duplicate pair does not
-        # erase the duplicate finding for the half that stays visible.
-        legacy_memberships=[
-            membership
-            for membership in legacy_memberships
-            if not _legacy_membership_is_cooled(membership, root, cooled)
-        ],
+        legacy_memberships=[],
         findings=findings,
         evaluations=evaluations,
         dispatch_by_path=dispatch_by_path,
     )
+
+
+def _has_unsupported_open_entry(shaping_raw: object, brief_raw: object) -> bool:
+    """True when an open shaping or brief collection holds a non-canonical entry."""
+
+    def raw_entries(section: object, name: str) -> list[object]:
+        if not isinstance(section, dict):
+            return []
+        entries = section.get(name, [])
+        if isinstance(entries, list):
+            return entries
+        return [] if entries in ("", None) else [entries]
+
+    open_entries = [
+        *raw_entries(shaping_raw, "active"),
+        *raw_entries(shaping_raw, "backlog"),
+        *raw_entries(brief_raw, "executing"),
+        *raw_entries(brief_raw, "ready"),
+        *raw_entries(brief_raw, "draft"),
+    ]
+    return any(parse_workspace_entry(raw)[0] is None for raw in open_entries)
 
 
 def _supported_brief_queue_path(raw: object) -> str | None:
@@ -3963,6 +3948,9 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
             work=work,
             shaping=shaping,
             brief_queue=brief_queue,
+            has_unsupported_open_entry=_has_unsupported_open_entry(
+                shaping_raw, brief_raw
+            ),
         ))
     return initiatives
 
@@ -5084,6 +5072,14 @@ def _repair_entry_eligibility(
         }
         if blocking_codes - {"impossible_transition", "unapproved_spec"}:
             return False, "type2-queue-canonical-blocked"
+        # Canonical reconciliation no longer counts legacy aliases, so the repair
+        # seam does: moving an entry that a historical alias also lists would
+        # leave the spec in two lifecycle collections.
+        if any(
+            _legacy_canonical_alias(membership.entry) == spec_path
+            for membership in extract_legacy_migration_memberships(workspace)
+        ):
+            return False, "type2-queue-canonical-blocked"
         return True, None
     return False, "type2-queue-canonical-blocked"
 
@@ -5781,9 +5777,10 @@ def compute_migration_plan(
             )
         )
     canonical = run_canonical_reconciliation(workspace, root)
+    migration_memberships = extract_legacy_migration_memberships(workspace)
     matches = [
         membership
-        for membership in canonical.legacy_memberships
+        for membership in migration_memberships
         if membership.ini_slug == selection.source_membership["ini_slug"]
         and membership.collection == selection.source_membership["collection"]
         and membership.entry_index == selection.source_membership["entry_index"]

@@ -64,6 +64,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [agentbundle][0.52.0] — 2026-10-08
+
+### Highlights
+
+- The workspace-status MCP tool now surfaces a former legacy entry (a bare `spec/<slug>` string or other RFC-0083 legacy shape) as an `unsupported_legacy` finding rather than a `legacy_entry` membership. The entry is absent from `ready` and `blocked`; ordinary reconciliation no longer accepts legacy shapes as lifecycle members.
+
+### Changed
+
+- Packaged runtime `workspace_status_engine.py` and `workspace_status_prune.py` synchronized to Core 3.0.0: ordinary canonical reconciliation rejects former accepted-legacy shapes as `unsupported_legacy` findings, and prune retains its legacy decoding as a repair-only operation.
+
+## [core][3.0.0] — 2026-10-08
+
+### Highlights
+
+- The `capture-work` skill and its accepted-legacy compatibility reader are removed. Use `work-intake` as the only supported intake name. A former `spec/<slug>` or other legacy workspace entry surfaces as an `unsupported_legacy` finding and cannot dispatch; rewrite it in canonical form by hand using `work-intake`. The retained migration tooling (`workspace-status repair-plan --migration-selection` and `repair-apply`) only recovers or rolls back an operation already recorded in the migration ledger.
+
+### Removed
+
+- `capture-work` skill, its activation evals, its pack registration, and the alias-only router branch in `work-intake`. There is no replacement alias; send all intake requests to `work-intake`.
+- Ordinary accepted-legacy reader from canonical reconciliation. Former legacy shapes produce `unsupported_legacy` findings and are not considered lifecycle memberships. Explicit migration, prune, and Type 2 repair retain their legacy decoding as non-dispatching repair operations.
+
+## [product-engineering][0.13.23] — 2026-10-08
+
+### Highlights
+
+- Skills and examples in the product-engineering pack that previously directed users to `capture-work` now direct them to `work-intake`, matching the Core 3.0.0 surface.
+
+### Changed
+
+- `map-capabilities`, `place-bet`, and `diverge-solutions` skill guidance and examples reference `work-intake` instead of `capture-work`.
+
+## [release-engineering][0.1.11] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [monorepo-extras][0.1.10] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [iac-terraform][0.1.12] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [governance-extras][1.0.1] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [code-intelligence][0.1.6] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
 ## [core][2.30.1] — 2026-10-08
 
 ### Highlights

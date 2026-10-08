@@ -134,17 +134,16 @@ def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
         )
 
 
-def test_pack_version_is_0_1_5() -> None:
-    """pack.toml and plugin.json both carry version 0.1.5.
+def test_pack_version_is_0_1_6() -> None:
+    """pack.toml and plugin.json both carry version 0.1.6.
 
-    Patch bump from 0.1.4: updates the Wicked Estate surface from 0.18 to 0.21
-    without adding a new primitive.
+    Patch bump from 0.1.5: the core dependency range moved from ^2.0 to ^3.0.
     """
     pack_version = load_pack()["version"]
     plugin_version = load_plugin()["version"]
-    assert pack_version == "0.1.5", (
-        f"pack version is {pack_version!r}, expected '0.1.5'"
+    assert pack_version == "0.1.6", (
+        f"pack version is {pack_version!r}, expected '0.1.6'"
     )
-    assert plugin_version == "0.1.5", (
-        f"plugin version is {plugin_version!r}, expected '0.1.5'"
+    assert plugin_version == "0.1.6", (
+        f"plugin version is {plugin_version!r}, expected '0.1.6'"
     )

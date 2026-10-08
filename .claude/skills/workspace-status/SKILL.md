@@ -178,9 +178,9 @@ reconciliation.type3             — prematurely-shipped entries
 reconciliation.type2_cleanup_ops — non-authoritative Type 2 repair descriptors
 canonical.ready                  — canonical dispatchable work.queue specs only
 canonical.active                 — canonical valid work.active specs; resumable, not queue-ready
-canonical.blocked                — canonical non-dispatchable entries and retained legacy memberships
+canonical.blocked                — canonical non-dispatchable entries
 canonical.findings               — stable finding code/path/dispatchable/next_action records (no raw artifact text)
-canonical.legacy_memberships     — retained legacy context; always non-dispatchable
+canonical.legacy_memberships     — always empty; former legacy entries surface as unsupported_legacy findings
 canonical.evaluations            — full per-entry evaluation list. Omitted by `status`,
                                    which is the orientation mode: every dispatch decision
                                    it carries is already in ready/active/blocked/findings,
@@ -214,8 +214,7 @@ identifier to the repository root without checking it is a path first.
 | --- | --- | --- |
 | `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
 | `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
-| `legacy_entry` | Supported compatibility form; visible but never dispatchable. | Materialize and register a canonical target entry. |
-| `unsupported_legacy` | Legacy-like form outside accepted compatibility fixtures. | Route the item manually; do not infer a target entry. |
+| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. | Rewrite the entry in canonical form by hand; do not infer a target entry. |
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
@@ -250,8 +249,8 @@ supported or dispatchable.
 
 If `canonical.findings` contains any record for the explained path, surface the
 canonical `code`, `path`, and `next_action` first and do not describe the item
-as startable. Retained `canonical.legacy_memberships` are blocked compatibility
-records; show their finding and migration action, never a start prompt.
+as startable. An `unsupported_legacy` finding is never startable; direct the
+user to rewrite the entry in canonical form by hand.
 
 - `selector_status: "matched"` → surface the `explained_item` object: path, slug, ini_slug, list, classification, blocking_needs, dependencies, downstream_unblocked
 - `selector_status: "not_found"` → report the selector was not found in any active initiative's work queue (shaping items and items in paused/closed initiatives also return `not_found`)
@@ -360,8 +359,8 @@ anyway shows the reader a blank where a name should be.
 Autonomous dispatch consumers must use `canonical.ready` as the ready set. A
 valid `work.active` item appears in `canonical.active` as resumable context,
 not queue-ready. Invalid entries
-and retained legacy memberships remain visible under `canonical.blocked` and
-`canonical.findings`, but never dispatch.
+and `unsupported_legacy` entries remain visible under `canonical.findings`,
+but never dispatch.
 
 | Need | `autonomous_dispatch=False` (default) | `autonomous_dispatch=True` |
 |------|---------------------------------------|---------------------------|

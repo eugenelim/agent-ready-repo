@@ -84,16 +84,6 @@
       ]
     },
     {
-      "id": 9,
-      "prompt": "Use capture-work to remember this equivalent normalized request.",
-      "expected_output": "The agent emits the compatibility notice, forwards to work-intake, and produces the same artifact and workspace entry as work-intake remember.",
-      "assertions": [
-        "Emits deprecation notice",
-        "Forwards to work-intake",
-        "Does not use legacy storage"
-      ]
-    },
-    {
       "id": 10,
       "prompt": "Mark this existing brief Ready even though no slices are confirmed yet.",
       "expected_output": "The agent allows Ready brief lifecycle membership with zero materialized specs and stops until a slice is confirmed.",
@@ -158,10 +148,11 @@
     {
       "id": 16,
       "prompt": "Plan migration of this reviewed legacy workspace entry.",
-      "expected_output": "The agent recognizes migration as a workspace-status repair surface, does not route it as ordinary intake, and performs no migration effect.",
+      "expected_output": "The agent does not route the request as ordinary intake, explains that a former legacy entry is rewritten in canonical form by hand, limits workspace-status migration tooling to recovering or rolling back an operation already in the migration ledger, and performs no migration effect.",
       "assertions": [
         "Separates migration from ordinary work intake",
-        "Delegates to the read-only workspace-status planner",
+        "Tells the user to rewrite the former legacy entry in canonical form by hand",
+        "Routes to workspace-status only for recovering or rolling back an operation already recorded in the migration ledger",
         "Does not apply or roll back a migration"
       ]
     },
@@ -408,7 +399,7 @@
     {
       "id": "corpus-lint-refuses-cancelled-without-accepted-record",
       "prompt": "This intent has Status: Cancelled but no Accepted: record. The corpus lint refused it. What does the author owe and why?",
-      "expected_output": "A Cancelled intent requires an Accepted: record, because it was ratified before the decision to cancel was taken. Without the record the corpus lint reports the Accepted field with a message like 'status `Cancelled` requires an `Accepted:` record'. The author must add `- **Accepted:** YYYY-MM-DD <who ratified it>` to show the bet reached Accepted before it was cancelled. A Fulfilled: record must not be added \u2014 Cancelled did not deliver.",
+      "expected_output": "A Cancelled intent requires an Accepted: record, because it was ratified before the decision to cancel was taken. Without the record the corpus lint reports the Accepted field with a message like 'status `Cancelled` requires an `Accepted:` record'. The author must add `- **Accepted:** YYYY-MM-DD <who ratified it>` to show the bet reached Accepted before it was cancelled. A Fulfilled: record must not be added — Cancelled did not deliver.",
       "assertions": [
         "Requires Accepted: but explicitly forbids Fulfilled:",
         "Names the Accepted field as the one the corpus lint reports",
@@ -474,7 +465,7 @@
     {
       "id": "tombstone-carries-three-fields-and-a-caller-supplied-date",
       "prompt": "Write the tombstone for an intent being reissued under a new number.",
-      "expected_output": "The agent writes exactly three preamble fields \u2014 the retired artifact's slug unchanged, the retirement date the caller supplied as one ISO 8601 calendar date, and the successor path \u2014 and refuses a successor path that is absolute or resolves outside docs/product/intents/. It never reads a clock, so an operation spanning midnight writes the date it started with.",
+      "expected_output": "The agent writes exactly three preamble fields — the retired artifact's slug unchanged, the retirement date the caller supplied as one ISO 8601 calendar date, and the successor path — and refuses a successor path that is absolute or resolves outside docs/product/intents/. It never reads a clock, so an operation spanning midnight writes the date it started with.",
       "assertions": [
         "Carries exactly three fields and refuses a fourth",
         "Uses the caller-supplied date rather than sampling one from a clock",

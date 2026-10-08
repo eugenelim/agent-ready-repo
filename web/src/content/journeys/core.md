@@ -69,9 +69,6 @@ skills:
   - name: receive-brief
     description: "Deprecated compatibility alias for author-delivery-brief continue."
     humanTouches: 0
-  - name: capture-work
-    description: "Compatibility alias that forwards equivalent requests to work-intake; new guidance uses work-intake directly."
-    humanTouches: 0
   - name: workspace-status
     description: "Reads workspace.toml, surfaces canonical and legacy findings, and provides the explicit plan/apply/rollback repair surface for reviewed migrations."
     humanTouches: 0
@@ -187,15 +184,15 @@ gate remains in place. Without the optional handoff, this stage is unchanged.
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
 - **State:** draft
 
-#### Optional compatibility path — migrate one legacy entry
+#### Optional recovery path — recover or roll back a recorded migration
 
-When status reports `legacy_entry`, review its exact source slice and candidate
-routes. A person authors the closed selection; `repair-plan` remains read-only.
-Apply or rollback only with the repository migration policy and one fresh,
-single-use confirmation bound to the exact operation.
+Use only when `.workspace-migrations.json` already records an operation from a
+previous run. Rewrite a former `unsupported_legacy` entry in canonical form by
+hand; the migration tooling is only for recovering an interrupted apply or
+rolling back a completed apply.
 
-- **You decide:** the target artifact, lifecycle membership, provenance, and
-  whether to apply or roll back.
+- **You decide:** whether to recover the pending apply or roll back the applied
+  operation.
 - **Output:** a canonical workspace entry or the restored exact legacy slice,
   plus the durable `.workspace-migrations.json` recovery record.
 - **State:** confirmed-write

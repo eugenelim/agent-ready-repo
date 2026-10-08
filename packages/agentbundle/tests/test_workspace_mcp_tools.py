@@ -197,17 +197,20 @@ backlog = []
     assert result["ready"][0]["dispatchable"] is True
     assert all(item["slug"] != "active-alpha" for item in result["ready"])
     assert [item["slug"] for item in result["active"]] == ["active-alpha"]
+    # Former legacy entry is absent from blocked; ordinary reconciliation now
+    # returns unsupported_legacy rather than a legacy membership.
     assert {item["path"] for item in result["blocked"]} == {
         "docs/specs/blocked-alpha/spec.md",
-        "spec/legacy-alpha",
     }
     assert {
         (finding["code"], finding["path"])
         for finding in result["canonical"]["findings"]
     } >= {
-        ("legacy_entry", "spec/legacy-alpha"),
+        ("unsupported_legacy", "spec/legacy-alpha"),
         ("unapproved_spec", "docs/specs/blocked-alpha/spec.md"),
     }
+    # legacy_memberships key is present and empty (AC-0003)
+    assert result["canonical"]["legacy_memberships"] == []
     assert str(root) not in repr(result)
 
 

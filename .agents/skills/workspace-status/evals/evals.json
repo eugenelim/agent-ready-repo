@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "workspace status",
-      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start \u2014 spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog \u2014 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently \u2014 all classification and backlog data comes from the backend JSON.",
+      "expected_output": "The agent invokes the workspace-status backend (python3 <skill-dir>/scripts/workspace_status.py status --root <root>) and surfaces the initiative queue and repository backlog from the JSON output. For this fixture: one active initiative ('Example Initiative') with one queued item that is ready to start — spec/example-feature has no blocking dependencies, so the backend classifies it as ready even though no spec.md exists (missing spec files affect reconciliation, not readiness). It also renders 'Backlog — 2 open item(s)' followed, in source order, by the untyped example-build entry labeled [build] and the typed example-shape entry labeled [shape]. The agent does NOT re-derive readiness, reconciliation, or backlog membership independently — all classification and backlog data comes from the backend JSON.",
       "assertions": [
         "Invokes the backend script rather than independently parsing workspace.toml or recomputing the DAG",
         "Reports the active initiative name from the JSON output ('Example Initiative')",
@@ -72,7 +72,7 @@
         "produces": [],
         "output_contains": [],
         "output_excludes": [
-          "Backlog \u2014",
+          "Backlog —",
           "Traceback",
           "workspace-status error:"
         ]
@@ -249,13 +249,13 @@
     {
       "id": 10,
       "prompt": "This initiative's queue has a cooled entry. Can I close it out?",
-      "expected_output": "The agent uses the workspace-status closeout projection. `work.queue` holds two distinct entries stored at the same raw path `spec/example-cooled`: a legacy string whose artifact the lifecycle record cools, and a separate live `kind = \"defect\"` entry. Cooling the first must not remove the second, so the agent reports all_specs_shipped false, an unshipped-specs closeout blocker, and settle-closeout-blockers -- never invoke-close-work. It does not describe the queue as empty, and it makes no write or lifecycle decision.",
+      "expected_output": "The agent uses the workspace-status closeout projection. `work.queue` holds two distinct entries stored at the same raw path `spec/example-cooled`: a legacy string that ordinary reconciliation now surfaces as `unsupported_legacy` (never dispatched), and a separate live `kind = \"defect\"` entry. The legacy string is not accepted as a canonical membership, so it is never added to the cooled set; the live defect entry remains as residue. The agent reports all_specs_shipped false, an unshipped-specs closeout blocker, and settle-closeout-blockers -- never invoke-close-work. It does not describe the queue as empty, and it makes no write or lifecycle decision.",
       "assertions": [
         "Uses the backend closeout projection rather than deriving queue emptiness itself",
         "Reports all_specs_shipped as false because a live entry survives the cooled set",
         "Reports unshipped-specs as the closeout blocker",
         "Directs the user to settle closeout blockers rather than invoke close-work",
-        "Does not describe the queue as empty despite the cooled legacy entry",
+        "Does not describe the queue as empty despite the unsupported_legacy entry",
         "Performs no write, compaction, deletion, or lifecycle transition"
       ],
       "files": [
@@ -316,10 +316,10 @@
     {
       "id": 12,
       "prompt": "Check workspace membership for docs/specs/example-feature and docs/specs/example-absent",
-      "expected_output": "The agent invokes the workspace-status selected-membership subcommand with the explicit non-empty selection (python3 <skill-dir>/scripts/workspace_status.py selected-membership --root <root> --spec-dir docs/specs/example-feature --spec-dir docs/specs/example-absent). It preserves selection order and reports docs/specs/example-feature as present through its legacy workspace occurrence and docs/specs/example-absent as absent with no occurrences. It treats both outcomes as read-only facts, exits successfully, and does not modify workspace.toml or turn absence into permission to delete anything.",
+      "expected_output": "The agent invokes the workspace-status selected-membership subcommand with the explicit non-empty selection (python3 <skill-dir>/scripts/workspace_status.py selected-membership --root <root> --spec-dir docs/specs/example-feature --spec-dir docs/specs/example-absent). It preserves selection order and reports docs/specs/example-feature as absent with zero occurrences (the workspace entry is a legacy string that ordinary reconciliation now surfaces as unsupported_legacy and does not accept as a canonical membership) and docs/specs/example-absent as absent with no occurrences. It treats both outcomes as read-only facts, exits successfully, and does not modify workspace.toml or turn absence into permission to delete anything.",
       "assertions": [
         "Invokes selected-membership with both explicit --spec-dir selections rather than scanning or inferring a selection",
-        "Reports docs/specs/example-feature as present with its matching legacy occurrence",
+        "Reports docs/specs/example-feature as absent with zero occurrences (legacy entry is unsupported_legacy)",
         "Reports docs/specs/example-absent as absent with zero occurrences",
         "Preserves the supplied selection order",
         "Performs no workspace change, deletion, or exit gating"
@@ -332,7 +332,6 @@
         "output_contains": [
           "docs/specs/example-feature",
           "docs/specs/example-absent",
-          "present",
           "absent"
         ],
         "output_excludes": [

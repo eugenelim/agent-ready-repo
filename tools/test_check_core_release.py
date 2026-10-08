@@ -239,6 +239,47 @@ def test_an_unexpected_failure_fails_closed(tmp_path):
     assert _refuses(root)
 
 
+def test_a_valid_next_major_is_accepted_in_major_mode(tmp_path):
+    """Base 1.4.7 → next major is 2.0.0; major mode accepts it."""
+    root = _repo(tmp_path, version="2.0.0", changelog=_changelog(("2.0.0", True)))
+    assert ccr.check(root, "HEAD", "major") == []
+
+
+def test_a_minor_successor_is_refused_in_major_mode(tmp_path):
+    """Base 1.4.7 → 1.5.0 is a minor successor, not a major successor."""
+    root = _repo(tmp_path, version="1.5.0", changelog=_changelog(("1.5.0", True)))
+    reasons = ccr.check(root, "HEAD", "major")
+    assert reasons and "expected" in reasons[0]
+
+
+def test_an_unchanged_version_is_refused_in_major_mode(tmp_path):
+    """Base 1.4.7 → 1.4.7 is unchanged; major mode requires 2.0.0."""
+    root = _repo(tmp_path, version="1.4.7", changelog=_changelog(("1.4.7", True)))
+    reasons = ccr.check(root, "HEAD", "major")
+    assert reasons and "expected" in reasons[0]
+
+
+def test_a_major_overshoot_is_refused_in_major_mode(tmp_path):
+    """Base 1.4.7 → 3.0.0 skips a major version; major mode requires exactly 2.0.0."""
+    root = _repo(tmp_path, version="3.0.0", changelog=_changelog(("3.0.0", True)))
+    reasons = ccr.check(root, "HEAD", "major")
+    assert reasons and "expected" in reasons[0]
+
+
+def test_a_major_mode_flag_passes_through_cli(tmp_path):
+    """``--kind major`` accepted by the CLI and routes to the major-successor check."""
+    root = _repo(tmp_path, version="2.0.0", changelog=_changelog(("2.0.0", True)))
+    _projection(root, _faithful("2.0.0"))
+    import contextlib
+    import io
+
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = ccr.main(["--base", "HEAD", "--root", str(root), "--kind", "major"])
+    assert code == 0
+    assert "consistent" in out.getvalue()
+
+
 def test_a_release_heading_inside_a_fence_is_not_a_release(tmp_path):
     """Sample changelog markup must not be read as this repository's release."""
     changelog = (
