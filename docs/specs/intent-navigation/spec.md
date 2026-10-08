@@ -1,6 +1,6 @@
 # Spec: Intent navigation — navigator core
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-08 by eugenelim, spec and plan together, after a converged spec-mode shaping review and a clean adjudicated adversarial review (six rounds; reports under `.context/reviews/c586f715-e2c3-4e84-9f20-427ddf196e44/`).
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

@@ -3,7 +3,7 @@
 - **Slug:** `intent-navigation-delivery`
 - **Received:** 2026-10-08
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Ready
+- **Status:** Executing
 - **Ready confirmed:** 2026-10-08 by the repository owner, after a clean independent delivery-brief shaping review of revision `481476b67b4971e4a8161c414f2980339bda90fb`. Review evidence: `.context/reviews/c701093f-3a4c-4acb-9c5b-ea9268ab7ea8/2-shaping-reviewer-raw.md`.
 - **Slices confirmed:** 2026-10-08 by the repository owner: slices 1 to 8, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0002-intent-graph-navigation.md`](../intents/FEAT-0002-intent-graph-navigation.md), re-decomposed to this brief by the owner on 2026-10-08.

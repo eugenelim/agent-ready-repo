@@ -1,7 +1,7 @@
 # Plan: Intent navigation — navigator core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/reference.md` (standard-library-only constraint); `packs/governance-extras/.apm/skills/navigate-decisions/` with `packs/governance-extras/tests/skills/navigate-decisions/` (query envelope, limits, and loader precedent); `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` with `packs/core/tests/pack/test_intent_delivery_relations_copies.py` (shared-copy and pin precedent); `packs/core/.apm/skills/close-work/scripts/closure_terminality.py` with `tools/check_closure_terminality_parity.py` (terminality projection and parity precedent). Deviation: the shared intent-edge derivation's source lives in this skill, not in `adapter-root-bins/`, because no adopter bin consumes it.
 
 > **Plan contract:** this is the implementation strategy. It may change
