@@ -205,16 +205,13 @@ digest. A pending receipt lands before the adapter call. Mutations are not
 silently retried, and unsupported profile actions never fall back to raw
 tracker access.
 
-## Compatibility alias
+## Former legacy entries
 
-`capture-work` is a compatibility-only alias. It emits a deprecation notice and
-forwards the same normalized request to `work-intake`; it does not keep an
-independent classifier or storage format. Use `work-intake` in new guidance.
+`capture-work` is removed in Core 3.0.0. Use `work-intake` directly.
 
-See [Start a software change](../how-to/start-or-remember-work.md)
-for the common start procedure, or
-[Use work intake](../../_shared/how-to/use-work-intake.md) for an
-existing tracker-origin artifact.
-
-Legacy workspace findings are planned and repaired through `workspace-status`,
-not ordinary intake. See [Migrate a legacy workspace entry safely](../how-to/migrate-capture-work.md).
+Former legacy workspace entries surface as `unsupported_legacy` findings and
+are never dispatchable. Rewrite each in canonical form by hand. Recovery and
+rollback of an operation already recorded in `.workspace-migrations.json`
+run through `workspace-status`, not ordinary intake.
+See [Move from capture-work to work-intake](../how-to/capture-work.md) and
+[Recover or roll back a migration operation](../how-to/migrate-capture-work.md).

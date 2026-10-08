@@ -67,7 +67,6 @@ confirmation and pending receipt.
 | `intake-intent` | Create or admit a repository intent |
 | `author-delivery-brief create\|continue` | Create a coordination brief or continue one into confirmed spec slices |
 | `new-spec` | Author a spec directly, without the brief layer; it can use shaping review before construction |
-| `capture-work` | Compatibility alias for `work-intake`; new guidance should not use it |
 | `project-knowledge` | Capture, distill, or enquire over reviewed project lessons |
 
 ---
@@ -292,6 +291,6 @@ Framework names are the procedure; the following is provenance only — who publ
 - **Go deeper:** the `core` guides in `guides/core/`.
 - **Route a request:** [start work](../../guides/core/how-to/start-or-remember-work.md).
 - **Refresh tracked work:** [review local changes and confirm write-back](../../guides/_shared/how-to/use-work-intake.md).
-- **Migrate legacy workspace entries:** [plan, apply, recover, and roll back one reviewed entry](../../guides/core/how-to/migrate-capture-work.md).
+- **Recover or roll back a migration operation:** [recover an interrupted apply or roll back an operation already in a migration ledger](../../guides/core/how-to/migrate-capture-work.md).
 - **Close or pause delivery work:** [verify durable context and preview a safe disposition](../../guides/core/how-to/close-and-disposition-work.md).
 - **Headless / harness dispatch:** [run a headless session with workspace-mcp](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

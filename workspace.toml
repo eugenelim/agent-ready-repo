@@ -12,8 +12,8 @@
 #
 # DO NOT INFER THE SHAPE FROM NEIGHBOURING ENTRIES. Most records in this file
 # are legacy compatibility forms -- bare "spec/<slug>" strings and {slug = ...}
-# tables. They are retained deliberately, they reconcile as `unsupported_legacy`
-# or `legacy_entry`, and they are never dispatchable. Copying one writes a
+# tables. They are retained deliberately, they reconcile as `unsupported_legacy`,
+# and they are never dispatchable. Copying one writes a
 # non-dispatchable record. `workspace-status` reports every such record; run it
 # after editing this file.
 #
@@ -231,6 +231,7 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
 ]
 shipped = [
   # Shipped 2026-10-07. Slice 1 of the acceptance-centered work loop: shadow
@@ -524,7 +525,6 @@ queue   = [
   # maintainer can make: the first PyPI publication. Remains Draft and requires
   # human approval before dispatch; its T2 is explicitly not agent work.
   {path = "docs/specs/jsonl-otlp-exporter-first-publish/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/jsonl-otlp-exporter/spec.md"}, summary = "Publish jsonl-otlp-exporter 0.2.0 to PyPI on a maintainer tag push, then verify the published artifact from the public index", needs = []},
-  {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
   {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after its clean-room adversarial review reached

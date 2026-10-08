@@ -1159,6 +1159,18 @@
       ]
     },
     {
+      "id": "step0-legacy-entry-is-unsupported",
+      "prompt": "You are starting work-loop with no arguments. Canonical workspace-status preflight reports one `unsupported_legacy` finding for a former legacy entry in workspace.toml and one canonical ready spec. What do you do with the legacy finding?",
+      "expected_output": "Surface the `unsupported_legacy` finding with its stable code and next action, then continue with the canonical ready spec. The legacy finding never dispatches. Direct the user to rewrite the former legacy entry in canonical form by hand; the migration tooling is only for recovering or rolling back an operation already recorded in `.workspace-migrations.json`.",
+      "assertions": [
+        "Response surfaces the `unsupported_legacy` finding and its next action",
+        "Response does NOT dispatch or start from the legacy entry",
+        "Response continues with the canonical ready spec",
+        "Response directs the user to rewrite the entry in canonical form by hand",
+        "Response does NOT describe the former entry as a retained legacy membership"
+      ]
+    },
+    {
       "id": "shared-substrate-feature-tests-do-not-prove-preservation",
       "prompt": "A shared repository graph now creates synthetic value nodes and its feature tests pass. The accepted preservation criteria also require ordinary calls to avoid synthetic targets, default search to exclude values, full and incremental builds to agree, a small edit to stay within its invalidation bound, delete and rebuild paths to remove values, and supported external construction of the public result type to compile. The evidence set contains only the feature creation tests. Can the work-loop report completion? Neither adapt-to-project nor code intelligence is installed.",
       "expected_output": "No. Passing feature creation tests does not satisfy the accepted preservation criteria. The work-loop keeps the change incomplete until current, criterion-matched evidence covers ordinary-call isolation, default-search exclusion, full/incremental semantic equivalence, bounded invalidation, production lifecycle removal, and supported external compilation. Each claim needs an oracle that can fail independently of the new feature path; a tautological comparison or the existence of the created value is not conservation evidence. Repository-native tests and gates are sufficient, and the absence of adapt-to-project or code intelligence cannot lower the accepted evidence bar.",

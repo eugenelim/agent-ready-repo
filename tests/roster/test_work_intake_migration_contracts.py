@@ -87,7 +87,6 @@ def test_ac1_inventory_is_resolvable_at_the_pinned_acceptance_ref() -> None:
         "workspace.toml",
         "packs/core/seeds/workspace.toml",
         "packs/core/.apm/skills/workspace-status/evals/files/workspace.toml",
-        "packs/core/.apm/skills/capture-work/SKILL.md",
         "packs/core/.apm/skills/author-brief/SKILL.md",
         "packs/core/.apm/skills/receive-brief/SKILL.md",
         "packs/atlassian/.apm/skills/jira-brief-intake/SKILL.md",

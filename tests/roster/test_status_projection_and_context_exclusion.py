@@ -797,19 +797,19 @@ def test_legacy_entry_is_excluded_identically(tmp_path, engine) -> None:
     )
     assert [item["path"] for item in cooled_json["canonical"]["ready"]] == ["docs/specs/beta/spec.md"]
 
-    # A legacy entry lands in `blocked` through legacy_memberships, not through
-    # evaluations, so the assertions above never observed it. The control pins
-    # that it is there to be excluded.
+    # A legacy entry is now unsupported_legacy and lands in canonical.findings,
+    # not in blocked.  Both control and cooled have the same blocked set (only
+    # canonical entries with evaluation findings appear there).
     control_blocked = [item["path"] for item in control_json["canonical"]["blocked"]]
     cooled_blocked = [item["path"] for item in cooled_json["canonical"]["blocked"]]
-    assert "spec/alpha" in control_blocked
+    assert "spec/alpha" not in control_blocked
     assert "spec/alpha" not in cooled_blocked
 
-    # The `legacy_entry` finding is deliberately retained: it is a fact about
-    # the workspace entry's shape, not about the artifact, and migrating that
-    # entry is still owed. Pinning it keeps the boundary explicit, so a later
-    # blanket filter over findings has to change this line and state why.
-    assert ("legacy_entry", "spec/alpha") in {
+    # The `unsupported_legacy` finding is deliberately retained: it is a fact
+    # about the workspace entry's shape, not about the artifact.  Pinning it
+    # keeps the boundary explicit, so a later blanket filter over findings has
+    # to change this line and state why.
+    assert ("unsupported_legacy", "spec/alpha") in {
         (f["code"], f["path"]) for f in cooled_json["canonical"]["findings"]
     }
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 134,
+  "population_size": 133,
   "entries": [
     {
       "pack": "_example",
@@ -379,15 +379,6 @@
       "skill": "bug-fix",
       "families": [
         "state-status-lifecycle",
-        "artifact-template-producer"
-      ],
-      "exception": null
-    },
-    {
-      "pack": "core",
-      "skill": "capture-work",
-      "families": [
-        "compatibility-deprecation",
         "artifact-template-producer"
       ],
       "exception": null

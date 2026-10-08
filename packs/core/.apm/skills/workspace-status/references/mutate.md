@@ -27,28 +27,25 @@ structured reason with a concise diagnostic.
 
 **`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Immediately before replacing `workspace.toml`, it revalidates every spec whose operation would be applied and aborts the whole write if any status or status-line fingerprint changed. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
 
-**Legacy migration planning** — when a retained legacy membership includes a
-`migration` finding, show its exact observed source representation, lifecycle
-membership, candidate route classes, and `next_action`. Never choose among the
-candidates. A human must author the closed selection JSON out of band and pass
-its repository-relative path with `--migration-selection`. Do not create,
-edit, prefill, or suggest substantive values for a selection or confirmation
-file. Migration planning is read-only and rejects `--plan-file`; a missing
-canonical artifact returns the selected owning processor as `next_action`
-without writing an artifact, ledger, repair plan, or workspace change.
+**Legacy migration recovery and rollback** — use `repair-plan --migration-selection`
+and `repair-apply` only when `.workspace-migrations.json` already records an
+operation from a previous run. For a `pending` (interrupted apply) or
+`rollback_pending` (interrupted rollback) operation, rerun the same command
+with a new current-session confirmation. For an `applied` operation, author a
+rollback confirmation to restore the exact legacy TOML slice.
 
-**Legacy migration effects** — pause while the human authors each confirmation
-file out of band. Never create, edit, or prefill it. The confirmation must be
-fresh, single-use, and bound to the exact action, operation ID, and digest shown
-by the reviewed plan or ledger. If the human needs opaque test-safe identifiers,
-tell them to run `python3 -c 'import secrets; print("confirmation-" +
-secrets.token_hex(16)); print("subject-" + secrets.token_hex(16))'` themselves;
-do not run it for them. Apply requires all three migration arguments and rejects
-`--plan-file` or `--yes`. Rollback requires a new confirmation and never reads,
-changes, or deletes the canonical artifact. A `pending` or `rollback_pending`
-ledger operation is recoverable only with another fresh confirmation. Surface
-the closed migration result code and `next_action`; never echo source content on
-credential, unsafe-context, authorization, or write refusals.
+To update a workspace entry that has no prior ledger operation, rewrite it in
+canonical form by hand: write the canonical target entry in the correct
+collection, remove the legacy record, and run `workspace-status` to confirm.
+
+Never create, edit, or prefill a selection or confirmation file. A human must
+author each out of band. The confirmation must be fresh, single-use, and bound
+to the exact action, operation ID, and digest shown by the reviewed plan or
+ledger. Apply requires all three migration arguments and rejects `--plan-file`
+or `--yes`. Rollback requires a new confirmation and never reads, changes, or
+deletes the canonical artifact. Surface the closed migration result code and
+`next_action`; never echo source content on credential, unsafe-context,
+authorization, or write refusals.
 
 #### 1d. Prune workflow
 

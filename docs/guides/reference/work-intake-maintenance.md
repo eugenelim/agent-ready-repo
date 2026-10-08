@@ -121,8 +121,9 @@ next action, CLI projection, tests, guide reference, and evaluation result.
 Reconciliation fails closed for malformed or duplicate entries, missing
 artifacts/plans, invalid transitions or provenance, unresolved refresh state,
 dependency failures, inactive initiatives, and configuration mismatches.
-Accepted legacy shapes return `legacy_entry` and remain non-dispatchable;
-unknown or private shapes return a manual-routing finding without mutation.
+Ordinary reconciliation no longer accepts former legacy shapes as compatibility
+entries; they surface as `unsupported_legacy` and remain non-dispatchable.
+Unknown or private shapes also return a manual-routing finding without mutation.
 
 ## Migration transaction
 
@@ -141,21 +142,25 @@ fingerprints inside the lock, preserve exact legacy TOML slices, and leave
 canonical artifacts untouched. Recovery resolves a durable pending state; it
 does not guess after a fingerprint conflict.
 
-## Compatibility release discipline
+## Release discipline
 
 New writers, receipts, guides, and seeds emit only canonical names.
-`capture-work` forwards to `work-intake`; `author-brief` forwards only to
-`author-delivery-brief create`; and `receive-brief` forwards only to
-`author-delivery-brief continue`. Each alias emits one deprecation notice and
-adds no classifier, writer, reviewer, tool, or boundary. The brief aliases stay
+`author-brief` forwards only to `author-delivery-brief create`, and
+`receive-brief` forwards only to `author-delivery-brief continue`. Each alias
+emits one deprecation notice and adds no classifier, writer, reviewer, tool,
+or boundary. `capture-work` is removed in Core 3.0.0. The brief aliases stay
 for at least two minor Core releases and 90 days, whichever is later. Removal
 requires advance notice and a named Approver decision at the first eligible
-release; regression rolls back to the last alias-bearing Core release. The
-accepted legacy workspace reader remains installed until its separately
-accepted predicates and approval gate pass.
+release.
 
-Rollback during the window disables target writers, returns to the preceding
-dual-reader release, and uses the current ledger-backed rollback operation to
+Ordinary reconciliation no longer accepts former legacy workspace shapes;
+adopters rewrite former legacy entries in canonical form by hand. The explicit
+migration tooling (`repair-plan --migration-selection`, `repair-apply`,
+`repair-rollback`) is retained only for recovering or rolling back an operation
+already recorded in `.workspace-migrations.json`.
+
+Rolling back the Core 3.0.0 removal returns to the immediately preceding
+dual-reader release and uses the current ledger-backed rollback operation to
 restore the exact legacy workspace representation. It never deletes a canonical
 artifact or migration evidence.
 

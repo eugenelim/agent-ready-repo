@@ -36,8 +36,7 @@ question; it never becomes ready by inference.
 The write order is an invariant: materialize the confined artifact, register a
 schema-valid workspace entry, then dispatch. A failure before durable
 registration leaves no executable state. `workspace-status` remains the
-read-side authority, and `capture-work` is only a compatibility alias for the
-intake surface.
+read-side authority for reconciliation and workspace state.
 
 ---
 

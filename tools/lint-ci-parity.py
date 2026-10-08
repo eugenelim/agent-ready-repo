@@ -1246,11 +1246,6 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             _PACK_HOOK_LINUX,
             _WHY_FILTERED_AND_CONDITIONAL,
         ),
-    'packs/core/tests/skills/capture-work/':
-        PR_GATED_IF(
-            _PACK_HOOK_LINUX,
-            _WHY_FILTERED_AND_CONDITIONAL,
-        ),
     'packs/core/tests/skills/close-work/':
         PR_GATED_IF(
             _PACK_HOOK_LINUX,
@@ -2571,7 +2566,6 @@ _SUITE_SOURCE_EXCEPTIONS: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
             "packs/core/tests/pack/",
             "packs/core/tests/skills/adapt-to-project/",
             "packs/core/tests/skills/bug-fix/",
-            "packs/core/tests/skills/capture-work/",
             "packs/core/tests/skills/close-work/",
             "packs/core/tests/skills/project-knowledge/",
             "packs/core/tests/skills/receive-brief/",

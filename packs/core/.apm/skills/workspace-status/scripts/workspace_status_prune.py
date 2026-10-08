@@ -46,8 +46,19 @@ _legacy_canonical_alias = _engine._legacy_canonical_alias
 _migration_file_bytes = _engine._migration_file_bytes
 _parse_membership_entry = _engine._parse_membership_entry
 confine_migration_path = _engine.confine_migration_path
+parse_legacy_workspace_entry = _engine.parse_legacy_workspace_entry
 parse_workspace = _engine.parse_workspace
 resolve_selected_memberships = _engine.resolve_selected_memberships
+
+
+def _repair_legacy_entry(collection: str, raw: object):
+    """Decode a historical legacy entry for prune closure, or return None.
+
+    Ordinary reconciliation rejects these shapes. Prune is a repair operation,
+    so a surviving legacy alias must still deny closure of the artifact it names.
+    """
+    legacy = parse_legacy_workspace_entry(collection, raw)
+    return legacy if legacy.finding.code == "legacy_entry" else None
 
 
 def _resolve_prune_closure_memberships(
@@ -77,12 +88,17 @@ def _resolve_prune_closure_memberships(
             collection = ".".join(collection_parts)
             status = value.get("status", "") if initiative is not None else ""
             status = status if isinstance(status, str) else ""
-            membership, legacy, _, blocked_path = _parse_membership_entry(
+            membership, _, blocked_path = _parse_membership_entry(
                 value,
                 collection,
                 initiative or "",
                 status,
             )
+            legacy = (
+                _repair_legacy_entry(collection, value) if membership is None else None
+            )
+            if legacy is not None:
+                blocked_path = None
             path: str | None = None
             form = ""
             if (
@@ -92,7 +108,7 @@ def _resolve_prune_closure_memberships(
                 path = membership.entry.path
                 form = "canonical"
             elif legacy is not None:
-                legacy_path = _legacy_canonical_alias(legacy.entry)
+                legacy_path = _legacy_canonical_alias(legacy)
                 if legacy_path in occurrences_by_path:
                     path = legacy_path
                     form = "legacy"
@@ -140,21 +156,9 @@ def _resolve_prune_closure_memberships(
                         else string_parts
                     )
                     collection = ".".join(collection_parts)
-                    status = ""
-                    if initiative is not None:
-                        section = workspace.get(initiative)
-                        if isinstance(section, dict) and isinstance(
-                            section.get("status"), str
-                        ):
-                            status = section["status"]
-                    _, legacy, _, _ = _parse_membership_entry(
-                        child,
-                        collection,
-                        initiative or "",
-                        status,
-                    )
+                    legacy = _repair_legacy_entry(collection, child)
                     if legacy is not None:
-                        path = _legacy_canonical_alias(legacy.entry)
+                        path = _legacy_canonical_alias(legacy)
                         if path in occurrences_by_path:
                             occurrence = {
                                 "canonical_artifact_path": path,

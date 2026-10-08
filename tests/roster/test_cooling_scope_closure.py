@@ -239,14 +239,11 @@ def migration_fixture(root: Path, *, cooled: bool = True) -> Path:
 
 
 def assert_migration_fixture_is_real(tmp_path: Path) -> None:
-    """Prove cooling removes a real legacy membership from canonical status."""
+    """Prove the fixture holds a real legacy membership the explicit migration extractor recognises."""
     uncooled = migration_fixture(tmp_path / "migration-uncooled", cooled=False)
-    cooled = migration_fixture(tmp_path / "migration-cooled", cooled=True)
-
-    uncooled_memberships = run_status(uncooled)["canonical"]["legacy_memberships"]
-    cooled_memberships = run_status(cooled)["canonical"]["legacy_memberships"]
-    assert [membership["path"] for membership in uncooled_memberships] == ["spec/legacy"]
-    assert [membership["path"] for membership in cooled_memberships] == []
+    workspace = ENGINE.parse_workspace(uncooled / "workspace.toml")
+    legacy_memberships = ENGINE.extract_legacy_migration_memberships(workspace)
+    assert [m.entry.path for m in legacy_memberships] == ["spec/legacy"]
 
 
 def identity_collision_fixture(
@@ -403,13 +400,14 @@ def test_ac7_uncooled_sibling_still_blocks(tmp_path: Path, mode: str) -> None:
 def test_cooled_legacy_entry_is_excluded_from_the_closeout_consumer(
     tmp_path: Path, mode: str
 ) -> None:
-    """A cooled legacy entry leaves the survivor derivation, not just the projection.
+    """A legacy entry surfaces as unsupported_legacy regardless of cooling status.
 
-    The pre-existing legacy assertions read `canonical.legacy_memberships` only,
-    so the closeout consumer's own legacy arm was unguarded: breaking the legacy
-    half of the cooled set left the whole suite green. This is the control that
-    kills that mutation, and the uncooled case is what stops it passing over an
-    empty cooled set.
+    Ordinary reconciliation no longer accepts legacy strings as memberships, so
+    a legacy string is never added to cooled_positions.  The entry remains in
+    initiative.work.queue and _surviving_work returns it as residue in both the
+    cooled and uncooled cases.  The uncooled case is the positive control; the
+    cooled case was the specific mutation this test guarded — a lifecycle record
+    must not silently resolve unsupported residue to an empty queue.
     """
     def build(root: Path, *, cooled: bool) -> Path:
         locator = write_spec(root, "legacy")
@@ -427,8 +425,8 @@ def test_cooled_legacy_entry_is_excluded_from_the_closeout_consumer(
         item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
     )
 
-    assert cooled_initiative["queue_empty"] is True
-    assert cooled["closeout"]["all_specs_shipped"] is True
+    assert cooled_initiative["queue_empty"] is False
+    assert cooled["closeout"]["all_specs_shipped"] is False
     assert uncooled_initiative["queue_empty"] is False
     assert uncooled["closeout"]["all_specs_shipped"] is False
 
@@ -458,10 +456,13 @@ def test_cooled_legacy_entry_does_not_exclude_same_path_sibling(
         item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
     )
 
-    assert [item["path"] for item in uncooled["canonical"]["legacy_memberships"]] == [
-        "spec/x"
-    ]
+    assert uncooled["canonical"]["legacy_memberships"] == []
     assert cooled["canonical"]["legacy_memberships"] == []
+    # The legacy string surfaces as unsupported_legacy in the canonical findings
+    assert any(
+        f["code"] == "unsupported_legacy" and f["path"] == "spec/x"
+        for f in uncooled["canonical"]["findings"]
+    )
     assert cooled["closeout"]["all_specs_shipped"] is False
     assert cooled_initiative["queue_empty"] is False
     assert cooled["closeout"]["next_action"] != "invoke-close-work"
@@ -589,10 +590,10 @@ def _write_migration_selection(root: Path, operation_nonce: str) -> tuple[Path, 
     workspace_path = root / "workspace.toml"
     workspace_bytes = workspace_path.read_bytes()
     workspace = ENGINE.parse_workspace(workspace_path)
-    canonical = ENGINE.run_canonical_reconciliation(workspace, root)
-    assert len(canonical.legacy_memberships) == 1
+    legacy_memberships = ENGINE.extract_legacy_migration_memberships(workspace)
+    assert len(legacy_memberships) == 1
     finding = ENGINE.build_migration_finding(
-        workspace_bytes, canonical.legacy_memberships[0]
+        workspace_bytes, legacy_memberships[0]
     )
     locator = "docs/specs/legacy/spec.md"
     selection = {
@@ -975,7 +976,11 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
 
 
 def test_ac24_two_reconciliation_calls_still_pass_one_argument() -> None:
-    """AC24: exactly two reconciliation call sites remain single-argument."""
+    """AC24: exactly one reconciliation call site remains single-argument.
+
+    The rollback path moved to extract_legacy_migration_memberships, so the
+    single-argument count dropped from two to one.
+    """
     import ast
 
     tree = ast.parse(STATUS_PATH.read_text(encoding="utf-8"))
@@ -989,7 +994,7 @@ def test_ac24_two_reconciliation_calls_still_pass_one_argument() -> None:
         and not node.keywords
     ]
 
-    assert len(single_argument_calls) == 2
+    assert len(single_argument_calls) == 1
 
 
 def test_ac14_skill_states_cooled_exclusion() -> None:

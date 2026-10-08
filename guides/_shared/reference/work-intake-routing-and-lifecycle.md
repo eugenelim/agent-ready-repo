@@ -20,7 +20,7 @@ Jira Align, Linear, and GitHub profiles.
 | Remember work | A Draft artifact and non-dispatchable membership |
 | Inspect or triage status | The `workspace-status` result, unchanged and read-only |
 | Refresh tracked requirements | A profile-bound comparison governed by lifecycle and source authority |
-| Plan a legacy-entry migration | A read-only migration result for a reviewed selection |
+| Recover or roll back a recorded migration operation | A read-only plan or rollback for an operation already in `.workspace-migrations.json` |
 
 ## Normalized route record
 
@@ -61,8 +61,7 @@ comment, or previous collection cannot override these routes.
 ## Remember and status
 
 Remember materializes the smallest safe Draft artifact, registers it after the
-artifact exists, and stops. `capture-work` is only a compatibility alias for
-this behavior.
+artifact exists, and stops.
 
 Status delegates to `workspace-status`. It performs no intake classification
 and no mutation. Canonical, legacy, duplicate, invalid, and refresh findings
@@ -95,17 +94,17 @@ comment, trace link, pull-request link, display-status change, or closure needs
 one fresh confirmation bound to the exact target and payload. Unsupported
 actions never fall back to generic tracker access.
 
-## Migration boundary
+## Migration recovery boundary
 
-`repair-plan --migration-selection <path>` is read-only and refuses
-`--plan-file`. It returns `planned`, `artifact_missing`, a manual-routing
-result, or a redacted refusal. The evaluation route is non-dispatchable and
-its next action is to review the migration plan.
+Former legacy workspace entries surface as `unsupported_legacy` findings and
+are never dispatchable. Rewrite each entry in canonical form by hand.
 
-`repair-apply` and `repair-rollback` are workspace-status repair effects, not
-tracker routes. They require the repository's `[authorization.migration]`
-policy plus one fresh, single-use, current-session confirmation for the exact
-operation. See [Migrate a legacy workspace entry](../../core/how-to/migrate-capture-work.md).
+The migration tooling is retained only for recovering or rolling back an
+operation already recorded in `.workspace-migrations.json`. Recovery and
+rollback are workspace-status repair effects, not tracker routes. They require
+the repository's `[authorization.migration]` policy plus one fresh, single-use,
+current-session confirmation for the exact operation.
+See [Recover or roll back a migration operation](../../core/how-to/migrate-capture-work.md).
 
 ## Read and write limits
 

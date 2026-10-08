@@ -50,11 +50,11 @@ BODY_LINE_CEILING = 500
 # assertion message instructs; the other three scripts still hold their base bytes.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "1422ac7e2b5527baadcd898a0f6a9d1ad5ae56e53b16433e8e2b0e2bfa13751b",
+        "e88bf7b50bf09dc405d11fcbf30fe73dced3df6c243c82a75b9194fe0a2bfc1f",
     "workspace_status_engine.py":
-        "68c16e98439c24a7e50f10ef4eb9d9c60f3e0594367a2492f479755c93ca91f3",
+        "a1931f98b0e2ec592c491f21cd45b49ace7f6501f82b67a3c1bde5255e50dfe4",
     "workspace_status_prune.py":
-        "65076e175c821f2818dfcf5ea762df3d6b9f29334216948e3aac502e2a6c0f98",
+        "88395b684b69af04b00694c830e79d72a4a3b3194fa72d276fb2763f3f28e95a",
     "workspace_mcp_server.py":
         "c2b252f55c99d54558b253e3c14aa40a5feec5bbcaad1340154e57e3d2c03199",
 }

@@ -1,27 +1,25 @@
 ---
-title: Migrate capture-work requests to work-intake
-summary: Use the compatibility alias safely while moving saved prompts and guidance to Core's intake front door.
+title: Move from capture-work to work-intake
+summary: Replace capture-work prompts and legacy workspace entries with the current work-intake front door.
 pack: core
 kind: how-to
 ---
 
-# Migrate capture-work requests to work-intake
+# Move from capture-work to work-intake
 
-`capture-work` remains available for compatibility, but it no longer owns
-classification or storage. Replace it with the equivalent `work-intake`
-request in prompts, guides, and automations.
+`capture-work` is no longer available. Use `work-intake` directly in prompts,
+guides, and automations.
 
 ```text
 Remember that export retries need idempotent replay. Do not start implementation.
 ```
 
-The agent records a Draft artifact and non-dispatchable workspace entry, then
-stops. This is the same result whether the request reached `work-intake`
-directly or through the alias.
+The agent creates the smallest safe Draft artifact, registers a
+non-dispatchable entry, and stops.
 
-## Replace an existing request
+## Replace an existing prompt
 
-Change a prompt such as:
+Change:
 
 ```text
 capture-work: export retries need idempotent replay
@@ -33,13 +31,24 @@ to:
 work-intake: remember that export retries need idempotent replay; stop without implementation
 ```
 
-The alias emits a deprecation notice, normalizes the request, and forwards it.
-It does not write a legacy queue entry, run a separate `[build]` versus
-`[shape]` classifier, or retain independent semantics.
+## Rewrite a former legacy workspace entry
+
+If `workspace-status` reports an `unsupported_legacy` finding for an entry in
+`workspace.toml`, rewrite it in canonical form by hand. Ordinary reconciliation
+no longer accepts legacy shapes; they are never dispatchable.
+
+Write a target entry directly in the correct collection:
+
+```toml
+{path = "docs/specs/<slug>/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "<current outcome>", needs = []}
+```
+
+Then remove the legacy record. Run `workspace-status` to confirm the entry
+reconciles as expected.
 
 ## Verify the result
 
-Run `workspace-status`. The new artifact should appear in the lifecycle state
+Run `workspace-status`. The artifact should appear in the lifecycle state
 chosen by `work-intake`; remembered work remains Draft and non-dispatchable.
 The artifact must exist before its schema-valid workspace entry is registered.
 
@@ -47,7 +56,6 @@ See [Use work intake](../../_shared/how-to/use-work-intake.md)
 for the current workflow and [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
 for exact routes and boundaries.
 
-If the repository already contains legacy queue, shaping, brief, or backlog
-representations, changing the prompt is not enough. Follow
-[Migrate a legacy workspace entry safely](migrate-capture-work.md) to convert
-one reviewed entry with ledger-backed rollback.
+If you have an operation already recorded in `.workspace-migrations.json`
+(a prior interrupted apply or a completed apply that you want to roll back),
+follow [Recover or roll back a migration operation](migrate-capture-work.md).

@@ -417,30 +417,9 @@ def test_t2_exact_canonical_path_shapes_and_legacy_extraction() -> None:
         }
     }
     result = mod.run_canonical_reconciliation(workspace)
-    scalar_legacy_by_raw = {
-        membership.entry.raw: membership
-        for membership in result.legacy_memberships
-        if isinstance(membership.entry.raw, str)
-    }
-    assert set(scalar_legacy_by_raw) == {
-        "spec/password-reset",
-        "research-discovery",
-        "shape-active",
-        "docs/product/briefs/account-recovery.md",
-    }
-    work_legacy = scalar_legacy_by_raw["spec/password-reset"]
-    assert work_legacy.ini_slug == "ini-001"
-    assert work_legacy.collection == "work.queue"
-    assert work_legacy.entry.path == "spec/password-reset"
-    shaping_object = [
-        membership
-        for membership in result.legacy_memberships
-        if membership.entry.raw == {"slug": "design-review", "type": "design", "needs": []}
-    ]
-    assert len(shaping_object) == 1
-    assert shaping_object[0].entry.kind == "design"
+    assert result.legacy_memberships == []
     codes = [finding.code for finding in result.findings]
-    assert "legacy_entry" in codes
+    assert "legacy_entry" not in codes
     assert "unsupported_legacy" in codes
     assert codes.count("invalid_artifact_path") == 3
     assert "invalid_entry" in codes
@@ -581,7 +560,7 @@ def test_t2_unsupported_legacy_findings_are_individually_attributable() -> None:
     assert sorted(f.path for f in unsupported) == sorted(slugs)
 
 
-def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
+def test_t2_legacy_aliases_do_not_participate_in_duplicate_detection() -> None:
     mod = _load_engine()
 
     def source() -> dict:
@@ -680,12 +659,12 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     for name, workspace, target_path in cases:
         result = mod.run_canonical_reconciliation(workspace)
         evaluation = result.dispatch_by_path[target_path]
-        assert not evaluation.dispatchable, name
-        assert "duplicate_membership" in {
+        assert "duplicate_membership" not in {
             finding.code for finding in evaluation.findings
         }, name
-        assert "legacy_entry" in {finding.code for finding in result.findings}, name
-        assert result.legacy_memberships, name
+        assert "legacy_entry" not in {finding.code for finding in result.findings}, name
+        assert "unsupported_legacy" in {finding.code for finding in result.findings}, name
+        assert result.legacy_memberships == [], name
 
     control = {
         "ini-001": {
@@ -701,7 +680,8 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     result = mod.run_canonical_reconciliation(control)
     evaluation = result.dispatch_by_path["docs/product/design/ambiguous-shape.md"]
     assert "duplicate_membership" not in {finding.code for finding in evaluation.findings}
-    assert "legacy_entry" in {finding.code for finding in result.findings}
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert "unsupported_legacy" in {finding.code for finding in result.findings}
 
     legacy_only_cases = [
         (
@@ -748,7 +728,7 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             "docs/product/briefs/legacy-brief.md",
         ),
     ]
-    for name, workspace, duplicate_path in legacy_only_cases:
+    for name, workspace, _former_duplicate_path in legacy_only_cases:
         result = mod.run_canonical_reconciliation(workspace)
         duplicate_findings = [
             finding
@@ -756,9 +736,10 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             if finding.code == "duplicate_membership"
         ]
         assert result.evaluations == [], name
-        assert [finding.path for finding in duplicate_findings] == [duplicate_path], name
-        assert [finding.code for finding in result.findings].count("legacy_entry") == 2, name
-        assert len(result.legacy_memberships) == 2, name
+        assert [finding.path for finding in duplicate_findings] == [], name
+        assert "legacy_entry" not in {finding.code for finding in result.findings}, name
+        assert [finding.code for finding in result.findings].count("unsupported_legacy") == 2, name
+        assert result.legacy_memberships == [], name
 
     legacy_only_control = {
         "ini-001": {
@@ -776,11 +757,12 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     }
     result = mod.run_canonical_reconciliation(legacy_only_control)
     assert "duplicate_membership" not in {finding.code for finding in result.findings}
-    assert [finding.code for finding in result.findings].count("legacy_entry") == 4
-    assert len(result.legacy_memberships) == 4
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert [finding.code for finding in result.findings].count("unsupported_legacy") == 4
+    assert result.legacy_memberships == []
 
 
-def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
+def test_t2_legacy_aliases_do_not_satisfy_dependent_work(tmp_path: Path) -> None:
     mod = _load_engine()
 
     ready_path = "docs/specs/ready/spec.md"
@@ -830,12 +812,13 @@ def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
     ]
 
     assert not ready_evaluation.dispatchable
-    assert "unsatisfied_dependency" in {
+    assert "missing_dependency" in {
         finding.code for finding in ready_evaluation.findings
     }
-    assert [finding.path for finding in duplicate_findings] == [blocked_dependency]
-    assert [finding.code for finding in result.findings].count("legacy_entry") == 2
-    assert len(result.legacy_memberships) == 2
+    assert [finding.path for finding in duplicate_findings] == []
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert [finding.code for finding in result.findings].count("unsupported_legacy") == 2
+    assert result.legacy_memberships == []
 
 
 def test_t2_malformed_same_path_blocks_canonical_membership() -> None:
@@ -959,12 +942,12 @@ def test_t2_malformed_same_path_blocks_canonical_membership() -> None:
         result = mod.run_canonical_reconciliation(workspace)
         assert result.evaluations == [], name
         assert [finding.code for finding in result.findings].count("invalid_entry") == 1
-        assert [finding.code for finding in result.findings].count("legacy_entry") == 1
+        assert [finding.code for finding in result.findings].count("unsupported_legacy") == 1
         assert [
             finding.path
             for finding in result.findings
             if finding.code == "duplicate_membership"
-        ] == [mixed_path], name
+        ] == [], name
 
     non_collision_result = mod.run_canonical_reconciliation(
         {

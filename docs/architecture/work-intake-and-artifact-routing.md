@@ -86,8 +86,6 @@ nowhere else to put and rolls up delivery across the per-component slices.
   normalized contract and delegate the route.
 - Profile refresh processors resolve by exact profile ID/version and return a
   closed comparison/effect result.
-- `capture-work` is a temporary compatibility alias that emits a deprecation
-  notice and forwards to `work-intake` without separate semantics.
 - `surface_resolver.py` resolves one semantic role from caller-supplied local or
   external candidates and returns provenance, capability, confinement, and
   independent authority facts without lifecycle effects.
@@ -410,13 +408,15 @@ independent facts. Non-resolved results omit selected locators and make those
 facts explicitly unknown.
 
 All current writers and the workspace seed emit only target entries. The
-accepted legacy reader and `capture-work` forwarding alias remain installed in
-the initial delivery. Their later removal is a separate, non-dispatchable
-follow-up gated by RFC-0083's release count, elapsed time, advance notice,
-fixture/writer/guide/rollback evidence, and check-before-effect Approver
-authorization.
+accepted legacy reader and `capture-work` forwarding alias are removed in Core
+3.0.0 under RFC-0083's release count, advance notice, fixture/writer/guide/
+rollback evidence, and check-before-effect Approver authorization. Ordinary
+reconciliation no longer accepts former legacy shapes; they surface as
+`unsupported_legacy` findings. The explicit migration tooling retains the
+accepted-legacy parser for recovering or rolling back an operation already
+recorded in the migration ledger.
 
-Rollback returns writers to the preceding dual-reader release and uses the
+Rollback returns to the preceding dual-reader release and uses the
 ledger to restore legacy workspace representation. It preserves target
 artifacts and migration evidence.
 

@@ -583,23 +583,27 @@ def test_a_brief_in_the_repository_backlog_resolves_a_declaration(
     assert DEPENDANT_PATH in _ready(result)
 
 
-def test_a_legacy_bare_string_brief_resolves_a_declaration(tmp_path, engine) -> None:
-    """A retained legacy brief entry carries `kind = "brief"` and a real path.
+def test_a_legacy_bare_string_brief_does_not_resolve_a_declaration(
+    tmp_path, engine
+) -> None:
+    """A former legacy brief entry is unsupported input, so it names no brief.
 
-    Reading it decides attribution only; it dispatches nothing. The entry still
-    draws its own `legacy_entry`, which is pre-existing contract and not this
-    delivery's to change — asserted here so the case cannot pass on a fixture
-    that silently produced no legacy entry at all.
+    Canonical reconciliation reads no historical shape, so a cooled child that
+    declares that path cannot be attributed and the run fails closed, exactly as
+    it does for a declaration naming no brief. The entry draws its own
+    `unsupported_legacy` finding, asserted so the case cannot pass on a fixture
+    that silently produced no legacy finding at all.
     """
     result = _membership_form_fixture(
         tmp_path / "legacy", engine, brief_entry_form="legacy",
         child_parent=BRIEF_PATH,
     )
-    assert not _codes(result, CODE), (
-        "a legacy bare-string brief did not resolve a correct declaration"
+    assert len(_codes(result, CODE)) == 1, (
+        "a former legacy brief resolved a declaration"
     )
-    assert [f for f in result.findings if f.code == "legacy_entry"], (
-        "control: the fixture produced no legacy entry, so it proves nothing"
+    assert DEPENDANT_PATH not in _ready(result)
+    assert [f for f in result.findings if f.code == "unsupported_legacy"], (
+        "control: the fixture produced no unsupported_legacy finding, so it proves nothing"
     )
 
 

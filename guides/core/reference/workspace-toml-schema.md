@@ -352,8 +352,8 @@ finding identifier as a path only after confirming it is one.
 | --- | --- | --- |
 | `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
 | `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
-| `legacy_entry` | Supported compatibility form; visible but never dispatchable. | Materialize and register a canonical target entry. |
-| `unsupported_legacy` | Legacy-like form outside accepted compatibility fixtures. | Route the item manually; do not infer a target entry. |
+| `legacy_entry` | Historical form decoded only by migration recovery or rollback; ordinary reconciliation never emits it. | Materialize and register a canonical target entry. |
+| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. Rewrite a former legacy entry in canonical form by hand. | Route the item manually; do not infer a target entry. |
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
@@ -408,22 +408,25 @@ intended behavior. Closed defect contexts record exactly one resolution:
 Defects stay in the repository-level backlog. They are routed to the bug-fix
 workflow, not directly to implementation queue dispatch.
 
-## Legacy Compatibility
+## Legacy Forms
 
-During the compatibility window, readers may recognize these legacy shapes:
+Ordinary reconciliation does not accept legacy shapes as compatibility entries.
+Every former accepted legacy shape surfaces as `unsupported_legacy`. Rewrite
+each entry in canonical form by hand.
 
-| Collection | Legacy shape |
+The former legacy shapes were:
+
+| Collection | Former legacy shape |
 | --- | --- |
 | Work arrays | Bare `spec/<slug>` strings only. |
 | Shaping arrays | Bare shaping slugs, or `{ slug, type, needs }` objects where `type` is `shape`, `research`, `strategy`, `signal`, or `design`. |
 | Brief queue arrays | Brief path strings such as `docs/product/briefs/<slug>.md`. |
 | `[backlog].open` | Comment-rich inline objects with `slug` plus legacy fields such as `needs`, `source`, `summary`, or `type`. |
 
-The same shape in the wrong collection is invalid. A legacy entry is tagged as
-legacy, visible, and non-dispatchable. A missing artifact or plan stays
-non-dispatchable, and readers do not reconstruct requirements from comments.
-Migration requires a human to choose the canonical artifact route and write a
-target entry.
+The same shape in the wrong collection is invalid. A missing artifact or plan
+stays non-dispatchable, and readers do not reconstruct requirements from
+comments. To update a workspace entry, write the canonical target entry in the
+correct collection and remove the former record.
 
 ### Migration authorization and ledger
 
@@ -481,5 +484,5 @@ non-finite values.
 
 - [The two-room model](../explanation/two-room-model.md)
 - [How to orient at the start of a session](../how-to/orient-at-session-start.md)
-- [Migrate a legacy workspace entry safely](../how-to/migrate-capture-work.md)
+- [Recover or roll back a migration operation](../how-to/migrate-capture-work.md)
 - [How work records divide responsibility](../../_shared/explanation/work-artifact-responsibilities.md)

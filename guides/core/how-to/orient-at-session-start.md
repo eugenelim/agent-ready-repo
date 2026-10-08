@@ -108,4 +108,4 @@ named blocker before choosing another task.
 - [workspace.toml schema reference](../reference/workspace-toml-schema.md) — every field explained
 - [Your first workspace session](../tutorials/your-first-workspace.md) — an end-to-end walkthrough
 - [Use work intake](../../_shared/how-to/use-work-intake.md) — start, remember, inspect, or review a tracker delta
-- [Migrate a legacy workspace entry safely](migrate-capture-work.md) — convert one reviewed compatibility entry with rollback
+- [Recover or roll back a migration operation](migrate-capture-work.md) — recover an interrupted apply or roll back an operation already in a migration ledger
