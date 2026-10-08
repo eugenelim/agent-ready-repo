@@ -215,3 +215,17 @@ This record replaces the 2026-10-07 completion handoff above, which named Core
 - **Implemented scope:** tasks T1–T15; this delivery releases Core `2.30.0`.
 - **Durable outputs:** the changelog entry `[core][2.30.0]`; `main`'s `[core][2.29.0]` entry belongs to `repository-exploration`.
 - **Pull request:** `pull-request-opened` — #1516 on 2026-10-07; merge awaits the owner's review.
+
+## 2026-10-07 — CI: repository-level checks move to `tests/roster/` (eugenelim)
+
+PR CI's `lint-pack-test-boundary.py` refuses pack tests that reach above their
+pack. Four checks moved, unchanged in substance, to
+`tests/roster/test_intent_delivery_relations_repository.py`: the AC-0014 stub
+test (its function verbatim; only its module constants re-anchor at the
+repository root, because the lint cannot resolve its loop variable), the
+`_file_safety.py` parity check against `packages/agentbundle`, the real
+repo-scope install, and the real adapter-root projection. The owner chose this
+over amending the stub. They now run on the roster dispatch; PR CI still checks
+copy parity through the pack integration suite. The agent-plugin roster pins in
+`packages/agentbundle/tests/build_pipeline/test_agent_plugin_projection.py` now
+list `adapter-root-bins` among Core's excluded primitives.

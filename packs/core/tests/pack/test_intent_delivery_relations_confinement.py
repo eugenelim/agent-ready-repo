@@ -13,14 +13,6 @@ import pytest
 BINS = Path(__file__).resolve().parents[2] / ".apm" / "adapter-root-bins"
 SOURCE = BINS / "intent_delivery_relations.py"
 HELPER = BINS / "_file_safety.py"
-FILE_SAFETY_CANONICAL = (
-    Path(__file__).resolve().parents[4]
-    / "packages"
-    / "agentbundle"
-    / "agentbundle"
-    / "catalogue_tooling"
-    / "file_safety.py"
-)
 
 
 def test_ac0016_resolver_runs_without_agentbundle(tmp_path: Path) -> None:
@@ -48,12 +40,6 @@ def test_ac0016_resolver_runs_without_agentbundle(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # VI-1501: parity and helper-load guarantees
 # ---------------------------------------------------------------------------
-
-
-def test_vi1501_file_safety_is_byte_identical_to_canonical() -> None:
-    """_file_safety.py is byte-identical to agentbundle.catalogue_tooling.file_safety."""
-    assert FILE_SAFETY_CANONICAL.is_file(), "canonical file_safety.py not found"
-    assert HELPER.read_bytes() == FILE_SAFETY_CANONICAL.read_bytes()
 
 
 def test_vi1501_helper_must_be_regular_non_link_file(tmp_path: Path) -> None:
