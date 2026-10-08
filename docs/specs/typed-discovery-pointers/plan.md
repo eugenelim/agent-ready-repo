@@ -1,331 +1,132 @@
-# Plan: Typed Discovery pointers
+# Plan: Typed discovery pointers
 
+- **Status:** Approved
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** <task-relevant architecture/convention source;
-  one or two analogous production implementations; corresponding tests or
-  construction path; named uncertainty/deviation — or `none — non-structural`>
-
-> **Plan contract:** this is the implementation strategy. It may change
-> substantively only while its Status is `Drafting`, before approval records its
-> baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
-> only lifecycle bookkeeping is permitted, and execution observations belong in
-> `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
-> equivalent). A genuine artifact error follows the controlled-amendment path.
->
-> **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
-> completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
-> and `Risks` are working material that an implementer corrects in place only
-> before approval: approval hashes the whole plan. After approval, grounding for
-> a seam recorded as `no stub (implementation-discovered)` goes to the
-> verification ledger; a settled design decision that execution falsified is a
-> plan error that follows the controlled-amendment procedure. Treating them as
-> contract is how a review spends a round on prose no gate consumes — the
-> measured share is over half the plan's lines. `Grounding` stays *recorded*,
-> because a per-task resolution that nobody wrote is not grounding; what it stops
-> being is a claim a reviewer holds the plan to.
-
-<!-- Existing plans without this field remain valid. Treat its absence as a
-named assurance gap during structural review, not a universal lint failure. -->
-
-<!-- **Durable-plan fill.** This template is the implementation and verification
-strategy for a durable delivery slice. Fill Approach, Constraints, Risks,
-Design, Tasks, and Changelog to the depth the durable work requires. Its sibling
-spec is the durable behavior contract. Eligible direct-light work does not
-create this artifact. -->
-
-## Approach
-
-<!--
-A paragraph describing the strategy. What's the shape of the change? What's
-the order of operations? What's the riskiest part?
-
-A reader should finish this section knowing roughly what files will move and
-what the testing story is, without yet seeing the detailed task list.
--->
+- **Constrained by:** RFC-0106 D2; RFC-0103
+- **Repository anchors:** canonical adapter-root resolver and its Core resolver/copy suites; the existing close-work parent lookup; the grammar migration's writer inventory. A source-only AST probe found the existing four-kind tuple and only an `intent:` classifier branch; it establishes a reusable prefix source, not runtime consumer behavior.
+- **Retention:** repository-durable spec and plan; approval records bind their fingerprints. Implementers, reviewers, resuming agents, and CI read them. Source/tests, guides, architecture, and the release entry own current truth after closeout.
 
 ## Constraints
 
-<!--
-What ADRs, RFCs, or other commitments shape this implementation? Cite them.
-This is what keeps the plan from contradicting prior decisions.
--->
-
-## Construction tests
-
-Most construction tests live under **Tasks** below (per-task `Tests:`
-subsections). This top-level section is only for cross-cutting tests that
-span tasks.
-
-<!--
-Construction tests guide implementation. They sit in two layers:
-
-1. **Per-task tests** (the majority) live under each Task below, in the
-   `Tests:` subsection. That's where unit, edge-case, and property tests
-   for a single task go.
-2. **Cross-cutting tests** (this section) live here, listed once: integration
-   tests that span tasks, end-to-end smoke tests, and any manual verification
-   steps.
-
-Designed up front, before EXECUTE. Revisable if a test over-specifies an
-internal detail the plan later changes. The contract itself lives in
-`spec.md` (Acceptance Criteria + Testing Strategy); construction tests
-that verify it live here.
-
-**Integration tests:** <list, or "none beyond per-task tests">
-**Manual verification:** <list, or "none">
--->
+- One slice PR targets the default branch; T1–T4 are ordered commits within it.
+- Author from the prerequisite brief branch's head while its PR is unmerged; rebase onto current `main` with prerequisites present before building.
+- No commit or push occurs without owner approval. Do not use bare `git stash`.
+- Each task completes on its own tests. Full gates are dispatched once on the slice PR; the local gate is `make lint-ruff lint-mypy` plus the affected targeted suites.
+- Expected review shape: DEEP for resolver admission and shared-check integration; WIDE for the manifest-driven sweep. The sweep's manifest, identity comparison, body-byte check, and zero-diff repeat provide its transformation proof.
 
 ## Durable-output map
 
-<!--
-This section maps each task to the spec's Durable Outputs table so closeout can
-verify planned output, implementation evidence, and closeout evidence without
-copying requirements into a second record.
-
-For each output, name:
-
-- planned output
-- implementing task(s)
-- implementation evidence
-- closeout evidence
-- unresolved destination or freshness blocker, if any
-
-If the plan's Design (LLD) contains a non-inferable design fact, map it to its
-semantic owner here. Mechanically evident details may stay with code, types,
-docstrings, and tests; one-off construction order may remain delivery residue.
--->
-
-| Durable output | Tasks | Implementation evidence | Closeout evidence |
-| --- | --- | --- | --- |
-| <semantic role / destination> | <Tn> | <test, build, guide, contract, or review artifact> | <what close-work verifies> |
+| Output | Task |
+| --- | --- |
+| Resolver admission, current copies, consumer proof, frozen status pointers, living architecture | T1 |
+| Discovery check rule and portable invocation | T2 |
+| Writer forms, user documentation, sweep manifest and repeatability evidence | T3 |
+| Pack versions, release entry, projections, final verification ledger | T4 |
 
 ## Design (LLD)
 
-The low-level design — the *how*, below the Approach and above the per-task
-steps. **Optional and shape-pruned:** scaffold only the sub-sections the spec's
-`Shape:` selects, and delete the rest. A one-file change keeps this section thin
-or empty; a heavyweight feature fills most of it. The spec stays the contract —
-**no acceptance criterion lives here**; each sub-section instead **traces to the
-AC(s) it satisfies and the `contracts/` it implements**, so the design is always
-anchored to something verifiable.
+### Resolver boundary
 
-Stack-neutral by construction: these are the *kinds* of design decision every
-build makes, never a framework. Name your actual stack *inside* each sub-section
-from the repository's mapped architecture and convention sources. If none are
-usable, use manifests/build files and, for structural work, one or two analogous
-production implementations with their tests or construction path; elicit any
-unresolved load-bearing choice. The headings themselves stay universal.
+**Owned by:** T1
 
-<!-- Shape → sub-sections (a guide, not a gate):
-  ui          → decomposition, state & control flow, behavior & rules, quality attributes
-  service     → interfaces & contracts, data & schema, failure & resilience, quality attributes
-  data        → data & schema, interfaces & contracts
-  integration → dependencies & integration, interfaces & contracts, failure & resilience
-  mixed/unsure→ scaffold all, then prune.
-Delete every sub-heading the shape doesn't select. -->
+T1 extends `_classify_discovery` in the canonical adapter-root source using the registered intent prefix set already represented by `_PARENT_INTENT_KINDS`. The resolver still resolves an admitted typed value through its existing live intent slug index; authoring validation, not this compatibility reader, enforces the target's exact registered kind. Existing `intent:` values and canonical intents paths remain readable. Canonical resolver relation and provenance identifiers remain `intent:<slug>`; the reference prefix does not rename those endpoints.
 
-### Design decisions
-<!-- optional — the load-bearing choices and the alternatives rejected, one line
-of why each. Traces to: <AC(s) this satisfies> · <contracts/… it implements>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+`packs/core/tests/pack/test_intent_delivery_relations_copies.py` owns the pinned set. Read it again before synchronization; do not freeze today's three-copy count in this plan. T1 adds admission coverage to the existing resolver suites and closure-parent integration to the owning close-work suite. Source docstrings/tests and the living architecture page own this boundary after delivery.
 
-### Data & schema
-<!-- optional — entities, fields, types, ownership, migrations, retention.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature migrates existing data, name backfill checkpointing,
-restartability, and cutover validation. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+The shipped delivery spec and plan remain frozen. Their status annotations name RFC-0106 D2 and its change to the three criteria. This new spec owns the operative behavior; no old completed task is reopened and no amendment event is fired against a completed run.
 
-### Interfaces & contracts
-<!-- optional — the surfaces this feature exposes or consumes (REST API, event
-interface, BFF, RPC). Point at the `contracts/<type>/` file each implements.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature crosses a boundary, name a test seam for each
-crossed boundary. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+### Shared check
 
-### Component / module decomposition
-<!-- optional — the parts and their responsibilities; what's new vs. reused; for
-UI, the component tree. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+**Owned by:** T2
 
-### State & control flow
-<!-- optional — state model and transitions; sequencing across components; for
-UI, screen states and navigation. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When state changes concurrently, name concurrency, consistency,
-locking, atomicity, and transaction boundaries. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+T2 adds Discovery to `packs/core/.apm/skills/work-loop/scripts/lint-graph-pointers.py`. Slice 5 establishes its home and selection contract. If this source is absent because this slice lands first, create only the shared selection/index/diagnostic machinery and the Discovery rule here; do not implement the sibling fields. Reuse that source when slice 5 lands. Both slices have one check and no prerequisite on navigator publication.
 
-### Behavior & rules
-<!-- optional — the business and validation rules and the decisions they drive.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+A typed target is checked against the registered live intent identity. An untyped intent path or markdown link is classified lexically without opening its target; it can produce only a form violation. A bare live intent slug is also an untyped intent value. Non-intent provenance is outside the field rule. The shared check's source and construction tests own this dispatch.
 
-### Failure, edge cases & resilience
-<!-- optional — what can go wrong and the response: retries, fallbacks, timeouts,
-partial failure, idempotency, degraded modes. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When external failures are possible, name stable error classes,
-retryability, and external failure mapping. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+### Writers and corpus
 
-### Quality attributes (NFRs)
-<!-- optional — how the design meets each NFR-with-a-bar from the spec's
-Acceptance Criteria (performance, accessibility, security posture, operability).
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature needs operational visibility, name a concrete
-observability surface. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+**Owned by:** T3
 
-### Dependencies & integration
-<!-- optional — external systems, services, and libraries this design leans on,
-and the coupling between them. (Reuse `Depends on:` / `Touches:` on the tasks
-below for *execution* ordering; this sub-section is for *design*-level coupling.)
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+T3 reuses the grammar migration's source-inventory method, deriving today's Discovery writers rather than copying historical counts. Known Core surfaces are `new-spec/SKILL.md`, `new-spec/assets/spec.md`, its metadata-contract reference, and the contract guide's template example. Inspect the product-engineering discovery handoff as a discovery condition. Change it only if it instructs the emitted field's form; bump that pack if changed. Kill condition: a candidate requires an unrelated pack or another pointer field; stop for scope review.
 
-> **Rollout & deployment** — the tenth design dimension — is **not** a
-> sub-heading here. It is realized by [`## Rollout`](#rollout) below (infra,
-> external-system integration, deployment sequencing). Cross-link it from the
-> relevant sub-sections; never duplicate it.
+The corpus sweep is reproducible working material under this spec's `notes/`. It records each selected spec path, old header value, target path, slug, registered kind, and replacement. It edits only the selected preamble value and checks unchanged bytes elsewhere. The known 31-value count is evidence from the authoring checkpoint, not a migration limit. Re-derive after rebase. Compare the resolver's relations before and after rewriting against the same widened resolver; the old resolver is not a parity oracle. A repeat run has an empty diff.
+
+### User-documentation draft
+
+**Owned by:** T3
+
+For the contract guide and metadata reference: “When `Discovery:` names an intent, write its registered kind and `Slug:`, such as `outcome:service-reliability`, `capability:account-management`, or `intent:account-self-service`. `Kind:` takes precedence over `Level:`. When it names a research or notes file, use its repository-relative path. New and changed specs are checked for typed, live intent targets; legacy paths remain readable. Discovery records provenance and does not itself assert a feature-delivery route.”
 
 ## Tasks
 
-The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
-**Phrase each task as a verifiable goal, not a procedure.** The task name
-*is* the success criterion: *"Add validation"* → *"All invalid-input tests
-pass"*; *"Refactor X"* → *"Tests for X green before and after; public
-surface unchanged"*. Tests drive implementation, not the other way around, so
-`Tests:` leads every task. Use red-green-refactor with separate commits when
-the change is non-trivial.
+### T1: Registered Discovery forms retain delivery and closure parents
 
-**`Approach:` is conditional.** Write one when the task carries a decision a
-reader cannot infer from `Tests:` and `Done when:` — an *ordering* decision
-(step B must follow step A for a reason the tests do not show) or a *seam*
-decision (which module, which existing helper, which boundary). Omit it when
-those two fields already say what to build and how it is observed: an
-`Approach:` that restates them is a second home for the same instruction, and
-no completion gate reads it. The field order is unchanged where it appears —
-`Tests:`, then `Approach:`, then `Done when:`.
+**Depends on:** none
 
-**Every task must declare `Depends on:` explicitly** — list prior task IDs
-or `none`. Don't omit the field; "obvious from order" is the failure mode
-that hides serial-by-default thinking. `none` is a valid and common answer.
-
-Planning is sufficient when the plan supplies an observable contract, owner,
-boundaries, ordering, discovery predicates where a seam is not grounded,
-required outcomes, and verification modes adequate to begin safely. It need
-not settle a helper name, symbol, fixture-internal detail, or complete edge-case
-matrix before implementation. Such questions are build-time guidance unless
-their absence makes the plan unable to start or verify the contract.
-
-Keep observable behavior in `spec.md`. Use an exact path or symbol here only
-when repository evidence grounds it. For an implementation-discovered callable
-seam, record `no stub (implementation-discovered)` and its discovery predicate,
-constraint, required outcome, and verification mode; do not invent a helper,
-fixture, module, path, or symbol.
-
-**`Depends on:` grammar** (so the supervisor-mode scheduler —
-`loop-cohort schedule` — can read it). The field is a comma-separated list of:
-local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
-`spec:<name>/TN` for a dependency on another spec's task (e.g.
-`spec:auth-tokens/T7`). Parenthetical prose after the IDs is
-ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
-*spec-sequencing*, not intra-plan waves, and are excluded from this plan's
-DAG. The scheduler **fails on a dependency cycle** and **warns on a
-forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first). A `Depends on:` entry that
-names no task in the plan is refused: the run exits non-zero, every offending
-task→dep pair is named, and nothing is persisted.
-
-**Optional `Touches:` grammar** (read by `loop-cohort schedule`).
-A task *may* add a `**Touches:**` line listing the file globs it expects to
-touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
-trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
-`predicted-disjoint: yes|no|unknown` **before** dispatch — a cheap
-*serialize-only* screen. It **never greenlights** parallel: a predicted overlap
-serializes early, but `yes`/`unknown` still require the authoritative post-write
-`git merge-tree` check to actually parallelize (under-declaration is unsafe).
-The field is **optional** — omit it freely; a task with no `Touches:` makes its
-wave `unknown`, never an error.
-
-<!--
-Order matters — list tasks in the order they should be done. Mark
-dependencies inline. Format each task so a contributor (human or agent)
-could pick it up and complete it without follow-up questions:
-
-### T1: <task name>
-
-**Depends on:** <none | comma-separated prior task IDs>
+**Verification mode:** TDD
 
 **Tests:**
-- <test 1 — behaviour, edge case, or property; reference the Acceptance
-  Criterion from spec.md this step verifies, if any>
-- <test 2>
-<!-- For an already-grounded callable seam or coherent TDD task family, include
-     one compilable red contract-surface assertion (`stub: true`). It need not
-     encode the finished edge-case matrix. -->
+- **VI-1001.** Extend `packs/core/tests/pack/test_intent_delivery_relations.py` with a parameterized registered-prefix fixture whose `Kind` and `Level` differ. Compare its full expected direct relation with its legacy-path fixture (AC-0001).
+- **VI-1002.** Extend existing resolver and hostile-target suites for non-feature resolved provenance, research/notes paths, and each new prefix's malformed, unsafe, missing, and ambiguous values. Assert the existing diagnostic codes and result shape (AC-0002, AC-0003).
+- **VI-1003.** Drive the real close-work parent lookup in its owning suite with feature-level outcome fixtures for the two finding-response targets and a non-feature intent; compare before/after parent identities over the same widened resolver (AC-0004).
+- **VI-1004.** Run the current copy suite after source synchronization, extending its required set only when a consumer copy has actually landed (AC-0005).
 
-**Approach:** <omit this field unless the task carries an ordering or seam
-decision the two fields around it do not show>
-- <the decision, and why this way>
+**Approach:** The existing classifier is a grounded callable seam. Its concrete red fixture is added during work-loop PLAN; no production or test file is authored during spec review. Update resolver descriptions and the architecture page, and apply status-only supersession annotations to the frozen pair in this commit.
 
-**Done when:** <name a concrete observable — specific test green, gate
-  passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
-  an execution-evidence destination; use the verification ledger. Not "looks
-  good" or "feature works".>
+**Done when:** T1 resolver, closure-parent, and copy tests pass.
 
-### T2: <task name>
+### T2: Changed specs reject untyped or unresolved intent Discovery
 
-...
--->
+**Depends on:** T1
 
+**Verification mode:** TDD
+
+**Tests:**
+- **VI-2001.** Add Discovery fixtures to the shared check's `test_lint_graph_pointers.py`: canonical kinds, wrong kinds, retired/missing/duplicate targets, legacy paths, relative markdown links, bare live slugs, provenance paths, placeholders, and body-only edits in a disposable Git change (AC-0006, AC-0007, AC-0008).
+- **VI-2002.** Run the actual shared CLI on the field's valid and invalid fixture, observing diagnostic fields and repository-byte invariance. Invocation pins cover the field's reachability through the existing work-loop and CI call sites (AC-0008).
+
+**Done when:** T2 Discovery cases in the shared check suite pass.
+
+### T3: Writers emit typed intent pointers and the sweep preserves targets
+
+**Depends on:** T1, T2
+
+**Verification mode:** goal-based check
+
+**Tests:**
+- **VI-3001.** Record the derived source-writer inventory, and add construction pins in the shared authoring suite for changed instructions/templates. Pins distinguish registered intent kinds from repository-path research/notes examples (AC-0009).
+- **VI-3002.** Capture the current cohort manifest, compare each replacement's target identity, and assert unchanged nonselected headers and body bytes. Compare before/after relation sets through the widened resolver; exercise the missing-target stop on a fixture. Run the sweep twice and record the empty second diff (AC-0010, AC-0011).
+- **VI-3003.** Run the named guide structure/title/portable-reference checks after applying the draft to the contract guide (AC-0009; Durable Outputs).
+
+**Done when:** T3 authoring, migration, and edited-guide checks pass.
+
+### T4: Projected runtime and release checks pass
+
+**Depends on:** T1, T2, T3
+
+**Verification mode:** goal-based integration
+
+**Tests:**
+- **VI-4001.** Bump Core pack/plugin versions and any other changed pack's pair; add a free-standing release entry with Highlights. Run `agentbundle catalogue self-host --root . --write` and `agentbundle catalogue verify --root .` from live source (AC-0012; Durable Outputs).
+- **VI-4002.** Invoke the projected resolver and check on the typed outcome fixture, and run the changed shipped-text citation scan from `packs/AGENTS.local.md` (AC-0012).
+
+**Done when:** T4 projected invocation, release, and catalogue checks pass.
+
+## Slice verification
+
+Run the local lint gate and affected targeted suites before final review. Dispatch the full gates once on this slice PR; record run identifiers and results in the ledger. This evidence is separate from task completion. No `make ci` push precheck or full roster run occurs locally.
 
 ## Rollout
 
-<!--
-How this ships — the tenth design dimension, realized here rather than as a
-`## Design (LLD)` sub-heading (cross-linked from there, never duplicated). Cover
-the dimensions that apply; a pure-logic change with none of them says so in one
-line.
-
-- **Delivery:** behind a flag? big bang? gradual / canary? Reversible — what is
-  the rollback, and what's irreversible (a data migration, a published event)?
-- **Infrastructure:** new or changed infra this needs (compute, storage, queues,
-  network, secrets, IAM) and how it's provisioned.
-- **External-system integration:** third-party or sibling-service dependencies
-  that must be live, migrated, or version-matched before this can ship.
-- **Deployment sequencing:** the order steps must ship in when one depends on
-  another — schema migration before the code that reads it, consumer before
-  producer, dark-launch before cutover. This is the dimension with no other home.
--->
+The Core patch release delivers the resolver before any newly typed writers or corpus headers become active, in the same slice PR. Each slice lands on the default branch. If navigator code lands later, its branch refresh owns taking this resolver version and updating the copy pin. Rollback restores this slice's source, preamble rewrites, and release changes together; the legacy forms remain readable throughout.
 
 ## Risks
 
-<!--
-What could go wrong during implementation (vs. risks of the design itself,
-which belong in the spec)? Things like: "this migration is online and could
-slow the database", "this changes a behavior X teams depend on".
--->
+- A fixed migration count misses pointers added after authoring. The cohort is derived after rebase and recorded explicitly.
+- A missing copy can make typed authoring break only one install path. The landing-time copy test owns the required set.
+- Slice branch creation and the pre-build rebase require Git metadata write access.
 
 ## Changelog
 
-<!--
-Approvals, and nothing else. Drafting history does not belong here: while the
-plan is `Drafting` its current text is the only version anyone acts on, so a
-dated account of how it got there is the draft narration `spec.md`'s
-present-tense rule already refuses, one document over. After approval this
-section is pinned like the rest of the plan, and an execution observation goes
-to the verification ledger, not to a new changelog entry.
-
-**Each approval is an entry.** The two forms are given at the end of this
-note — one per gate, a real date, the approver's own handle. Both live here
-because the plan carries the only dated history in the spec directory. Without them nothing in the artifacts says when
-the contract froze or on whose authority, so a later reader cannot tell which
-claims were in it at approval and which arrived afterwards. `work-loop`'s
-G-plan sequence owns *when* each is written and why the order matters; this
-template owns only the form.
-
-- YYYY-MM-DD: spec approved by <handle>
-- YYYY-MM-DD: plan approved by <handle>
--->
+- 2026-10-08: spec and plan approved together by the repository owner, conditional on the final alignment check passing; that check passed with zero findings across both slices. Both shaping findings are refuted by the replacement adjudication; adversarial round 1 is clean. Reports are under `.context/reviews/f7835c64-6659-4e9a-9317-f7b345bb3a39/`.
+- Approved reviewed revisions, before lifecycle-only approval annotations: spec SHA-256 `fd033ddf6f139b13a3d10d21f5d561e8b4ad941da83ee922e071f40ce0924586`; plan SHA-256 `cb3ba2fd580cf17d193c62d0454b993eda4323ab7bfae4cdd32df0d1ad37a966`.

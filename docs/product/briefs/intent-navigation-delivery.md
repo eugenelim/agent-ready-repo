@@ -4,20 +4,21 @@
 - **Received:** 2026-10-08
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Ready
-- **Ready confirmed:** 2026-10-08 by eugenelim, lifecycle owner, on a delivery-brief shaping review with no blocking findings at revision `29c64f87160f2ec3`.
-- **Slices confirmed:** 2026-10-08 by eugenelim, lifecycle owner: slices 1 to 7, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change.
+- **Ready confirmed:** 2026-10-08 by the repository owner, after a clean independent delivery-brief shaping review of revision `481476b67b4971e4a8161c414f2980339bda90fb`. Review evidence: `.context/reviews/c701093f-3a4c-4acb-9c5b-ea9268ab7ea8/2-shaping-reviewer-raw.md`.
+- **Slices confirmed:** 2026-10-08 by the repository owner: slices 1 to 8, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0002-intent-graph-navigation.md`](../intents/FEAT-0002-intent-graph-navigation.md), re-decomposed to this brief by the owner on 2026-10-08.
 - **Parent intent:** intent:intent-graph-navigation
 
 ## Outcome
 
-A maintainer or agent can see every outstanding intent, brief, and spec that exists as an artifact, placed under its parent intent, and can walk the intent tree by altitude, parent, related edge, delivery mapping, and recorded state. Every answer is derived from preamble headers when it is asked, so no registry has to be kept in step and nothing is written into the repository. This is the read-only orientation surface that lets `workspace.toml` stop being the place where artifact-backed outstanding work is found. New artifacts record their graph pointers in a form the navigator resolves.
+A maintainer or agent can see every outstanding intent, brief, and spec that exists as an artifact, placed under its parent intent, walk the intent tree, and see which intents depend on which others. Every answer is derived from preamble headers when it is asked, so no registry has to be kept in step and nothing is written into the repository. The views show altitude, parent, related edges, dependencies, delivery mapping, and recorded state. This is the read-only orientation surface that lets `workspace.toml` stop being the place where artifact-backed outstanding work is found. New artifacts record their graph pointers in a form the navigator resolves.
 
 ## Success metrics (optional)
 
 - Every intent, brief, and spec whose own `Status:` is not terminal appears in the outstanding-work view, and no terminal one or template file does.
 - `close-work` reaches the same parents as the navigator, through a parity-checked copy of the same derivation.
 - No answer depends on `workspace.toml`.
+- An intent dependency is shown with its direction and source field, separately from parent and related edges; invalid pointers and cycles are visible rather than omitted.
 
 ## Scope / Non-goals
 
@@ -30,11 +31,12 @@ A maintainer or agent can see every outstanding intent, brief, and spec that exi
 - An optional `Related intents:` intent preamble field, its validation, and its display.
 - An on-demand, self-contained offline HTML view written outside the repository.
 - Bringing `lint-traceability`'s intent ladder classification to the navigator's preamble-only reading, with a parity check between the two.
+- Read-only intent dependency graphs derived from intent-valued `Depends on:` preamble pointers, exposed through the bounded query, plain-text output, and offline HTML view.
 
 **Non-goals:**
 
 - Retiring `workspace-status` or `workspace.toml`, or changing any registration rule. That belongs to [FEAT-0034](../intents/FEAT-0034-workspace-registry-retirement.md).
-- The three registry facts the headers cannot supply: captured items with no artifact of their own, `needs` dependency edges, and queue order. FEAT-0034 decides where they go.
+- Captured items with no artifact of their own, queue order, dependency enforcement, and migration of workspace `needs` edges. FEAT-0034 owns their disposition under RFC-0106 D3. Slice 8 displays recorded intent dependencies without deciding dispatch readiness or replacing the blocking reader.
 - `navigate-intents` writing to any intent, brief, spec, or coordination record.
 - Owning or inferring the typed intent-to-delivery mapping, which stays with FEAT-0003's resolver. Slice 7 only widens the `Discovery:` forms that resolver admits, through its contract's amendment path.
 - Changing the typed reference grammar, intent identity, or any status vocabulary. The brief applies an accepted grammar decision; it never makes one.
@@ -47,6 +49,7 @@ A maintainer or agent can see every outstanding intent, brief, and spec that exi
 - Publication: no `core` release publishes `navigate-intents` until slices 1, 3, and 4 have merged, because RFC-0105 D1 and D4 require a published navigator to cover related edges and to emit the offline view, and its § Experiment requires those tests to have run. The mechanism, by owner decision on 2026-10-08, is the `feature/intent-navigation` integration branch: slices 1, 3, and 4 merge into it, and the slice 4 spec owns merging it to the default branch. Slices 2 and 6 merge into `feature/intent-navigation` while it is still open, and to the default branch once slice 4 has merged it. Slices 5 and 7 merge to the default branch. Before slice 4 merges the integration branch, that branch is rebased onto the default branch, and the `navigate-intents` copy of the resolver is refreshed to the default branch's resolver version in that rebase, so every pinned copy matches.
 - `close-work` verdict changes: the slice 2 spec carries, as its bound on which verdicts may change, the two causes FEAT-0002's 2026-10-07 owner Amendment accepts, measured against a baseline taken after the `[core][2.30.1]` repair.
 - Appetite: each slice is sized for one spec and one review loop. A slice that cannot reach a clean spec-mode shaping review in three rounds is cut further, not grown.
+- Slice 8 follows slices 1 and 4 and merges straight to the default branch after the initial navigator release. It does not add a publication prerequisite to slices 1, 3, and 4. Its spec owns the explicit amendments needed to extend the navigator's admitted fields, query contract, and export coverage; the existing slice specs are not silently broadened.
 
 ## Assumptions / Risks
 
@@ -56,6 +59,7 @@ A maintainer or agent can see every outstanding intent, brief, and spec that exi
 - **The resolver reads a brief's `Parent intent:` by its own rules.** It records a parent only when the target is a feature intent, merges values by slug, skips any value starting `none`, and does not hide multi-line comment regions. A navigator that shows brief parents must state where it matches those rules and where it does not.
 - **The resolver neither lists every spec nor carries its `Status:`.** It names only specs that a relation, provenance record, or diagnostic touches.
 - **The seeded brief template ships to adopters.** `packs/core/seeds/docs/product/briefs/_template.md` carries `Status: Draft` and placeholder values, and must not be counted as outstanding work.
+- **Header coverage differs from workspace coverage.** RFC-0106 D3 gives dependencies a typed `Depends on:` preamble home, but its migration belongs to FEAT-0034. Slice 8 reports only dependencies recorded in those headers and states that scope; it cannot claim to show every workspace dependency before migration.
 
 ## Rabbit holes (optional)
 
@@ -94,6 +98,13 @@ A maintainer or agent can see every outstanding intent, brief, and spec that exi
    - The skills that write `Discovery:` emit the typed form; the forward check refuses an untyped intent-valued `Discovery:`, or one naming no live intent, in a new or changed spec; and the untyped legacy values are swept once. Slices 5 and 7 share one forward check with a rule per field: whichever lands first creates it, and the other adds its field's rule.
    - It reconciles two components, the resolver and the writers, as one outcome. That is a deliberate exception to the one-component rule in Rabbit holes: the resolver change is a single classifier branch that exists only to serve these writers.
    - It needs no other slice.
+8. **`intent-dependency-graphs`.**
+   - A maintainer or agent can see which intents a selected intent depends on, and which intents depend on it, as a directed graph in the bounded JSON query, a readable dependency listing in plain text, and the self-contained offline HTML view.
+   - Read `Depends on:` only from intent preambles, with RFC-0106 D3's comma-separated RFC-0103 typed references as the canonical form. The read-only view also accepts legacy repository paths to intents, as confirmed by the owner at slice 8's assumption checkpoint. An intent-to-intent edge points from the waiting intent to its prerequisite. Parent edges and `Related intents:` remain distinct and never imply dependencies.
+   - Resolve intent targets by their registered kind and slug. Show each edge's source field and pointer trust. Malformed, missing, retired, or wrong-kind intent targets, self-dependencies, and dependency cycles are visible diagnostics, not silently dropped or reported as a complete acyclic graph. Non-intent dependencies are identified as outside this view's scope, not converted into intent edges.
+   - The slice's spec defines the dependency query and traversal bounds, cycle diagnostics, and compatible amendments to the navigator and export contracts. The view supports selecting an intent and following prerequisites or dependents, distinguishes dependency arrows from other relationships, and provides keyboard-accessible text equivalents in the offline view. It retains the navigator's confinement, inert-content, read-only, and no-network boundaries.
+   - It reads no workspace `needs` entries, migrates no dependency records, and decides no scheduling, readiness, or closure outcome. FEAT-0034 retains the enforcing reader and migration; this slice owns the read-only presentation.
+   - It needs slices 1 and 4, ships as a later navigator enhancement, and merges straight to the default branch. It does not change slices 5 or 7.
 
 ## Spec map
 
@@ -108,12 +119,13 @@ The Status column is derived from each spec; it is not hand-edited.
 | `graph-well-formed-authoring` | <auto> |
 | `lint-traceability-intent-parity` | <auto> |
 | `typed-discovery-pointers` | <auto> |
+| `intent-dependency-graphs` | <auto> |
 
 ## Governance references (optional)
 
 - [RFC-0105](../../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md) — artifact-derived navigation and gated workspace retirement.
 - [RFC-0103](../../rfc/0103-cross-artifact-reference-grammar.md) — the typed reference grammar that slices 5 and 7 enforce: `Parent intent:` and `Brief:` in slice 5, and intent-valued `Discovery:` in slice 7, through its 2026-10-08 errata entry.
-- [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) — types intent-valued `Discovery:` (D2) and retires registration per responsibility (D1).
+- [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) — types intent-valued `Discovery:` (D2), retires registration per responsibility (D1), and gives dependencies the typed `Depends on:` preamble home consumed by slice 8 (D3).
 - [The intent-delivery-traceability contract](../../specs/intent-delivery-traceability/spec.md) — the delivery resolver whose mapping slice 1 displays, and whose admitted `Discovery:` forms slice 7 widens.
 - [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md) — an index is generated or absent.
 - [ADR-0007](../../adr/0007-ship-doc-drift-lint-as-work-loop-skill-script.md) — agent-invoked skill scripts.
