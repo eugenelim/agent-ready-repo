@@ -68,11 +68,16 @@ def _skip_if_module_absent() -> None:
 
 
 def _stripped(result: dict) -> dict:  # type: ignore[type-arg]
-    """Return result with generated_at stripped from provenance."""
+    """Return result with generated_at and root stripped from provenance.
+
+    root varies between temp-dir corpora and the fixture corpus.
+    generated_at is time-dependent.
+    """
     import copy
     r = copy.deepcopy(result)
     prov = r.get("provenance", {})
     prov.pop("generated_at", None)
+    prov.pop("root", None)
     r["provenance"] = prov
     return r
 

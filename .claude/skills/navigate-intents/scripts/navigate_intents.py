@@ -74,6 +74,7 @@ _UNSAFE_CHARS: frozenset[str] = frozenset(
     "⁠⁡⁢⁣⁤"
     "﻿"
     + "".join(chr(c) for c in range(0x09))        # NUL .. BS
+    + "\x09"                                       # TAB (U+0009)
     + "".join(chr(c) for c in range(0x0B, 0x0D))  # VT FF
     + "".join(chr(c) for c in range(0x0E, 0x20))  # SO .. US
     + "".join(chr(c) for c in range(0x7F, 0xA0))  # DEL and C1 controls
@@ -251,6 +252,7 @@ def _provenance(root: Path, graph: dict[str, Any] | None) -> dict[str, Any]:
     else:
         counts = {"intents": None, "briefs": None, "specs": None}
     return {
+        "root": str(root),
         "generated_at": _dt.datetime.now(tz=_UTC).isoformat(),
         "counts": counts,
         "untrusted_data": _UNTRUSTED_DATA,
@@ -340,18 +342,21 @@ def _delivery_field_from_snap(snap: dict[str, Any]) -> dict[str, Any]:
     return {"available": False, "reason": "unsafe", "limit": None}
 
 
-def _delivery_by_intent_slug(snap: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
-    """Build a map from intent slug to delivery relations (with ``delivery_contract`` class).
+def _delivery_by_intent_id(snap: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Build a map from intent node id to delivery relations (with ``delivery_contract`` class).
 
-    Returns an empty dict when the snapshot is incomplete.
+    The resolver writes the ``intent`` field as the full node id (e.g.
+    ``"intent:bravo-feat"``).  The map is keyed by that id so callers look
+    up by ``node["id"]``, not by bare slug.  Returns an empty dict when the
+    snapshot is incomplete.
     """
     result: dict[str, list[dict[str, Any]]] = {}
     if not snap.get("complete"):
         return result
     for rel in snap.get("relations", []):
-        intent_slug = rel.get("intent", "")
+        intent_node_id = rel.get("intent", "")
         rel_with_trust: dict[str, Any] = {**rel, "trust_class": "delivery_contract"}
-        result.setdefault(intent_slug, []).append(rel_with_trust)
+        result.setdefault(intent_node_id, []).append(rel_with_trust)
     return result
 
 
@@ -785,7 +790,7 @@ def _op_summary(
 def _build_intent_record(
     node: dict[str, Any],
     graph: dict[str, Any],
-    delivery_by_slug: dict[str, list[dict[str, Any]]],
+    delivery_by_id: dict[str, list[dict[str, Any]]],
     children_map: dict[str, list[str]],
     briefs_by_parent: dict[str, list[str]],
     specs_by_discovery: dict[str, list[str]],
@@ -793,7 +798,6 @@ def _build_intent_record(
 ) -> dict[str, Any]:
     """Build the full record dict for a single intent node."""
     node_id = node["id"]
-    slug = node.get("slug", "")
 
     # Parent edge for this intent
     parent_edge = parent_edges.get(node_id)
@@ -807,13 +811,13 @@ def _build_intent_record(
     # Specs placed under this intent via Discovery:
     specs_via_disc = sorted(specs_by_discovery.get(node_id, []))
 
-    # Specs placed via delivery resolver (cross-reference by slug)
-    delivery_rels = delivery_by_slug.get(slug, [])
+    # Delivery relations keyed by full node id (e.g. "intent:bravo-feat")
+    delivery_rels = delivery_by_id.get(node_id, [])
 
     return {
         "id": node_id,
         "path": node.get("path", ""),
-        "level": node.get("level") or "",
+        "level": node.get("level") or "unrecorded",
         "kind": node.get("kind") or "",
         "status": node.get("status") or "",
         "parent_edge": parent_edge,
@@ -841,14 +845,14 @@ def _op_record(
             "_message": f"ordinal {identity!r} matches multiple intents",
         }
 
-    delivery_by_slug = _delivery_by_intent_slug(delivery_snap)
+    delivery_by_id = _delivery_by_intent_id(delivery_snap)
     children_map = _children_by_parent(graph)
     briefs_by_parent = _briefs_by_parent_intent(graph)
     specs_by_disc = _specs_by_discovery_intent(graph)
     parent_edges = _parent_edges_by_from(graph)
 
     record = _build_intent_record(
-        match, graph, delivery_by_slug, children_map,
+        match, graph, delivery_by_id, children_map,
         briefs_by_parent, specs_by_disc, parent_edges,
     )
     return {"record": record}
@@ -889,8 +893,13 @@ def _op_ancestors(
         seen.add(current_id)
         edge = parent_edges.get(current_id)
         if edge is None:
+            # current_id is the root: no parent edge; add it and stop.
+            if node_by_id.get(current_id) is not None:
+                chain.append({"id": current_id, "parent_edge": None})
             break
         if "to" not in edge or "state" in edge:
+            # current_id has a refused/missing parent edge; add it and stop.
+            chain.append({"id": current_id, "parent_edge": None})
             break
         chain_item: dict[str, Any] = {
             "id": current_id,
@@ -898,16 +907,6 @@ def _op_ancestors(
         }
         chain.append(chain_item)
         current_id = edge["to"]
-
-    # Add the terminal node (no more resolved parent)
-    if current_id is not None and current_id not in seen:
-        seen.add(current_id)
-        terminal_node = node_by_id.get(current_id)
-        if terminal_node is not None:
-            chain.append({"id": current_id, "parent_edge": None})
-    elif current_id is not None and current_id in seen and chain:
-        # We stopped because of a cycle (but cycle detection in derivation should prevent this)
-        pass
 
     # Build full result for limit checking
     intent_entries: list[dict[str, Any]] = []
@@ -951,7 +950,7 @@ def _op_tree(
     node_by_id = {n["id"]: n for n in intent_list}
     parent_edges = _parent_edges_by_from(graph)
     children_map = _children_by_parent(graph)
-    delivery_by_slug = _delivery_by_intent_slug(delivery_snap)
+    delivery_by_id = _delivery_by_intent_id(delivery_snap)
 
     start_node: dict[str, Any] | None = None
     if identity is not None:
@@ -988,14 +987,13 @@ def _op_tree(
 
     intent_entries: list[dict[str, Any]] = []
     for node in tree_intents:
-        slug = node.get("slug", "")
         entry: dict[str, Any] = {
             "id": node["id"],
-            "level": node.get("level") or "",
+            "level": node.get("level") or "unrecorded",
             "kind": node.get("kind") or "",
             "status": node.get("status") or "",
             "parent_edge": parent_edges.get(node["id"]),
-            "delivery_relations": delivery_by_slug.get(slug, []),
+            "delivery_relations": delivery_by_id.get(node["id"], []),
         }
         intent_entries.append(entry)
 
@@ -1036,6 +1034,20 @@ def _op_search(
             + ", ".join(sorted(_VALID_SELECTORS)),
         ), 1
 
+    # Validate selector value types before any use (finding 18).
+    for _sel_key, _sel_val in selectors.items():
+        if _sel_key == "parentless":
+            if not isinstance(_sel_val, bool):
+                return _error_response(
+                    env, "invalid_selector",
+                    f"selector 'parentless' must be a boolean; got {type(_sel_val).__name__!r}",
+                ), 1
+        elif not isinstance(_sel_val, str):
+            return _error_response(
+                env, "invalid_selector",
+                f"selector {_sel_key!r} must be a string; got {type(_sel_val).__name__!r}",
+            ), 1
+
     intent_list = _intent_nodes(graph)
     parent_edges = _parent_edges_by_from(graph)
 
@@ -1059,7 +1071,8 @@ def _op_search(
         if "text" in selectors:
             text_lower = selectors["text"].lower()
             slug = (node.get("slug") or "").lower()
-            if text_lower not in slug:
+            heading = (node.get("heading") or "").lower()
+            if text_lower not in slug and text_lower not in heading:
                 return False
         return True
 
@@ -1072,7 +1085,7 @@ def _op_search(
     for node in matching:
         entry: dict[str, Any] = {
             "id": node["id"],
-            "level": node.get("level") or "",
+            "level": node.get("level") or "unrecorded",
             "kind": node.get("kind") or "",
             "status": node.get("status") or "",
             "parent_edge": parent_edges.get(node["id"]),
@@ -1115,13 +1128,34 @@ def _build_resolved_parent_map(graph: dict[str, Any]) -> dict[str, str]:
 
 
 def _build_parent_edge_map(graph: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    """Map each intent/brief node id to its ``Parent intent`` edge (resolved or refused)."""
+    """Map each intent/brief node id to its first ``Parent intent`` edge.
+
+    For intent nodes a single edge is always sufficient.  Brief nodes may have
+    additional refused edges; use :func:`_build_all_parent_edges_map` to
+    retrieve all of them for the outstanding view.
+    """
     result: dict[str, dict[str, Any]] = {}
     for edge in graph["edges"]:
         if edge.get("field") == "Parent intent":
             from_id = edge.get("from", "")
             if from_id not in result:
                 result[from_id] = edge
+    return result
+
+
+def _build_all_parent_edges_map(
+    graph: dict[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
+    """Map each node id to ALL its ``Parent intent`` edges (resolved and refused).
+
+    Used for the outstanding view of briefs, which may carry multiple refused
+    edges alongside a resolved one.
+    """
+    result: dict[str, list[dict[str, Any]]] = {}
+    for edge in graph["edges"]:
+        if edge.get("field") == "Parent intent":
+            from_id = edge.get("from", "")
+            result.setdefault(from_id, []).append(edge)
     return result
 
 
@@ -1134,8 +1168,8 @@ def _build_ancestor_chain(
     """Walk up the resolved parent chain from *start_id*.
 
     Returns a list of ``{"id": ..., "terminal": bool}`` entries, nearest first.
-    Terminates at the first terminal ancestor (included) or when no resolved
-    parent exists.
+    Each placement continues to a root; terminal ancestors are included and
+    marked ``terminal`` rather than stopping the walk.
     """
     chain: list[dict[str, Any]] = []
     seen = {start_id}
@@ -1150,8 +1184,7 @@ def _build_ancestor_chain(
             break
         is_terminal = terminality_mod.is_node_terminal(parent_node)
         chain.append({"id": parent_id, "terminal": is_terminal})
-        if is_terminal:
-            break
+        # Keep walking past terminal ancestors.
         current = parent_id
     return chain
 
@@ -1200,6 +1233,7 @@ def _build_outstanding_items(
     }
     resolved_parent_map = _build_resolved_parent_map(graph)
     parent_edge_map = _build_parent_edge_map(graph)
+    all_parent_edges_map = _build_all_parent_edges_map(graph)
 
     # Spec edges indexed by spec id → list of (field_name, edge) pairs
     spec_edge_map: dict[str, list[tuple[str, dict[str, Any]]]] = {}
@@ -1218,16 +1252,25 @@ def _build_outstanding_items(
 
         if node_type in ("intent", "brief"):
             parent_edge = parent_edge_map.get(node_id)
-            # No edge at all (none parent) → not in no_parent group.
+            # No edge at all (no Parent intent: or none value) → in no_parent group.
             # Refused edge → in no_parent group.
-            if parent_edge is not None:
+            # Only a resolved edge means the item is placed.
+            if parent_edge is not None and "to" in parent_edge and "state" not in parent_edge:
                 ancestors = _build_ancestor_chain(
                     node_id, resolved_parent_map, node_by_id, terminality_mod
                 )
-                in_no_parent = "state" in parent_edge
+                in_no_parent = False
             else:
                 ancestors = []
-                in_no_parent = False
+                in_no_parent = True
+
+            # Collect all refused parent edges for briefs (finding 20).
+            refused_parent_edges: list[dict[str, Any]] = []
+            if node_type == "brief":
+                refused_parent_edges = [
+                    e for e in all_parent_edges_map.get(node_id, [])
+                    if "state" in e
+                ]
 
             item: dict[str, Any] = {
                 "id": node_id,
@@ -1240,6 +1283,8 @@ def _build_outstanding_items(
             if node_type == "intent":
                 item["level"] = node.get("level", "") or ""
                 item["kind"] = node.get("kind", "") or ""
+            if node_type == "brief" and refused_parent_edges:
+                item["refused_parent_edges"] = refused_parent_edges
             items.append(item)
 
         elif node_type == "spec":
@@ -1381,7 +1426,8 @@ def _build_outstanding_text(
     """Build the text-format output for the outstanding operation.
 
     Placed items (resolved parent chain) come first as a tree, then the
-    ``(no parent)`` group.  Children within each parent are sorted by node id.
+    ``(no parent)`` group at depth 0, with its items at depth 1.
+    Children within each parent are sorted by node id.
     A spec placed by both Brief: and Discovery: appears in both places.
     """
     lines: list[str] = []
@@ -1390,12 +1436,8 @@ def _build_outstanding_text(
     placed_items = [it for it in items if not it.get("_in_no_parent")]
     no_parent_items = [it for it in items if it.get("_in_no_parent")]
 
-    # Build child maps for the placed tree.
-    # For intents and briefs: map parent_id -> sorted list of child items.
-    # For specs: they appear under their placement parents.
-    # A single item can appear under multiple parents (specs with two placements).
-
     # Map: parent_id -> list of (child_item, placement_or_None)
+    # Built from all items so that children of no_parent items are found.
     children_of: dict[str, list[tuple[dict[str, Any], Any]]] = {}
 
     for item in placed_items:
@@ -1405,7 +1447,6 @@ def _build_outstanding_text(
             if pe is not None and "to" in pe and "state" not in pe:
                 parent_id = pe["to"]
                 children_of.setdefault(parent_id, []).append((item, None))
-            # else: no resolved parent → root
         elif item_type == "spec":
             for placement in item.get("placements", []):
                 if placement.get("_in_no_parent"):
@@ -1419,9 +1460,7 @@ def _build_outstanding_text(
     for parent_id in children_of:
         children_of[parent_id].sort(key=lambda pair: pair[0]["id"])
 
-    # Root intents/briefs: those with no parent edge or whose parent is
-    # not tracked (none/empty parent). A placed item is a root if it has no
-    # parent_edge (or parent_edge has no "to") and is not a child of anything.
+    # Root placed items: placed items that are not children of any other item.
     all_children_ids: set[str] = set()
     for child_list in children_of.values():
         for child_item, _ in child_list:
@@ -1431,18 +1470,15 @@ def _build_outstanding_text(
         [
             it for it in placed_items
             if it.get("type") in ("intent", "brief")
-            and (
-                it.get("parent_edge") is None
-                or "to" not in it.get("parent_edge", {})
-                or it["id"] not in all_children_ids
-            )
+            and it["id"] not in all_children_ids
         ],
         key=lambda it: it["id"],
     )
 
-    rendered: set[tuple[str, str]] = set()  # (item_id, parent_context) to avoid infinite loops
+    rendered: set[tuple[str, str]] = set()  # (item_id, parent_context) to avoid loops
 
     def _render_item(item: dict[str, Any], depth: int, placement: Any = None) -> None:
+        """Render one outstanding item and its subtree at *depth*."""
         item_id = item["id"]
         item_type = item.get("type", "")
         status = item.get("status", "")
@@ -1456,8 +1492,26 @@ def _build_outstanding_text(
                 parts += [" · ", kind_display]
             parts += [" · ", _escape_display(status)]
             lines.append("".join(parts))
+            # Show refused parent edge (e.g. cycle, dangling).
+            pe = item.get("parent_edge")
+            if pe and "state" in pe:
+                lines.append(_refused_edge_text_line(pe, depth + 1))
         elif item_type in ("brief", "spec"):
             lines.append(_outstanding_text_line_brief_or_spec(item_id, status, depth))
+            if item_type == "brief":
+                # Show all refused parent edges (finding 20).
+                for rpe in item.get("refused_parent_edges", []):
+                    lines.append(_refused_edge_text_line(rpe, depth + 1))
+                # Also show refused edge from parent_edge if no refused_parent_edges list
+                if not item.get("refused_parent_edges"):
+                    pe = item.get("parent_edge")
+                    if pe and "state" in pe:
+                        lines.append(_refused_edge_text_line(pe, depth + 1))
+            elif item_type == "spec":
+                for pl in item.get("placements", []):
+                    spe = pl.get("parent_edge")
+                    if spe and "state" in spe:
+                        lines.append(_refused_edge_text_line(spe, depth + 1))
 
         # Render children sorted by id.
         child_list = sorted(
@@ -1477,59 +1531,18 @@ def _build_outstanding_text(
             rendered.add(context_key)
             _render_item(root, 0)
 
-    # No-parent group: items with refused or missing parent edges.
+    # No-parent group comes last.  Each no_parent item is rendered
+    # at depth 1 so its children appear at depth 2, and so on.
     if no_parent_items:
         lines.append("(no parent)")
         sorted_np = sorted(no_parent_items, key=lambda it: it["id"])
         for item in sorted_np:
-            item_type = item.get("type", "")
-            status = item.get("status", "")
-            if item_type == "intent":
-                raw_level = item.get("level", "") or ""
-                level_display = _escape_display(raw_level) if raw_level else "unrecorded"
-                kind_display = _escape_display(item.get("kind", "") or "")
-                parts = ["  ", item["id"], " · ", level_display]
-                if kind_display:
-                    parts += [" · ", kind_display]
-                parts += [" · ", _escape_display(status)]
-                lines.append("".join(parts))
-                # Show refused edge
-                pe = item.get("parent_edge")
-                if pe and "state" in pe:
-                    lines.append(f"    ! refused {pe['state']}")
-            elif item_type in ("brief", "spec"):
-                lines.append(_outstanding_text_line_brief_or_spec(item["id"], status, 1))
-                # Show refused edge for briefs
-                if item_type == "brief":
-                    pe = item.get("parent_edge")
-                    if pe and "state" in pe:
-                        lines.append(f"    ! refused {pe['state']}")
-                else:
-                    # Spec: show refused placement edges
-                    for placement in item.get("placements", []):
-                        pe = placement.get("parent_edge")
-                        if pe and "state" in pe:
-                            lines.append(f"    ! refused {pe['state']}")
-            # Render children of no_parent items (e.g. cycle-b under cycle-a)
-            child_list = sorted(
-                children_of.get(item["id"], []),
-                key=lambda pair: pair[0]["id"],
-            )
-            for child_item, child_placement in child_list:
-                context_key = (child_item["id"], item["id"] + ":np")
-                if context_key not in rendered:
-                    rendered.add(context_key)
-                    _render_item_np_child(child_item, 2, child_placement)
+            context_key = (item["id"], "(no parent)")
+            if context_key not in rendered:
+                rendered.add(context_key)
+                _render_item(item, 1)
 
     return "\n".join(lines)
-
-
-def _render_item_np_child(
-    item: dict[str, Any],
-    depth: int,
-    placement: Any,
-) -> None:
-    """Stub — rendering children of no_parent items is handled inline."""
 
 
 def _op_outstanding(
@@ -1591,8 +1604,9 @@ def _op_outstanding(
             ]
         return cleaned
 
-    clean_items = [_clean_item(it) for it in items]
-    full_result = _ok_response(env, delivery_field, items=clean_items)
+    placed = [_clean_item(it) for it in items if not it.get("_in_no_parent")]
+    no_parent = [_clean_item(it) for it in items if it.get("_in_no_parent")]
+    full_result = _ok_response(env, delivery_field, placed=placed, no_parent=no_parent)
 
     compact = json.dumps(full_result, separators=(",", ":"), ensure_ascii=False)
     byte_count = len(compact.encode("utf-8"))

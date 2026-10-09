@@ -224,6 +224,12 @@ def test_negative_fixture_dirs_exist() -> None:
         "no_decomposed",
         "spec_route",
         "two_briefs",
+        # Added for findings 6, 7, 9, 10, 11.
+        "duplicate_slug",
+        "heading_search",
+        "norm_order",
+        "intent_parent_out_of_type",
+        "spec_brief_multiple_values",
     ]
     for name in required:
         d = _FIXTURE_NEG / name
@@ -655,3 +661,192 @@ def test_derive_intent_parent_path_to_tombstone_is_retired_target(  # AC-0007
     assert retired[0].get("reissued_as") == "intent:live-intent", (
         f"retired_target edge must carry reissued_as from tombstone; got: {retired[0]}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Finding-provenance tests (findings 6, 7, 9, 10, 11, 17, 19)
+# ---------------------------------------------------------------------------
+
+
+def test_derive_duplicate_slug_raises_duplicate_identity(  # finding 6, AC-0001
+) -> None:
+    """Two live intents sharing a Slug: raise duplicate_identity (AC-0001)."""
+    _skip_if_module_absent()
+    with pytest.raises(Exception) as exc_info:
+        ig.derive(_FIXTURE_NEG / "duplicate_slug")  # type: ignore[union-attr]
+    exc = exc_info.value
+    assert hasattr(exc, "code"), f"exception must carry .code; got: {exc}"
+    assert exc.code == "duplicate_identity", (
+        f"expected duplicate_identity for shared slug; got: {exc.code}"
+    )
+
+
+def test_negative_fixture_dirs_have_duplicate_slug() -> None:
+    """duplicate_slug/ fixture has two intents with the same Slug: value."""
+    intents_dir = _FIXTURE_NEG / "duplicate_slug" / "docs" / "product" / "intents"
+    assert intents_dir.is_dir(), f"missing: {intents_dir}"
+    slugs: list[str] = []
+    for p in sorted(intents_dir.iterdir()):
+        if not p.is_file():
+            continue
+        text = p.read_text(encoding="utf-8")
+        for line in text.splitlines():
+            if "**Slug:**" in line:
+                # Extract slug value between backticks.
+                start = line.find("`") + 1
+                end = line.rfind("`")
+                if start < end:
+                    slugs.append(line[start:end])
+    assert len(slugs) >= 2, "duplicate_slug/ must have at least two intent files with Slug:"
+    assert len(slugs) != len(set(slugs)), (
+        "duplicate_slug/ must have at least two intents sharing the same Slug: value"
+    )
+
+
+def test_derive_intent_node_records_first_h1_heading(  # finding 7, AC-0015
+) -> None:
+    """Intent nodes carry a heading field matching the first '# ' line (AC-0015)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_NEG / "heading_search")  # type: ignore[union-attr]
+    nodes = {n["id"]: n for n in result["nodes"]}
+    node = nodes.get("intent:heading-only")
+    assert node is not None, "intent:heading-only must be in nodes"
+    heading = node.get("heading", "")
+    assert "Zephyr" in heading, (
+        f"intent node must record heading from '# ' line; got: {heading!r}"
+    )
+
+
+def test_derive_norm_order_backtick_suffix_gets_correct_id(  # finding 9, AC-0004
+) -> None:
+    """Kind: `outcome` (rung) produces node id outcome:… not intent:… (AC-0004)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_NEG / "norm_order")  # type: ignore[union-attr]
+    node_ids = {n["id"] for n in result["nodes"]}
+    assert "outcome:backtick-suffix" in node_ids, (
+        "AC-0004 normalization: Kind: `outcome` (rung) must produce outcome:backtick-suffix; "
+        f"got ids: {sorted(node_ids)}"
+    )
+    assert "intent:backtick-suffix" not in node_ids, (
+        "Kind: `outcome` (rung) must NOT produce intent:backtick-suffix (old buggy id)"
+    )
+
+
+def test_derive_intent_parent_brief_prefix_is_out_of_type(  # finding 10, AC-0007, AC-0071
+) -> None:
+    """brief: prefix in intent Parent intent: is form=typed, state=out_of_type (AC-0007, AC-0071)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_NEG / "intent_parent_out_of_type")  # type: ignore[union-attr]
+    edges = [
+        e for e in result["edges"]
+        if e.get("from") == "intent:out-of-type-brief"
+        and e.get("field") == "Parent intent"
+    ]
+    assert edges, "intent:out-of-type-brief must have a Parent intent: edge"
+    e = edges[0]
+    assert e.get("form") == "typed", (
+        f"brief: prefix must have form=typed; got form={e.get('form')!r}"
+    )
+    assert e.get("state") == "out_of_type", (
+        f"brief: prefix must have state=out_of_type; got state={e.get('state')!r}"
+    )
+
+
+def test_derive_intent_parent_spec_prefix_is_out_of_type(  # finding 10, AC-0007, AC-0071
+) -> None:
+    """spec: prefix in intent Parent intent: is form=typed, state=out_of_type (AC-0007, AC-0071)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_NEG / "intent_parent_out_of_type")  # type: ignore[union-attr]
+    edges = [
+        e for e in result["edges"]
+        if e.get("from") == "intent:out-of-type-spec"
+        and e.get("field") == "Parent intent"
+    ]
+    assert edges, "intent:out-of-type-spec must have a Parent intent: edge"
+    e = edges[0]
+    assert e.get("form") == "typed", (
+        f"spec: prefix must have form=typed; got form={e.get('form')!r}"
+    )
+    assert e.get("state") == "out_of_type", (
+        f"spec: prefix must have state=out_of_type; got state={e.get('state')!r}"
+    )
+
+
+def test_derive_spec_brief_differing_values_is_multiple_values(  # finding 11, AC-0003
+) -> None:
+    """Spec with two distinct Brief: values yields state=multiple_values (AC-0003)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_NEG / "spec_brief_multiple_values")  # type: ignore[union-attr]
+    spec_edges = [
+        e for e in result["edges"]
+        if e.get("from") == "spec:multi-brief-spec" and e.get("field") == "Brief"
+    ]
+    assert spec_edges, "spec:multi-brief-spec must have a Brief: edge"
+    mv = [e for e in spec_edges if e.get("state") == "multiple_values"]
+    assert mv, (
+        "spec with two distinct Brief: values must produce a multiple_values edge; "
+        f"got edges: {spec_edges}"
+    )
+    assert len(spec_edges) == 1, (
+        "multiple_values must collapse all Brief: edges into one; "
+        f"got {len(spec_edges)} edges"
+    )
+
+
+def test_derive_unsafe_nested_spec_entry_does_not_fail(  # finding 17, AC-0009, AC-0042
+) -> None:
+    """A symlink nested under a spec directory does not fail the derivation (AC-0009, AC-0042)."""
+    import tempfile
+
+    from navigate_intents_fixture_builders import build_unsafe_nested_spec_corpus
+    _skip_if_module_absent()
+    with tempfile.TemporaryDirectory() as td:
+        root = build_unsafe_nested_spec_corpus(pathlib.Path(td))
+        # Must succeed: the symlink is not an admitted spec.md, so it must be skipped.
+        result = ig.derive(root)  # type: ignore[union-attr]
+        node_ids = {n["id"] for n in result["nodes"]}
+        assert "spec:bravo-spec" in node_ids, (
+            "spec:bravo-spec must still be admitted when a sibling symlink is present"
+        )
+
+
+def test_derive_intent_parent_path_outside_admitted_is_unparseable(  # finding 19, AC-0007
+) -> None:
+    """A path-form Parent intent: outside every admitted dir is unparseable, not dangling (AC-0007)."""
+    _skip_if_module_absent()
+    # unparseable/ corpus has an intent with a path outside docs/product/intents/.
+    result = ig.derive(_FIXTURE_NEG / "unparseable")  # type: ignore[union-attr]
+    edges = [e for e in result["edges"] if e.get("state") == "unparseable"]
+    # Must have at least one unparseable edge (from path outside admitted dirs).
+    assert any(
+        e.get("form") == "path" for e in edges
+    ), (
+        "unparseable/ must have at least one unparseable edge with form=path "
+        f"(path outside admitted dirs); got: {[e for e in edges if e.get('form') == 'path']}"
+    )
+
+
+@pytest.mark.parametrize("case", ["symlinked_spec_dir", "symlinked_spec_file"])
+def test_derive_symlinked_admitted_spec_is_unsafe_input(case: str, tmp_path: pathlib.Path) -> None:
+    """An admitted spec directory or spec.md that is a symlink fails with unsafe_input (AC-0042).
+
+    The nested-symlink case above must not fail; these two must, so a walker
+    that silently skips symlinks cannot pass both.
+    """
+    _skip_if_module_absent()
+    import shutil
+
+    root = tmp_path / case
+    shutil.copytree(_FIXTURE_MIXED, root)
+    spec_dir = root / "docs" / "specs" / "bravo-spec"
+    if case == "symlinked_spec_dir":
+        real = tmp_path / "real-bravo-spec"
+        spec_dir.rename(real)
+        spec_dir.symlink_to(real, target_is_directory=True)
+    else:
+        real = tmp_path / "real-spec.md"
+        (spec_dir / "spec.md").rename(real)
+        (spec_dir / "spec.md").symlink_to(real)
+    with pytest.raises(Exception) as excinfo:
+        ig.derive(root)  # type: ignore[union-attr]
+    assert getattr(excinfo.value, "code", None) == "unsafe_input"

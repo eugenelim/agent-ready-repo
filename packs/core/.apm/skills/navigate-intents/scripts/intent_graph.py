@@ -229,6 +229,19 @@ def _preamble_visible(text: str) -> dict[str, list[str]]:
 # ---------------------------------------------------------------------------
 
 
+def _first_h1_heading(text: str) -> str:
+    """Return the text of the first ``# `` heading in *text*, or empty string.
+
+    Matches a ``# `` prefix at the start of any line.  Only the stripped
+    heading text is returned (no ``# `` marker).
+    """
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            return stripped[2:].strip()
+    return ""
+
+
 def _normalize_kind_level(raw: str) -> str:
     """Normalise a ``Kind:`` or ``Level:`` value for node-id computation.
 
@@ -237,13 +250,17 @@ def _normalize_kind_level(raw: str) -> str:
     word lowercased.
     """
     value = raw.strip()
+    # 1. Hide comment blocks.
     value = _COMMENT_SUFFIX_RE.sub("", value).strip()
-    if len(value) >= 2 and value[0] == "`" and value[-1] == "`":
-        value = value[1:-1].strip()
+    # 2. Cut at sentinels before stripping backticks.
     for sentinel in (" (", " →", "<!--"):
         idx = value.find(sentinel)
         if idx >= 0:
             value = value[:idx]
+    # 3. Strip surrounding backticks.
+    if len(value) >= 2 and value[0] == "`" and value[-1] == "`":
+        value = value[1:-1].strip()
+    # 4. First word, lowercased.
     parts = value.split()
     return parts[0].lower() if parts else ""
 
@@ -276,11 +293,18 @@ def _value_form_intent_parent(value: str, resolver: Any) -> str:
     """Classify a value in an intent's ``Parent intent:`` field.
 
     Returns one of ``typed``, ``path``, ``bare_slug``, ``markdown_link``,
-    or ``unrecognized``.  For intent's Parent intent:, only
-    ``_PARENT_INTENT_KINDS`` prefixes constitute ``typed`` form.
+    or ``unrecognized``.  Intent-kind prefixes and any other valid
+    ``<word>:`` prefix (e.g. ``brief:``, ``spec:``) all return ``typed``
+    so that out-of-type references keep form ``typed`` with state
+    ``out_of_type`` rather than being misclassified as ``unrecognized``.
     """
     for kind in resolver._PARENT_INTENT_KINDS:
         if value.startswith(f"{kind}:"):
+            return "typed"
+    # Any valid <word>: prefix is also typed (out_of_type state applied later).
+    if not value.startswith("/") and ":" in value:
+        prefix = value.split(":")[0]
+        if prefix and prefix.replace("-", "").isalnum() and prefix.islower():
             return "typed"
     if _MARKDOWN_LINK_RE.match(value):
         return "markdown_link"
@@ -408,7 +432,8 @@ def _resolve_intent_path(
     if not rel_path.startswith("docs/product/intents/"):
         if rel_path.startswith(("docs/product/briefs/", "docs/specs/")):
             return {"state": "out_of_type"}
-        return {"state": "dangling"}
+        # A path not under any admitted artifact directory is unparseable, not dangling.
+        return {"state": "unparseable"}
     candidate = intent_by_path.get(rel_path)
     if candidate is not None:
         return {"to": candidate["id"]}
@@ -453,7 +478,9 @@ def _make_intent_parent_edge(
                 )
                 base.update(resolution)
                 return base
-        base["state"] = "unparseable"
+        # A typed prefix that is not an intent kind (e.g. brief:, spec:) is
+        # valid form=typed but out of type for an intent's Parent intent:.
+        base["state"] = "out_of_type"
         return base
     if form == "bare_slug":
         candidate = intent_by_slug.get(raw_value)
@@ -648,8 +675,9 @@ def _make_spec_brief_edges(
             edge["state"] = "unparseable"
         edges.append(edge)
 
-    if len([e for e in edges if "state" not in e or e.get("state") == "multiple_values"]) > 1:
-        # Multiple admitted values → multiple_values
+    # Collapse to multiple_values if more than one distinct non-empty value.
+    non_empty_seen = [v for v in seen_values if v and v.lower().split()[0] != "none"]
+    if len(non_empty_seen) > 1:
         edges = [{
             "from": spec_id,
             "field": "Brief",
@@ -776,6 +804,16 @@ def _make_spec_discovery_edges(
             # unrecognized, bare_slug → provenance, no edge
             continue
 
+    # Collapse to multiple_values when more than one distinct edge-producing Discovery: value.
+    non_empty_seen = [v for v in seen_values if v and v.lower().split()[0] != "none"]
+    if len(non_empty_seen) > 1 and len(edges) > 1:
+        edges = [{
+            "from": spec_id,
+            "field": "Discovery",
+            "state": "multiple_values",
+            "trust_class": _TRUST_CLASS,
+        }]
+
     return edges
 
 
@@ -840,6 +878,39 @@ def _walk_artifact_dir(root: Path, dir_path: Path, fs: Any) -> list[Path]:
     except (fs.UnsafeContentError, fs.BoundExceeded) as exc:
         rel = dir_path.relative_to(root).as_posix()
         raise DerivationError("unsafe_input", f"unsafe directory: {rel}") from exc
+
+
+def _list_spec_files(
+    root: Path, specs_root: Path, spec_dir_re: Any, fs: Any
+) -> list[Path]:
+    """Return each admitted ``<specs_root>/<dir>/spec.md`` without walking deeper.
+
+    Only direct children whose name matches *spec_dir_re* are admitted, so a
+    symlink or special file elsewhere under a spec directory never fails the
+    derivation. An admitted spec directory that is a symlink or not a directory
+    raises ``unsafe_input``; the ``spec.md`` itself is later read through the
+    confinement helper, which refuses a symlink, FIFO, hard link, or swap.
+    """
+    if not os.path.lexists(specs_root):
+        return []
+    try:
+        fs.validate_confined_directory(root, specs_root)
+    except fs.UnsafeContentError as exc:
+        rel = specs_root.relative_to(root).as_posix()
+        raise DerivationError("unsafe_input", f"unsafe directory: {rel}") from exc
+    found: list[Path] = []
+    with os.scandir(specs_root) as entries:
+        for entry in entries:
+            if not spec_dir_re.fullmatch(entry.name):
+                continue
+            mode = entry.stat(follow_symlinks=False).st_mode
+            if not _stat.S_ISDIR(mode):
+                rel = Path(entry.path).relative_to(root).as_posix()
+                raise DerivationError("unsafe_input", f"unsafe spec directory: {rel}")
+            spec = Path(entry.path) / "spec.md"
+            if os.path.lexists(spec):
+                found.append(spec)
+    return sorted(found, key=lambda path: path.relative_to(root).as_posix())
 
 
 # ---------------------------------------------------------------------------
@@ -927,6 +998,11 @@ def derive(root: Path) -> dict[str, Any]:
             raise DerivationError(
                 "duplicate_identity", f"duplicate intent id {node_id}"
             )
+        # Each slug must be unique across all intent artifacts.
+        if slug in intent_by_slug:
+            raise DerivationError(
+                "duplicate_identity", f"duplicate intent slug '{slug}'"
+            )
 
         status_vals = fields.get("Status", [])
         level_vals = fields.get("Level", [])
@@ -940,6 +1016,7 @@ def derive(root: Path) -> dict[str, Any]:
             "status": status_vals[0] if status_vals else "",
             "level": level_vals[0] if level_vals else "",
             "kind": kind_vals[0] if kind_vals else "",
+            "heading": _first_h1_heading(text),
             "_fields": fields,  # kept for edge building; stripped from output
         }
         intent_nodes.append(node)
@@ -996,13 +1073,8 @@ def derive(root: Path) -> dict[str, Any]:
     spec_nodes: list[dict[str, Any]] = []
     spec_by_id: dict[str, dict[str, Any]] = {}
 
-    for f in sorted(_walk_artifact_dir(root, specs_root, fs),
-                    key=lambda p: p.relative_to(root).as_posix()):
-        if f.name != "spec.md" or f.parent.parent != specs_root:
-            continue
+    for f in _list_spec_files(root, specs_root, resolver._SPEC_DIR_RE, fs):
         dir_name = f.parent.name
-        if not resolver._SPEC_DIR_RE.fullmatch(dir_name):
-            continue
         rel = f.relative_to(root).as_posix()
         raw = _read_artifact_bytes(root, f, fs)
         text = _decode_utf8(raw, rel)

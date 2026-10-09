@@ -83,12 +83,12 @@ python3 scripts/navigate_intents.py query --root <repo> \
 
 ### search
 
-Filters live intents by level, kind, exact status, parentless status, or a text match on slug or first heading. Pass selectors as a JSON array; an unknown key returns an error instead of silently ignoring it.
+Filters live intents by level, kind, exact status, parentless status, or a text match. Pass selectors as a JSON object with one or more of the keys `level`, `kind`, `exact_status`, `parentless`, and `text`. The `text` selector matches the slug or the first `# ` heading, case-insensitively. An unknown key returns an error instead of silently ignoring it.
 
 ```bash
 python3 scripts/navigate_intents.py query --root <repo> \
   --operation search \
-  --selectors '[{"level": "capability"}, {"exact_status": "Accepted"}]'
+  --selectors '{"level": "capability", "exact_status": "Accepted"}'
 ```
 
 ### outstanding

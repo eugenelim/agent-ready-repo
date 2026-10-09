@@ -492,7 +492,7 @@ Three co-located helper copies ride alongside the derivation:
 
 - **`intent_delivery_relations.py`** — byte-identical copy of `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py`. Both are pinned byte-identical by `packs/core/tests/pack/test_intent_delivery_relations_copies.py`.
 - **`_file_safety.py`** — byte-identical copy of `packs/core/.apm/adapter-root-bins/_file_safety.py`. Both are pinned byte-identical by the same test. The derivation and the delivery resolver both read files through this helper; no second confinement copy ships.
-- **`intent_terminality.py`** — a parity-checked copy of the leading-word terminality rule and terminal sets from `close-work`. `tools/check_closure_terminality_parity.py` checks it against the upstream sources and fails on any difference.
+- **`intent_terminality.py`** — a parity-checked copy of the leading-word terminality rule and terminal sets from `close-work`. `tools/check_closure_terminality_parity.py` checks its intent terminal set against the lifecycle intent's Terminal column, its brief terminality against `brief_shape.BRIEF_TRANSITIONS`, and its spec terminal subset against `closure_terminality.py` directly, failing on any difference in either direction (a status only the navigator copy marks terminal also fails).
 
 The `navigate-intents` query script (`navigate_intents.py`) is the current consumer of this derivation. A later convergence of `close-work` onto the same derivation is planned; when it ships, `close-work` will load a byte-identical copy of `intent_graph.py` rather than its own graph-building code.
 

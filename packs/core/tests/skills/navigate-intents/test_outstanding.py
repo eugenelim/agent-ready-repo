@@ -28,6 +28,7 @@ _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _HERE = pathlib.Path(__file__).resolve().parent
 _FIXTURE_MIXED = _HERE / "fixtures" / "mixed"
 _FIXTURE_NEG = _HERE / "fixtures" / "negative"
+_FIXTURES = _HERE / "fixtures"
 
 # Corpora where the whole operation fails (AC-0009/AC-0042 apply).
 # Outstanding comparison is skipped for these per AC-0058.
@@ -77,6 +78,11 @@ def _read_manifest(corpus_path: pathlib.Path) -> list[str]:
     manifest = corpus_path / "expected-outstanding.json"
     data = json.loads(manifest.read_text(encoding="utf-8"))
     return sorted(data["outstanding"])
+
+
+def _all_outstanding_items(result: dict) -> list:
+    """Return the combined list of outstanding items from placed + no_parent groups."""
+    return result.get("placed", []) + result.get("no_parent", [])
 
 
 # ---------------------------------------------------------------------------
@@ -134,44 +140,54 @@ def test_mixed_manifest_seeded_template_excluded() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "corpus_name",
-    [
-        "bidi_controls",
-        "dangling",
-        "retired_target",
-        "kind_mismatch",
-        "out_of_type",
-        "multiple_values",
-        "cycle",
-        "unparseable",
-        "brief_parent_malformed",
-        "brief_parent_unsafe",
-        "brief_parent_ambiguous",
-        "brief_parent_repair",
-        "brief_parent_unrecognized",
-        "no_decomposed",
-        "spec_route",
-        "spec_discovery_retired_target",
-        "two_briefs",
-        "ambiguous_ordinal",
-    ],
+# Corpora where an integrity failure fails the whole operation, so no
+# outstanding set exists to compare. Every other corpus with a manifest is
+# compared, so a corpus added later cannot be left out of AC-0058.
+_WHOLE_OPERATION_FAILURES = frozenset(
+    {
+        "negative/duplicate_identity",
+        "negative/duplicate_slug",
+        "negative/malformed_record_bad_slug",
+        "negative/malformed_record_utf8",
+    }
 )
-def test_outstanding_matches_manifest_over_negative_corpus(corpus_name: str) -> None:
+_MANIFEST_CORPORA = sorted(
+    path.parent.relative_to(_FIXTURES).as_posix()
+    for path in _FIXTURES.glob("**/expected-outstanding.json")
+    if path.parent.relative_to(_FIXTURES).as_posix() != "mixed"
+)
+
+
+def test_manifest_corpus_discovery_is_not_vacuous() -> None:
+    """Every declared whole-operation failure exists, and the compared set is non-trivial."""
+    assert set(_MANIFEST_CORPORA) >= _WHOLE_OPERATION_FAILURES
+    assert len(set(_MANIFEST_CORPORA) - _WHOLE_OPERATION_FAILURES) >= 20
+
+
+@pytest.mark.parametrize(
+    "corpus",
+    [
+        manifest.parent
+        for manifest in sorted(_FIXTURES.glob("**/expected-outstanding.json"))
+        if manifest.parent.relative_to(_FIXTURES).as_posix()
+        in set(_MANIFEST_CORPORA) - _WHOLE_OPERATION_FAILURES
+    ],
+    ids=lambda path: path.relative_to(_FIXTURES).as_posix(),
+)
+def test_outstanding_matches_manifest_over_negative_corpus(corpus: pathlib.Path) -> None:
     """outstanding set equals expected-outstanding.json for non-failing negative corpora (AC-0058)."""
     _skip_if_module_absent()
-    corpus = _FIXTURE_NEG / corpus_name
     expected = _read_manifest(corpus)
     result, code = nav.run_query(  # type: ignore[union-attr]
         corpus, ["query", "--operation", "outstanding"]
     )
-    assert code == 0, f"outstanding failed for {corpus_name}: {result}"
+    assert code == 0, f"outstanding failed for {corpus.name}: {result}"
     assert result["status"] == "ok"
     # Extract outstanding node ids from result.
-    items = result.get("items", [])
+    items = _all_outstanding_items(result)
     returned_ids = sorted(item["id"] for item in items)
     assert returned_ids == expected, (
-        f"outstanding mismatch for {corpus_name}:\n"
+        f"outstanding mismatch for {corpus.name}:\n"
         f"  expected: {expected}\n"
         f"  returned: {returned_ids}"
     )
@@ -186,7 +202,7 @@ def test_outstanding_matches_manifest_over_mixed() -> None:
     )
     assert code == 0
     assert result["status"] == "ok"
-    items = result.get("items", [])
+    items = _all_outstanding_items(result)
     returned_ids = sorted(item["id"] for item in items)
     assert returned_ids == expected, (
         f"outstanding mismatch for mixed/:\n"
@@ -236,7 +252,7 @@ def test_outstanding_from_filters_to_subtree() -> None:
     )
     assert code == 0
     assert result["status"] == "ok"
-    items = result.get("items", [])
+    items = _all_outstanding_items(result)
     # bravo-feat is under alpha-cap, so it should appear.
     ids = {item["id"] for item in items}
     assert "intent:bravo-feat" in ids or "capability:alpha-cap" in ids, (
@@ -255,7 +271,7 @@ def test_outstanding_item_with_terminal_status_excluded() -> None:
         _FIXTURE_MIXED, ["query", "--operation", "outstanding"]
     )
     assert code == 0
-    items = result.get("items", [])
+    items = _all_outstanding_items(result)
     ids = {item["id"] for item in items}
     assert "capability:hotel-done" not in ids, (
         "hotel-done (Fulfilled — date) must not be outstanding"
@@ -314,7 +330,7 @@ def test_outstanding_from_bare_slug() -> None:
     )
     assert code == 0
     assert result["status"] == "ok"
-    ids = {item["id"] for item in result.get("items", [])}
+    ids = {item["id"] for item in _all_outstanding_items(result)}
     assert "capability:alpha-cap" in ids, (
         "--from alpha-cap (bare slug) must include capability:alpha-cap itself"
     )
@@ -332,7 +348,7 @@ def test_outstanding_from_ordinal() -> None:
     )
     assert code == 0
     assert result["status"] == "ok"
-    ids = {item["id"] for item in result.get("items", [])}
+    ids = {item["id"] for item in _all_outstanding_items(result)}
     # CAP-0001 resolves to capability:alpha-cap
     assert "capability:alpha-cap" in ids, (
         "--from CAP-0001 (ordinal) must resolve to capability:alpha-cap"
@@ -400,7 +416,7 @@ def test_outstanding_spec_has_placements_structure() -> None:
         _FIXTURE_MIXED, ["query", "--operation", "outstanding"]
     )
     assert code == 0
-    items = result.get("items", [])
+    items = _all_outstanding_items(result)
     bravo = next((it for it in items if it["id"] == "spec:bravo-spec"), None)
     assert bravo is not None, "spec:bravo-spec must be in outstanding"
     placements = bravo.get("placements", [])
@@ -453,7 +469,7 @@ def test_outstanding_no_parent_items_have_refused_parent_edges() -> None:
         _FIXTURE_NEG / "dangling", ["query", "--operation", "outstanding"]
     )
     assert code == 0
-    items = result.get("items", [])
+    items = _all_outstanding_items(result)
     dangling_item = next((it for it in items if it["id"] == "intent:dangling-test"), None)
     assert dangling_item is not None, "intent:dangling-test must be in outstanding items"
     parent_edge = dangling_item.get("parent_edge", {})
@@ -533,19 +549,20 @@ def test_outstanding_ac0009_takes_precedence_over_delivery_incomplete() -> None:
 # ---------------------------------------------------------------------------
 
 _MIXED_OUTSTANDING_TEXT = (
-    "capability:alpha-cap · capability · Accepted\n"
-    "  brief:bravo-delivery · Executing\n"
-    "    spec:bravo-spec · Implementing\n"
-    "  intent:bravo-feat · feature · Draft\n"
-    "    spec:bravo-spec · Implementing\n"
-    "    spec:charlie-spec · Draft\n"
-    "intent:golf-new · feature · Draft\n"
-    "intent:india-none · feature · Accepted\n"
-    "opportunity:delta-opp · unrecorded · opportunity · Draft\n"
-    "outcome:charlie-out · capability · outcome · Accepted\n"
-    "  brief:charlie-delivery · Draft\n"
-    "  brief:hidden-parent · Draft\n"
-    "outcome:echo-crosstype · capability · outcome · Draft"
+    "(no parent)\n"
+    "  capability:alpha-cap · capability · Accepted\n"
+    "    brief:bravo-delivery · Executing\n"
+    "      spec:bravo-spec · Implementing\n"
+    "    intent:bravo-feat · feature · Draft\n"
+    "      spec:bravo-spec · Implementing\n"
+    "      spec:charlie-spec · Draft\n"
+    "  intent:golf-new · feature · Draft\n"
+    "  intent:india-none · feature · Accepted\n"
+    "  opportunity:delta-opp · unrecorded · opportunity · Draft\n"
+    "  outcome:charlie-out · capability · outcome · Accepted\n"
+    "    brief:charlie-delivery · Draft\n"
+    "    brief:hidden-parent · Draft\n"
+    "  outcome:echo-crosstype · capability · outcome · Draft"
 )
 
 
@@ -599,7 +616,8 @@ def test_summary_outstanding_count_matches_outstanding_items() -> None:
     r_out, _ = nav.run_query(  # type: ignore[union-attr]
         _FIXTURE_MIXED, ["query", "--operation", "outstanding"]
     )
-    assert r_sum["summary"]["outstanding"] == len(r_out["items"]), (
+    all_items = _all_outstanding_items(r_out)
+    assert r_sum["summary"]["outstanding"] == len(all_items), (
         f"summary.outstanding ({r_sum['summary']['outstanding']}) must equal "
-        f"len(outstanding items) ({len(r_out['items'])})"
+        f"len(outstanding items) ({len(all_items)})"
     )

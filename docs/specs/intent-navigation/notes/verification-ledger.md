@@ -126,3 +126,64 @@ row's literal method.
   37322810666 on 2026-10-05, shows the same empty key and the same errors, so
   this predates the slice. A local run cannot be scoped to one skill:
   `agentbundle pack evals run` evaluates the whole pack.
+- **Activation run (AC-0033, AC-0034), owner-directed in-harness run,
+  2026-10-09: `navigate-intents` 35/35 on both detectors.** Because the CI
+  key is empty, the owner directed the activation check through Claude and
+  Codex sub-contexts, using the in-harness procedure in
+  `guides/_shared/how-to/author-a-skill.md`. Each of the 35 queries ran 3
+  times per detector, each run a fresh tool-less process (`claude -p
+  --safe-mode --disable-slash-commands --tools ""`, or `codex exec -s
+  read-only --ephemeral`) started in an empty directory. Each run saw the
+  descriptions of every `core` skill plus `navigate-decisions`, which was
+  added because the "how many roadmap intents" near-miss routes there, and
+  the query as delimited data. Graded with `agentbundle pack evals run
+  --pack core --mode in-harness --reports <file>`: `navigate-intents: 35/35
+  queries passed` for each detector, no errored runs.
+  - Positives: all 20 at trigger rate 1.00 on both detectors.
+  - Near-misses, all at 0.00. Queue order and repair routed to
+    `workspace-status`; ADR and RFC lookup and "how many roadmap intents" to
+    `navigate-decisions`; closure to `close-work`. ADR and RFC authoring went
+    to `new-adr` and `new-rfc` (Claude) or no skill (Codex). Intent authoring,
+    de-risking, and decomposition went to `work-intake` (Claude) or
+    `intake-intent` or no skill (Codex).
+  - Limits: the harness labels this mode `fidelity: reported`. It measures a
+    description-match judgement, not the real activation router, so it is
+    not the headless calibration CI would give once the key is set. The
+    first Claude pass ran 4 calls in parallel on the loaded machine and most
+    errored; it was re-run one call at a time with up to two retries, and
+    the runner was widened to accept any well-formed skill name after Claude
+    named `new-adr` and `new-rfc`, which were outside the listed set.
+  - The guide's grading command names `tools/run-pack-evals.py`, which does
+    not exist in this tree; `agentbundle pack evals run --mode in-harness`
+    is the shipped grader.
+
+## Review round 1 fixes
+
+- The post-gates adversarial review sustained 21 findings (13 Blockers, 7
+  Concerns, 1 Nit) under `.context/reviews/08208db7-158f-4302-910e-347d55a570c8/`.
+  The first adjudication carried a stray indeterminate marker with an empty
+  indeterminate audit; it is kept beside the replacement verdict, which the
+  same adjudicator re-emitted clean.
+- Every sustained finding was fixed inside the files T2 to T6 already own.
+  Delivery relations now attach through the resolver's real
+  `intent:<slug>` field; ancestor chains run past terminal ancestors to the
+  root; outstanding JSON carries `placed` and `no_parent` in node-id order,
+  and text prints every outstanding item; slug duplicates, typed
+  non-intent parents, spec-pointer `multiple_values`, backtick-and-suffix
+  node ids, heading search, `provenance.root`, `unrecorded` levels, selector
+  type errors, and tab escaping are corrected; the parity tool now checks
+  intent and brief sets against their upstreams in both directions, and its
+  tests drive the tool's own checks.
+- Controller corrections during the fix round: the first unsafe-entry fix
+  silently skipped a symlinked spec directory or `spec.md`; it was replaced
+  by a direct-children listing that refuses both with `unsafe_input` and
+  ignores deeper entries, with tests shown red against the replaced
+  walker. The new `coordinated_delivery/` corpus, on which the real
+  resolver emits two coordinated-delivery relations, lacked its manifest;
+  it was written by hand. The AC-0058 manifest test now discovers every
+  corpus with a manifest instead of a hand-kept list, comparing 23 corpora
+  and excluding four declared whole-operation failures.
+- GATES after the fix round: 308 passed, 1 skipped across the touched
+  suites (176 in navigate-intents); the ten tool checks, brief coverage,
+  spec status, and catalogue verify pass; `make lint-ruff lint-mypy` clean;
+  shipped-text grep empty; both projections match their source.

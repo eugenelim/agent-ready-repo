@@ -35,7 +35,7 @@ import importlib.util
 import re
 import sys
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterable, Iterator, Mapping
 
 _SLUG_RE = re.compile(r"^- \*\*Slug:\*\*\s*(.+?)\s*$", re.M)
 _INTENT_STATES_HEADING = re.compile(r"^###\s+Intent states\s*$", re.M)
@@ -151,6 +151,154 @@ def _walk_is_not_vacuous(root: Path, closure_index) -> list[str]:
     return failures
 
 
+# ── Navigator terminality seam functions ──────────────────────────────────────
+# These are extracted so tests can import and call them directly against a
+# mutated nav_terminality module, rather than re-implementing the checks locally.
+
+_EXTRACT_PROBES: list[str] = [
+    "Fulfilled",
+    "Shipped",
+    "Draft",
+    "Accepted",
+    # ' (' cases: delimiter comes after the status word (most common form)
+    "Fulfilled (2026-01-01)",
+    "Shipped (date)",
+    "Draft (something)",
+    "Approved (review)",
+    # ' (' case: delimiter at position 0 — the only case where truncation
+    # changes the first word (exercises the delimiter detection path)
+    " (Fulfilled)",
+    # ' →' cases
+    "Fulfilled → next",
+    "Shipped → archived",
+    # '<!--' cases
+    "Draft<!-- comment -->",
+    "Accepted<!-- inline -->",
+    "Superseded <!-- trailing -->",
+    "Archived <!-- trailing -->",
+    "",
+    "  ",
+    "Withdrawn",
+]
+
+
+def _check_nav_intent_parity(
+    nav_terminality: Any,
+    terminal_col: Mapping[str, bool],
+) -> list[str]:
+    """Compare the navigator's intent terminal set against the upstream Terminal column.
+
+    Checks both directions: statuses the upstream marks terminal that the
+    navigator disagrees on, and statuses the navigator marks terminal that are
+    absent from the upstream column altogether.
+    """
+    failures: list[str] = []
+    nav_set = nav_terminality.TERMINAL_INTENT_STATUSES
+    for status, upstream_terminal in terminal_col.items():
+        nav_says = status in nav_set
+        if nav_says != upstream_terminal:
+            failures.append(
+                f"navigator intent status {status!r}: intent_terminality.py says "
+                f"terminal={nav_says}, upstream Terminal column says "
+                f"terminal={upstream_terminal}"
+            )
+    for status in nav_set:
+        if status not in terminal_col:
+            failures.append(
+                f"navigator intent status {status!r}: marked terminal by "
+                f"intent_terminality.py but absent from the upstream Terminal column"
+            )
+    return failures
+
+
+def _check_nav_brief_parity(
+    nav_terminality: Any,
+    brief_transitions: Iterable[tuple[str, str]],
+) -> list[str]:
+    """Compare the navigator's brief terminality against brief_shape.BRIEF_TRANSITIONS.
+
+    Derives the upstream terminal set from the no-outgoing-edge property of
+    the transition table.  Checks both directions: the upstream vocabulary and
+    the navigator's own brief vocabulary, so an extra status the navigator marks
+    terminal is caught even if it does not appear in the upstream table.
+    """
+    failures: list[str] = []
+    edges = frozenset(brief_transitions)
+    upstream_vocab = frozenset(s for pair in edges for s in pair)
+    # Navigator derives its brief terminality from its own _BRIEF_TRANSITIONS.
+    # Access that to build the full check vocabulary.
+    try:
+        nav_edges: frozenset[tuple[str, str]] = frozenset(nav_terminality._BRIEF_TRANSITIONS)
+    except AttributeError:
+        nav_edges = frozenset()
+    nav_vocab = frozenset(s for pair in nav_edges for s in pair)
+    all_vocab = upstream_vocab | nav_vocab
+    for status in sorted(all_vocab):
+        upstream_terminal = (status in upstream_vocab) and not any(
+            src == status for src, _ in edges
+        )
+        nav_says = nav_terminality.is_brief_terminal(status)
+        if nav_says != upstream_terminal:
+            failures.append(
+                f"navigator brief status {status!r}: intent_terminality.py says "
+                f"terminal={nav_says}, brief_shape.BRIEF_TRANSITIONS says "
+                f"terminal={upstream_terminal}"
+            )
+    return failures
+
+
+def _check_nav_spec_parity(
+    nav_terminality: Any,
+    closure_terminality: Any,
+) -> list[str]:
+    """Compare the navigator's spec terminal set against closure_terminality directly.
+
+    The spec terminal subset has no upstream table, so closure_terminality is
+    the authoritative source for this check.  Checks both directions.
+    """
+    failures: list[str] = []
+    nav_spec_terminal = nav_terminality.TERMINAL_SPEC_STATUSES
+    closure_spec_terminal = closure_terminality.TERMINAL_SPEC_STATUSES
+    for status in closure_terminality.SPEC_STATUS_VOCABULARY:
+        nav_says = status in nav_spec_terminal
+        closure_says = status in closure_spec_terminal
+        if nav_says != closure_says:
+            failures.append(
+                f"navigator spec status {status!r}: intent_terminality.py says "
+                f"terminal={nav_says}, closure_terminality.py disagrees"
+            )
+    for status in nav_spec_terminal:
+        if status not in closure_terminality.SPEC_STATUS_VOCABULARY:
+            failures.append(
+                f"navigator spec status {status!r}: marked terminal by "
+                f"intent_terminality.py but absent from closure_terminality.py vocabulary"
+            )
+    return failures
+
+
+def _check_nav_extraction(
+    nav_terminality: Any,
+    lint_spec_status: Any,
+    probes: list[str] | None = None,
+) -> list[str]:
+    """Compare the navigator's _extract_status_token against lint-spec-status.py.
+
+    Uses _EXTRACT_PROBES by default; pass a custom list for targeted tests.
+    """
+    failures: list[str] = []
+    probe_set = probes if probes is not None else _EXTRACT_PROBES
+    for probe in probe_set:
+        nav_result = nav_terminality._extract_status_token(probe)
+        lint_result = lint_spec_status.extract_status_token(probe)
+        if nav_result != lint_result:
+            failures.append(
+                f"leading-word extraction probe {probe!r}: "
+                f"intent_terminality._extract_status_token returns {nav_result!r}, "
+                f"lint-spec-status.extract_status_token returns {lint_result!r}"
+            )
+    return failures
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="repository root")
@@ -194,7 +342,8 @@ def main(argv: list[str] | None = None) -> int:
     path, text = source
 
     failures: list[str] = []
-    for status in projection.intent_parity_disagreements(_terminal_column(text, path)):
+    terminal_col = _terminal_column(text, path)
+    for status in projection.intent_parity_disagreements(terminal_col):
         failures.append(
             f"intent status {status!r}: projection says "
             f"terminal={projection.is_intent_terminal(status)}, "
@@ -228,81 +377,25 @@ def main(argv: list[str] | None = None) -> int:
     failures.extend(_walk_is_not_vacuous(root, closure_index))
 
     # ── Navigator terminality copy checks (intent_terminality.py) ─────────────
-    # Intent terminal sets: compare navigator's set against closure_terminality's
-    # upstream (the lifecycle intent's Terminal column).
-    nav_intent_terminal = nav_terminality.TERMINAL_INTENT_STATUSES
-    closure_intent_terminal = projection.TERMINAL_INTENT_STATUSES
-    for status in projection.INTENT_STATUS_VOCABULARY:
-        nav_says = status in nav_intent_terminal
-        closure_says = status in closure_intent_terminal
-        if nav_says != closure_says:
-            failures.append(
-                f"navigator intent status {status!r}: intent_terminality.py says "
-                f"terminal={nav_says}, closure_terminality.py disagrees"
-            )
+    # Intent: compare against the lifecycle intent's Terminal column (the upstream
+    # AC-0067 names), in both directions.
+    for line in _check_nav_intent_parity(nav_terminality, terminal_col):
+        failures.append(line)
 
-    # Brief terminal sets: compare against closure_terminality's upstream
-    # (brief_shape.BRIEF_TRANSITIONS, no-outgoing-edge property).
-    for status in projection.BRIEF_STATUS_VOCABULARY:
-        nav_says = nav_terminality.is_brief_terminal(status)
-        closure_says = projection.is_brief_terminal(status)
-        if nav_says != closure_says:
-            failures.append(
-                f"navigator brief status {status!r}: intent_terminality.py says "
-                f"terminal={nav_says}, closure_terminality.py disagrees"
-            )
+    # Brief: compare against brief_shape.BRIEF_TRANSITIONS (the upstream
+    # AC-0067 names), in both directions.
+    for line in _check_nav_brief_parity(nav_terminality, brief_shape.BRIEF_TRANSITIONS):
+        failures.append(line)
 
-    # Spec terminal sets: compare navigator against closure_terminality directly
-    # (the upstream check against lint-spec-status.py covers vocabulary; this
-    # checks the terminal subset against closure_terminality's own enumeration).
-    nav_spec_terminal = nav_terminality.TERMINAL_SPEC_STATUSES
-    closure_spec_terminal = projection.TERMINAL_SPEC_STATUSES
-    for status in projection.SPEC_STATUS_VOCABULARY:
-        nav_says = status in nav_spec_terminal
-        closure_says = status in closure_spec_terminal
-        if nav_says != closure_says:
-            failures.append(
-                f"navigator spec status {status!r}: intent_terminality.py says "
-                f"terminal={nav_says}, closure_terminality.py disagrees"
-            )
+    # Spec: compare against closure_terminality directly (no upstream table for
+    # the terminal subset; vocabulary is already pinned via spec_parity_disagreements).
+    for line in _check_nav_spec_parity(nav_terminality, projection):
+        failures.append(line)
 
     # Leading-word extraction: compare navigator's _extract_status_token against
-    # lint-spec-status.py's extract_status_token over a fixed probe set that
-    # exercises the three delimiter cases.
-    _EXTRACT_PROBES: list[str] = [
-        "Fulfilled",
-        "Shipped",
-        "Draft",
-        "Accepted",
-        # ' (' cases: delimiter comes after the status word (most common form)
-        "Fulfilled (2026-01-01)",
-        "Shipped (date)",
-        "Draft (something)",
-        "Approved (review)",
-        # ' (' case: delimiter at position 0 — the only case where truncation
-        # changes the first word (exercises the delimiter detection path)
-        " (Fulfilled)",
-        # ' →' cases
-        "Fulfilled → next",
-        "Shipped → archived",
-        # '<!--' cases
-        "Draft<!-- comment -->",
-        "Accepted<!-- inline -->",
-        "Superseded <!-- trailing -->",
-        "Archived <!-- trailing -->",
-        "",
-        "  ",
-        "Withdrawn",
-    ]
-    for probe in _EXTRACT_PROBES:
-        nav_result = nav_terminality._extract_status_token(probe)
-        lint_result = lint_spec_status.extract_status_token(probe)
-        if nav_result != lint_result:
-            failures.append(
-                f"leading-word extraction probe {probe!r}: "
-                f"intent_terminality._extract_status_token returns {nav_result!r}, "
-                f"lint-spec-status.extract_status_token returns {lint_result!r}"
-            )
+    # lint-spec-status.py's extract_status_token over the fixed probe set.
+    for line in _check_nav_extraction(nav_terminality, lint_spec_status):
+        failures.append(line)
 
     if failures:
         for line in failures:

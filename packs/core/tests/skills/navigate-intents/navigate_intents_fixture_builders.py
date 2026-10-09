@@ -199,3 +199,21 @@ def build_unsafe_input_corpus(tmp_path: pathlib.Path) -> pathlib.Path:
     which is checked before input_too_large in AC-0009's order.
     """
     return build_symlinked_file_corpus(tmp_path)
+
+
+def build_unsafe_nested_spec_corpus(tmp_path: pathlib.Path) -> pathlib.Path:
+    """Corpus with a symlink nested inside a spec directory.
+
+    A symlink at docs/specs/<name>/notes/link.md is not an admitted spec.md
+    file, so it must NOT cause unsafe_input for the whole derivation
+    (AC-0009, AC-0042).  The derivation must succeed; the valid spec.md
+    in the same directory is still admitted.
+    """
+    root = tmp_path / "unsafe_nested_spec"
+    _copy_mixed(root)
+    notes_dir = root / "docs" / "specs" / "bravo-spec" / "notes"
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    # Create a symlink inside the spec subdirectory.
+    real_target = notes_dir.parent / "spec.md"
+    (notes_dir / "link.md").symlink_to(real_target)
+    return root

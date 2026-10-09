@@ -100,10 +100,13 @@ python3 scripts/navigate_intents.py query \
   --id capability:my-slug
 
 # Filter intents by level, kind, status, or text.
+# Pass selectors as a JSON object with one or more of the keys:
+# level, kind, exact_status, parentless, text.
+# text matches the slug or the first # heading, case-insensitively.
 python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation search \
-  --selectors '[{"level": "capability"}, {"exact_status": "Accepted"}]'
+  --selectors '{"level": "capability", "exact_status": "Accepted"}'
 
 # Outstanding (non-terminal) intents, briefs, and specs under their parent.
 python3 scripts/navigate_intents.py query \

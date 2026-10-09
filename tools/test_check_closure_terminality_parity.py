@@ -2,8 +2,11 @@
 """Mutation tests for check_closure_terminality_parity.py.
 
 Each test mutates one terminal set or the extraction rule in the navigator's
-copy and proves that the parity checks detect the disagreement. Standard-
-library-only; tests do not run the full corpus walk.
+copy and proves that the parity checks detect the disagreement.  The tests
+drive the tool's own check functions (_check_nav_intent_parity,
+_check_nav_brief_parity, _check_nav_spec_parity, _check_nav_extraction)
+rather than re-implementing them locally.  Standard-library-only; tests do
+not run the full corpus walk.
 """
 from __future__ import annotations
 
@@ -28,6 +31,13 @@ def _load(name: str, path: Path) -> Any:
     return module
 
 
+def _load_parity_tool() -> Any:
+    return _load(
+        "check_closure_terminality_parity",
+        _TOOLS / "check_closure_terminality_parity.py",
+    )
+
+
 def _load_closure_terminality() -> Any:
     return _load(
         "closure_terminality_mut",
@@ -49,132 +59,77 @@ def _load_lint_spec_status() -> Any:
     )
 
 
-# ---------------------------------------------------------------------------
-# Helpers that mirror the parity tool's navigator checks (without corpus walk)
-# ---------------------------------------------------------------------------
-
-_EXTRACT_PROBES: list[str] = [
-    "Fulfilled",
-    "Shipped",
-    "Draft",
-    "Accepted",
-    # ' (' cases: delimiter after the status word
-    "Fulfilled (2026-01-01)",
-    "Shipped (date)",
-    "Draft (something)",
-    "Approved (review)",
-    # ' (' case: delimiter at position 0 — changes the first word
-    " (Fulfilled)",
-    # ' →' cases
-    "Fulfilled → next",
-    "Shipped → archived",
-    # '<!--' cases
-    "Draft<!-- comment -->",
-    "Accepted<!-- inline -->",
-    "Superseded <!-- trailing -->",
-    "Archived <!-- trailing -->",
-    "",
-    "  ",
-    "Withdrawn",
-]
+def _load_brief_shape() -> Any:
+    return _load(
+        "brief_shape_mut",
+        _ROOT / "packs/core/.apm/skills/author-delivery-brief/scripts/brief_shape.py",
+    )
 
 
-def _check_nav_intent_terminal_set(
-    nav_terminality: Any, closure_terminality: Any
-) -> list[str]:
-    """Return failure messages when navigator intent set disagrees."""
-    failures = []
-    nav_set = nav_terminality.TERMINAL_INTENT_STATUSES
-    closure_set = closure_terminality.TERMINAL_INTENT_STATUSES
-    for status in closure_terminality.INTENT_STATUS_VOCABULARY:
-        nav_says = status in nav_set
-        closure_says = status in closure_set
-        if nav_says != closure_says:
-            failures.append(
-                f"navigator intent status {status!r}: nav says terminal={nav_says}, "
-                f"closure says terminal={closure_says}"
-            )
-    return failures
-
-
-def _check_nav_spec_terminal_set(
-    nav_terminality: Any, closure_terminality: Any
-) -> list[str]:
-    """Return failure messages when navigator spec terminal set disagrees."""
-    failures = []
-    nav_set = nav_terminality.TERMINAL_SPEC_STATUSES
-    closure_set = closure_terminality.TERMINAL_SPEC_STATUSES
-    for status in closure_terminality.SPEC_STATUS_VOCABULARY:
-        nav_says = status in nav_set
-        closure_says = status in closure_set
-        if nav_says != closure_says:
-            failures.append(
-                f"navigator spec status {status!r}: nav says terminal={nav_says}, "
-                f"closure says terminal={closure_says}"
-            )
-    return failures
-
-
-def _check_nav_extraction_rule(
-    nav_terminality: Any, lint_spec_status: Any
-) -> list[str]:
-    """Return failure messages when navigator extraction disagrees with lint."""
-    failures = []
-    for probe in _EXTRACT_PROBES:
-        nav_result = nav_terminality._extract_status_token(probe)
-        lint_result = lint_spec_status.extract_status_token(probe)
-        if nav_result != lint_result:
-            failures.append(
-                f"probe {probe!r}: nav returns {nav_result!r}, "
-                f"lint returns {lint_result!r}"
-            )
-    return failures
+def _synthetic_intent_terminal_col(closure: Any) -> dict[str, bool]:
+    """Build a terminal-column dict from closure_terminality (already upstream-verified)."""
+    return {
+        status: (status in closure.TERMINAL_INTENT_STATUSES)
+        for status in closure.INTENT_STATUS_VOCABULARY
+    }
 
 
 # ---------------------------------------------------------------------------
-# Baseline: all checks must pass with real modules.
+# Baseline: unmutated copies must pass all checks.
 # ---------------------------------------------------------------------------
 
 
-def test_nav_terminality_agrees_with_closure_terminality_intent_set() -> None:
-    """Navigator intent terminal set agrees with closure_terminality."""
+def test_nav_intent_parity_passes_baseline() -> None:
+    """Unmutated navigator intent set agrees with the upstream Terminal column."""
+    tool = _load_parity_tool()
     nav = _load_nav_terminality()
     closure = _load_closure_terminality()
-    failures = _check_nav_intent_terminal_set(nav, closure)
-    assert not failures, f"Intent terminal set disagreements: {failures}"
+    failures = tool._check_nav_intent_parity(nav, _synthetic_intent_terminal_col(closure))
+    assert not failures, f"Unexpected intent disagreements: {failures}"
 
 
-def test_nav_terminality_agrees_with_closure_terminality_spec_set() -> None:
-    """Navigator spec terminal set agrees with closure_terminality."""
+def test_nav_brief_parity_passes_baseline() -> None:
+    """Unmutated navigator brief terminality agrees with brief_shape.BRIEF_TRANSITIONS."""
+    tool = _load_parity_tool()
+    nav = _load_nav_terminality()
+    brief_shape = _load_brief_shape()
+    failures = tool._check_nav_brief_parity(nav, brief_shape.BRIEF_TRANSITIONS)
+    assert not failures, f"Unexpected brief disagreements: {failures}"
+
+
+def test_nav_spec_parity_passes_baseline() -> None:
+    """Unmutated navigator spec terminal set agrees with closure_terminality."""
+    tool = _load_parity_tool()
     nav = _load_nav_terminality()
     closure = _load_closure_terminality()
-    failures = _check_nav_spec_terminal_set(nav, closure)
-    assert not failures, f"Spec terminal set disagreements: {failures}"
+    failures = tool._check_nav_spec_parity(nav, closure)
+    assert not failures, f"Unexpected spec disagreements: {failures}"
 
 
-def test_nav_extraction_rule_agrees_with_lint_spec_status() -> None:
-    """Navigator extraction rule agrees with lint-spec-status over the probe set."""
+def test_nav_extraction_passes_baseline() -> None:
+    """Unmutated navigator extraction rule agrees with lint-spec-status."""
+    tool = _load_parity_tool()
     nav = _load_nav_terminality()
     lint = _load_lint_spec_status()
-    failures = _check_nav_extraction_rule(nav, lint)
-    assert not failures, f"Extraction rule disagreements: {failures}"
+    failures = tool._check_nav_extraction(nav, lint)
+    assert not failures, f"Unexpected extraction disagreements: {failures}"
 
 
 # ---------------------------------------------------------------------------
-# Mutation: change intent terminal set — check must detect disagreement.
+# Mutation: remove a status from the intent terminal set — check must detect.
 # ---------------------------------------------------------------------------
 
 
-def test_mutated_intent_terminal_set_fails_check() -> None:
+def test_mutated_intent_terminal_set_removal_fails_check() -> None:
     """Removing 'Fulfilled' from the navigator's intent terminal set causes failure."""
+    tool = _load_parity_tool()
     nav = _load_nav_terminality()
     closure = _load_closure_terminality()
 
-    # Mutate: remove Fulfilled from the navigator's terminal set.
     original = nav.TERMINAL_INTENT_STATUSES
     nav.TERMINAL_INTENT_STATUSES = original - {"Fulfilled"}
     try:
-        failures = _check_nav_intent_terminal_set(nav, closure)
+        failures = tool._check_nav_intent_parity(nav, _synthetic_intent_terminal_col(closure))
     finally:
         nav.TERMINAL_INTENT_STATUSES = original
 
@@ -188,19 +143,96 @@ def test_mutated_intent_terminal_set_fails_check() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Mutation: change spec terminal set — check must detect disagreement.
+# Mutation: add an extra status to the intent terminal set — check must detect.
+# ---------------------------------------------------------------------------
+
+
+def test_mutated_intent_terminal_set_addition_fails_check() -> None:
+    """Adding an extra status to the navigator's intent terminal set causes failure.
+
+    'Executing' is not a terminal intent status in the upstream Terminal column.
+    The check must detect this extra claim even though the status may not
+    appear in the upstream's vocabulary.
+    """
+    tool = _load_parity_tool()
+    nav = _load_nav_terminality()
+    closure = _load_closure_terminality()
+
+    original = nav.TERMINAL_INTENT_STATUSES
+    nav.TERMINAL_INTENT_STATUSES = original | {"Executing"}
+    try:
+        failures = tool._check_nav_intent_parity(nav, _synthetic_intent_terminal_col(closure))
+    finally:
+        nav.TERMINAL_INTENT_STATUSES = original
+
+    assert failures, (
+        "check must detect disagreement when an extra status 'Executing' is "
+        "added to the navigator's intent terminal set"
+    )
+    assert any("Executing" in f for f in failures), (
+        f"expected 'Executing' in failure messages, got: {failures}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Mutation: change brief terminal set — check must detect.
+# ---------------------------------------------------------------------------
+
+
+def test_mutated_brief_terminal_set_fails_check() -> None:
+    """Mutating the navigator's _BRIEF_TRANSITIONS to remove 'Shipped' causes failure.
+
+    Removing ('Executing', 'Shipped') means 'Shipped' still has no source edge,
+    but 'Executing' gains no new outgoing edge — instead the navigator no longer
+    recognises 'Shipped' as a valid brief status at all, which misaligns it
+    with brief_shape.BRIEF_TRANSITIONS where 'Shipped' is a terminal state.
+    To produce a clear terminality mismatch, we mutate _BRIEF_TRANSITIONS so
+    that 'Shipped' gains an outgoing edge, making the navigator call it non-
+    terminal while the upstream still says terminal.
+    """
+    tool = _load_parity_tool()
+    nav = _load_nav_terminality()
+    brief_shape = _load_brief_shape()
+
+    # Add a fake outgoing edge from 'Shipped', making it non-terminal in the
+    # navigator's view while brief_shape.BRIEF_TRANSITIONS still has none.
+    original = nav._BRIEF_TRANSITIONS
+    nav._BRIEF_TRANSITIONS = original | {("Shipped", "Draft")}
+    # Also rebuild the vocabulary so is_brief_terminal can reach 'Shipped'.
+    original_vocab = nav._BRIEF_STATUS_VOCABULARY
+    nav._BRIEF_STATUS_VOCABULARY = frozenset(
+        s for pair in nav._BRIEF_TRANSITIONS for s in pair
+    )
+    try:
+        failures = tool._check_nav_brief_parity(nav, brief_shape.BRIEF_TRANSITIONS)
+    finally:
+        nav._BRIEF_TRANSITIONS = original
+        nav._BRIEF_STATUS_VOCABULARY = original_vocab
+
+    assert failures, (
+        "check must detect disagreement when the navigator's _BRIEF_TRANSITIONS "
+        "gives 'Shipped' an outgoing edge, making it non-terminal"
+    )
+    assert any("Shipped" in f for f in failures), (
+        f"expected 'Shipped' in failure messages, got: {failures}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Mutation: change spec terminal set — check must detect.
 # ---------------------------------------------------------------------------
 
 
 def test_mutated_spec_terminal_set_fails_check() -> None:
     """Removing 'Archived' from the navigator's spec terminal set causes failure."""
+    tool = _load_parity_tool()
     nav = _load_nav_terminality()
     closure = _load_closure_terminality()
 
     original = nav.TERMINAL_SPEC_STATUSES
     nav.TERMINAL_SPEC_STATUSES = original - {"Archived"}
     try:
-        failures = _check_nav_spec_terminal_set(nav, closure)
+        failures = tool._check_nav_spec_parity(nav, closure)
     finally:
         nav.TERMINAL_SPEC_STATUSES = original
 
@@ -214,12 +246,13 @@ def test_mutated_spec_terminal_set_fails_check() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Mutation: change extraction rule — check must detect disagreement.
+# Mutation: change extraction rule — check must detect.
 # ---------------------------------------------------------------------------
 
 
 def test_mutated_extraction_rule_fails_check() -> None:
     """A broken extraction rule that ignores ' (' causes parity failure."""
+    tool = _load_parity_tool()
     nav = _load_nav_terminality()
     lint = _load_lint_spec_status()
 
@@ -235,7 +268,7 @@ def test_mutated_extraction_rule_fails_check() -> None:
     original = nav._extract_status_token
     nav._extract_status_token = _broken_extract
     try:
-        failures = _check_nav_extraction_rule(nav, lint)
+        failures = tool._check_nav_extraction(nav, lint)
     finally:
         nav._extract_status_token = original
 
