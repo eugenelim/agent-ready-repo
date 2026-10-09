@@ -67,3 +67,37 @@ row's literal method.
 - The AC-0064 equality tests drive the graph module through the navigator's
   own loader function, because the query envelope does not expose the raw
   graph.
+
+## T4
+
+- Done-when, re-run by the controller with the worktree's Python 3.12:
+  every navigate-intents suite plus `tools/test_check_closure_terminality_parity.py`
+  — 157 passed in 8.07 s (`test_outstanding.py` alone: 43 passed);
+  `python3 tools/check_closure_terminality_parity.py` clean, including
+  "navigator terminality copy agrees"; `make lint-ruff lint-mypy` exit 0;
+  `agentbundle catalogue verify --root .` ok; the shipped-text grep returns
+  nothing over the skill and both projections.
+- Correction inside T4: spec placements leaked an internal `_in_no_parent`
+  key into each placement in the JSON result. `_clean_item` now strips it, and
+  an AC-0059 test covers it. A new `fixtures/negative/ambiguous_ordinal/`
+  corpus proves `ambiguous_identity` for `outstanding --from`.
+- `tools/test_check_closure_terminality_parity.py` did not exist before this
+  slice; T4 created it with six mutation tests.
+- **AC-0019: not yet met.** Seven `outstanding` runs over this repository
+  (168 intents, 23 briefs, 543 specs; 199 outstanding items; JSON result
+  104,144 bytes, under the 512 KiB limit), each `status: ok`, wall time
+  process start to exit:
+  - implementer, 2026-10-09: 28.70 (cold), 4.74, 6.38, 7.56, 4.44, 6.29,
+    6.33 s — median 6.33 s;
+  - controller, 2026-10-09 09:08 CDT: 5.79, 5.30, 5.60, 5.88, 5.72, 5.77,
+    7.50 s — median 5.77 s, min 5.30 s, max 7.50 s.
+  Load averages at the controller's runs were 18.5, 58.2, and 81.9 on 10
+  cores. CPU time per run is about 1.8 s (user 1.0 s, system 0.75 s); the
+  rest of the wall time is waiting. A profile attributes 4.3 s of a 10.3 s
+  profiled run to 7,480 `open` calls: the confinement helper opens each path
+  component, and the derivation and the delivery resolver each read all 748
+  artifacts. Halving those reads would change `intent_graph.py`, outside
+  T4's `Touches`, and the resolver copy must stay byte-identical.
+  AC-0019 is measured at the commit this slice merges, so the seven runs are
+  repeated at lower load before the slice pull request; a miss at low load
+  goes to the owner.

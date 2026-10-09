@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the closure check's terminality projections against their upstreams.
+"""Check terminality projections against their upstreams.
 
 `close-work` decides closure verdicts on whether a status is terminal, and the
 surfaces owning that answer sit in sibling skills it may not import. It
@@ -7,13 +7,25 @@ therefore carries projections, and this gate is what keeps them honest: it runs
 on every pull request through `build_gate_chain.py`, reads both upstreams
 first-hand, and fails when either has moved.
 
+`navigate-intents` carries a parity-checked copy of the same terminality rule
+in `intent_terminality.py`. This tool checks that copy too: its intent, brief,
+and spec terminal sets against `closure_terminality`'s upstreams, its spec
+terminal subset against `closure_terminality` directly, and its
+leading-word extraction against `lint-spec-status.py`'s `extract_status_token`
+over a fixed probe set.
+
 It lives here rather than in `packs/core/tests/` for two reasons. It reads the
 repository's governance corpus, which no portable pack test does — coupling a
 pack to repository-private content is what the pack tests deliberately avoid.
 And it imports two sibling skills at once, which only a repository-side tool
 may do.
 
-Exit 0 when both projections agree with their upstreams, 1 on any disagreement.
+Exit 0 when all projections agree with their upstreams, 1 on any disagreement.
+
+Remediation: if a failure is reported, update the projection in
+`close-work/scripts/closure_terminality.py` or
+`navigate-intents/scripts/intent_terminality.py` to match its upstream, never
+the other way round.
 """
 
 from __future__ import annotations
@@ -165,6 +177,10 @@ def main(argv: list[str] | None = None) -> int:
         "intent_shape",
         root / "packs/core/.apm/skills/work-intake/scripts/intent_shape.py",
     )
+    nav_terminality = _load(
+        "nav_intent_terminality",
+        root / "packs/core/.apm/skills/navigate-intents/scripts/intent_terminality.py",
+    )
 
     wanted = projection.INTENT_TERMINALITY_UPSTREAM.slug
     source = next(((p, t) for slug, p, t in _intents(root) if slug == wanted), None)
@@ -211,6 +227,83 @@ def main(argv: list[str] | None = None) -> int:
         )
     failures.extend(_walk_is_not_vacuous(root, closure_index))
 
+    # ── Navigator terminality copy checks (intent_terminality.py) ─────────────
+    # Intent terminal sets: compare navigator's set against closure_terminality's
+    # upstream (the lifecycle intent's Terminal column).
+    nav_intent_terminal = nav_terminality.TERMINAL_INTENT_STATUSES
+    closure_intent_terminal = projection.TERMINAL_INTENT_STATUSES
+    for status in projection.INTENT_STATUS_VOCABULARY:
+        nav_says = status in nav_intent_terminal
+        closure_says = status in closure_intent_terminal
+        if nav_says != closure_says:
+            failures.append(
+                f"navigator intent status {status!r}: intent_terminality.py says "
+                f"terminal={nav_says}, closure_terminality.py disagrees"
+            )
+
+    # Brief terminal sets: compare against closure_terminality's upstream
+    # (brief_shape.BRIEF_TRANSITIONS, no-outgoing-edge property).
+    for status in projection.BRIEF_STATUS_VOCABULARY:
+        nav_says = nav_terminality.is_brief_terminal(status)
+        closure_says = projection.is_brief_terminal(status)
+        if nav_says != closure_says:
+            failures.append(
+                f"navigator brief status {status!r}: intent_terminality.py says "
+                f"terminal={nav_says}, closure_terminality.py disagrees"
+            )
+
+    # Spec terminal sets: compare navigator against closure_terminality directly
+    # (the upstream check against lint-spec-status.py covers vocabulary; this
+    # checks the terminal subset against closure_terminality's own enumeration).
+    nav_spec_terminal = nav_terminality.TERMINAL_SPEC_STATUSES
+    closure_spec_terminal = projection.TERMINAL_SPEC_STATUSES
+    for status in projection.SPEC_STATUS_VOCABULARY:
+        nav_says = status in nav_spec_terminal
+        closure_says = status in closure_spec_terminal
+        if nav_says != closure_says:
+            failures.append(
+                f"navigator spec status {status!r}: intent_terminality.py says "
+                f"terminal={nav_says}, closure_terminality.py disagrees"
+            )
+
+    # Leading-word extraction: compare navigator's _extract_status_token against
+    # lint-spec-status.py's extract_status_token over a fixed probe set that
+    # exercises the three delimiter cases.
+    _EXTRACT_PROBES: list[str] = [
+        "Fulfilled",
+        "Shipped",
+        "Draft",
+        "Accepted",
+        # ' (' cases: delimiter comes after the status word (most common form)
+        "Fulfilled (2026-01-01)",
+        "Shipped (date)",
+        "Draft (something)",
+        "Approved (review)",
+        # ' (' case: delimiter at position 0 — the only case where truncation
+        # changes the first word (exercises the delimiter detection path)
+        " (Fulfilled)",
+        # ' →' cases
+        "Fulfilled → next",
+        "Shipped → archived",
+        # '<!--' cases
+        "Draft<!-- comment -->",
+        "Accepted<!-- inline -->",
+        "Superseded <!-- trailing -->",
+        "Archived <!-- trailing -->",
+        "",
+        "  ",
+        "Withdrawn",
+    ]
+    for probe in _EXTRACT_PROBES:
+        nav_result = nav_terminality._extract_status_token(probe)
+        lint_result = lint_spec_status.extract_status_token(probe)
+        if nav_result != lint_result:
+            failures.append(
+                f"leading-word extraction probe {probe!r}: "
+                f"intent_terminality._extract_status_token returns {nav_result!r}, "
+                f"lint-spec-status.extract_status_token returns {lint_result!r}"
+            )
+
     if failures:
         for line in failures:
             print(f"check-closure-terminality-parity: {line}", file=sys.stderr)
@@ -218,7 +311,8 @@ def main(argv: list[str] | None = None) -> int:
             "check-closure-terminality-parity: "
             f"{len(failures)} disagreement(s) — update the projection to match "
             "its upstream, never the other way round. Status projections live "
-            "in close-work/scripts/closure_terminality.py; the terminus "
+            "in close-work/scripts/closure_terminality.py and "
+            "navigate-intents/scripts/intent_terminality.py; the terminus "
             "projection lives in close-work/scripts/closure_index.py",
             file=sys.stderr,
         )
@@ -231,6 +325,7 @@ def main(argv: list[str] | None = None) -> int:
         f"{len(projection.SPEC_STATUS_VOCABULARY)} spec status(es) and "
         f"{len(closure_index.TERMINUS_VOCABULARY)} terminus(es) and "
         f"{len(closure_index.REFERENCE_KIND_VOCABULARY)} reference kind(s) agree with upstream; "
+        "navigator terminality copy agrees; "
         "the live-corpus walk is not vacuous"
     )
     return 0

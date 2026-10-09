@@ -103,6 +103,7 @@ def _escape_display(value: str) -> str:
 
 _GRAPH_MOD: Any = None
 _RESOLVER_MOD: Any = None
+_TERMINALITY_MOD: Any = None
 
 
 def _load_graph_mod() -> Any:
@@ -140,6 +141,43 @@ def _load_graph_mod() -> Any:
     finally:
         sys.dont_write_bytecode = prev
     _GRAPH_MOD = mod
+    return mod
+
+
+def _load_terminality_mod() -> Any:
+    """Load the co-located ``intent_terminality.py`` at most once.
+
+    Raises ``ImportError`` when the file is absent or cannot be executed.
+    """
+    global _TERMINALITY_MOD
+    if _TERMINALITY_MOD is not None:
+        return _TERMINALITY_MOD
+    path = _SCRIPT_DIR / "intent_terminality.py"
+    try:
+        st = os.lstat(path)
+    except OSError as exc:
+        raise ImportError("required helper unavailable: intent_terminality.py") from exc
+    if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
+        raise ImportError("required helper is not a regular file: intent_terminality.py")
+    name = "core_navigate_intents_terminality_nav"
+    if name in sys.modules:
+        _TERMINALITY_MOD = sys.modules[name]
+        return _TERMINALITY_MOD
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec_obj = importlib.util.spec_from_file_location(name, path)
+        if spec_obj is None or spec_obj.loader is None:
+            raise ImportError("cannot load intent_terminality.py")
+        mod = importlib.util.module_from_spec(spec_obj)
+        sys.modules[name] = mod
+        spec_obj.loader.exec_module(mod)  # type: ignore[union-attr]
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
+    finally:
+        sys.dont_write_bytecode = prev
+    _TERMINALITY_MOD = mod
     return mod
 
 
@@ -686,12 +724,13 @@ def _check_text_byte_limit(text: str, max_bytes: int) -> dict[str, Any] | None:
 def _op_summary(
     graph: dict[str, Any],
     delivery_field: dict[str, Any],
+    terminality_mod: Any,
 ) -> dict[str, Any]:
     """Build the summary result fields.
 
     Returns counts of intents by Level and Kind, of briefs and specs,
-    of refused edges by state, and of parentless intents.  The outstanding
-    count is deferred to T4 (returned as ``null``).
+    of outstanding items (using the bundled terminality rule), of refused edges
+    by state, and of parentless intents.
     """
     intent_list = _intent_nodes(graph)
     brief_list = _brief_nodes(graph)
@@ -725,13 +764,18 @@ def _op_summary(
         1 for n in intent_list if n["id"] not in resolved_children
     )
 
+    # Outstanding count using the bundled terminality rule
+    outstanding_count = sum(
+        1 for n in graph["nodes"] if not terminality_mod.is_node_terminal(n)
+    )
+
     return {
         "summary": {
             "intents_by_level": by_level,
             "intents_by_kind": by_kind,
             "briefs": len(brief_list),
             "specs": len(spec_list),
-            "outstanding": None,  # deferred to T4
+            "outstanding": outstanding_count,
             "refused_edges_by_state": refused,
             "parentless_intents": parentless,
         }
@@ -1049,16 +1093,519 @@ def _op_search(
     return full_result, 0
 
 
-def _op_outstanding_placeholder(
+# ---------------------------------------------------------------------------
+# Outstanding helpers
+# ---------------------------------------------------------------------------
+
+
+def _build_resolved_parent_map(graph: dict[str, Any]) -> dict[str, str]:
+    """Map each node id to its single resolved parent id (intent and brief nodes).
+
+    Only includes edges where ``to`` is set and no ``state`` key is present.
+    """
+    result: dict[str, str] = {}
+    for edge in graph["edges"]:
+        if (
+            edge.get("field") == "Parent intent"
+            and "to" in edge
+            and "state" not in edge
+        ):
+            result[edge["from"]] = edge["to"]
+    return result
+
+
+def _build_parent_edge_map(graph: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Map each intent/brief node id to its ``Parent intent`` edge (resolved or refused)."""
+    result: dict[str, dict[str, Any]] = {}
+    for edge in graph["edges"]:
+        if edge.get("field") == "Parent intent":
+            from_id = edge.get("from", "")
+            if from_id not in result:
+                result[from_id] = edge
+    return result
+
+
+def _build_ancestor_chain(
+    start_id: str,
+    resolved_parent_map: dict[str, str],
+    node_by_id: dict[str, Any],
+    terminality_mod: Any,
+) -> list[dict[str, Any]]:
+    """Walk up the resolved parent chain from *start_id*.
+
+    Returns a list of ``{"id": ..., "terminal": bool}`` entries, nearest first.
+    Terminates at the first terminal ancestor (included) or when no resolved
+    parent exists.
+    """
+    chain: list[dict[str, Any]] = []
+    seen = {start_id}
+    current = start_id
+    while True:
+        parent_id = resolved_parent_map.get(current)
+        if parent_id is None or parent_id in seen:
+            break
+        seen.add(parent_id)
+        parent_node = node_by_id.get(parent_id)
+        if parent_node is None:
+            break
+        is_terminal = terminality_mod.is_node_terminal(parent_node)
+        chain.append({"id": parent_id, "terminal": is_terminal})
+        if is_terminal:
+            break
+        current = parent_id
+    return chain
+
+
+def _intent_ancestor_ids(
+    node_id: str,
+    resolved_parent_map: dict[str, str],
+    node_by_id: dict[str, Any],
+) -> set[str]:
+    """Return the set of all intent ancestor IDs reachable from *node_id*.
+
+    Walks resolved Parent intent: edges upward through both intents and briefs.
+    Stops at cycles or missing nodes.
+    """
+    ancestors: set[str] = set()
+    seen = {node_id}
+    current = node_id
+    while True:
+        parent_id = resolved_parent_map.get(current)
+        if parent_id is None or parent_id in seen:
+            break
+        seen.add(parent_id)
+        parent_node = node_by_id.get(parent_id)
+        if parent_node is None:
+            break
+        if parent_node.get("type") == "intent":
+            ancestors.add(parent_id)
+        current = parent_id
+    return ancestors
+
+
+def _build_outstanding_items(
+    graph: dict[str, Any],
+    terminality_mod: Any,
+    delivery_snap: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Build the flat items list for the outstanding operation.
+
+    Each outstanding artifact appears exactly once.  Intents and briefs carry
+    ``parent_edge`` and ``ancestors``; specs carry ``placements``.  Items with
+    refused parent edges are tagged ``_in_no_parent=True`` for grouping.
+    """
+    node_by_id: dict[str, Any] = {n["id"]: n for n in graph["nodes"]}
+    outstanding_set = {
+        n["id"] for n in graph["nodes"] if not terminality_mod.is_node_terminal(n)
+    }
+    resolved_parent_map = _build_resolved_parent_map(graph)
+    parent_edge_map = _build_parent_edge_map(graph)
+
+    # Spec edges indexed by spec id → list of (field_name, edge) pairs
+    spec_edge_map: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    for edge in graph["edges"]:
+        from_id = edge.get("from", "")
+        if from_id.startswith("spec:") and edge.get("field") in ("Brief", "Discovery"):
+            spec_edge_map.setdefault(from_id, []).append((edge["field"], edge))
+
+    items: list[dict[str, Any]] = []
+
+    for node in graph["nodes"]:
+        node_id = node["id"]
+        node_type = node.get("type", "")
+        if node_id not in outstanding_set:
+            continue
+
+        if node_type in ("intent", "brief"):
+            parent_edge = parent_edge_map.get(node_id)
+            # No edge at all (none parent) → not in no_parent group.
+            # Refused edge → in no_parent group.
+            if parent_edge is not None:
+                ancestors = _build_ancestor_chain(
+                    node_id, resolved_parent_map, node_by_id, terminality_mod
+                )
+                in_no_parent = "state" in parent_edge
+            else:
+                ancestors = []
+                in_no_parent = False
+
+            item: dict[str, Any] = {
+                "id": node_id,
+                "type": node_type,
+                "status": node.get("status", ""),
+                "parent_edge": parent_edge,
+                "ancestors": ancestors,
+                "_in_no_parent": in_no_parent,
+            }
+            if node_type == "intent":
+                item["level"] = node.get("level", "") or ""
+                item["kind"] = node.get("kind", "") or ""
+            items.append(item)
+
+        elif node_type == "spec":
+            edge_list = spec_edge_map.get(node_id, [])
+            placements: list[dict[str, Any]] = []
+            for field_name, edge in edge_list:
+                if "to" in edge and "state" not in edge:
+                    parent_id = edge["to"]
+                    parent_node = node_by_id.get(parent_id)
+                    parent_terminal = (
+                        terminality_mod.is_node_terminal(parent_node)
+                        if parent_node is not None else True
+                    )
+                    parent_entry = {"id": parent_id, "terminal": parent_terminal}
+                    chain = _build_ancestor_chain(
+                        parent_id, resolved_parent_map, node_by_id, terminality_mod
+                    )
+                    ancestors_list = [parent_entry] + chain
+                    placement: dict[str, Any] = {
+                        "pointer_field": field_name,
+                        "parent_edge": edge,
+                        "ancestors": ancestors_list,
+                        "_in_no_parent": False,
+                    }
+                else:
+                    # Refused placement edge
+                    placement = {
+                        "pointer_field": field_name,
+                        "parent_edge": edge,
+                        "ancestors": [],
+                        "_in_no_parent": True,
+                    }
+                placements.append(placement)
+
+            # A spec with no placements at all (no Brief: or Discovery: edges)
+            # goes to the no_parent group via a synthetic placement entry.
+            if not placements:
+                placements = [
+                    {
+                        "pointer_field": None,
+                        "parent_edge": None,
+                        "ancestors": [],
+                        "_in_no_parent": True,
+                    }
+                ]
+
+            items.append({
+                "id": node_id,
+                "type": "spec",
+                "status": node.get("status", ""),
+                "placements": placements,
+                # in_no_parent: all placements are in no_parent
+                "_in_no_parent": all(p["_in_no_parent"] for p in placements),
+            })
+
+    return items
+
+
+def _filter_outstanding_from(
+    items: list[dict[str, Any]],
+    from_node: dict[str, Any],
+    resolved_parent_map: dict[str, str],
+    node_by_id: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Filter outstanding items to those placed beneath *from_node*.
+
+    Includes *from_node* itself when outstanding.  A spec is included when any
+    of its placements passes through the from_node's subtree.
+    """
+    from_id = from_node["id"]
+
+    # Compute all intent ids in the from_node's subtree (including itself).
+    # Build children map for intents (resolved parent edges).
+    children_map: dict[str, list[str]] = {}
+    for node_id, parent_id in resolved_parent_map.items():
+        children_map.setdefault(parent_id, []).append(node_id)
+
+    # BFS/DFS to collect all descendants of from_node (among all nodes).
+    subtree: set[str] = {from_id}
+    frontier = [from_id]
+    while frontier:
+        current = frontier.pop()
+        for child_id in children_map.get(current, []):
+            if child_id not in subtree:
+                subtree.add(child_id)
+                frontier.append(child_id)
+
+    result: list[dict[str, Any]] = []
+    for item in items:
+        item_id = item["id"]
+        item_type = item.get("type", "")
+
+        if item_type in ("intent", "brief"):
+            # Include if item itself or any ancestor is in subtree.
+            if item_id in subtree:
+                result.append(item)
+                continue
+            for anc in item.get("ancestors", []):
+                if anc["id"] in subtree:
+                    result.append(item)
+                    break
+            else:
+                # Check parent_edge target for briefs with no ancestors yet
+                pe = item.get("parent_edge")
+                if pe and "to" in pe and pe["to"] in subtree:
+                    result.append(item)
+
+        elif item_type == "spec":
+            included = False
+            for placement in item.get("placements", []):
+                pe = placement.get("parent_edge")
+                if pe and "to" in pe and pe["to"] in subtree:
+                    included = True
+                    break
+                for anc in placement.get("ancestors", []):
+                    if anc["id"] in subtree:
+                        included = True
+                        break
+                if included:
+                    break
+            if included:
+                result.append(item)
+
+    return result
+
+
+def _outstanding_text_line_brief_or_spec(item_id: str, status: str, depth: int) -> str:
+    """Format a brief or spec item as a text-tree line."""
+    indent = "  " * depth
+    return f"{indent}{item_id} · {_escape_display(status)}"
+
+
+def _build_outstanding_text(
+    items: list[dict[str, Any]],
+    graph: dict[str, Any],
+    resolved_parent_map: dict[str, str],
+    node_by_id: dict[str, Any],
+) -> str:
+    """Build the text-format output for the outstanding operation.
+
+    Placed items (resolved parent chain) come first as a tree, then the
+    ``(no parent)`` group.  Children within each parent are sorted by node id.
+    A spec placed by both Brief: and Discovery: appears in both places.
+    """
+    lines: list[str] = []
+
+    # Separate placed from no_parent items.
+    placed_items = [it for it in items if not it.get("_in_no_parent")]
+    no_parent_items = [it for it in items if it.get("_in_no_parent")]
+
+    # Build child maps for the placed tree.
+    # For intents and briefs: map parent_id -> sorted list of child items.
+    # For specs: they appear under their placement parents.
+    # A single item can appear under multiple parents (specs with two placements).
+
+    # Map: parent_id -> list of (child_item, placement_or_None)
+    children_of: dict[str, list[tuple[dict[str, Any], Any]]] = {}
+
+    for item in placed_items:
+        item_type = item.get("type", "")
+        if item_type in ("intent", "brief"):
+            pe = item.get("parent_edge")
+            if pe is not None and "to" in pe and "state" not in pe:
+                parent_id = pe["to"]
+                children_of.setdefault(parent_id, []).append((item, None))
+            # else: no resolved parent → root
+        elif item_type == "spec":
+            for placement in item.get("placements", []):
+                if placement.get("_in_no_parent"):
+                    continue
+                pe = placement.get("parent_edge")
+                if pe and "to" in pe and "state" not in pe:
+                    parent_id = pe["to"]
+                    children_of.setdefault(parent_id, []).append((item, placement))
+
+    # Sort each parent's children by item id.
+    for parent_id in children_of:
+        children_of[parent_id].sort(key=lambda pair: pair[0]["id"])
+
+    # Root intents/briefs: those with no parent edge or whose parent is
+    # not tracked (none/empty parent). A placed item is a root if it has no
+    # parent_edge (or parent_edge has no "to") and is not a child of anything.
+    all_children_ids: set[str] = set()
+    for child_list in children_of.values():
+        for child_item, _ in child_list:
+            all_children_ids.add(child_item["id"])
+
+    roots = sorted(
+        [
+            it for it in placed_items
+            if it.get("type") in ("intent", "brief")
+            and (
+                it.get("parent_edge") is None
+                or "to" not in it.get("parent_edge", {})
+                or it["id"] not in all_children_ids
+            )
+        ],
+        key=lambda it: it["id"],
+    )
+
+    rendered: set[tuple[str, str]] = set()  # (item_id, parent_context) to avoid infinite loops
+
+    def _render_item(item: dict[str, Any], depth: int, placement: Any = None) -> None:
+        item_id = item["id"]
+        item_type = item.get("type", "")
+        status = item.get("status", "")
+
+        if item_type == "intent":
+            raw_level = item.get("level", "") or ""
+            level_display = _escape_display(raw_level) if raw_level else "unrecorded"
+            kind_display = _escape_display(item.get("kind", "") or "")
+            parts = ["  " * depth, item_id, " · ", level_display]
+            if kind_display:
+                parts += [" · ", kind_display]
+            parts += [" · ", _escape_display(status)]
+            lines.append("".join(parts))
+        elif item_type in ("brief", "spec"):
+            lines.append(_outstanding_text_line_brief_or_spec(item_id, status, depth))
+
+        # Render children sorted by id.
+        child_list = sorted(
+            children_of.get(item_id, []),
+            key=lambda pair: pair[0]["id"],
+        )
+        for child_item, child_placement in child_list:
+            context_key = (child_item["id"], item_id)
+            if context_key in rendered:
+                continue
+            rendered.add(context_key)
+            _render_item(child_item, depth + 1, child_placement)
+
+    for root in roots:
+        context_key = (root["id"], "")
+        if context_key not in rendered:
+            rendered.add(context_key)
+            _render_item(root, 0)
+
+    # No-parent group: items with refused or missing parent edges.
+    if no_parent_items:
+        lines.append("(no parent)")
+        sorted_np = sorted(no_parent_items, key=lambda it: it["id"])
+        for item in sorted_np:
+            item_type = item.get("type", "")
+            status = item.get("status", "")
+            if item_type == "intent":
+                raw_level = item.get("level", "") or ""
+                level_display = _escape_display(raw_level) if raw_level else "unrecorded"
+                kind_display = _escape_display(item.get("kind", "") or "")
+                parts = ["  ", item["id"], " · ", level_display]
+                if kind_display:
+                    parts += [" · ", kind_display]
+                parts += [" · ", _escape_display(status)]
+                lines.append("".join(parts))
+                # Show refused edge
+                pe = item.get("parent_edge")
+                if pe and "state" in pe:
+                    lines.append(f"    ! refused {pe['state']}")
+            elif item_type in ("brief", "spec"):
+                lines.append(_outstanding_text_line_brief_or_spec(item["id"], status, 1))
+                # Show refused edge for briefs
+                if item_type == "brief":
+                    pe = item.get("parent_edge")
+                    if pe and "state" in pe:
+                        lines.append(f"    ! refused {pe['state']}")
+                else:
+                    # Spec: show refused placement edges
+                    for placement in item.get("placements", []):
+                        pe = placement.get("parent_edge")
+                        if pe and "state" in pe:
+                            lines.append(f"    ! refused {pe['state']}")
+            # Render children of no_parent items (e.g. cycle-b under cycle-a)
+            child_list = sorted(
+                children_of.get(item["id"], []),
+                key=lambda pair: pair[0]["id"],
+            )
+            for child_item, child_placement in child_list:
+                context_key = (child_item["id"], item["id"] + ":np")
+                if context_key not in rendered:
+                    rendered.add(context_key)
+                    _render_item_np_child(child_item, 2, child_placement)
+
+    return "\n".join(lines)
+
+
+def _render_item_np_child(
+    item: dict[str, Any],
+    depth: int,
+    placement: Any,
+) -> None:
+    """Stub — rendering children of no_parent items is handled inline."""
+
+
+def _op_outstanding(
     graph: dict[str, Any],
     delivery_field: dict[str, Any],
+    delivery_snap: dict[str, Any],
+    terminality_mod: Any,
+    *,
+    from_id: str | None,
+    fmt: str,
+    max_bytes: int,
     env: dict[str, Any],
-) -> tuple[dict[str, Any], int]:
-    """Placeholder outstanding handler — T4 replaces this with the full view.
+    intent_nodes_list: list[dict[str, Any]],
+) -> tuple[dict[str, Any] | str, int]:
+    """Run the ``outstanding`` operation; returns (result, exit_code)."""
+    resolved_parent_map = _build_resolved_parent_map(graph)
+    node_by_id = {n["id"]: n for n in graph["nodes"]}
 
-    Returns an empty items list so T4 tests fail only on content assertions.
-    """
-    return _ok_response(env, delivery_field, items=[]), 0
+    # Build all outstanding items.
+    items = _build_outstanding_items(graph, terminality_mod, delivery_snap)
+
+    # Resolve --from identity if provided.
+    if from_id is not None:
+        from_match = _resolve_identity(from_id, intent_nodes_list)
+        if from_match is None:
+            return _error_response(
+                env, "not_found", f"no intent matching {from_id!r}"
+            ), 1
+        if from_match is _AMBIGUOUS:
+            return _error_response(
+                env, "ambiguous_identity",
+                f"ordinal {from_id!r} matches multiple intents",
+            ), 1
+        items = _filter_outstanding_from(
+            items, from_match, resolved_parent_map, node_by_id
+        )
+
+    if fmt == "text":
+        text = _build_outstanding_text(items, graph, resolved_parent_map, node_by_id)
+        byte_count = len(text.encode("utf-8"))
+        if byte_count > max_bytes:
+            return _error_response(
+                env, "result_too_large",
+                f"text output exceeds {max_bytes} bytes ({byte_count} bytes); "
+                "use --from to retrieve a bounded result",
+                limits={"max_bytes": max_bytes, "bounded_route": "--from"},
+                observed={"bytes": byte_count},
+            ), 1
+        return text, 0
+
+    # JSON format — strip internal fields before serialisation.
+    def _clean_item(it: dict[str, Any]) -> dict[str, Any]:
+        """Remove internal-only fields from an item and its nested placements."""
+        cleaned: dict[str, Any] = {k: v for k, v in it.items() if not k.startswith("_")}
+        if "placements" in cleaned:
+            cleaned["placements"] = [
+                {pk: pv for pk, pv in p.items() if not pk.startswith("_")}
+                for p in cleaned["placements"]
+            ]
+        return cleaned
+
+    clean_items = [_clean_item(it) for it in items]
+    full_result = _ok_response(env, delivery_field, items=clean_items)
+
+    compact = json.dumps(full_result, separators=(",", ":"), ensure_ascii=False)
+    byte_count = len(compact.encode("utf-8"))
+    if byte_count > max_bytes:
+        return _error_response(
+            env, "result_too_large",
+            f"result exceeds {max_bytes} bytes ({byte_count} bytes); "
+            "use --from to retrieve a bounded result",
+            limits={"max_bytes": max_bytes, "bounded_route": "--from"},
+            observed={"bytes": byte_count},
+        ), 1
+
+    return full_result, 0
 
 
 # ---------------------------------------------------------------------------
@@ -1184,6 +1731,15 @@ def run_query(
             "delivery resolver is unavailable"
         ), 1
 
+    # Load terminality module.
+    try:
+        terminality_mod = _load_terminality_mod()
+    except ImportError:
+        return _error_response(
+            fallback_env, "resolver_unavailable",
+            "terminality module is unavailable"
+        ), 1
+
     # Validate operation before expensive graph derivation.
     operation = args.operation
     if not operation:
@@ -1256,7 +1812,7 @@ def run_query(
     max_b = lim["max_result_bytes"]
 
     if operation == "summary":
-        fields = _op_summary(graph, delivery_field)
+        fields = _op_summary(graph, delivery_field, terminality_mod)
         return _ok_response(env, delivery_field, **fields), 0
 
     if operation == "record":
@@ -1297,7 +1853,14 @@ def run_query(
         )
 
     if operation == "outstanding":
-        return _op_outstanding_placeholder(graph, delivery_field, env)
+        return _op_outstanding(
+            graph, delivery_field, delivery_snap, terminality_mod,
+            from_id=args.from_id if hasattr(args, "from_id") else None,
+            fmt=args.fmt,
+            max_bytes=max_b,
+            env=env,
+            intent_nodes_list=_intent_nodes(graph),
+        )
 
     # Should not reach here.
     return _error_response(env, "unknown_operation", f"unhandled: {operation!r}"), 1
