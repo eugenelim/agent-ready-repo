@@ -774,3 +774,50 @@ canonical artifacts, and receipts stay in place.
 - Local results: full `tests/roster/` 2,066 passed, 7 skipped (run twice);
   `tests/` without roster 63 passed; dedup guard and artifact checker 135
   passed; self-host check ok; lint and `git diff --check` pass.
+
+## T11 — fresh authorization over the corrected candidate
+
+**Status: awaiting the RFC-0083 Approver's decision. The T5 authorization is
+superseded and not reused. No merge, tag, or publication has occurred.**
+
+- Corrected candidate: `5c0cba0db11a2d8731504ab245a3b8cadd8a0fab` on
+  `feat/capture-work-alias-removal-core3`, based on `origin/main`
+  `ca8af74f6`; PR #1525. It differs from the T5 candidate only by the T10
+  release-surface and pin edits plus ledger and contract records.
+- Versions: Core 3.0.0; code-intelligence 0.1.6, governance-extras 1.0.1,
+  iac-terraform 0.1.12, monorepo-extras 0.1.10, release-engineering 0.1.11 (all
+  `core ^3.0`); product-engineering 0.13.23; AgentBundle 0.52.0.
+- Rollback target: Core 2.30.1 (dual-reader) with code-intelligence 0.1.5,
+  governance-extras 1.0.0, iac-terraform 0.1.11, monorepo-extras 0.1.9,
+  release-engineering 0.1.10, product-engineering 0.13.22, and AgentBundle
+  0.51.0, all as on `main`.
+- CI on `5c0cba0db`, all green:
+
+  | Workflow | Run ID |
+  | --- | --- |
+  | build-check | 37940559202 |
+  | build-check-windows | 37940559191 |
+  | release-agentbundle | 37940559168 |
+  | test-roster (dispatch) | 37940559732 |
+  | test-corpus (dispatch) | 37940553427 |
+  | pack-javascript (dispatch) | 37940565720 |
+  | catalogue-tooling-ci-gates | 37940559162 |
+  | codeql | 37940559188 |
+  | ci-security | 37940559152 |
+  | docs | 37940559203 |
+  | Deploy GitHub Pages | 37940559221 |
+
+- Local checklist: the T5 table still holds for every unchanged surface. T10
+  added the full `tests/roster/` suite (2,066 passed, 7 skipped), `tests/`
+  without roster (63 passed), and the dedup guard plus artifact checker (135
+  passed). Self-host check ok, lint and `git diff --check` pass.
+- Review: no Blocker or Concern open; two Nits deferred with citations, as
+  recorded in T5.
+
+### Authorization record (to be completed by the RFC-0083 Approver)
+
+- Approver identity and role: _pending_
+- Decision: _pending_
+- Timestamp and metadata source: _pending_
+- Bound to: candidate `5c0cba0db`, the versions and rollback target above, and
+  this checklist.
