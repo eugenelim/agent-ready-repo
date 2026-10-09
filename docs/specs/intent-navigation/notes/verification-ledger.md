@@ -101,3 +101,28 @@ row's literal method.
   AC-0019 is measured at the commit this slice merges, so the seven runs are
   repeated at lower load before the slice pull request; a miss at low load
   goes to the owner.
+
+## T5
+
+- Done-when, implementer and controller: `agentbundle catalogue lint --root .
+  --deep` exit 0 with no `navigate-intents` finding;
+  `tests/roster/test_skill_census.py` 1 passed; `tools/test_build_gate_chain.py`
+  39 passed, 1 skipped; `tools/test_local_ci_shared_test_deduplication.py` 51
+  passed; `tools/test-lint-ci-parity.py` 218 cases and `tools/lint-ci-parity.py`
+  ok; `tools/lint-pack-test-boundary.py` and its self-test pass, clearing the
+  interim red recorded at T1; the navigate-intents suites 151 passed; catalogue
+  verify ok; `make lint-ruff lint-mypy` clean; shipped-text grep empty.
+- Digest re-pin: standalone `b666effc…` → `c263c9e5…`, composed `45dfc464…` →
+  `31633568…`. Removing the added `Makefile` line reproduces both old digests,
+  so the line is the sole cause.
+- The skill description was trimmed from 1,059 to 878 characters to meet the
+  catalogue's 1,024-character limit, keeping every routing signal.
+- **Activation run (AC-0033, AC-0034): no valid result yet.** `pack-evals` run
+  37949928904 on `bb75c212a`, `packs=core`, concluded `success` (the workflow
+  is report-only), but every one of its runs errored for all 15 core skills:
+  `navigate-intents` reported 15/35 with 105 harness errors, every trigger rate
+  0.00, so its passes are only the near-misses an errored run cannot trigger.
+  The job's `ANTHROPIC_API_KEY` is empty. The last scheduled run on `main`,
+  37322810666 on 2026-10-05, shows the same empty key and the same errors, so
+  this predates the slice. A local run cannot be scoped to one skill:
+  `agentbundle pack evals run` evaluates the whole pack.
