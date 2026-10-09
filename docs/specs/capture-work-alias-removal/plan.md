@@ -1,7 +1,7 @@
 # Plan: Capture-work alias removal
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** [RFC-0083 section 10 and 2026-10-02 Errata](../../rfc/0083-work-intake-and-artifact-routing.md); historical [`work-intake-migration-docs` AC14](../work-intake-migration-docs/spec.md); `packs/core/.apm/skills/capture-work/`; `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py` (`parse_legacy_workspace_entry`, `_extract_canonical_memberships`, `run_canonical_reconciliation`, and migration-planning seams); focused migration and projection tests under `packs/core/tests/skills/workspace-status/` and `tests/roster/test_workspace_status_projection.py`. Named deviation: accepted-legacy parsing currently serves both ordinary reconciliation and explicit migration, so the implementation must separate those consumers before removing compatibility behavior.
 
 > **Plan contract:** this is the implementation strategy. It may change

@@ -823,3 +823,29 @@ merge, tag, or publication had occurred when authorization was given.**
   in the current owner session before any merge, tag, or publication.
 - Bound to: candidate `5c0cba0db`, the versions and rollback target above, and
   this checklist.
+
+## T6 — coordinated release evidence (2026-10-09)
+
+- Core 3.0.0 release identity: PR #1525 squash-merged to `main` as
+  `7e745dbf743560f74d3d94d168b74408e0417f2c`. Its tree equals the PR head
+  `981179a0a`, which differs from the authorized candidate `5c0cba0db` only by
+  this ledger's authorization record. At that commit `packs/core/pack.toml` and
+  `packs/core/.claude-plugin/plugin.json` read 3.0.0, and
+  `docs/product/changelog.md` carries `[core][3.0.0]` directly beneath
+  `[Unreleased]`. Core is repo-only, so no registry receipt applies.
+- AgentBundle: tag `agentbundle-v0.52.0` pushed on `7e745dbf7` straight after
+  the merge. Release run 37949953561 passed: `build-and-smoke`,
+  `publish-artifactory`, Gate H on Python 3.11 and 3.12, and `publish-pypi`.
+  The `pypi` environment was approved by the owner (`eugenelim`) through the
+  API at the owner's direction.
+- PyPI: `agentbundle 0.52.0` is published as
+  `agentbundle-0.52.0-py3-none-any.whl` (sha256 `f2eb7c55bfb29f28…`, uploaded
+  2026-10-09T15:44:16Z) and `agentbundle-0.52.0.tar.gz` (uploaded
+  2026-10-09T15:44:18Z). Both version owners read 0.52.0 at `7e745dbf7`.
+- Byte equality: in the downloaded published wheel,
+  `agentbundle/_data/workspace_status_engine.py` (sha256 `f65a3619713b86ee…`)
+  and `workspace_status_prune.py` (`88395b684b69af04…`) are byte-identical to
+  the Core sources at both `7e745dbf7` and `5c0cba0db`.
+- AC-0012 site evidence: Pages run 37948119832 on head `981179a0a` passed its
+  build job, including `tools/check-rendered-site-links.py --build-dir build`.
+- Residual: the two Nits deferred in round 3 stay open for a later docs pass.

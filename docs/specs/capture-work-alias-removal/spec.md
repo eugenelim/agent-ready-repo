@@ -1,6 +1,6 @@
 # Spec: Capture-work alias removal
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Core work-intake maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0083](../../rfc/0083-work-intake-and-artifact-routing.md), including its 2026-10-02 Errata
@@ -86,20 +86,20 @@ The three-tier guard keeps an implementing agent inside the accepted removal.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The authored Core skill inventory contains `work-intake` and contains no `capture-work` skill directory, manifest entry, activation eval, or alias-specific runtime branch.
-- [ ] **AC-0002.** A clean self-host build installs and advertises `work-intake` but produces no `capture-work` skill in any supported adapter projection or Core journey inventory.
-- [ ] **AC-0003.** For every legacy shape in RFC-0083 section 10 item 2, ordinary canonical reconciliation returns no accepted legacy membership, emits no `legacy_entry` result, and remains non-dispatchable as `unsupported_legacy`; the same run evaluates a canonical target entry through the existing canonical path.
-- [ ] **AC-0004.** The explicit migration planner still recognizes every accepted historical legacy fixture and produces the existing reviewed, non-dispatchable migration finding without creating or changing repository state.
-- [ ] **AC-0005.** Existing apply, interruption recovery, and rollback integration tests pass unchanged in outcome: rollback restores the exact recorded legacy workspace bytes and leaves canonical artifacts, receipts, and the migration ledger intact.
-- [ ] **AC-0006.** The fixture, current-writer, and workspace-seed checks identified by the historical AC14 evidence definition all pass against the Core 3.0.0 candidate.
-- [ ] **AC-0007.** Current user guidance contains no instruction or example that invokes `capture-work`; it directs intake requests to `work-intake`, tells adopters to rewrite a former legacy entry in canonical form by hand, and limits the retained migration tooling to recovering or rolling back an operation already recorded in a migration ledger.
-- [ ] **AC-0008.** Current architecture, maintainer, pack, and journey documentation describes canonical entries as the ordinary read contract and does not claim that the `capture-work` alias or accepted-legacy compatibility reader remains installed.
-- [ ] **AC-0009.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both declare version `3.0.0`; the Core 3.0.0 changelog entry records the breaking removal with a `Highlights` disposition; and the Core release checker accepts that exact next-major successor through an explicit major-release mode while preserving its default patch-successor checks.
-- [ ] **AC-0010.** The repository's required local lint and type gate passes against the Core 3.0.0 candidate.
-- [ ] **AC-0011.** Self-host regeneration and catalogue verification produce adapter and packaged-runtime outputs that match the authored Core sources with no subsequent generated drift.
-- [ ] **AC-0012.** Current guide, journey, site-generation, and rendered-link validation passes for the maintained documentation surfaces changed by this removal.
-- [ ] **AC-0013.** Before Core 3.0.0 is published, the verification ledger records fresh RFC-0083 Approver authorization bound to the exact candidate identity, release version, passing evidence checklist, and selected dual-reader rollback target, including the prior versions of the Core-dependent packs restored with it.
-- [ ] **AC-0014.** Release closeout records the authorized `main` commit whose Core manifests and changelog identify 3.0.0, plus the synchronized AgentBundle package released from that same commit; the AgentBundle version tag is pushed immediately after the version-bumping merge, and the published package's workspace-status engine bytes match the authorized candidate. Core is repo-only, so no Core registry receipt is required.
+- [x] **AC-0001.** The authored Core skill inventory contains `work-intake` and contains no `capture-work` skill directory, manifest entry, activation eval, or alias-specific runtime branch.
+- [x] **AC-0002.** A clean self-host build installs and advertises `work-intake` but produces no `capture-work` skill in any supported adapter projection or Core journey inventory.
+- [x] **AC-0003.** For every legacy shape in RFC-0083 section 10 item 2, ordinary canonical reconciliation returns no accepted legacy membership, emits no `legacy_entry` result, and remains non-dispatchable as `unsupported_legacy`; the same run evaluates a canonical target entry through the existing canonical path.
+- [x] **AC-0004.** The explicit migration planner still recognizes every accepted historical legacy fixture and produces the existing reviewed, non-dispatchable migration finding without creating or changing repository state.
+- [x] **AC-0005.** Existing apply, interruption recovery, and rollback integration tests pass unchanged in outcome: rollback restores the exact recorded legacy workspace bytes and leaves canonical artifacts, receipts, and the migration ledger intact.
+- [x] **AC-0006.** The fixture, current-writer, and workspace-seed checks identified by the historical AC14 evidence definition all pass against the Core 3.0.0 candidate.
+- [x] **AC-0007.** Current user guidance contains no instruction or example that invokes `capture-work`; it directs intake requests to `work-intake`, tells adopters to rewrite a former legacy entry in canonical form by hand, and limits the retained migration tooling to recovering or rolling back an operation already recorded in a migration ledger.
+- [x] **AC-0008.** Current architecture, maintainer, pack, and journey documentation describes canonical entries as the ordinary read contract and does not claim that the `capture-work` alias or accepted-legacy compatibility reader remains installed.
+- [x] **AC-0009.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both declare version `3.0.0`; the Core 3.0.0 changelog entry records the breaking removal with a `Highlights` disposition; and the Core release checker accepts that exact next-major successor through an explicit major-release mode while preserving its default patch-successor checks.
+- [x] **AC-0010.** The repository's required local lint and type gate passes against the Core 3.0.0 candidate.
+- [x] **AC-0011.** Self-host regeneration and catalogue verification produce adapter and packaged-runtime outputs that match the authored Core sources with no subsequent generated drift.
+- [x] **AC-0012.** Current guide, journey, site-generation, and rendered-link validation passes for the maintained documentation surfaces changed by this removal.
+- [x] **AC-0013.** Before Core 3.0.0 is published, the verification ledger records fresh RFC-0083 Approver authorization bound to the exact candidate identity, release version, passing evidence checklist, and selected dual-reader rollback target, including the prior versions of the Core-dependent packs restored with it.
+- [x] **AC-0014.** Release closeout records the authorized `main` commit whose Core manifests and changelog identify 3.0.0, plus the synchronized AgentBundle package released from that same commit; the AgentBundle version tag is pushed immediately after the version-bumping merge, and the published package's workspace-status engine bytes match the authorized candidate. Core is repo-only, so no Core registry receipt is required.
 
 ## Follow-ons
 
