@@ -1794,15 +1794,8 @@ def test_registered_effect_already_branches_still_append_unified_history(
     transition_id = "8" * 64
     sequence = 31
 
-    assert cohort.prepare_transition(
-        spec_dir,
-        transition_id=transition_id,
-        pre_transition_sequence=sequence,
-        event=event,
-        args=args,
-        opened_at="2026-09-25T00:00:00Z",
-    ) == "prepared"
-
+    # Seed before preparing: `prepare_transition` dry-runs the effect, so
+    # the "already" state it must see has to exist by then.
     seeded = json.loads(state_path.read_text(encoding="utf-8"))
     if seed == "wave":
         seeded["current_wave_index"] = 1
@@ -1827,6 +1820,15 @@ def test_registered_effect_already_branches_still_append_unified_history(
     else:  # pragma: no cover - parameter table is closed above
         raise AssertionError(seed)
     _write_json(state_path, seeded)
+
+    assert cohort.prepare_transition(
+        spec_dir,
+        transition_id=transition_id,
+        pre_transition_sequence=sequence,
+        event=event,
+        args=args,
+        opened_at="2026-09-25T00:00:00Z",
+    ) == "prepared"
 
     assert cohort.apply_transition_effect(
         spec_dir,
@@ -2019,26 +2021,22 @@ def test_registered_review_effect_requires_hash_transition_id(
 ) -> None:
     cohort = _load("loop-cohort.py")
     spec_dir = _transition_effect_fixture(tmp_path)
-    cohort.prepare_transition(
-        spec_dir,
-        transition_id="run-current:7",
-        pre_transition_sequence=7,
-        event="findings-remain",
-        args={"fingerprints": ["f" * 64]},
-        opened_at="2026-09-25T00:00:00Z",
-    )
-    prepared = (spec_dir / "state.json").read_bytes()
+    before = (spec_dir / "state.json").read_bytes()
 
+    # The refusal lands at prepare, so no marker is written. Writing one first
+    # would strand the run: replaying the same id fails for the same reason,
+    # a corrected id collides with the marker, and no verb discards it.
     with pytest.raises(ValueError, match="SHA-256 transition id"):
-        cohort.apply_transition_effect(
+        cohort.prepare_transition(
             spec_dir,
             transition_id="run-current:7",
             pre_transition_sequence=7,
             event="findings-remain",
             args={"fingerprints": ["f" * 64]},
+            opened_at="2026-09-25T00:00:00Z",
         )
 
-    assert (spec_dir / "state.json").read_bytes() == prepared
+    assert (spec_dir / "state.json").read_bytes() == before
 
 
 def test_prepare_and_apply_transition_effect_hold_the_cohort_lock(
@@ -2168,3 +2166,118 @@ def test_applied_status_survives_marker_clear(tmp_path: Path) -> None:
         event="gates-failed",
         args=transition["args"],
 ) == "applied"
+
+
+def test_prepare_refuses_amendment_missing_evidence_without_writing_marker(
+    tmp_path: Path,
+) -> None:
+    """Issue #1527: the marker must not outlive an input the effect refuses.
+
+    Before the fix the marker landed first, so the run stranded: replaying the
+    same command failed for the same reason, the corrected command collided
+    with the marker, and no verb discarded it.
+    """
+    cohort = _load("loop-cohort.py")
+    spec_dir = _transition_effect_fixture(tmp_path)
+    state_path = spec_dir / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["current_wave_index"] = 1
+    _write_json(state_path, state)
+    before = state_path.read_bytes()
+
+    missing = {
+        "owner_authority_ref": "approval:scope-owner",
+        "reason_ref": "follow-on:owned-record",
+        "completed_task_evidence": {},
+    }
+    with pytest.raises(ValueError, match="completed task has no evidence binding"):
+        cohort.prepare_transition(
+            spec_dir,
+            transition_id="1" * 64,
+            pre_transition_sequence=7,
+            event="contract-amendment",
+            args=missing,
+            opened_at="2026-09-25T00:00:00Z",
+        )
+    assert state_path.read_bytes() == before
+
+    # The corrected command now succeeds instead of colliding with a marker
+    # left behind by the refused one.
+    corrected = {**missing, "completed_task_evidence": {"T1": ["gates:t1"]}}
+    assert cohort.prepare_transition(
+        spec_dir,
+        transition_id="2" * 64,
+        pre_transition_sequence=7,
+        event="contract-amendment",
+        args=corrected,
+        opened_at="2026-09-25T00:00:00Z",
+    ) == "prepared"
+    assert cohort.apply_transition_effect(
+        spec_dir,
+        transition_id="2" * 64,
+        pre_transition_sequence=7,
+        event="contract-amendment",
+        args=corrected,
+    ) == "applied"
+    applied = json.loads(state_path.read_text(encoding="utf-8"))
+    assert applied["pending_transition"] is None
+    assert applied["completed_task_ids"] == ["T1"]
+    assert applied["completed_task_evidence"] == {"T1": ["gates:t1"]}
+
+
+@pytest.mark.parametrize(
+    ("event", "args"),
+    [
+        ("contract-amendment", {
+            "owner_authority_ref": "approval:scope-owner",
+            "reason_ref": "follow-on:owned-record",
+            "completed_task_evidence": {},
+        }),
+        ("wave-passed", {"wave_index": 9}),
+        ("gates-failed", {}),
+        ("findings-remain", {"fingerprints": ["nope"]}),
+        ("reviewers-clean", {"all_skipped": True}),
+    ],
+)
+def test_prepare_leaves_no_marker_for_any_refused_registered_effect(
+    tmp_path: Path, event: str, args: dict
+) -> None:
+    """One invariant over the whole registry: a written marker is appliable.
+
+    The row's own outcome is not the assertion — three of these argument sets
+    are refused and two apply cleanly, and both halves prove the same thing.
+    The stranding in issue #1527 is exactly the state this forbids: a marker
+    on disk that no replay of any command can consume.
+    """
+    cohort = _load("loop-cohort.py")
+    spec_dir = _transition_effect_fixture(tmp_path)
+    state_path = spec_dir / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["current_wave_index"] = 1
+    _write_json(state_path, state)
+    before = state_path.read_bytes()
+
+    transition_id = "3" * 64
+    try:
+        cohort.prepare_transition(
+            spec_dir,
+            transition_id=transition_id,
+            pre_transition_sequence=7,
+            event=event,
+            args=args,
+            opened_at="2026-09-25T00:00:00Z",
+        )
+    except ValueError:
+        assert state_path.read_bytes() == before
+        return
+    # A prepare that succeeded must be appliable; that is the whole invariant.
+    assert cohort.apply_transition_effect(
+        spec_dir,
+        transition_id=transition_id,
+        pre_transition_sequence=7,
+        event=event,
+        args=args,
+    ) == "applied"
+    assert json.loads(state_path.read_text(encoding="utf-8"))[
+        "pending_transition"
+    ] is None

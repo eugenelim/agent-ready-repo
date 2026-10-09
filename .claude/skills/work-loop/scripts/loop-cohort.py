@@ -1312,6 +1312,40 @@ def contract_amendment_replay_status(
     )
 
 
+def _refuse_unappliable_effect(
+    state: dict, *, spec_dir: Path, identity: dict, marker: dict
+) -> None:
+    """Raise the effect's own refusal if applying it now could not succeed.
+
+    Mirrors `apply_transition_effect` against an in-memory copy and discards
+    the result. Registered effects are pure functions of state, plan text, and
+    identity, so this is a dry run that writes nothing.
+    """
+    status = _last_transition_status(
+        state,
+        transition_id=identity["transition_id"],
+        pre_transition_sequence=identity["pre_transition_sequence"],
+        event=identity["event"],
+        args=identity["args"],
+        spec_dir=spec_dir,
+    )
+    if status == "conflict":
+        raise ValueError("transition effect conflicts with cohort history")
+    if status == "applied":
+        return
+    candidate = copy.deepcopy(state)
+    candidate["pending_transition"] = marker
+    applied = _TRANSITION_EFFECTS[identity["event"]](
+        candidate,
+        spec_dir=spec_dir,
+        identity=identity,
+    )
+    applied["pending_transition"] = None
+    # Called for its refusal, not its value: this is where an oversized newest
+    # history entry raises, and apply would hit it too.
+    _retained_existing_transition_state(applied)
+
+
 def prepare_transition(
     spec_dir: Path,
     *,
@@ -1349,6 +1383,13 @@ def prepare_transition(
             if existing.get("pre_transition_sequence") == pre_transition_sequence:
                 raise ValueError("pending transition conflicts with this sequence")
             raise ValueError("pending transition already exists")
+        # Validate before the marker lands. A marker written for arguments the
+        # effect then refuses can never be replayed to success, and no verb
+        # discards it, so the run strands. Same lock acquisition, so state
+        # cannot move between the check and the write.
+        _refuse_unappliable_effect(
+            state, spec_dir=spec_dir, identity=identity, marker=marker
+        )
         updated = copy.deepcopy(state)
         updated["pending_transition"] = marker
         write_state_atomic(spec_dir, updated)
