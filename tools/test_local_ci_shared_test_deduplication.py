@@ -1010,11 +1010,20 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # (2) The superseded pins `26c57c19…` and `198ae517…` are current at
 # `origin/main` `9d39eae8b`. They were set in `1b8dbe3f3` for the
 # `navigate-decisions` suite, and the Makefile has not changed since.
+# Bumped 2026-10-08 for capture-work alias removal (T2), which removed the
+# `packs/core/tests/skills/capture-work/` directory from the Makefile's
+# `run-test-suite` define. One line removed and none added or reordered — a
+# pack suite line, not a root or tools group, so `_root_tool_pytest_groups`
+# and EXPECTED_ROOT_TOOL_PATHS are untouched. Each plan loses one entry
+# (standalone 77 -> 76, composed 76 -> 75) and every later entry shifts by
+# one. Verified: `_effective_composition_errors()` over this worktree's
+# Makefile with the superseded digests in place reported exactly the two
+# plan-digest drifts above and nothing else.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "b666effcb2861baf09dff99c477b7d31539d5ec793d86f6e8ae3d0f069193967"
+    "5b782195a76845b9a0f42601af43ac36465b2b0d8850edc34084b231bf88739c"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "45dfc4643613f69c1bf99b666afe85f1205dd174354aff8068b741c8996e156d"
+    "9c02dab8c764c4580a3f2bbee3b820b700f16428ea47ef5ce9f13fcf57b068d1"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -1686,7 +1695,11 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
     # It pins the rendering rule for an initiative whose workspace.toml section
     # omits name or milestone -- a state the redaction sentinel made unreachable
     # until display metadata began projecting as authored.
-    assert len(cli_contract) == len(direct_cli_nodes) == 166
+    # Re-pinned 2026-10-08: 166 -> 168. Two additions, no removals, no renames
+    # (T7 canonical explain tests):
+    #   test_canonical_explain_ambiguous_returns_both_initiatives
+    #   test_canonical_explain_matched_item_has_documented_keys
+    assert len(cli_contract) == len(direct_cli_nodes) == 168
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1909,7 +1922,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
 
     # Same delta as the re-pin note above; both literals move together.
     # Same delta as the re-pin note above; both literals move together.
-    assert len(direct_ids) == 166
+    assert len(direct_ids) == 168
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 

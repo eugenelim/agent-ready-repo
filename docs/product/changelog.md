@@ -64,17 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [agentbundle][0.52.0] — 2026-10-08
-
-### Highlights
-
-- The workspace-status MCP tool now surfaces a former legacy entry (a bare `spec/<slug>` string or other accepted legacy shape) as an `unsupported_legacy` finding. The entry is absent from `ready` and `blocked`; ordinary reconciliation no longer accepts legacy shapes as lifecycle members.
-- A canonical entry with a surviving historical alias appears in `blocked` with a `duplicate_membership` finding and does not appear in `ready`. Delete the alias and the canonical entry dispatches normally.
-
-### Changed
-
-- Packaged runtime `workspace_status_engine.py` and `workspace_status_prune.py` synchronized to Core 3.0.0: ordinary canonical reconciliation rejects former accepted-legacy shapes as `unsupported_legacy` findings, and prune retains its legacy decoding as a repair-only operation.
-
 ## [core][3.0.0] — 2026-10-08
 
 ### Highlights
@@ -87,6 +76,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `capture-work` skill, its activation evals, its pack registration, and the alias-only router branch in `work-intake`. There is no replacement alias; send all intake requests to `work-intake`.
 - Ordinary accepted-legacy reader from canonical reconciliation. Former legacy shapes produce `unsupported_legacy` findings and are not considered lifecycle memberships. Explicit migration, prune, and Type 2 repair retain their legacy decoding as non-dispatching repair operations.
+
+## [agentbundle][0.52.0] — 2026-10-08
+
+### Highlights
+
+- The workspace-status MCP tool now surfaces a former legacy entry (a bare `spec/<slug>` string or other accepted legacy shape) as an `unsupported_legacy` finding. The entry is absent from `ready` and `blocked`; ordinary reconciliation no longer accepts legacy shapes as lifecycle members.
+- A canonical entry with a surviving historical alias appears in `blocked` with a `duplicate_membership` finding and does not appear in `ready`. Delete the alias and the canonical entry dispatches normally.
+
+### Changed
+
+- Packaged runtime `workspace_status_engine.py` and `workspace_status_prune.py` synchronized to Core 3.0.0: ordinary canonical reconciliation rejects former accepted-legacy shapes as `unsupported_legacy` findings, and prune retains its legacy decoding as a repair-only operation.
 
 ## [product-engineering][0.13.23] — 2026-10-08
 

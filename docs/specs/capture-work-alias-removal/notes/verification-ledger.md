@@ -763,3 +763,14 @@ canonical artifacts, and receipts stay in place.
   now in T10, and T11 binds AC-0013's full item list plus green CI run IDs on
   the corrected commit. Applied without a separate adjudication.
 - Round 17: `Clean — ready to commit.`; `reviewers-clean` follows.
+
+### T10
+
+- An implementer re-pinned the five CI failure families: changelog order (Core
+  3.0.0 directly beneath `[Unreleased]`); the README-pypi
+  `What's new in 0.52.0` section and the OKF release pin at 0.52.0; the routing
+  count at 70; the artifact-checker hash of `test_workspace_mcp_tools.py`; and
+  the dedup guard's CLI counts (166 to 168) and approved Make plan digests.
+- Local results: full `tests/roster/` 2,066 passed, 7 skipped (run twice);
+  `tests/` without roster 63 passed; dedup guard and artifact checker 135
+  passed; self-host check ok; lint and `git diff --check` pass.
