@@ -730,3 +730,28 @@ canonical artifacts, and receipts stay in place.
   or publication.
 - Bound to: candidate `0bb6e9c1b`, Core 3.0.0, this checklist, and the
   rollback target above.
+
+## T6 — CI on PR #1525 and the release-surface gap
+
+- After authorization, the branch was rebased onto `origin/main` `ca8af74f6`
+  (two docs-only commits). The candidate change set is byte-identical; only
+  the `workspace.toml` blob hash differs. It was pushed as
+  `feat/capture-work-alias-removal-core3` (`5675bbc8a` plus ledger commits),
+  and PR #1525 was opened.
+- CI: codeql, ci-security, docs, build-check-windows, catalogue-tooling gates,
+  pack-javascript, iac canary, and Pages pass. build-check, test-roster,
+  test-corpus, and release-agentbundle fail on the same four pins this change
+  moves, which no local suite ran:
+  1. `tests/roster/test_verification_ledger_contract.py:536`: the `[core]`
+     release heading must sit directly beneath `[Unreleased]`; the
+     `[agentbundle][0.52.0]` entry sits above it.
+  2. `tests/roster/test_tracker_intake_adapters.py:267` pins 71 routing
+     results; removing the alias-equivalence case leaves 70.
+  3. `tests/roster/test_okf_catalogue_discovery.py:66` pins the AgentBundle
+     release surfaces at 0.51.0. 0.52.0 also needs a leading
+     `## What's new in 0.52.0` section in `packages/agentbundle/README-pypi.md`.
+  4. `tools/check-artifact-contents.py` pins the SHA-256 of
+     `test_workspace_mcp_tools.py` for the sdist's allowed skips; T4's new MCP
+     test changed it.
+- These edits change the authorized candidate, so they need a controlled
+  amendment and fresh Approver authorization.
