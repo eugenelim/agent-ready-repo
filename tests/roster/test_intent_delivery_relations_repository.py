@@ -51,7 +51,7 @@ _integration = _load(
 
 # STUB: AC-0014
 def test_ac0014_each_consumer_skill_ships_the_resolver() -> None:
-    for skill in ("close-work", "work-loop"):
+    for skill in ("close-work", "work-loop", "navigate-intents"):
         scripts = CORE / ".apm" / "skills" / skill / "scripts"
         for source in (SOURCE, HELPER):
             copy = scripts / source.name
@@ -132,10 +132,11 @@ def test_vi1903_real_agentbundle_install_delivers_resolver_copies(
         f"agentbundle install failed: {result.stderr.decode('utf-8', errors='replace')}"
     )
 
-    # Confirm installed copies exist for both skills.
+    # Confirm installed copies exist for all skills.
     installed_cw = tmp_path / ".claude" / "skills" / "close-work" / "scripts"
     installed_wl = tmp_path / ".claude" / "skills" / "work-loop" / "scripts"
-    for installed_scripts in (installed_cw, installed_wl):
+    installed_ni = tmp_path / ".claude" / "skills" / "navigate-intents" / "scripts"
+    for installed_scripts in (installed_cw, installed_wl, installed_ni):
         resolver_copy = installed_scripts / "intent_delivery_relations.py"
         helper_copy = installed_scripts / "_file_safety.py"
         assert resolver_copy.is_file(), (
@@ -155,6 +156,7 @@ def test_vi1903_real_agentbundle_install_delivers_resolver_copies(
     for label, installed_scripts in (
         ("close-work", installed_cw),
         ("work-loop", installed_wl),
+        ("navigate-intents", installed_ni),
     ):
         proc = subprocess.run(
             [

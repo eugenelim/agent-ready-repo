@@ -451,3 +451,207 @@ def test_derive_brief_parent_inside_html_comment_is_read() -> None:
     assert any(e.get("to") == "outcome:charlie-out" for e in edges), (
         "brief:hidden-parent's parent must resolve to outcome:charlie-out"
     )
+
+
+def test_derive_node_shapes_intent(  # AC-0003
+) -> None:
+    """Intent nodes carry id, type, path, status, slug, level, kind (AC-0003)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_MIXED)  # type: ignore[union-attr]
+    intent_nodes = [n for n in result["nodes"] if n.get("type") == "intent"]
+    assert intent_nodes, "no intent nodes in mixed/"
+    cap = next((n for n in intent_nodes if n.get("id") == "capability:alpha-cap"), None)
+    assert cap is not None, "capability:alpha-cap not found"
+    for key in ("id", "type", "path", "status", "slug", "level", "kind"):
+        assert key in cap, f"intent node missing key: {key}"
+    assert cap["type"] == "intent"
+    assert cap["slug"] == "alpha-cap"
+
+
+def test_derive_node_shapes_brief(  # AC-0003
+) -> None:
+    """Brief nodes carry id, type, path, status, slug (AC-0003)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_MIXED)  # type: ignore[union-attr]
+    brief_nodes = [n for n in result["nodes"] if n.get("type") == "brief"]
+    assert brief_nodes, "no brief nodes in mixed/"
+    b = next((n for n in brief_nodes if n.get("id") == "brief:bravo-delivery"), None)
+    assert b is not None, "brief:bravo-delivery not found"
+    for key in ("id", "type", "path", "status", "slug"):
+        assert key in b, f"brief node missing key: {key}"
+    assert b["type"] == "brief"
+    assert b["slug"] == "bravo-delivery"
+
+
+def test_derive_node_shapes_spec(  # AC-0003
+) -> None:
+    """Spec nodes carry id, type, path, status (AC-0003)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_MIXED)  # type: ignore[union-attr]
+    spec_nodes = [n for n in result["nodes"] if n.get("type") == "spec"]
+    assert spec_nodes, "no spec nodes in mixed/"
+    s = next((n for n in spec_nodes if n.get("id") == "spec:bravo-spec"), None)
+    assert s is not None, "spec:bravo-spec not found"
+    for key in ("id", "type", "path", "status"):
+        assert key in s, f"spec node missing key: {key}"
+    assert s["type"] == "spec"
+
+
+def test_derive_edge_carries_trust_class_and_basis(  # AC-0005, AC-0071
+) -> None:
+    """Every resolved and refused edge carries trust_class and basis (AC-0005, AC-0071)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_MIXED)  # type: ignore[union-attr]
+    for edge in result["edges"]:
+        assert "trust_class" in edge, f"edge missing trust_class: {edge}"
+        assert edge["trust_class"] == "pointer_unchecked", (
+            f"trust_class must be pointer_unchecked; got: {edge['trust_class']}"
+        )
+        # multiple_values edges do not carry basis per AC-0071
+        if edge.get("state") != "multiple_values":
+            assert "basis" in edge, f"non-multiple_values edge missing basis: {edge}"
+            basis = edge["basis"]
+            assert "field" in basis and "form" in basis, (
+                f"basis must carry field and form; got: {basis}"
+            )
+
+
+def test_derive_edge_carries_form_on_resolved_edge(  # AC-0005, AC-0071
+) -> None:
+    """Resolved edges carry form (AC-0005, AC-0071)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_MIXED)  # type: ignore[union-attr]
+    resolved = [e for e in result["edges"] if "to" in e]
+    assert resolved, "no resolved edges in mixed/"
+    for edge in resolved:
+        assert "form" in edge, f"resolved edge missing form: {edge}"
+
+
+def test_derive_brief_parent_repair_produces_resolved_and_unparseable(  # AC-0064
+) -> None:
+    """AC-0064: one accepted + one malformed brief Parent intent: yields one resolved edge
+    plus one unparseable edge for the malformed value.
+    """
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_NEG / "brief_parent_repair")  # type: ignore[union-attr]
+    brief_edges = [e for e in result["edges"] if e.get("from") == "brief:repair-parent"]
+    resolved = [e for e in brief_edges if "to" in e]
+    unparseable = [e for e in brief_edges if e.get("state") == "unparseable"]
+    assert resolved, "repair fixture must have one resolved brief parent edge"
+    assert resolved[0]["to"] == "intent:good-slug", (
+        f"resolved edge must point to intent:good-slug; got: {resolved[0]}"
+    )
+    assert unparseable, "repair fixture must have one unparseable edge for the malformed value"
+
+
+def test_derive_spec_brief_edge(  # AC-0070
+) -> None:
+    """Spec Brief: field produces a resolved edge to a brief node (AC-0070)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_MIXED)  # type: ignore[union-attr]
+    # bravo-spec has Brief: brief:bravo-delivery
+    spec_brief_edges = [
+        e for e in result["edges"]
+        if e.get("from") == "spec:bravo-spec" and e.get("field") == "Brief"
+    ]
+    assert spec_brief_edges, "bravo-spec must have a Brief: edge"
+    resolved = [e for e in spec_brief_edges if "to" in e]
+    assert resolved, "bravo-spec Brief: must resolve to brief:bravo-delivery"
+    assert resolved[0]["to"] == "brief:bravo-delivery", (
+        f"Brief: edge must resolve to brief:bravo-delivery; got: {resolved[0]['to']}"
+    )
+
+
+def test_derive_spec_typed_discovery_edge(  # AC-0070
+) -> None:
+    """Spec Discovery: typed intent reference produces a resolved edge (AC-0070)."""
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_MIXED)  # type: ignore[union-attr]
+    # bravo-spec has Discovery: intent:bravo-feat
+    disc_edges = [
+        e for e in result["edges"]
+        if e.get("from") == "spec:bravo-spec" and e.get("field") == "Discovery"
+    ]
+    assert disc_edges, "bravo-spec must have a Discovery: edge"
+    resolved = [e for e in disc_edges if "to" in e]
+    assert resolved, "bravo-spec Discovery: must resolve to intent:bravo-feat"
+    assert resolved[0]["to"] == "intent:bravo-feat", (
+        f"Discovery: edge must resolve to intent:bravo-feat; got: {resolved[0]['to']}"
+    )
+
+
+_FIXTURE_SPEC_DISC_RETIRED = _FIXTURE_NEG / "spec_discovery_retired_target"
+
+
+def test_derive_spec_discovery_path_to_tombstone_is_retired_target(  # AC-0007, AC-0070
+) -> None:
+    """A spec Discovery: path naming a tombstone intent file produces retired_target (AC-0007).
+
+    A path-form Discovery: value pointing to a tombstoned intent file must be
+    refused as retired_target, not dangling, and must carry reissued_as when
+    the tombstone records it.
+    """
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_SPEC_DISC_RETIRED)  # type: ignore[union-attr]
+    disc_edges = [
+        e for e in result["edges"]
+        if e.get("from") == "spec:path-to-tomb" and e.get("field") == "Discovery"
+    ]
+    assert disc_edges, "spec:path-to-tomb must have a Discovery: edge"
+    retired = [e for e in disc_edges if e.get("state") == "retired_target"]
+    assert retired, (
+        "spec:path-to-tomb Discovery: path naming tombstone must be retired_target; "
+        f"got: {disc_edges}"
+    )
+    assert retired[0].get("reissued_as") == "intent:live-intent", (
+        f"retired_target edge must carry reissued_as from tombstone; got: {retired[0]}"
+    )
+
+
+def test_derive_spec_discovery_markdown_link_to_tombstone_is_retired_target(  # AC-0007, AC-0070
+) -> None:
+    """A spec Discovery: markdown link landing on a tombstone path produces retired_target.
+
+    A markdown-link Discovery: that resolves (within the repo) to a tombstoned
+    intent file path must be refused as retired_target with the tombstone's
+    reissued_as value (AC-0007, AC-0070).
+    """
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_SPEC_DISC_RETIRED)  # type: ignore[union-attr]
+    disc_edges = [
+        e for e in result["edges"]
+        if e.get("from") == "spec:link-to-tomb" and e.get("field") == "Discovery"
+    ]
+    assert disc_edges, "spec:link-to-tomb must have a Discovery: edge"
+    retired = [e for e in disc_edges if e.get("state") == "retired_target"]
+    assert retired, (
+        "spec:link-to-tomb Discovery: markdown link landing on tombstone must be "
+        f"retired_target; got: {disc_edges}"
+    )
+    assert retired[0].get("reissued_as") == "intent:live-intent", (
+        f"retired_target edge must carry reissued_as from tombstone; got: {retired[0]}"
+    )
+
+
+def test_derive_intent_parent_path_to_tombstone_is_retired_target(  # AC-0007
+) -> None:
+    """An intent Parent intent: path naming a tombstone intent file produces retired_target.
+
+    A path-form Parent intent: value in an intent's preamble pointing to a
+    tombstoned intent file must be refused as retired_target (AC-0007).
+    """
+    _skip_if_module_absent()
+    result = ig.derive(_FIXTURE_SPEC_DISC_RETIRED)  # type: ignore[union-attr]
+    intent_edges = [
+        e for e in result["edges"]
+        if e.get("from") == "intent:live-intent" and e.get("field") == "Parent intent"
+    ]
+    assert intent_edges, "intent:live-intent must have a Parent intent: edge"
+    retired = [e for e in intent_edges if e.get("state") == "retired_target"]
+    assert retired, (
+        "intent:live-intent Parent intent: path naming tombstone must be retired_target; "
+        f"got: {intent_edges}"
+    )
+    assert retired[0].get("reissued_as") == "intent:live-intent", (
+        f"retired_target edge must carry reissued_as from tombstone; got: {retired[0]}"
+    )

@@ -30,3 +30,21 @@ row's literal method.
   tests, so commits T1 to T4 carry this one finding and the head does not. A
   temporary `_NO_RUNNER` entry was declined because `tools/` is outside T1's
   and T5's pinned `Touches`.
+
+## T2
+
+- Done-when: `test_derivation_contract.py` 45 passed; the copy pin test 3
+  passed; `tests/roster/test_intent_delivery_relations_repository.py` 4
+  passed; `agentbundle catalogue verify --root .` ok; `make lint-ruff
+  lint-mypy` clean.
+- Correction inside T2: the first pass returned `dangling` for a spec
+  `Discovery:` path or markdown link naming a tombstone. AC-0007 requires
+  `retired_target` with the tombstone's `Reissued as:` value. The derivation
+  now consults tombstones by path, and three tests prove it over the new
+  `fixtures/negative/spec_discovery_retired_target/` corpus.
+- `intent_graph.py` first carried internal criterion citations in its
+  comments; they were reworded so the canonical shipped-text grep from
+  `packs/AGENTS.local.md` returns nothing over the skill and its projections.
+- `agentbundle catalogue self-host --root . --write` refuses a dirty tree, so
+  it ran with `--force`, which lifts only that guard. It wrote only the two
+  `navigate-intents` projections.
