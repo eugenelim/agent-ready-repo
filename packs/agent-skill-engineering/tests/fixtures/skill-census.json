@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 133,
+  "population_size": 134,
   "entries": [
     {
       "pack": "_example",
@@ -426,6 +426,15 @@
       "families": [
         "router-or-intake-classifier",
         "artifact-template-producer"
+      ],
+      "exception": null
+    },
+    {
+      "pack": "core",
+      "skill": "navigate-intents",
+      "families": [
+        "orientation-read-model",
+        "deterministic-script-backed"
       ],
       "exception": null
     },

@@ -1,0 +1,142 @@
+[
+  {
+    "query": "What intents are still outstanding?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me the intent hierarchy",
+    "should_trigger": true
+  },
+  {
+    "query": "What is the status of this intent?",
+    "should_trigger": true
+  },
+  {
+    "query": "What is the parent intent of this capability?",
+    "should_trigger": true
+  },
+  {
+    "query": "Which intents are children of this capability?",
+    "should_trigger": true
+  },
+  {
+    "query": "Find all parentless intents",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me all outstanding work placed under its parent",
+    "should_trigger": true
+  },
+  {
+    "query": "What work is still open?",
+    "should_trigger": true
+  },
+  {
+    "query": "List all capability-level intents",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me the intent tree",
+    "should_trigger": true
+  },
+  {
+    "query": "Which intents have no parent?",
+    "should_trigger": true
+  },
+  {
+    "query": "What brief links to this spec?",
+    "should_trigger": true
+  },
+  {
+    "query": "What specs are placed under this intent?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me outstanding intents under the authentication capability",
+    "should_trigger": true
+  },
+  {
+    "query": "Trace the ancestors of this feature intent",
+    "should_trigger": true
+  },
+  {
+    "query": "Give me a summary of all intents by level",
+    "should_trigger": true
+  },
+  {
+    "query": "Which capability intents are accepted?",
+    "should_trigger": true
+  },
+  {
+    "query": "What intents depend on this parent?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me the full intent graph",
+    "should_trigger": true
+  },
+  {
+    "query": "intent graph",
+    "should_trigger": true
+  },
+  {
+    "query": "What's next in the queue?",
+    "should_trigger": false
+  },
+  {
+    "query": "Repair the workspace",
+    "should_trigger": false
+  },
+  {
+    "query": "Show the work queue from workspace.toml",
+    "should_trigger": false
+  },
+  {
+    "query": "What should I work on next?",
+    "should_trigger": false
+  },
+  {
+    "query": "Look up an architecture decision record about authentication",
+    "should_trigger": false
+  },
+  {
+    "query": "Show me the request for comments on trunk-based development",
+    "should_trigger": false
+  },
+  {
+    "query": "Draft a new architecture decision record for adopting Postgres",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a request for comments for the caching feature",
+    "should_trigger": false
+  },
+  {
+    "query": "How many roadmap intents do we have?",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a new intent for authentication improvements",
+    "should_trigger": false
+  },
+  {
+    "query": "Create an intent for the new caching feature",
+    "should_trigger": false
+  },
+  {
+    "query": "De-risk the authentication intent",
+    "should_trigger": false
+  },
+  {
+    "query": "Decompose the feature intent into sub-tasks",
+    "should_trigger": false
+  },
+  {
+    "query": "Close this intent",
+    "should_trigger": false
+  },
+  {
+    "query": "Mark this spec as fulfilled",
+    "should_trigger": false
+  }
+]
