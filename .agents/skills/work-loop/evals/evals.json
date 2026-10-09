@@ -1216,6 +1216,17 @@
         "Non-delivery checks still run",
         "Does not emit a violation when no anchor is present"
       ]
+    },
+    {
+      "id": "refused-transition-leaves-no-pending-marker",
+      "prompt": "`loop-engine transition <spec-dir> contract-amendment` stopped with `completed task has no evidence binding: T1`. Is a pending_transition marker now sitting in state.json, and what do I run next?",
+      "expected_output": "No marker was written. The cohort validates a registered effect against current state before it writes the marker, in the same lock acquisition, so a refused input leaves state.json byte-identical. Re-run the corrected command — here, the same transition with a --completed-evidence-ref for each completed task. Do not hand-edit state.json.",
+      "assertions": [
+        "Says no pending_transition marker was written",
+        "Says the effect is validated before the marker is written",
+        "Tells the user to re-run the corrected command",
+        "Does not suggest hand-editing state.json"
+      ]
     }
   ]
 }

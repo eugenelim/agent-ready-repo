@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.0.1] — 2026-10-09
+
+### Highlights
+
+- A work-loop transition that your arguments cannot satisfy now stops without touching `state.json`. Correct the command and run it again; previously the refusal left a marker behind that no later command could clear, and the run could only be rescued by hand-editing state.
+
+### Fixed
+
+- `loop-cohort` validates a registered cohort effect against current state before it writes the `pending_transition` marker, in the same lock acquisition. A refused `contract-amendment` — for example one missing `--completed-evidence-ref` for a completed task — leaves the cohort byte-identical, so the corrected command no longer hits `pending transition conflicts with this sequence`. The guarantee covers every registered effect, not just amendments: a marker on disk is now one whose effect was appliable when it was written.
+
 ## [core][3.0.0] — 2026-10-08
 
 ### Highlights
