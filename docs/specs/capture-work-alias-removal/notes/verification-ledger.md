@@ -755,3 +755,11 @@ canonical artifacts, and receipts stay in place.
      test changed it.
 - These edits change the authorized candidate, so they need a controlled
   amendment and fresh Approver authorization.
+- Amendment (sequence 60): T10 and T11 are added before T6. T1–T5 and T7–T9 stay complete, with evidence bound to their ledger sections.
+- Amendment review round 16 (`16-pre-execute-adversarial-reviewer-raw.md`):
+  the controller confirmed its Blocker directly from the build-check log. A
+  fifth failure family exists in `tools/test_local_ci_shared_test_deduplication.py`:
+  two CLI test-count pins (166 to 168) and the approved Make plan digests. It is
+  now in T10, and T11 binds AC-0013's full item list plus green CI run IDs on
+  the corrected commit. Applied without a separate adjudication.
+- Round 17: `Clean — ready to commit.`; `reviewers-clean` follows.

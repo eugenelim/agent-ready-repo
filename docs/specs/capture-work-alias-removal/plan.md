@@ -46,9 +46,9 @@ Most construction tests live under **Tasks** below.
 | Current architecture in `docs/architecture/work-intake-and-artifact-routing.md` and `packs/core/DESIGN.md` | T1, T3 | Reconciliation and migration regression suites plus document audit | `close-work` verifies the ordinary-read and explicit-repair boundaries match shipped behavior. |
 | Maintainer procedure in `docs/guides/reference/work-intake-maintenance.md` | T3, T5 | Candidate checklist and authorization record | `close-work` verifies the procedure names the release gate and selected rollback evidence. |
 | Pack navigation in `packs/core/README.md`, `packs/core/JOURNEY.md`, and `packs/core/docs/index.md` | T2, T3, T4 | Pack inventory tests and self-host build | `close-work` verifies generated adapters and current navigation expose `work-intake` and not `capture-work`. |
-| AgentBundle packaged runtime and version owners | T4, T6 | Package suite, built-artifact byte comparison, and publish evidence | `close-work` verifies the published package contains the candidate workspace-status engine and its two version owners match the release. |
-| Core 3.0.0 release history | T4, T6 | Version-pair, changelog, and published-pack checks | `close-work` verifies the free-standing release entry and `Highlights` disposition match the published pack. |
-| Removal evidence in `notes/verification-ledger.md` | T5, T6 | Exact candidate gate results, fresh authorization, and coordinated release receipts | `close-work` verifies the authorization predates publication and binds the released candidate and rollback target. |
+| AgentBundle packaged runtime and version owners | T4, T10, T6 | Package suite, built-artifact byte comparison, and publish evidence | `close-work` verifies the published package contains the candidate workspace-status engine and its two version owners match the release. |
+| Core 3.0.0 release history | T4, T10, T6 | Version-pair, changelog, and published-pack checks | `close-work` verifies the free-standing release entry and `Highlights` disposition match the published pack. |
+| Removal evidence in `notes/verification-ledger.md` | T5, T11, T6 | Exact candidate gate results, fresh authorization, and coordinated release receipts | `close-work` verifies the authorization predates publication and binds the released candidate and rollback target. |
 
 ## Design (LLD)
 
@@ -365,9 +365,48 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 
 **Done when:** Every required candidate check is current and passing, the authorization record binds the exact candidate and rollback target, including the restored versions of the five Core-dependent packs, and no release or merge effect occurred before authorization.
 
+### T10: Release surfaces and pins match the 0.52.0 and 3.0.0 candidate
+
+**Depends on:** T4, T5
+
+**Touches:** `docs/product/changelog.md`, `packages/agentbundle/README-pypi.md`, `tests/roster/test_tracker_intake_adapters.py`, `tests/roster/test_okf_catalogue_discovery.py`, `tools/check-artifact-contents.py`, `tools/test_local_ci_shared_test_deduplication.py`, generated self-host projections and package data
+
+**Review shape:** WIDE pin and release-record update proved by the five CI failure families it clears.
+
+**Grounding:** PR #1525 CI (ledger section "T6 — CI on PR #1525 and the release-surface gap").
+
+**Tests:**
+- `docs/product/changelog.md`: the `[core][3.0.0]` entry sits directly beneath `[Unreleased]`, and the `[agentbundle][0.52.0]` entry stays the first `[agentbundle]` heading; `tests/roster/test_verification_ledger_contract.py` passes.
+- `packages/agentbundle/README-pypi.md` opens its release notes with `## What's new in 0.52.0`, describing the MCP `workspace_status` change in plain words; `tests/roster/test_okf_catalogue_discovery.py` pins 0.52.0 (with its bump comment) and passes.
+- `tests/roster/test_tracker_intake_adapters.py` pins 70 routing results, with a comment that the alias-equivalence case was removed, and passes.
+- `tools/check-artifact-contents.py` pins the current SHA-256 of `packages/agentbundle/tests/test_workspace_mcp_tools.py`; `python3 -m pytest tools/test_check_artifact_contents.py` passes, including the real-sdist case.
+- `tools/test_local_ci_shared_test_deduplication.py` re-pins the `tools/test_workspace_status_cli.py` test-method counts (166 to 168, for the two canonical `explain` tests T7 added) and the approved standalone and composed Make plan digests (moved by removing the `capture-work` test directory from the `Makefile`), each with a reason in the file's existing comment style, and passes.
+- Run the full `tests/roster/` suite and every `gate-main` pytest step of `.github/workflows/build-check.yml` locally, so no pin is left for CI to find.
+- Record `no stub (mode)`: pins and release records are goal-based.
+
+**Done when:** Every bullet above holds, `make build-self` leaves no drift, `make lint-ruff lint-mypy` is green, and the full roster suite, the dedup guard, and every local `gate-main` pytest step pass.
+
+### T11: The corrected candidate receives fresh removal authorization
+
+**Depends on:** T10
+
+**Touches:** `docs/specs/capture-work-alias-removal/notes/verification-ledger.md`
+
+**Review shape:** DEEP evidence and human-authorization gate over the corrected candidate.
+
+**Grounding:** RFC-0083's 2026-10-02 Errata binds the authorization to the exact diff; T10 changes the T5-authorized candidate.
+
+**Tests:**
+- Re-run the T5 checklist on the corrected candidate, plus the full roster suite, and record the results in the ledger.
+- PR #1525 CI (build-check, release-agentbundle, and the other PR workflows) and the dispatch-only test-roster and test-corpus workflows are green on the exact corrected candidate commit; their run IDs are recorded in the ledger.
+- Manual QA: the RFC-0083 Approver records a fresh authorize or reject decision before T6 merges anything. It binds the corrected candidate commit, Core 3.0.0, AgentBundle 0.52.0, the five dependent packs' versions, the checklist, and the dual-reader rollback target (Core 2.30.1 with the five dependent packs, product-engineering, and AgentBundle at their prior versions). The T5 authorization is superseded and not reused.
+- Record `no stub (mode)`.
+
+**Done when:** The checklist and the named CI runs are green on the corrected candidate commit, and the fresh authorization record binds every item the Tests bullet names.
+
 ### T6: The authorized Core and AgentBundle releases carry one candidate
 
-**Depends on:** T5
+**Depends on:** T5, T11
 
 **Touches:** `docs/specs/capture-work-alias-removal/notes/verification-ledger.md`
 
@@ -389,7 +428,7 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - **Delivery:** Core 3.0.0 removes the alias and ordinary compatibility reader in one major-release cutover; there is no feature flag or partial adapter rollout.
 - **Infrastructure:** none.
 - **External-system integration:** none.
-- **Deployment sequencing:** finish T1–T4, freeze the candidate, and complete T5 authorization. T6 merges that exact candidate to `main`, records the resulting commit as the repo-only Core 3.0.0 release, then immediately pushes the AgentBundle version tag to trigger its synchronized package release. AgentBundle publication is registry-backed; Core evidence remains repository-backed.
+- **Deployment sequencing:** finish the implementation tasks, freeze the candidate, and complete the T11 authorization, which supersedes T5's. T6 merges that exact candidate to `main`, records the resulting commit as the repo-only Core 3.0.0 release, then immediately pushes the AgentBundle version tag to trigger its synchronized package release. AgentBundle publication is registry-backed; Core evidence remains repository-backed.
 - **Rollback:** return to the immediately preceding published dual-reader Core release named in the fresh authorization, and restore code-intelligence, governance-extras, iac-terraform, monorepo-extras, and release-engineering to their recorded prior versions with it. Existing migration ledgers, canonical artifacts, and receipts remain in place; no reverse data migration or deletion occurs.
 - **Irreversibility:** publication removes a public skill name for 3.0.0 consumers. The repository change is revertible, but restoring compatibility requires another Core release.
 
@@ -414,3 +453,5 @@ def test_ordinary_reconciliation_rejects_former_legacy_memberships() -> None:
 - 2026-10-08: second amended plan approved by owner
 - 2026-10-08: third amended spec approved by owner
 - 2026-10-08: third amended plan approved by owner
+- 2026-10-09: fourth amended spec approved by owner
+- 2026-10-09: fourth amended plan approved by owner
