@@ -1,6 +1,6 @@
 ---
 name: work-intake
-description: Use for a raw or ambiguous work request, source acquisition or refresh, generic intake-safety handling, or an older compatibility alias. Explicit status, artifact, skill, product-shaping, architecture-design, and defect requests route directly to their owners.
+description: Use for a raw or ambiguous work request, source acquisition or refresh, or generic intake-safety handling. Explicit status, artifact, skill, product-shaping, architecture-design, and defect requests route directly to their owners.
 allowed-tools: Read Write Edit Bash
 metadata:
   type: skill
@@ -60,8 +60,8 @@ Apply this order once before intake classification:
    a distinct work type directly to that owner. This includes `intake-intent`,
    `author-delivery-brief create|continue`, `new-rfc`, `new-spec`,
    `architect-design`, `frame-intent`, and `bug-fix` when installed.
-3. Route only a raw or ambiguous request, acquisition, refresh, generic intake
-   safety need, or compatibility-alias delegation through `work-intake`.
+3. Route only a raw or ambiguous request, acquisition, refresh, or generic intake
+   safety need through `work-intake`.
 
 Delegation from this skill to the classified owner is the same route, not a
 second public answer. Do not create an intent merely because work is entering
@@ -290,10 +290,9 @@ order. A Ready brief can have zero materialized specs and is still not
 executable.
 
 After semantic classification, pass only the bounded action, artifact, artifact
-kind, authority mode, named-gap signal, Ready-brief signal, direct-light signal,
-and alias signal to `scripts/intake_router.py`. Use its returned membership,
-processor, and mutation as the route; do not reconstruct those fields
-independently.
+kind, authority mode, named-gap signal, Ready-brief signal, and direct-light
+signal to `scripts/intake_router.py`. Use its returned membership, processor,
+and mutation as the route; do not reconstruct those fields independently.
 
 ### 5. Materialize before register
 
