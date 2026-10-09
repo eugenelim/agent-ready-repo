@@ -777,8 +777,8 @@ canonical artifacts, and receipts stay in place.
 
 ## T11 — fresh authorization over the corrected candidate
 
-**Status: awaiting the RFC-0083 Approver's decision. The T5 authorization is
-superseded and not reused. No merge, tag, or publication has occurred.**
+**Status: authorized. The T5 authorization is superseded and not reused. No
+merge, tag, or publication had occurred when authorization was given.**
 
 - Corrected candidate: `5c0cba0db11a2d8731504ab245a3b8cadd8a0fab` on
   `feat/capture-work-alias-removal-core3`, based on `origin/main`
@@ -816,8 +816,10 @@ superseded and not reused. No merge, tag, or publication has occurred.**
 
 ### Authorization record (to be completed by the RFC-0083 Approver)
 
-- Approver identity and role: _pending_
-- Decision: _pending_
-- Timestamp and metadata source: _pending_
+- Approver identity and role: `eugenelim`, RFC-0083 Approver.
+- Decision: **authorize**.
+- Timestamp: 2026-10-09T14:11:37Z. Metadata source: the `Approver:` field of
+  `docs/rfc/0083-work-intake-and-artifact-routing.md` (Status Accepted). Given
+  in the current owner session before any merge, tag, or publication.
 - Bound to: candidate `5c0cba0db`, the versions and rollback target above, and
   this checklist.
