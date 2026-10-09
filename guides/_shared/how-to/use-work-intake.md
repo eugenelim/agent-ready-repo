@@ -52,8 +52,6 @@ Remember that export retries need idempotent replay. Do not implement it now.
 
 The agent creates the smallest safe Draft artifact, registers a
 non-dispatchable entry, and stops. Use `work-intake` in new prompts.
-`capture-work` remains a forwarding compatibility alias and produces the same
-result plus a deprecation notice.
 
 ## Inspect or triage the workspace
 
@@ -67,10 +65,13 @@ Work intake delegates to `workspace-status` and returns its lifecycle,
 findings, and next actions unchanged. This path is read-only. It does not
 classify a new artifact or repair a finding automatically.
 
-Canonical entries, accepted legacy forms, duplicates, missing artifacts or
-plans, authority problems, and refresh conflicts remain visible. When status
-reports `legacy_entry`, follow [Migrate a legacy workspace entry safely](../../core/how-to/migrate-capture-work.md);
-migration is a separate workspace-status repair surface, not ordinary intake.
+Canonical entries, duplicates, missing artifacts or plans, authority problems,
+and refresh conflicts remain visible. Former legacy forms surface as
+`unsupported_legacy` findings; rewrite each in canonical form by hand. See
+[Move from capture-work to work-intake](../../core/how-to/capture-work.md)
+for the rewrite steps and
+[Recover or roll back a migration operation](../../core/how-to/migrate-capture-work.md)
+only if a prior operation is recorded in `.workspace-migrations.json`.
 
 ## Refresh tracked requirements
 

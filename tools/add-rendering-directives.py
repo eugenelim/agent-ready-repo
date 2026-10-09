@@ -144,7 +144,6 @@ SKILLS: dict[str, list[str]] = {
     ],
     "receive-brief":                ["table", "key-value"],
     "contract-acquisition":         ["table", "key-value", "narrative"],
-    "capture-work":                 ["table", "key-value"],
     "author-brief":                 ["key-value"],
     "adapt-to-project":             ["status-list", "table", "key-value", "narrative"],
     "new-spec":                     ["key-value"],

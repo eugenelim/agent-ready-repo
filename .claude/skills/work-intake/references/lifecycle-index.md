@@ -29,15 +29,15 @@ is read-only at the tracker boundary. Local refresh decisions and any supported
 remote coordination action are separate effects; the latter needs its own
 fresh exact confirmation.
 
-Supported legacy workspace entries remain visible but non-dispatchable during
-the compatibility window. Migration planning consumes a reviewed,
-human-authored selection and remains read-only. Apply and rollback each consume
-a fresh, single-use, human-authored confirmation permitted by repository
+Former legacy workspace entries surface as `unsupported_legacy` findings and
+are never dispatchable. Rewrite each in canonical form by hand. Migration
+tooling (`repair-plan --migration-selection`, `repair-apply`, `repair-rollback`)
+is only for recovering or rolling back an operation already recorded in
+`.workspace-migrations.json`. Apply and rollback each consume a fresh,
+single-use, human-authored confirmation permitted by repository
 `[authorization.migration]` policy. Agents and migration tooling must never
 create, edit, prefill, or choose substantive route or authorization values in
 those files. Ledger-backed rollback restores the exact legacy workspace
 representation and never deletes the canonical artifact.
 
-`capture-work` is a temporary forwarding alias for `work-intake`; it must not
-grow separate routing or storage semantics. New writers and workspace seeds
-emit only target structured entries.
+New writers and workspace seeds emit only target structured entries.

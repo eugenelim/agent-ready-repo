@@ -24,7 +24,6 @@ _ROUTER_PATH = _WORK_INTAKE / "scripts" / "intake_router.py"
 _SKILL_BODIES = {
     "work-intake": (_SKILLS / "work-intake" / "SKILL.md").read_text(encoding="utf-8"),
     "intake-intent": (_SKILLS / "intake-intent" / "SKILL.md").read_text(encoding="utf-8"),
-    "capture-work": (_SKILLS / "capture-work" / "SKILL.md").read_text(encoding="utf-8"),
     "author-delivery-brief": (_SKILLS / "author-delivery-brief" / "SKILL.md").read_text(encoding="utf-8"),
     "author-brief": (_SKILLS / "author-brief" / "SKILL.md").read_text(encoding="utf-8"),
     "receive-brief": (_SKILLS / "receive-brief" / "SKILL.md").read_text(encoding="utf-8"),
@@ -47,7 +46,6 @@ _EVAL_QUERY_FILES = {
     "author-delivery-brief": _SKILLS / "author-delivery-brief" / "evals" / "eval_queries.json",
     "author-brief": _SKILLS / "author-brief" / "evals" / "eval_queries.json",
     "receive-brief": _SKILLS / "receive-brief" / "evals" / "eval_queries.json",
-    "capture-work": _SKILLS / "capture-work" / "evals" / "eval_queries.json",
     "close-work": _SKILLS / "close-work" / "evals" / "eval_queries.json",
     "explain-diff": _SKILLS / "explain-diff" / "evals" / "eval_queries.json",
 }
@@ -107,7 +105,6 @@ _FIXTURE_PATHS = {
 _CHANGED_SKILLS = {
     "work-intake": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
     "intake-intent": ("Read Write Edit Agent", {"filesystem_write", "filesystem_read_untrusted"}),
-    "capture-work": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
     "author-delivery-brief": ("Read Write Edit Agent", {"filesystem_write", "filesystem_read_untrusted"}),
     "author-brief": ("Read", set()),
     "receive-brief": ("Read", set()),
@@ -174,7 +171,6 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
         "multi-spec-brief",
         "defect",
         "ambiguity",
-        "alias-equivalence",
         "ready-brief-zero-specs",
         "cross-repo-brief",
         "incoherent-collection",
@@ -224,7 +220,7 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
     assert first == second
 
 
-def test_route_expectations_cover_no_mutation_and_alias_equivalence() -> None:
+def test_route_expectations_cover_no_mutation() -> None:
     cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())["cases"]}
     for case_id in (
         "direct-light",
@@ -233,18 +229,6 @@ def test_route_expectations_cover_no_mutation_and_alias_equivalence() -> None:
         "ready-brief-zero-specs",
     ):
         assert cases[case_id]["mutation"] == "none"
-
-    alias = cases["alias-equivalence"]
-    original = cases[alias["same_as"]]
-    for field in (
-        "fixture",
-        "artifact",
-        "artifact_kind",
-        "lifecycle_membership",
-        "processor",
-        "authority_mode",
-    ):
-        assert alias[field] == original[field], field
 
 
 def test_eval_allowlist_has_balanced_activation_sets() -> None:

@@ -59,6 +59,7 @@ explain_item: Any = None
 compute_type2_cleanup: Any = None
 compute_repair_plan: Any = None
 compute_migration_plan: Any = None
+extract_legacy_migration_memberships: Any = None
 build_migration_finding: Any = None
 build_migration_result: Any = None
 confine_migration_path: Any = None
@@ -136,6 +137,9 @@ def _bind_engine() -> bool:
         "compute_type2_cleanup": engine_mod.compute_type2_cleanup,
         "compute_repair_plan": engine_mod.compute_repair_plan,
         "compute_migration_plan": engine_mod.compute_migration_plan,
+        "extract_legacy_migration_memberships": (
+            engine_mod.extract_legacy_migration_memberships
+        ),
         "build_migration_finding": engine_mod.build_migration_finding,
         "build_migration_result": engine_mod.build_migration_result,
         "confine_migration_path": engine_mod.confine_migration_path,
@@ -597,7 +601,7 @@ def _canonical_projection(
 
 
 def _explain_selector_targets(selector: str) -> tuple[str, str] | None:
-    """Return canonical and legacy work paths for a confined selector."""
+    """Return the canonical work path and legacy spelling for a confined selector."""
     if not isinstance(selector, str) or not selector or len(selector) > 240:
         return None
     if "\\" in selector or (len(selector) >= 2 and selector[1] == ":"):
@@ -633,7 +637,12 @@ def _explain_selector_targets(selector: str) -> tuple[str, str] | None:
 
 
 def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
-    """Explain one canonical or accepted legacy work entry without path I/O."""
+    """Explain one canonical work entry using canonical-only resolution.
+
+    The `spec/<slug>` selector spelling still maps to the canonical path through
+    `_explain_selector_targets`. Legacy memberships are always empty after the
+    ordinary-reader removal, so only `evaluations` is searched.
+    """
     normalized_selector = selector
     if selector.endswith("/"):
         directory_parts = selector[:-1].split("/")
@@ -644,17 +653,14 @@ def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
     if targets is None:
         return public_selector, {"selector_status": "not_found"}
 
-    canonical_path, legacy_path = targets
+    canonical_path, _legacy_path = targets
     projection = _canonical_projection(root, result, *_cooling_selection(result, "explain"))
     candidates = [
         item
-        for item in [
-            *projection["evaluations"],
-            *projection["legacy_memberships"],
-        ]
+        for item in projection["evaluations"]
         if item["kind"] == "spec"
         and str(item["collection"]).startswith("work.")
-        and item["path"] in {canonical_path, legacy_path}
+        and item["path"] == canonical_path
     ]
     by_initiative: dict[str, list[dict]] = {}
     for candidate in candidates:
@@ -899,23 +905,11 @@ def _closeout_projection(
         for finding in result.reconciliation
         if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
     ]
-    # Shaping residue is read from the reconciled record layers, never from
-    # `initiative.shaping`, and both shapes go through one predicate so they
-    # cannot disagree. Two reasons, and each rules out the other source:
-    #
-    #   - `initiative.shaping` holds ONLY legacy-shaped records, because
-    #     `_parse_supported_shaping_entry` drops anything whose parse is not
-    #     `legacy_entry`. Reading it alone reported an initiative whose shaping
-    #     entries are all canonical as having none.
-    #   - `initiative.shaping` is also built straight from the raw TOML with no
-    #     cooling filter, while `evaluations` and `legacy_memberships` both drop
-    #     cooled memberships. Mixing the two gave one answer for a cooled
-    #     canonical entry and the opposite for the same cooled entry written in
-    #     the legacy shape.
-    #
-    # `evaluations` carries the canonical entries and `legacy_memberships` the
-    # supported legacy ones; together they are the whole shaping membership,
-    # already cooled-filtered on both sides.
+    # Shaping residue is read from the reconciled canonical evaluations, never
+    # from `initiative.shaping`: that list is built from the raw TOML with no
+    # cooling filter, so reading it would count a cooled entry as residue. An
+    # open entry no canonical parse accepted appears in neither source, so
+    # `has_unsupported_open_entry` keeps it from passing as an empty initiative.
     #
     # `brief_queue` has no such split. `.shipped`, `.withdrawn` and `.cancelled`
     # are terminal and are not residue. The brief *dependency* terminal set is
@@ -930,6 +924,7 @@ def _closeout_projection(
     )
     if (
         shaping_residue
+        or initiative.has_unsupported_open_entry
         or (
             brief_queue is not None
             and (brief_queue.executing or brief_queue.ready or brief_queue.draft)
@@ -1074,10 +1069,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
             result,
             cooled_by_initiative,
             dueness_failed=bool(unreadable),
-            canonical_shaping_records=[
-                *canonical["evaluations"],
-                *canonical["legacy_memberships"],
-            ],
+            canonical_shaping_records=canonical["evaluations"],
         )
         if closeout is not None:
             output["closeout"] = closeout
@@ -1918,10 +1910,10 @@ def _migration_rollback_workspace_bytes(
     )
     restored = without_target[:offset] + operation["legacy_slice"] + without_target[offset:]
     parsed = tomllib.loads(restored)
-    restored_canonical = run_canonical_reconciliation(parsed)
+    restored_legacy_memberships = extract_legacy_migration_memberships(parsed)
     restored_matches = [
         membership
-        for membership in restored_canonical.legacy_memberships
+        for membership in restored_legacy_memberships
         if membership.ini_slug == source["ini_slug"]
         and membership.collection == source["collection"]
         and membership.entry_index == source["entry_index"]

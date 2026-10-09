@@ -228,8 +228,11 @@ backlog = []
         self.assertEqual([item["slug"] for item in data["canonical"]["active"]], ["active"])
         self.assertRegex(data["canonical"]["input_identity"], r"^[0-9a-f]{64}$")
         self.assertEqual([item["slug"] for item in data["work"]["active"]], ["active"])
-        blocked_paths = {item["path"] for item in data["canonical"]["blocked"]}
-        self.assertIn("spec/legacy-ready", blocked_paths)
+        # legacy-ready is unsupported_legacy in canonical.findings, not in blocked
+        self.assertIn(
+            "unsupported_legacy",
+            {f["code"] for f in data["canonical"]["findings"]},
+        )
         self.assertNotIn(str(root), result.stdout)
 
     def test_status_preserves_additive_surface_metadata(self) -> None:
@@ -648,11 +651,14 @@ backlog = []
 
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
-        self.assertEqual(data["selector_status"], "matched")
-        self.assertEqual(data["explained_item"]["path"], "spec/legacy-ready")
-        self.assertEqual(data["explained_item"]["classification"], "blocked")
-        self.assertFalse(data["explained_item"]["dispatchable"])
-        self.assertIn("legacy_entry", data["explained_item"]["blocking_needs"])
+        # Former legacy selector is not_found: legacy entries are unsupported_legacy
+        # in ordinary reconciliation and no longer appear in evaluations or
+        # legacy_memberships.  The explain result carries an unregistered_work finding.
+        self.assertEqual(data["selector_status"], "not_found")
+        self.assertIn(
+            "unregistered_work",
+            {finding["code"] for finding in data["findings"]},
+        )
 
     def test_parse_error_is_sanitized_canonical_deny(self) -> None:
         root = self._write_workspace(
@@ -1580,18 +1586,14 @@ class CLIContractTests(_CliBase):
         self.assertEqual(bq["ready"], ["briefs/brief-b"])
         self.assertEqual(bq["draft"], [])
 
-        # Legacy work entries stay visible as blocked compatibility records and
-        # never become canonical ready/active work.
+        # Legacy work entries are unsupported_legacy in ordinary reconciliation;
+        # they appear in canonical.findings rather than in blocked or active.
         ready = data.get("work", {}).get("ready", [])
         self.assertEqual(ready, [])
         active = data.get("work", {}).get("active", [])
         self.assertEqual(active, [])
-        blocked = data.get("work", {}).get("blocked", [])
-        blocked_paths = {e["path"] for e in blocked}
-        self.assertGreaterEqual(
-            blocked_paths,
-            {"spec/alpha", "spec/gamma", "spec/delta"},
-        )
+        canonical_finding_codes = {f["code"] for f in data["canonical"]["findings"]}
+        self.assertIn("unsupported_legacy", canonical_finding_codes)
         beta_findings = [
             finding
             for finding in data["canonical"]["findings"]
@@ -1602,10 +1604,6 @@ class CLIContractTests(_CliBase):
             {finding["code"] for finding in beta_findings}
             & {"invalid_entry", "unsupported_legacy"}
         )
-        for item in blocked:
-            self.assertIn("ini_slug", item)
-            self.assertFalse(item["dispatchable"])
-            self.assertEqual(item["findings"][0]["code"], "legacy_entry")
 
         # work.shipped entry shape
         shipped = data.get("work", {}).get("shipped", [])
@@ -2156,6 +2154,36 @@ active  = []
 backlog = []
 """
 
+_TWO_INI_CANONICAL_SHARED_TOML = """\
+["ini-001"]
+name      = "Alpha"
+status    = "active"
+milestone = "M1"
+
+["ini-001".work]
+active  = []
+shipped = []
+queue   = [{path = "docs/specs/shared-canonical/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Shared canonical", needs = []}]
+
+["ini-001".shaping_queue]
+active  = []
+backlog = []
+
+["ini-002"]
+name      = "Beta"
+status    = "active"
+milestone = "M1"
+
+["ini-002".work]
+active  = []
+shipped = []
+queue   = [{path = "docs/specs/shared-canonical/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Shared canonical", needs = []}]
+
+["ini-002".shaping_queue]
+active  = []
+backlog = []
+"""
+
 
 class SubcommandTests(_CliBase):
     """Order 1B: status / reconcile / no-subcommand / explain routing."""
@@ -2249,17 +2277,18 @@ class SubcommandTests(_CliBase):
         self.assertNotIn("no subcommand", r.stdout.lower())
 
     def test_explain_matched(self) -> None:
-        """AC8/AC10: explain matched entry; global_scan_spec_files_read == 0."""
+        """AC8/AC10: explain legacy entry returns not_found; global_scan_spec_files_read == 0."""
         root = self._write_workspace(_SIMPLE_TOML)
         r = self._run_explain(root, "spec/alpha")
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertEqual(data.get("mode"), "explain")
-        self.assertEqual(data.get("selector_status"), "matched")
-        item = data.get("explained_item", {})
-        for key in ("path", "slug", "ini_slug", "list", "classification",
-                    "blocking_needs", "dependencies", "downstream_unblocked"):
-            self.assertIn(key, item, f"explained_item missing key: {key!r}")
+        # spec/alpha is a legacy string → unsupported_legacy → not_found with unregistered_work
+        self.assertEqual(data.get("selector_status"), "not_found")
+        self.assertIn(
+            "unregistered_work",
+            {finding["code"] for finding in data.get("findings", [])},
+        )
         # AC10 explain coverage
         self.assertEqual(data.get("scan", {}).get("global_scan_spec_files_read"), 0)
 
@@ -2272,14 +2301,74 @@ class SubcommandTests(_CliBase):
         self.assertEqual(data.get("selector_status"), "not_found")
 
     def test_explain_cli_ambiguous_exit0(self) -> None:
-        """AC14: ambiguous selector → exit 0, ambiguous status."""
+        """AC14: former ambiguous-legacy selector → exit 0, not_found with unregistered_work.
+
+        Both initiatives carry `spec/shared-slug` as a legacy string.  Legacy
+        entries are unsupported_legacy in ordinary reconciliation and never reach
+        the candidates set in _canonical_explain, so no ambiguity can be reported.
+        The result is not_found with an unregistered_work finding.
+        """
         root = self._write_workspace(_TWO_INI_SHARED_SLUG_TOML)
         r = self._run_explain(root, "shared-slug")
+        self.assertEqual(r.returncode, 0,
+                         f"not_found must be exit 0, got {r.returncode}: {r.stderr}")
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("selector_status"), "not_found")
+        self.assertIn(
+            "unregistered_work",
+            {finding["code"] for finding in data.get("findings", [])},
+        )
+
+    def test_explain_cli_canonical_ambiguous_exit0(self) -> None:
+        """Canonical path under two initiatives → exit 0, ambiguous, two matches.
+
+        Both initiatives carry the same canonical spec entry. Explain finds both
+        and reports selector_status 'ambiguous' with a matches list containing
+        both ini_slug values.
+        """
+        root = self._write_workspace(_TWO_INI_CANONICAL_SHARED_TOML)
+        r = self._run_explain(root, "shared-canonical")
         self.assertEqual(r.returncode, 0,
                          f"ambiguous must be exit 0, got {r.returncode}: {r.stderr}")
         data = json.loads(r.stdout)
         self.assertEqual(data.get("selector_status"), "ambiguous")
-        self.assertGreaterEqual(len(data.get("matches", [])), 2)
+        matches = data.get("matches", [])
+        self.assertEqual(len(matches), 2)
+        self.assertEqual(
+            {m["ini_slug"] for m in matches},
+            {"ini-001", "ini-002"},
+        )
+        self.assertTrue(all(m["path"] == "docs/specs/shared-canonical/spec.md" for m in matches))
+
+    def test_explain_cli_matched_item_keys(self) -> None:
+        """Matched canonical item includes the documented explained_item keys."""
+        canonical_root = self._write_workspace(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/ready-item/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "ready", needs = []}]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+"""
+        )
+        self._make_canonical_spec(canonical_root, "ready-item", "Approved")
+        r = self._run_explain(canonical_root, "ready-item")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        data = json.loads(r.stdout)
+        self.assertEqual(data.get("selector_status"), "matched")
+        item = data.get("explained_item", {})
+        for key in ("path", "slug", "ini_slug", "list", "classification",
+                    "blocking_needs", "dependencies", "downstream_unblocked",
+                    "dispatchable", "findings"):
+            self.assertIn(key, item, f"explained_item missing key: {key!r}")
 
     def test_reconciliation_metadata_fields(self) -> None:
         """AC12: status and reconcile include performed/complete/types_performed."""
@@ -3808,6 +3897,33 @@ class WorkIntakeMigrationCliStubTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.source = _CLI.read_text(encoding="utf-8")
 
+    @staticmethod
+    def _engine_migration_finding(workspace_path: Path) -> dict:
+        """Build a migration finding via the explicit migration extractor.
+
+        Ordinary status no longer emits legacy_memberships, so tests that need
+        a finding dict for a migration selection must use
+        extract_legacy_migration_memberships and build_migration_finding directly.
+        """
+        import importlib.util
+        import uuid
+
+        name = f"_ac27_engine_{uuid.uuid4().hex}"
+        spec = importlib.util.spec_from_file_location(name, _ENGINE)
+        assert spec is not None and spec.loader is not None
+        import sys
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            sys.modules.pop(name, None)
+        workspace_bytes = workspace_path.read_bytes()
+        workspace = module.parse_workspace(workspace_path)
+        memberships = module.extract_legacy_migration_memberships(workspace)
+        assert len(memberships) == 1, f"expected 1 legacy membership, got {len(memberships)}"
+        return module.build_migration_finding(workspace_bytes, memberships[0])
+
     # STUB: AC3
     def test_ac3_apply_requires_human_confirmation_file(self) -> None:
         self.assertIn("--confirmation-file", self.source)
@@ -3853,10 +3969,9 @@ class WorkIntakeMigrationCliStubTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             (root / "workspace.toml").write_text(_MINIMAL_TOML, encoding="utf-8")
-            status = _run_cli("status", "--root", str(root))
-            self.assertEqual(status.returncode, 0, status.stderr)
-            legacy = json.loads(status.stdout)["canonical"]["legacy_memberships"][0]
-            finding = legacy["migration"]
+            # Ordinary status no longer emits legacy_memberships; use the explicit
+            # migration extractor to build the finding for the selection.
+            finding = self._engine_migration_finding(root / "workspace.toml")
             selection = {
                 "contract_version": "work-intake-migration-selection.v1",
                 "legacy_finding_id": finding["legacy_finding_id"],
@@ -3917,10 +4032,9 @@ approver_roles = ["migration-approver"]
             (target / "plan.md").write_text(
                 "# Plan\n\n**Status:** Approved\n", encoding="utf-8"
             )
-            status = json.loads(
-                _run_cli("status", "--root", str(root)).stdout
-            )
-            finding = status["canonical"]["legacy_memberships"][0]["migration"]
+            # Ordinary status no longer emits legacy_memberships; use the explicit
+            # migration extractor to build the finding for the selection.
+            finding = self._engine_migration_finding(root / "workspace.toml")
             selection = {
                 "contract_version": "work-intake-migration-selection.v1",
                 "legacy_finding_id": finding["legacy_finding_id"],

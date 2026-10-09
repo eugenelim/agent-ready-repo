@@ -49,11 +49,14 @@ def engine():
 def test_cooled_legacy_work_entry_is_excluded_from_both_closeout_consumers(
     tmp_path, engine
 ) -> None:
-    """A cooled `spec/<slug>` membership changes both closeout consumers.
+    """A `spec/<slug>` legacy entry surfaces as unsupported_legacy in both cooled and uncooled cases.
 
-    The no-lifecycle control proves the legacy membership would otherwise count,
-    while the resolved cooled set proves the lifecycle record did not vanish
-    before the closeout assertions ran.
+    Ordinary reconciliation no longer accepts legacy strings as canonical
+    memberships, so the entry is never added to cooled_positions regardless of
+    whether a lifecycle record exists.  _surviving_work always returns it as
+    residue, and both closeout consumers remain blocked for both the control
+    and the cooled workspace.  The resolved cooled set still proves the
+    lifecycle record was read correctly.
     """
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
     cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
@@ -69,8 +72,8 @@ def test_cooled_legacy_work_entry_is_excluded_from_both_closeout_consumers(
     assert cooled_paths == {(cooled / "docs/specs/alpha/spec.md").resolve()}
     assert control_projection["closeout"]["all_specs_shipped"] is False
     assert control_projection["initiatives"][0]["queue_empty"] is False
-    assert cooled_projection["closeout"]["all_specs_shipped"] is True
-    assert cooled_projection["initiatives"][0]["queue_empty"] is True
+    assert cooled_projection["closeout"]["all_specs_shipped"] is False
+    assert cooled_projection["initiatives"][0]["queue_empty"] is False
 
 
 def test_cooled_bare_work_slug_remains_a_closeout_member(tmp_path, engine) -> None:
@@ -106,10 +109,13 @@ def test_cooled_bare_work_slug_remains_a_closeout_member(tmp_path, engine) -> No
 def test_alias_cools_legacy_work_membership_for_both_closeout_consumers(
     tmp_path, engine
 ) -> None:
-    """An alias naming a legacy entry's artifact cools its membership.
+    """An alias lifecycle record is still read, but a legacy entry is never canonical.
 
-    The control keeps the same legacy entry live, so the cooled closeout result
-    specifically proves alias resolution rather than locator-based cooling.
+    Ordinary reconciliation rejects `spec/<slug>` as unsupported_legacy, so the
+    entry never reaches the canonical membership set and is never checked against
+    cooled_positions.  Alias cooling therefore has no effect on the legacy entry's
+    survivor status: both the control and the cooled workspace have residue.
+    The resolved cooled set confirms the alias was read from the lifecycle record.
     """
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
     cooled = _tree(
@@ -129,5 +135,5 @@ def test_alias_cools_legacy_work_membership_for_both_closeout_consumers(
     assert cooled_paths == {(cooled / "docs/specs/alpha/spec.md").resolve()}
     assert control_projection["closeout"]["all_specs_shipped"] is False
     assert control_projection["initiatives"][0]["queue_empty"] is False
-    assert cooled_projection["closeout"]["all_specs_shipped"] is True
-    assert cooled_projection["initiatives"][0]["queue_empty"] is True
+    assert cooled_projection["closeout"]["all_specs_shipped"] is False
+    assert cooled_projection["initiatives"][0]["queue_empty"] is False

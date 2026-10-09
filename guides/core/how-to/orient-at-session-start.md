@@ -92,7 +92,7 @@ You now have enough context to start. The common cases:
 | You've noticed something new mid-session | `work-intake` — see [Use work intake](../../_shared/how-to/use-work-intake.md) |
 | Nothing is ready; everything is blocked | Surface the blocking dependency — resolve it or capture a follow-on |
 | A tracker-origin artifact has a newer source revision | Ask `work-intake` to refresh it and review the field delta |
-| A legacy entry is visible | Review its exact source slice and candidate routes, then use the read-only migration planner |
+| An `unsupported_legacy` finding is visible | Rewrite the former legacy entry in canonical form by hand — see [Move from capture-work to work-intake](capture-work.md) |
 
 ## What you have now
 
@@ -108,4 +108,4 @@ named blocker before choosing another task.
 - [workspace.toml schema reference](../reference/workspace-toml-schema.md) — every field explained
 - [Your first workspace session](../tutorials/your-first-workspace.md) — an end-to-end walkthrough
 - [Use work intake](../../_shared/how-to/use-work-intake.md) — start, remember, inspect, or review a tracker delta
-- [Migrate a legacy workspace entry safely](migrate-capture-work.md) — convert one reviewed compatibility entry with rollback
+- [Recover or roll back a migration operation](migrate-capture-work.md) — recover an interrupted apply or roll back an operation already in a migration ledger

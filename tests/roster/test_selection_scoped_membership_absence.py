@@ -537,11 +537,10 @@ def test_engine_validates_selector_grammar_and_confinement(
 
 
 def test_engine_reuses_canonical_extraction_and_alias_resolution() -> None:
-    source = inspect.getsource(ENGINE.selected_membership_status)
+    source = inspect.getsource(ENGINE.resolve_selected_memberships)
 
     assert "_extract_canonical_memberships(" in source
-    assert "_legacy_canonical_alias(" in source
-    assert "parse_workspace(" in source
+    assert "parse_workspace(" not in source
     assert "tomllib.load" not in source
 
 
@@ -744,13 +743,10 @@ def test_legacy_work_alias_is_present_in_all_work_collections(
 ) -> None:
     results = _results(legacy_work_collection_matrix)
 
-    assert all(result["membership_present"] is True for result in results)
-    assert [result["occurrences"][0]["collection"] for result in results] == [
-        "work.queue",
-        "work.active",
-        "work.shipped",
-    ]
-    assert all(result["occurrences"][0]["form"] == "legacy" for result in results)
+    # Legacy work path strings are unsupported_legacy in ordinary reconciliation
+    # and produce no accepted occurrence for selected-membership.
+    assert all(result["membership_present"] is False for result in results)
+    assert all(result["occurrences"] == [] for result in results)
 
 
 def test_exact_legacy_backlog_spec_object_is_present(
@@ -758,9 +754,10 @@ def test_exact_legacy_backlog_spec_object_is_present(
 ) -> None:
     result = _result(legacy_backlog_membership)
 
-    assert result["membership_present"] is True
-    assert result["occurrences"][0]["collection"] == "backlog.open"
-    assert result["occurrences"][0]["form"] == "legacy"
+    # Legacy backlog spec objects are unsupported_legacy in ordinary reconciliation
+    # and produce no accepted occurrence for selected-membership.
+    assert result["membership_present"] is False
+    assert result["occurrences"] == []
 
 
 def test_non_spec_legacy_slug_is_not_a_spec_membership(
@@ -790,9 +787,11 @@ def test_mixed_canonical_legacy_duplicates_are_retained(
 ) -> None:
     result = _result(duplicate_mixed_membership)
 
+    # The legacy work entry (spec/duplicate) is now unsupported_legacy; only the
+    # canonical backlog entry remains as an occurrence.
     assert result["membership_present"] is True
-    assert len(result["occurrences"]) == 2
-    assert {item["form"] for item in result["occurrences"]} == {"canonical", "legacy"}
+    assert len(result["occurrences"]) == 1
+    assert result["occurrences"][0]["form"] == "canonical"
 
 
 def test_membership_identity_matching_is_exact(
@@ -847,21 +846,26 @@ def test_absence_requires_zero_resolved_occurrences(
 ) -> None:
     results = _results(absence_occurrence_class_matrix)
 
-    assert [len(result["occurrences"]) for result in results] == [1, 1, 1, 0]
-    assert [result["membership_present"] for result in results] == [True, True, True, False]
+    # The legacy work entry (spec/legacy) is now unsupported_legacy and produces
+    # no occurrence; the fixture order is canonical, legacy, parse-blocked, absent.
+    assert [len(result["occurrences"]) for result in results] == [1, 0, 1, 0]
+    assert [result["membership_present"] for result in results] == [True, False, True, False]
 
 
 def test_result_and_occurrence_provenance_is_complete_and_repository_relative(
     occurrence_provenance_matrix: RepositoryFixture,
 ) -> None:
     results = _results(occurrence_provenance_matrix)
-    occurrences = [result["occurrences"][0] for result in results]
+    # Legacy entries (top-legacy, initiative-legacy) are unsupported_legacy; only
+    # canonical results have occurrences.
+    present_results = [r for r in results if r["occurrences"]]
+    occurrences = [result["occurrences"][0] for result in present_results]
 
     assert all(not Path(result["canonical_artifact_path"]).is_absolute() for result in results)
     assert all(not Path(item["canonical_artifact_path"]).is_absolute() for item in occurrences)
     assert all({"initiative", "collection", "entry_index", "form"} <= set(item) for item in occurrences)
     assert {item["initiative"] for item in occurrences} == {None, "ini-006"}
-    assert {item["form"] for item in occurrences} == {"canonical", "legacy"}
+    assert all(item["form"] == "canonical" for item in occurrences)
 
 
 def test_non_identity_edits_do_not_change_results(
@@ -975,6 +979,6 @@ def test_legacy_duplicate_occurrences_are_retained(
 ) -> None:
     result = _result(duplicate_legacy_membership)
 
-    assert result["membership_present"] is True
-    assert len(result["occurrences"]) == 2
-    assert [item["form"] for item in result["occurrences"]] == ["legacy", "legacy"]
+    # Both legacy entries are unsupported_legacy; neither produces an occurrence.
+    assert result["membership_present"] is False
+    assert result["occurrences"] == []

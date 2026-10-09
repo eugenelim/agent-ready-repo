@@ -1027,10 +1027,10 @@ def _write_migration_case(
     )
     workspace_bytes = workspace_path.read_bytes()
     workspace = status.parse_workspace(workspace_path)
-    canonical = status.run_canonical_reconciliation(workspace, root)
-    assert len(canonical.legacy_memberships) == 1
+    legacy_memberships = status.extract_legacy_migration_memberships(workspace)
+    assert len(legacy_memberships) == 1
     finding = status.build_migration_finding(
-        workspace_bytes, canonical.legacy_memberships[0]
+        workspace_bytes, legacy_memberships[0]
     )
     selection = {
         "contract_version": "work-intake-migration-selection.v1",

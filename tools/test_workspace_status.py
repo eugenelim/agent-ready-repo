@@ -1509,8 +1509,14 @@ _WL_FINISH_END = r'Conventional commit format'
 # guard are untouched, and ownership is unchanged (work-loop still writes
 # spec.md `Status: Shipped`, workspace-status still owns workspace.toml
 # queue/active/shipped).
+# Moved 2026-10-08 for core 3.0.0: Step 0 now says former legacy entries
+# surface as `unsupported_legacy` findings instead of describing retained
+# `legacy_memberships`, and that old shaping entries stay only in the
+# information-only shaping lists. Reviewed as the pin requires; the engine needs no edit,
+# because canonical reconciliation already emits that finding and ownership is
+# unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "266d46cd2c40c2591ce98b465b33d40c6fc20fa4e356b279759a9b41f0f00de0"
+    "6fd9a3fb045b2ce19b675f3547656b95a35a08a7e34eb92563b520101efe5d8c"
 )
 # Reconciled 2026-08-21: the finish-time lint now resolves from the installed
 # skill directory. Status ownership is unchanged, so the engine needs no edit.

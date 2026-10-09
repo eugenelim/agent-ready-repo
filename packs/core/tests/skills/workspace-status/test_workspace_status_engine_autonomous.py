@@ -417,30 +417,9 @@ def test_t2_exact_canonical_path_shapes_and_legacy_extraction() -> None:
         }
     }
     result = mod.run_canonical_reconciliation(workspace)
-    scalar_legacy_by_raw = {
-        membership.entry.raw: membership
-        for membership in result.legacy_memberships
-        if isinstance(membership.entry.raw, str)
-    }
-    assert set(scalar_legacy_by_raw) == {
-        "spec/password-reset",
-        "research-discovery",
-        "shape-active",
-        "docs/product/briefs/account-recovery.md",
-    }
-    work_legacy = scalar_legacy_by_raw["spec/password-reset"]
-    assert work_legacy.ini_slug == "ini-001"
-    assert work_legacy.collection == "work.queue"
-    assert work_legacy.entry.path == "spec/password-reset"
-    shaping_object = [
-        membership
-        for membership in result.legacy_memberships
-        if membership.entry.raw == {"slug": "design-review", "type": "design", "needs": []}
-    ]
-    assert len(shaping_object) == 1
-    assert shaping_object[0].entry.kind == "design"
+    assert result.legacy_memberships == []
     codes = [finding.code for finding in result.findings]
-    assert "legacy_entry" in codes
+    assert "legacy_entry" not in codes
     assert "unsupported_legacy" in codes
     assert codes.count("invalid_artifact_path") == 3
     assert "invalid_entry" in codes
@@ -581,7 +560,14 @@ def test_t2_unsupported_legacy_findings_are_individually_attributable() -> None:
     assert sorted(f.path for f in unsupported) == sorted(slugs)
 
 
-def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
+def test_surviving_alias_refuses_dispatch_of_canonical_twin() -> None:
+    """Alias refusal: a surviving alias refuses dispatch of its canonical twin.
+
+    A canonical entry is non-dispatchable (duplicate_membership) while any
+    historical entry that _legacy_canonical_alias maps to its path survives
+    anywhere in the workspace. Shapes the decoder maps nowhere never refuse.
+    Removing the alias restores dispatch.
+    """
     mod = _load_engine()
 
     def source() -> dict:
@@ -596,6 +582,9 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             "needs": [],
         }
 
+    # These cases each pair a canonical entry with a surviving legacy alias that
+    # _legacy_canonical_alias maps to the same path. The canonical twin must
+    # carry duplicate_membership and must not dispatch.
     cases = [
         (
             "work spec alias in same collection",
@@ -613,6 +602,46 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
                 }
             },
             "docs/specs/alias/spec.md",
+        ),
+        (
+            "work spec alias in another work collection",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [
+                            canonical_entry("docs/specs/cross-col/spec.md", "spec"),
+                        ],
+                        "active": ["spec/cross-col"],
+                        "shipped": [],
+                    },
+                }
+            },
+            "docs/specs/cross-col/spec.md",
+        ),
+        (
+            "work spec alias in another initiative",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [
+                            canonical_entry("docs/specs/cross-ini/spec.md", "spec"),
+                        ],
+                        "active": [],
+                        "shipped": [],
+                    },
+                },
+                "ini-002": {
+                    "status": "active",
+                    "work": {
+                        "queue": ["spec/cross-ini"],
+                        "active": [],
+                        "shipped": [],
+                    },
+                },
+            },
+            "docs/specs/cross-ini/spec.md",
         ),
         (
             "brief alias across collections",
@@ -660,6 +689,22 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             "docs/specs/backlog-alias/spec.md",
         ),
         (
+            "work spec alias in shipped collection",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [
+                            canonical_entry("docs/specs/shipped-alias/spec.md", "spec"),
+                        ],
+                        "active": [],
+                        "shipped": ["spec/shipped-alias"],
+                    },
+                }
+            },
+            "docs/specs/shipped-alias/spec.md",
+        ),
+        (
             "typed shaping alias across collections",
             {
                 "ini-001": {
@@ -680,13 +725,56 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     for name, workspace, target_path in cases:
         result = mod.run_canonical_reconciliation(workspace)
         evaluation = result.dispatch_by_path[target_path]
-        assert not evaluation.dispatchable, name
         assert "duplicate_membership" in {
             finding.code for finding in evaluation.findings
         }, name
-        assert "legacy_entry" in {finding.code for finding in result.findings}, name
-        assert result.legacy_memberships, name
+        assert "legacy_entry" not in {finding.code for finding in result.findings}, name
+        assert "unsupported_legacy" in {finding.code for finding in result.findings}, name
+        assert result.legacy_memberships == [], name
 
+    # Dispatch controls: the same canonical entry without the alias is dispatchable.
+    dispatch_controls = [
+        (
+            "canonical spec without alias dispatches",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [canonical_entry("docs/specs/alias/spec.md", "spec")],
+                        "active": [],
+                        "shipped": [],
+                    },
+                }
+            },
+            "docs/specs/alias/spec.md",
+        ),
+        (
+            "canonical brief without alias dispatches",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "brief_queue": {
+                        "ready": [
+                            canonical_entry("docs/product/briefs/alias-brief.md", "brief")
+                        ],
+                        "draft": [],
+                        "executing": [],
+                        "shipped": [],
+                    },
+                }
+            },
+            "docs/product/briefs/alias-brief.md",
+        ),
+    ]
+    for name, workspace, target_path in dispatch_controls:
+        result = mod.run_canonical_reconciliation(workspace)
+        evaluation = result.dispatch_by_path[target_path]
+        assert "duplicate_membership" not in {
+            finding.code for finding in evaluation.findings
+        }, name
+        assert result.legacy_memberships == [], name
+
+    # Negative control: an unmapped shape (bare shaping slug) does not refuse.
     control = {
         "ini-001": {
             "status": "active",
@@ -701,8 +789,10 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     result = mod.run_canonical_reconciliation(control)
     evaluation = result.dispatch_by_path["docs/product/design/ambiguous-shape.md"]
     assert "duplicate_membership" not in {finding.code for finding in evaluation.findings}
-    assert "legacy_entry" in {finding.code for finding in result.findings}
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert "unsupported_legacy" in {finding.code for finding in result.findings}
 
+    # Legacy-only cases: no canonical entry is paired, so no alias refusal applies.
     legacy_only_cases = [
         (
             "legacy spec alias in same collection",
@@ -748,7 +838,7 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             "docs/product/briefs/legacy-brief.md",
         ),
     ]
-    for name, workspace, duplicate_path in legacy_only_cases:
+    for name, workspace, _former_duplicate_path in legacy_only_cases:
         result = mod.run_canonical_reconciliation(workspace)
         duplicate_findings = [
             finding
@@ -756,9 +846,10 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             if finding.code == "duplicate_membership"
         ]
         assert result.evaluations == [], name
-        assert [finding.path for finding in duplicate_findings] == [duplicate_path], name
-        assert [finding.code for finding in result.findings].count("legacy_entry") == 2, name
-        assert len(result.legacy_memberships) == 2, name
+        assert [finding.path for finding in duplicate_findings] == [], name
+        assert "legacy_entry" not in {finding.code for finding in result.findings}, name
+        assert [finding.code for finding in result.findings].count("unsupported_legacy") == 2, name
+        assert result.legacy_memberships == [], name
 
     legacy_only_control = {
         "ini-001": {
@@ -776,11 +867,74 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     }
     result = mod.run_canonical_reconciliation(legacy_only_control)
     assert "duplicate_membership" not in {finding.code for finding in result.findings}
-    assert [finding.code for finding in result.findings].count("legacy_entry") == 4
-    assert len(result.legacy_memberships) == 4
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert [finding.code for finding in result.findings].count("unsupported_legacy") == 4
+    assert result.legacy_memberships == []
 
 
-def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
+def test_alias_refusal_dispatch_control(tmp_path: Path) -> None:
+    """Dispatch is true for an Approved spec without the alias and false with it.
+
+    Uses a real spec.md and plan.md on disk so the engine can confirm dispatch
+    eligibility. The alias alone causes the canonical entry to be non-dispatchable.
+    """
+    mod = _load_engine()
+
+    spec_path = "docs/specs/dispatch-control/spec.md"
+    spec_file = tmp_path / spec_path
+    spec_file.parent.mkdir(parents=True, exist_ok=True)
+    spec_file.write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Body\n",
+        encoding="utf-8",
+    )
+    (spec_file.parent / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+    def canonical() -> dict:
+        return {
+            "path": spec_path,
+            "kind": "spec",
+            "source": {"mode": "repo-origin"},
+            "summary": "Dispatch control spec",
+            "needs": [],
+        }
+
+    without_alias = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [canonical()],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    result_without = mod.run_canonical_reconciliation(without_alias, tmp_path)
+    evaluation_without = result_without.dispatch_by_path[spec_path]
+    assert evaluation_without.dispatchable, (
+        "canonical spec without alias must be dispatchable"
+    )
+
+    with_alias = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [canonical(), "spec/dispatch-control"],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    result_with = mod.run_canonical_reconciliation(with_alias, tmp_path)
+    evaluation_with = result_with.dispatch_by_path[spec_path]
+    assert not evaluation_with.dispatchable, (
+        "canonical spec with surviving alias must not be dispatchable"
+    )
+    assert "duplicate_membership" in {
+        finding.code for finding in evaluation_with.findings
+    }
+
+
+def test_t2_legacy_aliases_do_not_satisfy_dependent_work(tmp_path: Path) -> None:
     mod = _load_engine()
 
     ready_path = "docs/specs/ready/spec.md"
@@ -830,12 +984,13 @@ def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
     ]
 
     assert not ready_evaluation.dispatchable
-    assert "unsatisfied_dependency" in {
+    assert "missing_dependency" in {
         finding.code for finding in ready_evaluation.findings
     }
-    assert [finding.path for finding in duplicate_findings] == [blocked_dependency]
-    assert [finding.code for finding in result.findings].count("legacy_entry") == 2
-    assert len(result.legacy_memberships) == 2
+    assert [finding.path for finding in duplicate_findings] == []
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert [finding.code for finding in result.findings].count("unsupported_legacy") == 2
+    assert result.legacy_memberships == []
 
 
 def test_t2_malformed_same_path_blocks_canonical_membership() -> None:
@@ -959,12 +1114,12 @@ def test_t2_malformed_same_path_blocks_canonical_membership() -> None:
         result = mod.run_canonical_reconciliation(workspace)
         assert result.evaluations == [], name
         assert [finding.code for finding in result.findings].count("invalid_entry") == 1
-        assert [finding.code for finding in result.findings].count("legacy_entry") == 1
+        assert [finding.code for finding in result.findings].count("unsupported_legacy") == 1
         assert [
             finding.path
             for finding in result.findings
             if finding.code == "duplicate_membership"
-        ] == [mixed_path], name
+        ] == [], name
 
     non_collision_result = mod.run_canonical_reconciliation(
         {

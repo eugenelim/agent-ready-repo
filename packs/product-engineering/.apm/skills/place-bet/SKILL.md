@@ -87,7 +87,7 @@ accepted, Assumptions, Kill condition (optional), Next step (pointer to
 `map-capabilities`), Suggested workspace.toml transition.
 
 **5. Suggest workspace.toml transition.** Print the TOML snippet including the
-slug; direct the PE to `capture-work` or manual edit. Do not write to `workspace.toml`.
+slug; direct the PE to `work-intake` or manual edit. Do not write to `workspace.toml`.
 
 ## Anti-patterns to refuse
 

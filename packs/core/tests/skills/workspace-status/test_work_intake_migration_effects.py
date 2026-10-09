@@ -68,9 +68,8 @@ def _setup(tmp_path: Path):
     (target / "spec.md").write_text("# Target\n\n**Status:** Approved\n", encoding="utf-8")
     (target / "plan.md").write_text("# Plan\n\n**Status:** Approved\n", encoding="utf-8")
     workspace = engine.parse_workspace(workspace_path)
-    canonical = engine.run_canonical_reconciliation(workspace, tmp_path)
     finding = engine.build_migration_finding(
-        workspace_path.read_bytes(), canonical.legacy_memberships[0]
+        workspace_path.read_bytes(), engine.extract_legacy_migration_memberships(workspace)[0]
     )
     selection = {
         "contract_version": "work-intake-migration-selection.v1",

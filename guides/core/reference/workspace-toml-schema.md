@@ -1,6 +1,6 @@
 ---
 title: workspace.toml schema reference
-summary: Exact target entries, lifecycle collections, compatibility forms, and validation limits for the workspace index.
+summary: Exact target entries, lifecycle collections, former legacy forms, and validation limits for the workspace index.
 pack: core
 kind: reference
 ---
@@ -13,8 +13,8 @@ names hard dependencies. It is not a requirements document.
 
 Use this reference when you need to answer: “How should this artifact be
 represented in `workspace.toml`, and is the entry safe to dispatch?” The result
-is either a valid target entry in one lifecycle collection or a
-non-dispatchable compatibility or reconciliation finding.
+is either a valid target entry in one lifecycle collection or an
+`unsupported_legacy` or reconciliation finding.
 
 ## Contract at a Glance
 
@@ -39,7 +39,8 @@ soft priority, or suggested order. If that context matters, write it to the
 canonical artifact first and index the pointer here.
 
 Human decision: A person chooses the canonical artifact route, approves
-requirement-bearing artifacts, and decides how to migrate a legacy entry.
+requirement-bearing artifacts, and rewrites a former legacy entry in canonical
+form by hand.
 
 Repositories that enable tracker refresh also carry a global
 `[authorization.refresh]` role policy outside initiative entries. See
@@ -352,8 +353,8 @@ finding identifier as a path only after confirming it is one.
 | --- | --- | --- |
 | `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
 | `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
-| `legacy_entry` | Supported compatibility form; visible but never dispatchable. | Materialize and register a canonical target entry. |
-| `unsupported_legacy` | Legacy-like form outside accepted compatibility fixtures. | Route the item manually; do not infer a target entry. |
+| `legacy_entry` | Historical form decoded only by migration recovery or rollback; ordinary reconciliation never emits it. | Materialize and register a canonical target entry. |
+| `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. | Route the item manually; do not infer a target entry. |
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
@@ -376,6 +377,15 @@ finding identifier as a path only after confirming it is one.
 | `invalid_completion_receipt` | A local completion receipt has the wrong fields, value types, grammar, or outcome. | Replace it with a valid reviewed completion receipt for that dependency. |
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
 | `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is inconsistent, or a locator-only entry has no dispatch integration. | Install or select a consistent versioned configuration, then rerun. |
+
+An `unsupported_legacy` entry is never dispatchable. Rewrite it in canonical
+form by hand: write the target entry in the correct collection and remove the
+former record in the same edit, then run `workspace-status` to confirm.
+
+A canonical entry receives `duplicate_membership` when a historical alias for the
+same artifact path survives elsewhere in the workspace. The canonical entry stays
+non-dispatchable until the alias is removed. Replace the legacy alias in the same
+edit as creating the canonical entry to avoid that refusal.
 
 ## Minimal Intent
 
@@ -408,26 +418,35 @@ intended behavior. Closed defect contexts record exactly one resolution:
 Defects stay in the repository-level backlog. They are routed to the bug-fix
 workflow, not directly to implementation queue dispatch.
 
-## Legacy Compatibility
+## Legacy Forms
 
-During the compatibility window, readers may recognize these legacy shapes:
+Ordinary reconciliation does not accept legacy shapes as compatibility entries.
+Every former accepted legacy shape surfaces as `unsupported_legacy`. Rewrite
+each entry in canonical form by hand.
 
-| Collection | Legacy shape |
+The former legacy shapes were:
+
+| Collection | Former legacy shape |
 | --- | --- |
 | Work arrays | Bare `spec/<slug>` strings only. |
 | Shaping arrays | Bare shaping slugs, or `{ slug, type, needs }` objects where `type` is `shape`, `research`, `strategy`, `signal`, or `design`. |
 | Brief queue arrays | Brief path strings such as `docs/product/briefs/<slug>.md`. |
 | `[backlog].open` | Comment-rich inline objects with `slug` plus legacy fields such as `needs`, `source`, `summary`, or `type`. |
 
-The same shape in the wrong collection is invalid. A legacy entry is tagged as
-legacy, visible, and non-dispatchable. A missing artifact or plan stays
-non-dispatchable, and readers do not reconstruct requirements from comments.
-Migration requires a human to choose the canonical artifact route and write a
-target entry.
+The same shape in the wrong collection is invalid. A missing artifact or plan
+stays non-dispatchable, and readers do not reconstruct requirements from
+comments. To update a workspace entry, write the canonical target entry in the
+correct collection and remove the former record.
 
 ### Migration authorization and ledger
 
-Repositories that apply or roll back legacy-entry migrations declare one
+Use the migration tooling only when `.workspace-migrations.json` already records
+an operation from a previous run. Ordinary reconciliation does not produce a
+`legacy_entry` finding; to update a workspace entry that has no prior ledger
+record, rewrite it in canonical form by hand (see
+[Move from capture-work to work-intake](../how-to/capture-work.md)).
+
+Repositories that recover or roll back legacy-entry migrations declare one
 closed global policy outside initiative tables:
 
 ```toml
@@ -446,8 +465,9 @@ collection/index/exact-slice digest, selected five-field target entry and
 membership, owning processor, provenance, and positive privacy attestation.
 The agent may show candidates but must not author or edit that selection.
 
-Apply creates `.workspace-migrations.json` at the repository root. The ledger
-stores repository identity and ordered operations with:
+Apply completes a recorded operation by writing to `.workspace-migrations.json`
+at the repository root. The ledger stores repository identity and ordered
+operations with:
 
 - operation ID and immutable digest;
 - exact legacy TOML slice and original membership;
@@ -481,5 +501,5 @@ non-finite values.
 
 - [The two-room model](../explanation/two-room-model.md)
 - [How to orient at the start of a session](../how-to/orient-at-session-start.md)
-- [Migrate a legacy workspace entry safely](../how-to/migrate-capture-work.md)
+- [Recover or roll back a migration operation](../how-to/migrate-capture-work.md)
 - [How work records divide responsibility](../../_shared/explanation/work-artifact-responsibilities.md)

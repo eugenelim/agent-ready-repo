@@ -14,6 +14,19 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.52.0
+
+The workspace-status MCP tool now surfaces a former legacy entry (a bare
+`spec/<slug>` string or other accepted legacy shape) as an `unsupported_legacy`
+finding. The entry is absent from `ready` and `blocked`; ordinary
+reconciliation no longer accepts legacy shapes as lifecycle members. A
+canonical entry with a surviving historical alias appears in `blocked` with a
+`duplicate_membership` finding and does not appear in `ready`. Delete the alias
+and the canonical entry dispatches normally.
+
+The `capture-work` alias for `work-intake` is removed as part of Core 3.0.0.
+All intake requests should go to `work-intake`.
+
 ## What's new in 0.51.0
 
 HTTPS catalogue acquisition now selects credentials automatically. Set

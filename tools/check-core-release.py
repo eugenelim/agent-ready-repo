@@ -88,6 +88,15 @@ def _patch_successor(base: str) -> str:
     return f"{major}.{minor}.{patch + 1}"
 
 
+def _major_successor(base: str) -> str:
+    """Return the next major version: (major+1).0.0."""
+    try:
+        major, _minor, _patch = (int(p) for p in base.split("."))
+    except ValueError as exc:
+        raise Refusal(f"base version {base!r} is not major.minor.patch") from exc
+    return f"{major + 1}.0.0"
+
+
 def _live(text: str) -> str:
     """Markdown that renders: fenced blocks and HTML comments removed.
 
@@ -140,12 +149,21 @@ def _has_highlight_bullet(entry_body: str) -> bool:
     return bool(re.search(r"^\s*[-*] \S", section, re.M))
 
 
-def check(root: Path, base: str) -> list[str]:
-    """Return the refusal reasons; empty means the release is consistent."""
+def check(root: Path, base: str, kind: str = "patch") -> list[str]:
+    """Return the refusal reasons; empty means the release is consistent.
+
+    ``kind`` selects the successor rule: ``"patch"`` (default) requires the
+    same major and minor with patch exactly one greater; ``"major"`` requires
+    the next major with minor and patch reset to zero.
+    """
     reasons: list[str] = []
     try:
+        base_version = _version_at(root, base)
         declared = _version_at(root, None)
-        expected = _patch_successor(_version_at(root, base))
+        if kind == "major":
+            expected = _major_successor(base_version)
+        else:
+            expected = _patch_successor(base_version)
     except Refusal as exc:
         return [str(exc)]
 
@@ -243,10 +261,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True, help="base commit to compare against")
     parser.add_argument("--root", default=".", help="repository root")
+    parser.add_argument(
+        "--kind",
+        choices=["patch", "major"],
+        default="patch",
+        help=(
+            "release kind: 'patch' (default) requires the patch successor; "
+            "'major' requires the next major with minor and patch reset to zero"
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
-        reasons = check(Path(args.root).resolve(), args.base)
+        reasons = check(Path(args.root).resolve(), args.base, args.kind)
     except Exception as exc:  # fail closed: a delivery check must never pass on an error
         reasons = [f"unexpected failure ({type(exc).__name__}): {exc}"]
     for reason in reasons:

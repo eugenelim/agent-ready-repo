@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "1.0.0"
+version = "1.0.1"
 description = "Write the RFC, record the ADR, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -29,7 +29,7 @@ allowed-scopes = ["repo"]
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^2.0"
+version = "^3.0"
 
 # Pack activation evals: the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is

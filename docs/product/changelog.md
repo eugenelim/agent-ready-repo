@@ -64,6 +64,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.0.0] — 2026-10-08
+
+### Highlights
+
+- Send all intake requests to `work-intake`. The `capture-work` skill is removed and has no replacement alias.
+- A former `spec/<slug>` or other legacy workspace entry surfaces as an `unsupported_legacy` finding and cannot dispatch. Rewrite it in canonical form by hand and delete the old alias in the same edit — a canonical entry is refused dispatch while its old alias survives anywhere in the workspace.
+- Use `workspace-status repair-plan --migration-selection`, `repair-apply`, and `repair-rollback` only to recover or roll back an operation already recorded in the migration ledger.
+
+### Removed
+
+- `capture-work` skill, its activation evals, its pack registration, and the alias-only router branch in `work-intake`. There is no replacement alias; send all intake requests to `work-intake`.
+- Ordinary accepted-legacy reader from canonical reconciliation. Former legacy shapes produce `unsupported_legacy` findings and are not considered lifecycle memberships. Explicit migration, prune, and Type 2 repair retain their legacy decoding as non-dispatching repair operations.
+
+## [agentbundle][0.52.0] — 2026-10-08
+
+### Highlights
+
+- The workspace-status MCP tool now surfaces a former legacy entry (a bare `spec/<slug>` string or other accepted legacy shape) as an `unsupported_legacy` finding. The entry is absent from `ready` and `blocked`; ordinary reconciliation no longer accepts legacy shapes as lifecycle members.
+- A canonical entry with a surviving historical alias appears in `blocked` with a `duplicate_membership` finding and does not appear in `ready`. Delete the alias and the canonical entry dispatches normally.
+
+### Changed
+
+- Packaged runtime `workspace_status_engine.py` and `workspace_status_prune.py` synchronized to Core 3.0.0: ordinary canonical reconciliation rejects former accepted-legacy shapes as `unsupported_legacy` findings, and prune retains its legacy decoding as a repair-only operation.
+
+## [product-engineering][0.13.23] — 2026-10-08
+
+### Highlights
+
+- Skills and examples in the product-engineering pack that previously directed users to `capture-work` now direct them to `work-intake`, matching the Core 3.0.0 surface.
+- `frame-situation` and `diverge-solutions` note that old shaping entries still appear in the information-only shaping lists until rewritten in canonical form.
+
+### Changed
+
+- `map-capabilities`, `place-bet`, and `diverge-solutions` skill guidance and examples reference `work-intake` instead of `capture-work`.
+- `frame-situation` and `diverge-solutions` add a note that former legacy shaping entries remain visible in the information-only shaping lists until replaced with canonical entries.
+
+## [release-engineering][0.1.11] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [monorepo-extras][0.1.10] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [iac-terraform][0.1.12] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [governance-extras][1.0.1] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [code-intelligence][0.1.6] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
 ## [core][2.30.1] — 2026-10-08
 
 ### Highlights

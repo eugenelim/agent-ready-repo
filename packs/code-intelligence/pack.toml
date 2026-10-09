@@ -1,6 +1,6 @@
 [pack]
 name = "code-intelligence"
-version = "0.1.5"
+version = "0.1.6"
 description = "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing — answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses."
 readme = "README.md"
 display_name = "Code intelligence"
@@ -20,7 +20,7 @@ allowed-scopes = ["repo", "user"]  # The index is per-repository, but the skill 
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^2.0"
+version = "^3.0"
 
 # Wicked Estate ships two Rust binaries from crates.io. `wicked-estate` is the CLI this pack
 # drives and is the only hard requirement. `wicked-estate-mcp` is the MCP server; it is optional

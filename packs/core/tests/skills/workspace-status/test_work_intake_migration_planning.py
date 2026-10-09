@@ -46,8 +46,7 @@ def _selection(engine, root: Path) -> tuple[dict[str, object], dict[str, object]
     """Build reviewed selection input from the engine's observed finding."""
     workspace_bytes = (root / "workspace.toml").read_bytes()
     workspace = engine.parse_workspace(root / "workspace.toml")
-    canonical = engine.run_canonical_reconciliation(workspace, root)
-    membership = canonical.legacy_memberships[0]
+    membership = engine.extract_legacy_migration_memberships(workspace)[0]
     finding = engine.build_migration_finding(workspace_bytes, membership)
     selection = {
         "contract_version": "work-intake-migration-selection.v1",
@@ -74,7 +73,7 @@ def test_ac2_finding_preserves_exact_slice_and_never_dispatches(tmp_path: Path) 
     workspace_bytes = _workspace_bytes()
     (tmp_path / "workspace.toml").write_bytes(workspace_bytes)
     workspace = engine.parse_workspace(tmp_path / "workspace.toml")
-    membership = engine.run_canonical_reconciliation(workspace, tmp_path).legacy_memberships[0]
+    membership = engine.extract_legacy_migration_memberships(workspace)[0]
 
     finding = engine.build_migration_finding(workspace_bytes, membership)
 

@@ -15,7 +15,7 @@ contract:
     - "Approve the plan"
     - "Approve each local refresh field decision"
     - "Confirm every remote tracker mutation separately"
-    - "Author the reviewed route and fresh confirmation for each legacy workspace migration effect"
+    - "Recover or roll back an operation already recorded in a migration ledger, using the operation ID from `.workspace-migrations.json`"
     - "Confirm semantic freshness and every exact close-work mutation separately"
     - "Merge the PR"
   decisionGateIds:
@@ -68,11 +68,8 @@ skills:
   - name: receive-brief
     description: "Deprecated compatibility alias for author-delivery-brief continue."
     humanTouches: 0
-  - name: capture-work
-    description: "Compatibility alias that forwards equivalent requests to work-intake; new guidance uses work-intake directly."
-    humanTouches: 0
   - name: workspace-status
-    description: "Reads workspace.toml, surfaces canonical and legacy findings, and provides the explicit plan/apply/rollback repair surface for reviewed migrations."
+    description: "Reads workspace.toml, reconciles canonical entries, surfaces unsupported-legacy findings for former legacy entries, and provides the explicit repair surface for recovering or rolling back a recorded migration operation."
     humanTouches: 0
   - name: project-knowledge
     description: "Captures, distills, and enquires over committed project knowledge through one progressive skill. Capture writes observations; distill proposes topic changes; enquire reads active committed topics."
@@ -186,15 +183,15 @@ gate remains in place. Without the optional handoff, this stage is unchanged.
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
 - **State:** draft
 
-#### Optional compatibility path — migrate one legacy entry
+#### Optional recovery path — recover or roll back a recorded migration
 
-When status reports `legacy_entry`, review its exact source slice and candidate
-routes. A person authors the closed selection; `repair-plan` remains read-only.
-Apply or rollback only with the repository migration policy and one fresh,
-single-use confirmation bound to the exact operation.
+Use only when `.workspace-migrations.json` already records an operation from a
+previous run. Rewrite a former `unsupported_legacy` entry in canonical form by
+hand; the migration tooling is only for recovering an interrupted apply or
+rolling back a completed apply.
 
-- **You decide:** the target artifact, lifecycle membership, provenance, and
-  whether to apply or roll back.
+- **You decide:** whether to recover the pending apply or roll back the applied
+  operation.
 - **Output:** a canonical workspace entry or the restored exact legacy slice,
   plus the durable `.workspace-migrations.json` recovery record.
 - **State:** confirmed-write

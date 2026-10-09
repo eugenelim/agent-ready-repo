@@ -10,8 +10,13 @@ after both are valid. An eligible explicit direct-light request remains
 session-local.
 
 Tracker adapters acquire and normalize; they do not classify artifacts or write
-repository state. `workspace-status` reads and reconciles repository state and
-owns the temporary reviewed migration transaction for accepted legacy entries.
+repository state. `workspace-status` reads and reconciles repository state. The historical
+accepted-legacy decoder is retained in four places: canonical reconciliation
+(refuse-only alias decoding, making the canonical twin non-dispatchable while
+the alias survives), the repair seams (migration recovery and rollback, prune,
+and Type 2 repair), and the information-only status-analysis readers
+(`extract_initiatives` listings, Type 1/2/3 scans, and `explain_item`). None
+of these four surfaces dispatches a former legacy shape.
 Configured refresh processors compare tracker-origin artifacts and may apply
 authorized local changes or separately confirmed coordination actions.
 
@@ -77,8 +82,8 @@ nowhere else to put and rolls up delivery across the per-component slices.
   into a Draft coordination brief; `continue` makes an existing brief Ready and
   confirms spec slices.
 - `workspace-status` reports canonical ready, active, blocked, shipped,
-  authority, refresh, reconciliation, retained legacy state, and read-only
-  closeout orientation.
+  authority, refresh, reconciliation, unsupported-legacy findings, and
+  read-only closeout orientation.
 - `close-work` pauses resumable work, verifies delivery evidence and durable
   semantic owners, recommends one of RFC-0096's six dispositions, and owns
   separately authorized coordination or immediate-disposal effects.
@@ -86,8 +91,6 @@ nowhere else to put and rolls up delivery across the per-component slices.
   normalized contract and delegate the route.
 - Profile refresh processors resolve by exact profile ID/version and return a
   closed comparison/effect result.
-- `capture-work` is a temporary compatibility alias that emits a deprecation
-  notice and forwards to `work-intake` without separate semantics.
 - `surface_resolver.py` resolves one semantic role from caller-supplied local or
   external candidates and returns provenance, capability, confinement, and
   independent authority facts without lifecycle effects.
@@ -223,10 +226,11 @@ invocation already supplies bounded content at the matching pinned revision.
 5. Refresh resolves the exact configured processor, acquires and compares one
    source revision, presents field decisions, and applies guarded local changes
    only after authorization. Remote coordination remains separately confirmed.
-6. A supported legacy membership stays visible and non-dispatchable until a
-   human supplies a reviewed route selection. Planning is read-only; apply is
-   ledger-first; rollback restores the exact legacy slice without deleting the
-   canonical artifact.
+6. A former legacy entry surfaces as `unsupported_legacy` and is rewritten in
+   canonical form by hand. The migration tooling — `repair-plan
+   --migration-selection`, `repair-apply`, and `repair-rollback` — only recovers
+   or rolls back an operation already recorded in the migration ledger; rollback
+   restores the exact legacy slice without deleting the canonical artifact.
 7. A semantic destination request resolves an explicit destination first,
    unless mandatory repository policy rejects it; then declared repository
    policy or optional configuration, established repository convention, and an
@@ -391,7 +395,7 @@ projects the completion receipt, Wave 7b classifies history, and Wave 7c prunes
 proven-eligible artifacts.
 Wave 7 owns historical migration and pruning behavior.
 
-## 7. Observability, evidence, and the compatibility window
+## 7. Observability and evidence
 
 `workspace.toml`, canonical artifacts, and `workspace-status` provide the
 observable routing and lifecycle record. Provenance records the source locator
@@ -410,13 +414,16 @@ independent facts. Non-resolved results omit selected locators and make those
 facts explicitly unknown.
 
 All current writers and the workspace seed emit only target entries. The
-accepted legacy reader and `capture-work` forwarding alias remain installed in
-the initial delivery. Their later removal is a separate, non-dispatchable
-follow-up gated by RFC-0083's release count, elapsed time, advance notice,
-fixture/writer/guide/rollback evidence, and check-before-effect Approver
-authorization.
+accepted legacy reader and `capture-work` forwarding alias are removed in Core
+3.0.0 under RFC-0083's release count, advance notice, fixture/writer/guide/
+rollback evidence, and check-before-effect Approver authorization. Ordinary
+reconciliation no longer accepts former legacy shapes; they surface as
+`unsupported_legacy` findings. The historical decoder is retained in canonical reconciliation (refuse-only
+alias decoding), the repair seams (migration recovery and rollback, prune, and
+Type 2 repair), and the information-only status-analysis readers. None
+dispatches a former legacy shape.
 
-Rollback returns writers to the preceding dual-reader release and uses the
+Rollback returns to the preceding dual-reader release and uses the
 ledger to restore legacy workspace representation. It preserves target
 artifacts and migration evidence.
 

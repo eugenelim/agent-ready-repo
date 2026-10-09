@@ -83,7 +83,8 @@ Suggested workspace.toml entry (TOML snippet + direction to register it through
 
 **6. Suggest workspace.toml entry.** Print a canonical five-field entry — `path`,
 `kind`, `source`, `summary`, `needs` — because a short `{slug, type}` entry is the
-legacy shape and is never dispatchable:
+legacy shape and is never dispatchable. Old shaping entries still appear in the
+information-only shaping lists until rewritten.
 
 ```toml
 {path = "<output_dir>/shaping/<slug>/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the finding in one line>", needs = []},

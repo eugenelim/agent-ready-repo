@@ -1,6 +1,6 @@
 ---
 name: work-intake
-description: Use for a raw or ambiguous work request, source acquisition or refresh, generic intake-safety handling, or an older compatibility alias. Explicit status, artifact, skill, product-shaping, architecture-design, and defect requests route directly to their owners.
+description: Use for a raw or ambiguous work request, source acquisition or refresh, or generic intake-safety handling. Explicit status, artifact, skill, product-shaping, architecture-design, and defect requests route directly to their owners.
 allowed-tools: Read Write Edit Bash
 metadata:
   type: skill
@@ -60,8 +60,8 @@ Apply this order once before intake classification:
    a distinct work type directly to that owner. This includes `intake-intent`,
    `author-delivery-brief create|continue`, `new-rfc`, `new-spec`,
    `architect-design`, `frame-intent`, and `bug-fix` when installed.
-3. Route only a raw or ambiguous request, acquisition, refresh, generic intake
-   safety need, or compatibility-alias delegation through `work-intake`.
+3. Route only a raw or ambiguous request, acquisition, refresh, or generic intake
+   safety need through `work-intake`.
 
 Delegation from this skill to the classified owner is the same route, not a
 second public answer. Do not create an intent merely because work is entering
@@ -129,8 +129,7 @@ Do not put chronology, rationale, procedure, review transcript, raw finding,
 copied source text, suggested order, soft priority, or conversation residue in
 adjacent comments, summaries, or workspace-only fields. If the context cannot
 fit that shape, materialize the context-owning artifact first and point to it.
-Legacy prose remains visible during compatibility windows, but an entry that
-this workflow materially updates must adopt the terse form.
+An entry that this workflow creates or updates adopts the terse form.
 
 For a separated follow-on from an amended spec, materialize the follow-on's
 owning artifact before registration. The follow-on's current state changes in
@@ -291,10 +290,9 @@ order. A Ready brief can have zero materialized specs and is still not
 executable.
 
 After semantic classification, pass only the bounded action, artifact, artifact
-kind, authority mode, named-gap signal, Ready-brief signal, direct-light signal,
-and alias signal to `scripts/intake_router.py`. Use its returned membership,
-processor, and mutation as the route; do not reconstruct those fields
-independently.
+kind, authority mode, named-gap signal, Ready-brief signal, and direct-light
+signal to `scripts/intake_router.py`. Use its returned membership, processor,
+and mutation as the route; do not reconstruct those fields independently.
 
 ### 5. Materialize before register
 

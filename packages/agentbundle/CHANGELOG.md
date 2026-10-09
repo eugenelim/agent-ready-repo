@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.52.0] — 2026-10-08
+
+### Changed
+
+- Breaking: the packaged workspace-status runtime matches Core 3.0.0. Ordinary
+  canonical reconciliation no longer accepts former legacy workspace shapes, so
+  the MCP `workspace_status` tool reports such an entry as an
+  `unsupported_legacy` finding, omits it from `ready` and `blocked`, and
+  returns an empty `legacy_memberships` list. Prune keeps decoding legacy
+  aliases as a repair operation.
+- A canonical workspace entry that has a surviving historical alias (for
+  example, a matching `spec/<slug>` string form) is reported as `blocked` with
+  a `duplicate_membership` finding and does not appear in `ready`. Remove the
+  old alias and the canonical entry dispatches normally.
+
 ## [0.51.0] — 2026-10-03
 
 ### Added

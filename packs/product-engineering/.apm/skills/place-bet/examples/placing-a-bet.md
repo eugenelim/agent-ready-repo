@@ -99,7 +99,7 @@ staging, revert to email delivery (Option A) rather than optimising streaming.
 # Move from shaping_queue active → update type or hand to build queue
 # after map-capabilities completes.
 ```
-Run `capture-work` or edit `workspace.toml` manually.
+Run `work-intake` or edit `workspace.toml` manually.
 ```
 
 ### Workspace.toml suggestion printed

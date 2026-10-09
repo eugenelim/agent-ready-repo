@@ -63,7 +63,6 @@ class RoutingSignals:
     named_gaps: bool = False
     ready_brief: bool = False
     direct_light: bool = False
-    alias: str | None = None
     profile_id: str | None = None
     profile_version: str | None = None
 
@@ -174,13 +173,13 @@ def route_intake(
         return _route(signals, "draft-with-gaps", "none", "ask-or-draft-only")
 
     if signals.action == "remember":
-        mutation = (
-            "same-as-work-intake-remember"
-            if signals.alias == "capture-work"
-            else "materialize-draft-and-register-non-dispatchable"
-        )
         processor = "intake-intent" if signals.artifact_kind == "intent" else "none"
-        return _route(signals, "backlog.open", processor, mutation)
+        return _route(
+            signals,
+            "backlog.open",
+            processor,
+            "materialize-draft-and-register-non-dispatchable",
+        )
 
     if signals.action != "start" or signals.artifact_kind not in _START_ROUTES:
         raise ValueError("unsupported intake routing signals")
