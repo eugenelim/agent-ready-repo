@@ -643,8 +643,8 @@ the same amendment for the owner's spec/plan re-approval.
 
 ## T5 — candidate evidence for RFC-0083 Approver authorization
 
-**Status: awaiting the RFC-0083 Approver's decision. No merge, tag, push, or
-publication has occurred.**
+**Status: authorized by the RFC-0083 Approver. No merge, tag, push, or
+publication had occurred when authorization was given.**
 
 ### Candidate
 
@@ -722,8 +722,11 @@ canonical artifacts, and receipts stay in place.
 
 ### Authorization record (to be completed by the RFC-0083 Approver)
 
-- Approver identity and role: _pending_
-- Decision (authorize or reject): _pending_
-- Timestamp and metadata source: _pending_
+- Approver identity and role: `eugenelim`, RFC-0083 Approver.
+- Decision: **authorize**.
+- Timestamp: 2026-10-09T03:16:33Z. Metadata source: the `Approver:` field of
+  `docs/rfc/0083-work-intake-and-artifact-routing.md` (Status Accepted). The
+  decision was given in the current owner session, before any merge, tag, push,
+  or publication.
 - Bound to: candidate `0bb6e9c1b`, Core 3.0.0, this checklist, and the
   rollback target above.
