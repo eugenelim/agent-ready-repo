@@ -48,3 +48,22 @@ row's literal method.
 - `agentbundle catalogue self-host --root . --write` refuses a dirty tree, so
   it ran with `--force`, which lifts only that guard. It wrote only the two
   `navigate-intents` projections.
+
+## T3
+
+- Done-when: `test_query_contract.py`, `test_text_tree.py`, and
+  `test_independence.py` with `test_derivation_contract.py` — 108 passed in
+  5.65 s, none skipped, including all five confinement cases; `agentbundle
+  catalogue verify --root .` ok; `make lint-ruff lint-mypy` clean; the
+  shipped-text grep returns nothing.
+- Real invocation over this repository (168 intents, 23 briefs, 543 specs):
+  `query --operation summary` exit 0, wall 3.64 s, 3.86 s, 4.43 s, 4.80 s
+  across four runs; `query --operation tree --format text --depth 1` exit 0,
+  3.84 s, 140 lines, first line
+  `capability:digital-experience-doctrine · capability · Accepted`.
+- Latency headroom is thin against AC-0019's 5-second median for
+  `outstanding`, measured in T4. The de-risk figure was 1.55 s for the
+  derivation alone; the gap is the resolver load and query on this machine.
+- The AC-0064 equality tests drive the graph module through the navigator's
+  own loader function, because the query envelope does not expose the raw
+  graph.

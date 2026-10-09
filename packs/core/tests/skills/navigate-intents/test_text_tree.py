@@ -164,3 +164,89 @@ def test_tree_cycle_fixture_each_intent_appears_once() -> None:
         assert count == 1, (
             f"intent {slug} must appear exactly once in tree; appeared {count} times"
         )
+
+
+# ---------------------------------------------------------------------------
+# Additional T3 contract tests
+# ---------------------------------------------------------------------------
+
+
+def test_tree_text_byte_for_byte_mixed() -> None:
+    """tree --format text over mixed/ matches expected output byte-for-byte (AC-0017)."""
+    _skip_if_module_absent()
+    expected = (
+        "capability:alpha-cap · capability · Accepted\n"
+        "  intent:bravo-feat · feature · Draft\n"
+        "capability:hotel-done · capability · Fulfilled — 2026-01-01\n"
+        "intent:golf-new · feature · Draft\n"
+        "intent:india-none · feature · Accepted\n"
+        "intent:juliet-done · feature · Fulfilled (2026-01-01)\n"
+        "opportunity:delta-opp · unrecorded · opportunity · Draft\n"
+        "outcome:charlie-out · capability · outcome · Accepted\n"
+        "outcome:echo-crosstype · capability · outcome · Draft"
+    )
+    result, code = nav.run_query(  # type: ignore[union-attr]
+        _FIXTURE_MIXED, ["query", "--operation", "tree", "--format", "text"]
+    )
+    assert code == 0
+    assert result == expected, (
+        f"text tree does not match expected byte-for-byte.\n"
+        f"Got:\n{result!r}\n\nExpected:\n{expected!r}"
+    )
+
+
+def test_tree_text_bidi_controls_escaped() -> None:
+    """Bidi and control characters are escaped as [U+XXXX] in text tree output (AC-0017)."""
+    _skip_if_module_absent()
+    result, code = nav.run_query(  # type: ignore[union-attr]
+        _FIXTURE_NEG / "bidi_controls",
+        ["query", "--operation", "tree", "--format", "text"],
+    )
+    assert code == 0
+    assert isinstance(result, str)
+    # No raw bidi characters must appear in the output
+    for char, name in (
+        ("‮", "U+202E RLO"),
+        ("‎", "U+200E LRM"),
+        ("⁦", "U+2066 LRI"),
+    ):
+        assert char not in result, (
+            f"Raw {name} must not appear in text tree output; got: {result!r}"
+        )
+    # The escaped form must appear
+    assert "[U+202E]" in result, f"[U+202E] escape must appear in text tree; got: {result!r}"
+    # Full expected line
+    expected_line = (
+        "intent:bidi-test · feature[U+200E] · outcome[U+2066] · Draft[U+202E]"
+    )
+    assert result.strip() == expected_line, (
+        f"bidi_controls tree line does not match.\nGot:      {result.strip()!r}\nExpected: {expected_line!r}"
+    )
+
+
+def test_tree_text_byte_limit_returns_error() -> None:
+    """tree --format text respects the byte limit and returns result_too_large (AC-0046)."""
+    _skip_if_module_absent()
+    result, code = nav.run_query(  # type: ignore[union-attr]
+        _FIXTURE_MIXED,
+        ["query", "--operation", "tree", "--format", "text"],
+        _limits={"max_result_bytes": 1},
+    )
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "result_too_large"
+    assert code == 1
+
+
+def test_tree_text_not_limited_by_intent_count() -> None:
+    """tree --format text is exempt from intent/edge count limits (AC-0046)."""
+    _skip_if_module_absent()
+    result, code = nav.run_query(  # type: ignore[union-attr]
+        _FIXTURE_MIXED,
+        ["query", "--operation", "tree", "--format", "text"],
+        _limits={"max_intents": 1},
+    )
+    # Setting max_intents=1 on text format must NOT trigger result_too_large
+    assert code == 0
+    assert isinstance(result, str), (
+        "text tree must succeed even when max_intents=1 (text exempt from count limits)"
+    )
