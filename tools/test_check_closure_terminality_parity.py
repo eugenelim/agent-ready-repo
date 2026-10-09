@@ -279,3 +279,21 @@ def test_mutated_extraction_rule_fails_check() -> None:
     assert any("(Fulfilled)" in f for f in failures), (
         f"expected ' (Fulfilled)' probe failure, got: {failures}"
     )
+
+
+def test_main_fails_when_the_navigator_copy_differs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """main() itself runs the navigator checks: a mutated copy makes it exit 1, the real one 0."""
+    tool = _load_parity_tool()
+    assert tool.main(["--root", str(_ROOT)]) == 0
+    original_load = tool._load
+
+    def _load_mutated(name: str, path: Path) -> Any:
+        module = original_load(name, path)
+        if name == "nav_intent_terminality":
+            module.TERMINAL_INTENT_STATUSES = frozenset(
+                set(module.TERMINAL_INTENT_STATUSES) | {"Draft"}
+            )
+        return module
+
+    monkeypatch.setattr(tool, "_load", _load_mutated)
+    assert tool.main(["--root", str(_ROOT)]) == 1

@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import pathlib
 import shutil
 import sys
-import tempfile
 
 import pytest
 
@@ -67,93 +67,67 @@ def _skip_if_module_absent() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _stripped(result: dict) -> dict:  # type: ignore[type-arg]
-    """Return result with generated_at and root stripped from provenance.
+# Every operation and format, so AC-0035's "every query result" is what is
+# compared, not one operation.
+_ALL_QUERIES: tuple[tuple[str, ...], ...] = (
+    ("--operation", "summary"),
+    ("--operation", "record", "--id", "bravo-feat"),
+    ("--operation", "tree"),
+    ("--operation", "tree", "--format", "text"),
+    ("--operation", "ancestors", "--id", "bravo-feat"),
+    ("--operation", "search", "--selectors", '{"level": "feature"}'),
+    ("--operation", "outstanding"),
+    ("--operation", "outstanding", "--format", "text"),
+)
 
-    root varies between temp-dir corpora and the fixture corpus.
-    generated_at is time-dependent.
+
+def _serialised_results(root: pathlib.Path) -> list[bytes]:
+    """Run every query on *root*; return each result as bytes with only generated_at removed."""
+    out: list[bytes] = []
+    for args in _ALL_QUERIES:
+        result, code = nav.run_query(root, ["query", *args])  # type: ignore[union-attr]
+        assert code == 0, f"{args} failed: {result}"
+        if isinstance(result, dict):
+            result = dict(result)
+            result["provenance"] = {
+                k: v for k, v in result["provenance"].items() if k != "generated_at"
+            }
+            out.append(json.dumps(result, separators=(",", ":")).encode("utf-8"))
+        else:
+            out.append(result.encode("utf-8"))
+    return out
+
+
+def test_workspace_toml_absent_present_unreadable_give_identical_results(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Every query result is byte-identical with workspace.toml absent, present, or unreadable (AC-0035).
+
+    One root is changed in place, so provenance.root is the same in every run
+    and only generated_at is removed before comparing.
     """
-    import copy
-    r = copy.deepcopy(result)
-    prov = r.get("provenance", {})
-    prov.pop("generated_at", None)
-    prov.pop("root", None)
-    r["provenance"] = prov
-    return r
-
-
-# ---------------------------------------------------------------------------
-# AC-0035: workspace.toml independence
-# ---------------------------------------------------------------------------
-
-
-def test_workspace_toml_absent_gives_same_result() -> None:
-    """Result is identical whether workspace.toml is absent from the corpus (AC-0035)."""
-    _skip_if_module_absent()
-    # Run query on mixed/ (no workspace.toml there)
-    result, code = nav.run_query(  # type: ignore[union-attr]
-        _FIXTURE_MIXED, ["query", "--operation", "summary"]
-    )
-    assert code == 0
-    assert result["status"] == "ok"
-
-
-def test_workspace_toml_present_gives_same_result() -> None:
-    """Result is identical when workspace.toml is present in the corpus (AC-0035)."""
-    _skip_if_module_absent()
-    with tempfile.TemporaryDirectory() as td:
-        tmp = pathlib.Path(td)
-        # Copy mixed/ into temp dir
-        shutil.copytree(str(_FIXTURE_MIXED), str(tmp / "corpus"))
-        corpus = tmp / "corpus"
-        # Add a workspace.toml
-        (corpus / "workspace.toml").write_text(
-            '[workspace]\nname = "test-workspace"\n', encoding="utf-8"
-        )
-        result_with, code_with = nav.run_query(  # type: ignore[union-attr]
-            corpus, ["query", "--operation", "summary"]
-        )
-        assert code_with == 0
-
-    # Also run on original (no workspace.toml)
-    result_without, code_without = nav.run_query(  # type: ignore[union-attr]
-        _FIXTURE_MIXED, ["query", "--operation", "summary"]
-    )
-    assert code_without == 0
-    # Both results must be structurally identical after stripping generated_at
-    assert _stripped(result_with) == _stripped(result_without), (
-        "Result must be identical whether workspace.toml is present or absent"
-    )
-
-
-def test_workspace_toml_unreadable_gives_same_result() -> None:
-    """Result is identical when workspace.toml is unreadable (AC-0035)."""
     import stat
-    _skip_if_module_absent()
-    with tempfile.TemporaryDirectory() as td:
-        tmp = pathlib.Path(td)
-        shutil.copytree(str(_FIXTURE_MIXED), str(tmp / "corpus"))
-        corpus = tmp / "corpus"
-        ws_toml = corpus / "workspace.toml"
-        ws_toml.write_text('[workspace]\nname = "restricted"\n', encoding="utf-8")
-        # Make it unreadable
-        ws_toml.chmod(0)
-        try:
-            result_unreadable, code_u = nav.run_query(  # type: ignore[union-attr]
-                corpus, ["query", "--operation", "summary"]
-            )
-        finally:
-            # Restore permissions so tempdir cleanup works
-            ws_toml.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
-    result_normal, code_n = nav.run_query(  # type: ignore[union-attr]
-        _FIXTURE_MIXED, ["query", "--operation", "summary"]
+    _skip_if_module_absent()
+    corpus = tmp_path / "corpus"
+    shutil.copytree(str(_FIXTURE_MIXED), str(corpus))
+    absent = _serialised_results(corpus)
+
+    ws_toml = corpus / "workspace.toml"
+    ws_toml.write_text(
+        '[workspace]\nname = "test-workspace"\n\n["ini-001".work]\nqueue = []\n',
+        encoding="utf-8",
     )
-    assert code_u == 0
-    assert code_n == 0
-    assert _stripped(result_unreadable) == _stripped(result_normal), (
-        "Result must be identical when workspace.toml is unreadable"
-    )
+    present = _serialised_results(corpus)
+
+    ws_toml.chmod(0)
+    try:
+        unreadable = _serialised_results(corpus)
+    finally:
+        ws_toml.chmod(stat.S_IRUSR | stat.S_IWUSR)
+
+    assert present == absent, "a present workspace.toml changed a query result"
+    assert unreadable == absent, "an unreadable workspace.toml changed a query result"
 
 
 # ---------------------------------------------------------------------------

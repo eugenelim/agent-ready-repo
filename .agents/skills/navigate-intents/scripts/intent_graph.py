@@ -289,48 +289,78 @@ def _compute_node_id(fields: dict[str, list[str]], slug: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _is_typed_reference(value: str, resolver: Any) -> bool:
+    """True when *value* is ``<artifact-type>:<slug>`` in the typed grammar.
+
+    The artifact types are the intent ladder kinds plus ``brief`` and
+    ``spec``. A URL or free text such as ``tbd: later`` is not typed.
+    """
+    prefix, sep, rest = value.partition(":")
+    if not sep:
+        return False
+    if prefix in resolver._PARENT_INTENT_KINDS or prefix == "brief":
+        return bool(resolver._SLUG_RE.fullmatch(rest))
+    if prefix == "spec":
+        return bool(resolver._SPEC_DIR_RE.fullmatch(rest))
+    return False
+
+
 def _value_form_intent_parent(value: str, resolver: Any) -> str:
     """Classify a value in an intent's ``Parent intent:`` field.
 
     Returns one of ``typed``, ``path``, ``bare_slug``, ``markdown_link``,
-    or ``unrecognized``.  Intent-kind prefixes and any other valid
-    ``<word>:`` prefix (e.g. ``brief:``, ``spec:``) all return ``typed``
-    so that out-of-type references keep form ``typed`` with state
-    ``out_of_type`` rather than being misclassified as ``unrecognized``.
+    or ``unrecognized``. A ``brief:`` or ``spec:`` reference is ``typed``,
+    so it keeps that form when refused as ``out_of_type``.
     """
-    for kind in resolver._PARENT_INTENT_KINDS:
-        if value.startswith(f"{kind}:"):
-            return "typed"
-    # Any valid <word>: prefix is also typed (out_of_type state applied later).
-    if not value.startswith("/") and ":" in value:
-        prefix = value.split(":")[0]
-        if prefix and prefix.replace("-", "").isalnum() and prefix.islower():
-            return "typed"
+    if _is_typed_reference(value, resolver):
+        return "typed"
     if _MARKDOWN_LINK_RE.match(value):
         return "markdown_link"
     if resolver._SLUG_RE.fullmatch(value):
         return "bare_slug"
-    if "/" in value and not value.startswith("/") and "\\" not in value:
+    # A repository-relative path never carries a colon, so a URL is not one.
+    if "/" in value and not value.startswith("/") and "\\" not in value and ":" not in value:
         return "path"
     return "unrecognized"
+
+
+def _multiple_values_edge(
+    from_id: str, field: str, values: list[str], form_of: Any
+) -> dict[str, Any]:
+    """Build one ``multiple_values`` refusal carrying its basis.
+
+    ``basis.form`` is the values' shared form, or ``unrecognized`` when they
+    differ; ``basis.values`` keeps each value with its own form.
+    """
+    forms = [form_of(v) for v in values]
+    form = forms[0] if len(set(forms)) == 1 else "unrecognized"
+    return {
+        "from": from_id,
+        "field": field,
+        "form": form,
+        "basis": {
+            "field": field,
+            "form": form,
+            "values": [{"value": v, "form": f} for v, f in zip(values, forms, strict=True)],
+        },
+        "state": "multiple_values",
+        "trust_class": _TRUST_CLASS,
+    }
 
 
 def _value_form_generic(value: str, resolver: Any) -> str:
     """Classify a value in a spec's ``Brief:`` or ``Discovery:`` field.
 
-    Uses a broader ``typed`` definition: any ``<word>:`` prefix (covers
-    ``brief:``, ``intent:``, ``outcome:`` etc.).
+    A typed value is ``<artifact-type>:<slug>``; see :func:`_is_typed_reference`.
     """
-    # typed: any <word>:<rest> pattern (not starting with /)
-    if not value.startswith("/") and ":" in value:
-        prefix = value.split(":")[0]
-        if prefix and prefix.replace("-", "").isalnum() and prefix.islower():
-            return "typed"
+    if _is_typed_reference(value, resolver):
+        return "typed"
     if _MARKDOWN_LINK_RE.match(value):
         return "markdown_link"
     if resolver._SLUG_RE.fullmatch(value):
         return "bare_slug"
-    if "/" in value and not value.startswith("/") and "\\" not in value:
+    # A repository-relative path never carries a colon, so a URL is not one.
+    if "/" in value and not value.startswith("/") and "\\" not in value and ":" not in value:
         return "path"
     return "unrecognized"
 
@@ -571,12 +601,10 @@ def _make_brief_parent_edges(
             deduped.append((pv, slug))
 
     if len(deduped) > 1:
-        edges.append({
-            "from": brief_id,
-            "field": "Parent intent",
-            "state": "multiple_values",
-            "trust_class": _TRUST_CLASS,
-        })
+        edges.append(_multiple_values_edge(
+            brief_id, "Parent intent", [pv for pv, _ in deduped],
+            lambda v: _value_form_intent_parent(v, resolver),
+        ))
     elif len(deduped) == 1:
         pv, slug = deduped[0]
         form = _value_form_intent_parent(pv, resolver)
@@ -678,12 +706,10 @@ def _make_spec_brief_edges(
     # Collapse to multiple_values if more than one distinct non-empty value.
     non_empty_seen = [v for v in seen_values if v and v.lower().split()[0] != "none"]
     if len(non_empty_seen) > 1:
-        edges = [{
-            "from": spec_id,
-            "field": "Brief",
-            "state": "multiple_values",
-            "trust_class": _TRUST_CLASS,
-        }]
+        edges = [_multiple_values_edge(
+            spec_id, "Brief", non_empty_seen,
+            lambda v: _value_form_generic(v, resolver),
+        )]
 
     return edges
 
@@ -807,12 +833,10 @@ def _make_spec_discovery_edges(
     # Collapse to multiple_values when more than one distinct edge-producing Discovery: value.
     non_empty_seen = [v for v in seen_values if v and v.lower().split()[0] != "none"]
     if len(non_empty_seen) > 1 and len(edges) > 1:
-        edges = [{
-            "from": spec_id,
-            "field": "Discovery",
-            "state": "multiple_values",
-            "trust_class": _TRUST_CLASS,
-        }]
+        edges = [_multiple_values_edge(
+            spec_id, "Discovery", non_empty_seen,
+            lambda v: _value_form_generic(v, resolver),
+        )]
 
     return edges
 
@@ -887,8 +911,9 @@ def _list_spec_files(
 
     Only direct children whose name matches *spec_dir_re* are admitted, so a
     symlink or special file elsewhere under a spec directory never fails the
-    derivation. An admitted spec directory that is a symlink or not a directory
-    raises ``unsafe_input``; the ``spec.md`` itself is later read through the
+    derivation. A plain file directly under *specs_root*, such as a README, is
+    skipped. A matching entry that is a symlink or a special file raises
+    ``unsafe_input``; the ``spec.md`` itself is later read through the
     confinement helper, which refuses a symlink, FIFO, hard link, or swap.
     """
     if not os.path.lexists(specs_root):
@@ -904,6 +929,8 @@ def _list_spec_files(
             if not spec_dir_re.fullmatch(entry.name):
                 continue
             mode = entry.stat(follow_symlinks=False).st_mode
+            if _stat.S_ISREG(mode):
+                continue  # a plain file such as README.md is not a spec directory
             if not _stat.S_ISDIR(mode):
                 rel = Path(entry.path).relative_to(root).as_posix()
                 raise DerivationError("unsafe_input", f"unsafe spec directory: {rel}")
@@ -1114,10 +1141,10 @@ def derive(root: Path) -> dict[str, Any]:
             distinct = list(dict.fromkeys(parent_vals))
             if len(distinct) > 1:
                 intent_raw_edges.append({
-                    "from": node_id,
-                    "field": "Parent intent",
-                    "state": "multiple_values",
-                    "trust_class": _TRUST_CLASS,
+                    **_multiple_values_edge(
+                        node_id, "Parent intent", distinct,
+                        lambda v: _value_form_intent_parent(v, resolver),
+                    ),
                     "_is_cycle_candidate": False,
                 })
                 continue

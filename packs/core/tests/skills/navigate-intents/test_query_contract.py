@@ -16,6 +16,7 @@ Exit codes: 0 on status:ok, 1 on status:error, 2 for argument-parse errors.
 from __future__ import annotations
 
 import importlib.util
+import json
 import pathlib
 import sys
 
@@ -208,42 +209,46 @@ def test_query_malformed_record_utf8_whole_operation_fails() -> None:
     assert code == 1
 
 
-def test_body_bytes_unchanged_by_body_edit() -> None:
-    """Changing only body bytes leaves query JSON byte-identical (AC-0002)."""
+def test_body_bytes_unchanged_by_body_edit(tmp_path: pathlib.Path) -> None:
+    """Changing only body bytes leaves query JSON byte-identical (AC-0002).
+
+    The same root is queried before and after the edit, so only
+    provenance.generated_at is removed before the byte comparison.
+    """
     import shutil
-    import tempfile
 
     _skip_if_module_absent()
+    root = tmp_path / "corpus"
+    shutil.copytree(str(_FIXTURE_MIXED), str(root))
+    queries = (
+        ["query", "--operation", "summary"],
+        ["query", "--operation", "tree"],
+        ["query", "--operation", "outstanding"],
+    )
 
-    def _stripped(result: dict) -> dict:
-        """Remove provenance.generated_at and provenance.root for comparison.
+    def _bytes(args: list[str]) -> bytes:
+        result, code = nav.run_query(root, args)  # type: ignore[union-attr]
+        assert code == 0, result
+        result = dict(result)
+        result["provenance"] = {
+            k: v for k, v in result["provenance"].items() if k != "generated_at"
+        }
+        return json.dumps(result, separators=(",", ":")).encode("utf-8")
 
-        root varies between temp-dir corpora; generated_at is time-dependent.
-        """
-        import copy
-        r = copy.deepcopy(result)
-        if "provenance" in r:
-            r["provenance"].pop("generated_at", None)
-            r["provenance"].pop("root", None)
-        return r
-
-    with tempfile.TemporaryDirectory() as td:
-        root1 = pathlib.Path(td) / "corpus1"
-        root2 = pathlib.Path(td) / "corpus2"
-        shutil.copytree(str(_FIXTURE_MIXED), str(root1))
-        shutil.copytree(str(_FIXTURE_MIXED), str(root2))
-
-        # Append body text to one spec file in corpus2 (below the ## heading).
-        spec2 = root2 / "docs" / "specs" / "bravo-spec" / "spec.md"
-        original = spec2.read_text(encoding="utf-8")
-        spec2.write_text(original + "\n\nAdded body text only.\n", encoding="utf-8")
-
-        r1, _ = nav.run_query(root1, ["query", "--operation", "summary"])  # type: ignore[union-attr]
-        r2, _ = nav.run_query(root2, ["query", "--operation", "summary"])  # type: ignore[union-attr]
-
-        assert _stripped(r1) == _stripped(r2), (
-            "Query results differ after body-only edit; preamble parsing must stop at '## '"
-        )
+    before = [_bytes(q) for q in queries]
+    for rel in (
+        "docs/specs/bravo-spec/spec.md",
+        "docs/product/intents/FEAT-0001-bravo-feat.md",
+    ):
+        path = root / rel
+        if path.exists():
+            path.write_text(
+                path.read_text(encoding="utf-8")
+                + "\n\nAdded body text only.\n\n- **Status:** Shipped\n",
+                encoding="utf-8",
+            )
+    after = [_bytes(q) for q in queries]
+    assert after == before, "a body-only edit changed a query result"
 
 
 # ---------------------------------------------------------------------------

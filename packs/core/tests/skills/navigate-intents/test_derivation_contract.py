@@ -513,13 +513,11 @@ def test_derive_edge_carries_trust_class_and_basis(  # AC-0005, AC-0071
         assert edge["trust_class"] == "pointer_unchecked", (
             f"trust_class must be pointer_unchecked; got: {edge['trust_class']}"
         )
-        # multiple_values edges do not carry basis per AC-0071
-        if edge.get("state") != "multiple_values":
-            assert "basis" in edge, f"non-multiple_values edge missing basis: {edge}"
-            basis = edge["basis"]
-            assert "field" in basis and "form" in basis, (
-                f"basis must carry field and form; got: {basis}"
-            )
+        assert "basis" in edge, f"edge missing basis: {edge}"
+        basis = edge["basis"]
+        assert "field" in basis and "form" in basis, (
+            f"basis must carry field and form; got: {basis}"
+        )
 
 
 def test_derive_edge_carries_form_on_resolved_edge(  # AC-0005, AC-0071

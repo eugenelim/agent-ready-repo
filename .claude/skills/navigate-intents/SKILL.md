@@ -80,7 +80,8 @@ python3 scripts/navigate_intents.py query \
   --operation summary
 
 # All fields for one intent: node id, path, Level, Kind, Status, parent
-# edge, child intents, placed briefs and specs, and delivery relations.
+# edge, child intents, placed briefs and specs, and the delivery
+# resolver's relations and diagnostics for that intent.
 python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation record \
@@ -127,6 +128,13 @@ statement), and ``status`` of ``ok`` or ``error``.  Success responses also
 carry ``delivery`` (available or not) and the operation's result fields.
 Error responses carry an ``error`` object with fields ``code``, ``message``,
 ``limits``, and ``observed``, and no result fields.
+
+An ``outstanding`` result lists ``placed`` items and ``no_parent`` items, each
+ordered by node id. An item carries its parent edge and its ancestor chain up
+to a root, with terminal ancestors marked ``terminal``. A spec carries one
+placement per pointer, each naming the pointer field and, where the delivery
+resolver joins them, its relation type. An intent with no ``Level:`` shows
+level ``unrecorded``.
 
 ``record --id``, ``tree --id``, ``ancestors --id``, and ``outstanding
 --from`` accept a node id (``intent:slug``, ``capability:slug``, etc.), a

@@ -83,7 +83,7 @@ row's literal method.
   corpus proves `ambiguous_identity` for `outstanding --from`.
 - `tools/test_check_closure_terminality_parity.py` did not exist before this
   slice; T4 created it with six mutation tests.
-- **AC-0019: not yet met.** Seven `outstanding` runs over this repository
+- **AC-0019, first measurement (superseded by the round-2 measurement below): not met.** Seven `outstanding` runs over this repository
   (168 intents, 23 briefs, 543 specs; 199 outstanding items; JSON result
   104,144 bytes, under the 512 KiB limit), each `status: ok`, wall time
   process start to exit:
@@ -187,3 +187,45 @@ row's literal method.
   suites (176 in navigate-intents); the ten tool checks, brief coverage,
   spec status, and catalogue verify pass; `make lint-ruff lint-mypy` clean;
   shipped-text grep empty; both projections match their source.
+
+## Review round 2 fixes
+
+- The second post-gates review sustained 13 findings (7 Blockers, 4 Concerns,
+  2 Nits) and refuted one; its first adjudication broke the one-line finding
+  shape and is kept beside the replacement. Several round-1 fixes had not
+  held: delivery relations still missed `outcome:` and `opportunity:` feature
+  intents, diagnostics and placement relation types were absent, text output
+  still dropped items under terminal or out-of-scope parents, outstanding
+  JSON was not ordered, and four regression tests passed on the code they
+  were meant to catch. The round-1 spec listing also refused the plain
+  `docs/specs/README.md`, so every query failed on this repository.
+- The controller made this round's fixes directly. Relations and
+  diagnostics map to the navigator node through the resolver's slug; spec
+  placements carry the resolver relation type; text output attaches every
+  item under its resolved parent and prints terminal or out-of-scope
+  ancestors as context, and `--from` text prints only placements inside the
+  subtree; `placed` and `no_parent` are sorted by node id; `ancestors` keeps
+  the refused edge that ends a chain; only `<artifact-type>:<slug>` is typed,
+  and a value carrying a colon is never a path; `multiple_values` edges carry
+  a basis (`form` is the values' shared form, `unrecognized` when they
+  differ, with each value's form kept in `basis.values`); outstanding JSON
+  shows `unrecorded` levels; plain files directly under `docs/specs/` are
+  skipped.
+- `test_review_regressions.py` holds one test per finding; 16 of its tests
+  fail against the scripts at `58fda2c49` and pass now. The AC-0002 and
+  AC-0035 tests now change one root in place and strip only `generated_at`,
+  and AC-0035 compares every operation and both formats. The parity tool has
+  a `main()`-level mutation test.
+- GATES: 348 passed, 5 skipped across the touched suites (215 passed, 4
+  skipped in navigate-intents, the skips being whole-operation integrity
+  failures); the ten tool checks, brief coverage, spec status, catalogue
+  verify, and `make lint-ruff lint-mypy` pass; shipped-text grep empty; both
+  projections match their source.
+- **AC-0019: met.** Seven `outstanding` runs over this repository at this
+  code, 2026-10-09 16:13 CDT, each `status: ok`, wall time process start to
+  exit: 3.09, 2.79, 2.85, 3.06, 2.83, 2.91, 2.89 s. Median 2.89 s, minimum
+  2.79 s, maximum 3.09 s. Corpus: 168 intents, 23 briefs, 543 specs; 199
+  outstanding items (93 placed, 106 no parent). JSON result 105,419 bytes,
+  under the 512 KiB limit. Load averages during the runs were 95.8 to 124.8
+  on 10 cores. AC-0019 is measured at the merged commit; a later code change
+  re-opens this measurement.

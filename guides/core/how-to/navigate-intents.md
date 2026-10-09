@@ -51,7 +51,7 @@ python3 scripts/navigate_intents.py query --root <repo> --operation summary
 
 ### record
 
-Returns all recorded fields for one intent: its node id, path, `Level:`, `Kind:`, and exact `Status:`; its resolved or refused parent edge; its child intents; the briefs and specs placed under it; and its delivery-resolver relations.
+Returns all recorded fields for one intent: its node id, path, `Level:`, `Kind:`, and exact `Status:`; its resolved or refused parent edge; its child intents; the briefs and specs placed under it; and the delivery resolver's relations and diagnostics for it.
 
 ```bash
 python3 scripts/navigate_intents.py query --root <repo> \
@@ -93,7 +93,7 @@ python3 scripts/navigate_intents.py query --root <repo> \
 
 ### outstanding
 
-Returns every intent, brief, and spec whose recorded `Status:` is not terminal, placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. This operation refuses to return a partial list: if any file the derivation reads fails validation, the whole operation fails.
+Returns every intent, brief, and spec whose recorded `Status:` is not terminal, placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. The JSON result lists `placed` and `no_parent` items, each ordered by node id; each item carries its ancestor chain to a root, with terminal ancestors marked, and each spec placement names its pointer field and, where one exists, the delivery resolver's relation type. This operation refuses to return a partial list: if any file the derivation reads fails validation, the whole operation fails.
 
 ```bash
 # All outstanding work:
