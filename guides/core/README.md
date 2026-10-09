@@ -59,6 +59,7 @@ Learning-oriented, start-to-finish.
 
 Task-oriented recipes for a problem you already have.
 
+- [Navigate intents, briefs, and specs](how-to/navigate-intents.md) — query the intent graph for outstanding work, hierarchy, and parent tracing.
 - [Plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md) — the loop itself, applied to a feature or change.
 - [Start a software change](how-to/start-or-remember-work.md) — route an ordinary change into the shortest safe path to implementation.
 - [Fix a bug](how-to/bug-fix.md) — the diagnose-then-fix path, with a regression test as the receipt.

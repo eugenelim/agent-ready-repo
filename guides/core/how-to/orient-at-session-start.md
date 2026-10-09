@@ -11,7 +11,9 @@ kind: how-to
 **Prerequisites:** `core` pack installed and a terminal or agent session open in the repo root; see Prerequisites below.
 **Result:** Active initiative, milestone, next ready action, and any tracker-refresh state identified.
 
-You are starting an agent session on a repo that uses `workspace.toml`. This guide walks you through running `workspace-status` to read the queue state, identifying your active initiative, and picking your next action before starting any work.
+This guide covers workspace queue orientation: what is ready, blocked, or done, and which action to pick next. It uses `workspace-status`.
+
+For **intent status, hierarchy, and outstanding work** — which intents are not yet terminal, what the parent of an intent is, or what briefs and specs are open — use `navigate-intents` instead: [How to navigate intents, briefs, and specs](navigate-intents.md).
 
 ```text
 Show me the workspace status for this session and the next ready action.

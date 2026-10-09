@@ -60,6 +60,7 @@ confirmation and pending receipt.
 |----------|-------------|
 | `work-intake` | Start work, remember it for later, inspect status, or request a requirements refresh |
 | `workspace-status` | Orient — what's ready, blocked, and done |
+| `navigate-intents` | Query the intent graph — outstanding work, hierarchy, parent tracing, and counts |
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
 | `close-work` | Verify lasting context, pause or close delivery work, and preview a safe disposition |
 | `bug-fix` | Diagnose and fix a specific bug |
