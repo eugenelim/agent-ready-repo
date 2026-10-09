@@ -229,3 +229,17 @@ row's literal method.
   under the 512 KiB limit. Load averages during the runs were 95.8 to 124.8
   on 10 cores. AC-0019 is measured at the merged commit; a later code change
   re-opens this measurement.
+
+## Review round 3 and the AC-0071 owner decision
+
+- The third post-gates review sustained 2 Concerns and 2 Nits, refuted one
+  (AC-0010 covers intent-subject diagnostics only), and left one finding to
+  the owner: which `form` a `multiple_values` edge carries when its values
+  have different forms. Three rounds was the owner's cap; the loop stopped
+  there.
+- **Owner decision, 2026-10-09 (eugenelim):** amend AC-0071 to codify the
+  current behaviour. A `multiple_values` refusal carries its field and each
+  value with its own form in `basis.values`; its `form` is the values'
+  shared form when they all match one shape, and `unrecognized` when they
+  differ. The owner also authorised a fourth review round past the cap to
+  close the remaining Concerns and Nits.
