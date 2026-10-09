@@ -617,3 +617,113 @@ the same amendment for the owner's spec/plan re-approval.
   guide and journey validators pass. After the `mutate.md` fix, workspace-status
   and disclosure ran 296 passed. `make lint-ruff lint-mypy` and
   `git diff --check` pass.
+
+### T4 rebuild and implementation review — round 3
+
+- After T9, an implementer ran `make build-self` (clean tree, no force) and the
+  journey sync, regenerating 14 files: the Claude and Codex projections,
+  marketplace metadata, and the packaged engine. The controller committed them
+  as `0bb6e9c1b`. Results on that commit: self-host check ok; catalogue verify
+  ok with no `CAT-V-007`; deep lint 75 warnings and no errors.
+  `check-core-release.py --base origin/main --kind major` passes and patch mode
+  refuses 3.0.0 (expected 2.30.2). Web-journey parity, CI parity, and the
+  parity self-test (218 cases) pass. The packaged engine (`f65a3619…`) and prune
+  module (`88395b68…`) are byte-identical to the sources and inside the 0.52.0
+  wheel. Roster and pin suites: 134 passed. AC-0002 projections contain no
+  `capture-work` skill. Lint passes.
+- Round 3 reviews on `0bb6e9c1b` (`impl/6-*`): experience and quality are
+  clean. Security and adversarial each report one Nit, both deferred unacted
+  with citations because their files belong to completed tasks and are
+  skill or architecture text outside the ride-along rule:
+  - `packs/core/.apm/skills/work-intake/references/lifecycle-index.md:32-33`
+    names no actor for the hand rewrite.
+  - `docs/architecture/work-intake-and-artifact-routing.md:14-19` says "four
+    places" but lists three.
+- No Blocker or Concern remains open from any implementation reviewer.
+
+## T5 — candidate evidence for RFC-0083 Approver authorization
+
+**Status: awaiting the RFC-0083 Approver's decision. No merge, tag, push, or
+publication has occurred.**
+
+### Candidate
+
+- Branch `feat/capture-work-alias-removal-core3`, candidate commit
+  `0bb6e9c1b2b8e3d91f74ce178ff6f85ad3a82e2c`. Later commits on the branch
+  change only this ledger.
+- Base `origin/main` `8392ef8d6`. Since then `main` has added two docs-only
+  commits (`ffdcf35c9`, `ca8af74f6`). They change no version, and they overlap
+  the candidate only in `workspace.toml`, at different entries. T6 rebases at
+  merge time and re-verifies.
+- Removal diff: `git diff 8392ef8d6..0bb6e9c1b` (147 files).
+
+### Release versions in the candidate
+
+| Package | `main` | Candidate |
+| --- | ---: | ---: |
+| Core | 2.30.1 | 3.0.0 |
+| code-intelligence (`core ^3.0`) | 0.1.5 | 0.1.6 |
+| governance-extras (`core ^3.0`) | 1.0.0 | 1.0.1 |
+| iac-terraform (`core ^3.0`) | 0.1.11 | 0.1.12 |
+| monorepo-extras (`core ^3.0`) | 0.1.9 | 0.1.10 |
+| release-engineering (`core ^3.0`) | 0.1.10 | 0.1.11 |
+| product-engineering | 0.13.22 | 0.13.23 |
+| AgentBundle | 0.51.0 | 0.52.0 |
+
+### Rollback target
+
+The dual-reader release is Core 2.30.1 on `main` (`8392ef8d6`). It still has
+the `capture-work` alias and the accepted-legacy reader. Rolling back restores
+Core 2.30.1 together with code-intelligence 0.1.5, governance-extras 1.0.0,
+iac-terraform 0.1.11, monorepo-extras 0.1.9, release-engineering 0.1.10,
+product-engineering 0.13.22, and AgentBundle 0.51.0. Migration ledgers,
+canonical artifacts, and receipts stay in place.
+
+### Evidence checklist (all on `0bb6e9c1b`, 2026-10-08)
+
+| Check | Result |
+| --- | --- |
+| AC-0003 focused test, workspace-status suite, T1/T7 roster and tools tests | 784 passed, 1 skipped |
+| Migration planning and effects suites (inside the run above) | passed |
+| Work-intake writer and seed tests (excluding unrelated `test_intent_rename_*`) | 623 passed |
+| Core pack and work-loop tests | 2,833 passed, 6 skipped, 14 m 36 s |
+| Roster contracts, projection, manifests, census, handoff | 159 passed |
+| Dependent-pack version pins | 14 passed |
+| Release-checker tests | 31 passed |
+| `check-core-release.py --base origin/main --kind major` | consistent; default patch mode refuses 3.0.0 |
+| Guide and doc tool tests | 145 passed, 1 skipped |
+| Guide, guide-index, title, repo-ref, journey-contract, pack-journey validators | pass (237 guides) |
+| Web-journey parity; CI parity and its 218-case self-test | pass |
+| `catalogue self-host --check`; `catalogue verify` (no `CAT-V-007`); `catalogue lint --deep` | ok; ok; 75 warnings, 0 errors |
+| AgentBundle suite (JUnit) | 5,700 tests, 0 failures, 0 errors, 58 skipped, 885 s |
+| Packaged engine and prune bytes vs sources, and inside the 0.52.0 wheel | identical |
+| AC-0002 projections and Core journey | no `capture-work` skill; `work-intake` present |
+| `make lint-ruff lint-mypy`; `git diff --check` | pass |
+
+- The first full AgentBundle run had one failure,
+  `test_catalogue_fetch_jfrog.py::test_archive_stderr_overflow_stdout_open`: a
+  timing bound of 5.06 s against 5.0 s, in JFrog fetch code this change does not
+  touch. It passed 3 of 3 times alone and in the complete rerun above.
+- Not run: the `test_intent_rename_*` suites (git-heavy, over 16 minutes per
+  file, unrelated to workspace-status or the alias). The site build and the
+  rendered-link check (`tools/check-rendered-site-links.py`) were not run
+  locally; they are CI evidence.
+
+### Review state
+
+- Implementation review round 3 (`impl/6-*`): adversarial, security, quality,
+  and experience report no Blocker or Concern. Two Nits are deferred with
+  citations (see "T4 rebuild and implementation review — round 3").
+- Owner decisions bound into this candidate: hand rewrite with no migration
+  finding surface; prune and Type 2 repair keep decoding historical shapes;
+  canonical reconciliation decodes aliases only to refuse; shaping lists
+  unchanged; Core 3.0.0 with five dependents at `^3.0`; AgentBundle 0.52.0
+  (minor, breaking under pre-1.0 semver).
+
+### Authorization record (to be completed by the RFC-0083 Approver)
+
+- Approver identity and role: _pending_
+- Decision (authorize or reject): _pending_
+- Timestamp and metadata source: _pending_
+- Bound to: candidate `0bb6e9c1b`, Core 3.0.0, this checklist, and the
+  rollback target above.
