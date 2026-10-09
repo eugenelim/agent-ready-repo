@@ -231,9 +231,11 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-09 as Core 3.0.0 (PR #1525, merge 7e745dbf7) with agentbundle
+  # 0.52.0 on PyPI; evidence and the RFC-0083 authorization are in notes/verification-ledger.md.
+  {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
   # Shipped 2026-10-07. Slice 1 of the acceptance-centered work loop: shadow
   # acceptance services behind WORK_LOOP_SHADOW_SERVICES=1, with the current engine
   # keeping all authority. Evidence map, benchmarks, and owner decisions are in
