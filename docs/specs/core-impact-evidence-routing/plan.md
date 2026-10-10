@@ -1,7 +1,7 @@
 # Plan: Core impact-evidence routing
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness);
   `packs/core/tests/pack/test_exploration_consumer_boundary.py` (the guard this
   change narrows); `packs/core/tests/skills/repository-exploration/test_exploration_evals.py`
