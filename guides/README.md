@@ -7,6 +7,8 @@ kind: explanation
 
 # Guides
 
+**New here?** [See the operating model](_shared/explanation/the-three-loops.md): four stages, the packs in each, and where you decide.
+
 **Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) — from installing the catalogue to a merged change a human approved, in about ten hours.
 
 Everything below is either a way into that route, a wider alternative to one of its steps, or guidance you reach for along the way.

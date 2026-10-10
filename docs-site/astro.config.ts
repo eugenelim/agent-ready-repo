@@ -38,6 +38,10 @@ export default defineConfig({
   base: '/agent-ready-repo/docs',
   outDir: '../build/docs',
   trailingSlash: 'always',
+  // The Get Started copy of the operating model was folded into the guide; keep its URL working.
+  redirects: {
+    '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-three-loops/',
+  },
   // `unified({...})` is the registration astro 7 asks for. The legacy
   // `markdown.remarkPlugins`/`rehypePlugins` keys are deprecated, and astro's
   // shim for them (core/config/validate.js) builds exactly this processor on
@@ -47,7 +51,7 @@ export default defineConfig({
   // A `unified({...})` wrapper WAS silently ignored here once: mermaid fences
   // reached Expressive Code untouched and no placeholder was emitted. Nothing
   // caught it, because no published page carried a mermaid fence, so there was
-  // no output to be wrong. One now does — getting-started/three-loops — and
+  // no output to be wrong. guides/converters/how-to/render-mermaid-diagrams now does, and
   // web/src/test/rendered-output.test.ts asserts both halves of that failure
   // (a missing `.mermaid-diagram[data-mermaid]`, and a fence that reached the
   // code renderer as `data-language="mermaid"`). A repeat is red, not silent.
@@ -107,8 +111,8 @@ export default defineConfig({
           label: 'Get Started',
           items: [
             { label: 'Getting Started', slug: 'getting-started' },
+            { label: 'The Operating Model', slug: 'guides/_shared/explanation/the-three-loops' },
             { label: 'Install', slug: 'getting-started/install' },
-            { label: 'The Three Loops', slug: 'getting-started/three-loops' },
           ],
         },
         ...(sidebarConfig as any[]),
