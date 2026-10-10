@@ -265,12 +265,26 @@ def test_release_notes_query_triggers(queries: list[dict]) -> None:
     assert match and match[0]["should_trigger"] is True
 
 
+EVAL_FILES = SKILL_DIR / "evals" / "files"
+GENERIC_EVAL_FIXTURES = {
+    "cli-readme-audit": {
+        "evals/files/cli/README.md": EVAL_FILES / "cli" / "README.md",
+    },
+    "library-journey-gap-audit": {
+        "evals/files/library-docs/README.md": EVAL_FILES / "library-docs" / "README.md",
+        "evals/files/library-docs/docs/api.md": EVAL_FILES / "library-docs" / "docs" / "api.md",
+        "evals/files/library-docs/docs/faq.md": EVAL_FILES / "library-docs" / "docs" / "faq.md",
+    },
+}
+
+
 def test_generic_eval_cases(eval_cases: list[dict]) -> None:
+    """AC10: the non-pack cases exist and name fixtures that carry no pack manifest."""
     by_id = {c["id"]: c for c in eval_cases}
-    for case_id in ("cli-readme-audit", "library-journey-gap-audit"):
+    for case_id, fixtures in GENERIC_EVAL_FIXTURES.items():
         assert case_id in by_id, f"missing eval case {case_id}"
-        for rel in by_id[case_id].get("files", []):
-            path = SKILL_DIR / rel
+        assert sorted(by_id[case_id].get("files", [])) == sorted(fixtures)
+        for rel, path in fixtures.items():
             assert path.is_file(), f"{case_id} file missing: {rel}"
             assert "pack.toml" not in path.read_text(encoding="utf-8")
 
