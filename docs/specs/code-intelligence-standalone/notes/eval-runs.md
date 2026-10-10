@@ -48,18 +48,18 @@ Its prompt supplies a `found: false` result and an empty workspace, so it cannot
 exercise the never-open rule. By owner decision on 2026-10-10 it is recorded as
 a regression case, not an AC-0004 case.
 
-## Regression cases (R1 branch vs origin/main skill)
+## Regression cases (interim: branch vs origin/main skill at `cbcb32d73`)
 
-| Case | Branch | origin/main | Disposition |
+These runs predate the case 3 fix. T3 closes only on runs recorded against its
+final skill commit, which replace this table.
+
+| Case | Branch runs | origin/main at `cbcb32d73` | Disposition |
 | --- | ---: | ---: | --- |
-| 1 | 4/5 | 4/5 | Pre-existing: same assertion (narrow to load-bearing dependents) |
-| 3 | 3/4 | 4/4 | Regression against origin/main at `cbcb32d73`: the first assertion failed in all four branch runs and passed on main; returned to T2 by owner decision, 2026-10-10 |
-| 4 | 4/4 | — | Pass |
+| 1 | 4/5 (R1) | 4/5 | Pre-existing: same assertion (narrow to load-bearing dependents) |
+| 3 | 3/4 (R1, two reruns, R4) | 4/4 | Regression: the first assertion (observed versus interpretation labels) failed in all four branch runs and passed on main; returned to T2 by owner decision, 2026-10-10 |
+| 4 | 4/4 (R1) | — | Pass |
 | 7 | 3/4 (R3, R4, R5a, R5b) | — | Not gated: the failing hop assertion is new on this branch, so origin/main has no equivalent. Recorded by owner decision, 2026-10-10 |
-| 5 | 2/4 | 2/4 | Pre-existing: same two assertions (wave verdict, sequencing owner) |
-| 8 | 1/4 | 1/4 | Pre-existing: empty workspace, no index, so no command ran |
-| 9 | 3/4 | 3/4 | Pre-existing: empty workspace, no `rank` call |
+| 5 | 2/4 (R1) | 2/4 | Pre-existing: same two assertions (wave verdict, sequencing owner) |
+| 8 | 1/4 (R1) | 1/4 | Pre-existing: empty workspace, no index, so no command ran |
+| 9 | 3/4 (R1) | 3/4 | Pre-existing: empty workspace, no `rank` call |
 
-Case 3's first assertion (observed versus interpretation labels) failed in all
-four branch runs (R1, two reruns, R4) and passed in the origin/main run. It is
-a regression, not a pre-existing failure, and returns to T2 for a targeted fix.

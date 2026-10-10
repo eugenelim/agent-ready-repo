@@ -29,5 +29,6 @@
 - Graded runs: see [`eval-runs.md`](eval-runs.md). The four composition cases
   each have a full-pass run on the final skill text. Eval 7 has none (3/4 in
   four runs) and moves to the regression set by owner decision, 2026-10-10.
-- Regression runs: failures in cases 1, 5, 8, and 9 match origin/main; case 3
-  recorded as the plan's known first-assertion failure.
+- Regression runs (interim): failures in cases 1, 5, 8, and 9 match the
+  origin/main skill at `cbcb32d73`. Case 3 is a regression against that
+  baseline and returns to T2 by owner decision, 2026-10-10.
