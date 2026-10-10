@@ -165,8 +165,9 @@ installed skill path recorded in the verification ledger.
     markdown, with red `python scripts/estate_preflight.py --check` and green
     samples for the `<skill-dir>` form and a markdown link (AC-0008, `.apm/`).
   - `test_authority_rules_present` — `SKILL.md` and both agent files each
-    contain the three AC-0010 phrases with whitespace collapsed; a planted copy
-    of each file with one phrase removed fails (AC-0010).
+    contain the four AC-0010 phrases with whitespace collapsed; for each
+    phrase, a planted copy of each file with that phrase removed fails, and a
+    planted copy whose reader phrase lacks "own text" fails (AC-0010).
   - Content pins: `SKILL.md` defines `<skill-dir>` before its first use, and
     defines "read the source" and "verify against source" as the two routes
     with both limits (own search alone confirms a load-bearing call site;

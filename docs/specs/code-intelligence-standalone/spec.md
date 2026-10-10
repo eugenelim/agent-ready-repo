@@ -176,12 +176,13 @@ established for the composition example. That shipped spec stays frozen.
 - [ ] **AC-0009.** `pack.toml` and `.claude-plugin/plugin.json` both carry
   version `0.1.7`.
 - [ ] **AC-0010.** Each of `SKILL.md`, `agents/code-investigator.md`, and
-  `agents/impact-analyst.md` contains each of these three phrases, matched
+  `agents/impact-analyst.md` contains each of these four phrases, matched
   case-insensitively after each run of whitespace is collapsed to one space:
   `never open a file location the provider returns`,
-  `confirm each load-bearing call site with your own repository search`, and
-  `use a confined reader only when the invoking user or the invoking skill
-  supplies it`.
+  `confirm each load-bearing call site with your own repository search`,
+  `never pass a file location the provider returns to wicked-estate source`,
+  and `use a confined reader only when the invoking user or the invoking
+  skill's own text supplies it`.
 
 ## Follow-ons
 
