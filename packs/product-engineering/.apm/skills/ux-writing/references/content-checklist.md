@@ -12,7 +12,7 @@ catch the misses and fix them. Each item is one question; a "no" is a fix.
       with no way forward is a dead end.
 - [ ] **Concise.** Is every word pulling weight? Cut filler ("please note that",
       "in order to", "simply"). *Concise here is the UI-copy cut — for the
-      documentation-prose version of this rule, see `new-guide`'s `clear-prose.md`;
+      documentation-prose version of this rule, see `author-product-docs`'s `clear-prose.md` if installed;
       this checklist doesn't restate it.*
 - [ ] **Terminology-consistent.** One concept, one word, matching the voice chart's
       terminology list — the same thing reads the same way on every screen.

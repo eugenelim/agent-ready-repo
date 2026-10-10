@@ -84,7 +84,7 @@ easy to misread as "the symbol does not exist". It means "no stored content".
 
 ## 5. Traverse — **Direct**
 
-`wicked-estate traverse <symbol> [--direction dependencies|dependents|both] [--depth N] [--edge-kinds a,b] [--max-nodes N] [--json]` is a genuine bounded walk
+`wicked-estate traverse '<symbol>' [--direction dependencies|dependents|both] [--depth N] [--edge-kinds a,b] [--max-nodes N] [--json]` is a genuine bounded walk
 over the graph. JSON: `{nodes, edges, depths, truncated, searched_depth, depth_horizon_reached, node_cap_reached}`;
 each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Over-ceiling
 `--depth` or `--max-nodes` is clamped with `CLAMPED:` on stderr.
@@ -200,7 +200,7 @@ Confidence is on every edge by construction and on every annotation as a field.
 `depth`, so you can assess both confidence and reach together.
 
 The correct response when per-row confidence matters is to verify load-bearing
-edges against source rather than to invent a confidence figure.
+edges with your own repository search rather than to invent a confidence figure.
 
 ## 12. Completeness — **Direct**
 

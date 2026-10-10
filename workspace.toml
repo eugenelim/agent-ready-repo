@@ -743,12 +743,6 @@ open = [
   # every route is closed. Reproduced twice on 2026-09-29 at
   # `loop-cohort.py:1341-1346`. Recovery today is the destructive reset pair.
   { slug = "contract-amendment-prepare-strands-the-run", source = "spec/intent-renumber-and-reissue (blocked amendment, 2026-09-29)" },
-  # The product-documentation authoring workflow assumes ARR pack surfaces,
-  # while teams also need to document applications, libraries, CLIs, and
-  # services. Shape a surface-discovery contract and non-pack evaluation set
-  # before changing `author-product-docs`. The current workflow-page slice is
-  # independent and does not wait on this item.
-  {path = "docs/product/intents/FEAT-0010-product-documentation-page-design.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Make author-product-docs discover and improve documentation for any code-backed product surface, with pack documentation as one supported case", needs = []},
 
   # A pack JOURNEY.md cannot link to a guide page, and the one attempt is a
   # live 404. Found 2026-09-24 by measuring the knowledge topic

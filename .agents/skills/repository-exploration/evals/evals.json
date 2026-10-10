@@ -396,6 +396,20 @@
         "The evidence record states the question and stopping condition before any capability or fallback is chosen",
         "The run stops when its stopping condition is met or records a specific unresolved gap, without invoking a capability merely because it is visible"
       ]
+    },
+    {
+      "id": "workflow-decision-dependents-no-provider",
+      "prompt": "Use repository-exploration. A work-loop plan is deciding which files to touch before renaming the function defined in src-function-py.py. Question: which modules call or import it? Stopping condition: every caller found is recorded with its location, or the search surface is exhausted. No language-server, code-graph, or MCP capability is exposed. The session skill tree holds repository-exploration and repository-grounding.",
+      "files": [
+        "evals/files/src-function-py.py"
+      ],
+      "expected_output": "The run records the question and stopping condition, searches the repository for callers and importers because no capability is exposed, states what search cannot establish, reports each caller with its location, and leaves the touch-list decision to the plan.",
+      "assertions": [
+        "The evidence record states the question and stopping condition before any search",
+        "The caller or dependents evidence is gathered from repository search because no capability is exposed, and the run states what search cannot establish",
+        "Each caller found is reported with its location, and the touch-list decision is left to the calling workflow",
+        "The run does not install, index, or request a provider"
+      ]
     }
   ]
 }

@@ -49,7 +49,7 @@ optional = true
 #   - work-loop — loaded broadly by the plan→execute→review discipline, not by
 #     a narrow user-prompt surface; a clean negative set isn't writable for it.
 [pack.evals]
-skills = ["new-spec", "bug-fix", "init-project", "adapt-to-project", "workspace-status", "project-knowledge", "work-intake", "intake-intent", "author-delivery-brief", "author-brief", "receive-brief", "close-work", "explain-diff", "navigate-intents"]
+skills = ["new-spec", "bug-fix", "init-project", "adapt-to-project", "workspace-status", "project-knowledge", "work-intake", "intake-intent", "author-delivery-brief", "author-brief", "receive-brief", "close-work", "explain-diff", "navigate-intents", "repository-exploration"]
 
 [pack.metadata.okf]
 profile = "agentbundle-okf/v1"

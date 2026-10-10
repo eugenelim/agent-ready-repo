@@ -237,7 +237,7 @@
     },
     {
       "id": "shared-substrate-change-expands-preservation-proof",
-      "prompt": "Draft the spec and plan for adding synthetic value nodes to the supplied repository graph fixture. The proposed feature test proves only that a synthetic value can be created. Determine what existing behavior must be preserved before review by inspecting the supplied files. Work from the repository itself; neither adapt-to-project nor a code-intelligence pack is installed.",
+      "prompt": "Draft the spec and plan for adding synthetic value nodes to the supplied repository graph fixture. The proposed feature test proves only that a synthetic value can be created. Determine what existing behavior must be preserved before review by inspecting the supplied files. Work from the repository itself; neither adapt-to-project nor any code-intelligence provider is installed.",
       "files": [
         "evals/files/shared-graph-model.py",
         "evals/files/shared-graph-consumers.py",
@@ -257,7 +257,7 @@
     },
     {
       "id": "isolated-private-change-does-not-expand-preservation-proof",
-      "prompt": "Draft a spec and plan for refactoring the private helper in the supplied fixture. Determine from the supplied files whether this should trigger a shared-substrate preservation expansion. Neither adapt-to-project nor a code-intelligence pack is installed.",
+      "prompt": "Draft a spec and plan for refactoring the private helper in the supplied fixture. Determine from the supplied files whether this should trigger a shared-substrate preservation expansion. Neither adapt-to-project nor any code-intelligence provider is installed.",
       "files": [
         "evals/files/isolated_helper.py",
         "evals/files/test_isolated_helper.py"
