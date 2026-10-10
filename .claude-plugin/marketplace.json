@@ -355,15 +355,15 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Documentation that matches what actually shipped. Write, restructure, or audit pack READMEs and user guides, with Di\u00e1taxis deciding what each page is allowed to do.",
+      "description": "Documentation that matches what actually shipped. Write, restructure, or audit READMEs, quickstarts, guides, and release notes for any library, CLI, API, app, or service, with the reader's journey showing which page is missing.",
       "displayName": "Product Documentation",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
-        "diataxis",
-        "guides",
         "documentation",
-        "pack-readme",
-        "journey"
+        "readme",
+        "changelog",
+        "api-docs",
+        "cli-docs"
       ],
       "license": "Apache-2.0 OR MIT",
       "name": "product-documentation",

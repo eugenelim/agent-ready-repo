@@ -1,6 +1,6 @@
 ---
 title: "About the Diátaxis framework"
-summary: "Why the product-documentation pack assigns every page to one of four kinds, and why that one rule does most of the work."
+summary: "Why the product-documentation pack assigns every page to one of four kinds, how those kinds fit the reader journey, and what they leave uncovered."
 pack: product-documentation
 kind: explanation
 status: stable
@@ -50,11 +50,35 @@ Blending is the most common reason docs frustrate everyone. Theory inside a tuto
 
 Cross-links are also a maintenance pact. When one page rots, its siblings surface the drift. A how-to that links a renamed reference page breaks loudly, and the break tells you both pages need a look.
 
+## Where the four kinds sit in the reader journey
+
+A reader passes through nine stages: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, and contribute. Readers do not arrive in that order. A search result or an error message can land them on any page, so the stages are a coverage map, not a reading order.
+
+The four kinds cover four of the nine stages:
+
+| Journey stage | Diátaxis kind |
+| --- | --- |
+| First success | tutorial |
+| Daily tasks | how-to |
+| Look up | reference |
+| Understand | explanation |
+
+The other five need artifacts Diátaxis does not define:
+
+- **Discover and evaluate** — a README or docs landing page.
+- **Install** — an installation guide, or the README's install section.
+- **Troubleshoot** — a page organized by symptom, with the exact error text.
+- **Upgrade** — a changelog, release notes, and a migration guide for each breaking release.
+- **Contribute** — a contributing guide.
+
+When the `author-product-docs` skill audits a doc set, it maps pages to all nine stages and reports each as covered, partial, missing, or not applicable. A set made only of the four kinds can score well on Diátaxis and still leave a reader stranded on install or upgrade day.
+
 ## How this differs from ADRs and architecture docs
 
 Same topic, three audiences, three framings. An ADR records *why the team chose* X over Y, frozen for contributors. An architecture doc describes *how X is built today*, for people reading the code. An explanation page describes *what X means for someone using the product*. Don't merge them. The user reading an explanation doesn't want the team's decision log; the contributor reading the architecture doesn't want the user framing.
 
 ## See also
 
-- [How to use author-product-docs](../how-to/use-author-product-docs.md) — the procedure, end to end.
+- [How to author product docs](../how-to/author-product-docs.md) — audit a doc set and fix the biggest gaps.
+- [How to write a guide](../how-to/write-a-guide.md) — document one shipped feature.
 - [The catalogue framework](../../README.md) — how packs and their guides fit together.
