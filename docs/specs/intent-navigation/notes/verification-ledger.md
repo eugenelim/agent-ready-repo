@@ -471,3 +471,17 @@ row's literal method.
   above, and the recovery text now says only `outstanding` refuses on
   incomplete delivery while every other operation still answers.
 
+
+## Final gate record
+
+- Last code commit `7ee255997`: `build-check` 38038332280 success,
+  `test-corpus` 38038334003 success, `test-roster` 38038335500 success on
+  attempt 2. Attempt 1 failed one test,
+  `test_end_to_end_read_only_invocation_is_schema_valid`, because git's
+  `maintenance.lock` vanished while the test walked its temporary repository;
+  the commit changes only docs, and the same suite passed on `ae6927f71`.
+- Review closed at round 7 with no open Blocker or Concern. The engine
+  recorded `reviewers-clean` as an intermediate unit: the spec stays
+  `Implementing` until the integration branch reaches the default branch.
+- AC-0019 at the final code: median 3.27 s (above, 2026-10-10 03:09 CDT); the
+  last commit changed no code.
