@@ -28,7 +28,6 @@ DOC_SOURCES = (
     "docs-site/src/content/docs/index.mdx",
     "docs-site/src/content/docs/getting-started/index.mdx",
     "docs-site/src/content/docs/getting-started/install.md",
-    "docs-site/src/content/docs/getting-started/three-loops.md",
     "docs/architecture/overview.md",
     "docs/specs/catalogue-wave8-readme-contributing/plan.md",
     "docs/specs/catalogue-wave8-readme-contributing/spec.md",

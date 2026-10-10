@@ -10,7 +10,10 @@
   only that section's fragment moved: § Shared destination groups' separate
   Docs row `The three loops → /docs/getting-started/three-loops/` is untouched
   and still resolves, so nothing here retires the three-loops concept. Not a
-  supersession — every decision here stands)
+  supersession — every decision here stands. On 2026-10-10 the Docs row
+  `The three loops` was retargeted to the guide at
+  `/docs/guides/_shared/explanation/the-three-loops/` under the same carve-out,
+  when the Get Started copy was folded into it; the old URL redirects there)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
@@ -93,7 +96,7 @@ Both renderer-specific footers use these exact groups and order:
 | Product | Journeys | `/journeys/` |
 | Docs | Get started | `/docs/getting-started/` |
 | Docs | Install | `/docs/getting-started/install/` |
-| Docs | The three loops | `/docs/getting-started/three-loops/` |
+| Docs | The three loops | `/docs/guides/_shared/explanation/the-three-loops/` |
 | Docs | All docs | `/docs/` |
 | Project | Now | `/now/` |
 | Project | Changelog | `/docs/changelog/` |

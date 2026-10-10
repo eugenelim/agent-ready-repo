@@ -43,8 +43,8 @@ npm run build --prefix docs-site
   from 7.2.10 — expect the shape to change, not just the number.
 - The remark plugin that turns ```mermaid fences into placeholders is registered
   through that processor, and it has silently no-opped before. Nothing caught
-  it, because no published page carried a fence. `getting-started/three-loops`
-  now does, and `web/src/test/rendered-output.test.ts` asserts the emitted
+  it, because no published page carried a fence. The converters guide
+  `render-mermaid-diagrams` now does, and `web/src/test/rendered-output.test.ts` asserts the emitted
   `.mermaid-diagram[data-mermaid]` — so keep at least one fence in the
   published corpus, or the plugin becomes unverifiable again.
 - Under an agent, `astro dev` forks a detached server and returns at once, recorded in `.astro/` — so the server

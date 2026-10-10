@@ -534,7 +534,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       ['Browse the pack and skill reference', `${DOCS_BASE_PATH}packs/`],
       [
         'Understand the three supervised loops',
-        `${DOCS_BASE_PATH}getting-started/three-loops/`,
+        `${DOCS_BASE_PATH}guides/_shared/explanation/the-three-loops/`,
       ],
       [
         'Use the agentbundle CLI reference',
@@ -612,7 +612,13 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       JSON.parse(readFileSync(SIDEBAR_CONFIG, 'utf8')) as SidebarConfigEntry[]
     );
     const expectedHrefs = new Set(expected.map(({ href }) => href));
+    // The hand-authored Get Started group also links to a generated guide page,
+    // so compare only the generated groups.
     const actual = [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar a[href]')]
+      .filter((link) => {
+        const summary = link.closest('details')?.querySelector(':scope > summary');
+        return summary?.textContent?.trim() !== 'Get Started';
+      })
       .map((link) => ({ href: link.getAttribute('href')!, label: link.textContent?.trim() ?? '' }))
       .filter(({ href }) => expectedHrefs.has(href));
     expect(actual).toEqual(expected);

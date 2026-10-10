@@ -244,7 +244,7 @@ group = "docs"
 [[shared_chrome.destinations]]
 id = "three-loops"
 label = "The three loops"
-target = "/docs/getting-started/three-loops/"
+target = "/docs/guides/_shared/explanation/the-three-loops/"
 kind = "internal"
 group = "docs"
 
