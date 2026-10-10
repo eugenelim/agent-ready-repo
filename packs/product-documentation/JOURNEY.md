@@ -7,7 +7,7 @@ scope: repo
 tagline: "Create, revise, retrofit, audit, and verify documentation for any software product."
 prerequisitePacks: []
 contract:
-  useItWhen: "You need to write, improve, or audit the user-facing docs of a library, CLI, API, app, service, plugin, or agent-context pack — whether you're starting from scratch, reworking legacy docs, finding which stages of the reader journey are missing, or checking that pages match what ships."
+  useItWhen: "You need to write, improve, or audit the user-facing docs of a library, CLI, API, app, service, framework, plugin, or agent-context pack — whether you're starting from scratch, reworking legacy docs, finding which stages of the reader journey are missing, or checking that pages match what ships."
   youType: "Audit this project's docs and tell me which stages of the reader journey are missing."
   youProvide: "A description of what you want to document, improve, or check, and optionally the mode (create / revise / retrofit / audit / verify)."
   youReceive: "A draft, revision, retrofit plan, journey gap report, or verification result — whichever fits the request — with the product surface, journey stage, page kind, and write destination reported so you can redirect any of them. Audits and verification results change nothing unless you also ask for fixes."
@@ -17,7 +17,7 @@ contract:
   decisionGateIds:
     - confirm-documentation-page-kind
     - review-product-documentation
-whatChanges: "After installing product-documentation, your project has the `author-product-docs` skill — one entry point for five documentation modes. The skill infers the mode from your request, discovers what your product is (library, CLI, API, app, service, plugin, or agent-context pack) and where your repository keeps user-facing and maintainer docs, and treats Diátaxis as a page contract rather than a mandatory directory structure. Audits start with a journey gap report: one row per reader stage, from discovering the product to contributing to it."
+whatChanges: "After installing product-documentation, your project has the `author-product-docs` skill — one entry point for five documentation modes. The skill infers the mode from your request, discovers what your product is (library, CLI, API, app, service, framework, plugin, or agent-context pack) and where your repository keeps user-facing and maintainer docs, and treats Diátaxis as a page contract rather than a mandatory directory structure. Audits start with a journey gap report: one row per reader stage, from discovering the product to contributing to it."
 skills:
   - name: author-product-docs
     description: "Creates, revises, retrofits, audits, or verifies user-facing documentation for any software product, mapping the doc set to the reader journey and using Diátaxis as a page contract — one skill, five modes, no forced directory skeleton."
@@ -29,7 +29,7 @@ humanGates:
     trigger: "When the agent reports its choices with the draft or report — before you commit, redirect it if any is wrong"
     duration: "2–4 minutes"
     whatToCheck:
-      - "Is the surface right: library, CLI, API, app, service, plugin, or agent-context pack?"
+      - "Is the surface right: library, CLI, API, app, service, framework, plugin, or agent-context pack?"
       - "Is the journey stage right: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, or contribute?"
       - "Is the artifact or page kind right: README, docs landing page, installation guide, tutorial, how-to, reference, explanation, troubleshooting, changelog, migration guide, contributing guide, or journey page? For the four Diátaxis kinds, does the reader's posture match: learning (tutorial), a named task (how-to), a fast lookup (reference), or understanding why (explanation)?"
       - "Is the destination where your repository keeps docs of that kind and audience — user docs apart from maintainer docs?"
@@ -65,7 +65,7 @@ relatedJourneys:
 ### 1. Describe what you need
 
 - **You provide:** what you want to document, improve, or check. The mode is optional — the skill infers it from your request. If you say "write a quickstart for this CLI", it activates create mode. If you say "this doc feels wrong", it activates revise or audit mode.
-- **Agent does:** activates `author-product-docs`; discovers the product surface from the repository (library, CLI, API, app, service, plugin, or agent-context pack); places your request on the reader journey; reads the canonical sources for ground-truth behavior; picks the page kind, artifact, and destination. It records these choices and continues; it stops to ask only when uncertainty would change the audience, the behavior described, the artifact, a destructive claim, or the canonical source.
+- **Agent does:** activates `author-product-docs`; discovers the product surface from the repository (library, CLI, API, app, service, framework, plugin, or agent-context pack); places your request on the reader journey; reads the canonical sources for ground-truth behavior; picks the page kind, artifact, and destination. It records these choices and continues; it stops to ask only when uncertainty would change the audience, the behavior described, the artifact, a destructive claim, or the canonical source.
 - **You do:** answer the agent's question if it asks one; otherwise nothing yet.
 - **Output:** nothing written yet — the agent's choices are working notes until it reports them with the result.
 - **State:** read-only

@@ -7,7 +7,7 @@ status: stable
 ---
 
 **Use this when:** you want to improve a project's docs and are not sure which pages are missing, stale, or wrong.
-**Prerequisites:** `product-documentation` pack installed, and a repository with a library, CLI, API, app, service, plugin, or agent-context pack in it.
+**Prerequisites:** `product-documentation` pack installed, and a repository with a library, CLI, API, app, service, framework, plugin, or agent-context pack in it.
 **Result:** a journey gap report for your doc set, and the smallest set of page changes that closes the worst gaps.
 
 Ask your agent:
@@ -18,7 +18,7 @@ The `author-product-docs` skill reads your repository and replies with a report.
 
 ## Steps
 
-1. **Run the audit.** Send the request above. The skill infers audit mode from the words "audit" and "missing". It first finds what your product is — the code, manifests, and `--help` output reveal a library, CLI, API, app, service, plugin, or agent-context pack — then reads the README, the docs index, and every page they link to.
+1. **Run the audit.** Send the request above. The skill infers audit mode from the words "audit" and "missing". It first finds what your product is — the code, manifests, and `--help` output reveal a library, CLI, API, app, service, framework, plugin, or agent-context pack — then reads the README, the docs index, and every page they link to.
 2. **Read the journey gap report.** You get one row per reader stage, in order: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute. Each row is `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. The next actions are ranked by where readers are lost first, so a missing first success outranks a missing explanation.
 3. **Read the page-level findings.** After the report, each finding names a file, a line, what was found, and the page contract it breaks.
 4. **Retrofit the worst rows.** Ask "Retrofit the docs so the missing and partial rows are covered." The skill changes the smallest set of pages that moves the worst rows to `covered`, and links each page to the stage before and after it.
@@ -66,6 +66,7 @@ Before it states anything about your product, the skill reads the canonical sour
 - An app: the screens and flows in source, and the end-to-end tests.
 - A service: the configuration schema, the environment variables the code reads, and the deploy files.
 - A plugin: the manifest's commands, settings, and permissions.
+- A framework or extension point: the interfaces users implement and the code that registers or loads them.
 - An agent-context pack: the manifest and each skill's source.
 
 A claim it cannot check against those sources is labeled unverified or cut.
@@ -84,6 +85,7 @@ Verification follows the surface:
 - A service: compare with the configuration schema and the code that reads it.
 - An app: walk each documented task in the running app, or in its end-to-end tests.
 - A plugin: compare with the contribution block in its manifest.
+- A framework or extension point: compare each entry with its interface and the loader or registration code.
 - An agent-context pack: read each skill's source, and send the first starter prompt.
 
 Then check links. Run a route check after navigation changes. Review the rendered page after layout changes. The skill's report lists only the checks that ran.

@@ -1,6 +1,6 @@
 # Spec: product documentation for any repository
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0060
@@ -90,15 +90,16 @@ Surface terms (library, CLI, API, app, service) match case-insensitively as whol
 
 - [x] AC1: No file among `SKILL.md` and `references/*.md` of `author-product-docs` contains any of the strings `agent-ready-repo`, `guides/<pack>`, `docs/guides/`, `web/src/content`, or `docs-site/`.
 - [x] AC2: The `description` field of `author-product-docs` names each of library, CLI, API, app, and service.
-- [x] AC3: `references/surface-discovery.md` has one `##` section for each of these 7 surfaces:
+- [ ] AC3: `references/surface-discovery.md` has one `##` section for each of these 8 surfaces:
   1. Library or SDK
   2. CLI
   3. HTTP or RPC API
   4. App (web, desktop, or mobile)
   5. Service
   6. Plugin or extension
-  7. Agent-context pack
-- [x] AC4: Each of the 7 surface sections in `references/surface-discovery.md` carries the four labels `Evidence:`, `Canonical sources:`, `Reference artifact:`, and `Verification:`.
+  7. Framework or extension points
+  8. Agent-context pack
+- [ ] AC4: Each of the 8 surface sections in `references/surface-discovery.md` carries the four labels `Evidence:`, `Canonical sources:`, `Reference artifact:`, and `Verification:`.
 - [x] AC5: `references/docs-journey.md` has one row for each of these 9 stages, each row naming a reader question and the artifact that answers it: discover and evaluate; install; first success; daily tasks; look up; understand; troubleshoot; upgrade; contribute.
 - [x] AC6: The audit and retrofit procedure in `SKILL.md` requires a report row for every journey stage, each marked `covered`, `partial`, `missing`, or `not applicable` with a file reference or reason.
 - [x] AC7: `references/page-contracts.md` has each of these 8 exact headings, and the section under each has the four parts "First screen must answer", "Required content", "Move lower or link out", and "Anti-patterns to refuse": `## README`; `## Quickstart`; `## Installation guide`; `## Troubleshooting`; `## Changelog and release notes`; `## Migration guide`; `## Contributing guide`; `## Docs landing page`.
@@ -117,6 +118,8 @@ Surface terms (library, CLI, API, app, service) match case-insensitively as whol
 - [x] AC20: `packs/product-engineering/.apm/skills/ux-writing/evals/eval_queries.json` has a `should_trigger: false` query asking for a troubleshooting page, in addition to its existing documentation negative.
 - [x] AC21: The `description` in `packs/product-documentation/pack.toml`, the `description` in its `.claude-plugin/plugin.json`, the first paragraph of `packs/product-documentation/README.md`, and the body of `web/src/content/packs/product-documentation.md` each name at least one of library, CLI, API, app, or service.
 - [x] AC22: No file outside `docs/specs/` links to `use-author-product-docs.md`, and every relative Markdown link in `packs/product-documentation/README.md`, `packs/product-documentation/JOURNEY.md`, `guides/product-documentation/**`, `guides/README.md`, and `docs/guides/how-to/author-product-documentation.md` resolves to an existing file.
+- [ ] AC23: The audit procedure in `SKILL.md` requires one journey gap report per user-facing surface or audience when a repository has more than one, and names the site configuration's navigation as the docs index when a docs site exists.
+- [ ] AC24: `SKILL.md` forbids running project code, builds, or installs from a repository the user has not said to trust, and directs the agent to check against source and say so instead.
 
 ## Follow-ons
 

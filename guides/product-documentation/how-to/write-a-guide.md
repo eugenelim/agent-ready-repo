@@ -26,7 +26,7 @@ You need:
 ## Steps
 
 1. **Send the request.** Name the feature and, if you know it, the kind: "write a how-to", "write a quickstart", "document the `export` command". The skill infers create mode.
-2. **Let it find the surface.** From the repository it works out whether the feature belongs to a library, CLI, API, app, service, plugin, or agent-context pack, and which source is canonical for it — the parser definitions for a CLI command, the contract file for an endpoint.
+2. **Let it find the surface.** From the repository it works out whether the feature belongs to a library, CLI, API, app, service, framework, plugin, or agent-context pack, and which source is canonical for it — the parser definitions for a CLI command, the contract file for an endpoint.
 3. **Check the kind.** The skill picks the kind from the reader's posture, not the topic. On rails and wanting a guaranteed result is a tutorial. A named problem is a how-to. Scanning for a fact is reference. Wanting to know why is explanation. Check the page kind and destination it reports, and redirect it if either is wrong.
 4. **Read the draft against the contract.** The page opens with the reader's goal and a first runnable action: a request, a command, or a code sample. It says what the product reads and what it may change, shows the expected result, names what remains the reader's decision, and ends with the likely next step.
 5. **Check where it landed.** The skill writes where your repository already keeps docs of that kind and audience. If it could not tell, it asked once. The report lists the files it changed and the sources it read.

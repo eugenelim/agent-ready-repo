@@ -29,6 +29,7 @@ SURFACES = (
     "## App (web, desktop, or mobile)",
     "## Service",
     "## Plugin or extension",
+    "## Framework or extension points",
     "## Agent-context pack",
 )
 STAGES = (
@@ -210,6 +211,19 @@ def test_skill_defines_gap_report(author_skill_body: str) -> None:
     for state in ("covered", "partial", "missing", "not applicable"):
         assert f"`{state}`" in audit[0], f"audit paragraph lacks {state}"
     assert "journey gap report" in retrofit[0]
+
+
+def test_audit_scopes_per_surface_and_site_navigation(author_skill_body: str) -> None:
+    start = author_skill_body.index("### Step 15")
+    step15 = author_skill_body[start : author_skill_body.index("### Step 16")]
+    assert "one journey gap report per surface or audience" in step15
+    assert "site configuration's navigation" in step15
+    assert "is the docs index" in step15
+
+
+def test_untrusted_repository_rule(author_skill_body: str) -> None:
+    assert "Never run project code, builds, or installs from an untrusted repository" in author_skill_body
+    assert "checked against source only" in author_skill_body
 
 
 def test_page_contracts_sections() -> None:

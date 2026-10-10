@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- `author-product-docs` documents any repository — libraries, CLIs, APIs, apps, services, plugins, and agent packs — by first discovering the product surface and checking the docs against its own sources.
+- `author-product-docs` documents any repository — libraries, CLIs, APIs, apps, services, frameworks, plugins, and agent packs — by first discovering the product surface and checking the docs against its own sources.
 - Documentation audits start with a journey gap report that covers nine reader stages, from discovery to contributing.
 - It now writes release notes, changelogs, migration guides, contributing guides, troubleshooting pages, quickstarts, installation pages, and docs landing pages.
 
@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the `surface-discovery` and `docs-journey` references.
 - A README page contract replaces the pack-only README contract.
 - Evals add CLI and library cases.
+- `surface-discovery` covers frameworks and library extension points, and audits produce one journey gap report per surface or audience, bounded for large doc sets. The skill checks untrusted repositories against source instead of running their code.
 - Guides are consolidated: `use-author-product-docs` is merged into `author-product-docs`.
 
 ## [experience-design][4.1.4] — 2026-10-10

@@ -4,7 +4,8 @@ What a product is decides which reference pages it needs and how to check them.
 Find the surface from the repository before you choose an artifact. A repository
 can ship more than one surface — a library with a CLI, or an app with a public
 API. Document each surface the reader touches, and lead with the one the
-README's first example uses.
+README's first example uses. If the README has no example, lead with the surface
+the install instructions or the docs landing page start with.
 
 Each section names four things:
 
@@ -55,6 +56,9 @@ output leads with examples, and every subcommand answers `--help`.
 Verification: run `<tool> --help` and `<tool> <subcommand> --help` and compare
 them with the reference. Run every documented example command in a scratch
 directory and record the exit code.
+
+When help text is hand-written separately from the parser, the parser is the
+truth and a mismatch is a finding.
 
 ## HTTP or RPC API
 
@@ -113,7 +117,8 @@ the documented minimal config and record the health check.
 
 Evidence: an extension manifest with a contribution block — a VS Code
 `package.json` `contributes` section, a browser extension `manifest.json`, a
-plugin descriptor for a host application.
+plugin descriptor for a host application, or a package that a host framework
+loads by configuration.
 
 Canonical sources: the manifest's declared commands, settings, permissions, and
 activation rules, and the host's version range.
@@ -125,11 +130,31 @@ Verification: compare the reference with the manifest's contribution block,
 entry by entry. Install the plugin in the host where possible and run one
 documented command.
 
+## Framework or extension points
+
+Evidence: documented extension base classes, interfaces, or protocols; the
+registration or loader code that finds user modules; config keys that load user
+modules or npm or pip plugins; scaffolding commands. This covers products whose
+users write code that the product loads or calls — framework modules, routes,
+workflows, hooks, admin widgets — and a library's public extension points such
+as custom transports, auth classes, event hooks, and middleware.
+
+Canonical sources: the interface or base-class definitions, the loader and
+registration code, and the default configuration that names what loads.
+
+Reference artifact: one entry per extension point — its contract (interface),
+when it is called in the lifecycle, how to register it, and a minimal example.
+
+Verification: compare each entry with the interface definitions and the
+loader or registration code. Run the minimal example where a host can load it.
+
 ## Agent-context pack
 
 Evidence: a pack or plugin manifest for an agent host (`pack.toml`,
 `.claude-plugin/plugin.json`), `SKILL.md` files, agent definitions, commands,
-or hooks.
+or hooks. Count it only when the pack ships to users (a published manifest or
+install docs). Agent files that guide the repository's own maintainers are
+maintainer material, not a product surface.
 
 Canonical sources: the manifest for machine facts (name, version, scope,
 dependencies), each `SKILL.md` for modes, inputs, outputs, and what it reads or

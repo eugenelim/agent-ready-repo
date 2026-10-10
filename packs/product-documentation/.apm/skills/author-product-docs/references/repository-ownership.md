@@ -13,6 +13,8 @@ This skill is portable. It reads the split from the repository and does not impo
 
 The contributing guide is the one bridge: it is linked from the user-facing README and is written for maintainers and new contributors.
 
+More than one user audience is common (developers, end users, operators). Route each page by audience.
+
 ## Discover the trees
 
 Follow the destination order in Step 10 of the skill. The sources it draws on are the agent-guidance documentation map (such as `AGENTS.md` or `CLAUDE.md`), `CONTRIBUTING` or the README's docs section, the docs-site configuration (which content directory the build reads), and the existing layout of same-kind, same-audience pages.
@@ -28,6 +30,13 @@ A manifest (`package.json`, `pyproject.toml`, `Cargo.toml`, a plugin or pack man
 ## Generated and rendered output
 
 Generated or rendered output is never edited. That includes built sites, generated API reference, and projections copied from a source. An edit there does not change the source and the next build overwrites it. Find the source the docs build reads, edit that, and let the build regenerate the output.
+
+## Copies and mixed files
+
+- Two hand-kept copies of the same page: name one as the source and flag drift.
+- A mixed file (generated with hand-edited parts): edit only the hand-edited parts, in source.
+- A README republished to a package registry: check that its relative links and images still resolve there.
+- Maintainer procedures (releases, CI) inside a public contributing page belong in maintainer docs.
 
 ## Destination order
 

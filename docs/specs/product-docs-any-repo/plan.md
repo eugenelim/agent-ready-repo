@@ -1,7 +1,7 @@
 # Plan: product documentation for any repository
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (export boundary, version bump,
   no internal citations, eval update); `docs/guides/guide-source-model.md`
   (guide frontmatter, aliases); cross-pack handoff precedent
@@ -174,4 +174,5 @@ stub: the new test functions above, collected and failing.
 
 - 2026-10-10: spec approved by eugenelim
 - 2026-10-10: plan approved by eugenelim
+- 2026-10-10: AC3, AC4 amended and AC23, AC24 added by eugenelim — fixes from real-repository runs (Medusa, httpx)
 - 2026-10-10: AC14 amended by eugenelim — the guide gate fails on any alias, so the removed route keeps no alias

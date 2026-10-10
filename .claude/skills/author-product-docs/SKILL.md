@@ -1,6 +1,6 @@
 ---
 name: author-product-docs
-description: "Create, revise, retrofit, audit, or verify user-facing documentation for any software product — a library or SDK, CLI, HTTP or RPC API, web, desktop, or mobile app, service, plugin, or agent-context pack. Covers the whole reader journey: README and landing page, installation, quickstart and tutorials, how-to guides, reference, explanation, troubleshooting, changelog and release notes, migration guides, and contributing guides. Use when asked to write, improve, restructure, audit, or verify product docs, document a feature or command, fix a README, write release notes or an upgrade guide, find gaps in a doc set, or check whether docs match shipped behavior. Infers the mode from the request. Do NOT use for feature specifications (use new-spec), cross-cutting proposals (use new-rfc), decisions (use new-adr), product or market strategy, UI microcopy alone, inline code comments or docstrings alone, internal maintainer runbooks or CI docs, or prose editing with no documentation purpose."
+description: "Create, revise, retrofit, audit, or verify user-facing documentation for any software product — a library or SDK, CLI, HTTP or RPC API, framework, web, desktop, or mobile app, service, plugin, or agent-context pack. Covers the whole reader journey: README and landing page, installation, quickstart and tutorials, how-to guides, reference, explanation, troubleshooting, changelog and release notes, migration guides, and contributing guides. Use when asked to write, improve, restructure, audit, or verify product docs, document a feature or command, fix a README, write release notes or an upgrade guide, find gaps in a doc set, or check whether docs match shipped behavior. Infers the mode from the request. Do NOT use for feature specifications (use new-spec), cross-cutting proposals (use new-rfc), decisions (use new-adr), product or market strategy, UI microcopy alone, inline code comments or docstrings alone, internal maintainer runbooks or CI docs, or prose editing with no documentation purpose."
 ---
 
 # Product documentation authoring
@@ -36,7 +36,7 @@ Rationale / narrative — Use short ## headings and 2–3 sentence paragraphs. D
 
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
-Status list — Lead each row with a status glyph (● running, ✓ done, ○ idle, ⚠ blocked).
+Status list — Lead each row with a status glyph (● running, ✓ done, ○ idle, ⚠ blocked). Journey gap report rows are the exception: they use the words `covered`, `partial`, `missing`, and `not applicable`.
 
 ## Procedure
 
@@ -54,11 +54,11 @@ Infer the mode from the request. Do not require the user to name it.
 
 When a request is ambiguous between create and revise, read the target file first. If it exists and is substantive, treat it as revise. If it is absent or near-empty, treat it as create.
 
-Audit and verify write nothing. They run Steps 2–6, 8, and 15–16, and skip the drafting and destination steps.
+Audit and verify write nothing. They run Steps 2–6, 8, and 15–16, and skip the drafting and destination steps. In audit, the page contracts (Step 8) are the audit criteria, and the rules in [`references/conversation-first.md`](references/conversation-first.md) and [`references/clear-prose.md`](references/clear-prose.md) apply as findings too. Steps 3, 5, and 7 apply per surface or stage rather than to one page.
 
 ### Step 2 — Discover the product surface
 
-Identify what the product is from repository evidence before choosing any artifact: a library or SDK, CLI, HTTP or RPC API, app, service, plugin, or agent-context pack. A repository can ship several; document each one the reader touches.
+Identify what the product is from repository evidence before choosing any artifact: a library or SDK, CLI, HTTP or RPC API, framework or extension points, app, service, plugin, or agent-context pack. A repository can ship several; document each one the reader touches.
 
 Load [`references/surface-discovery.md`](references/surface-discovery.md). For each surface it lists the evidence that reveals it, the canonical sources to read, the reference artifact it needs, and the check that verifies that artifact. If the evidence fits no section, name what you found and ask once.
 
@@ -111,7 +111,7 @@ Before drafting, write a short internal contract. It is working notes, not a use
 
 ```
 mode: <create | revise | retrofit | audit | verify>
-surface: <library | CLI | API | app | service | plugin | agent-context pack — one or more>
+surface: <library | CLI | API | framework | app | service | plugin | agent-context pack — one or more>
 journey stage: <discover and evaluate | install | first success | daily tasks | look up | understand | troubleshoot | upgrade | contribute>
 audience: <product user | maintainer>
 situation: <what the reader is in the middle of>
@@ -195,9 +195,9 @@ Verify by surface, using the check [`references/surface-discovery.md`](reference
 - Navigation changes: route check
 - Page-layout changes: visual review of the rendered output
 
-Report only checks that ran. Read-only checks such as `--help` or a doc-test run are allowed in every mode; when one cannot run, say the claim was checked against source only.
+Report only checks that ran. Read-only checks such as `--help` or a doc-test run are allowed only when the user has said to trust the repository and no install or build is needed. Never run project code, builds, or installs from an untrusted repository; check against source and say "checked against source only". Say the same when a check cannot run.
 
-**Audit mode** produces evidence-based findings without editing. Start with the journey gap report: one row per journey stage, in order, each marked `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. Then list page-level findings with file, line, what was found, and the contract it breaks. Edit only if the user asked for edits alongside the audit.
+**Audit mode** produces evidence-based findings without editing. Start with the journey gap report: one row per journey stage, in order, each marked `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. Audit against the default branch unless the user names a release, and say which. When the repository has more than one user-facing surface or audience (for example developers and end users), produce one journey gap report per surface or audience. When a docs site exists, its site configuration's navigation (for example `mkdocs.yml` nav or a sidebar config) is the docs index. Bound a large audit: sample each stage's entry pages and the pages the index ranks first, say what was sampled, and rank page-level findings by the same reader-loss order as the gap rows, reporting at most the top 15 with a count of the rest. Then list page-level findings with file, line, what was found, and the contract it breaks. Edit only if the user asked for edits alongside the audit.
 
 **Retrofit mode** starts from the same journey gap report and changes the smallest set of pages that moves the worst rows to `covered`, keeping links between stages.
 

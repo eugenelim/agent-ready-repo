@@ -7,7 +7,7 @@ kind: reference
 
 # Product Documentation guides
 
-Documentation for the `product-documentation` pack — create, revise, retrofit, audit, and verify the user-facing docs of any library, CLI, API, app, service, plugin, or agent-context pack, grounded in what it actually ships.
+Documentation for the `product-documentation` pack — create, revise, retrofit, audit, and verify the user-facing docs of any library, CLI, API, app, service, framework, plugin, or agent-context pack, grounded in what it actually ships.
 
 ## Get started fast
 

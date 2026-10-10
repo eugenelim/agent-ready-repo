@@ -50,7 +50,10 @@ see [`surface-discovery.md`](surface-discovery.md).
   likely cause, how to confirm it, and the fix. Quote exact error text so search
   finds it.
 - **Upgrade.** Keep the changelog for humans: newest first, dated, grouped as
-  Added, Changed, Deprecated, Removed, Fixed, Security. Write a migration guide
+  Added, Changed, Deprecated, Removed, Fixed, Security. A changelog may be
+  generated per package or published as release notes; treat whichever source
+  the project publishes as the changelog, and flag a stale hand-kept file that
+  contradicts it. Write a migration guide
   per breaking version pair, as a checklist of what to search for and change.
   Name the replacement for every deprecation.
 - **Contribute.** Say how to report a bug, set up a development environment,
@@ -72,8 +75,7 @@ see [`surface-discovery.md`](surface-discovery.md).
 ## The journey gap report
 
 Audit and retrofit modes map the existing doc set to the stages before any
-other finding. Read the README, the docs index or landing page, and every page
-it links to; then search the repository for pages the index misses.
+other finding. Scope, sampling, and bounds follow Step 15 of the skill.
 
 Produce one row per stage, in table order:
 

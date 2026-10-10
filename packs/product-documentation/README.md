@@ -1,6 +1,6 @@
 # Product Documentation
 
-Documentation for any software product — a library, CLI, HTTP API, app, service, plugin, or agent-context pack — that matches what actually ships. Ask for a README, a quickstart, release notes, or an audit, and your agent writes or checks it against the real code.
+Documentation for any software product — a library, CLI, HTTP API, app, service, framework, plugin, or agent-context pack — that matches what actually ships. Ask for a README, a quickstart, release notes, or an audit, and your agent writes or checks it against the real code.
 
 **Who it is for:** maintainers and contributors who write the docs that people who install, call, or run their product read.
 

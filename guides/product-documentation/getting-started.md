@@ -25,7 +25,7 @@ You should see the agent start reading your repository. The audit changes no fil
 
 ## Prerequisites
 
-- A repository with something users run or call: a library, CLI, HTTP API, app, service, plugin, or agent-context pack.
+- A repository with something users run or call: a library, CLI, HTTP API, app, service, framework, plugin, or agent-context pack.
 - An agent that supports installed packs, such as Claude Code.
 - `agentbundle`, the installer. See [install routes](../_shared/explanation/install-routes.md).
 
@@ -79,7 +79,7 @@ Ask the skill to verify what it wrote:
 Verify this page against what the code does
 ```
 
-You should get three lists: verified claims, unverified claims, and claims that contradict current behavior. Then run the check that fits your surface. Run the examples for a library. For a CLI, compare the page with `--help` and run each command. For an API, compare it with the contract file. For a service, compare it with the configuration schema. For an app, walk each documented task in the running app or its end-to-end tests. For a plugin, compare the page with the contribution block in its manifest. For an agent-context pack, read each skill's source and send the first starter prompt.
+You should get three lists: verified claims, unverified claims, and claims that contradict current behavior. Then run the check that fits your surface. Run the examples for a library. For a CLI, compare the page with `--help` and run each command. For an API, compare it with the contract file. For a service, compare it with the configuration schema. For an app, walk each documented task in the running app or its end-to-end tests. For a plugin, compare the page with the contribution block in its manifest. For a framework, compare each extension-point entry with its interface and the code that loads it. For an agent-context pack, read each skill's source and send the first starter prompt.
 
 Fix any contradiction before you publish. A claim nothing checked stays labeled unverified.
 
