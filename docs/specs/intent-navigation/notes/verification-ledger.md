@@ -353,3 +353,49 @@ row's literal method.
   `packs/core/tests/integration/test_intent_delivery_traceability.py`, which
   no task's `Touches` listed. It now accepts and byte-checks the
   `navigate-intents` copy; it fails on `0ba1d6d81` and passes now.
+
+## Specialist review round
+
+- CI on `7cf42c5fe`: `build-check` 38027326692, `test-corpus` 38027328481,
+  `test-roster` 38027330148 — all success. The adversarial round on the
+  rebase sustained one Nit, deferred here: the VI-1402 test's docstring still
+  says "two copies" while its body accepts the `navigate-intents` copy too.
+- Specialist reviews of `7cf42c5fe`, adjudicated, sustained:
+  - security: tree and outstanding-text traversal recursed once per chain
+    level, so a chain past the recursion limit crashed with a traceback; a
+    non-UTF-8 argv byte crashed envelope output; the load-time symbol check
+    omitted `validate_confined_directory`, and spec-root `OSError` text
+    reached the message. A dangling artifact root was refuted.
+  - quality: no fixture held a live terminal brief, `Archived` spec, or
+    withdrawn, cancelled, or superseded intent; `main()` was untested; spec
+    placement chains, outstanding byte-limit boundaries, the
+    `delivery_incomplete` payload, brief and spec status escaping, and the
+    confinement refusal's source were unpinned; three tests could not fail.
+    Loader de-duplication, function decomposition, a latency budget, an
+    AC-0075 rewrite, and a skip rule were refuted or out of frontier.
+  - experience: refusals and their next steps, refused-edge states, empty
+    results, runnable command paths, brief and spec lookup scope, the
+    changelog's bounded-route claim, and several glossing and structure
+    points.
+- Fixes: the three traversals use explicit stacks; a non-UTF-8 argument or
+  root refuses as `invalid_query` with an escaped echo and nothing on stderr;
+  `validate_confined_directory` is checked at load; the spec listing reports
+  `cannot list docs/specs`; an unexpected derivation failure refuses with a
+  fixed message; `delivery_incomplete` carries exactly `reason` and `limit`;
+  the `--from` filter keeps one inclusion rule. A new `fixtures/terminality/`
+  corpus holds every terminal word of every type. Docs: a refusals section,
+  a refused-edge table, runnable `<skill-dir>` commands, narrowed activation,
+  and the changelog scoped to `tree` and `outstanding`.
+- Proof: `test_specialist_regressions.py` — seven tests fail on the scripts
+  at `7cf42c5fe` (deep chain, non-UTF-8 argument, missing symbol, crash
+  message, unlistable spec root, both `delivery_incomplete` payloads); the
+  test-strength tests each catch a deliberate mutant (brief branch never
+  terminal, `main` dropping `--from`, truncated spec chain, emptied
+  `observed`, unescaped brief and spec status, text byte count x4, indented
+  and ASCII-escaped JSON counts).
+- GATES: 394 passed, 4 skipped across the touched suites; every tool check,
+  lifecycle lint, catalogue verify and deep lint, full-repository bandit,
+  and lint pass; shipped-text grep empty; projections identical.
+- **AC-0019 at this code**, 2026-10-10 01:50 CDT, load 61 to 107 on 10
+  cores: 4.45, 3.53, 4.37, 5.87, 4.49, 6.13, 6.16 s, median 4.49 s, minimum
+  3.53 s, maximum 6.16 s, result 105,913 bytes, every run `status: ok`.

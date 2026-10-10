@@ -30,14 +30,6 @@ _FIXTURE_MIXED = _HERE / "fixtures" / "mixed"
 _FIXTURE_NEG = _HERE / "fixtures" / "negative"
 _FIXTURES = _HERE / "fixtures"
 
-# Corpora where the whole operation fails (AC-0009/AC-0042 apply).
-# Outstanding comparison is skipped for these per AC-0058.
-_WHOLE_OP_FAIL_CORPORA = frozenset({
-    "malformed_record_utf8",
-    "malformed_record_bad_slug",
-    "duplicate_identity",
-})
-
 
 # ---------------------------------------------------------------------------
 # Module loader
@@ -255,13 +247,12 @@ def test_outstanding_from_filters_to_subtree() -> None:
     items = _all_outstanding_items(result)
     # bravo-feat is under alpha-cap, so it should appear.
     ids = {item["id"] for item in items}
-    assert "intent:bravo-feat" in ids or "capability:alpha-cap" in ids, (
-        "outstanding --from alpha-cap must include bravo-feat or alpha-cap itself"
-    )
-    # delta-opp is not under alpha-cap, so it must not appear.
-    assert "opportunity:delta-opp" not in ids, (
-        "outstanding --from alpha-cap must not include delta-opp (different subtree)"
-    )
+    # alpha-cap itself, its child intent and brief, and the two specs placed
+    # beneath them; nothing from another subtree.
+    assert ids == {
+        "capability:alpha-cap", "intent:bravo-feat", "brief:bravo-delivery",
+        "spec:bravo-spec", "spec:charlie-spec",
+    }
 
 
 def test_outstanding_item_with_terminal_status_excluded() -> None:
@@ -394,11 +385,12 @@ def test_outstanding_root_items_ordered_by_node_id() -> None:
     assert code == 0
     assert isinstance(result, str)
     # Root-level lines have no leading spaces and are not the (no parent) header.
-    root_lines = [
-        ln for ln in result.splitlines()
-        if ln and not ln.startswith(" ") and "(no parent)" not in ln
-    ]
-    root_ids = [ln.split(" · ")[0].strip() for ln in root_lines]
+    # On mixed/ every outstanding root sits in the `(no parent)` group, so the
+    # group's depth-1 entries are the roots whose order AC-0045 governs.
+    lines = result.splitlines()
+    group = lines[lines.index("(no parent)") + 1:]
+    root_ids = [ln.strip().split(" · ")[0] for ln in group if ln.startswith("  ") and not ln.startswith("    ")]
+    assert len(root_ids) > 1, "the check needs more than one root to compare"
     assert root_ids == sorted(root_ids), (
         f"Root outstanding items must be in code-point order; got: {root_ids}"
     )
@@ -538,10 +530,7 @@ def test_outstanding_ac0009_takes_precedence_over_delivery_incomplete() -> None:
         _delivery_provider=_fake_incomplete,
     )
     assert code == 1
-    # AC-0009 takes precedence; error code must not be delivery_incomplete.
-    assert result["error"]["code"] != "delivery_incomplete", (
-        "AC-0009 failure must take precedence over delivery_incomplete"
-    )
+    assert result["error"]["code"] == "malformed_record"
 
 
 # ---------------------------------------------------------------------------

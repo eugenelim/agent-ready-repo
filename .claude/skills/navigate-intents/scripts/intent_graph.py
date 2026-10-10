@@ -108,6 +108,7 @@ def _get_file_safety() -> Any:
     required = {
         "UnsafeContentError", "BoundExceeded",
         "read_confined_regular_file", "walk_confined_regular_files",
+        "validate_confined_directory",
     }
     missing = required - set(vars(mod))
     if missing:
@@ -941,19 +942,28 @@ def _list_spec_files(
         rel = specs_root.relative_to(root).as_posix()
         raise DerivationError("unsafe_input", f"unsafe directory: {rel}") from exc
     found: list[Path] = []
-    with os.scandir(specs_root) as entries:
-        for entry in entries:
-            if not spec_dir_re.fullmatch(entry.name):
-                continue
-            mode = entry.stat(follow_symlinks=False).st_mode
-            if _stat.S_ISREG(mode):
-                continue  # a plain file such as README.md is not a spec directory
-            if not _stat.S_ISDIR(mode):
-                rel = Path(entry.path).relative_to(root).as_posix()
-                raise DerivationError("unsafe_input", f"unsafe spec directory: {rel}")
-            spec = Path(entry.path) / "spec.md"
-            if os.path.lexists(spec):
-                found.append(spec)
+    specs_rel = specs_root.relative_to(root).as_posix()
+    try:
+        with os.scandir(specs_root) as listing:
+            entries = [
+                (entry.name, entry.path, entry.stat(follow_symlinks=False).st_mode)
+                for entry in listing
+                if spec_dir_re.fullmatch(entry.name)
+            ]
+    except OSError as exc:
+        # A fixed, repository-relative message: the OS text carries an
+        # absolute path and adds nothing the caller can act on.
+        raise DerivationError("unsafe_input", f"cannot list {specs_rel}") from exc
+    for name, entry_path, mode in sorted(entries):
+        if _stat.S_ISREG(mode):
+            continue  # a plain file such as README.md is not a spec directory
+        if not _stat.S_ISDIR(mode):
+            raise DerivationError(
+                "unsafe_input", f"unsafe spec directory: {specs_rel}/{name}"
+            )
+        spec = Path(entry_path) / "spec.md"
+        if os.path.lexists(spec):
+            found.append(spec)
     return sorted(found, key=lambda path: path.relative_to(root).as_posix())
 
 

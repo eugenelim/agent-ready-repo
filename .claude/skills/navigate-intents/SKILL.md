@@ -1,6 +1,6 @@
 ---
 name: navigate-intents
-description: Use this skill when the user asks to look up, trace, explore, or summarise product intents, briefs, or specs, or to find outstanding work placed under its parent intent. Triggers on phrases like "show me intent:my-slug", "which intents are accepted", "trace the parent of this intent", "what brief links to this spec", "find outstanding intents", "intent graph", "show me the intent hierarchy", "show me outstanding work", "what are the children of this capability". Do NOT use for workspace queue order and repair ("what's next in the queue", "repair the workspace") — use `workspace-status`. Do NOT use for ADR or RFC lookups or authoring — use `navigate-decisions` or `new-adr`/`new-rfc`. Do NOT use for creating, de-risking, decomposing, or closing intents — use `work-intake` or `close-work`. Do NOT use for "how many roadmap intents do we have" — use `navigate-decisions`.
+description: Use this skill when the user asks to look up, trace, explore, or summarise product intents, or to find outstanding work placed under its parent intent. Triggers on phrases like "show me intent:my-slug", "which intents are accepted", "trace the parent of this intent", "find outstanding intents", "intent graph", "show me the intent hierarchy", "show me outstanding work", "what are the children of this capability". For a brief or spec question, use `outstanding` to see placed items or `record` on the parent intent — `--id` and `--from` resolve only live intents. Do NOT use for workspace queue order and repair ("what's next in the queue", "repair the workspace") — use `workspace-status`. Do NOT use for ADR or RFC lookups or authoring — use `navigate-decisions` or `new-adr`/`new-rfc`. Do NOT use for creating, de-risking, decomposing, or closing intents — use `work-intake` or `close-work`. Do NOT use for "how many roadmap intents do we have" — use `navigate-decisions`.
 metadata:
   boundaries: [filesystem_read]
 ---
@@ -41,13 +41,16 @@ questions include:
 
 - **Outstanding work** — what intents, briefs, or specs are not yet in a
   terminal state, placed under their parent intent in the hierarchy.
-- **Intent status** — what is the recorded status of a specific intent,
-  brief, or spec.
+- **Intent status** — what is the recorded status of a specific intent.
 - **Hierarchy** — which intents are children of a given intent; how the
   intent tree is structured.
-- **Parent** — what is the parent intent of a given intent, brief, or spec.
+- **Parent** — what is the parent intent of a given intent.
 - **Children** — which intents are directly below a given intent.
 - **Parentless intents** — which live intents have no resolved parent.
+
+To find where a brief or spec sits, run ``outstanding`` to see placed items
+or ``record`` on the parent intent — ``--id`` and ``--from`` resolve only
+live intents.
 
 ## When not to use
 
@@ -59,8 +62,10 @@ questions include:
   requests for comment: use `navigate-decisions` instead.
 - **ADR or RFC authoring** — creating or revising governance records: use
   `new-adr` or `new-rfc` instead.
-- **How many roadmap intents** — a count of roadmap-level intents is a
-  governance summary handled by `navigate-decisions`, not this skill.
+- **How many roadmap intents** — a roadmap intent is a product-roadmap-level
+  goal; counting them is a governance summary handled by ``navigate-decisions``,
+  which ships in the ``governance-extras`` pack, not ``core``.  Install
+  ``governance-extras`` if you need it.
 - **Intent authoring, de-risking, or decomposition** — creating a new
   intent, brief, or spec, de-risking an intent, or decomposing one into
   sub-tasks: use `work-intake` instead.
@@ -127,7 +132,9 @@ generated-at timestamp, artifact counts by type, and an untrusted-data
 statement), and ``status`` of ``ok`` or ``error``.  Success responses also
 carry ``delivery`` (available or not) and the operation's result fields.
 Error responses carry an ``error`` object with fields ``code``, ``message``,
-``limits``, and ``observed``, and no result fields.
+``limits``, and ``observed``, and no result fields.  When ``error.code`` is
+``result_too_large``, re-run using the flag in ``error.limits.bounded_route``
+to retrieve a bounded result.
 
 An ``outstanding`` result lists ``placed`` items and ``no_parent`` items, each
 ordered by node id. An item carries its parent edge and its ancestor chain up

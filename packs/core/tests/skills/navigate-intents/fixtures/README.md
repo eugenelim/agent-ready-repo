@@ -16,7 +16,7 @@ Every corpus directory carries an `expected-outstanding.json` file:
 
 Terminal statuses by kind (AC-0058, AC-0067):
 - **Intents**: Fulfilled, Withdrawn, Cancelled, Superseded (leading word)
-- **Briefs**: Shipped, Cancelled (leading word)
+- **Briefs**: Shipped, Cancelled, Withdrawn (leading word)
 - **Specs**: Shipped, Archived (leading word)
 
 Tombstones are never nodes and never appear in the outstanding list.
@@ -40,6 +40,8 @@ fixtures/
 │   └── expected-outstanding.json
 ├── coordinated_delivery/  AC-0010, AC-0059, AC-0064: the real resolver emits two
 │                          coordinated-delivery relations
+├── terminality/          AC-0058, AC-0059: a live artifact at every terminal status
+│                          word of every type, and a spec placed under a terminal intent
 └── negative/              (one corpus per refused-edge state and integrity code)
     ├── dangling/          AC-0007: Parent intent: names no live intent
     ├── retired_target/    AC-0007: Parent intent: names a tombstone

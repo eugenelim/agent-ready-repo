@@ -603,18 +603,23 @@ def _collect_tree_intents(
     collected: list[dict[str, Any]] = []
     seen: set[str] = set()
 
-    def _visit(node: dict[str, Any], depth: int) -> None:
-        if node["id"] in seen:
-            return
-        if depth_limit is not None and depth > depth_limit:
-            return
-        seen.add(node["id"])
-        collected.append(node)
-        if depth_limit is None or depth < depth_limit:
-            for child_id in sorted(children_map.get(node["id"], [])):
-                child = node_by_id.get(child_id)
-                if child is not None:
-                    _visit(child, depth + 1)
+    def _visit(start: dict[str, Any], start_depth: int) -> None:
+        # An explicit stack, so a repository's chain depth cannot exhaust the
+        # interpreter stack; reversed pushes keep depth-first, id order.
+        stack: list[tuple[dict[str, Any], int]] = [(start, start_depth)]
+        while stack:
+            node, depth = stack.pop()
+            if node["id"] in seen:
+                continue
+            if depth_limit is not None and depth > depth_limit:
+                continue
+            seen.add(node["id"])
+            collected.append(node)
+            if depth_limit is None or depth < depth_limit:
+                for child_id in sorted(children_map.get(node["id"], []), reverse=True):
+                    child = node_by_id.get(child_id)
+                    if child is not None:
+                        stack.append((child, depth + 1))
 
     if start_id is not None:
         start = node_by_id.get(start_id)
@@ -650,18 +655,22 @@ def _build_text_tree(
     """
     lines: list[str] = []
 
-    def _render(node: dict[str, Any], depth: int) -> None:
-        lines.append(_intent_text_line(node, depth))
-        # Refused parent edge for this node: print one level deeper.
-        edge = parent_edges.get(node["id"])
-        if edge is not None and "state" in edge:
-            lines.append(_refused_edge_text_line(edge, depth + 1))
-        # Recurse into children when within depth limit.
-        if depth_limit is None or depth < depth_limit:
-            for child_id in sorted(children_map.get(node["id"], [])):
-                child = node_by_id.get(child_id)
-                if child is not None:
-                    _render(child, depth + 1)
+    def _render(start: dict[str, Any], start_depth: int) -> None:
+        # An explicit stack, so a repository's chain depth cannot exhaust the
+        # interpreter stack; reversed pushes keep depth-first, id order.
+        stack: list[tuple[dict[str, Any], int]] = [(start, start_depth)]
+        while stack:
+            node, depth = stack.pop()
+            lines.append(_intent_text_line(node, depth))
+            # Refused parent edge for this node: print one level deeper.
+            edge = parent_edges.get(node["id"])
+            if edge is not None and "state" in edge:
+                lines.append(_refused_edge_text_line(edge, depth + 1))
+            if depth_limit is None or depth < depth_limit:
+                for child_id in sorted(children_map.get(node["id"], []), reverse=True):
+                    child = node_by_id.get(child_id)
+                    if child is not None:
+                        stack.append((child, depth + 1))
 
     if start_id is not None:
         start = node_by_id.get(start_id)
@@ -1442,42 +1451,19 @@ def _filter_outstanding_from(
                 subtree.add(child_id)
                 frontier.append(child_id)
 
+    # `subtree` is the full descendant closure over the resolved parents, so an
+    # item belongs when it, or a spec placement's parent, is in it.
     result: list[dict[str, Any]] = []
     for item in items:
-        item_id = item["id"]
-        item_type = item.get("type", "")
-
-        if item_type in ("intent", "brief"):
-            # Include if item itself or any ancestor is in subtree.
-            if item_id in subtree:
+        if item.get("type") == "spec":
+            if any(
+                (placement.get("parent_edge") or {}).get("to") in subtree
+                for placement in item.get("placements", [])
+                if not placement.get("_in_no_parent")
+            ):
                 result.append(item)
-                continue
-            for anc in item.get("ancestors", []):
-                if anc["id"] in subtree:
-                    result.append(item)
-                    break
-            else:
-                # Check parent_edge target for briefs with no ancestors yet
-                pe = item.get("parent_edge")
-                if pe and "to" in pe and pe["to"] in subtree:
-                    result.append(item)
-
-        elif item_type == "spec":
-            included = False
-            for placement in item.get("placements", []):
-                pe = placement.get("parent_edge")
-                if pe and "to" in pe and pe["to"] in subtree:
-                    included = True
-                    break
-                for anc in placement.get("ancestors", []):
-                    if anc["id"] in subtree:
-                        included = True
-                        break
-                if included:
-                    break
-            if included:
-                result.append(item)
-
+        elif item["id"] in subtree:
+            result.append(item)
     return result
 
 
@@ -1597,19 +1583,28 @@ def _build_outstanding_text(
         for edge in refused:
             lines.append(_refused_edge_text_line(edge, depth + 1))
 
-    def _render(node_id: str, depth: int, path: frozenset[str]) -> None:
-        """Render *node_id* and its display subtree."""
-        _line(node_id, depth)
-        for child_id in sorted(children_of.get(node_id, [])):
-            if child_id not in path:
-                _render(child_id, depth + 1, path | {child_id})
+    def _render(start_id: str, start_depth: int) -> None:
+        """Render *start_id* and its display subtree.
+
+        An explicit stack keeps chain depth from exhausting the interpreter
+        stack; each entry carries its own path so a cycle still stops.
+        """
+        stack: list[tuple[str, int, frozenset[str]]] = [
+            (start_id, start_depth, frozenset({start_id}))
+        ]
+        while stack:
+            node_id, depth, path = stack.pop()
+            _line(node_id, depth)
+            for child_id in sorted(children_of.get(node_id, []), reverse=True):
+                if child_id not in path:
+                    stack.append((child_id, depth + 1, path | {child_id}))
 
     for root_id in roots:
-        _render(root_id, 0, frozenset({root_id}))
+        _render(root_id, 0)
     if no_parent_ids:
         lines.append("(no parent)")
         for node_id in no_parent_ids:
-            _render(node_id, 1, frozenset({node_id}))
+            _render(node_id, 1)
     return "\n".join(lines)
 
 
@@ -1750,6 +1745,15 @@ def _add_query_args(q: argparse.ArgumentParser) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _is_utf8_encodable(value: str) -> bool:
+    """True when *value* encodes as strict UTF-8 (no lone surrogates)."""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
 def run_query(
     root: Path,
     argv: list[str],
@@ -1776,7 +1780,7 @@ def run_query(
         A ``(result, exit_code)`` tuple where ``result`` is a dict on JSON
         operations and a str on text operations, and ``exit_code`` is 0 on
         ``status: ok`` and 1 on ``status: error``.  Exit code 2 is returned
-        for argument-parse failures (result is an empty string).
+        for argument-parse failures, with an empty dict and no envelope.
     """
     lim = {
         "max_intents": _DEFAULT_MAX_INTENTS,
@@ -1792,6 +1796,32 @@ def run_query(
         args = parser.parse_args(argv)
     except SystemExit:
         return {}, 2  # type: ignore[return-value]
+
+    # A caller value that is not valid Unicode (a lone surrogate from a
+    # non-UTF-8 argv byte) cannot be echoed into a UTF-8 response, so it is
+    # refused before anything echoes it, with an escaped echo.
+    raw_values = {
+        name: getattr(args, attr, None)
+        for name, attr in (
+            ("operation", "operation"), ("id", "id"), ("from", "from_id"),
+            ("format", "fmt"), ("selectors", "selectors"),
+        )
+    }
+    raw_values["root"] = str(root)
+    unencodable = sorted(
+        name for name, value in raw_values.items()
+        if isinstance(value, str) and not _is_utf8_encodable(value)
+    )
+    if unencodable:
+        escaped_query = {
+            name: value.encode("utf-8", "backslashreplace").decode("ascii", "backslashreplace")
+            for name, value in raw_values.items()
+            if isinstance(value, str) and value
+        }
+        return _error_response(
+            _envelope(escaped_query, Path(root).resolve()), "invalid_query",
+            "argument is not valid UTF-8: " + ", ".join(unencodable),
+        ), 1
 
     # Build query dict (echoed in the envelope).
     query_dict: dict[str, Any] = {"operation": args.operation}
@@ -1874,8 +1904,14 @@ def run_query(
             "graph derivation module is unavailable"
         ), 1
     except Exception as exc:  # noqa: BLE001
-        code = getattr(exc, "code", "unsafe_input")
-        return _error_response(fallback_env, code, str(exc)), 1
+        if isinstance(exc, graph_mod.DerivationError):
+            return _error_response(fallback_env, exc.code, str(exc)), 1
+        # Anything else is a failure of the derivation itself, not of a file.
+        # It still refuses as `unsafe_input` (the closed code set has no
+        # other home for it) but never echoes the exception's own text.
+        return _error_response(
+            fallback_env, "unsafe_input", "the intent graph could not be derived"
+        ), 1
 
     # Build full envelope now that we have the graph.
     env = _envelope(query_dict, root, graph)
@@ -1886,11 +1922,10 @@ def run_query(
 
     # outstanding requires complete delivery to proceed.
     if operation == "outstanding" and not delivery_snap.get("complete"):
-        df = delivery_field
         return _error_response(
             env, "delivery_incomplete",
             "delivery resolver is incomplete",
-            observed={"available": False, **{k: v for k, v in df.items() if k != "available"}},
+            observed={"reason": delivery_field["reason"], "limit": delivery_field["limit"]},
         ), 1
 
     max_i = lim["max_intents"]
