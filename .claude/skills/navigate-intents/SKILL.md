@@ -134,7 +134,9 @@ ordered by node id. An item carries its parent edge and its ancestor chain up
 to a root, with terminal ancestors marked ``terminal``. A spec carries one
 placement per pointer, each naming the pointer field and, where the delivery
 resolver joins them, its relation type. An intent with no ``Level:`` shows
-level ``unrecorded``.
+level ``unrecorded``. In ``--format text``, a terminal ancestor that places an
+outstanding item prints as a context line ending ``· (terminal ancestor)``; it
+is not itself outstanding.
 
 ``record --id``, ``tree --id``, ``ancestors --id``, and ``outstanding
 --from`` accept a node id (``intent:slug``, ``capability:slug``, etc.), a

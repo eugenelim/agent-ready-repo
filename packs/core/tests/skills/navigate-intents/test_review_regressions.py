@@ -67,10 +67,15 @@ def _outstanding_ids(result: dict) -> list[str]:  # type: ignore[type-arg]
     return [item["id"] for item in result["placed"] + result["no_parent"]]
 
 
+_CONTEXT_MARK = " · (terminal ancestor)"
+
+
 def _text_ids(text: str) -> set[str]:
-    """Every node id printed at the start of an outstanding text line."""
+    """Every outstanding node id printed in text output, leaving out context ancestors."""
     ids = set()
     for line in text.splitlines():
+        if line.endswith(_CONTEXT_MARK):
+            continue
         token = line.strip().split(" · ")[0]
         if _NODE_ID_RE.match(token):
             ids.add(token)
@@ -180,7 +185,38 @@ def test_outstanding_text_prints_item_under_a_terminal_parent(tmp_path: pathlib.
     ))
     lines = _query(root, "--operation", "outstanding", "--format", "text").splitlines()
     parent = next(i for i, ln in enumerate(lines) if ln.startswith("capability:hotel-done "))
+    assert lines[parent].endswith(_CONTEXT_MARK), "a terminal ancestor must be marked"
     assert lines[parent + 1].startswith("  intent:india-open · ")
+    assert not lines[parent + 1].endswith(_CONTEXT_MARK)
+    assert "capability:hotel-done" not in _text_ids("\n".join(lines))
+
+
+def test_discovery_placement_takes_no_type_from_a_brief_based_relation(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A Discovery: placement the resolver keeps as provenance carries no relation type."""
+    root = _copy(_COORDINATED, tmp_path)
+    spec = root / "docs" / "specs" / "alpha-spec" / "spec.md"
+    spec.write_text(
+        spec.read_text(encoding="utf-8").replace(
+            "- **Brief:** brief:alpha-brief",
+            "- **Brief:** brief:alpha-brief\n"
+            "- **Discovery:** [alpha](../../product/intents/FEAT-0001-alpha-feat.md)",
+        ),
+        encoding="utf-8",
+    )
+    relations = [
+        rel for rel in resolver.resolve_repository(root)["relations"]
+        if rel["spec"] == "spec:alpha-spec"
+    ]
+    assert [rel["basis"]["spec"] for rel in relations] == ["Brief"]
+    item = next(
+        i for i in _query(root, "--operation", "outstanding")["placed"]
+        if i["id"] == "spec:alpha-spec"
+    )
+    by_field = {p["pointer_field"]: p for p in item["placements"]}
+    assert by_field["Brief"]["relation_type"] == "coordinated-delivery"
+    assert "relation_type" not in by_field["Discovery"]
 
 
 def test_outstanding_from_text_matches_json() -> None:
@@ -259,6 +295,7 @@ def test_outstanding_brief_item_shows_every_refused_parent_edge() -> None:
         ("https://example.com/x", "unrecognized", "unparseable"),
         ("tbd: later", "unrecognized", "unparseable"),
         ("brief:bravo-delivery", "typed", "out_of_type"),
+        ("docs/product/intents/FEAT-9999-a:b.md", "path", "dangling"),
     ],
 )
 def test_intent_parent_value_form_and_state(
@@ -297,6 +334,27 @@ def test_spec_discovery_with_differing_values_is_one_multiple_values_refusal(
     assert len(edges) == 1 and edges[0]["state"] == "multiple_values"
     assert edges[0]["basis"]["field"] == "Discovery"
     assert edges[0]["basis"]["form"] == "typed"
+
+
+def test_multiple_values_with_differing_forms_is_unrecognized_with_per_value_forms(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Values of different shapes give form `unrecognized`, each value keeping its own form."""
+    root = _copy(_MIXED, tmp_path)
+    spec_dir = root / "docs" / "specs" / "probe-forms"
+    spec_dir.mkdir()
+    (spec_dir / "spec.md").write_text(
+        "# Spec: Probe forms\n\n- **Status:** Draft\n- **Discovery:** intent:bravo-feat\n"
+        "- **Discovery:** docs/product/intents/CAP-0001-alpha-cap.md\n\n## Outcome\n",
+        encoding="utf-8",
+    )
+    edge = next(
+        e for e in ig.derive(root)["edges"]
+        if e["from"] == "spec:probe-forms" and e["field"] == "Discovery"
+    )
+    assert edge["state"] == "multiple_values"
+    assert edge["form"] == edge["basis"]["form"] == "unrecognized"
+    assert [v["form"] for v in edge["basis"]["values"]] == ["typed", "path"]
 
 
 # --- Levels ------------------------------------------------------------------

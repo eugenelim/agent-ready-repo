@@ -93,7 +93,7 @@ python3 scripts/navigate_intents.py query --root <repo> \
 
 ### outstanding
 
-Returns every intent, brief, and spec whose recorded `Status:` is not terminal, placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. The JSON result lists `placed` and `no_parent` items, each ordered by node id; each item carries its ancestor chain to a root, with terminal ancestors marked, and each spec placement names its pointer field and, where one exists, the delivery resolver's relation type. This operation refuses to return a partial list: if any file the derivation reads fails validation, the whole operation fails.
+Returns every intent, brief, and spec whose recorded `Status:` is not terminal, placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. The JSON result lists `placed` and `no_parent` items, each ordered by node id; each item carries its ancestor chain to a root, with terminal ancestors marked, and each spec placement names its pointer field and, where one exists, the delivery resolver's relation type. In text output, a terminal ancestor that places an outstanding item prints as a context line ending `· (terminal ancestor)`; it is not itself outstanding. This operation refuses to return a partial list: if any file the derivation reads fails validation, the whole operation fails.
 
 ```bash
 # All outstanding work:

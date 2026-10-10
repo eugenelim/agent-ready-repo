@@ -211,8 +211,19 @@ row's literal method.
   differ, with each value's form kept in `basis.values`); outstanding JSON
   shows `unrecorded` levels; plain files directly under `docs/specs/` are
   skipped.
-- `test_review_regressions.py` holds one test per finding; 16 of its tests
-  fail against the scripts at `58fda2c49` and pass now. The AC-0002 and
+- `test_review_regressions.py` holds one test per finding. Corrected after
+  round 3: the 16 failures first counted at `58fda2c49` were confounded,
+  because `mixed/docs/specs/README.md` makes every `mixed/` query fail on
+  those scripts. Measured again with that file removed: at `58fda2c49`, the
+  tests for the README, outcome-kind relations, diagnostics, placement
+  relation types, terminal-parent text, `--from` text, JSON ordering,
+  refused ancestor edges, URL and free-text values, Discovery
+  `multiple_values`, and `unrecorded` levels fail. The terminal-ancestor
+  chain, `docs/other/x.md`, `brief:bravo-delivery`, and refused-brief-edge
+  tests pass at `58fda2c49` and fail at `3c84ccdc1`, the pre-round-1 code,
+  so their defects predate round 1. Failures at `3c84ccdc1` are partly
+  confounded by its older outstanding JSON shape, which has no `placed`
+  key. The AC-0002 and
   AC-0035 tests now change one root in place and strip only `generated_at`,
   and AC-0035 compares every operation and both formats. The parity tool has
   a `main()`-level mutation test.
@@ -243,3 +254,22 @@ row's literal method.
   shared form when they all match one shape, and `unrecognized` when they
   differ. The owner also authorised a fourth review round past the cap to
   close the remaining Concerns and Nits.
+
+## Round 3 fixes
+
+- A spec placement takes a resolver relation type only when the relation's
+  `basis.spec` names that placement's pointer field. A terminal ancestor
+  printed as context in outstanding text ends with `· (terminal ancestor)`,
+  and SKILL.md and the guide say so. Only a URL scheme keeps a slash-bearing
+  value out of the path form, so a repository path containing a colon is a
+  `path`. A test pins the owner-approved `multiple_values` form for values
+  of different shapes.
+- Against the scripts at `67d99fe6a`, the placement-type, terminal-marker,
+  and colon-path tests fail and pass now; the differing-form test passes on
+  both, as it pins the behaviour the AC-0071 amendment codifies.
+- navigate-intents suites: 218 passed, 4 skipped.
+- Engine: the first `contract-amendment` call omitted the completed-task
+  evidence bindings and failed validation after preparing its transition
+  marker. The marker now conflicts with every later transition, a replay
+  repeats the failure, and no verb clears it, so the run is wedged at
+  `CODE-IMPLEMENTATION` pending an owner decision on recovery.

@@ -400,22 +400,25 @@ def _delivery_diagnostics_by_intent_id(
 
 def _spec_relation_types(
     snap: dict[str, Any], graph: dict[str, Any]
-) -> dict[tuple[str, str], str]:
-    """Map (spec id, placement parent id) to the resolver relation type.
+) -> dict[tuple[str, str, str], str]:
+    """Map (spec id, pointer field, placement parent id) to the resolver relation type.
 
-    A spec placed under a brief takes the type of the relation naming that
-    brief; a spec placed under an intent takes the type of the relation naming
-    that intent.
+    A relation types a placement only when its ``basis.spec`` names that
+    placement's pointer field, so a ``Discovery:`` placement never takes the
+    type of a relation the resolver built from ``Brief:``. The parent is the
+    relation's brief for a ``Brief:`` basis and its intent otherwise.
     """
-    result: dict[tuple[str, str], str] = {}
+    result: dict[tuple[str, str, str], str] = {}
     for node_id, rels in _delivery_by_intent_id(snap, graph).items():
         for rel in rels:
             spec_id, rel_type = rel.get("spec"), rel.get("type")
-            if not (isinstance(spec_id, str) and isinstance(rel_type, str)):
+            basis = rel.get("basis")
+            field = basis.get("spec") if isinstance(basis, dict) else None
+            if not all(isinstance(v, str) for v in (spec_id, rel_type, field)):
                 continue
-            result.setdefault((spec_id, node_id), rel_type)
-            if isinstance(rel.get("brief"), str):
-                result.setdefault((spec_id, rel["brief"]), rel_type)
+            parent = rel.get("brief") if field == "Brief" else node_id
+            if isinstance(parent, str):
+                result.setdefault((spec_id, field, parent), rel_type)
     return result
 
 
@@ -1373,7 +1376,7 @@ def _build_outstanding_items(
                         "ancestors": ancestors_list,
                         "_in_no_parent": False,
                     }
-                    relation_type = relation_types.get((node_id, parent_id))
+                    relation_type = relation_types.get((node_id, field_name, parent_id))
                     if relation_type is not None:
                         placement["relation_type"] = relation_type
                 else:
@@ -1484,6 +1487,10 @@ def _outstanding_text_line_brief_or_spec(item_id: str, status: str, depth: int) 
     return f"{indent}{item_id} · {_escape_display(status)}"
 
 
+#: Suffix on an outstanding-text line for a terminal ancestor shown as context.
+_CONTEXT_MARK = " · (terminal ancestor)"
+
+
 def _build_outstanding_text(
     items: list[dict[str, Any]],
     graph: dict[str, Any],
@@ -1498,7 +1505,8 @@ def _build_outstanding_text(
     parent; when that parent is not itself an outstanding item (it is
     terminal, or above the ``--from`` start), the parent and its chain up to a
     root, or up to the ``--from`` start, print as context lines so the item
-    keeps its place. The ``(no parent)`` group comes last at depth 0, with its
+    keeps its place; each such line ends with ``· (terminal ancestor)``. The
+    ``(no parent)`` group comes last at depth 0, with its
     items at depth 1. Siblings and roots are ordered by node id, and a spec
     placed by both pointers prints in both places.
     """
@@ -1564,11 +1572,15 @@ def _build_outstanding_text(
         node = node_by_id.get(node_id, {})
         status = (item or node).get("status", "") or ""
         if node.get("type") == "intent":
-            lines.append(_intent_text_line(node, depth))
+            line = _intent_text_line(node, depth)
         else:
-            lines.append(_outstanding_text_line_brief_or_spec(node_id, status, depth))
+            line = _outstanding_text_line_brief_or_spec(node_id, status, depth)
         if item is None:
+            # A context ancestor is terminal: it is shown only to place its
+            # outstanding descendants, and is not itself outstanding.
+            lines.append(line + _CONTEXT_MARK)
             return
+        lines.append(line)
         refused: list[dict[str, Any]] = []
         if item.get("type") == "spec":
             refused = [

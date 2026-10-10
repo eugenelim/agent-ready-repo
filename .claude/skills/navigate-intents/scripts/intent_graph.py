@@ -289,6 +289,10 @@ def _compute_node_id(fields: dict[str, list[str]], slug: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+#: A URL such as ``https://host/x`` is not a repository-relative path.
+_URL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
+
+
 def _is_typed_reference(value: str, resolver: Any) -> bool:
     """True when *value* is ``<artifact-type>:<slug>`` in the typed grammar.
 
@@ -318,8 +322,12 @@ def _value_form_intent_parent(value: str, resolver: Any) -> str:
         return "markdown_link"
     if resolver._SLUG_RE.fullmatch(value):
         return "bare_slug"
-    # A repository-relative path never carries a colon, so a URL is not one.
-    if "/" in value and not value.startswith("/") and "\\" not in value and ":" not in value:
+    if (
+        "/" in value
+        and not value.startswith("/")
+        and "\\" not in value
+        and not _URL_SCHEME_RE.match(value)
+    ):
         return "path"
     return "unrecognized"
 
@@ -359,8 +367,12 @@ def _value_form_generic(value: str, resolver: Any) -> str:
         return "markdown_link"
     if resolver._SLUG_RE.fullmatch(value):
         return "bare_slug"
-    # A repository-relative path never carries a colon, so a URL is not one.
-    if "/" in value and not value.startswith("/") and "\\" not in value and ":" not in value:
+    if (
+        "/" in value
+        and not value.startswith("/")
+        and "\\" not in value
+        and not _URL_SCHEME_RE.match(value)
+    ):
         return "path"
     return "unrecognized"
 
