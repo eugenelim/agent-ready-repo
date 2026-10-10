@@ -28,7 +28,7 @@ This pack is the *Decide what to build* stage. You arrive with a market
 situation or a set of company objectives. You leave with a committed strategy
 artifact in `docs/product/shaping/`. Product Engineering frames the gaps it
 queues as intents, and Experience Design takes its experience and content
-direction from it. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+direction from it. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
 
 ## Tutorials
 - [Run your first SWOT](tutorials/run-your-first-swot.md) — produce one committed strategy artifact end to end.

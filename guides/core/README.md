@@ -22,7 +22,7 @@ bet from Product Engineering, a reviewed design set, a bug report, or a
 sentence you type. `work-intake` sends each one down the right route. You leave
 with a merged change you approved. If your team uses `release-engineering`, the
 merge is where release testing begins, and `close-work` wraps up the work once
-it's done. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+it's done. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
 
 ## Walk the guidebook
 

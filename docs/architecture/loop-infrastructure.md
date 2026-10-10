@@ -31,7 +31,7 @@ downstream in `release-engineering`, each run by its own supervisor agent —
 supervisor rather than a mode of it. They meet at numbered gates: discovery
 hands off at **G3**, and the build hands off to release at **G4**, the point
 where the build is locally done and deploy-ready.
-[The three loops](../../guides/_shared/explanation/the-three-loops.md) is the
+[The three loops](../../guides/_shared/explanation/the-operating-model.md) is the
 guide that reconciles the numbering across all three.
 
 Neither sibling has an engine. `discovery-loop`'s transitions are file edits on

@@ -78,7 +78,7 @@ Agents print them, so the deep layer carries a key that translates each one.
 | --- | --- | --- | --- |
 | 1. Glance | `guides/README.md`, directly under "Start here" | The four lanes as one line of text, each linking to its path | Skills, packs, gates |
 | 2. Locate | Each pack README, near the top | Which lane(s) the pack serves, what it receives, what it hands on, one link up | Other packs' detail |
-| 3. Detail | `guides/_shared/explanation/the-three-loops.md` | An overview graphic at full scale, the full map linked at full size, a step-by-step list, the pack table, and the gate key | Nothing |
+| 3. Detail | `guides/_shared/explanation/the-operating-model.md` | An overview graphic at full scale, the full map linked at full size, a step-by-step list, the pack table, and the gate key | Nothing |
 
 Stage 1 and 2 are plain Markdown text, not images. They must render the same
 on github.com, the docs site, and a chat paste. Only stage 3 uses graphics.
@@ -187,4 +187,4 @@ strip, and no claim a reader can't check against the pack.
 1. The strip and lane tags in `guides/README.md`.
 2. The "Where this fits" marker in the eight lane-owning pack READMEs.
 3. The swimlane, step table, and gate key in
-   `guides/_shared/explanation/the-three-loops.md`.
+   `guides/_shared/explanation/the-operating-model.md`.

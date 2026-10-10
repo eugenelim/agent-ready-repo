@@ -189,4 +189,4 @@ from this record visible to the operating team.
 - [Run a release](../how-to/run-a-release.md) — the condensed how-to for when you know what you're doing.
 - [The release loop explained](../explanation/the-release-loop.md) — the *why* behind the design.
 - [The release-readiness record](../reference/release-readiness-record.md) — the complete field reference.
-- [The three loops as a system](../../_shared/explanation/the-three-loops.md) — how the release loop composes with discovery and build.
+- [The operating model](../../_shared/explanation/the-operating-model.md) — how the release loop composes with discovery and build.
