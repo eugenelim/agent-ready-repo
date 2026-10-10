@@ -53,7 +53,7 @@ a regression case, not an AC-0004 case.
 | Case | Branch | origin/main | Disposition |
 | --- | ---: | ---: | --- |
 | 1 | 4/5 | 4/5 | Pre-existing: same assertion (narrow to load-bearing dependents) |
-| 3 | 3/4 | 4/4 | Pre-existing: the same first assertion failed against origin/main in the earlier record (`docs/specs/code-intelligence-golden-composition-example/notes/eval-runs.md` § Known pre-existing result); branch reruns 3/4, 3/4, R4 3/4 |
+| 3 | 3/4 | 4/4 | Regression against origin/main at `cbcb32d73`: the first assertion failed in all four branch runs and passed on main; returned to T2 by owner decision, 2026-10-10 |
 | 4 | 4/4 | — | Pass |
 | 7 | 3/4 (R3, R4, R5a, R5b) | — | Not gated: the failing hop assertion is new on this branch, so origin/main has no equivalent. Recorded by owner decision, 2026-10-10 |
 | 5 | 2/4 | 2/4 | Pre-existing: same two assertions (wave verdict, sequencing owner) |
@@ -61,7 +61,5 @@ a regression case, not an AC-0004 case.
 | 9 | 3/4 | 3/4 | Pre-existing: empty workspace, no `rank` call |
 
 Case 3's first assertion (observed versus interpretation labels) failed in all
-four branch runs and passed in the single origin/main run. An earlier record
-shows it failing on origin/main too. It is recorded as pre-existing per the
-plan, with this split noted as a possible minor regression unrelated to the
-authority rules.
+four branch runs (R1, two reruns, R4) and passed in the origin/main run. It is
+a regression, not a pre-existing failure, and returns to T2 for a targeted fix.

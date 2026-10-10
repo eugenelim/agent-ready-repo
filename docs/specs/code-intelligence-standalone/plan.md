@@ -222,11 +222,9 @@ installed skill path recorded in the verification ledger.
   changes, run once each. Eval 7's prompt supplies `found: false` and no code,
   so it cannot exercise the never-open rule; its result is recorded, not
   gated. A failure is pre-existing when the same assertion also fails against
-  the `origin/main` skill in any recorded run: this delivery's comparison in
-  `notes/eval-runs.md`, or, for case `3`'s first assertion, the earlier record
-  in `docs/specs/code-intelligence-golden-composition-example/notes/eval-runs.md`
-  § Known pre-existing result. Any other failure, except eval 7's, returns to
-  T2.
+  the `origin/main` skill at `cbcb32d73` (the pack is unchanged on `origin/main`
+  through `b121a0965`) in this delivery's comparison recorded in
+  `notes/eval-runs.md`. Any other failure, except eval 7's, returns to T2.
 
 **Done when:** the pack suite is green, the graded tally in the ledger shows
 4/4 AC-0004 cases passing every assertion, every regression-run failure other
