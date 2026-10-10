@@ -48,6 +48,7 @@ _EVAL_QUERY_FILES = {
     "receive-brief": _SKILLS / "receive-brief" / "evals" / "eval_queries.json",
     "close-work": _SKILLS / "close-work" / "evals" / "eval_queries.json",
     "explain-diff": _SKILLS / "explain-diff" / "evals" / "eval_queries.json",
+    "repository-exploration": _SKILLS / "repository-exploration" / "evals" / "eval_queries.json",
 }
 _FIXTURE_PATHS = {
     "evals/files/routing/start-minimal-intent.json": (

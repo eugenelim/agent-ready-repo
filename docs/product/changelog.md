@@ -64,6 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.0.2] — 2026-10-10
+
+### Highlights
+
+- When `work-loop` plans a rename, removal, or refactor, checks that a fix reaches live code, or when `bug-fix` traces a bad value through its callers, it can now hand that question to `repository-exploration`. That skill uses a code-navigation tool your agent already has when one fits, and otherwise searches the repository.
+- `repository-exploration` now activates when a workflow or a user needs evidence to settle a pending decision, and leaves planning, building, and fixing to the workflow that asked.
+
+### Changed
+
+- `work-loop` PLAN step 5 and its DECIDE execution-path check, and `bug-fix` step 6, name `repository-exploration` as an optional route for caller and dependents evidence. "grep for callers" and "Grep for the same caller" are replaced with tool-neutral wording. No gate, reviewer, or workflow state is added.
+- `repository-exploration`'s description is keyed to a pending decision, drops the trigger wording a code-graph skill uses, and says the calling workflow owns the change.
+- `repository-exploration` gains activation evals and joins the pack's activation-eval allowlist; `repository-exploration`, `work-loop`, and `bug-fix` each gain one decision-bound behavior eval.
+- The consumer-boundary test admits the name `repository-exploration` in `work-loop` and `bug-fix` only inside those three sentences; every provider setup, call, refresh, and fallback phrase ban is unchanged.
+
 ## [core][3.0.1] — 2026-10-09
 
 ### Highlights
