@@ -54,6 +54,8 @@ Infer the mode from the request. Do not require the user to name it.
 
 When a request is ambiguous between create and revise, read the target file first. If it exists and is substantive, treat it as revise. If it is absent or near-empty, treat it as create.
 
+Audit and verify write nothing. They run Steps 2–6, 8, and 15–16, and skip the drafting and destination steps.
+
 ### Step 2 — Discover the product surface
 
 Identify what the product is from repository evidence before choosing any artifact: a library or SDK, CLI, HTTP or RPC API, app, service, plugin, or agent-context pack. A repository can ship several; document each one the reader touches.
@@ -193,7 +195,7 @@ Verify by surface, using the check [`references/surface-discovery.md`](reference
 - Navigation changes: route check
 - Page-layout changes: visual review of the rendered output
 
-Report only checks that ran.
+Report only checks that ran. Read-only checks such as `--help` or a doc-test run are allowed in every mode; when one cannot run, say the claim was checked against source only.
 
 **Audit mode** produces evidence-based findings without editing. Start with the journey gap report: one row per journey stage, in order, each marked `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. Then list page-level findings with file, line, what was found, and the contract it breaks. Edit only if the user asked for edits alongside the audit.
 
@@ -203,7 +205,7 @@ Report only checks that ran.
 
 ### Step 16 — Report
 
-At the end, report:
+At the end, report the following. In audit and verify, these items follow the Step 15 report, and the artifact decision is "none".
 - Mode used and why it was inferred
 - Surface and journey stage
 - Artifact decision (kind, slug, destination)
