@@ -11,7 +11,8 @@ Applies when: body copy, prose, or examples changed without altering navigation,
 Required checks:
 - Link check: every link in the changed file resolves (file exists, or external URL responds).
 - No broken internal references: relative links point to files that exist.
-- Canonical sources verified: product claims match what the skill sources actually say.
+- Canonical sources verified: product claims match what the product's source actually says.
+- Surface checks: the docs match what ships. Run the examples or the repository's doc tests; compare documented commands with `--help` output; compare documented endpoints with the contract file; compare documented settings with the config schema. [`surface-discovery.md`](surface-discovery.md) lists the check for each surface type.
 
 How to run:
 ```bash
@@ -23,11 +24,11 @@ done
 
 ### Level 2 — Navigation changes
 
-Applies when: a new file is added to the guide tree, a file is renamed, or an index/README is updated.
+Applies when: a new file is added to the docs tree, a file is renamed, or an index/README is updated.
 
 Required checks (in addition to Level 1):
-- Guide index updated: if a new guide was added, the parent `README.md` or index links to it.
-- Pack README updated: if the new guide changes the pack's primary entry path, the pack README is updated.
+- Docs index updated: if a new guide was added, the parent index or landing page links to it.
+- README updated: if the new guide changes the product's primary entry path, the README is updated.
 - No orphaned files: every new file is reachable from at least one index or cross-link.
 
 ### Level 3 — Page-layout changes
@@ -35,7 +36,7 @@ Required checks (in addition to Level 1):
 Applies when: section structure, heading hierarchy, or page scaffolding changes (not just prose).
 
 Required checks (in addition to Level 2):
-- Build the docs-site or web locally and inspect the rendered page.
+- Build the docs site with the repository's own command and inspect the rendered page.
 - Heading hierarchy is valid (no skipped levels, no duplicate `#` titles).
 - Table of contents (if auto-generated) renders correctly.
 
@@ -47,7 +48,7 @@ Required checks (in addition to Level 3):
 - All routes that previously existed still resolve (no 404s).
 - Old routes that should redirect do redirect.
 - New routes are accessible.
-- Run `make build` or equivalent; inspect the built output, not just the source.
+- Build the docs site with the repository's own command; inspect the built output, not just the source.
 
 ### Level 5 — Accessibility and responsive behavior
 
@@ -64,9 +65,9 @@ This level is typically out of scope for documentation authoring and is the rend
 
 ## Source-versus-rendered drift
 
-When `web/` or `docs-site/` renders content from `guides/`:
-- The source file is `guides/<pack>/<kind>/<slug>.md`.
-- Editing the rendered output (e.g., a built HTML file or a generated Astro page) does not fix the source.
+When a docs site renders content from source files:
+- The source is the repository's docs build and the source files it reads.
+- Editing the rendered output (for example a built HTML file or a generated page) does not fix the source.
 - Always edit the canonical source and let the build regenerate the rendered output.
 
 Reporting "verified against rendered output" requires that the renderer was actually run. If the renderer was not run, report "verified against source; rendered output not checked" instead.

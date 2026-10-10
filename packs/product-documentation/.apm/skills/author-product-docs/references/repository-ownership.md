@@ -1,94 +1,41 @@
 # Repository ownership
 
-Defines which documentation tree owns which content. The most common documentation bug is writing external product docs to the internal maintainer tree, or the reverse.
+Defines which documentation owns which content, and how to find out in any repository. The most common documentation bug is writing user-facing docs into the maintainer tree, or the reverse.
 
-## The ownership split (this catalogue)
+This skill is portable. It reads the split from the repository and does not impose one.
 
-| Tree | Audience | Ships to adopters? | Owns |
+## The audience split
+
+| Kind of docs | Audience | Ships to users? | Owns |
 |---|---|---|---|
-| `guides/` | **External — catalogue users and pack adopters** | Yes (via docs-site and web/) | Pack guides, user how-tos, tutorials, references, explanations, journey documentation |
-| `docs/guides/` | **Internal — repo maintainers and contributors** | No | Maintainer how-tos (CI workflows, pack authoring, catalogue operations), internal reference |
-| `packs/<pack>/README.md` | **External — pack discoverers and users** | Yes (via plugin manifests and catalogue) | Pack landing page: what it does, how to start, install |
-| `packs/<pack>/DESIGN.md` | **Internal — pack maintainers** | No (stays in pack source) | Architecture decisions, design rationale, maintainer notes |
-| `packs/<pack>/JOURNEY.md` | **External — pack users** | Proposed optional | First-value journey: start-to-finish user flow |
-| `web/` and `docs-site/` | Rendering systems | Consumed from `guides/` | Route generation only — not where new documentation is authored |
+| User-facing | People who install and use the product | Yes | README, installation guide, tutorials, how-tos, reference, explanations, troubleshooting, changelog, migration guides |
+| Maintainer-facing | People who work on the product's source, CI, and releases | No | Contributor workflows, architecture and design records, release procedures, internal runbooks |
 
-**Decision rule:** if the reader is an external user of the catalogue (someone who installed a pack and wants to use it), write in `guides/`. If the reader is a person working inside this repo on the catalogue itself (authoring skills, maintaining packs, operating CI), write in `docs/guides/`.
+The contributing guide is the one bridge: it is linked from the user-facing README and is written for maintainers and new contributors.
 
-When in doubt: would someone following the public install guide ever need this? If yes → `guides/`. If it requires repo access and context → `docs/guides/`.
+## Discover the trees
 
----
+Look in this order and stop when the answer is clear:
 
-## This catalogue's guide structure
+1. The agent-guidance documentation map, such as `AGENTS.md` or `CLAUDE.md`, if it says where each kind of doc lives.
+2. `CONTRIBUTING`, the README's docs section, or other written conventions.
+3. The docs-site configuration: what content directory the docs build reads.
+4. The existing layout: where pages of the same kind and audience already sit.
 
-External guides in `guides/` are organized by pack:
+If none of these settles it and the location would change the artifact, ask once.
 
-```
-guides/
-  <pack-name>/
-    README.md          ← guide index for this pack
-    tutorials/
-    how-to/
-    reference/
-    explanation/
-  _shared/
-    tutorials/         ← cross-cutting user guides
-    how-to/
-    reference/
-    explanation/
-```
+## Decision rule
 
-Internal guides in `docs/guides/` use a flat structure:
+Would someone following the public install guide ever need this? If yes, it is user-facing. If it needs repository access and context, such as CI, release steps, or internal design, it is maintainer-facing.
 
-```
-docs/guides/
-  how-to/              ← maintainer how-tos
-  reference/           ← internal reference
-  explanation/         ← internal explanations
-```
+## Machine facts and human description
 
-Neither structure is mandatory for adopter repositories. See the adopter layout section below.
+A manifest (`package.json`, `pyproject.toml`, `Cargo.toml`, a plugin or pack manifest) owns machine facts: name, version, scope, dependencies, supported runtimes. The README owns the human description: what the product does and how to start. When they diverge, the manifest wins for machine facts. Do not repeat a version or dependency in prose where it can go stale.
 
----
+## Generated and rendered output
 
-## Pack README and DESIGN ownership
+Generated or rendered output is never edited. That includes built sites, generated API reference, and projections copied from a source. An edit there does not change the source and the next build overwrites it. Find the source the docs build reads, edit that, and let the build regenerate the output.
 
-`packs/<pack>/README.md` is the **canonical pack landing and discovery document**. It is the source of truth for the pack's human-facing description; the `pack.toml` is the source of truth for machine facts (version, scope, dependencies).
+## Destination order
 
-When both exist and diverge, `pack.toml` is authoritative for machine facts. Do not duplicate version numbers, scope, or dependency declarations in `README.md` when they can go stale.
-
-`packs/<pack>/DESIGN.md` is the **maintainer design record**. This skill reads it during audit and verify modes for architecture claims. It does not author `DESIGN.md` by default; maintainers own that file.
-
----
-
-## Journey ownership (proposed)
-
-`packs/<pack>/JOURNEY.md` is reserved as the optional first-value journey. The concept and ownership boundary are established but the convention is not yet fully enforced. Create a journey file when:
-
-- The pack has a clear first-value sequence (step-by-step from installation to the first meaningful outcome)
-- The journey is not already documented well in the pack README
-- The journey needs to be referenced by the docs-site or web renderer
-
-Do not migrate existing journey content from other locations in this phase.
-
----
-
-## Rendered output (do not edit directly)
-
-`web/` and `docs-site/` are rendering systems. Their output is generated from canonical sources in `guides/` and `packs/`. Editing a generated file does not change the canonical content and the edit will be overwritten on the next build.
-
-The canonical source for a pack page is `web/src/content/packs/<pack>.md` (Astro content collection). The canonical source for guide pages is the file in `guides/<pack>/`. Edit those; let the build render the output.
-
----
-
-## Adopter repositories (portable use)
-
-This skill is portable. When running in an adopter repository (not the agent-ready-repo catalogue), do not impose the `guides/` + `docs/guides/` split.
-
-Instead:
-1. **Inspect** the host repo's existing documentation structure before writing anything.
-2. **Ask once** if the structure is absent and the destination affects the artifact type.
-3. **Write to the structure the repo already uses.**
-4. Describe the ownership concept (user-facing vs. maintainer-facing) rather than prescribing specific paths.
-
-An adopter that uses `docs/` for everything and `src/docs/` for API docs has a valid layout. Don't override it with this catalogue's conventions.
+Resolve where an artifact goes in the same order as Step 10 of the skill: the destination the user named, then the repository's documentation map, then the existing layout, then one question. Write to the structure the repository already uses. A repository that keeps all docs in `docs/` and API docs in `src/docs/` has a valid layout.
