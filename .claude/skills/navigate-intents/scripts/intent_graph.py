@@ -87,7 +87,7 @@ def _get_file_safety() -> Any:
         raise ImportError("required helper unavailable: _file_safety.py") from exc
     if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
         raise ImportError("required helper is not a regular file: _file_safety.py")
-    name = "core_navigate_intents_file_safety"
+    name = f"core_{_SCRIPT_DIR.parent.name.replace('-', '_')}_file_safety"
     if name in sys.modules:
         _file_safety_mod = sys.modules[name]
         return _file_safety_mod
@@ -141,7 +141,7 @@ def _get_resolver() -> Any:
         raise ImportError(
             "required helper is not a regular file: intent_delivery_relations.py"
         )
-    name = "core_navigate_intents_resolver"
+    name = f"core_{_SCRIPT_DIR.parent.name.replace('-', '_')}_resolver"
     if name in sys.modules:
         _resolver_mod = sys.modules[name]
         return _resolver_mod

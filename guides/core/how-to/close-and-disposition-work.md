@@ -62,7 +62,7 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 | **not-eligible** | At least one descendant in the full closure remains in a non-terminal state; each live descendant is named with its current state | Wait for the named descendants to complete, or close them first, then re-run closeout |
 | **eligible** | Every descendant in the full closure is terminal; an evidence packet is presented with the date, ratified decomposition, and each descendant's final state | Confirm the closure by supplying your name and the evidence you reviewed |
 
-**Delivery codes that `close-work` can name:**
+**Refusal reasons that `close-work` can name:**
 
 - `delivery-resolver-unavailable` — The skill-local resolver is absent, failed, or returned an incomplete snapshot. To fix an absent resolver, reinstall or upgrade Core so the resolver script (`intent_delivery_relations.py` inside the `close-work` skill's `scripts/` folder) is present. To diagnose an incomplete snapshot, run `python3 <path-to-close-work-scripts>/intent_delivery_relations.py --root .` directly. Two outcomes: if `diagnostics` holds `delivery-resource-limit`, its `limit` and `root` name the exceeded budget and folder; if `diagnostics` is empty and the exit code is 1, an unsafe entry such as a link, special file, or non-UTF-8 file exists under `docs/specs/`, `docs/product/intents/`, or `docs/product/briefs/`.
 - `delivery-target-missing` — Either no spec (for a `spec`-route feature) or brief (for a `brief`-route feature) names this feature — add a `Discovery: intent:<slug>` field to a spec, or a `Parent intent: intent:<slug>` field to a brief; or a spec's `Discovery:` or `Brief:` value names an intent or brief that does not exist — correct that value.
@@ -72,6 +72,17 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 - `delivery-reference-unsafe` — A delivery field contains an absolute path or a `..` traversal. Use the safe typed form for the affected field: spec `Discovery:` takes `intent:<slug>`; spec `Brief:` takes `brief:<slug>`; brief `Parent intent:` takes `<kind>:<slug>` where `<kind>` is one of `outcome`, `opportunity`, `capability`, or `intent`.
 
 When the broken field belongs to a spec or brief rather than to the feature itself, `close-work` refuses every feature that artifact could belong to and names the code. Fix that artifact's field, then re-run closeout.
+
+`close-work` builds the intent tree by reading every `Parent intent:` line, using a script bundled with it. Three of the reasons below come from that step.
+
+- `intent-graph-unavailable: <code>` — The bundled script could not build the tree. For any code except `copy-unavailable`, run `navigate-intents` to find what is at fault: its error usually names the file, folder, or duplicate slug. The code says what to do:
+  - `copy-unavailable`: the bundled script is missing or failed to load. Reinstall or upgrade Core.
+  - `input_too_large`: an intent, brief, or spec file is over the size limit. Shorten or split it.
+  - `unsafe_input`: a link, special file, or file outside the folder sits among the intents, briefs, or specs. Replace it with a regular file.
+  - `malformed_record`: a file has no valid `Slug:` line or is not UTF-8. Add or fix `Slug:`, or re-save the file as UTF-8.
+  - `duplicate_identity`: two files share a slug. Give one of them a new slug.
+- `parent-edge-refused` — A `Parent intent:` line that bears on the decision is broken. It may have the wrong kind prefix, hold two values, form a cycle, name a missing or retired target, or not be readable as a parent reference at all. A retired intent is one kept only as a placeholder after it was replaced. The broken line can be on the artifact being closed, on one of its ancestors, or on any intent that names this intent as its parent. Run `navigate-intents` and ask for the text tree: it shows each broken parent link as a `! refused <state>` line under its intent. When the broken line is on a brief, the text tree does not show it. The outstanding view shows a brief's broken link unless the brief's status is `Shipped`, `Withdrawn`, or `Cancelled`. For a brief with one of those statuses, open the brief file and check its `Parent intent:` line. Fix that line.
+- `artifact-not-in-graph` — `close-work` cannot find an artifact in the tree. There are two causes. The brief or intent being closed has no file under `docs/product/briefs/` or `docs/product/intents/` whose `Slug:` matches: fix the slug or move the file. Or a spec's `Discovery:` names an intent that no longer exists: point it at the current intent.
 
 ## Choose the immediate disposition
 

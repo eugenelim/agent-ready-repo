@@ -494,9 +494,9 @@ Three co-located helper copies ride alongside the derivation:
 - **`_file_safety.py`** — byte-identical copy of `packs/core/.apm/adapter-root-bins/_file_safety.py`. Both are pinned byte-identical by the same test. The derivation and the delivery resolver both read files through this helper; no second confinement copy ships.
 - **`intent_terminality.py`** — a parity-checked copy of the leading-word terminality rule and terminal sets from `close-work`. `tools/check_closure_terminality_parity.py` checks its intent terminal set against the lifecycle intent's Terminal column, its brief terminality against `brief_shape.BRIEF_TRANSITIONS`, and its spec terminal subset against `closure_terminality.py` directly, failing on any difference in either direction (a status only the navigator copy marks terminal also fails).
 
-The `navigate-intents` query script (`navigate_intents.py`) is the current consumer of this derivation. A later convergence of `close-work` onto the same derivation is planned; when it ships, `close-work` will load a byte-identical copy of `intent_graph.py` rather than its own graph-building code.
+The `navigate-intents` query script (`navigate_intents.py`) consumes this derivation. `close-work` loads a byte-identical copy at `close-work/scripts/intent_graph.py`, pinned by `test_intent_delivery_relations_copies.py`, for its ancestor walk and its `children` arm. It holds no second parent-edge parser, and `tools/check_closure_terminality_parity.py` pins the parent kinds the derivation reads.
 
-**Alternative considered:** housing the derivation in `adapter-root-bins/` alongside the delivery resolver and file-safety helpers. Rejected because `adapter-root-bins/` is for helpers that adopter bins call directly; no adopter bin consumes the graph derivation. The source lives in the skill that first ships it, and a byte-identical copy rides into `close-work` when that convergence lands.
+**Alternative considered:** housing the derivation in `adapter-root-bins/` alongside the delivery resolver and file-safety helpers. Rejected because `adapter-root-bins/` is for helpers that adopter bins call directly; no adopter bin consumes the graph derivation. The source lives in the skill that first ships it, and a byte-identical copy rides into `close-work`.
 
 ### Why workspace.toml and not a tasks file or issue tracker (2026-06-xx)
 

@@ -70,12 +70,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - See every outstanding intent, brief, and spec placed under its parent intent, without opening files one by one and without `workspace.toml`. The new `navigate-intents` skill derives the intent graph from preamble headers each time it is asked and writes nothing back.
 - Walk the intent tree by level, parent, children, and recorded status. One broken parent link no longer hides the rest of the tree — it shows as a flagged line naming what is wrong. An incomplete outstanding-work list is refused rather than returned silently.
+- `close-work` now checks every intent ancestor that an artifact's parent pointers record, including capability, outcome, and opportunity parents. `close-work` and `navigate-intents` now agree on every parent link.
+- When an intent and a brief (or spec) share a slug, both now count, so a parent can no longer look ready to close while one of them is still open.
+- A broken parent pointer or a fault while building the intent tree now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
 
 ### Added
 
 - A `navigate-intents` skill with a bundled query script. Its operations are `summary`, `record`, `tree`, `ancestors`, `search`, and `outstanding`, each returning a versioned JSON envelope with a closed set of error codes. `tree` and `outstanding` also print a text tree with control characters escaped.
 - Results stay bounded: a `tree` result over its limit is refused with `--depth` as the narrowing route; an `outstanding` result is refused with `--from`. `search` and `ancestors` refuse with the exceeded limit and name no bounded route. No result is truncated.
 - The skill reads every file through a co-located confinement helper, shows the delivery resolver's typed relations and diagnostics with each intent, and decides what is outstanding by the same leading-word terminality rule as `close-work`. A parity check keeps that rule in step with its sources.
+
+### Changed
+
+- `close-work` loads a byte-identical copy of the intent-edge derivation and drops its own parent-pointer parser. The parity tool now pins the parent kinds the derivation reads.
+
+### Fixed
+
+- Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
 
 ## [core][3.0.2] — 2026-10-10
 

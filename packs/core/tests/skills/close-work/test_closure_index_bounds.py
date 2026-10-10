@@ -4,7 +4,7 @@ Covers AC-0023, AC-0024, AC-0025, and AC-0037 of
 ``docs/specs/closure-eligibility-check/``.
 
 Verification mode: goal-based check. Each test runs the implementation with
-an injected reader or dir_lister, asserts the bound, and records the measured
+an injected reader, asserts the bound, and records the measured
 numbers in ``notes/verification-ledger.md`` (done once via the standalone
 ``record_measurements()`` call at the bottom of this module).
 
@@ -15,10 +15,9 @@ which is exactly the bug this exists to catch. The diamond fixture creates a
 scenario where one file is in the candidate set of two separate collection
 scans; the visited/field-cache mechanism ensures only one physical read.
 
-**AC-0025** — only named collection directories are passed to dir_lister.
-Asserted via a directory-access recorder: a fixture where the terminus names
-one collection (``children`` → intents) while another (briefs) exists verifies
-that the briefs directory is never listed.
+**AC-0025** — the derivation runs only for a ``children`` terminus.
+Asserted with a counting graph provider: a ``children`` decision runs the
+derivation exactly once, and a ``brief`` decision runs it zero times.
 
 **AC-0037** — total reader calls never exceed the summed size of the named
 collections, asserted on the collection-scaling fixture: a four-member closure
@@ -37,7 +36,7 @@ import os
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any, Callable
 
 import pytest
 
@@ -66,6 +65,15 @@ def _load(name: str):
 
 
 ci = _load("closure_index")
+
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__bounds",
+    Path(__file__).resolve().parent / "closure_graph_fixture.py",
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__bounds"] = _fx
+_fx_spec.loader.exec_module(_fx)
 
 # ── Snapshot helpers for _snapshot_provider injection ─────────────────────────
 
@@ -191,14 +199,12 @@ class FakeFS:
 
     ``files``: maps absolute path strings to file content.
     ``read_counter``: Counter tracking reader call counts per path.
-    ``accessed_dirs``: set of directory paths passed to dir_lister.
     ``write_attempted``: flag raised by the write-raising double.
     """
 
     def __init__(self, files: dict[str, str]):
         self.files = files
         self.read_counter: Counter[str] = Counter()
-        self.accessed_dirs: set[str] = set()
         self.write_attempted: bool = False
 
     def reader(self, path: Path) -> str:
@@ -215,30 +221,6 @@ class FakeFS:
         # indirectly: this reader is paired with an env snapshot assertion).
         return self.reader(path)
 
-    def dir_lister(self, d: Path) -> Iterable[Path]:
-        """Mirror ``_default_dir_lister``: flat ``.md`` plus ``*/spec.md``.
-
-        A lister that returns only depth-1 paths cannot find specs, because
-        specs live at ``docs/specs/<slug>/spec.md`` (one subdirectory deep).
-        The original flat-only filter matched the HEAD convention (specs carried
-        a ``Slug:`` field and were stored flat) but diverged once ``_spec_slug``
-        made the directory name authoritative. Updated here to match the shipped
-        layout so the fixture behaviour agrees with the production path.
-        """
-        key = str(d)
-        self.accessed_dirs.add(key)
-        prefix = key + "/"
-        out: list[Path] = []
-        for p in self.files:
-            if not p.startswith(prefix):
-                continue
-            rest = p[len(prefix):]
-            if "/" not in rest or (rest.count("/") == 1 and rest.endswith("/spec.md")):
-                # Flat ``.md`` directly in directory, or spec nested one level
-                # deep as ``<slug>/spec.md``, matching ``_default_dir_lister``.
-                out.append(Path(p))
-        return sorted(out)
-
 
 def _build(
     fs: FakeFS,
@@ -246,14 +228,15 @@ def _build(
     ancestor_terminus: str,
     reader: Callable | None = None,
     snapshot_provider: Callable | None = None,
+    graph_provider: Callable | None = None,
 ) -> dict:
     return ci._build_descendant_closure(
         ancestor_slug,
         ancestor_terminus,
         ROOT,
         _reader=reader or fs.reader,
-        _dir_lister=fs.dir_lister,
         _snapshot_provider=snapshot_provider,
+        _graph_provider=graph_provider or _fx.graph_provider_from_files(fs.files, ROOT),
     )
 
 
@@ -379,10 +362,10 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
     result = _build(fs, a_slug, "children", snapshot_provider=lambda _r: snap)
 
     # B, C, S_B, and S_C should all be in the result.
-    assert b_slug in result
-    assert c_slug in result
-    assert s_b_slug in result
-    assert s_c_slug in result
+    assert ("intent", b_slug) in result
+    assert ("intent", c_slug) in result
+    assert ("spec", s_b_slug) in result
+    assert ("spec", s_c_slug) in result
 
     # SHARED is not in any snapshot relation, so it is never opened (0 reads).
     assert fs.read_counter[str(SPECS_DIR / shared_slug / "spec.md")] <= 1, (
@@ -404,39 +387,45 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
 # ── AC-0025: only named collection directories are accessed ──────────────────
 
 
-def test_ac0025_children_terminus_never_opens_briefs_or_specs() -> None:
-    """A ``children`` terminus opens only the intents directory (AC-0025).
+def test_ac0025_children_terminus_runs_derivation_once_brief_terminus_never() -> None:
+    """The derivation runs once for a ``children`` terminus, never for ``brief``.
 
-    The fixture has files in both the intents and the briefs directories.
-    Only the intents directory should appear in the dir_lister access log.
+    A counting graph provider is the positive control: it must report exactly
+    one call for the children decision and none for a brief-terminus decision.
     """
     a_slug = "root-intent"
     b_slug = "child-intent"
+    br_slug = "child-brief"
     files = {
         str(INTENTS_DIR / f"{a_slug}.md"): _intent(a_slug, decomposed="children"),
         str(INTENTS_DIR / f"{b_slug}.md"): _intent(b_slug, parent=a_slug),
-        # These should NOT be accessed.
-        str(BRIEFS_DIR / "unrelated-brief.md"): _brief("unrelated-brief"),
-        str(SPECS_DIR / "unrelated-spec.md"): _spec("unrelated-spec"),
+        str(BRIEFS_DIR / f"{br_slug}.md"): _brief(br_slug, parent=a_slug),
     }
-    fs = FakeFS(files)
-    _build(fs, a_slug, "children")
+    real = _fx.graph_provider_from_files(files, ROOT)
+    calls: list[int] = []
 
-    assert str(INTENTS_DIR) in fs.accessed_dirs, "intents dir should be accessed"
-    assert str(BRIEFS_DIR) not in fs.accessed_dirs, (
-        "briefs dir must not be accessed for 'children' terminus"
+    def counting(root: Path):
+        calls.append(1)
+        return real(root)
+
+    result = _build(FakeFS(files), a_slug, "children", graph_provider=counting)
+    assert len(calls) == 1, f"children terminus must run the derivation once, got {len(calls)}"
+    assert ("intent", b_slug) in result
+
+    calls.clear()
+    snap = _snapshot(relations=[_coord(a_slug, br_slug, "child-spec")])
+    _build(
+        FakeFS(files), a_slug, "brief",
+        snapshot_provider=lambda _r: snap, graph_provider=counting,
     )
-    assert str(SPECS_DIR) not in fs.accessed_dirs, (
-        "specs dir must not be accessed for 'children' terminus"
-    )
+    assert calls == [], "brief terminus must not run the derivation"
 
 
-def test_ac0025_brief_terminus_opens_briefs_and_specs_not_intents() -> None:
-    """A ``brief`` terminus enumerates no collection directories (AC-0025).
+def test_brief_terminus_finds_snapshot_descendants() -> None:
+    """A ``brief`` terminus finds its brief and spec through the snapshot.
 
     Delivery termini (``brief`` and ``spec``) now read only the specific files
-    named in the canonical snapshot, never calling dir_lister on any collection.
-    The intents directory must still never appear in the dir_lister access log.
+    named in the canonical snapshot.
     The brief and spec ARE found (via snapshot), but via targeted reads, not
     collection scans.
     """
@@ -453,28 +442,18 @@ def test_ac0025_brief_terminus_opens_briefs_and_specs_not_intents() -> None:
     fs = FakeFS(files)
     result = _build(fs, a_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    # Delivery terminus reads specific files; no collection directory is listed.
-    assert str(BRIEFS_DIR) not in fs.accessed_dirs, (
-        "brief terminus: snapshot-based delivery reads files directly, not via dir_lister"
-    )
-    assert str(SPECS_DIR) not in fs.accessed_dirs, (
-        "brief terminus: specs read directly from snapshot relation, not via dir_lister"
-    )
-    assert str(INTENTS_DIR) not in fs.accessed_dirs, (
-        "intents dir must not be accessed for 'brief' terminus"
-    )
     # Verify descendants are found via targeted reads.
-    assert br_slug in result, "brief must be found via snapshot"
-    assert sp_slug in result, "spec must be found via snapshot"
+    assert ("brief", br_slug) in result, "brief must be found via snapshot"
+    assert ("spec", sp_slug) in result, "spec must be found via snapshot"
 
 
-def test_ac0025_spec_terminus_opens_only_specs_directory() -> None:
-    """A ``spec`` terminus enumerates no collection directories (AC-0025).
+def test_spec_terminus_finds_snapshot_descendant() -> None:
+    """A ``spec`` terminus finds its spec through the snapshot.
 
     Delivery termini (``spec`` and ``brief``) now read only the specific files
-    named in the canonical snapshot, never calling dir_lister on any collection.
+    named in the canonical snapshot.
     The spec IS found (via snapshot), but via a targeted read, not a collection
-    scan. No directory appears in the dir_lister access log.
+    scan.
     """
     a_slug = "root-intent"
     sp_slug = "child-spec"
@@ -487,18 +466,8 @@ def test_ac0025_spec_terminus_opens_only_specs_directory() -> None:
     fs = FakeFS(files)
     result = _build(fs, a_slug, "spec", snapshot_provider=lambda _r: snap)
 
-    # Delivery terminus reads specific files; no collection directory is listed.
-    assert str(SPECS_DIR) not in fs.accessed_dirs, (
-        "spec terminus: snapshot-based delivery reads files directly, not via dir_lister"
-    )
-    assert str(BRIEFS_DIR) not in fs.accessed_dirs, (
-        "briefs dir must not be accessed for 'spec' terminus"
-    )
-    assert str(INTENTS_DIR) not in fs.accessed_dirs, (
-        "intents dir must not be opened as a collection for 'spec' terminus"
-    )
     # Verify the spec is found via targeted read.
-    assert sp_slug in result, "spec must be found via snapshot"
+    assert ("spec", sp_slug) in result, "spec must be found via snapshot"
 
 
 # ── AC-0037: reads bounded by collection size ─────────────────────────────────
@@ -555,11 +524,15 @@ def test_ac0037_reads_bounded_by_collection_size(collection_size: int) -> None:
     # Four closure members should be found.
     assert len(result) == 4, f"expected 4 closure members, got {len(result)}"
 
+    # close-work's own reader opens only artifacts it adds to the descendant
+    # set, so reads track the closure, not the collection.
     total_reads = sum(fs.read_counter.values())
-    assert total_reads <= collection_size, (
+    assert total_reads == 4 <= collection_size, (
         f"collection_size={collection_size}: total reads {total_reads} "
-        f"exceed collection size (closure has only 4 members)"
+        f"should equal the 4-member closure"
     )
+    descendant_paths = {str(ROOT / f"docs/product/intents/{r.slug}.md") for r in result.values()}
+    assert set(fs.read_counter) == descendant_paths
 
     # Also assert the per-artifact maximum (AC-0024 compatibility).
     assert _max_reads(fs) == 1, (
@@ -605,7 +578,6 @@ def test_ac0023_write_raising_reader_raises_nothing() -> None:
         str(INTENTS_DIR / f"{a_slug}.md"): _intent(a_slug, decomposed="children"),
         str(INTENTS_DIR / f"{b_slug}.md"): _intent(b_slug, parent=a_slug),
     }
-    fs = FakeFS(files)
 
     writes_attempted: list[Path] = []
 
@@ -626,22 +598,22 @@ def test_ac0023_write_raising_reader_raises_nothing() -> None:
         "children",
         ROOT,
         _reader=write_raising_reader,
-        _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(files, ROOT),
     )
 
     assert writes_attempted == [], (
         f"reader was called for unexpected paths (possible write attempt): "
         f"{writes_attempted}"
     )
-    assert b_slug in result, "expected descendant was not found"
+    assert ("intent", b_slug) in result, "expected descendant was not found"
 
 
 def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> None:
-    """``_default_reader`` and ``_default_dir_lister`` both run against real files.
+    """``_default_reader`` runs against real files.
 
     Every other test injects seams, so the default implementations are never
-    exercised under test; this case closes that gap. No ``_reader`` or
-    ``_dir_lister`` is passed; the module's defaults handle all I/O.
+    exercised under test; this case closes that gap. No ``_reader`` is
+    passed; the module's defaults handle all I/O.
 
     Three collection layouts are covered in one call using the ``brief``
     terminus, which accesses both the briefs collection (flat ``.md``) and the
@@ -685,7 +657,7 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
         _spec(spec_slug, brief=brief_slug), encoding="utf-8"
     )
 
-    # _-prefixed brief file: should be excluded by _default_dir_lister.
+    # _-prefixed brief file: is not a descendant.
     (briefs_dir / "_internal-brief.md").write_text(
         _brief("internal-brief", parent=ancestor_slug), encoding="utf-8"
     )
@@ -707,7 +679,7 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
 
     # ── Case 1: brief terminus — exercises real reader seam ──────────────────
     # The brief terminus now uses the canonical snapshot for membership; inject
-    # a snapshot provider while keeping no _reader or _dir_lister (both defaults
+    # a snapshot provider while keeping no _reader (the default
     # still run for any children-terminus calls and for the spec file reads).
     # The snapshot includes only non-_-prefixed artifacts, mirroring what the
     # real resolver would produce.
@@ -716,22 +688,22 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
         ancestor_slug,
         "brief",
         tmp_path,
-        # No _reader or _dir_lister: defaults run against the real tree.
+        # No _reader: the default runs against the real tree.
         _snapshot_provider=lambda _r: snap_brief,
     )
 
-    assert brief_slug in result_brief, (
+    assert ("brief", brief_slug) in result_brief, (
         "brief terminus: brief must be found via snapshot + default reader"
     )
-    assert spec_slug in result_brief, (
+    assert ("spec", spec_slug) in result_brief, (
         "brief terminus: spec must be found via snapshot + default reader"
     )
-    # Artifacts not in the snapshot are excluded regardless of what dir_lister
+    # Artifacts not in the snapshot are excluded regardless of what the derivation
     # would return; _-prefixed exclusion is the resolver's responsibility.
-    assert "internal-brief" not in result_brief, (
+    assert ("brief", "internal-brief") not in result_brief, (
         "_-prefixed brief not in snapshot must not appear"
     )
-    assert "hidden-spec" not in result_brief, (
+    assert ("spec", "hidden-spec") not in result_brief, (
         "_-prefixed spec not in snapshot must not appear"
     )
 
@@ -744,15 +716,15 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
         ancestor_slug,
         "children",
         tmp_path,
-        # No _reader or _dir_lister: both defaults run against the real tree.
+        # No _reader: the default runs against the real tree.
     )
 
-    assert child_intent_slug in result_children, (
-        "_default_dir_lister should find flat .md files in the intents directory"
+    assert ("intent", child_intent_slug) in result_children, (
+        "the derivation should find flat .md files in the intents directory"
     )
     # _-prefixed intent file excluded.
-    assert "private-intent" not in result_children, (
-        "_-prefixed intent file must be excluded by _default_dir_lister"
+    assert ("intent", "private-intent") not in result_children, (
+        "_-prefixed intent file must be excluded by the derivation"
     )
 
 
@@ -885,8 +857,8 @@ def test_confinement_symlink_outside_root_contributes_no_edge(
 
     # The spec is found via the snapshot relation but its file is unreadable
     # (symlink rejected by the confined reader), so Status is empty.
-    assert spec_slug in result, "spec named in snapshot must appear in result"
-    assert result[spec_slug].status == "", (
+    assert ("spec", spec_slug) in result, "spec named in snapshot must appear in result"
+    assert result[("spec", spec_slug)].status == "", (
         "symlinked spec file must be unreadable; Status should be empty"
     )
 
@@ -926,6 +898,6 @@ def test_confinement_valid_discovery_within_root_resolves_correctly(
         ancestor_slug, "spec", root, _snapshot_provider=lambda _r: snap
     )
 
-    assert spec_slug in result, (
+    assert ("spec", spec_slug) in result, (
         "a spec named in the snapshot must be found via the confined reader"
     )

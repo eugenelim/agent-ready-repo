@@ -7,8 +7,8 @@ the caller-enumeration guard (AC-0026).
 
 Two failure shapes avoided here:
 1. Green suite over a dead branch: the differential tests (AC-0016, AC-0017)
-   use ``tmp_path`` with no injected seams, so ``_make_confined_reader`` and
-   ``_default_dir_lister`` run against real on-disk files.
+   use ``tmp_path`` with no injected seams, so ``_make_confined_reader`` runs
+   against real on-disk files.
 2. A differential that does not discriminate: both AC-0016 (eligible) and
    AC-0017 (not-eligible) are asserted through the same entry point on copies
    of the same fixture, so the test fails if the branch does not exist or does
@@ -333,6 +333,11 @@ def test_ac0002_intent_parent_intent_resolves_ancestor(tmp_path: Path) -> None:
         "Status": "Accepted",
         "Parent intent": f"intent:{parent_slug}",
     }
+    (intents_dir / "child-intent.md").write_text(
+        f"- **Slug:** {child_slug}\n"
+        f"- **Status:** Accepted\n"
+        f"- **Parent intent:** intent:{parent_slug}\n"
+    )
     ancestors = ci.resolve_intent_ancestors(child_slug, "intent", child_fields, tmp_path)
     assert len(ancestors) == 1
     assert ancestors[0][0] == parent_slug
@@ -355,6 +360,13 @@ def test_ac0002_brief_parent_intent_resolves_ancestor(tmp_path: Path) -> None:
         "Status": "Executing",
         "Parent intent": f"intent:{parent_slug}",
     }
+    briefs_dir = tmp_path / "docs" / "product" / "briefs"
+    briefs_dir.mkdir(parents=True)
+    (briefs_dir / "my-brief.md").write_text(
+        f"- **Slug:** {brief_slug}\n"
+        f"- **Status:** Executing\n"
+        f"- **Parent intent:** intent:{parent_slug}\n"
+    )
     ancestors = ci.resolve_intent_ancestors(brief_slug, "brief", brief_fields, tmp_path)
     assert len(ancestors) == 1
     assert ancestors[0][0] == parent_slug

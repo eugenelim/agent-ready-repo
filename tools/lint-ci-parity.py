@@ -678,6 +678,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest visual-authority supersession (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest close-work graph-convergence supersession (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest delivery contract bundle (roster-owned)":
         LOCAL("test-after-build-check"),
     # AC-0014 Slice 1 guard: asserts code registry and doc matrix agree on
@@ -1041,6 +1043,7 @@ _GATE_MAIN_CHECKS = (
     "pytest visual-target release surface (roster-owned)",
     "pytest visual-target exclusive property (roster-owned)",
     "pytest visual-authority supersession (roster-owned)",
+    "pytest close-work graph-convergence supersession (roster-owned)",
     "pytest delivery contract bundle (roster-owned)",
     "pytest content-safety boundary matrix (roster-owned)",
     "pytest security-primitives schema parity (roster-owned)",

@@ -32,6 +32,7 @@ protected = [
   "docs/specs/catalogue-sync-apply",
   "docs/specs/catalogue-sync-dry-run",
   "docs/specs/checkable-adr-metadata",
+  "docs/specs/closure-eligibility-check",
   "docs/specs/child",
   "docs/specs/childb",
   "docs/specs/chosen",

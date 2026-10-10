@@ -201,6 +201,14 @@ def test_vi1904_only_canonical_delivery_inverter_exists() -> None:
             f"VI-1904: {skill_copy.relative_to(apm_root)} is not byte-identical to source"
         )
 
+    # Byte identity: the two intent_graph.py copies match each other.
+    assert (
+        _CLOSE_WORK_SCRIPTS / "intent_graph.py"
+    ).read_bytes() == (_NAVIGATE_INTENTS_SCRIPTS / "intent_graph.py").read_bytes(), (
+        "AC-0001: close-work/scripts/intent_graph.py is not byte-identical to "
+        "navigate-intents/scripts/intent_graph.py"
+    )
+
     # ── Assertion 2: Each consumer locates resolver beside its own file ────────
     closure_src = _CLOSURE_INDEX.read_text(encoding="utf-8")
     lint_src = _LINT_TRACEABILITY.read_text(encoding="utf-8")

@@ -66,6 +66,15 @@ def _load(name: str, key: str, directory: Path | None = None) -> object:
 
 
 ci = _load("closure_index", "closure_index__packet_t7")
+
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__packet",
+    Path(__file__).resolve().parent / "closure_graph_fixture.py",
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__packet"] = _fx
+_fx_spec.loader.exec_module(_fx)
 intent_shape = _load("intent_shape", "intent_shape__packet_t7", _WORK_INTAKE)
 
 # ── Fixture helpers ───────────────────────────────────────────────────────────
@@ -122,12 +131,6 @@ def _reader_from_store(store: dict[Path, str]):
     return _r
 
 
-def _dir_lister_from_store(store: dict[Path, str]):
-    def _dl(d: Path) -> list[Path]:
-        return [p for p in store if p.parent == d]
-    return _dl
-
-
 def _call_eligible(
     store: dict[Path, str],
     *,
@@ -144,7 +147,7 @@ def _call_eligible(
         "children",
         ROOT,
         _reader=_reader_from_store(store),
-        _dir_lister=_dir_lister_from_store(store),
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         _decider=decider,
         _decision_date=decision_date,
@@ -175,7 +178,7 @@ def test_ac0027_no_packet_without_decider() -> None:
     verdict = ci.check_ancestor_closure(
         "anc", "Accepted", "children", ROOT,
         _reader=_reader_from_store(store),
-        _dir_lister=_dir_lister_from_store(store),
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         # _decider is NOT supplied
     )
@@ -356,7 +359,7 @@ def test_ac0029_check_writes_no_status_value() -> None:
         "children",
         ROOT,
         _reader=write_raising_reader,
-        _dir_lister=_dir_lister_from_store(store),
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         _decider="test-decider",
         _decision_date="2026-09-27",
@@ -682,7 +685,7 @@ def test_ac0039_child_count_reports_resolved_against_declared() -> None:
         ancestor_slug="anc",
         ancestor_terminus="children",
         ancestor_fields={"Decomposed": "2026-09-19 children", "__declared_children__": "4"},
-        descendants={"a": _dr("a"), "b": _dr("b")},
+        descendants={("intent", "a"): _dr("a"), ("intent", "b"): _dr("b")},
         basis="b",
         decider="d",
         decision_date="2026-09-27",
@@ -700,7 +703,7 @@ def test_ac0039_an_unknown_denominator_is_said_not_guessed() -> None:
         ancestor_slug="anc",
         ancestor_terminus="children",
         ancestor_fields={"Decomposed": "2026-09-19 children"},
-        descendants={"a": _dr("a")},
+        descendants={("intent", "a"): _dr("a")},
         basis="b",
         decider="d",
         decision_date="2026-09-27",

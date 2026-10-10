@@ -297,3 +297,44 @@ def test_main_fails_when_the_navigator_copy_differs(monkeypatch: pytest.MonkeyPa
 
     monkeypatch.setattr(tool, "_load", _load_mutated)
     assert tool.main(["--root", str(_ROOT)]) == 1
+
+
+_RESOLVER = (
+    _ROOT / "packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py"
+)
+
+
+def _run_with_resolver_copy(
+    tmp_path: Path, old: str, new: str, capsys: pytest.CaptureFixture[str]
+) -> tuple[int, str]:
+    """Run main() against a temporary resolver copy with ``old`` replaced by ``new``."""
+    text = _RESOLVER.read_text(encoding="utf-8")
+    assert old in text
+    copy = tmp_path / "intent_delivery_relations.py"
+    copy.write_text(text.replace(old, new, 1), encoding="utf-8")
+    tool = _load_parity_tool()
+    code = tool.main(["--root", str(_ROOT)], resolver_path=copy)
+    return code, capsys.readouterr().err
+
+
+def test_parent_kind_added_to_resolver_fails_and_names_it(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0016: a kind only the resolver carries makes the tool exit 1 naming it."""
+    code, err = _run_with_resolver_copy(
+        tmp_path,
+        '_PARENT_INTENT_KINDS: tuple[str, ...] = (\n',
+        '_PARENT_INTENT_KINDS: tuple[str, ...] = (\n    "zzkind",\n',
+        capsys,
+    )
+    assert code == 1
+    assert "'zzkind'" in err
+
+
+def test_parent_kind_removed_from_resolver_fails_and_names_it(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0016: a kind upstream carries and the resolver lacks fails naming it."""
+    code, err = _run_with_resolver_copy(tmp_path, '    "capability",\n', "", capsys)
+    assert code == 1
+    assert "'capability'" in err
