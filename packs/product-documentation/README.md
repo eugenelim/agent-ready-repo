@@ -1,14 +1,46 @@
 # Product Documentation
 
-Create, revise, retrofit, audit, and verify product documentation — pack READMEs, user guides, journeys, and Diátaxis pages — grounded in what your pack actually ships.
+Documentation for any software product — a library, CLI, HTTP API, app, service, framework, plugin, or agent-context pack — that matches what actually ships. Ask for a README, a quickstart, release notes, or an audit, and your agent writes or checks it against the real code.
 
-## What this helps you do
+**Who it is for:** maintainers and contributors who write the docs that people who install, call, or run their product read.
 
-- **Write a pack README** that leads with outcomes rather than a skill inventory
-- **Create a guide** — tutorial, how-to, reference, or explanation — for any user-facing behavior
-- **Retrofit connected pages** around a coherent user journey
-- **Audit existing docs** for inventory-first writing, audience mismatch, or unverified behavior claims
-- **Verify documentation** against current canonical behavior before you ship
+**Not for:** feature specs, design decisions, UI microcopy alone, docstrings alone, or internal maintainer runbooks.
+
+**Runs in:** the agents `agentbundle` installs into, including Claude Code, Codex, Cursor, GitHub Copilot, and Gemini CLI — see [install routes](../../guides/_shared/explanation/install-routes.md).
+
+**Need help?** See the [guide index](../../guides/product-documentation/README.md) or [open an issue](https://github.com/eugenelim/agent-ready-repo/issues). To contribute, read [CONTRIBUTING](../../CONTRIBUTING.md). Licensed under [Apache-2.0](../../LICENSE-APACHE) or [MIT](../../LICENSE-MIT).
+
+## Try it
+
+Paste one of these into your agent:
+
+```
+Audit this project's docs and tell me which stages of the reader journey are missing
+```
+
+```
+Write a quickstart for this CLI
+```
+
+```
+Write release notes for v2.1
+```
+
+```
+Fix this README so a newcomer can run something in the first minute
+```
+
+You do not need to name a mode.
+
+## What you get back
+
+- **An audit:** a journey gap report with one row per reader stage — discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute — each marked covered, partial, missing, or not applicable, with the file that proves it.
+- **A page:** a README, quickstart, how-to, reference, explanation, troubleshooting page, changelog, migration guide, or contributing guide, written around the reader's task.
+- **A check:** a list of verified claims, unverified claims, and claims that contradict current behavior.
+
+## What the skill reads and changes
+
+It reads your repository first: the code, manifests, schemas, `--help` output, and existing docs. That tells it which surface you ship and which reference pages that surface needs. Audits and checks change nothing unless you also ask for fixes. When you ask for a page, it writes one by default and reports the kind and destination it chose. It places the page where your repository already keeps docs of that kind, asks once when the location is unclear, and never edits generated output. Whether the page is right for your readers stays your decision.
 
 ## Install
 
@@ -18,34 +50,18 @@ agentbundle install --pack product-documentation
 
 Scope options: `--scope repo` (default) or `--scope user` (available across all repos).
 
-## Get started
+## Next steps
 
-```
-Help me create product documentation for [pack name]
-```
+- Document your own repository step by step: [Getting started](../../guides/product-documentation/getting-started.md)
+- Improve and audit a doc set: [How to author product docs](../../guides/product-documentation/how-to/author-product-docs.md)
+- Document one shipped feature: [How to write a guide](../../guides/product-documentation/how-to/write-a-guide.md)
+- Why each page has one job: [About the Diátaxis framework](../../guides/product-documentation/explanation/the-diataxis-framework.md)
 
-```
-Write a how-to guide for rotating a credential token
-```
+All guides live in [guides/product-documentation/](../../guides/product-documentation/). Version, scope, and dependencies are in [`pack.toml`](pack.toml).
 
-```
-Audit the existing docs for this pack and tell me what's missing
-```
+## Using this with a pack
 
-The skill infers what you need (create, revise, retrofit, audit, or verify) from your request. You do not need to name a mode.
-
-## How it works
-
-The skill inspects canonical behavior — `pack.toml`, actual skill sources, schemas, and permissions — before making any product claim. It selects the minimum useful artifact set. It does not create empty category directories or sibling pages for their own sake.
-
-Diátaxis is an authoring contract, not a required directory structure. The four kinds (tutorial, how-to, reference, explanation) determine what a page does for the reader — not where it must live.
-
-## Guides
-
-Full documentation for this pack: [guides/product-documentation/](../../guides/product-documentation/)
-
-- [How to use author-product-docs](../../guides/product-documentation/how-to/use-author-product-docs.md)
-- [About the Diátaxis framework](../../guides/product-documentation/explanation/the-diataxis-framework.md)
+When the repository you document is itself an agent-context pack, ask "Write the README for this pack." The README then leads with starter prompts in the user's language and a preview of what comes back, not a list of skill names.
 
 ## Replaces
 

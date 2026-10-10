@@ -35,8 +35,14 @@ be a compiler-verified call while the other is a name collision.
 
 So: **where an edge is load-bearing for your conclusion, verify it against
 source.** "Load-bearing" means the answer changes if the edge is wrong. If you
-are telling someone a change will break their payment path, open the payment
-path and confirm the call is really there.
+are telling someone a change will break their payment path, confirm the call
+is really there with your own repository search, from a root the user or prompt
+names (otherwise the root of the repository you are working in), for the symbol
+the user asked about or a symbol name taken from provider output, used only as a
+literal search string (never as a path, root, glob, or regex fragment). Never open a
+file location the provider returned, and note that indexed `source` output does
+not confirm it. See
+[Reading and verifying source](../SKILL.md#reading-and-verifying-source).
 
 If you cannot verify it, say which links are unverified rather than presenting a
 uniform list.
@@ -196,7 +202,7 @@ from" as a value. Pair `stats` with the staleness line.
 
 ## Value lineage — `flows_to`
 
-`wicked-estate lineage --symbol <id> --relation flows_to --json` traces
+`wicked-estate lineage --symbol '<id>' --relation flows_to --json` traces
 producer-to-consumer value flow through parameters, returns, and field writes.
 TypeScript only. Each flow hop carries:
 
@@ -218,7 +224,7 @@ Annotations are Wicked Estate's explicit evidence layer, and they are the one
 place the estate records a human or agent judgment alongside its provenance.
 
 ```bash
-wicked-estate annotations --symbol <symbol_id> --json
+wicked-estate annotations --symbol '<symbol_id>' --json
 ```
 
 Each annotation carries exactly these fields: `key`, `value`, `type`,
@@ -227,7 +233,7 @@ Each annotation carries exactly these fields: `key`, `value`, `type`,
 Two shape traps, both verified against the binary:
 
 - **The `<name>` form returns an array**, one `{symbol, annotations[]}` entry
-  per name match. Only the `--symbol <id>` form returns a single object, which
+  per name match. Only the `--symbol '<id>'` form returns a single object, which
   is why the command above uses it.
 - **There is no `last_verified` field in the JSON.** The human-readable
   `stale-annotations` output mentions one, but the machine output gives you
@@ -276,7 +282,8 @@ A pattern that keeps the evidence and the claim distinguishable:
 > **What the graph shows:** `blast-radius` returns 23 resolved dependents of
 > `parse_config`, with 4 unresolved call sites and no truncation.
 >
-> **What I verified:** I read the 5 highest-ranked dependents; all 5 call
+> **What I verified:** I searched the repository for each of the 5 highest-ranked
+> dependents and confirmed that all 5 call
 > `parse_config` directly on a path that reaches the change.
 >
 > **What I could not establish:** the 4 unresolved call sites. They are most

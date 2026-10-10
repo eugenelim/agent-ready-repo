@@ -1,0 +1,21 @@
+[
+  {"query": "Before I finalize this plan's touch list for renaming parse_config, gather attributed evidence of every module that depends on it", "should_trigger": true},
+  {"query": "I'm deciding whether to remove the legacy export helper — find what still uses it and cite where each use lives", "should_trigger": true},
+  {"query": "Before we scope the refactor of the session token signature, gather evidence of what would be affected, with sources for each claim", "should_trigger": true},
+  {"query": "Confirm with evidence whether the guard I added in validate_order is reachable from a live entry point before I fix the review finding", "should_trigger": true},
+  {"query": "For the review finding about the cache key, collect evidence of which callers pass an unnormalized key before I decide", "should_trigger": true},
+  {"query": "Gather evidence of which services consume the OrderPlaced event so I can decide whether it is safe to version it", "should_trigger": true},
+  {"query": "We need bounded evidence about which jobs read the retry setting before deciding whether it is safe to lower it", "should_trigger": true},
+  {"query": "Before approving this migration plan, find the code paths that write to the legacy accounts table and say where each finding came from", "should_trigger": true},
+  {"query": "Explain how request authentication flows through this repository, with each claim tied to a file, so I can decide where the new check belongs", "should_trigger": true},
+
+  {"query": "What already governs these paths: packs/core/README.md and docs/guides/setup.md?", "should_trigger": false},
+  {"query": "Fix the bug where saving a draft loses the title", "should_trigger": false},
+  {"query": "Implement the rename of parse_config to load_config across the codebase", "should_trigger": false},
+  {"query": "Write a spec for webhook retries", "should_trigger": false},
+  {"query": "Install and index a code graph for this repository", "should_trigger": false},
+  {"query": "Explain the diff on this branch", "should_trigger": false},
+  {"query": "Where are we on the current initiative?", "should_trigger": false},
+  {"query": "Review this pull request for correctness", "should_trigger": false},
+  {"query": "Refresh the code index so results are current", "should_trigger": false}
+]

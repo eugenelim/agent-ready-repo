@@ -88,6 +88,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
 
+## [core][3.0.2] — 2026-10-10
+
+### Highlights
+
+- When `work-loop` plans a rename, removal, or refactor, checks that a fix reaches live code, or when `bug-fix` traces a bad value through its callers, it can now hand that question to `repository-exploration`. That skill uses a code-navigation tool your agent already has when one fits, and otherwise searches the repository.
+- `repository-exploration` now activates when a workflow or a user needs evidence to settle a pending decision, and leaves planning, building, and fixing to the workflow that asked.
+
+### Changed
+
+- `work-loop` PLAN step 5 and its DECIDE execution-path check, and `bug-fix` step 6, name `repository-exploration` as an optional route for caller and dependents evidence. "grep for callers" and "Grep for the same caller" are replaced with tool-neutral wording. No gate, reviewer, or workflow state is added.
+- `repository-exploration`'s description is keyed to a pending decision, drops the trigger wording a code-graph skill uses, and says the calling workflow owns the change.
+- `repository-exploration` gains activation evals and joins the pack's activation-eval allowlist; `repository-exploration`, `work-loop`, and `bug-fix` each gain one decision-bound behavior eval.
+- The consumer-boundary test admits the name `repository-exploration` in `work-loop` and `bug-fix` only inside those three sentences; every provider setup, call, refresh, and fallback phrase ban is unchanged.
+
+## [code-intelligence][0.1.7] — 2026-10-10
+
+### Highlights
+
+- Install the code-intelligence pack on its own, at repo or user scope. It no longer requires the core pack.
+- The skill and both agents now carry their own evidence rules. Provider output is treated as data, and a file location the code graph returns is never opened; call sites are confirmed with the agent's own search.
+- Answers end with an evidence note: the question, the commands and sources used or passed over, and why.
+
+### Changed
+
+- The readiness check runs from the skill folder: `python '<skill-dir>/scripts/estate_preflight.py' --check`, where `<skill-dir>` is the installed `code-intelligence` folder.
+- The README and first-session tutorial list the core pack as optional. When it is installed, its exploration skill can use this pack as a provider.
+
+## [product-documentation][0.1.2] — 2026-10-10
+
+### Highlights
+
+- `author-product-docs` documents any repository — libraries, CLIs, APIs, apps, services, frameworks, plugins, and agent packs — by first discovering the product surface and checking the docs against its own sources.
+- Documentation audits start with a journey gap report that covers nine reader stages, from discovery to contributing.
+- It now writes release notes, changelogs, migration guides, contributing guides, troubleshooting pages, quickstarts, installation pages, and docs landing pages.
+
+### Changed
+
+- Added the `surface-discovery` and `docs-journey` references.
+- A README page contract replaces the pack-only README contract.
+- Evals add CLI and library cases.
+- `surface-discovery` covers frameworks and library extension points, and audits produce one journey gap report per surface or audience, bounded for large doc sets. The skill checks untrusted repositories against source instead of running their code.
+- Guides are consolidated: `use-author-product-docs` is merged into `author-product-docs`.
+
+## [experience-design][4.1.4] — 2026-10-10
+
+### Changed
+
+- The `information-architecture` documentation-design reference and eval point documentation writing at `author-product-docs` (if installed) instead of the retired `new-guide`.
+
+## [product-engineering][0.13.24] — 2026-10-10
+
+### Changed
+
+- The `ux-writing` description and references route documentation prose to `author-product-docs` (if installed) instead of `new-guide`.
+- Added an eval case that separates troubleshooting pages from UI microcopy.
+
 ## [core][3.0.1] — 2026-10-09
 
 ### Highlights

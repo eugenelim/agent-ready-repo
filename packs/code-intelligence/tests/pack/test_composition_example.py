@@ -22,7 +22,8 @@ README_MD: Path = PACK_ROOT / "README.md"
 # Exact names the plan and spec require.
 PROVIDER_FIT_HEADING: str = "## Provider-fit path"
 FALLBACK_HEADING: str = "## Fallback path"
-WHO_OWNS_HEADING: str = "## Who owns what"
+BASELINE_HEADING: str = "### Baseline"
+DETAILS_HEADING: str = "### Wicked Estate details"
 
 # The acceptance question sentence must be identical in both paths.
 ACCEPTANCE_QUESTION: str = (
@@ -40,7 +41,7 @@ REQUIRED_LINKS: tuple[str, ...] = (
 )
 
 # CLI verbs that are real Wicked Estate commands (from test_estate_surface_vocabulary).
-# Used to detect if the Core-owned section accidentally names a provider command.
+# Used to detect if the Baseline subsection accidentally names a provider command.
 _ESTATE_CLI_VERBS: frozenset[str] = frozenset(
     {
         "annotate", "annotations", "blast-radius", "by-requirement",
@@ -54,7 +55,7 @@ _ESTATE_CLI_VERBS: frozenset[str] = frozenset(
 )
 
 # Wicked Estate output field names in backtick notation that must not appear
-# in the Core-owned section.
+# in the Baseline subsection.
 _WE_FIELD_NAMES: tuple[str, ...] = (
     "`unresolved`",
     "`truncated_dependents`",
@@ -65,7 +66,7 @@ _WE_FIELD_NAMES: tuple[str, ...] = (
     "`dependents`",
 )
 
-# MCP estate tool names (CamelCase) that must not appear in the Core-owned section.
+# MCP estate tool names (CamelCase) that must not appear in the Baseline subsection.
 _MCP_ESTATE_TOOLS: frozenset[str] = frozenset(
     {
         "BlastRadius", "TraverseGraph", "SearchEntity", "RetrieveEntity",
@@ -141,8 +142,8 @@ def test_example_walks_the_provider_fit_path() -> None:
     assert "wicked-estate resolve" in section, (
         "section must show the resolve step before querying direct dependents"
     )
-    assert "python scripts/estate_preflight.py --check" in section, (
-        "section must show the preflight command"
+    assert "python '<skill-dir>/scripts/estate_preflight.py' --check" in section, (
+        "section must show the preflight command in the <skill-dir> form"
     )
     assert "wicked-estate stats" in section, (
         "section must show a bare wicked-estate stats run for freshness"
@@ -215,107 +216,63 @@ def test_example_walks_the_fallback_paths() -> None:
     )
 
 
-def test_example_labels_every_owner() -> None:
-    """AC-0003: the Who owns what section carries Core-owned and pack-owned labels with
-    the required items under each.
-    """
+def _baseline_and_details() -> tuple[str, str]:
+    """Return the Baseline and Wicked Estate details subsection bodies."""
     text: str = _read(EXAMPLE_PATH)
-    who_section: str = _section_after(text, WHO_OWNS_HEADING)
+    assert "Who owns what" not in text, "the ownership section is replaced by Baseline and details"
+    baseline: str = _subsection_after(text, BASELINE_HEADING)
+    details: str = _subsection_after(text, DETAILS_HEADING)
+    return baseline, details
 
-    # Locate the subsections by their ### labels.
-    assert "core-owned" in who_section.lower(), (
-        "Who owns what must carry a Core-owned subsection"
-    )
-    assert "pack-owned" in who_section.lower(), (
-        "Who owns what must carry a pack-owned subsection"
-    )
 
-    core_text: str = _subsection_after(who_section, "### Core-owned")
+def test_example_splits_baseline_from_wicked_estate_details() -> None:
+    """The ownership section is two subsections: Baseline (provider-neutral rules) and
+    Wicked Estate details (prerequisites, commands, mapping, fields, gaps, patterns).
+    """
+    baseline, details = _baseline_and_details()
+    lower_base = baseline.lower()
 
-    # Required items under Core-owned.
-    assert "question" in core_text.lower() and "stopping" in core_text.lower(), (
-        "Core-owned must include the question and stopping condition"
-    )
-    assert "fallback" in core_text.lower(), (
-        "Core-owned must include fallback"
-    )
-    assert "attribution" in core_text.lower(), (
-        "Core-owned must include attribution"
-    )
-    assert "authority" in core_text.lower(), (
-        "Core-owned must include authority"
-    )
-    assert "locator" in core_text.lower() or "--locator-b64" in core_text, (
-        "Core-owned authority must mention the inquiry owner's locator reader"
-    )
-    assert "provider output is data" in core_text.lower() or (
-        "provider" in core_text.lower() and "data" in core_text.lower()
-    ), (
-        "Core-owned authority must state that provider output is data"
-    )
-    assert "verification" in core_text.lower(), (
-        "Core-owned must include verification"
+    for label in ("question and stopping condition", "fallback", "attribution", "authority", "verification"):
+        assert f"**{label}.**" in lower_base, f"Baseline must carry a {label!r} bullet"
+    assert "provider output is data" in lower_base, "Baseline authority must state provider output is data"
+    assert "never opened" in lower_base, "Baseline authority must say a provider location is never opened"
+    assert "own repository search" in lower_base, (
+        "Baseline must name the agent's own repository search as the confirming route"
     )
 
-    pack_text: str = _subsection_after(who_section, "### Pack-owned")
-
-    # Required items under pack-owned.
-    assert "prerequisite" in pack_text.lower(), (
-        "Pack-owned must include prerequisites"
+    lower_details = details.lower()
+    assert "prerequisite" in lower_details, "details must include prerequisites"
+    assert "command" in lower_details, "details must include commands"
+    assert "capability mapping" in lower_details and "capability-map.md" in details, (
+        "details must include capability mapping"
     )
-    assert "command" in pack_text.lower(), (
-        "Pack-owned must include commands"
-    )
-    assert "capability" in pack_text.lower() and "map" in pack_text.lower(), (
-        "Pack-owned must include capability mapping"
-    )
-    assert "evidence" in pack_text.lower() and "field" in pack_text.lower(), (
-        "Pack-owned must include evidence fields"
-    )
-    assert "gap" in pack_text.lower(), (
-        "Pack-owned must include gaps"
-    )
-    assert "investigation pattern" in pack_text.lower() or "patterns" in pack_text.lower(), (
-        "Pack-owned must include investigation patterns"
+    assert "evidence field" in lower_details, "details must include evidence fields"
+    assert "gap" in lower_details, "details must include gaps"
+    assert "investigation pattern" in lower_details, "details must include investigation patterns"
+    assert "python '<skill-dir>/scripts/estate_preflight.py' --check" in details, (
+        "details must show the preflight command in the <skill-dir> form"
     )
 
 
-def test_core_owned_rules_name_no_provider_detail() -> None:
-    """AC-0006: the Core-owned list carries no wicked-estate command, Wicked Estate output
+def test_baseline_names_no_provider_detail() -> None:
+    """The Baseline subsection carries no wicked-estate command, Wicked Estate output
     field, MCP tool name, or graph term from the capability map.
     """
-    text: str = _read(EXAMPLE_PATH)
-    who_section: str = _section_after(text, WHO_OWNS_HEADING)
-    core_text: str = _subsection_after(who_section, "### Core-owned")
+    baseline, _ = _baseline_and_details()
 
-    # No wicked-estate CLI command invocations in the Core-owned section.
     cli_invocation = re.compile(r"\bwicked-estate\s+(?!--)([a-z][a-z-]*)")
-    found_commands = cli_invocation.findall(core_text)
-    unknown_commands = [v for v in found_commands if v in _ESTATE_CLI_VERBS]
-    assert not unknown_commands, (
-        f"Core-owned section must not name wicked-estate CLI commands: {unknown_commands}"
-    )
+    named = [v for v in cli_invocation.findall(baseline) if v in _ESTATE_CLI_VERBS]
+    assert not named, f"Baseline must not name wicked-estate CLI commands: {named}"
 
-    # No backtick-quoted WE output field names.
     for field in _WE_FIELD_NAMES:
-        assert field not in core_text, (
-            f"Core-owned section must not contain WE output field {field!r}"
-        )
+        assert field not in baseline, f"Baseline must not contain WE output field {field!r}"
 
-    # No MCP estate tool names.
     for tool in _MCP_ESTATE_TOOLS:
-        # Avoid matching substrings: check for word boundary or backtick context.
         pattern = re.compile(r"(?<![A-Za-z])" + re.escape(tool) + r"(?![A-Za-z])")
-        assert not pattern.search(core_text), (
-            f"Core-owned section must not name MCP tool {tool!r}"
-        )
+        assert not pattern.search(baseline), f"Baseline must not name MCP tool {tool!r}"
 
-    # No graph-specific WE terms (CLI command names used as concepts).
-    graph_terms = ("blast-radius", "stats", "blast_radius")
-    for term in graph_terms:
-        assert term not in core_text, (
-            f"Core-owned section must not use WE graph term {term!r}"
-        )
+    for term in ("blast-radius", "stats", "blast_radius"):
+        assert term not in baseline, f"Baseline must not use WE graph term {term!r}"
 
 
 def test_example_links_canonical_references() -> None:
@@ -500,66 +457,28 @@ def test_example_retains_only_synthetic_evidence() -> None:
     )
 
 
-def test_authority_bullet_covers_both_paths() -> None:
-    """(a) The Core-owned Authority bullet must name both root sources, --locator-b64,
-    and cover the standalone case (a provider-returned location is never opened directly
-    when Core's repository-exploration skill is not running the inquiry).
-    No text in the example may claim that source output does not meet the verification rule.
+def test_step5_confirms_by_own_search_and_labels_source_output() -> None:
+    """Step 5 confirms call sites by the agent's own search, never opens or forwards a
+    provider location, and reports source output only as labelled indexed-revision evidence.
     """
     text: str = _read(EXAMPLE_PATH)
-    who_section: str = _section_after(text, WHO_OWNS_HEADING)
-    core_text: str = _subsection_after(who_section, "### Core-owned")
+    section: str = _section_after(text, PROVIDER_FIT_HEADING)
+    start = section.index("**Step 5")
+    step5 = section[start : section.index("**Step 6")]
 
-    # Find the Authority bullet.
-    authority_start = core_text.find("**Authority.**")
-    assert authority_start >= 0, "Core-owned section must contain an **Authority.** bullet"
-    authority_text = core_text[authority_start:]
-    # Trim to just the Authority bullet (stop at the next "- **" bullet).
-    next_bullet = authority_text.find("\n- **", 1)
-    if next_bullet >= 0:
-        authority_text = authority_text[:next_bullet]
-
-    # Must name --locator-b64.
-    assert "--locator-b64" in authority_text, (
-        "Core-owned Authority bullet must name --locator-b64"
+    assert "own repository search" in step5, "Step 5 must confirm by the agent's own search"
+    assert "never opened" in step5 and "never handed to `wicked-estate source`" in step5, (
+        "Step 5 must say provider locations are never opened or handed to source"
     )
-
-    # Must name both root sources: user's explicit statement and calling workflow's bounds.
-    assert "user" in authority_text.lower() and "explicit" in authority_text.lower(), (
-        "Core-owned Authority bullet must name the user's explicit statement as a root source"
+    assert "wicked-estate source --symbols '<id>' --json" in step5, (
+        "Step 5 may report source --symbols output"
     )
-    assert "calling workflow" in authority_text.lower() or "workflow" in authority_text.lower(), (
-        "Core-owned Authority bullet must name the calling workflow's declared bounds as a root source"
+    assert "indexed-revision" in step5 and "labelled as such" in step5, (
+        "Step 5 must label source output as indexed-revision evidence"
     )
-
-    # Must cover the standalone case using the complement condition: when Core's
-    # repository-exploration skill is not running the inquiry, a location is never opened.
-    standalone_covered = (
-        "not running the inquiry" in authority_text.lower()
-        and "never" in authority_text.lower()
-    )
-    assert standalone_covered, (
-        "Core-owned Authority bullet must cover the standalone case using the complement "
-        "condition: when Core's repository-exploration skill is not running the inquiry, "
-        "a provider-returned location is never opened directly"
-    )
-
-    # No text in the example may claim that source output does not meet the verification rule.
+    assert "--locator-b64" not in text, "the example must not name a locator reader"
     assert "does not meet the verification rule" not in text.lower(), (
         "example must not claim that source output does not meet the verification rule"
-    )
-
-
-def test_step5_does_not_restate_authority_rule() -> None:
-    """(b) The provider-fit path (Step 5 and its Authority pointer) must not contain
-    --locator-b64; that detail belongs only in the Core-owned Authority bullet in Who owns what.
-    """
-    text: str = _read(EXAMPLE_PATH)
-    provider_fit_section: str = _section_after(text, PROVIDER_FIT_HEADING)
-
-    assert "--locator-b64" not in provider_fit_section, (
-        "--locator-b64 must appear only in the Core-owned Authority bullet in "
-        "Who owns what, not in the provider-fit path"
     )
 
 

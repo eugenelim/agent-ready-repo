@@ -1,6 +1,6 @@
 [pack]
 name = "code-intelligence"
-version = "0.1.6"
+version = "0.1.7"
 description = "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing — answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses."
 readme = "README.md"
 display_name = "Code intelligence"
@@ -16,11 +16,6 @@ default-scope = "repo"
 allowed-scopes = ["repo", "user"]  # The index is per-repository, but the skill teaching an agent
                                    # how to query one is stack-general and installs fine at user
                                    # scope for someone who works across several indexed repos.
-
-[[pack.dependencies.required]]
-catalogue = "agent-ready-repo"
-pack = "core"
-version = "^3.0"
 
 # Wicked Estate ships two Rust binaries from crates.io. `wicked-estate` is the CLI this pack
 # drives and is the only hard requirement. `wicked-estate-mcp` is the MCP server; it is optional
@@ -63,11 +58,11 @@ skills = ["code-intelligence"]
 [pack.first-value]
 audience-posture = "technical"
 surfaces         = ["claude-code"]
-prerequisites    = ["core pack installed", "wicked-estate binary in PATH", "an index built with `wicked-estate index <path>`"]
+prerequisites    = ["wicked-estate binary in PATH", "an index built with `wicked-estate index <path>`"]
 starter-task     = "Ask what breaks if you change a function you are about to edit."
 starter-prompt   = "What is the blast radius of changing the request handler in this repo?"
 expected-result  = "A list of resolved dependents with file:line, plus the count of call sites the indexer could not bind — stated as a completeness limit rather than hidden."
 next-action      = "Inspect the highest-risk dependents with `wicked-estate source`."
-verification     = "python scripts/estate_preflight.py --check"
+verification     = "python <skill-dir>/scripts/estate_preflight.py --check (<skill-dir>: the installed code-intelligence skill folder)"
 recovery         = "Exit 2 means the binary is absent — run `cargo install wicked-estate --version 0.21.0 --locked`. Exit 3 means no index — run `wicked-estate index .` from the repository root. Exit 4 means the binary is older than the 0.21 floor this pack was verified against — re-run the install command."
 writes-to-repo   = false

@@ -1,6 +1,6 @@
 ---
 name: ux-writing
-description: Use when shaping the actual words a user reads in a product's UI — characterizing the UI copy voice (how the brand register applies to UI states), writing recurring UI-state microcopy (error, empty, button, label), or reviewing copy before it ships. Triggers on "what should this error say", "write the empty-state copy", "name this button", "characterize our product's UI copy voice", "make this microcopy blame-free", "review this copy". Characterizes voice along a few axes, writes each UI state from a blame-free + actionable formula, and runs a content checklist. When a per-screen state matrix from `user-flow` is present, writes copy per screen × state keyed to the matrix; when absent, behaves as today. Do NOT use to frame the intent behind the feature (use `frame-intent`), to make visual or layout design decisions, to write documentation prose (use `new-guide`), or to establish the brand-level copy register (use `content-design`'s brand-level register mode).
+description: Use when shaping the actual words a user reads in a product's UI — characterizing the UI copy voice (how the brand register applies to UI states), writing recurring UI-state microcopy (error, empty, button, label), or reviewing copy before it ships. Triggers on "what should this error say", "write the empty-state copy", "name this button", "characterize our product's UI copy voice", "make this microcopy blame-free", "review this copy". Characterizes voice along a few axes, writes each UI state from a blame-free + actionable formula, and runs a content checklist. When a per-screen state matrix from `user-flow` is present, writes copy per screen × state keyed to the matrix; when absent, behaves as today. Do NOT use to frame the intent behind the feature (use `frame-intent`), to make visual or layout design decisions, to write documentation prose (use `author-product-docs` if installed), or to establish the brand-level copy register (use `content-design`'s brand-level register mode).
 ---
 
 # Skill: ux-writing
@@ -116,4 +116,4 @@ Before writing, confirm:
 - **Mandating the chart as a schema.** The voice chart is a prompt sheet; a
   half-filled one is fine. Blocking on empty fields is the failure mode.
 - **Restating the docs-prose craft.** Clear-prose rules for *documentation* live
-  in `new-guide`'s `clear-prose.md`; cross-reference shared items, don't fork them.
+  in `author-product-docs`'s `clear-prose.md` (if installed); cross-reference shared items, don't fork them.

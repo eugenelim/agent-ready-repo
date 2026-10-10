@@ -227,6 +227,10 @@ question, stopping rule, and decision. The skill picks a tool only when it
 suits the question, uses that tool as it is, and says where each piece of
 evidence came from.
 
+`work-loop` and `bug-fix` name it as an optional route for caller,
+dependents, and impact questions — a plan's touch list, whether a fix reaches a
+live code path, or where a bug's bad value comes from.
+
 No provider, index, language server, or optional pack is required. When no
 exposed capability fits the question, the skill falls back to repository-native
 evidence — the repository's own files, history, and search. A provider adds

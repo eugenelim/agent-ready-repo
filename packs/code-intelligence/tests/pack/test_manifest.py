@@ -134,16 +134,74 @@ def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
         )
 
 
-def test_pack_version_is_0_1_6() -> None:
-    """pack.toml and plugin.json both carry version 0.1.6.
+def test_pack_version_is_0_1_7() -> None:
+    """pack.toml and plugin.json both carry version 0.1.7.
 
-    Patch bump from 0.1.5: the core dependency range moved from ^2.0 to ^3.0.
+    Patch bump from 0.1.6: the pack no longer requires core and runs its
+    preflight from the skill folder.
     """
     pack_version = load_pack()["version"]
     plugin_version = load_plugin()["version"]
-    assert pack_version == "0.1.6", (
-        f"pack version is {pack_version!r}, expected '0.1.6'"
+    assert pack_version == "0.1.7", (
+        f"pack version is {pack_version!r}, expected '0.1.7'"
     )
-    assert plugin_version == "0.1.6", (
-        f"plugin version is {plugin_version!r}, expected '0.1.6'"
+    assert plugin_version == "0.1.7", (
+        f"plugin version is {plugin_version!r}, expected '0.1.7'"
+    )
+
+
+def _load_authority_guidance():
+    """Load test_authority_guidance.py under a unique module name for its matcher."""
+    spec = importlib.util.spec_from_file_location(
+        "code_intelligence_authority_guidance_manifest_check",
+        Path(__file__).with_name("test_authority_guidance.py"),
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_first_value_and_readme_preflight_use_skill_dir() -> None:
+    """Preflight invocations in the manifest and README name the skill folder.
+
+    A markdown link to the script is not an invocation. The verification line
+    must also say what `<skill-dir>` stands for.
+    """
+    guidance = _load_authority_guidance()
+    verification = load_pack()["first-value"]["verification"]
+    readme = (PACK_ROOT / "README.md").read_text(encoding="utf-8")
+    assert guidance._PREFLIGHT_RE.search(verification), (
+        "first-value.verification names no preflight invocation"
+    )
+    assert guidance._PREFLIGHT_RE.search(readme), "README names no preflight invocation"
+    assert guidance.preflight_violations(verification) == []
+    assert guidance.preflight_violations(readme) == []
+    assert "<skill-dir>:" in verification
+    assert "skill folder" in verification
+
+
+def test_declares_no_core_dependency() -> None:
+    """The pack stands alone: no dependency of any kind names core, and no
+    first-value prerequisite asks for it."""
+    pack = load_pack()
+    for kind, entries in pack.get("dependencies", {}).items():
+        for entry in entries:
+            assert entry.get("pack") != "core", (
+                f"[pack.dependencies.{kind}] still names the core pack"
+            )
+    for prerequisite in pack["first-value"]["prerequisites"]:
+        assert re.search(r"\bcore\b", prerequisite, re.IGNORECASE) is None, (
+            f"first-value prerequisite mentions core: {prerequisite!r}"
+        )
+
+
+def test_install_gate_passes_with_nothing_installed() -> None:
+    """The real install gate accepts this manifest when no pack is installed."""
+    from agentbundle.commands.install import validate_dependencies_required
+    from agentbundle.config import State
+
+    parsed = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
+    validate_dependencies_required(
+        parsed, repo_state=State(), user_state=State()
     )
