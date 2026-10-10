@@ -344,6 +344,7 @@ END_OF_OPTIONS_PHRASES: tuple[str, ...] = (
     "must never be read as an option by the search tool",
     "after the tool's end-of-options marker (--)",
     "a term starting with - is not used and the item is reported as unestablished",
+    "because wicked-estate has no end-of-options marker",
 )
 POSIX_PHRASES: tuple[str, ...] = (
     "assume a posix shell (sh, bash, zsh)",
@@ -373,7 +374,8 @@ def test_option_guard_and_posix_rules_present_and_removal_is_caught(
 
 
 _UNQUOTED_ID_RE: re.Pattern[str] = re.compile(
-    r"--(?:symbols?|seeds)[ \t]+<[^>\n]*id[^>\n]*>", re.IGNORECASE
+    r"(?:--(?:symbols?|seeds)|wicked-estate traverse)[ \t]+<[^>\n]*(?:id|symbol)[^>\n]*>",
+    re.IGNORECASE,
 )
 _FENCE_RE: re.Pattern[str] = re.compile(r"```.*?```|`[^`\n]+`", re.DOTALL)
 
@@ -390,6 +392,8 @@ def test_unquoted_id_template_scan_flags_red_and_passes_green() -> None:
     assert unquoted_id_templates("`wicked-estate lineage --symbol <id> --json`")
     assert unquoted_id_templates("```\nwicked-estate lineage --symbol <id> --json\n```")
     assert not unquoted_id_templates("`wicked-estate lineage --symbol '<id>' --json`")
+    assert unquoted_id_templates("`wicked-estate traverse <id> --depth 1 --json`")
+    assert not unquoted_id_templates("`wicked-estate traverse '<symbol>' --json`")
 
 
 def test_worked_commands_quote_every_provider_id_placeholder() -> None:

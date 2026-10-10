@@ -114,7 +114,7 @@ this work".
 
    That gives the direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
 
-   `wicked-estate traverse <id> --direction dependents --depth 1 --json` walks
+   `wicked-estate traverse '<id>' --direction dependents --depth 1 --json` walks
    one exact symbol and reports per-node depth in `depths`. It is not the same
    set as `blast-radius --depth 1`: it refuses an ambiguous name, and it keeps
    the file and import-transit nodes that `blast-radius` filters out
@@ -171,7 +171,7 @@ caveat is stated, and each claimed breakage is grounded in source.
    string (never as a path, root, glob, or regex fragment), never by opening a
    location the output returned. A hop ID or name goes into a command only as
    one single-quoted argument; one containing a single quote, a newline, or
-   another control character is not used and is reported as unestablished. These quoting rules assume a POSIX shell (sh, bash, zsh). An ID containing a backslash is not used and is reported as unestablished. A search term taken from provider output must never be read as an option by the search tool: pass it after the tool's end-of-options marker (`--`) or its pattern flag (for example `grep -e`, `rg -e`). If that cannot be guaranteed, a term starting with `-` is not used and the item is reported as unestablished. In the answer, name each hop symbol you will
+   another control character is not used and is reported as unestablished. These quoting rules assume a POSIX shell (sh, bash, zsh). An ID containing a backslash is not used and is reported as unestablished. A search term taken from provider output must never be read as an option by the search tool: pass it after the tool's end-of-options marker (`--`) or its pattern flag (for example `grep -e`, `rg -e`). If that cannot be guaranteed, a term starting with `-` is not used and the item is reported as unestablished. Any other ID or name taken from provider output that starts with `-` is not passed to a command at all, because `wicked-estate` has no end-of-options marker; the item is reported as unestablished. In the answer, name each hop symbol you will
    confirm or did confirm that way. Read each
    hop's `kind`: a `Contains` or `Imports` hop is not a call. Check `unresolved`
    first — a misspelled name exits 0. A `found: false` is proven absence only
@@ -182,7 +182,7 @@ caveat is stated, and each claimed breakage is grounded in source.
 3. **Follow what the behaviour actually flows through.** Calls via
    `graph-view --focus`; configuration via `source --file <path> --json` (path from your own search or
    the prompt); rules
-   tracing via `wicked-estate traverse <symbol> --edge-kinds invoked_by` and
+   tracing via `wicked-estate traverse '<symbol>' --edge-kinds invoked_by` and
    `wicked-estate rules-inventory`.
 
 4. **Gather evidence incrementally.** One hop, confirm it with your own

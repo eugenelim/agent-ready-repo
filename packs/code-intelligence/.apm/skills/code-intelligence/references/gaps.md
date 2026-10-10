@@ -84,7 +84,7 @@ easy to misread as "the symbol does not exist". It means "no stored content".
 
 ## 5. Traverse — **Direct**
 
-`wicked-estate traverse <symbol> [--direction dependencies|dependents|both] [--depth N] [--edge-kinds a,b] [--max-nodes N] [--json]` is a genuine bounded walk
+`wicked-estate traverse '<symbol>' [--direction dependencies|dependents|both] [--depth N] [--edge-kinds a,b] [--max-nodes N] [--json]` is a genuine bounded walk
 over the graph. JSON: `{nodes, edges, depths, truncated, searched_depth, depth_horizon_reached, node_cap_reached}`;
 each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Over-ceiling
 `--depth` or `--max-nodes` is clamped with `CLAMPED:` on stderr.

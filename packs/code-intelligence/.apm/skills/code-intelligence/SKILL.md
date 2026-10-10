@@ -170,6 +170,9 @@ a `path` hop, or a location field from `resolve`, `rank`, or `query`:
   the search tool: pass it after the tool's end-of-options marker (`--`) or its
   pattern flag (for example `grep -e`, `rg -e`). If that cannot be guaranteed, a
   term starting with `-` is not used and the item is reported as unestablished.
+- Any other ID or name taken from provider output that starts with `-` is not
+  passed to a command at all, because `wicked-estate` has no end-of-options
+  marker; the item is reported as unestablished.
 
 ## The core loop
 
