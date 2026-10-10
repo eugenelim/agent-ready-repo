@@ -1,6 +1,6 @@
 # Spec: Code-intelligence pack without Core
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0104
@@ -51,8 +51,8 @@ answer is as safe without Core as with it.
   from Wicked Estate details — `references/composition-example.md`.
 - The four composition eval cases run with only `code-intelligence` in the
   skill tree; the provider-neutral `composition-core-only` case is removed;
-  eval 7's expected output and hop assertion ask for symbols to confirm by
-  search —
+  eval 7's expected output and hop assertion route hop confirmation through
+  the agent's own search, and eval 7 runs as a regression case —
   `evals/evals.json` and its tests.
 - `SKILL.md` defines `<skill-dir>`, and every preflight invocation in the
   pack, its manifest's first-value line, and its README uses the
@@ -147,9 +147,9 @@ established for the composition example. That shipped spec stays frozen.
   `` `core` `` (each matched case-insensitively, with no word character
   immediately before or after the token), or the case-sensitive whole word
   `Core` anywhere other than in the heading text `Core retrieval`.
-- [ ] **AC-0004.** Each of the five eval cases `composition-provider-fit`,
-  `composition-provider-absent`, `composition-poor-fit`,
-  `composition-untrusted-output`, and `7` passes every one of its assertions in one
+- [ ] **AC-0004.** Each of the four eval cases `composition-provider-fit`,
+  `composition-provider-absent`, `composition-poor-fit`, and
+  `composition-untrusted-output` passes every one of its assertions in one
   graded in-harness run whose skill tree holds only `code-intelligence`.
 - [ ] **AC-0005.** The `composition-untrusted-output` case's assertions
   include each of: the provider-returned file location is not opened by any

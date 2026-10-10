@@ -1,7 +1,7 @@
 # Plan: Code-intelligence pack without Core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness update,
   self-host, no internal-governance citations in shipped content);
   `frontend-engineering` and `architect` as dual-scope packs with no required
@@ -204,12 +204,12 @@ installed skill path recorded in the verification ledger.
     (AC-0006).
   - `test_untrusted_case_asserts_baseline_authority` asserts the six AC-0005
     behaviors appear among that case's assertions (AC-0005).
-  - Eval 7's `expected_output` and assertion name hop symbols to confirm by
+  - Eval 7's `expected_output` and assertion route hop confirmation through
     the agent's own search; the T3 scan's `hop files to` sample covers both.
   - `_GRADED_PHRASES` gains `own search`, `do not open`, `as data`,
     `embedded instruction`, and `provider-returned`, and the guard passes on
     the rewritten prompts.
-- Graded run: each of the five AC-0004 cases runs once in a fresh agent session, from a
+- Graded run: each of the four AC-0004 cases runs once in a fresh agent session, from a
   workspace prepared by `agentbundle pack evals run --pack code-intelligence
   --mode in-harness --check behavior --prepare-workspace
   code-intelligence/<eval id>`, with a skill tree holding only the projected
@@ -217,14 +217,16 @@ installed skill path recorded in the verification ledger.
   assertions use the spec's two trace rules, applied by searching the session
   transcript for each read, search, and shell call. Reports go through
   `--check behavior --reports <reports.json>` (AC-0004).
-- Regression runs, recorded but outside AC-0004: cases `1`, `3`, `4`, `5`, `8`,
-  and `9`, whose prompts supply provider output and whose skill text changes,
-  run once each. A failure that the same case also shows against the
+- Regression runs, recorded but outside AC-0004: cases `1`, `3`, `4`, `5`, `7`,
+  `8`, and `9`, whose prompts supply provider output and whose skill text
+  changes, run once each. Eval 7's prompt supplies `found: false` and no code,
+  so it cannot exercise the never-open rule; its result is recorded, not
+  gated. A failure that the same case also shows against the
   `origin/main` skill is recorded as pre-existing (case `3`'s first assertion
   is already known to fail there); any other failure returns to T2.
 
 **Done when:** the pack suite is green, the graded tally in the ledger shows
-5/5 AC-0004 cases passing every assertion, and every regression-run failure is
+4/4 AC-0004 cases passing every assertion, and every regression-run failure is
 recorded as pre-existing.
 
 ### T4: Docs, version, changelog, and projection updated
