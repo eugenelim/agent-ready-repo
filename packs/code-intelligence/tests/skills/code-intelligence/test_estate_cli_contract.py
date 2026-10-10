@@ -8,7 +8,7 @@ and reading what actually comes back.
 It is skipped when `wicked-estate` is absent, so it self-declares as unrun
 rather than passing vacuously. To run it:
 
-    cargo install wicked-estate --version 0.21.0 --locked
+    cargo install wicked-estate --version 0.26.0 --locked
     pytest packs/code-intelligence/tests/skills/code-intelligence/
 
 The index is built once per session into a temp directory from a purpose-built
@@ -64,7 +64,7 @@ BINARY = shutil.which("wicked-estate")
 
 pytestmark = pytest.mark.skipif(
     BINARY is None,
-    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.21.0 --locked`",
+    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.26.0 --locked`",
 )
 
 
@@ -173,16 +173,23 @@ def test_blast_radius_text_evidence_line(graph: Path) -> None:
     ), "blast-radius text output must contain a line starting 'evidence:'"
 
 
-def test_blast_radius_dependents_have_no_depth_or_confidence(
-    graph: Path, known_symbol: dict
-) -> None:
-    """gaps.md §Impact and §Confidence claim the CLI form omits both. Hold them to it."""
-    payload = json.loads(run("blast-radius", known_symbol["name"], "--json", db=graph).stdout)
+def test_blast_radius_dependent_rows_carry_per_row_depth(graph: Path) -> None:
+    """Each dependent row carries exactly id, name, kind, file, line and depth, and no per-row confidence."""
+    payload = json.loads(run("blast-radius", "helper", "--json", db=graph).stdout)
     assert payload["dependents"], "fixture symbol has no dependents"
-    row = payload["dependents"][0]
-    assert set(row) == {"id", "name", "kind", "file", "line"}
-    assert "depth" not in row
-    assert "confidence" not in row
+    for row in payload["dependents"]:
+        assert set(row) == {"id", "name", "kind", "file", "line", "depth"}
+
+
+def test_blast_radius_direct_dependent_has_depth_one(graph: Path) -> None:
+    """The core.py handle is the direct dependent of helper, so its row has depth 1."""
+    payload = json.loads(run("blast-radius", "helper", "--json", db=graph).stdout)
+    rows = [
+        row for row in payload["dependents"]
+        if row["name"] == "handle" and row["file"] == "core.py"
+    ]
+    assert len(rows) == 1
+    assert rows[0]["depth"] == 1
 
 
 def test_blast_radius_suppresses_staleness_under_json(
@@ -288,27 +295,36 @@ def test_annotations_name_form_returns_an_array_of_entries(
     assert set(payload[0]) == {"symbol", "annotations"}
 
 
-def test_annotation_json_has_ts_and_no_last_verified(
+def test_annotation_json_carries_the_provenance_envelope(
     graph: Path, known_symbol: dict
 ) -> None:
-    """The correction that started this suite: there is no `last_verified`."""
+    """Each annotation row carries source_type, extraction_method and last_verified."""
     run(
         "annotate", known_symbol["name"],
         "--key", "probe", "--value", "1", "--author", "suite",
+        "--source-type", "human", "--extraction-method", "manual",
+        "--last-verified", "now",
         db=graph,
     )
     payload = json.loads(run("annotations", known_symbol["name"], "--json", db=graph).stdout)
     annotation = payload[0]["annotations"][0]
-    assert set(annotation) == {
-        "advisory", "author", "confidence", "key", "provenance", "ts", "type", "value",
-    }
-    assert "last_verified" not in annotation
+    assert {"source_type", "extraction_method", "last_verified"} <= set(annotation)
 
 
-def test_stale_annotations_cutoff_is_unix_seconds(graph: Path) -> None:
-    """A date string is rejected — the pack now says so."""
-    assert run("stale-annotations", "2026-01-01", "--json", db=graph).returncode != 0
-    assert run("stale-annotations", "9999999999", "--json", db=graph).returncode == 0
+def test_stale_annotations_accepts_seconds_date_and_older_than(graph: Path) -> None:
+    """A Unix-seconds cutoff, a YYYY-MM-DD date and --older-than are each accepted."""
+    for args in (
+        ("9999999999",),
+        ("2026-01-01",),
+        ("--older-than", "90d"),
+    ):
+        result = run("stale-annotations", *args, "--json", db=graph)
+        assert result.returncode == 0, (args, result.stderr)
+
+
+def test_stale_annotations_rejects_two_cutoffs(graph: Path) -> None:
+    """A positional cutoff together with --older-than exits non-zero."""
+    assert run("stale-annotations", "90", "--older-than", "9d", db=graph).returncode != 0
 
 
 # ── other documented verbs ─────────────────────────────────────────────────
@@ -331,7 +347,7 @@ def test_context_rows_lack_symbol_id(graph: Path, known_symbol: dict) -> None:
 
 
 def test_undocumented_but_dispatched_verbs_are_accepted(graph: Path) -> None:
-    """gaps.md §Capability discovery claims three verbs work despite being absent from --help."""
+    """gaps.md §Capability discovery claims these verbs work without further setup."""
     assert run("by-requirement", "REQ-NONEXISTENT", db=graph).returncode == 0
     assert run("graph-view", "--limit", "5", db=graph).returncode == 0
     # `semantics` with no symbol prints its own usage rather than the banner,
@@ -340,14 +356,13 @@ def test_undocumented_but_dispatched_verbs_are_accepted(graph: Path) -> None:
     assert "usage: wicked-estate semantics" in (semantics.stdout + semantics.stderr)
 
 
-def test_no_version_flag_falls_through_to_the_usage_banner() -> None:
-    """The preflight parses this banner because no version flag exists."""
+def test_version_flag_prints_one_line_on_stdout() -> None:
+    """`--version` exits 0 and prints exactly `wicked-estate 0.26.0` plus a newline."""
     completed = subprocess.run(
         [BINARY, "--version"], capture_output=True, text=True, check=False, timeout=60
     )
-    combined = completed.stdout + completed.stderr
-    assert "usage:" in combined
-    assert len(combined.splitlines()) > 10, "expected the full banner, not a version line"
+    assert completed.returncode == 0
+    assert completed.stdout == "wicked-estate 0.26.0\n"
 
 
 def test_stats_reports_counts(graph: Path) -> None:
@@ -355,6 +370,45 @@ def test_stats_reports_counts(graph: Path) -> None:
     completed = run("stats", db=graph)
     assert completed.returncode == 0
     assert "nodes" in completed.stdout.lower()
+
+
+def test_query_json_returns_resolve_rows(graph: Path) -> None:
+    """query <name> --json returns a list of rows shaped like resolve's."""
+    result = run("query", "helper", "--json", db=graph)
+    assert result.returncode == 0
+    rows = json.loads(result.stdout)
+    assert isinstance(rows, list) and rows
+    assert {"symbol_id", "name", "kind", "file", "line"} <= set(rows[0])
+
+
+# ── strict argv ────────────────────────────────────────────────────────────
+
+
+def test_surplus_operand_exits_nonzero_with_empty_stdout(graph: Path) -> None:
+    result = run("stats", "foo", db=graph)
+    assert result.returncode != 0
+    assert result.stdout == ""
+
+
+def test_malformed_value_exits_nonzero_with_empty_stdout(graph: Path) -> None:
+    result = run("blast-radius", "helper", "--depth", "abc", "--json", db=graph)
+    assert result.returncode != 0
+    assert result.stdout == ""
+
+
+def test_repeated_flag_exits_nonzero_with_empty_stdout(graph: Path) -> None:
+    result = run("nodes", "--kind", "function", "--kind", "class", db=graph)
+    assert result.returncode != 0
+    assert result.stdout == ""
+
+
+def test_read_command_with_missing_db_does_not_create_it(tmp_path: Path) -> None:
+    """A read command refuses a missing --db with empty stdout and leaves no file."""
+    missing_db = tmp_path / "missing.db"
+    result = run("blast-radius", "helper", db=missing_db)
+    assert result.returncode != 0
+    assert result.stdout == ""
+    assert not missing_db.exists()
 
 
 # ── the vocabulary allowlist, checked against the binary ───────────────────
@@ -445,58 +499,82 @@ def test_signatures_only_requires_json(graph: Path, known_symbol: dict) -> None:
     assert with_body["nodes"][0]["source"]
 
 
-# ── 0.21.0: lineage ───────────────────────────────────────────────────────────
+# ── 0.26.0: lineage ───────────────────────────────────────────────────────────
+
+ENTRY_ID = "ts-python . . . caller/entry()."
 
 
-def test_lineage_json_shape(graph: Path) -> None:
-    """lineage --symbol <entry id> --json returns content and diagnostics; searched_depth is 8; handle at depth 1, helper at depth 2; helper's line is one less than resolve reports."""
-    entry_id = "ts-python . . . caller/entry()."
-    result = run("lineage", "--symbol", entry_id, "--json", db=graph)
+def lineage_json(graph: Path, *args: str) -> dict:
+    """Run `lineage <args> --json` and return the parsed result object."""
+    result = run("lineage", *args, "--json", db=graph)
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+def test_lineage_json_has_the_result_keys_directly(graph: Path) -> None:
+    """lineage <id> --json prints the result object itself, with no content wrapper."""
+    assert set(lineage_json(graph, ENTRY_ID)) == {
+        "dependencies", "total", "truncated", "confidence", "relation",
+        "searched_depth", "depth_horizon_reached", "node_cap_reached",
+    }
+
+
+def test_lineage_json_relation_defaults_to_dependency(graph: Path) -> None:
+    assert lineage_json(graph, ENTRY_ID)["relation"] == "dependency"
+
+
+def test_lineage_json_default_searched_depth_is_8(graph: Path) -> None:
+    assert lineage_json(graph, ENTRY_ID)["searched_depth"] == 8
+
+
+def test_lineage_json_lists_handle_at_depth_1_and_helper_at_depth_2(graph: Path) -> None:
+    deps = {d["name"]: d for d in lineage_json(graph, ENTRY_ID)["dependencies"]}
+    assert deps["handle"]["depth"] == 1
+    assert deps["helper"]["depth"] == 2
+
+
+def test_lineage_line_is_zero_based(graph: Path) -> None:
+    """helper's lineage line is one less than the line resolve reports."""
+    deps = {d["name"]: d for d in lineage_json(graph, ENTRY_ID)["dependencies"]}
+    resolve_line = json.loads(run("resolve", "helper", "--json", db=graph).stdout)[0]["line"]
+    assert deps["helper"]["line"] == resolve_line - 1
+
+
+def test_lineage_accepts_a_unique_name(graph: Path) -> None:
+    deps = {d["name"]: d for d in lineage_json(graph, "entry")["dependencies"]}
+    assert deps["helper"]["depth"] == 2
+
+
+def test_lineage_ambiguous_name_exits_nonzero_with_empty_stdout(graph: Path) -> None:
+    result = run("lineage", "handle", "--json", db=graph)
+    assert result.returncode != 0
+    assert result.stdout == ""
+
+
+def test_lineage_symbol_flag_is_rejected(graph: Path) -> None:
+    result = run("lineage", "--symbol", ENTRY_ID, "--json", db=graph)
+    assert result.returncode != 0
+    assert result.stdout == ""
+
+
+def test_lineage_depth_above_ceiling_is_clamped_to_24(graph: Path) -> None:
+    result = run("lineage", ENTRY_ID, "--depth", "25", "--json", db=graph)
     assert result.returncode == 0
-    payload = json.loads(result.stdout)
-    assert set(payload) >= {"content", "diagnostics"}, (
-        f"lineage --json must carry content and diagnostics; got {set(payload)}"
-    )
-    content = payload["content"]
-    assert content["searched_depth"] == 8, (
-        f"lineage default searched_depth must be 8, got {content['searched_depth']}"
-    )
-    deps = {d["name"]: d for d in content["dependencies"]}
-    assert "handle" in deps and deps["handle"]["depth"] == 1, (
-        "handle must appear at depth 1"
-    )
-    assert "helper" in deps and deps["helper"]["depth"] == 2, (
-        "helper must appear at depth 2"
-    )
-
-    # helper's lineage line (0-based) must be one less than resolve's line (1-based).
-    resolve_result = run("resolve", "helper", "--json", db=graph)
-    resolve_line = json.loads(resolve_result.stdout)[0]["line"]
-    lineage_line = deps["helper"]["line"]
-    assert lineage_line == resolve_line - 1, (
-        f"helper lineage line {lineage_line} must be resolve line {resolve_line} - 1"
-    )
+    assert any(line.startswith("CLAMPED:") for line in result.stderr.splitlines())
+    assert json.loads(result.stdout)["searched_depth"] == 24
 
 
-def test_lineage_name_exits_zero_with_empty_deps(graph: Path) -> None:
-    """lineage --symbol entry (a name, not an id) exits 0 with an empty dependencies list."""
-    result = run("lineage", "--symbol", "entry", "--json", db=graph)
-    assert result.returncode == 0, "lineage with a name must exit 0"
-    payload = json.loads(result.stdout)
-    assert payload["content"]["dependencies"] == [], (
-        "lineage with a name must return empty dependencies (no resolution)"
-    )
+def test_lineage_bad_relation_exits_nonzero(graph: Path) -> None:
+    result = run("lineage", ENTRY_ID, "--relation", "flow_to", db=graph)
+    assert result.returncode != 0
 
 
-def test_lineage_depth_ceiling_and_bad_relation(graph: Path) -> None:
-    """lineage --depth 25 exits non-zero; lineage --relation flow_to exits non-zero."""
-    entry_id = "ts-python . . . caller/entry()."
-    assert (
-        run("lineage", "--symbol", entry_id, "--depth", "25", db=graph).returncode != 0
-    ), "lineage --depth 25 must exit non-zero (ceiling is 24)"
-    assert (
-        run("lineage", "--symbol", entry_id, "--relation", "flow_to", db=graph).returncode != 0
-    ), "lineage --relation flow_to must exit non-zero (only flows_to is accepted)"
+def test_lineage_json_writes_staleness_to_stderr(graph: Path) -> None:
+    """stdout stays parseable JSON while the STALENESS: line goes to stderr."""
+    result = run("lineage", ENTRY_ID, "--json", db=graph)
+    assert result.returncode == 0
+    json.loads(result.stdout)
+    assert any(line.startswith("STALENESS:") for line in result.stderr.splitlines())
 
 
 # ── 0.21.0: traverse ──────────────────────────────────────────────────────────
@@ -743,18 +821,17 @@ def test_path_entry_helper_depth_bounded_absence(graph: Path) -> None:
     assert payload["depth_bounded"] is True
 
 
-def test_path_entry_helper_found_with_depth_bounded(graph: Path) -> None:
-    """path entry helper --max-depth 2 returns found true with depth_bounded true.
+def test_path_entry_helper_found_is_not_depth_bounded(graph: Path) -> None:
+    """path entry helper --max-depth 2 returns found true with depth_bounded false.
 
-    depth_bounded is true whenever the walk touches its frontier, even when a
-    route is found.  The 2-hop path from entry to helper exactly reaches the
-    max-depth frontier.  See gaps.md §Paths.
+    depth_bounded is true only when something lay beyond the horizon. The 2-hop
+    path from entry to helper ends at the frontier with nothing past it.
     """
     payload = json.loads(
         run("path", "entry", "helper", "--max-depth", "2", "--json", db=graph).stdout
     )
     assert payload["found"] is True
-    assert payload["depth_bounded"] is True
+    assert payload["depth_bounded"] is False
 
 
 def test_path_unresolved_from_side(graph: Path) -> None:

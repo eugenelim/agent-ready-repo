@@ -7,6 +7,7 @@ the required nonnormative statements.  All reads stay inside the pack.
 
 from __future__ import annotations
 
+import importlib.util
 import posixpath
 import re
 from pathlib import Path
@@ -40,19 +41,23 @@ REQUIRED_LINKS: tuple[str, ...] = (
     "../scripts/estate_preflight.py",
 )
 
-# CLI verbs that are real Wicked Estate commands (from test_estate_surface_vocabulary).
-# Used to detect if the Baseline subsection accidentally names a provider command.
-_ESTATE_CLI_VERBS: frozenset[str] = frozenset(
-    {
-        "annotate", "annotations", "blast-radius", "by-requirement",
-        "changed-since", "clusters", "compact", "context", "correspond",
-        "cross-graph", "dead-code", "drift", "entrypoints", "export",
-        "fingerprint", "graph-view", "hotspots", "import-telemetry", "index",
-        "leaves", "nodes", "path", "plugins", "query", "rank", "resolve",
-        "scip", "semantic", "semantics", "source", "stale-annotations",
-        "stats", "subscribe", "tfstate", "watch",
-    }
-)
+
+def _load_vocabulary_cli_verbs() -> frozenset[str]:
+    """Return the vocabulary allowlist's CLI verbs, loaded under a unique module name."""
+    spec = importlib.util.spec_from_file_location(
+        "code_intelligence_vocabulary_composition_check",
+        Path(__file__).with_name("test_estate_surface_vocabulary.py"),
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return frozenset(module.CLI_VERBS)
+
+
+# CLI verbs that are real Wicked Estate commands, taken from the vocabulary
+# allowlist so the two cannot drift. Used to detect if the Baseline subsection
+# accidentally names a provider command.
+_ESTATE_CLI_VERBS: frozenset[str] = _load_vocabulary_cli_verbs()
 
 # Wicked Estate output field names in backtick notation that must not appear
 # in the Baseline subsection.
@@ -123,7 +128,7 @@ def _subsection_after(text: str, heading: str) -> str:
 
 
 def test_example_walks_the_provider_fit_path() -> None:
-    """AC-0001: the Provider-fit path section states the question, cites the capability map,
+    """The Provider-fit path section states the question, cites the capability map,
     shows the preflight command, a bare stats run, the exact blast-radius invocation,
     names unresolved and truncated_dependents as limits, shows a source check, and
     names a stopping point.
@@ -169,7 +174,7 @@ def test_example_walks_the_provider_fit_path() -> None:
 
 
 def test_example_walks_the_fallback_paths() -> None:
-    """AC-0002: the Fallback path section covers exits 2, 3, and 4, the STALENESS scenario
+    """The Fallback path section covers exits 2, 3, and 4, the STALENESS scenario
     with repository history, labels text search as a different evidence class, does not
     use the word 'equivalent', names what cannot be established, and reaches the same
     acceptance question without an install, index, or refresh step.
@@ -276,7 +281,7 @@ def test_baseline_names_no_provider_detail() -> None:
 
 
 def test_example_links_canonical_references() -> None:
-    """AC-0004: the example links to capability-map.md, evidence.md, gaps.md,
+    """The example links to capability-map.md, evidence.md, gaps.md,
     investigation-patterns.md, and ../scripts/estate_preflight.py, and every
     relative link resolves inside the skill directory.
     """
@@ -305,7 +310,7 @@ def test_example_links_canonical_references() -> None:
 
 
 def test_example_copies_no_canonical_detail() -> None:
-    """AC-0004: no run of ten or more consecutive words in the example appears in SKILL.md
+    """No run of ten or more consecutive words in the example appears in SKILL.md
     or any other file in references/, and the example carries no preflight exit-code table
     and no completeness-field table.
     """
@@ -341,7 +346,7 @@ def test_example_copies_no_canonical_detail() -> None:
 
 
 def test_skill_and_readme_route_to_the_example() -> None:
-    """AC-0008: SKILL.md and README.md each link to the example, call it an example
+    """SKILL.md and README.md each link to the example, call it an example
     rather than a contract, and state that other providers may expose fewer, different,
     or new capabilities and need not emulate Wicked Estate.
     """
@@ -373,7 +378,7 @@ def test_skill_and_readme_route_to_the_example() -> None:
 
 
 def test_investigation_patterns_stay_open() -> None:
-    """AC-0009: across SKILL.md, README.md, and every file in references/, no sentence
+    """Across SKILL.md, README.md, and every file in references/, no sentence
     calls the five investigation patterns complete, exhaustive, required, or closed, and
     SKILL.md and the example each state that the current patterns may change.
     """
@@ -413,7 +418,7 @@ def test_investigation_patterns_stay_open() -> None:
 
 
 def test_example_retains_only_synthetic_evidence() -> None:
-    """AC-0012: the example holds no absolute local path, home-directory path, email
+    """The example holds no absolute local path, home-directory path, email
     address, credential-shaped key, or hostname outside example.com and example.invalid,
     and states that provider output is untrusted data.
     """
