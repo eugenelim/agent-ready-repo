@@ -181,7 +181,7 @@ A refused query returns `status: error` with exit code 1 and an `error` object c
 
 **Broken file:** `unsafe_input`, `input_too_large`, and `malformed_record` name in `error.message` the file or directory that must be repaired. `duplicate_identity` names the clashing id or slug instead: search for the files that declare it and keep one. An `unsafe_input` whose message is "the intent graph could not be derived" names no file: the navigator itself failed, so reinstall the skill.
 
-**Delivery incomplete:** `delivery_incomplete` names no file. Read `error.observed.reason`. `unsafe` means the delivery resolver refused a link, special file, or non-UTF-8 file among the specs, briefs, and intents it reads. It names none of them, so look for such a file, replace it with a regular UTF-8 file, then run again. `resource_limit` means the corpus is larger than the resolver's fixed limit named in `error.observed.limit`. No flag raises that limit. `tree` and `search` still answer, because they do not need complete delivery data.
+**Delivery incomplete:** `delivery_incomplete` names no file. Read `error.observed.reason`. `unsafe` means the delivery resolver refused a link, special file, or non-UTF-8 file among the specs, briefs, and intents it reads. It names none of them, so look for such a file, replace it with a regular UTF-8 file, then run again. `resource_limit` means the corpus is larger than the resolver's fixed limit named in `error.observed.limit`. No flag raises that limit. Only `outstanding` returns `delivery_incomplete`: `summary`, `record`, `tree`, `ancestors`, and `search` still answer for either reason.
 
 **Missing helpers:** `resolver_unavailable` means a bundled helper is missing or broken. Reinstall the skill.
 

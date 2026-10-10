@@ -146,8 +146,9 @@ names no file: the navigator itself failed, so reinstall the skill.  ``delivery_
 limit in ``error.observed.limit``) or ``unsafe`` (it refused part of the
 corpus without naming the file: a link, special file, or non-UTF-8 file).
 For ``unsafe``, report that such a file must be replaced.  For
-``resource_limit``, no flag raises the limit; ``tree`` and ``search`` still
-answer.
+``resource_limit``, no flag raises the limit.  Only ``outstanding`` returns
+``delivery_incomplete``: ``summary``, ``record``, ``tree``, ``ancestors``, and
+``search`` still answer for either reason.
 ``resolver_unavailable`` means a bundled helper is missing or broken:
 reinstall the skill.  A command the argument parser rejects exits 2 with no
 envelope.

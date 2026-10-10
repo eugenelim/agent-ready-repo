@@ -443,7 +443,7 @@ row's literal method.
   round above overstated it. Both loaders now refuse any load failure as
   `resolver_unavailable`; the regression test runs a broken copy of each of
   the three helpers, and the two new cases fail on `c960b8156`.
-- Seven wording Nits in the guide and skill: a no-file `unsafe_input` case,
+- Six wording Nits in the guide and skill: a no-file `unsafe_input` case,
   `duplicate_identity` naming an id or slug rather than a file, a next step
   per `delivery_incomplete` reason, `resolver_unavailable` covering a broken
   helper, and a trimmed example label.
@@ -457,3 +457,17 @@ row's literal method.
 - **AC-0019 at this code**, 2026-10-10 03:09 CDT, load 18 to 31 on 10 cores:
   4.47, 3.53, 3.27, 3.06, 3.35, 3.18, 3.23 s, median 3.27 s, minimum 3.06 s,
   maximum 4.47 s, result 105,913 bytes, every run `status: ok`.
+
+## Round 7
+
+- CI on `ae6927f71`: `build-check` 38037289002, `test-corpus` 38037290957,
+  `test-roster` 38037292728 — all success.
+- Security: clean after adjudication. A broken `_file_safety.py` copy refuses
+  as `unsafe_input` with the fixed message, not `resolver_unavailable`; that
+  meets the envelope contract, the spec's unavailable-helper criterion covers
+  only an absent, non-regular, or symbol-short copy, and the docs already say
+  to reinstall on that message.
+- Adversarial and experience: one Nit each, both fixed — the round-6 Nit count
+  above, and the recovery text now says only `outstanding` refuses on
+  incomplete delivery while every other operation still answers.
+
