@@ -38,7 +38,7 @@ When a page resists placement, it's usually two pages wearing one title. Split i
 
 Diátaxis defines what a page promises its reader, not where files must live. A how-to guide in `docs/how-to/` still follows the how-to contract. A reference page in `docs/reference/` still follows the reference contract.
 
-The `author-product-docs` skill assigns a page kind from the reader's posture and applies the matching contract throughout drafting — without requiring any particular directory structure. Whether your repo uses a by-pack layout, a flat layout, or something else, the page still delivers what its kind promises.
+The `author-product-docs` skill assigns a page kind from the reader's posture and applies the matching contract throughout drafting — without requiring any particular directory structure. Whether your repo groups docs by feature, keeps them in one flat folder, or puts them next to the code, the page still delivers what its kind promises.
 
 ## The discipline that makes it work
 

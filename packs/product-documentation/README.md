@@ -6,7 +6,9 @@ Documentation for any software product — a library, CLI, HTTP API, app, servic
 
 **Not for:** feature specs, design decisions, UI microcopy alone, docstrings alone, or internal maintainer runbooks.
 
-**Need help?** See the [guide index](../../guides/product-documentation/README.md) or [open an issue](https://github.com/eugenelim/agent-ready-repo/issues).
+**Runs in:** the agents `agentbundle` installs into, including Claude Code, Codex, Cursor, GitHub Copilot, and Gemini CLI — see [install routes](../../guides/_shared/explanation/install-routes.md).
+
+**Need help?** See the [guide index](../../guides/product-documentation/README.md) or [open an issue](https://github.com/eugenelim/agent-ready-repo/issues). To contribute, read [CONTRIBUTING](../../CONTRIBUTING.md). Licensed under [Apache-2.0](../../LICENSE-APACHE) or [MIT](../../LICENSE-MIT).
 
 ## Try it
 

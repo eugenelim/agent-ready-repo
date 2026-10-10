@@ -12,7 +12,7 @@ status: stable
 
 Ask your agent:
 
-> Write a how-to guide for rotating an API token.
+> Write a how-to guide for rotating an API token, for a developer who already installed our CLI.
 
 Swap in your own feature and reader. The `author-product-docs` skill reads the code first, then drafts.
 

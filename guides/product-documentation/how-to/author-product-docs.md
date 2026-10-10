@@ -111,4 +111,4 @@ Then check links. Run a route check after navigation changes. Review the rendere
 - [Getting started](../getting-started.md) — a first walk-through on your own repository.
 - [How to write a guide](write-a-guide.md) — document one shipped feature.
 - [About the Diátaxis framework](../explanation/the-diataxis-framework.md) — the four page kinds and how they sit inside the journey.
-- [Product Documentation pack README](../../../packs/product-documentation/README.md) — install and starter prompts.
+- [Product Documentation guides](../README.md) — install and starter prompts.

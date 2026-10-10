@@ -26,7 +26,7 @@ humanGates:
   - id: confirm-documentation-page-kind
     globalGate: null
     label: "Check what the agent chose"
-    trigger: "When the agent reports its surface, journey stage, artifact, and destination — redirect it if any is wrong"
+    trigger: "When the agent reports its choices with the draft or report — before you commit, redirect it if any is wrong"
     duration: "2–4 minutes"
     whatToCheck:
       - "Is the surface right: library, CLI, API, app, service, plugin, or agent-context pack?"
@@ -36,7 +36,7 @@ humanGates:
       - "For an audit or verify request, does the agent write nothing?"
     whatGoodLooksLike: "A page kind you could justify in one sentence — 'This is a how-to because the reader already knows they want to install X and just needs the steps.'"
     whatBadLooksLike: "An explanation that buries the reader in background before revealing what they can do, or a how-to that opens with three paragraphs about why the tool exists."
-    consequence: "A doc written against the wrong page contract misleads the reader from the first sentence. Redirecting the agent as soon as it reports its choice is cheap; fixing the page after it is live is not."
+    consequence: "A doc written against the wrong page contract misleads the reader from the first sentence. Asking for a revision before you commit is cheap; fixing the page after it is live is not."
   - id: review-product-documentation
     globalGate: "G4"
     label: "Review the product documentation"
@@ -65,10 +65,9 @@ relatedJourneys:
 ### 1. Describe what you need
 
 - **You provide:** what you want to document, improve, or check. The mode is optional — the skill infers it from your request. If you say "write a quickstart for this CLI", it activates create mode. If you say "this doc feels wrong", it activates revise or audit mode.
-- **Agent does:** activates `author-product-docs`; discovers the product surface from the repository (library, CLI, API, app, service, plugin, or agent-context pack); places your request on the reader journey; reads the canonical sources for ground-truth behavior; reports the page kind, target artifact, and destination it chose. It records an assumption and continues; it stops to ask only when uncertainty would change the audience, the behavior described, the artifact, a destructive claim, or the canonical source.
-- **You do:** check the surface, journey stage, artifact, and destination the agent reports, and redirect it if any is wrong.
-- **You decide:** whether to redirect the agent.
-- **Output:** a reported surface, journey stage, page kind, mode, and destination path.
+- **Agent does:** activates `author-product-docs`; discovers the product surface from the repository (library, CLI, API, app, service, plugin, or agent-context pack); places your request on the reader journey; reads the canonical sources for ground-truth behavior; picks the page kind, artifact, and destination. It records these choices and continues; it stops to ask only when uncertainty would change the audience, the behavior described, the artifact, a destructive claim, or the canonical source.
+- **You do:** answer the agent's question if it asks one; otherwise nothing yet.
+- **Output:** nothing written yet — the agent's choices are working notes until it reports them with the result.
 - **State:** read-only
 
 ---
@@ -80,7 +79,8 @@ relatedJourneys:
   - **audit** — reads the README, docs index, and every page they link to, then produces a journey gap report (one row per stage, marked covered, partial, missing, or not applicable) followed by page-level findings that each name the violated contract.
   - **verify** — checks each documentation claim against the canonical sources and lists verified, unverified, and contradicted claims.
 - **You do:** for create/revise/retrofit, read the draft as a first-time reader; if you find yourself re-reading a sentence to extract the action it asks for, flag it. For audit, check that you agree with the status given to each stage and the contract cited for each finding.
-- **Output:** a draft, revision, retrofit plan, audit report, or verification result.
+- **You decide:** redirect the agent if the surface, journey stage, page kind, or destination it reports is wrong.
+- **Output:** a draft, revision, retrofit plan, audit report, or verification result, followed by a report of the mode, surface, journey stage, artifact, destination, files changed, and checks run.
 - **State:** draft
 
 ---

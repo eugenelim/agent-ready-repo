@@ -9,7 +9,7 @@ status: stable
 
 In about 20 minutes you will find out which pages your project's docs are missing, write the most important one, and check it against your code.
 
-Install the pack, open your agent in the repository you want to document, and send this request:
+With [`agentbundle`](../_shared/explanation/install-routes.md) installed, add the pack, open your agent in the repository you want to document, and send this request:
 
 ```bash
 agentbundle install --pack product-documentation
@@ -74,7 +74,7 @@ You decide whether the page matches what you want readers to do first.
 Ask the skill to verify what it wrote:
 
 ```
-Verify this quickstart against what the code does
+Verify this page against what the code does
 ```
 
 You should get three lists: verified claims, unverified claims, and claims that contradict current behavior. Then run the check that fits your surface. Run the examples for a library. For a CLI, compare the page with `--help` and run each command. For an API, compare it with the contract file. For a service, compare it with the configuration schema. For an app, walk each documented task in the running app or its end-to-end tests. For a plugin, compare the page with the contribution block in its manifest. For an agent-context pack, read each skill's source and send the first starter prompt.
