@@ -48,8 +48,8 @@ bug, or write a fix. The `bug-fix` workflow owns the diagnosis and the change.
 wicked-estate stats                                  # freshness, before anything else
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
-wicked-estate rank --seeds <dep-id-1>,<dep-id-2>,<dep-id-3> --limit 200 --json
-wicked-estate source --symbols <chosen-ids> --json   # indexed text of the ones you picked, labelled as such
+wicked-estate rank --seeds '<dep-id-1>,<dep-id-2>,<dep-id-3>' --limit 200 --json
+wicked-estate source --symbols '<chosen-ids>' --json   # indexed text of the ones you picked, labelled as such
 ```
 
 **A good answer looks like:**

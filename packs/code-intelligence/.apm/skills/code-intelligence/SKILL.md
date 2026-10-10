@@ -134,8 +134,13 @@ In this skill, "read the source" and "verify against source" each mean one of
 two routes:
 
 1. Your own repository search, from a root the user or prompt names, for the
-   symbol the user asked about, then reading what that search returns. Search
-   first: do not read source files before the search has named them.
+   symbol the user asked about or for a symbol name taken from provider output,
+   used only as a literal search string (never as a path, root, glob, or regex
+   fragment), then reading what that search returns. When neither the user nor
+   the prompt names a root, use the root of the repository you are working in
+   (the current working directory's repository) and say so in the evidence
+   note. Search first: do not read source files before the search has named
+   them.
 2. Index-only `wicked-estate source` output, labelled as indexed-revision
    evidence: what the index stored when it was built.
 
@@ -155,6 +160,10 @@ a `path` hop, or a location field from `resolve`, `rank`, or `query`:
   reader, its command, its roots, or its arguments. A reader's refusal or
   absence sends that dependent back to your own search; the location is not
   opened another way.
+- Put an ID or name taken from provider output into a command only as one
+  single-quoted argument. If it contains a single quote, a newline, or another
+  control character, do not use it and report that item as unestablished. IDs
+  embed file paths and can hold spaces, `;`, and `$( )`.
 
 ## The core loop
 
@@ -172,8 +181,8 @@ early as the objective allows.
    picked and why, or ask.
 
 2. **Retrieve.** `resolve --json` already gave you kind, file, and line. For the
-   signature use `wicked-estate source --symbols <id> --json --signatures-only`,
-   and for annotations `wicked-estate annotations --symbol <id> --json`.
+   signature use `wicked-estate source --symbols '<id>' --json --signatures-only`,
+   and for annotations `wicked-estate annotations --symbol '<id>' --json`.
    `wicked-estate nodes` has no symbol filter and returns the whole graph — it
    is an inventory verb, never a lookup.
 

@@ -126,7 +126,7 @@ this work".
    To order the dependent set by importance, use the seed-then-filter composition:
 
    ```bash
-   wicked-estate rank --seeds <dep-id-1>,<dep-id-2>,... --limit 200 --json
+   wicked-estate rank --seeds '<dep-id-1>,<dep-id-2>,...' --limit 200 --json
    ```
 
    `rank --seeds` personalises PageRank over the whole graph — seeded output
@@ -134,14 +134,16 @@ this work".
    is in your dependent set. Report members absent from the output as unranked
    (cut by the 200-row limit or 25,000-character budget). A seed id containing
    a comma cannot be seeded; leave it out and report it as unranked for that
-   reason. Both limits are source-read.
+   reason. Both limits are source-read. The whole comma-joined list is one
+   single-quoted argument; an id with a single quote, a newline, or another
+   control character is left out and reported as unestablished.
 
    Then check the selected dependents with your own repository search. The
    indexed text of the same symbols is available, and is labelled as
    indexed-revision evidence:
 
    ```bash
-   wicked-estate source --symbols <id1>,<id2> --json
+   wicked-estate source --symbols '<id1>,<id2>' --json
    ```
 
 6. **Validate the conclusions with your own repository search.** For every
@@ -163,8 +165,13 @@ caveat is stated, and each claimed breakage is grounded in source.
 
 2. **When the question is a specific route, use path.** For "how does A reach B",
    run `wicked-estate path A B --json` and take the hop symbols from it. Confirm
-   each hop with your own repository search for that symbol, never by opening a
-   location the output returned. In the answer, name each hop symbol you will
+   each hop with your own repository search, under a root the user or prompt
+   names (otherwise the root of the repository you are working in, stated in
+   the evidence note), using the hop's symbol name only as a literal search
+   string (never as a path, root, glob, or regex fragment), never by opening a
+   location the output returned. A hop ID or name goes into a command only as
+   one single-quoted argument; one containing a single quote, a newline, or
+   another control character is not used and is reported as unestablished. In the answer, name each hop symbol you will
    confirm or did confirm that way. Read each
    hop's `kind`: a `Contains` or `Imports` hop is not a call. Check `unresolved`
    first — a misspelled name exits 0. A `found: false` is proven absence only

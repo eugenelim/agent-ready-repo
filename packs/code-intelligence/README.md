@@ -88,8 +88,11 @@ python '<skill-dir>/scripts/estate_preflight.py' --check
 ```
 
 `<skill-dir>` is the installed `code-intelligence` skill folder, for example
-`.claude/skills/code-intelligence` at repo scope or
-`~/.claude/skills/code-intelligence` at user scope.
+`.claude/skills/code-intelligence` at repo scope. At user scope it is
+`<home>/.claude/skills/code-intelligence`, written as the full home path (for
+example `/Users/<you>/.claude/skills/code-intelligence` or
+`/home/<you>/.claude/skills/code-intelligence`), because the shell does not
+expand `~` inside the quotes.
 
 Exit 0 is ready, 2 means the binary is missing, 3 means there is no index, and
 4 means the binary is older than the 0.21 floor this pack was verified against.

@@ -283,3 +283,56 @@ def test_skill_keeps_observed_and_interpretation_labels_in_the_body() -> None:
     flat = collapse(SKILL_MD.read_text("utf-8")).replace("*", "")
     assert "the note does not replace labels in the body" in flat
     assert "observed:" in flat and "interpretation:" in flat
+
+
+# --- search-term, default-root, and quoting rules ----------------------------
+
+SEARCH_TERM_PHRASES: tuple[str, ...] = (
+    "for the symbol the user asked about or for a symbol name taken from provider output",
+    "used only as a literal search string (never as a path, root, glob, or regex fragment)",
+)
+DEFAULT_ROOT_PHRASES: tuple[str, ...] = (
+    "when neither the user nor the prompt names a root, use the root of the "
+    "repository you are working in (the current working directory's repository)",
+    "say so in the evidence note",
+)
+QUOTING_PHRASES: tuple[str, ...] = (
+    "only as one single-quoted argument",
+    "if it contains a single quote, a newline, or another control character, "
+    "do not use it and report that item as unestablished",
+)
+_RULE_FILES: tuple[Path, ...] = (SKILL_MD, *AGENT_FILES)
+
+
+def _missing(text: str, phrases: tuple[str, ...]) -> list[str]:
+    flat = collapse(text).replace("`", "")
+    return [p for p in phrases if p not in flat]
+
+
+@pytest.mark.parametrize(
+    "phrases", [SEARCH_TERM_PHRASES, DEFAULT_ROOT_PHRASES, QUOTING_PHRASES]
+)
+def test_search_root_and_quoting_rules_present_and_removal_is_caught(
+    phrases: tuple[str, ...],
+) -> None:
+    for path in _RULE_FILES:
+        text = path.read_text("utf-8")
+        assert _missing(text, phrases) == [], path.name
+        for phrase in phrases:
+            planted = re.sub(
+                r"\s+".join(re.escape(w) for w in phrase.split()),
+                "",
+                text.replace("`", ""),
+                flags=re.IGNORECASE,
+            )
+            assert _missing(planted, phrases) == [phrase], (path.name, phrase)
+
+
+def test_composition_example_reader_condition_requires_own_text() -> None:
+    path = (
+        APM_ROOT / "skills" / "code-intelligence" / "references" / "composition-example.md"
+    )
+    flat = collapse(path.read_text("utf-8"))
+    assert "only when the invoking user, or the invoking skill's own text, supplies" in flat
+    assert "own text" in flat
+    assert "own text" not in flat.replace("own text", "text")

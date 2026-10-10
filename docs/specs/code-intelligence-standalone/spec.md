@@ -46,6 +46,19 @@ answer is as safe without Core as with it.
   `SKILL.md`.
 - Every instruction to read or verify source in the skill, its references, and
   both subagents names one of those two routes.
+- Every answer ends with an evidence note, and the body keeps `Observed:` and
+  `Interpretation:` labels, including for figures the user supplied —
+  `SKILL.md`.
+- Supplied tool outputs are reported under their full command, including
+  flags — `SKILL.md`.
+- Own repository search runs under a root the user or prompt names, or by
+  default the root of the repository the agent is working in, stated in the
+  evidence note. Its search term is the symbol the user asked about or a symbol
+  name from provider output, used only as a literal search string — `SKILL.md`,
+  both subagents, and the two references that describe confirmation.
+- A provider ID or name goes into a command only as one single-quoted
+  argument; one holding a single quote or control character is reported as
+  unestablished — `SKILL.md`, both subagents, and the patterns reference.
 - The composition example walks one question through the graph path and the
   fallback path with no Core role; its ownership section splits baseline rules
   from Wicked Estate details — `references/composition-example.md`.

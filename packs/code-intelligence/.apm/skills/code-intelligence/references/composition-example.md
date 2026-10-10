@@ -50,7 +50,7 @@ Before reading the dependent list, read `unresolved`, `truncated_dependents`, `s
 
 An edge in the graph is a candidate; the agent's own repository search is what confirms it. Search the repository, from the root the user named, for `parse_config`, and confirm that each call lies on a path that reaches the changed part of its signature. The full source command inventory is in [`references/capability-map.md`](capability-map.md).
 
-The location fields in the `blast-radius` output are never opened and never handed to `wicked-estate source`. A confined reader is an option only when the invocation itself supplies one; a refusal from it, or its absence, sends that dependent back to the search.
+The location fields in the `blast-radius` output are never opened and never handed to `wicked-estate source`. A confined reader is an option only when the invoking user, or the invoking skill's own text, supplies one; a refusal from it, or its absence, sends that dependent back to the search.
 
 `wicked-estate source --symbols <id> --json` output may appear in the answer as indexed-revision snapshot evidence — what the index stored at index time, as described in [`references/gaps.md`](gaps.md) § 4 — labelled as such. That output does not confirm a call site, so a dependent whose file the index may not reflect is settled by search alone.
 

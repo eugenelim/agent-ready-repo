@@ -4,12 +4,12 @@
     {
       "id": 1,
       "prompt": "What breaks if I change parse_config? The blast radius returns 23 resolved dependents and reports unresolved: 4.",
-      "expected_output": "An impact answer that states the unresolved count as a completeness limit before or alongside the dependent list, describes the list as a floor rather than a total, ranks or narrows to the load-bearing dependents rather than pasting all 23, and grounds each claimed breakage in source rather than in the edge alone.",
+      "expected_output": "An impact answer that states the unresolved count as a completeness limit before or alongside the dependent list, describes the list as a floor rather than a total, ranks or narrows to the load-bearing dependents rather than pasting all 23, and has each claimed breakage confirmed, or marked to be confirmed, by the agent's own repository search rather than resting on the edge alone.",
       "assertions": [
         "States the unresolved count of 4 and explains that there may be dependents not shown",
         "Does not describe the 23 dependents as a complete or total list",
         "Narrows to the load-bearing dependents instead of returning the flat list",
-        "Says that each claimed breakage was or should be verified against source",
+        "Requires each claimed breakage to be confirmed, or marked to be confirmed, by the agent's own repository search",
         "Does not assign a risk rating, effort estimate, or release decision"
       ]
     },
