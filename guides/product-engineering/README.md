@@ -34,6 +34,15 @@ with [frame a product vision](how-to/frame-a-product-vision.md) instead. [The
 intent tree](explanation/the-intent-tree.md) has the full model, and you do not
 need it to start.
 
+## Where this fits
+
+This pack is the heart of the *Shape it* stage. You arrive with a problem, a
+signal, or a gap that strategy queued. You leave with a bet you approved and
+slices the build loop can pick up. The hand-off happens when you commit to
+build, which the agents call G3. [How the approved result reaches
+delivery](#how-the-approved-result-reaches-delivery) covers that step, and [the
+handoff chain](../_shared/explanation/the-three-loops.md#the-handoff-chain) shows the whole flow.
+
 ## Walk the guidebook
 
 Four stages, in order. Each step shows what you type, what the agent replies,

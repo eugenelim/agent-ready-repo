@@ -15,6 +15,15 @@ Start work on adding export retention controls for workspace owners.
 
 New here? [Why loop engineering](explanation/core-pack.md#why-loop-engineering) is the *why* — the leverage has moved off the prompt and onto the loop. [The `core` pack as a system](explanation/core-pack.md) is the full map. Then build something with [plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md).
 
+## Where this fits
+
+This pack is the *Build it* stage. Work reaches it from anywhere: a committed
+bet from Product Engineering, a reviewed design set, a bug report, or a
+sentence you type. `work-intake` sends each one down the right route. You leave
+with a merged change you approved. If your team uses `release-engineering`, the
+merge is where release testing begins, and `close-work` wraps up the work once
+it's done. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+
 ## Walk the guidebook
 
 Four steps, in order. Each shows what to type, what the agent replies, what it

@@ -13,6 +13,15 @@ The pack has two axes. **Depth** (above) is episodic — one-shot questions. **L
 
 New here? Walk [your first research session](tutorials/desk-research-first-session.md), then reach for [the pipelines](how-to/research-pipelines.md) when one question needs several skills working together. For a sustained investigation, walk [your first research project](tutorials/your-first-research-project.md).
 
+## Where this fits
+
+This pack opens the *Decide what to build* stage, and it comes back whenever a
+later decision rests on a fact nobody has checked. You arrive with a question
+that memory can't answer. You leave with a survey that grades each finding by
+how far you can trust it. Product Strategy reads that survey before it makes a
+call, and Product Engineering reaches for it when an intent leans on an
+unverified claim. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+
 ## Walk the guidebook
 
 Four steps. The first three are one session; the fourth is for a question that

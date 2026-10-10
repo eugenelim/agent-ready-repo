@@ -11,6 +11,25 @@ kind: explanation
 
 Everything below is either a way into that route, a wider alternative to one of its steps, or guidance you reach for along the way.
 
+## Find where your work is
+
+Every piece of work moves through the same four stages, though most of it skips
+one or two. Find the stage you're in and start there.
+
+1. **Decide what to build.** You have a question or an opportunity, and you need
+   evidence and a strategic call before anyone commits. Start with the first two
+   steps of [P2b](#p2b--take-the-wider-route-through-the-four-disciplines--4-hours).
+2. **Shape it.** You know the outcome you want and need a bet you can build.
+   Start with [P2](#p2--shape-what-to-build--3-hours), about three hours.
+3. **Build it.** You have a spec, or a piece of work clear enough to write one.
+   Start with [P3](#p3--build-it--2-hours), about two hours.
+4. **Ship it.** You have a merged change that needs to reach production safely.
+   Start with [P5](#p5--ship-and-report--2-hours), about two hours.
+
+Each stage ends when you make the call: commit to an outcome, hand the work to
+the build loop, merge, and approve the production ship. To see every pack in
+that flow, read [the handoff chain](_shared/explanation/the-three-loops.md#the-handoff-chain).
+
 ## Walk a pack
 
 Five packs carry a **guidebook**: a numbered walk through that pack's journey,
@@ -41,7 +60,7 @@ once you know the shape.
 
 ### P1 · Adopt the catalogue — ~1 hour
 
-**Prerequisite:** none. **For:** anyone, first session.
+**Prerequisite:** none. **For:** anyone, first session. **Stage:** before any of them.
 
 Installation starts by choosing the route that fits your repository.
 
@@ -57,7 +76,7 @@ Next: [P2 · Shape what to build](#p2--shape-what-to-build--3-hours).
 
 ### P2 · Shape what to build — ~3 hours
 
-**Prerequisite:** P1. **For:** product manager, product engineer, strategist.
+**Prerequisite:** P1. **For:** product manager, product engineer, strategist. **Stage:** Shape it.
 
 The **light path** is the default: frame an intent, test its riskiest
 assumption, break it down. Reach past it to the **robust path** — situation,
@@ -89,7 +108,7 @@ Next: [P3 · Build it](#p3--build-it--2-hours).
 
 ### P2b · Take the wider route through the four disciplines — ~4 hours
 
-**Prerequisite:** P1. **For:** product manager, researcher, designer, product engineer.
+**Prerequisite:** P1. **For:** product manager, researcher, designer, product engineer. **Stage:** Decide what to build, then Shape it.
 
 **An alternative to P2, not a step after it.** The two differ by *which
 disciplines the work needs*, not by how clear the problem is — P2's robust path
@@ -117,7 +136,7 @@ Next: [P3 · Build it](#p3--build-it--2-hours).
 
 ### P3 · Build it — ~2 hours
 
-**Prerequisite:** P2, or an existing spec. **For:** engineer, agent.
+**Prerequisite:** P2, or an existing spec. **For:** engineer, agent. **Stage:** Build it.
 
 1. [Orient at session start](core/how-to/orient-at-session-start.md)
 2. [Plan and execute non-trivial work](core/how-to/plan-and-execute-non-trivial-work.md)
@@ -131,7 +150,7 @@ Next: [P4 · Decide together](#p4--decide-together--15-hours).
 
 ### P4 · Decide together — ~1.5 hours
 
-**Prerequisite:** P1. **For:** tech lead, architect.
+**Prerequisite:** P1. **For:** tech lead, architect. **Stage:** any. Decisions get written down wherever they're made.
 
 1. [The governance index](governance-extras/how-to/governance-index.md) — which of RFC, ADR, or spec you need
 2. [Propose an RFC](governance-extras/how-to/new-rfc.md)
@@ -147,7 +166,7 @@ Next: [P5 · Ship and report](#p5--ship-and-report--2-hours).
 
 ### P5 · Ship and report — ~2 hours
 
-**Prerequisite:** P3. **For:** delivery lead, SRE.
+**Prerequisite:** P3. **For:** delivery lead, SRE. **Stage:** Ship it.
 
 This release and reporting stage takes the build through its human ship gate.
 
