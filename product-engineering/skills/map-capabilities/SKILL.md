@@ -97,7 +97,7 @@ writing; confirm before overwriting an existing file. Append "Next step readines
 when `lean-canvas` / `author-delivery-brief create` is not detected in available skills.
 
 **6. Suggest workspace.toml transition.** Print the TOML snippet to transition the
-slug. Direct PE to `capture-work` or manual edit. Do not write to `workspace.toml`.
+slug. Direct PE to `work-intake` or manual edit. Do not write to `workspace.toml`.
 
 ## Anti-patterns to refuse
 

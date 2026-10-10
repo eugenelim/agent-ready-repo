@@ -98,9 +98,10 @@ entry. Status values the skill writes: `recommended` (one option only),
 written by this skill.
 
 **6. Suggest workspace.toml entry.** Print a canonical five-field entry — a
-short `{slug, type}` entry is the legacy shape and is never dispatchable — and
-direct the user to register it through `work-intake` or to add it by hand. Do
-not write to `workspace.toml`.
+short `{slug, type}` entry is the legacy shape, is never dispatchable, and old
+shaping entries still appear in the information-only shaping lists until
+rewritten — then direct the user to register it through `work-intake` or to
+add it by hand. Do not write to `workspace.toml`.
 
 ```toml
 {path = "<output_dir>/shaping/<slug>/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the chosen option in one line>", needs = []},
