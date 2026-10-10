@@ -137,43 +137,6 @@ TERMINUS_VOCABULARY: tuple[str, ...] = (
     "closed-empty",
 )
 
-# ── Reference-kind vocabulary (projection of intent_shape.OUTCOME_CO_OWNER_KINDS)
-# A ``Parent intent:`` value is a **typed** reference — ``<kind>:<slug>`` — and
-# the kind names the parent's altitude, not the child's. Matching ``intent:``
-# alone reads 5 of the 49 declared parent edges in this repository and misses
-# every ``capability:``, ``outcome:`` and ``opportunity:`` edge. The shipped
-# home is the same one that validates ``Outcome co-owner:``, which uses this
-# identical grammar.
-
-REFERENCE_KIND_VOCABULARY: tuple[str, ...] = (
-    "outcome",
-    "opportunity",
-    "capability",
-    "intent",
-)
-
-REFERENCE_KIND_UPSTREAM_SLUG = "work-intake/scripts/intent_shape.py"
-REFERENCE_KIND_UPSTREAM_SECTION = "OUTCOME_CO_OWNER_KINDS, vocabulary membership"
-
-
-def reference_kind_parity_disagreements(upstream_kinds: Iterable[str]) -> list[str]:
-    """Kinds where this projection and the upstream vocabulary disagree.
-
-    Reported in both directions. A kind upstream adds and this projection
-    lacks is the live risk: every parent edge carrying it becomes invisible to
-    the walk, the ancestor reports an empty descendant set, and the verdict is
-    a refusal that looks like a legitimate C2 answer.
-    """
-    upstream = frozenset(upstream_kinds)
-    disagreements: list[str] = []
-    for kind in REFERENCE_KIND_VOCABULARY:
-        if kind not in upstream:
-            disagreements.append(kind)
-    for kind in sorted(upstream):
-        if kind not in REFERENCE_KIND_VOCABULARY:
-            disagreements.append(kind)
-    return disagreements
-
 
 def read_stated_outcome(text: str) -> str:
     """Return the ancestor's declared outcome, collapsed to one line.
@@ -198,16 +161,6 @@ def read_stated_outcome(text: str) -> str:
         if inside and line.strip():
             out.append(line.strip().lstrip("-").strip())
     return " ".join(out).strip()
-
-
-def _is_parent_edge(value: str, parent_slug: str) -> bool:
-    """True when a ``Parent intent:`` value points at ``parent_slug``.
-
-    Accepts any kind in the shipped vocabulary. The kind is the parent's
-    altitude and is not knowable from the child, so it is not constrained
-    here beyond membership.
-    """
-    return any(value == f"{kind}:{parent_slug}" for kind in REFERENCE_KIND_VOCABULARY)
 
 
 # Termini that name artifact collections and therefore trigger collection reads.

@@ -299,7 +299,30 @@ def _check_nav_extraction(
     return failures
 
 
-def main(argv: list[str] | None = None) -> int:
+def _check_parent_kind_parity(resolver: Any, intent_shape: Any) -> list[str]:
+    """Compare the resolver's parent-intent kinds to ``OUTCOME_CO_OWNER_KINDS``.
+
+    Both directions: a kind upstream adds that the resolver lacks makes every
+    parent edge carrying it unreadable, and a kind the resolver adds that
+    upstream lacks accepts an edge the shipped grammar rejects.
+    """
+    resolver_kinds = frozenset(resolver._PARENT_INTENT_KINDS)
+    upstream = frozenset(intent_shape.OUTCOME_CO_OWNER_KINDS)
+    failures = [
+        f"parent-intent kind {kind!r}: in intent_shape.OUTCOME_CO_OWNER_KINDS "
+        f"but missing from intent_delivery_relations._PARENT_INTENT_KINDS"
+        for kind in sorted(upstream - resolver_kinds)
+    ]
+    failures.extend(
+        f"parent-intent kind {kind!r}: in intent_delivery_relations."
+        f"_PARENT_INTENT_KINDS but absent from intent_shape.OUTCOME_CO_OWNER_KINDS"
+        for kind in sorted(resolver_kinds - upstream)
+    )
+    return failures
+
+
+def main(argv: list[str] | None = None, resolver_path: Path | None = None) -> int:
+    """Run the parity checks; ``resolver_path`` lets tests point at a resolver copy."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="repository root")
     args = parser.parse_args(argv)
@@ -320,6 +343,11 @@ def main(argv: list[str] | None = None) -> int:
     closure_index = _load(
         "closure_index",
         root / "packs/core/.apm/skills/close-work/scripts/closure_index.py",
+    )
+    resolver = _load(
+        "intent_delivery_relations_parity",
+        resolver_path
+        or root / "packs/core/.apm/skills/close-work/scripts/intent_delivery_relations.py",
     )
     intent_shape = _load(
         "intent_shape",
@@ -367,13 +395,7 @@ def main(argv: list[str] | None = None) -> int:
             f"terminus {terminus!r}: TERMINUS_VOCABULARY and "
             f"intent_shape.py::DECOMPOSITION_TERMINI disagree on membership"
         )
-    for kind in closure_index.reference_kind_parity_disagreements(
-        intent_shape.OUTCOME_CO_OWNER_KINDS
-    ):
-        failures.append(
-            f"reference kind {kind!r}: REFERENCE_KIND_VOCABULARY and "
-            f"intent_shape.py::OUTCOME_CO_OWNER_KINDS disagree on membership"
-        )
+    failures.extend(_check_parent_kind_parity(resolver, intent_shape))
     failures.extend(_walk_is_not_vacuous(root, closure_index))
 
     # ── Navigator terminality copy checks (intent_terminality.py) ─────────────
@@ -406,7 +428,8 @@ def main(argv: list[str] | None = None) -> int:
             "its upstream, never the other way round. Status projections live "
             "in close-work/scripts/closure_terminality.py and "
             "navigate-intents/scripts/intent_terminality.py; the terminus "
-            "projection lives in close-work/scripts/closure_index.py",
+            "projection lives in close-work/scripts/closure_index.py and the "
+            "parent-intent kinds in close-work/scripts/intent_delivery_relations.py",
             file=sys.stderr,
         )
         return 1
@@ -417,7 +440,7 @@ def main(argv: list[str] | None = None) -> int:
         f"{len(projection.BRIEF_STATUS_VOCABULARY)} brief and "
         f"{len(projection.SPEC_STATUS_VOCABULARY)} spec status(es) and "
         f"{len(closure_index.TERMINUS_VOCABULARY)} terminus(es) and "
-        f"{len(closure_index.REFERENCE_KIND_VOCABULARY)} reference kind(s) agree with upstream; "
+        f"{len(resolver._PARENT_INTENT_KINDS)} parent-intent kind(s) agree with upstream; "
         "navigator terminality copy agrees; "
         "the live-corpus walk is not vacuous"
     )
