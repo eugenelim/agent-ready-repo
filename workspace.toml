@@ -2430,9 +2430,6 @@ active  = [
   # Slice 1 of `intent-navigation-delivery`, started 2026-10-08 on `feature/intent-navigation`;
   # moved from `queue` in the same commit that set the spec `Implementing`.
   { path = "docs/specs/intent-navigation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Navigator core: header-derived intent graph, bounded query, text tree, and outstanding-work view", needs = [] },
-  # Slice 2, approved 2026-10-10 and reopened the same day for a version amendment
-  # on `feature/intent-navigation`; it returns to `shipped` when the spec ships.
-  { path = "docs/specs/close-work-intent-graph-convergence/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "close-work takes intent and brief parent edges from the shared intent derivation", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
@@ -2451,6 +2448,9 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 2 of `intent-navigation-delivery`, delivered 2026-10-10 on `feature/intent-navigation`;
+  # moved from `active` in the same commit that set the spec `Shipped`.
+  { path = "docs/specs/close-work-intent-graph-convergence/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "close-work takes intent and brief parent edges from the shared intent derivation", needs = [] },
   # FEAT-0003's single delivery unit. Delivered 2026-10-07 and moved from
   # `active` to `shipped` in the change that set the spec `Shipped` and the plan
   # `Done`.

@@ -1,7 +1,7 @@
 # Plan: Close-work intent graph convergence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/DESIGN.md` § Intent-edge derivation: source, copies, pins, and consumers (names this copy as the planned convergence); analogous implementation: `closure_index.py`'s own `_run_resolver` and `_get_closure_terminality`, which load a co-located copy after an `lstat` regular-file check and expose a provider seam (`_snapshot_provider`); their tests: `packs/core/tests/pack/test_intent_delivery_relations_copies.py` and `packs/core/tests/skills/close-work/test_closure_delivery_snapshot.py`; deviation: the derivation's helper loaders use fixed module names, so a second copy binds the first copy's helpers (T1 corrects this).
 
 > **Plan contract:** this is the implementation strategy. It may change
