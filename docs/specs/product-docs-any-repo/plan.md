@@ -1,7 +1,7 @@
 # Plan: product documentation for any repository
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (export boundary, version bump,
   no internal citations, eval update); `docs/guides/guide-source-model.md`
   (guide frontmatter, aliases); cross-pack handoff precedent
