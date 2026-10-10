@@ -202,3 +202,6 @@ Owned by: T4
 - 2026-10-08: revised before execution, with owner approval, from a sustained pre-EXECUTE review: T5 owns the command-plan digest re-pin in `tools/test_local_ci_shared_test_deduplication.py`; T1 moves the brief to `Executing` with the spec's move to `Implementing`, moves both `workspace.toml` memberships in the same commit, and states which negative cases are committed and which are built at test time; T6 owns the regenerated `web/src/content/journeys/core.md`.
 - 2026-10-08: spec re-approved by eugenelim after the pre-EXECUTE revision
 - 2026-10-08: plan re-approved by eugenelim after the pre-EXECUTE revision
+- 2026-10-09: AC-0071 amended by owner decision (eugenelim) to state the form of a `multiple_values` refusal whose values differ in shape; the implementation already matched, and the review that raised it is recorded in the verification ledger. Planning reopened through the reset pair after the earlier run's amendment transition wedged.
+- 2026-10-09: amended spec re-approved by eugenelim
+- 2026-10-09: plan re-approved by eugenelim with the amended spec

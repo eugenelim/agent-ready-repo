@@ -273,3 +273,19 @@ row's literal method.
   marker. The marker now conflicts with every later transition, a replay
   repeats the failure, and no verb clears it, so the run is wedged at
   `CODE-IMPLEMENTATION` pending an owner decision on recovery.
+
+## AC-0071 amendment
+
+- The owner chose "Reset and restart" on 2026-10-09 to recover the wedged
+  engine. The prior run's state is archived under
+  `.context/engine-archive/`; the new run is
+  `08597a69-171a-46fd-b0d0-08be49d7092b`.
+- The amendment took three pre-EXECUTE review rounds. Round 1 sustained that
+  the sentence did not say which values `basis.values` holds per field; round
+  2 sustained that a repository-escaping `Discovery:` link and an intent's
+  `none` `Parent intent:` value both joined a conflict, against AC-0003 and
+  AC-0006; round 3 was clean. The code was corrected to match: a
+  `Discovery:` conflict counts only intent-valued values, and an empty or
+  `none` intent parent value never counts. Three tests fail on the code at
+  `dd3fbc4a3` and pass now.
+- The owner re-approved the amended spec and the plan on 2026-10-09.

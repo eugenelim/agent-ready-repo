@@ -371,3 +371,57 @@ def test_missing_level_is_unrecorded_on_every_json_surface() -> None:
     assert record["level"] == "unrecorded"
     hits = _query(_MIXED, "--operation", "search", "--selectors", '{"text": "delta-opp"}')
     assert [hit["level"] for hit in hits["intents"]] == ["unrecorded"]
+
+
+def test_discovery_multiple_values_lists_only_intent_valued_values(tmp_path: pathlib.Path) -> None:
+    """A provenance Discovery: value takes no part in the multiple_values refusal's basis."""
+    root = _copy(_MIXED, tmp_path)
+    spec_dir = root / "docs" / "specs" / "probe-provenance"
+    spec_dir.mkdir()
+    (spec_dir / "spec.md").write_text(
+        "# Spec: Probe provenance\n\n- **Status:** Draft\n- **Discovery:** intent:bravo-feat\n"
+        "- **Discovery:** capability:alpha-cap\n- **Discovery:** an interview note\n\n## Outcome\n",
+        encoding="utf-8",
+    )
+    edge = next(
+        e for e in ig.derive(root)["edges"]
+        if e["from"] == "spec:probe-provenance" and e["field"] == "Discovery"
+    )
+    assert [v["value"] for v in edge["basis"]["values"]] == [
+        "intent:bravo-feat", "capability:alpha-cap",
+    ]
+
+
+def test_escaping_discovery_link_stays_its_own_edge(tmp_path: pathlib.Path) -> None:
+    """An escaping Discovery: link is not intent-valued, so it never joins a conflict."""
+    root = _copy(_MIXED, tmp_path)
+    spec_dir = root / "docs" / "specs" / "probe-escape"
+    spec_dir.mkdir()
+    (spec_dir / "spec.md").write_text(
+        "# Spec: Probe escape\n\n- **Status:** Draft\n- **Discovery:** intent:bravo-feat\n"
+        "- **Discovery:** [x](../../../../../outside.md)\n\n## Outcome\n",
+        encoding="utf-8",
+    )
+    edges = [
+        e for e in ig.derive(root)["edges"]
+        if e["from"] == "spec:probe-escape" and e["field"] == "Discovery"
+    ]
+    assert {(e.get("to"), e.get("state")) for e in edges} == {
+        (None, "unparseable"), ("intent:bravo-feat", None),
+    }
+    assert len(edges) == 2
+
+
+def test_none_parent_value_never_counts_toward_a_conflict(tmp_path: pathlib.Path) -> None:
+    """`Parent intent: none` beside one real value leaves that value to resolve on its own."""
+    root = _copy(_MIXED, tmp_path)
+    _intent(root, "FEAT-0904-none-and-one.md", (
+        "# Feature: None and one\n\n- **Slug:** none-and-one\n- **Status:** Draft\n"
+        "- **Level:** feature\n- **Parent intent:** none\n"
+        "- **Parent intent:** capability:alpha-cap\n\n## Outcome\n"
+    ))
+    edges = [
+        e for e in ig.derive(root)["edges"]
+        if e["from"] == "intent:none-and-one" and e["field"] == "Parent intent"
+    ]
+    assert [(e.get("to"), e.get("state")) for e in edges] == [("capability:alpha-cap", None)]

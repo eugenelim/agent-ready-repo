@@ -748,6 +748,7 @@ def _make_spec_discovery_edges(
     path produce ``retired_target``, not ``dangling``.
     """
     edges: list[dict[str, Any]] = []
+    escaping_edges: list[dict[str, Any]] = []
     spec_rel_dir = spec_path.parent.relative_to(root).as_posix()
 
     seen_values = list(dict.fromkeys(discovery_values))
@@ -818,9 +819,10 @@ def _make_spec_discovery_edges(
             link_target = m.group(1).strip()
             resolved_rel = _resolve_link_target(link_target, spec_rel_dir, root)
             if resolved_rel is None:
-                # Escapes repo → unparseable
+                # Escapes repo → unparseable; not intent-valued, so it never
+                # joins a multiple_values conflict.
                 edge_base["state"] = "unparseable"
-                edges.append(edge_base)
+                escaping_edges.append(edge_base)
                 continue
             if not resolved_rel.startswith("docs/product/intents/"):
                 # Inside repo but not intent path → provenance, no edge
@@ -842,15 +844,16 @@ def _make_spec_discovery_edges(
             # unrecognized, bare_slug → provenance, no edge
             continue
 
-    # Collapse to multiple_values when more than one distinct edge-producing Discovery: value.
-    non_empty_seen = [v for v in seen_values if v and v.lower().split()[0] != "none"]
-    if len(non_empty_seen) > 1 and len(edges) > 1:
+    # Collapse to multiple_values when more than one intent-valued Discovery:
+    # value produced an edge; provenance, `none`, and escaping-link values take
+    # no part, and an escaping link stays its own `unparseable` edge.
+    if len(edges) > 1:
         edges = [_multiple_values_edge(
-            spec_id, "Discovery", non_empty_seen,
-            lambda v: _value_form_generic(v, resolver),
+            spec_id, "Discovery", [edge["value"] for edge in edges],
+            lambda v: _value_form_intent_parent(v, resolver),
         )]
 
-    return edges
+    return edges + escaping_edges
 
 
 # ---------------------------------------------------------------------------
@@ -1145,7 +1148,12 @@ def derive(root: Path) -> dict[str, Any]:
     for node in intent_nodes:
         node_id = node["id"]
         fields = node["_fields"]
-        parent_vals = fields.get("Parent intent", [])
+        # An empty or `none` value produces no edge and no refusal, so it never
+        # counts toward a multiple_values conflict.
+        parent_vals = [
+            v for v in fields.get("Parent intent", [])
+            if v.split() and v.split()[0].lower() != "none"
+        ]
 
         if len(parent_vals) > 1:
             # Multiple distinct values → multiple_values
