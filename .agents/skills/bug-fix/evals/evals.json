@@ -70,6 +70,16 @@
         "Response does NOT present disabling the route as the permanent fix",
         "Response does NOT claim the mitigation establishes the root cause"
       ]
+    },
+    {
+      "id": "root-cause-trace-routes-callers-to-exploration",
+      "prompt": "A value arrives null in parse() and crashes it. parse() has many callers across modules. repository-exploration is installed. No language-server, code-graph, or MCP capability is exposed. Find the root cause and fix it.",
+      "expected_output": "The trace follows the null backward through callers to its earliest supported origin, gathering caller evidence through repository-exploration or repository search with locations cited, and bug-fix keeps the fix decision.",
+      "assertions": [
+        "The trace follows the null value backward through callers or producers to its earliest supported origin",
+        "Caller evidence is gathered through repository-exploration or repository search, with each caller's location cited",
+        "The fix decision stays with bug-fix; caller evidence is treated as evidence, not as the decision"
+      ]
     }
   ]
 }

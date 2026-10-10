@@ -1,6 +1,6 @@
 ---
 name: repository-exploration
-description: Use this skill to answer an open question about repository behavior, dependencies, impact, or context. Providers are used by fit in their native shape; none is required. Route path-seeded "what governs these paths?" questions to repository-grounding instead.
+description: Use this skill when a workflow step or a user needs bounded, attributed repository evidence to settle a pending decision — which files a plan must touch, whether a rename or removal is safe, where a bad value enters before a fix, or whether a fix reaches a live code path. It owns that inquiry for the caller. It records the question and stopping rule, uses an already-exposed capability only when its native action fits, otherwise answers from repository search, and checks load-bearing claims against source. The caller keeps the decision, and no provider is required. Do NOT use it to plan, build, or fix the change itself — the calling workflow owns that. Route path-seeded "what governs these paths?" questions to repository-grounding instead.
 metadata:
   boundaries: [filesystem_read_untrusted]
 ---

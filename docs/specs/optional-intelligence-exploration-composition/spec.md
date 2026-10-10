@@ -116,6 +116,7 @@ judged from the run's outcome evidence record, not from a tool-call trace.
   unresolved-gap record.
 - **VI-0008 — consumer boundary (AC-0008):** bounded Core main-procedure absence
   scan.
+  - Narrowed by [`core-impact-evidence-routing`](../core-impact-evidence-routing/spec.md): its name-absence check admits three optional-route sentences in `work-loop` and `bug-fix`. The AC-0008 ceremony criterion is unchanged.
 - **VI-0009 — open taxonomy (AC-0009):** novel-native-action evaluation and
   documentation vocabulary check.
 - **VI-0010 — portable Core (AC-0010):** Core-only build and adapter inventory
