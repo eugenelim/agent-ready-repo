@@ -12,7 +12,7 @@ This guide will help you set up the Diátaxis documentation structure for your p
 
 ## Skills available
 
-- `new-guide` — creates a new guide in the appropriate quadrant
+- `scaffold-docs` — creates a new guide in the appropriate quadrant
 - `author-product-docs` — creates or revises product documentation
 
 ## Step 1: Create the directory structure
@@ -20,7 +20,7 @@ This guide will help you set up the Diátaxis documentation structure for your p
 The skill will create the following directory structure:
 
 ```
-docs/guides/
+docs/
 ├── tutorials/
 │   └── README.md
 ├── how-to/
