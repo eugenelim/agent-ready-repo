@@ -1,7 +1,7 @@
 # Plan: Close-work intent graph convergence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/DESIGN.md` § Intent-edge derivation: source, copies, pins, and consumers (names this copy as the planned convergence); analogous implementation: `closure_index.py`'s own `_run_resolver` and `_get_closure_terminality`, which load a co-located copy after an `lstat` regular-file check and expose a provider seam (`_snapshot_provider`); their tests: `packs/core/tests/pack/test_intent_delivery_relations_copies.py` and `packs/core/tests/skills/close-work/test_closure_delivery_snapshot.py`; deviation: the derivation's helper loaders use fixed module names, so a second copy binds the first copy's helpers (T1 corrects this).
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -55,7 +55,7 @@ The riskiest part is migrating the existing `children`-arm and ancestor-walk tes
 | User procedure — `guides/core/how-to/close-and-disposition-work.md` | T6 | Guide lints green | All three reasons listed with cause and remedy |
 | Architecture — `packs/core/DESIGN.md` | T6 | Section diff | Consumer, copy, pin, and no-second-parser statements present |
 | Historical contract pointer — `closure-eligibility-check/spec.md` `Status:` | T6 | AC-0014's test | Test green |
-| Release history — changelog `[core][3.1.1]`, versions | T6 | Changelog and version diff | `/now/` projection test green |
+| Release history — changelog `[core][3.1.0]`, versions | T6 | Changelog and version diff | `/now/` projection test green |
 | Executable proof — `packs/core/tests/skills/close-work/`, copies test, parity tool test | T1–T4 | Suites green | Run ids in the ledger |
 | Verification record — `notes/verification-ledger.md` | T5 | Ledger entry | Cited by the closing PR |
 | Design facts below (seam, loader naming, refusal mapping, keying) | T1–T4 | Code and docstrings | Mechanically inferable from `closure_index.py` and its tests once merged; no further owner |
@@ -206,11 +206,11 @@ def test_each_copy_binds_its_own_helpers(monkeypatch):
 **Approach:**
 - The `Status:` pointer is spec-to-spec, not spec-to-ADR. No ADR governs this change; the decision lives in FEAT-0002's 2026-10-10 Amendment and this spec. `catalogue-sync-dry-run`'s `Status:` line is the precedent.
 
-**Done when:** the listed checks are green, the versions read `3.1.1`, and the changelog entry carries a `### Highlights` bullet.
+**Done when:** the listed checks are green, `tests/roster/test_two_sided_prune_closure_invariant.py::test_pack_delivery_contract_is_complete_and_version_increased` passes, the versions read `3.1.0`, and the `[core][3.1.0]` changelog entry carries this slice's `### Highlights` bullets.
 
 ## Rollout
 
-- **Delivery:** one pull request into `feature/intent-navigation`, carrying this slice's `core` bump to 3.1.1 on that branch. The published release version is set when slice 4 merges the branch to the default branch. Reversible by revert. Nothing is persisted.
+- **Delivery:** one pull request into `feature/intent-navigation`, inside the branch's single `core` 3.1.0 entry, because the version test measures `core` against the default branch and admits one bump per release. Slice 4 publishes it when it merges the branch to the default branch. Reversible by revert. Nothing is persisted.
 - **Infrastructure:** none.
 - **External-system integration:** none.
 - **Deployment sequencing:** slice 4's rebase refreshes resolver copies. That refresh now also covers `close-work/scripts/intent_graph.py`, which AC-0001's pin keeps in step.

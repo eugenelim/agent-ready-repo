@@ -1,6 +1,6 @@
 # Spec: Close-work intent graph convergence
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-10 by eugenelim, spec and plan together, after three spec-mode shaping and adversarial review rounds with every sustained Blocker and Concern resolved (reports under `.context/reviews/509c10d7-e0ac-40d4-b46d-848217991767/`); one advisory Nit is deferred.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -37,7 +37,7 @@ A maintainer or agent closing work with `close-work` gets closure verdicts whose
 - The brief-route and spec-route arms keep reading the delivery resolver's snapshot.
 - `closure-eligibility-check`'s read-bound criteria 0024, 0025, and 0037 are superseded in part by this spec's AC-0012 and AC-0013, recorded on that spec's `Status:` line.
 - The owner's 2026-10-10 bounds are recorded in [FEAT-0002 § Decomposition](../../product/intents/FEAT-0002-intent-graph-navigation.md#decomposition), and the brief's verdict-change constraint points at them.
-- Delivered through the `feature/intent-navigation` integration branch as this slice's `core` patch bump.
+- Delivered through the `feature/intent-navigation` integration branch inside its single `core` 3.1.0 release.
 
 ## Durable Outputs
 
@@ -47,7 +47,7 @@ A maintainer or agent closing work with `close-work` gets closure verdicts whose
 | User procedure | Three new refusal reasons a closer can meet | `guides/core/how-to/close-and-disposition-work.md` § the closure verdict codes (whole-section refresh: its list is titled for delivery codes only) | `core` maintainer | Guide passes `tools/lint-guide-titles.py`, `tools/validate_guides.py`, and `tools/lint-guides-no-repo-only-refs.py` | Each new reason is listed with its cause and its remedy |
 | Architecture | The derivation gains a consumer and a copy | `packs/core/DESIGN.md` § Intent-edge derivation: source, copies, pins, and consumers | `core` maintainer | Section updated | Names `close-work` as a consumer, the copy's path and its pin, and states that `close-work` holds no second parent-edge parser |
 | Historical contract pointer | A shipped contract's read bounds change | `docs/specs/closure-eligibility-check/spec.md` `Status:` line | `core` maintainer | AC-0014's test | The line names this spec and the three superseded criteria; the body is unchanged |
-| Release history | A `core` behaviour change | `docs/product/changelog.md` `[core][3.1.1]`; `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` at `3.1.1` | `core` maintainer | Changelog entry with a `### Highlights` bullet; versions match | Entry names the wider ancestor walk, the slug-collision fix, and the three refusal reasons |
+| Release history | A `core` behaviour change | `docs/product/changelog.md` `[core][3.1.0]`, the integration branch's single `core` entry; `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` stay at `3.1.0` | `core` maintainer | This slice's bullets inside the `[core][3.1.0]` entry, including `### Highlights`; versions match | Entry names the wider ancestor walk, the slug-collision fix, and the three refusal reasons |
 | Executable proof | Contract tests for the copy and the closure arms | `packs/core/tests/skills/close-work/`; the existing copies and terminality-parity tests | `core` maintainer | Dispatched `build-check`, `test-corpus`, and `test-roster` runs green on the pull request's last commit before its ledger-only record commit, with run ids in that record | Every acceptance criterion's named test is green |
 | Verification record | The one-time verdict comparison over the real corpus | `docs/specs/close-work-intent-graph-convergence/notes/verification-ledger.md` (repository-durable) | Implementer | The comparison script's source, both commits, its exit code, its per-cause counts, and closeout timing | Ledger present and cited by the closing PR |
 
