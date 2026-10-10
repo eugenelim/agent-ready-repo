@@ -67,6 +67,15 @@ def _load(name: str):
 
 ci = _load("closure_index")
 
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__bounds",
+    Path(__file__).resolve().parent / "closure_graph_fixture.py",
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__bounds"] = _fx
+_fx_spec.loader.exec_module(_fx)
+
 # ── Snapshot helpers for _snapshot_provider injection ─────────────────────────
 
 
@@ -254,6 +263,7 @@ def _build(
         _reader=reader or fs.reader,
         _dir_lister=fs.dir_lister,
         _snapshot_provider=snapshot_provider,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
     )
 
 
@@ -379,10 +389,10 @@ def test_ac0024_diamond_fixture_max_is_one() -> None:
     result = _build(fs, a_slug, "children", snapshot_provider=lambda _r: snap)
 
     # B, C, S_B, and S_C should all be in the result.
-    assert b_slug in result
-    assert c_slug in result
-    assert s_b_slug in result
-    assert s_c_slug in result
+    assert ("intent", b_slug) in result
+    assert ("intent", c_slug) in result
+    assert ("spec", s_b_slug) in result
+    assert ("spec", s_c_slug) in result
 
     # SHARED is not in any snapshot relation, so it is never opened (0 reads).
     assert fs.read_counter[str(SPECS_DIR / shared_slug / "spec.md")] <= 1, (
@@ -422,7 +432,9 @@ def test_ac0025_children_terminus_never_opens_briefs_or_specs() -> None:
     fs = FakeFS(files)
     _build(fs, a_slug, "children")
 
-    assert str(INTENTS_DIR) in fs.accessed_dirs, "intents dir should be accessed"
+    assert str(INTENTS_DIR) not in fs.accessed_dirs, (
+        "the derivation enumerates intents; close-work lists no directory"
+    )
     assert str(BRIEFS_DIR) not in fs.accessed_dirs, (
         "briefs dir must not be accessed for 'children' terminus"
     )
@@ -464,8 +476,8 @@ def test_ac0025_brief_terminus_opens_briefs_and_specs_not_intents() -> None:
         "intents dir must not be accessed for 'brief' terminus"
     )
     # Verify descendants are found via targeted reads.
-    assert br_slug in result, "brief must be found via snapshot"
-    assert sp_slug in result, "spec must be found via snapshot"
+    assert ("brief", br_slug) in result, "brief must be found via snapshot"
+    assert ("spec", sp_slug) in result, "spec must be found via snapshot"
 
 
 def test_ac0025_spec_terminus_opens_only_specs_directory() -> None:
@@ -498,7 +510,7 @@ def test_ac0025_spec_terminus_opens_only_specs_directory() -> None:
         "intents dir must not be opened as a collection for 'spec' terminus"
     )
     # Verify the spec is found via targeted read.
-    assert sp_slug in result, "spec must be found via snapshot"
+    assert ("spec", sp_slug) in result, "spec must be found via snapshot"
 
 
 # ── AC-0037: reads bounded by collection size ─────────────────────────────────
@@ -555,11 +567,15 @@ def test_ac0037_reads_bounded_by_collection_size(collection_size: int) -> None:
     # Four closure members should be found.
     assert len(result) == 4, f"expected 4 closure members, got {len(result)}"
 
+    # close-work's own reader opens only artifacts it adds to the descendant
+    # set, so reads track the closure, not the collection.
     total_reads = sum(fs.read_counter.values())
-    assert total_reads <= collection_size, (
+    assert total_reads == 4 <= collection_size, (
         f"collection_size={collection_size}: total reads {total_reads} "
-        f"exceed collection size (closure has only 4 members)"
+        f"should equal the 4-member closure"
     )
+    descendant_paths = {str(ROOT / f"docs/product/intents/{r.slug}.md") for r in result.values()}
+    assert set(fs.read_counter) == descendant_paths
 
     # Also assert the per-artifact maximum (AC-0024 compatibility).
     assert _max_reads(fs) == 1, (
@@ -627,13 +643,14 @@ def test_ac0023_write_raising_reader_raises_nothing() -> None:
         ROOT,
         _reader=write_raising_reader,
         _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(files, ROOT),
     )
 
     assert writes_attempted == [], (
         f"reader was called for unexpected paths (possible write attempt): "
         f"{writes_attempted}"
     )
-    assert b_slug in result, "expected descendant was not found"
+    assert ("intent", b_slug) in result, "expected descendant was not found"
 
 
 def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> None:
@@ -720,18 +737,18 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
         _snapshot_provider=lambda _r: snap_brief,
     )
 
-    assert brief_slug in result_brief, (
+    assert ("brief", brief_slug) in result_brief, (
         "brief terminus: brief must be found via snapshot + default reader"
     )
-    assert spec_slug in result_brief, (
+    assert ("spec", spec_slug) in result_brief, (
         "brief terminus: spec must be found via snapshot + default reader"
     )
     # Artifacts not in the snapshot are excluded regardless of what dir_lister
     # would return; _-prefixed exclusion is the resolver's responsibility.
-    assert "internal-brief" not in result_brief, (
+    assert ("brief", "internal-brief") not in result_brief, (
         "_-prefixed brief not in snapshot must not appear"
     )
-    assert "hidden-spec" not in result_brief, (
+    assert ("spec", "hidden-spec") not in result_brief, (
         "_-prefixed spec not in snapshot must not appear"
     )
 
@@ -747,12 +764,12 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
         # No _reader or _dir_lister: both defaults run against the real tree.
     )
 
-    assert child_intent_slug in result_children, (
-        "_default_dir_lister should find flat .md files in the intents directory"
+    assert ("intent", child_intent_slug) in result_children, (
+        "the derivation should find flat .md files in the intents directory"
     )
     # _-prefixed intent file excluded.
-    assert "private-intent" not in result_children, (
-        "_-prefixed intent file must be excluded by _default_dir_lister"
+    assert ("intent", "private-intent") not in result_children, (
+        "_-prefixed intent file must be excluded by the derivation"
     )
 
 
@@ -885,8 +902,8 @@ def test_confinement_symlink_outside_root_contributes_no_edge(
 
     # The spec is found via the snapshot relation but its file is unreadable
     # (symlink rejected by the confined reader), so Status is empty.
-    assert spec_slug in result, "spec named in snapshot must appear in result"
-    assert result[spec_slug].status == "", (
+    assert ("spec", spec_slug) in result, "spec named in snapshot must appear in result"
+    assert result[("spec", spec_slug)].status == "", (
         "symlinked spec file must be unreadable; Status should be empty"
     )
 
@@ -926,6 +943,6 @@ def test_confinement_valid_discovery_within_root_resolves_correctly(
         ancestor_slug, "spec", root, _snapshot_provider=lambda _r: snap
     )
 
-    assert spec_slug in result, (
+    assert ("spec", spec_slug) in result, (
         "a spec named in the snapshot must be found via the confined reader"
     )

@@ -78,6 +78,15 @@ def _load(name: str, key: str):
 
 ci = _load("closure_index", "closure_index__staleness_t6")
 
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__staleness",
+    Path(__file__).resolve().parent / "closure_graph_fixture.py",
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__staleness"] = _fx
+_fx_spec.loader.exec_module(_fx)
+
 # ── Fixture helpers ───────────────────────────────────────────────────────────
 
 ROOT = Path("/fake/root")
@@ -148,6 +157,7 @@ def test_ac0021_second_decision_sees_mutated_status() -> None:
         ROOT,
         _reader=reader,
         _dir_lister=dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,  # fresh — isolate the freshness seam
     )
     assert isinstance(verdict1, ci.ClosureNotEligible), (
@@ -167,6 +177,7 @@ def test_ac0021_second_decision_sees_mutated_status() -> None:
         ROOT,
         _reader=reader,
         _dir_lister=dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
     )
 
@@ -210,6 +221,7 @@ def test_ac0022_stale_base_refuses() -> None:
         ROOT,
         _reader=lambda p: store.get(p, ""),
         _dir_lister=lambda d: [p for p in store if p.parent == d],
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: False,  # stale
     )
     assert isinstance(verdict, ci.ClosureRefuse), (
@@ -242,6 +254,7 @@ def test_ac0022_current_base_does_not_refuse_on_staleness() -> None:
         ROOT,
         _reader=lambda p: store.get(p, ""),
         _dir_lister=lambda d: [p for p in store if p.parent == d],
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,  # fresh
     )
     # Must not be a stale-base refusal.
@@ -286,6 +299,7 @@ def test_ac0022_indeterminate_refuses() -> None:
         ROOT,
         _reader=lambda p: store.get(p, ""),
         _dir_lister=lambda d: [p for p in store if p.parent == d],
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: None,  # indeterminate
     )
     assert isinstance(verdict, ci.ClosureRefuse), (

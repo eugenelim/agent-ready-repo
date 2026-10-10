@@ -24,24 +24,21 @@ determine" is not the same as "determined fresh" and is treated as a blocker.
 The one case that resolves fresh without checking staleness is when no tracking
 branch is configured: there is nothing to be stale against.
 
-**Each artifact file is opened at most once per decision** (AC-0024). A
-visited set tracks physically opened paths; a field cache stores preamble
-fields so that subsequent membership checks use the cache rather than
-re-reading the file. The diamond case — one file encountered as a candidate
-in two separate collection scans — is handled by returning cached fields on
-the second encounter without calling the reader.
+**Each artifact is opened at most twice per decision**: at most once inside the
+intent-graph derivation and at most once by this module's own reader. A visited
+set and field cache keep the second count at one when a descendant is reachable
+by two paths (the diamond case). This module's reader opens only artifacts it
+adds to the descendant set.
 
-**Discovery is driven exclusively by the ``Decomposed:`` terminus at each
-level** (AC-0025). A terminus names one of three collections: ``children``
-maps to the intents directory, ``brief`` maps to the briefs directory (plus
-the specs directory for that brief's specs), and ``spec`` maps to the specs
-directory. No other directory is enumerated. A collection-directory cache
-ensures dir_lister is called at most once per directory per decision.
-
-**Reads per decision are bounded by the summed size of the named
-collections** (AC-0037). Because each artifact in each named collection is
-physically read at most once, the reader call count cannot exceed the total
-file count across the collections the termini name.
+**The ``children`` terminus takes its edges from the bundled derivation**
+(``intent_graph.py``, loaded from this folder). The derivation runs once per
+decision, and only when a ``children`` terminus is reached. A ``brief`` terminus
+reads the delivery resolver's snapshot, and a ``spec`` terminus does the same.
+The descendant set is keyed by ``(kind, slug)`` so an intent and a brief or spec
+that share a slug are both descendants. A derivation failure refuses with
+``intent-graph-unavailable: <code>``, and a refused ``Parent intent`` pointer
+that names a ``children``-terminus intent on the closure refuses with
+``parent-edge-refused``.
 
 **``Discovery:`` targets are confined to the repository root** (trust
 boundary). The default reader uses the co-located ``file_safety.py``
@@ -865,7 +862,7 @@ def _current_date() -> str:
 def _build_eligible_packet(
     ancestor_slug: str,
     ancestor_terminus: str,
-    descendants: dict[str, DescendantRecord],
+    descendants: dict[tuple[str, str], DescendantRecord],
     basis: str,
     decider: str,
     decision_date: str,
@@ -890,7 +887,7 @@ def _build_eligible_packet(
     # Per-descendant verdicts: (slug, status, evidence_locator), sorted by slug.
     per_descendant: tuple[tuple[str, str, str], ...] = tuple(
         (r.slug, r.status, _descendant_locator(r))
-        for r in sorted(descendants.values(), key=lambda r: r.slug)
+        for r in sorted(descendants.values(), key=lambda r: (r.slug, r.kind))
     )
 
     # Workspace registration: (entry_path, collection) or None (AC-0031).
@@ -953,6 +950,140 @@ def _build_eligible_packet(
     )
 
 
+# ── Intent-graph derivation (bundled copy) ───────────────────────────────────
+
+GraphProvider = Callable[[Path], "dict[str, Any]"]
+"""Callable: repository root → derived intent graph (``nodes`` and ``edges``).
+
+Any exception it raises is reported as ``intent-graph-unavailable: <code>``.
+"""
+
+_GRAPH_MODULE_PATH: Path = _SCRIPT_DIR / "intent_graph.py"
+_GRAPH_MODULE_NAME = "core_close_work_intent_graph"
+_graph_module: Any | None = None
+
+
+def _load_graph_module(path: Path) -> Any:
+    """Load the bundled ``intent_graph.py`` copy from *path* after an lstat check."""
+    try:
+        st = os.lstat(path)
+    except OSError as exc:
+        raise ImportError(f"required helper unavailable: {path.name}") from exc
+    if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
+        raise ImportError(f"required helper is not a regular file: {path.name}")
+
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(_GRAPH_MODULE_NAME, path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"required helper cannot be loaded: {path.name}")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+    except BaseException:
+        sys.modules.pop(_GRAPH_MODULE_NAME, None)
+        raise
+    finally:
+        sys.dont_write_bytecode = prev
+
+    missing = {"derive", "DerivationError", "_get_resolver"} - set(vars(mod))
+    if missing:
+        sys.modules.pop(_GRAPH_MODULE_NAME, None)
+        raise ImportError(
+            f"required helper is incomplete: {path.name}: {', '.join(sorted(missing))}"
+        )
+    return mod
+
+
+def _get_graph_module(*, _graph_module_path: Path | None = None) -> Any:
+    """Return the bundled derivation copy; cached unless a path override is given."""
+    global _graph_module
+    if _graph_module_path is not None:
+        return _load_graph_module(_graph_module_path)
+    if _graph_module is None:
+        _graph_module = _load_graph_module(_GRAPH_MODULE_PATH)
+    return _graph_module
+
+
+def _run_intent_graph(
+    root: Path, *, _graph_module_path: Path | None = None
+) -> dict[str, Any]:
+    """Default graph provider: run the bundled copy's ``derive(root)``.
+
+    ``_graph_module_path`` overrides the copy's location so a test can point
+    it at a missing or linked file.
+    """
+    graph: dict[str, Any] = _get_graph_module(
+        _graph_module_path=_graph_module_path
+    ).derive(root)
+    return graph
+
+
+def _graph_unavailable(exc: BaseException) -> _ClosureDeliveryRefusal:
+    """Map a load or derive failure to its refusal.
+
+    The derivation's integrity code is read from the exception by class name,
+    so the copy's own ``DerivationError`` is recognised. Anything else is
+    ``copy-unavailable``.
+    """
+    code = getattr(exc, "code", None)
+    if type(exc).__name__ != "DerivationError" or not isinstance(code, str) or not code:
+        code = "copy-unavailable"
+    return _ClosureDeliveryRefusal(f"intent-graph-unavailable: {code}")
+
+
+def _derive_graph(root: Path, provider: GraphProvider | None) -> dict[str, Any]:
+    """Run the derivation once; any failure refuses rather than reading as no parent."""
+    try:
+        graph = (provider if provider is not None else _run_intent_graph)(root)
+        if not isinstance(graph["nodes"], list) or not isinstance(graph["edges"], list):
+            raise TypeError("graph shape")
+    except Exception as exc:
+        raise _graph_unavailable(exc) from exc
+    return graph
+
+
+def _refused_parent_edge_names(
+    graph: dict[str, Any], slug: str, path: str | None
+) -> bool:
+    """True when a refused ``Parent intent`` edge from an intent node names the intent.
+
+    A value names an intent when it is the slug after one of the resolver
+    copy's parent-kind prefixes, the bare slug, or the repository path of the
+    intent's file. A ``multiple_values`` refusal names it when any one of its
+    values does.
+    """
+    intent_ids = {n.get("id") for n in graph["nodes"] if n.get("type") == "intent"}
+    prefixes: tuple[str, ...] | None = None
+    for edge in graph["edges"]:
+        if (
+            edge.get("field") != "Parent intent"
+            or "state" not in edge
+            or edge.get("from") not in intent_ids
+        ):
+            continue
+        if edge["state"] == "multiple_values":
+            values = [v.get("value") for v in edge.get("basis", {}).get("values", [])]
+        else:
+            values = [edge.get("value")]
+        values = [v for v in values if isinstance(v, str)]
+        if not values:
+            continue
+        if prefixes is None:
+            try:
+                kinds = _get_graph_module()._get_resolver()._PARENT_INTENT_KINDS
+                prefixes = tuple(f"{k}:" for k in kinds)
+            except Exception as exc:
+                raise _graph_unavailable(exc) from exc
+        for v in values:
+            if v == slug or (path is not None and v == path) or any(
+                v == f"{p}{slug}" for p in prefixes
+            ):
+                return True
+    return False
+
+
 # ── The per-decision index builder ────────────────────────────────────────────
 
 
@@ -964,13 +1095,18 @@ def _build_descendant_closure(
     _reader: Reader | None = None,
     _dir_lister: DirLister | None = None,
     _snapshot_provider: SnapshotProvider | None = None,
-) -> dict[str, DescendantRecord]:
+    _graph_provider: GraphProvider | None = None,
+) -> dict[tuple[str, str], DescendantRecord]:
     """Build the full descendant closure for one decision.
 
-    Returns ``slug → DescendantRecord`` for every artifact in the closure.
+    Returns ``(kind, slug) → DescendantRecord`` for every artifact in the
+    closure, so an intent and a brief or spec sharing a slug both appear.
     Each call builds a fresh index; nothing is cached between calls (AC-0021).
 
-    ``_reader``, ``_dir_lister``, and ``_snapshot_provider`` are test seams.
+    ``_reader``, ``_dir_lister``, ``_snapshot_provider``, and ``_graph_provider``
+    are test seams. The ``children`` arm takes its edges from the bundled
+    intent-graph derivation, run once per decision and only when a
+    ``children`` terminus is reached.
     Production callers pass none of these and the defaults run against the
     real filesystem and the projected resolver.
 
@@ -1005,7 +1141,7 @@ def _build_descendant_closure(
     visited: set[Path] = set()  # resolved paths physically opened (AC-0024)
     field_cache: dict[Path, dict[str, str]] = {}  # preamble fields per opened path
     dir_cache: dict[Path, list[Path]] = {}  # collection dir → file list (AC-0025)
-    result: dict[str, DescendantRecord] = {}
+    result: dict[tuple[str, str], DescendantRecord] = {}
 
     # Lazy delivery snapshot — fetched at most once, on first delivery terminus.
     _snapshot_cache: list[dict[str, Any]] = []
@@ -1026,6 +1162,14 @@ def _build_descendant_closure(
                 raise _ClosureDeliveryRefusal("delivery-resolver-unavailable") from _exc
             _snapshot_cache.append(snap)
         return _snapshot_cache[0]
+
+    _graph_cache: list[dict[str, Any]] = []
+
+    def _get_graph() -> dict[str, Any]:
+        """Run the derivation at most once for this decision; never reused after."""
+        if not _graph_cache:
+            _graph_cache.append(_derive_graph(root, _graph_provider))
+        return _graph_cache[0]
 
     def _list_dir(d: Path) -> list[Path]:
         """List a collection directory at most once; subsequent calls use the cache."""
@@ -1058,16 +1202,16 @@ def _build_descendant_closure(
 
     def _add_descendant(slug: str, kind: str, fields: dict[str, str]) -> None:
         """Add an artifact to the result and enqueue further descent if needed."""
-        if slug in result:
-            return  # already found (handles diamond: same slug via two paths)
+        if (kind, slug) in result:
+            return  # already found (handles diamond: same artifact via two paths)
         status = fields.get("Status", "")
         raw_decomposed = fields.get("Decomposed", "")
         terminus = _terminus_from_decomposed(raw_decomposed)
-        result[slug] = DescendantRecord(
+        result[(kind, slug)] = DescendantRecord(
             slug=slug, kind=kind, status=status, terminus=terminus
         )
         if terminus in _COLLECTION_TERMINI:
-            queue.append((slug, terminus))
+            queue.append((slug, terminus, kind))
 
     # Non-collection termini (closed-empty, direct-light) must still
     # refuse if an ambiguous spec Discovery: or an ambiguous spec Brief: (via
@@ -1107,24 +1251,44 @@ def _build_descendant_closure(
                         if feat_id_dl in _brief_parent_feats_dl.get(t, set()):
                             raise _ClosureDeliveryRefusal("delivery-relation-ambiguous")
 
-    queue: list[tuple[str, str]] = [(ancestor_slug, ancestor_terminus)]
+    queue: list[tuple[str, str, str]] = [(ancestor_slug, ancestor_terminus, "intent")]
 
     while queue:
-        parent_slug, terminus = queue.pop(0)
+        parent_slug, terminus, parent_kind = queue.pop(0)
 
         if terminus not in _COLLECTION_TERMINI:
             continue
 
         if terminus == "children":
-            # Invert ``Parent intent: <kind>:<parent_slug>`` over the intents
-            # collection. This is NOT feature delivery; it stays local.
-            for path in _list_dir(_intents_dir(root)):
-                fields = _get_fields(path)
-                slug = fields.get("Slug", "")
-                if not slug:
-                    continue
-                if _is_parent_edge(fields.get("Parent intent", ""), parent_slug):
-                    _add_descendant(slug, "intent", fields)
+            # Children are the intent nodes whose resolved ``Parent intent``
+            # edge points at this intent's node, as the derivation reports.
+            if parent_kind != "intent":
+                continue
+            graph = _get_graph()
+            intent_by_id = {
+                n["id"]: n for n in graph["nodes"] if n.get("type") == "intent"
+            }
+            parent_node = next(
+                (n for n in intent_by_id.values() if n.get("slug") == parent_slug),
+                None,
+            )
+            # A refused pointer that names this intent could be a lost child.
+            if _refused_parent_edge_names(
+                graph, parent_slug, parent_node["path"] if parent_node else None
+            ):
+                raise _ClosureDeliveryRefusal("parent-edge-refused")
+            if parent_node is None:
+                continue
+            for edge in graph["edges"]:
+                child = intent_by_id.get(edge.get("from", ""))
+                if (
+                    child is not None
+                    and edge.get("field") == "Parent intent"
+                    and edge.get("to") == parent_node["id"]
+                ):
+                    _add_descendant(
+                        child["slug"], "intent", _get_fields(root / child["path"])
+                    )
 
         elif terminus == "brief":
             # Coordinated delivery: look up the canonical snapshot for
@@ -1213,7 +1377,7 @@ def _build_descendant_closure(
                         else:
                             # None of the named briefs resolves to a feature intent.
                             raise _ClosureDeliveryRefusal(_code)
-            seen_brief_slugs: set[str] = set()
+            seen_briefs: set[tuple[str, str]] = set()
             for rel in snap["relations"]:
                 if (
                     rel.get("type") == "coordinated-delivery"
@@ -1224,8 +1388,8 @@ def _build_descendant_closure(
 
                     if brief_ref.startswith("brief:"):
                         brief_slug_val = brief_ref[len("brief:"):]
-                        if brief_slug_val not in seen_brief_slugs:
-                            seen_brief_slugs.add(brief_slug_val)
+                        if ("brief", brief_slug_val) not in seen_briefs:
+                            seen_briefs.add(("brief", brief_slug_val))
                             _brief_art = _artifacts.get(brief_ref, "")
                             if not _brief_art:
                                 raise _ClosureDeliveryRefusal(
@@ -1234,8 +1398,8 @@ def _build_descendant_closure(
                             brief_path = root / _brief_art
                             b_fields = _get_fields(brief_path)
                             b_status = b_fields.get("Status", "")
-                            if brief_slug_val not in result:
-                                result[brief_slug_val] = DescendantRecord(
+                            if ("brief", brief_slug_val) not in result:
+                                result[("brief", brief_slug_val)] = DescendantRecord(
                                     slug=brief_slug_val,
                                     kind="brief",
                                     status=b_status,
@@ -1558,7 +1722,7 @@ def _classify_ancestor(
     ancestor_slug: str,
     ancestor_status: str,
     ancestor_terminus: str,
-    descendants: dict[str, DescendantRecord],
+    descendants: dict[tuple[str, str], DescendantRecord],
     ct: Any,
 ) -> ClosureVerdict:
     """Classify one intent ancestor's closure eligibility.
@@ -1596,7 +1760,7 @@ def _classify_ancestor(
         if descendants:
             return ClosureRefuse(
                 ancestor_slug,
-                f"closed-empty-has-descendants: {sorted(descendants.keys())}",
+                f"closed-empty-has-descendants: {sorted(r.slug for r in descendants.values())}",
             )
         # AC-0014: closed-empty with no descendants → eligible.
         return ClosureEligible(ancestor_slug, "closed-empty")
@@ -1606,7 +1770,7 @@ def _classify_ancestor(
         if descendants:
             return ClosureRefuse(
                 ancestor_slug,
-                f"direct-light-has-descendants: {sorted(descendants.keys())}",
+                f"direct-light-has-descendants: {sorted(r.slug for r in descendants.values())}",
             )
         # AC-0015: direct-light with no descendants → eligible.
         return ClosureEligible(ancestor_slug, "direct-light")
@@ -1649,6 +1813,7 @@ def resolve_intent_ancestors(
     _reader: Reader | None = None,
     _dir_lister: DirLister | None = None,
     _snapshot_provider: SnapshotProvider | None = None,
+    _graph_provider: GraphProvider | None = None,
 ) -> list[tuple[str, str, str]]:
     """Resolve the intent ancestor chain of a transitioning artifact.
 
@@ -1796,6 +1961,7 @@ def check_ancestor_closure(
     _dir_lister: DirLister | None = None,
     _freshness_checker: FreshnessChecker | None = None,
     _snapshot_provider: SnapshotProvider | None = None,
+    _graph_provider: GraphProvider | None = None,
     # Packet-building parameters (AC-0027, AC-0028, AC-0031, AC-0034, AC-0035).
     # All are optional; callers that omit _decider receive a verdict with
     # packet=None, preserving full backward compatibility.
@@ -1884,6 +2050,7 @@ def check_ancestor_closure(
             _reader=_reader,
             _dir_lister=_dir_lister,
             _snapshot_provider=_snapshot_provider,
+            _graph_provider=_graph_provider,
         )
     except _ClosureDeliveryRefusal as _ref:
         return ClosureRefuse(ancestor_slug, _ref.reason)

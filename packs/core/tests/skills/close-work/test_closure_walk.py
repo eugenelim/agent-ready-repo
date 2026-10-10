@@ -50,6 +50,14 @@ def _load(name: str, key: str):
 
 ci = _load("closure_index", "closure_index__walk_t3")
 
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__walk", Path(__file__).resolve().parent / "closure_graph_fixture.py"
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__walk"] = _fx
+_fx_spec.loader.exec_module(_fx)
+
 # ── Fake root paths ────────────────────────────────────────────────────────────
 
 ROOT = Path("/fake/root")
@@ -232,6 +240,7 @@ def _build(
         _reader=fs.reader,
         _dir_lister=dir_lister if dir_lister is not None else fs.dir_lister,
         _snapshot_provider=snapshot_provider,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
     )
 
 
@@ -295,7 +304,7 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
     ])
     result = _build(fs, ancestor_slug, "children", snapshot_provider=lambda _r: snap)
 
-    assert result.keys() == expected_all, (
+    assert {slug for _, slug in result} == expected_all, (
         f"expected {sorted(expected_all)}, got {sorted(result)}\n"
         "a one-hop implementation would stop at the 4 children and miss the 4 specs"
     )
@@ -303,11 +312,11 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
 
     # Kind check: children are intents, grandchildren are specs.
     for child_slug, _ in children:
-        assert result[child_slug].kind == "intent", (
+        assert result[("intent", child_slug)].kind == "intent", (
             f"child '{child_slug}' should be kind='intent'"
         )
     for spec_slug, _, _ in grandchildren:
-        assert result[spec_slug].kind == "spec", (
+        assert result[("spec", spec_slug)].kind == "spec", (
             f"grandchild '{spec_slug}' should be kind='spec'"
         )
 
@@ -346,11 +355,11 @@ def test_ac0020_brief_terminus_inverts_parent_intent_over_briefs() -> None:
     ])
     result = _build(fs, ancestor_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    assert brief_slug in result, f"expected brief '{brief_slug}' in closure"
-    assert unrelated_slug not in result, (
+    assert ("brief", brief_slug) in result, f"expected brief '{brief_slug}' in closure"
+    assert ("brief", unrelated_slug) not in result, (
         "brief with a different Parent intent: must not appear"
     )
-    assert result[brief_slug].kind == "brief"
+    assert result[("brief", brief_slug)].kind == "brief"
 
 
 def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
@@ -390,10 +399,10 @@ def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
     ])
     result = _build(fs, ancestor_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    assert brief_slug in result, f"brief '{brief_slug}' must be in closure"
+    assert ("brief", brief_slug) in result, f"brief '{brief_slug}' must be in closure"
     for spec_slug in spec_slugs:
-        assert spec_slug in result, f"spec '{spec_slug}' must be in closure"
-    assert unrelated_spec_slug not in result, (
+        assert ("spec", spec_slug) in result, f"spec '{spec_slug}' must be in closure"
+    assert ("spec", unrelated_spec_slug) not in result, (
         "spec with a different Brief: must not appear in closure"
     )
     # 1 brief + 2 specs = 3 descendants.
@@ -401,7 +410,7 @@ def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
         f"expected 3 descendants, got {len(result)}: {sorted(result)}"
     )
     for spec_slug in spec_slugs:
-        assert result[spec_slug].kind == "spec"
+        assert result[("spec", spec_slug)].kind == "spec"
 
 
 def test_ac0020_spec_terminus_inverts_discovery_over_specs() -> None:
@@ -437,8 +446,8 @@ def test_ac0020_spec_terminus_inverts_discovery_over_specs() -> None:
     snap = _snapshot(relations=[_direct(ancestor_slug, spec_slug)])
     result = _build(fs, ancestor_slug, "spec", snapshot_provider=lambda _r: snap)
 
-    assert spec_slug in result, f"spec '{spec_slug}' must be in closure via snapshot"
-    assert unrelated_spec_slug not in result, (
+    assert ("spec", spec_slug) in result, f"spec '{spec_slug}' must be in closure via snapshot"
+    assert ("spec", unrelated_spec_slug) not in result, (
         "spec not in snapshot must not appear"
     )
     assert len(result) == 1, (
@@ -494,6 +503,7 @@ def test_intents_only_walk_returns_empty_for_brief_terminus_fixture() -> None:
         _reader=fs.reader,
         _dir_lister=fs.dir_lister,
         _snapshot_provider=lambda _r: empty_snap,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
     )
 
     # The empty-snapshot walk finds nothing. This demonstrates that snapshot
@@ -512,10 +522,10 @@ def test_intents_only_walk_returns_empty_for_brief_terminus_fixture() -> None:
         fs, ancestor_slug, "brief", snapshot_provider=lambda _r: correct_snap
     )
 
-    assert brief_slug in correct_result, (
+    assert ("brief", brief_slug) in correct_result, (
         "correct walk must find the live brief"
     )
-    assert spec_slug in correct_result, (
+    assert ("spec", spec_slug) in correct_result, (
         "correct walk must find the live spec via snapshot coordinated-delivery"
     )
     assert len(correct_result) == 2, (
@@ -573,17 +583,17 @@ def test_slug_field_not_filename_stem_determines_identity() -> None:
     result = _build(fs, ancestor_slug, "children")
 
     # Children must appear under their Slug: values, not filename stems.
-    assert child_slug_prefixed in result, (
+    assert ("intent", child_slug_prefixed) in result, (
         f"'{child_slug_prefixed}' not found; implementation may be using "
         f"filename stem '002-my-child' instead of Slug:"
     )
-    assert child_slug_plain in result, f"'{child_slug_plain}' not found"
+    assert ("intent", child_slug_plain) in result, f"'{child_slug_plain}' not found"
 
     # Filename stems must not appear as keys.
-    assert "001-my-intent" not in result, (
+    assert ("intent", "001-my-intent") not in result, (
         "ancestor filename stem must not be used as identity"
     )
-    assert "002-my-child" not in result, (
+    assert ("intent", "002-my-child") not in result, (
         "child filename stem must not be used as identity"
     )
 
@@ -655,13 +665,13 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
         _snapshot_provider=lambda _r: snap,
     )
 
-    assert brief_slug in result, (
+    assert ("brief", brief_slug) in result, (
         "real-filesystem walk must find the brief"
     )
-    assert spec_slug in result, (
+    assert ("spec", spec_slug) in result, (
         "real-filesystem walk must find the nested spec"
     )
-    assert "other-feature" not in result, (
+    assert ("spec", "other-feature") not in result, (
         "spec not in snapshot must not appear"
     )
     assert len(result) == 2, (

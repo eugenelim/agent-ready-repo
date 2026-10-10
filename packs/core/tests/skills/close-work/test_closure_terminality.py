@@ -237,17 +237,17 @@ ci = _load("closure_index")
 def test_annotated_descendants_classify_without_changing_recorded_status() -> None:
     """All three descendant call sites accept raw values and preserve them."""
     records = {
-        "child": ci.DescendantRecord("child", "intent", "Fulfilled (x)", ""),
-        "cut": ci.DescendantRecord("cut", "brief", "Shipped <!-- c -->", ""),
-        "slice": ci.DescendantRecord("slice", "spec", "Archived — note", ""),
+        ("intent", "child"): ci.DescendantRecord("child", "intent", "Fulfilled (x)", ""),
+        ("brief", "cut"): ci.DescendantRecord("cut", "brief", "Shipped <!-- c -->", ""),
+        ("spec", "slice"): ci.DescendantRecord("slice", "spec", "Archived — note", ""),
     }
-    original = {slug: record.status for slug, record in records.items()}
+    original = {key: record.status for key, record in records.items()}
     verdict = ci._classify_ancestor("parent", "Accepted", "children", records, ct)
     assert isinstance(verdict, ci.ClosureEligible)
-    assert {slug: record.status for slug, record in records.items()} == original
+    assert {key: record.status for key, record in records.items()} == original
 
     raw = "Approved → Shipped (x)"
-    records["live"] = ci.DescendantRecord("live", "spec", raw, "")
+    records[("spec", "live")] = ci.DescendantRecord("live", "spec", raw, "")
     verdict = ci._classify_ancestor("parent", "Accepted", "children", records, ct)
     assert isinstance(verdict, ci.ClosureNotEligible)
     assert verdict.live_descendants == (("live", raw),)
