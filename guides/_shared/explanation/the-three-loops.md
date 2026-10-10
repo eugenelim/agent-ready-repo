@@ -76,10 +76,30 @@ flowchart TB
     B1 -. "small, low-risk change: no spec" .-> B4
     G4 --> L1
     L2 -. "a deployed failure goes back as a build task" .-> B4
+
+    classDef decideStep fill:#ede9fe,stroke:#7c3aed,color:#1f2937
+    classDef shapeStep fill:#dbeafe,stroke:#2563eb,color:#1f2937
+    classDef buildStep fill:#dcfce7,stroke:#16a34a,color:#1f2937
+    classDef shipStep fill:#ffedd5,stroke:#ea580c,color:#1f2937
+    classDef gate fill:#fde68a,stroke:#b45309,stroke-width:2px,color:#1f2937
+    classDef autoGate fill:#fef3c7,stroke:#b45309,stroke-dasharray:4 3,color:#1f2937
+    classDef shortcut fill:#f8fafc,stroke:#64748b,stroke-dasharray:4 3,color:#1f2937
+    class D1,D2 decideStep
+    class S1,S2,S3,S4,S5,T1,T2,T3,T4,RV shapeStep
+    class B1,B2,B4 buildStep
+    class L1,L2 shipStep
+    class G0,G15,G2,G3,B3,G4,G5 gate
+    class G1 autoGate
+    class SR,LR shortcut
+    style decide fill:#7c3aed14,stroke:#7c3aed
+    style shape fill:#2563eb14,stroke:#2563eb
+    style build fill:#16a34a14,stroke:#16a34a
+    style ship fill:#ea580c14,stroke:#ea580c
 ```
 
-Read it from the top. A hexagon is a point where the agent stops and waits for
-you. G1 is drawn round because it usually passes without you.
+Read it from the top. Each stage has its own color. The amber hexagons are the
+points where the agent stops and waits for you. G1 is pale and round because it
+usually passes without you.
 When any piece of work finishes, or you abandon it, `close-work` from `core`
 tidies it up.
 
