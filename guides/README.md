@@ -7,7 +7,7 @@ kind: explanation
 
 # Guides
 
-**New here?** [See the operating model](_shared/explanation/the-three-loops.md): four stages, the packs in each, and where you decide.
+**New here?** [See the operating model](_shared/explanation/the-operating-model.md): four stages, the packs in each, and where you decide.
 
 **Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) — from installing the catalogue to a merged change a human approved, in about ten hours.
 
@@ -30,7 +30,7 @@ one or two. Find the stage you're in and start there.
 
 Each stage ends when you make the call: commit to an outcome, hand the work to
 the build loop, merge, and approve the production ship. To see every pack in
-that flow, read [the handoff chain](_shared/explanation/the-three-loops.md#the-handoff-chain).
+that flow, read [the handoff chain](_shared/explanation/the-operating-model.md#the-handoff-chain).
 
 ## Walk a pack
 
@@ -223,7 +223,7 @@ Pack directories contain task guidance for that pack. [`_shared/`](_shared/) con
 
 - [Start, remember, inspect, or refresh repository work](_shared/how-to/use-work-intake.md), then use the [routing and lifecycle reference](_shared/reference/work-intake-routing-and-lifecycle.md) when you need the exact boundary.
 
-- [Get from zero to the three-loop operating model](_shared/explanation/the-three-loops.md).
+- [See the operating model](_shared/explanation/the-operating-model.md): how work flows from idea to production.
 - [Understand packs, profiles, adapters, composition, and catalogue ownership](_shared/explanation/pack-catalogue.md).
 - [Choose an install route](_shared/explanation/install-routes.md) and [check adapter support](_shared/reference/adapter-support.md).
 - [Install a curated profile](_shared/how-to/install-a-profile.md), [preview a change](_shared/how-to/preview-install-or-upgrade.md), or [upgrade safely](_shared/how-to/upgrade-packs.md).

@@ -12,10 +12,12 @@
   and still resolves, so nothing here retires the three-loops concept. Not a
   supersession — every decision here stands. On 2026-10-10 the Docs row
   `The three loops` was retargeted to the guide at
-  `/docs/guides/_shared/explanation/the-three-loops/` under the same carve-out,
+  `/docs/guides/_shared/explanation/the-operating-model/` under the same carve-out,
   when the Get Started copy was folded into it; the old URL redirects there.
   The same day its label became `The operating model`, the product's own
-  name for the model, so a newcomer recognises it before reading the page)
+  name for the model, so a newcomer recognises it before reading the page.
+  Its slug then became `the-operating-model`; the `the-three-loops` URL
+  redirects to it)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
@@ -98,7 +100,7 @@ Both renderer-specific footers use these exact groups and order:
 | Product | Journeys | `/journeys/` |
 | Docs | Get started | `/docs/getting-started/` |
 | Docs | Install | `/docs/getting-started/install/` |
-| Docs | The operating model | `/docs/guides/_shared/explanation/the-three-loops/` |
+| Docs | The operating model | `/docs/guides/_shared/explanation/the-operating-model/` |
 | Docs | All docs | `/docs/` |
 | Project | Now | `/now/` |
 | Project | Changelog | `/docs/changelog/` |

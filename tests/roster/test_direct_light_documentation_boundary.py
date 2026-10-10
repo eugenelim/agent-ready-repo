@@ -153,7 +153,7 @@ def test_the_sweep_actually_scans_something() -> None:
     names = {p.relative_to(_REPO_ROOT).as_posix() for p in files}
     for required in (
         "packs/core/seeds/docs/README.md",
-        "guides/_shared/explanation/the-three-loops.md",
+        "guides/_shared/explanation/the-operating-model.md",
         "guides/core/how-to/plan-and-execute-non-trivial-work.md",
         "docs/architecture/work-intake-and-artifact-routing.md",
     ):

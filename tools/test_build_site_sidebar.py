@@ -95,9 +95,24 @@ def test_guides_group_slugs_equal_eligible_slugs():
     slugs are outside this set."""
     records = build_site.build_guide_inventory(REPO_ROOT / "guides")
     eligible = {r["slug"] for r in records if r["nav_eligible"]}
+    with (REPO_ROOT / "site.toml").open("rb") as f:
+        promoted = set(tomllib.load(f).get("promoted_guides", []))
     projected = {slug for slug, _ in _pairs(_guides_group())}
-    assert projected == eligible
+    assert projected == eligible - promoted
     assert "guides/AGENTS" not in projected
+
+
+def test_promoted_guides_are_reachable_from_get_started():
+    """A promoted guide leaves its generated group, so it must be linked by hand.
+
+    Without this, promoting a page would reproduce the defect the generated
+    sidebar removed: a page that publishes but appears nowhere in navigation.
+    """
+    with (REPO_ROOT / "site.toml").open("rb") as f:
+        promoted = tomllib.load(f).get("promoted_guides", [])
+    config = (REPO_ROOT / "docs-site" / "astro.config.ts").read_text(encoding="utf-8")
+    for slug in promoted:
+        assert f"slug: '{slug}'" in config, f"{slug} is promoted but not in the sidebar"
 
 
 def test_no_baseline_pair_regressed():

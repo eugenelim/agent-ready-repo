@@ -77,5 +77,5 @@ For sensitive integrations, the [`credential-brokers` guide](../../credential-br
 - [Choose work by outcome or role](../../).
 - [Compare install routes](install-routes.md).
 - [Preview an install or upgrade](../how-to/preview-install-or-upgrade.md).
-- [Understand the three supervised loops](the-three-loops.md).
+- [See the operating model](the-operating-model.md): how work flows from idea to production.
 - [Create a catalogue](../how-to/create-a-catalogue.md).

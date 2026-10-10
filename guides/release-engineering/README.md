@@ -25,7 +25,7 @@ New here? Read [The release loop explained](explanation/the-release-loop.md) for
 This pack is the *Ship it* stage. You arrive with a change the build loop
 merged. The release loop deploys it somewhere safe, tests it end to end, and
 watches it run. You leave with a release-readiness record, and nothing reaches
-production until you approve the ship. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+production until you approve the ship. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
 
 ---
 
@@ -55,4 +55,4 @@ Understanding-oriented — the *why* behind the design.
 
 ---
 
-Cross-cutting guides — installing the catalogue, upgrading packs, the adapter support matrix — live in [`../_shared/`](../_shared/). For the full picture of how the release loop composes with discovery and build, see [the three loops as a system](../_shared/explanation/the-three-loops.md).
+Cross-cutting guides — installing the catalogue, upgrading packs, the adapter support matrix — live in [`../_shared/`](../_shared/). For the full picture of how the release loop composes with discovery and build, see [the operating model](../_shared/explanation/the-operating-model.md).
