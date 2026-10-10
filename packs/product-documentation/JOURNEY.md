@@ -10,7 +10,7 @@ contract:
   useItWhen: "You need to write, improve, or audit the user-facing docs of a library, CLI, API, app, service, plugin, or agent-context pack — whether you're starting from scratch, reworking legacy docs, finding which stages of the reader journey are missing, or checking that pages match what ships."
   youType: "Audit this project's docs and tell me which stages of the reader journey are missing."
   youProvide: "A description of what you want to document, improve, or check, and optionally the mode (create / revise / retrofit / audit / verify)."
-  youReceive: "A draft, revision, retrofit plan, journey gap report, or verification result — whichever fits the request — with the product surface, journey stage, page kind, and write destination reported so you can redirect any of them. Audits and verification results change nothing."
+  youReceive: "A draft, revision, retrofit plan, journey gap report, or verification result — whichever fits the request — with the product surface, journey stage, page kind, and write destination reported so you can redirect any of them. Audits and verification results change nothing unless you also ask for fixes."
   yourDecisions:
     - "Redirect the agent if the reported surface, journey stage, page kind, or destination is wrong"
     - "Review the drafted or revised output before it is merged"
@@ -89,5 +89,5 @@ relatedJourneys:
 
 - **You do:** read the output as the intended reader. For create/revise: does the page have a clear entry state, a clear exit, and no sentence that serves a different Diátaxis kind? For audit: is every finding actionable without needing to re-read the original doc?
 - **You decide:** review the output — gate passes when page kind, voice, and structure are consistent.
-- **Output:** a reviewed page that you commit or merge. Audit and verify end read-only: they produce a report and change nothing, so there is nothing to merge.
+- **Output:** a reviewed page that you commit or merge. Audit and verify end read-only unless you also asked for fixes: they produce a report, so there is nothing to merge.
 - **State:** confirmed-write

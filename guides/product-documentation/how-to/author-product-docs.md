@@ -16,7 +16,7 @@ Ask your agent:
 
 > Audit this project's docs and tell me which stages of the reader journey are missing.
 
-The `author-product-docs` skill reads your repository and replies with a report. It edits nothing during an audit.
+The `author-product-docs` skill reads your repository and replies with a report. It edits nothing during an audit unless you also ask for fixes.
 
 ## Steps
 

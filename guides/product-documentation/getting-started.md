@@ -9,11 +9,13 @@ status: stable
 
 In about 20 minutes you will find out which pages your project's docs are missing, write the most important one, and check it against your code.
 
-With [`agentbundle`](../_shared/explanation/install-routes.md) installed, add the pack, open your agent in the repository you want to document, and send this request:
+With [`agentbundle`](../_shared/explanation/install-routes.md) installed, add the pack:
 
 ```bash
 agentbundle install --pack product-documentation
 ```
+
+Open your agent in the repository you want to document and send this request:
 
 ```
 Audit this project's docs and tell me which stages of the reader journey are missing

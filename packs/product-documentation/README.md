@@ -40,7 +40,7 @@ You do not need to name a mode.
 
 ## What the skill reads and changes
 
-It reads your repository first: the code, manifests, schemas, `--help` output, and existing docs. That tells it which surface you ship and which reference pages that surface needs. Audits and checks never edit. When you ask for a page, it writes one by default and reports the kind and destination it chose. It places the page where your repository already keeps docs of that kind, asks once when the location is unclear, and never edits generated output. Whether the page is right for your readers stays your decision.
+It reads your repository first: the code, manifests, schemas, `--help` output, and existing docs. That tells it which surface you ship and which reference pages that surface needs. Audits and checks change nothing unless you also ask for fixes. When you ask for a page, it writes one by default and reports the kind and destination it chose. It places the page where your repository already keeps docs of that kind, asks once when the location is unclear, and never edits generated output. Whether the page is right for your readers stays your decision.
 
 ## Install
 
