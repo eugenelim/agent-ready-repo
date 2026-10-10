@@ -1,6 +1,6 @@
 # Spec: closure eligibility check
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [close-work-intent-graph-convergence's spec](../close-work-intent-graph-convergence/spec.md) — criteria 0024, 0025, and 0037, the read bounds; a decision may now run the whole-corpus intent-edge derivation once, and close-work's own reader still opens each artifact at most once; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-09-26 by eugenelim, spec and plan together. **Taken on a `Findings` result, not a `Clean` one**, and recorded here because `work-loop` expects a Clean pre-EXECUTE review and this transition did not have one. Four adversarial spec-mode rounds returned 8, 4, 4 and 2 Blockers, and a shaping review run fresh after the slice was narrowed returned 4; every finding from the final round of both reviewers was applied, and no round was re-run to confirm the result. The owner accepted the residual risk § Assumptions records — three unratified deviations from the parent's § Boundary conditions, and a brief-terminality read mechanism still carried as a T1 discovery predicate with a kill condition rather than a settled design.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

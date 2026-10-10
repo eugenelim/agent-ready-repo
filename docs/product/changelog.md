@@ -64,6 +64,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.1.1] — 2026-10-10
+
+### Highlights
+
+- `close-work` now checks every intent ancestor that an artifact's parent pointers record, including capability, outcome, and opportunity parents. It uses the same derivation as `navigate-intents`.
+- An artifact that shares a slug with one of another type is no longer dropped from the closure check.
+- A broken parent pointer or a derivation fault now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
+
+### Changed
+
+- `close-work` loads a byte-identical copy of the intent-edge derivation and drops its own parent-pointer parser. The parity tool now pins the parent kinds the derivation reads.
+
+### Fixed
+
+- Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
+
 ## [core][3.1.0] — 2026-10-09
 
 ### Highlights

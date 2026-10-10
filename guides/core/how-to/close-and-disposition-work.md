@@ -62,7 +62,7 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 | **not-eligible** | At least one descendant in the full closure remains in a non-terminal state; each live descendant is named with its current state | Wait for the named descendants to complete, or close them first, then re-run closeout |
 | **eligible** | Every descendant in the full closure is terminal; an evidence packet is presented with the date, ratified decomposition, and each descendant's final state | Confirm the closure by supplying your name and the evidence you reviewed |
 
-**Delivery codes that `close-work` can name:**
+**Refusal reasons that `close-work` can name:**
 
 - `delivery-resolver-unavailable` — The skill-local resolver is absent, failed, or returned an incomplete snapshot. To fix an absent resolver, reinstall or upgrade Core so the resolver script (`intent_delivery_relations.py` inside the `close-work` skill's `scripts/` folder) is present. To diagnose an incomplete snapshot, run `python3 <path-to-close-work-scripts>/intent_delivery_relations.py --root .` directly. Two outcomes: if `diagnostics` holds `delivery-resource-limit`, its `limit` and `root` name the exceeded budget and folder; if `diagnostics` is empty and the exit code is 1, an unsafe entry such as a link, special file, or non-UTF-8 file exists under `docs/specs/`, `docs/product/intents/`, or `docs/product/briefs/`.
 - `delivery-target-missing` — Either no spec (for a `spec`-route feature) or brief (for a `brief`-route feature) names this feature — add a `Discovery: intent:<slug>` field to a spec, or a `Parent intent: intent:<slug>` field to a brief; or a spec's `Discovery:` or `Brief:` value names an intent or brief that does not exist — correct that value.
@@ -70,6 +70,9 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 - `delivery-relation-ambiguous` — One artifact gives two different values for the same delivery field (`Discovery:`, `Brief:`, `Parent intent:`, or `Decomposed:`). Keep one value.
 - `delivery-reference-malformed` — A delivery field holds a value in an unrecognised form. Accepted forms: spec `Discovery:` takes `intent:<slug>` or `docs/product/intents/<file>.md`; spec `Brief:` takes `brief:<slug>`; brief `Parent intent:` takes `<kind>:<slug>` where `<kind>` is one of `outcome`, `opportunity`, `capability`, or `intent`; feature `Decomposed:` takes `YYYY-MM-DD <route>`. Fix the field to match the accepted form.
 - `delivery-reference-unsafe` — A delivery field contains an absolute path or a `..` traversal. Use the safe typed form for the affected field: spec `Discovery:` takes `intent:<slug>`; spec `Brief:` takes `brief:<slug>`; brief `Parent intent:` takes `<kind>:<slug>` where `<kind>` is one of `outcome`, `opportunity`, `capability`, or `intent`.
+- `intent-graph-unavailable: <code>` — The bundled intent-edge derivation could not load, or it found a fault in the corpus. If the code says the copy is missing, reinstall or upgrade Core so `intent_graph.py` is present in the `close-work` skill's `scripts/` folder. Otherwise fix the fault the code names, for example a missing `Slug:` or a duplicate slug.
+- `parent-edge-refused` — A `Parent intent:` pointer that bears on the decision is broken. It may have the wrong kind prefix, hold two values, form a cycle, or name a missing or retired target. Fix that field.
+- `artifact-not-in-graph` — The artifact being closed, or an intent a spec names, has no live header the derivation can find. Check that file and its `Slug:`.
 
 When the broken field belongs to a spec or brief rather than to the feature itself, `close-work` refuses every feature that artifact could belong to and names the code. Fix that artifact's field, then re-run closeout.
 
