@@ -33,7 +33,7 @@ humanGates:
       - "Is the journey stage right: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, or contribute?"
       - "Is the artifact or page kind right: README, docs landing page, installation guide, tutorial, how-to, reference, explanation, troubleshooting, changelog, migration guide, contributing guide, or journey page? For the four Diátaxis kinds, does the reader's posture match: learning (tutorial), a named task (how-to), a fast lookup (reference), or understanding why (explanation)?"
       - "Is the destination where your repository keeps docs of that kind and audience — user docs apart from maintainer docs?"
-      - "For an audit or verify request, does the agent write nothing?"
+      - "For an audit or verify request without a request for fixes, does the agent write nothing?"
     whatGoodLooksLike: "A page kind you could justify in one sentence — 'This is a how-to because the reader already knows they want to install X and just needs the steps.'"
     whatBadLooksLike: "An explanation that buries the reader in background before revealing what they can do, or a how-to that opens with three paragraphs about why the tool exists."
     consequence: "A doc written against the wrong page contract misleads the reader from the first sentence. Asking for a revision before you commit is cheap; fixing the page after it is live is not."
