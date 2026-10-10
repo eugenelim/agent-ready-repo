@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0060
 - **Brief:** none
-- **Discovery:** FEAT-0010
+- **Discovery:** docs/product/intents/FEAT-0010-product-documentation-page-design.md
 - **Contract:** none
 - **Shape:** mixed
 
@@ -108,7 +108,7 @@ Surface terms (library, CLI, API, app, service) match case-insensitively as whol
 - [x] AC11: A fresh agent running the projected skill against a fixture CLI repository with no `pack.toml` identifies the surface as a CLI, opens the argument-parser source file before it returns its report, and returns a journey gap report with a row per stage; the transcript, including that file read ahead of the report, is recorded in the verification ledger.
 - [x] AC12: A search for `new-guide` over `packs/experience-design/.apm/`, `packs/product-engineering/.apm/`, and `packs/product-engineering/DESIGN.md` returns no match, and each match it returned at the merge base now names `author-product-docs`.
 - [x] AC13: `guides/product-documentation/how-to/` contains exactly `author-product-docs.md` and `write-a-guide.md`.
-- [x] AC14: `guides/product-documentation/how-to/author-product-docs.md` declares `guides/product-documentation/how-to/use-author-product-docs` in its `aliases`.
+- [x] AC14: No guide declares an alias for the removed `how-to/use-author-product-docs` route, so `python3 tools/validate_guides.py` reports 0 warnings.
 - [x] AC15: No page under `guides/product-documentation/` names `validate_guides.py` or `build-site.py`.
 - [x] AC16: For each of `product-documentation`, `experience-design`, and `product-engineering`, the version in `pack.toml` equals the version in `.claude-plugin/plugin.json`, and it is the merge-base version with only the patch number raised.
 - [x] AC17: `docs/product/changelog.md` has a `##` entry `[<pack>][<version>]` for each of the three packs at its AC16 version.

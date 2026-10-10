@@ -67,7 +67,7 @@ Grounding: [`product-docs-authoring-survey.md`](../../product/research/product-d
 - **Destination discovery replaces hardcoded paths.** The order is: an explicit user destination, the repository's agent-guidance documentation map, the existing docs layout, then one question. Traces to AC1. Owned by T2.
 - **Handoffs, not copies.** Navigation and landing-page structure go to `information-architecture`; the journey picture goes to `journey-mapping`; rendered-site critique goes to `design-review`'s documentation rubric; register for reference docs goes to `content-design`; UI strings and error text go to `ux-writing`. Each handoff carries an "if installed" guard. When the skill is absent, this skill applies its own contracts. Traces to AC8 and the spec's Always-do rule. Owned by T2.
 - **The skill owns the upgrade and contribute artifacts.** Release notes, changelogs, migration guides, and contributing guides are user-facing journey pages, and no other catalogue skill writes them (`release-loop` only gathers a commit delta). Internal maintainer runbooks and CI docs stay out of scope. Traces to AC7, AC19. Owned by T2, T3.
-- **Two guide how-tos with distinct tasks.** `author-product-docs.md` covers improving an existing doc set (audit, then retrofit). `write-a-guide.md` covers documenting one shipped feature. `use-author-product-docs.md` merges into the first and leaves an alias. Baselined slugs and their nav labels stay, so `guide-nav-baseline.toml` is unchanged. Traces to AC13, AC14. Owned by T4.
+- **Two guide how-tos with distinct tasks.** `author-product-docs.md` covers improving an existing doc set (audit, then retrofit). `write-a-guide.md` covers documenting one shipped feature. `use-author-product-docs.md` merges into the first, with no alias (the guide gate fails on any alias). Baselined slugs and their nav labels stay, so `guide-nav-baseline.toml` is unchanged. Traces to AC13, AC14. Owned by T4.
 
 ### Behavior & rules
 
@@ -130,7 +130,7 @@ stub: the new test functions above, collected and failing.
 **Touches:** `packs/product-documentation/README.md`, `JOURNEY.md`, `pack.toml` (description, keywords, first-value), `.claude-plugin/plugin.json` (description), `guides/product-documentation/**`, `guides/README.md`, `docs/guides/how-to/author-product-documentation.md`, `web/src/content/packs/product-documentation.md`
 **Tests:**
 - `python3 tools/validate_guides.py guides/`, `python3 tools/check-guide-index.py`, and `python3 tools/lint-guide-titles.py` exit 0.
-- The how-to directory listing and the alias (AC13, AC14).
+- The how-to directory listing and the absence of an alias (AC13, AC14).
 - No `validate_guides.py` or `build-site.py` under `guides/product-documentation/` (AC15).
 - `how-to/author-product-docs.md` keeps `Write a how-to guide explaining how to` in exactly one Markdown blockquote that sits outside any aside, the shape `web/src/test/e2e/docs-asides.spec.ts` pins.
 - Every relative link in the touched pages resolves, including the repointed link in `docs/guides/how-to/author-product-documentation.md`.
@@ -174,3 +174,4 @@ stub: the new test functions above, collected and failing.
 
 - 2026-10-10: spec approved by eugenelim
 - 2026-10-10: plan approved by eugenelim
+- 2026-10-10: AC14 amended by eugenelim — the guide gate fails on any alias, so the removed route keeps no alias

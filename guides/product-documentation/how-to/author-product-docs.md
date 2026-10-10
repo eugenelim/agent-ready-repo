@@ -4,8 +4,6 @@ summary: "Audit your project's documentation against the reader journey, then fi
 pack: product-documentation
 kind: how-to
 status: stable
-aliases:
-  - guides/product-documentation/how-to/use-author-product-docs
 ---
 
 **Use this when:** you want to improve a project's docs and are not sure which pages are missing, stale, or wrong.
@@ -23,11 +21,7 @@ The `author-product-docs` skill reads your repository and replies with a report.
 1. **Run the audit.** Send the request above. The skill infers audit mode from the words "audit" and "missing". It first finds what your product is — the code, manifests, and `--help` output reveal a library, CLI, API, app, service, plugin, or agent-context pack — then reads the README, the docs index, and every page they link to.
 2. **Read the journey gap report.** You get one row per reader stage, in order: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute. Each row is `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. The next actions are ranked by where readers are lost first, so a missing first success outranks a missing explanation.
 3. **Read the page-level findings.** After the report, each finding names a file, a line, what was found, and the page contract it breaks.
-4. **Retrofit the worst rows.** Ask:
-
-   > Retrofit the docs so the missing and partial rows are covered.
-
-   The skill changes the smallest set of pages that moves the worst rows to `covered`, and links each page to the stage before and after it.
+4. **Retrofit the worst rows.** Ask "Retrofit the docs so the missing and partial rows are covered." The skill changes the smallest set of pages that moves the worst rows to `covered`, and links each page to the stage before and after it.
 5. **Check the result.** Ask for a second audit, or run the checks in [Verify before you ship](#verify-before-you-ship).
 
 ## Other entry points

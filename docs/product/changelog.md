@@ -77,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the `surface-discovery` and `docs-journey` references.
 - A README page contract replaces the pack-only README contract.
 - Evals add CLI and library cases.
-- Guides are consolidated: `use-author-product-docs` is merged into `author-product-docs`, with an alias.
+- Guides are consolidated: `use-author-product-docs` is merged into `author-product-docs`.
 
 ## [experience-design][4.1.4] — 2026-10-10
 
