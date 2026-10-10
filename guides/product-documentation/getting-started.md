@@ -33,7 +33,7 @@ You should see the agent start reading your repository. The audit changes no fil
 
 The `author-product-docs` skill starts by working out what your product is. It looks for evidence: a package manifest and public API for a library, command parsers for a CLI, an OpenAPI or protobuf file for an API, a configuration schema for a service. A repository can ship more than one surface, and the skill documents each one a reader touches.
 
-It then looks for where your repository keeps user-facing docs and maintainer docs, using the agent-guidance file, the contributing guide, and the existing layout. It reads your README, your docs index, and every page they link to.
+It then looks for where your repository keeps user-facing docs and maintainer docs, using the agent-guidance file, the contributing guide, and the existing layout. It reads your README and your docs index — a docs site's navigation config counts as the index — and samples a large doc set by stage. It runs no project code unless you say you trust the repository; this tutorial assumes your own repository, so tell it so if you want it to run checks.
 
 You should see the report name the surface it found. If the evidence fits none of the known surfaces, the skill says what it found and asks once.
 

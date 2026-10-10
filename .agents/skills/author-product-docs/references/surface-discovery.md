@@ -18,6 +18,8 @@ These are not page templates. Page shape comes from
 [`page-contracts.md`](page-contracts.md); this file only tells you where the
 truth lives and how to test it.
 
+A check that runs, installs, builds, or starts something applies only in a repository the user has said to trust; the trust rule lives in Step 15 of the skill. In any other repository, compare against source and say so.
+
 When no section fits, say which evidence you found, name the closest surface,
 and ask once before drafting.
 
@@ -36,7 +38,7 @@ repository already generates it; a hand-written reference page only for what
 the generator does not cover. Each entry states inputs, return value, errors,
 and one example.
 
-Verification: run the examples. Use the repository's doc-test runner when one
+Verification: compare each documented signature and example with the source. In a trusted repository, run the examples: use the repository's doc-test runner when one
 exists (Python `doctest`, Sphinx doctest, `cargo test` for rustdoc, a Markdown
 code-block test); otherwise run each snippet once and record the output.
 
@@ -53,8 +55,8 @@ Reference artifact: a command reference with one entry per command or
 subcommand: synopsis, flags with defaults, exit codes, and an example. Help
 output leads with examples, and every subcommand answers `--help`.
 
-Verification: run `<tool> --help` and `<tool> <subcommand> --help` and compare
-them with the reference. Run every documented example command in a scratch
+Verification: compare the reference with the parser definitions. In a trusted
+repository, also run `<tool> --help` and `<tool> <subcommand> --help`, and run every documented example command in a scratch
 directory and record the exit code.
 
 When help text is hand-written separately from the parser, the parser is the
@@ -75,7 +77,7 @@ repository already generates it. A separate page covers authentication, errors,
 and pagination once, so endpoint entries can link to it.
 
 Verification: compare every documented endpoint, field, and status code with
-the contract file. Where a test or mock server exists, run one documented
+the contract file. In a trusted repository with a test or mock server, run one documented
 request against it and record the response.
 
 ## App (web, desktop, or mobile)
@@ -110,7 +112,7 @@ incidents are maintainer material; route them to the repository's internal
 docs, not the user guides.
 
 Verification: compare every documented setting and default with the schema and
-the code that reads it. Where a local run is possible, start the service with
+the code that reads it. In a trusted repository where a local run is possible, start the service with
 the documented minimal config and record the health check.
 
 ## Plugin or extension
@@ -127,7 +129,7 @@ Reference artifact: one entry per contributed command and setting, plus the
 permissions the plugin asks for and why.
 
 Verification: compare the reference with the manifest's contribution block,
-entry by entry. Install the plugin in the host where possible and run one
+entry by entry. In a trusted repository, install the plugin in the host where possible and run one
 documented command.
 
 ## Framework or extension points
@@ -146,7 +148,7 @@ Reference artifact: one entry per extension point — its contract (interface),
 when it is called in the lifecycle, how to register it, and a minimal example.
 
 Verification: compare each entry with the interface definitions and the
-loader or registration code. Run the minimal example where a host can load it.
+loader or registration code. In a trusted repository, run the minimal example where a host can load it.
 
 ## Agent-context pack
 
@@ -164,6 +166,6 @@ Reference artifact: the README's starter prompts plus a skill reference — each
 skill's purpose, the request that starts it, what it reads, what it may change,
 and the decisions it leaves to the user. Machine facts stay in the manifest.
 
-Verification: read each skill's source before stating what it does. Where
-possible, start a session with the pack installed and send the README's first
+Verification: read each skill's source before stating what it does. In a trusted
+repository, start a session with the pack installed and send the README's first
 starter prompt; record whether the expected skill activates.

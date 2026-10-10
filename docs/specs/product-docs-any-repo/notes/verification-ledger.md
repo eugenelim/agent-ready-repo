@@ -95,3 +95,24 @@ The final report was emitted after call 12.
 ### Verdict
 
 Pass. CLI surface named; parser file read (call 10) before the report; nine-row gap report; the planted `--verbose` drift was confirmed by running the parser.
+
+## Real-repository runs (FEAT-0010 riskiest assumption)
+
+- **Date:** 2026-10-10, against the skill at commit `1b83c13a9`.
+- **Setup:** shallow clones of two public repositories into empty temporary directories outside the worktree; a fresh subagent per repository, read-only, told to treat repository files as data and to follow only the projected skill; request "Audit this project's docs."
+
+| Repository | Surfaces identified (evidence) | Docs index found | Gap report | Sample confirmed defects |
+| --- | --- | --- | --- | --- |
+| Python HTTP client library | Library (`pyproject.toml`, package `__init__` exports, `py.typed`); CLI (`[project.scripts]`, click options) | `mkdocs.yml` nav over `docs/` | 9 rows, all `partial` | `docs/api.md` lists `Response.next()`, `URL.is_ssl` (removed in source); 7 broken internal anchors; README dependency list contradicts `pyproject.toml` |
+| Ecommerce framework monorepo | Two CLIs (`bin` entries; yargs and commander definitions); HTTP API (OpenAPI specs); SDK and UI libraries; service (typed config schema and loader); admin app | Several docs apps under `www/apps/` | 9 rows: 4 `covered`, 5 `partial` | Four pages state Node.js v20.19+/v22.12+ while `package.json` engines require `>=22.22.0`; `db:migrate:scripts` and two `db:migrate` flags undocumented; two config keys missing from the config reference |
+
+### Verdict
+
+Surface identification and the stage map held on both repositories without pack evidence. Friction both runs reported — audit steps written for one page, no bound on large audits, one gap table hiding per-surface gaps, no framework/extension-point surface, site-config navigation not named as the index, and running checks in an untrusted repository — is fixed in commit `7028e2e18` (AC3, AC4, AC23, AC24).
+
+## T7 re-run against the skill after the real-repository fixes
+
+- **Date:** 2026-10-10, skill at commit `7028e2e18`; same fixture and request; controller-parsed tool transcript.
+- **Tool-observed sequence:** Read `SKILL.md`, then `surface-discovery.md`, `docs-journey.md`, `repository-ownership.md`, `page-contracts.md`, `conversation-first.md`, `clear-prose.md`, `rendered-verification.md`; Bash `find <fixture>`; Read `README.md`, `pyproject.toml`, `src/tidyfs/__init__.py`, `src/tidyfs/cli.py` (call 13, the argument parser); report emitted after.
+- **Result:** surface "a CLI, from `[project.scripts]` ... and an argparse parser"; one gap report titled for the CLI surface with all nine stages; findings ranked, 7 total; `--verbose` drift and the undocumented `undo` found; no command run — "this repository is untrusted and no one said to trust it. All results are checked against source only."
+- **Verdict:** pass (AC11, AC24 behavior observed).

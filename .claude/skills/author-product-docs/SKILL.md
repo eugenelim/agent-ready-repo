@@ -189,13 +189,13 @@ Link each page to the stage before and after it, so a reader who lands anywhere 
 
 ### Step 15 — Verify
 
-Verify by surface, using the check [`references/surface-discovery.md`](references/surface-discovery.md) names: run examples or doc tests for a library, `--help` for a CLI, compare against the contract for an API, against the config schema for a service. Then apply the proportionate rendering checks in [`references/rendered-verification.md`](references/rendered-verification.md):
+Verify by surface, using the check [`references/surface-discovery.md`](references/surface-discovery.md) names: compare a library's examples with its source, a CLI's reference with its parser, an API's reference with its contract, and a service's settings with its config schema; in a trusted repository, also run the examples, doc tests, or `--help` under the trust rule below. Then apply the proportionate rendering checks in [`references/rendered-verification.md`](references/rendered-verification.md):
 
 - Content-only edits: link check
 - Navigation changes: route check
 - Page-layout changes: visual review of the rendered output
 
-Report only checks that ran. Read-only checks such as `--help` or a doc-test run are allowed only when the user has said to trust the repository and no install or build is needed. Never run project code, builds, or installs from an untrusted repository; check against source and say "checked against source only". Say the same when a check cannot run.
+Report only checks that ran. This paragraph is the trust rule for every check that runs, installs, builds, or starts something, including those in the references. Never run project code, builds, or installs from an untrusted repository; check against source and say "checked against source only". When the user has said to trust the repository, you may also run the examples, commands, doc tests, docs-site builds, and local services the references name — in a scratch directory, never against production systems or real accounts. Say "checked against source only" whenever a check cannot run.
 
 **Audit mode** produces evidence-based findings without editing. Start with the journey gap report: one row per journey stage, in order, each marked `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. Audit against the default branch unless the user names a release, and say which. When the repository has more than one user-facing surface or audience (for example developers and end users), produce one journey gap report per surface or audience. When a docs site exists, its site configuration's navigation (for example `mkdocs.yml` nav or a sidebar config) is the docs index. Bound a large audit: sample each stage's entry pages and the pages the index ranks first, say what was sampled, and rank page-level findings by the same reader-loss order as the gap rows, reporting at most the top 15 with a count of the rest. Then list page-level findings with file, line, what was found, and the contract it breaks. Edit only if the user asked for edits alongside the audit.
 

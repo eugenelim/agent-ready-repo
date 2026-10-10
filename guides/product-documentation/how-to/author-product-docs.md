@@ -18,9 +18,9 @@ The `author-product-docs` skill reads your repository and replies with a report.
 
 ## Steps
 
-1. **Run the audit.** Send the request above. The skill infers audit mode from the words "audit" and "missing". It first finds what your product is — the code, manifests, and `--help` output reveal a library, CLI, API, app, service, framework, plugin, or agent-context pack — then reads the README, the docs index, and every page they link to.
-2. **Read the journey gap report.** You get one row per reader stage, in order: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute. Each row is `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. The next actions are ranked by where readers are lost first, so a missing first success outranks a missing explanation.
-3. **Read the page-level findings.** After the report, each finding names a file, a line, what was found, and the page contract it breaks.
+1. **Run the audit.** Send the request above. The skill infers audit mode from the words "audit" and "missing". It first finds what your product is — the code, manifests, and command parsers reveal a library, CLI, API, app, service, framework, plugin, or agent-context pack — then reads the README and the docs index (a docs site's navigation config counts as the index). In a large doc set it samples each stage's entry pages and says what it sampled.
+2. **Read the journey gap report.** You get one report per surface or audience — a repository with a CLI and a library, or with developer and end-user docs, gets one each. Each report has one row per reader stage, in order: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute. Each row is `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. The next actions are ranked by where readers are lost first, so a missing first success outranks a missing explanation.
+3. **Read the page-level findings.** After the report, each finding names a file, a line, what was found, and the page contract it breaks. A large audit reports the top 15 and counts the rest.
 4. **Retrofit the worst rows.** Ask "Retrofit the docs so the missing and partial rows are covered." The skill changes the smallest set of pages that moves the worst rows to `covered`, and links each page to the stage before and after it.
 5. **Check the result.** Ask for a second audit, or run the checks in [Verify before you ship](#verify-before-you-ship).
 
@@ -77,10 +77,10 @@ The skill writes where your repository already keeps docs of that kind. It looks
 
 ## Verify before you ship
 
-Verification follows the surface:
+Verification follows the surface. The skill compares against source by default. It runs examples, commands, builds, or local services only in a repository you have said to trust, and otherwise marks claims "checked against source only":
 
-- A library: run its examples or doc tests.
-- A CLI: compare the docs with `--help` and run each documented command.
+- A library: compare its examples with the source; in a trusted repository, run them or its doc tests.
+- A CLI: compare the docs with the parser; in a trusted repository, also with `--help` and by running each documented command.
 - An HTTP or RPC API: compare with the contract file.
 - A service: compare with the configuration schema and the code that reads it.
 - An app: walk each documented task in the running app, or in its end-to-end tests.

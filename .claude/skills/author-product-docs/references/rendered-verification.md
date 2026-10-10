@@ -12,7 +12,7 @@ Required checks:
 - Link check: every link in the changed file resolves (file exists, or external URL responds).
 - No broken internal references: relative links point to files that exist.
 - Canonical sources verified: product claims match what the product's source actually says.
-- Surface checks: the docs match what ships. Run the examples or the repository's doc tests; compare documented commands with `--help` output; compare documented endpoints with the contract file; compare documented settings with the config schema. [`surface-discovery.md`](surface-discovery.md) lists the check for each surface type.
+- Surface checks: the docs match what ships. Compare documented commands with `--help` output; compare documented endpoints with the contract file; compare documented settings with the config schema. In a repository the user has said to trust, also run the examples or the repository's doc tests (the trust rule lives in Step 15 of the skill). [`surface-discovery.md`](surface-discovery.md) lists the check for each surface type.
 
 How to check links: resolve each relative link against the directory of the file that contains it, and check each link separately. Skip absolute URLs, or check them with an HTTP request. When the repository has its own link checker, use it.
 
@@ -30,7 +30,7 @@ Required checks (in addition to Level 1):
 Applies when: section structure, heading hierarchy, or page scaffolding changes (not just prose).
 
 Required checks (in addition to Level 2):
-- Build the docs site with the repository's own command and inspect the rendered page.
+- In a trusted repository, build the docs site with the repository's own command and inspect the rendered page; otherwise report "rendered output not checked".
 - Heading hierarchy is valid (no skipped levels, no duplicate `#` titles).
 - Table of contents (if auto-generated) renders correctly.
 
@@ -42,7 +42,7 @@ Required checks (in addition to Level 3):
 - All routes that previously existed still resolve (no 404s).
 - Old routes that should redirect do redirect.
 - New routes are accessible.
-- Build the docs site with the repository's own command; inspect the built output, not just the source.
+- In a trusted repository, build the docs site with the repository's own command and inspect the built output, not just the source.
 
 ### Level 5 — Accessibility and responsive behavior
 

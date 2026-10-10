@@ -51,7 +51,7 @@ Grounding: [`product-docs-authoring-survey.md`](../../product/research/product-d
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | User-facing promise: pack README, JOURNEY, guides, web card | T4 | `validate_guides.py`, guide lints, link check | AC13–AC15, AC21, AC22 |
-| Current product truth: skill, references, evals | T1, T2, T3 | Pack tests green | AC1–AC10, AC19 |
+| Current product truth: skill, references, evals | T1, T2, T3 | Pack tests green | AC1–AC10, AC19, AC23, AC24 |
 | Release history: changelog and versions | T6 | Three `##` entries | AC16, AC17 |
 | Reusable learning: survey | done before planning | `docs/product/research/product-docs-authoring-survey.md` | Linked from Approach |
 | Cross-pack handoff truth | T5 | Search finds no `new-guide` in the AC12 region | AC12, AC20 |
@@ -90,12 +90,13 @@ Owned by T2.
 **Tests:**
 - Forbidden-path scan over `SKILL.md` and `references/*.md` for the five AC1 strings (AC1).
 - Description surface words (AC2).
-- Exact-heading scan of `surface-discovery.md` for the 7 surfaces and their four labels (AC3, AC4).
+- Exact-heading scan of `surface-discovery.md` for the 8 surfaces and their four labels (AC3, AC4).
 - Stage scan of `docs-journey.md` (AC5).
 - `SKILL.md` audit/retrofit text names the four row states (AC6).
 - Exact-heading scan of `page-contracts.md` for the 8 headings and their four part labels (AC7).
 - Handoff-guard scan: every `SKILL.md` line naming one of the five skills carries "if installed" (AC8).
 - Eval JSON counts, case ids, fixture paths, and the release-notes flag (AC9, AC10, AC19).
+- Step 15 scans for the per-surface-or-audience gap report, site navigation as the index, and the untrusted-repository rule (AC23, AC24).
 - Content pins: FAQ rule, `llms.txt` rule, first-runnable-action rule, and the `surface` and `journey stage` fields of the documentation contract.
 - Replace the `docs/guides/` anti-pattern pin with a pin on the generic rule (user-facing docs never go into a maintainer-only tree). Keep the "This skill is portable" pin.
 
@@ -116,7 +117,7 @@ stub: the new test functions above, collected and failing.
 
 **Depends on:** T1, T3
 **Touches:** `packs/product-documentation/.apm/skills/author-product-docs/SKILL.md`, `.../references/*.md`
-**Tests:** the T1 tests for AC1–AC8 and the content pins.
+**Tests:** the T1 tests for AC1–AC8, AC23, AC24 and the content pins.
 **Approach:**
 - Write `surface-discovery.md` and `docs-journey.md` first. The body's new steps cite them.
 - In `artifact-model.md` and `repository-ownership.md`, replace path tables with roles and the destination discovery order. Remove the catalogue-specific trees.
