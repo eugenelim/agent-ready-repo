@@ -65,3 +65,4 @@
 - Review fix rounds after T4: `4a2e484bf`, `d3eeb5fb2`, `776e66d08`; final gates
   at `776e66d08`: `packs/code-intelligence/tests` 209 passed; lint and mypy
   clean; self-host leaves no diff.
+- Pull request: `pull-request-opened` — https://github.com/eugenelim/agent-ready-repo/pull/1536 (2026-10-10).
