@@ -15,14 +15,7 @@ The contributing guide is the one bridge: it is linked from the user-facing READ
 
 ## Discover the trees
 
-Look in this order and stop when the answer is clear:
-
-1. The agent-guidance documentation map, such as `AGENTS.md` or `CLAUDE.md`, if it says where each kind of doc lives.
-2. `CONTRIBUTING`, the README's docs section, or other written conventions.
-3. The docs-site configuration: what content directory the docs build reads.
-4. The existing layout: where pages of the same kind and audience already sit.
-
-If none of these settles it and the location would change the artifact, ask once.
+Follow the destination order in Step 10 of the skill. The sources it draws on are the agent-guidance documentation map (such as `AGENTS.md` or `CLAUDE.md`), `CONTRIBUTING` or the README's docs section, the docs-site configuration (which content directory the build reads), and the existing layout of same-kind, same-audience pages.
 
 ## Decision rule
 
@@ -38,4 +31,4 @@ Generated or rendered output is never edited. That includes built sites, generat
 
 ## Destination order
 
-Resolve where an artifact goes in the same order as Step 10 of the skill: the destination the user named, then the repository's documentation map, then the existing layout, then one question. Write to the structure the repository already uses. A repository that keeps all docs in `docs/` and API docs in `src/docs/` has a valid layout.
+The order lives in Step 10 of the skill. Write to the structure the repository already uses: a repository that keeps all docs in `docs/` and API docs in `src/docs/` has a valid layout.

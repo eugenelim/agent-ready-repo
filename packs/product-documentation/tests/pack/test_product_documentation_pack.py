@@ -200,11 +200,16 @@ def test_docs_journey_stage_rows() -> None:
 
 
 def test_skill_defines_gap_report(author_skill_body: str) -> None:
-    lower = author_skill_body.lower()
+    start = author_skill_body.index("### Step 15")
+    step15 = author_skill_body[start : author_skill_body.index("### Step 16")]
+    paragraphs = [p for p in step15.split("\n\n") if p.strip()]
+    audit = [p for p in paragraphs if p.startswith("**Audit mode**")]
+    retrofit = [p for p in paragraphs if p.startswith("**Retrofit mode**")]
+    assert audit and retrofit, "Step 15 lacks audit or retrofit paragraph"
+    assert "one row per journey stage" in audit[0]
     for state in ("covered", "partial", "missing", "not applicable"):
-        assert state in lower
-    assert "journey gap report" in lower
-    assert "audit" in lower and "retrofit" in lower
+        assert f"`{state}`" in audit[0], f"audit paragraph lacks {state}"
+    assert "journey gap report" in retrofit[0]
 
 
 def test_page_contracts_sections() -> None:
@@ -258,7 +263,7 @@ def test_generic_eval_cases(eval_cases: list[dict]) -> None:
 
 @pytest.mark.parametrize(
     "needle",
-    ["FAQ", "llms.txt", "first runnable action"],
+    ["standalone FAQ", "llms.txt", "first runnable action"],
 )
 def test_content_rules_pinned(skill_and_refs_text: dict[str, str], needle: str) -> None:
     assert any(needle in t for t in skill_and_refs_text.values()), f"no rule mentions {needle}"

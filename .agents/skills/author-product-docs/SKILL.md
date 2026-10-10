@@ -145,7 +145,7 @@ Default to ONE artifact. Do not:
 - Create empty category directories
 - Update a README, index, or journey page unless the new work changes discovery or the main flow
 
-A single complete how-to is more useful than four thin stubs. In audit and retrofit, the journey gap report decides which pages matter most.
+A single complete how-to is more useful than four thin stubs. In retrofit, the journey gap report decides which pages matter most.
 
 ### Step 10 — Resolve the write destination
 

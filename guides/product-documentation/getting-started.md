@@ -25,6 +25,7 @@ You should see the agent start reading your repository. The audit changes no fil
 
 - A repository with something users run or call: a library, CLI, HTTP API, app, service, plugin, or agent-context pack.
 - An agent that supports installed packs, such as Claude Code.
+- `agentbundle`, the installer. See [install routes](../_shared/explanation/install-routes.md).
 
 ## Step 1: Let the skill find out what you ship
 
@@ -52,17 +53,17 @@ The reply starts with a table of nine rows, one per stage a reader passes throug
 
 Each row is `covered`, `partial`, `missing`, or `not applicable`, with the file that shows it or the reason. A library with no outside contributors may mark Contribute not applicable. Nothing marks First success not applicable.
 
-The next actions are ranked by where readers are lost first. A missing or failing first success comes before a missing explanation. Pick the top row marked `missing` or `partial`.
+The next actions are ranked by where readers are lost first. A missing or failing first success comes before a missing explanation. The top-ranked row marked `missing` or `partial` is the page to write first.
 
 ## Step 3: Write the first missing page
 
-Say you picked First success. Ask:
+Ask the skill to write the page for the top-ranked row. For example, when First success ranks first:
 
 ```
 Write a quickstart for this project
 ```
 
-Use the artifact for your row: "Write release notes for the next version" for Upgrade, or "Write a troubleshooting page for the most common install errors" for Troubleshoot.
+For example prompts for other stages, see [How to author product docs](how-to/author-product-docs.md#prompts-by-journey-stage).
 
 The skill reads the canonical sources for your surface before it writes. It then drafts one page by default. You should see the page open with the goal and a first runnable action in its first 120 words, and the draft should say what the product reads and what it may change, show the expected result, and end with a link to the next stage. The skill writes the page where your repository already keeps docs of that kind, and asks once if it cannot tell where that is.
 
@@ -76,13 +77,13 @@ Ask the skill to verify what it wrote:
 Verify this quickstart against what the code does
 ```
 
-You should get three lists: verified claims, unverified claims, and claims that contradict current behavior. Then run the check that fits your surface. Run the examples for a library. For a CLI, compare the page with `--help` and run each command. For an API, compare it with the contract file. For a service, compare it with the configuration schema.
+You should get three lists: verified claims, unverified claims, and claims that contradict current behavior. Then run the check that fits your surface. Run the examples for a library. For a CLI, compare the page with `--help` and run each command. For an API, compare it with the contract file. For a service, compare it with the configuration schema. For an app, walk each documented task in the running app or its end-to-end tests. For a plugin, compare the page with the contribution block in its manifest. For an agent-context pack, read each skill's source and send the first starter prompt.
 
 Fix any contradiction before you publish. A claim nothing checked stays labeled unverified.
 
 ## Step 5: Audit again
 
-Send the Step 1 request again. The row you fixed should now read `covered`, with the new page as evidence. Work down the list one page at a time.
+Send the audit request from the top of this page again. The row you fixed should now read `covered`, with the new page as evidence. Work down the list one page at a time.
 
 ## What you have now
 

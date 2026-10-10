@@ -11,6 +11,8 @@ Documentation for the `product-documentation` pack — create, revise, retrofit,
 
 ## Get started fast
 
+Start here: [Getting started](getting-started.md)
+
 ```
 Audit this project's docs and tell me which stages of the reader journey are missing
 ```

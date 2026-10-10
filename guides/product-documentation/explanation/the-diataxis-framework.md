@@ -1,6 +1,6 @@
 ---
 title: "About the Diátaxis framework"
-summary: "Why the product-documentation pack assigns every page to one of four kinds, how those kinds fit the reader journey, and what they leave uncovered."
+summary: "The four Diátaxis kinds each get one job, fit inside the nine-stage reader journey, and leave the other stages to other artifacts."
 pack: product-documentation
 kind: explanation
 status: stable
@@ -36,7 +36,7 @@ When a page resists placement, it's usually two pages wearing one title. Split i
 
 ## These are contracts, not directories
 
-Diátaxis defines what a page promises its reader, not where files must live. A how-to guide in a flat `guides/` directory still follows the how-to contract. A reference page in a nested `guides/pack/reference/` tree still follows the reference contract.
+Diátaxis defines what a page promises its reader, not where files must live. A how-to guide in `docs/how-to/` still follows the how-to contract. A reference page in `docs/reference/` still follows the reference contract.
 
 The `author-product-docs` skill assigns a page kind from the reader's posture and applies the matching contract throughout drafting — without requiring any particular directory structure. Whether your repo uses a by-pack layout, a flat layout, or something else, the page still delivers what its kind promises.
 
@@ -81,4 +81,4 @@ Same topic, three audiences, three framings. An ADR records *why the team chose*
 
 - [How to author product docs](../how-to/author-product-docs.md) — audit a doc set and fix the biggest gaps.
 - [How to write a guide](../how-to/write-a-guide.md) — document one shipped feature.
-- [The catalogue framework](../../README.md) — how packs and their guides fit together.
+- [Getting started](../getting-started.md) — audit your own repository's docs and write the first missing page.

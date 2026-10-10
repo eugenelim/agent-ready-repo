@@ -32,7 +32,7 @@ The `author-product-docs` skill reads your repository and replies with a report.
 
 ## Other entry points
 
-You do not need to name a mode. These requests start the other four.
+You do not need to name a mode. These requests start the other three modes: create, revise, and verify.
 
 > Write a how-to guide explaining how to [your most common user task].
 
@@ -43,6 +43,24 @@ You do not need to name a mode. These requests start the other four.
 > Verify this reference page still matches what the code does.
 
 Create mode writes one page by default and reports the page kind and destination. Revise mode reads the existing page first and improves it in place.
+
+## Prompts by journey stage
+
+After the audit, ask for the page that fits the top-ranked row:
+
+```
+Write a quickstart for this project
+```
+
+```
+Write release notes for the next version
+```
+
+```
+Write a troubleshooting page for the most common install errors
+```
+
+Use the first for First success, the second for Upgrade, and the third for Troubleshoot.
 
 ## What the skill inspects
 
@@ -70,8 +88,11 @@ Verification follows the surface:
 - A CLI: compare the docs with `--help` and run each documented command.
 - An HTTP or RPC API: compare with the contract file.
 - A service: compare with the configuration schema and the code that reads it.
+- An app: walk each documented task in the running app, or in its end-to-end tests.
+- A plugin: compare with the contribution block in its manifest.
+- An agent-context pack: read each skill's source, and send the first starter prompt.
 
-Then check links, and review the rendered page if you changed layout or navigation. The skill's report lists only the checks that ran.
+Then check links. Run a route check after navigation changes. Review the rendered page after layout changes. The skill's report lists only the checks that ran.
 
 ## What remains your decision
 

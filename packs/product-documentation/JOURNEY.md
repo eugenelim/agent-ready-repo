@@ -10,9 +10,9 @@ contract:
   useItWhen: "You need to write, improve, or audit the user-facing docs of a library, CLI, API, app, service, plugin, or agent-context pack — whether you're starting from scratch, reworking legacy docs, finding which stages of the reader journey are missing, or checking that pages match what ships."
   youType: "Audit this project's docs and tell me which stages of the reader journey are missing."
   youProvide: "A description of what you want to document, improve, or check, and optionally the mode (create / revise / retrofit / audit / verify)."
-  youReceive: "A draft, revision, retrofit plan, journey gap report, or verification result — whichever fits the request — with the product surface named, the page kind confirmed, and the write destination resolved from your repository's own layout."
+  youReceive: "A draft, revision, retrofit plan, journey gap report, or verification result — whichever fits the request — with the product surface, journey stage, page kind, and write destination reported so you can redirect any of them. Audits and verification results change nothing."
   yourDecisions:
-    - "Confirm the Diátaxis page kind (tutorial / how-to / reference / explanation)"
+    - "Redirect the agent if the reported surface, journey stage, page kind, or destination is wrong"
     - "Review the drafted or revised output before it is merged"
   decisionGateIds:
     - confirm-documentation-page-kind
@@ -25,16 +25,18 @@ skills:
 humanGates:
   - id: confirm-documentation-page-kind
     globalGate: null
-    label: "Confirm the documentation page kind"
-    trigger: "Before author-product-docs begins drafting — to confirm the page kind inferred from your request"
+    label: "Check what the agent chose"
+    trigger: "When the agent reports its surface, journey stage, artifact, and destination — redirect it if any is wrong"
     duration: "2–4 minutes"
     whatToCheck:
-      - "Is this a tutorial (learning-oriented — the reader is doing to learn), a how-to (task-oriented — the reader knows what they want and needs the steps), a reference (information-oriented — structured facts, no narrative), or an explanation (understanding-oriented — why, context, background)?"
-      - "Does the mode make sense for the request? Create/revise/retrofit = active authoring; audit = journey gap report and findings, no edits; verify = each claim checked against the shipped behavior."
-      - "Is the audience the product's users (people who install, call, run, or extend it) or the repository's maintainers? User-facing docs and maintainer docs live apart in your repository."
-    whatGoodLooksLike: "A confirmed page kind that you could justify in one sentence — 'This is a how-to because the reader already knows they want to install X and just needs the steps.'"
+      - "Is the surface right: library, CLI, API, app, service, plugin, or agent-context pack?"
+      - "Is the journey stage right: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, or contribute?"
+      - "Is the artifact or page kind right: README, docs landing page, installation guide, tutorial, how-to, reference, explanation, troubleshooting, changelog, migration guide, contributing guide, or journey page? For the four Diátaxis kinds, does the reader's posture match: learning (tutorial), a named task (how-to), a fast lookup (reference), or understanding why (explanation)?"
+      - "Is the destination where your repository keeps docs of that kind and audience — user docs apart from maintainer docs?"
+      - "For an audit or verify request, does the agent write nothing?"
+    whatGoodLooksLike: "A page kind you could justify in one sentence — 'This is a how-to because the reader already knows they want to install X and just needs the steps.'"
     whatBadLooksLike: "An explanation that buries the reader in background before revealing what they can do, or a how-to that opens with three paragraphs about why the tool exists."
-    consequence: "A doc written against the wrong page contract misleads the reader from the first sentence. The classification gate catches this before the first paragraph is drafted — cheap here, expensive after it's live."
+    consequence: "A doc written against the wrong page contract misleads the reader from the first sentence. Redirecting the agent as soon as it reports its choice is cheap; fixing the page after it is live is not."
   - id: review-product-documentation
     globalGate: "G4"
     label: "Review the product documentation"
@@ -63,10 +65,10 @@ relatedJourneys:
 ### 1. Describe what you need
 
 - **You provide:** what you want to document, improve, or check. The mode is optional — the skill infers it from your request. If you say "write a quickstart for this CLI", it activates create mode. If you say "this doc feels wrong", it activates revise or audit mode.
-- **Agent does:** activates `author-product-docs`; discovers the product surface from the repository (library, CLI, API, app, service, plugin, or agent-context pack); places your request on the reader journey; reads the canonical sources for ground-truth behavior; proposes the page kind and target artifact.
-- **You do:** check that the inferred page kind fits your intent.
-- **You decide:** confirm the Diátaxis page kind.
-- **Output:** a confirmed surface, journey stage, page kind, mode, and destination path.
+- **Agent does:** activates `author-product-docs`; discovers the product surface from the repository (library, CLI, API, app, service, plugin, or agent-context pack); places your request on the reader journey; reads the canonical sources for ground-truth behavior; reports the page kind, target artifact, and destination it chose. It records an assumption and continues; it stops to ask only when uncertainty would change the audience, the behavior described, the artifact, a destructive claim, or the canonical source.
+- **You do:** check the surface, journey stage, artifact, and destination the agent reports, and redirect it if any is wrong.
+- **You decide:** whether to redirect the agent.
+- **Output:** a reported surface, journey stage, page kind, mode, and destination path.
 - **State:** read-only
 
 ---
@@ -87,5 +89,5 @@ relatedJourneys:
 
 - **You do:** read the output as the intended reader. For create/revise: does the page have a clear entry state, a clear exit, and no sentence that serves a different Diátaxis kind? For audit: is every finding actionable without needing to re-read the original doc?
 - **You decide:** review the output — gate passes when page kind, voice, and structure are consistent.
-- **Output:** a review-gate-passed artifact; the agent opens a PR after approval.
+- **Output:** a reviewed page that you commit or merge. Audit and verify end read-only: they produce a report and change nothing, so there is nothing to merge.
 - **State:** confirmed-write

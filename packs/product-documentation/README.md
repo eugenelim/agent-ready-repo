@@ -2,6 +2,12 @@
 
 Documentation for any software product — a library, CLI, HTTP API, app, service, plugin, or agent-context pack — that matches what actually ships. Ask for a README, a quickstart, release notes, or an audit, and your agent writes or checks it against the real code.
 
+**Who it is for:** maintainers and contributors who write the docs that people who install, call, or run their product read.
+
+**Not for:** feature specs, design decisions, UI microcopy alone, docstrings alone, or internal maintainer runbooks.
+
+**Need help?** See the [guide index](../../guides/product-documentation/README.md) or [open an issue](https://github.com/eugenelim/agent-ready-repo/issues).
+
 ## Try it
 
 Paste one of these into your agent:
@@ -22,17 +28,17 @@ Write release notes for v2.1
 Fix this README so a newcomer can run something in the first minute
 ```
 
-You do not need to name a mode. The skill infers whether you want to create, revise, retrofit, audit, or verify from your request.
+You do not need to name a mode.
 
 ## What you get back
 
 - **An audit:** a journey gap report with one row per reader stage — discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute — each marked covered, partial, missing, or not applicable, with the file that proves it.
-- **A page:** a README, quickstart, how-to, reference, explanation, troubleshooting page, changelog, migration guide, or contributing guide, written around the reader's task and placed where your repository already keeps docs of that kind.
+- **A page:** a README, quickstart, how-to, reference, explanation, troubleshooting page, changelog, migration guide, or contributing guide, written around the reader's task.
 - **A check:** a list of verified claims, unverified claims, and claims that contradict current behavior.
 
 ## What the skill reads and changes
 
-It reads your repository first: the code, manifests, schemas, `--help` output, and existing docs. That tells it which surface you ship and which reference pages that surface needs. Audits never edit. Otherwise it writes one page by default, reports the kind and destination it chose, asks once when the location is unclear, and never edits generated output. Whether the page is right for your readers stays your decision.
+It reads your repository first: the code, manifests, schemas, `--help` output, and existing docs. That tells it which surface you ship and which reference pages that surface needs. Audits and checks never edit. When you ask for a page, it writes one by default and reports the kind and destination it chose. It places the page where your repository already keeps docs of that kind, asks once when the location is unclear, and never edits generated output. Whether the page is right for your readers stays your decision.
 
 ## Install
 

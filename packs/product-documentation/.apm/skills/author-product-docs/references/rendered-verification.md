@@ -14,13 +14,7 @@ Required checks:
 - Canonical sources verified: product claims match what the product's source actually says.
 - Surface checks: the docs match what ships. Run the examples or the repository's doc tests; compare documented commands with `--help` output; compare documented endpoints with the contract file; compare documented settings with the config schema. [`surface-discovery.md`](surface-discovery.md) lists the check for each surface type.
 
-How to run:
-```bash
-grep -oE '\[.*?\]\((.*?)\)' <file> | grep -v '^http' | while read link; do
-  target=$(echo "$link" | sed 's/.*(\(.*\))/\1/')
-  [ -f "$target" ] || echo "BROKEN: $target"
-done
-```
+How to check links: resolve each relative link against the directory of the file that contains it, and check each link separately. Skip absolute URLs, or check them with an HTTP request. When the repository has its own link checker, use it.
 
 ### Level 2 — Navigation changes
 

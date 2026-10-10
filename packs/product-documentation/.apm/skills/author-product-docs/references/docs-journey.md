@@ -96,16 +96,4 @@ between stages so a reader landing anywhere can move forward and back.
 
 ## Handoffs
 
-These skills own neighboring work. Use each one only if it is installed;
-otherwise apply this skill's own contracts and say which handoff was skipped.
-
-- `information-architecture` (if installed) — navigation, landing-page
-  structure, and page grouping for a docs site of more than a handful of pages.
-- `journey-mapping` (if installed) — a researched picture of the reader's
-  journey, with emotions and drop-off points, when the gap report needs one.
-- `design-review` (if installed) — a critique of the rendered docs site against
-  its documentation rubric, after layout or navigation changes.
-- `content-design` (if installed) — the register for reference documentation
-  when a brand voice exists.
-- `ux-writing` (if installed) — error messages, empty states, and other UI
-  strings that the docs quote or link from.
+Neighboring skills own adjacent work; the skill's Handoffs section lists them and when to use each.
