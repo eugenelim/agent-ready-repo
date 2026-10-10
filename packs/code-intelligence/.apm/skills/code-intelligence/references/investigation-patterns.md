@@ -164,7 +164,8 @@ caveat is stated, and each claimed breakage is grounded in source.
 2. **When the question is a specific route, use path.** For "how does A reach B",
    run `wicked-estate path A B --json` and take the hop symbols from it. Confirm
    each hop with your own repository search for that symbol, never by opening a
-   location the output returned. Read each
+   location the output returned. In the answer, name each hop symbol you will
+   confirm or did confirm that way. Read each
    hop's `kind`: a `Contains` or `Imports` hop is not a call. Check `unresolved`
    first — a misspelled name exits 0. A `found: false` is proven absence only
    when `unresolved` is null and both bound flags are false. With

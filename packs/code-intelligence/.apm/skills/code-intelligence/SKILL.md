@@ -117,8 +117,9 @@ End every answer with a short **evidence note** so the reader can audit it:
 2. Each command or source you used or passed over, and why it fit the
    question or did not.
 3. The limits you kept: completeness counts, cut flags, staleness.
-4. Which claims your own repository search confirmed, and which stay
-   unestablished.
+4. Which claims your own repository search confirmed, which are observed
+   from the graph, which are your interpretation, and which stay
+   unestablished. Label each.
 5. Why you stopped.
 
 ### Reading and verifying source

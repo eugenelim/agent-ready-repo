@@ -272,6 +272,7 @@ def test_skill_requires_an_evidence_note() -> None:
         "each command or source you used or passed over, and why it fit the question",
         "the limits you kept",
         "which claims your own repository search confirmed",
+        "which are your interpretation",
         "why you stopped",
     ):
         assert item in flat, f"evidence note must list: {item}"
