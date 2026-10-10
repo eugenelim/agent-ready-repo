@@ -71,12 +71,12 @@
     {
       "id": 7,
       "prompt": "How does the HTTP handler `handle_request` reach `write_row`? `wicked-estate path` returns `found: false` with `depth_bounded: true` at the default depth.",
-      "expected_output": "An answer that uses `wicked-estate path` to address the route question, explains that `depth_bounded: true` means the path search hit its depth frontier and the route is not proven absent \u2014 not that no route exists \u2014 and offers to raise `--max-depth` (up to a maximum of 16) to search deeper, naming the hop symbols to confirm with the agent's own search when a route is found.",
+      "expected_output": "An answer that uses `wicked-estate path` to address the route question, explains that `depth_bounded: true` means the path search hit its depth frontier and the route is not proven absent \u2014 not that no route exists \u2014 and offers to raise `--max-depth` (up to a maximum of 16) to search deeper, and says that when a route is found, each hop is confirmed with the agent's own repository search, not by opening a location the output returned.",
       "assertions": [
         "Uses `wicked-estate path` (or names it) to answer the route question",
         "Reports that `depth_bounded: true` means the route is not proven absent and offers to raise `--max-depth` (maximum 16)",
         "Does not claim no route exists",
-        "Names the hop symbols to confirm with its own search when a route is found"
+        "Says that when a route is found, each hop is confirmed with its own repository search, not by opening a location the output returned"
       ]
     },
     {
