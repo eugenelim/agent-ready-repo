@@ -30,6 +30,9 @@ from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
+# Astro serves only public/ as static files, so a guide asset (an image beside
+# a guide) is published from here at the URL _guide_site_url gives it.
+SITE_PUBLIC_GUIDES = REPO_ROOT / "docs-site" / "public" / "guides"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
 SITE_BASE = "/agent-ready-repo/docs"
 NOW_PROJECTION = (
@@ -944,7 +947,12 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
 # Guide-aware mirror (replaces the bare mirror_dir call for guides/)
 # ---------------------------------------------------------------------------
 
-def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
+def mirror_guides(
+    src: Path,
+    site_docs: Path,
+    dry_run: bool = False,
+    public_guides: Path | None = None,
+) -> int:
     """Mirror src/ into site_docs/guides/ with frontmatter-aware routing.
 
     - Files with ``slug:`` frontmatter are written to site_docs/<slug>.md
@@ -954,6 +962,9 @@ def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
       journey, order) is stripped before writing so Starlight doesn't see it.
     - Files without frontmatter receive the existing title-injection treatment.
     - docs/guides/ is not the src here and is never mirrored.
+    - Non-Markdown files (guide images) are also copied under
+      ``public_guides`` when given, because links to them are rewritten to
+      ``SITE_BASE/guides/<path>`` and only the site's public/ tree serves that.
     """
     guides_out = site_docs / "guides"
     count = 0
@@ -978,6 +989,10 @@ def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
+                if public_guides is not None:
+                    public_target = public_guides / rel
+                    public_target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(path, public_target)
             count += 1
             continue
 
@@ -2636,7 +2651,7 @@ def main() -> None:
     guides_out = SITE_DOCS / "guides"
 
     if args.clean and not args.dry_run:
-        for d in (packs_out, guides_out):
+        for d in (packs_out, guides_out, SITE_PUBLIC_GUIDES):
             if d.exists():
                 shutil.rmtree(d)
                 print(f"  clean {d.relative_to(REPO_ROOT)}/")
@@ -2685,7 +2700,9 @@ def main() -> None:
                             guides_group=guides_group)
 
     print("build-site: mirroring guides …")
-    n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)
+    n = mirror_guides(
+        guides_src, SITE_DOCS, dry_run=args.dry_run, public_guides=SITE_PUBLIC_GUIDES
+    )
     print(f"  {n} files from guides/")
 
     print("build-site: projecting released changelog highlights …")
