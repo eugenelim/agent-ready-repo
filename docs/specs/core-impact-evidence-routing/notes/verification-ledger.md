@@ -20,3 +20,13 @@ Interpreter: a throwaway venv with pytest, ruff, mypy, pyyaml, jsonschema, tomlk
 - `python -m pytest packs/core/tests/skills/bug-fix packs/core/tests/skills/work-loop -q -p no:cacheprovider`: 2437 passed, 6 skipped, 1 failed. The failure is `test_loop_engine.py::test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content[deep-nesting]` (engine state recovery, no skill text read); not caused by this change, not confirmed against a clean base.
 - `python tools/lint-pack-test-boundary.py`: passed (8 cases).
 - `make lint-ruff lint-mypy`: all checks passed; mypy no issues in 155 files.
+
+## T2 (2026-10-10)
+
+Interpreter: Python 3.11 for pytest; a throwaway venv with ruff, mypy, pyyaml, jsonschema, tomlkit for lint and catalogue lint (`PYTHONPATH` set to `packages/*/`).
+
+- `pytest packs/core/tests/pack/test_impact_evidence_routing.py packs/core/tests/pack/test_readme_repository_exploration.py packs/core/tests/skills/repository-exploration packs/core/tests/skills/new-spec -q -p no:cacheprovider`: 327 passed, 79 subtests passed.
+- `python3 tools/lint-pack-test-boundary.py`: passed (8 cases).
+- `make lint-ruff lint-mypy`: all checks passed; mypy no issues in 155 files.
+- `agentbundle catalogue lint --root . --deep`: ok, 75 findings (warnings only, none from this change).
+- Grep of `packs/core/tests` for the two changed `new-spec` eval prompts: no pin (only an unrelated `code-intelligence pack` literal in `test_readme_repository_grounding.py`).
