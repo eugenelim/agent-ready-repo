@@ -470,7 +470,7 @@ def test_step5_confirms_by_own_search_and_labels_source_output() -> None:
     assert "never opened" in step5 and "never handed to `wicked-estate source`" in step5, (
         "Step 5 must say provider locations are never opened or handed to source"
     )
-    assert "wicked-estate source --symbols <id> --json" in step5, (
+    assert "wicked-estate source --symbols '<id>' --json" in step5, (
         "Step 5 may report source --symbols output"
     )
     assert "indexed-revision" in step5 and "labelled as such" in step5, (

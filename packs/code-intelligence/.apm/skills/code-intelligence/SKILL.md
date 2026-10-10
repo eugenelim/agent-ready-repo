@@ -164,6 +164,12 @@ a `path` hop, or a location field from `resolve`, `rank`, or `query`:
   single-quoted argument. If it contains a single quote, a newline, or another
   control character, do not use it and report that item as unestablished. IDs
   embed file paths and can hold spaces, `;`, and `$( )`.
+  These quoting rules assume a POSIX shell (sh, bash, zsh). An ID containing a
+  backslash is not used and is reported as unestablished.
+- A search term taken from provider output must never be read as an option by
+  the search tool: pass it after the tool's end-of-options marker (`--`) or its
+  pattern flag (for example `grep -e`, `rg -e`). If that cannot be guaranteed, a
+  term starting with `-` is not used and the item is reported as unestablished.
 
 ## The core loop
 
@@ -193,7 +199,7 @@ early as the objective allows.
 
 4. **Expand.** Follow only the relationships the question needs —
    `blast-radius` for dependents, `wicked-estate path A B --json` for a specific
-   route from one symbol to another, `wicked-estate lineage --symbol <id> --json`
+   route from one symbol to another, `wicked-estate lineage --symbol '<id>' --json`
    for forward transitive dependencies (resolve first — a name returns empty),
    `graph-view --focus` for a bounded neighbourhood, `clusters` for subsystem shape.
 

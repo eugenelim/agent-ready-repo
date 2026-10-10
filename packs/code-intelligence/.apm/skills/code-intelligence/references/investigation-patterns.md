@@ -25,7 +25,7 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    line. For the signature, go straight to the symbol:
 
    ```bash
-   wicked-estate source --symbols <symbol_id> --json --signatures-only
+   wicked-estate source --symbols '<symbol_id>' --json --signatures-only
    ```
 
    Do **not** reach for `wicked-estate nodes` here. It has no symbol filter —
@@ -36,7 +36,7 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    For annotations on this one symbol:
 
    ```bash
-   wicked-estate annotations --symbol <symbol_id> --json
+   wicked-estate annotations --symbol '<symbol_id>' --json
    ```
 
 3. **Inspect the source.** Never describe behaviour you have not read. Read it
@@ -60,7 +60,7 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
 
    ```bash
    wicked-estate resolve OrderService --json
-   wicked-estate lineage --symbol <symbol_id> --json
+   wicked-estate lineage --symbol '<symbol_id>' --json
    ```
 
    `lineage` takes an exact SymbolId only — always `resolve` first. Default depth
@@ -171,7 +171,7 @@ caveat is stated, and each claimed breakage is grounded in source.
    string (never as a path, root, glob, or regex fragment), never by opening a
    location the output returned. A hop ID or name goes into a command only as
    one single-quoted argument; one containing a single quote, a newline, or
-   another control character is not used and is reported as unestablished. In the answer, name each hop symbol you will
+   another control character is not used and is reported as unestablished. These quoting rules assume a POSIX shell (sh, bash, zsh). An ID containing a backslash is not used and is reported as unestablished. A search term taken from provider output must never be read as an option by the search tool: pass it after the tool's end-of-options marker (`--`) or its pattern flag (for example `grep -e`, `rg -e`). If that cannot be guaranteed, a term starting with `-` is not used and the item is reported as unestablished. In the answer, name each hop symbol you will
    confirm or did confirm that way. Read each
    hop's `kind`: a `Contains` or `Imports` hop is not a call. Check `unresolved`
    first — a misspelled name exits 0. A `found: false` is proven absence only

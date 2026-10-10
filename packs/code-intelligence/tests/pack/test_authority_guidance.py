@@ -336,3 +336,69 @@ def test_composition_example_reader_condition_requires_own_text() -> None:
     assert "only when the invoking user, or the invoking skill's own text, supplies" in flat
     assert "own text" in flat
     assert "own text" not in flat.replace("own text", "text")
+
+
+# --- option-injection guard, POSIX scope, and ID-template quoting ------------
+
+END_OF_OPTIONS_PHRASES: tuple[str, ...] = (
+    "must never be read as an option by the search tool",
+    "after the tool's end-of-options marker (--)",
+    "a term starting with - is not used and the item is reported as unestablished",
+)
+POSIX_PHRASES: tuple[str, ...] = (
+    "assume a posix shell (sh, bash, zsh)",
+    "an id containing a backslash is not used and is reported as unestablished",
+)
+_PATTERNS_MD: Path = (
+    APM_ROOT / "skills" / "code-intelligence" / "references" / "investigation-patterns.md"
+)
+
+
+@pytest.mark.parametrize("phrases", [END_OF_OPTIONS_PHRASES, POSIX_PHRASES])
+def test_option_guard_and_posix_rules_present_and_removal_is_caught(
+    phrases: tuple[str, ...],
+) -> None:
+    files = (*_RULE_FILES, _PATTERNS_MD) if phrases is END_OF_OPTIONS_PHRASES else _RULE_FILES
+    for path in files:
+        text = path.read_text("utf-8")
+        assert _missing(text, phrases) == [], path.name
+        for phrase in phrases:
+            planted = re.sub(
+                r"\s+".join(re.escape(w) for w in phrase.split()),
+                "",
+                text.replace("`", ""),
+                flags=re.IGNORECASE,
+            )
+            assert _missing(planted, phrases) == [phrase], (path.name, phrase)
+
+
+_UNQUOTED_ID_RE: re.Pattern[str] = re.compile(
+    r"--(?:symbols?|seeds)[ \t]+<[^>\n]*id[^>\n]*>", re.IGNORECASE
+)
+_FENCE_RE: re.Pattern[str] = re.compile(r"```.*?```|`[^`\n]+`", re.DOTALL)
+
+
+def unquoted_id_templates(text: str) -> list[str]:
+    """Return worked-command ID placeholders left outside single quotes."""
+    hits: list[str] = []
+    for span in _FENCE_RE.findall(text):
+        hits.extend(_UNQUOTED_ID_RE.findall(span))
+    return hits
+
+
+def test_unquoted_id_template_scan_flags_red_and_passes_green() -> None:
+    assert unquoted_id_templates("`wicked-estate lineage --symbol <id> --json`")
+    assert unquoted_id_templates("```\nwicked-estate lineage --symbol <id> --json\n```")
+    assert not unquoted_id_templates("`wicked-estate lineage --symbol '<id>' --json`")
+
+
+def test_worked_commands_quote_every_provider_id_placeholder() -> None:
+    offenders: list[str] = []
+    for path in apm_markdown_files():
+        if path.name == "capability-map.md":
+            continue
+        text = "\n".join(
+            ln for ln in path.read_text("utf-8").splitlines() if not ln.lstrip().startswith("|")
+        )
+        offenders.extend(f"{path.name}: {hit}" for hit in unquoted_id_templates(text))
+    assert offenders == []

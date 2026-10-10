@@ -39,7 +39,12 @@
   two runs; failures in cases 1, 5, and 8 match origin/main at `cbcb32d73`;
   eval 7 is not gated; case 9's single assertion-3 miss passed in two reruns
   and is accepted by owner decision, 2026-10-10. Details:
-  [`eval-runs.md`](eval-runs.md#final-runs-at-2595da79c-t3-closes-on-these).
+  [`eval-runs.md`](eval-runs.md#runs-at-2595da79c-superseded-by-the-post-review-fix-round).
+- Final runs at `4a2e484bf` (post-review fix round): the four composition
+  cases pass every assertion (behavior grader `[ok]`); cases 1, 3, 4, and 9
+  pass; the failures in cases 5 and 8 match origin/main at `cbcb32d73`; eval 7
+  is not gated. Details:
+  [`eval-runs.md`](eval-runs.md#final-runs-at-4a2e484bf-t3-closes-on-these).
 
 ## T4: Docs, version, changelog, and projection updated
 
@@ -51,8 +56,3 @@
 - `agentbundle catalogue lint --root . --deep` and `catalogue verify --root .`
   passed; a second `catalogue self-host --root . --write` produced no diff.
 - README and first-session tutorial read whole: neither requires `core`.
-- Final runs at `4a2e484bf` (post-review fix round): the four composition
-  cases pass every assertion (behavior grader `[ok]`); cases 1, 3, 4, and 9
-  pass; the failures in cases 5 and 8 match origin/main at `cbcb32d73`; eval 7
-  is not gated. Details:
-  [`eval-runs.md`](eval-runs.md#final-runs-at-4a2e484bf-t3-closes-on-these).

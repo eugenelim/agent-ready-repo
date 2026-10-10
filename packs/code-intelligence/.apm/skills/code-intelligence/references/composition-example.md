@@ -52,7 +52,7 @@ An edge in the graph is a candidate; the agent's own repository search is what c
 
 The location fields in the `blast-radius` output are never opened and never handed to `wicked-estate source`. A confined reader is an option only when the invoking user, or the invoking skill's own text, supplies one; a refusal from it, or its absence, sends that dependent back to the search.
 
-`wicked-estate source --symbols <id> --json` output may appear in the answer as indexed-revision snapshot evidence — what the index stored at index time, as described in [`references/gaps.md`](gaps.md) § 4 — labelled as such. That output does not confirm a call site, so a dependent whose file the index may not reflect is settled by search alone.
+`wicked-estate source --symbols '<id>' --json` output may appear in the answer as indexed-revision snapshot evidence — what the index stored at index time, as described in [`references/gaps.md`](gaps.md) § 4 — labelled as such. That output does not confirm a call site, so a dependent whose file the index may not reflect is settled by search alone.
 
 **Step 6 — Stop.**
 
@@ -118,7 +118,7 @@ These rules hold across providers and paths, and stay the same whichever provide
 These belong to the Wicked Estate provider and to this pack. Another provider need not replicate them.
 
 - **Prerequisites.** The binary, the version floor, and a built index. The readiness check is [`../scripts/estate_preflight.py`](../scripts/estate_preflight.py).
-- **Commands.** The Wicked Estate CLI commands this example shows — `wicked-estate stats`, `wicked-estate resolve parse_config --json`, `wicked-estate blast-radius parse_config --depth 1 --json`, and `wicked-estate source --symbols <id> --json` — are owned by this pack. `python '<skill-dir>/scripts/estate_preflight.py' --check` is this pack's readiness script, not a Wicked Estate CLI command. `git log -n <N> --name-only --format='%h %s'` is the bounded repository-native history command shown in the fallback path. The full command inventory is in [`references/capability-map.md`](capability-map.md).
+- **Commands.** The Wicked Estate CLI commands this example shows — `wicked-estate stats`, `wicked-estate resolve parse_config --json`, `wicked-estate blast-radius parse_config --depth 1 --json`, and `wicked-estate source --symbols '<id>' --json` — are owned by this pack. `python '<skill-dir>/scripts/estate_preflight.py' --check` is this pack's readiness script, not a Wicked Estate CLI command. `git log -n <N> --name-only --format='%h %s'` is the bounded repository-native history command shown in the fallback path. The full command inventory is in [`references/capability-map.md`](capability-map.md).
 - **Capability mapping.** How a tool-neutral question maps to a specific command is in [`references/capability-map.md`](capability-map.md).
 - **Evidence fields.** The completeness counts and cut indicators in the query response are Wicked Estate output. Their semantics and how to phrase a bounded claim are in [`references/evidence.md`](evidence.md).
 - **Gaps.** The limits of what Wicked Estate exposes today — direct, by composition, partial, or absent — are in [`references/gaps.md`](gaps.md).

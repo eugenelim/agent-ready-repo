@@ -76,6 +76,12 @@ You run in a forked context and do not load the skill, so the rules are here.
   single-quoted argument. If it contains a single quote, a newline, or another
   control character, do not use it and report that item as unestablished. IDs
   embed file paths and can hold spaces, `;`, and `$( )`.
+  These quoting rules assume a POSIX shell (sh, bash, zsh). An ID containing a
+  backslash is not used and is reported as unestablished.
+- A search term taken from provider output must never be read as an option by
+  the search tool: pass it after the tool's end-of-options marker (`--`) or its
+  pattern flag (for example `grep -e`, `rg -e`). If that cannot be guaranteed, a
+  term starting with `-` is not used and the item is reported as unestablished.
 - Never pass a file location the provider returns to wicked-estate source.
   `wicked-estate source --file <path>` takes its path only from your own search
   or the prompt.

@@ -58,7 +58,7 @@ wicked-estate source --symbols '<chosen-ids>' --json   # indexed text of the one
 > false and `node_cap_reached` false at depth 12. `stats` reports the graph is
 > current with the working tree.
 >
-> I ran `rank --seeds <dependent ids> --limit 200 --json` and kept the rows
+> I ran `rank --seeds '<dependent ids>' --limit 200 --json` and kept the rows
 > whose `symbol` was in the 47-member set, giving a ranked view. Five were in
 > the top rows: `Invoice`, `LedgerEntry`, `PaymentGateway`, `RefundCalculator`,
 > and the `Money` serde implementation. Four construct `Money` positionally and
@@ -119,7 +119,7 @@ wicked-estate source --cluster 3 --json --signatures-only
 ```bash
 wicked-estate resolve LegacyAuthAdapter --json
 wicked-estate blast-radius LegacyAuthAdapter --json
-wicked-estate annotations --symbol <symbol_id> --json
+wicked-estate annotations --symbol '<symbol_id>' --json
 wicked-estate dead-code --json | grep LegacyAuthAdapter
 ```
 

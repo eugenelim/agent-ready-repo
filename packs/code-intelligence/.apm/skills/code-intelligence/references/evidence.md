@@ -202,7 +202,7 @@ from" as a value. Pair `stats` with the staleness line.
 
 ## Value lineage — `flows_to`
 
-`wicked-estate lineage --symbol <id> --relation flows_to --json` traces
+`wicked-estate lineage --symbol '<id>' --relation flows_to --json` traces
 producer-to-consumer value flow through parameters, returns, and field writes.
 TypeScript only. Each flow hop carries:
 
@@ -224,7 +224,7 @@ Annotations are Wicked Estate's explicit evidence layer, and they are the one
 place the estate records a human or agent judgment alongside its provenance.
 
 ```bash
-wicked-estate annotations --symbol <symbol_id> --json
+wicked-estate annotations --symbol '<symbol_id>' --json
 ```
 
 Each annotation carries exactly these fields: `key`, `value`, `type`,
@@ -233,7 +233,7 @@ Each annotation carries exactly these fields: `key`, `value`, `type`,
 Two shape traps, both verified against the binary:
 
 - **The `<name>` form returns an array**, one `{symbol, annotations[]}` entry
-  per name match. Only the `--symbol <id>` form returns a single object, which
+  per name match. Only the `--symbol '<id>'` form returns a single object, which
   is why the command above uses it.
 - **There is no `last_verified` field in the JSON.** The human-readable
   `stale-annotations` output mentions one, but the machine output gives you
