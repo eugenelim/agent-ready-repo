@@ -276,3 +276,10 @@ def test_skill_requires_an_evidence_note() -> None:
         "why you stopped",
     ):
         assert item in flat, f"evidence note must list: {item}"
+
+
+def test_skill_keeps_observed_and_interpretation_labels_in_the_body() -> None:
+    """The evidence note must not displace the observed/interpretation split."""
+    flat = collapse(SKILL_MD.read_text("utf-8")).replace("*", "")
+    assert "the note does not replace labels in the body" in flat
+    assert "observed:" in flat and "interpretation:" in flat

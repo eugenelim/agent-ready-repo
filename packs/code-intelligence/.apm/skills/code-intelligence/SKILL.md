@@ -122,6 +122,12 @@ End every answer with a short **evidence note** so the reader can audit it:
    unestablished. Label each.
 5. Why you stopped.
 
+The note does not replace labels in the body. Wherever the body describes
+structure or behavior, mark each statement **Observed:** (what a tool or your
+own search reported, including output the user supplied) or **Interpretation:**
+(your reading of it), even when the only observations are figures the user gave
+you.
+
 ### Reading and verifying source
 
 In this skill, "read the source" and "verify against source" each mean one of
