@@ -24,14 +24,17 @@ call the stages *Decide what to build*, *Shape it*, *Build it*, and *Ship it*.
 
 Most work doesn't travel the whole way. A bug fix starts at *Build it*. A small
 change to an existing product often goes from a written intent straight to the
-build loop. The picture shows every route side by side, so you can see where
-each pack fits.
+build loop.
 
-[![How one piece of work moves from idea to production: four stages, Decide what to build, Shape it, Build it, and Ship it, each ending on a decision you make. The table below lists every step in words.](the-three-loops-lifecycle.svg)](the-three-loops-lifecycle.svg)
+[![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. The step-by-step list further down gives the full flow in words.](the-three-loops-overview.svg)](the-three-loops-overview.svg)
 
-Read it left to right, and start at the stage your work is in. The amber shapes
-are the points where the agent stops and waits for you. Select the picture to
-open it full size.
+Start at the stage your work is in. The gold, pointed tags are the points where
+the agent stops and waits for you.
+
+The full map below shows every route, step, skill, and decision, plus who runs
+each stage. Select either picture to open it at full size.
+
+[![Open the full map at full size: every route, step, skill, and decision across the four stages. The step-by-step list further down gives the same flow in words.](the-three-loops-lifecycle.svg)](the-three-loops-lifecycle.svg)
 
 When any piece of work finishes, or you abandon it, `close-work` from `core`
 tidies it up.
@@ -44,10 +47,12 @@ and hand it to the build loop. They differ in how much ground they cover first.
 - **The short route** is where most teams start. You write the intent, test its
   riskiest assumption, and break it into pieces the build loop can take. Plan on
   about three hours.
-- **The longer route** adds a situation, opportunities, options, a bet, and a
-  capability map. Take it when you can't yet say what the problem is, or when
-  the bet is big enough that someone will ask for the reasoning later.
-- **The supervised loop** runs down the middle of the diagram. `discovery-lead`
+- **The longer route** replaces the short one with six steps: a situation,
+  opportunities, options, a test of the riskiest assumption, a bet, and a
+  capability map with a suggested build order. Take it when you can't yet say
+  what the problem is, or when the bet is big enough that someone will ask for
+  the reasoning later.
+- **The supervised loop** is the right-hand column of *Shape it*. `discovery-lead`
   walks every gate, brings in design, architecture, and contract work side by
   side, and has two reviewers check for threats and reliability problems before
   you see the brief. Use it for a new product area.
@@ -102,81 +107,37 @@ Discovery, build, and release each have their own supervising agent:
 runs inside another. They meet at G3 and G4, and nothing crosses either line,
 or reaches production at G5, until you say so.
 
-### The same flow as a Mermaid diagram
+### The same flow, step by step
 
-If the picture above doesn't load, this diagram shows the same flow. A hexagon
-is a point where the agent stops and waits for you. G1 is pale and round because
-it usually passes without you.
+This list carries everything the pictures show, in words.
 
-```mermaid
-flowchart TB
-    subgraph decide["Decide what to build"]
-        direction TB
-        D1["desk-research: find out what is true"] --> D2["product-strategy: write-prfaq, run-okr-cascade, define-ux-strategy"]
-    end
-    subgraph shape["Shape it"]
-        direction TB
-        S1["frame-intent"] --> G0{{"G0: you approve the intent"}}
-        G0 --> S2["de-risk-intent, then decompose-intent"]
-        S2 --> G1(["G1: runs on its own unless a risk shows up"])
-        G1 --> S3["explore-options"]
-        S3 --> S4["frame-domain"]
-        S4 --> G15{{"G1.5: you set the MVP boundary"}}
-        G15 --> T1["Product: decompose-intent"]
-        G15 --> T2["Experience: journey-mapping, service-blueprint, user-flow, ux-writing"]
-        G15 --> T3["Architecture: architect-design, architect-diagram"]
-        G15 --> T4["Contracts: api-contract, event-contract"]
-        T1 --> RV["Threat and reliability reviewers"]
-        T2 --> RV
-        T3 --> RV
-        T4 --> RV
-        RV --> G2{{"G2: you approve the decision brief"}}
-        G2 --> S5["decompose-intent: an ordered backlog"]
-        S5 --> G3{{"G3: you commit to build"}}
-        SR["Short route: frame-intent, de-risk-intent, decompose-intent"]
-        LR["Longer route: frame-situation, identify-opportunities, diverge-solutions, place-bet, map-capabilities"]
-    end
-    subgraph build["Build it"]
-        direction TB
-        B1["work-intake: picks a spec, a delivery brief, or a minimum intent"] --> B2["new-spec: spec and plan"]
-        B2 --> B3{{"You approve the spec, then the plan"}}
-        B3 --> B4["work-loop: build, gates, three cold reviews"]
-        B4 --> G4{{"G4: you merge, and the build goes to release"}}
-    end
-    subgraph ship["Ship it"]
-        direction TB
-        L1["define-slo, if you want an error budget"] --> L2["release-loop: deploy to a throwaway environment, test end to end, watch telemetry"]
-        L2 --> G5{{"G5: you approve the production ship"}}
-    end
-    D2 --> S1
-    D2 -.-> SR
-    D2 -.-> LR
-    SR -.-> G3
-    LR -.-> G3
-    G3 --> B1
-    B1 -. "small, low-risk change: no spec" .-> B4
-    G4 --> L1
-    L2 -. "a deployed failure goes back as a build task" .-> B4
-
-    classDef decideStep fill:#ede9fe,stroke:#7c3aed,color:#1f2937
-    classDef shapeStep fill:#dbeafe,stroke:#2563eb,color:#1f2937
-    classDef buildStep fill:#dcfce7,stroke:#16a34a,color:#1f2937
-    classDef shipStep fill:#ffedd5,stroke:#ea580c,color:#1f2937
-    classDef gate fill:#fde68a,stroke:#b45309,stroke-width:2px,color:#1f2937
-    classDef autoGate fill:#fef3c7,stroke:#b45309,stroke-dasharray:4 3,color:#1f2937
-    classDef shortcut fill:#f8fafc,stroke:#64748b,stroke-dasharray:4 3,color:#1f2937
-    class D1,D2 decideStep
-    class S1,S2,S3,S4,S5,T1,T2,T3,T4,RV shapeStep
-    class B1,B2,B4 buildStep
-    class L1,L2 shipStep
-    class G0,G15,G2,G3,B3,G4,G5 gate
-    class G1 autoGate
-    class SR,LR shortcut
-    style decide fill:#7c3aed14,stroke:#7c3aed
-    style shape fill:#2563eb14,stroke:#2563eb
-    style build fill:#16a34a14,stroke:#16a34a
-    style ship fill:#ea580c14,stroke:#ea580c
-```
+1. **Decide what to build** (optional). `desk-research` finds out what's true.
+   `product-strategy` makes the strategic call with skills such as
+   `write-prfaq`, `run-okr-cascade`, or `define-ux-strategy`. The stage ends
+   when you pick the outcome.
+2. **Shape it**, by one of three routes. Each one ends at G3, when you commit
+   to build.
+   - *Short route, the default:* `frame-intent`, then you approve the intent
+     (G0), then `de-risk-intent`. `decompose-intent` breaks it into pieces the
+     build loop can take.
+   - *Longer route:* `frame-situation`, `identify-opportunities`,
+     `diverge-solutions`, `de-risk-intent`, `place-bet`, and `map-capabilities`.
+     It passes on a capability map with a suggested build order.
+   - *Supervised loop:* `frame-intent` and G0, then `de-risk-intent` and
+     `explore-options`. G1 usually passes on its own. `frame-domain` grounds
+     the domain and you set the MVP (G1.5). Design, system, and contract work
+     run in parallel, followed by a threat and reliability review. You approve
+     the brief (G2), and `decompose-intent` breaks it into buildable pieces.
+3. **Build it.** `work-intake` picks a spec, a delivery brief, or a minimum
+   intent. `new-spec` writes the spec and plan, and you approve both.
+   `work-loop` builds, runs lint, type checks, and tests, and gets three cold
+   reviews. A small, low-risk change skips the spec. The stage ends at G4, when
+   you merge.
+4. **Ship it.** `define-slo` sets an error budget if you want one.
+   `release-loop` deploys to a throwaway environment, tests end to end, and
+   watches telemetry. A deployed failure goes back to the build loop as a build
+   task. You read the readiness record, and the stage ends at G5, when you ship
+   it to production.
 
 ## Why three loops, not one
 

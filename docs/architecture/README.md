@@ -12,6 +12,7 @@ live in [RFCs](../rfc/).
 - [`pack-layout.md`](pack-layout.md) — pack source layout.
 - [`pack-manifest.md`](pack-manifest.md) — pack metadata projection.
 - [`agentbundle.md`](agentbundle.md) — CLI, build, install, and adaptation.
+- [`lifecycle-flow.md`](lifecycle-flow.md) — how work moves across the packs from idea to production, and its public projections.
 - [`loop-infrastructure.md`](loop-infrastructure.md) — work-loop execution state and controls.
 - [`loop-contract.md`](loop-contract.md) — the spec/plan pair the loop runs against: artifact ownership and item identity.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md) — intake, artifacts, and workspace routing.
