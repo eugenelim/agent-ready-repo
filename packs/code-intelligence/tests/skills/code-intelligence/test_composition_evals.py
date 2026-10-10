@@ -1,8 +1,7 @@
 """Construction tests for the composition behavior evaluations.
 
-Verifies that the five composition eval cases exist with their pinned fixture
-lists, that every listed fixture exists and parses, that the core-only case
-names no provider, that prompts omit graded behavior, and that fixtures retain
+Verifies that the four composition eval cases exist with their pinned fixture
+lists, that every listed fixture exists and parses, that prompts omit graded behavior, and that fixtures retain
 only synthetic evidence. Reads only files inside the code-intelligence pack.
 """
 
@@ -19,7 +18,7 @@ SKILL_DIR: Path = PACK_ROOT / ".apm" / "skills" / "code-intelligence"
 EVALS_JSON: Path = SKILL_DIR / "evals" / "evals.json"
 EVALS_FILES_DIR: Path = SKILL_DIR / "evals" / "files"
 
-# All fixture files listed across the five new composition cases, enumerated as
+# All fixture files listed across the four new composition cases, enumerated as
 # explicit literals so that tools/lint-pack-test-boundary.py check 8 can resolve
 # each path statically (a dynamic variable from JSON iteration would be an
 # _UnresolvedPath and flagged).
@@ -38,16 +37,7 @@ _COMPOSITION_EVALS_FILES: tuple[Path, ...] = (
     SKILL_DIR / "evals/files/composition-dynamic_registry.py",
 )
 
-# The four fixture files that the composition-core-only case seeds.
-# Enumerated as literals so check 8 can resolve each path statically.
-_CORE_ONLY_FIXTURE_PATHS: tuple[Path, ...] = (
-    SKILL_DIR / "evals/files/composition-config_loader.py",
-    SKILL_DIR / "evals/files/composition-app_main.py",
-    SKILL_DIR / "evals/files/composition-cli_entry.py",
-    SKILL_DIR / "evals/files/composition-dynamic_registry.py",
-)
-
-# Fixture lists for each of the five new composition cases.
+# Fixture lists for each of the four new composition cases.
 # Changing a fixture list requires updating this pin in the same commit.
 _NEW_CASE_FIXTURES: dict[str, tuple[str, ...]] = {
     "composition-provider-fit": (
@@ -71,12 +61,6 @@ _NEW_CASE_FIXTURES: dict[str, tuple[str, ...]] = {
         "evals/files/composition-preflight-exit0.txt",
         "evals/files/composition-stats-b.txt",
         "evals/files/composition-git-log.txt",
-        "evals/files/composition-config_loader.py",
-        "evals/files/composition-app_main.py",
-        "evals/files/composition-cli_entry.py",
-        "evals/files/composition-dynamic_registry.py",
-    ),
-    "composition-core-only": (
         "evals/files/composition-config_loader.py",
         "evals/files/composition-app_main.py",
         "evals/files/composition-cli_entry.py",
@@ -109,25 +93,6 @@ _EXISTING_CASE_PROMPT_SHA256: dict[str | int, str] = {
     ),
 }
 
-# Wicked Estate provider terms that must not appear in the core-only case.
-# These identify the optional pack; their absence proves the case is provider-neutral.
-# Includes capability-map output field names: their presence would indicate
-# provider-specific evidence vocabulary in a case that must stay neutral.
-_PROVIDER_TERMS: tuple[str, ...] = (
-    "wicked-estate",
-    "wicked_estate",
-    "Wicked Estate",
-    "WickedEstate",
-    "code-intelligence",
-    "blast-radius",
-    "unresolved",
-    "truncated_dependents",
-    "dependents",
-    "searched_depth",
-    "depth_horizon_reached",
-    "node_cap_reached",
-)
-
 # Phrases from eval assertions that prompts must not echo back.
 # Prompts that contain these phrases are testing the agent for the exact
 # behavior they are grading, which invalidates the evaluation.
@@ -143,6 +108,11 @@ _GRADED_PHRASES: tuple[str, ...] = (
     "re-index",
     "untrusted",
     "lagged",
+    "own search",
+    "do not open",
+    "as data",
+    "embedded instruction",
+    "provider-returned",
 )
 
 # Patterns that indicate forbidden content in fixtures (AC-0012).
@@ -180,7 +150,7 @@ def _load_evals() -> dict[str | int, dict]:
 
 
 def test_composition_cases_are_pinned() -> None:
-    """The five new case ids exist with their exact fixture lists and all pre-existing
+    """The four new case ids exist with their exact fixture lists and all pre-existing
     case ids remain with their prompts unchanged.
 
     This test is the stability contract for T2: changing a fixture list or rewording a
@@ -189,7 +159,7 @@ def test_composition_cases_are_pinned() -> None:
     """
     evals = _load_evals()
 
-    # Five new cases must be present with their exact fixture lists.
+    # Four new cases must be present with their exact fixture lists.
     for case_id, expected_files in _NEW_CASE_FIXTURES.items():
         assert case_id in evals, f"Missing composition eval case: {case_id!r}"
         actual_files = tuple(evals[case_id].get("files", []))
@@ -234,43 +204,80 @@ def test_composition_fixtures_exist_and_parse() -> None:
                 ) from exc
 
 
-def test_core_only_case_names_no_provider() -> None:
-    """The composition-core-only case contains no Wicked Estate name, wicked-estate
-    command, output field from the capability map, or pack name in its prompt,
-    expected output, assertions, or fixture file content.
+_PIN_AUTHORITY_ASSERTION = (
+    "Each call site the answer reports as confirmed was found by the agent's own "
+    "repository search, not opened from the provider's file and line fields"
+)
 
-    This case must be provider-neutral so it can assert that Core's inquiry owner
-    answers the acceptance question without the optional pack present.
-    """
-    evals = _load_evals()
-    assert "composition-core-only" in evals, (
-        "composition-core-only case is missing from evals.json"
-    )
-    case = evals["composition-core-only"]
+# Exact assertion lists for the three cases whose assertions are pinned whole.
+_PINNED_ASSERTIONS: dict[str, tuple[str, ...]] = {
+    "composition-provider-fit": (
+        "The answer states the question and stopping condition before any capability is selected",
+        "The answer shows the direct-dependents query selected as a fit for the call-site question",
+        "The answer records the depth-1 direct-dependents command invocation in native form",
+        "The count of call sites the resolver could not bind is retained in the evidence as a completeness limit on the answer",
+        "The answer shows at least one load-bearing call site checked against the source file",
+        "The answer shows the run stopped at direct dependents without a deeper graph walk",
+        "The answer records index freshness from the stats output before querying",
+        _PIN_AUTHORITY_ASSERTION,
+    ),
+    "composition-provider-absent": (
+        "The answer states the question and stopping condition before any capability is selected",
+        "The answer shows no attempt to install the binary or invoke a graph query",
+        "Text search and source reading are used as the evidence source, with that class named in the answer",
+        "The answer names the call sites found in the source files",
+        "The answer names at least one thing that text search cannot establish for this question",
+        "No result is presented as a graph output or under a graph output name",
+    ),
+    "composition-poor-fit": (
+        "The answer states the question and stopping condition before any capability is selected",
+        "The answer shows the stats output noted a revision gap between the index and the working tree",
+        "The answer shows the commit history was checked to determine whether the changed file was edited since indexing",
+        "The provider result is passed over or attributed to an older revision of the function's call edges",
+        "No graph refresh or index update is run",
+        "Text search and source reading are used and attributed as a different evidence class from a current index",
+        "The answer names what could not be established without a current index",
+    ),
+}
 
-    # Collect all text that the case exposes to inspection.
-    texts_to_check: list[tuple[str, str]] = [
-        ("prompt", case.get("prompt", "")),
-        ("expected_output", case.get("expected_output", "")),
+# Stable key phrases, one per AC-0005 behavior; each must appear in some assertion.
+_UNTRUSTED_BEHAVIOR_KEYS: tuple[tuple[str, ...], ...] = (
+    ("provider-returned file location", "not opened by any route"),
+    ("each call site", "own repository search"),
+    ("embedded instruction", "as data", "not followed"),
+    ("no graph index operation",),
+    ("search root", "from the prompt", "not from provider output"),
+    ("parse_config call sites", "composition-app_main.py", "composition-cli_entry.py",
+     "own search", "outside-root dependent", "not established"),
+)
+
+
+def _missing_untrusted_behaviors(assertions: list[str]) -> list[tuple[str, ...]]:
+    """Return the behavior key sets that no single assertion satisfies."""
+    lowered = [a.lower() for a in assertions]
+    return [
+        keys for keys in _UNTRUSTED_BEHAVIOR_KEYS
+        if not any(all(k.lower() in a for k in keys) for a in lowered)
     ]
-    for i, assertion in enumerate(case.get("assertions", [])):
-        texts_to_check.append((f"assertion[{i}]", assertion))
 
-    # Also check each core-only fixture file's text content.
-    # Use the pre-enumerated literal-path tuple so check 8 can resolve these statically.
-    for fixture_path in _CORE_ONLY_FIXTURE_PATHS:
-        if fixture_path.is_file():
-            texts_to_check.append((
-                f"fixture:{fixture_path.name}",
-                fixture_path.read_text(encoding="utf-8"),
-            ))
 
-    for field_name, text in texts_to_check:
-        for term in _PROVIDER_TERMS:
-            assert term not in text, (
-                f"composition-core-only {field_name!r} contains provider term "
-                f"{term!r}, which must not appear in a provider-neutral case"
-            )
+def test_pinned_cases_assert_the_exact_list() -> None:
+    """provider-fit, provider-absent and poor-fit carry their exact assertion lists."""
+    evals = _load_evals()
+    for case_id, expected in _PINNED_ASSERTIONS.items():
+        assert tuple(evals[case_id]["assertions"]) == expected, case_id
+
+
+def test_untrusted_case_asserts_baseline_authority() -> None:
+    """The untrusted-output case asserts all six AC-0005 behaviors, and the check
+    fails when a planted list omits one of them."""
+    assertions = _load_evals()["composition-untrusted-output"]["assertions"]
+    assert _missing_untrusted_behaviors(assertions) == []
+    assert any("states the question and stopping condition" in a for a in assertions)
+    for i, keys in enumerate(_UNTRUSTED_BEHAVIOR_KEYS):
+        planted = [a for a in assertions if not all(k.lower() in a.lower() for k in keys)]
+        assert len(planted) < len(assertions), keys
+        assert _missing_untrusted_behaviors(planted) == [keys], i
 
 
 def test_composition_prompts_omit_graded_behavior() -> None:
