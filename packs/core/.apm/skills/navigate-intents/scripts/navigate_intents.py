@@ -1846,8 +1846,8 @@ def run_query(
     # Load resolver module (covers unavailable/missing-symbol case).
     try:
         resolver_mod = _resolver_loader() if _resolver_loader is not None else _load_resolver_mod()
-    except ImportError:
-        # No traceback to stderr.
+    except Exception:  # noqa: BLE001
+        # Any load failure, including a copy that does not import; no traceback.
         return _error_response(
             fallback_env, "resolver_unavailable",
             "delivery resolver is unavailable"
@@ -1856,7 +1856,7 @@ def run_query(
     # Load terminality module.
     try:
         terminality_mod = _load_terminality_mod()
-    except ImportError:
+    except Exception:  # noqa: BLE001
         return _error_response(
             fallback_env, "resolver_unavailable",
             "terminality module is unavailable"

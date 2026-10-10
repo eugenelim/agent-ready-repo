@@ -78,6 +78,8 @@ capability:work-item-capture-and-disposition · capability · Accepted
   opportunity:duplicate-coverage-check · feature · opportunity · Accepted
 ```
 
+This output is trimmed.
+
 To see one intent and its direct children:
 
 ```bash
@@ -177,11 +179,11 @@ A refused query returns `status: error` with exit code 1 and an `error` object c
 
 **Large result:** `result_too_large` means the result exceeds the size limit. For `tree`, add or lower `--depth`. For `outstanding`, add `--from` to limit to one intent. The flag to use is named in `error.limits.bounded_route`. `search` and `ancestors` refuse with the exceeded limit but do not name a bounded route. Add selectors to narrow a `search`. An oversized `ancestors` chain has no narrowing flag.
 
-**Broken file:** `unsafe_input`, `input_too_large`, `malformed_record`, and `duplicate_identity` name the file that must be repaired in `error.message`. An `unsafe_input` whose message is "the intent graph could not be derived" names no file: the navigator itself failed, so reinstall the skill.
+**Broken file:** `unsafe_input`, `input_too_large`, and `malformed_record` name in `error.message` the file or directory that must be repaired. `duplicate_identity` names the clashing id or slug instead: search for the files that declare it and keep one. An `unsafe_input` whose message is "the intent graph could not be derived" names no file: the navigator itself failed, so reinstall the skill.
 
-**Delivery incomplete:** `delivery_incomplete` names no file. Read `error.observed.reason`. `resource_limit` means the delivery resolver hit the limit named in `error.observed.limit`; `unsafe` means it refused part of the corpus. Fix what the resolver reports, then run again.
+**Delivery incomplete:** `delivery_incomplete` names no file. Read `error.observed.reason`. `unsafe` means the delivery resolver refused a link, special file, or non-UTF-8 file among the specs, briefs, and intents it reads. It names none of them, so look for such a file, replace it with a regular UTF-8 file, then run again. `resource_limit` means the corpus is larger than the resolver's fixed limit named in `error.observed.limit`. No flag raises that limit. `tree` and `search` still answer, because they do not need complete delivery data.
 
-**Missing helpers:** `resolver_unavailable` means the skill's bundled helpers are absent. Reinstall the skill.
+**Missing helpers:** `resolver_unavailable` means a bundled helper is missing or broken. Reinstall the skill.
 
 **Wrong arguments:** `not_found`, `ambiguous_identity`, `invalid_selector`, `invalid_depth`, `invalid_query`, `missing_operation`, and `unknown_operation` mean the command arguments do not match any live intent or valid operation. Correct them and run again.
 

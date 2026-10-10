@@ -432,3 +432,28 @@ row's literal method.
 - **AC-0019 at this code**, 2026-10-10 02:38 CDT, load 28 to 95 on 10 cores:
   4.23, 3.61, 3.93, 3.70, 3.09, 2.92, 3.94 s, median 3.70 s, minimum 2.92 s,
   maximum 4.23 s, result 105,913 bytes, every run `status: ok`.
+
+## Round 6 and the update to main
+
+- CI on `c960b8156`: `build-check` 38035252375, `test-corpus` 38035254125,
+  `test-roster` 38035255771 — all success.
+- Quality: clean. Security and adversarial sustained one Concern: the
+  round-5 fix covered only the graph module, so a broken resolver or
+  terminality copy still crashed with a traceback, and the Confirmation
+  round above overstated it. Both loaders now refuse any load failure as
+  `resolver_unavailable`; the regression test runs a broken copy of each of
+  the three helpers, and the two new cases fail on `c960b8156`.
+- Seven wording Nits in the guide and skill: a no-file `unsafe_input` case,
+  `duplicate_identity` naming an id or slug rather than a file, a next step
+  per `delivery_incomplete` reason, `resolver_unavailable` covering a broken
+  helper, and a trimmed example label.
+- `feature/intent-navigation` was fast-forwarded to main `b121a0965` (three
+  docs-only commits) and the slice rebased onto it with no conflicts.
+
+- GATES after the rebase: 398 passed, 4 skipped across the touched suites;
+  every tool check, lifecycle lint, catalogue verify and deep lint,
+  full-repository bandit, and lint pass; shipped-text grep empty;
+  projections identical.
+- **AC-0019 at this code**, 2026-10-10 03:09 CDT, load 18 to 31 on 10 cores:
+  4.47, 3.53, 3.27, 3.06, 3.35, 3.18, 3.23 s, median 3.27 s, minimum 3.06 s,
+  maximum 4.47 s, result 105,913 bytes, every run `status: ok`.

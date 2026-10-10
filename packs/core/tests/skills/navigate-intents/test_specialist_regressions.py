@@ -173,11 +173,16 @@ def test_non_utf8_root_is_refused_with_an_encodable_provenance_root(tmp_path: pa
     assert result["provenance"]["root"].endswith("r\\udcff")
 
 
-def test_a_graph_module_that_fails_to_import_is_resolver_unavailable(tmp_path: pathlib.Path) -> None:
-    """A damaged `intent_graph.py` copy refuses as `resolver_unavailable`, not a traceback."""
+@pytest.mark.parametrize(
+    "helper", ["intent_graph.py", "intent_delivery_relations.py", "intent_terminality.py"]
+)
+def test_a_helper_module_that_fails_to_import_is_resolver_unavailable(
+    tmp_path: pathlib.Path, helper: str
+) -> None:
+    """A damaged helper copy refuses as `resolver_unavailable`, not a traceback."""
     scripts = _scripts_copy(tmp_path)
-    graph = scripts / "intent_graph.py"
-    graph.write_text(graph.read_text(encoding="utf-8") + "\ndef broken(:\n", encoding="utf-8")
+    module = scripts / helper
+    module.write_text(module.read_text(encoding="utf-8") + "\ndef broken(:\n", encoding="utf-8")
     proc = subprocess.run(
         [sys.executable, str(scripts / "navigate_intents.py"), "query", "--root", str(_MIXED), "--operation", "summary"],
         capture_output=True, text=True, check=False,

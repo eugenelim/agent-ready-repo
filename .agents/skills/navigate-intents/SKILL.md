@@ -136,12 +136,21 @@ Error responses carry an ``error`` object with fields ``code``, ``message``,
 ``result_too_large``, re-run using the flag in ``error.limits.bounded_route``
 to retrieve a bounded result.  When no ``bounded_route`` is named, narrow a
 ``search`` with more selectors; an oversized ``ancestors`` chain has no
-narrowing flag.  ``unsafe_input``, ``input_too_large``, ``malformed_record``,
-and ``duplicate_identity`` name a file in ``error.message``: report that file
-for repair rather than retrying.  ``delivery_incomplete`` names no file: its
+narrowing flag.  ``unsafe_input``, ``input_too_large``, and
+``malformed_record`` name a file or directory in ``error.message``: report it
+for repair rather than retrying.  ``duplicate_identity`` names the clashing id
+or slug: report it so the files that declare it can be found.  An
+``unsafe_input`` whose message is "the intent graph could not be derived"
+names no file: the navigator itself failed, so reinstall the skill.  ``delivery_incomplete`` names no file: its
 ``error.observed.reason`` is ``resource_limit`` (the delivery resolver hit the
 limit in ``error.observed.limit``) or ``unsafe`` (it refused part of the
-corpus).  A command the argument parser rejects exits 2 with no envelope.
+corpus without naming the file: a link, special file, or non-UTF-8 file).
+For ``unsafe``, report that such a file must be replaced.  For
+``resource_limit``, no flag raises the limit; ``tree`` and ``search`` still
+answer.
+``resolver_unavailable`` means a bundled helper is missing or broken:
+reinstall the skill.  A command the argument parser rejects exits 2 with no
+envelope.
 
 An ``outstanding`` result lists ``placed`` items and ``no_parent`` items, each
 ordered by node id. An item carries its parent edge and its ancestor chain up
