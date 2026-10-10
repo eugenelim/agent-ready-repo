@@ -12,7 +12,7 @@ Required checks:
 - Link check: every link in the changed file resolves (file exists, or external URL responds).
 - No broken internal references: relative links point to files that exist.
 - Canonical sources verified: product claims match what the product's source actually says.
-- Surface checks: the docs match what ships. Compare documented commands with `--help` output; compare documented endpoints with the contract file; compare documented settings with the config schema. In a repository the user has said to trust, also run the examples or the repository's doc tests (the trust rule lives in Step 15 of the skill). [`surface-discovery.md`](surface-discovery.md) lists the check for each surface type.
+- Surface checks: the docs match what ships. Compare documented commands with the parser source; compare documented endpoints with the contract file; compare documented settings with the config schema. In a repository the user has said to trust, also compare documented commands with `--help` output and run the examples or the repository's doc tests (the trust rule lives in Step 15 of the skill). [`surface-discovery.md`](surface-discovery.md) lists the check for each surface type.
 
 How to check links: resolve each relative link against the directory of the file that contains it, and check each link separately. Skip absolute URLs, or check them with an HTTP request. When the repository has its own link checker, use it.
 

@@ -76,7 +76,7 @@ relatedJourneys:
 
 - **Agent does:**
   - **create / revise / retrofit** — writes or updates the artifact, leads with a first runnable action, stays within the page contract, cross-links only existing pages. Retrofit starts from the journey gap report and changes the smallest set of pages that fixes the worst rows.
-  - **audit** — reads the README, docs index, and every page they link to, then produces a journey gap report (one row per stage, marked covered, partial, missing, or not applicable) followed by page-level findings that each name the violated contract.
+  - **audit** — reads the README and the docs index (a docs site's navigation config counts as the index), samples each stage's entry pages in a large doc set and says what it sampled, then produces one journey gap report per surface or audience (one row per stage, marked covered, partial, missing, or not applicable) followed by page-level findings that each name the violated contract.
   - **verify** — checks each documentation claim against the canonical sources and lists verified, unverified, and contradicted claims.
 - **You do:** for create/revise/retrofit, read the draft as a first-time reader; if you find yourself re-reading a sentence to extract the action it asks for, flag it. For audit, check that you agree with the status given to each stage and the contract cited for each finding.
 - **You decide:** redirect the agent if the surface, journey stage, page kind, or destination it reports is wrong.

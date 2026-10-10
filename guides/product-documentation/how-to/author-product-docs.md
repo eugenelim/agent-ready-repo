@@ -83,10 +83,10 @@ Verification follows the surface. The skill compares against source by default. 
 - A CLI: compare the docs with the parser; in a trusted repository, also with `--help` and by running each documented command.
 - An HTTP or RPC API: compare with the contract file.
 - A service: compare with the configuration schema and the code that reads it.
-- An app: walk each documented task in the running app, or in its end-to-end tests.
+- An app: compare each documented task with the screens and flows in source; in a trusted repository, also walk it in the running app or its end-to-end tests.
 - A plugin: compare with the contribution block in its manifest.
 - A framework or extension point: compare each entry with its interface and the loader or registration code.
-- An agent-context pack: read each skill's source, and send the first starter prompt.
+- An agent-context pack: read each skill's source; in a trusted repository, also send the first starter prompt.
 
 Then check links. Run a route check after navigation changes. Review the rendered page after layout changes. The skill's report lists only the checks that ran.
 
