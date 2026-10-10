@@ -17,11 +17,6 @@ allowed-scopes = ["repo", "user"]  # The index is per-repository, but the skill 
                                    # how to query one is stack-general and installs fine at user
                                    # scope for someone who works across several indexed repos.
 
-[[pack.dependencies.required]]
-catalogue = "agent-ready-repo"
-pack = "core"
-version = "^3.0"
-
 # Wicked Estate ships two Rust binaries from crates.io. `wicked-estate` is the CLI this pack
 # drives and is the only hard requirement. `wicked-estate-mcp` is the MCP server; it is optional
 # because the CLI covers every capability this pack's primary patterns need, and the MCP surface
@@ -63,7 +58,7 @@ skills = ["code-intelligence"]
 [pack.first-value]
 audience-posture = "technical"
 surfaces         = ["claude-code"]
-prerequisites    = ["core pack installed", "wicked-estate binary in PATH", "an index built with `wicked-estate index <path>`"]
+prerequisites    = ["wicked-estate binary in PATH", "an index built with `wicked-estate index <path>`"]
 starter-task     = "Ask what breaks if you change a function you are about to edit."
 starter-prompt   = "What is the blast radius of changing the request handler in this repo?"
 expected-result  = "A list of resolved dependents with file:line, plus the count of call sites the indexer could not bind — stated as a completeness limit rather than hidden."

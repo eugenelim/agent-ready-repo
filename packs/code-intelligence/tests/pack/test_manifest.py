@@ -147,3 +147,29 @@ def test_pack_version_is_0_1_6() -> None:
     assert plugin_version == "0.1.6", (
         f"plugin version is {plugin_version!r}, expected '0.1.6'"
     )
+
+
+def test_declares_no_core_dependency() -> None:
+    """The pack stands alone: no dependency of any kind names core, and no
+    first-value prerequisite asks for it."""
+    pack = load_pack()
+    for kind, entries in pack.get("dependencies", {}).items():
+        for entry in entries:
+            assert entry.get("pack") != "core", (
+                f"[pack.dependencies.{kind}] still names the core pack"
+            )
+    for prerequisite in pack["first-value"]["prerequisites"]:
+        assert re.search(r"\bcore\b", prerequisite, re.IGNORECASE) is None, (
+            f"first-value prerequisite mentions core: {prerequisite!r}"
+        )
+
+
+def test_install_gate_passes_with_nothing_installed() -> None:
+    """The real install gate accepts this manifest when no pack is installed."""
+    from agentbundle.commands.install import validate_dependencies_required
+    from agentbundle.config import State
+
+    parsed = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
+    validate_dependencies_required(
+        parsed, repo_state=State(), user_state=State()
+    )
