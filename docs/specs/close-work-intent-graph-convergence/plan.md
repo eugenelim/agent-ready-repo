@@ -68,12 +68,12 @@ The riskiest part is migrating the existing `children`-arm and ancestor-walk tes
 - Refusal reasons:
   - `intent-graph-unavailable: <code>`. `<code>` is the `code` attribute of a raised `DerivationError`, matched by class name so the copy's own class is recognised. Every other exception from loading the copy or running `derive()`, an `ImportError` from its helper loaders included, gives `copy-unavailable`. This mirrors `_get_snapshot`, which already catches every exception.
   - `parent-edge-refused` for the AC-0010 and AC-0011 cases.
-  - `artifact-not-in-graph` for AC-0017.
+  - `artifact-not-in-graph` for AC-0017 (the walked artifact has no node) and AC-0007 (a spec's first-hop intent has no node).
 - Inside the closure decision these are raised as `_ClosureDeliveryRefusal` and returned as `ClosureRefuse`. From `resolve_intent_ancestors` they are raised as `_ClosureDeliveryRefusal`, as its resolver failure already is.
 - The copy loader takes a keyword-only `_graph_module_path: Path | None` override, on the pattern of `_run_resolver`'s `_resolver_path`, so a test can point it at a missing or linked file.
 - `resolve_intent_ancestors` keeps its signature. Its `fields` argument stays for the spec route's compatibility and supplies no parent edge for an intent or brief.
 
-Traces to AC-0006, AC-0009, AC-0010, AC-0011, AC-0012, AC-0017.
+Traces to AC-0006, AC-0007, AC-0009, AC-0010, AC-0011, AC-0012, AC-0017.
 
 Owned by: T2, T3
 
