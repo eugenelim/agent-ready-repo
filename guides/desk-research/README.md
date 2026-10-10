@@ -20,7 +20,7 @@ later decision rests on a fact nobody has checked. You arrive with a question
 that memory can't answer. You leave with a survey that grades each finding by
 how far you can trust it. Product Strategy reads that survey before it makes a
 call, and Product Engineering reaches for it when an intent leans on an
-unverified claim. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+unverified claim. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
 
 ## Walk the guidebook
 

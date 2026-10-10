@@ -2294,10 +2294,16 @@ def build_guides_sidebar_group(
     if not guides_root.exists():
         return None, None
     with site_toml.open("rb") as f:
-        guide_groups = tomllib.load(f).get("guide_groups", [])
+        site = tomllib.load(f)
+    guide_groups = site.get("guide_groups", [])
+    # A promoted guide is linked by hand from the Get Started sidebar group, so
+    # it is left out of its generated group rather than listed twice.
+    promoted = set(site.get("promoted_guides", []))
     records = build_guide_inventory(guides_root)
     baseline = load_guide_baseline(repo_root / "guide-nav-baseline.toml")
-    group = project_guide_sidebar(records, guide_groups, baseline)
+    group = project_guide_sidebar(
+        [r for r in records if r["slug"] not in promoted], guide_groups, baseline
+    )
     guidebooks = project_guidebooks_group(records, guide_groups, baseline)
 
     # The failure this change removes — pages published but unreachable — was

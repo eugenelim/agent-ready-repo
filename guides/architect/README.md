@@ -24,7 +24,7 @@ retrieval, executable checks, runtime evidence, experiments, and file writes.
 
 In the *Shape it* stage, this pack sketches the architecture concept an intent
 needs before anyone writes a spec. It also stands on its own: an architecture
-assessment can start a piece of work at any point. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+assessment can start a piece of work at any point. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
 
 ## Choose your task
 

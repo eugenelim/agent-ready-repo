@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Render the two lifecycle teaching graphics used by the three-loops guide.
+"""Render the two lifecycle teaching graphics used by the operating-model guide.
 
-Writes, next to ``guides/_shared/explanation/the-three-loops.md``:
+Writes, next to ``guides/_shared/explanation/the-operating-model.md``:
 
-- ``the-three-loops-overview.svg`` — four stage cards, sized to show close to
+- ``the-operating-model-overview.svg`` — four stage cards, sized to show close to
   full scale in the docs prose column.
-- ``the-three-loops-lifecycle.svg`` — the full map: every route, step, skill,
+- ``the-operating-model-full-map.svg`` — the full map: every route, step, skill,
   and decision.
 
 The step content mirrors ``docs/architecture/lifecycle-flow.md`` and the
@@ -601,8 +601,8 @@ def render_full() -> str:
 
 def main() -> None:
     """Write both graphics and report where they went."""
-    for name, body in (("the-three-loops-overview.svg", render_overview()),
-                       ("the-three-loops-lifecycle.svg", render_full())):
+    for name, body in (("the-operating-model-overview.svg", render_overview()),
+                       ("the-operating-model-full-map.svg", render_full())):
         path = OUT_DIR / name
         path.write_text(body, encoding="utf-8")
         print(f"wrote {path.relative_to(REPO_ROOT)}")

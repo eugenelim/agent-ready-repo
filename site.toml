@@ -3,6 +3,12 @@
 # controls order and groups only. Packs not mentioned go in an "Other"
 # group at the end, alphabetical.
 
+
+# Guides linked by hand from the Get Started sidebar group in
+# docs-site/astro.config.ts. Each is left out of its generated
+# [[guide_groups]] group, so it appears once in navigation.
+promoted_guides = ["guides/_shared/explanation/the-operating-model"]
+
 [[groups]]
 label = "Foundation"
 packs = ["core", "governance-extras"]
@@ -244,7 +250,7 @@ group = "docs"
 [[shared_chrome.destinations]]
 id = "three-loops"
 label = "The operating model"
-target = "/docs/guides/_shared/explanation/the-three-loops/"
+target = "/docs/guides/_shared/explanation/the-operating-model/"
 kind = "internal"
 group = "docs"
 

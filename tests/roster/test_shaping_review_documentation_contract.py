@@ -12,7 +12,7 @@ CORE_DOCS_MAP_SEED = REPO_ROOT / "packs/core/seeds/docs/README.md"
 # the review-lens distinction it carried moved into core-pack.md § Why the loop,
 # which is already in this set, so the entry drops rather than being replaced.
 SHAPING_REVIEW_DOCUMENTS = (
-    REPO_ROOT / "guides/_shared/explanation/the-three-loops.md",
+    REPO_ROOT / "guides/_shared/explanation/the-operating-model.md",
     REPO_ROOT / "guides/core/explanation/core-pack.md",
     REPO_ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md",
     REPO_ROOT / "guides/core/how-to/review-someone-elses-pr.md",

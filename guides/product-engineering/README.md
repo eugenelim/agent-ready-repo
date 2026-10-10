@@ -41,7 +41,7 @@ signal, or a gap that strategy queued. You leave with a bet you approved and
 slices the build loop can pick up. The hand-off happens when you commit to
 build, which the agents call G3. [How the approved result reaches
 delivery](#how-the-approved-result-reaches-delivery) covers that step, and [the
-handoff chain](../_shared/explanation/the-three-loops.md#the-handoff-chain) shows the whole flow.
+handoff chain](../_shared/explanation/the-operating-model.md#the-handoff-chain) shows the whole flow.
 
 ## Walk the guidebook
 

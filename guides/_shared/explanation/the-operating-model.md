@@ -20,7 +20,7 @@ Most work doesn't travel the whole way. A bug fix starts at *Build it*. A small
 change to an existing product often goes from a written intent straight to the
 build loop.
 
-[![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. The step-by-step list further down gives the full flow in words.](the-three-loops-overview.svg)](the-three-loops-overview.svg)
+[![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. The step-by-step list further down gives the full flow in words.](the-operating-model-overview.svg)](the-operating-model-overview.svg)
 
 Start at the stage your work is in. The gold, pointed tags are the points where
 the agent stops and waits for you.
@@ -28,7 +28,7 @@ the agent stops and waits for you.
 The full map below shows every route, step, skill, and decision, plus who runs
 each stage. Select either picture to open it at full size.
 
-[![Open the full map at full size: every route, step, skill, and decision across the four stages. The step-by-step list further down gives the same flow in words.](the-three-loops-lifecycle.svg)](the-three-loops-lifecycle.svg)
+[![Open the full map at full size: every route, step, skill, and decision across the four stages. The step-by-step list further down gives the same flow in words.](the-operating-model-full-map.svg)](the-operating-model-full-map.svg)
 
 When any piece of work finishes, or you abandon it, `close-work` from `core`
 tidies it up.

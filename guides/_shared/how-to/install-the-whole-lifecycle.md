@@ -102,7 +102,7 @@ then
 
 ## See also
 
-- [The three loops](../explanation/the-three-loops.md) — why shaping, building, and release are separate
+- [The operating model](../explanation/the-operating-model.md) — why shaping, building, and release are separate
 - [Install a profile](install-a-profile.md) — what a profile is and what it prints
 - [Choose an install route](../explanation/install-routes.md) — marketplace, APM, CLI, or clone
 - [Run a full inception](run-a-full-inception.md) — which shaping stages a new engagement actually needs
