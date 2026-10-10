@@ -70,18 +70,19 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 - `delivery-relation-ambiguous` — One artifact gives two different values for the same delivery field (`Discovery:`, `Brief:`, `Parent intent:`, or `Decomposed:`). Keep one value.
 - `delivery-reference-malformed` — A delivery field holds a value in an unrecognised form. Accepted forms: spec `Discovery:` takes `intent:<slug>` or `docs/product/intents/<file>.md`; spec `Brief:` takes `brief:<slug>`; brief `Parent intent:` takes `<kind>:<slug>` where `<kind>` is one of `outcome`, `opportunity`, `capability`, or `intent`; feature `Decomposed:` takes `YYYY-MM-DD <route>`. Fix the field to match the accepted form.
 - `delivery-reference-unsafe` — A delivery field contains an absolute path or a `..` traversal. Use the safe typed form for the affected field: spec `Discovery:` takes `intent:<slug>`; spec `Brief:` takes `brief:<slug>`; brief `Parent intent:` takes `<kind>:<slug>` where `<kind>` is one of `outcome`, `opportunity`, `capability`, or `intent`.
+
+When the broken field belongs to a spec or brief rather than to the feature itself, `close-work` refuses every feature that artifact could belong to and names the code. Fix that artifact's field, then re-run closeout.
+
 `close-work` builds the intent tree by reading every `Parent intent:` line, using a script bundled with it. Three of the reasons below come from that step.
 
-- `intent-graph-unavailable: <code>` — The bundled script could not build the tree. To find the file at fault, run `navigate-intents`; its error names the file. The code says what to do:
+- `intent-graph-unavailable: <code>` — The bundled script could not build the tree. For any code except `copy-unavailable`, run `navigate-intents` to find what is at fault: its error usually names the file, folder, or duplicate slug. The code says what to do:
   - `copy-unavailable`: the bundled script is missing or failed to load. Reinstall or upgrade Core.
   - `input_too_large`: an intent, brief, or spec file is over the size limit. Shorten or split it.
   - `unsafe_input`: a link, special file, or file outside the folder sits among the intents, briefs, or specs. Replace it with a regular file.
   - `malformed_record`: a file has no valid `Slug:` line or is not UTF-8. Add or fix `Slug:`, or re-save the file as UTF-8.
   - `duplicate_identity`: two files share a slug. Give one of them a new slug.
-- `parent-edge-refused` — A `Parent intent:` line that bears on the decision is broken. It may have the wrong kind prefix, hold two values, form a cycle, or name a missing or retired target. A retired intent is one kept only as a placeholder after it was replaced. The broken line can be on the artifact being closed, on one of its ancestors, or on any intent that names this intent as its parent. Run `navigate-intents`: it shows each broken parent link as a `! refused <state>` line. Fix that line.
+- `parent-edge-refused` — A `Parent intent:` line that bears on the decision is broken. It may have the wrong kind prefix, hold two values, form a cycle, name a missing or retired target, or not be readable as a parent reference at all. A retired intent is one kept only as a placeholder after it was replaced. The broken line can be on the artifact being closed, on one of its ancestors, or on any intent that names this intent as its parent. Run `navigate-intents` and ask for the text tree: it shows each broken parent link as a `! refused <state>` line under its intent. When the artifact being closed is a brief, ask for the outstanding view instead, which shows the brief's broken link. Fix that line.
 - `artifact-not-in-graph` — `close-work` cannot find an artifact in the tree. There are two causes. The brief or intent being closed has no file under `docs/product/briefs/` or `docs/product/intents/` whose `Slug:` matches: fix the slug or move the file. Or a spec's `Discovery:` names an intent that no longer exists: point it at the current intent.
-
-When the broken field belongs to a spec or brief rather than to the feature itself, `close-work` refuses every feature that artifact could belong to and names the code. Fix that artifact's field, then re-run closeout.
 
 ## Choose the immediate disposition
 

@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `close-work` now checks every intent ancestor that an artifact's parent pointers record, including capability, outcome, and opportunity parents. `close-work` and `navigate-intents` now agree on every parent link.
 - When an intent and a brief (or spec) share a slug, both now count, so a parent can no longer look ready to close while one of them is still open.
-- A broken parent pointer or a derivation fault now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
+- A broken parent pointer or a fault while building the intent tree now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
 
 ### Changed
 

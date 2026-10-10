@@ -16,9 +16,8 @@ scenario where one file is in the candidate set of two separate collection
 scans; the visited/field-cache mechanism ensures only one physical read.
 
 **AC-0025** — the derivation runs only for a ``children`` terminus.
-Asserted via a directory-access recorder: a fixture where the terminus names
-one collection (``children`` → intents) while another (briefs) exists verifies
-that the briefs directory is never listed.
+Asserted with a counting graph provider: a ``children`` decision runs the
+derivation exactly once, and a ``brief`` decision runs it zero times.
 
 **AC-0037** — total reader calls never exceed the summed size of the named
 collections, asserted on the collection-scaling fixture: a four-member closure
@@ -422,8 +421,8 @@ def test_ac0025_children_terminus_runs_derivation_once_brief_terminus_never() ->
     assert calls == [], "brief terminus must not run the derivation"
 
 
-def test_ac0025_brief_terminus_opens_briefs_and_specs_not_intents() -> None:
-    """A ``brief`` terminus enumerates no collection directories (AC-0025).
+def test_brief_terminus_finds_snapshot_descendants() -> None:
+    """A ``brief`` terminus finds its brief and spec through the snapshot.
 
     Delivery termini (``brief`` and ``spec``) now read only the specific files
     named in the canonical snapshot.
@@ -448,8 +447,8 @@ def test_ac0025_brief_terminus_opens_briefs_and_specs_not_intents() -> None:
     assert ("spec", sp_slug) in result, "spec must be found via snapshot"
 
 
-def test_ac0025_spec_terminus_opens_only_specs_directory() -> None:
-    """A ``spec`` terminus enumerates no collection directories (AC-0025).
+def test_spec_terminus_finds_snapshot_descendant() -> None:
+    """A ``spec`` terminus finds its spec through the snapshot.
 
     Delivery termini (``spec`` and ``brief``) now read only the specific files
     named in the canonical snapshot.
@@ -613,8 +612,8 @@ def test_default_seams_exercise_all_three_collection_layouts(tmp_path: Path) -> 
     """``_default_reader`` runs against real files.
 
     Every other test injects seams, so the default implementations are never
-    exercised under test; this case closes that gap. No ``_reader`` or
-    the module's defaults handle all I/O.
+    exercised under test; this case closes that gap. No ``_reader`` is
+    passed; the module's defaults handle all I/O.
 
     Three collection layouts are covered in one call using the ``brief``
     terminus, which accesses both the briefs collection (flat ``.md``) and the
