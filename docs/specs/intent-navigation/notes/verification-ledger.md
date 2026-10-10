@@ -320,3 +320,26 @@ row's literal method.
   outside `docs/product/briefs/` is now `unparseable`, not `dangling`, with
   two tests red on `d25963c63`; the module docstring now states the
   `multiple_values` edge shape.
+
+## Rebase onto main at e2a1b608e
+
+- Round 5 (second post-gates round of run `08597a69`) raised one Blocker:
+  `origin/main` had moved five commits, to `core` 3.0.1, so the 2.31.0 bump
+  above was lower than main's. With the owner's approval on 2026-10-09,
+  `feature/intent-navigation` was fast-forwarded to `e2a1b608e` and the slice
+  branch rebased onto it. The CI runs on `8b6e134aa` (38020784485,
+  38020786795, 38020788988) tested the pre-rebase head and are superseded.
+- `core` is now 3.1.0 (`pack.toml`, `plugin.json`), the next minor above
+  main's 3.0.1 for the new skill, with the `## [core][3.1.0]` entry placed
+  above `[core][3.0.1]`; it replaces the 2.31.0 entry recorded above.
+- Conflicts resolved against main's capture-work removal and its approval of
+  slices 5, 7, and 8: the brief keeps main's re-confirmed Ready record for
+  slices 1 to 8 with `Status: Executing`; `workspace.toml` keeps slices 5, 7,
+  and 8 queued, the brief in `executing` with main's summary, and this spec
+  in `active`; the eval lists, docs index, and skill census (population 134)
+  carry main's set plus `navigate-intents`.
+- The command-plan digests were re-pinned on the merged Makefile; deleting
+  only the `navigate-intents` suite line reproduces main's pins with no
+  error.
+- Main's `e2a1b608e` fixes the cohort defect that wedged run `08208db7`: a
+  refused effect no longer writes its pending marker.
