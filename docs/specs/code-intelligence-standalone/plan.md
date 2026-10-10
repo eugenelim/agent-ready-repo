@@ -231,7 +231,8 @@ installed skill path recorded in the verification ledger.
 than eval 7's also fails against the `origin/main` skill in a recorded run as
 the Tests bullet defines it, every one of those graded and regression runs is
 recorded against the final skill commit T3 closes on (a later change to the
-skill text voids a recorded run, and it is run again), and eval 7's result is recorded in
+skill text, or to that case's prompt or assertions in `evals.json`, voids a
+recorded run, and it is run again), and eval 7's result is recorded in
 `notes/eval-runs.md` with the owner decision as its disposition.
 
 ### T4: Docs, version, changelog, and projection updated

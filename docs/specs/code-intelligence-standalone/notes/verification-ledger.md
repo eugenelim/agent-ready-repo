@@ -26,8 +26,10 @@
 - Commits: `7cfc3764e` (eval rewrite, `test_core_surface.py`), `044a3c947`
   (eval 7 hop assertion).
 - Tests: `packs/code-intelligence/tests` 199 passed.
-- Graded runs: see [`eval-runs.md`](eval-runs.md). The four composition cases
-  each have a full-pass run on the final skill text. Eval 7 has none (3/4 in
+- Graded runs (interim): see [`eval-runs.md`](eval-runs.md). The four
+  composition cases each have a full-pass run at `9bd0c07ab`, recorded before
+  the case 3 fix; that fix voids them, and T3 closes on reruns at its final
+  skill commit. Eval 7 has none (3/4 in
   four runs) and moves to the regression set by owner decision, 2026-10-10.
 - Regression runs (interim): failures in cases 1, 5, 8, and 9 match the
   origin/main skill at `cbcb32d73`. Case 3 is a regression against that
