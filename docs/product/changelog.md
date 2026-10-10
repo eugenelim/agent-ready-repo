@@ -64,6 +64,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [code-intelligence][0.1.8] — 2026-10-10
+
+### Highlights
+
+- Runs on Wicked Estate 0.26.0. Forward dependencies use `wicked-estate lineage <symbol>`, which takes a plain name or a symbol id.
+- Impact analysis reads each dependent's own `depth` from `blast-radius --json`, so one call separates direct callers from indirect ones.
+- Value tracing covers TypeScript, TSX and JavaScript, and the evidence guide explains compiler-backed edges and why a SCIP import never adds call edges.
+- An exit 1 with nothing on stdout is treated as a command error, not as "nothing found".
+
+### Changed
+
+- Floor and pin move to 0.26 / 0.26.0 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.26.0 --locked`; the first `index` afterwards rebuilds the graph.
+- Annotation answers report `source_type`, `extraction_method` and `last_verified`, and `stale-annotations` accepts Unix seconds, a date, or `--older-than`.
+- `query --json` and the one-line `--version` replace their former workarounds; `evidence` joins the commands that write to the graph.
+
 ## [core][3.0.3] — 2026-10-10
 
 ### Highlights
