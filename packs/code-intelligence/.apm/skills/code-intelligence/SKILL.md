@@ -111,6 +111,16 @@ here and in its references.
 - **Fall back to labelled repository search** when the graph is absent or a
   poor fit for the question. See [Degrading without the graph](#degrading-without-the-graph).
 
+End every answer with a short **evidence note** so the reader can audit it:
+
+1. The question and the stopping condition you worked to.
+2. Each command or source you used or passed over, and why it fit the
+   question or did not.
+3. The limits you kept: completeness counts, cut flags, staleness.
+4. Which claims your own repository search confirmed, and which stay
+   unestablished.
+5. Why you stopped.
+
 ### Reading and verifying source
 
 In this skill, "read the source" and "verify against source" each mean one of

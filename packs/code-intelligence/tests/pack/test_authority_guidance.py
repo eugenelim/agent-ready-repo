@@ -261,3 +261,17 @@ def test_skill_defines_the_two_source_routes_with_both_limits() -> None:
         "command, its roots, or its arguments" in flat
     )
     assert "a reader's refusal or absence sends that dependent back to your own search" in flat
+
+
+def test_skill_requires_an_evidence_note() -> None:
+    """Without Core's evidence record, the skill's own answer carries the audit trail."""
+    flat = collapse(SKILL_MD.read_text("utf-8")).replace("*", "")
+    assert "end every answer with a short evidence note" in flat
+    for item in (
+        "the question and the stopping condition you worked to",
+        "each command or source you used or passed over, and why it fit the question",
+        "the limits you kept",
+        "which claims your own repository search confirmed",
+        "why you stopped",
+    ):
+        assert item in flat, f"evidence note must list: {item}"
