@@ -1,4 +1,8 @@
-"""Impact-evidence routing: grep wording is gone from work-loop and bug-fix.
+"""Impact-evidence routing: workflow wording, exploration's description, and evals.
+
+Covers the tool-neutral caller wording in work-loop and bug-fix, the
+decision-keyed repository-exploration description, provider-name absence across
+shipped Core files, the README route, and the decision-bound evals.
 
 Spec: docs/specs/core-impact-evidence-routing/spec.md
 """
