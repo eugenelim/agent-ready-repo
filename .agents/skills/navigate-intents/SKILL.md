@@ -1,6 +1,6 @@
 ---
 name: navigate-intents
-description: Use this skill when the user asks to look up, trace, explore, or summarise product intents, or to find outstanding work placed under its parent intent. Triggers on phrases like "show me intent:my-slug", "which intents are accepted", "trace the parent of this intent", "find outstanding intents", "intent graph", "show me the intent hierarchy", "show me outstanding work", "what are the children of this capability". For a brief or spec question, use `outstanding` to see placed items or `record` on the parent intent — `--id` and `--from` resolve only live intents. Do NOT use for workspace queue order and repair ("what's next in the queue", "repair the workspace") — use `workspace-status`. Do NOT use for ADR or RFC lookups or authoring — use `navigate-decisions` or `new-adr`/`new-rfc`. Do NOT use for creating, de-risking, decomposing, or closing intents — use `work-intake` or `close-work`. Do NOT use for "how many roadmap intents do we have" — use `navigate-decisions`.
+description: Use this skill when the user asks to look up, trace, explore, or summarise product intents, or to find outstanding work placed under its parent intent. Triggers on phrases like "show me intent:my-slug", "which intents are accepted", "trace the parent of this intent", "find outstanding intents", "intent graph", "show me the intent hierarchy", "show me outstanding work", "what are the children of this capability". For a brief or spec question, use `outstanding` to see placed items or `record` on the parent intent — `--id` and `--from` resolve only live intents. Do NOT use for workspace queue order and repair ("what's next in the queue", "repair the workspace") — use `workspace-status`. Do NOT use for ADR or RFC lookups or "how many roadmap intents do we have" — use `navigate-decisions` (governance-extras pack); for ADR or RFC authoring use `new-adr`/`new-rfc`. Do NOT use for creating, de-risking, decomposing, or closing intents — use `work-intake` or `close-work`.
 metadata:
   boundaries: [filesystem_read]
 ---
@@ -134,7 +134,14 @@ carry ``delivery`` (available or not) and the operation's result fields.
 Error responses carry an ``error`` object with fields ``code``, ``message``,
 ``limits``, and ``observed``, and no result fields.  When ``error.code`` is
 ``result_too_large``, re-run using the flag in ``error.limits.bounded_route``
-to retrieve a bounded result.
+to retrieve a bounded result.  When no ``bounded_route`` is named, narrow a
+``search`` with more selectors; an oversized ``ancestors`` chain has no
+narrowing flag.  ``unsafe_input``, ``input_too_large``, ``malformed_record``,
+and ``duplicate_identity`` name a file in ``error.message``: report that file
+for repair rather than retrying.  ``delivery_incomplete`` names no file: its
+``error.observed.reason`` is ``resource_limit`` (the delivery resolver hit the
+limit in ``error.observed.limit``) or ``unsafe`` (it refused part of the
+corpus).  A command the argument parser rejects exits 2 with no envelope.
 
 An ``outstanding`` result lists ``placed`` items and ``no_parent`` items, each
 ordered by node id. An item carries its parent edge and its ancestor chain up

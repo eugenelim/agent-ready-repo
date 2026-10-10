@@ -237,7 +237,7 @@ def _load_resolver_mod() -> Any:
 # ---------------------------------------------------------------------------
 
 
-def _provenance(root: Path, graph: dict[str, Any] | None) -> dict[str, Any]:
+def _provenance(root: Path | str, graph: dict[str, Any] | None) -> dict[str, Any]:
     """Build the ``provenance`` block for a query response.
 
     ``generated_at`` is the only nondeterministic field; tests strip it before
@@ -261,7 +261,7 @@ def _provenance(root: Path, graph: dict[str, Any] | None) -> dict[str, Any]:
 
 def _envelope(
     query: dict[str, Any],
-    root: Path,
+    root: Path | str,
     graph: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the common envelope fields (schema, boundary, query, provenance)."""
@@ -1813,13 +1813,19 @@ def run_query(
         if isinstance(value, str) and not _is_utf8_encodable(value)
     )
     if unencodable:
+        def _escaped(value: str) -> str:
+            return value.encode("utf-8", "backslashreplace").decode("ascii", "backslashreplace")
+
         escaped_query = {
-            name: value.encode("utf-8", "backslashreplace").decode("ascii", "backslashreplace")
+            name: _escaped(value)
             for name, value in raw_values.items()
-            if isinstance(value, str) and value
+            if isinstance(value, str) and value and name != "root"
         }
+        # provenance.root carries the same escaped form, so nothing in the
+        # refusal can fail to encode.
+        escaped_root = _escaped(str(Path(root).resolve()))
         return _error_response(
-            _envelope(escaped_query, Path(root).resolve()), "invalid_query",
+            _envelope(escaped_query, escaped_root), "invalid_query",
             "argument is not valid UTF-8: " + ", ".join(unencodable),
         ), 1
 
@@ -1894,9 +1900,21 @@ def run_query(
                 f"invalid --selectors JSON: {exc}"
             ), 1
 
-    # Derive the intent graph — integrity errors map to their own codes.
+    # Load the graph module on its own, like the resolver and terminality
+    # modules: any failure to load it (a missing file, a missing symbol, or a
+    # copy that does not import) is the same unavailable-helper refusal.
     try:
         graph_mod = _load_graph_mod()
+    except Exception:  # noqa: BLE001
+        return _error_response(
+            fallback_env, "resolver_unavailable",
+            "graph derivation module is unavailable"
+        ), 1
+
+    # Derive the intent graph — integrity errors map to their own codes. The
+    # derivation loads its confinement helper lazily, so an unavailable helper
+    # surfaces here as an ImportError.
+    try:
         graph = graph_mod.derive(root)
     except ImportError:
         return _error_response(

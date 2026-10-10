@@ -106,7 +106,13 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
 
 ### outstanding
 
-`outstanding` returns every intent, brief, and spec in a non-terminal state. A terminal state (such as Fulfilled or Archived) means the work is done. An item is outstanding when its leading status word is not terminal. Each item is placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. Each item carries its ancestor chain up to a root. A terminal ancestor is included in the chain and marked `terminal`. In text output, a terminal ancestor that places an outstanding item prints as a context line ending `· (terminal ancestor)`; it is not itself outstanding. Each spec placement names the pointer field (`Brief:` or `Discovery:`) and, where the delivery resolver found one, the relation type. An empty result prints no text in text format, or empty arrays in JSON format; exit code is 0 in both cases. A spec placed by both `Brief:` and `Discovery:` appears under both its parent brief and its parent intent. This operation refuses a partial list: if any file the derivation reads fails validation, the whole operation fails.
+`outstanding` returns every intent, brief, and spec in a non-terminal state. A terminal state (such as Fulfilled or Archived) means the work is done. An item is outstanding when its leading status word is not terminal.
+
+Each item is placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. Each item carries its ancestor chain up to a root. A terminal ancestor is included in the chain and marked `terminal`. Each spec placement names the pointer field (`Brief:` or `Discovery:`) and, where the delivery resolver found one, the relation type. A spec placed by both `Brief:` and `Discovery:` appears under both its parent brief and its parent intent.
+
+In text output, a terminal ancestor that places an outstanding item prints as a context line ending `· (terminal ancestor)`. That line is not itself outstanding.
+
+An empty result prints no text in text format, or empty arrays in JSON format. Exit code is 0 in both cases. This operation refuses a partial list: if any file the derivation reads fails validation, the whole operation fails.
 
 ```bash
 # All outstanding work:
@@ -123,13 +129,15 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
 
 Only `tree` and `outstanding` support `--format text`. The other operations (`summary`, `record`, `ancestors`, `search`) always return JSON regardless of the flag.
 
-`--format text` prints one line per artifact at its depth in the tree. Two spaces indent each level:
+`--format text` prints one line per artifact at its depth in the tree. Two spaces indent each level. This is `tree --id capability:work-item-capture-and-disposition --depth 1 --format text`, trimmed:
 
 ```text
 capability:work-item-capture-and-disposition · capability · Accepted
   opportunity:duplicate-coverage-check · feature · opportunity · Accepted
-    spec:duplicate-coverage-offer · Draft
+  opportunity:governance-item-record-routing · feature · opportunity · Accepted
 ```
+
+`tree` prints intents only. `outstanding` also prints the briefs and specs placed under them, as in the first example on this page.
 
 Each intent line reads: `node-id · level · kind (when present) · status`. A brief or spec line reads: `node-id · status`. A refused parent edge prints one level deeper as `! refused <state>`.
 
@@ -145,7 +153,7 @@ Use `--id` for `record`, `tree`, and `ancestors`; use `--from` for `outstanding`
 | Bare intent slug | `my-slug` |
 | Filename ordinal (the order code in the filename) | `FEAT-0029` |
 
-The prefix of a node id comes from `Kind:` (outcome or opportunity) before `Level:`. An identity that matches no live intent returns `not_found`. An ordinal that matches more than one file returns `ambiguous_identity`.
+The prefix of a node id is `outcome:` or `opportunity:` when `Kind:` names that rung. Otherwise it is `capability:` when `Level:` is `capability`, and `intent:` for everything else. An identity that matches no live intent returns `not_found`. An ordinal that matches more than one file returns `ambiguous_identity`.
 
 ## Refused edges
 
@@ -165,11 +173,13 @@ A refused edge leaves every other node and edge in the result; the rest of the t
 
 ## When a query is refused
 
-A refused query returns `status: error` with exit code 1 and an `error` object containing `code`, `message`, `limits`, and `observed`.
+A refused query returns `status: error` with exit code 1 and an `error` object containing `code`, `message`, `limits`, and `observed`. A command the argument parser rejects, such as an unknown or malformed flag, exits 2 with no JSON envelope.
 
-**Large result:** `result_too_large` means the result exceeds the size limit. For `tree`, add or lower `--depth`. For `outstanding`, add `--from` to limit to one intent. The flag to use is named in `error.limits.bounded_route`. `search` and `ancestors` refuse with the exceeded limit but do not name a bounded route; add selectors to `search` or run a narrower `tree` query first.
+**Large result:** `result_too_large` means the result exceeds the size limit. For `tree`, add or lower `--depth`. For `outstanding`, add `--from` to limit to one intent. The flag to use is named in `error.limits.bounded_route`. `search` and `ancestors` refuse with the exceeded limit but do not name a bounded route. Add selectors to narrow a `search`. An oversized `ancestors` chain has no narrowing flag.
 
-**Broken file:** `delivery_incomplete`, `unsafe_input`, `input_too_large`, `malformed_record`, and `duplicate_identity` mean the file named in the message must be repaired.
+**Broken file:** `unsafe_input`, `input_too_large`, `malformed_record`, and `duplicate_identity` name the file that must be repaired in `error.message`. An `unsafe_input` whose message is "the intent graph could not be derived" names no file: the navigator itself failed, so reinstall the skill.
+
+**Delivery incomplete:** `delivery_incomplete` names no file. Read `error.observed.reason`. `resource_limit` means the delivery resolver hit the limit named in `error.observed.limit`; `unsafe` means it refused part of the corpus. Fix what the resolver reports, then run again.
 
 **Missing helpers:** `resolver_unavailable` means the skill's bundled helpers are absent. Reinstall the skill.
 

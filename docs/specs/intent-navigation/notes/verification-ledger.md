@@ -377,8 +377,9 @@ row's literal method.
     results, runnable command paths, brief and spec lookup scope, the
     changelog's bounded-route claim, and several glossing and structure
     points.
-- Fixes: the three traversals use explicit stacks; a non-UTF-8 argument or
-  root refuses as `invalid_query` with an escaped echo and nothing on stderr;
+- Fixes: the three traversals use explicit stacks; a non-UTF-8 argument
+  refuses as `invalid_query` with an escaped echo and nothing on stderr (a
+  non-UTF-8 root was not yet covered; see the confirmation round);
   `validate_confined_directory` is checked at load; the spec listing reports
   `cannot list docs/specs`; an unexpected derivation failure refuses with a
   fixed message; `delivery_incomplete` carries exactly `reason` and `limit`;
@@ -399,3 +400,35 @@ row's literal method.
 - **AC-0019 at this code**, 2026-10-10 01:50 CDT, load 61 to 107 on 10
   cores: 4.45, 3.53, 4.37, 5.87, 4.49, 6.13, 6.16 s, median 4.49 s, minimum
   3.53 s, maximum 6.16 s, result 105,913 bytes, every run `status: ok`.
+
+## Confirmation round
+
+- CI on `507ca9b56`: `build-check` 38032518041, `test-corpus` 38032520852,
+  `test-roster` 38032523135 — all success.
+- Sustained and fixed:
+  - adversarial: a non-UTF-8 `--root` still reached provenance unescaped and
+    crashed envelope output; a graph module that failed to import raised
+    `UnboundLocalError`; the guide's broken-file row misdescribed
+    `delivery_incomplete` and the fixed derivation-failure message; the text
+    output example was not real output.
+  - quality: the root-order corpus was already in derivation order, so it
+    could not catch a reorder; one test docstring overstated its scope.
+  - experience: six wording Nits in the skill and guide (recovery steps,
+    node-id prefix rule, `ancestors` advice, exit code 2, a dense paragraph,
+    and the `navigate-decisions` pack name).
+- Fixes: the root is escaped before provenance and left out of the query
+  echo; a graph-module import failure refuses as `resolver_unavailable`; the
+  guide splits `delivery_incomplete` into its own row keyed on
+  `observed.reason`; the text example is real `tree --depth 1` output.
+- Proof: the two new regression tests fail on `507ca9b56` and pass now; the
+  reordered root corpus catches a derivation-order mutant.
+- Deferred Nits: the VI-1402 test docstring (above), and the security
+  round's note that memory grows quadratically with chain depth on
+  pathological corpora, which the byte and node limits already bound.
+
+- GATES: 396 passed, 4 skipped across the touched suites; every tool check,
+  lifecycle lint, catalogue verify and deep lint, full-repository bandit,
+  and lint pass; shipped-text grep empty; projections identical.
+- **AC-0019 at this code**, 2026-10-10 02:38 CDT, load 28 to 95 on 10 cores:
+  4.23, 3.61, 3.93, 3.70, 3.09, 2.92, 3.94 s, median 3.70 s, minimum 2.92 s,
+  maximum 4.23 s, result 105,913 bytes, every run `status: ok`.

@@ -1,7 +1,8 @@
-"""Regression tests for defects the specialist reviews found in the navigator.
+"""Regression and test-strength tests from the specialist reviews of the navigator.
 
-Each test asserts the repaired property itself, through the interface an
-agent uses, so it fails on the code that had the defect.
+Two kinds of test live here. Regression tests fail on the code that had the
+defect. Test-strength tests pass on that code, which was already correct, and
+exist to fail when a deliberately broken copy of it is substituted.
 """
 
 from __future__ import annotations
@@ -153,6 +154,37 @@ def test_non_utf8_argument_is_refused_as_invalid_query_with_no_traceback() -> No
     assert proc.returncode == 1
     assert proc.stderr == b""
     assert json.loads(proc.stdout)["error"]["code"] == "invalid_query"
+
+
+def test_non_utf8_root_is_refused_with_an_encodable_provenance_root(tmp_path: pathlib.Path) -> None:
+    """A non-UTF-8 `--root` returns one JSON refusal whose provenance root still encodes."""
+    proc = subprocess.run(
+        [
+            os.fsencode(sys.executable), os.fsencode(_SCRIPTS / "navigate_intents.py"),
+            b"query", b"--root", os.fsencode(tmp_path) + b"/r\xff", b"--operation", b"summary",
+        ],
+        capture_output=True,
+        check=False,
+    )
+    assert proc.returncode == 1
+    assert proc.stderr == b""
+    result = json.loads(proc.stdout)
+    assert result["error"]["code"] == "invalid_query"
+    assert result["provenance"]["root"].endswith("r\\udcff")
+
+
+def test_a_graph_module_that_fails_to_import_is_resolver_unavailable(tmp_path: pathlib.Path) -> None:
+    """A damaged `intent_graph.py` copy refuses as `resolver_unavailable`, not a traceback."""
+    scripts = _scripts_copy(tmp_path)
+    graph = scripts / "intent_graph.py"
+    graph.write_text(graph.read_text(encoding="utf-8") + "\ndef broken(:\n", encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, str(scripts / "navigate_intents.py"), "query", "--root", str(_MIXED), "--operation", "summary"],
+        capture_output=True, text=True, check=False,
+    )
+    assert proc.returncode == 1
+    assert proc.stderr == ""
+    assert json.loads(proc.stdout)["error"]["code"] == "resolver_unavailable"
 
 
 # --- Deep chains do not exhaust the interpreter stack --------------------------
@@ -400,7 +432,8 @@ def test_outstanding_text_orders_several_depth_zero_roots_by_node_id(tmp_path: p
     """Several terminal context roots print at depth 0 in node-id order."""
     root = tmp_path / "roots"
     (root / "docs" / "product" / "intents").mkdir(parents=True)
-    for name, slug in (("CAP-0002-zulu-done.md", "zulu-done"), ("CAP-0001-alpha-done.md", "alpha-done")):
+    # File order and node-id order disagree, so derivation order cannot pass.
+    for name, slug in (("CAP-0001-zulu-done.md", "zulu-done"), ("CAP-0002-alpha-done.md", "alpha-done")):
         (root / "docs" / "product" / "intents" / name).write_text(
             f"# Capability: {slug}\n\n- **Slug:** {slug}\n- **Status:** Fulfilled\n"
             "- **Level:** capability\n- **Parent intent:** none\n\n## Outcome\n",
@@ -408,6 +441,10 @@ def test_outstanding_text_orders_several_depth_zero_roots_by_node_id(tmp_path: p
         )
     _intent_file(root, "FEAT-0001-under-zulu.md", "under-zulu", "Draft", "capability:zulu-done")
     _intent_file(root, "FEAT-0002-under-alpha.md", "under-alpha", "Draft", "capability:alpha-done")
+    graph_order = [
+        n["id"] for n in nav._load_graph_mod().derive(root)["nodes"] if n["id"].startswith("capability:")
+    ]
+    assert graph_order == ["capability:zulu-done", "capability:alpha-done"], graph_order
     text, code = _query(root, "--operation", "outstanding", "--format", "text")
     assert code == 0
     roots = [ln.split(" · ")[0] for ln in text.splitlines() if ln and not ln.startswith(" ")]
