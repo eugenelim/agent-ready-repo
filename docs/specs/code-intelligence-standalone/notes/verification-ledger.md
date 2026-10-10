@@ -40,3 +40,14 @@
   eval 7 is not gated; case 9's single assertion-3 miss passed in two reruns
   and is accepted by owner decision, 2026-10-10. Details:
   [`eval-runs.md`](eval-runs.md#final-runs-at-2595da79c-t3-closes-on-these).
+
+## T4: Docs, version, changelog, and projection updated
+
+- Date: 2026-10-10
+- Commit: `dfaca931a`.
+- Tests: `packs/code-intelligence/tests` plus
+  `tools/test_marketplace_envelope_parity.py` 262 passed; the changelog
+  projection tests in `tools/test_build_site_routing.py` passed.
+- `agentbundle catalogue lint --root . --deep` and `catalogue verify --root .`
+  passed; a second `catalogue self-host --root . --write` produced no diff.
+- README and first-session tutorial read whole: neither requires `core`.
