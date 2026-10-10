@@ -238,6 +238,20 @@ def test_slug_matches_what_mirror_guides_actually_writes(tmp_path):
     assert not missing, f"inventory slugs with no page written for them: {missing}"
 
 
+def test_mirror_guides_publishes_guide_assets_under_public(tmp_path):
+    """A guide image must land where its rewritten link points.
+
+    Links to a non-Markdown file inside guides/ are rewritten to
+    ``SITE_BASE/guides/<path>``, and Astro serves that URL only from public/.
+    """
+    root = _tree(tmp_path / "src", {"core/explanation/a.md": "# A\n"})
+    (root / "core" / "explanation" / "flow.svg").write_text("<svg/>")
+    public = tmp_path / "public" / "guides"
+    build_site.mirror_guides(root, tmp_path / "docs", public_guides=public)
+    assert (public / "core" / "explanation" / "flow.svg").read_text() == "<svg/>"
+    assert not (public / "core" / "explanation" / "a.md").exists()
+
+
 def test_inventory_accepts_injected_enumerator(tmp_path):
     """The determinism seam: T7 shuffles this input. Without an injectable
     enumerator the test would re-glob and assert nothing."""

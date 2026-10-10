@@ -20,6 +20,13 @@ agentbundle install --pack release-engineering
 
 New here? Read [The release loop explained](explanation/the-release-loop.md) for the *why* — the inner/outer split and the minimum-regret autonomy carve. Then run your first release with [Your first release](tutorials/your-first-release.md).
 
+## Where this fits
+
+This pack is the *Ship it* stage. You arrive with a change the build loop
+merged. The release loop deploys it somewhere safe, tests it end to end, and
+watches it run. You leave with a release-readiness record, and nothing reaches
+production until you approve the ship. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+
 ---
 
 ## Tutorials

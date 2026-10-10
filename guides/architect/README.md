@@ -20,6 +20,12 @@ you accept the map, the agent shows attention hotspots and asks where to drill
 down. Inspection is read-only by default. You approve private enterprise
 retrieval, executable checks, runtime evidence, experiments, and file writes.
 
+## Where this fits
+
+In the *Shape it* stage, this pack sketches the architecture concept an intent
+needs before anyone writes a spec. It also stands on its own: an architecture
+assessment can start a piece of work at any point. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+
 ## Choose your task
 
 - [Assess a repository](how-to/assess-a-repository.md) when you need a map,

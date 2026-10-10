@@ -116,6 +116,12 @@ def test_all_projected_guide_links_resolve_to_a_canonical_route() -> None:
         BUILD_SITE._guide_site_url(source.resolve(), guides_root).rstrip("/")
         for source in sources
     }
+    # Guide assets (images) are published under public/guides/ at the same URL.
+    routes |= {
+        BUILD_SITE._guide_site_url(asset.resolve(), guides_root)
+        for asset in guides_root.rglob("*")
+        if asset.is_file() and asset.suffix != ".md"
+    }
     failures = []
     for source in (*sources, BUILD_SITE.REPO_ROOT / "CONTRIBUTING.md"):
         content = source.read_text(encoding="utf-8")

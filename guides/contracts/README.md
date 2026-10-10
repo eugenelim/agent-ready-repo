@@ -11,6 +11,13 @@ kind: explanation
 
 New here? Read [contract-first design](explanation/contract-first-design.md) first — it's the *why*. Then author your first contract with [generate an API contract](how-to/generate-an-api-contract.md).
 
+## Where this fits
+
+This pack works at the end of the *Shape it* stage. Once the architecture
+concept says which interfaces exist, you write the API or event contract for
+each one. The build loop then writes code against an agreement both sides have
+already approved. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+
 ## How-to
 
 Task-oriented recipes for a problem you already have.
