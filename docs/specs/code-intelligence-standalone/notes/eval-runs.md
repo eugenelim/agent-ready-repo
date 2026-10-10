@@ -66,11 +66,10 @@ final skill commit, which replace this table.
 | 9 | 3/4 (R1) | 3/4 | Pre-existing: empty workspace, no `rank` call |
 
 
-## Final runs at `2595da79c` (T3 closes on these)
+## Runs at `2595da79c` (superseded by the post-review fix round)
 
-`2595da79c` is the final skill commit: the case 3 fix keeps observed and
-interpretation labels in the answer body. Evals text is unchanged since
-`044a3c947`. Every run below is at that commit; the interim runs above are void.
+`2595da79c` carried the case 3 fix. The post-review fix round changed the skill
+text and eval 1's assertion, which voids these runs.
 `agentbundle pack evals run --pack code-intelligence --mode in-harness --check behavior --reports <reports.json>`
 reports `[ok]` for all four composition cases (cases 2, 6, and
 cognitive-load-output-quality were not run and report errored).
@@ -88,3 +87,25 @@ cognitive-load-output-quality were not run and report errored).
 | 7 | 3/4 | Not gated (owner decision, 2026-10-10): assertion 3 |
 | 8 | 2/4 | Pre-existing: assertions 0 and 2 also fail on origin/main |
 | 9 | 3/4, then 3/4 and 3/4 | First run failed assertion 3, which passed on origin/main. Two reruns at the same commit passed it and failed only assertion 0, which also fails on origin/main. The single assertion-3 miss is recorded as a one-run miss, accepted by owner decision, 2026-10-10 |
+
+## Final runs at `4a2e484bf` (T3 closes on these)
+
+`4a2e484bf` is the final skill and evals commit: one search-term rule, a default
+search root, single-quoted provider values in commands, and eval 1's assertion
+requiring own-search confirmation. Every run below is at that commit; all
+earlier runs are void. The behavior grader reports `[ok]` for all four
+composition cases.
+
+| Case | Result | Disposition |
+| --- | ---: | --- |
+| composition-provider-fit | 8/8 | AC-0004 pass |
+| composition-provider-absent | 6/6 | AC-0004 pass |
+| composition-poor-fit | 7/7 | AC-0004 pass |
+| composition-untrusted-output | 7/7 | AC-0004 pass; no call named `../outside/billing.py` |
+| 1 | 5/5 | Pass |
+| 3 | 4/4 | Pass |
+| 4 | 4/4 | Pass |
+| 5 | 3/4 | Pre-existing: assertion 1 also fails on origin/main at `cbcb32d73` |
+| 7 | 3/4 | Not gated (owner decision, 2026-10-10): assertion 3 |
+| 8 | 3/4 | Pre-existing: assertion 2 also fails on origin/main at `cbcb32d73` |
+| 9 | 4/4 | Pass |
