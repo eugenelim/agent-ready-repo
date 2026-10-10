@@ -86,12 +86,22 @@ installed skill path recorded in the verification ledger.
   agent's own search; the location is not opened another way. When Core's
   exploration skill invokes this one, Core's own text supplies its reader, so
   nothing here names Core. Traces to: AC-0003, AC-0005.
-- **Every read-or-verify instruction follows the rule.** `code-investigator`
-  ("open the file"), `impact-analyst` (validate each breakage against source),
-  `investigation-patterns.md` ("read only the hop files", "open the source"),
-  `evidence.md` ("open the payment path"), and eval 7's "hop files to read" all
-  become "confirm with your own search". The forked agents need the rule in
-  their own text. Traces to: AC-0007.
+- **One definition, then every read-or-verify instruction names its route.**
+  `SKILL.md` defines "read the source" and "verify against source" once: the
+  agent's own repository search, or index-only `wicked-estate source` output
+  labelled as indexed-revision evidence. Every sentence under `.apm/` that tells
+  the agent to read a dependent, a hop, or a path, or to verify against source,
+  names one of those routes. Known sites today: `SKILL.md:144` ("the important
+  paths are read") and `:171` ("verify it against source");
+  `investigation-patterns.md:142-144` ("confirm from its source"), `:160`
+  ("read only the hop files"), `:172` ("One hop, read, decide"), and `:178`
+  ("open the source"); `evidence.md:38` ("open the payment path") and `:279`
+  ("I read the 5 highest-ranked dependents"); `gaps.md:203` ("verify
+  load-bearing edges against source"); `code-investigator.md:49` ("open the
+  file"); `impact-analyst.md` steps 5-6 (validate each breakage against source);
+  eval 7's expected output ("hop files to inspect") and assertion ("hop files to
+  read"). The forked agents carry the rule in their own text. Traces to:
+  AC-0007, AC-0010.
 - **Provider `source` output stays allowed, labelled as indexed-revision
   evidence.** A probe on 2026-10-10 against `wicked-estate` 0.21.0 showed
   `source --file <path> --json` returns empty `nodes` for a file added after
@@ -133,7 +143,7 @@ installed skill path recorded in the verification ledger.
 
 **Depends on:** none
 
-**Touches:** `packs/code-intelligence/.apm/skills/code-intelligence/SKILL.md`, `packs/code-intelligence/.apm/skills/code-intelligence/references/composition-example.md`, `packs/code-intelligence/.apm/skills/code-intelligence/references/investigation-patterns.md`, `packs/code-intelligence/.apm/skills/code-intelligence/references/evidence.md`, `packs/code-intelligence/.apm/agents/*.md`, `packs/code-intelligence/tests/pack/test_composition_example.py`, `packs/code-intelligence/tests/pack/test_authority_guidance.py`
+**Touches:** `packs/code-intelligence/.apm/skills/code-intelligence/SKILL.md`, `packs/code-intelligence/.apm/skills/code-intelligence/references/*.md`, `packs/code-intelligence/.apm/agents/*.md`, `packs/code-intelligence/tests/pack/test_composition_example.py`, `packs/code-intelligence/tests/pack/test_authority_guidance.py`
 
 **Tests:**
 - New `tests/pack/test_authority_guidance.py`, scanning every `.md` file under
@@ -147,9 +157,12 @@ installed skill path recorded in the verification ledger.
   - `test_preflight_invocations_use_skill_dir` — AC-0008's rule over `.apm/`
     markdown, with red `python scripts/estate_preflight.py --check` and green
     samples for the `<skill-dir>` form and a markdown link (AC-0008, `.apm/`).
-  - Content pins: `SKILL.md` and both agent files each state the never-open
-    rule, the own-search rule, and the invocation-only reader rule; `SKILL.md`
-    defines `<skill-dir>` before its first use.
+  - `test_authority_rules_present` — `SKILL.md` and both agent files each
+    state the never-open rule, the own-search rule, and the invocation-only
+    reader rule; a planted copy of each file with one rule removed fails
+    (AC-0010).
+  - Content pins: `SKILL.md` defines `<skill-dir>` before its first use, and
+    defines "read the source" and "verify against source" as the two routes.
 - `test_composition_example.py`: replace the Core-owned assertions
   (`test_example_labels_every_owner`, `test_core_owned_rules_name_no_provider_detail`,
   `test_authority_bullet_covers_both_paths`, `test_step5_does_not_restate_authority_rule`)
@@ -168,9 +181,10 @@ installed skill path recorded in the verification ledger.
 **Touches:** `packs/code-intelligence/.apm/skills/code-intelligence/evals/evals.json`, `packs/code-intelligence/tests/skills/code-intelligence/test_composition_evals.py`, `packs/code-intelligence/tests/pack/test_core_surface.py`, `docs/specs/code-intelligence-standalone/notes/eval-runs.md`
 
 **Tests:**
-- New `tests/pack/test_core_surface.py` runs AC-0003's and AC-0007's rules over
-  every non-markdown file under `.apm/` (including `evals.json`), reusing the
-  planted samples from T2 (AC-0003, AC-0007).
+- New `tests/pack/test_core_surface.py` runs AC-0003's, AC-0007's, and
+  AC-0008's rules over every non-markdown file under `.apm/` (including
+  `evals.json`), reusing the planted samples from T2 (AC-0003, AC-0007,
+  AC-0008).
 - `test_composition_evals.py`:
   - The pinned case set is the four cases; `composition-core-only`,
     `_CORE_ONLY_FIXTURE_PATHS`, and `test_core_only_case_names_no_provider` are
@@ -179,23 +193,30 @@ installed skill path recorded in the verification ledger.
     assertions as an expected list: today's assertions with "evidence record"
     changed to "answer", plus AC-0006's assertion on `composition-provider-fit`
     (AC-0006).
-  - `test_untrusted_case_asserts_baseline_authority` asserts the five AC-0005
+  - `test_untrusted_case_asserts_baseline_authority` asserts the six AC-0005
     behaviors appear among that case's assertions (AC-0005).
+  - Eval 7's `expected_output` and assertion name hop symbols to confirm by
+    the agent's own search; the T3 scan's `hop files to` sample covers both.
   - `_GRADED_PHRASES` gains `own search`, `do not open`, `as data`,
     `embedded instruction`, and `provider-returned`, and the guard passes on
     the rewritten prompts.
-- Graded run: each of the four cases runs once in a fresh agent session, from a
+- Graded run: each of the five AC-0004 cases runs once in a fresh agent session, from a
   workspace prepared by `agentbundle pack evals run --pack code-intelligence
   --mode in-harness --check behavior --prepare-workspace
   code-intelligence/<eval id>`, with a skill tree holding only the projected
-  `code-intelligence` skill without its `evals/` folder. Assertions about what
-  was opened or searched are graded from the run's tool-call trace (a search of
-  the session transcript for each read, search, and shell call); the rest from
-  the answer. Reports go through `--check behavior --reports <reports.json>`
-  (AC-0004).
+  `code-intelligence` skill without its `evals/` folder. Trace-graded
+  assertions use the spec's two trace rules, applied by searching the session
+  transcript for each read, search, and shell call. Reports go through
+  `--check behavior --reports <reports.json>` (AC-0004).
+- Regression runs, recorded but outside AC-0004: cases `1`, `3`, `4`, `5`, `8`,
+  and `9`, whose prompts supply provider output and whose skill text changes,
+  run once each. A failure that the same case also shows against the
+  `origin/main` skill is recorded as pre-existing (case `3`'s first assertion
+  is already known to fail there); any other failure returns to T2.
 
-**Done when:** the pack suite is green and the graded tally in the ledger shows
-4/4 cases passing every assertion.
+**Done when:** the pack suite is green, the graded tally in the ledger shows
+5/5 AC-0004 cases passing every assertion, and every regression-run failure is
+recorded as pre-existing.
 
 ### T4: Docs, version, changelog, and projection updated
 
@@ -206,8 +227,9 @@ installed skill path recorded in the verification ledger.
 **Tests:**
 - `test_manifest.py::test_pack_version_is_0_1_7` replaces the 0.1.6 pin (AC-0009).
 - `test_manifest.py::test_first_value_and_readme_preflight_use_skill_dir`
-  applies AC-0008's rule to `first-value.verification` and `README.md`
-  (AC-0008, manifest and README).
+  applies AC-0008's rule to `first-value.verification` and `README.md`, and
+  asserts the verification line says what `<skill-dir>` stands for (AC-0008,
+  manifest and README).
 
 **Done when:** manifest tests green; `agentbundle catalogue lint --root . --deep`
 and `agentbundle catalogue verify --root .` pass; `agentbundle catalogue
