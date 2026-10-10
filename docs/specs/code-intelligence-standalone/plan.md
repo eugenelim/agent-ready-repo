@@ -1,7 +1,7 @@
 # Plan: Code-intelligence pack without Core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness update,
   self-host, no internal-governance citations in shipped content);
   `frontend-engineering` and `architect` as dual-scope packs with no required

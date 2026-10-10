@@ -40,11 +40,17 @@
   eval 7 is not gated; case 9's single assertion-3 miss passed in two reruns
   and is accepted by owner decision, 2026-10-10. Details:
   [`eval-runs.md`](eval-runs.md#runs-at-2595da79c-superseded-by-the-post-review-fix-round).
-- Final runs at `4a2e484bf` (post-review fix round): the four composition
+- Runs at `4a2e484bf` (post-review fix round; superseded by later review fixes): the four composition
   cases pass every assertion (behavior grader `[ok]`); cases 1, 3, 4, and 9
   pass; the failures in cases 5 and 8 match origin/main at `cbcb32d73`; eval 7
   is not gated. Details:
-  [`eval-runs.md`](eval-runs.md#final-runs-at-4a2e484bf-t3-closes-on-these).
+  [`eval-runs.md`](eval-runs.md#runs-at-4a2e484bf-superseded-by-later-review-fixes).
+
+- Final runs at `776e66d08`: the four composition cases each have a full-pass
+  run (untrusted-output passed 7/7 in two reruns after one 6/7 miss); cases 1,
+  3, 4, 7, and 9 pass; the failures in cases 5 and 8 match origin/main at
+  `cbcb32d73`. Details:
+  [`eval-runs.md`](eval-runs.md#final-runs-at-776e66d08-t3-closes-on-these).
 
 ## T4: Docs, version, changelog, and projection updated
 
@@ -56,3 +62,6 @@
 - `agentbundle catalogue lint --root . --deep` and `catalogue verify --root .`
   passed; a second `catalogue self-host --root . --write` produced no diff.
 - README and first-session tutorial read whole: neither requires `core`.
+- Review fix rounds after T4: `4a2e484bf`, `d3eeb5fb2`, `776e66d08`; final gates
+  at `776e66d08`: `packs/code-intelligence/tests` 209 passed; lint and mypy
+  clean; self-host leaves no diff.
