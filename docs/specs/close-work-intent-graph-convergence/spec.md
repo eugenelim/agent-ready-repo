@@ -68,7 +68,7 @@ A maintainer or agent closing work with `close-work` gets closure verdicts whose
 
 ### Never do
 
-- Never parse a `Parent intent:` value in `closure_index.py`.
+- Never parse a `Parent intent:` value in `closure_index.py` to find a parent. The one value test it makes is AC-0010's: whether a refused edge's recorded value names an intent, using the parent kinds the bundled resolver copy defines.
 - Never import across skills; the copy is loaded from `close-work`'s own `scripts/` folder.
 - Never read `workspace.toml` for a parent edge.
 - Never add a runtime dependency outside the Python standard library, a new module beyond the copy, or a persisted index.
@@ -86,37 +86,37 @@ A maintainer or agent closing work with `close-work` gets closure verdicts whose
 
 - [ ] **AC-0001.** `packs/core/.apm/skills/close-work/scripts/intent_graph.py` is byte-identical to `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py`, checked by the test that pins the skill's other byte-identical copies.
 - [ ] **AC-0002.** With both copies of `intent_graph.py` loaded in one interpreter, in either order, each copy's confinement helper and delivery resolver are the files in that copy's own `scripts/` folder.
-- [ ] **AC-0003.** `close-work/scripts/closure_index.py` reads no `Parent intent` key from a parsed preamble and defines no parent-kind vocabulary of its own.
+- [ ] **AC-0003.** `close-work/scripts/closure_index.py` reads no `Parent intent` key from a parsed preamble and defines no parent-kind vocabulary of its own; the parent kinds it uses are those of the delivery resolver copy in `close-work/scripts/`.
 - [ ] **AC-0016.** `tools/check_closure_terminality_parity.py` fails when the parent kinds the delivery resolver copy in `close-work/scripts/` admits differ, in either direction, from `intent_shape.OUTCOME_CO_OWNER_KINDS`.
 
 ### Descendants
 
-- [ ] **AC-0004.** For an ancestor whose terminus is `children`, its direct intent children are exactly the live intents whose `Parent intent:` edge the derivation resolves to the ancestor's node. A fixture covers each of the `intent:`, `capability:`, `outcome:`, and `opportunity:` prefixes and a repository path to the ancestor's file.
+- [ ] **AC-0004.** For an ancestor whose terminus is `children`, its direct intent children are exactly the non-tombstone intents whose `Parent intent:` edge the derivation resolves to the ancestor's node. A fixture covers each of the `intent:`, `capability:`, `outcome:`, and `opportunity:` prefixes and a repository path to the ancestor's file.
 - [ ] **AC-0005.** A tombstone file whose `Parent intent:` names an ancestor is never a descendant of that ancestor.
-- [ ] **AC-0018.** The descendant set tells artifacts apart by kind and slug. When a closure holds intent `X` and also a brief or spec whose slug is `X`, both are descendants, and a live one of them makes the verdict not-eligible.
+- [ ] **AC-0018.** The descendant set tells artifacts apart by kind and slug. When a closure holds intent `X` and also a brief or spec whose slug is `X`, both are descendants, and a non-terminal one of them makes the verdict not-eligible.
 
 ### Ancestors
 
-- [ ] **AC-0006.** For an intent or a brief, `resolve_intent_ancestors` walks from that artifact's own node in the derivation and returns every live intent reached by following resolved `Parent intent:` edges, nearest first, whatever the typed prefix of each hop. Each returned ancestor carries the `Status:` the derivation records for it and the terminus of its own `Decomposed:` field.
-- [ ] **AC-0017.** When the walked intent or brief has no live node of its kind and slug in the derivation, `resolve_intent_ancestors` raises a refusal with the reason `artifact-not-in-graph`. The caller's `fields` argument supplies no parent edge for an intent or a brief.
-- [ ] **AC-0007.** For a spec, the walk is depth-first over the intents the delivery resolver's snapshot names for it: feature intents from its delivery relations, then other intents from its `Discovery:` provenance records, in snapshot order. Each first-hop intent is followed directly by its own chain under AC-0006, and an intent already returned is not returned again.
+- [ ] **AC-0006.** For an intent or a brief, `resolve_intent_ancestors` walks from that artifact's own node in the derivation and returns every non-tombstone intent reached by following resolved `Parent intent:` edges, nearest first, whatever the typed prefix of each hop. Each returned ancestor carries the `Status:` the derivation records for it and the terminus of its own `Decomposed:` field.
+- [ ] **AC-0017.** When the walked intent or brief has no node of its kind and slug in the derivation, `resolve_intent_ancestors` raises a refusal with the reason `artifact-not-in-graph`. The caller's `fields` argument supplies no parent edge for an intent or a brief.
+- [ ] **AC-0007.** For a spec, the walk is depth-first over the intents the delivery resolver's snapshot names for it: feature intents from its delivery relations, then other intents from its `Discovery:` provenance records, in snapshot order. Each first-hop intent is followed directly by its own chain under AC-0006, and an intent already returned is not returned again. A first-hop intent with no node in the derivation raises a refusal with the reason `artifact-not-in-graph`.
 - [ ] **AC-0008.** An artifact whose parent intent shares its slug is not cut off by that collision: a brief whose `Parent intent:` names an intent with the brief's slug returns that intent first, and a spec whose snapshot names an intent with the spec's slug returns that intent first.
 
 ### Refusals
 
 - [ ] **AC-0009.** Any failure to load or run the derivation refuses. A closure decision that needs it returns refuse with the reason `intent-graph-unavailable: <code>`, and `resolve_intent_ancestors` raises a refusal with the same reason. `<code>` is the derivation's integrity failure code, or `copy-unavailable` for any other failure.
-- [ ] **AC-0010.** A closure decision refuses with the reason `parent-edge-refused` when the derivation refuses a live intent's `Parent intent:` edge that names any intent on the closure whose terminus is `children`, the evaluated ancestor included. A value names an intent when it is that intent's slug after an `intent:`, `capability:`, `outcome:`, or `opportunity:` prefix, that bare slug, or the repository path of that intent's file; for a `multiple_values` refusal, when any one of its values does.
+- [ ] **AC-0010.** A closure decision refuses with the reason `parent-edge-refused` when the derivation refuses a non-tombstone intent's `Parent intent:` edge that names any intent on the closure whose terminus is `children`, the evaluated ancestor included. A value names an intent when it is that intent's slug after a prefix from the resolver copy's parent kinds (`intent:`, `capability:`, `outcome:`, or `opportunity:` today), that bare slug, or the repository path of that intent's file; for a `multiple_values` refusal, when any one of its values does.
 - [ ] **AC-0011.** `resolve_intent_ancestors` raises a refusal with the reason `parent-edge-refused` when the derivation refuses the `Parent intent:` edge of the walked artifact or of any ancestor it reaches. A fixture covers each refusal state the derivation can return for that field on that artifact's type.
 
 ### Read bounds
 
 - [ ] **AC-0012.** A closure decision runs the derivation once when a `children` terminus is on its closure, and never otherwise. A fixture whose closure names only `brief` or `spec` termini, or whose terminus is `closed-empty` or `direct-light`, runs it zero times. This supersedes `closure-eligibility-check`'s criterion 0025 for a decision that runs the derivation.
-- [ ] **AC-0013.** A closure decision opens each artifact at most twice, measured from the check's entry to its verdict: at most once inside the derivation and at most once by `close-work`'s own reader. `close-work`'s own reader opens only artifacts it adds to the descendant set. The input that makes the bound fire first is a diamond, where one descendant is reachable by two paths. This supersedes `closure-eligibility-check`'s criteria 0024 and 0037.
+- [ ] **AC-0013.** Within `close-work`'s own process, a closure decision opens each artifact at most twice, measured from the check's entry to its verdict: at most once inside the derivation and at most once by `close-work`'s own reader. The delivery resolver subprocess's reads are outside this count; its own contract bounds them. `close-work`'s own reader opens only artifacts it adds to the descendant set. The input that makes the bound fire first is a diamond, where one descendant is reachable by two paths. This supersedes `closure-eligibility-check`'s criteria 0024 and 0037.
 - [ ] **AC-0014.** `docs/specs/closure-eligibility-check/spec.md`'s `Status:` line reads `Shipped (superseded in part by` and names this spec and its criteria 0024, 0025, and 0037. The file's content, with its `Status:` line removed, hashes to the SHA-256 value it had at the delivery's base commit, recorded in the test.
 
 ### Verdict bound
 
-- [ ] **AC-0015.** A comparison runs the pre-change `closure_index.py` (from the delivery's base commit) and the post-change one (from the delivery's head) over one corpus, the delivery's base commit. It records, for every live intent, brief, and spec, its ancestor chain, and for every distinct ancestor its descendant set and its verdict kind and reason. It attributes every chain or descendant-set difference to exactly one of the causes in FEAT-0002's 2026-10-07 and 2026-10-10 owner Amendments:
+- [ ] **AC-0015.** A comparison runs the pre-change `closure_index.py` (from the delivery's base commit) and the post-change one (from the delivery's head) over one corpus, the delivery's base commit. It records, for every non-tombstone intent, every brief, and every spec, its ancestor chain, and for every distinct ancestor its descendant set and its verdict kind and reason. It attributes every chain or descendant-set difference to exactly one of the causes in FEAT-0002's 2026-10-07 and 2026-10-10 owner Amendments:
       1. A parent hop written with `capability:`, `outcome:`, or `opportunity:`.
       2. A slug lookup that matched a tombstone.
       3. A slug shared by artifacts of two types.
