@@ -1,6 +1,6 @@
 ---
 title: "About the Diátaxis framework"
-summary: "Why the product-documentation pack assigns every page to one of four kinds, and why that one rule does most of the work."
+summary: "The four Diátaxis kinds each get one job, fit inside the nine-stage reader journey, and leave the other stages to other artifacts."
 pack: product-documentation
 kind: explanation
 status: stable
@@ -36,9 +36,9 @@ When a page resists placement, it's usually two pages wearing one title. Split i
 
 ## These are contracts, not directories
 
-Diátaxis defines what a page promises its reader, not where files must live. A how-to guide in a flat `guides/` directory still follows the how-to contract. A reference page in a nested `guides/pack/reference/` tree still follows the reference contract.
+Diátaxis defines what a page promises its reader, not where files must live. A how-to guide in `docs/how-to/` still follows the how-to contract. A reference page in `docs/reference/` still follows the reference contract.
 
-The `author-product-docs` skill assigns a page kind from the reader's posture and applies the matching contract throughout drafting — without requiring any particular directory structure. Whether your repo uses a by-pack layout, a flat layout, or something else, the page still delivers what its kind promises.
+The `author-product-docs` skill assigns a page kind from the reader's posture and applies the matching contract throughout drafting — without requiring any particular directory structure. Whether your repo groups docs by feature, keeps them in one flat folder, or puts them next to the code, the page still delivers what its kind promises.
 
 ## The discipline that makes it work
 
@@ -50,11 +50,35 @@ Blending is the most common reason docs frustrate everyone. Theory inside a tuto
 
 Cross-links are also a maintenance pact. When one page rots, its siblings surface the drift. A how-to that links a renamed reference page breaks loudly, and the break tells you both pages need a look.
 
+## Where the four kinds sit in the reader journey
+
+A reader passes through nine stages: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, and contribute. Readers do not arrive in that order. A search result or an error message can land them on any page, so the stages are a coverage map, not a reading order.
+
+The four kinds cover four of the nine stages:
+
+| Journey stage | Diátaxis kind |
+| --- | --- |
+| First success | tutorial |
+| Daily tasks | how-to |
+| Look up | reference |
+| Understand | explanation |
+
+The other five need artifacts Diátaxis does not define:
+
+- **Discover and evaluate** — a README or docs landing page.
+- **Install** — an installation guide, or the README's install section.
+- **Troubleshoot** — a page organized by symptom, with the exact error text.
+- **Upgrade** — a changelog, release notes, and a migration guide for each breaking release.
+- **Contribute** — a contributing guide.
+
+When the `author-product-docs` skill audits a doc set, it maps pages to all nine stages and reports each as covered, partial, missing, or not applicable. A set made only of the four kinds can score well on Diátaxis and still leave a reader stranded on install or upgrade day.
+
 ## How this differs from ADRs and architecture docs
 
 Same topic, three audiences, three framings. An ADR records *why the team chose* X over Y, frozen for contributors. An architecture doc describes *how X is built today*, for people reading the code. An explanation page describes *what X means for someone using the product*. Don't merge them. The user reading an explanation doesn't want the team's decision log; the contributor reading the architecture doesn't want the user framing.
 
 ## See also
 
-- [How to use author-product-docs](../how-to/use-author-product-docs.md) — the procedure, end to end.
-- [The catalogue framework](../../README.md) — how packs and their guides fit together.
+- [How to author product docs](../how-to/author-product-docs.md) — audit a doc set and fix the biggest gaps.
+- [How to write a guide](../how-to/write-a-guide.md) — document one shipped feature.
+- [Getting started](../getting-started.md) — audit your own repository's docs and write the first missing page.

@@ -1227,6 +1227,16 @@
         "Tells the user to re-run the corrected command",
         "Does not suggest hand-editing state.json"
       ]
+    },
+    {
+      "id": "plan-touch-list-routes-dependents-to-exploration",
+      "prompt": "You are in work-loop PLAN for renaming a public helper that other modules import. Write the assumption trio. repository-exploration is installed. No language-server, code-graph, or MCP capability is exposed.",
+      "expected_output": "The touch list rests on dependents evidence for the helper, or names that evidence as still to be gathered because no code is supplied, through repository-exploration or repository search, with no new gate, reviewer, or workflow state.",
+      "assertions": [
+        "The touch list rests on evidence of which modules call or import the helper, or names that evidence as still to be gathered because no code is supplied, without inventing module names",
+        "The dependents evidence comes from repository-exploration or from repository search, and either route is accepted",
+        "No new gate, reviewer, or workflow state is added for the dependents question"
+      ]
     }
   ]
 }

@@ -117,12 +117,14 @@ rationale, see [`references/conversation-first.md`](conversation-first.md).
   reader needs to see what they will get before they are asked to understand
   why. An outcome is a command, a result, or a concrete next step — not a
   category name.
-- **Put a realistic user request within the first 120 words.** The reader
-  scanning for "how do I begin?" should find it without scrolling.
-- **Introduce no more than two product-specific terms before that request.**
+- **Put a first runnable action within the first 120 words of the page body,
+  counted after the title and any front matter.** A request, command, or code
+  sample. The reader scanning for "how do I begin?" should find it without
+  scrolling.
+- **Introduce no more than two product-specific terms before that action.**
   Every term introduced before the first example is a term the reader must
   carry before they can act.
-- **Do not lead with a component, skill, command, or pack inventory.** Leading
+- **Do not lead with a component, command, flag, endpoint, skill, or pack inventory.** Leading
   with what the product contains is inventory-first. The reader came with a
   goal, not a browse session. The inventory belongs after the first task
   completes.

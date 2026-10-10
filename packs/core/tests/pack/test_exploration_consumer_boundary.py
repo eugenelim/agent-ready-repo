@@ -1,7 +1,9 @@
 """Absence scan: consuming procedures gain no repository-exploration wiring.
 
 Contract: packs/core main-procedure skills and review agents must not name
-repository-exploration and must not gain provider discovery, setup, invocation,
+repository-exploration, except that `work-loop` and `bug-fix` may name it only
+inside the allowlisted optional-route sentences in _ROUTE_SENTENCES, and must
+not gain provider discovery, setup, invocation,
 freshness, or fallback phrases. Exploration is an optional caller-invoked
 method, not a wired phase.
 
@@ -45,6 +47,26 @@ _SUBJECT_FILES = (
     _FINDING_ADJUDICATOR,
 )
 
+# The only sentences that may name repository-exploration, keyed by file.
+_AC1_FRAGMENT = (
+    "trace the entry point or find its callers; `repository-exploration` can "
+    "gather that caller evidence when one search will not settle it."
+)
+_AC2_SENTENCE = (
+    "When the touch list depends on what calls or depends on the code you "
+    "change — a rename, signature change, removal, or refactor — you may ask "
+    "`repository-exploration` for that dependents evidence; it answers from "
+    "repository search when no better tool fits."
+)
+_AC3_SENTENCE = (
+    "When the trace needs callers or dependents that one search will not "
+    "settle, you may ask `repository-exploration` for them with attribution."
+)
+_ROUTE_SENTENCES: dict[Path, tuple[str, ...]] = {
+    _WORK_LOOP_SKILL: (_AC1_FRAGMENT, _AC2_SENTENCE),
+    _BUG_FIX_SKILL: (_AC3_SENTENCE,),
+}
+
 # Provider-lifecycle phrase sets, identical to test_grounding_delegation.py.
 _PROVIDER_SETUP_PHRASES = ("provider setup", "install the provider", "configure the provider")
 _PROVIDER_INVOCATION_PHRASES = ("provider invocation", "invoke the provider", "call the provider")
@@ -63,6 +85,13 @@ def _flat(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").split())
 
 
+def _strip_route_sentences(path: Path, text: str) -> str:
+    """Remove the allowlisted route sentences for ``path`` from flattened ``text``."""
+    for sentence in _ROUTE_SENTENCES.get(path, ()):
+        text = text.replace(sentence, "")
+    return text
+
+
 def test_all_subject_files_exist() -> None:
     """Every subject file is present so absence checks are not vacuous."""
     for path in _SUBJECT_FILES:
@@ -73,19 +102,29 @@ def test_all_subject_files_exist() -> None:
 
 
 def test_subject_files_do_not_name_repository_exploration() -> None:
-    """None of the consuming procedures names repository-exploration.
+    """Consuming procedures name repository-exploration only in allowlisted sentences.
 
-    Naming repository-exploration in a consuming workflow procedure would wire
-    it as a required phase, violating the optional caller-invoked contract.
-    Each file is checked independently so a failure names the offending file.
+    Each allowlisted sentence must occur exactly once in its file; after
+    removing them the name must be absent. Files with no entry keep the plain ban.
     """
     for path in _SUBJECT_FILES:
         text = _flat(path)
         rel = str(path.relative_to(PACK_ROOT))
-        assert "repository-exploration" not in text, (
-            f"{rel} must not name `repository-exploration`; adding it would "
-            "wire the optional method as a required phase in a consuming procedure"
+        for sentence in _ROUTE_SENTENCES.get(path, ()):
+            assert text.count(sentence) == 1, (
+                f"{rel} must contain the optional-route sentence exactly once: {sentence!r}"
+            )
+        assert "repository-exploration" not in _strip_route_sentences(path, text), (
+            f"{rel} must not name `repository-exploration` outside the allowlisted "
+            "optional-route sentences; adding it would wire the optional method "
+            "as a required phase in a consuming procedure"
         )
+
+
+def test_unquoted_mention_in_work_loop_is_still_caught() -> None:
+    """Mutation: an extra, unquoted mention survives the strip and is reported."""
+    text = _flat(_WORK_LOOP_SKILL) + " Also see `repository-exploration`."
+    assert "repository-exploration" in _strip_route_sentences(_WORK_LOOP_SKILL, text)
 
 
 def test_subject_files_carry_no_provider_setup_phrases() -> None:

@@ -1,98 +1,110 @@
 ---
 title: "How to author product docs"
-summary: "Create, revise, retrofit, audit, or verify product documentation — pack READMEs, journeys, tutorials, how-to guides, reference pages, or explanations."
+summary: "Audit your project's documentation against the reader journey, then fix the worst gaps — or create, revise, or verify a single page."
 pack: product-documentation
 kind: how-to
 status: stable
 ---
 
-**Use this when:** you need to create, revise, retrofit, audit, or verify
-product documentation — pack READMEs, journeys, tutorials, how-to guides,
-reference pages, or explanations.
-**Prerequisites:** `product-documentation` pack installed.
-**Result:** a documentation artifact matched to the reader's job, inspected
-against canonical source behavior, with a stated mode and artifact decision.
-
-## Five modes
-
-The `author-product-docs` skill operates in five modes. You do not need to name
-the mode — it infers from your request.
-
-| Request type | Mode | What happens |
-|---|---|---|
-| "Write", "create", "add docs for" | **Create** | Smallest useful new artifact |
-| "Revise", "improve", "update", "rewrite" | **Revise** | Improves one artifact while preserving its role |
-| "Retrofit", "connect", "unify", "restructure" | **Retrofit** | Restructures a connected documentation experience |
-| "Audit", "check", "review for" | **Audit** | Produces findings without editing |
-| "Verify", "confirm docs match", "check against" | **Verify** | Confirms documentation matches current shipped behavior |
-
-## First request
+**Use this when:** you want to improve a project's docs and are not sure which pages are missing, stale, or wrong.
+**Prerequisites:** `product-documentation` pack installed, and a repository with a library, CLI, API, app, service, framework, plugin, or agent-context pack in it.
+**Result:** a journey gap report for your doc set, and the smallest set of page changes that closes the worst gaps.
 
 Ask your agent:
 
+> Audit this project's docs and tell me which stages of the reader journey are missing.
+
+The `author-product-docs` skill reads your repository and replies with a report. It edits nothing during an audit unless you also ask for fixes.
+
+## Steps
+
+1. **Run the audit.** Send the request above. The skill infers audit mode from the words "audit" and "missing". It first finds what your product is — the code, manifests, and command parsers reveal a library, CLI, API, app, service, framework, plugin, or agent-context pack — then reads the README and the docs index (a docs site's navigation config counts as the index). In a large doc set it samples each stage's entry pages and says what it sampled.
+2. **Read the journey gap report.** You get one report per surface or audience — a repository with a CLI and a library, or with developer and end-user docs, gets one each. Each report has one row per reader stage, in order: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute. Each row is `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. The next actions are ranked by where readers are lost first, so a missing first success outranks a missing explanation.
+3. **Read the page-level findings.** After the report, each finding names a file, a line, what was found, and the page contract it breaks. A large audit reports the top 15 and counts the rest.
+4. **Retrofit the worst rows.** Ask "Retrofit the docs so the missing and partial rows are covered." The skill changes the smallest set of pages that moves the worst rows to `covered`, and links each page to the stage before and after it.
+5. **Check the result.** Ask for a second audit, or run the checks in [Verify before you ship](#verify-before-you-ship).
+
+## Other entry points
+
+You do not need to name a mode. These requests start the other three modes: create, revise, and verify.
+
 > Write a how-to guide explaining how to [your most common user task].
 
-The skill reads the relevant pack sources, proposes a documentation contract,
-and drafts a task-first guide. You confirm before any files change.
+> Revise the README so a newcomer can run something in the first minute.
 
-Other entry points:
+> Write release notes for v2.1.
 
-> Revise the pack README for [pack name] to lead with what the user can
-> accomplish.
+> Verify this reference page still matches what the code does.
 
-> Audit the onboarding guides for inventory-first writing.
+Create mode writes one page by default and reports the page kind and destination. Revise mode reads the existing page first and improves it in place.
 
-> Verify this reference page still matches what the skill actually does.
+## Prompts by journey stage
+
+After the audit, ask for the page that fits the top-ranked row:
+
+```
+Write a quickstart for this project
+```
+
+```
+Write release notes for the next version
+```
+
+```
+Write a troubleshooting page for the most common install errors
+```
+
+Use the first for First success, the second for Upgrade, and the third for Troubleshoot.
 
 ## What the skill inspects
 
-Before drafting, `author-product-docs` reads:
+Before it states anything about your product, the skill reads the canonical sources for the surface it found:
 
-- `pack.toml` — what the pack declares it does, its scope, dependencies
-- Skill and command sources — actual behavior, not the README's description
-- Existing guides, README, and journey for the pack
+- A library: the public API in source, its doc comments, and the examples.
+- A CLI: the parser definitions and the help text they produce.
+- An HTTP or RPC API: the contract file, then the route handlers.
+- An app: the screens and flows in source, and the end-to-end tests.
+- A service: the configuration schema, the environment variables the code reads, and the deploy files.
+- A plugin: the manifest's commands, settings, and permissions.
+- A framework or extension point: the interfaces users implement and the code that registers or loads them.
+- An agent-context pack: the manifest and each skill's source.
 
-It does not invent capabilities. If a claim in the existing documentation does
-not appear in the canonical sources, it flags it as unverified rather than
-preserving it.
+A claim it cannot check against those sources is labeled unverified or cut.
 
-## The artifact model
+## Where pages are written
 
-One artifact is the default. The skill does not create empty category
-directories or produce one page of every Diátaxis kind without need.
+The skill writes where your repository already keeps docs of that kind. It looks, in order, for a destination you name, the repository's own documentation map, and the existing layout of similar pages. If none of those settles it, it asks once. It keeps user-facing docs and maintainer docs apart: it does not put user docs in a maintainer-only tree, or publish maintainer runbooks as user guides.
 
-| Artifact | Lives at |
-|---|---|
-| Pack README | `packs/<pack>/README.md` |
-| Journey | `packs/<pack>/JOURNEY.md` |
-| Tutorial | `guides/<pack>/tutorials/<slug>.md` |
-| How-to | `guides/<pack>/how-to/<slug>.md` |
-| Reference | `guides/<pack>/reference/<slug>.md` |
-| Explanation | `guides/<pack>/explanation/<slug>.md` |
+## Verify before you ship
 
-For adopter repositories, the skill inspects the host layout rather than
-imposing these paths.
+Verification follows the surface. The skill compares against source by default. It runs examples, commands, builds, or local services only in a repository you have said to trust, and otherwise marks claims "checked against source only":
 
-## Audience routing
+- A library: compare its examples with the source; in a trusted repository, run them or its doc tests.
+- A CLI: compare the docs with the parser; in a trusted repository, also with `--help` and by running each documented command.
+- An HTTP or RPC API: compare with the contract file.
+- A service: compare with the configuration schema and the code that reads it.
+- An app: compare each documented task with the screens and flows in source; in a trusted repository, also walk it in the running app or its end-to-end tests.
+- A plugin: compare with the contribution block in its manifest.
+- A framework or extension point: compare each entry with its interface and the loader or registration code.
+- An agent-context pack: read each skill's source; in a trusted repository, also send the first starter prompt.
 
-The skill distinguishes two documentation audiences:
-
-- **External catalogue or product users** → `guides/<pack>/`
-- **Internal maintainers or contributors** → `docs/guides/`
-
-It does not route internal guidance into the public guide tree, and it does not
-route product documentation into the maintainer tree.
+Then check links. Run a route check after navigation changes. Review the rendered page after layout changes. The skill's report lists only the checks that ran.
 
 ## What remains your decision
 
-- Whether the proposed page kind is right for the reader you have in mind.
-- Whether the artifact set is the minimum useful set.
-- Whether the draft accurately reflects the product as users will experience it.
-- Whether a generated or rendered artifact needs source changes before the
-  documentation can be accurate.
+- Whether the proposed page kind fits the reader you have in mind.
+- Whether the artifact set is the smallest useful one.
+- Whether the draft describes the product as users will meet it.
+
+## Common mistakes
+
+- **Expecting four pages.** Ask for one page and you get one. The audit decides which pages matter most.
+- **Writing a standalone FAQ.** The skill folds each answer into the task or troubleshooting page where a reader would look.
+- **Editing rendered output.** Edit the source files the docs build reads from. Generated pages are overwritten on the next build.
 
 ## See also
 
-- [Write a guide](write-a-guide.md) — step-by-step for creating one guide page.
-- [About the Diátaxis framework](../explanation/the-diataxis-framework.md) — the
-  four page kinds and the link-out discipline.
+- [Getting started](../getting-started.md) — a first walk-through on your own repository.
+- [How to write a guide](write-a-guide.md) — document one shipped feature.
+- [About the Diátaxis framework](../explanation/the-diataxis-framework.md) — the four page kinds and how they sit inside the journey.
+- [Product Documentation guides](../README.md) — install and starter prompts.

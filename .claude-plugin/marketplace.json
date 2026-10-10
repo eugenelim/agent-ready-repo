@@ -241,7 +241,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "4.1.3"
+      "version": "4.1.4"
     },
     {
       "author": {
@@ -355,15 +355,15 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Documentation that matches what actually shipped. Write, restructure, or audit pack READMEs and user guides, with Di\u00e1taxis deciding what each page is allowed to do.",
+      "description": "Documentation that matches what actually shipped. Write, restructure, or audit READMEs, quickstarts, guides, and release notes for any library, CLI, API, app, or service, with the reader's journey showing which page is missing.",
       "displayName": "Product Documentation",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
-        "diataxis",
-        "guides",
         "documentation",
-        "pack-readme",
-        "journey"
+        "readme",
+        "changelog",
+        "api-docs",
+        "cli-docs"
       ],
       "license": "Apache-2.0 OR MIT",
       "name": "product-documentation",
@@ -374,7 +374,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": {
@@ -400,7 +400,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.13.23"
+      "version": "0.13.24"
     },
     {
       "author": {

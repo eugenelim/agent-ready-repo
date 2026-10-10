@@ -38,9 +38,12 @@ export default defineConfig({
   base: '/agent-ready-repo/docs',
   outDir: '../build/docs',
   trailingSlash: 'always',
-  // The Get Started copy of the operating model was folded into the guide; keep its URL working.
+  // Old URLs of the operating-model guide: its Get Started copy, folded into the
+  // guide, and its slug before the rename. Both keep working.
   redirects: {
-    '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-three-loops/',
+    '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
+    '/guides/_shared/explanation/the-three-loops/':
+      '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
   },
   // `unified({...})` is the registration astro 7 asks for. The legacy
   // `markdown.remarkPlugins`/`rehypePlugins` keys are deprecated, and astro's
@@ -111,7 +114,7 @@ export default defineConfig({
           label: 'Get Started',
           items: [
             { label: 'Getting Started', slug: 'getting-started' },
-            { label: 'The Operating Model', slug: 'guides/_shared/explanation/the-three-loops' },
+            { label: 'The Operating Model', slug: 'guides/_shared/explanation/the-operating-model' },
             { label: 'Install', slug: 'getting-started/install' },
           ],
         },

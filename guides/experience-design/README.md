@@ -37,7 +37,7 @@ This pack works in the *Shape it* stage, next to Product Engineering. You
 usually arrive with an approved intent or a strategy direction. You leave with
 a reviewed design set, and the build loop writes its spec against it. [Where
 the design goes next](#where-the-design-goes-next) lists everyone who uses what
-you made. [See the whole flow](../_shared/explanation/the-three-loops.md#the-handoff-chain).
+you made. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
 
 ## Walk the guidebook
 
