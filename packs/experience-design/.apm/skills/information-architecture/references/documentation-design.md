@@ -1,6 +1,6 @@
 # documentation-design method
 
-Converts the Diátaxis type mapping and the user's learning goal into a **structural specification for a documentation surface** — the content hierarchy, navigation strategy, landing page IA, and machine-readability decisions that shape whether a reader reaches their first value moment or abandons. This skill is IA and structure; it does not write the documentation (that is `new-guide`) and does not derive tokens or color (that is `design-system` and `creative-direction`).
+Converts the Diátaxis type mapping and the user's learning goal into a **structural specification for a documentation surface** — the content hierarchy, navigation strategy, landing page IA, and machine-readability decisions that shape whether a reader reaches their first value moment or abandons. This skill is IA and structure; it does not write the documentation (that is `author-product-docs`, if installed) and does not derive tokens or color (that is `design-system` and `creative-direction`).
 
 
 
