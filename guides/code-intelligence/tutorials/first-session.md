@@ -48,26 +48,35 @@ your app's names.
 **Check:** you can point to the function and explain the intended change in one
 sentence. You do not need a demo repository or a rewritten app.
 
-## 2. Install the packs in that checkout
+## 2. Install the pack in that checkout
 
-Run these commands from the root of your app repository:
+Run this command from the root of your app repository:
 
 ```bash
-agentbundle install --pack core --scope repo --adapter claude-code
 agentbundle install --pack code-intelligence --scope repo --adapter claude-code
 ```
 
-These commands add agent guidance to the checkout. If Core is already installed
-for this adapter, skip the first command; if both packs are installed, skip both.
-Use `agentbundle list-installed --no-check` to see the installed packs. To update
+The pack stands alone. To install it for every repository you work in, add
+`--scope user` instead of `--scope repo`.
+
+The `core` pack is optional. Its exploration skill can use this pack as a source
+of code-graph evidence. To add it:
+
+```bash
+agentbundle install --pack core --scope repo --adapter claude-code
+```
+
+These commands add agent guidance to the checkout. If a pack is already
+installed for this adapter, skip its command. Use
+`agentbundle list-installed --no-check` to see the installed packs. To update
 an existing installation, follow [Upgrade packs](../../_shared/how-to/upgrade-packs.md).
 
 If `agentbundle` is missing, follow the
 [CLI installation instructions](../../_shared/reference/agentbundle.md#install-agentbundle)
 first. Keep the app's existing instructions when the installer reports a conflict.
 
-**Check:** the installed-pack listing includes `core` and `code-intelligence`
-for `claude-code`.
+**Check:** the installed-pack listing includes `code-intelligence` for
+`claude-code`.
 
 ## 3. Install the code indexer
 

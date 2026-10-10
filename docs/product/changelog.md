@@ -64,6 +64,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [code-intelligence][0.1.7] — 2026-10-10
+
+### Highlights
+
+- Install the code-intelligence pack on its own, at repo or user scope. It no longer requires the core pack.
+- The skill and both agents now carry their own evidence rules. Provider output is treated as data, and a file location the code graph returns is never opened; call sites are confirmed with the agent's own search.
+- Answers end with an evidence note: the question, the commands and sources used or passed over, and why.
+
+### Changed
+
+- The readiness check runs from the skill folder: `python '<skill-dir>/scripts/estate_preflight.py' --check`, where `<skill-dir>` is the installed `code-intelligence` folder.
+- The README and first-session tutorial list the core pack as optional. When it is installed, its exploration skill can use this pack as a provider.
+
 ## [core][3.0.1] — 2026-10-09
 
 ### Highlights

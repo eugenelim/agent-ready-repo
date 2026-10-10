@@ -55,9 +55,9 @@ Before changing the signature of `parse_config`, which call sites must change, a
 walks that question through two paths: the provider-fit path using an indexed
 call graph, and the fallback path using repository-native search — the agent's
 own text search and file-reading tools — when the provider is absent or the
-index is stale. It closes with a section labelling
-which obligations belong to Core (the companion `core` pack) and which details
-are specific to this pack.
+index is stale. It closes with a section that
+separates the baseline rules that hold with any provider from the details
+specific to Wicked Estate.
 
 The example is illustrative, not a contract. Other providers may expose fewer,
 different, or new capabilities and need not emulate Wicked Estate. The current
@@ -84,8 +84,12 @@ not bind.
 To check your setup at any point:
 
 ```bash
-python scripts/estate_preflight.py --check
+python '<skill-dir>/scripts/estate_preflight.py' --check
 ```
+
+`<skill-dir>` is the installed `code-intelligence` skill folder, for example
+`.claude/skills/code-intelligence` at repo scope or
+`~/.claude/skills/code-intelligence` at user scope.
 
 Exit 0 is ready, 2 means the binary is missing, 3 means there is no index, and
 4 means the binary is older than the 0.21 floor this pack was verified against.
@@ -153,12 +157,18 @@ from `grep` is not a blast radius.
 
 ## Requires
 
-- `core` ≥ 2.0
 - `wicked-estate` ≥ 0.21 in `PATH` (Tier-2 dependency: detected first, installed
   only on explicit consent, pinned, never with sudo)
 - An index built with `wicked-estate index <path>`
 - Optionally `wicked-estate-mcp` ≥ 0.21, for the memory, knowledge, and proposal
   domains and richer MCP response shapes
+
+The pack installs at repo or user scope and needs no other pack.
+
+## Works with
+
+The `core` pack is optional. When it is installed, its exploration skill can use
+this pack as a provider of code-graph evidence.
 
 Read-only by default. The commands that mutate the graph — `index`, `annotate`,
 `semantics`, `compact`, and friends — always ask first.
