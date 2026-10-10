@@ -83,6 +83,9 @@ skills:
   - name: security-checklists-reference
     description: "Provides a read-only reference view of the security checklist library. Normal security reviews use security-checklists."
     humanTouches: 0
+  - name: navigate-intents
+    description: "Queries the intent graph — outstanding work, hierarchy, parent tracing, and counts by level and kind. Read-only; never reads workspace.toml."
+    humanTouches: 0
 humanGates:
   - id: approve-plan
     globalGate: null
@@ -158,6 +161,12 @@ Type `workspace-status` to see what's ready to start, what's blocked, and what s
 
 - **Output:** queue state — ready items, blocked items with reason, recent completions.
 - **State:** read-only
+
+For intent status, hierarchy, and outstanding work — which intents, briefs, and specs are not yet terminal, what the parent of an intent is, or how the intent tree is structured — use `navigate-intents` instead. It derives answers from preamble headers at query time and never reads `workspace.toml`.
+
+```text
+Show me the outstanding work under capability:my-capability.
+```
 
 ---
 

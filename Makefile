@@ -618,6 +618,7 @@ $(PYTHON) -m pytest packs/core/tests/skills/close-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/contract-acquisition/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/explain-diff/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/intake-intent/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/navigate-intents/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q

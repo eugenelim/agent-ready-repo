@@ -330,14 +330,27 @@ def build_check(args: argparse.Namespace) -> int:
         # instead, and these two steps are what keep them honest: the pack test
         # over fixtures, then the parity check against the live corpus. Without
         # the second, a projection silently outlives the upstream it copied.
+        # The self-test proves the parity checker can fail; it runs first so a
+        # broken checker is caught before it is used against the live corpus.
         _pytest_step(
             "test-closure-terminality",
             "packs", "core", "tests", "skills", "close-work",
             "test_closure_terminality.py",
         ),
+        _pytest_step(
+            "test-check-closure-terminality-parity",
+            "tools", "test_check_closure_terminality_parity.py",
+        ),
         _script_step(
             "check-closure-terminality-parity",
             "tools", "check_closure_terminality_parity.py",
+        ),
+        # Intent-navigation query contract (spec intent-navigation). Runs the
+        # pack suite directly; the terminality copy it ships is governed by the
+        # closure-terminality steps above.
+        _pytest_step(
+            "test-navigate-intents",
+            "packs", "core", "tests", "skills", "navigate-intents",
         ),
         _script_step(
             "test-workspace-status",

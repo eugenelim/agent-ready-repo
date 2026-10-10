@@ -484,6 +484,20 @@ A full PRD at plan time creates a waterfall within the loop: the agent writes a 
 
 **Alternative considered:** require a full spec (acceptance criteria, edge cases, non-functional requirements) before any EXECUTE phase, even in light mode. Rejected because it reintroduces waterfall at the micro level — the spec becomes the bottleneck, and the cost per task increases by a factor of 3–5× for work that doesn't need it. Risk triggers already route high-stakes changes to full `new-spec`; forcing full spec on low-risk work is overhead without matching benefit.
 
+### Intent-edge derivation: source, copies, pins, and consumers (2026-10-08)
+
+The `navigate-intents` skill ships a shared intent-edge derivation whose source is `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py`. This module reads every live intent, brief, and spec from preamble headers at query time, resolves `Parent intent:`, `Brief:`, and `Discovery:` pointer fields, and builds the directed graph that every `navigate-intents` operation queries. No derived file is written to the repository.
+
+Three co-located helper copies ride alongside the derivation:
+
+- **`intent_delivery_relations.py`** — byte-identical copy of `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py`. Both are pinned byte-identical by `packs/core/tests/pack/test_intent_delivery_relations_copies.py`.
+- **`_file_safety.py`** — byte-identical copy of `packs/core/.apm/adapter-root-bins/_file_safety.py`. Both are pinned byte-identical by the same test. The derivation and the delivery resolver both read files through this helper; no second confinement copy ships.
+- **`intent_terminality.py`** — a parity-checked copy of the leading-word terminality rule and terminal sets from `close-work`. `tools/check_closure_terminality_parity.py` checks its intent terminal set against the lifecycle intent's Terminal column, its brief terminality against `brief_shape.BRIEF_TRANSITIONS`, and its spec terminal subset against `closure_terminality.py` directly, failing on any difference in either direction (a status only the navigator copy marks terminal also fails).
+
+The `navigate-intents` query script (`navigate_intents.py`) is the current consumer of this derivation. A later convergence of `close-work` onto the same derivation is planned; when it ships, `close-work` will load a byte-identical copy of `intent_graph.py` rather than its own graph-building code.
+
+**Alternative considered:** housing the derivation in `adapter-root-bins/` alongside the delivery resolver and file-safety helpers. Rejected because `adapter-root-bins/` is for helpers that adopter bins call directly; no adopter bin consumes the graph derivation. The source lives in the skill that first ships it, and a byte-identical copy rides into `close-work` when that convergence lands.
+
 ### Why workspace.toml and not a tasks file or issue tracker (2026-06-xx)
 
 A tasks file captures what to do but not the DoR state (is this brief? is the spec approved? is it blocked and why?). An issue tracker requires a network call and browser context to update. workspace.toml is a versioned TOML file in the repo: it's readable by any tool, diff-able in PRs, and greppable. The tradeoff is that it's single-tenant (one person's queue, not a team's board) — the intended use case is a solo engineer or a very small team. Multi-person coordination belongs in the issue tracker; workspace.toml is the local layer.

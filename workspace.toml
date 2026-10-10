@@ -2365,6 +2365,9 @@ executing = [
   # raises `impossible_transition` on a contradiction between the artifact's
   # status and its collection.
   { path = "docs/product/briefs/intent-lifecycle-and-closure.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md" }, summary = "Give an intent and a brief a terminal status set through a workflow on recorded evidence: the state table and legal transitions, a three-way refuse/not-eligible/eligible closure check, the evidence packet and closure record, the brief cut-closed declaration, and migration of the intents that reached Fulfilled without Accepted", needs = [] },
+  # Moved to `executing` 2026-10-08 when slice 1 started, in the same commit as
+  # the brief's `Status:` and the slice spec's move to `Implementing`.
+  { path = "docs/product/briefs/intent-navigation-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0002-intent-graph-navigation.md" }, summary = "See every intent and its artifact-backed outstanding work from preamble headers: navigate-intents, close-work convergence, related edges, the offline view, well-formed pointers, lint parity, and intent dependency graphs", needs = [] },
 ]
 # Ready 2026-09-23, confirmed by the lifecycle owner on a `Findings` result
 # rather than a `Clean` one; the brief's `Ready confirmed:` line records that
@@ -2374,8 +2377,6 @@ executing = [
 # no blocking edge on the supersession work handed to
 # `intent-identity-and-registration`; it consumes whichever form has landed.
 ready = [
-  # Ready confirmed 2026-10-08 after clean review of the dependency-graph scope addition.
-  { path = "docs/product/briefs/intent-navigation-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0002-intent-graph-navigation.md" }, summary = "See every intent and its artifact-backed outstanding work from preamble headers: navigate-intents, close-work convergence, related edges, the offline view, well-formed pointers, lint parity, and intent dependency graphs", needs = [] },
 ]
 draft = []
 # Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
@@ -2420,8 +2421,6 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # Slice 1 of `intent-navigation-delivery`, Approved 2026-10-08; it builds on `feature/intent-navigation`.
-  { path = "docs/specs/intent-navigation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Navigator core: header-derived intent graph, bounded query, text tree, and outstanding-work view", needs = [] },
   # Slices 5 and 7, approved together on 2026-10-08, each target the default branch.
   { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
@@ -2429,6 +2428,9 @@ queue   = [
   { path = "docs/specs/intent-dependency-graphs/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Read-only intent dependency graphs from typed Depends on headers, in bounded JSON, text, and offline HTML", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-navigation/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/intent-navigation-export/spec.md"}] },
 ]
 active  = [
+  # Slice 1 of `intent-navigation-delivery`, started 2026-10-08 on `feature/intent-navigation`;
+  # moved from `queue` in the same commit that set the spec `Implementing`.
+  { path = "docs/specs/intent-navigation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Navigator core: header-derived intent graph, bounded query, text tree, and outstanding-work view", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must

@@ -1271,6 +1271,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
+    'packs/core/tests/skills/navigate-intents/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
+            "the build gate chain step `test-navigate-intents`, which this lint does not trace."
+        ),
     'packs/core/tests/skills/new-spec/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "

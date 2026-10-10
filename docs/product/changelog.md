@@ -64,6 +64,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.1.0] — 2026-10-09
+
+### Highlights
+
+- See every outstanding intent, brief, and spec placed under its parent intent, without opening files one by one and without `workspace.toml`. The new `navigate-intents` skill derives the intent graph from preamble headers each time it is asked and writes nothing back.
+- Walk the intent tree by level, parent, children, and recorded status. One broken parent link no longer hides the rest of the tree — it shows as a flagged line naming what is wrong. An incomplete outstanding-work list is refused rather than returned silently.
+
+### Added
+
+- A `navigate-intents` skill with a bundled query script. Its operations are `summary`, `record`, `tree`, `ancestors`, `search`, and `outstanding`, each returning a versioned JSON envelope with a closed set of error codes. `tree` and `outstanding` also print a text tree with control characters escaped.
+- Results stay bounded: a `tree` result over its limit is refused with `--depth` as the narrowing route; an `outstanding` result is refused with `--from`. `search` and `ancestors` refuse with the exceeded limit and name no bounded route. No result is truncated.
+- The skill reads every file through a co-located confinement helper, shows the delivery resolver's typed relations and diagnostics with each intent, and decides what is outstanding by the same leading-word terminality rule as `close-work`. A parity check keeps that rule in step with its sources.
+
 ## [core][3.0.1] — 2026-10-09
 
 ### Highlights
