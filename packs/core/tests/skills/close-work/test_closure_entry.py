@@ -7,8 +7,8 @@ the caller-enumeration guard (AC-0026).
 
 Two failure shapes avoided here:
 1. Green suite over a dead branch: the differential tests (AC-0016, AC-0017)
-   use ``tmp_path`` with no injected seams, so ``_make_confined_reader`` and
-   ``_default_dir_lister`` run against real on-disk files.
+   use ``tmp_path`` with no injected seams, so ``_make_confined_reader`` runs
+   against real on-disk files.
 2. A differential that does not discriminate: both AC-0016 (eligible) and
    AC-0017 (not-eligible) are asserted through the same entry point on copies
    of the same fixture, so the test fails if the branch does not exist or does

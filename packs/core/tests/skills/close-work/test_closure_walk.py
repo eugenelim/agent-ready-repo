@@ -7,7 +7,7 @@ Discovery:).
 Two failure shapes T2 hit — avoided here:
 1. Green suite over a dead branch: ``test_real_filesystem_brief_terminus_walk``
    runs with no injected seams under ``tmp_path``, exercising the default
-   confined reader and ``_default_dir_lister``.
+   confined reader.
 2. Unconfined path: all path derivation stays inside the module; no new
    field-value-to-path construction bypasses the confined reader.
 
@@ -20,7 +20,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 # ── Load the module under test ─────────────────────────────────────────────────
 # Unique sys.modules key to isolate this suite from T2 (test_closure_index_bounds).
@@ -189,12 +189,7 @@ def _spec(
 class FakeFS:
     """In-memory filesystem for injectable seams.
 
-    The dir_lister returns flat files: all paths under ``d`` with exactly one
-    additional path segment. Test fixtures for specs place spec files directly
-    under SPECS_DIR (flat), which the injected dir_lister handles correctly
-    because it is not the default ``_default_dir_lister`` (which uses
-    ``*/spec.md``). The real-filesystem tests use ``tmp_path`` with proper
-    nested layout.
+    The real-filesystem tests use ``tmp_path`` with proper nested layout.
     """
 
     def __init__(self, files: dict[str, str]):
@@ -206,30 +201,11 @@ class FakeFS:
             raise FileNotFoundError(path)
         return self.files[key]
 
-    def dir_lister(self, d: Path) -> Iterable[Path]:
-        """Mirror ``_default_dir_lister``: flat ``.md``, plus ``*/spec.md``.
-
-        A lister that returns only depth-1 files cannot see a spec, because a
-        spec lives at ``docs/specs/<slug>/spec.md``. Diverging from the real
-        layout here is what let the spec inversion look correct against
-        fixtures while resolving nothing on the corpus.
-        """
-        prefix = str(d) + "/"
-        out: list[Path] = []
-        for p in self.files:
-            if not p.startswith(prefix):
-                continue
-            rest = p[len(prefix):]
-            if "/" not in rest or (rest.count("/") == 1 and rest.endswith("/spec.md")):
-                out.append(Path(p))
-        return sorted(out)
-
 
 def _build(
     fs: FakeFS,
     ancestor_slug: str,
     ancestor_terminus: str,
-    dir_lister=None,
     snapshot_provider=None,
 ) -> dict:
     """Invoke the module-private closure builder with injected seams."""
@@ -238,7 +214,6 @@ def _build(
         ancestor_terminus,
         ROOT,
         _reader=fs.reader,
-        _dir_lister=dir_lister if dir_lister is not None else fs.dir_lister,
         _snapshot_provider=snapshot_provider,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
     )
@@ -501,7 +476,6 @@ def test_intents_only_walk_returns_empty_for_brief_terminus_fixture() -> None:
         "brief",
         ROOT,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _snapshot_provider=lambda _r: empty_snap,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
     )
@@ -609,13 +583,12 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
     """The cross-kind walk runs against the real filesystem with no injected seams.
 
     Closes the 'green suite over a dead branch' gap: every other test in this
-    file injects reader and dir_lister; this one passes neither, so the module's
-    default confined reader and ``_default_dir_lister`` both run against
+    file injects a reader; this one passes none, so the module's
+    default confined reader runs against
     on-disk files.
 
     Three node levels (ancestor intent → brief → spec), two artifact kinds.
-    The spec is nested one level under ``docs/specs/<feature>/spec.md`` as
-    ``_default_dir_lister`` requires for the specs collection.
+    The spec is nested one level under ``docs/specs/<feature>/spec.md``.
     """
     intents_dir = tmp_path / "docs" / "product" / "intents"
     briefs_dir = tmp_path / "docs" / "product" / "briefs"
@@ -637,7 +610,7 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
     (briefs_dir / f"{brief_slug}.md").write_text(
         _brief(brief_slug, parent=ancestor_slug), encoding="utf-8"
     )
-    # Spec: nested one level deep as _default_dir_lister expects.
+    # Spec: nested one level deep.
     spec_feature = specs_dir / spec_slug
     spec_feature.mkdir()
     (spec_feature / "spec.md").write_text(
@@ -650,9 +623,9 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
         _spec("other-feature", brief="some-other-brief"), encoding="utf-8"
     )
 
-    # No _reader or _dir_lister: both default seams execute against the real tree.
+    # No _reader: the default seam executes against the real tree.
     # _snapshot_provider is injected because the real resolver subprocess is not
-    # installed in tmp_path. This test targets the default reader and dir_lister
+    # installed in tmp_path. This test targets the default reader
     # seams (the real filesystem path), not the resolver subprocess; a dedicated
     # subprocess test lives in test_closure_delivery_snapshot.py (VI-1101/1103).
     snap = _snapshot(relations=[

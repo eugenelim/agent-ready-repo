@@ -45,22 +45,39 @@ _REMOVED = {
 }
 
 
-def _is_preamble_call(node: ast.AST) -> bool:
-    return (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "_preamble"
-    )
-
-
 def _is_parent_key(node: ast.AST) -> bool:
     return isinstance(node, ast.Constant) and node.value == "Parent intent"
 
 
+def _parent_read_offenders(source: str) -> list[int]:
+    """Line numbers of any ``.get("Parent intent", ...)``, ``x["Parent intent"]``
+    or ``"Parent intent" in x``, whatever the receiver."""
+    offenders: list[int] = []
+    for n in ast.walk(ast.parse(source)):
+        if (
+            (isinstance(n, ast.Subscript) and _is_parent_key(n.slice))
+            or (
+                isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute)
+                and n.func.attr == "get"
+                and n.args
+                and _is_parent_key(n.args[0])
+            )
+            or (
+                isinstance(n, ast.Compare)
+                and _is_parent_key(n.left)
+                and any(isinstance(op, (ast.In, ast.NotIn)) for op in n.ops)
+            )
+        ):
+            offenders.append(n.lineno)
+    return offenders
+
+
 def test_no_preamble_parent_read() -> None:
     """AC-0003 — the old parser is gone and nothing reads ``Parent intent`` from
-    a ``_preamble`` result."""
-    tree = ast.parse((CW / "closure_index.py").read_text(encoding="utf-8"))
+    a mapping in ``closure_index.py``."""
+    source = (CW / "closure_index.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
     defined = {
         n.name
         for n in ast.walk(tree)
@@ -76,32 +93,11 @@ def test_no_preamble_parent_read() -> None:
         if isinstance(t, ast.Name)
     }
     assert not defined & _REMOVED, f"removed symbols still defined: {defined & _REMOVED}"
+    offenders = _parent_read_offenders(source)
+    assert not offenders, f"Parent intent read from a mapping at lines {offenders}"
 
-    # Names bound to a _preamble result, anywhere in the module.
-    bound: set[str] = set()
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Assign) and _is_preamble_call(n.value):
-            bound |= {t.id for t in n.targets if isinstance(t, ast.Name)}
 
-    def from_preamble(node: ast.AST) -> bool:
-        return _is_preamble_call(node) or (
-            isinstance(node, ast.Name) and node.id in bound
-        )
-
-    offenders: list[int] = []
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Subscript) and from_preamble(n.value) and _is_parent_key(n.slice) or (
-            isinstance(n, ast.Call)
-            and isinstance(n.func, ast.Attribute)
-            and n.func.attr == "get"
-            and from_preamble(n.func.value)
-            and n.args
-            and _is_parent_key(n.args[0])
-        ) or (
-            isinstance(n, ast.Compare)
-            and _is_parent_key(n.left)
-            and any(isinstance(op, (ast.In, ast.NotIn)) for op in n.ops)
-            and any(from_preamble(c) for c in n.comparators)
-        ):
-            offenders.append(n.lineno)
-    assert not offenders, f"Parent intent read from a _preamble result at lines {offenders}"
+def test_parent_read_scan_positive_control() -> None:
+    """The scan reports a receiver it cannot trace to ``_preamble``."""
+    snippet = 'fields = _get_fields(p)\nv = fields.get("Parent intent", "")\n'
+    assert _parent_read_offenders(snippet) == [2]

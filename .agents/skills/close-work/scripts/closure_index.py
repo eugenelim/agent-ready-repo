@@ -218,7 +218,6 @@ class DescendantRecord:
 # ── Injectable seam types ─────────────────────────────────────────────────────
 
 Reader = Callable[[Path], str]
-DirLister = Callable[[Path], Iterable[Path]]
 FreshnessChecker = Callable[[], "bool | None"]
 WorkspaceLookup = Callable[[str], "tuple[str, str] | None"]
 """Callable: ancestor slug → ``(entry_path, collection)`` or ``None`` (AC-0031).
@@ -326,11 +325,6 @@ def _terminus_from_decomposed(value: str) -> str:
 
 
 # ── Collection directory helpers ──────────────────────────────────────────────
-
-
-def _intents_dir(root: Path) -> Path:
-    """``docs/product/intents/`` relative to root."""
-    return root / "docs" / "product" / "intents"
 
 
 def _briefs_dir(root: Path) -> Path:
@@ -584,29 +578,6 @@ def _make_confined_reader(root: Path) -> Reader:
         return raw.decode("utf-8", errors="replace")
 
     return _reader
-
-
-def _default_dir_lister(d: Path) -> Iterable[Path]:
-    """Return artifact files for a collection directory.
-
-    - Intents and briefs: flat ``.md`` files in the directory.
-    - Specs: ``spec.md`` files one level under the directory, one per
-      feature subdirectory.
-    Files whose names start with ``_`` are excluded (internal artefacts).
-    """
-    if not d.is_dir():
-        return []
-    results: list[Path] = []
-    for child in sorted(d.iterdir()):
-        if child.name.startswith("_"):
-            continue
-        if child.is_file() and child.suffix == ".md":
-            results.append(child)
-        elif child.is_dir():
-            spec_file = child / "spec.md"
-            if spec_file.is_file():
-                results.append(spec_file)
-    return results
 
 
 # ── Default freshness checker ─────────────────────────────────────────────────
@@ -1046,7 +1017,6 @@ def _build_descendant_closure(
     root: Path,
     *,
     _reader: Reader | None = None,
-    _dir_lister: DirLister | None = None,
     _snapshot_provider: SnapshotProvider | None = None,
     _graph_provider: GraphProvider | None = None,
 ) -> dict[tuple[str, str], DescendantRecord]:
@@ -1056,27 +1026,17 @@ def _build_descendant_closure(
     closure, so an intent and a brief or spec sharing a slug both appear.
     Each call builds a fresh index; nothing is cached between calls (AC-0021).
 
-    ``_reader``, ``_dir_lister``, ``_snapshot_provider``, and ``_graph_provider``
-    are test seams. The ``children`` arm takes its edges from the bundled
-    intent-graph derivation, run once per decision and only when a
-    ``children`` terminus is reached.
-    Production callers pass none of these and the defaults run against the
-    real filesystem and the projected resolver.
+    ``_reader``, ``_snapshot_provider``, and ``_graph_provider`` are test
+    seams. Production callers pass none of them and the defaults run against
+    the real filesystem and the projected resolver.
 
-    **AC-0024**: each artifact is physically opened at most once. The
-    ``visited`` set prevents the reader from being called twice for the same
-    path. When a path is encountered again (e.g. in a second collection scan),
-    the cached fields are returned without calling the reader.
-
-    **AC-0025**: dir_lister is called only for collection directories named by
-    the termini encountered along the closure. Delivery termini (``spec`` and
-    ``brief``) read only the specific files named in the canonical snapshot,
-    never enumerating an entire collection. No other directory is listed.
-    The ``dir_cache`` prevents a second dir_lister call for the same directory.
-
-    **AC-0037**: because each file is read at most once and only named
-    collections are enumerated, the total reader call count cannot exceed the
-    summed file count across those collections.
+    The intent-graph derivation runs at most once per decision, and only when
+    a ``children`` terminus is on the closure (AC-0012). Within this process
+    each artifact is opened at most twice: once inside the derivation, once by
+    this module's own reader, which opens only descendants (AC-0013). The
+    ``visited`` set keeps the reader to one open per descendant path.
+    Delivery termini (``spec`` and ``brief``) read only the files named in the
+    canonical snapshot and never enumerate a collection.
 
     **AC-0023**: no file is written and no environment variable is set. The
     returned dict is the sole output; its lifetime is the caller's frame.
@@ -1088,12 +1048,10 @@ def _build_descendant_closure(
     # Default reader is root-confined via file_safety.py (trust boundary).
     # An injected _reader bypasses confinement and is trusted for test use.
     reader: Reader = _reader if _reader is not None else _make_confined_reader(root)
-    dir_lister: DirLister = _dir_lister if _dir_lister is not None else _default_dir_lister
 
     # Per-decision state — all local, none persisted.
     visited: set[Path] = set()  # resolved paths physically opened (AC-0024)
     field_cache: dict[Path, dict[str, str]] = {}  # preamble fields per opened path
-    dir_cache: dict[Path, list[Path]] = {}  # collection dir → file list (AC-0025)
     result: dict[tuple[str, str], DescendantRecord] = {}
 
     # Lazy delivery snapshot — fetched at most once, on first delivery terminus.
@@ -1123,13 +1081,6 @@ def _build_descendant_closure(
         if not _graph_cache:
             _graph_cache.append(_derive_graph(root, _graph_provider))
         return _graph_cache[0]
-
-    def _list_dir(d: Path) -> list[Path]:
-        """List a collection directory at most once; subsequent calls use the cache."""
-        key = d.resolve()
-        if key not in dir_cache:
-            dir_cache[key] = list(dir_lister(d))
-        return dir_cache[key]
 
     def _get_fields(path: Path) -> dict[str, str]:
         """Return preamble fields for a path, reading it at most once (AC-0024).
@@ -1764,7 +1715,6 @@ def resolve_intent_ancestors(
     root: Path,
     *,
     _reader: Reader | None = None,
-    _dir_lister: DirLister | None = None,
     _snapshot_provider: SnapshotProvider | None = None,
     _graph_provider: GraphProvider | None = None,
 ) -> list[tuple[str, str, str]]:
@@ -1915,7 +1865,6 @@ def check_ancestor_closure(
     root: Path,
     *,
     _reader: Reader | None = None,
-    _dir_lister: DirLister | None = None,
     _freshness_checker: FreshnessChecker | None = None,
     _snapshot_provider: SnapshotProvider | None = None,
     _graph_provider: GraphProvider | None = None,
@@ -2005,7 +1954,6 @@ def check_ancestor_closure(
             ancestor_terminus,
             root,
             _reader=_reader,
-            _dir_lister=_dir_lister,
             _snapshot_provider=_snapshot_provider,
             _graph_provider=_graph_provider,
         )

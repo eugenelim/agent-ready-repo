@@ -160,9 +160,9 @@
     },
     {
       "id": 20,
-      "prompt": "Check an Accepted intent for closure. One of its child briefs records a `Parent intent:` pointer with the wrong kind prefix, so the pointer is refused.",
-      "expected_output": "The check is refused rather than returned as eligible or not-eligible. The refusal names the reason `parent-edge-refused`, and the remedy is to fix the child's `Parent intent:` field.",
-      "assertions": [
+      "prompt": "Check an Accepted intent for closure. One of its child intents records `Parent intent: intent:anc`, but `anc` is a capability, so the pointer has the wrong kind prefix and is refused.",
+  "expected_output": "The check is refused rather than returned as eligible or not-eligible. The refusal names the reason `parent-edge-refused`, and the remedy is to fix the child intent's `Parent intent:` field.",
+  "assertions": [
         "Names the refusal reason parent-edge-refused",
         "Does not report the intent as eligible",
         "Points to the broken Parent intent field as the fix"

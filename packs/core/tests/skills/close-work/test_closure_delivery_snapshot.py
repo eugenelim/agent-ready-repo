@@ -184,18 +184,6 @@ class FakeFS:
             raise FileNotFoundError(path)
         return self.files[key]
 
-    def dir_lister(self, d: Path):
-        """Return files — used only for children terminus in these tests."""
-        prefix = str(d) + "/"
-        out: list[Path] = []
-        for p in self.files:
-            if not p.startswith(prefix):
-                continue
-            rest = p[len(prefix):]
-            if "/" not in rest or (rest.count("/") == 1 and rest.endswith("/spec.md")):
-                out.append(Path(p))
-        return sorted(out)
-
 
 def _build(
     fs: FakeFS,
@@ -209,7 +197,6 @@ def _build(
         ancestor_terminus,
         ROOT,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=snapshot_provider,
     )
@@ -323,7 +310,6 @@ def test_vi1101_delivery_diagnostic_causes_closure_refuse() -> None:
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=lambda _r: snap,
     )
@@ -363,7 +349,6 @@ def test_vi1101_all_diagnostic_codes_cause_closure_refuse(code: str) -> None:
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=lambda _r: snap,
     )
@@ -393,7 +378,6 @@ def test_vi1103_snapshot_provider_exception_yields_delivery_resolver_unavailable
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=_failing_provider,
     )
@@ -438,7 +422,6 @@ def test_vi1103_resolver_unavailable_never_falls_back_to_old_scanner() -> None:
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=_failing_provider,
     )
@@ -523,7 +506,6 @@ def test_vi1103_provider_raising_value_error_yields_delivery_resolver_unavailabl
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=_invalid_provider,
     )

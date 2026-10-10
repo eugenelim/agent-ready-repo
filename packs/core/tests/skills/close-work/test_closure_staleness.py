@@ -146,9 +146,6 @@ def test_ac0021_second_decision_sees_mutated_status() -> None:
             return store[path]
         return ""
 
-    def dir_lister(d: Path) -> list[Path]:
-        return [p for p in store if p.parent == d]
-
     # Decision 1: child status is Accepted (live) → not-eligible.
     verdict1 = ci.check_ancestor_closure(
         "ancestor",
@@ -156,7 +153,6 @@ def test_ac0021_second_decision_sees_mutated_status() -> None:
         "children",
         ROOT,
         _reader=reader,
-        _dir_lister=dir_lister,
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,  # fresh — isolate the freshness seam
     )
@@ -176,7 +172,6 @@ def test_ac0021_second_decision_sees_mutated_status() -> None:
         "children",
         ROOT,
         _reader=reader,
-        _dir_lister=dir_lister,
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
     )
@@ -220,7 +215,6 @@ def test_ac0022_stale_base_refuses() -> None:
         "children",
         ROOT,
         _reader=lambda p: store.get(p, ""),
-        _dir_lister=lambda d: [p for p in store if p.parent == d],
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: False,  # stale
     )
@@ -253,7 +247,6 @@ def test_ac0022_current_base_does_not_refuse_on_staleness() -> None:
         "children",
         ROOT,
         _reader=lambda p: store.get(p, ""),
-        _dir_lister=lambda d: [p for p in store if p.parent == d],
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,  # fresh
     )
@@ -298,7 +291,6 @@ def test_ac0022_indeterminate_refuses() -> None:
         "children",
         ROOT,
         _reader=lambda p: store.get(p, ""),
-        _dir_lister=lambda d: [p for p in store if p.parent == d],
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: None,  # indeterminate
     )
@@ -361,7 +353,7 @@ def test_ac0022_real_git_repo_does_not_refuse(tmp_path: Path) -> None:
         "Accepted",
         "closed-empty",
         tmp_path,
-        # _reader and _dir_lister omitted → production defaults run too.
+        # _reader omitted → production defaults run too.
     )
     # No tracking branch in the git-init'd tmp_path → fresh → no freshness refusal.
     assert not (

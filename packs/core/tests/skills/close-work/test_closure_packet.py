@@ -131,12 +131,6 @@ def _reader_from_store(store: dict[Path, str]):
     return _r
 
 
-def _dir_lister_from_store(store: dict[Path, str]):
-    def _dl(d: Path) -> list[Path]:
-        return [p for p in store if p.parent == d]
-    return _dl
-
-
 def _call_eligible(
     store: dict[Path, str],
     *,
@@ -153,7 +147,6 @@ def _call_eligible(
         "children",
         ROOT,
         _reader=_reader_from_store(store),
-        _dir_lister=_dir_lister_from_store(store),
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         _decider=decider,
@@ -185,7 +178,6 @@ def test_ac0027_no_packet_without_decider() -> None:
     verdict = ci.check_ancestor_closure(
         "anc", "Accepted", "children", ROOT,
         _reader=_reader_from_store(store),
-        _dir_lister=_dir_lister_from_store(store),
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         # _decider is NOT supplied
@@ -367,7 +359,6 @@ def test_ac0029_check_writes_no_status_value() -> None:
         "children",
         ROOT,
         _reader=write_raising_reader,
-        _dir_lister=_dir_lister_from_store(store),
         _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         _decider="test-decider",
