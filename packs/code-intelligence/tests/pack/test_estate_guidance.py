@@ -217,6 +217,7 @@ _RETIRED_PATTERNS: tuple[re.Pattern[str], ...] = (
     # annotation envelope (0.26 group)
     re.compile(r"\bno lastverified\b"),
     re.compile(r"\(ts\), not a verification date\b"),
+    re.compile(r"\bcarries ts, not lastverified\b"),
     re.compile(r"\bexactly these fields\b"),
     re.compile(r"\ba date string is rejected\b"),
     # MCP-only depth (0.26 group)
@@ -391,8 +392,11 @@ _RETIRED_STALE_SAMPLE: tuple[str, ...] = (
     # annotation envelope — pre-0.26 pack
     "There is **no `last_verified` field in the JSON**; `ts` is the timestamp you get.",
     "That is a timestamp (`ts`), not a verification date; the JSON carries no `last_verified`.",
+    "A second, smaller correction: the annotation JSON carries `ts`, not\n`last_verified`.",
     "Each annotation carries exactly these fields: `key`, `value`, `type`,",
     "cutoff is **Unix seconds**; a date string is rejected with a usage error.",
+    # MCP-only depth — pre-0.26 pack
+    "The richer MCP response shapes\n(per-dependent `depth` and `summary.top_by_pagerank` on `BlastRadius`,\n`Communities` summaries, `ContextBundle`) are also MCP-only.",
     # lineage name form — pre-0.26 pack
     "for forward transitive dependencies (resolve first — a name returns empty),",
     # dispatch counts — pre-0.26 pack
