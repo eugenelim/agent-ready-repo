@@ -74,10 +74,10 @@
     {
       "id": "root-cause-trace-routes-callers-to-exploration",
       "prompt": "A value arrives null in parse() and crashes it. parse() has many callers across modules. repository-exploration is installed. No language-server, code-graph, or MCP capability is exposed. Find the root cause and fix it.",
-      "expected_output": "The trace follows the null backward through callers to its earliest supported origin, gathering caller evidence through repository-exploration or repository search with locations cited, and bug-fix keeps the fix decision.",
+      "expected_output": "The trace follows the null backward through callers toward its origin, or stops at an explicit evidence limit because the inputs supply no code to search; caller evidence is planned or gathered through repository-exploration or repository search without invented locations, and bug-fix keeps the fix decision.",
       "assertions": [
-        "The trace follows the null value backward through callers or producers to its earliest supported origin",
-        "Caller evidence is gathered through repository-exploration or repository search, with each caller's location cited",
+        "The trace follows the null value backward through callers or producers toward its origin, or stops at an explicit evidence limit because the inputs supply no code to search",
+        "Caller evidence is planned or gathered through repository-exploration or repository search, and no caller location is stated that the inputs do not support",
         "The fix decision stays with bug-fix; caller evidence is treated as evidence, not as the decision"
       ]
     }
