@@ -67,20 +67,20 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 # ---------------------------------------------------------------------------
 
 _UNSAFE_CHARS: frozenset[str] = frozenset(
-    "؜‎‏"
-    "‪‫‬‭‮"
-    "⁦⁧⁨⁩"
-    "​‌‍"
-    "⁠⁡⁢⁣⁤"
-    "﻿"
+    "\u061c\u200e\u200f"
+    "\u202a\u202b\u202c\u202d\u202e"
+    "\u2066\u2067\u2068\u2069"
+    "\u200b\u200c\u200d"
+    "\u2060\u2061\u2062\u2063\u2064"
+    "\ufeff"
     + "".join(chr(c) for c in range(0x09))        # NUL .. BS
     + "\x09"                                       # TAB (U+0009)
     + "".join(chr(c) for c in range(0x0B, 0x0D))  # VT FF
     + "".join(chr(c) for c in range(0x0E, 0x20))  # SO .. US
     + "".join(chr(c) for c in range(0x7F, 0xA0))  # DEL and C1 controls
-    + "­᠎"
+    + "\u00ad\u180e"
     + "".join(chr(c) for c in range(0x206A, 0x2070))
-    + "￹￺￻"
+    + "\ufff9\ufffa\ufffb"
     + "".join(chr(c) for c in range(0xE0000, 0xE0080))
 )
 

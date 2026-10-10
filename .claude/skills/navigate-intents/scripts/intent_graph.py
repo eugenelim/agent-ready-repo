@@ -16,8 +16,9 @@ Edge shape
 ----------
 Every edge carries ``from``, ``field``, ``form``, ``trust_class``, and
 ``basis``.  Resolved edges add ``to`` and ``value``.  Refused edges add
-``state`` and ``value``.  ``multiple_values`` edges omit ``form``,
-``basis``, and ``value``.  ``retired_target`` edges also carry
+``state`` and ``value``.  ``multiple_values`` edges carry ``form`` and a
+``basis`` whose ``values`` list each conflicting value with its own form,
+and omit ``value``.  ``retired_target`` edges also carry
 ``reissued_as`` when the tombstone records it.
 """
 
@@ -710,7 +711,8 @@ def _make_spec_brief_edges(
             elif bv.startswith(("docs/product/intents/", "docs/specs/")):
                 edge["state"] = "out_of_type"
             else:
-                edge["state"] = "dangling"
+                # Not an admitted brief path, nor another artifact's path.
+                edge["state"] = "unparseable"
         else:
             edge["state"] = "unparseable"
         edges.append(edge)

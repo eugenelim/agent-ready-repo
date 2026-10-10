@@ -289,3 +289,34 @@ row's literal method.
   `none` intent parent value never counts. Three tests fail on the code at
   `dd3fbc4a3` and pass now.
 - The owner re-approved the amended spec and the plan on 2026-10-09.
+- GATES on `d25963c63`: 354 passed, 5 skipped across the touched suites; the
+  ten tool checks, brief coverage, spec status, catalogue verify and deep
+  lint, and `make lint-ruff lint-mypy` pass. AC-0019 at this code, 2026-10-09
+  22:02 CDT, load 22 to 31 on 10 cores: 3.71, 3.85, 3.41, 3.44, 3.07, 3.40,
+  3.68 s, median 3.44 s, minimum 3.07 s, maximum 3.85 s, result 105,419
+  bytes, every run `status: ok`.
+
+## Remote CI on d25963c63 and the fourth review round
+
+- Dispatched on `d25963c63`: `build-check` 38018880276, `test-corpus`
+  38018882383, `test-roster` 38018884246 — all three failed, for three
+  causes:
+  - `test_pack_delivery_contract_is_complete_and_version_increased` requires
+    a `core` bump against `origin/main` (2.30.1 to 2.31.0, a new primitive)
+    and its changelog entry. The owner reversed the earlier no-bump decision
+    on 2026-10-09: `core` is now 2.31.0 in `pack.toml` and `plugin.json`, with
+    a `## [core][2.31.0]` entry and Highlights; slice 4 updates that entry
+    rather than adding the bump.
+  - `test_eval_allowlist_has_balanced_activation_sets` keeps its own list of
+    eval files; `navigate-intents` is added to it in
+    `packs/core/tests/pack/test_work_intake_surface.py`, a file outside T5's
+    `Touches` that no task named.
+  - `gate-sast` raised bandit B613 (trojansource) on literal bidirectional
+    controls in `navigate_intents.py`; those characters, and three in
+    `test_text_tree.py`, are now `\u` escapes, with each file's parse tree
+    unchanged. Full-repository bandit at the configured thresholds passes.
+- The fourth adversarial round (first post-gates round of run `08597a69`)
+  sustained one Concern and one Nit and refuted two: a spec `Brief:` path
+  outside `docs/product/briefs/` is now `unparseable`, not `dangling`, with
+  two tests red on `d25963c63`; the module docstring now states the
+  `multiple_values` edge shape.

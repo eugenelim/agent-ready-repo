@@ -206,9 +206,9 @@ def test_tree_text_bidi_controls_escaped() -> None:
     assert isinstance(result, str)
     # No raw bidi characters must appear in the output
     for char, name in (
-        ("‮", "U+202E RLO"),
-        ("‎", "U+200E LRM"),
-        ("⁦", "U+2066 LRI"),
+        ("\u202e", "U+202E RLO"),
+        ("\u200e", "U+200E LRM"),
+        ("\u2066", "U+2066 LRI"),
     ):
         assert char not in result, (
             f"Raw {name} must not appear in text tree output; got: {result!r}"

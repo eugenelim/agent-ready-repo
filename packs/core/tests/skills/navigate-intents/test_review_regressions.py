@@ -425,3 +425,20 @@ def test_none_parent_value_never_counts_toward_a_conflict(tmp_path: pathlib.Path
         if e["from"] == "intent:none-and-one" and e["field"] == "Parent intent"
     ]
     assert [(e.get("to"), e.get("state")) for e in edges] == [("capability:alpha-cap", None)]
+
+
+@pytest.mark.parametrize("value", ["docs/other/x.md", "tbd: see notes/x"])
+def test_spec_brief_path_outside_briefs_is_unparseable(value: str, tmp_path: pathlib.Path) -> None:
+    """A Brief: path that is neither an admitted brief path nor another artifact's is unparseable."""
+    root = _copy(_MIXED, tmp_path)
+    spec_dir = root / "docs" / "specs" / "probe-brief"
+    spec_dir.mkdir()
+    (spec_dir / "spec.md").write_text(
+        f"# Spec: Probe brief\n\n- **Status:** Draft\n- **Brief:** {value}\n\n## Outcome\n",
+        encoding="utf-8",
+    )
+    edge = next(
+        e for e in ig.derive(root)["edges"]
+        if e["from"] == "spec:probe-brief" and e["field"] == "Brief"
+    )
+    assert (edge["form"], edge["state"]) == ("path", "unparseable")
