@@ -53,7 +53,7 @@ a regression case, not an AC-0004 case.
 | Case | Branch | origin/main | Disposition |
 | --- | ---: | ---: | --- |
 | 1 | 4/5 | 4/5 | Pre-existing: same assertion (narrow to load-bearing dependents) |
-| 3 | 3/4 | 4/4 | Recorded per plan as the known first-assertion failure; branch reruns 3/4, 3/4, R4 3/4 |
+| 3 | 3/4 | 4/4 | Pre-existing: the same first assertion failed against origin/main in the earlier record (`docs/specs/code-intelligence-golden-composition-example/notes/eval-runs.md` § Known pre-existing result); branch reruns 3/4, 3/4, R4 3/4 |
 | 4 | 4/4 | — | Pass |
 | 7 | 3/4 (R3, R4, R5a, R5b) | — | Not gated: the failing hop assertion is new on this branch, so origin/main has no equivalent. Recorded by owner decision, 2026-10-10 |
 | 5 | 2/4 | 2/4 | Pre-existing: same two assertions (wave verdict, sequencing owner) |
