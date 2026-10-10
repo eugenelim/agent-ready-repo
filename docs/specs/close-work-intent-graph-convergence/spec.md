@@ -3,12 +3,11 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
+- **Constrained by:** RFC-0105, RFC-0103, ADR-0119, ADR-0007, ADR-0074
 - **Brief:** brief:intent-navigation-delivery
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
-- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / `references/spec-and-plan-contract.md` § Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
-- **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
-<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
+- **Discovery:** none
+- **Contract:** none
+- **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -22,303 +21,104 @@
 > gates the text it cites. Marking the tiers is the spec's job; honouring them
 > when a finding is adjudicated is the reviewing surface's.
 
-<!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Outcome, What Changes, Agent
-Rules, Testing Strategy, and Acceptance Criteria to the depth the durable work
-requires, and Assumptions only where something is unresolved. The sibling plan carries the implementation and verification strategy.
-Eligible direct-light work does not create this artifact. -->
-
-<!-- **Present tense, as-built.** Write every body section below as if the
-feature already exists and always worked this way — no "will be", no
-"previously X, now Y", no deprecation timelines, no version-stamped history.
-The body describes the current contract; decision history lives in ADRs and the
-release changelog. `plan.md` holds to the same rule: its `## Changelog` records
-approvals, not how the approach evolved. -->
-
 ## Outcome
 
-<!--
-Two sentences, no more. The first names who this is for and what they get; the
-second says what success looks like for them. Frame from their perspective,
-not the implementer's, and leave implementation detail to `plan.md`. The cap is
-the point: an outcome that needs a third sentence is usually carrying a delta,
-which belongs in the section below, or a mechanism, which belongs in the plan.
--->
+A maintainer or agent closing work with `close-work` gets closure verdicts whose intent and brief parent edges come from the same header derivation `navigate-intents` uses, so the two skills never disagree about which intent is an artifact's parent. Every intent ancestor a `Parent intent:` pointer records is checked, whatever its typed prefix, and a corpus fault or a refused pointer naming the ancestor refuses closure instead of reading as "no parent".
 
 ## What Changes
 
-<!--
-The delta, as bullets, for a human landing on this spec cold. It sits here —
-above every contract section — because a reader's first question is what moves,
-and a paragraph of Outcome does not answer it scannably.
-
-One bullet per change, each naming the thing that moves and where it lives. No
-rationale, no mechanism, no restating the Outcome in list form: a reader who
-stops after this section should know the shape of the change and nothing they
-would have to unlearn.
-
-- <what moves> — <where it lives>
--->
+- New byte-identical copy of the shared derivation — `packs/core/.apm/skills/close-work/scripts/intent_graph.py`, pinned with the skill's other copies.
+- The derivation's helper loaders bind each copy to the helpers in its own skill folder — both copies of `intent_graph.py`.
+- The `children` arm of the descendant closure and the upward ancestor walk take parent edges from the copy — `close-work/scripts/closure_index.py`. Its own `Parent intent:` value matching and the reference-kind vocabulary it carried are removed, with that vocabulary's parity check in `tools/check_closure_terminality_parity.py`.
+- Two closure refusal reasons, `intent-graph-unavailable` and `parent-edge-refused` — `closure_index.py`, documented in `guides/core/how-to/close-and-disposition-work.md`.
+- The brief-route and spec-route arms keep reading the delivery resolver's snapshot unchanged.
+- `closure-eligibility-check`'s read-bound criteria 0024, 0025, and 0037 are superseded in part by this spec's AC-0012 and AC-0013, recorded on that spec's `Status:` line.
+- Delivered through the `feature/intent-navigation` integration branch as a `core` patch release.
 
 ## Durable Outputs
 
-<!--
-Plan the lasting records this delivery must create or update before the spec is
-approved. This is repository-specific, not a fixed checklist. Consider user
-promise, current product truth, current architecture, decision rationale,
-interface compatibility, operations, maintainer procedure, release history, and
-reusable learning. Include only applicable roles.
-
-For each row, name:
-
-- Semantic role
-- Applicability
-- Destination
-- Owner
-- Expected evidence
-- Closeout condition
-
-If no durable output is applicable, write `none` with an explicit rationale.
-If a destination is ambiguous or absent, record the still-required decision as
-the closeout blocker; do not guess or create a placeholder. Read each applicable
-existing human-readable surface as a whole and name any refresh work before
-approval. For user-facing behavior, draft the established user-documentation
-surface before implementation approval.
--->
-
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+| User procedure | Two new refusal reasons a closer can meet | `guides/core/how-to/close-and-disposition-work.md` § the closure verdict codes (whole-section refresh: its list is titled for delivery codes only) | `core` maintainer | Guide passes `tools/lint-guide-titles.py`, `tools/validate_guides.py`, and `tools/lint-guides-no-repo-only-refs.py` | Each new reason is listed with its cause and its remedy |
+| Architecture | The derivation gains a consumer and a copy | `packs/core/DESIGN.md` § Intent-edge derivation: source, copies, pins, and consumers | `core` maintainer | Section updated | Names `close-work` as a consumer, the copy's path and its pin, and states that `close-work` holds no second parent-edge parser |
+| Historical contract pointer | A shipped contract's read bounds change | `docs/specs/closure-eligibility-check/spec.md` `Status:` line | `core` maintainer | AC-0014's test | The line names this spec and the three superseded criteria; the body is unchanged |
+| Release history | A `core` behaviour change | `docs/product/changelog.md` `[core][3.1.1]`; `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` at `3.1.1` | `core` maintainer | Changelog entry with a `### Highlights` bullet; versions match | Entry names the wider ancestor walk and the two refusal reasons |
+| Executable proof | Contract tests for the copy and the closure arms | `packs/core/tests/skills/close-work/`; the existing copies and terminality-parity tests | `core` maintainer | Dispatched `build-check`, `test-corpus`, and `test-roster` runs green on the pull request's last commit before its ledger-only record commit, with run ids in that record | Every acceptance criterion's named test is green |
+| Verification record | The one-time verdict comparison over the real corpus | `docs/specs/close-work-intent-graph-convergence/notes/verification-ledger.md` (repository-durable) | Implementer | The comparison script's source, its base commit, its exit code, and its per-cause counts | Ledger present and cited by the closing PR |
 
 ## Agent Rules
 
-The three-tier guard that keeps an implementing agent inside the lines.
-*Always do* applies without asking; *Ask first* requires human sign-off
-before proceeding; *Never do* is a hard rule, even under time pressure.
-
 ### Always do
 
-<!-- Defaults the agent applies without asking. -->
-
--
--
--
+- Take every intent and brief `Parent intent:` edge `close-work` uses from its bundled copy of the derivation.
+- Keep the copy byte-identical to `navigate-intents/scripts/intent_graph.py`, and add it to the test that pins the skill's other copies.
+- Refuse closure when the derivation fails or a refused parent pointer bears on the decision; never read either as "no parent".
+- Merge to `feature/intent-navigation`, not to the default branch.
 
 ### Ask first
 
-<!-- Changes that need human sign-off before proceeding. -->
-
--
--
--
+- Any change to what the derivation returns, beyond the helper-loader binding.
+- Any verdict difference over the real corpus that the three causes in AC-0015 do not explain.
+- Any change to the brief-route or spec-route arms, or to the delivery resolver.
 
 ### Never do
 
-<!-- Hard rules. No exceptions, no clever workarounds. -->
-
--
--
--
+- Never parse a `Parent intent:` value in `closure_index.py`.
+- Never import across skills; the copy is loaded from `close-work`'s own `scripts/` folder.
+- Never read `workspace.toml` for a parent edge.
+- Never add a runtime dependency outside the Python standard library, a new module beyond the copy, or a persisted index.
+- Never edit the body of `closure-eligibility-check`'s spec; only its `Status:` line changes.
 
 ## Testing Strategy
 
-Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
-
-- **TDD** — for logic with a compressible invariant.
-- **Goal-based check** — a one-liner verifies the outcome (a build
-  command, a `grep`, a typecheck).
-- **Visual / manual QA** — a recorded gesture and an observable
-  outcome, for UX flows.
-
-A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
-*surface*: a goal-based or manual-QA behavior may be verified by an
-**integration** test (two components together) or an **end-to-end (E2E)**
-test (the whole journey, as the user drives it) rather than a unit test —
-name that surface when a behavior only proves out across a boundary or a
-full flow.
-
-<!--
-e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
-flow: manual QA, exercised by an E2E test. Cross-service order placement:
-goal-based, exercised by an integration test." If you can't pick a mode for
-a behavior, the behavior is too vague — sharpen it before moving on.
--->
+- **TDD (AC-0002, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013):** Contract tests over temporary fixture corpora drive the real derivation copy through `check_ancestor_closure` and `resolve_intent_ancestors`. Each arm, refusal, and read bound has its own fixture, because each is an invariant over constructed inputs.
+- **Goal-based check (AC-0001, AC-0003, AC-0014):** A byte comparison, a source scan, and a status-line read. Each is a one-line property of a file, so a fixture would add nothing.
+- **Goal-based check over the real corpus (AC-0015):** A comparison script runs the pre-change and post-change `closure_index.py` side by side at the delivery's base commit. It exits non-zero on any difference it cannot attribute. Its output is recorded in the verification ledger. This is a goal-based record because it measures one corpus at one commit, not an invariant.
 
 ## Acceptance Criteria
 
-<!--
-The verifiable goals that close this spec. Each item should be checkable
-without subjective judgement — a reviewer can read it and know whether it
-holds. Notation: `- [ ]` open, `- [x]` met (see the `new-spec` skill's
-`references/spec-and-plan-contract.md` § Spec metadata contract). A newly Shipped spec has no open Acceptance Criteria.
+### The copy
 
-This section owns criterion *shape*. Before writing criteria, work the six
-failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
-in order — they cover the failures shape rules cannot see, starting with a
-criterion that belongs to a different artifact. Two of those classes defer
-criterion shape back to this section; the rest defer elsewhere or own their own
-rules, and that reference states which.
+- [ ] **AC-0001.** `packs/core/.apm/skills/close-work/scripts/intent_graph.py` is byte-identical to `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py`, checked by the test that pins the skill's other byte-identical copies.
+- [ ] **AC-0002.** With both copies of `intent_graph.py` loaded in one interpreter, in either order, each copy's confinement helper and delivery resolver are the files in that copy's own `scripts/` folder.
+- [ ] **AC-0003.** No line of `close-work/scripts/closure_index.py` reads a `Parent intent` key from a parsed preamble. The only `Parent intent` reads it keeps are of the delivery resolver's snapshot provenance records.
 
-Two recurring sources of criteria, so they don't slip into the plan as
-mere design detail:
+### Descendants
 
-- An **output-channel constraint** (e.g., "no sensitive data on stdout")
-  must enumerate *every* channel the consuming context makes user-visible
-  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
-  same constraint to each one explicitly — a constraint named on one
-  channel only is silently violated if the caller also sees another.
+- [ ] **AC-0004.** For an ancestor whose terminus is `children`, its direct intent children are exactly the live intents whose `Parent intent:` edge the derivation resolves to the ancestor's node. A fixture covers each of the `intent:`, `capability:`, `outcome:`, and `opportunity:` prefixes and a repository path to the ancestor's file.
+- [ ] **AC-0005.** A tombstone file whose `Parent intent:` names an ancestor is never a descendant of that ancestor.
 
-- A **UI state** is an acceptance criterion: phrase it as
-  *state / trigger / outcome* — "given <state>, when <trigger>, the user
-  sees <outcome>" (e.g. "given an empty cart, when the page loads, the
-  user sees the empty-state illustration and a 'browse' link"). The
-  per-screen design itself lives in the plan's `## Design (LLD)`; the
-  observable state belongs here.
-- A **non-functional requirement with a pass/fail bar** is an acceptance
-  criterion: it must name a threshold a test or audit can check —
-  "meets WCAG 2.2 AA", "p99 latency under 200ms at 1k rps", "zero criticals
-  in the dependency scan". An NFR with no bar ("should be fast") is not a
-  criterion; give it a number or move it to the plan.
+### Ancestors
 
-- A criterion that needs "and" to join two **different predicates** is two
-  criteria: a conjunction is where a coverage check silently passes while half
-  the criterion is unimplemented. A criterion is more than one when its parts
-  have separate failure modes with separate remedies. Where the parts read as one
-  constraint over a set, rewrite the criterion as a single predicate with a
-  member substituted in; it stays one criterion only if that predicate is
-  checkable as written at every member rather than expanding into a different
-  check per member. The worked examples below fix where this boundary falls;
-  where the cue and an example conflict, the examples govern.
+- [ ] **AC-0006.** For an intent or a brief, `resolve_intent_ancestors` returns every live intent reached by following resolved `Parent intent:` edges from it, nearest first. The chain continues through every hop, whatever the typed prefix of each.
+- [ ] **AC-0007.** For a spec, the first ancestors are the intents the delivery resolver's snapshot names for it: feature intents from its delivery relations, and other intents from its `Discovery:` provenance records. Each one's own ancestors follow, under AC-0006.
+- [ ] **AC-0008.** A brief whose `Parent intent:` names an intent with the same slug as the brief returns that intent as its nearest ancestor.
 
-  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
-    order, and `--dry-run` prints that manifest without writing a file." Two
-    different predicates; no single sentence covers both. The base case where the
-    conjunction cue and the split test agree.
-  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
-    output surfaced to the agent." One predicate substituted at each member of an
-    enumerated set, checkable as written at every member.
-  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
-    bytes, the execute byte, the u64be content length, then the content bytes."
-    One comparison value expressed in parts — the split test never engages,
-    because there is one failure and one remedy.
-  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
-    the exit code." "X is correct" is not checkable as written: it expands into a
-    different check per member. This is the anti-licence against reframing a
-    bundle as one constraint over a domain, and without it E2's shape is available
-    to any author.
-  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
-    Different failure modes (interception, script access) but one substitutable
-    predicate and one remedy. Shows that separate failure modes alone do not
-    split when the predicate survives substitution.
+### Refusals
 
-- A universal claim enumerates its closed set or names the mechanism that makes
-  coverage exhaustive: without one, a reviewer cannot tell which members the
-  claim covers or whether an omitted member is a defect.
+- [ ] **AC-0009.** When the derivation fails with an integrity failure, a closure decision that needs it refuses with the reason `intent-graph-unavailable: <code>`, where `<code>` is the derivation's failure code. `resolve_intent_ancestors` raises a refusal with the same reason.
+- [ ] **AC-0010.** A closure decision for ancestor `A` with a `children` terminus refuses with the reason `parent-edge-refused` when the derivation refuses a live intent's `Parent intent:` edge whose recorded value, or one of whose recorded values, names `A`.
+- [ ] **AC-0011.** `resolve_intent_ancestors` raises a refusal with the reason `parent-edge-refused` when the derivation refuses the `Parent intent:` edge of the walked artifact or of any ancestor it reaches. A fixture covers each refusal state the derivation can return for that field, including a parent that is a tombstone.
 
-- A new claim becomes a new checklist item, never a lettered or semicolon
-  graft: a graft hides a separately reviewable outcome inside an existing
-  criterion and makes its completion ambiguous.
+### Read bounds
 
-- For every numeric limit a criterion states, record the input that makes the
-  limit fire first and the enforcement mechanism that makes that ordering true;
-  a limit missing **either** fact is not yet a criterion. Where one quantity has
-  two limits, either order them so each is reachable for some input, or declare
-  one non-binding on that route and name the limit that fires instead.
+- [ ] **AC-0012.** A closure decision runs the derivation once when a `children` terminus is on its closure, and never otherwise. A fixture whose closure names only `brief` or `spec` termini, or whose terminus is `closed-empty` or `direct-light`, runs it zero times. This supersedes `closure-eligibility-check`'s criterion 0025 for a decision that runs the derivation.
+- [ ] **AC-0013.** Outside the derivation, `close-work`'s own reader opens each artifact at most once per decision. It opens only artifacts in the returned descendant set. This supersedes `closure-eligibility-check`'s criteria 0024 and 0037, which counted every open from the check's entry to its verdict.
+- [ ] **AC-0014.** `docs/specs/closure-eligibility-check/spec.md`'s `Status:` line reads `Shipped (superseded in part by` and names this spec and its criteria 0024, 0025, and 0037. Every one of its `- [x]` criterion lines is unchanged from the delivery's base commit.
 
-- A criterion stating a limit names the reference point it is measured from.
-  Choose an origin that gives the same input the same measurement however the
-  subject is organised; an unstated origin is not yet a criterion. A criterion
-  requiring a limit states its value and never asks an implementer to supply one:
-  a value invented to satisfy an unspecified requirement is worse than an absent
-  limit, because it reads as a decision that was made.
+### Verdict bound
 
-- Make every claim earn its place by making a wrong implementation detectable.
-  Delete rationale, history, reassurance, restated context, and a figure that
-  merely explains where a threshold came from when it does not help establish the
-  outcome. Keep any claim that is the only written form of a comparison value,
-  such as a byte layout, exact key order, literal token, collection floor, or
-  stated bar. Ask: "could a wrong implementation now pass this?"
+- [ ] **AC-0015.** At the delivery's base commit, a comparison runs the pre-change and post-change `closure_index.py` over the real corpus. It records, for every live intent, brief, and spec, its ancestor chain, and for every distinct ancestor its verdict kind and reason. It attributes every difference to exactly one of three causes:
+      1. A parent hop written with `capability:`, `outcome:`, or `opportunity:`.
+      2. A slug lookup that matched a tombstone.
+      3. A parent intent that shares its slug with the walking artifact.
 
-- A criterion names an observable outcome. Naming a function's parameters, a
-  helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Outcome guidance and `SKILL.md`'s design-doc anti-pattern for
-  the document-level distinction.
-
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-
-Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
-is still required, keep the spec `Implementing` and resume it. If a separable
-item no longer belongs in the final accepted contract, pause for a reviewed
-spec/plan amendment, remove it from this checklist, and record it under
-`Follow-ons` with its owner and stable artifact or external evidence reference.
-Historical frozen specs may still contain older `(deferred: <slug>)` markers;
-do not copy that pattern into new shipped work.
--->
-
-<!--
-Optional story trace: when this spec was derived from a product brief that
-carries user stories (Shape B; see author-delivery-brief continue), append `Satisfies: US-n`
-to each acceptance criterion that satisfies that story, so coverage is
-story-granular:
-
-- [x] <observable outcome>. Satisfies: US-2
-
-The marker is optional — omit it for a no-stories brief (Shape A) or a spec
-authored directly.
--->
+      It exits non-zero on any difference it cannot attribute. Its exit code and per-cause counts are recorded in the verification ledger.
 
 ## Follow-ons
 
-<!--
-Separately scoped work that does not belong to the final accepted AC set. Each
-entry needs an owner and a stable work-intake artifact or external evidence
-reference. Do not use this section to hide unfinished accepted intent.
-
-- <owner>: <stable artifact or external ref> — <one-sentence scope>
--->
+none
 
 ## Assumptions
 
-<!--
-What is still unresolved, and nothing else. Each item is a question the
-contract rests on that nobody has answered yet — so a reader sees the open
-questions instead of scrolling a list of facts that are already settled.
-
-A fact you settled is not an assumption, and how you checked it is not
-recorded here: that was the assumption checkpoint's evidence (`new-spec`
-SKILL.md step 3), and its job ended when the fact entered the contract. Route
-each settled fact by what it does. A fact that bounds what this delivery does
-goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
-into the plan's `## Design (LLD)` or `## Constraints`. There is no third
-destination, and nothing is left behind here as a receipt.
-
-Unresolved comes in two shapes, and both belong here.
-
-An **open question** — something that could still be answered:
-`- <category>: <open question> — <what it would change> (settled by: <who or
-what can answer it>)`
-
-A **named gap** — something that will not be answered on this delivery, such
-as a dependency that is absent or a corpus that is unreachable:
-`- <category>: <what is missing> — <what is therefore ungrounded>`
-
-Write `none` when nothing is unresolved. An empty section and an unexamined
-one read the same.
-
-- Technical: <open question> — <what it would change> (settled by: <…>)
-- Product: <what is missing> — <what is therefore ungrounded>
-
-When an item is settled later, route the fact to its destination above and
-delete the line. An item still here at approval is a known gap in the
-contract, recorded on purpose.
-
-A settled fact that later turns out wrong is a different event, and it does
-not come back here. Fix it where it lives — the spec body, or the plan's
-design — in the same PR that finds it, and say in that PR what changed. The
-correction belongs in the artifact the fact was doing work in, not in a note
-about the checkpoint that filed it.
--->
+none
