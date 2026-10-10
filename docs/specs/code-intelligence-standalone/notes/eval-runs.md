@@ -55,6 +55,7 @@ a regression case, not an AC-0004 case.
 | 1 | 4/5 | 4/5 | Pre-existing: same assertion (narrow to load-bearing dependents) |
 | 3 | 3/4 | 4/4 | Recorded per plan as the known first-assertion failure; branch reruns 3/4, 3/4, R4 3/4 |
 | 4 | 4/4 | — | Pass |
+| 7 | 3/4 (R3, R4, R5a, R5b) | — | Not gated: the failing hop assertion is new on this branch, so origin/main has no equivalent. Recorded by owner decision, 2026-10-10 |
 | 5 | 2/4 | 2/4 | Pre-existing: same two assertions (wave verdict, sequencing owner) |
 | 8 | 1/4 | 1/4 | Pre-existing: empty workspace, no index, so no command ran |
 | 9 | 3/4 | 3/4 | Pre-existing: empty workspace, no `rank` call |

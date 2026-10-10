@@ -223,11 +223,13 @@ installed skill path recorded in the verification ledger.
   so it cannot exercise the never-open rule; its result is recorded, not
   gated. A failure that the same case also shows against the
   `origin/main` skill is recorded as pre-existing (case `3`'s first assertion
-  is already known to fail there); any other failure returns to T2.
+  is already known to fail there); any other failure, except eval 7's, returns
+  to T2.
 
 **Done when:** the pack suite is green, the graded tally in the ledger shows
-4/4 AC-0004 cases passing every assertion, and every regression-run failure is
-recorded as pre-existing.
+4/4 AC-0004 cases passing every assertion, every regression-run failure other
+than eval 7's is recorded as pre-existing, and eval 7's result is recorded in
+`notes/eval-runs.md` with the owner decision as its disposition.
 
 ### T4: Docs, version, changelog, and projection updated
 
