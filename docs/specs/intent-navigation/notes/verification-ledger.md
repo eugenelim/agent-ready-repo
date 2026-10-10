@@ -343,3 +343,13 @@ row's literal method.
   error.
 - Main's `e2a1b608e` fixes the cohort defect that wedged run `08208db7`: a
   refused effect no longer writes its pending marker.
+- CI on `0ba1d6d81`: `build-check` 38025961503 success, `test-roster`
+  38025964367 success, `test-corpus` 38025962941 failure in shard 4 on
+  `test_vi1402_only_canonical_delivery_inverter_exists`. That single-inverter
+  test accepted only the source and the `close-work` and `work-loop` copies,
+  so the `navigate-intents` copy counted as an unexpected producer. AC-0011
+  requires this test to cover the new skill directory; T2 extended the two
+  pin tests it named but not this one, in
+  `packs/core/tests/integration/test_intent_delivery_traceability.py`, which
+  no task's `Touches` listed. It now accepts and byte-checks the
+  `navigate-intents` copy; it fails on `0ba1d6d81` and passes now.

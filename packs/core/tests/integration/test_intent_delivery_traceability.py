@@ -1039,7 +1039,7 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
     )
     assert production_files, "No production .py files found under .apm/"
 
-    # ── Assertion 1: Only the source + two byte-identical copies produce ────────
+    # ── Assertion 1: Only the source + its byte-identical copies produce ────────
     _DELIVERY_TYPE_LITERALS = {"direct-delivery", "coordinated-delivery"}
     producers: list[Path] = []
 
@@ -1061,20 +1061,22 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
                         producers.append(path)
                         break
 
-    # Accepted: source + 2 byte-identical skill copies.
+    # Accepted: source + its byte-identical skill copies.
     _cw_copy = _APM / "skills" / "close-work" / "scripts" / "intent_delivery_relations.py"
     _wl_copy = _APM / "skills" / "work-loop" / "scripts" / "intent_delivery_relations.py"
+    _ni_copy = _APM / "skills" / "navigate-intents" / "scripts" / "intent_delivery_relations.py"
     accepted_relpaths = {
         _RESOLVER_SRC.relative_to(_APM),
         _cw_copy.relative_to(_APM),
         _wl_copy.relative_to(_APM),
+        _ni_copy.relative_to(_APM),
     }
     non_accepted = [
         p for p in producers
         if p.relative_to(_APM) not in accepted_relpaths
     ]
     assert not non_accepted, (
-        "VI-1402: Only the source and its two skill copies may produce delivery "
+        "VI-1402: Only the source and its byte-identical skill copies may produce delivery "
         "relation types; unexpected producers: "
         + ", ".join(str(p.relative_to(_APM)) for p in non_accepted)
     )
@@ -1084,7 +1086,7 @@ def test_vi1402_only_canonical_delivery_inverter_exists() -> None:
 
     # Byte identity of each skill copy.
     source_bytes = _RESOLVER_SRC.read_bytes()
-    for copy_path in (_cw_copy, _wl_copy):
+    for copy_path in (_cw_copy, _wl_copy, _ni_copy):
         assert copy_path.read_bytes() == source_bytes, (
             f"VI-1402: {copy_path.relative_to(_APM)} must be byte-identical to source"
         )
