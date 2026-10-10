@@ -26,7 +26,7 @@ the pack, because it is what the agent reads:
 Wicked Estate ships a command-line tool and an MCP server. The pack drives the
 **CLI** by default, for two reasons: the server advertises 30 tool schemas that
 stay resident in the agent's context for a whole session, and the CLI is the
-larger surface — 40 names, several with no MCP equivalent.
+larger surface — 42 names, several with no MCP equivalent.
 
 | Surface | Maturity | Why |
 | --- | --- | --- |
@@ -35,8 +35,8 @@ larger surface — 40 names, several with no MCP equivalent.
 
 The memory, knowledge, and proposal domains are **MCP-only**. Register the server
 only if you need them, and prefer `--readonly`. The richer MCP response shapes
-(per-dependent `depth` and `summary.top_by_pagerank` on `BlastRadius`,
-`Communities` summaries, `ContextBundle`) are also MCP-only.
+(`summary.top_by_pagerank` on `BlastRadius`, `Communities` summaries,
+`ContextBundle`) are also MCP-only.
 
 ## Intent to command, in brief
 
@@ -45,7 +45,7 @@ only if you need them, and prefer `--readonly`. The richer MCP response shapes
 | Resolve a name to a stable ID | `wicked-estate resolve <name> --json` |
 | Fetch source | `wicked-estate source --symbols <id> --json` |
 | What depends on this | `wicked-estate blast-radius <name> [--depth N] --json` |
-| What this depends on (forward) | `wicked-estate lineage --symbol <id> --json` (resolve first) |
+| What this depends on (forward) | `wicked-estate lineage <symbol> --json` (a name or a symbol id) |
 | Walk by direction and edge kind | `wicked-estate traverse <symbol> [--direction ...] [--edge-kinds ...] --json` |
 | Route from A to B | `wicked-estate path <from> <to> [--max-depth N] --json` |
 | Bounded neighbourhood | `wicked-estate graph-view --focus <name>` |
@@ -56,8 +56,11 @@ only if you need them, and prefer `--readonly`. The richer MCP response shapes
 | Task context | `wicked-estate context <name> --budget <chars> --json` |
 | Graph size and freshness | `wicked-estate stats` |
 
-**Trap worth knowing:** `lineage` takes an exact SymbolId only — a name returns
-an empty result with exit 0, not an error. Always `resolve` first. `rank --seeds`
+**Traps worth knowing:** `lineage` accepts a name or a symbol id, but an unknown
+or ambiguous name exits non-zero with nothing on stdout, so `resolve` first when
+a name may be shared. The CLI parses arguments strictly: a malformed value, a
+surplus operand, a repeated flag, or a missing `--db` exits 1 with nothing on
+stdout, which is a command error and not an empty answer. `rank --seeds`
 biases a graph-wide ranking — seeded output includes symbols the seeds cannot
 reach. To rank a dependent set, keep only the rows whose `symbol` is in your set
 and report missing members as unranked.
@@ -69,24 +72,27 @@ and report missing members as unranked.
   `confidence {min, avg, edge_count}` summary. A true `depth_horizon_reached`
   means more dependents lie beyond the depth searched; raise `--depth`
   (default 12, maximum 24). A true `node_cap_reached` means the node budget cut
-  the walk, and no flag raises it. `blast-radius` rows carry no per-row confidence.
+  the walk, and no flag raises it. Each `blast-radius` row carries a per-row
+  `depth` (1 is a direct dependent) and no per-row confidence.
 - **`path --json`** returns `found`, `depth_bounded`, `node_bounded` and
   `unresolved`. `found: false` means no route exists only when `unresolved` is
   null and both bound flags are false. A misspelled name sets `unresolved` and
   still exits 0. With a bound flag true, a route may lie beyond the search.
   `path` follows every dependency edge kind, so read each hop's `kind`. Endpoint
   `line` counts from 0; use `line_1based`.
-- Commands served by the same retrieval tools as the MCP server (`traverse`, `rank`,
-  `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`;
-  in text mode, diagnostics go to stdout (source-read from `tool_bridge.rs`;
-  pinned on `rank --json`). `blast-radius` and `path` suppress it under `--json`;
+- Commands served by the same retrieval tools as the MCP server (`lineage`,
+  `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to
+  stderr under `--json`; in text mode they print it on stdout after the result
+  (source-read from `tool_bridge.rs`; pinned on `lineage --json`). `CLAMPED:`
+  follows the same channels. `blast-radius` and `path` suppress it under `--json`;
   use bare `wicked-estate stats` to check freshness before those.
 
 ## What does not exist on the CLI
 
-- **Per-dependent depth on blast-radius rows.** MCP `BlastRadius` stamps each
-  dependent with its `depth`; the CLI form does not. Use `--depth 1` to get only
-  direct dependents, and see `evidence.md` for how to split direct from transitive.
+- **A ranked-dependents summary on blast-radius.** MCP `BlastRadius` adds
+  `summary.top_by_pagerank`, which the CLI lacks. Its rows carry a per-row
+  `depth`, and `--depth 1` still returns only direct dependents; see
+  `evidence.md` for the split.
 - **A structured graph revision field.** Recoverable from a staleness warning
   plus `stats`, not queryable.
 - **Memory, knowledge, and proposal domains.** These have no CLI verb.
@@ -94,5 +100,5 @@ and report missing members as unranked.
 ## Commands that write
 
 Read-only work needs none of these, and the pack asks before any of them:
-`index`, `scip`, `tfstate`, `import-telemetry`, `annotate`, `semantics`,
+`index`, `scip`, `evidence`, `tfstate`, `import-telemetry`, `annotate`, `semantics`,
 `compact`, `watch`, `supports retract`, and `clusters --annotate`.

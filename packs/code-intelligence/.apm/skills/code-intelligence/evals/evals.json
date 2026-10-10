@@ -60,11 +60,11 @@
     {
       "id": 6,
       "prompt": "The MCP server is not registered. Does BlastRadius give me per-dependent depth and a confidence envelope, and should I rely on that?",
-      "expected_output": "An answer that distinguishes what the pack observed from what it read in upstream's schemas: the MCP response shape is documented by upstream and has never been executed by this pack, so it is contract-complete rather than validated. It should say the CLI is the validated surface; that CLI blast-radius rows carry only id, name, kind, file and line, while `blast-radius --json` adds one `confidence` summary over the whole walk; that per-dependent depth and per-row evidence come from MCP `BlastRadius`; and that registering the server is what would make those available \u2014 without presenting the MCP behaviour as observed fact.",
+      "expected_output": "An answer that distinguishes what the pack observed from what it read in upstream's schemas: the MCP response shape is documented by upstream and has never been executed by this pack, so it is contract-complete rather than validated. It should say the CLI is the validated surface; that CLI blast-radius rows carry id, name, kind, file, line and a per-row `depth` (1 is a direct dependent), while `blast-radius --json` adds one `confidence` summary over the whole walk; that MCP `BlastRadius` also stamps each dependent with `depth` but adds a PageRank-ranked `summary.top_by_pagerank` the CLI does not offer; and that registering the server is what would make that summary available \u2014 without presenting the MCP behaviour as observed fact.",
       "assertions": [
         "States that the MCP surface is schema-derived and has not been executed by this pack",
         "Does not present the MCP response shape as observed behaviour",
-        "Says the CLI surface is the validated one, that its blast-radius rows omit per-dependent depth, and that `blast-radius --json` carries one `confidence` summary rather than per-row values",
+        "Says the CLI surface is the validated one, that its blast-radius rows carry a per-row `depth`, and that `blast-radius --json` carries one `confidence` summary rather than per-row values",
         "Distinguishes contract-complete from validated rather than treating both surfaces alike"
       ]
     },
@@ -82,12 +82,12 @@
     {
       "id": 8,
       "prompt": "What does `submit_order` depend on, all the way down? I only need its forward dependencies, and the MCP server is not registered.",
-      "expected_output": "An answer that resolves `submit_order` to a symbol id first with `wicked-estate resolve submit_order --json` (naming every candidate if the name is ambiguous), then runs `wicked-estate lineage --symbol <id> --json` and reads `content.dependencies` with each row's depth. It reports `searched_depth` and whether `depth_horizon_reached`, `node_cap_reached` or `truncated` is true, and offers a larger `--depth` (up to 24) when the horizon was reached. It does not pass the bare name to `lineage`, because a name returns an empty result with exit 0.",
+      "expected_output": "An answer that resolves `submit_order` to a symbol id first with `wicked-estate resolve submit_order --json` (naming every candidate if the name is ambiguous), then runs `wicked-estate lineage <id> --json` and reads `dependencies` with each row's depth. It reports `searched_depth` and whether `depth_horizon_reached`, `node_cap_reached` or `truncated` is true, and offers a larger `--depth` (up to 24) when the horizon was reached. It resolves first because an ambiguous or unknown name exits non-zero with nothing on stdout, and it reads that as a command error rather than an empty answer.",
       "assertions": [
-        "Runs `wicked-estate resolve` before lineage and passes the resulting symbol id, not the name",
-        "Uses `wicked-estate lineage --symbol <id>` rather than saying forward dependencies need the MCP server",
+        "Runs `wicked-estate resolve` before lineage and passes the resulting symbol id",
+        "Uses `wicked-estate lineage <id>` in its positional form rather than saying forward dependencies need the MCP server",
         "Reports the depth searched and any cut flag that is true",
-        "Does not present an empty lineage for a bare name as proof that the symbol has no dependencies"
+        "Reads a lineage call that exits 1 with nothing on stdout as a command error, not as proof that the symbol has no dependencies"
       ]
     },
     {

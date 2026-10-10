@@ -6,14 +6,16 @@
       "name": "bootstrap",
       "kind": "function",
       "file": "composition-app_main.py",
-      "line": 7
+      "line": 7,
+      "depth": 1
     },
     {
       "id": "sym-002",
       "name": "run",
       "kind": "function",
       "file": "composition-cli_entry.py",
-      "line": 9
+      "line": 9,
+      "depth": 1
     }
   ],
   "unresolved": 2,

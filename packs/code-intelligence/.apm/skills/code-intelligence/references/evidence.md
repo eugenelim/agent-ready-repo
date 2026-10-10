@@ -21,8 +21,12 @@ The design rule upstream is that there are no bare edges — a heuristic edge is
 never presented as a fact. Several resolvers feed the graph, and they are not
 equally trustworthy:
 
-- A **SCIP-backed** edge comes from a real compiler index. It is about as close
-  to ground truth as static analysis gets.
+- A **`compiler`** edge is backed by compiler evidence. `compiler` is both a
+  resolution tier and a provenance value. A SCIP import adds reference support
+  and never call edges, so importing a SCIP index does not add a call edge.
+  Compiler evidence, such as Angular input and output bindings, reaches the graph
+  through `evidence`, a write verb this skill does not run (source-read from the
+  0.26.0 sources).
 - An **import-map or scoped** edge comes from resolving a name within a known
   module structure. Usually right.
 - A **name-matched** edge comes from a symbol name matching across files. It is
@@ -82,16 +86,19 @@ unresolved and **727 truncated**.
 `blast-radius --json` returns `searched_depth`, `depth_horizon_reached`, and
 `node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
 `CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
-`--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents) before subtracting.
+`--depth` (max 24) to go further. Each row carries a per-row `depth`, and `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents).
 
 A true `node_cap_reached` means the traversal hit its node budget. No CLI flag
 raises it, so report the list as a floor.
 
 ### Direct and transitive dependents
 
-`blast-radius <name> --depth 1 --json` gives the direct dependents. Subtracting
-them from a full run gives the transitive dependents, but only as far as both
-runs are complete:
+Every `blast-radius --json` dependent row carries a per-row `depth`: 1 is a
+direct dependent, and larger values are transitive. Read `depth` first; one
+full run separates the two sets, and the cut flags below say how far to trust the
+split. `--depth 1` is still valid when you want only direct dependents.
+Subtracting a `--depth 1` run from a full run is a second route to the same
+split, and it holds only as far as both runs are complete:
 
 - **Both runs uncut** — the `--depth 1` run reports `truncated_dependents` 0,
   and the full run reports `unresolved` 0, `truncated_dependents` 0,
@@ -128,8 +135,8 @@ result sitting at the cap is a partial subgraph. The response carries per-node
 depth, so you can at least say how far you got.
 
 `wicked-estate traverse` clamps `--depth` and `--max-nodes` when they exceed the
-ceiling and writes `CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>` to stderr, even under `--json`. The value after `used` is the one applied.
-Check stderr when you need to know whether the value you passed was honoured.
+ceiling and writes `CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>` to stderr under `--json` and to stdout after the result in text mode. The value after `used` is the one applied.
+Check that channel when you need to know whether the value you passed was honoured.
 
 ---
 
@@ -143,9 +150,9 @@ and a low `avg` means the set is largely speculative.
 `blast-radius` rows carry no per-row confidence. Use `wicked-estate path A B
 --json` when you need per-hop confidence on a specific route.
 
-MCP `BlastRadius` also returns the `confidence` envelope, plus per-dependent
-`depth` and `summary.top_by_pagerank`. The CLI does not offer per-row depth or a
-ranked-dependents view.
+MCP `BlastRadius` also returns the `confidence` envelope and per-dependent
+`depth`, plus `summary.top_by_pagerank`. The CLI rows carry `depth` too; the CLI
+does not offer a ranked-dependents view.
 
 Structural `contains` and `defines` edges are excluded from the confidence
 evidence (source-read from `main.rs`); they do not affect which rows appear in
@@ -165,8 +172,7 @@ STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate ind
 
 **Staleness channels differ by command:**
 
-- **Bridged commands** (`traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr even under `--json`, so machine output from those commands may carry the warning as a stderr line.
-- **`lineage --json`** carries staleness in the `diagnostics` array — a placeholder entry is always present; a real `STALENESS: commits_behind=N` entry appears when the graph is behind HEAD (source-read).
+- **Bridged commands** (`lineage`, `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`, so stdout stays one JSON document and the warning is a stderr line (executed on `lineage --json`). In text mode they print it on stdout after the result (source-read from `tool_bridge.rs`).
 - **`blast-radius` and `path`** suppress `STALENESS:` under `--json` so machine output stays one document. Do not treat its absence there as evidence of freshness.
 - **`stats`** in text mode always prints the staleness line when it applies, and is the best single command for a freshness check before blast-radius or path queries.
 
@@ -182,8 +188,9 @@ Never silently present stale graph output as current.
 ### Clamped parameters
 
 When `--depth` or `--max-nodes` exceeds the ceiling, bridged commands clamp the
-value and write `CLAMPED: <param>=<actual>` to stderr, even under `--json`. Check
-stderr when you need to know whether the value you passed was honoured.
+value and write `CLAMPED: <param>=<actual>` to stderr under `--json` and to
+stdout after the result in text mode. Check that channel when you need to know
+whether the value you passed was honoured.
 
 ### Establishing snapshot identity
 
@@ -202,19 +209,25 @@ from" as a value. Pair `stats` with the staleness line.
 
 ## Value lineage — `flows_to`
 
-`wicked-estate lineage --symbol '<id>' --relation flows_to --json` traces
+`wicked-estate lineage <symbol> --relation flows_to --json` traces
 producer-to-consumer value flow through parameters, returns, and field writes.
-TypeScript only. Each flow hop carries:
+`<symbol>` is a name or a symbol id. A parameter or local is a value slot, which
+plain `resolve` does not return, so find the seed with
+`resolve <name> --include-values --json` (source-read). Coverage is TypeScript,
+TSX, and JavaScript files (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`).
+Callbacks, `await` and `.then`, destructuring, loops, local object properties,
+and closure returns add hops, almost all of them `may_influence`. Each flow hop
+carries:
 
 - `producer`, `consumer`, `confidence`, `provenance`, `resolved_by`
 - When present: `flow_semantics` (`value_preserving` / `may_influence`) and
-  `flow_evidence` (`syntax` / `call_derived` / `convention`)
+  `flow_evidence` (`syntax` / `call_derived` / `convention` / `compiler`)
 
 Additional fields (`constructs`, `flow_rules`, `flow_support`, etc.) may appear;
-the list is not exhaustive (source-read from `wicked-estate-retrieve` 0.21.0
-`flow_hop_row`). The Python fixture produces no value flow, so these fields
-cannot be observed on the standard test index — treat them as source-read and
-label them as such when you quote them.
+the list is not exhaustive. The Python fixture produces no value flow, so these
+fields and the new hop kinds cannot be observed on the standard test index —
+they are source-read from the 0.26.0 sources, so label them as such when you
+quote them. Any `--relation` other than `flows_to` exits 1.
 
 ---
 
@@ -227,30 +240,28 @@ place the estate records a human or agent judgment alongside its provenance.
 wicked-estate annotations --symbol '<symbol_id>' --json
 ```
 
-Each annotation carries exactly these fields: `key`, `value`, `type`,
-`confidence`, `provenance`, `author`, `ts`, and `advisory`.
+Each annotation carries `key`, `value`, `type`, `confidence`, `provenance`,
+`author`, `ts`, `advisory`, `source_type`, `extraction_method`, and
+`last_verified` (executed on 0.26.0).
 
-Two shape traps, both verified against the binary:
-
-- **The `<name>` form returns an array**, one `{symbol, annotations[]}` entry
-  per name match. Only the `--symbol '<id>'` form returns a single object, which
-  is why the command above uses it.
-- **There is no `last_verified` field in the JSON.** The human-readable
-  `stale-annotations` output mentions one, but the machine output gives you
-  `ts`. Report `ts`; do not promise a verification date the payload does not
-  carry.
+One shape trap, verified against the binary: **the `<name>` form returns an
+array**, one `{symbol, annotations[]}` entry per name match. Only the
+`--symbol '<id>'` form returns a single object, which is why the command above
+uses it.
 
 Two rules:
 
 - **An annotation is a claim, not a fact.** It has an author and a confidence
   for a reason. Report it with its provenance attached: *"annotated as
-  deprecated by `platform-team`, confidence 0.8, recorded 2026-03-11"* — not
-  "this is deprecated".
+  deprecated by `platform-team`, confidence 0.8, last verified 2026-03-11"* — not
+  "this is deprecated". Report `last_verified` as the verification date and
+  `ts` as the recording time.
 - **Check whether it is stale.** `wicked-estate stale-annotations <cutoff>
-  --json` returns `{symbol, annotation}` pairs older than the cutoff. The
-  cutoff is **Unix seconds**; a date string is rejected with a usage error.
-  Never-verified annotations always come back stale. An old annotation on
-  fast-moving code is weak evidence.
+  --json` returns `{symbol, annotation}` pairs older than the cutoff. Give
+  exactly one cutoff: Unix seconds, a `YYYY-MM-DD` date, or
+  `--older-than <N>{s,m,h,d,w}` (for example `--older-than 90d`). Two cutoffs
+  exit non-zero. Never-verified annotations always come back stale. An old
+  annotation on fast-moving code is weak evidence.
 
 ### Do not write workflow state here
 

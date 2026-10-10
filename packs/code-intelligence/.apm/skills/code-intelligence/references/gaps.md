@@ -1,7 +1,7 @@
 # Gaps against a general code-intelligence contract
 
 Fourteen capabilities a general code-intelligence provider could offer,
-assessed against what Wicked Estate 0.21 actually exposes. This exists so the
+assessed against what Wicked Estate 0.26 actually exposes. This exists so the
 skill can say "that is not available" with a reason instead of improvising.
 
 **Three provenances, and the difference matters.** The rule below classifies
@@ -13,7 +13,7 @@ sections, not the findings list near the end.
 1. **Executed.** Run against a real repository with Wicked Estate **0.16.7** —
    65,807 nodes, 104,113 edges, 4,625 files — and the output read. Those counts
    are attributed to 0.16.7; executed rows for later additions were run on a
-   small fixture with 0.21.0. Most CLI rows are this.
+   small fixture with 0.26.0. Most CLI rows are this.
 2. **Schema-derived.** Read from upstream's registered tool names and frozen
    conformance schemas. **Every MCP row is this. The MCP server has never been
    run here.**
@@ -58,11 +58,11 @@ unique and the tool is honest about returning several.
 
 ## 2. Search — **Direct**
 
-`wicked-estate query <name>` for lexical search; MCP `SearchEntity` for the same
-ranked and capped at 100.
+`wicked-estate query <name> [--json]` for lexical search; `--json` returns the
+same rows as `resolve --json`. MCP `SearchEntity` offers the same ranked and
+capped at 100.
 
-*Caveat worth stating:* `query` has no `--json`, so parse `resolve --json`
-instead. Semantic search exists — `wicked-estate semantic`, MCP
+*Caveat worth stating:* semantic search exists — `wicked-estate semantic`, MCP
 `SemanticSearch` — but only when the index was built with `--embeddings`, and
 the MCP server advertises the tool only when an embedding backend is present.
 Treat semantic search as conditionally available.
@@ -87,7 +87,8 @@ easy to misread as "the symbol does not exist". It means "no stored content".
 `wicked-estate traverse '<symbol>' [--direction dependencies|dependents|both] [--depth N] [--edge-kinds a,b] [--max-nodes N] [--json]` is a genuine bounded walk
 over the graph. JSON: `{nodes, edges, depths, truncated, searched_depth, depth_horizon_reached, node_cap_reached}`;
 each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Over-ceiling
-`--depth` or `--max-nodes` is clamped with `CLAMPED:` on stderr.
+`--depth` or `--max-nodes` is clamped with `CLAMPED:` on stderr under `--json`
+and on stdout after the result in text mode.
 
 MCP `TraverseGraph` offers the same capability. The CLI and MCP forms are equivalent in structure; `traverse --json` returns per-node depth in its `depths` field.
 
@@ -128,11 +129,11 @@ Text output prints a `STALENESS:` line; `--json` suppresses it.
 unresolved count. This is the capability Wicked Estate is strongest at, and the
 only one that reports its own incompleteness numerically.
 
-The two surfaces differ substantially, and the MCP form is the richer one:
+The two surfaces differ, and the MCP form is richer in ranked dependents:
 
 | | CLI `blast-radius [--depth N] --json` (executed) | MCP `BlastRadius` (schema-derived) |
 | --- | --- | --- |
-| Per-dependent depth | no | **yes** |
+| Per-dependent depth | **yes** — per-row `depth`, 1 is direct | **yes** |
 | Confidence envelope | `confidence {min, avg, edge_count}` summary | **yes** — same shape, richer context |
 | Ranked dependents | no | **yes** — `summary.top_by_pagerank` |
 | Traversal depth | `--depth` parameter, default 12, max 24 | `depth` parameter, default 8, max 24 |
@@ -140,8 +141,9 @@ The two surfaces differ substantially, and the MCP form is the richer one:
 | Unbound references | `unresolved` | `unresolved_callers` |
 | Output cut | `truncated_dependents` | `truncated` + `total` |
 
-*Note:* use `blast-radius <name> --depth 1 --json` to get direct dependents
-only. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents). When
+*Note:* every CLI dependent row carries a per-row `depth`, so one run separates
+direct (`depth` 1) from transitive dependents; `blast-radius <name> --depth 1
+--json` still returns direct dependents only. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents). When
 `depth_horizon_reached` is true, the text output prints `CUT AT depth=N`;
 raise `--depth` (max 24) to go further. `blast-radius` rows carry no per-row
 confidence — use `wicked-estate path` when you need per-hop evidence on a specific route.
@@ -176,14 +178,14 @@ auditable via `stale-annotations`.
 
 `wicked-estate path --json` hops carry `confidence`, `provenance`, and
 `resolved_by` per hop — so for a specific route, the full edge evidence is
-available on the CLI. `blast-radius --json` gives `{id, name, kind, file, line}`
-per dependent — no per-row confidence, no per-row provenance. So for impact work,
+available on the CLI. `blast-radius --json` gives `{id, name, kind, file, line,
+depth}` per dependent — no per-row confidence, no per-row provenance. So for impact work,
 per-row provenance **exists in the model** but is not printed per dependent on
 the CLI.
 
-A second, smaller correction: the annotation JSON carries `ts`, not
-`last_verified`. The human-readable `stale-annotations` text mentions a
-verification date; the machine payload does not.
+Annotation JSON carries `source_type`, `extraction_method`, and `last_verified`
+alongside `ts`, so a verification date is part of the machine payload
+(executed).
 
 ## 11. Confidence — **Direct on blast-radius summary; Direct on CLI path; Direct on MCP (schema-derived)**
 
@@ -197,7 +199,8 @@ Confidence is on every edge by construction and on every annotation as a field.
 
 **On MCP this reaches the per-dependent level.** `BlastRadius` returns a
 `confidence {min, avg, edge_count}` envelope, and each dependent carries its
-`depth`, so you can assess both confidence and reach together.
+`depth`, so you can assess both confidence and reach together. The CLI rows
+carry the same `depth`.
 
 The correct response when per-row confidence matters is to verify load-bearing
 edges with your own repository search rather than to invent a confidence figure.
@@ -235,21 +238,17 @@ What is missing is a single call returning "this graph was built from commit
 `<sha>` at `<time>`" as structured data. You can establish the revision, but by
 reading a warning line and a stats block rather than by querying a field.
 
-## 14. Capability discovery — **Partial**
+## 14. Capability discovery — **Direct**
 
 Over MCP, `tools/list` is genuine runtime capability discovery: the advertised
 set varies by what is actually available. `SemanticSearch` appears only with an
 embedding backend; `--readonly` drops the ten write tools, leaving 20 (21 with
 `SemanticSearch`).
 
-Over the CLI, discovery is `wicked-estate --help`, which is a static usage
-block — and there is **no `--version` flag at all**; `--version` falls through
-to the same usage banner, which happens to start with the version string.
-
-Three dispatched commands do not appear in that banner: `graph-view`,
-`by-requirement`, and `semantics`. The help text is therefore not a complete
-inventory of what the binary accepts. Verify a verb by running it rather than
-by assuming `--help` is exhaustive.
+Over the CLI, `wicked-estate --help` lists every dispatched command, and
+`wicked-estate --version` prints one line, `wicked-estate <version>` (executed).
+The completeness of `--help` is source-read: upstream tests it against the
+dispatch table. Verify a verb you plan to rely on by running it.
 
 ---
 
@@ -270,7 +269,7 @@ by assuming `--help` is exhaustive.
 | 11 | Confidence | Direct on blast-radius summary; Direct on CLI path hops; Direct on MCP (schema-derived) |
 | 12 | Completeness | Direct — unresolved, truncation and depth cut all reported |
 | 13 | Snapshot / revision identity | Partial |
-| 14 | Capability discovery | Partial |
+| 14 | Capability discovery | Direct |
 
 ---
 
@@ -279,11 +278,11 @@ by assuming `--help` is exhaustive.
 Recorded for the reader's benefit. No change to Wicked Estate is proposed or
 required, and this pack works within all of them.
 
-1. **The CLI blast-radius surface is thinner than MCP for impact work.** MCP
-   `BlastRadius` returns per-dependent depth and PageRank-ranked dependents;
-   the CLI form returns neither. The CLI carries a `confidence` summary, but
-   the per-row and ranked-dependents gaps remain. The gap is not in Wicked Estate's
-   model; it is in what the CLI exposes.
+1. **The CLI blast-radius surface lacks PageRank-ranked dependents.** MCP
+   `BlastRadius` returns `summary.top_by_pagerank`, which the CLI lacks. The
+   CLI rows carry a per-row `depth` and a `confidence` summary, but no per-row
+   confidence. The gap is not in Wicked Estate's model; it is in what the CLI
+   exposes.
 2. **Ranking a dependent set is a composition, not a direct query.** `rank --seeds`
    biases a graph-wide ranking rather than filtering to the seed set. To rank a
    blast radius, seed with the dependent ids, retrieve up to 200 rows, and keep
@@ -294,12 +293,8 @@ required, and this pack works within all of them.
    it cannot serve single-symbol lookup.
 4. **Freshness is invisible on the machine path for some commands.** `blast-radius`
    and `path` suppress `STALENESS:` under `--json`, so an agent working in JSON
-   from those commands never sees it. Bridged commands (`traverse`, `rank`,
-   `rules-inventory`, `rules-recall`) write it to stderr even under `--json`.
-5. **`query` has no `--json`.** The most obvious search verb is the one that
-   cannot be parsed; `resolve --json` has to stand in.
-6. **No `--version` flag and no structured revision field.** `--version`
-   prints the full usage banner, and graph revision is recoverable only from a
+   from those commands never sees it. Bridged commands (`lineage`, `traverse`,
+   `rank`, `rules-inventory`, `rules-recall`) write it to stderr under `--json`
+   and to stdout after the result in text mode.
+5. **No structured revision field.** Graph revision is recoverable only from a
    warning line plus a stats block.
-7. **`--help` is not a complete command inventory.** `graph-view`,
-   `by-requirement`, and `semantics` are dispatched but undocumented there.
