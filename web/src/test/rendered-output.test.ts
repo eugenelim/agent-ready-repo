@@ -533,7 +533,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       ['Browse guides and learning paths', `${DOCS_BASE_PATH}guides/`],
       ['Browse the pack and skill reference', `${DOCS_BASE_PATH}packs/`],
       [
-        'Understand the three supervised loops',
+        'See the operating model',
         `${DOCS_BASE_PATH}guides/_shared/explanation/the-three-loops/`,
       ],
       [

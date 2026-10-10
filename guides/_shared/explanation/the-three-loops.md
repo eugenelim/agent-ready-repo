@@ -1,20 +1,14 @@
 ---
-title: The three loops — the company operating model
-summary: Understand why discovery, build, and release are separate supervised loops and how their handoffs form one operating model.
+title: "The operating model: how work flows from idea to production"
+summary: See the four stages every piece of work moves through, which packs help in each, where you decide, and why discovery, build, and release run as three separate loops.
 pack: _shared
 kind: explanation
 ---
 
-# The three loops — the company operating model
+# The operating model: how work flows from idea to production
 
-Shipping software is three jobs: working out what to build, building it, and
-getting it into production. They go wrong in different ways, different people
-decide them, and some of their mistakes can't be undone. One agent loop can't
-run all three well. Give it a single level of caution and it either crawls
-through cheap exploration or rushes a production release.
-
-So the catalogue gives each job its own loop. This page shows how work moves
-between them and where you make the calls.
+This page shows how one piece of work moves from idea to production, which
+packs help at each stage, and where you make the calls.
 
 ## The handoff chain
 
@@ -140,6 +134,10 @@ This list carries everything the pictures show, in words.
    it to production.
 
 ## Why three loops, not one
+
+Shipping software is three jobs: working out what to build, building it, and
+getting it into production. One agent loop can't run all three well, so the
+catalogue gives each job its own loop.
 
 **Some mistakes are cheap and some aren't.** You can explore five product
 shapes in an afternoon and throw four away. A bad production release can't be

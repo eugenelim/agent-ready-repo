@@ -66,7 +66,7 @@ _APPROVED_SHARED_CHROME_DESTINATIONS = {
     "journeys": ("Journeys", "/journeys/", "internal"),
     "get-started": ("Get started", "/docs/getting-started/", "internal"),
     "install": ("Install", "/docs/getting-started/install/", "internal"),
-    "three-loops": ("The three loops", "/docs/guides/_shared/explanation/the-three-loops/", "internal"),
+    "three-loops": ("The operating model", "/docs/guides/_shared/explanation/the-three-loops/", "internal"),
     "all-docs": ("All docs", "/docs/", "internal"),
     "changelog": ("Changelog", "/docs/changelog/", "internal"),
     "contributing": ("Contributing", "/docs/contributing/", "internal"),

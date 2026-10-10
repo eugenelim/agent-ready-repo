@@ -13,7 +13,9 @@
   supersession — every decision here stands. On 2026-10-10 the Docs row
   `The three loops` was retargeted to the guide at
   `/docs/guides/_shared/explanation/the-three-loops/` under the same carve-out,
-  when the Get Started copy was folded into it; the old URL redirects there)
+  when the Get Started copy was folded into it; the old URL redirects there.
+  The same day its label became `The operating model`, the product's own
+  name for the model, so a newcomer recognises it before reading the page)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
@@ -84,7 +86,7 @@ Desktop and marketing-mobile disclosure use the same order and labels.
 Both renderer-specific footers use these exact groups and order:
 
 - **Product:** How it works, Use cases, Catalogue, Packs, Journeys.
-- **Docs:** Get started, Install, The three loops, All docs.
+- **Docs:** Get started, Install, The operating model, All docs.
 - **Project:** Now, Changelog, Contributing, Claude plugins, GitHub, PyPI.
 
 | Group | Label | Target |
@@ -96,7 +98,7 @@ Both renderer-specific footers use these exact groups and order:
 | Product | Journeys | `/journeys/` |
 | Docs | Get started | `/docs/getting-started/` |
 | Docs | Install | `/docs/getting-started/install/` |
-| Docs | The three loops | `/docs/guides/_shared/explanation/the-three-loops/` |
+| Docs | The operating model | `/docs/guides/_shared/explanation/the-three-loops/` |
 | Docs | All docs | `/docs/` |
 | Project | Now | `/now/` |
 | Project | Changelog | `/docs/changelog/` |

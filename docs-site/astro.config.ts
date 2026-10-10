@@ -38,7 +38,7 @@ export default defineConfig({
   base: '/agent-ready-repo/docs',
   outDir: '../build/docs',
   trailingSlash: 'always',
-  // The Get Started copy of the three loops was folded into the guide; keep its URL working.
+  // The Get Started copy of the operating model was folded into the guide; keep its URL working.
   redirects: {
     '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-three-loops/',
   },
@@ -111,7 +111,7 @@ export default defineConfig({
           label: 'Get Started',
           items: [
             { label: 'Getting Started', slug: 'getting-started' },
-            { label: 'The Three Loops', slug: 'guides/_shared/explanation/the-three-loops' },
+            { label: 'The Operating Model', slug: 'guides/_shared/explanation/the-three-loops' },
             { label: 'Install', slug: 'getting-started/install' },
           ],
         },
