@@ -64,6 +64,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [product-documentation][0.1.2] — 2026-10-10
+
+### Highlights
+
+- `author-product-docs` documents any repository — libraries, CLIs, APIs, apps, services, plugins, and agent packs — by first discovering the product surface and checking the docs against its own sources.
+- Documentation audits start with a journey gap report that covers nine reader stages, from discovery to contributing.
+- It now writes release notes, changelogs, migration guides, contributing guides, troubleshooting pages, quickstarts, installation pages, and docs landing pages.
+
+### Changed
+
+- Added the `surface-discovery` and `docs-journey` references.
+- A README page contract replaces the pack-only README contract.
+- Evals add CLI and library cases.
+- Guides are consolidated: `use-author-product-docs` is merged into `author-product-docs`, with an alias.
+
+## [experience-design][4.1.4] — 2026-10-10
+
+### Changed
+
+- The `information-architecture` documentation-design reference and eval point documentation writing at `author-product-docs` (if installed) instead of the retired `new-guide`.
+
+## [product-engineering][0.13.24] — 2026-10-10
+
+### Changed
+
+- The `ux-writing` description and references route documentation prose to `author-product-docs` (if installed) instead of `new-guide`.
+- Added an eval case that separates troubleshooting pages from UI microcopy.
+
 ## [core][3.0.2] — 2026-10-10
 
 ### Highlights
