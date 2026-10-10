@@ -48,3 +48,9 @@ Interpreter: Python 3.11 for pytest; a throwaway venv with ruff, mypy, pyyaml, j
 - Self-host: needed `--force` (the dirty-tree check only, because the T4 edits are uncommitted). 16 projected files changed (14 modified, 2 new `repository-exploration/evals/eval_queries.json`), including `new-spec/evals/evals.json` from earlier source changes. A second run left `git status --porcelain` identical. `catalogue verify --root .`: ok. The projected `.claude/skills/repository-exploration/SKILL.md` description equals the source.
 - `tools/test_build_site_routing.py` (Python 3.11): 94 passed, 1 skipped. No test in `packs/core/tests` or `tests/roster` pins core 3.0.1 or plugin.json parity (the "3.0.1" hits are unrelated fixtures and IP literals), so no pin was updated.
 - `make lint-ruff lint-mypy` (throwaway env): ruff passed; mypy no issues in 155 files. No `uv.lock` in the root.
+
+## Review round 1 follow-up (2026-10-10)
+
+- Full `packs/core/tests/skills/work-loop` suite on HEAD `18b113336`, Python 3.11 (CI's version): 2432 passed, 7 skipped, 70 subtests passed, 168.7s.
+- `test_loop_engine.py::test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content[deep-nesting]` passes on Python 3.11 and fails only on local Python 3.14.3. Neither `loop-engine.py` nor that test is in this branch's diff, so the failure is environment-specific and not caused by this change.
+- The `bug-fix` and `work-loop` decision-bound behavior evals now accept an explicit evidence limit when no code is supplied, and refuse invented caller locations or module names.
