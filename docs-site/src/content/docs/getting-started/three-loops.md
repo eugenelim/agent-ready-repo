@@ -1,86 +1,63 @@
 ---
 title: The Three Loops
-description: How discovery, build, and release compose into a complete AI operating model.
+description: How discovery, build, and release fit together, and where you make the calls.
 ---
 
-The three loops form the **company operating model** — peer supervisors spanning the full software lifecycle. No loop is a mode of another; each is independent with its own agent, skill doctrine, and consent gates.
+Every piece of work moves through the same four stages on its way to
+production. Each stage ends when a person on your team makes a decision, and
+most work skips a stage or two. Find the stage your work is in and start there.
 
-Each loop is **autonomous where the work is reversible** and surfaces to a human where it isn't.
+![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship it to production.](/agent-ready-repo/docs/guides/_shared/explanation/the-three-loops-overview.svg)
 
----
+The gold, pointed tags are where the agent stops and waits for you. For every
+route, step, skill, and decision, see [the full map and the step-by-step
+list](/agent-ready-repo/docs/guides/_shared/explanation/the-three-loops/#the-handoff-chain).
 
-## The Discovery Loop — `product-engineering`
+## Three loops, each with its own agent
 
-`discovery-lead` takes a raw product idea and walks it through a structured diverge/converge cycle:
+Shipping software is three jobs: working out what to build, building it, and
+getting it into production. They go wrong in different ways, and some of their
+mistakes can't be undone. So each job gets its own loop, run by its own agent.
 
-1. Five candidate product shapes explored in parallel
-2. Collapsed through product, UX, architecture, and safety lenses simultaneously
-3. Results written to a shared blackboard — no chat relay between lenses
-4. A ratified **decision brief** exits at G2
-5. A decomposed feature-level plan exits at G3 into `work-loop`
+### Discovery: `product-engineering`
 
-The result isn't a validated solution — it's a **connected hypothesis with validation hooks**: the riskiest bets named explicitly, the MVP boundary set by a human, the decision log append-only and hash-chained.
+`discovery-lead` takes a raw product idea and shapes it before anyone writes
+code. It compares candidate product shapes side by side, brings in product,
+design, architecture, and safety views at the same time, and ends with a
+decision brief you approved. You decide when the problem is worth a bet (G0),
+what's in the first version (G1.5), and whether the brief is good enough to
+build from (G2).
 
-**Three human consent gates:** G0 (ratify the value seed), G1.5 (ratify the MVP boundary), G2 (ratify the decision). The loop never auto-advances past an irreversible gate.
+[The discovery loop explained](/agent-ready-repo/docs/guides/product-engineering/explanation/the-discovery-loop/)
 
-[Discovery loop deep dive](/agent-ready-repo/docs/guides/product-engineering/explanation/the-discovery-loop/)
+### Build: `core`
 
----
+The work loop runs every change through plan, execute, gate, review, and
+decide. Lint, type checks, and tests are real gates: the agent can't report
+success while one is red. Three reviewers read each change cold, looking for
+drift from the spec, security problems, and code that will be costly to live
+with. Small, low-risk work skips the saved spec. Riskier work gets a spec and
+plan you approve before any code is written. The merge is always yours.
 
-## The Build Loop — `core`
+[The `core` pack as a system](/agent-ready-repo/docs/guides/core/explanation/core-pack/)
 
-Every change goes through:
+### Release: `release-engineering`
 
-| Phase | What happens |
-|---|---|
-| **Plan** | Name the assumptions, files to touch, tests to write, what won't change |
-| **Execute** | Red-green-refactor (TDD) or goal-based, matched to the task's verification mode |
-| **Gate** | Lint, typecheck, tests — no path through the loop passes on red |
-| **Review** | Adversarial reviewer in a fresh session, specialist reviewers when warranted |
-| **Decide** | Fix blockers, defer nits with backlog entries, ship |
+`release-lead` takes the merged build and tests it deployed. It uses throwaway
+environments that hold no real data and can't reach production. It runs
+end-to-end tests, watches telemetry, and sends any deployed failure back to the
+build loop as a build task. When the evidence says the release is ready, it
+hands you a readiness record. Nothing reaches production until you approve the
+ship (G5), and no setting removes that step.
 
-The loop scales by risk: **light mode** for low-risk work — a session-local plan and adversarial review, with no durable planning artifact; **full mode** when any risk trigger fires — a design you cannot predict, new dependency, compliance surface, multi-person work.
-
-**Three specialist reviewers:**
-
-| Reviewer | Lens | When |
-|---|---|---|
-| `adversarial-reviewer` | Spec/plan/impl drift, scope creep, missing edge cases | Every diff |
-| `security-reviewer` | OWASP 2025 + ASVS, STRIDE + LINDDUN — depth pulled per boundary | Security-boundary work, at spec stage *and* on the diff |
-| `quality-engineer` | Testability, observability, reliability — "cost to live with this code" | High-risk work: it warrants an `operational-safety` module, it is structural, or you ask |
-
-The security lens **shifts left**: on security-boundary work it also runs at spec stage, catching a missing control as a one-sentence acceptance criterion instead of a post-implementation round-trip.
-
-[Core pack deep dive](/agent-ready-repo/docs/guides/core/explanation/core-pack/)
-
----
-
-## The Release Loop — `release-engineering`
-
-`release-lead` takes the locally built, deploy-ready artifact and validates it deployed:
-
-1. **Deploy** to an ephemeral environment (no real data, isolated from prod, teardownable)
-2. **Run e2e** against the real artifact
-3. **Observe** telemetry
-4. **Feed findings back** to `work-loop` as build tasks — no human relay
-5. **Redeploy** and iterate until the deployed whole converges by policy
-6. **Surface** a release-readiness record for the G5 prod-ship consent gate
-
-**Autonomy carved by minimum-regret:**
-
-- Reversible operations (deploy to ephemeral, e2e, observe, iterate, teardown) → run unattended
-- Irreversible operations (first real users, data migrations, spend over threshold, prod ship) → always surface to a human
-- **G5 is never autonomous**
-
-Deploy credentials are broker-mediated and scoped to the ephemeral tier only. No credential can reach prod.
-
-[Release loop deep dive](/agent-ready-repo/docs/guides/release-engineering/explanation/the-release-loop/)
-
----
+[The release loop explained](/agent-ready-repo/docs/guides/release-engineering/explanation/the-release-loop/)
 
 ## How the loops connect
 
-The loops are **peers, not a hierarchy**. G3 is the handoff from discovery to build; G4 is the handoff from build to release. Each loop can run independently — a team can use `core` without `product-engineering`; a repo can use `release-engineering` without `core` (though it hard-depends on `core`).
+None of the loops runs inside another. Discovery hands work to build at G3,
+when you commit to build. Build hands it to release at G4, when you merge.
+Findings from a deployed release come back to build as new tasks, so the shape
+is a cycle, not a line.
 
 ```mermaid
 flowchart TB
@@ -110,9 +87,8 @@ flowchart TB
 
 *Three peer loops, each ending at a consent gate no agent passes alone. `discovery-lead` hands a decision brief to `core` at G3 and `core` hands shipped code to `release-engineering` at G4 — but released findings return inward to `core` as build tasks, so the shape is a cycle rather than a line.*
 
-The inner/outer split:
-- **Inner loop** (build) — runs many times per day, per engineer
-- **Outer loops** (discovery, release) — run per feature or release cycle
-- **Feedback flows inward** — released findings return as build tasks; discovered constraints shape specs
+You only need the loops your team uses. Most teams start with `core`. Product
+Engineering works without it, and Release Engineering needs `core` installed in
+the same repository.
 
-[The three loops as a system](/agent-ready-repo/docs/guides/_shared/explanation/the-three-loops/)
+[The three loops, with the full map](/agent-ready-repo/docs/guides/_shared/explanation/the-three-loops/)
