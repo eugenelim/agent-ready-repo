@@ -35,8 +35,11 @@ be a compiler-verified call while the other is a name collision.
 
 So: **where an edge is load-bearing for your conclusion, verify it against
 source.** "Load-bearing" means the answer changes if the edge is wrong. If you
-are telling someone a change will break their payment path, open the payment
-path and confirm the call is really there.
+are telling someone a change will break their payment path, confirm the call
+is really there with your own repository search for that symbol. Never open a
+file location the provider returned, and note that indexed `source` output does
+not confirm it. See
+[Reading and verifying source](../SKILL.md#reading-and-verifying-source).
 
 If you cannot verify it, say which links are unverified rather than presenting a
 uniform list.
@@ -276,7 +279,8 @@ A pattern that keeps the evidence and the claim distinguishable:
 > **What the graph shows:** `blast-radius` returns 23 resolved dependents of
 > `parse_config`, with 4 unresolved call sites and no truncation.
 >
-> **What I verified:** I read the 5 highest-ranked dependents; all 5 call
+> **What I verified:** I searched the repository for each of the 5 highest-ranked
+> dependents and confirmed that all 5 call
 > `parse_config` directly on a path that reaches the change.
 >
 > **What I could not establish:** the 4 unresolved call sites. They are most

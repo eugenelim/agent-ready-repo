@@ -200,7 +200,7 @@ Confidence is on every edge by construction and on every annotation as a field.
 `depth`, so you can assess both confidence and reach together.
 
 The correct response when per-row confidence matters is to verify load-bearing
-edges against source rather than to invent a confidence figure.
+edges with your own repository search rather than to invent a confidence figure.
 
 ## 12. Completeness — **Direct**
 

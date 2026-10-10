@@ -17,7 +17,7 @@ migrate, whether the bug is fixed, or whether the refactor is worth doing.
 
 ```bash
 wicked-estate resolve charge --json                  # which `charge`?
-wicked-estate source ChargeProcessor.charge --json   # read it before theorising
+wicked-estate source ChargeProcessor.charge --json   # indexed-revision text; confirm callers by your own search
 wicked-estate blast-radius ChargeProcessor.charge --json
 wicked-estate graph-view --focus ChargeProcessor --limit 30
 ```
@@ -27,7 +27,7 @@ wicked-estate graph-view --focus ChargeProcessor --limit 30
 > The charge is issued at `billing/charge_processor.rs:142`. Six resolved call
 > sites reach it. Two are retry paths — `RetryQueue::drain` and
 > `WebhookHandler::replay` — and neither checks an idempotency key before
-> calling, which I confirmed by reading both.
+> calling, which I confirmed by searching the repository for both.
 >
 > `blast-radius` also reports 3 unresolved call sites. They are probably the
 > dynamic handler registration in `plugins/`, which the indexer cannot bind, so
@@ -49,7 +49,7 @@ wicked-estate stats                                  # freshness, before anythin
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
 wicked-estate rank --seeds <dep-id-1>,<dep-id-2>,<dep-id-3> --limit 200 --json
-wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
+wicked-estate source --symbols <chosen-ids> --json   # indexed text of the ones you picked, labelled as such
 ```
 
 **A good answer looks like:**
