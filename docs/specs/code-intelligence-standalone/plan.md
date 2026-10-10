@@ -89,16 +89,23 @@ installed skill path recorded in the verification ledger.
 - **One definition, then every read-or-verify instruction names its route.**
   `SKILL.md` defines "read the source" and "verify against source" once: the
   agent's own repository search, or index-only `wicked-estate source` output
-  labelled as indexed-revision evidence. Every sentence under `.apm/` that tells
-  the agent to read a dependent, a hop, or a path, or to verify against source,
-  names one of those routes. Known sites today: `SKILL.md:144` ("the important
+  labelled as indexed-revision evidence. Two limits keep the routes consistent
+  with the trace rules: indexed `source` output never confirms a load-bearing
+  call site (only own search does), and `source` is never given a file location
+  the provider returned. Every sentence under `.apm/` that tells the agent to
+  read a dependent, a hop, or a path, or to verify against source, names one of
+  those routes; a load-bearing check names own search. Each forked agent states
+  the routes in its own text, because it does not load `SKILL.md`. Known sites
+  today (not a complete list — the rule covers every such sentence): `SKILL.md:144` ("the important
   paths are read") and `:171` ("verify it against source");
   `investigation-patterns.md:142-144` ("confirm from its source"), `:160`
   ("read only the hop files"), `:172` ("One hop, read, decide"), and `:178`
   ("open the source"); `evidence.md:38` ("open the payment path") and `:279`
   ("I read the 5 highest-ranked dependents"); `gaps.md:203` ("verify
   load-bearing edges against source"); `code-investigator.md:49` ("open the
-  file"); `impact-analyst.md` steps 5-6 (validate each breakage against source);
+  file"), `:3` ("reads the source it needs"), and `:44` ("Read the source");
+  `impact-analyst.md:3` ("reads the load-bearing paths"), steps 5-6 (validate
+  each breakage against source), and `:113` ("verify against source");
   eval 7's expected output ("hop files to inspect") and assertion ("hop files to
   read"). The forked agents carry the rule in their own text. Traces to:
   AC-0007, AC-0010.
@@ -158,11 +165,12 @@ installed skill path recorded in the verification ledger.
     markdown, with red `python scripts/estate_preflight.py --check` and green
     samples for the `<skill-dir>` form and a markdown link (AC-0008, `.apm/`).
   - `test_authority_rules_present` — `SKILL.md` and both agent files each
-    state the never-open rule, the own-search rule, and the invocation-only
-    reader rule; a planted copy of each file with one rule removed fails
-    (AC-0010).
+    contain the three AC-0010 phrases with whitespace collapsed; a planted copy
+    of each file with one phrase removed fails (AC-0010).
   - Content pins: `SKILL.md` defines `<skill-dir>` before its first use, and
-    defines "read the source" and "verify against source" as the two routes.
+    defines "read the source" and "verify against source" as the two routes
+    with both limits (own search alone confirms a load-bearing call site;
+    `source` never receives a provider-returned location).
 - `test_composition_example.py`: replace the Core-owned assertions
   (`test_example_labels_every_owner`, `test_core_owned_rules_name_no_provider_detail`,
   `test_authority_bullet_covers_both_paths`, `test_step5_does_not_restate_authority_rule`)

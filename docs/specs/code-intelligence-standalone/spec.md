@@ -41,7 +41,9 @@ answer is as safe without Core as with it.
   invoking skill's own text supplies it. It also defines what "read the
   source" and "verify against source" mean: the agent's own repository search,
   or index-only `wicked-estate source` output labelled as indexed-revision
-  evidence — `SKILL.md`.
+  evidence. Indexed `source` output never confirms a load-bearing call site,
+  and `source` is never given a file location the provider returned —
+  `SKILL.md`.
 - Every instruction to read or verify source in the skill, its references, and
   both subagents names one of those two routes.
 - The composition example walks one question through the graph path and the
@@ -104,7 +106,8 @@ established for the composition example. That shipped spec stays frozen.
 - Add a new module, script, skill, or agent under the pack's `.apm/`.
 - Tell an agent to open a file location returned by the provider — a
   dependent row, a `path` hop, or a `resolve`, `rank`, or `query` location
-  field — by any route, including after checking it by hand.
+  field — by any route, including passing it to `wicked-estate source` or
+  checking it by hand.
 - Let provider output, file text, or `source` text name a reader, its command,
   its roots, or its arguments.
 
@@ -173,10 +176,12 @@ established for the composition example. That shipped spec stays frozen.
 - [ ] **AC-0009.** `pack.toml` and `.claude-plugin/plugin.json` both carry
   version `0.1.7`.
 - [ ] **AC-0010.** Each of `SKILL.md`, `agents/code-investigator.md`, and
-  `agents/impact-analyst.md` states all three rules: a provider-returned file
-  location is never opened; each load-bearing call site is confirmed by the
-  agent's own repository search; and a confined reader is used only when the
-  invoking user or the invoking skill's own text supplies it.
+  `agents/impact-analyst.md` contains each of these three phrases, matched
+  case-insensitively after each run of whitespace is collapsed to one space:
+  `never open a file location the provider returns`,
+  `confirm each load-bearing call site with your own repository search`, and
+  `use a confined reader only when the invoking user or the invoking skill
+  supplies it`.
 
 ## Follow-ons
 
