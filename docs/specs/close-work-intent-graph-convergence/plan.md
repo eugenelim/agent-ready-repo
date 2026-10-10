@@ -206,11 +206,11 @@ def test_each_copy_binds_its_own_helpers(monkeypatch):
 **Approach:**
 - The `Status:` pointer is spec-to-spec, not spec-to-ADR. No ADR governs this change; the decision lives in FEAT-0002's 2026-10-10 Amendment and this spec. `catalogue-sync-dry-run`'s `Status:` line is the precedent.
 
-**Done when:** the listed checks are green, `tests/roster/test_two_sided_prune_closure_invariant.py::test_pack_delivery_contract_is_complete_and_version_increased` passes, the versions read `3.1.0`, and the `[core][3.1.0]` changelog entry carries this slice's `### Highlights` bullets.
+**Done when:** the listed checks are green, `tests/roster/test_two_sided_prune_closure_invariant.py::test_pack_delivery_contract_is_complete_and_version_increased` passes, the versions read `3.1.0`, `grep -c '^## \[core\]\[3\.1\.1\]' docs/product/changelog.md` prints `0`, and the `[core][3.1.0]` changelog entry carries this slice's `### Highlights` bullets.
 
 ## Rollout
 
-- **Delivery:** one pull request into `feature/intent-navigation`, inside the branch's single `core` 3.1.0 entry, because the version test measures `core` against the default branch and admits one bump per release. Slice 4 publishes it when it merges the branch to the default branch. Reversible by revert. Nothing is persisted.
+- **Delivery:** one pull request into `feature/intent-navigation`, inside the branch's single `core` 3.1.0 entry, because the version test measures `core` against the default branch and admits one bump per release. This sets aside `packs/AGENTS.md` § Version bump rule ("Do not borrow an unreleased version from another change") for this branch, by the owner's 2026-10-10 decision recorded in the verification ledger. Slice 4 publishes it when it merges the branch to the default branch. Reversible by revert. Nothing is persisted.
 - **Infrastructure:** none.
 - **External-system integration:** none.
 - **Deployment sequencing:** slice 4's rebase refreshes resolver copies. That refresh now also covers `close-work/scripts/intent_graph.py`, which AC-0001's pin keeps in step.

@@ -300,5 +300,10 @@ sys.exit(1 if unattributed else 0)
   bumped to 3.1.1.
 - Owner decision, eugenelim, 2026-10-10: fold slice 2 into `core` 3.1.0. Revert
   the version to 3.1.0, merge this slice's changelog lines into the
-  `[core][3.1.0]` entry, and amend the plan through the controlled-amendment
-  path with a new task, T7.
+  `[core][3.1.0]` entry, and amend T6's `Done when` ("versions read 3.1.1")
+  through the controlled-amendment path. T6 is unfinished after its review
+  reopen, so the amendment edits it rather than adding a task.
+- This sets aside `packs/AGENTS.md` § Version bump rule ("Do not borrow an
+  unreleased version from another change") for this integration branch. The
+  version test admits one `core` bump per release against the default branch,
+  and every slice on `feature/intent-navigation` ships in that one release.
