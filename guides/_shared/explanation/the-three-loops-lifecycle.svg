@@ -1,0 +1,245 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 924" width="1280" height="924" role="img" aria-labelledby="t d">
+<title id="t">How one piece of work moves from idea to production</title>
+<desc id="d">Four stages, read left to right. Decide what to build (optional): desk-research, then product-strategy, ending when you commit to an outcome. Shape it: three routes. The short route, the default, is frame-intent, you approve the intent, de-risk-intent, decompose-intent. The longer route is frame-situation, identify-opportunities, diverge-solutions, place-bet, map-capabilities. The supervised loop is frame-intent, G0, de-risk and explore, frame-domain, G1.5, design, architecture and contracts in parallel, threat and reliability review, G2, then an ordered backlog. Every route ends at G3, you commit to build. Build it: work-intake routes the work, new-spec writes the spec and plan, you approve both, work-loop builds with gates and three cold reviews, small low-risk changes skip the spec, and the stage ends at G4 when you merge. Ship it: define-slo optionally, release-loop deploys to a throwaway environment, tests end to end and watches telemetry, a deployed failure goes back to the build loop, and the stage ends at G5 when you approve the production ship. Packs used at any stage: code-intelligence, frontend-engineering and iac-terraform, the tracker and design tool packs, converters, governance-extras, and product-documentation.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker><marker id="arrowInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker></defs>
+<rect x="0.5" y="0.5" width="1279" height="923" rx="22" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="40" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#1f2937" text-anchor="start">How one piece of work moves from idea to production</text>
+<text x="40" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14.5" font-weight="400" fill="#4b5563" text-anchor="start">Read left to right. Start at the stage your work is in. Most work skips a stage or two.</text>
+<rect x="32" y="108" width="196" height="628" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path d="M48,108 H212 Q228,108 228,124 V212 H32 V124 Q32,108 48,108 z" fill="#ede9fe"/>
+<circle cx="58" cy="136" r="14" fill="#7c3aed"/>
+<text x="58" y="141" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<text x="80" y="134" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2937" text-anchor="start">Decide what</text>
+<text x="80" y="153" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2937" text-anchor="start">to build</text>
+<text x="48" y="174" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">Start here when nobody</text>
+<text x="48" y="188" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">has decided what's worth</text>
+<text x="48" y="202" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">building. Optional.</text>
+<rect x="264" y="108" width="480" height="628" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<path d="M280,108 H728 Q744,108 744,124 V212 H264 V124 Q264,108 280,108 z" fill="#dbeafe"/>
+<circle cx="290" cy="136" r="14" fill="#2563eb"/>
+<text x="290" y="141" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<text x="312" y="142" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#1f2937" text-anchor="start">Shape it</text>
+<text x="280" y="168" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">Start here when you know the outcome you want</text>
+<text x="280" y="183" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">but not yet the bet to build.</text>
+<rect x="780" y="108" width="236" height="628" rx="16" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<path d="M796,108 H1000 Q1016,108 1016,124 V212 H780 V124 Q780,108 796,108 z" fill="#dcfce7"/>
+<circle cx="806" cy="136" r="14" fill="#16a34a"/>
+<text x="806" y="141" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<text x="828" y="142" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#1f2937" text-anchor="start">Build it</text>
+<text x="796" y="168" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">Start here when the work is</text>
+<text x="796" y="183" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">clear enough to write down.</text>
+<text x="796" y="198" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">Bug fixes start here.</text>
+<rect x="1052" y="108" width="196" height="628" rx="16" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+<path d="M1068,108 H1232 Q1248,108 1248,124 V212 H1052 V124 Q1052,108 1068,108 z" fill="#ffedd5"/>
+<circle cx="1078" cy="136" r="14" fill="#ea580c"/>
+<text x="1078" y="141" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+<text x="1100" y="142" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#1f2937" text-anchor="start">Ship it</text>
+<text x="1068" y="168" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">Start here when a merged</text>
+<text x="1068" y="183" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">change needs to reach</text>
+<text x="1068" y="198" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">production safely.</text>
+<path d="M238,134 L254,148 L238,162" fill="none" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M754,134 L770,148 L754,162" fill="none" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1026,134 L1042,148 L1026,162" fill="none" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="44" y="226" width="172" height="49" rx="9" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5"/>
+<circle cx="59" cy="243" r="8" fill="#7c3aed"/>
+<text x="59" y="247" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<text x="74" y="247" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Find out what's true</text>
+<text x="56" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">desk-research</text>
+<line x1="130.0" y1="276" x2="130.0" y2="291" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="44" y="293" width="172" height="94" rx="9" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5"/>
+<circle cx="59" cy="310" r="8" fill="#7c3aed"/>
+<text x="59" y="314" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<text x="74" y="314" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Make the strategic</text>
+<text x="74" y="331" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">call</text>
+<text x="56" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">write-prfaq</text>
+<text x="56" y="362" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">run-okr-cascade</text>
+<text x="56" y="376" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">define-ux-strategy</text>
+<text x="130.0" y="413" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle">Hands Shape it a committed</text>
+<text x="130.0" y="427" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle">outcome to frame</text>
+<polygon points="44,706.0 54,692 206,692 216,706.0 206,720 54,720" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<text x="60" y="711" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">You pick the outcome</text>
+<rect x="68.0" y="672" width="124" height="17" rx="4" fill="#f5f3ff"/>
+<text x="130.0" y="684" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle" font-style="italic">This stage ends when</text>
+<rect x="276" y="226" width="146" height="40" rx="8" fill="#2563eb" stroke="#2563eb" stroke-width="1.2"/>
+<text x="349.0" y="243" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Short route</text>
+<text x="349.0" y="258" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#dbeafe" text-anchor="middle">The default · about 3 h</text>
+<rect x="431" y="226" width="146" height="40" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="504.0" y="243" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#2563eb" text-anchor="middle">Longer route</text>
+<text x="504.0" y="258" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">Problem still unclear</text>
+<rect x="586" y="226" width="146" height="40" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.2"/>
+<text x="659.0" y="243" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#2563eb" text-anchor="middle">Supervised loop</text>
+<text x="659.0" y="258" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="middle">For a new product area</text>
+<rect x="276" y="278" width="146" height="49" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="288" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Frame the intent</text>
+<text x="288" y="316" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">frame-intent</text>
+<line x1="349.0" y1="328" x2="349.0" y2="337" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<polygon points="276,353.0 286,339 412,339 422,353.0 412,367 286,367" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<rect x="292" y="345" width="23" height="16" rx="8" fill="#b45309"/>
+<text x="303.5" y="357" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">G0</text>
+<text x="321" y="358" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">Approve it</text>
+<line x1="349.0" y1="368" x2="349.0" y2="377" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="276" y="379" width="146" height="66" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="288" y="400" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Test the riskiest</text>
+<text x="288" y="417" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">assumption</text>
+<text x="288" y="434" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">de-risk-intent</text>
+<line x1="349.0" y1="446" x2="349.0" y2="455" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="276" y="457" width="146" height="66" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="288" y="478" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Break it into</text>
+<text x="288" y="495" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">buildable pieces</text>
+<text x="288" y="512" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">decompose-intent</text>
+<rect x="431" y="278" width="146" height="66" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="443" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Frame the</text>
+<text x="443" y="316" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">situation</text>
+<text x="443" y="333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">frame-situation</text>
+<line x1="504.0" y1="345" x2="504.0" y2="354" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="431" y="356" width="146" height="66" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="443" y="377" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Find the</text>
+<text x="443" y="394" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">opportunities</text>
+<text x="443" y="411" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.24" font-weight="400" fill="#4b5563" text-anchor="start">identify-opportunities</text>
+<line x1="504.0" y1="423" x2="504.0" y2="432" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="431" y="434" width="146" height="66" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="443" y="455" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Generate</text>
+<text x="443" y="472" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">options</text>
+<text x="443" y="489" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">diverge-solutions</text>
+<line x1="504.0" y1="501" x2="504.0" y2="510" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="431" y="512" width="146" height="49" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="443" y="533" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Place a bet</text>
+<text x="443" y="550" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">place-bet</text>
+<line x1="504.0" y1="562" x2="504.0" y2="571" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="431" y="573" width="146" height="66" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="443" y="594" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Map the</text>
+<text x="443" y="611" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">capabilities</text>
+<text x="443" y="628" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">map-capabilities</text>
+<rect x="586" y="278" width="146" height="49" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="598" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Frame the intent</text>
+<text x="598" y="316" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">frame-intent</text>
+<line x1="659.0" y1="328" x2="659.0" y2="337" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<polygon points="586,353.0 596,339 722,339 732,353.0 722,367 596,367" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<rect x="602" y="345" width="23" height="16" rx="8" fill="#b45309"/>
+<text x="613.5" y="357" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">G0</text>
+<text x="631" y="358" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">Approve it</text>
+<line x1="659.0" y1="368" x2="659.0" y2="377" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="586" y="379" width="146" height="94" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="598" y="400" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">De-risk, explore,</text>
+<text x="598" y="417" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">ground the domain</text>
+<text x="598" y="434" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">de-risk-intent</text>
+<text x="598" y="448" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">explore-options</text>
+<text x="598" y="462" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">frame-domain</text>
+<line x1="659.0" y1="474" x2="659.0" y2="483" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<polygon points="586,499.0 596,485 722,485 732,499.0 722,513 596,513" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<rect x="602" y="491" width="37" height="16" rx="8" fill="#b45309"/>
+<text x="620.5" y="503" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">G1.5</text>
+<text x="645" y="504" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">Set the MVP</text>
+<line x1="659.0" y1="514" x2="659.0" y2="523" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="586" y="525" width="146" height="94" rx="9" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="598" y="546" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Design, system, and</text>
+<text x="598" y="563" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">contracts in parallel</text>
+<text x="598" y="580" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">experience-design</text>
+<text x="598" y="594" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.16" font-weight="400" fill="#4b5563" text-anchor="start">architect, contracts</text>
+<text x="598" y="608" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">then threat review</text>
+<line x1="659.0" y1="620" x2="659.0" y2="629" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<polygon points="586,645.0 596,631 722,631 732,645.0 722,659 596,659" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<rect x="602" y="637" width="23" height="16" rx="8" fill="#b45309"/>
+<text x="613.5" y="649" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">G2</text>
+<text x="631" y="650" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">Approve brief</text>
+<line x1="349.0" y1="525" x2="349.0" y2="674" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+<line x1="504.0" y1="641" x2="504.0" y2="674" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+<line x1="659.0" y1="661" x2="659.0" y2="674" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+<polygon points="276,706.0 286,692 722,692 732,706.0 722,720 286,720" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<rect x="292" y="698" width="23" height="16" rx="8" fill="#b45309"/>
+<text x="303.5" y="710" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">G3</text>
+<text x="321" y="711" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">You commit to build</text>
+<rect x="442.0" y="672" width="124" height="17" rx="4" fill="#eff6ff"/>
+<text x="504.0" y="684" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle" font-style="italic">This stage ends when</text>
+<rect x="792" y="226" width="212" height="63" rx="9" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+<circle cx="807" cy="243" r="8" fill="#16a34a"/>
+<text x="807" y="247" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<text x="822" y="247" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Route the work</text>
+<text x="804" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">work-intake picks a spec,</text>
+<text x="804" y="278" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.38" font-weight="400" fill="#4b5563" text-anchor="start">a delivery brief, or an intent</text>
+<line x1="898.0" y1="290" x2="898.0" y2="303" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="792" y="305" width="212" height="49" rx="9" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+<circle cx="807" cy="322" r="8" fill="#16a34a"/>
+<text x="807" y="326" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<text x="822" y="326" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Write the spec and plan</text>
+<text x="804" y="343" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">new-spec</text>
+<line x1="898.0" y1="355" x2="898.0" y2="366" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<polygon points="792,382.0 802,368 994,368 1004,382.0 994,396 802,396" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<text x="808" y="387" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">You approve both</text>
+<line x1="898.0" y1="397" x2="898.0" y2="408" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="792" y="410" width="212" height="63" rx="9" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+<circle cx="807" cy="427" r="8" fill="#16a34a"/>
+<text x="807" y="431" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<text x="822" y="431" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Build and check</text>
+<text x="804" y="448" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.38" font-weight="400" fill="#4b5563" text-anchor="start">work-loop: lint, types, tests,</text>
+<text x="804" y="462" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">then three cold reviews</text>
+<rect x="792" y="495" width="212" height="52" rx="9" fill="#ffffff" stroke="#64748b" stroke-dasharray="4 3"/>
+<text x="804" y="515" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="start">Small, low-risk change?</text>
+<text x="804" y="529" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="start">It skips the spec and goes</text>
+<text x="804" y="543" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#4b5563" text-anchor="start">straight to step 3.</text>
+<polygon points="792,706.0 802,692 994,692 1004,706.0 994,720 802,720" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<rect x="808" y="698" width="23" height="16" rx="8" fill="#b45309"/>
+<text x="819.5" y="710" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">G4</text>
+<text x="837" y="711" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">You merge</text>
+<rect x="836.0" y="672" width="124" height="17" rx="4" fill="#f0fdf4"/>
+<text x="898.0" y="684" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle" font-style="italic">This stage ends when</text>
+<rect x="1064" y="226" width="172" height="66" rx="9" fill="#ffffff" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="1076" y="247" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Set an error</text>
+<text x="1076" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">budget (optional)</text>
+<text x="1076" y="281" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">define-slo</text>
+<line x1="1150.0" y1="293" x2="1150.0" y2="306" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="1064" y="308" width="172" height="94" rx="9" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+<circle cx="1079" cy="325" r="8" fill="#ea580c"/>
+<text x="1079" y="329" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<text x="1094" y="329" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Deploy somewhere</text>
+<text x="1094" y="346" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">safe and test it</text>
+<text x="1076" y="363" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">release-loop: throwaway</text>
+<text x="1076" y="377" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">environment, end-to-end</text>
+<text x="1076" y="391" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">tests, telemetry</text>
+<line x1="1150.0" y1="403" x2="1150.0" y2="416" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="1064" y="418" width="172" height="66" rx="9" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+<circle cx="1079" cy="435" r="8" fill="#ea580c"/>
+<text x="1079" y="439" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<text x="1094" y="439" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">Read the readiness</text>
+<text x="1094" y="456" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2937" text-anchor="start">record</text>
+<text x="1076" y="473" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#4b5563" text-anchor="start">ops, security, cost</text>
+<text x="1150.0" y="510" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle">Nothing reaches production</text>
+<text x="1150.0" y="524" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle">until you say so.</text>
+<polygon points="1064,706.0 1074,692 1226,692 1236,706.0 1226,720 1074,720" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<rect x="1080" y="698" width="23" height="16" rx="8" fill="#b45309"/>
+<text x="1091.5" y="710" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">G5</text>
+<text x="1109" y="711" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">You decide to ship</text>
+<rect x="1088.0" y="672" width="124" height="17" rx="4" fill="#fff7ed"/>
+<text x="1150.0" y="684" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#6b7280" text-anchor="middle" font-style="italic">This stage ends when</text>
+<path d="M1064,338 C1030,338 1036,441.5 1002,441.5" fill="none" stroke="#ea580c" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrowInk)"/>
+<rect x="32" y="762" width="1216" height="92" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+<text x="52" y="788" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1f2937" text-anchor="start">Used at any stage</text>
+<rect x="52.0" y="800" width="172.6" height="42" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+<text x="62" y="817" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#1f2937" text-anchor="start">code-intelligence</text>
+<text x="62" y="833" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#4b5563" text-anchor="start">what the code really does</text>
+<rect x="232.6" y="800" width="155.0" height="42" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+<text x="242.6" y="817" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#1f2937" text-anchor="start">frontend-engineering</text>
+<text x="242.6" y="833" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#4b5563" text-anchor="start">UI work</text>
+<rect x="395.6" y="800" width="143.5" height="42" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+<text x="405.6" y="817" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#1f2937" text-anchor="start">iac-terraform</text>
+<text x="405.6" y="833" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#4b5563" text-anchor="start">infrastructure plans</text>
+<rect x="547.1" y="800" width="231.8" height="42" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+<text x="557.1" y="817" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#1f2937" text-anchor="start">atlassian, github, linear, figma</text>
+<text x="557.1" y="833" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#4b5563" text-anchor="start">your team's tools</text>
+<rect x="787.0" y="800" width="114.3" height="42" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+<text x="797.0" y="817" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#1f2937" text-anchor="start">converters</text>
+<text x="797.0" y="833" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#4b5563" text-anchor="start">files into text</text>
+<rect x="909.3" y="800" width="149.3" height="42" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+<text x="919.3" y="817" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#1f2937" text-anchor="start">governance-extras</text>
+<text x="919.3" y="833" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#4b5563" text-anchor="start">write a decision down</text>
+<rect x="1066.6" y="800" width="161.4" height="42" rx="8" fill="#ffffff" stroke="#d1d5db"/>
+<text x="1076.6" y="817" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#1f2937" text-anchor="start">product-documentation</text>
+<text x="1076.6" y="833" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#4b5563" text-anchor="start">document what shipped</text>
+<polygon points="40,882.0 50,868 142,868 152,882.0 142,896 50,896" fill="#fde68a" stroke="#b45309" stroke-width="1.6"/>
+<text x="56" y="887" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#78350f" text-anchor="start">You decide</text>
+<rect x="172" y="870" width="44" height="24" rx="6" fill="#ffffff" stroke="#64748b" stroke-dasharray="4 3"/>
+<text x="224" y="886" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">Optional or a shortcut</text>
+<path d="M392,882 H428" stroke="#ea580c" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrowInk)"/>
+<text x="436" y="886" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#4b5563" text-anchor="start">A deployed failure goes back to the build loop</text>
+<text x="1240" y="886" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6b7280" text-anchor="end">Codes like G3 are what the agents print when they stop for you.</text>
+</svg>

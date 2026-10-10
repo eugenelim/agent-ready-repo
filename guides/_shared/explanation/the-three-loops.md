@@ -24,8 +24,89 @@ call the stages *Decide what to build*, *Shape it*, *Build it*, and *Ship it*.
 
 Most work doesn't travel the whole way. A bug fix starts at *Build it*. A small
 change to an existing product often goes from a written intent straight to the
-build loop. The diagram shows the longest route so you can see where every pack
-fits. Dashed lines are the shortcuts.
+build loop. The picture shows every route side by side, so you can see where
+each pack fits.
+
+[![How one piece of work moves from idea to production: four stages, Decide what to build, Shape it, Build it, and Ship it, each ending on a decision you make. The table below lists every step in words.](the-three-loops-lifecycle.svg)](the-three-loops-lifecycle.svg)
+
+Read it left to right, and start at the stage your work is in. The amber shapes
+are the points where the agent stops and waits for you. Select the picture to
+open it full size.
+
+When any piece of work finishes, or you abandon it, `close-work` from `core`
+tidies it up.
+
+### Three ways through *Shape it*
+
+Every route through *Shape it* ends the same way: you decide the work is ready
+and hand it to the build loop. They differ in how much ground they cover first.
+
+- **The short route** is where most teams start. You write the intent, test its
+  riskiest assumption, and break it into pieces the build loop can take. Plan on
+  about three hours.
+- **The longer route** adds a situation, opportunities, options, a bet, and a
+  capability map. Take it when you can't yet say what the problem is, or when
+  the bet is big enough that someone will ask for the reasoning later.
+- **The supervised loop** runs down the middle of the diagram. `discovery-lead`
+  walks every gate, brings in design, architecture, and contract work side by
+  side, and has two reviewers check for threats and reliability problems before
+  you see the brief. Use it for a new product area.
+
+[Shape what to build](../../README.md#p2--shape-what-to-build--3-hours) walks
+the short and longer routes. [Walk a discovery end to end](../../product-engineering/tutorials/walk-a-discovery-end-to-end.md)
+walks the supervised loop.
+
+### Which pack does what
+
+| Stage | What happens | Pack | What you decide |
+| --- | --- | --- | --- |
+| Decide what to build | Gather evidence, graded by how much you can trust it | `desk-research` | Whether the evidence is enough to act on |
+| Decide what to build | Make the strategic call | `product-strategy` | Which outcome you are committing to |
+| Shape it | Frame the intent and test the bet | `product-engineering` | Whether the problem is specific enough |
+| Shape it | Map the journey and the screens | `experience-design` | Whether the design is ready |
+| Shape it | Sketch the system and its interfaces | `architect`, `contracts` | Whether the concept holds up |
+| Shape it | Pull it together into a decision brief and a backlog | `product-engineering` | Whether to commit to build |
+| Build it | Write the spec and plan, then build and review | `core` | The spec, the plan, and the merge |
+| Ship it | Deploy somewhere safe, test it, and watch it run | `release-engineering` | Whether it goes to production |
+
+A few packs don't belong to one stage. You reach for them whenever the moment
+comes up:
+
+- `code-intelligence` when you need to know what the code really does before
+  you change it.
+- `frontend-engineering` and `iac-terraform` for UI and infrastructure work
+  inside the build.
+- `atlassian`, `github`, `linear`, and `figma` to pull work in from your team's
+  tools and report progress back out.
+- `converters` to turn PDFs, slides, and other files into text an agent can read.
+- `governance-extras` to write down a decision as an ADR or RFC, at any stage.
+- `product-documentation` to document what you shipped.
+
+### If you see a gate code
+
+The agents print a short code when they stop for you. This is what each one is
+asking.
+
+| Code | What you're deciding | Product Engineering calls it |
+| --- | --- | --- |
+| G0 | Is the problem real, and is this the right bet? | Approve the intent |
+| G1 | Does the de-risked plan still hold? Usually automatic | |
+| G1.5 | What's in the first version, and what's out? | |
+| G2 | Is the decision brief good enough to build from? | Approve the decision brief |
+| G3 | Are you ready to hand this to the build loop? | Commit to build |
+| G4 | Is this merged change ready for release testing? | |
+| G5 | Does it go to production? | |
+
+Discovery, build, and release each have their own supervising agent:
+`discovery-lead`, the `work-loop` supervisor, and `release-lead`. None of them
+runs inside another. They meet at G3 and G4, and nothing crosses either line,
+or reaches production at G5, until you say so.
+
+### The same flow as a Mermaid diagram
+
+If the picture above doesn't load, this diagram shows the same flow. A hexagon
+is a point where the agent stops and waits for you. G1 is pale and round because
+it usually passes without you.
 
 ```mermaid
 flowchart TB
@@ -96,78 +177,6 @@ flowchart TB
     style build fill:#16a34a14,stroke:#16a34a
     style ship fill:#ea580c14,stroke:#ea580c
 ```
-
-Read it from the top. Each stage has its own color. The amber hexagons are the
-points where the agent stops and waits for you. G1 is pale and round because it
-usually passes without you.
-When any piece of work finishes, or you abandon it, `close-work` from `core`
-tidies it up.
-
-### Three ways through *Shape it*
-
-Every route through *Shape it* ends the same way: you decide the work is ready
-and hand it to the build loop. They differ in how much ground they cover first.
-
-- **The short route** is where most teams start. You write the intent, test its
-  riskiest assumption, and break it into pieces the build loop can take. Plan on
-  about three hours.
-- **The longer route** adds a situation, opportunities, options, a bet, and a
-  capability map. Take it when you can't yet say what the problem is, or when
-  the bet is big enough that someone will ask for the reasoning later.
-- **The supervised loop** runs down the middle of the diagram. `discovery-lead`
-  walks every gate, brings in design, architecture, and contract work side by
-  side, and has two reviewers check for threats and reliability problems before
-  you see the brief. Use it for a new product area.
-
-[Shape what to build](../../README.md#p2--shape-what-to-build--3-hours) walks
-the short and longer routes. [Walk a discovery end to end](../../product-engineering/tutorials/walk-a-discovery-end-to-end.md)
-walks the supervised loop.
-
-### Which pack does what
-
-| Stage | What happens | Pack | What you decide |
-| --- | --- | --- | --- |
-| Decide what to build | Gather evidence, graded by how much you can trust it | `desk-research` | Whether the evidence is enough to act on |
-| Decide what to build | Make the strategic call | `product-strategy` | Which outcome you are committing to |
-| Shape it | Frame the intent and test the bet | `product-engineering` | Whether the problem is specific enough |
-| Shape it | Map the journey and the screens | `experience-design` | Whether the design is ready |
-| Shape it | Sketch the system and its interfaces | `architect`, `contracts` | Whether the concept holds up |
-| Shape it | Pull it together into a decision brief and a backlog | `product-engineering` | Whether to commit to build |
-| Build it | Write the spec and plan, then build and review | `core` | The spec, the plan, and the merge |
-| Ship it | Deploy somewhere safe, test it, and watch it run | `release-engineering` | Whether it goes to production |
-
-A few packs don't belong to one stage. You reach for them whenever the moment
-comes up:
-
-- `code-intelligence` when you need to know what the code really does before
-  you change it.
-- `frontend-engineering` and `iac-terraform` for UI and infrastructure work
-  inside the build.
-- `atlassian`, `github`, `linear`, and `figma` to pull work in from your team's
-  tools and report progress back out.
-- `converters` to turn PDFs, slides, and other files into text an agent can read.
-- `governance-extras` to write down a decision as an ADR or RFC, at any stage.
-- `product-documentation` to document what you shipped.
-
-### If you see a gate code
-
-The agents print a short code when they stop for you. This is what each one is
-asking.
-
-| Code | What you're deciding | Product Engineering calls it |
-| --- | --- | --- |
-| G0 | Is the problem real, and is this the right bet? | Approve the intent |
-| G1 | Does the de-risked plan still hold? Usually automatic | |
-| G1.5 | What's in the first version, and what's out? | |
-| G2 | Is the decision brief good enough to build from? | Approve the decision brief |
-| G3 | Are you ready to hand this to the build loop? | Commit to build |
-| G4 | Is this merged change ready for release testing? | |
-| G5 | Does it go to production? | |
-
-Discovery, build, and release each have their own supervising agent:
-`discovery-lead`, the `work-loop` supervisor, and `release-lead`. None of them
-runs inside another. They meet at G3 and G4, and nothing crosses either line,
-or reaches production at G5, until you say so.
 
 ## Why three loops, not one
 
