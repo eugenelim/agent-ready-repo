@@ -127,7 +127,8 @@ In this skill, "read the source" and "verify against source" each mean one of
 two routes:
 
 1. Your own repository search, from a root the user or prompt names, for the
-   symbol the user asked about, then reading what that search returns.
+   symbol the user asked about, then reading what that search returns. Search
+   first: do not read source files before the search has named them.
 2. Index-only `wicked-estate source` output, labelled as indexed-revision
    evidence: what the index stored when it was built.
 
@@ -243,7 +244,8 @@ Wherever you report a result, quote the command that produced it exactly as
 run, flags and all. `--depth 1` and the default depth answer different
 questions, so a bare verb name leaves the reader unable to tell which one you
 asked. When a caller hands you an output instead of letting you run the
-command, report it under the full command it stands for, and say it was
+command, report it under the full command it stands for, with every flag its
+fields show (for example `--depth 1` when `searched_depth` is 1), and say it was
 supplied rather than run.
 
 Full handling — the confidence and provenance model, the annotation evidence
