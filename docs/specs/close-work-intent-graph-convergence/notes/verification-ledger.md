@@ -287,3 +287,18 @@ sys.exit(1 if unattributed else 0)
 - Local gates on `b8b9e04c4`: lint and mypy clean; 1,079 passed, 4 skipped
   (close-work, navigate-intents, pack, parity tool, roster supersession); guide
   lints and the changelog projection test green.
+
+## Version amendment — owner decision 2026-10-10
+
+- Dispatched `test-corpus` run 38074666815 and `test-roster` run 38074668675
+  failed on `c5bf03185`. Two of the three failures were wiring, fixed in
+  `62c5edb1f`: the registration sat under `ini-007`, and the new roster test
+  lacked its prune-manifest entry and named CI step.
+- The third, `test_pack_delivery_contract_is_complete_and_version_increased`,
+  measures `core` against `origin/main` (3.0.1). It requires exactly one bump
+  there: 3.1.0, which slice 1 set on `feature/intent-navigation`. The plan's T6
+  bumped to 3.1.1.
+- Owner decision, eugenelim, 2026-10-10: fold slice 2 into `core` 3.1.0. Revert
+  the version to 3.1.0, merge this slice's changelog lines into the
+  `[core][3.1.0]` entry, and amend the plan through the controlled-amendment
+  path with a new task, T7.
