@@ -1,6 +1,6 @@
 # Spec: Code-intelligence pack without Core
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0104

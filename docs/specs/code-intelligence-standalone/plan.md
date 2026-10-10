@@ -1,7 +1,7 @@
 # Plan: Code-intelligence pack without Core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness update,
   self-host, no internal-governance citations in shipped content);
   `frontend-engineering` and `architect` as dual-scope packs with no required
@@ -273,3 +273,5 @@ installs keep working; a repo that has Core keeps it.
 
 - 2026-10-10: spec approved by eugenelim
 - 2026-10-10: plan approved by eugenelim
+- 2026-10-10: amended spec approved by eugenelim
+- 2026-10-10: amended plan approved by eugenelim
