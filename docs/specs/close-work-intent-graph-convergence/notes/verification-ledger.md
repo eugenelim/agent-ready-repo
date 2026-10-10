@@ -307,3 +307,11 @@ sys.exit(1 if unattributed else 0)
   unreleased version from another change") for this integration branch. The
   version test admits one `core` bump per release against the default branch,
   and every slice on `feature/intent-navigation` ships in that one release.
+
+## CI evidence
+
+- On `dcc822f1a`, the pull request's last commit before this ledger-only
+  record: dispatched `build-check` run 38091356485 — success; `test-corpus` run
+  38090878045 — success; `test-roster` run 38090879656 — success; pull-request
+  `docs` run 38090880503 — success. `build-check` triggers on pull requests to
+  `main` only, so it was dispatched on the branch.
