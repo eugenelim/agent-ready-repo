@@ -1,6 +1,7 @@
 # Spec: Close-work intent graph convergence
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-10 by eugenelim, spec and plan together, after three spec-mode shaping and adversarial review rounds with every sustained Blocker and Concern resolved (reports under `.context/reviews/509c10d7-e0ac-40d4-b46d-848217991767/`); one advisory Nit is deferred.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0103, ADR-0119, ADR-0007, ADR-0074
