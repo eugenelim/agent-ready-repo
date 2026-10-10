@@ -34,3 +34,9 @@
 - Regression runs (interim): failures in cases 1, 5, 8, and 9 match the
   origin/main skill at `cbcb32d73`. Case 3 is a regression against that
   baseline and returns to T2 by owner decision, 2026-10-10.
+- Final runs at `2595da79c` (case 3 fix): the four composition cases pass
+  every assertion (behavior grader `[ok]` for all four); case 3 passes 4/4 in
+  two runs; failures in cases 1, 5, and 8 match origin/main at `cbcb32d73`;
+  eval 7 is not gated; case 9's single assertion-3 miss passed in two reruns
+  and is accepted by owner decision, 2026-10-10. Details:
+  [`eval-runs.md`](eval-runs.md#final-runs-at-2595da79c-t3-closes-on-these).
