@@ -1827,71 +1827,84 @@ def resolve_intent_ancestors(
       direct-delivery and coordinated-delivery name the feature intent directly).
       Non-feature Discovery: references are preserved via snapshot provenance
       records. This is the only implementation; no local file inversion remains.
-    - ``brief``: ``Parent intent:``.
-    - ``intent``: ``Parent intent:``.
+    - ``brief`` and ``intent``: the single resolved ``Parent intent`` edge out
+      of the artifact's own node in the intent-graph derivation, followed from
+      each reached node. ``fields`` supplies no parent edge.
 
-    The intent→intent ``Parent intent:`` upward walk remains local (not feature
-    delivery) and uses the existing confined reader.
+    Each ancestor's status is its node's ``status``; its terminus is read once
+    from the node's ``Decomposed:`` with close-work's confined reader.
 
     Raises ``_ClosureDeliveryRefusal`` with reason
     ``delivery-resolver-unavailable`` when a spec's snapshot cannot be obtained;
-    the caller reports that code rather than treating the chain as empty.
+    the caller reports that code rather than treating the chain as empty. It
+    raises ``intent-graph-unavailable: <code>`` when the derivation fails,
+    ``artifact-not-in-graph`` when the walked artifact or a spec's first-hop
+    intent has no node, and ``parent-edge-refused`` when a walked
+    ``Parent intent`` edge is refused.
 
     Called from close-work's closeout procedure alongside
     ``check_ancestor_closure`` to fire the check on every intent ancestor of
     the transitioning artifact.
     """
     reader: Reader = _reader if _reader is not None else _make_confined_reader(root)
-    dir_lister: DirLister = (
-        _dir_lister if _dir_lister is not None else _default_dir_lister
-    )
-
     ancestors: list[tuple[str, str, str]] = []
-    visited_slugs: set[str] = {slug}
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    parent_edges: dict[str, list[dict[str, Any]]] = {}
 
-    intents_dir = _intents_dir(root)
+    def _derive() -> None:
+        """Run the derivation once for this call and index its nodes and parent edges."""
+        graph = _derive_graph(root, _graph_provider)
+        nodes_by_id.update(
+            {n["id"]: n for n in graph["nodes"] if isinstance(n.get("id"), str)}
+        )
+        for edge in graph["edges"]:
+            if edge.get("field") == "Parent intent":
+                parent_edges.setdefault(edge.get("from", ""), []).append(edge)
 
-    def _scan_for_slug(
-        collection_dir: Path, target_slug: str
-    ) -> dict[str, str] | None:
-        """Scan a collection directory for an artifact with a matching ``Slug:``."""
-        for path in dir_lister(collection_dir):
-            try:
-                text = reader(path)
-                f = _preamble(text)
-                if f.get("Slug") == target_slug:
-                    return f
-            except (OSError, ValueError):
-                continue
+    def _intent_node(intent_slug: str) -> dict[str, Any] | None:
+        return next(
+            (
+                n for n in nodes_by_id.values()
+                if n.get("type") == "intent" and n.get("slug") == intent_slug
+            ),
+            None,
+        )
+
+    def _parent_of(node_id: str) -> str | None:
+        """Return the node id its single resolved ``Parent intent`` edge reaches."""
+        edges = parent_edges.get(node_id, [])
+        if any("state" in e for e in edges):
+            raise _ClosureDeliveryRefusal("parent-edge-refused")
+        for e in edges:
+            if isinstance(e.get("to"), str):
+                return e["to"]
         return None
 
-    def _add_intent_and_recurse(
-        intent_slug: str, intent_fields: dict[str, str]
-    ) -> None:
-        """Add an intent ancestor and walk upward via its ``Parent intent:``.
+    def _own_terminus(node: dict[str, Any]) -> str:
+        """Read the node's own ``Decomposed:`` once with close-work's reader."""
+        try:
+            text = reader(root / node["path"])
+        except (OSError, ValueError, KeyError):
+            text = ""
+        return _terminus_from_decomposed(_preamble(text).get("Decomposed", ""))
 
-        The upward walk (intent → intent) stays local: it is not feature delivery.
-        Only ``intent:`` typed parent edges are followed (not capability/outcome/
-        opportunity) so that the walk correctly traverses the real parent chain.
-        """
-        if intent_slug in visited_slugs:
-            return
-        visited_slugs.add(intent_slug)
-        status = intent_fields.get("Status", "")
-        terminus = _terminus_from_decomposed(intent_fields.get("Decomposed", ""))
-        ancestors.append((intent_slug, status, terminus))
-        # Walk upward from this intent to find further ancestors (local, non-delivery).
-        parent_val = intent_fields.get("Parent intent", "")
-        if parent_val.startswith("intent:"):
-            parent_slug = parent_val[len("intent:"):]
-            parent_fields = _scan_for_slug(intents_dir, parent_slug)
-            if parent_fields:
-                _add_intent_and_recurse(parent_slug, parent_fields)
+    def _chain_from(node_id: str, visited: set[str]) -> None:
+        """Follow resolved parent edges upward, returning each new intent node."""
+        current: str | None = node_id
+        while current is not None:
+            current = _parent_of(current)
+            if current is None or current in visited:
+                return
+            node = nodes_by_id.get(current)
+            if node is None or node.get("type") != "intent":
+                return
+            visited.add(current)
+            ancestors.append(
+                (str(node.get("slug", "")), str(node.get("status", "")), _own_terminus(node))
+            )
 
     if kind == "spec":
-        # The spec→feature step is feature-delivery parsing; derive it from the
-        # canonical snapshot. Both direct-delivery and coordinated-delivery
-        # relations carry the feature intent identifier directly.
+        # The spec→intent first hop stays on the delivery resolver's snapshot.
         provider = _snapshot_provider if _snapshot_provider is not None else _run_resolver
         try:
             snap = provider(root)
@@ -1901,49 +1914,40 @@ def resolve_intent_ancestors(
             # the caller receives delivery-resolver-unavailable.
             raise _ClosureDeliveryRefusal("delivery-resolver-unavailable") from _exc
 
+        _derive()
         spec_id = f"spec:{slug}"
-        seen_feature_slugs: set[str] = set()
-
-        # Feature ancestors via delivery relations.
+        first_hops: list[str] = []
         for rel in snap["relations"]:
             if rel.get("spec") == spec_id and rel.get("type") in (
                 "direct-delivery",
                 "coordinated-delivery",
             ):
-                intent_ref = rel.get("intent", "")
-                if intent_ref.startswith("intent:"):
-                    feat_slug = intent_ref[len("intent:"):]
-                    if feat_slug not in seen_feature_slugs and feat_slug not in visited_slugs:
-                        seen_feature_slugs.add(feat_slug)
-                        feat_fields = _scan_for_slug(intents_dir, feat_slug)
-                        if feat_fields:
-                            _add_intent_and_recurse(feat_slug, feat_fields)
-
-        # Non-feature Discovery: references from contextual-provenance records.
-        # A spec whose Discovery: names a non-feature intent contributes that
-        # intent as an ancestor via the provenance record. The resolver stores
-        # the resolved intent identifier in the ``intent`` field; following only
-        # that field ensures the path form and the identifier form of the same
-        # reference yield the same ancestor.
+                first_hops.append(rel.get("intent", ""))
         for prov in snap["provenance"]:
             if prov.get("subject") == spec_id and prov.get("field") == "Discovery":
-                intent_ref = prov.get("intent", "")
-                if intent_ref.startswith("intent:"):
-                    prov_slug = intent_ref[len("intent:"):]
-                    if prov_slug not in seen_feature_slugs and prov_slug not in visited_slugs:
-                        seen_feature_slugs.add(prov_slug)
-                        prov_fields = _scan_for_slug(intents_dir, prov_slug)
-                        if prov_fields:
-                            _add_intent_and_recurse(prov_slug, prov_fields)
+                first_hops.append(prov.get("intent", ""))
+
+        visited: set[str] = set()
+        for intent_ref in first_hops:
+            if not intent_ref.startswith("intent:"):
+                continue
+            hop = _intent_node(intent_ref[len("intent:"):])
+            if hop is None:
+                raise _ClosureDeliveryRefusal("artifact-not-in-graph")
+            if hop["id"] in visited:
+                continue
+            visited.add(hop["id"])
+            ancestors.append(
+                (str(hop.get("slug", "")), str(hop.get("status", "")), _own_terminus(hop))
+            )
+            _chain_from(hop["id"], visited)
 
     elif kind in ("brief", "intent"):
-        # Parent intent: route — local, not feature delivery.
-        parent_val = fields.get("Parent intent", "")
-        if parent_val.startswith("intent:"):
-            parent_slug = parent_val[len("intent:"):]
-            parent_fields = _scan_for_slug(intents_dir, parent_slug)
-            if parent_fields:
-                _add_intent_and_recurse(parent_slug, parent_fields)
+        _derive()
+        start = _intent_node(slug) if kind == "intent" else nodes_by_id.get(f"brief:{slug}")
+        if start is None:
+            raise _ClosureDeliveryRefusal("artifact-not-in-graph")
+        _chain_from(start["id"], {start["id"]})
 
     return ancestors
 

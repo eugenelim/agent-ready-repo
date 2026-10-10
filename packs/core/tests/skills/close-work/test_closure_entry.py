@@ -333,6 +333,11 @@ def test_ac0002_intent_parent_intent_resolves_ancestor(tmp_path: Path) -> None:
         "Status": "Accepted",
         "Parent intent": f"intent:{parent_slug}",
     }
+    (intents_dir / "child-intent.md").write_text(
+        f"- **Slug:** {child_slug}\n"
+        f"- **Status:** Accepted\n"
+        f"- **Parent intent:** intent:{parent_slug}\n"
+    )
     ancestors = ci.resolve_intent_ancestors(child_slug, "intent", child_fields, tmp_path)
     assert len(ancestors) == 1
     assert ancestors[0][0] == parent_slug
@@ -355,6 +360,13 @@ def test_ac0002_brief_parent_intent_resolves_ancestor(tmp_path: Path) -> None:
         "Status": "Executing",
         "Parent intent": f"intent:{parent_slug}",
     }
+    briefs_dir = tmp_path / "docs" / "product" / "briefs"
+    briefs_dir.mkdir(parents=True)
+    (briefs_dir / "my-brief.md").write_text(
+        f"- **Slug:** {brief_slug}\n"
+        f"- **Status:** Executing\n"
+        f"- **Parent intent:** intent:{parent_slug}\n"
+    )
     ancestors = ci.resolve_intent_ancestors(brief_slug, "brief", brief_fields, tmp_path)
     assert len(ancestors) == 1
     assert ancestors[0][0] == parent_slug

@@ -490,6 +490,218 @@ def test_ac0013_diamond_is_opened_at_most_once_by_each_reader(
     assert set(descendants) == {("intent", "ca"), ("intent", "cb"), ("spec", "shared")}
 
 
+# ── Upward walk (AC-0006 to AC-0009, AC-0011, AC-0017) ───────────────────────
+
+
+def _walk(root: Path, slug: str, kind: str, fields: dict[str, str] | None = None, **seams: Any):
+    """Run the ancestor walk with no seam but the ones a case names."""
+    return ci.resolve_intent_ancestors(slug, kind, fields or {}, root, **seams)
+
+
+def _brief_multi(root: Path, slug: str, parents: list[str]) -> None:
+    _, briefs, _ = _dirs(root)
+    lines = [f"- **Slug:** {slug}", "- **Status:** Executing"]
+    lines += [f"- **Parent intent:** {v}" for v in parents]
+    (briefs / f"{slug}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _prov(spec_slug: str, intent_slug: str) -> dict[str, Any]:
+    return {
+        "subject": f"spec:{spec_slug}",
+        "field": "Discovery",
+        "intent": f"intent:{intent_slug}",
+        "target": f"intent:{intent_slug}",
+    }
+
+
+def _four_level_chain(root: Path) -> None:
+    """Each hop uses a different prefix; each ancestor carries a different terminus."""
+    _intent(root, "a1", level="capability", status="Accepted (2026-10-01)",
+            parent="outcome:a2", decomposed="children")
+    _intent(root, "a2", kind="outcome", status="Accepted (2026-10-02)",
+            parent="opportunity:a3", decomposed="brief")
+    _intent(root, "a3", kind="opportunity", status="Fulfilled (2026-10-03)",
+            parent="intent:a4", decomposed="spec")
+    _intent(root, "a4", status="Accepted (2026-10-04)", decomposed="closed-empty")
+
+
+_CHAIN = [
+    ("a1", "Accepted (2026-10-01)", "children"),
+    ("a2", "Accepted (2026-10-02)", "brief"),
+    ("a3", "Fulfilled (2026-10-03)", "spec"),
+    ("a4", "Accepted (2026-10-04)", "closed-empty"),
+]
+
+
+def test_ac0006_four_level_chain_from_an_intent(tmp_path: Path) -> None:
+    _four_level_chain(tmp_path)
+    _intent(tmp_path, "bottom", parent="capability:a1")
+
+    assert _walk(tmp_path, "bottom", "intent") == _CHAIN
+
+
+def test_ac0006_four_level_chain_from_a_brief(tmp_path: Path) -> None:
+    _four_level_chain(tmp_path)
+    _brief(tmp_path, "bottom", parent="capability:a1")
+
+    assert _walk(tmp_path, "bottom", "brief") == _CHAIN
+
+
+def test_ac0017_artifact_absent_from_the_corpus_is_refused(tmp_path: Path) -> None:
+    _dirs(tmp_path)
+    _intent(tmp_path, "other")
+    for kind in ("intent", "brief"):
+        with pytest.raises(ci._ClosureDeliveryRefusal, match="artifact-not-in-graph"):
+            _walk(tmp_path, "ghost", kind, {"Parent intent": "intent:other"})
+
+
+def test_ac0017_a_brief_slug_is_not_found_among_intents(tmp_path: Path) -> None:
+    _intent(tmp_path, "same")
+    with pytest.raises(ci._ClosureDeliveryRefusal, match="artifact-not-in-graph"):
+        _walk(tmp_path, "same", "brief")
+
+
+def test_ac0017_the_on_disk_edge_wins_over_the_callers_fields(tmp_path: Path) -> None:
+    _intent(tmp_path, "real", decomposed="children")
+    _intent(tmp_path, "fake", decomposed="spec")
+    _intent(tmp_path, "walked", parent="intent:real")
+
+    ancestors = _walk(tmp_path, "walked", "intent", {"Parent intent": "intent:fake"})
+
+    assert ancestors == [("real", "Accepted", "children")]
+
+
+def test_ac0007_spec_walk_is_depth_first_and_returns_a_shared_grandparent_once(
+    tmp_path: Path,
+) -> None:
+    _intent(tmp_path, "gg", decomposed="children")
+    _intent(tmp_path, "g", parent="intent:gg", decomposed="children")
+    _intent(tmp_path, "a1", parent="intent:g", decomposed="spec")
+    _intent(tmp_path, "a2", parent="intent:g", decomposed="spec")
+    _intent(tmp_path, "d", parent="intent:g", decomposed="closed-empty")
+    snap = _snapshot([_direct("a1", "sp"), _direct("a2", "sp")])
+    snap["provenance"] = [_prov("sp", "d")]
+
+    ancestors = _walk(tmp_path, "sp", "spec", _snapshot_provider=lambda _r: snap)
+
+    assert [a[0] for a in ancestors] == ["a1", "g", "gg", "a2", "d"]
+
+
+def test_ac0007_first_hop_without_a_node_is_refused(tmp_path: Path) -> None:
+    _dirs(tmp_path)
+    snap = _snapshot([_direct("ghost", "sp")])
+    with pytest.raises(ci._ClosureDeliveryRefusal, match="artifact-not-in-graph"):
+        _walk(tmp_path, "sp", "spec", _snapshot_provider=lambda _r: snap)
+
+
+def test_ac0008_brief_whose_parent_shares_its_slug_returns_that_intent(tmp_path: Path) -> None:
+    _intent(tmp_path, "x", decomposed="brief")
+    _brief(tmp_path, "x", parent="intent:x")
+
+    assert _walk(tmp_path, "x", "brief") == [("x", "Accepted", "brief")]
+
+
+def test_ac0008_spec_whose_snapshot_intent_shares_its_slug_returns_that_intent(
+    tmp_path: Path,
+) -> None:
+    _intent(tmp_path, "y", decomposed="spec")
+    snap = _snapshot([_direct("y", "y")])
+
+    ancestors = _walk(tmp_path, "y", "spec", _snapshot_provider=lambda _r: snap)
+
+    assert ancestors == [("y", "Accepted", "spec")]
+
+
+@pytest.mark.parametrize("kind", ["intent", "brief"])
+def test_ac0009_corpus_fault_refuses_the_walk_with_the_derivation_code(
+    tmp_path: Path, kind: str
+) -> None:
+    _intent(tmp_path, "top")
+    (_dirs(tmp_path)[0] / "no-slug.md").write_text("- **Status:** Accepted\n", encoding="utf-8")
+    (_intent if kind == "intent" else _brief)(tmp_path, "w", parent="intent:top")
+
+    with pytest.raises(
+        ci._ClosureDeliveryRefusal, match="intent-graph-unavailable: malformed_record"
+    ):
+        _walk(tmp_path, "w", kind)
+
+
+def _refused_value(root: Path, state: str, tag: str) -> list[str]:
+    """Return the ``Parent intent`` value(s) producing *state*; write any target they need."""
+    if state == "dangling":
+        return [f"intent:nope-{tag}"]
+    if state == "retired_target":
+        _intent(root, f"gone-{tag}", tombstone=True)
+        return [f"intent:gone-{tag}"]
+    if state == "kind_mismatch":
+        _intent(root, f"plain-{tag}")  # an intent, named as a capability
+        return [f"capability:plain-{tag}"]
+    if state == "out_of_type":
+        return [f"brief:other-{tag}"]
+    if state == "multiple_values":
+        _intent(root, f"m1-{tag}")
+        _intent(root, f"m2-{tag}")
+        return [f"intent:m1-{tag}", f"intent:m2-{tag}"]
+    assert state == "unparseable"
+    return ["wibble:x"]
+
+
+def _write(root: Path, kind: str, slug: str, parents: list[str], **kw: Any) -> None:
+    if kind == "brief":
+        _brief_multi(root, slug, parents)
+    else:
+        _intent(root, slug, parent=parents, **kw)
+
+
+_INTENT_STATES = [
+    "dangling", "retired_target", "kind_mismatch", "out_of_type",
+    "multiple_values", "cycle", "unparseable",
+]
+_BRIEF_STATES = ["dangling", "retired_target", "multiple_values", "unparseable"]
+
+
+def _place_walk_refusal(root: Path, kind: str, state: str, placement: str) -> None:
+    if state == "cycle":
+        if placement == "walked":
+            # a-w -> b-w -> a-w: the lowest slug's edge is the refused one.
+            _intent(root, "a-w", parent="intent:b-w")
+            _intent(root, "b-w", parent="intent:a-w")
+        else:
+            _intent(root, "z-w", parent="intent:a-m")
+            _intent(root, "a-m", parent="intent:b-m")
+            _intent(root, "b-m", parent="intent:a-m")
+        return
+    if placement == "walked":
+        _write(root, kind, "w", _refused_value(root, state, "w"))
+    else:
+        _intent(root, "mid", parent=_refused_value(root, state, "m"))
+        _write(root, kind, "w", ["intent:mid"])
+
+
+@pytest.mark.parametrize("placement", ["walked", "reached"])
+@pytest.mark.parametrize("state", _INTENT_STATES)
+def test_ac0011_refused_intent_parent_edge_refuses_the_walk(
+    tmp_path: Path, state: str, placement: str
+) -> None:
+    _place_walk_refusal(tmp_path, "intent", state, placement)
+    start = {"walked": "a-w" if state == "cycle" else "w",
+             "reached": "z-w" if state == "cycle" else "w"}[placement]
+
+    with pytest.raises(ci._ClosureDeliveryRefusal, match="parent-edge-refused"):
+        _walk(tmp_path, start, "intent")
+
+
+@pytest.mark.parametrize("placement", ["walked", "reached"])
+@pytest.mark.parametrize("state", _BRIEF_STATES)
+def test_ac0011_refused_brief_parent_edge_refuses_the_walk(
+    tmp_path: Path, state: str, placement: str
+) -> None:
+    _place_walk_refusal(tmp_path, "brief", state, placement)
+
+    with pytest.raises(ci._ClosureDeliveryRefusal, match="parent-edge-refused"):
+        _walk(tmp_path, "w", "brief")
+
+
 # ── Integration: no seams, one corpus ────────────────────────────────────────
 
 
@@ -519,6 +731,17 @@ def test_closure_parent_edges_corpus(tmp_path: Path) -> None:
     _brief(tmp_path, "feat", status="Shipped", parent="intent:feat")
     eligible = _check(tmp_path, "top")
     assert isinstance(eligible, ci.ClosureEligible), eligible
+
+    # The upward walk runs with no seam but the resolver, over the same corpus.
+    assert ci.resolve_intent_ancestors("by-path", "intent", {}, tmp_path) == [
+        ("top", "Accepted", "children"),
+    ]
+    assert ci.resolve_intent_ancestors("feat", "brief", {}, tmp_path) == [
+        ("feat", "Fulfilled", "brief"),
+        ("cap", "Fulfilled", "children"),
+        ("opp", "Fulfilled", "children"),
+        ("top", "Accepted", "children"),
+    ]
 
     closure = ci._build_descendant_closure("top", "children", tmp_path)
     assert set(closure) == {
