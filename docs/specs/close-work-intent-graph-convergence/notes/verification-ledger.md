@@ -264,3 +264,26 @@ for u in unattributed:
     print("  " + u)
 sys.exit(1 if unattributed else 0)
 ```
+
+## Implementation review
+
+- Reviewers: `adversarial-reviewer`, `security-reviewer`, `quality-engineer`,
+  and `experience-reviewer`, each adjudicated by `finding-adjudicator`. Reports
+  under `.context/reviews/5d8b90bf-799e-4328-9e64-0b96cbca8c8a/`.
+- Round 1 sustained 6 Concerns and 9 Nits; security was clean. Fixed in
+  `a045eabc5`:
+  - AC-0003's scan now flags any `Parent intent` key read in `closure_index.py`; it reds on the base file at three lines.
+  - Eval case 20 describes a `kind_mismatch` child intent.
+  - The dead directory-listing seam is removed, and vacuous `accessed_dirs` assertions are replaced by a counting-provider check.
+  - The guide lists every `intent-graph-unavailable` code and where a broken parent link can be.
+- Rounds 2 to 4 sustained wording and test-name fixes only, applied by the
+  controller in `57b210213`, `8b36f9ce4`, and `b8b9e04c4` (recorded as
+  `human-directed` declines, the nearest receipt reason). Final round: all four
+  reviewers clean.
+- Deferred Nits:
+  - `_own_terminus` reports a failed ancestor re-read as `no-decomposed`. The verdict still refuses, and the path is reachable only when a file changes mid-run.
+  - The `graph_provider_from_files` test helper resolves a parent by slug without a kind check. Every current fixture uses `intent:` parents, and the contract tests run the real copy.
+  - `ClosureNotEligible.live_descendants` stays `(slug, status)` with no kind.
+- Local gates on `b8b9e04c4`: lint and mypy clean; 1,079 passed, 4 skipped
+  (close-work, navigate-intents, pack, parity tool, roster supersession); guide
+  lints and the changelog projection test green.
