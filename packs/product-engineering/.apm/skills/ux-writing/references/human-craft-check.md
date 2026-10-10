@@ -10,7 +10,7 @@ descriptions, help text. Short strings — button labels, single-line error mess
 are caught by the items in `content-checklist.md`; this check is for the paragraphs.
 
 *The equivalent checklist for documentation prose is `clear-prose.md` in the
-`new-guide` skill. The vocabulary and structural tells overlap — the context
+`author-product-docs` skill, if installed. The vocabulary and structural tells overlap — the context
 (product UI copy vs. docs) differs, not the patterns.*
 
 ## Structural tells

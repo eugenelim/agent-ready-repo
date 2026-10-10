@@ -1,67 +1,100 @@
 ---
 title: "Getting Started with Product Documentation"
-summary: "Learn how to author, validate, and publish catalogue-facing product guides in this repository."
+summary: "Document your own repository with the author-product-docs skill: audit it, read the journey gap report, write the first missing page, and check it."
 pack: product-documentation
 kind: tutorial
 slug: guides/product-documentation/getting-started
 status: stable
 ---
 
-This tutorial walks you through creating and publishing a product guide from scratch.
+In about 20 minutes you will find out which pages your project's docs are missing, write the most important one, and check it against your code.
+
+With [`agentbundle`](../_shared/explanation/install-routes.md) installed, add the pack:
+
+```bash
+agentbundle install --pack product-documentation
+```
+
+Open your agent in the repository you want to document and send this request:
+
+```
+Audit this project's docs and tell me which stages of the reader journey are missing
+```
+
+You should see the agent start reading your repository. The audit changes no files.
 
 ## Prerequisites
 
-- Write access to the repository
-- `pip install -r tools/requirements.txt` run once (installs PyYAML, jsonschema)
+- A repository with something users run or call: a library, CLI, HTTP API, app, service, framework, plugin, or agent-context pack.
+- An agent that supports installed packs, such as Claude Code.
+- `agentbundle`, the installer. See [install routes](../_shared/explanation/install-routes.md).
 
-## Step 1 — Create your guide file
+## Step 1: Let the skill find out what you ship
 
-Place your guide under `guides/<pack-id>/` using a kebab-case filename:
+The `author-product-docs` skill starts by working out what your product is. It looks for evidence: a package manifest and public API for a library, command parsers for a CLI, an OpenAPI or protobuf file for an API, a configuration schema for a service. A repository can ship more than one surface, and the skill documents each one a reader touches.
+
+It then looks for where your repository keeps user-facing docs and maintainer docs, using the agent-guidance file, the contributing guide, and the existing layout. It reads your README and your docs index — a docs site's navigation config counts as the index — and samples a large doc set by stage. It runs no project code unless you say you trust the repository; this tutorial assumes your own repository, so tell it so if you want it to run checks.
+
+You should see the report name the surface it found. If the evidence fits none of the known surfaces, the skill says what it found and asks once.
+
+## Step 2: Read the journey gap report
+
+The reply starts with a table of nine rows, one per stage a reader passes through:
+
+| Stage | Reader's question |
+|---|---|
+| Discover and evaluate | Is this for me? |
+| Install | Can I get it running? |
+| First success | Can I make it do one real thing quickly? |
+| Daily tasks | How do I do this specific thing? |
+| Look up | What exactly does this accept or return? |
+| Understand | Why does it work this way? |
+| Troubleshoot | It broke. What do I check? |
+| Upgrade | What changed, and what must I change? |
+| Contribute | How do I report or change something? |
+
+Each row is `covered`, `partial`, `missing`, or `not applicable`, with the file that shows it or the reason. A library with no outside contributors may mark Contribute not applicable. Nothing marks First success not applicable.
+
+The next actions are ranked by where readers are lost first. A missing or failing first success comes before a missing explanation. The top-ranked row marked `missing` or `partial` is the page to write first.
+
+## Step 3: Write the first missing page
+
+Ask the skill to write the page for the top-ranked row. For example, when First success ranks first:
 
 ```
-guides/product-documentation/my-new-guide.md
+Write a quickstart for this project
 ```
 
-For packs with many guides, add a topic folder:
+For example prompts for other stages, see [How to author product docs](how-to/author-product-docs.md#prompts-by-journey-stage).
+
+The skill reads the canonical sources for your surface before it writes. It then drafts one page by default. You should see the page open with the goal and a first runnable action in its first 120 words, and the draft should say what the product reads and what it may change, show the expected result, and end with a link to the next stage. The skill writes the page where your repository already keeps docs of that kind, and asks once if it cannot tell where that is.
+
+You decide whether the page matches what you want readers to do first.
+
+## Step 4: Check the page against your code
+
+Ask the skill to verify what it wrote:
 
 ```
-guides/product-documentation/authoring/my-new-guide.md
+Verify this page against what the code does
 ```
 
-## Step 2 — Add required frontmatter
+You should get three lists: verified claims, unverified claims, and claims that contradict current behavior. Then run the check that fits your surface. Run the examples for a library. For a CLI, compare the page with `--help` and run each command. For an API, compare it with the contract file. For a service, compare it with the configuration schema. For an app, walk each documented task in the running app or its end-to-end tests. For a plugin, compare the page with the contribution block in its manifest. For a framework, compare each extension-point entry with its interface and the code that loads it. For an agent-context pack, read each skill's source and send the first starter prompt.
 
-Every published guide needs four required fields:
+Fix any contradiction before you publish. A claim nothing checked stays labeled unverified.
 
-```yaml
----
-title: "My New Guide"
-summary: "One sentence: what the reader gains from this page."
-pack: product-documentation
-kind: how-to
----
-```
+## Step 5: Audit again
 
-Valid values for `kind`: `tutorial`, `how-to`, `reference`, `explanation`.
+Send the audit request from the top of this page again. The row you fixed should now read `covered`, with the new page as evidence. Work down the list one page at a time.
 
-## Step 3 — Validate your frontmatter
+## What you have now
 
-```bash
-python tools/validate_guides.py guides/product-documentation/my-new-guide.md
-```
+- A journey gap report for your project's docs.
+- One new page, checked against the code, that links to the stage after it.
+- A repeatable loop: audit, write the top gap, verify.
 
-Exit 0 means the guide is valid. See `docs/guides/guide-source-model.md` for the full field reference.
+## Next steps
 
-## Step 4 — Preview locally
-
-```bash
-python tools/build-site.py   # mirrors guides/ into docs-site/
-make site-serve              # starts the Starlight dev server
-```
-
-Open your browser to the URL printed by `make site-serve`.
-
-## Step 5 — Open a pull request
-
-Commit your guide source file under `guides/` (not the generated output
-under `docs-site/`). The CI pipeline runs `validate_guides.py` and
-rebuilds the site automatically.
+- [How to author product docs](how-to/author-product-docs.md) — retrofit several pages at once and use the other modes.
+- [How to write a guide](how-to/write-a-guide.md) — document one shipped feature.
+- [About the Diátaxis framework](explanation/the-diataxis-framework.md) — why each page has one job.

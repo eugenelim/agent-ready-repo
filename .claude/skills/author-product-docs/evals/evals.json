@@ -4,13 +4,14 @@
     {
       "id": 1,
       "prompt": "Author the product documentation artifact the user requested, following the five-mode procedure.",
-      "expected_output": "A documentation artifact that: (1) correctly identifies and applies one of the five modes (create/revise/retrofit/audit/verify) based on the request; (2) reads the canonical source (pack.toml, skill files, schemas) before making any product claim; (3) routes to the correct ownership tree (guides/ for external users, docs/guides/ for maintainers) without being told; (4) selects the minimum useful artifact set \u2014 one well-executed artifact rather than four thin stubs; (5) uses task-first structure where the reader's natural goal and first request appear within the first 120 words, with no skill inventory before the first task; (6) makes read/write boundaries explicit; (7) is grounded in verified behavior and clearly marks unverified claims; (8) links only to files that actually exist.",
+      "expected_output": "A documentation artifact that: (1) correctly identifies and applies one of the five modes (create/revise/retrofit/audit/verify) based on the request; (2) identifies the product surface (library, CLI, API, app, service, plugin, or agent pack) before drafting; (3) reads the product surface's canonical sources (code, contract, schema, manifest, or skill) before making any product claim; (4) routes user-facing docs to the repository's user-facing docs location and maintainer content to its maintainer location, and never writes user-facing docs into a maintainer-only tree, without being told; (5) selects the minimum useful artifact set \u2014 one well-executed artifact rather than four thin stubs; (6) uses task-first structure where the reader's natural goal and first request appear within the first 120 words, with no inventory before the first task; (7) makes read/write boundaries explicit; (8) is grounded in verified behavior and clearly marks unverified claims; (9) links only to files that actually exist.",
       "assertions": [
         "Correctly identifies the mode from the request (create/revise/retrofit/audit/verify) \u2014 does not default to create for revision requests or add a confirmation gate when mode is clear",
-        "Reads canonical sources (pack.toml, skill SKILL.md, schemas) before writing any claim about what the pack or skill does",
-        "Routes to guides/ for external product users and docs/guides/ for maintainer content \u2014 does not mix the two",
+        "Identifies the product surface (library, CLI, API, app, service, plugin, or agent pack) before drafting",
+        "Reads the product surface's canonical sources (code, contract, schema, manifest, or skill) before writing any claim about what the product does",
+        "Routes user-facing docs to the repository's user-facing docs location and maintainer content to its maintainer location; never writes user-facing docs into a maintainer-only tree",
         "Creates one artifact, not multiple quadrant stubs \u2014 selects the minimum useful set",
-        "Task-first structure: the reader's natural-language request appears within the first 120 words; no skill inventory before the first task",
+        "Task-first structure: the reader's natural-language request appears within the first 120 words; no inventory before the first task",
         "Read/write boundary is explicit \u2014 reader knows before acting whether something will be changed",
         "Product claims are grounded in inspected behavior; unverified claims are labeled as such",
         "Links in the artifact point only to files that exist or were created in the same change"
@@ -19,12 +20,12 @@
     {
       "id": 2,
       "prompt": "Create or revise a pack README following the task-first and audience-correct principles.",
-      "expected_output": "A pack README that: leads with what the user can accomplish (not a skill list); shows at least one natural-language starter request; previews what the user gets back; includes the install command; links to deeper guides; does not duplicate machine facts already authoritative in pack.toml (version numbers, scope, dependency list); and does not require the reader to know any skill name to understand what to do first.",
+      "expected_output": "A pack README that: leads with what the user can accomplish (not a skill list); shows at least one natural-language starter request; previews what the user gets back; includes the install command; links to deeper guides; does not duplicate machine facts already authoritative in the pack manifest (version numbers, scope, dependency list); and does not require the reader to know any skill name to understand what to do first.",
       "assertions": [
         "Opens with user outcomes rather than a capability or skill inventory",
         "Contains at least one natural-language starter request the reader can copy",
         "Previews a concrete result the reader will receive",
-        "Does not duplicate pack.toml machine facts (version, scope, dependencies) \u2014 either omits them or defers to pack.toml",
+        "Does not duplicate the pack manifest machine facts (version, scope, dependencies) \u2014 either omits them or defers to the pack manifest",
         "Does not require the reader to know any skill name to begin the first task",
         "Links to guides or other documentation that actually exists"
       ]
@@ -67,6 +68,41 @@
         "Names the folder-first anti-pattern or equivalent (scaffold-first, structure-first) by concept",
         "Recommends restructuring to a task-first or outcome-first opener",
         "Does not approve the directory-listing opener as correct documentation practice"
+      ]
+    },
+    {
+      "id": "cli-readme-audit",
+      "files": [
+        "evals/files/cli/README.md"
+      ],
+      "prompt": "Audit the README of the CLI tool in `evals/files/cli/README.md`. Report what stops a new user from succeeding and what to change.",
+      "expected_output": "An audit report that identifies a CLI surface, flags the flag-dump (inventory-first) opener, the missing install verification, and the missing first runnable example, and recommends a task-first opener with a first command. It does not invent behavior the README or code does not show, and it names the lines each finding refers to.",
+      "assertions": [
+        "Identifies the product surface as a CLI",
+        "Flags the flag table / inventory-first opener",
+        "Flags the missing install verification step",
+        "Flags the missing first runnable example",
+        "Recommends a task-first opener that includes a first command",
+        "Does not invent tool behavior that is not shown",
+        "Names specific lines for each finding"
+      ]
+    },
+    {
+      "id": "library-journey-gap-audit",
+      "files": [
+        "evals/files/library-docs/README.md",
+        "evals/files/library-docs/docs/api.md",
+        "evals/files/library-docs/docs/faq.md"
+      ],
+      "prompt": "Audit this library's documentation set across the reader journey. Do not edit any files.",
+      "expected_output": "A journey gap report with one row per stage (nine rows: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute), each marked covered, partial, missing, or not applicable with file evidence. It flags the missing install and first-success content, the missing troubleshooting and upgrade pages, and the standalone FAQ as content to fold into task pages. It does not edit files.",
+      "assertions": [
+        "Report has one row per journey stage (9 rows)",
+        "Each row is marked covered, partial, missing, or not applicable with file evidence",
+        "Flags missing install and first-success content",
+        "Flags missing troubleshooting and upgrade pages",
+        "Flags the standalone FAQ as content to fold into task pages",
+        "Does not edit any files"
       ]
     },
     {

@@ -55,7 +55,7 @@
         "Designs navigation grouped by how readers look for things, not by the API's internal schema or org structure",
         "Designs the landing page as a TTFV accelerant \u2014 routes each content type to its fastest path, not as a table of contents",
         "Addresses machine-readability decisions for the reference format",
-        "Does NOT write documentation content (not a new-guide output)",
+        "Does NOT write documentation content (not an `author-product-docs` output, if installed)",
         "Does NOT produce markup, color values, or styling code"
       ],
       "source_skill": "documentation-design"

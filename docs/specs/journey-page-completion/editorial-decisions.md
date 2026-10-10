@@ -77,7 +77,7 @@ value adopters never saw.
 | `iac-terraform` | `G-plan` | `approve-infrastructure-plan` | Approve the infrastructure plan |
 | `iac-terraform` | `G4` | `merge-infrastructure-change` | Merge the infrastructure change |
 | `iac-terraform` | `G5` | `approve-production-infrastructure-release` | Approve the production infrastructure release |
-| `product-documentation` | `G-kind` | `confirm-documentation-page-kind` | Confirm the documentation page kind |
+| `product-documentation` | `G-kind` | `confirm-documentation-page-kind` | Check what the agent chose |
 | `product-documentation` | `G-review` | `review-product-documentation` | Review the product documentation |
 | `product-strategy` | `G-situation` | `approve-strategy-situation` | Approve the situation framing |
 | `product-strategy` | `G-prfaq` | `approve-prfaq` | Approve the PR/FAQ |

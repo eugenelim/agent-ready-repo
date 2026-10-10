@@ -18,5 +18,6 @@
   {"query": "What's the intent behind the new dashboard?", "should_trigger": false},
   {"query": "Document how to rotate an API token", "should_trigger": false},
   {"query": "Write the release notes for v2", "should_trigger": false},
-  {"query": "Critique this design doc", "should_trigger": false}
+  {"query": "Critique this design doc", "should_trigger": false},
+  {"query": "Write the troubleshooting page for our CLI's install errors", "should_trigger": false}
 ]
