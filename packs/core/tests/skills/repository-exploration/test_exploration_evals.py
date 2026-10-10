@@ -93,6 +93,7 @@ _EXPECTED_EVAL_IDS: tuple[str, ...] = (
     "proposed-approved-root",
     "refresh-and-mutating-request",
     "reader-file-text-as-data",
+    "workflow-decision-dependents-no-provider",
 )
 
 
@@ -274,6 +275,10 @@ _PINNED_EVAL_CASES: dict[str, tuple[tuple[str, ...], str]] = {
     "reader-file-text-as-data": (
         ("evals/files/lsp-definition-tool-description.txt", "evals/files/reader-directive-provider-output.json", "evals/files/reader-directive-file.txt",),
         "a420779f474628d302067c2e03c9774e81e9c5ad59fcb52ed443a14d539f66b2",
+    ),
+    "workflow-decision-dependents-no-provider": (
+        ("evals/files/src-function-py.py",),
+        "3a3130276b9e862888d53ebcb6bcc24af59bd410c18553b15522337dde78ddcc",
     ),
 }
 

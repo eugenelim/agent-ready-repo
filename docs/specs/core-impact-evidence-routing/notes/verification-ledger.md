@@ -30,3 +30,12 @@ Interpreter: Python 3.11 for pytest; a throwaway venv with ruff, mypy, pyyaml, j
 - `make lint-ruff lint-mypy`: all checks passed; mypy no issues in 155 files.
 - `agentbundle catalogue lint --root . --deep`: ok, 75 findings (warnings only, none from this change).
 - Grep of `packs/core/tests` for the two changed `new-spec` eval prompts: no pin (only an unrelated `code-intelligence pack` literal in `test_readme_repository_grounding.py`).
+
+## T3 (2026-10-10)
+
+- `pytest packs/core/tests/pack packs/core/tests/skills/repository-exploration packs/core/tests/skills/bug-fix -q -p no:cacheprovider` (Python 3.11): 468 passed.
+- Work-loop tests that reference `evals.json` (9 files): 389 passed. No test pins the work-loop or bug-fix eval id lists or counts beyond the existing `>= 14` floor.
+- `python3 tools/lint-pack-test-boundary.py`: passed (8 cases).
+- `make lint-ruff lint-mypy`: all checks passed; mypy no issues in 155 files.
+- `agentbundle catalogue lint --root . --deep`: ok, 75 findings (warnings only, none from this change).
+- The `Fix the bug where saving a draft loses the title` negative equals a `should_trigger: true` query in `bug-fix/evals/eval_queries.json` (checked in the build script).
