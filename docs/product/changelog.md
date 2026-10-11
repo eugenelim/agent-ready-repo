@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - When a repository has no reference architecture, `architect-design` now says so, lowers its confidence in stack assumptions, and offers to hand off to `adapt-to-project` (existing code) or `init-project` (a new project) to establish one. It never drafts one itself.
-- A saved design is now labelled future-state, with a pointer to reconcile it into current architecture once the change ships.
+- `architect-design` now treats a saved design as future-state and points to reconciling it into current architecture once the change ships.
 
 ### Changed
 
@@ -92,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- With the `architect` pack installed, shaping now reaches architecture at the right moment. `frame-intent` offers `architect-design` when framing hits a system-shape question. `frame-domain` and `de-risk-intent` offer `architect-assess` for a current-state model. `decompose-intent` and `map-capabilities` offer a design before cutting work. Without `architect`, these skills say nothing about it and behave as before.
+- With the `architect` pack installed, shaping now reaches architecture at the right moment. `frame-intent` offers `architect-design` when framing hits a system-shape question. `frame-domain` and `de-risk-intent` offer `architect-assess` for a current-state model. `decompose-intent` and `map-capabilities` offer a design before cutting work. Without `architect`, no architect offer, mention, note, or error appears.
 - When a saved design covers a feature, `decompose-intent` now carries it into the delivery contract's design context, so the spec stage reads it.
 - `explore-options`, `diverge-solutions`, `de-risk-intent`, and `decompose-intent` now use a current-architecture document, when one exists, to judge feasibility and check slices against subsystem boundaries.
 

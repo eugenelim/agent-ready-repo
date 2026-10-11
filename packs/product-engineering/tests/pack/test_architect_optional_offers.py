@@ -28,6 +28,12 @@ OFFER_SKILLS = (
 FORBIDDEN = ("install architect", "install the architect", "architect is not installed")
 
 
+def _forbidden_hits(body: str) -> list[str]:
+    """Return the forbidden phrases in a body, ignoring case and code marks."""
+    plain = _flat(body.replace("`", "")).lower()
+    return [phrase for phrase in FORBIDDEN if phrase in plain]
+
+
 def _flat(text: str) -> str:
     """Collapse all whitespace runs to single spaces."""
     return " ".join(text.split())
@@ -66,6 +72,19 @@ def _eval_cases(skill_dir: Path) -> dict[str, dict]:
 
 
 def test_frame_domain_reuses_then_offers_then_extracts() -> None:
+    paragraphs = _paragraphs((SKILLS / "frame-domain/SKILL.md").read_text(encoding="utf-8"))
+    [bullet] = [p for p in paragraphs if "**Current-system extraction.**" in p]
+    order = [
+        bullet.index("First reuse a reachable current-architecture artifact"),
+        bullet.index("check your available-skills roster for `architect-assess`"),
+        bullet.index("extract the domain model, events, and binding seams"),
+    ]
+    assert order == sorted(order)
+    degrade = next(p for p in paragraphs if p.startswith("`architect-assess` is an offer"))
+    assert "roster" not in degrade
+
+
+def test_frame_domain_names_current_system_extraction() -> None:
     text = _skill(SKILLS / "frame-domain")
     for phrase in (
         "current-architecture",
@@ -73,13 +92,10 @@ def test_frame_domain_reuses_then_offers_then_extracts() -> None:
         "available-skills roster",
         "Current-system extraction",
         "`decision-archaeology` + current-system extraction",
-        "`architect-assess` is an offer, not a grounding dependency: its absence is never named in *Residual assumptions*.",
+        "`architect-assess` is an offer, not a grounding dependency: its absence is never named in the artifact, including *Residual assumptions*.",
     ):
         assert phrase in text
     assert "architecture extraction" not in text.lower()
-    tail = _paragraphs((SKILLS / "frame-domain/SKILL.md").read_text(encoding="utf-8"))
-    degrade = next(p for p in tail if p.startswith("`architect-assess` is an offer"))
-    assert "roster" not in degrade
 
 
 def test_frame_intent_parks_system_shape_questions() -> None:
@@ -148,15 +164,23 @@ def test_mutation_dropping_the_clause_is_reported() -> None:
 def test_no_install_or_absence_phrases_under_apm() -> None:
     for path in (PACK_ROOT / ".apm").rglob("*"):
         if path.is_file():
-            body = _flat(path.read_text(encoding="utf-8", errors="ignore")).lower()
-            for phrase in FORBIDDEN:
-                assert phrase not in body, f"{path}: {phrase}"
+            hits = _forbidden_hits(path.read_text(encoding="utf-8", errors="ignore"))
+            assert not hits, f"{path}: {hits}"
+
+
+def test_mutation_adding_a_forbidden_phrase_is_reported() -> None:
+    text = (SKILLS / "frame-intent/SKILL.md").read_text(encoding="utf-8")
+    assert not _forbidden_hits(text)
+    assert _forbidden_hits(text + "\nTo get this offer, install the `architect` pack.\n")
 
 
 def test_manifest_declares_optional_architect_integrations() -> None:
     manifest = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
     pack = manifest["pack"]
-    assert "architect" not in pack.get("dependencies", {})
+    tiers = pack.get("dependencies", {})
+    assert all(
+        entry["pack"] != "architect" for tier in tiers.values() for entry in tier
+    )
     mine = [i for i in pack["integrations"] if i["pack"] == "architect"]
     providers = {p for i in mine for p in i["providers"]}
     assert {"skill:architect-design", "skill:architect-assess"} <= providers

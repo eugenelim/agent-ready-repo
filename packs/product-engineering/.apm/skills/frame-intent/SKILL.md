@@ -185,7 +185,7 @@ The handoff is Product Engineering-owned ordinary Markdown. Experience Design
 may read it when installed, but it may not rewrite Product Engineering fields or
 the Digital Experience Contract's Product Engineering section. If Experience
 Design is not installed, frame-intent still completes the same intent-authoring
-flow; it must not invoke, install, require, or probe for any downstream pack.
+flow; it must not invoke, install, require, or probe for Experience Design.
 
 The handoff must not select engagement mode, visual direction, typography,
 color, layout, motion, first-viewport composition, a signature interaction, or

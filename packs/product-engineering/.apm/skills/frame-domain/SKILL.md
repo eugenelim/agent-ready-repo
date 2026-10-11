@@ -259,7 +259,7 @@ If `desk-research` (or, in brownfield, `decision-archaeology`) is **not installe
   paper over the gap (the `Never do` "no silent assertion" rule backstops this).
 
 `architect-assess` is an offer, not a grounding dependency: its absence is
-never named in *Residual assumptions*.
+never named in the artifact, including *Residual assumptions*.
 
 ## The producer pipeline
 
