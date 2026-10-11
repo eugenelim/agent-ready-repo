@@ -333,10 +333,15 @@ stdout and a usage line on stderr. Read that as a command error to fix, never as
 answer. Most read commands refuse a missing or zero-byte `--db` with
 `no graph at <db>` and do not create it. `clusters`, `context`, `semantic`, `semantics`, `drift`, `cross-graph` and `correspond` do not: they turn a missing
 or zero-byte database path into an empty graph and return an empty result with
-exit 0 (source-read from `main.rs`). An empty result with exit 0 is a real
-answer only once `stats --json --db <path>` reports a non-zero `nodes` count
-for every database the command read; exit 1 with nothing on stdout is never an
-answer.
+exit 0 (source-read from `main.rs`). Before running one of them, run `stats --json --db <path>` on every database
+path it will read; that check refuses a missing path and creates nothing. Run
+the command only when every path shows a non-zero `nodes` count, and tell the
+user if one of these commands has already created a file. Even on a populated
+graph, `semantic` and `clusters --weight semantic` return an empty exit-0 result
+when the index has no embeddings, and the only sign is a note on stderr; do not
+report that result as an answer while the note is present. `drift` reports no
+live resources, with no note at all, until live state is imported with `tfstate`
+(source-read from `main.rs`). Exit 1 with nothing on stdout is never an answer.
 
 ## Writes
 

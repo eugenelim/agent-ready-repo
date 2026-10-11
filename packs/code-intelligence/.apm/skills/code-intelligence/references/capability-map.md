@@ -28,8 +28,15 @@ path that does not exist or is empty with `no graph at <db>` and create
 nothing. Read an exit 1 or a `no graph at <db>` refusal as a command error,
 never as an empty answer. `clusters`, `context`, `semantic`, `semantics`, `drift`, `cross-graph` and `correspond` instead turn a missing or empty database path
 into an empty graph and exit 0 with an empty result (source-read from
-`main.rs`). Their empty result is a real answer only once `stats --json --db
-<path>` reports a non-zero `nodes` count for every database the command read.
+`main.rs`). Before running one of them, run `stats --json --db <path>` on every database
+path it will read; that check refuses a missing path and creates nothing. Run
+the command only when every path shows a non-zero `nodes` count, and tell the
+user if one of these commands has already created a file. Even on a populated
+graph, `semantic` and `clusters --weight semantic` return an empty exit-0 result
+when the index has no embeddings, and the only sign is a note on stderr; do not
+report that result as an answer while the note is present. `drift` reports no
+live resources, with no note at all, until live state is imported with `tfstate`
+(source-read from `main.rs`).
 
 Two surfaces ship, and they are not the same size.
 
@@ -63,7 +70,7 @@ then `WICKED_ESTATE_DB`, then `.wicked-estate/graph.db`.
 | Add requirement and rule fields | `wicked-estate nodes --json --semantics` | Adds `requirement`, `requirement_validated`, `rule_confidence`, and distinct `out_edges[]` per node. This is a **whole-graph export** that costs an extra semantics read and edge fetch *per node*; scope it with `--kind` or accept the cost deliberately. |
 | Fetch source | `wicked-estate source <name> --json` | The exact source slice for matching symbols, with `file:line` provenance. |
 | Fetch source in bulk | `wicked-estate source --symbols <ids> [--file <path>] [--cluster <id>] [--json]` | `{nodes[], summary}` for the selected set. Text mode honours `--symbols`; `--cluster`, `--file`, and `--signatures-only` are also honoured in text mode (source-read). `--max-total-chars N` and `--max-node-chars N` require `--json` — without it, the command exits non-zero. Precedence is `--symbols` > `--cluster` > `--file` > `<name>` in both modes (source-read). Output is the indexed revision's text, never confirmation of a call site; `--file` takes a path from your own search or the prompt, not from a provider location field. |
-| Semantic search | `wicked-estate semantic "<query>"` | Embedding-ranked symbol matches. **Requires the index to have been built with `--embeddings`**; otherwise unavailable. |
+| Semantic search | `wicked-estate semantic "<query>"` | Embedding-ranked symbol matches. **Requires the index to have been built with `--embeddings`**; without it the command exits 0 with no matches and explains only on stderr (source-read from `main.rs`). |
 
 MCP equivalents: `SearchEntity` (name search, ranked, `limit` ≤ 100),
 `RetrieveEntity` (one symbol by ID: name, kind, language, `file:line`, signature,
@@ -138,7 +145,7 @@ richer MCP response shapes — `summary.top_by_pagerank` on `BlastRadius`,
 | --- | --- | --- |
 | Hotspots / load-bearing symbols | `wicked-estate rank [--seeds s1,s2,...] [--limit N] [--json]` | JSON: `{hotspots[], total, truncated}` where each hotspot carries `{symbol, name, kind, file, line, line_1based, score}`. `--seeds` personalises PageRank over the **whole graph** — seeded output includes symbols the seeds cannot reach, so it biases rather than filters. An ambiguous seed name exits 1. Default 20 rows, ceiling 200, and a 25,000-character budget (all source-read). To rank a dependent set: `rank --seeds <dependent ids> --limit 200 --json`, then keep only rows whose `symbol` is in your set; report set members absent from the output as unranked (cut by the limit or budget). A seed id containing a comma cannot be seeded (source-read, `tool_bridge.rs`); leave it out and report it as unranked. |
 | Architectural communities | `wicked-estate clusters [<min-size>] [--json] [--resolution <γ>] [--hierarchical] [--package-bias <f>]` | Louvain communities over `Calls` + `Imports`. `--json` is a **list of lists of symbol IDs** — no member counts, no ranking, no dominant-file rollup. On a stale graph, commits-behind `STALENESS:` lines precede the JSON on stdout (source-read from `main.rs`). MCP `Communities` returns those summaries; the CLI does not. `γ > 1.0` yields smaller, tighter clusters. The list index is the `<id>` that `source --cluster` takes. |
-| Semantic clustering | `wicked-estate clusters --weight semantic [--k <n> \| --eps <d> --min-pts <n>]` | Embedding-based clustering. Requires an `--embeddings` index. |
+| Semantic clustering | `wicked-estate clusters --weight semantic [--k <n> \| --eps <d> --min-pts <n>]` | Embedding-based clustering. Requires an `--embeddings` index; without it the command exits 0 with no clusters and explains only on stderr (source-read from `main.rs`). |
 | Bounded task context | `wicked-estate context <name> --budget <chars> --json` | Neighbours of up to 20 full-text seed matches, scored by **fixed edge weights, not PageRank**, packed into the character budget. Each row is `{file, kind, line, name}` — note there is no `symbol_id`. On a stale graph, commits-behind `STALENESS:` lines precede the JSON on stdout (source-read from `main.rs`). |
 
 MCP equivalents: `RankHotspots` (adds `seeds[]` for personalized, subsystem-local
@@ -227,7 +234,7 @@ a result at the cap is also a floor.
 | Intent | CLI | Returns |
 | --- | --- | --- |
 | Index live Terraform state | `wicked-estate tfstate <file>` | Writes. Indexes live infrastructure state into the graph. |
-| IaC versus live drift | `wicked-estate drift` | Differences between declared infrastructure and live resources. |
+| IaC versus live drift | `wicked-estate drift` | Differences between declared infrastructure and live resources. Needs live state imported with `wicked-estate tfstate <file>` (a write); without it nothing counts as live, so the report shows no drift finding and prints no warning (source-read from `main.rs`). |
 | Match symbols across two graphs | `wicked-estate correspond --db-a A.db --db-b B.db [--kind K] [--top N] [--min-score F] [--explain] [--json]` | Scored candidate pairs between two separately indexed repositories. Lexical BM25 only unless both graphs carry embeddings, in which case it fuses lexical and vector ranking. |
 
 `correspond` is the only comparison primitive Wicked Estate ships. It matches

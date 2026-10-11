@@ -63,8 +63,11 @@ surplus operand, a repeated flag, or a `--db` with no path exits 1 with nothing
 on stdout, which is a command error and not an empty answer. Most read commands
 refuse a `--db` path that does not exist or is empty with `no graph at <db>`
 and create nothing; `clusters`, `context`, `semantic`, `semantics`, `drift`, `cross-graph` and `correspond` instead turn it into an empty graph and return an
-empty result, so check that `stats --json --db <path>` shows a non-zero `nodes`
-count for every database the command reads. `rank --seeds`
+empty result. Before running one, check that `stats --json --db <path>` shows a
+non-zero `nodes` count for every database it will read. `semantic` and
+`clusters --weight semantic` also return an empty result when the index has no
+embeddings, with the reason only on stderr, and `drift` reports no live
+resources until live state is imported with `tfstate`. `rank --seeds`
 biases a graph-wide ranking — seeded output includes symbols the seeds cannot
 reach. To rank a dependent set, keep only the rows whose `symbol` is in your set
 and report missing members as unranked.
