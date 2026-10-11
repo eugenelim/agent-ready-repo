@@ -131,7 +131,7 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
 
 An intent can name another intent it sits beside with a `Related intents:` line. The author writes the line on one side only, and the navigator shows the relation from both ends. `record` and `tree` list the edges the intent writes in `related_written_here`, and the edges that name it in `related_written_elsewhere`.
 
-A related edge is never a parent, a child, a dependency, or an ordering. It does not move an intent in the tree, and it does not affect `outstanding`. A related value takes only typed ids such as `intent:<slug>`; a bare slug or a path is refused as `unparseable`. A related value that cannot resolve shows as a refused edge with its state, and the rest of the result stays whole.
+A related edge is never a parent, a child, a dependency, or an ordering. It does not move an intent in the tree, and it does not affect `outstanding`. A related value takes only typed ids: `intent:`, `capability:`, `outcome:`, or `opportunity:` followed by a slug of lowercase letters, digits, and single hyphens. A bare slug, a path, or a malformed slug is refused as `unparseable`; a `brief:` or `spec:` id is refused as `out_of_type`. A related value that cannot resolve shows as a refused edge with its state, and the rest of the result stays whole.
 
 ## Text output
 
@@ -176,7 +176,7 @@ A refused edge is a parent or pointer link that could not be resolved. Each carr
 | `multiple_values` | The pointer field appears more than once with conflicting values. | Keep exactly one value. |
 | `self_reference` | The `Related intents:` value names the intent itself. Only that field reports it. | Remove the item. |
 | `cycle` | Following this parent edge would circle back to this intent. | Remove the pointer that closes the loop. |
-| `unparseable` | The pointer uses an unrecognised form (e.g. an absolute path). | Rewrite it as a typed id, bare slug, or relative path. For `Related intents`, use a typed id only. |
+| `unparseable` | The pointer uses an unrecognised form (e.g. an absolute path). | Rewrite it as a typed id, bare slug, or relative path. For `Related intents`, use one of the four intent prefixes and a lowercase slug, as in [Related intents](#related-intents). |
 
 A refused edge leaves every other node and edge in the result; the rest of the tree is still shown.
 

@@ -80,13 +80,6 @@ def _lint(root: Path) -> Any:
     return lint.lint_corpus(root, root / "docs" / "product" / "intents")
 
 
-def _related(root: Path, from_slug: str) -> list[dict[str, Any]]:
-    return [
-        e for e in ig.derive(root)["edges"]
-        if e["field"] == _FIELD and e["from"].endswith(f":{from_slug}")
-    ]
-
-
 def _nav_written_here(root: Path) -> dict[str, list[dict[str, Any]]]:
     """Each intent's ``related_written_here`` list from the navigator's tree query."""
     result, code = nav.run_query(root, ["query", "--operation", "tree"])
@@ -159,7 +152,7 @@ def _build_refusal(root: Path, state: str) -> None:
 def test_navigator_refusal_is_a_lint_violation(tmp_path: Path, state: str) -> None:
     """AC-0006: every state the navigator refuses, the lint exits 1 on."""
     _build_refusal(tmp_path, state)
-    edges = _related(tmp_path, "src")
+    edges = _nav_written_here(tmp_path)["intent:src"]
     assert [e.get("state") for e in edges] == [state], edges
     result = _lint(tmp_path)
     assert result.exit_code == 1, (result.violations, result.unreadable)
@@ -170,7 +163,7 @@ def test_none_among_items_is_refused_by_both(tmp_path: Path) -> None:
     """AC-0006: `none, intent:a` is an unparseable `none` edge beside the intent edge."""
     _intent(tmp_path, "a")
     _intent(tmp_path, "src", related=["none, intent:a"])
-    edges = _related(tmp_path, "src")
+    edges = _nav_written_here(tmp_path)["intent:src"]
     assert [(e["value"], e.get("state")) for e in edges] == [
         ("none", "unparseable"), ("intent:a", None),
     ]
