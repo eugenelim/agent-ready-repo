@@ -253,12 +253,13 @@ OVERVIEW = [
 ]
 
 # Where architecture work meets each stage, in stage order: a label and the
-# architect skill run there, or None where no architect skill usually runs.
+# skill that runs or offers it there, or None where no architecture skill
+# usually runs.
 OVERVIEW_ARCHITECTURE: list[tuple[list[str], str | None]] = [
     (["Assess the area", "it touches"], "architect-assess"),
     (["Design and revise", "the capabilities"], "architect-design"),
-    (["Redraw the map", "after the merge"], "architect-diagram"),
-    (["Usually no", "architect skill"], None),
+    (["Fold the design in", "after the merge"], "close-work"),
+    (["Usually no", "architecture skill"], None),
 ]
 
 
@@ -275,9 +276,9 @@ def render_overview() -> str:
             'architecture work by stage. Before any work, once per repository, '
             'architect-assess maps what exists and adapt-to-project or init-project writes '
             'reference.md, which every plan follows. Then: assess the area the work touches, '
-            'design and revise the capabilities with architect-design, and redraw the map '
-            'with architect-diagram after the merge. Ship it usually needs no architect '
-            'skill.</desc>')
+            'design and revise the capabilities with architect-design, and after the merge '
+            'close-work offers to fold the design into the current-state map. Ship it '
+            'usually needs no architecture skill.</desc>')
     defs(svg)
     canvas(svg, [(110, 300, 190, "decide"), (290, 120, 200, "shape"),
                  (470, 330, 190, "build"), (650, 140, 190, "ship")])
@@ -470,7 +471,9 @@ SHORT: list[Item] = [
     Step("Frame the intent", ["frame-intent"]), Gate("Approve the intent", "G0"),
     Step(["Test the riskiest", "assumption"], ["de-risk-intent"]),
     Step(["Shape the architecture", "(optional)"], ["architect-design"],
-         note=["One pass. If it changes", "the capabilities, take", "the longer route."],
+         note=["Offered while framing.", "Take it before you cut",
+               "the work. If it changes", "the capabilities, take",
+               "the longer route."],
          dashed=True),
     Step(["Break it into", "buildable pieces"], ["decompose-intent"]),
 ]
@@ -482,8 +485,8 @@ LONGER: list[Item] = [
     Step("Place a bet", ["place-bet"]),
     Step(["Map the capabilities", "and a build order"], ["map-capabilities"]),
     Step(["Design against the", "capabilities (optional)"], ["architect-design"],
-         note=["system scope, a", "half-page concept"], dashed=True),
-    Loop(["Revise the capabilities", "until each has a home"], back=2),
+         note=["offered once the build", "order is set"], dashed=True),
+    Loop(["Revise the capabilities", "and design again"], back=2),
     Step(["Design the subsystems", "that earn a doc"], ["architect-design", "architect-review"],
          dashed=True),
 ]
@@ -502,7 +505,7 @@ SUPERVISED: list[Item] = [
 BUILD: list[Item] = [
     Step("Route the work", ["work-intake"], note="picks a spec, a brief, or an intent", num=1),
     Step("Write the spec and plan", ["new-spec"],
-         note=["follows reference.md and your", "mapped architecture docs"], num=2),
+         note=["follows reference.md and", "reads the design as context"], num=2),
     Gate("Approve spec and plan"),
     Step("Build and check", ["work-loop"], note="lint, types, tests, three reviews", num=3),
 ]
@@ -517,9 +520,9 @@ SHIP: list[Item] = [
 # and what it does.
 FOUNDATION = [
     ("The current-state map", "architect-assess",
-     "maps what exists. architect-diagram redraws it when a merge moves a boundary."),
+     "maps what exists. close-work offers to fold each shipped design into it."),
     ("The engineering patterns in reference.md", "adapt-to-project · init-project",
-     "write it: your stack, building blocks, and standards."),
+     "write it. architect-design offers this when none exists."),
 ]
 
 # Who runs each stage and who usually makes its call. The roles come from the
@@ -676,8 +679,8 @@ def render_full() -> str:
     svg.text(bx + 14, by + 45, "Small, low-risk change?", size=12.5, weight=650)
     svg.text(bx + 14, by + 64, "It skips the spec and goes to step 3.", size=12, fill=SOFT)
     draw_step(svg, bx, by + 96, bw,
-              Step(["After the merge: redraw the", "map if a boundary moved"],
-                   ["architect-diagram"], dashed=True), st)
+              Step(["After the merge: fold the", "design into the current map"],
+                   ["close-work", "architect-diagram"], dashed=True), st)
     ending("build", "Passes on: a merged change", "You merge", "G4")
 
     st = STAGES["ship"]

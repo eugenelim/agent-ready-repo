@@ -150,11 +150,12 @@ These are the points it must keep, each checked against pack source:
 
 1. **Three routes through *Shape it*.** The short route (`frame-intent` →
    `de-risk-intent` → `decompose-intent`) is the default, with an optional
-   `architect-design` step before `decompose-intent` when the work changes how
-   the system is built. The longer route is the six-step shaping sequence
+   `architect-design` pass that `frame-intent` offers while framing, taken any
+   time before `decompose-intent`. The longer route is the six-step shaping sequence
    (`frame-situation`, `identify-opportunities`, `diverge-solutions`,
    `place-bet`, `map-capabilities`), then an optional loop: `architect-design`
-   against the capabilities, revised until each capability has a home, then
+   against the capabilities, offered by `map-capabilities`, with the capabilities revised and designed again
+   until you judge they've settled, then
    subsystem designs checked by `architect-review`. The supervised
    `discovery-loop` is the full sequence. The first two are dashed bypasses that
    join at the commit-to-build decision.
@@ -181,10 +182,9 @@ These are the points it must keep, each checked against pack source:
    `init-project` writes. Then, per piece of work, each skill sits in the stage
    where it runs: `architect-assess` on the affected area in Decide, the
    capability and architecture loop in Shape, the plan following
-   `reference.md` and the design docs in Build, and `architect-diagram`
-   redrawing the map after a merge that moves a boundary. On the short and
-   longer routes a person decides when to run each skill. On the supervised
-   loop `discovery-lead` runs the architecture lens.
+   `reference.md` in Build, and `close-work` offering to fold the shipped
+   design into the map. The guide's "Where architecture comes in" section
+   owns which skill offers each step.
 
 The public graphics follow this content. The maintainer Mermaid version in
 `docs/architecture/lifecycle-flow.md` follows the rules in `docs/AGENTS.md`.

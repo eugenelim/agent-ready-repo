@@ -20,7 +20,7 @@ Most work doesn't travel the whole way. A bug fix starts at *Build it*. A small
 change to an existing product often goes from a written intent straight to the
 build loop.
 
-[![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. Below them, architecture by stage: before any work, once per repository, architect-assess maps what exists and adapt-to-project or init-project writes reference.md, which every plan follows. Then you assess the area the work touches in Decide, design and revise the capabilities in Shape, and redraw the map after the merge in Build. Ship usually needs no architect skill. The step-by-step list further down gives the full flow in words.](the-operating-model-overview.svg)](the-operating-model-overview.svg)
+[![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. Below them, architecture by stage: before any work, once per repository, architect-assess maps what exists and adapt-to-project or init-project writes reference.md, which every plan follows. Then you assess the area the work touches in Decide, design and revise the capabilities in Shape, and close-work offers to fold the design into the current-state map after the merge in Build. Ship usually needs no architecture skill. The step-by-step list further down gives the full flow in words.](the-operating-model-overview.svg)](the-operating-model-overview.svg)
 
 Start at the stage your work is in. The gold, pointed tags are the points where
 the agent stops and waits for you. The band underneath shows when you use the
@@ -42,15 +42,16 @@ and hand it to the build loop. They differ in how much ground they cover first.
 
 - **The short route** is where most teams start. You write the intent, test its
   riskiest assumption, and break it into pieces the build loop can take. Plan on
-  about three hours. If the work changes how the system is built, shape an
-  architecture concept before you break it down. If that concept changes the
+  about three hours. If framing hits a question about how the system is
+  built, `frame-intent` offers to shape an architecture concept before you
+  break it down. If that concept changes the
   capabilities, switch to the longer route.
 - **The longer route** replaces the short one with six steps: a situation,
   opportunities, options, a test of the riskiest assumption, a bet, and a
   capability map with a suggested build order. Take it when you can't yet say
   what the problem is, or when the bet is big enough that someone will ask for
   the reasoning later. Here, the capability map and the architecture go back and
-  forth until each capability has a home.
+  forth until you judge they've settled.
 - **The supervised loop** is the right-hand column of *Shape it*. `discovery-lead`
   walks every gate, brings in design, architecture, and contract work side by
   side, and has two reviewers check for threats and reliability problems before
@@ -122,14 +123,17 @@ carries everything the pictures show, in words.
 2. **Shape it**, by one of three routes. Each one ends at G3, when you commit
    to build.
    - *Short route, the default:* `frame-intent`, then you approve the intent
-     (G0), then `de-risk-intent`. If the work changes how the system is built,
-     `architect-design` shapes an architecture concept in one pass. If that
-     concept changes the capabilities, take the longer route instead.
-     `decompose-intent` breaks it into pieces the build loop can take.
+     (G0), then `de-risk-intent`. If framing hits a question about how the
+     system is built, `frame-intent` parks it as an open design question and
+     offers `architect-design`. Take that one-pass concept any time before you
+     break the work down. If that concept changes the
+     capabilities, take the longer route instead. `decompose-intent` breaks it
+     into pieces the build loop can take.
    - *Longer route:* `frame-situation`, `identify-opportunities`,
      `diverge-solutions`, `de-risk-intent`, `place-bet`, and `map-capabilities`.
-     If you choose, `architect-design` then designs against the capabilities,
-     and you revise them until each one has a home. `architect-design` designs
+     Once the build order is set, `map-capabilities` offers `architect-design`
+     to design against the capabilities, and you revise them until each one has
+     a home. `architect-design` designs
      the subsystems that earn a doc, and `architect-review` checks them. The
      route passes on a capability map with a suggested build order.
    - *Supervised loop:* `frame-intent` and G0, then `de-risk-intent` and
@@ -141,12 +145,12 @@ carries everything the pictures show, in words.
      the brief (G2), and `decompose-intent` breaks it into buildable pieces.
 3. **Build it.** `work-intake` picks a spec, a delivery brief, or a minimum
    intent. `new-spec` writes the spec and plan, and you approve both. The
-   plan's design follows your `reference.md` and the architecture docs your
-   `AGENTS.md` lists.
+   plan's design follows your `reference.md`, and `new-spec` reads any design
+   the delivery contract carries as context.
    `work-loop` builds, runs lint, type checks, and tests, and gets three cold
    reviews. A small, low-risk change skips the spec. The stage ends at G4, when
-   you merge. If the merge moved a boundary, `architect-diagram` redraws the
-   current-state map.
+   you merge. When the work is done, `close-work` offers to fold the shipped
+   design into the current-state map.
 4. **Ship it.** `define-slo` sets an error budget if you want one.
    `release-loop` deploys to a throwaway environment, tests end to end, and
    watches telemetry. A deployed failure goes back to the build loop as a build
@@ -157,9 +161,11 @@ carries everything the pictures show, in words.
 
 Architecture work runs on two rhythms. A few documents are set up once and
 kept current. Then each piece of work uses the architecture skills at set
-points in each stage. On the short and longer routes, you decide when to run
-each skill. On the supervised loop, `discovery-lead` runs the architecture
-lens for you.
+points in each stage. When the `architect` pack is installed, some shaping
+skills offer the architecture step they own, and you choose whether to take
+it. The table below names who offers each step. You start the others
+yourself. On the supervised loop, `discovery-lead` runs the architecture lens
+for you.
 
 ### Before any work: once per repository
 
@@ -172,41 +178,52 @@ Two documents come first. The architect skills ground their work in them, and
   your constraints, stack, building blocks, and shared standards.
   In `core`, `adapt-to-project` writes it from an existing codebase, and
   `init-project` writes it for a new one. An opt-in stack pack can ship one
-  too.
+  too. When `architect-design` finds no reference architecture, it offers to
+  hand off to whichever of those two skills fits.
 
 ### Stage by stage
 
-| Stage | When | Run | What it settles |
+| Stage | When | What runs | What it settles |
 | --- | --- | --- | --- |
-| Decide what to build | The bet touches a system that already exists | `architect-assess`, on that area | What's feasible and what's costly, before the strategic call |
-| Shape it | The intent changes how the system is built, or the first capabilities exist | `architect-design`, system scope | Whether the capabilities fit the system's boundaries |
-| Shape it | The capabilities have settled | `architect-design`, subsystem scope, then `architect-review` | A design doc for each part that earns one |
-| Build it | `new-spec` writes the plan | Nothing extra | The plan's design follows `reference.md` and the design docs |
-| Build it | The build shows a design is wrong | `architect-design`, change scope | A change to the design, made in the open |
-| Build it, after the merge | The merge moved a boundary | `architect-diagram` | The current-state map stays true for the next piece of work |
+| Decide what to build | The bet touches a system that already exists | You run `architect-assess` on that area | What's feasible and what's costly, before the strategic call |
+| Shape it | Feasibility is the riskiest assumption | `de-risk-intent` tests it against the current-state map, or offers `architect-assess` when there is none | Whether it can be built on what exists |
+| Shape it | Framing hits a question about how the system is built | `frame-intent` parks it as an open design question and offers `architect-design` at the scope it needs | The system's shape, kept out of the intent |
+| Shape it | The build order is set | `map-capabilities` offers `architect-design` at system scope | Whether the capabilities fit the system's boundaries |
+| Shape it | The capabilities have settled | `architect-design` at subsystem scope, then `architect-review` | A design doc for each part that earns one |
+| Shape it | The domain you're framing sits in a system that already exists | `frame-domain` starts from the current-state map, or offers `architect-assess` when there is none | How the existing system works today |
+| Shape it | The work is cut into pieces | `decompose-intent` checks each piece against the subsystem boundaries and carries the design into the delivery contract | Pieces that name the contracts they cross |
+| Build it | `new-spec` writes the plan | Nothing extra | The plan's design follows `reference.md`, and `new-spec` reads the design the contract carries as context |
+| Build it | The build shows a design is wrong | You run `architect-design` at change scope | A change to the design, made in the open |
+| Build it, after the merge | The work closes | `close-work` offers to fold the shipped design into the current-state map. `architect-diagram` can redraw it | The map stays true for the next piece of work |
 | Ship it | Usually nothing | — | A production problem can prompt your next assessment |
 
 ### The capability and architecture loop
 
 In *Shape it*, capabilities and architecture shape each other. Neither one
-finishes before the other starts:
+finishes before the other starts. The skills supply the offers named here. The
+order and the stop rule are a recommended practice that no skill enforces:
 
-1. **Frame the problem.** `frame-intent` and `de-risk-intent` stay on the
-   problem. If the riskiest assumption is technical, a half-page
-   `architect-design` concept is the cheapest way to test it.
+1. **Frame the problem.** `frame-intent` stays on the problem. When framing
+   hits a question about how the system is built, it records the question and
+   offers `architect-design`. When feasibility is the riskiest assumption,
+   `de-risk-intent` tests it against the current-state map.
 2. **Propose the capabilities.** `map-capabilities` does this on the longer
    route. On the short route, the intent itself is the starting point.
-3. **Design against them.** `architect-design` at system scope shapes a
-   half-page concept against the capabilities.
+3. **Design against them.** Once the build order is set, `map-capabilities`
+   offers `architect-design` at system scope, which shapes a half-page concept
+   against the capabilities.
 4. **Let the architecture talk back.** A capability that crosses a boundary,
-   forces a new subsystem, or breaks the cost limit sends you back to step 2.
-   Revise the capabilities or the MVP.
-5. **Stop when it settles.** Every capability has a home in a subsystem or an
-   element, no open architecture decision blocks slicing, and the decisions
-   worth an ADR are written down. Then design the subsystems that earn a doc,
+   forces a new subsystem, or costs more than the bet can carry is a reason
+   to go back to step 2 and revise the capabilities.
+5. **Stop when it settles.** A good test: every capability has a home in a
+   subsystem or an element, no open architecture decision blocks slicing, and
+   the decisions worth an ADR are written down. Then design the subsystems that earn a doc,
    and check them with `architect-review`.
-6. **Slice along the boundaries.** `decompose-intent` cuts the work along the
-   subsystem lines, and you commit to build at G3.
+6. **Cut the work.** `decompose-intent` cuts pieces by what can ship on its
+   own, not by component. A piece that crosses a subsystem boundary names the
+   contract it depends on. If a capability needs a structural split before it
+   can be cut, `decompose-intent` offers `architect-design` at subsystem
+   scope. You commit to build at G3.
 
 The short route usually makes one pass. If its concept changes the
 capabilities, take the longer route. On the supervised loop, `discovery-lead`
@@ -235,9 +252,18 @@ stays a row in the parent design.
 ### How it reaches the spec
 
 The plan `new-spec` writes has a design section. That section follows
-`reference.md` when it exists, and the architecture docs your `AGENTS.md`
-lists, so list each design doc there. A design doc you want a spec to wait for
-goes in `workspace.toml` as a `needs` entry.
+`reference.md` when it exists, and any current architecture your `AGENTS.md`
+maps. A design doc reaches the spec by two routes:
+
+- **Through the delivery contract.** When `decompose-intent` cuts a feature a
+  design covers, it carries the design's location in the contract's design
+  context. `new-spec` reads it there as context, not as a rule to follow.
+- **Through the current-state map.** After the work ships, `close-work` offers
+  to fold the design into the current-state map. Later specs read it from
+  there when your `AGENTS.md` maps that map.
+
+A `workspace.toml` `needs` entry naming a design only orders the work: the
+spec waits until the design lands, and the entry carries no content.
 
 → [Architect guides](../../architect/) · [Establish a reference architecture](../../architect/how-to/establish-reference-architecture.md)
 
@@ -389,7 +415,7 @@ Each loop installs where its work happens:
   repository.
 
 So G3 is where the work moves from your documents into the repository. Any
-architecture concept or design doc moves with it. What it turns into depends on
+design that covers the feature moves with it in the delivery contract. What it turns into depends on
 its size. A single feature can become one spec. A
 capability or an initiative can become an RFC, several child intents, or a
 delivery brief that coordinates RFCs and specs. A repository without Product

@@ -41,9 +41,11 @@ file or restate your outcome.
 ## Carry the architecture with it
 
 If you shaped an architecture concept or design doc, it goes with the intent.
-List it in your `AGENTS.md` so `new-spec` reads it when it writes the plan's
-design section. To make the spec wait until the design lands, register the
-design in `workspace.toml` and add it to the spec's `needs` array. [Shape an
+When `decompose-intent` cuts a feature the design covers, it carries the
+design's location in the delivery contract's design context, and `new-spec`
+reads it there when it writes the plan's design section. To make the spec wait
+until the design lands, register the design in `workspace.toml` and add it to
+the spec's `needs` array. That entry only orders the work. [Shape an
 architecture concept](../../architect/how-to/shape-an-architecture-concept.md#register-the-artifact)
 shows both entries. If your repository has a `reference.md`, the plan follows
 it without any extra step.

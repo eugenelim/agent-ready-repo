@@ -35,9 +35,9 @@ flowchart TB
         RV --> G2{{"G2: you approve the decision brief"}}
         G2 --> S5["decompose-intent: buildable pieces"]
         S5 --> G3{{"G3: you commit to build"}}
-        SR["Short route: frame-intent, de-risk-intent, one architect-design pass if the system changes, decompose-intent"]
+        SR["Short route: frame-intent, which may offer one architect-design pass, de-risk-intent, decompose-intent"]
         LR["Longer route: frame-situation, identify-opportunities, diverge-solutions, de-risk-intent, place-bet, map-capabilities"]
-        LA["Optional: architect-design at system scope, against the capabilities"]
+        LA["Optional: architect-design at system scope, offered by map-capabilities once the build order is set"]
         LS["Optional: architect-design for subsystems that earn a doc, then architect-review"]
     end
     subgraph build["Build it"]
@@ -57,7 +57,7 @@ flowchart TB
         A1["architect-assess: the current-state map"]
         A2["reference.md, a file: engineering patterns written by adapt-to-project or init-project"]
     end
-    A3["architect-diagram: redraw the current-state map"]
+    A3["close-work: offers to fold the shipped design into the current-state map"]
     D2 --> S1
     D2 -.-> SR
     D2 -.-> LR
@@ -65,7 +65,7 @@ flowchart TB
     SR -. "the concept changes the capabilities" .-> LR
     LR -.-> G3
     LR -.-> LA
-    LA -. "revise until each capability has a home" .-> LR
+    LA -. "revise the capabilities and design again" .-> LR
     LA -.-> LS
     LS -.-> G3
     G3 --> B1
@@ -76,7 +76,7 @@ flowchart TB
     DA -.-> D2
     A2 -.-> LA
     A2 -. "the plan's design follows it" .-> B2
-    G4 -. "a merge moved a boundary" .-> A3
+    G4 -. "the work closes" .-> A3
 
     classDef decideStep fill:#ede9fe,stroke:#7c3aed,color:#1f2937
     classDef shapeStep fill:#dbeafe,stroke:#2563eb,color:#1f2937
@@ -117,15 +117,11 @@ They are the light path and the six-step shaping sequence that P2 in
 [`guides/README.md`](../../guides/README.md) walks, and they reach the same
 G3 hand-off.
 
-Architecture runs on two rhythms. The current-state map and `reference.md`
-are set up once per repository and kept current. Each piece of work then uses
-the `architect` skills at the points the "Where architecture comes in"
-timeline in the operating-model guide lists. On the short and longer routes a
-person runs each skill when the work calls for it. On the supervised loop
-`discovery-lead` runs the architecture lens. No stage gate waits on them, though a spec can list a design doc
-in its `needs` entry and stay blocked until it lands. `new-spec` reads
-`reference.md` and the architecture sources `AGENTS.md` maps when it writes a
-plan's design section.
+Architecture runs on two rhythms: documents set up once per repository, then
+architecture steps at set points in each piece of work. Which skill offers
+each step, and how a design reaches a spec, is owned by the "Where
+architecture comes in" section of the operating-model guide. No stage gate
+waits on any of it.
 
 ## Public projections
 

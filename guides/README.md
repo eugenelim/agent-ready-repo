@@ -85,14 +85,16 @@ assumption, break it down. Reach past it to the **robust path** — situation,
 opportunities, options, bet, capability map — only when the problem itself is
 unclear or the bet is large enough to need a recorded rationale. [The intent
 tree](product-engineering/explanation/the-intent-tree.md) explains the choice.
-Use this shaping route to turn that intent into an architecture concept and
-Core intake.
+Use this shaping route to turn that intent into Core intake, with an
+architecture concept when the work needs one.
 
 1. [Gather evidence](desk-research/) when the answer is not already known
 2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) — `frame-intent`
 3. De-risk it — `de-risk-intent`
 4. [Shape the architecture concept](architect/how-to/shape-an-architecture-concept.md)
-   against it when the work changes how the system is built — `architect-design`
+   against it when the work changes how the system is built. `frame-intent`
+   offers `architect-design` while framing, and you can take it any time
+   before you break the work down
 5. Break it down — `decompose-intent`
 6. [Hand the intent to the build loop](product-engineering/how-to/hand-an-intent-to-build.md)
 
@@ -103,7 +105,8 @@ shows which architecture document helps at each point.
 On the robust path, [frame the situation](product-engineering/how-to/frame-a-situation.md)
 first, then [identify opportunities](product-engineering/how-to/identify-opportunities.md),
 [generate options](product-engineering/how-to/generate-solution-options.md), and
-[place a bet](product-engineering/how-to/place-a-bet.md) before step 4.
+[place a bet](product-engineering/how-to/place-a-bet.md), then map the
+capabilities with `map-capabilities`, before step 4.
 
 **First value:** one written intent naming an outcome and the bet behind it.
 **Ends at:** Core intake, which selects the route from the content — a spec, a

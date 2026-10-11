@@ -50,7 +50,8 @@ This separation makes dispatch checkable. A spec can run only when its
 canonical file exists, its sibling plan exists, its status is Approved, its
 membership is unique and compatible, and its dependencies are satisfied. A
 dependency can be a design artifact, such as a design doc from
-`architect-design`: the spec stays blocked until that design lands.
+`architect-design`: the spec stays blocked until that design lands. The
+entry only orders the work and carries no content.
 
 ## The processor owns the next operation
 
