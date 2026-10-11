@@ -147,3 +147,29 @@ Post-gates review round 3, sustained findings only. The code commit and browser 
 - Gates: `navigate-intents` folder 435 passed, 4 skipped; `packs/core/tests/pack/` 416 passed; `close-work` 408 passed; `make lint-ruff lint-mypy`, the bandit gate over the skill and its tests, and the three guide lints pass; self-host run twice with an identical tree; `catalogue verify` ok; no `uv.lock`; no criterion id or `docs/specs/` path in `SKILL.md` or the guide.
 
 Browser record: code commit `1a5975d5321376565d253e14a97f316a75ebfe3d`; `view_browser_checks.py -q -rs` run at that exact commit with a clean tree: 50 passed, 0 skipped. `view.js` SHA-256 `ef5fa99a0eb54121a8028146edf4541f45b9c33ae9214869734cef842ed0c690`; `view.css` `e76d4990aa6fc080af8419275fa7b1f48dd272f82359afb828baeb665f4b540c` (these supersede the round 2 digests).
+
+### T7: Older-Git link fallback
+
+Tests added in `test_export_source_links.py` (file now 39 tests, all pass). The Git shim logs every call to a file and rejects `--no-lazy-fetch`; verbs are read with the `-C` and `-c` pairs stripped.
+
+- `test_older_git_exports_with_latest_links_and_reads_no_objects` (AC-0025, AC-0073): export from inside a repository succeeds, every link `latest`, `provenance.commit` null, probe once, `worktree list` once without the option, and the recorded verbs equal exactly the six allowed ones. All six run, so no subset was needed.
+- `test_older_git_with_unrecognised_or_missing_remote_is_inert` (AC-0023, AC-0073): `http://` and missing remote give `inert` entries with no `url`, no remote text in the HTML, and only allowed verbs.
+- `test_unsupported_probe_seam_keeps_destination_check` (AC-0073, AC-0015), strengthened: with the probe unsupported, a destination inside a second linked worktree outside the root is refused `invalid_destination` and nothing is written.
+- `test_probe_that_cannot_run_reports_supported_and_fails_closed` (OSError and `TimeoutExpired`): the probe reports supported, is cached after one run, and the next call carries `--no-lazy-fetch`. The probe cache is cleared by the existing autouse fixture.
+
+Mutations (each restored after the run):
+
+- Older-Git path runs `ls-tree` (the `_supports_no_lazy_fetch()` condition replaced by `True`): the verb-set test fails.
+- `ls-tree` called before the remote check: the verb-set test and both inert-remote cases fail.
+- `worktree list` skipped on older Git: the verb-set test and the destination test fail.
+- Recognition widened to `http://`: the `http://` inert case fails.
+- Probe `OSError` treated as unsupported: both probe-failure cases fail.
+- Probe timeout treated as unsupported: the timeout case fails.
+
+The code in `intent_view.py` already met every test; no code change there.
+
+Round 4 nits in the same task: `backToList` writes the not-in-list message from a `setTimeout` with a function argument (the forbidden-API check forbids only string arguments, and still passes); the duplicated older-Git sentence is gone from `SKILL.md` (description untouched); the guide prerequisite says every GitHub link carries the mark. Detail ring: the sticky region now sits `--outline` from the top with `max-height: calc(100vh - 2 * var(--outline))`, and `.detail:focus-visible` gets `scroll-margin: var(--outline)`. The tab-stop browser test now has zero slack on all four edges (ring top 1.89, bottom 895.89 of 900). Mutation: deleting `scroll-margin` fails it (ring top -1.1). The sticky-offset test expects `3px`.
+
+Browser record: code commit `b4e1e88c32b5f9471237c9b63c8e3f964f7e5668`; `view_browser_checks.py -q -rs` run at that exact commit with a clean tree: 50 passed, 0 skipped. `view.js` SHA-256 `bbb752fb8aae987001f1a9c47dae88dde4c2147c5121cf7ee143a1fe6514d072`; `view.css` `1885cf52bcf6e0f14524a8834a1ee19fde01473bd4197fade83ca008d4912171` (these supersede the round 3 digests).
+
+Gates: `navigate-intents` folder 439 passed, 4 skipped; `make lint-ruff lint-mypy` pass; `catalogue lint --deep` ok; `catalogue verify` ok; self-host run twice (with `--force` for the dirty-tree check only), the second leaving no further diff; `intent_graph.py` copies identical (`cmp`); no `uv.lock`. Core stays 3.1.0; the changelog needed no change.
