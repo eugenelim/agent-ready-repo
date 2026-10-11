@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/review-report.v1.schema.json",
+  "title": "review-report.v1",
+  "description": "Terminal structured reviewer report bound to one role, review subject, review policy, and safe lineage sequence. The whole report is content-safety checked before semantic persistence.",
+  "$comment": "Owned by: docs/specs/structured-review-boundary/. References review-subject and finding contracts.",
+  "x-spec": ["docs/specs/structured-review-boundary/"],
+  "type": "object",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {"terminal_status": {"const": "findings"}},
+        "required": ["terminal_status"]
+      },
+      "then": {
+        "properties": {"findings": {"minItems": 1}}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "terminal_status": {"enum": ["clean", "unable", "indeterminate"]}
+        },
+        "required": ["terminal_status"]
+      },
+      "then": {
+        "properties": {"findings": {"maxItems": 0}}
+      }
+    }
+  ],
+  "required": [
+    "schema_version",
+    "report_id",
+    "role",
+    "subject",
+    "terminal_status",
+    "lineage",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "report_id": {"type": "string", "minLength": 1},
+    "role": {"type": "string", "minLength": 1},
+    "subject": {"$ref": "review-subject.v1.schema.json"},
+    "terminal_status": {"type": "string", "enum": ["clean", "findings", "unable", "indeterminate"]},
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "review_policy_fingerprint",
+        "source_event_id",
+        "producer"
+      ],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1},
+        "review_policy_fingerprint": {
+          "$ref": "review-subject.v1.schema.json#/properties/review_policy_fingerprint"
+        },
+        "source_event_id": {"type": "string", "minLength": 1},
+        "producer": {"type": "string", "minLength": 1},
+        "previous_report_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "finding.v1.schema.json"}
+    }
+  }
+}
