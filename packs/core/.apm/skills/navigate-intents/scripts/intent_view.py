@@ -170,26 +170,62 @@ class Destination(NamedTuple):
     identity: tuple[int, int]
 
 
+_NO_LAZY_FETCH: bool | None = None
+
+
+def _supports_no_lazy_fetch() -> bool:
+    """Return whether Git accepts the global ``--no-lazy-fetch`` option (Git 2.44 or later).
+
+    Probed once per process, so once per export, with ``git --no-lazy-fetch version`` under the
+    same scrubbed environment.  Only a Git that starts and rejects the option reports False; a
+    Git that cannot start reports True so the later calls fail exactly as they would without a
+    probe.
+    """
+    global _NO_LAZY_FETCH  # noqa: PLW0603
+    if _NO_LAZY_FETCH is None:
+        try:
+            done = subprocess.run(  # noqa: S603
+                ["git", "--no-lazy-fetch", "version"],  # noqa: S607
+                shell=False,
+                env=_git_env(),
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                timeout=_GIT_TIMEOUT_SECONDS,
+                check=False,
+            )
+            _NO_LAZY_FETCH = done.returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            _NO_LAZY_FETCH = True
+    return _NO_LAZY_FETCH
+
+
+def _git_env() -> dict[str, str]:
+    """Return the environment for a Git call: no inherited ``GIT_`` state, no prompt."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return env
+
+
 def _git_run(root: Path, args: list[str]) -> subprocess.CompletedProcess[bytes]:
     """Run one hardened Git call: no shell, fixed argv, no prompt, no inherited GIT_ state.
 
-    The global ``--no-lazy-fetch`` option (Git 2.44 or later) makes a missing object fail the
-    call instead of reaching a partial clone's promisor remote, whatever the repository's
-    ``protocol.<name>.allow`` keys say; ``protocol.allow=never`` is kept as a second barrier.
-    An older Git rejects the option, so the call fails and the caller degrades.
+    When Git accepts the global ``--no-lazy-fetch`` option (2.44 or later) every call carries
+    it, so a missing object fails the call instead of reaching a partial clone's promisor
+    remote, whatever the repository's ``protocol.<name>.allow`` keys say.  An older Git gets
+    no such option; its callers then run only calls that read no objects.
+    ``protocol.allow=never`` is kept as a second barrier.
 
     Raises ``OSError`` when Git cannot start and ``subprocess.TimeoutExpired`` on timeout.
     """
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    env["GIT_TERMINAL_PROMPT"] = "0"
+    guard = ["--no-lazy-fetch"] if _supports_no_lazy_fetch() else []
     return subprocess.run(  # noqa: S603
         [  # noqa: S607
-            "git", "--no-lazy-fetch", "-C", str(root),
+            "git", *guard, "-C", str(root),
             "-c", "core.fsmonitor=false", "-c", "protocol.allow=never",
             *args,
         ],
         shell=False,
-        env=env,
+        env=_git_env(),
         stdin=subprocess.DEVNULL,
         capture_output=True,
         timeout=_GIT_TIMEOUT_SECONDS,
@@ -320,7 +356,8 @@ def source_links(
     """Map each node id to its source link and return the commit used, or None.
 
     A recognised GitHub ``origin`` gives ``commit`` links when ``HEAD`` is on ``origin`` and
-    every node file matches ``HEAD``'s tree, otherwise ``latest`` links.  Anything else, or
+    every node file matches ``HEAD``'s tree, otherwise ``latest`` links.  A Git older than 2.44
+    runs neither object-reading call, so its links are ``latest``.  Anything else, or
     any failed Git call, gives ``inert`` links (the path as plain text).
     """
     inert = {n["id"]: {"kind": "inert", "path": n.get("path", "")} for n in nodes}
@@ -337,7 +374,8 @@ def source_links(
     fmt = (_git_text(root, ["rev-parse", "--show-object-format"]) or "").strip()
     commit: str | None = None
     if (
-        fmt in _COMMIT_LENGTH
+        _supports_no_lazy_fetch()  # older Git: ls-tree and for-each-ref could lazy-fetch
+        and fmt in _COMMIT_LENGTH
         and len(head) == _COMMIT_LENGTH[fmt]
         and re.fullmatch(r"[0-9a-f]+", head)
         and (_git_text(root, ["for-each-ref", "--contains", "HEAD", "refs/remotes/origin/"]) or "")

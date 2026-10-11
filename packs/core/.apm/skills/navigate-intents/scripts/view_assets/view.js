@@ -747,6 +747,7 @@
       target.focus();
     } else {
       dom.viewHeading.focus();
+      dom.live.textContent = '';
       dom.live.textContent = 'This item is not in the current list.';
     }
   }

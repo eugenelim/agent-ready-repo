@@ -215,11 +215,13 @@ repository path, and no remote URL beyond the host, owner, and repository
 name.  With ``--from``, the page names the scoped intent, shows that subtree,
 and keeps the summary counts whole-corpus.  Source links point to GitHub only
 when ``origin`` is a plain GitHub remote; otherwise each source shows its
-path as text.  An unmarked link opens the file at the exported commit.  A link
-marked "may be newer than this export" opens it on the GitHub default branch.
-An untracked or unpushed file may not exist there yet.  Export needs Git 2.44
-or later; with an older Git, links fall back to the default branch or to plain
-text, and the export refuses every destination.
+path as text.  A link marked "at commit ..." opens the file at the exported
+commit.  A link marked "may be newer than this export" opens it on the GitHub
+default branch.  Every link carries that mark when the exported commit is not
+on origin, when any intent file differs from it, or when Git is older than
+2.44.  An untracked or unpushed file may not exist there yet.  Git 2.44 or
+later gives commit-pinned links.  With an older Git the export still works and
+every link carries the "may be newer than this export" mark.
 
 Refusals, beyond the corpus codes ``query`` returns (``duplicate_identity``,
 ``malformed_record``, ``unsafe_input``, ``input_too_large``,

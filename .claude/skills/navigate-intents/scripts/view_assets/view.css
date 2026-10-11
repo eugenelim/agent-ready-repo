@@ -104,10 +104,15 @@ body {
 .source-link:focus-visible,
 .toggle:focus-visible,
 .action:focus-visible,
-.control:focus-visible,
-.detail:focus-visible {
+.control:focus-visible {
   outline: var(--outline) solid var(--focus);
   outline-offset: 2px;
+}
+
+/* The detail region sits flush with the viewport edges when stuck: draw its ring inside. */
+.detail:focus-visible {
+  outline: var(--outline) solid var(--focus);
+  outline-offset: calc(-1 * var(--outline));
 }
 
 .focus-target:focus {

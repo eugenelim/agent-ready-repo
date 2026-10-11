@@ -1364,16 +1364,25 @@ def test_detail_panel_is_a_named_tab_stop_that_scrolls_to_the_legend_end(
     else:
         raise AssertionError("the detail region is not in the Tab order")
     assert page.evaluate("getComputedStyle(document.activeElement).outlineStyle") == "solid"
+    ring = page.evaluate(
+        "(() => { const e = document.querySelector('.detail'); const c = getComputedStyle(e);"
+        " const r = e.getBoundingClientRect(); const g = parseFloat(c.outlineOffset) + parseFloat(c.outlineWidth);"
+        " return [r.top - g, r.left - g, r.bottom + g, r.right + g, innerHeight, innerWidth]; })()"
+    )
+    # Two pixels of slack: focusing the region can scroll the page by a sub-pixel amount.
+    assert ring[0] >= -2 and ring[1] >= -2 and ring[2] <= ring[4] + 2 and ring[3] <= ring[5] + 2, ring
     last = "(() => { const rows = document.querySelectorAll('#detail-legend dt'); return rows[rows.length - 1]; })()"
     for _ in range(60):
         if page.evaluate(
-            f"(() => {{ const r = {last}.getBoundingClientRect(); const d = document.querySelector('.detail').getBoundingClientRect(); return r.bottom <= d.bottom + 1 && r.top >= d.top; }})()"
+            f"(() => {{ const r = {last}.getBoundingClientRect(); const d = document.querySelector('.detail').getBoundingClientRect(); return r.bottom <= d.bottom + 1 && r.top >= d.top && r.top >= 0 && r.bottom <= innerHeight + 1; }})()"
         ):
             break
         page.keyboard.press("PageDown")
         page.wait_for_timeout(300)  # keyboard scrolling animates
     else:
         raise AssertionError("keyboard scrolling never reached the last legend row")
+    # The region scrolls within itself; a page that merely grew taller would not do this.
+    assert page.evaluate("document.querySelector('.detail').scrollTop") > 0
 
 
 def test_detail_panel_stays_in_view_on_wide_screens_only(

@@ -8,7 +8,7 @@ kind: how-to
 # How to navigate intents, briefs, and specs
 
 **Use this when:** You want to see outstanding work, walk the intent hierarchy, trace the parent of an intent, get a count of live intents (intent files without a `Tombstone:` field) by level, or hand a reviewer an offline page of the whole graph.
-**Prerequisites:** `core` pack installed; a terminal or agent session open in the repo root; Git 2.44 or later for the HTML export.
+**Prerequisites:** `core` pack installed; a terminal or agent session open in the repo root; Git 2.44 or later for commit-pinned source links in the HTML export (older Git still exports, and every link is marked "may be newer than this export").
 **Result:** A list of outstanding artifacts placed under their parent, a tree of intents, a focused view of one intent's record and delivery links, or one HTML file that shows all of it offline.
 
 `<skill-dir>` is the installed skill directory — for example, `.agents/skills/navigate-intents` for most adapters, or `.claude/skills/navigate-intents` for Claude Code. Replace `<repo-root>` with your repository root.
@@ -151,7 +151,7 @@ The page has a summary strip and four views: Tree, Outstanding, Refused edges, a
 
 The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
 
-- **Source links** go to GitHub only when `origin` is a plain GitHub remote. An unmarked link opens the file at the exported commit. A link marked "may be newer than this export" opens it on the GitHub default branch. That file is modified, untracked, or not yet pushed. An untracked or unpushed file may not exist there yet. Any other remote shows each source's path as plain text.
+- **Source links** go to GitHub only when `origin` is a plain GitHub remote. A link marked "at commit ..." opens the file at the exported commit. A link marked "may be newer than this export" opens it on the GitHub default branch. Every link carries that mark when the exported commit is not on origin, when any intent file differs from it, or when Git is older than 2.44. An untracked or unpushed file may not exist there yet. Any other remote shows each source's path as plain text.
 - **With `--from`**, the page names the scoped intent and shows only that subtree. The summary strip still counts the whole corpus and says so.
 - **When delivery mapping is unavailable** (the delivery resolver hit its limit), the page says so and gives the reason where it would list delivery relations.
 - **Record text is inert.** The page never runs script from a record, never loads anything, and makes no network request when you open it. A header value that contains markup shows as plain text.
