@@ -1242,3 +1242,55 @@ def test_ac0010_state_coherence_is_unreachable_from_validate_live_intent(
     assert intent_shape.validate_corpus_scoped(text, set()) != [], (
         "fixture must be refused by the corpus-scoped surface"
     )
+
+
+# ── Related intents field ─────────────────────────────────────────────────────
+
+
+def _node_text(slug: str, *, level: str = "feature", kind: str | None = None) -> str:
+    kind_line = f"- **Kind:** {kind}\n" if kind is not None else ""
+    return (
+        f"# Intent\n\n- **Owner:** o\n- **Slug:** {slug}\n- **Level:** {level}\n"
+        f"{kind_line}- **Status:** Draft\n\n## Outcome\n\nx\n"
+    )
+
+
+def test_intent_node_ids_cover_the_spelling_variants() -> None:
+    texts = {
+        "a.md": _node_text("a"),
+        "b.md": _node_text("b", level="Capability"),
+        "c.md": _node_text("c", level="capability (legacy)"),
+        "d.md": _node_text("d", level="capability → retired name"),
+        "e.md": _node_text("e", kind="`outcome`"),
+        "f.md": _node_text("f", kind="<!-- c --> opportunity"),
+        "g.md": _node_text("g", level="capability", kind="Outcome"),
+    }
+    assert intent_shape.intent_node_ids(texts) == {
+        "a": "intent:a",
+        "b": "capability:b",
+        "c": "capability:c",
+        "d": "capability:d",
+        "e": "outcome:e",
+        "f": "opportunity:f",
+        "g": "outcome:g",
+    }
+
+
+def test_intent_node_ids_admit_only_top_level_artifact_names_and_unique_slugs() -> None:
+    texts = {
+        "sub/x.md": _node_text("x"),
+        ".hidden.md": _node_text("h"),
+        "notes.txt": _node_text("n"),
+        "p.md": _node_text("dup"),
+        "q.md": _node_text("dup"),
+        "ok.md": _node_text("ok"),
+    }
+    assert intent_shape.intent_node_ids(texts) == {"ok": "intent:ok"}
+
+
+def test_related_intents_present_without_a_map_is_refused() -> None:
+    text = _node_text("s").replace("## Outcome", "- **Related intents:** intent:a\n\n## Outcome")
+    violations = intent_shape.validate_corpus_scoped(text, set())
+    assert [v.field for v in violations] == ["Related intents"]
+    assert "intent:a" in violations[0].reason
+    assert intent_shape.validate_corpus_scoped(text, set(), intent_ids={"a": "intent:a"}) == []

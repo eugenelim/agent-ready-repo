@@ -73,11 +73,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `close-work` now checks every intent ancestor that an artifact's parent pointers record, including capability, outcome, and opportunity parents. `close-work` and `navigate-intents` now agree on every parent link.
 - When an intent and a brief (or spec) share a slug, both now count, so a parent can no longer look ready to close while one of them is still open.
 - A broken parent pointer or a fault while building the intent tree now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
+- Relate two intents with one `Related intents:` line. `navigate-intents` shows the relation from both ends, and the intent lint refuses a value that is malformed, names the intent itself, or matches no live intent of that kind.
 
 ### Added
 
 - A `navigate-intents` skill with a bundled query script. Its operations are `summary`, `record`, `tree`, `ancestors`, `search`, and `outstanding`, each returning a versioned JSON envelope with a closed set of error codes. `tree` and `outstanding` also print a text tree with control characters escaped.
 - Results stay bounded: a `tree` result over its limit is refused with `--depth` as the narrowing route; an `outstanding` result is refused with `--from`. `search` and `ancestors` refuse with the exceeded limit and name no bounded route. No result is truncated.
+- A `Related intents:` field in `work-intake`, with a lint rule. The value is `none` or comma-separated typed pointers (`intent:`, `capability:`, `outcome:`, `opportunity:`). The corpus lint refuses a repeated item, an item that names the intent itself, one that matches no live intent, and one whose prefix differs from the target's kind.
+- `record` and `tree` list the related intents an intent writes and the ones that name it. Text output prints `~ related <id>`, `! refused related <state>`, and `~ related from <id>`. A related value that names its own intent shows as the refused state `self_reference`. A related edge is never a parent or a dependency, and no closure or status check reads it.
 - The skill reads every file through a co-located confinement helper, shows the delivery resolver's typed relations and diagnostics with each intent, and decides what is outstanding by the same leading-word terminality rule as `close-work`. A parity check keeps that rule in step with its sources.
 
 ### Changed
@@ -87,6 +90,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
+
+## [product-engineering][0.13.25] — 2026-10-10
+
+### Highlights
+
+- Frame an intent that sits beside another one with an optional `Related intents:` line. The template offers it as comment-only guidance, so it stays absent until you fill it.
+
+### Changed
+
+- The `frame-intent` intent template offers an optional `Related intents:` line after `Outcome co-owner:`, and the two guide copies of the template match it. An eval case checks that the line stays optional and comment-only.
 
 ## [core][3.0.2] — 2026-10-10
 

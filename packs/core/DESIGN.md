@@ -496,6 +496,8 @@ Three co-located helper copies ride alongside the derivation:
 
 The `navigate-intents` query script (`navigate_intents.py`) consumes this derivation. `close-work` loads a byte-identical copy at `close-work/scripts/intent_graph.py`, pinned by `test_intent_delivery_relations_copies.py`, for its ancestor walk and its `children` arm. It holds no second parent-edge parser, and `tools/check_closure_terminality_parity.py` pins the parent kinds the derivation reads.
 
+The derivation also reads an intent's `Related intents:` field into related edges, which `navigate-intents` shows from both ends. No reconciler reads them: `close-work`'s closure, the delivery resolver, `lint-traceability`, `loop-cohort`, and `workspace-status` ignore the field, and a source scan over the pack's Python files pins that. The `work-intake` corpus lint checks the field's shape and its targets.
+
 **Alternative considered:** housing the derivation in `adapter-root-bins/` alongside the delivery resolver and file-safety helpers. Rejected because `adapter-root-bins/` is for helpers that adopter bins call directly; no adopter bin consumes the graph derivation. The source lives in the skill that first ships it, and a byte-identical copy rides into `close-work`.
 
 ### Why workspace.toml and not a tasks file or issue tracker (2026-06-xx)

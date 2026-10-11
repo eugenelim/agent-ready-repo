@@ -46,6 +46,7 @@ additions keep working.
 | `Scale` | constrained when present | `app` or `business-unit` — resolved at intake (see Modes) |
 | `Maturity` | constrained when present | `greenfield` or `brownfield` — gates current-state inputs |
 | `Outcome co-owner` | constrained when present | a peer declaration in typed pointer form: one of `outcome`, `opportunity`, `capability`, or `intent`, followed by `:` and a non-empty target identity. The corpus lint resolves the target; this row only checks the one-artifact shape |
+| `Related intents` | constrained when present | `none`, or comma-separated typed pointers with one of the prefixes `intent`, `capability`, `outcome`, or `opportunity`, then `:` and a slug. A bare slug or a path is refused, and so is a repeated item. `none` means no relation. Write the relation on one side only: the navigator shows it from both ends. The corpus lint then checks each target: it must be a live intent of the stated kind, and not this intent itself |
 | `De-risked` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no`. The basic form `20260922`, a week date, and an ordinal date are refused |
 | `Shaping-reviewed` | constrained when present | an ISO 8601 calendar date written `YYYY-MM-DD`, or the literal `no` |
 | `Decomposed` | constrained when present | the literal `no`, or an ISO 8601 calendar date written `YYYY-MM-DD` followed by exactly one of `children`, `brief`, `spec`, `direct-light`, `closed-empty` |

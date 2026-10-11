@@ -229,6 +229,7 @@ def test_negative_fixture_dirs_exist() -> None:
         "heading_search",
         "norm_order",
         "intent_parent_out_of_type",
+        "self_reference",
         "spec_brief_multiple_values",
     ]
     for name in required:

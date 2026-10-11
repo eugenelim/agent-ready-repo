@@ -197,3 +197,49 @@ def test_the_unresolved_template_asset_is_not_corpus_input() -> None:
     assert "docs/product/intents" not in str(TEMPLATE.relative_to(ROOT).as_posix())
     intents = ROOT / "docs" / "product" / "intents"
     assert TEMPLATE.parent != intents
+
+
+GUIDES_HOW_TO = ROOT / "guides" / "product-engineering" / "how-to"
+TEMPLATE_RUNG = (
+    "<!-- rung: packs/product-engineering/.apm/skills/frame-intent/assets/"
+    "intent-template.md -->"
+)
+RELATED_LINE = re.compile(r"^- \*\*Related intents:\*\* (<!--.*-->)$")
+
+
+def _template_mirror_blocks() -> list[tuple[str, str]]:
+    """Return (guide name, fenced body) for each block under the template rung."""
+    blocks: list[tuple[str, str]] = []
+    for guide in sorted(GUIDES_HOW_TO.glob("*.md")):
+        lines = guide.read_text(encoding="utf-8").splitlines()
+        for index, line in enumerate(lines):
+            if line.strip() != TEMPLATE_RUNG:
+                continue
+            start = next(
+                (i for i in range(index + 1, len(lines)) if lines[i].startswith("```")),
+                None,
+            )
+            if start is None:
+                continue
+            end = next(
+                (i for i in range(start + 1, len(lines)) if lines[i].startswith("```")),
+                len(lines),
+            )
+            blocks.append((guide.name, "\n".join(lines[start + 1 : end])))
+    return blocks
+
+
+def test_the_template_and_its_mirrors_list_related_intents_after_outcome_co_owner() -> None:
+    """The optional `Related intents` line follows `Outcome co-owner`, comment-only."""
+    mirrors = _template_mirror_blocks()
+    assert len(mirrors) >= 2, mirrors
+    sources = [("template", TEMPLATE.read_text(encoding="utf-8")), *mirrors]
+    for name, text in sources:
+        lines = text.splitlines()
+        owners = [i for i, row in enumerate(lines) if row.startswith("- **Outcome co-owner:**")]
+        assert len(owners) == 1, name
+        follower = lines[owners[0] + 1]
+        match = RELATED_LINE.match(follower)
+        assert match, (name, follower)
+        comment = match.group(1)
+        assert comment.count("<!--") == 1 and comment.count("-->") == 1, (name, comment)

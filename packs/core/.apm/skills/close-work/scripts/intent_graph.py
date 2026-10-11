@@ -335,7 +335,11 @@ def _value_form_intent_parent(value: str, resolver: Any) -> str:
 
 
 def _multiple_values_edge(
-    from_id: str, field: str, values: list[str], form_of: Any
+    from_id: str,
+    field: str,
+    values: list[str],
+    form_of: Any,
+    trust_class: str = _TRUST_CLASS,
 ) -> dict[str, Any]:
     """Build one ``multiple_values`` refusal carrying its basis.
 
@@ -354,7 +358,7 @@ def _multiple_values_edge(
             "values": [{"value": v, "form": f} for v, f in zip(values, forms, strict=True)],
         },
         "state": "multiple_values",
-        "trust_class": _TRUST_CLASS,
+        "trust_class": trust_class,
     }
 
 
@@ -548,6 +552,72 @@ def _make_intent_parent_edge(
     # markdown_link and unrecognized → unparseable
     base["state"] = "unparseable"
     return base
+
+
+# ---------------------------------------------------------------------------
+# Related-intents edges
+# ---------------------------------------------------------------------------
+
+_RELATED_FIELD = "Related intents"
+_RELATED_TRUST_CLASS = "pointer_checked"
+
+
+def _make_related_edges(
+    node: dict[str, Any],
+    resolver: Any,
+    intent_by_slug: dict[str, Any],
+    tombstones_by_slug: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Build the ``Related intents`` edges for one live intent.
+
+    Empty and leading-``none`` values are dropped; more than one distinct
+    remaining value is one ``multiple_values`` refusal. Otherwise the single
+    value is split on commas and each distinct item becomes one edge. These
+    edges never join cycle detection or the parent structure.
+    """
+    from_id = node["id"]
+    values = [
+        v for v in node["_fields"].get(_RELATED_FIELD, [])
+        if v.split() and v.split()[0].lower() != "none"
+    ]
+    distinct = list(dict.fromkeys(values))
+    if len(distinct) > 1:
+        return [_multiple_values_edge(
+            from_id, _RELATED_FIELD, distinct,
+            lambda v: _value_form_intent_parent(v, resolver),
+            _RELATED_TRUST_CLASS,
+        )]
+    if not distinct:
+        return []
+    items = list(dict.fromkeys(
+        i for i in (part.strip() for part in distinct[0].split(",")) if i
+    ))
+    result: list[dict[str, Any]] = []
+    for item in items:
+        form = _value_form_intent_parent(item, resolver)
+        edge: dict[str, Any] = {
+            "from": from_id,
+            "field": _RELATED_FIELD,
+            "form": form,
+            "trust_class": _RELATED_TRUST_CLASS,
+            "basis": {"field": _RELATED_FIELD, "form": form},
+            "value": item,
+        }
+        if form != "typed":
+            edge["state"] = "unparseable"
+        else:
+            prefix, _, slug = item.partition(":")
+            if prefix in resolver._PARENT_INTENT_KINDS:
+                if slug == node["slug"]:
+                    edge["state"] = "self_reference"
+                else:
+                    edge.update(_resolve_intent_typed(
+                        slug, prefix, intent_by_slug, tombstones_by_slug
+                    ))
+            else:
+                edge["state"] = "out_of_type"
+        result.append(edge)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -1214,6 +1284,12 @@ def derive(root: Path) -> dict[str, Any]:
         else:
             edge = {k: v for k, v in edge.items() if k != "_is_cycle_candidate"}
         edges.append(edge)
+
+    # Related intents edges (never cycle candidates)
+    for node in intent_nodes:
+        edges.extend(_make_related_edges(
+            node, resolver, intent_by_slug, tombstones_by_slug
+        ))
 
     # Brief parent edges
     for node in brief_nodes:
