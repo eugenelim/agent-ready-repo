@@ -67,7 +67,7 @@ The riskiest part is the page's inertness and rendered behaviour, because only a
 ### Design decisions
 
 - **The payload is built from query internals, not by re-running the CLI.** `navigate_intents.py` gains `build_view_payload(root, from_identity)`, which derives once and calls the same `_op_summary`, `_build_intent_record`, and outstanding builders `run_query` uses, so a record in the file is the record `query` returns. Rejected: one subprocess per intent, and a second derivation in `intent_view.py`, which would be a second source of truth. Traces to AC-0002 to AC-0008.
-- **`intent_view.py` owns HTML assembly, source links, and publication, and never reads the corpus.** It receives the payload and the root, so the derivation stays in one module. `navigate_intents.py` loads it through its existing co-located loader pattern. Traces to AC-0010, AC-0023, AC-0029.
+- **`intent_view.py` owns HTML assembly, source links, and publication, and never derives.** It receives the payload and the root, so the derivation stays in one module; its only corpus reads are the node files it hashes for source-link cleanliness, through `_file_safety.py`. `navigate_intents.py` loads it through its existing co-located loader pattern. Traces to AC-0010, AC-0023, AC-0029.
 - **Facts in the page are only the payload.** The static shell interpolates no record-controlled text; the script reads the data block and builds the DOM with `createElement` and `textContent`. Traces to AC-0029 to AC-0035.
 - **No drawn graph.** Edges are labelled lists grouped by type, and the tree is nested lists. A drawn graph adds a renderer and an accessibility equivalent for no question the IA names. Traces to AC-0038, AC-0042.
 - **The summary strip scrolls with the page.** It is not fixed or sticky, so it cannot cover a focused element. Traces to AC-0058.
@@ -118,9 +118,9 @@ Owned by: T4
 
 ### Behavior & rules
 
-- **Destination.** Take `os.path.realpath` of `--destination` (default `tempfile.gettempdir()`). It must exist and be a directory, and must not equal or lie under `realpath(root)`, compared by path components; on a case-insensitive file system, no ancestor of the destination may be `os.path.samefile` with the root. Open it with `O_RDONLY | O_DIRECTORY | O_NOFOLLOW`, compare `(st_dev, st_ino)` with the validated `lstat`, create `.intent-graph-<hex>.tmp` with `O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW` and mode `0600` through `dir_fd`, `fchmod 0600`, write, `fsync`, check it is a regular file with one link, re-check the directory identity, `os.link` to the final name through `dir_fd` (which fails on an existing name), and unlink the temporary name in `finally`. A platform without `O_NOFOLLOW`, `O_DIRECTORY`, or `dir_fd` support for `open` and `link` (`os.supports_dir_fd`) refuses with `publish_failed`; there is no non-atomic fallback.
+- **Destination.** Take `os.path.realpath` of `--destination` (default `tempfile.gettempdir()`). It must exist and be a directory, and must not equal or lie under the containment root, compared by path components: the nearest of `realpath(root)` and its ancestors holding a `.git` entry (a directory, or the file a linked worktree uses), else `realpath(root)`. No Git process is needed to find it. On a case-insensitive file system, no ancestor of the destination may be `os.path.samefile` with the containment root. Open it with `O_RDONLY | O_DIRECTORY | O_NOFOLLOW`, compare `(st_dev, st_ino)` with the validated `lstat`, create `.intent-graph-<hex>.tmp` with `O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW` and mode `0600` through `dir_fd`, `fchmod 0600`, write, `fsync`, check it is a regular file with one link, re-check the directory identity, `os.link` to the final name through `dir_fd` (which fails on an existing name), and unlink the temporary name in `finally`. A platform without `O_NOFOLLOW`, `O_DIRECTORY`, or `dir_fd` support for `open` and `link` (`os.supports_dir_fd`) refuses with `publish_failed`; there is no non-atomic fallback.
 - **Budget.** The HTML is built in memory and measured as UTF-8 bytes before any file is created.
-- **Source links.** Git runs with `shell=False`, a fixed argument list, `-C <root>`, `-c core.fsmonitor=false`, `GIT_TERMINAL_PROMPT=0`, stdout and stderr both captured, and a 5-second timeout; any failure degrades to `latest` or `inert`. Calls: `rev-parse --show-toplevel`, `config --get remote.origin.url`, `rev-parse HEAD`, `status --porcelain -- <corpus dirs>`, `for-each-ref --contains HEAD refs/remotes/origin/` (non-empty output means `HEAD` is on `origin`). A commit is 40 or 64 lowercase hex characters. The link path prefix is `relpath(realpath(root), toplevel)` when it is not `.`.
+- **Source links.** Git runs with `shell=False`, a fixed argument list, `-C <root>`, `-c core.fsmonitor=false`, `GIT_TERMINAL_PROMPT=0`, stdout and stderr both captured, and a 5-second timeout; any failure degrades to `latest` or `inert`. Calls: `rev-parse --show-toplevel`, `config --get remote.origin.url`, `rev-parse HEAD`, `rev-parse --show-object-format`, `ls-tree -r -z HEAD -- <corpus dirs>`, and `for-each-ref --contains HEAD refs/remotes/origin/` (non-empty output means `HEAD` is on `origin`). None of these refreshes the index or reads the work tree through Git, so no clean filter or fsmonitor hook runs; there is no `git status`. Cleanliness is decided in Python: each node file is read through `_file_safety.py` and hashed as a Git blob (`blob <length>\0<bytes>`, SHA-1 or SHA-256 per the object format) and compared with the blob id `ls-tree` records at its link path; a missing entry (untracked or ignored) or a mismatch gives `latest`. A commit is 40 or 64 lowercase hex characters. The link path prefix is `relpath(realpath(root), toplevel)` when it is not `.`.
 - **Escape parity.** `escapeDisplay` in `view.js` uses the same code-point set as `navigate_intents._UNSAFE_CHARS` and the `[U+XXXX]` form; T4's test runs it in `node` against the Python function.
 - **Labels.** Edge groups, states, and trust classes render from a fixed table in `view.js`; record text only ever fills a value cell.
 - **Out-of-scope targets.** An edge target missing from `nodes` renders as text marked "outside this export".
@@ -148,7 +148,8 @@ Owned by: T4, T5
 - AC-0006: `run_query`'s `_delivery_provider` seam, reached through the payload builder's matching keyword, returning `complete: false`.
 - AC-0007, AC-0008: `mixed` fixture, `--from` on a capability with a brief and specs beneath it and a related edge leaving the subtree; the expected node and edge id sets are listed in the test, derived by hand from the fixture files.
 - AC-0009: the absolute root string and the destination path are absent from the file.
-- AC-0010, AC-0011, AC-0013: `main()` called with captured streams; one case per slice 1 negative corpus code.
+- AC-0010, AC-0011: `main()` called with captured streams.
+- AC-0013: `main()` over the committed `duplicate_identity` and `malformed_record` corpora and over builder-generated `unsafe_input` and `input_too_large` corpora; `resolver_unavailable` by copying the skill's `scripts/` into `tmp_path` without `intent_delivery_relations.py` and running `export` from that copy in a subprocess.
 - AC-0012: `main()` run in a subprocess with a non-Git root and a Git root, asserting empty fd-level stderr.
 - The hostile corpus derives cleanly; its header values carry the AC-0031 strings, so T4 reuses it.
 
@@ -162,7 +163,7 @@ Owned by: T4, T5
 
 **Tests:**
 - AC-0014: `tempfile.gettempdir` monkeypatched to a `tmp_path` subdirectory; the name checked by regex.
-- AC-0015: a destination equal to the root, under it, under it through a symlink, a file, and a missing path.
+- AC-0015: a destination equal to the root, under it, under it through a symlink, a file, and a missing path; and a temporary Git work tree (`git init`) with the corpus at `sub/dir/`, exported with that root, refusing a destination at the top level and at a sibling `sub/other/`.
 - AC-0016: skipped unless the temporary file system is case-insensitive; it runs on macOS APFS and the run is recorded in the ledger.
 - AC-0017: `a/b.html`, `x.htm`, `.x.html`, and a 101-character stem.
 - AC-0018: existing file, directory, and symlink; the file's bytes and modification time compared before and after.
@@ -183,7 +184,8 @@ Owned by: T4, T5
 - Temporary Git repositories are built in the test with a local bare repository as `origin`, pushed, and then the remote URL is rewritten to the form under test; `for-each-ref --contains` still reads the local remote-tracking refs.
 - AC-0023: the remote list in the criterion, each asserting every link `inert` and the remote text absent from the HTML; `PATH` without `git` also gives `inert` and the export still succeeds.
 - AC-0024: clean pushed `HEAD` gives `commit` with the full URL.
-- AC-0025: a dirty file under `docs/specs/`, an unpushed commit, and a detached unpushed `HEAD` each give `latest`.
+- AC-0025: a modified file under `docs/specs/`, an untracked spec, a spec matched by `.gitignore`, an unpushed commit, and a detached unpushed `HEAD` each give `latest`; a second remote holding `HEAD` while `origin` does not also gives `latest`.
+- AC-0072: `subprocess.run` wrapped by a recording seam asserts each call's argument list, `shell`, `timeout`, and environment; the fixture repository sets `core.fsmonitor` and `filter.mark.clean` to a script writing a marker, `.gitattributes` applies `filter=mark` to the corpus, one corpus file is modified, and the marker is absent after the export.
 - AC-0026: the corpus placed under `sub/dir/` of the repository and exported with that root; every URL path starts `sub/dir/`.
 - AC-0027: a spec directory named with `?`, `#`, `%`, and a space where the file system allows it.
 
@@ -203,7 +205,7 @@ Owned by: T4, T5
 - AC-0065: token search over `view.css`.
 - `view_browser_checks.py`, one test per criterion for AC-0028, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054, AC-0055, AC-0056, AC-0057, AC-0058, AC-0059, AC-0060, AC-0061, AC-0062, AC-0063, AC-0064, AC-0069, AC-0070, AC-0071: Playwright over `mixed`, `hostile`, the three state corpora, a `--from` export, a delivery-incomplete export, and a tampered data block. Network events are recorded; CSP violations are read from `securitypolicyviolation` events and the console; keyboard-only scripts use `page.keyboard` only; the 320 px viewport checks `scrollWidth <= clientWidth`; target sizes and occlusion come from `getBoundingClientRect` and `elementFromPoint`; contrast walks every text node's computed colour and nearest opaque background in both themes; the search comparison calls `run_query` in-process for the expected ids.
 
-**Done when:** `python3 -m pytest packs/core/tests/skills/navigate-intents/test_export_html.py -q` passes, and `python3 -m pytest packs/core/tests/skills/navigate-intents/view_browser_checks.py -q` passes locally with its run and the SHA-256 of `view.js` and `view.css` recorded in the ledger.
+**Done when:** `python3 -m pytest packs/core/tests/skills/navigate-intents/test_export_html.py -q` passes, and `python3 -m pytest packs/core/tests/skills/navigate-intents/view_browser_checks.py -q -rs` passes locally with zero skipped tests. The browser suite fails, rather than skips, when Playwright or Chromium is missing.
 
 ### T5: Scale, activation, documentation, and release notes
 
@@ -215,10 +217,11 @@ Owned by: T4, T5
 - AC-0066: `view_bench.py` builds N renumbered copies of this repository's intents, briefs, and spec directories (each copied whole) in a scratch repository, with slugs and ids suffixed `-cNN` and pointers rewritten, exports each, and measures in headless Chromium. The table goes to the ledger, and `EXPORT_BUDGET_BYTES` is set by AC-0022's rule.
 - AC-0067: new positives and near-misses in `eval_queries.json`, run through the in-harness procedure slice 1 used (`agentbundle pack evals run --pack core --mode in-harness`), with the result in the ledger.
 - AC-0068: the real export command and the browser count check, recorded in the ledger.
-- `SKILL.md` `metadata.boundaries` gains `filesystem_write`, and the description stays under 1,024 characters.
+- After the budget value is set, the last code change of the slice, the browser suite is run again with zero skips; the ledger records that commit id, the SHA-256 of `view.js` and `view.css`, and the count of tests run.
+- `SKILL.md` `metadata.boundaries` is exactly `[filesystem_read_untrusted, filesystem_write]`, and the description stays under 1,024 characters.
 - Guide lints, `agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`, and the shipped-text grep for criterion ids and `docs/specs/` under `packs/core/.apm/skills/navigate-intents/` return nothing.
 
-**Done when:** each listed check passes, self-host leaves no diff on its second run, and the ledger holds the AC-0066, AC-0067, and AC-0068 entries.
+**Done when:** each listed check passes, self-host leaves no diff on its second run, and the ledger holds the AC-0066, AC-0067, and AC-0068 entries and the final browser-suite record.
 
 ### T6: Publication
 
@@ -243,7 +246,8 @@ Owned by: T4, T5
 
 ## Risks
 
-- The browser suite runs only locally. A change to `view.js` or `view.css` after its recorded run reopens the run.
+- The browser suite runs only locally. Any code change after its final recorded run reopens the run.
+- A repository whose `.git/config` is hostile can still influence what `git config` and `rev-parse` report, but it cannot extend the host allowlist, and no Git call the export makes runs a configured program.
 - The default branch may move again before the owner merges. Another merge commit brings it in, and the version and changelog rules above are checked again.
 - Windows lacks `dir_fd` support, so the export refuses there with `publish_failed`; the guide says so.
 
