@@ -32,7 +32,7 @@ than calling the graph current (source-read from `main.rs`).
 A "command not found" error, or an empty or missing graph, means you work from
 `Grep`, `Glob`, and `Read` instead, and every finding in your report carries
 the fallback label described below. The remediation is
-`cargo install wicked-estate --version 0.26.0 --locked`, then
+`cargo install wicked-estate --version 0.29.2 --locked`, then
 `wicked-estate index .` — offer it; do not run it yourself.
 
 ## How you work
@@ -107,7 +107,7 @@ inference as measurement.
 ```markdown
 ## Observed
 What the graph returned, including any `source` output labelled as indexed-revision evidence. Commands and counts. Include the completeness fields:
-`unresolved`, `truncated_dependents`, and any `STALENESS:` line.
+`unresolved`, `truncated_dependents` (rows on later pages; page with `--cursor <next_cursor>` until it is `null` before you report), and any `STALENESS:` line.
 
 ## Verified
 What you confirmed with your own repository search. Name the file and line. Only claims you

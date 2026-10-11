@@ -115,7 +115,7 @@ _GRADED_PHRASES: tuple[str, ...] = (
     "provider-returned",
 )
 
-# Patterns that indicate forbidden content in fixtures (AC-0012).
+# Patterns that indicate forbidden content in fixtures.
 # Each is a compiled regex for efficient scanning of fixture text.
 # Any absolute local path ("/usr/...", "/Users/...", "C:\..."), plus "~/"; a
 # relative "../x" is not matched because its slash follows a dot.
@@ -240,7 +240,7 @@ _PINNED_ASSERTIONS: dict[str, tuple[str, ...]] = {
     ),
 }
 
-# Stable key phrases, one per AC-0005 behavior; each must appear in some assertion.
+# Stable key phrases, one per graded behavior; each must appear in some assertion.
 _UNTRUSTED_BEHAVIOR_KEYS: tuple[tuple[str, ...], ...] = (
     ("provider-returned file location", "not opened by any route"),
     ("each call site", "own repository search"),
@@ -269,7 +269,7 @@ def test_pinned_cases_assert_the_exact_list() -> None:
 
 
 def test_untrusted_case_asserts_baseline_authority() -> None:
-    """The untrusted-output case asserts all six AC-0005 behaviors, and the check
+    """The untrusted-output case asserts all six graded behaviors, and the check
     fails when a planted list omits one of them."""
     assertions = _load_evals()["composition-untrusted-output"]["assertions"]
     assert _missing_untrusted_behaviors(assertions) == []
@@ -303,7 +303,7 @@ def test_composition_fixtures_retain_only_synthetic_evidence() -> None:
     credential-shaped key, private IP address, or hostname outside example.com and
     example.invalid.
 
-    Provider output in fixtures is untrusted data (AC-0012). Fixtures must contain
+    Provider output in fixtures is untrusted data. Fixtures must contain
     only synthetic, task-minimized content.
     """
     for fixture_path in _COMPOSITION_EVALS_FILES:
@@ -337,3 +337,13 @@ def test_composition_fixtures_retain_only_synthetic_evidence() -> None:
                     f"Fixture {name!r} contains a disallowed hostname {host!r}. "
                     f"Use only example.com or example.invalid."
                 )
+
+
+def test_blast_radius_fixtures_carry_the_paging_keys() -> None:
+    """Every blast-radius JSON fixture carries `next_cursor` and `page`, as a 0.29 reply does."""
+    fixtures = sorted(EVALS_FILES_DIR.glob("*blast-radius*.json"))
+    assert fixtures, "no blast-radius fixtures found under evals/files/"
+    for fixture in fixtures:
+        payload = json.loads(fixture.read_text(encoding="utf-8"))
+        missing = {"next_cursor", "page"} - set(payload)
+        assert not missing, f"{fixture.name} lacks {sorted(missing)}"

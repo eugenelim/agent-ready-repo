@@ -36,7 +36,10 @@ larger surface — 42 names, several with no MCP equivalent.
 The memory, knowledge, and proposal domains are **MCP-only**. Register the server
 only if you need them, and prefer `--readonly`. The richer MCP response shapes
 (`summary.top_by_pagerank` on `BlastRadius`, `Communities` summaries,
-`ContextBundle`) are also MCP-only.
+`ContextBundle`) are also MCP-only. With `--readonly`, a store path that does
+not exist is not created: the server serves that store as an empty in-memory
+store and says so on stderr. If every answer from one store is empty,
+check its path: the graph path comes from `--db`, else `WICKED_ESTATE_DB`, else `.wicked-estate/graph.db` relative to the server's working directory, and the memory, knowledge, and cross-store paths come from `WICKED_MEMORY_DB`, `WICKED_KNOWLEDGE_DB`, and `WICKED_XEDGE_DB`, else from `WICKED_HOME`, else `$HOME/.wicked`.
 
 ## Intent to command, in brief
 
@@ -44,7 +47,7 @@ only if you need them, and prefer `--readonly`. The richer MCP response shapes
 | --- | --- |
 | Resolve a name to a stable ID | `wicked-estate resolve <name> --json` |
 | Fetch source | `wicked-estate source --symbols <id> --json` |
-| What depends on this | `wicked-estate blast-radius <name> [--depth N] --json` |
+| What depends on this | `wicked-estate blast-radius <name> [--depth N] [--cursor C] --json` |
 | What this depends on (forward) | `wicked-estate lineage <symbol> --json` (a name or a symbol id) |
 | Walk by direction and edge kind | `wicked-estate traverse <symbol> [--direction ...] [--edge-kinds ...] --json` |
 | Route from A to B | `wicked-estate path <from> <to> [--max-depth N] --json` |
@@ -76,12 +79,21 @@ and report missing members as unranked.
 ## What the CLI reports about completeness
 
 - **`blast-radius --json`** returns `unresolved`, `truncated_dependents`,
-  `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, and a
-  `confidence {min, avg, edge_count}` summary. A true `depth_horizon_reached`
+  `searched_depth`, `depth_horizon_reached`, `node_cap_reached`,
+  `next_cursor`, `page {from, count, total}`, and a
+  `confidence {min, avg, edge_count}` summary. One reply stays under 25,000
+  characters; `truncated_dependents` counts the rows on later pages. Pass
+  `--cursor <next_cursor>` until `next_cursor` is `null` to get the whole
+  resolved answer. A refused cursor (exit 1, nothing on stdout) means the
+  answer changed, so start again from the first page. An accepted cursor says
+  nothing about freshness; `stats --json` does. A true `depth_horizon_reached`
   means more dependents lie beyond the depth searched; raise `--depth`
   (default 12, maximum 24). A true `node_cap_reached` means the node budget cut
   the walk, and no flag raises it. Each `blast-radius` row carries a per-row
   `depth` (1 is a direct dependent) and no per-row confidence.
+- **`lineage --json`** pages the same way, with `next_cursor` and `--cursor`.
+  Its default depth is 24, which is also its ceiling, so a true
+  `depth_horizon_reached` there has no deeper setting to try.
 - **`path --json`** returns `found`, `depth_bounded`, `node_bounded` and
   `unresolved`. `found: false` means no route exists only when `unresolved` is
   null and both bound flags are false. A misspelled name sets `unresolved` and

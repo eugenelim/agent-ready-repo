@@ -44,11 +44,13 @@ you get a bare list, ask:
 > How complete is that?
 
 Five things should come back: unresolved references, whether output was
-truncated, whether the depth horizon was reached (`depth_horizon_reached`),
+split across pages (`next_cursor`), whether the depth horizon was reached (`depth_horizon_reached`),
 whether the node cap was hit (`node_cap_reached`), and which revision the index
 describes. When `depth_horizon_reached` is true, use `blast-radius <name> --depth N`
 (max 24) to look further. A true `node_cap_reached` means the walk hit its node
-budget; no flag raises it.
+budget; no flag raises it. When `next_cursor` is not `null`, more rows are on later
+pages: pass it back with `--cursor` until it is `null`, and start again from the
+first page if a cursor is refused.
 
 ## When architecture is the question
 

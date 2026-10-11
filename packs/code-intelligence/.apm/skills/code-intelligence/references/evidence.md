@@ -26,7 +26,7 @@ equally trustworthy:
   and never call edges, so importing a SCIP index does not add a call edge.
   Compiler evidence, such as Angular input and output bindings, reaches the graph
   through `evidence`, a write verb this skill does not run (source-read from the
-  0.26.0 sources).
+  0.29.2 sources).
 - An **import-map or scoped** edge comes from resolving a name within a known
   module structure. Usually right.
 - A **name-matched** edge comes from a symbol name matching across files. It is
@@ -55,9 +55,10 @@ uniform list.
 
 ## Completeness is reported — quote it
 
-Three signals tell you an answer is a floor rather than a total. All three are
-easy to drop when summarizing, and dropping them turns a careful result into an
-overclaim.
+Three signals tell you an answer is incomplete. Two of them (`unresolved` and a
+cut flag) keep it a floor. The third, `truncated_dependents`, is pageable: page
+to the end and the rows it counted are in hand. All three are easy to drop when
+summarizing, and dropping them turns a careful result into an overclaim.
 
 ### `unresolved` (CLI) / `unresolved_callers` (MCP)
 
@@ -75,21 +76,53 @@ structurally but not precisely. A non-zero count is normal; hiding it is not.
 
 ### `truncated_dependents` (CLI) / `truncated` + `total` (MCP)
 
-The CLI bounds serialized output at 25,000 characters and reports how many rows
-it dropped. A non-zero value means you are looking at a prefix, ordered by
-whatever the store returned — not the most important dependents. On a mid-size
-repository this fires easily: a probe against this catalogue returned 7
-unresolved and **727 truncated**.
+One CLI reply stays under 25,000 characters. When the answer is longer, the
+reply holds one page, and `truncated_dependents` counts the rows on later pages
+(executed). On every page, `page.from + page.count + truncated_dependents` equals
+`page.total`. A non-zero value means the list you hold is the first part, not
+the whole. Pages are ordered by depth, then symbol id, so a page is not "the
+most important dependents" and pages from separate runs join exactly. A single
+row wider than the budget is carried whole on its own page with a note on
+stderr, so the bound is on the page and not on the answer (source-read).
+
+`blast-radius --json` adds `next_cursor` (a string, or `null`) and
+`page {from, count, total}`. Run the same command again with
+`--cursor <next_cursor>` and keep going until `next_cursor` is `null`. Only then
+is the list the whole resolved answer within `searched_depth`. In text mode, the
+reply ends with `…and N more (one reply is bounded at 25K chars): --cursor <c>`.
+A probe on a symbol with 1,500 callers returned 1,503 rows over 12 pages, all
+distinct (executed).
+
+`lineage --json` pages the same way. It adds `next_cursor` and
+`page {dependencies {from, count, total}, flows {from, count, total}}`. Its
+`truncated` is true while more pages remain or on a depth or node cut, and its
+`total` counts dependency rows across all pages (`page.flows.total` counts flow rows). Lineage prints its page note, ``pass `cursor`:
+"<c>" for the rest``, with its other diagnostics: on stderr under `--json`, on
+stdout after the result in text mode. Read `next_cursor` from the JSON.
+
+A depth or node cut is still reported on the last page, so paging to `null`
+does not lift it.
+
+**A refused cursor is a restart, not an end.** The cursor fingerprints the
+crate version, the tool, the query, and every row of the answer (source-read).
+So it is refused, with exit 1 and nothing on stdout, when the answer it pages
+has changed: another query or `--depth`, another build, or different rows after
+a re-index. The message says to restart without `cursor`. A malformed cursor
+gets its own message: pass back the `next_cursor` of the previous page
+unchanged, or omit `cursor` for the first page. On either,
+start again from the first page, and never splice pages from two answers. A re-index that leaves the
+answer's rows unchanged does not refuse the cursor, so an accepted cursor says
+nothing about freshness; `stats --json` is the freshness check.
 
 ### The depth cut is reported
 
 `blast-radius --json` returns `searched_depth`, `depth_horizon_reached`, and
 `node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
 `CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
-`--depth` (max 24) to go further. Each row carries a per-row `depth`, and `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents).
+`--depth` (max 24) to go further; `lineage --depth` defaults to 24 and clamps above it. Each row carries a per-row `depth`, and `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents).
 
 A true `node_cap_reached` means the traversal hit its node budget. No CLI flag
-raises it, so report the list as a floor.
+raises it, so report the list as a floor, even after you have paged to `null`.
 
 ### Direct and transitive dependents
 
@@ -100,16 +133,19 @@ split. `--depth 1` is still valid when you want only direct dependents.
 Subtracting a `--depth 1` run from a full run is a second route to the same
 split, and it holds only as far as both runs are complete:
 
-- **Both runs uncut** — the `--depth 1` run reports `truncated_dependents` 0,
-  and the full run reports `unresolved` 0, `truncated_dependents` 0,
-  `depth_horizon_reached: false` and `node_cap_reached: false`. The difference
-  is the complete transitive set.
-- **Only the full run cut** — the `--depth 1` run reports
-  `truncated_dependents` 0, and the full run reports a cut. The difference is a
-  floor on the transitive set within `searched_depth`.
-- **The `--depth 1` run truncated** — no split is possible. The missing direct
-  rows would land in the difference, so it is neither the transitive set nor a
-  floor. Report the direct list as partial and do not report a transitive count.
+Page each run to a `null` `next_cursor` first, then compare the whole lists.
+
+- **Both runs uncut** — the `--depth 1` run is whole (paged to `null`), and the
+  full run is whole with `unresolved` 0, `depth_horizon_reached: false` and
+  `node_cap_reached: false`. The difference is the complete transitive set.
+- **Only the full run cut** — the `--depth 1` run is whole, and the full run
+  reports a cut flag. The difference is a floor on the transitive set within
+  `searched_depth`.
+- **The `--depth 1` run not paged to `null`** — no split is possible. The
+  missing direct rows would land in the difference, so it is neither the
+  transitive set nor a floor. Page the `--depth 1` run to `null` first; if you
+  cannot, report the direct list as partial and do not report a transitive
+  count.
 
 A non-zero `unresolved` on the full run limits every case to resolved edges. A
 direct caller bound only through an unresolved reference can surface deeper in
@@ -151,7 +187,8 @@ and a low `avg` means the set is largely speculative.
 --json` when you need per-hop confidence on a specific route.
 
 MCP `BlastRadius` also returns the `confidence` envelope and per-dependent
-`depth`, plus `summary.top_by_pagerank`. The CLI rows carry `depth` too; the CLI
+`depth`, plus `summary.top_by_pagerank`, and it takes `cursor` and returns
+`next_cursor` (schema-derived) and `page` (source-read) as the CLI does. The CLI rows carry `depth` too; the CLI
 does not offer a ranked-dependents view.
 
 Structural `contains` and `defines` edges are excluded from the confidence
@@ -234,8 +271,7 @@ plain `resolve` does not return, so find the seed with
 `resolve <name> --include-values --json` (source-read). Coverage is TypeScript,
 TSX, and JavaScript files (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`)
 (source-read).
-Callbacks, `await` and `.then`, destructuring, loops, local object properties,
-and closure returns add hops, almost all of them `may_influence`. Each flow hop
+Callbacks, `await` and `.then`, destructuring, loops, and closure returns add hops, almost all of them `may_influence`. Each flow hop
 carries:
 
 - `producer`, `consumer`, `confidence`, `provenance`, `resolved_by`
@@ -245,7 +281,7 @@ carries:
 Additional fields (`constructs`, `flow_rules`, `flow_support`, etc.) may appear;
 the list is not exhaustive. The Python fixture produces no value flow, so these
 fields and the new hop kinds cannot be observed on the standard test index —
-they are source-read from the 0.26.0 sources, so label them as such when you
+they are source-read from the 0.29.2 sources, so label them as such when you
 quote them. Any `--relation` other than `flows_to` exits 1.
 
 ---
@@ -261,7 +297,7 @@ wicked-estate annotations --symbol '<symbol_id>' --json
 
 Each annotation carries `key`, `value`, `type`, `confidence`, `provenance`,
 `author`, `ts`, `advisory`, `source_type`, `extraction_method`, and
-`last_verified` (executed on 0.26.0).
+`last_verified` (executed on 0.29.2).
 
 One shape trap, verified against the binary: **the `<name>` form returns an
 array**, one `{symbol, annotations[]}` entry per name match. Only the

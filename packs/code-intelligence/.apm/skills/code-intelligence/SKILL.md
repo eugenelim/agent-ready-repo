@@ -57,7 +57,7 @@ consume this skill without any of them knowing about the others.
 Queries run against a graph built by the `wicked-estate` CLI. Install once:
 
 ```bash
-cargo install wicked-estate --version 0.26.0 --locked
+cargo install wicked-estate --version 0.29.2 --locked
 ```
 
 ### Step 1 — check the binary and the index before any real work
@@ -74,7 +74,7 @@ python '<skill-dir>/scripts/estate_preflight.py' --check
 | 0 | Binary and index both present | Proceed. Preflight checks only that `graph.db` exists, so confirm with `wicked-estate stats --json`: a `no graph at <db>` refusal or a `nodes` count of 0 means the index is empty, so handle it like exit 3. |
 | 2 | Binary absent | Give the user the install command above. Offer `--install --yes` only if they ask; it compiles from source and takes minutes. Do not install silently. |
 | 3 | No index | Ask before running `wicked-estate index .` — it writes `.wicked-estate/graph.db`. |
-| 4 | Version below the floor | Report it; the documented verbs were verified against 0.26. |
+| 4 | Version below the floor | Report it; the documented verbs were verified against 0.29. |
 
 On exit 2, 3, or 4 you may still answer using your own repository tools, but you
 must say so — see [Degrading without the graph](#degrading-without-the-graph).
@@ -243,18 +243,28 @@ flattening it into confident prose.
 
 Three rules are load-bearing:
 
-- **A blast radius is a floor, not a total.** `blast-radius --json` returns an
+- **A blast radius is a floor until you have paged it, and after that still a
+  floor on `unresolved` and any cut.** `blast-radius --json` returns an
   `unresolved` count of references the indexer could not bind, a
-  `truncated_dependents` count when output was capped at 25,000 characters, and
-  `searched_depth`, `depth_horizon_reached`, and `node_cap_reached` fields. Each
-  dependent row carries a per-row `depth`, where 1 is a direct dependent. Use
-  `blast-radius <name> --depth N` (default 12, max 24) to control reach; when
-  `depth_horizon_reached` is true, the result is bounded — raise `--depth`. A true
-  `node_cap_reached` has no CLI remedy. Report `unresolved`,
-  `truncated_dependents`, `searched_depth`, and any cut flag that is true; never
-  present the list as complete. `blast-radius --json` also carries a `confidence
-  {min, avg, edge_count}` summary over the traversal edges; `blast-radius` rows
-  carry no per-row confidence.
+  `truncated_dependents` count, a `next_cursor`, a `page {from, count, total}`
+  object, and `searched_depth`, `depth_horizon_reached`, and `node_cap_reached`
+  fields. One reply stays under 25,000 characters. A non-zero
+  `truncated_dependents` counts rows on later pages: run the same command again
+  with `--cursor <next_cursor>` and keep going until `next_cursor` is `null`.
+  Only then is the list the whole resolved answer within `searched_depth`. If a
+  cursor is refused (exit 1, nothing on stdout), the answer it paged has
+  changed, so start again from the first page and never splice pages from two
+  answers. An accepted cursor says nothing about freshness; `stats --json`
+  does. Each dependent row carries a per-row `depth`, where 1 is a direct
+  dependent. Use `blast-radius <name> --depth N` (default 12, max 24) to control
+  reach; when `depth_horizon_reached` is true, the result is bounded — raise
+  `--depth`. A true `node_cap_reached` has no CLI remedy. Report `unresolved`,
+  `searched_depth`, and any cut flag that is true; never present the list as
+  complete while `next_cursor` is not `null`. `blast-radius --json` also carries
+  a `confidence {min, avg, edge_count}` summary over the traversal edges;
+  `blast-radius` rows carry no per-row confidence. `lineage --json` pages the
+  same way, its default depth is 24, and its `truncated` is true while more
+  pages remain or on a depth or node cut.
 - **A heuristic edge is not a fact.** Every edge carries confidence and
   provenance. A name-matched edge and a compiler-verified one look identical in
   a flat list. Where an edge is load-bearing for your conclusion, verify it
@@ -352,7 +362,7 @@ state — a migration phase, a bug status, a review verdict — into an annotati
 
 ## Never do
 
-- Present a blast radius as complete when `unresolved` is non-zero.
+- Present a blast radius as complete when `unresolved` is non-zero or `next_cursor` is not `null`.
 - Treat a heuristic edge as a deterministic fact without confirming it with your
   own repository search.
 - Open, or pass to `wicked-estate source`, a file location the provider returned.

@@ -65,7 +65,7 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
 
    `wicked-estate lineage <symbol>` accepts a name or a symbol id. A name that is
    unknown or ambiguous exits non-zero with nothing on stdout, so `resolve` first
-   when the name may be shared. Default depth is 8. For a bounded neighbourhood view, `graph-view --focus OrderService
+   when the name may be shared. Default depth is 24, and a long answer pages with `--cursor <next_cursor>` just as `blast-radius` does. For a bounded neighbourhood view, `graph-view --focus OrderService
    --limit 40` is an alternative. The two are not interchangeable: `lineage`
    returns transitive forward reachability; `graph-view` returns a filtered
    subgraph that may include non-dependency edges.
@@ -97,9 +97,11 @@ this work".
    ```
 
 3. **Read the completeness fields before reading the list.** `unresolved` counts
-   references that could not be bound, and `truncated_dependents` counts rows
-   dropped at the 25,000-character bound. Both mean your list is a floor. Also
-   read `depth_horizon_reached`: when true, the text prints `CUT AT depth=N`
+   references that could not be bound, so it keeps your list a floor.
+   `truncated_dependents` counts rows on later pages, because one reply stays
+   under 25,000 characters: run `wicked-estate blast-radius parse_config --json
+   --cursor <next_cursor>` until `next_cursor` is `null` before you report, and
+   start again from the first page if a cursor is refused. Also read `depth_horizon_reached`: when true, the text prints `CUT AT depth=N`
    and you can raise `--depth` (max 24) to go further.
 
    Freshness is not in this output — `blast-radius` suppresses its `STALENESS:`

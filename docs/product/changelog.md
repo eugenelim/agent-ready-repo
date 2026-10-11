@@ -75,6 +75,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `close-work` gains one offer: when the change implemented a saved future-state design, it offers to reconcile that design into the `current-architecture` destination. The offer is optional and adds no gate.
 - `close-work` gains one behavior eval for the reconciliation offer.
 
+## [code-intelligence][0.1.9] — 2026-10-11
+
+### Highlights
+
+- Runs on Wicked Estate 0.29.2. A large blast radius or lineage answer now arrives in pages instead of being cut off at the first one. The agent passes each page's token (`next_cursor`) back with `--cursor` until it is `null`, so every row the search found is retrievable.
+- If the answer changes between pages, the agent starts again from the first page instead of mixing two answers.
+- One `wicked-estate lineage` call now follows dependencies 24 levels deep by default, up from 8.
+
+### Changed
+
+- Floor and pin move to 0.29 / 0.29.2 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.29.2 --locked`; the first `index` afterwards rebuilds the graph.
+- `truncated_dependents` now counts rows on later pages rather than rows lost. A depth or node cut and a non-zero `unresolved` still mark the answer as incomplete after the last page.
+- The capability map documents the paged `blast-radius --json` and `lineage --json` key sets, including `next_cursor` and `page`, and the MCP `cursor` argument.
+- A `wicked-estate-mcp --readonly` server with a missing store path serves that store as an empty in-memory store; the pack names the graph, memory, knowledge and cross-store paths to check.
+- Local object properties leave the value-lineage hop list, matching upstream 0.27.0.
+
 ## [code-intelligence][0.1.8] — 2026-10-10
 
 ### Highlights
