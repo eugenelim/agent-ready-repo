@@ -250,3 +250,115 @@ def test_related_field_changes_no_existing_answer(tmp_path: pathlib.Path) -> Non
         if key.startswith("summary"):
             continue  # summary counts refused related edges by design (AC-0015)
         assert field_answers[key] == plain_answers[key], key
+
+
+# --- AC-0011..0015: the query surface ----------------------------------------
+
+_ALPHA = "docs/product/intents/CAP-0001-alpha-cap.md"
+_INDIA = "docs/product/intents/FEAT-0005-india-none.md"
+_JULIET = "docs/product/intents/FEAT-0006-juliet-done.md"
+_ECHO = "docs/product/intents/FEAT-0002-echo-crosstype.md"
+
+
+def _query(root: pathlib.Path, *args: str) -> Any:
+    result, code = nav.run_query(root, ["query", *args])
+    assert code == 0, result
+    return result
+
+
+def _related_corpus(tmp_path: pathlib.Path) -> pathlib.Path:
+    """alpha-cap relates to golf-new and a dangling slug; india and juliet relate back."""
+    root = _copy(_MIXED, tmp_path)
+    _add_lines(root, _ALPHA, [_rel("intent:golf-new, intent:no-such-slug")])
+    _add_lines(root, _INDIA, [_rel("capability:alpha-cap")])
+    _add_lines(root, _JULIET, [_rel("capability:alpha-cap")])
+    # A refused edge from a third intent that names alpha-cap with the wrong kind.
+    _add_lines(root, _ECHO, [_rel("intent:alpha-cap")])
+    return root
+
+
+def test_record_carries_both_lists_in_order(tmp_path: pathlib.Path) -> None:
+    """AC-0011: written-here in value order, written-elsewhere by from; refusals elsewhere absent."""
+    root = _related_corpus(tmp_path)
+    alpha = _query(root, "--operation", "record", "--id", "capability:alpha-cap")["record"]
+    assert [(e.get("to"), e.get("state")) for e in alpha["related_written_here"]] == [
+        ("intent:golf-new", None),
+        (None, "dangling"),
+    ]
+    assert [e["from"] for e in alpha["related_written_elsewhere"]] == [
+        "intent:india-none",
+        "intent:juliet-done",
+    ]
+    assert all("state" not in e for e in alpha["related_written_elsewhere"])
+    golf = _query(root, "--operation", "record", "--id", "intent:golf-new")["record"]
+    assert golf["related_written_here"] == []
+    assert [e["from"] for e in golf["related_written_elsewhere"]] == ["capability:alpha-cap"]
+    echo = _query(root, "--operation", "record", "--id", "outcome:echo-crosstype")["record"]
+    assert [e["state"] for e in echo["related_written_here"]] == ["kind_mismatch"]
+    assert echo["related_written_elsewhere"] == []
+
+
+def test_multiple_values_is_one_written_here_entry(tmp_path: pathlib.Path) -> None:
+    """AC-0011: a multiple_values refusal is one entry."""
+    root = _copy(_MIXED, tmp_path)
+    _add_lines(root, _SRC, [_rel("intent:golf-new"), _rel("capability:alpha-cap")])
+    rec = _query(root, "--operation", "record", "--id", _SRC_ID)["record"]
+    assert [e["state"] for e in rec["related_written_here"]] == ["multiple_values"]
+
+
+def test_tree_entries_carry_lists_search_and_ancestors_do_not(tmp_path: pathlib.Path) -> None:
+    """AC-0012: tree has both keys; search and ancestors have neither."""
+    root = _related_corpus(tmp_path)
+    entries = {e["id"]: e for e in _query(root, "--operation", "tree")["intents"]}
+    assert [e["from"] for e in entries["capability:alpha-cap"]["related_written_elsewhere"]] == [
+        "intent:india-none",
+        "intent:juliet-done",
+    ]
+    assert len(entries["capability:alpha-cap"]["related_written_here"]) == 2
+    assert all(
+        "related_written_here" in e and "related_written_elsewhere" in e for e in entries.values()
+    )
+    for e in _query(root, "--operation", "search")["intents"]:
+        assert "related_written_here" not in e and "related_written_elsewhere" not in e
+    for e in _query(root, "--operation", "ancestors", "--id", "intent:bravo-feat")["chain"]:
+        assert "related_written_here" not in e and "related_written_elsewhere" not in e
+
+
+def _flat_corpus(root: pathlib.Path, *, related: bool, n: int = 150) -> None:
+    intents = root / "docs" / "product" / "intents"
+    intents.mkdir(parents=True)
+    for i in range(1, n + 1):
+        rel = ""
+        if related:
+            targets = ", ".join(f"intent:s{(i + k - 1) % n + 1:03d}" for k in (1, 2))
+            rel = f"- **Related intents:** {targets}\n"
+        (intents / f"FEAT-{i:04d}-s{i:03d}.md").write_text(
+            f"# Feature: s{i:03d}\n\n- **Slug:** `s{i:03d}`\n- **Status:** Draft\n"
+            f"- **Level:** feature\n- **Owner:** placeholder-owner\n"
+            f"- **Parent intent:** none\n{rel}\n## Outcome\n\nx\n",
+            encoding="utf-8",
+        )
+
+
+def test_related_entries_count_toward_edge_limit(tmp_path: pathlib.Path) -> None:
+    """AC-0013: each entry of both lists is one edge; the same corpus without the field is ok."""
+    plain, with_field = tmp_path / "plain", tmp_path / "with_field"
+    _flat_corpus(plain, related=False)
+    _flat_corpus(with_field, related=True)
+    result, code = nav.run_query(plain, ["query", "--operation", "tree"])
+    assert code == 0 and result["status"] == "ok", result
+    result, code = nav.run_query(with_field, ["query", "--operation", "tree"])
+    assert code == 1
+    assert result["error"]["code"] == "result_too_large"
+    # 300 written-here entries plus the same 300 edges seen from the other end.
+    assert result["error"]["observed"]["edges"] == 600
+
+
+def test_summary_counts_related_refusals_by_state(tmp_path: pathlib.Path) -> None:
+    """AC-0015: summary counts each related refused state, self_reference included."""
+    root = _copy(_MIXED, tmp_path)
+    _add_lines(root, _SRC, [_rel("intent:bravo-feat, intent:no-such-slug, intent:charlie-out")])
+    base = _query(_MIXED, "--operation", "summary")["summary"]["refused_edges_by_state"]
+    now = _query(root, "--operation", "summary")["summary"]["refused_edges_by_state"]
+    for state in ("self_reference", "dangling", "kind_mismatch"):
+        assert now.get(state, 0) - base.get(state, 0) == 1, state
