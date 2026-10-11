@@ -57,7 +57,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Mapping
 
 # ── The field table ───────────────────────────────────────────────────────────
 # Four tiers: required, constrained-when-present, unconstrained, retired.
@@ -368,6 +368,57 @@ def _check_outcome_co_owner(value: str) -> str | None:
     return f"value {value!r} is not one of {permitted}"
 
 
+RELATED_INTENTS_FIELD = "Related intents"
+RELATED_INTENT_KINDS: tuple[str, ...] = (
+    "intent",
+    "capability",
+    "outcome",
+    "opportunity",
+)
+_RELATED_SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+# The navigator's artifact-file pattern: a top-level file, never a dotfile.
+_ARTIFACT_FILE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
+
+
+def _is_none_value(value: str) -> bool:
+    """True when the first whitespace token is ``none``, as the derivation reads it."""
+    parts = value.split()
+    return bool(parts) and parts[0].lower() == "none"
+
+
+def _related_items(value: str) -> list[str]:
+    """Split a ``Related intents`` value into trimmed comma items."""
+    return [item.strip() for item in value.split(",")]
+
+
+def _is_typed_intent_item(item: str) -> bool:
+    kind, separator, slug = item.partition(":")
+    return (
+        bool(separator)
+        and kind in RELATED_INTENT_KINDS
+        and _RELATED_SLUG.match(slug) is not None
+    )
+
+
+def _check_related_intents(value: str) -> str | None:
+    """Require ``none`` or a comma list of distinct ``<kind>:<slug>`` items.
+
+    Shape only: whether a slug resolves, and to which kind, needs the corpus
+    and is decided by ``validate_corpus_scoped``.
+    """
+    if _is_none_value(value):
+        return None
+    permitted = ", ".join(f"{kind}:<slug>" for kind in RELATED_INTENT_KINDS)
+    seen: set[str] = set()
+    for item in _related_items(value):
+        if not _is_typed_intent_item(item):
+            return f"item {item!r} is not one of {permitted}"
+        if item in seen:
+            return f"item {item!r} is repeated"
+        seen.add(item)
+    return None
+
+
 VALUE_RULES: dict[str, Callable[[str], str | None]] = {
     "Status": _check_status,
     "Accepted": _check_dated_evidence,
@@ -376,6 +427,7 @@ VALUE_RULES: dict[str, Callable[[str], str | None]] = {
     "Shaping-reviewed": _check_date_or_no,
     "Decomposed": _check_decomposed,
     "Outcome co-owner": _check_outcome_co_owner,
+    "Related intents": _check_related_intents,
     **{field: _closed_vocabulary_rule(field) for field in CLOSED_VOCABULARIES},
 }
 
@@ -591,17 +643,110 @@ def _check_state_coherence(text: str) -> list[Violation]:
     return violations
 
 
-def validate_corpus_scoped(text: str, live: set[str]) -> list[Violation]:
+def _normalize_kind_level(value: str) -> str:
+    """Reduce a ``Kind:``/``Level:`` value to its first lower-cased word.
+
+    A port of the navigator's rule (no cross-skill imports): cut at `` (``,
+    `` →`` and ``<!--``, strip backticks, then take the first word.
+    """
+    value = _COMMENT_SUFFIX.sub("", value.strip()).strip()
+    for sentinel in (" (", " →", "<!--"):
+        cut = value.find(sentinel)
+        if cut >= 0:
+            value = value[:cut]
+    if len(value) >= 2 and value.startswith("`") and value.endswith("`"):
+        value = value[1:-1].strip()
+    parts = value.split()
+    return parts[0].lower() if parts else ""
+
+
+def _node_id(text: str, slug: str) -> str:
+    """Compute an intent's node id: ``Kind`` before ``Level``, preamble only."""
+    fields: dict[str, str] = {}
+    for name, value in read_preamble(text):
+        fields.setdefault(name, value)
+    kind = _normalize_kind_level(fields.get("Kind", ""))
+    if kind in ("outcome", "opportunity"):
+        return f"{kind}:{slug}"
+    if _normalize_kind_level(fields.get("Level", "")) == "capability":
+        return f"capability:{slug}"
+    return f"intent:{slug}"
+
+
+def intent_node_ids(named_texts: Mapping[str, str]) -> dict[str, str]:
+    """Map each admitted live intent's slug to its node id.
+
+    Keys of ``named_texts`` are paths relative to the linted directory. Only
+    top-level names matching the navigator's artifact-file pattern are admitted,
+    and a slug two admitted intents share is omitted, so an item naming it is
+    refused rather than read as resolved.
+    """
+    ids: dict[str, str] = {}
+    shared: set[str] = set()
+    for name, text in named_texts.items():
+        if _ARTIFACT_FILE.match(name) is None:
+            continue
+        slug = slug_of(text)
+        if not slug:
+            continue
+        if slug in ids:
+            shared.add(slug)
+        ids[slug] = _node_id(text, slug)
+    return {slug: node for slug, node in ids.items() if slug not in shared}
+
+
+def _check_related_resolution(
+    text: str, intent_ids: Mapping[str, str]
+) -> list[Violation]:
+    """Refuse each shape-valid related item that is self, unknown, or mis-kinded.
+
+    Corpus-lint-only: the verdict needs other artifacts. Items that fail shape
+    are left to ``VALUE_RULES``; ``none`` states no relation.
+    """
+    value = present_fields(text).get(RELATED_INTENTS_FIELD)
+    if value is None or _is_none_value(value):
+        return []
+    items = _related_items(value)
+    if not all(_is_typed_intent_item(item) for item in items) or len(set(items)) != len(items):
+        return []
+    own = slug_of(text)
+    violations: list[Violation] = []
+    for item in items:
+        kind, _, slug = item.partition(":")
+        if slug == own:
+            reason = f"item {item!r} names this intent itself"
+        elif slug not in intent_ids:
+            reason = f"item {item!r} matches no live intent in this directory"
+        elif intent_ids[slug].partition(":")[0] != kind:
+            reason = (
+                f"item {item!r} names a {intent_ids[slug].partition(':')[0]}; "
+                f"write `{intent_ids[slug]}`"
+            )
+        else:
+            continue
+        violations.append(Violation(RELATED_INTENTS_FIELD, reason))
+    return violations
+
+
+def validate_corpus_scoped(
+    text: str,
+    live: set[str],
+    *,
+    intent_ids: Mapping[str, str] | None = None,
+) -> list[Violation]:
     """Decide all corpus-scoped rules for one intent.
 
-    The single entry point for corpus-only checks. Delegates to both
-    ``validate_supersession`` and ``_check_state_coherence``, so a rule added
-    to either reaches every consumer without the consumer changing.
+    The single entry point for corpus-only checks. Delegates to
+    ``validate_supersession``, ``_check_state_coherence`` and the related-intents
+    resolution, so a rule added to any reaches every consumer without the
+    consumer changing. ``intent_ids`` is ``intent_node_ids``' map; ``None`` reads
+    as empty, so a present ``Related intents`` field fails closed.
 
     See the module docstring's surface placement rule.
     """
     violations = list(validate_supersession(text, live))
     violations.extend(_check_state_coherence(text))
+    violations.extend(_check_related_resolution(text, intent_ids or {}))
     return violations
 
 
