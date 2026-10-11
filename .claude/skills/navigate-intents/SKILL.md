@@ -220,8 +220,7 @@ commit.  A link marked "may be newer than this export" opens it on the GitHub
 default branch.  Every link carries that mark when the exported commit is not
 on origin, when any intent file differs from it, or when Git is older than
 2.44.  An untracked or unpushed file may not exist there yet.  Git 2.44 or
-later gives commit-pinned links.  With an older Git the export still works and
-every link carries the "may be newer than this export" mark.
+later gives commit-pinned links.
 
 Refusals, beyond the corpus codes ``query`` returns (``duplicate_identity``,
 ``malformed_record``, ``unsafe_input``, ``input_too_large``,

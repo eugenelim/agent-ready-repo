@@ -113,6 +113,8 @@ body {
 .detail:focus-visible {
   outline: var(--outline) solid var(--focus);
   outline-offset: calc(-1 * var(--outline));
+  /* Focus scrolling keeps the whole region, ring included, inside the viewport. */
+  scroll-margin: var(--outline);
 }
 
 .focus-target:focus {
@@ -235,8 +237,8 @@ body {
   /* Keep the detail in view while the list scrolls; it scrolls within itself when taller. */
   .detail {
     position: sticky;
-    top: 0;
-    max-height: 100vh;
+    top: var(--outline);
+    max-height: calc(100vh - 2 * var(--outline));
     overflow: auto;
   }
 }

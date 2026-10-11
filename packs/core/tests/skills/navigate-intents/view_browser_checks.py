@@ -1369,8 +1369,7 @@ def test_detail_panel_is_a_named_tab_stop_that_scrolls_to_the_legend_end(
         " const r = e.getBoundingClientRect(); const g = parseFloat(c.outlineOffset) + parseFloat(c.outlineWidth);"
         " return [r.top - g, r.left - g, r.bottom + g, r.right + g, innerHeight, innerWidth]; })()"
     )
-    # Two pixels of slack: focusing the region can scroll the page by a sub-pixel amount.
-    assert ring[0] >= -2 and ring[1] >= -2 and ring[2] <= ring[4] + 2 and ring[3] <= ring[5] + 2, ring
+    assert ring[0] >= 0 and ring[1] >= 0 and ring[2] <= ring[4] and ring[3] <= ring[5], ring
     last = "(() => { const rows = document.querySelectorAll('#detail-legend dt'); return rows[rows.length - 1]; })()"
     for _ in range(60):
         if page.evaluate(
@@ -1390,7 +1389,7 @@ def test_detail_panel_stays_in_view_on_wide_screens_only(
 ) -> None:
     wide = _busy_page(opener, exports, width=1280, height=400).page
     style = wide.evaluate("(() => { const c = getComputedStyle(document.querySelector('.detail')); return [c.position, c.top, c.overflowY]; })()")
-    assert style == ["sticky", "0px", "auto"]
+    assert style == ["sticky", "3px", "auto"]
     assert wide.evaluate("document.documentElement.scrollHeight > innerHeight")
     wide.evaluate("window.scrollTo(0, 300)")
     lower = wide.evaluate(
@@ -1399,7 +1398,7 @@ def test_detail_panel_stays_in_view_on_wide_screens_only(
     wide.locator(f'#list a.row-link[data-node="{lower}"]').click()
     wide.wait_for_function("() => document.activeElement.id === 'detail-heading'")
     rect = wide.evaluate("(() => { const r = document.querySelector('.detail').getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; })()")
-    assert 0 <= rect[0] < 1 and rect[1] <= rect[2] + 1, rect
+    assert 0 <= rect[0] <= 3.5 and rect[1] <= rect[2], rect
     heading = wide.evaluate("(() => { const r = document.getElementById('detail-heading').getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; })()")
     assert heading[0] >= 0 and heading[1] <= heading[2], heading
     narrow = _busy_page(opener, exports, width=320, height=700).page

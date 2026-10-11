@@ -8,7 +8,7 @@ kind: how-to
 # How to navigate intents, briefs, and specs
 
 **Use this when:** You want to see outstanding work, walk the intent hierarchy, trace the parent of an intent, get a count of live intents (intent files without a `Tombstone:` field) by level, or hand a reviewer an offline page of the whole graph.
-**Prerequisites:** `core` pack installed; a terminal or agent session open in the repo root; Git 2.44 or later for commit-pinned source links in the HTML export (older Git still exports, and every link is marked "may be newer than this export").
+**Prerequisites:** `core` pack installed; a terminal or agent session open in the repo root; Git 2.44 or later for commit-pinned source links in the HTML export (older Git still exports, and every GitHub link is marked "may be newer than this export").
 **Result:** A list of outstanding artifacts placed under their parent, a tree of intents, a focused view of one intent's record and delivery links, or one HTML file that shows all of it offline.
 
 `<skill-dir>` is the installed skill directory — for example, `.agents/skills/navigate-intents` for most adapters, or `.claude/skills/navigate-intents` for Claude Code. Replace `<repo-root>` with your repository root.

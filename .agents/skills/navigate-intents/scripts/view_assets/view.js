@@ -748,7 +748,8 @@
     } else {
       dom.viewHeading.focus();
       dom.live.textContent = '';
-      dom.live.textContent = 'This item is not in the current list.';
+      // A later task, so a screen reader sees the cleared region change before the new text.
+      setTimeout(function () { dom.live.textContent = 'This item is not in the current list.'; }, 50);
     }
   }
 

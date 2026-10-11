@@ -421,55 +421,123 @@ def test_a_treeless_clone_never_starts_a_lazy_fetch(tmp_path: pathlib.Path) -> N
     assert {v["kind"] for v in payload["source_links"].values()} == {"latest"}
 
 
+_ALLOWED_OLDER_GIT_VERBS = {
+    "--no-lazy-fetch version",
+    "worktree list",
+    "rev-parse --show-toplevel",
+    "config --get remote.origin.url",
+    "rev-parse HEAD",
+    "rev-parse --show-object-format",
+}
+
+
+def _older_git(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> pathlib.Path:
+    """Put a recording ``git`` on PATH that rejects ``--no-lazy-fetch``; return its call log."""
+    real_git = shutil.which("git")
+    shim_dir = tmp_path / "shim"
+    shim_dir.mkdir()
+    log = tmp_path / "git-calls.log"
+    shim = shim_dir / "git"
+    shim.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\037' \"$@\" >> '{log}'; printf '\\n' >> '{log}'\n"
+        'if [ "$1" = "--no-lazy-fetch" ]; then echo "unknown option" >&2; exit 129; fi\n'
+        f'exec "{real_git}" "$@"\n', encoding="utf-8")
+    shim.chmod(shim.stat().st_mode | stat.S_IXUSR)
+    monkeypatch.setenv("PATH", f"{shim_dir}{os.pathsep}{os.environ['PATH']}")
+    return log
+
+
+def _recorded_verbs(log: pathlib.Path) -> list[str]:
+    """Return one verb key per recorded Git call, with ``-C`` and ``-c`` pairs stripped."""
+    verbs: list[str] = []
+    for line in log.read_text(encoding="utf-8").splitlines():
+        args = line.split("\x1f")[:-1]
+        if args[:1] == ["--no-lazy-fetch"]:
+            verbs.append(" ".join(args[:2]))
+            continue
+        assert "--no-lazy-fetch" not in args
+        assert args[0] == "-C" and args[2:6] == [
+            "-c", "core.fsmonitor=false", "-c", "protocol.allow=never"
+        ]
+        rest = args[6:]
+        verbs.append(" ".join(rest[:3] if rest[0] == "config" else rest[:2]))
+    return verbs
+
+
 @needs_git
 def test_older_git_exports_with_latest_links_and_reads_no_objects(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A Git that rejects --no-lazy-fetch still exports; no object-reading call runs."""
+    """A Git that rejects --no-lazy-fetch still exports; only the allowed verbs run."""
     repo, root = _pushed_repo(tmp_path)
-    real_git = shutil.which("git")
-    shim_dir = tmp_path / "shim"
-    shim_dir.mkdir()
-    shim = shim_dir / "git"
-    shim.write_text(
-        f'#!/bin/sh\nif [ "$1" = "--no-lazy-fetch" ]; then echo "unknown option" >&2; exit 129; fi\n'
-        f'exec "{real_git}" "$@"\n', encoding="utf-8")
-    shim.chmod(shim.stat().st_mode | stat.S_IXUSR)
-    monkeypatch.setenv("PATH", f"{shim_dir}{os.pathsep}{os.environ['PATH']}")
-    calls: list[list[str]] = []
-    real_run = subprocess.run
-
-    def recording(argv: Any, *args: Any, **kwargs: Any) -> Any:
-        calls.append(list(argv))
-        return real_run(argv, *args, **kwargs)
-
-    monkeypatch.setattr(subprocess, "run", recording)
+    log = _older_git(tmp_path, monkeypatch)
     monkeypatch.chdir(repo)
     payload, _ = _export(root, tmp_path)
-    monkeypatch.undo()
 
     assert {v["kind"] for v in payload["source_links"].values()} == {"latest"}
     assert payload["provenance"]["commit"] is None
-    git_calls = [c for c in calls if c[0] == "git"]
-    assert git_calls[0] == ["git", "--no-lazy-fetch", "version"]
-    verbs = [c[c.index("protocol.allow=never") + 1] for c in git_calls[1:]]
-    assert "ls-tree" not in verbs and "for-each-ref" not in verbs
-    assert {"worktree", "config", "rev-parse"} <= set(verbs)
-    for argv in git_calls[1:]:
-        assert argv[1] == "-C" and argv[3:7] == [
-            "-c", "core.fsmonitor=false", "-c", "protocol.allow=never"
-        ]
-        assert "--no-lazy-fetch" not in argv
-    worktree = [c for c in git_calls[1:] if c[7:] == ["worktree", "list", "--porcelain", "-z"]]
-    assert len(worktree) == 1
+    verbs = _recorded_verbs(log)
+    assert verbs.count("--no-lazy-fetch version") == 1
+    assert verbs.count("worktree list") == 1
+    assert set(verbs) == _ALLOWED_OLDER_GIT_VERBS
+    assert not {"ls-tree", "for-each-ref", "cat-file"} & set(verbs)
+
+
+@needs_git
+@pytest.mark.parametrize("remote", ["http://github.com/octo-org/leaky-repo", None])
+def test_older_git_with_unrecognised_or_missing_remote_is_inert(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, remote: str | None
+) -> None:
+    repo, root = _pushed_repo(tmp_path)
+    if remote is None:
+        _git(repo, "remote", "remove", "origin")
+    else:
+        _git(repo, "remote", "set-url", "origin", remote)
+    log = _older_git(tmp_path, monkeypatch)
+    payload, html = _export(root, tmp_path)
+    assert payload["source_links"]
+    assert {v["kind"] for v in payload["source_links"].values()} == {"inert"}
+    assert all("url" not in v for v in payload["source_links"].values())
+    assert "octo-org" not in html and "leaky-repo" not in html
+    assert set(_recorded_verbs(log)) <= _ALLOWED_OLDER_GIT_VERBS
 
 
 @needs_git
 def test_unsupported_probe_seam_keeps_destination_check(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """With the probe reporting unsupported, a destination inside the repository is still refused."""
+    """With the probe unsupported, the worktree listing alone still refuses a destination."""
     repo, root = _pushed_repo(tmp_path)
     monkeypatch.setattr(nav._load_view_mod(), "_supports_no_lazy_fetch", lambda: False)
     result, code = nav.run_export(root, str(repo / "docs"), None)
     assert code != 0 and result["error"]["code"] == "invalid_destination"
+
+    # Only `git worktree list` knows this second linked worktree: it lies outside the root
+    # and has no .git ancestor relation to it.
+    second = tmp_path / "second-worktree"
+    _git(repo, "worktree", "add", "-q", str(second))
+    inside = second / "out"
+    inside.mkdir()
+    result, code = nav.run_export(root, str(inside), None)
+    assert code != 0 and result["error"]["code"] == "invalid_destination"
+    assert not list(inside.iterdir())
+
+
+@pytest.mark.parametrize("failure", [OSError("no git"), subprocess.TimeoutExpired("git", 5)])
+def test_probe_that_cannot_run_reports_supported_and_fails_closed(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, failure: Exception
+) -> None:
+    calls: list[list[str]] = []
+
+    def failing(argv: Any, *args: Any, **kwargs: Any) -> Any:
+        calls.append(list(argv))
+        raise failure
+
+    monkeypatch.setattr(view.subprocess, "run", failing)
+    assert view._supports_no_lazy_fetch() is True
+    assert view._supports_no_lazy_fetch() is True
+    assert len(calls) == 1  # cached after the first probe
+    with pytest.raises(type(failure)):
+        view._git_run(tmp_path, ["rev-parse", "HEAD"])
+    assert calls[1][:2] == ["git", "--no-lazy-fetch"]
