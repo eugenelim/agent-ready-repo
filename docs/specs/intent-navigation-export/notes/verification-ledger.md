@@ -173,3 +173,11 @@ Round 4 nits in the same task: `backToList` writes the not-in-list message from 
 Browser record: code commit `b4e1e88c32b5f9471237c9b63c8e3f964f7e5668`; `view_browser_checks.py -q -rs` run at that exact commit with a clean tree: 50 passed, 0 skipped. `view.js` SHA-256 `bbb752fb8aae987001f1a9c47dae88dde4c2147c5121cf7ee143a1fe6514d072`; `view.css` `1885cf52bcf6e0f14524a8834a1ee19fde01473bd4197fade83ca008d4912171` (these supersede the round 3 digests).
 
 Gates: `navigate-intents` folder 439 passed, 4 skipped; `make lint-ruff lint-mypy` pass; `catalogue lint --deep` ok; `catalogue verify` ok; self-host run twice (with `--force` for the dirty-tree check only), the second leaving no further diff; `intent_graph.py` copies identical (`cmp`); no `uv.lock`. Core stays 3.1.0; the changelog needed no change.
+
+### Review round 5 fixes
+
+Every round 5 reviewer flagged the same advisory nit: the delayed "This item is not in the current list." write was never cancelled, so a list announcement landing inside its 50 ms delay could be replaced by stale text. `backToList` now keeps the timer handle in `pendingLive`, and both `backToList` and the announce branch of `renderList` clear it before writing. The detail focus-ring comment in `view.css` now states the current reason for the inset ring.
+
+- New browser check (in the Back-to-list test): Back to list on a filtered-out row and a hash change in the same task leave "Tree view, …" in the live region 200 ms later. Mutation: removing `clearTimeout` from `renderList` fails it.
+- Browser record: code commit `15efa2caf691d395c2ba02a1ef3eca74d12980c4`, clean tree, `view_browser_checks.py -q -rs`: 50 passed, 0 skipped. `view.js` SHA-256 `8091d41351577477db7684f8ce07b1ff7aac165838525f6767bfc1e632e82c00`; `view.css` `b65172538e39efd36ddccfa72ad50cb18e3ed660f9957ac24c3d92f426aa708b` (these supersede the T7 digests).
+- Gates: `navigate-intents` folder 439 passed, 4 skipped; `make lint-ruff lint-mypy` pass; `catalogue lint --deep` ok; self-host run twice, the second leaving no further diff.
