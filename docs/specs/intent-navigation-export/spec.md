@@ -1,7 +1,8 @@
 # Spec: Intent navigation export
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-11 by eugenelim, spec and plan together, after clean adjudicated shaping, adversarial, and security spec-stage reviews (reports under `.context/reviews/7bf5b45f-6717-4400-91a6-b177e303ee4b/`).
+- **Re-approved:** 2026-10-11 by eugenelim after the older-Git amendment (AC-0024, AC-0025, AC-0073; plan T7), with clean adjudicated shaping, adversarial, and security reviews of the amendment.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, ADR-0007, ADR-0074, ADR-0112
