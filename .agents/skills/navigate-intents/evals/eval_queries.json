@@ -84,6 +84,26 @@
     "should_trigger": true
   },
   {
+    "query": "Export the intent graph as an HTML file I can open offline",
+    "should_trigger": true
+  },
+  {
+    "query": "Give me a shareable offline view of outstanding work",
+    "should_trigger": true
+  },
+  {
+    "query": "Make a self-contained HTML page of our intent hierarchy",
+    "should_trigger": true
+  },
+  {
+    "query": "Create an HTML view of the intent graph I can send to a reviewer",
+    "should_trigger": true
+  },
+  {
+    "query": "Export the outstanding work under this capability as a single HTML file",
+    "should_trigger": true
+  },
+  {
     "query": "What's next in the queue?",
     "should_trigger": false
   },
@@ -141,6 +161,22 @@
   },
   {
     "query": "Mark this spec as fulfilled",
+    "should_trigger": false
+  },
+  {
+    "query": "Export our ADRs and RFCs as an offline HTML explorer",
+    "should_trigger": false
+  },
+  {
+    "query": "Make a shareable HTML page of all our architecture decisions",
+    "should_trigger": false
+  },
+  {
+    "query": "Give me an offline HTML view of the RFC index",
+    "should_trigger": false
+  },
+  {
+    "query": "Generate a self-contained HTML browser for our decision records",
     "should_trigger": false
   }
 ]

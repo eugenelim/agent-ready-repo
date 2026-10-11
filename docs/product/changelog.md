@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When an intent and a brief (or spec) share a slug, both now count, so a parent can no longer look ready to close while one of them is still open.
 - A broken parent pointer or a fault while building the intent tree now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
 - Relate two intents with one `Related intents:` line. `navigate-intents` shows the relation from both ends, and the intent lint refuses a value that is malformed, names the intent itself, or matches no live intent of that kind.
+- Export the whole intent graph as one HTML file that opens offline, to share with a reviewer or browse without a terminal. It lists every intent with its parents, outstanding work, refused pointers, and parentless intents, links each source file, works from the keyboard, runs no script from your records, and is always written outside the repository.
 
 ### Added
 
@@ -82,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `Related intents:` field in `work-intake`, with a lint rule. The value is `none` or comma-separated typed pointers (`intent:`, `capability:`, `outcome:`, `opportunity:`). The corpus lint refuses a repeated item, an item that names the intent itself, one that matches no live intent, and one whose prefix differs from the target's kind.
 - `record` and `tree` list the related intents an intent writes and the ones that name it. Text output prints `~ related <id>`, `! refused related <state>`, and `~ related from <id>`. A related value that names its own intent shows as the refused state `self_reference`. A related edge is never a parent or a dependency, and no closure or status check reads it.
 - The skill reads every file through a co-located confinement helper, shows the delivery resolver's typed relations and diagnostics with each intent, and decides what is outstanding by the same leading-word terminality rule as `close-work`. A parity check keeps that rule in step with its sources.
+- A `navigate-intents export` command that writes a single self-contained HTML view (`--destination`, `--name`, and `--from` for one subtree) with the same facts `query` returns, GitHub source links only for a plain GitHub `origin`, and a content security policy that pins its one script and one style. It refuses a destination inside the repository or any of its work trees, never overwrites a file, writes mode `0600` atomically, and refuses a page over the size budget with `--from` as the narrowing route. Its refusal codes are `invalid_destination`, `destination_exists`, `publish_failed`, and `export_too_large`, beside the query corpus codes.
 
 ### Changed
 

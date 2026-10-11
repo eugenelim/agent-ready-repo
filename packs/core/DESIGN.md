@@ -498,6 +498,8 @@ The `navigate-intents` query script (`navigate_intents.py`) consumes this deriva
 
 The derivation also reads an intent's `Related intents:` field into related edges, which `navigate-intents` shows from both ends. No reconciler reads them: `close-work`'s closure, the delivery resolver, `lint-traceability`, `loop-cohort`, and `workspace-status` ignore the field, and a source scan over the pack's Python files pins that. The `work-intake` corpus lint checks the field's shape and its targets.
 
+The `export` command renders the same derivation as one offline HTML file. `intent_view.py` builds the page and publishes it; `view_assets/` holds its hand-written `view.css` and `view.js`, inlined into the page and pinned by a content security policy. The page carries one JSON data block with the schema `intent-navigation.view.v1`, whose summary, records, outstanding work, nodes, and edges come from the derivation and the `query` functions in the same process. The view consumes that block and never re-derives the graph: it parses no record header and holds no second copy of the derivation's rules, so it cannot disagree with `query`. `intent_view.py` reads every corpus file and asset through `_file_safety.py` and writes only outside the repository.
+
 **Alternative considered:** housing the derivation in `adapter-root-bins/` alongside the delivery resolver and file-safety helpers. Rejected because `adapter-root-bins/` is for helpers that adopter bins call directly; no adopter bin consumes the graph derivation. The source lives in the skill that first ships it, and a byte-identical copy rides into `close-work`.
 
 ### Why workspace.toml and not a tasks file or issue tracker (2026-06-xx)
