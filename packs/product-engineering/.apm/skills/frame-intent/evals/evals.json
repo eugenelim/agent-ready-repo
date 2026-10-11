@@ -85,6 +85,18 @@
       ]
     },
     {
+      "id": "intent-template-offers-optional-related-intents",
+      "prompt": "Frame an intent that sits beside another live intent without being its parent or depending on it. Show how the template handles the relation.",
+      "expected_output": "The framed intent keeps `Related intents:` as an optional preamble field. In the template it is seeded as comment-only guidance, so it is absent until the author supplies a value. When the relation is real, the value is comma-separated typed pointers such as `intent:peer-intent` or `capability:peer-capability`, written on one side only because the navigator shows the relation from both ends. The field never names a parent or a dependency; when there is no related intent, the field stays omitted rather than guessed.",
+      "assertions": [
+        "Offers `Related intents:` in the intent template",
+        "Keeps the field optional and absent while it carries only a comment",
+        "Uses typed pointers such as `intent:<slug>` when populated",
+        "Writes the relation on one side only",
+        "Does not use the field for a parent or a dependency"
+      ]
+    },
+    {
       "id": "intent-template-offers-closed-empty-decomposition",
       "prompt": "Frame an intent whose decomposition is already complete and deliberately has no child work. Show which template value records that.",
       "expected_output": "The template's `Decomposed:` guidance offers `closed-empty` as one of the dated termini: `YYYY-MM-DD closed-empty`. That records a completed childless decomposition. It is not the literal `no`, and it is not `direct-light`, so it does not require checkbox items under `## Decomposition`.",

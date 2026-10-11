@@ -12,6 +12,10 @@
     "should_trigger": true
   },
   {
+    "query": "Which intents are related to this one?",
+    "should_trigger": true
+  },
+  {
     "query": "What is the parent intent of this capability?",
     "should_trigger": true
   },

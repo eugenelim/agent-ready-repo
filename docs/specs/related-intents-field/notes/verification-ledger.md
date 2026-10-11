@@ -17,3 +17,14 @@ Taken by eugenelim, the spec owner, before the spec body was written ("all as re
 ## Owner ruling on the spec-stage adversarial adjudication — 2026-10-10
 
 The round 3 adjudication (local-only, non-durable evidence: `.context/reviews/7f4ee554-13ab-4692-8c7e-5cfd7fab5e58/3-pre-execute-adversarial-reviewer-adjudication.md`, sha256 `26a45d798d3e9e45e719828a3a46ec120f2e5ccbaa4c79be9a41cfa9bde8738a`) ruled on every finding but carried the indeterminate stop line with an empty indeterminate audit, so the classifier refused it as `indeterminate-present`. eugenelim, the spec owner, ruled that its sustained and refuted findings stand as written. The round 1 adjudication, refused on the same ground, reached the same substance. Repairs proceed from the round 3 sustained findings and the round 1 spec-mode shaping findings.
+
+## Real-corpus lint run — 2026-10-10
+
+Command, run from each checkout: `python3 packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py --dir docs/product/intents --root .`
+
+| Checkout | Commit | Exit code | Violations | Summary line |
+| --- | --- | --- | --- | --- |
+| Base | `3584b0a6f` (base copy of the script over a base worktree) | 0 | 0 | `clean — 182 entries, 168 live, 14 tombstone, 0 unreadable` |
+| This slice | `4cbf4816c` plus the uncommitted T5 edits | 0 | 0 | `clean — 182 entries, 168 live, 14 tombstone, 0 unreadable` |
+
+The two outputs are identical line for line (169 lines each, a `diff` shows no difference). No intent in the corpus carries a `Related intents:` field, so the new rule adds no violation, as expected.

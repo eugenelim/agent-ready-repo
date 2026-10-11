@@ -57,7 +57,7 @@ python3 <skill-dir>/scripts/navigate_intents.py query \
 
 ### record
 
-Returns all recorded fields for one intent: its node id, path, `Level:`, `Kind:`, and exact `Status:`; its resolved or refused parent edge; its child intents; the briefs and specs placed under it; and the delivery resolver's (the component that matches briefs and specs to their covering intents) relations and diagnostics for it.
+Returns all recorded fields for one intent: its node id, path, `Level:`, `Kind:`, and exact `Status:`; its resolved or refused parent edge; its child intents; the related intents it writes (`related_written_here`) and the intents that write it as related (`related_written_elsewhere`); the briefs and specs placed under it; and the delivery resolver's (the component that matches briefs and specs to their covering intents) relations and diagnostics for it.
 
 ```bash
 python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
@@ -66,7 +66,7 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
 
 ### tree
 
-Prints the full intent forest as an indented tree. Each line shows the node id, level, optional kind, and recorded status. Add `--depth <n>` to limit how deep the traversal goes; without it you get the whole forest.
+Prints the full intent forest as an indented tree. Each line shows the node id, level, optional kind, and recorded status. Each intent entry in the JSON also carries its two related lists, `related_written_here` and `related_written_elsewhere`. Add `--depth <n>` to limit how deep the traversal goes; without it you get the whole forest.
 
 ```bash
 python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
@@ -86,6 +86,12 @@ To see one intent and its direct children:
 python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
   --operation tree --id capability:my-slug --depth 1 --format text
 ```
+
+### Related intents
+
+An intent can name another intent it sits beside with a `Related intents:` line. The author writes the line on one side only, and the navigator shows the relation from both ends. `record` and `tree` list the edges the intent writes in `related_written_here`, and the edges that name it in `related_written_elsewhere`.
+
+A related edge is never a parent, a child, a dependency, or an ordering. It does not move an intent in the tree, and it does not affect `outstanding`. A related value that cannot resolve shows as a refused edge with its state, and the rest of the result stays whole.
 
 ### ancestors
 
@@ -141,7 +147,7 @@ capability:work-item-capture-and-disposition · capability · Accepted
 
 `tree` prints intents only. `outstanding` also prints the briefs and specs placed under them, as in the first example on this page.
 
-Each intent line reads: `node-id · level · kind (when present) · status`. A brief or spec line reads: `node-id · status`. A refused parent edge prints one level deeper as `! refused <state>`.
+Each intent line reads: `node-id · level · kind (when present) · status`. A brief or spec line reads: `node-id · status`. A refused parent edge prints one level deeper as `! refused <state>`. Related edges print one level deeper too, before the intent's children. A related intent the line names prints as `~ related <id>`. A related value that cannot resolve prints as `! refused related <state>`. An intent that another intent names as related prints as `~ related from <id>`.
 
 `--format json` (the default) returns a structured JSON envelope with a `schema` field, the echoed query, provenance counts, and the operation's result fields.
 
@@ -168,6 +174,7 @@ A refused edge is a parent or pointer link that could not be resolved. Each carr
 | `kind_mismatch` | The typed prefix (e.g. `outcome:`) does not match the target's actual node id. | Change the prefix to match the target. |
 | `out_of_type` | The pointer names the wrong artifact type (e.g. a spec where an intent is expected). | Point to the correct file. |
 | `multiple_values` | The pointer field appears more than once with conflicting values. | Keep exactly one value. |
+| `self_reference` | The `Related intents:` value names the intent itself. Only that field reports it. | Remove the item. |
 | `cycle` | Following this parent edge would circle back to this intent. | Remove the pointer that closes the loop. |
 | `unparseable` | The pointer uses an unrecognised form (e.g. an absolute path). | Rewrite it as a typed id, bare slug, or relative path. |
 

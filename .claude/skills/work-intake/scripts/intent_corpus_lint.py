@@ -217,6 +217,9 @@ def lint_corpus(root: Path, directory: Path) -> LintResult:
         text for name, text in texts.items() if result.routed[name] == CONTRACT_LIVE
     ]
     resolvable = _shape.resolvable_slugs(live_texts)
+    intent_ids = _shape.intent_node_ids(
+        {name: text for name, text in texts.items() if result.routed[name] == CONTRACT_LIVE}
+    )
 
     # Second pass: validate each file against the contract it routed to.
     for name, text in texts.items():
@@ -229,7 +232,9 @@ def lint_corpus(root: Path, directory: Path) -> LintResult:
             result.violations.append(
                 FileViolation(name, violation.field, violation.reason)
             )
-        for violation in _shape.validate_corpus_scoped(text, resolvable):
+        for violation in _shape.validate_corpus_scoped(
+            text, resolvable, intent_ids=intent_ids
+        ):
             result.violations.append(
                 FileViolation(name, violation.field, violation.reason)
             )
