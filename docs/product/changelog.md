@@ -68,16 +68,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-- Runs on Wicked Estate 0.26.0. Forward dependencies use `wicked-estate lineage <symbol>`, which takes a plain name or a symbol id.
+- Runs on Wicked Estate 0.26.0. See what a function depends on with `wicked-estate lineage <name>`; a plain name or a symbol id both work.
 - Impact analysis reads each dependent's own `depth` from `blast-radius --json`, so one call separates direct callers from indirect ones.
-- Value tracing covers TypeScript, TSX and JavaScript, and the evidence guide explains compiler-backed edges and why a SCIP import never adds call edges.
+- Trace where a value flows through TypeScript, TSX and JavaScript code with `wicked-estate lineage <name> --relation flows_to`.
+- `wicked-estate stats --json` tells you which commit the graph was built from and how many commits behind it is.
 - An exit 1 with nothing on stdout is treated as a command error, not as "nothing found".
 
 ### Changed
 
 - Floor and pin move to 0.26 / 0.26.0 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.26.0 --locked`; the first `index` afterwards rebuilds the graph.
 - Annotation answers report `source_type`, `extraction_method` and `last_verified`, and `stale-annotations` accepts Unix seconds, a date, or `--older-than`.
-- `query --json` and the one-line `--version` replace their former workarounds; `evidence` joins the commands that write to the graph.
+- `query --json` returns structured output and `--version` prints one line; `evidence` joins the commands that write to the graph.
+- The evidence guide covers `compiler` resolution and SCIP's reference-only role (it never adds call edges), the three `STALENESS:` line forms, and `rules-recall --steering-type`.
 
 ## [core][3.0.3] — 2026-10-10
 

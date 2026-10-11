@@ -224,6 +224,9 @@ _RETIRED_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bmcp-only set\b[^|]{0,200}\bper-dependent depth\b"),
     # lineage name form (0.26 group)
     re.compile(r"\ba name returns empty\b"),
+    # revision field (0.26 group)
+    re.compile(r"\bno structured revision field\b"),
+    re.compile(r"\bno single command that returns \"the revision\b"),
     # dispatch counts (0.26 group)
     re.compile(r"\b40 names\b"),
     re.compile(r"\b4 bridged commands\b"),
@@ -399,6 +402,9 @@ _RETIRED_STALE_SAMPLE: tuple[str, ...] = (
     "The richer MCP response shapes\n(per-dependent `depth` and `summary.top_by_pagerank` on `BlastRadius`,\n`Communities` summaries, `ContextBundle`) are also MCP-only.",
     # lineage name form — pre-0.26 pack
     "for forward transitive dependencies (resolve first — a name returns empty),",
+    # revision field — pre-0.26 pack and guides
+    "5. **No structured revision field.** Graph revision is recoverable only from a",
+    'There is no single command that returns "the revision this graph was built',
     # dispatch counts — pre-0.26 pack
     "The CLI is also the larger surface. It accepts 40 names, including several with",
     "- **The CLI** (`wicked-estate`) accepts 40 names across 35 dispatch arms and 4\n  bridged commands",

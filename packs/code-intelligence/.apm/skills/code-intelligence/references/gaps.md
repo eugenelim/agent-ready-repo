@@ -121,7 +121,7 @@ whole reachable set was searched. Otherwise it proves nothing:
 MCP `Path` is the equivalent; its response omits `from` and `to`. Inputs are
 schema-derived and the response shape is source-read — not executed here.
 
-Text output prints a `STALENESS:` line; `--json` suppresses it.
+Text output prints a `STALENESS:` line only when the graph is commits behind; it stays silent when the graph is current or freshness is unknown, and `--json` suppresses it (executed).
 
 ## 7. Impact — **Direct**
 
@@ -227,16 +227,15 @@ catalogue. Absence of an edge is not proof of absence of use: dynamic dispatch,
 reflection, and entry-by-framework all produce edgeless symbols that are very
 much alive. Never recommend a deletion on `dead-code` output alone.
 
-## 13. Snapshot / revision identity — **Partial**
+## 13. Snapshot / revision identity — **Direct**
 
-The `STALENESS: N commit(s) since last index` line tells you the graph is behind
-and by how much. `stats` reports git provenance when the repository was indexed
-from a checkout. `fingerprint` and `changed-since` support per-symbol and
+`wicked-estate stats --json` returns the graph's identity and freshness as
+fields: `provenance.commit`, `provenance.indexed_at` and
+`provenance.indexed_version`, plus `staleness.commits_behind`. `commit` is null
+when the graph was not indexed from a git checkout. `commits_behind` is null
+when no indexed root could be checked, and `staleness.unknown` names those
+roots (executed). `fingerprint` and `changed-since` support per-symbol and
 per-revision change detection.
-
-What is missing is a single call returning "this graph was built from commit
-`<sha>` at `<time>`" as structured data. You can establish the revision, but by
-reading a warning line and a stats block rather than by querying a field.
 
 ## 14. Capability discovery — **Direct**
 
@@ -268,7 +267,7 @@ dispatch table. Verify a verb you plan to rely on by running it.
 | 10 | Provenance / evidence | Partial on blast-radius (in the model, not per row); Direct on path hops |
 | 11 | Confidence | Direct on blast-radius summary; Direct on CLI path hops; Direct on MCP (schema-derived) |
 | 12 | Completeness | Direct — unresolved, truncation and depth cut all reported |
-| 13 | Snapshot / revision identity | Partial |
+| 13 | Snapshot / revision identity | Direct |
 | 14 | Capability discovery | Direct |
 
 ---
@@ -296,5 +295,3 @@ required, and this pack works within all of them.
    from those commands never sees it. Bridged commands (`lineage`, `traverse`,
    `rank`, `rules-inventory`, `rules-recall`) write it to stderr under `--json`
    and to stdout after the result in text mode.
-5. **No structured revision field.** Graph revision is recoverable only from a
-   warning line plus a stats block.

@@ -54,13 +54,15 @@ only if you need them, and prefer `--readonly`. The richer MCP response shapes
 | Rules recall | `wicked-estate rules-recall [--severity ...] --json` |
 | Subsystems | `wicked-estate clusters --json` |
 | Task context | `wicked-estate context <name> --budget <chars> --json` |
-| Graph size and freshness | `wicked-estate stats` |
+| Graph size and freshness | `wicked-estate stats --json` (indexed commit, index time, commits behind) |
 
 **Traps worth knowing:** `lineage` accepts a name or a symbol id, but an unknown
 or ambiguous name exits non-zero with nothing on stdout, so `resolve` first when
 a name may be shared. The CLI parses arguments strictly: a malformed value, a
-surplus operand, a repeated flag, or a missing `--db` exits 1 with nothing on
-stdout, which is a command error and not an empty answer. `rank --seeds`
+surplus operand, a repeated flag, or a `--db` with no path exits 1 with nothing
+on stdout, which is a command error and not an empty answer. A `--db` path that
+does not exist or is empty is refused with `no graph at <db>`, and nothing is
+created. `rank --seeds`
 biases a graph-wide ranking — seeded output includes symbols the seeds cannot
 reach. To rank a dependent set, keep only the rows whose `symbol` is in your set
 and report missing members as unranked.
@@ -83,7 +85,10 @@ and report missing members as unranked.
 - Commands served by the same retrieval tools as the MCP server (`lineage`,
   `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to
   stderr under `--json`; in text mode they print it on stdout after the result
-  (source-read from `tool_bridge.rs`; pinned on `lineage --json`). `CLAMPED:`
+  (source-read from `tool_bridge.rs`; pinned on `lineage --json`). The line
+  reads `N commit(s)` when the graph is behind, `0 commits` when it is current,
+  and `unknown` when freshness could not be determined. `CLAMPED:`, the line
+  printed when a limit such as `--depth` above 24 is lowered to its ceiling,
   follows the same channels. `blast-radius` and `path` suppress it under `--json`;
   use bare `wicked-estate stats` to check freshness before those.
 
@@ -93,8 +98,6 @@ and report missing members as unranked.
   `summary.top_by_pagerank`, which the CLI lacks. Its rows carry a per-row
   `depth`, and `--depth 1` still returns only direct dependents; see
   `evidence.md` for the split.
-- **A structured graph revision field.** Recoverable from a staleness warning
-  plus `stats`, not queryable.
 - **Memory, knowledge, and proposal domains.** These have no CLI verb.
 
 ## Commands that write

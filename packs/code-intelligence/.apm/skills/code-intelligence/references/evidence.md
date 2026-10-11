@@ -174,10 +174,20 @@ STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate ind
 
 - **Bridged commands** (`lineage`, `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`, so stdout stays one JSON document and the warning is a stderr line (executed on `lineage --json`). In text mode they print it on stdout after the result (source-read from `tool_bridge.rs`).
 - **`blast-radius` and `path`** suppress `STALENESS:` under `--json` so machine output stays one document. Do not treat its absence there as evidence of freshness.
-- **`stats`** in text mode always prints the staleness line when it applies, and is the best single command for a freshness check before blast-radius or path queries.
+- **`stats --json`** carries freshness inside the document as `staleness.commits_behind` and writes nothing to stderr. It is the best single check before blast-radius or path queries (executed).
 
-When you see a staleness warning, every answer in that session describes an older
-revision. Two honest options:
+Bridged commands print one of three lines (executed):
+
+- `STALENESS: N commit(s) since last index` — the graph is N commits behind.
+- `STALENESS: 0 commits since last index` — current for every checked root.
+- `STALENESS: unknown for <root> — freshness could not be determined` — no
+  verdict either way. Say freshness is unknown; do not report a revision gap.
+
+`path`, `blast-radius` and text `stats` print only the commits-behind line, so
+their silence does not prove the graph is current.
+
+When a line reports commits behind, every answer in that session describes an
+older revision. Two honest options:
 
 1. Answer, and state the revision gap: *"As of the indexed revision, 12 commits
    behind the working tree, …"*
@@ -187,23 +197,24 @@ Never silently present stale graph output as current.
 
 ### Clamped parameters
 
-When `--depth` or `--max-nodes` exceeds the ceiling, bridged commands clamp the
-value and write `CLAMPED: <param>=<actual>` to stderr under `--json` and to
-stdout after the result in text mode. Check that channel when you need to know
+When a bridged command's limit flag exceeds its ceiling (`lineage --depth`,
+`traverse --depth` / `--max-nodes`, `rank --limit`, `rules-recall --limit`), the
+command clamps the value and writes
+`CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>`
+to stderr under `--json` and to stdout after the result in text mode. Check that channel when you need to know
 whether the value you passed was honoured.
 
 ### Establishing snapshot identity
 
-- `wicked-estate stats` reports node and edge counts and, where the repository
-  was indexed from a checkout, its git provenance.
+- `wicked-estate stats --json` returns the revision the graph was built from
+  as fields: `provenance.commit` (null outside a git checkout),
+  `provenance.indexed_at`, and `staleness.commits_behind` (executed).
 - `wicked-estate fingerprint <name>` gives a stable hex fingerprint for one
   symbol, which is how you tell whether a specific symbol changed between two
   indexed revisions.
 - `wicked-estate changed-since <sha> --json` lists symbols in files that changed
   since a given git SHA.
 
-There is no single command that returns "the revision this graph was built
-from" as a value. Pair `stats` with the staleness line.
 
 ---
 
@@ -214,7 +225,8 @@ producer-to-consumer value flow through parameters, returns, and field writes.
 `<symbol>` is a name or a symbol id. A parameter or local is a value slot, which
 plain `resolve` does not return, so find the seed with
 `resolve <name> --include-values --json` (source-read). Coverage is TypeScript,
-TSX, and JavaScript files (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`).
+TSX, and JavaScript files (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`)
+(source-read).
 Callbacks, `await` and `.then`, destructuring, loops, local object properties,
 and closure returns add hops, almost all of them `may_influence`. Each flow hop
 carries:
