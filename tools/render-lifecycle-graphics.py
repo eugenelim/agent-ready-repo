@@ -35,7 +35,7 @@ CARD_EDGE = "#2c3963"
 INK = "#f1f5f9"
 SOFT = "#cbd5e1"
 MUTED = "#a3b1c6"
-ARROW = "#7083a3"
+ARROW = "#8494b3"  # clears 3:1 on the brightest point of every stage gradient
 GOLD_HI, GOLD_LO, GOLD_INK = "#fde68a", "#f59e0b", "#1f1300"
 BORDER_OPACITY = 0.6  # stage borders use the light accent at this opacity
 
@@ -253,19 +253,17 @@ OVERVIEW = [
 ]
 
 # Where architecture work meets each stage, in stage order: a label and the
-# skill that runs or offers it there, or None where no architecture skill
-# usually runs.
-OVERVIEW_ARCHITECTURE: list[tuple[list[str], str | None]] = [
-    (["Assess the area", "it touches"], "architect-assess"),
+# skill that runs or offers it there. Ship it has none, so its column is empty.
+OVERVIEW_ARCHITECTURE: list[tuple[list[str], str]] = [
+    (["Assess the area", "the work touches"], "architect-assess"),
     (["Design and revise", "the capabilities"], "architect-design"),
-    (["Fold the design in", "after the merge"], "close-work"),
-    (["Usually no", "architecture skill"], None),
+    (["Fold the design", "into the map"], "close-work"),
 ]
 
 
 def render_overview() -> str:
     """Four stage cards, read left to right, each ending on its decision."""
-    w_, h_ = 760, 628
+    w_, h_ = 760, 634
     svg = Svg(w_, h_)
     svg.add(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w_} {h_}" width="{w_}" '
             f'height="{h_}" role="img" aria-labelledby="ot od">')
@@ -277,8 +275,7 @@ def render_overview() -> str:
             'architect-assess maps what exists and adapt-to-project or init-project writes '
             'reference.md, which every plan follows. Then: assess the area the work touches, '
             'design and revise the capabilities with architect-design, and after the merge '
-            'close-work offers to fold the design into the current-state map. Ship it '
-            'usually needs no architecture skill.</desc>')
+            'close-work offers to fold the design into the current-state map.</desc>')
     defs(svg)
     canvas(svg, [(110, 300, 190, "decide"), (290, 120, 200, "shape"),
                  (470, 330, 190, "build"), (650, 140, 190, "ship")])
@@ -313,29 +310,23 @@ def render_overview() -> str:
     for i in range(3):
         chevron(svg, m + (i + 1) * (cw + gap) - gap / 2, top + 34, 8)
 
-    shape = STAGES["shape"]
     ay = bot + 14
     svg.add(f'<rect x="{m}" y="{ay}" width="{w_ - 2 * m}" height="{h_ - 26 - ay}" rx="14" '
-            f'fill="{SURFACE}" fill-opacity="0.85" stroke="{shape.hi}" stroke-opacity="0.35"/>')
+            f'fill="{SURFACE}" fill-opacity="0.85" stroke="#ffffff" stroke-opacity="0.08"/>')
     svg.text(m + 16, ay + 22, "ARCHITECTURE, STAGE BY STAGE", size=10, weight=700,
-             fill=shape.hi, spacing=1.4)
-    svg.text(m + 16, ay + 40, "Before any work, once per repo: architect-assess maps what "
-             "exists, and adapt-to-project", size=11.5, fill=SOFT)
-    svg.text(m + 16, ay + 56, "or init-project writes reference.md. Every plan follows "
-             "reference.md.", size=11.5, fill=SOFT)
+             fill=MUTED, spacing=1.4)
+    svg.text(m + 16, ay + 42, "Before any work, once per repository: architect-assess maps "
+             "what exists,", size=12.5, fill=SOFT)
+    svg.text(m + 16, ay + 60, "and adapt-to-project or init-project writes reference.md, "
+             "which every plan follows.", size=12.5, fill=SOFT)
     for i, (label, name) in enumerate(OVERVIEW_ARCHITECTURE):
-        x, y = m + i * (cw + gap) + 8, ay + 68
-        if name is None:
-            svg.add(f'<rect x="{x:.1f}" y="{y}" width="{cw - 16:.1f}" height="62" rx="9" '
-                    f'fill="none" stroke="{CARD_EDGE}" stroke-dasharray="4 3"/>')
-            for j, ln in enumerate(label):
-                svg.text(x + 12, y + 26 + j * 16, ln, size=12, fill=MUTED)
-            continue
+        st = list(STAGES.values())[i]
+        x, y = m + i * (cw + gap) + 8, ay + 74
         svg.add(f'<rect x="{x:.1f}" y="{y}" width="{cw - 16:.1f}" height="62" rx="9" '
-                f'fill="{CARD}" stroke="{CARD_EDGE}"/>')
+                f'fill="{CARD}" stroke="{st.hi}" stroke-opacity="0.8" stroke-dasharray="5 4"/>')
         for j, ln in enumerate(label):
             svg.text(x + 12, y + 18 + j * 16, ln, size=12, weight=650)
-        svg.text(x + 12, y + 52, name, size=11, family=MONO, fill=shape.hi)
+        svg.text(x + 12, y + 52, name, size=11, family=MONO, fill=st.hi)
     svg.add("</svg>")
     return svg.render()
 
@@ -431,10 +422,18 @@ def draw_loop(svg: Svg, x: float, y: float, w: float, lp: Loop, target_mid: floa
     for i, ln in enumerate(lp.label):
         svg.text(x + w / 2, y + 18 + i * 15, ln, size=11.5, fill=st.hi, anchor="middle")
     mid = y + h / 2
-    svg.add(f'<path d="M{x + 10:.1f},{mid:.1f} C{x - 9:.1f},{mid:.1f} {x - 9:.1f},'
-            f'{target_mid:.1f} {x + 1:.1f},{target_mid:.1f}" fill="none" stroke="{st.hi}" '
-            f'stroke-width="1.6" marker-end="url(#arrow-{st.key})"/>')
+    svg.add(f'<path d="M{x + 10:.1f},{mid:.1f} C{x - 16:.1f},{mid:.1f} {x - 16:.1f},'
+            f'{target_mid:.1f} {x - 2:.1f},{target_mid:.1f}" fill="none" stroke="{st.hi}" '
+            f'stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrow-{st.key})"/>')
     return y + h
+
+
+LOOP_EXIT = 34  # the connector after a loop is taller, to carry its "once settled" label
+
+
+def connector_gap(prev: Item) -> float:
+    """Vertical space between an item and the one before it."""
+    return LOOP_EXIT if isinstance(prev, Loop) else 15
 
 
 def draw_column(svg: Svg, x: float, y: float, w: float, items: list[Item],
@@ -443,10 +442,13 @@ def draw_column(svg: Svg, x: float, y: float, w: float, items: list[Item],
     mids: list[float] = []
     for i, it in enumerate(items):
         if i:
+            g = connector_gap(items[i - 1])
             svg.add(f'<line x1="{x + w / 2:.1f}" y1="{y + 1:.1f}" x2="{x + w / 2:.1f}" '
-                    f'y2="{y + 13:.1f}" stroke="{ARROW}" stroke-width="1.6" '
+                    f'y2="{y + g - 2:.1f}" stroke="{ARROW}" stroke-width="1.6" '
                     'marker-end="url(#arrow)"/>')
-            y += 15
+            if isinstance(items[i - 1], Loop):
+                svg.text(x + w / 2 + 8, y + g / 2 + 4, "once settled", size=11, fill=st.hi)
+            y += g
         mids.append(y + item_height(it) / 2)
         if isinstance(it, Loop):
             y = draw_loop(svg, x, y, w, it, mids[i - it.back], st)
@@ -459,12 +461,13 @@ def draw_column(svg: Svg, x: float, y: float, w: float, items: list[Item],
 
 
 def column_height(items: list[Item]) -> float:
-    return sum(item_height(i) for i in items) + 15 * (len(items) - 1)
+    return sum(item_height(i) for i in items) + sum(connector_gap(p) for p in items[:-1])
 
 
 DECIDE: list[Item] = [
     Step("Find out what's true", ["desk-research"]),
-    Step(["Assess the area it", "touches (optional)"], ["architect-assess"], dashed=True),
+    Step(["Assess the area the", "work touches", "(optional)"], ["architect-assess"],
+         dashed=True),
     Step("Make the strategic call", ["write-prfaq", "run-okr-cascade", "define-ux-strategy"]),
 ]
 SHORT: list[Item] = [
@@ -486,7 +489,7 @@ LONGER: list[Item] = [
     Step(["Map the capabilities", "and a build order"], ["map-capabilities"]),
     Step(["Design against the", "capabilities (optional)"], ["architect-design"],
          note=["offered once the build", "order is set"], dashed=True),
-    Loop(["Revise the capabilities", "and design again"], back=2),
+    Loop(["Not settled? Revise", "the capabilities and", "design again"], back=2),
     Step(["Design the subsystems", "that earn a doc"], ["architect-design", "architect-review"],
          dashed=True),
 ]
@@ -521,7 +524,7 @@ SHIP: list[Item] = [
 FOUNDATION = [
     ("The current-state map", "architect-assess",
      "maps what exists. close-work offers to fold each shipped design into it."),
-    ("The engineering patterns in reference.md", "adapt-to-project · init-project",
+    ("The engineering patterns in reference.md", "adapt-to-project or init-project",
      "write it. architect-design offers this when none exists."),
 ]
 
@@ -551,7 +554,7 @@ def render_full() -> str:
     route_top = body + 58
     body_end = max(route_top + column_height(SUPERVISED), route_top + column_height(LONGER),
                    body + column_height(BUILD) + 220, body + column_height(DECIDE))
-    bot = body_end + 150 + 104  # room for converging lines, who-runs-it, and the ending
+    bot = body_end + 200 + 104  # room for converging lines, who-runs-it, and the ending
     h_ = int(bot + 150)
     svg = Svg(w_, h_)
     svg.add(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w_} {h_}" width="{w_}" '
@@ -582,10 +585,9 @@ def render_full() -> str:
     svg.text(w_ - m, ly, "Codes like G3 are what the agents print when they stop for you.",
              size=13, fill=MUTED, anchor="end")
 
-    st = STAGES["shape"]
     svg.add(f'<rect x="{m}" y="{found_y}" width="{w_ - 2 * m}" height="{found_h}" rx="16" '
-            f'fill="{SURFACE}" fill-opacity="0.85" stroke="{st.hi}" stroke-opacity="0.35"/>')
-    svg.text(m + 20, found_y + 28, "BEFORE ANY WORK", size=11, weight=700, fill=st.hi,
+            f'fill="{SURFACE}" fill-opacity="0.85" stroke="#ffffff" stroke-opacity="0.08"/>')
+    svg.text(m + 20, found_y + 28, "BEFORE ANY WORK", size=11, weight=700, fill=MUTED,
              spacing=1.6)
     svg.text(m + 172, found_y + 28, "Once per repository, then kept current. The architect "
              "skills ground their work in these, and every plan follows reference.md.",
@@ -595,11 +597,15 @@ def render_full() -> str:
         fx, fy = m + 20 + i * (fw + 12), found_y + 40
         svg.add(f'<rect x="{fx:.1f}" y="{fy}" width="{fw:.1f}" height="56" rx="10" '
                 f'fill="{CARD}" stroke="{CARD_EDGE}"/>')
-        svg.add(f'<rect x="{fx:.1f}" y="{fy + 8}" width="3" height="40" rx="1.5" '
-                f'fill="url(#g-{st.key})"/>')
         svg.text(fx + 16, fy + 22, title, size=13.5, weight=650)
-        svg.text(fx + 16, fy + 42, maker, size=11, family=MONO, fill=st.hi)
-        svg.text(fx + 26 + width_of(maker, 11, mono=True), fy + 42, does, size=12, fill=MUTED)
+        tx = fx + 16
+        for j, name in enumerate(maker.split(" or ")):
+            if j:
+                svg.text(tx + 6, fy + 42, "or", size=12, fill=MUTED)
+                tx += 26
+            svg.text(tx, fy + 42, name, size=11, family=MONO, fill=INK, weight=600)
+            tx += width_of(name, 11, mono=True)
+        svg.text(tx + 10, fy + 42, does, size=12, fill=MUTED)
 
     starts = {
         "decide": ["Nobody has decided what's", "worth building. Optional."],
@@ -664,9 +670,9 @@ def render_full() -> str:
     for i, items in enumerate((SHORT, LONGER, SUPERVISED)):
         end_y = draw_column(svg, rx[i], route_top, sw, items, st)
         cx = rx[i] + sw / 2
+        dash = "" if i == 2 else ' stroke-dasharray="5 5"'  # the two bypasses are dashed
         svg.add(f'<line x1="{cx:.1f}" y1="{end_y + 3:.1f}" x2="{cx:.1f}" y2="{bot - 222:.1f}" '
-                f'stroke="{st.hi}" stroke-width="1.6" stroke-dasharray="5 5" '
-                'marker-end="url(#arrow-shape)"/>')
+                f'stroke="{st.hi}" stroke-width="1.6"{dash} marker-end="url(#arrow-shape)"/>')
     ending("shape", "Passes on: buildable pieces, or a capability map", "You commit to build",
            "G3")
 
@@ -679,7 +685,7 @@ def render_full() -> str:
     svg.text(bx + 14, by + 45, "Small, low-risk change?", size=12.5, weight=650)
     svg.text(bx + 14, by + 64, "It skips the spec and goes to step 3.", size=12, fill=SOFT)
     draw_step(svg, bx, by + 96, bw,
-              Step(["After the merge: fold the", "design into the current map"],
+              Step(["After you merge (G4): fold", "the design into the map"],
                    ["close-work", "architect-diagram"], dashed=True), st)
     ending("build", "Passes on: a merged change", "You merge", "G4")
 
@@ -696,6 +702,11 @@ def render_full() -> str:
             f'{work_loop_mid:.1f} {bx + bw + 2},{work_loop_mid:.1f}" fill="none" '
             f'stroke="{st.hi}" stroke-width="1.8" stroke-dasharray="6 4" '
             'marker-end="url(#arrow-ship)"/>')
+    fx, fy = (sx + bx + bw) / 2, (deploy_y + work_loop_mid) / 2
+    svg.add(f'<rect x="{fx - 19:.1f}" y="{fy - 14:.1f}" width="38" height="30" rx="6" '
+            f'fill="{BG_BOTTOM}"/>')
+    svg.text(fx, fy - 2, "if it", size=11, fill=st.hi, anchor="middle")
+    svg.text(fx, fy + 11, "fails", size=11, fill=st.hi, anchor="middle")
 
     ay = bot + 26
     svg.add(f'<rect x="{m}" y="{ay}" width="{w_ - 2 * m}" height="96" rx="16" fill="{SURFACE}" '

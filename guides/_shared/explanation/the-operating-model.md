@@ -20,7 +20,7 @@ Most work doesn't travel the whole way. A bug fix starts at *Build it*. A small
 change to an existing product often goes from a written intent straight to the
 build loop.
 
-[![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. Below them, architecture by stage: before any work, once per repository, architect-assess maps what exists and adapt-to-project or init-project writes reference.md, which every plan follows. Then you assess the area the work touches in Decide, design and revise the capabilities in Shape, and close-work offers to fold the design into the current-state map after the merge in Build. Ship usually needs no architecture skill. The step-by-step list further down gives the full flow in words.](the-operating-model-overview.svg)](the-operating-model-overview.svg)
+[![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. Below them, architecture by stage: before any work, once per repository, architect-assess maps what exists and adapt-to-project or init-project writes reference.md, which every plan follows. Then you assess the area the work touches in Decide, design and revise the capabilities in Shape, and close-work offers to fold the design into the current-state map after the merge in Build. Ship it usually has none. The step-by-step list further down gives the full flow in words.](the-operating-model-overview.svg)](the-operating-model-overview.svg)
 
 Start at the stage your work is in. The gold, pointed tags are the points where
 the agent stops and waits for you. The band underneath shows when you use the
@@ -118,10 +118,13 @@ carries everything the pictures show, in words.
    If the bet touches a system that already exists, `architect-assess` can
    assess the area first.
    `product-strategy` makes the strategic call with skills such as
-   `write-prfaq`, `run-okr-cascade`, or `define-ux-strategy`. The stage ends
-   when you pick the outcome.
+   `write-prfaq`, `run-okr-cascade`, or `define-ux-strategy`. You run each skill
+   yourself, and a product lead or strategist usually decides. The stage ends
+   when you pick the outcome and passes on that outcome.
 2. **Shape it**, by one of three routes. Each one ends at G3, when you commit
-   to build.
+   to build, and passes on buildable pieces or a capability map.
+   `discovery-lead` runs the supervised loop, and a product manager usually
+   decides.
    - *Short route, the default:* `frame-intent`, then you approve the intent
      (G0), then `de-risk-intent`. If framing hits a question about how the
      system is built, `frame-intent` parks it as an open design question and
@@ -148,14 +151,16 @@ carries everything the pictures show, in words.
    plan's design follows your `reference.md`, and `new-spec` reads any design
    the delivery contract carries as context.
    `work-loop` builds, runs lint, type checks, and tests, and gets three cold
-   reviews. A small, low-risk change skips the spec. The stage ends at G4, when
-   you merge. When the work is done, `close-work` offers to fold the shipped
+   reviews. A small, low-risk change skips the spec. The work-loop supervisor
+   runs this stage, and an engineer or tech lead usually decides. The stage
+   ends at G4, when you merge, and passes on a merged change. When the work is done, `close-work` offers to fold the shipped
    design into the current-state map.
 4. **Ship it.** `define-slo` sets an error budget if you want one.
    `release-loop` deploys to a throwaway environment, tests end to end, and
    watches telemetry. A deployed failure goes back to the build loop as a build
-   task. You read the readiness record, and the stage ends at G5, when you ship
-   it to production.
+   task. `release-lead` runs this stage, and a delivery lead or SRE usually
+   decides. You read the readiness record, and the stage ends at G5, when you
+   ship it to production.
 
 ## Where architecture comes in
 
