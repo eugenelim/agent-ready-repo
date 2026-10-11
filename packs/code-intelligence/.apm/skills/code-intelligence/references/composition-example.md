@@ -25,10 +25,10 @@ python '<skill-dir>/scripts/estate_preflight.py' --check
 **Step 2 — Check freshness.**
 
 ```bash
-wicked-estate stats
+wicked-estate stats --json
 ```
 
-This command is the reliable place to see the `STALENESS:` line when the graph lags the working tree. Read the output before querying; note the revision gap if the line appears. Its absence inside a `--json` call is not evidence of a current graph — running bare `stats` is how you learn the actual state. See [`references/evidence.md`](evidence.md) for the full freshness model.
+Read `staleness` before querying. `commits_behind` counts the commits the graph lags the working tree; when it is null, the roots listed under `unknown` could not be checked. Note any revision gap. A missing `STALENESS:` line inside a `--json` call, or in text `stats`, is not evidence of a current graph (source-read from `main.rs`). See [`references/evidence.md`](evidence.md) for the full freshness model.
 
 **Step 3 — Resolve the subject.**
 
@@ -74,7 +74,7 @@ The question stays the same across all four situations below. The evidence situa
 
 **Version below the floor (preflight exits 4).** The binary is older than the version this pack verified its commands against. Treat it as unavailable and use repository-native search.
 
-**Index stale for the file being changed.** Run a bare `wicked-estate stats` and look for the `STALENESS:` line. If it appears, check whether `parse_config`'s source file was edited in those commits, where N is the count from the `STALENESS:` line of that output:
+**Index stale for the file being changed.** Run `wicked-estate stats --json` and read `staleness.commits_behind`, the same count a `STALENESS:` line reports. If it is above 0, check whether `parse_config`'s source file was edited in those commits, where N is that count:
 
 ```bash
 git log -n <N> --name-only --format='%h %s'

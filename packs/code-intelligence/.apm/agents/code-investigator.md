@@ -20,12 +20,13 @@ them — not the raw output of every command.
 Confirm the graph is usable, using the CLI itself:
 
 ```bash
-wicked-estate stats
+wicked-estate stats --json
 ```
 
-Success prints node and edge counts — proceed. It also prints a `STALENESS:`
-line when the graph is behind the working tree, which is why this is the right
-probe: it is the one command that reports freshness and readiness together.
+A `nodes` count means proceed. The same document reports freshness:
+`staleness.commits_behind` is how many commits the graph is behind, and a null
+count with roots listed in `staleness.unknown` means freshness is unknown, so
+say so rather than calling the graph current (source-read from `main.rs`).
 
 A "command not found" error, or an empty or missing graph, means you work from
 `Grep`, `Glob`, and `Read` instead, and every finding in your report carries

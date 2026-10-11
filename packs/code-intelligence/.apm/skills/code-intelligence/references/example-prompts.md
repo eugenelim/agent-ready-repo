@@ -45,7 +45,7 @@ bug, or write a fix. The `bug-fix` workflow owns the diagnosis and the change.
 **Pattern:** Analyze change impact (2).
 
 ```bash
-wicked-estate stats                                  # freshness, before anything else
+wicked-estate stats --json                           # staleness.commits_behind, before anything else
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
 wicked-estate rank --seeds '<dep-id-1>,<dep-id-2>,<dep-id-3>' --limit 200 --json

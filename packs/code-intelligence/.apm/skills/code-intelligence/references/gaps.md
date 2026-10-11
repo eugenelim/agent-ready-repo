@@ -121,7 +121,7 @@ whole reachable set was searched. Otherwise it proves nothing:
 MCP `Path` is the equivalent; its response omits `from` and `to`. Inputs are
 schema-derived and the response shape is source-read — not executed here.
 
-Text output prints a `STALENESS:` line only when the graph is commits behind; it stays silent when the graph is current or freshness is unknown, and `--json` suppresses it (executed).
+Text output prints a `STALENESS:` line only when the graph is commits behind; it stays silent when the graph is current or freshness is unknown, and `--json` suppresses it (source-read from `main.rs`).
 
 ## 7. Impact — **Direct**
 
@@ -234,7 +234,7 @@ fields: `provenance.commit`, `provenance.indexed_at` and
 `provenance.indexed_version`, plus `staleness.commits_behind`. `commit` is null
 when the graph was not indexed from a git checkout. `commits_behind` is null
 when no indexed root could be checked, and `staleness.unknown` names those
-roots (executed). `fingerprint` and `changed-since` support per-symbol and
+roots (source-read from `main.rs`). `fingerprint` and `changed-since` support per-symbol and
 per-revision change detection.
 
 ## 14. Capability discovery — **Direct**

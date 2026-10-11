@@ -174,17 +174,19 @@ STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate ind
 
 - **Bridged commands** (`lineage`, `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`, so stdout stays one JSON document and the warning is a stderr line (executed on `lineage --json`). In text mode they print it on stdout after the result (source-read from `tool_bridge.rs`).
 - **`blast-radius` and `path`** suppress `STALENESS:` under `--json` so machine output stays one document. Do not treat its absence there as evidence of freshness.
-- **`stats --json`** carries freshness inside the document as `staleness.commits_behind` and writes nothing to stderr. It is the best single check before blast-radius or path queries (executed).
+- **`stats --json`** prints one JSON document that carries freshness as `staleness.commits_behind`. It is the best single check before blast-radius or path queries. A null `commits_behind` with roots listed in `staleness.unknown` means freshness is unknown. Its stderr may carry a `VERSION MISMATCH:` or `SYMBOL-ID SCHEME MISMATCH:` warning; either one means re-index before trusting answers (source-read from `main.rs`).
 
-Bridged commands print one of three lines (executed):
+Bridged commands print one `STALENESS:` line per indexed root, in one of these
+forms (source-read from `main.rs`):
 
-- `STALENESS: N commit(s) since last index` — the graph is N commits behind.
+- `STALENESS: N commit(s) since last index` — that root is N commits behind.
 - `STALENESS: 0 commits since last index` — current for every checked root.
-- `STALENESS: unknown for <root> — freshness could not be determined` — no
-  verdict either way. Say freshness is unknown; do not report a revision gap.
+- `STALENESS: unknown for <root> — freshness could not be determined`, or
+  `STALENESS: unknown — <db> records no indexed root to check` — no verdict
+  either way. Say freshness is unknown; do not report a revision gap.
 
-`path`, `blast-radius` and text `stats` print only the commits-behind line, so
-their silence does not prove the graph is current.
+`path`, `blast-radius` and text `stats` print only commits-behind lines, so
+their silence does not prove the graph is current (source-read from `main.rs`).
 
 When a line reports commits behind, every answer in that session describes an
 older revision. Two honest options:
@@ -208,7 +210,7 @@ whether the value you passed was honoured.
 
 - `wicked-estate stats --json` returns the revision the graph was built from
   as fields: `provenance.commit` (null outside a git checkout),
-  `provenance.indexed_at`, and `staleness.commits_behind` (executed).
+  `provenance.indexed_at`, and `staleness.commits_behind` (source-read from `main.rs`).
 - `wicked-estate fingerprint <name>` gives a stable hex fingerprint for one
   symbol, which is how you tell whether a specific symbol changed between two
   indexed revisions.

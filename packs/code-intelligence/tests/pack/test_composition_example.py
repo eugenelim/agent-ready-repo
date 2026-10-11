@@ -129,7 +129,7 @@ def _subsection_after(text: str, heading: str) -> str:
 
 def test_example_walks_the_provider_fit_path() -> None:
     """The Provider-fit path section states the question, cites the capability map,
-    shows the preflight command, a bare stats run, the exact blast-radius invocation,
+    shows the preflight command, a stats --json run, the exact blast-radius invocation,
     names unresolved and truncated_dependents as limits, shows a source check, and
     names a stopping point.
     """
@@ -150,8 +150,8 @@ def test_example_walks_the_provider_fit_path() -> None:
     assert "python '<skill-dir>/scripts/estate_preflight.py' --check" in section, (
         "section must show the preflight command in the <skill-dir> form"
     )
-    assert "wicked-estate stats" in section, (
-        "section must show a bare wicked-estate stats run for freshness"
+    assert "wicked-estate stats --json" in section, (
+        "section must show a wicked-estate stats --json run for freshness"
     )
     assert "wicked-estate blast-radius parse_config --depth 1 --json" in section, (
         "section must show the exact blast-radius invocation"

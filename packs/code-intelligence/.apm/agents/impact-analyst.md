@@ -15,11 +15,15 @@ You run in a forked context. Return the analysis, not the command output.
 ## Before you start
 
 ```bash
-wicked-estate stats
+wicked-estate stats --json
 ```
 
-Node and edge counts mean proceed. Check this output for a `STALENESS:` line —
-`stats` reports freshness in text mode, and `blast-radius --json` suppresses it.
+A `nodes` count means proceed. Read freshness from `staleness`:
+`commits_behind` is how many commits the graph is behind, and a null count with
+roots listed in `unknown` means freshness is unknown. Text `stats` and
+`blast-radius --json` both stay silent when freshness is unknown, so silence
+there proves nothing (source-read from `main.rs`). A `VERSION MISMATCH:` line on
+stderr means the graph predates this binary; report it and offer a re-index.
 
 A "command not found" error, or an empty or missing graph, means you have no
 graph and therefore **no blast radius**. Say that plainly rather than
@@ -129,7 +133,7 @@ You run in a forked context and do not load the skill, so the rules are here.
 ```markdown
 ## Completeness
 Resolved dependents: N. Unresolved call sites: N. Truncated: N.
-Index freshness: current, or N commits behind.
+Index freshness: current, N commits behind, or unknown.
 One sentence on what those numbers mean for trusting this analysis.
 
 ## Direct impact

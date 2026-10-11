@@ -265,8 +265,12 @@ Three rules are load-bearing:
   `--json`; in text mode they print it on stdout after the result (executed on
   `lineage --json`; text mode source-read from `tool_bridge.rs`).
   `blast-radius` and `path` suppress it under `--json`.
-  Run a bare `wicked-estate stats` before blast-radius or path queries when
-  freshness matters, and say which revision you answered from.
+  Run `wicked-estate stats --json` before blast-radius or path queries when
+  freshness matters and read `staleness`: `commits_behind` is how far behind
+  the graph is, and a null count with roots in `unknown` means freshness is
+  unknown. Text `stats` stays silent in both the current and unknown cases, so
+  its silence proves nothing (source-read from `main.rs`). Say which revision
+  you answered from.
 
 Wherever you report a result, quote the command that produced it exactly as
 run, flags and all. `--depth 1` and the default depth answer different

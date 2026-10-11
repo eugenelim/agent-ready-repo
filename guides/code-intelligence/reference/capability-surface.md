@@ -85,12 +85,14 @@ and report missing members as unranked.
 - Commands served by the same retrieval tools as the MCP server (`lineage`,
   `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to
   stderr under `--json`; in text mode they print it on stdout after the result
-  (source-read from `tool_bridge.rs`; pinned on `lineage --json`). The line
-  reads `N commit(s)` when the graph is behind, `0 commits` when it is current,
-  and `unknown` when freshness could not be determined. `CLAMPED:`, the line
-  printed when a limit such as `--depth` above 24 is lowered to its ceiling,
-  follows the same channels. `blast-radius` and `path` suppress it under `--json`;
-  use bare `wicked-estate stats` to check freshness before those.
+  (source-read from `tool_bridge.rs`; pinned on `lineage --json`). They print
+  one line per indexed root: `N commit(s)` when it is behind, `0 commits` when
+  every checked root is current, and `unknown` when freshness could not be
+  determined (source-read from `main.rs`). `CLAMPED:`, the line printed when a
+  limit such as `--depth` above 24 is lowered to its ceiling, follows the same
+  channels. `blast-radius` and `path` suppress `STALENESS:` under `--json`, and
+  text `stats` stays silent when freshness is unknown, so check freshness with
+  `wicked-estate stats --json` and read `staleness.commits_behind`.
 
 ## What does not exist on the CLI
 

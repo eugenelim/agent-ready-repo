@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Floor and pin move to 0.26 / 0.26.0 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.26.0 --locked`; the first `index` afterwards rebuilds the graph.
 - Annotation answers report `source_type`, `extraction_method` and `last_verified`, and `stale-annotations` accepts Unix seconds, a date, or `--older-than`.
 - `query --json` returns structured output and `--version` prints one line; `evidence` joins the commands that write to the graph.
-- The evidence guide covers `compiler` resolution and SCIP's reference-only role (it never adds call edges), the three `STALENESS:` line forms, and `rules-recall --steering-type`.
+- The evidence guide covers `compiler` resolution and SCIP's reference-only role (it never adds call edges), the `STALENESS:` line forms, and `rules-recall --steering-type`.
 
 ## [core][3.0.3] — 2026-10-10
 
