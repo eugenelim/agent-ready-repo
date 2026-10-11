@@ -331,11 +331,12 @@ what you could not establish.
 operand, a repeated flag, or a `--db` with no path exits 1 with nothing on
 stdout and a usage line on stderr. Read that as a command error to fix, never as an empty
 answer. Most read commands refuse a missing or zero-byte `--db` with
-`no graph at <db>` and do not create it. `clusters` and `context` do not: they
-turn a missing or zero-byte `--db` into an empty graph and return an empty
-result with exit 0 (source-read from `main.rs`). An empty result with exit 0 is
-a real answer only once `stats --json` reports a non-zero `nodes` count; exit 1
-with nothing on stdout is never an answer.
+`no graph at <db>` and do not create it. `clusters`, `context`, `semantic`, `semantics`, `drift`, `cross-graph` and `correspond` do not: they turn a missing
+or zero-byte database path into an empty graph and return an empty result with
+exit 0 (source-read from `main.rs`). An empty result with exit 0 is a real
+answer only once `stats --json --db <path>` reports a non-zero `nodes` count
+for every database the command read; exit 1 with nothing on stdout is never an
+answer.
 
 ## Writes
 

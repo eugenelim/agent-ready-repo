@@ -25,9 +25,11 @@ sources).
 missing operand, a repeated flag, or a `--db` with no path exits 1 with nothing
 on stdout and usage on stderr (executed). Most read commands refuse a `--db`
 path that does not exist or is empty with `no graph at <db>` and create
-nothing. `clusters` and `context` instead turn it into an empty graph and exit
-0 with an empty result (source-read from `main.rs`). Read that as a command error, never as an
-empty answer.
+nothing. Read an exit 1 or a `no graph at <db>` refusal as a command error,
+never as an empty answer. `clusters`, `context`, `semantic`, `semantics`, `drift`, `cross-graph` and `correspond` instead turn a missing or empty database path
+into an empty graph and exit 0 with an empty result (source-read from
+`main.rs`). Their empty result is a real answer only once `stats --json --db
+<path>` reports a non-zero `nodes` count for every database the command read.
 
 Two surfaces ship, and they are not the same size.
 
