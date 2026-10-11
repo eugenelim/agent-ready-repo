@@ -46,7 +46,7 @@ the build.
 
 ## Widget hierarchy
 
-- **Tier 1, the summary strip (top, always visible):** outstanding items,
+- **Tier 1, the summary strip (top of the page, scrolling with it):** outstanding items,
   refused edges, parentless intents, and intent, brief, and spec counts. Each
   count is also a way in: activating it opens the view that lists those items.
 - **Tier 2, the worklist (left):** one of four views — Tree, Outstanding,
