@@ -68,6 +68,8 @@ VOCABULARY_HEADING = "### Prohibited vocabulary"
 # reporting "no block declares it" and passing for the wrong reason.
 RUN_HEADING_FORM = "## Run"
 RUN_HEADING = re.compile(r"^" + RUN_HEADING_FORM + r" `([^`]+)`", re.M)
+# A runnable is a skill, optionally followed by one of its modes: `intent frame`.
+RUNNABLE = r"[a-z0-9-]+(?: [a-z0-9-]+)?"
 STEP_MAP_HEADING = "## What you will run"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
@@ -577,7 +579,7 @@ def _check_step_map(body: str) -> str | None:
     rows = {
         match.group(1)
         for line in section.splitlines()
-        if line.startswith("|") and (match := re.match(r"^\|\s*`([a-z0-9-]+)`\s*\|", line))
+        if line.startswith("|") and (match := re.match(r"^\|\s*`(" + RUNNABLE + r")`\s*\|", line))
     }
     if not rows:
         return "table names no skill"
@@ -741,12 +743,13 @@ def check_named_runnables(path: Path, step: str, body: str, skills: set[str]) ->
     if not skills:
         return []
     findings: list[Finding] = []
-    for name in sorted(set(re.findall(r"^" + RUN_HEADING_FORM + r" `([a-z0-9-]+)`", body, re.M))):
+    run_heading = r"^" + RUN_HEADING_FORM + r" `([a-z0-9-]+)(?: [a-z0-9-]+)?`"
+    for name in sorted(set(re.findall(run_heading, body, re.M))):
         if name not in skills:
             findings.append(
                 Finding(path, step, "runnable", f"`{name}` is not a published skill of this pack")
             )
-    for name in sorted(set(re.findall(r"[Rr]un `([a-z0-9-]+)`", body))):
+    for name in sorted(set(re.findall(r"[Rr]un `([a-z0-9-]+)(?: [a-z0-9-]+)?`", body))):
         if (
             name not in skills
                 and not re.search(r"^" + RUN_HEADING_FORM + r" `" + re.escape(name), body, re.M)
