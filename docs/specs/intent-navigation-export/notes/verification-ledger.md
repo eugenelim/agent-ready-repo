@@ -37,3 +37,20 @@
   the platform-support check, and all file creation happen inside `publish`, after validation.
 - A test that wraps `os.open` must also add the wrapper to `os.supports_dir_fd`, because the
   platform check compares `os.open` by identity.
+
+## T3
+
+- AC-0027 as written asks for a spec directory named with `?`, `#`, `%`, and a space. The
+  derivation admits only slug-shaped spec directory names (such a directory yields no spec
+  node), so the test puts those characters in the corpus root's directory name below the Git
+  top level, which is part of every link path, and asserts `%3F`, `%23`, `%25`, `%20` in the
+  commit URL. `_encode_path` is also tested directly.
+- `ls-tree` is limited to the three corpus directories `docs/product/intents`,
+  `docs/product/briefs`, and `docs/specs` (the only places a node path can be), passed as
+  pathspecs relative to `--root`; `--full-name` makes the output paths top-level relative,
+  which is how the link path is formed.
+- A node file that is a symlink or a submodule entry in HEAD's tree, a failed or oversized
+  read, or an unloadable `_file_safety.py` all give `latest`, never an exception.
+- Gates: `python -m pytest packs/core/tests/skills/navigate-intents/ -q` passed (see commit
+  report for counts); `make lint-ruff lint-mypy` pass; self-host run twice, second no diff;
+  `agentbundle catalogue verify --root .` ok.

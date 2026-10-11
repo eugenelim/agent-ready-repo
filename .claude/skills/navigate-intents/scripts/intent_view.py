@@ -7,14 +7,18 @@ from __future__ import annotations
 
 import contextlib
 import datetime as _dt
+import hashlib
+import importlib.util
 import json
 import os
 import re
 import stat as _stat
 import subprocess
+import sys
 import tempfile
 from pathlib import Path, PurePath
 from typing import Any, NamedTuple
+from urllib.parse import quote
 
 try:
     from datetime import UTC as _UTC
@@ -53,16 +57,6 @@ class ViewRefusal(Exception):
         self.message = message
         self.limits = limits or {}
         self.observed = observed or {}
-
-
-def source_links(
-    root: Path, nodes: list[dict[str, Any]]
-) -> tuple[dict[str, dict[str, Any]], str | None]:
-    """Map each node id to its source link and return the commit used, or None.
-
-    Every link is inert (the repository-relative path as plain text).
-    """
-    return {n["id"]: {"kind": "inert", "path": n.get("path", "")} for n in nodes}, None
 
 
 def data_block_json(payload: dict[str, Any]) -> str:
@@ -111,6 +105,168 @@ def _git_run(root: Path, args: list[str]) -> subprocess.CompletedProcess[bytes]:
         timeout=_GIT_TIMEOUT_SECONDS,
         check=False,
     )
+
+
+_ALLOWED_HOSTS = frozenset({"github.com"})
+_PART = r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}"
+_REMOTE_FORMS = (
+    re.compile(r"https://(?P<host>[^/@:?#\s]+)/(?P<owner>[^/\s]+)/(?P<repo>[^/\s]+)"),
+    re.compile(r"git@(?P<host>[^/@:?#\s]+):(?P<owner>[^/\s]+)/(?P<repo>[^/\s]+)"),
+    re.compile(r"ssh://git@(?P<host>[^/@:?#\s]+)/(?P<owner>[^/\s]+)/(?P<repo>[^/\s]+)"),
+)
+_COMMIT_LENGTH = {"sha1": 40, "sha256": 64}
+_LINK_DIRS = ("docs/product/intents", "docs/product/briefs", "docs/specs")
+_safety_mod: Any = None
+
+
+def _parse_github_remote(url: str) -> str | None:
+    """Return ``owner/repo`` when *url* is exactly a recognised GitHub remote, else None."""
+    for form in _REMOTE_FORMS:
+        found = form.fullmatch(url)
+        if found is None:
+            continue
+        repo = found["repo"]
+        if repo.endswith(".git"):
+            repo = repo[: -len(".git")]
+        owner = found["owner"]
+        if found["host"] not in _ALLOWED_HOSTS:
+            return None
+        if not all(re.fullmatch(_PART, part) for part in (owner, repo)):
+            return None
+        return f"{owner}/{repo}"
+    return None
+
+
+def _file_safety() -> Any:
+    """Load the co-located ``_file_safety.py`` at most once; None when unavailable."""
+    global _safety_mod
+    if _safety_mod is not None:
+        return _safety_mod
+    path = Path(__file__).resolve().parent / "_file_safety.py"
+    name = "core_navigate_intents_view_file_safety"
+    try:
+        if not _stat.S_ISREG(os.lstat(path).st_mode):
+            return None
+        spec = importlib.util.spec_from_file_location(name, path)
+        if spec is None or spec.loader is None:
+            return None
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[name] = mod
+        spec.loader.exec_module(mod)
+    except Exception:  # noqa: BLE001
+        sys.modules.pop(name, None)
+        return None
+    _safety_mod = mod
+    return mod
+
+
+def _git_text(root: Path, args: list[str]) -> str | None:
+    """Run one hardened Git call and return stdout text, or None on any failure."""
+    try:
+        done = _git_run(root, args)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    return done.stdout.decode("utf-8", "surrogateescape")
+
+
+def _tree_blobs(root: Path) -> dict[str, str] | None:
+    """Return ``{link path: blob id}`` for the corpus directories at HEAD, or None."""
+    try:
+        done = _git_run(root, ["ls-tree", "-r", "-z", "--full-name", "HEAD", "--", *_LINK_DIRS])
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    blobs: dict[str, str] = {}
+    for entry in done.stdout.decode("utf-8", "surrogateescape").split("\0"):
+        meta, tab, path = entry.partition("\t")
+        fields = meta.split(" ")
+        if tab and len(fields) == 3 and fields[0] != "120000" and fields[1] == "blob":
+            blobs[path] = fields[2]
+    return blobs
+
+
+def _blob_id(data: bytes, object_format: str) -> str:
+    """Return the Git blob id of *data* under *object_format* (``sha1`` or ``sha256``)."""
+    digest = hashlib.new(object_format)
+    digest.update(b"blob %d\0" % len(data))
+    digest.update(data)
+    return digest.hexdigest()
+
+
+def _tree_matches(
+    root: Path, nodes: list[dict[str, Any]], prefix: str, object_format: str
+) -> bool:
+    """Return whether every node file's bytes equal HEAD's blob at its link path."""
+    safety = _file_safety()
+    blobs = _tree_blobs(root)
+    if safety is None or blobs is None:
+        return False
+    real_root = Path(os.path.realpath(root))
+    for node in nodes:
+        rel = node.get("path", "")
+        expected = blobs.get(f"{prefix}/{rel}" if prefix else rel)
+        if expected is None:
+            return False
+        try:
+            data = safety.read_confined_regular_file(real_root, real_root / rel)
+        except Exception:  # noqa: BLE001
+            return False
+        if _blob_id(data, object_format) != expected:
+            return False
+    return True
+
+
+def _encode_path(path: str) -> str:
+    """Percent-encode each segment of a slash-separated *path*; only unreserved characters stay."""
+    return "/".join(quote(segment, safe="") for segment in path.split("/"))
+
+
+def source_links(
+    root: Path, nodes: list[dict[str, Any]]
+) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """Map each node id to its source link and return the commit used, or None.
+
+    A recognised GitHub ``origin`` gives ``commit`` links when ``HEAD`` is on ``origin`` and
+    every node file matches ``HEAD``'s tree, otherwise ``latest`` links.  Anything else, or
+    any failed Git call, gives ``inert`` links (the path as plain text).
+    """
+    inert = {n["id"]: {"kind": "inert", "path": n.get("path", "")} for n in nodes}
+    remote = _git_text(root, ["config", "--get", "remote.origin.url"])
+    repo = _parse_github_remote(remote.rstrip("\n")) if remote else None
+    toplevel = _git_text(root, ["rev-parse", "--show-toplevel"])
+    if repo is None or not toplevel:
+        return inert, None
+    prefix = os.path.relpath(os.path.realpath(root), os.path.realpath(toplevel.rstrip("\n")))
+    prefix = "" if prefix == "." else Path(prefix).as_posix()
+    if prefix == ".." or prefix.startswith("../"):
+        return inert, None
+    head = (_git_text(root, ["rev-parse", "HEAD"]) or "").strip()
+    fmt = (_git_text(root, ["rev-parse", "--show-object-format"]) or "").strip()
+    commit: str | None = None
+    if (
+        fmt in _COMMIT_LENGTH
+        and len(head) == _COMMIT_LENGTH[fmt]
+        and re.fullmatch(r"[0-9a-f]+", head)
+        and (_git_text(root, ["for-each-ref", "--contains", "HEAD", "refs/remotes/origin/"]) or "")
+        .strip()
+        and _tree_matches(root, nodes, prefix, fmt)
+    ):
+        commit = head
+    ref = commit or "HEAD"
+    kind = "commit" if commit else "latest"
+    links: dict[str, dict[str, Any]] = {}
+    for node in nodes:
+        rel = node.get("path", "")
+        link_path = f"{prefix}/{rel}" if prefix else rel
+        links[node["id"]] = {
+            "kind": kind,
+            "path": link_path,
+            "url": f"https://github.com/{repo}/blob/{ref}/{_encode_path(link_path)}",
+        }
+    return links, commit
 
 
 def _under(path: str, base: str) -> bool:
