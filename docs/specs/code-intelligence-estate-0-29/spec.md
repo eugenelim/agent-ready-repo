@@ -1,6 +1,6 @@
 # Spec: Code-intelligence pack on Wicked Estate 0.29
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0104
@@ -91,46 +91,46 @@ Every check below is either a pack test under `packs/code-intelligence/tests/` o
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.29` when the binary reports version 0.28.0.
-- [ ] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.29.2 and an index exists.
-- [ ] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.29"`, equal to the preflight's `MINIMUM_VERSION`.
-- [ ] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.29.2 --locked`, and `0.29.2` equals the preflight's `PINNED_VERSION`.
-- [ ] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.29.2 --locked` and rejects the planted `cargo install wicked-estate --version 0.26.0 --locked`.
-- [ ] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
-- [ ] **AC-0007.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.29"`.
-- [ ] **AC-0008.** A 0.29.2 binary dispatches every CLI verb in the vocabulary allowlist.
-- [ ] **AC-0009.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
-- [ ] **AC-0010.** `wicked-estate --version` exits 0 and its stdout is exactly `wicked-estate 0.29.2` followed by one newline.
-- [ ] **AC-0011.** On the fixture, `blast-radius helper --json` returns exactly the keys `target`, `dependents`, `unresolved`, `truncated_dependents`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, `confidence`, `next_cursor`, `page`; `next_cursor` is `null`; and `page` equals `{from: 0, count: n, total: n}` where `n` is the number of dependents.
-- [ ] **AC-0012.** On the fixture, `lineage <entry id> --json` returns exactly the keys `dependencies`, `total`, `truncated`, `next_cursor`, `page`, `confidence`, `relation`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, with `next_cursor` `null`.
-- [ ] **AC-0013.** On the fixture, `lineage <entry id> --json` with no `--depth` reports `searched_depth` 24.
-- [ ] **AC-0014.** On the wide fixture, the first `blast-radius helper --json` reply has a non-null `next_cursor`, a `truncated_dependents` greater than 0, and `page.count` plus `truncated_dependents` equal to `page.total`.
-- [ ] **AC-0015.** On the wide fixture, following `next_cursor` with `blast-radius helper --cursor <c> --json` until it is `null` returns `page.total` rows with distinct `id`s, ordered by `depth` and then `id`, and the last reply reports `truncated_dependents` 0.
-- [ ] **AC-0016.** On the wide fixture, the first `lineage fan_out --json` reply has `truncated` true and a non-null `next_cursor`.
-- [ ] **AC-0017.** On the wide fixture, following `next_cursor` with `lineage fan_out --cursor <c> --json` until it is `null` returns `total` rows with distinct `symbol`s, and the last reply reports `truncated` false.
-- [ ] **AC-0018.** On the wide fixture, a first-page blast-radius cursor passed with `--depth 3` exits non-zero with empty stdout.
-- [ ] **AC-0019.** On the wide fixture, `blast-radius helper --cursor garbage --json` exits non-zero with empty stdout.
-- [ ] **AC-0020.** On a copy of the wide fixture re-indexed with one more `helper` caller, the first-page blast-radius cursor from the original graph exits non-zero with empty stdout.
-- [ ] **AC-0021.** On the wide fixture, `blast-radius helper` in text mode prints a line containing `--cursor `.
-- [ ] **AC-0022.** `SKILL.md`, `references/evidence.md`, `references/capability-map.md`, `references/investigation-patterns.md` and `agents/impact-analyst.md` each contain `--cursor` and `next_cursor`.
-- [ ] **AC-0023.** `SKILL.md` and `references/evidence.md` each contain `` `next_cursor` is `null` ``.
-- [ ] **AC-0024.** `SKILL.md`, `references/evidence.md` and `agents/impact-analyst.md` each contain `rows on later pages`.
-- [ ] **AC-0025.** `SKILL.md` and `references/evidence.md` each contain `start again from the first page`.
-- [ ] **AC-0026.** `references/evidence.md` contains `more pages remain`.
-- [ ] **AC-0027.** The `lineage` row of `references/capability-map.md` contains `Default depth 24`.
-- [ ] **AC-0028.** `references/capability-map.md` and `README.md` each contain `empty in-memory` and `WICKED_MEMORY_DB`.
-- [ ] **AC-0029.** `evals/evals.json` contains a case whose assertions contain both `next_cursor` and `--cursor`, and a case whose assertions contain `first page`.
-- [ ] **AC-0030.** Every `blast-radius` JSON file under `evals/files/` carries `next_cursor` and `page`.
-- [ ] **AC-0031.** The retired-claim scanner finds no match in the shipped surface.
-- [ ] **AC-0032.** The retired-claim scanner matches every sentence in its planted stale sample, every pattern has a stale sample, and no sentence in its planted current sample matches.
-- [ ] **AC-0033.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
-- [ ] **AC-0034.** `grep -F -- '--cursor' guides/code-intelligence/reference/capability-surface.md` and `grep -F 'next_cursor' guides/code-intelligence/reference/capability-surface.md` each exit 0.
-- [ ] **AC-0035.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.9`.
-- [ ] **AC-0036.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.9`.
-- [ ] **AC-0037.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.9\] — \d{4}-\d{2}-\d{2}$`.
-- [ ] **AC-0038.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty.
-- [ ] **AC-0039.** `agentbundle catalogue verify --root .` exits 0.
-- [ ] **AC-0040.** The `packs/AGENTS.local.md` internal-citation grep, run over the pack test modules this change edits, finds no match.
+- [x] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.29` when the binary reports version 0.28.0.
+- [x] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.29.2 and an index exists.
+- [x] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.29"`, equal to the preflight's `MINIMUM_VERSION`.
+- [x] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.29.2 --locked`, and `0.29.2` equals the preflight's `PINNED_VERSION`.
+- [x] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.29.2 --locked` and rejects the planted `cargo install wicked-estate --version 0.26.0 --locked`.
+- [x] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
+- [x] **AC-0007.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.29"`.
+- [x] **AC-0008.** A 0.29.2 binary dispatches every CLI verb in the vocabulary allowlist.
+- [x] **AC-0009.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
+- [x] **AC-0010.** `wicked-estate --version` exits 0 and its stdout is exactly `wicked-estate 0.29.2` followed by one newline.
+- [x] **AC-0011.** On the fixture, `blast-radius helper --json` returns exactly the keys `target`, `dependents`, `unresolved`, `truncated_dependents`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, `confidence`, `next_cursor`, `page`; `next_cursor` is `null`; and `page` equals `{from: 0, count: n, total: n}` where `n` is the number of dependents.
+- [x] **AC-0012.** On the fixture, `lineage <entry id> --json` returns exactly the keys `dependencies`, `total`, `truncated`, `next_cursor`, `page`, `confidence`, `relation`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`, with `next_cursor` `null`.
+- [x] **AC-0013.** On the fixture, `lineage <entry id> --json` with no `--depth` reports `searched_depth` 24.
+- [x] **AC-0014.** On the wide fixture, the first `blast-radius helper --json` reply has a non-null `next_cursor`, a `truncated_dependents` greater than 0, and `page.count` plus `truncated_dependents` equal to `page.total`.
+- [x] **AC-0015.** On the wide fixture, following `next_cursor` with `blast-radius helper --cursor <c> --json` until it is `null` returns `page.total` rows with distinct `id`s, ordered by `depth` and then `id`, and the last reply reports `truncated_dependents` 0.
+- [x] **AC-0016.** On the wide fixture, the first `lineage fan_out --json` reply has `truncated` true and a non-null `next_cursor`.
+- [x] **AC-0017.** On the wide fixture, following `next_cursor` with `lineage fan_out --cursor <c> --json` until it is `null` returns `total` rows with distinct `symbol`s, and the last reply reports `truncated` false.
+- [x] **AC-0018.** On the wide fixture, a first-page blast-radius cursor passed with `--depth 3` exits non-zero with empty stdout.
+- [x] **AC-0019.** On the wide fixture, `blast-radius helper --cursor garbage --json` exits non-zero with empty stdout.
+- [x] **AC-0020.** On a copy of the wide fixture re-indexed with one more `helper` caller, the first-page blast-radius cursor from the original graph exits non-zero with empty stdout.
+- [x] **AC-0021.** On the wide fixture, `blast-radius helper` in text mode prints a line containing `--cursor `.
+- [x] **AC-0022.** `SKILL.md`, `references/evidence.md`, `references/capability-map.md`, `references/investigation-patterns.md` and `agents/impact-analyst.md` each contain `--cursor` and `next_cursor`.
+- [x] **AC-0023.** `SKILL.md` and `references/evidence.md` each contain `` `next_cursor` is `null` ``.
+- [x] **AC-0024.** `SKILL.md`, `references/evidence.md` and `agents/impact-analyst.md` each contain `rows on later pages`.
+- [x] **AC-0025.** `SKILL.md` and `references/evidence.md` each contain `start again from the first page`.
+- [x] **AC-0026.** `references/evidence.md` contains `more pages remain`.
+- [x] **AC-0027.** The `lineage` row of `references/capability-map.md` contains `Default depth 24`.
+- [x] **AC-0028.** `references/capability-map.md` and `README.md` each contain `empty in-memory` and `WICKED_MEMORY_DB`.
+- [x] **AC-0029.** `evals/evals.json` contains a case whose assertions contain both `next_cursor` and `--cursor`, and a case whose assertions contain `first page`.
+- [x] **AC-0030.** Every `blast-radius` JSON file under `evals/files/` carries `next_cursor` and `page`.
+- [x] **AC-0031.** The retired-claim scanner finds no match in the shipped surface.
+- [x] **AC-0032.** The retired-claim scanner matches every sentence in its planted stale sample, every pattern has a stale sample, and no sentence in its planted current sample matches.
+- [x] **AC-0033.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
+- [x] **AC-0034.** `grep -F -- '--cursor' guides/code-intelligence/reference/capability-surface.md` and `grep -F 'next_cursor' guides/code-intelligence/reference/capability-surface.md` each exit 0.
+- [x] **AC-0035.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.9`.
+- [x] **AC-0036.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.9`.
+- [x] **AC-0037.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.9\] — \d{4}-\d{2}-\d{2}$`.
+- [x] **AC-0038.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty.
+- [x] **AC-0039.** `agentbundle catalogue verify --root .` exits 0.
+- [x] **AC-0040.** The `packs/AGENTS.local.md` internal-citation grep, run over the pack test modules this change edits, finds no match.
 
 ## Follow-ons
 

@@ -31,3 +31,10 @@ On `/tmp/we-page` (indexed by 0.29.2):
 - With `wicked-estate 0.26.0` first on `PATH`, `estate_preflight.py --check` exits 4 with `required: 0.29` and `cargo install wicked-estate --version 0.29.2 --locked`.
 - With 0.29.2 first, it exits 0 (`status: ready`).
 - `blast-radius helper --json` and `lineage fan_out --json` paged to a `null` cursor return 1,503 and 1,501 distinct rows over 12 pages each.
+
+## REVIEW — implementation rounds
+
+- Round 1: the adversarial review sustained four concerns and two nits on adjudication. They were the read-only MCP store-path fallbacks (`WICKED_ESTATE_DB`, the working-directory default, `$HOME/.wicked`), the provenance of MCP `page` (source-read, not schema-derived), the stale generated journey page, the changelog's "every dependent" claim, the `…` ellipsis, and lineage `total` counting dependency rows only. The first adjudication of that report carried a stray indeterminate marker and was rejected as invalid; the owner authorized one replacement adjudication, which was well-formed. The adopter-copy review sustained eight findings: changelog Highlights, the tutorial version check, the lineage guide bullet, and the README wording. All were repaired in one commit, and the journey projection was regenerated with `tools/build-site.py --journeys-only`.
+- Round 2: one nit (a doubled word) and one minor (a 75-word README sentence), both sustained and repaired.
+- Round 3: both reviewers returned `Clean — ready to commit.`
+- Gates on the final head: pack suite plus readability 283 passed with 0.29.2 first on `PATH`; guide `pin` and `retired` scanners exit 0; journey parity, pack-journey and journey-contract lints pass; self-host leaves the tree clean; `catalogue verify` ok; `make lint-ruff lint-mypy` pass.
