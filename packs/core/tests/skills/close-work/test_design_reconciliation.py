@@ -1,7 +1,8 @@
 """Design reconciliation in close-work step 4 stays Core-only.
 
-Covers AC-0012, AC-0013 (eval id) and the Core README phrase of AC-0014 of
-``docs/specs/architect-shaping-reach/``.
+Step 4 offers to reconcile an implemented future-state design into the
+current-architecture surface under confirmation, the eval and README describe
+it, and none of those files names the architect pack.
 """
 
 from __future__ import annotations

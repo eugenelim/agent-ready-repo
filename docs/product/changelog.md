@@ -64,6 +64,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.0.3] — 2026-10-10
+
+### Highlights
+
+- After a design you saved before building ships, `close-work` can now offer to reconcile it into your current architecture documentation, so a future-state design is not mistaken for a description of the running system.
+
+### Changed
+
+- `close-work` gains one offer: when the change implemented a saved future-state design, it offers to reconcile that design into the `current-architecture` destination. The offer is optional and adds no gate.
+- `close-work` gains one behavior eval for the reconciliation offer.
+
+## [architect][0.15.16] — 2026-10-10
+
+### Highlights
+
+- When a repository has no reference architecture, `architect-design` now says so, lowers its confidence in stack assumptions, and offers to hand off to `adapt-to-project` (existing code) or `init-project` (a new project) to establish one. It never drafts one itself.
+- A saved design is now labelled future-state, with a pointer to reconcile it into current architecture once the change ships.
+
+### Changed
+
+- `architect-design` checks for a reference architecture, states the result in the concept including "none found", and routes a missing one to Core's producers when they are in the roster; with neither present it states the absence and continues.
+- `architect-design` describes a saved design as future-state to be reconciled into `current-architecture` after the change ships; the README and `DESIGN.md` match, and `pack.toml` records the optional Core hand-offs.
+- One behavior eval covers the no-reference-architecture case.
+
+## [product-engineering][0.13.25] — 2026-10-10
+
+### Highlights
+
+- With the `architect` pack installed, shaping now reaches architecture at the right moment. `frame-intent` offers `architect-design` when framing hits a system-shape question. `frame-domain` and `de-risk-intent` offer `architect-assess` for a current-state model. `decompose-intent` and `map-capabilities` offer a design before cutting work. Without `architect`, these skills say nothing about it and behave as before.
+- When a saved design covers a feature, `decompose-intent` now carries it into the delivery contract's design context, so the spec stage reads it.
+- `explore-options`, `diverge-solutions`, `de-risk-intent`, and `decompose-intent` now use a current-architecture document, when one exists, to judge feasibility and check slices against subsystem boundaries.
+
+### Changed
+
+- Every architect offer is conditional on the available-skills roster and ends with one fixed sentence that keeps the absent case silent: no mention, no note, and no error.
+- `frame-domain`'s brownfield half reuses a current-architecture document first, and an absent `architect-assess` is never recorded as a grounding gap.
+- `frame-intent` parks a system-shape question as an open design question in `Assumptions`, outside Outcome and Opportunity.
+- `pack.toml` declares two optional `architect` integrations (`architect-design-offer`, `architect-current-state`) with a silent fallback. No dependency is added.
+- New behavior evals cover the installed and not-installed paths for `frame-domain`, `frame-intent`, `de-risk-intent`, and `decompose-intent`. A pack test pins the silent sentence at every offer.
+
 ## [core][3.0.2] — 2026-10-10
 
 ### Highlights
