@@ -23,7 +23,7 @@
 
 ## Outcome
 
-Teams that install the `architect` pack next to `product-engineering` and `core` get architecture work that flows into shaping, specs, and closeout: framing offers a design at the right scope, brownfield grounding reuses or produces a current-state model, a design reaches the spec through the delivery contract, and a shipped design can be reconciled into current architecture. Teams without `architect` see no architect offer, mention, note, or error.
+Teams that install the `architect` pack next to `product-engineering` and `core` get architecture work that flows into shaping, specs, and closeout: framing offers a design at the right scope, brownfield grounding reuses or produces a current-state model, a design reaches the spec through the delivery contract, and a shipped design can be reconciled into current architecture. Teams without `architect` see no change at all: no mention, no note, and no error.
 
 ## What Changes
 
