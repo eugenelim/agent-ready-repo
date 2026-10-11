@@ -17,7 +17,7 @@ migrate, whether the bug is fixed, or whether the refactor is worth doing.
 
 ```bash
 wicked-estate resolve charge --json                  # which `charge`?
-wicked-estate source ChargeProcessor.charge --json   # read it before theorising
+wicked-estate source ChargeProcessor.charge --json   # indexed-revision text; confirm callers by your own search
 wicked-estate blast-radius ChargeProcessor.charge --json
 wicked-estate graph-view --focus ChargeProcessor --limit 30
 ```
@@ -27,7 +27,7 @@ wicked-estate graph-view --focus ChargeProcessor --limit 30
 > The charge is issued at `billing/charge_processor.rs:142`. Six resolved call
 > sites reach it. Two are retry paths — `RetryQueue::drain` and
 > `WebhookHandler::replay` — and neither checks an idempotency key before
-> calling, which I confirmed by reading both.
+> calling, which I confirmed by searching the repository for both.
 >
 > `blast-radius` also reports 3 unresolved call sites. They are probably the
 > dynamic handler registration in `plugins/`, which the indexer cannot bind, so
@@ -48,8 +48,8 @@ bug, or write a fix. The `bug-fix` workflow owns the diagnosis and the change.
 wicked-estate stats                                  # freshness, before anything else
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
-wicked-estate rank --seeds <dep-id-1>,<dep-id-2>,<dep-id-3> --limit 200 --json
-wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
+wicked-estate rank --seeds '<dep-id-1>,<dep-id-2>,<dep-id-3>' --limit 200 --json
+wicked-estate source --symbols '<chosen-ids>' --json   # indexed text of the ones you picked, labelled as such
 ```
 
 **A good answer looks like:**
@@ -58,7 +58,7 @@ wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
 > false and `node_cap_reached` false at depth 12. `stats` reports the graph is
 > current with the working tree.
 >
-> I ran `rank --seeds <dependent ids> --limit 200 --json` and kept the rows
+> I ran `rank --seeds '<dependent ids>' --limit 200 --json` and kept the rows
 > whose `symbol` was in the 47-member set, giving a ranked view. Five were in
 > the top rows: `Invoice`, `LedgerEntry`, `PaymentGateway`, `RefundCalculator`,
 > and the `Money` serde implementation. Four construct `Money` positionally and
@@ -119,7 +119,7 @@ wicked-estate source --cluster 3 --json --signatures-only
 ```bash
 wicked-estate resolve LegacyAuthAdapter --json
 wicked-estate blast-radius LegacyAuthAdapter --json
-wicked-estate annotations --symbol <symbol_id> --json
+wicked-estate annotations --symbol '<symbol_id>' --json
 wicked-estate dead-code --json | grep LegacyAuthAdapter
 ```
 

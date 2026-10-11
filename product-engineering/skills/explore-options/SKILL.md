@@ -71,7 +71,9 @@ what stops the candidates from being trivial variations of one idea:
    - `altitude` and `mechanic` (where it sits on the two axes);
    - a one-line **shape** (what the product *is* under this framing);
    - its **riskiest assumption** — the one that, if wrong, sinks it (front it with
-     *what would have to be true*).
+     *what would have to be true*);
+   - `feasibility: <optional — fit against a reachable current-architecture
+     artifact, cited; omit when none>`.
 2. **Reuse, don't reinvent.** Pressure and rank with the skills that already exist —
    you are *generating*; they *select* and *stress*:
    - `compare-hypotheses`' ACH matrix to **select** among the shapes;

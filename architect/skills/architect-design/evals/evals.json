@@ -209,6 +209,17 @@
         "Grounds the direct-call-versus-event-stream trade-off in the loaded concept rather than in unstated assumptions",
         "Does not load a shape concept that no open decision in the proposal turns on"
       ]
+    },
+    {
+      "id": "no-reference-architecture",
+      "prompt": "We need to decide how our billing service should publish invoice events to the ledger service. The repository has code but no reference.md, no current-architecture document, and no AGENTS.md mapping for architecture. Run both variants: adapt-to-project is in the available-skills roster; then neither adapt-to-project nor init-project is available.",
+      "expected_output": "The concept says no reference architecture was found and lowers the confidence of stack assumptions it inferred from the code. With adapt-to-project available it offers to hand off to that skill to harvest a golden path. With neither skill available it states the absence in the concept and continues the design. In neither variant does it draft or write a reference architecture itself.",
+      "assertions": [
+        "States in the concept that no reference architecture was found",
+        "Offers a hand-off to adapt-to-project when it is in the roster, because the repository already has code",
+        "With neither Core producer available, states the absence and continues without blocking",
+        "Never drafts or writes a reference.md or other reference architecture itself"
+      ]
     }
   ]
 }

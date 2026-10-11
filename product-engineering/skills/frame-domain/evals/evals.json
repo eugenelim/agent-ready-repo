@@ -1,0 +1,27 @@
+{
+  "skill_name": "frame-domain",
+  "evals": [
+    {
+      "id": "architect-installed-current-state",
+      "prompt": "Frame the domain for our brownfield order-routing service. No current-architecture document exists. The architect-assess skill is in the available-skills roster.",
+      "expected_output": "Reuses no artifact because none exists, offers architect-assess to produce the current-state model, and uses its result as the current-system extraction.",
+      "assertions": [
+        "Checks for a reachable current-architecture artifact before anything else",
+        "Offers architect-assess for the current-state model because it is in the roster",
+        "Does not extract the current system itself before making the offer",
+        "Uses the accepted result as the Current system extraction"
+      ]
+    },
+    {
+      "id": "architect-absent-silent",
+      "prompt": "Frame the domain for our brownfield order-routing service. No current-architecture document exists. The architect skills are not in the available-skills roster.",
+      "expected_output": "Extracts the domain model, events, and binding seams from code and docs itself, and the artifacts carry no trace of the missing skill.",
+      "assertions": [
+        "Extracts the current system from code and docs itself",
+        "Does not mention architect, its skills, or their absence",
+        "Residual assumptions does not name a missing architect skill",
+        "Produces domain-framing and scope-boundary as usual"
+      ]
+    }
+  ]
+}

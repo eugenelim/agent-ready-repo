@@ -138,6 +138,28 @@
         "Does not install, require, probe for, or invoke Experience Design",
         "Keeps Product Engineering fields under Product Engineering ownership"
       ]
+    },
+    {
+      "id": "system-shape-question-architect-installed",
+      "prompt": "Frame an intent for our reporting feature. The team keeps asking which stack is mandated and how it should integrate with the billing system. The architect-design skill is in the available-skills roster.",
+      "expected_output": "Parks the system-shape question in Assumptions as an open design question, keeps Outcome and Opportunity solution-independent, and offers architect-design at a named scope.",
+      "assertions": [
+        "Records the system-shape question in Assumptions as an open design question",
+        "Outcome and Opportunity stay solution-independent and name no stack or integration",
+        "Offers architect-design at one of application/system, subsystem, or architecture change",
+        "Does not answer the question inside the intent"
+      ]
+    },
+    {
+      "id": "system-shape-question-architect-absent",
+      "prompt": "Frame an intent for our reporting feature. The team keeps asking which stack is mandated and how it should integrate with the billing system. The architect skills are not in the available-skills roster.",
+      "expected_output": "Parks the system-shape question in Assumptions as an open design question and completes the intent with no offer and no note.",
+      "assertions": [
+        "Records the system-shape question in Assumptions as an open design question",
+        "Outcome and Opportunity stay solution-independent",
+        "Does not mention architect, its skills, or their absence",
+        "Completes the intent as usual"
+      ]
     }
   ]
 }
