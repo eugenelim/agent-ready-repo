@@ -1,7 +1,7 @@
 # Plan: Intent navigation export
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/DESIGN.md` § Intent-edge derivation (source, copies, pins, consumers); analogous implementation: `packs/governance-extras/.apm/skills/navigate-decisions/scripts/explorer.py` with `explorer_assets/`, its tests `packs/governance-extras/tests/skills/navigate-decisions/test_html_publication.py` and the uncollected Playwright suite `browser_checks.py`, its scale and browser evidence in `docs/specs/decision-navigation/notes/verification-ledger.md`; second safety precedent `packs/core/.apm/skills/explain-diff/scripts/publish_explanation.py`. Deviations: no record bodies, so no Markdown renderer and no "bounded" body-free mode — the bounded route is `--from`; both the script and the style are hash-pinned, where the precedent allows inline style; the destination is resolved to its real path before validation instead of refusing a symlinked ancestor, because the default temporary directory on macOS sits under a symlink.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -254,3 +254,6 @@ Owned by: T4, T5
 - Windows lacks `dir_fd` support, so the export refuses there with `publish_failed`; the guide says so.
 
 ## Changelog
+
+- 2026-10-11: spec approved by eugenelim
+- 2026-10-11: plan approved by eugenelim
