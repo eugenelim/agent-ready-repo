@@ -5,6 +5,7 @@ never derives the intent graph itself.  Standard-library-only.
 """
 from __future__ import annotations
 
+import base64
 import contextlib
 import datetime as _dt
 import hashlib
@@ -67,18 +68,97 @@ def data_block_json(payload: dict[str, Any]) -> str:
     return text
 
 
+_ASSET_DIR = Path(__file__).resolve().parent / "view_assets"
+_ASSET_LIMIT_BYTES = 1_048_576
+
+_SHELL = """<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="{csp}">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intent graph</title>
+<style>{style}</style>
+</head>
+<body>
+<noscript><p class="notice">This view needs JavaScript to show the intent graph. The file is inert otherwise: it holds data and a single script, and it makes no network request.</p></noscript>
+<div id="live" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+<header class="page-header">
+<h1 class="page-title">Intent graph</h1>
+<p id="meta" class="meta"></p>
+<div id="scope-banner" class="banner" hidden></div>
+<section id="summary-section" aria-labelledby="summary-title" hidden>
+<h2 id="summary-title" class="visually-hidden">Summary</h2>
+<p id="summary-scope" class="summary-scope"></p>
+<ul id="summary-list" class="stats"></ul>
+</section>
+</header>
+<main id="main" hidden>
+<div class="layout">
+<div class="worklist">
+<nav aria-label="Views"><ul id="view-list" class="view-list"></ul></nav>
+<fieldset class="filters">
+<legend class="filters-title">Filter intents</legend>
+<div class="field"><label for="filter-q">Search slug or heading</label><input id="filter-q" class="control" type="search" autocomplete="off"></div>
+<div class="field"><label for="filter-level">Level</label><select id="filter-level" class="control"></select></div>
+<div class="field"><label for="filter-kind">Kind</label><select id="filter-kind" class="control"></select></div>
+<div class="field"><label for="filter-status">Status</label><select id="filter-status" class="control"></select></div>
+</fieldset>
+<h2 id="view-heading" class="view-heading focus-target" tabindex="-1"></h2>
+<p id="view-count" class="count"></p>
+<div id="list"></div>
+</div>
+<div class="detail">
+<h2 id="detail-heading" class="detail-heading focus-target" tabindex="-1">Details</h2>
+<div id="detail-body"></div>
+<div id="detail-legend"></div>
+</div>
+</div>
+</main>
+<script type="application/json" id="intent-data">{data}</script>
+<script>{script}</script>
+</body>
+</html>
+"""  # noqa: E501
+
+
+def _read_asset(name: str) -> str:
+    """Read one view asset through the confined reader; LF line ends, as the parser sees them."""
+    safety = _file_safety()
+    if safety is None:
+        raise ViewRefusal("resolver_unavailable", "view assets are unavailable")
+    try:
+        raw = safety.read_confined_regular_file(
+            _ASSET_DIR, _ASSET_DIR / name, max_bytes=_ASSET_LIMIT_BYTES
+        )
+        return raw.decode("utf-8").replace("\r\n", "\n")
+    except (ValueError, OSError):
+        raise ViewRefusal("resolver_unavailable", "view assets are unavailable") from None
+
+
+def _digest(content: str) -> str:
+    """Return the CSP source expression for the SHA-256 of *content*'s UTF-8 bytes."""
+    return "'sha256-" + base64.b64encode(hashlib.sha256(content.encode("utf-8")).digest()).decode(
+        "ascii"
+    ) + "'"
+
+
 def build_html(payload: dict[str, Any]) -> str:
-    """Return the HTML document that carries *payload* in its one data block."""
-    return (
-        "<!doctype html>\n"
-        '<html lang="en">\n'
-        '<head><meta charset="utf-8"><title>Intent graph</title></head>\n'
-        "<body>\n"
-        '<script type="application/json" id="intent-data">'
-        f"{data_block_json(payload)}</script>\n"
-        "</body>\n"
-        "</html>\n"
+    """Return the document: a fixed shell, the one data block, one style, one script.
+
+    The shell interpolates no record text; every record string lives only in the data block.
+    The content-security policy pins the style and the script by digest, so nothing else runs.
+    """
+    style = _read_asset("view.css")
+    script = _read_asset("view.js")
+    for name, body, closer in (("view.css", style, "</style"), ("view.js", script, "</script")):
+        if closer in body.lower() or "<!--" in body:
+            raise ViewRefusal("resolver_unavailable", f"view asset cannot be inlined: {name}")
+    csp = (
+        f"default-src 'none'; script-src {_digest(script)}; style-src {_digest(style)}; "
+        "img-src 'none'; base-uri 'none'; form-action 'none'"
     )
+    return _SHELL.format(csp=csp, style=style, script=script, data=data_block_json(payload))
 
 
 class Destination(NamedTuple):
