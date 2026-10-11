@@ -1376,3 +1376,10 @@ record. Corrections are appended here, Approver-signed.
   specification. The accepted RFC body and shipped specification remain the
   historical record. The follow-on intent is
   [`capture-work-alias-removal`](../product/intents/capture-work-alias-removal.md).
+- **2026-10-10 (Approver: eugenelim) — §4 amended by [RFC-0107](0107-verb-mode-shaping-and-intake-with-slice-handover.md).**
+  - Closure receipts and the list of affected repositories move from the parent
+    intent to its component slices
+    ([ADR-0142](../adr/0142-meta-repo-handover-component-slices-and-pinned-receipts.md)).
+  - A feature intent is fulfilled when every component slice holds a shipped receipt.
+  - Dependency evaluation still reads only local receipts, so reconciliation still
+    reaches the same answer offline.
