@@ -22,9 +22,23 @@ retrieval, executable checks, runtime evidence, experiments, and file writes.
 
 ## Where this fits
 
-In the *Shape it* stage, this pack sketches the architecture concept an intent
-needs before anyone writes a spec. It also stands on its own: an architecture
-assessment can start a piece of work at any point. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
+This pack keeps the architecture that shaping and building read. On the
+short and longer shaping routes, you decide when to run each skill. On the
+supervised loop, `discovery-lead` runs the architecture lens for you:
+
+- **Once per repository, before any work**, assess the system to get a
+  current-state map you can correct. `core`'s `adapt-to-project` or
+  `init-project` writes the engineering patterns into `reference.md`.
+- **In *Decide what to build***, assess the area a bet touches.
+- **In *Shape it***, design against the capabilities at system scope and
+  revise them until each one has a home. Then design the subsystems that earn
+  a doc.
+- **In *Build it***, the plan behind every spec follows `reference.md` and your
+  design docs. If the build shows a design is wrong, design the change.
+- **After a merge** that moves a boundary, redraw the current-state map.
+
+[Where architecture comes in](../_shared/explanation/the-operating-model.md#where-architecture-comes-in)
+lays out the timeline stage by stage.
 
 ## Choose your task
 

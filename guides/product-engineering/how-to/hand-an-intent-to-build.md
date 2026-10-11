@@ -38,6 +38,18 @@ unresolved questions, projection, and source — to that artifact in place, and
 keeps the framing you wrote, including its altitude. It does not re-render the
 file or restate your outcome.
 
+## Carry the architecture with it
+
+If you shaped an architecture concept or design doc, it goes with the intent.
+List it in your `AGENTS.md` so `new-spec` reads it when it writes the plan's
+design section. To make the spec wait until the design lands, register the
+design in `workspace.toml` and add it to the spec's `needs` array. [Shape an
+architecture concept](../../architect/how-to/shape-an-architecture-concept.md#register-the-artifact)
+shows both entries. If your repository has a `reference.md`, the plan follows
+it without any extra step.
+
+## Keep the gates
+
 The handoff supplies bounded context and provenance. It does not approve an
 artifact or skip a human gate, so continue only when Core shows the next route
 and its required approval.

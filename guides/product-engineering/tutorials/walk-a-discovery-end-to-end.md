@@ -51,7 +51,7 @@ The loop **surfaces the altitude bet to you** — it is a value/scope call, not 
 
 ## 5. Converge through the lenses
 
-On the chosen spine, the lenses run as parallel writers onto the blackboard — product (`decompose-intent`), UX (`map-customer-journey`, `map-screen-flow`), tech (architecture, contracts) — bouncing off each other only through the **open-questions queue**. The security lens raises an open question (OQ): *approved-learning needs an audit trail.* The controller resolves it by adding an `audit-view` screen + an `audit` service — no agent-to-agent chat.
+On the chosen spine, the lenses run as parallel writers onto the blackboard — product (`decompose-intent`), UX (`map-customer-journey`, `map-screen-flow`), tech (`architect-design`, `architect-diagram`, and contracts) — bouncing off each other only through the **open-questions queue**. The security lens raises an open question (OQ): *approved-learning needs an audit trail.* The controller resolves it by adding an `audit-view` screen + an `audit` service — no agent-to-agent chat.
 
 ## 6. Watch a rejection cascade (recovery)
 

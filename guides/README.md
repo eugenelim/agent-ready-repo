@@ -90,9 +90,15 @@ Core intake.
 
 1. [Gather evidence](desk-research/) when the answer is not already known
 2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) — `frame-intent`
-3. De-risk it and break it down — `de-risk-intent`, then `decompose-intent`
-4. [Shape the architecture concept](architect/how-to/shape-an-architecture-concept.md) against it
-5. [Hand the intent to the build loop](product-engineering/how-to/hand-an-intent-to-build.md)
+3. De-risk it — `de-risk-intent`
+4. [Shape the architecture concept](architect/how-to/shape-an-architecture-concept.md)
+   against it when the work changes how the system is built — `architect-design`
+5. Break it down — `decompose-intent`
+6. [Hand the intent to the build loop](product-engineering/how-to/hand-an-intent-to-build.md)
+
+The spec the build loop writes follows your [reference architecture](architect/how-to/establish-reference-architecture.md)
+when you have one. [Where architecture comes in](_shared/explanation/the-operating-model.md#where-architecture-comes-in)
+shows which architecture document helps at each point.
 
 On the robust path, [frame the situation](product-engineering/how-to/frame-a-situation.md)
 first, then [identify opportunities](product-engineering/how-to/identify-opportunities.md),
