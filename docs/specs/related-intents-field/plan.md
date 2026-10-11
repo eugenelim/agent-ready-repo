@@ -1,7 +1,7 @@
 # Plan: Related intents field
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/DESIGN.md` § Intent-edge derivation: source, copies, pins, and consumers; analogous implementations: `intent_shape.validate_supersession` (a corpus-scoped pointer rule run by `intent_corpus_lint.py`) and `lint-traceability.py`'s `outcome_co_owner_findings` (a typed peer pointer that adds no graph edge); their tests: `packs/core/tests/skills/work-intake/test_intent_corpus_lint.py` and `packs/core/tests/skills/work-loop/test_lint_traceability.py::test_ac0004_outcome_co_owner_does_not_add_graph_edges`; deviation: `Superseded by:` is a bare slug, so the related rule needs typed parsing and a slug-to-kind map the lint does not build today.
 
 > **Plan contract:** this is the implementation strategy. It may change
