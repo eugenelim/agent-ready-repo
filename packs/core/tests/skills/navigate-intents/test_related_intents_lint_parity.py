@@ -37,10 +37,6 @@ lint = _load(
     _SKILLS / "work-intake" / "scripts" / "intent_corpus_lint.py",
     "core_related_parity_lint",
 )
-ig = _load(
-    _SKILLS / "navigate-intents" / "scripts" / "intent_graph.py",
-    "core_related_parity_graph",
-)
 nav = _load(
     _SKILLS / "navigate-intents" / "scripts" / "navigate_intents.py",
     "core_related_parity_nav",
