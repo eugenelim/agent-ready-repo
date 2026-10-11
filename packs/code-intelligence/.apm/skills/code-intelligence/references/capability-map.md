@@ -269,7 +269,7 @@ serves that store as an empty in-memory store and prints
 `read-only: no <store> store at '<path>'; serving it empty in memory` on stderr
 (source-read from `wicked-estate-mcp` 0.29.2). An empty answer from a server
 registered with a wrong path is therefore not evidence about the repository. The
-the graph path comes from `--db`, else `WICKED_ESTATE_DB`, else `.wicked-estate/graph.db` relative to the server's working directory (so a server registered without `--db` from the wrong directory reads an
+graph path comes from `--db`, else `WICKED_ESTATE_DB`, else `.wicked-estate/graph.db` relative to the server's working directory (so a server registered without `--db` from the wrong directory reads an
 empty graph), and the memory, knowledge, and cross-store paths come from `WICKED_MEMORY_DB`, `WICKED_KNOWLEDGE_DB`, and `WICKED_XEDGE_DB`, else from `WICKED_HOME`, else `$HOME/.wicked`. Check the path before trusting an empty result.
 
 ---

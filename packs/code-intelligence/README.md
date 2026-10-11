@@ -126,9 +126,16 @@ claude mcp add wicked-estate -s project -- \
 With `--readonly`, a store path that does not exist is not created: the server
 serves that store as an empty in-memory store and says so on stderr, so an empty
 answer from a wrongly registered path says nothing about your repository. If every
-answer from one store is empty, check its path first: the graph path comes from `--db`, else `WICKED_ESTATE_DB`, else `.wicked-estate/graph.db` relative to the server's working directory, and the memory, knowledge, and cross-store paths come from `WICKED_MEMORY_DB`, `WICKED_KNOWLEDGE_DB`, and `WICKED_XEDGE_DB`, else from `WICKED_HOME`, else `$HOME/.wicked`
-(source-read, meaning read from the `wicked-estate-mcp` 0.29.2 source code rather
-than run).
+answer from one store is empty, check its path first:
+
+- The graph path comes from `--db`, else `WICKED_ESTATE_DB`, else
+  `.wicked-estate/graph.db` relative to the server's working directory.
+- The memory, knowledge, and cross-store paths come from `WICKED_MEMORY_DB`,
+  `WICKED_KNOWLEDGE_DB`, and `WICKED_XEDGE_DB`, else from `WICKED_HOME`, else
+  `$HOME/.wicked`.
+
+These paths are source-read, meaning read from the `wicked-estate-mcp` 0.29.2
+source code rather than run.
 
 The capability map marks every row with which surface serves it, so the skill
 never implies coverage that is not there.
