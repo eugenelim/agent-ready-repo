@@ -104,8 +104,9 @@ this work".
 
    Freshness is not in this output — `blast-radius` suppresses its `STALENESS:`
    line under `--json`. Run `wicked-estate stats --json` and read
-   `staleness.commits_behind`; a null count with roots in `staleness.unknown`
-   means freshness is unknown (source-read from `main.rs`).
+   `staleness.commits_behind`. The graph is current only when that count is 0
+   and `staleness.unknown` is empty; a root listed in `unknown` has unknown
+   freshness whatever the count (source-read from `main.rs`).
 
 4. **Separate direct from transitive.** Each row in `dependents` carries a
    per-row `depth`: 1 is a direct dependent and larger values are transitive. One

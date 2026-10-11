@@ -28,7 +28,7 @@ python '<skill-dir>/scripts/estate_preflight.py' --check
 wicked-estate stats --json
 ```
 
-Read `staleness` before querying. `commits_behind` counts the commits the graph lags the working tree; when it is null, the roots listed under `unknown` could not be checked. Note any revision gap. A missing `STALENESS:` line inside a `--json` call, or in text `stats`, is not evidence of a current graph (source-read from `main.rs`). See [`references/evidence.md`](evidence.md) for the full freshness model.
+Read `staleness` before querying. `commits_behind` counts the commits the graph lags the working tree. Treat the graph as current only when that count is 0 and no root is listed under `unknown`. Note any revision gap. A missing `STALENESS:` line inside a `--json` call, or in text `stats`, is not evidence of a current graph (source-read from `main.rs`). See [`references/evidence.md`](evidence.md) for the full freshness model.
 
 **Step 3 — Resolve the subject.**
 
@@ -118,7 +118,7 @@ These rules hold across providers and paths, and stay the same whichever provide
 These belong to the Wicked Estate provider and to this pack. Another provider need not replicate them.
 
 - **Prerequisites.** The binary, the version floor, and a built index. The readiness check is [`../scripts/estate_preflight.py`](../scripts/estate_preflight.py).
-- **Commands.** The Wicked Estate CLI commands this example shows — `wicked-estate stats`, `wicked-estate resolve parse_config --json`, `wicked-estate blast-radius parse_config --depth 1 --json`, and `wicked-estate source --symbols '<id>' --json` — are owned by this pack. `python '<skill-dir>/scripts/estate_preflight.py' --check` is this pack's readiness script, not a Wicked Estate CLI command. `git log -n <N> --name-only --format='%h %s'` is the bounded repository-native history command shown in the fallback path. The full command inventory is in [`references/capability-map.md`](capability-map.md).
+- **Commands.** The Wicked Estate CLI commands this example shows — `wicked-estate stats --json`, `wicked-estate resolve parse_config --json`, `wicked-estate blast-radius parse_config --depth 1 --json`, and `wicked-estate source --symbols '<id>' --json` — are owned by this pack. `python '<skill-dir>/scripts/estate_preflight.py' --check` is this pack's readiness script, not a Wicked Estate CLI command. `git log -n <N> --name-only --format='%h %s'` is the bounded repository-native history command shown in the fallback path. The full command inventory is in [`references/capability-map.md`](capability-map.md).
 - **Capability mapping.** How a tool-neutral question maps to a specific command is in [`references/capability-map.md`](capability-map.md).
 - **Evidence fields.** The completeness counts and cut indicators in the query response are Wicked Estate output. Their semantics and how to phrase a bounded claim are in [`references/evidence.md`](evidence.md).
 - **Gaps.** The limits of what Wicked Estate exposes today — direct, by composition, partial, or absent — are in [`references/gaps.md`](gaps.md).

@@ -232,9 +232,11 @@ much alive. Never recommend a deletion on `dead-code` output alone.
 `wicked-estate stats --json` returns the graph's identity and freshness as
 fields: `provenance.commit`, `provenance.indexed_at` and
 `provenance.indexed_version`, plus `staleness.commits_behind`. `commit` is null
-when the graph was not indexed from a git checkout. `commits_behind` is null
-when no indexed root could be checked, and `staleness.unknown` names those
-roots (source-read from `main.rs`). `fingerprint` and `changed-since` support per-symbol and
+when the graph was not indexed from a git checkout, and on a graph indexed with
+`--repo`, which reports each repository's `commit` and `commits_behind` under
+`repos[]` instead. `commits_behind` is the worst count over the roots that
+could be checked; `staleness.unknown` names the roots that could not
+(source-read from `main.rs`). `fingerprint` and `changed-since` support per-symbol and
 per-revision change detection.
 
 ## 14. Capability discovery — **Direct**
@@ -294,4 +296,6 @@ required, and this pack works within all of them.
    and `path` suppress `STALENESS:` under `--json`, so an agent working in JSON
    from those commands never sees it. Bridged commands (`lineage`, `traverse`,
    `rank`, `rules-inventory`, `rules-recall`) write it to stderr under `--json`
-   and to stdout after the result in text mode.
+   and to stdout after the result in text mode. `query`, `clusters` and
+   `context` print commits-behind lines on stdout before the JSON even under
+   `--json` (source-read from `main.rs`).

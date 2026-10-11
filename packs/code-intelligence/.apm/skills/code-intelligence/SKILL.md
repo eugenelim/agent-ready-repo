@@ -267,8 +267,9 @@ Three rules are load-bearing:
   `blast-radius` and `path` suppress it under `--json`.
   Run `wicked-estate stats --json` before blast-radius or path queries when
   freshness matters and read `staleness`: `commits_behind` is how far behind
-  the graph is, and a null count with roots in `unknown` means freshness is
-  unknown. Text `stats` stays silent in both the current and unknown cases, so
+  the graph is. The graph is current only when that count is 0 and `unknown`
+  is empty; a root listed in `unknown` has unknown freshness whatever the
+  count. Text `stats` stays silent in both the current and unknown cases, so
   its silence proves nothing (source-read from `main.rs`). Say which revision
   you answered from.
 

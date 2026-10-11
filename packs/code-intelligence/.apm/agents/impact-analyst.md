@@ -19,8 +19,9 @@ wicked-estate stats --json
 ```
 
 A `nodes` count means proceed. Read freshness from `staleness`:
-`commits_behind` is how many commits the graph is behind, and a null count with
-roots listed in `unknown` means freshness is unknown. Text `stats` and
+`commits_behind` is how many commits the graph is behind. Call it current only
+when that count is 0 and `unknown` is empty; a root listed in `unknown` has
+unknown freshness whatever the count. Text `stats` and
 `blast-radius --json` both stay silent when freshness is unknown, so silence
 there proves nothing (source-read from `main.rs`). A `VERSION MISMATCH:` line on
 stderr means the graph predates this binary; report it and offer a re-index.

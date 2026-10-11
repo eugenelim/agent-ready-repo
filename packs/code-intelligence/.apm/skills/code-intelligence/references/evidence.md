@@ -174,10 +174,12 @@ STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate ind
 
 - **Bridged commands** (`lineage`, `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`, so stdout stays one JSON document and the warning is a stderr line (executed on `lineage --json`). In text mode they print it on stdout after the result (source-read from `tool_bridge.rs`).
 - **`blast-radius` and `path`** suppress `STALENESS:` under `--json` so machine output stays one document. Do not treat its absence there as evidence of freshness.
-- **`stats --json`** prints one JSON document that carries freshness as `staleness.commits_behind`. It is the best single check before blast-radius or path queries. A null `commits_behind` with roots listed in `staleness.unknown` means freshness is unknown. Its stderr may carry a `VERSION MISMATCH:` or `SYMBOL-ID SCHEME MISMATCH:` warning; either one means re-index before trusting answers (source-read from `main.rs`).
+- **`query`, `clusters` and `context`** print commits-behind `STALENESS:` lines on stdout before the JSON, even under `--json`. Parse from the first line that starts the JSON, and do not treat the absence of those lines as evidence of freshness (source-read from `main.rs`).
+- **`stats --json`** prints one JSON document that carries freshness as `staleness.commits_behind`. It is the best single check before blast-radius or path queries. The graph is current only when `commits_behind` is 0 and `staleness.unknown` is empty; a root listed in `unknown` has unknown freshness whatever the count. Its stderr may carry a `VERSION MISMATCH:` or `SYMBOL-ID SCHEME MISMATCH:` warning; either one means re-index before trusting answers (source-read from `main.rs`).
 
-Bridged commands print one `STALENESS:` line per indexed root, in one of these
-forms (source-read from `main.rs`):
+Bridged commands print a `STALENESS:` line for each stale or unknown root, or a
+single `0 commits` line when every root was checked and none is behind
+(source-read from `main.rs`):
 
 - `STALENESS: N commit(s) since last index` — that root is N commits behind.
 - `STALENESS: 0 commits since last index` — current for every checked root.
@@ -209,8 +211,11 @@ whether the value you passed was honoured.
 ### Establishing snapshot identity
 
 - `wicked-estate stats --json` returns the revision the graph was built from
-  as fields: `provenance.commit` (null outside a git checkout),
-  `provenance.indexed_at`, and `staleness.commits_behind` (source-read from `main.rs`).
+  as fields: `provenance.commit`, `provenance.indexed_at`, and
+  `staleness.commits_behind`. `provenance.commit` is null outside a git
+  checkout and on a graph indexed with `--repo`, which reports each
+  repository's `commit` and `commits_behind` under `repos[]` (source-read from
+  `main.rs`).
 - `wicked-estate fingerprint <name>` gives a stable hex fingerprint for one
   symbol, which is how you tell whether a specific symbol changed between two
   indexed revisions.

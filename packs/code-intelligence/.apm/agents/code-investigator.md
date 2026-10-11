@@ -24,9 +24,10 @@ wicked-estate stats --json
 ```
 
 A `nodes` count means proceed. The same document reports freshness:
-`staleness.commits_behind` is how many commits the graph is behind, and a null
-count with roots listed in `staleness.unknown` means freshness is unknown, so
-say so rather than calling the graph current (source-read from `main.rs`).
+`staleness.commits_behind` is how many commits the graph is behind. The graph
+is current only when that count is 0 and `staleness.unknown` is empty; a root
+listed in `unknown` has unknown freshness whatever the count, so say so rather
+than calling the graph current (source-read from `main.rs`).
 
 A "command not found" error, or an empty or missing graph, means you work from
 `Grep`, `Glob`, and `Read` instead, and every finding in your report carries

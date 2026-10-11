@@ -121,7 +121,7 @@ fails or produces an empty graph, stop before treating answers as graph-backed.
 Keep the error locally. For a self-serve trial, record the blocked step and a
 generic reason in your response worksheet; optional IT/support help is fine.
 
-**Check:** `stats` shows a populated graph without a staleness warning.
+**Check:** `wicked-estate stats --json` shows a non-zero `nodes` count, and `staleness` shows `commits_behind` 0 with an empty `unknown` list.
 
 ## 5. Open the agent and check readiness
 
@@ -130,13 +130,14 @@ Start a fresh Claude Code session in the app checkout. Paste:
 ```text
 Use the installed code-intelligence skill. Locate its bundled
 scripts/estate_preflight.py and run it with --check --root pointing to this
-repository. Then run wicked-estate stats here and check for staleness.
+repository. Then run wicked-estate stats --json here and read its staleness.
 Tell me whether the pack and graph are ready. Do not install tools, rebuild
 the index, or edit application code in this step.
 ```
 
 **Check:** the preflight reports `status: ready`, and the agent confirms a
-populated graph without a staleness warning. If it cannot find the skill,
+populated graph that is current: 0 commits behind and no root of unknown
+freshness. If it cannot find the skill,
 check the pack installation and reopen the session. A text-search fallback
 can still help, but it does not show that this graph trial is working.
 

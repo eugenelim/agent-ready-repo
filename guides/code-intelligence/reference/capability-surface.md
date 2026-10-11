@@ -86,13 +86,16 @@ and report missing members as unranked.
   `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to
   stderr under `--json`; in text mode they print it on stdout after the result
   (source-read from `tool_bridge.rs`; pinned on `lineage --json`). They print
-  one line per indexed root: `N commit(s)` when it is behind, `0 commits` when
-  every checked root is current, and `unknown` when freshness could not be
-  determined (source-read from `main.rs`). `CLAMPED:`, the line printed when a
+  `N commit(s)` for each root that is behind, `unknown` for each root whose
+  freshness could not be determined, and a single `0 commits` line when every
+  root was checked and none is behind (source-read from `main.rs`). `CLAMPED:`, the line printed when a
   limit such as `--depth` above 24 is lowered to its ceiling, follows the same
   channels. `blast-radius` and `path` suppress `STALENESS:` under `--json`, and
   text `stats` stays silent when freshness is unknown, so check freshness with
-  `wicked-estate stats --json` and read `staleness.commits_behind`.
+  `wicked-estate stats --json`: the graph is current only when
+  `staleness.commits_behind` is 0 and `staleness.unknown` is empty. `query`,
+  `clusters` and `context` print commits-behind lines on stdout before their
+  JSON, even under `--json`.
 
 ## What does not exist on the CLI
 
