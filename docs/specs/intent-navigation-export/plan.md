@@ -231,7 +231,8 @@ Owned by: T4, T5
 **Verification mode:** TDD
 
 **Tests:**
-- AC-0024, AC-0073: `test_older_git_exports_with_latest_links_and_reads_no_objects` puts a `git` shim on `PATH` that rejects `--no-lazy-fetch`, records every call, and asserts the export succeeds from inside a repository, every link is `latest`, `provenance.commit` is null, the probe runs once, `ls-tree` and `for-each-ref` never run, and `worktree list` runs once without the option.
+- AC-0025, AC-0073: `test_older_git_exports_with_latest_links_and_reads_no_objects` puts a `git` shim on `PATH` that rejects `--no-lazy-fetch`, records every call, and asserts the export succeeds from inside a repository, every link is `latest`, `provenance.commit` is null, the probe runs once, `worktree list` runs once without the option, and the recorded Git verbs are exactly the allowed set (`--no-lazy-fetch version`, `worktree list`, `rev-parse --show-toplevel`, `config --get remote.origin.url`, `rev-parse HEAD`, `rev-parse --show-object-format`), so `ls-tree`, `for-each-ref`, or any other object-reading call fails it.
+- AC-0023, AC-0073: with the same shim, an unrecognised remote (`http://` form) and a missing remote each give every `source_links` entry `inert` with no `url`, and none of the remote text appears in the HTML.
 - AC-0073: `test_unsupported_probe_seam_keeps_destination_check`, strengthened so that with the probe reporting unsupported a destination that only the `git worktree list` result can reject (a second linked worktree outside the corpus root) is refused with `invalid_destination`.
 - The probe's own failure branch: a probe that cannot start or times out reports supported, so later calls carry `--no-lazy-fetch` and fail closed.
 
