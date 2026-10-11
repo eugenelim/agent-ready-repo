@@ -42,3 +42,8 @@ On a scratch git repository with two Python functions:
 ## Projection
 
 - On the PR head, `agentbundle catalogue self-host --root . --write` exits 0 and leaves `git status --porcelain` empty (AC-0048). `agentbundle catalogue verify --root .` exits 0 (AC-0049).
+
+## Local rollout
+
+- On 2026-10-11, `cargo install wicked-estate --version 0.26.0 --locked` replaced the maintainer's `~/.cargo/bin/wicked-estate` 0.21.0 with 0.26.0.
+- `wicked-estate index .` on the main checkout exited 0. `stats --json` reports 76,023 nodes, 119,696 edges, `indexed_version` 0.26.0 and `commits_behind` 0.
