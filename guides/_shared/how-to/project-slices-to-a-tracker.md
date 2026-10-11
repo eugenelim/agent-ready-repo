@@ -30,7 +30,7 @@ The canonical intent tree is deeper than any tracker. Trackers are lossy,
 > mismatched hierarchies silently corrupts data.
 
 That statement is the pack's own, in
-`packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`,
+`packs/product-engineering/.apm/skills/intent/references/tracker-projection.md`,
 which stays canonical for the Linear and Jira Align columns below.
 
 The practical consequence: requirements, acceptance decisions, and status live

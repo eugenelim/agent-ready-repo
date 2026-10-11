@@ -59,7 +59,7 @@ Apply this order once before intake classification:
 2. Route a request that explicitly names a known artifact, its owning skill, or
    a distinct work type directly to that owner. This includes `intake-intent`,
    `author-delivery-brief create|continue`, `new-rfc`, `new-spec`,
-   `architect-design`, `frame-intent`, and `bug-fix` when installed.
+   `architect-design`, `intent`, and `bug-fix` when installed.
 3. Route only a raw or ambiguous request, acquisition, refresh, or generic intake
    safety need through `work-intake`.
 

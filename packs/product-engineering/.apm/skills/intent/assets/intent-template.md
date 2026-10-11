@@ -1,0 +1,130 @@
+# Intent: <one-line outcome>
+
+> **This is a template, not a schema.** It shows the *shape* of a product
+> `intent` — a level-tagged statement of an outcome and the opportunity behind
+> it. Copy it to `docs/product/intents/<slug>.md` and fill in what you have; an
+> empty heading is a prompt, not an error. A `product-vision`, a
+> `product-strategy`, a capability, and a feature intent are the same shape at
+> different levels — the `Level:` field is the only difference. Keep only the
+> sections that earn their place.
+
+- **Slug:** `<slug>` <!-- kebab-case; matches the filename -->
+- **Level:** `<product-vision | product-strategy | capability | feature>` <!-- the altitude this intent sits at; an open recognized set, not a closed enum — name an intervening altitude if your org has one -->
+- **Owner:** `<who is accountable for this outcome>` <!-- required: a person or a role, declared rather than inferred from git history -->
+- **Status:** `<Draft | Accepted | Fulfilled | Withdrawn | Cancelled | Superseded>` <!-- required; one bare word. Withdrawn and Cancelled are peers of Fulfilled, not flavours of it — a rollup that counts them as delivered is the failure this vocabulary prevents -->
+- **Superseded by:** <!-- required when Status is Superseded, and refused otherwise; the Slug of the live intent that replaced this bet -->
+- **Kind:** `<outcome | opportunity>` <!-- optional, additive: the discovery-traceability chain rung this intent occupies on the opportunity-solution tree (outcome = the North Star / chain root; opportunity = a need in the OST). The structural-orphan lint reads this bold-body field to place the intent on the chain. Distinct from Level: (the altitude) — a `Level: capability` intent is placed by Level instead, and a feature intent maps downstream to a brief/spec. Omit it when not running the discovery-traceability chain; an intent still carries both an Outcome and an Opportunity section regardless. -->
+- **Scale:** `<app | business-unit>` <!-- resolved at intake by intent frame -->
+- **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
+- **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
+- **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->
+- **De-risked:** <!-- optional: the ISO 8601 date the riskiest assumption was tested, or the literal `no`. Absent means nobody recorded it; `no` means someone decided against de-risking -->
+- **Shaping-reviewed:** <!-- optional: the ISO 8601 date a cold reviewer read this, or the literal `no` -->
+- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light | closed-empty. `closed-empty` means decomposition is deliberately complete with no child work; `direct-light` requires each item under ## Decomposition to state its requested outcome -->
+
+## Outcome
+
+<!-- LOAD-BEARING. What changes, and how you'll know. Name a *steerable input
+metric* you can directly move, the *lagging outcome* it should drive, and a
+*guardrail* that must not get worse. A qualitative-but-falsifiable outcome is
+fine in 0-to-1 — name the signal you'd accept as proof. -->
+
+- **Input (steerable):** <the metric you can move directly>
+- **Outcome (lagging):** <the result it should drive>
+- **Guardrail:** <what must not get worse>
+
+## Opportunity
+
+<!-- LOAD-BEARING. The solution-independent need behind the outcome — what the
+user is trying to get done (a job / opportunity), framed without baking in a
+solution.
+
+Optional JTBD sub-fields — include when framing a job-shaped opportunity so all
+three job dimensions are surfaced alongside the struggling moment; free-form
+prose above is still valid for quick framing. See
+`references/jtbd-job-categories.md` for definitions and examples. -->
+
+<the opportunity — one sentence summary, or use the sub-fields below>
+
+<!-- optional structured JTBD fields (omit for free-form prose) -->
+- **Functional job:** <what the user is trying to accomplish>
+- **Emotional job:** <how they want to feel during or after the job>
+- **Social job:** <how they want to be perceived by others>
+- **Struggling moment:** <where the current situation fails them>
+
+## Product-to-experience handoff
+
+<!-- Optional. Fill only for a capability or feature intent whose change creates
+or materially changes a human-facing digital surface, journey, interaction,
+content hierarchy, visible state, or what a surface must prove, explain, or
+allow. Omit for product-vision, product-strategy, backend-only, infrastructure,
+internal refactor, dependency, build, or other non-surface work. Derive these
+facts from this intent and, when present, the Digital Experience Contract's
+Product Engineering fields; do not choose experience or implementation
+decisions here. -->
+
+- **Affected journey or surface:** <what user journey or surface is materially affected>
+- **User outcome and first-success behavior:** <what the user can now accomplish, and the behavior that proves first success>
+- **Product mechanism or proof:** <the product-specific mechanism, object, rule, or proof the interface may expose>
+- **Evidence for user-visible claims:** <observed, supported, inferred, assumed, or unknown evidence behind claims a person may see>
+- **Constraints, prohibited claims, and material unknowns:** <what the experience must respect, must not claim, and still does not know>
+
+## Product-vision fields
+
+<!-- LEVEL-CONDITIONAL — fill only when `Level: product-vision`. The existence
+bet: why this product should exist, for whom, through what wedge. This is a
+prompt sheet, not a schema — an empty heading is a prompt, not an error; fill
+what you have. Drop this whole section at any other Level. -->
+
+- **Customer-shaped pitch:** <the one-liner in the customer's words — what they get>
+- **The change:** <what is different for the customer once this exists>
+- **The job + struggling moment:** <the job to be done, and the moment it bites>
+- **Who, by circumstance:** <the early adopter by situation, not demographic>
+- **Existing alternatives:** <what they do today instead, and why it serves them badly>
+- **Narrowest wedge:** <the smallest version someone would pay for or adopt now>
+- **Demand evidence:** <behaviour or payment that shows pull — not stated interest>
+- **Open assumptions (tiered):**
+  - *must-test-before-shipping:* <the bet that has to hold before you build>
+  - *accept-as-bet:* <a bet you will take without testing>
+  - *will-monitor-post-ship:* <something you will watch once it is live>
+- **Counter-metrics:** <what you would watch to catch this going wrong>
+
+## Product-strategy fields
+
+<!-- LEVEL-CONDITIONAL — fill only when `Level: product-strategy`. The path:
+diagnosis → guiding policy → coherent action. Same prompt-not-schema posture —
+an empty heading is a prompt. Drop this whole section at any other Level. -->
+
+- **Central challenge (diagnosis):** <the crux — the one obstacle the strategy must overcome>
+- **Guiding policy:** <the overall approach chosen to meet the challenge>
+- **Coherent actions (3–5):** <the handful of mutually-reinforcing moves that enact the policy>
+- **Problem / segment sequence:** <which problem for which segment, in what order, and why now>
+- **Horizon:** <the time / scope window this strategy covers>
+
+## Assumptions
+
+<!-- What must be true for this bet to pay off. intent de-risk picks the
+riskiest one, predeclares a kill condition in the test's own currency, and tests
+it under the chosen prototype-approach. -->
+
+- <assumption>
+- **Knowledge surface:** <name of the retrieval surface intent frame consulted, or "none detected"> <!-- the audit home for intent frame's knowledge-surface consult (see references/knowledge-surfaces.md); "none detected" is the trigger for the ask-and-lower-confidence path. Drop this line if no surface was relevant. -->
+
+## Decomposition
+
+<!-- The next level down: child intents (a lower `Level:`) or, at the leaf, the
+spec/slice this becomes. At app scale the leaf feature intent *is* a `core`
+brief — `author-delivery-brief continue` takes it from there. Leave empty until intent decompose
+runs. -->
+
+-
+
+### Decomposition decisions
+
+<!-- Optional log: why the cut went this way, plus any branch you considered and
+dropped or replaced — with a pointer to the killed child's de-risk verdict when
+an upward kill forced the re-cut. A line or two per decision; omit if the cut was
+obvious. Keeps the parent from reading as if the tree were always this shape. See
+intent decompose step 2. -->
+
+-

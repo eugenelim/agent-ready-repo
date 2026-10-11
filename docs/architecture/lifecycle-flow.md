@@ -18,13 +18,13 @@ flowchart TB
     end
     subgraph shape["Shape it"]
         direction TB
-        S1["frame-intent"] --> G0{{"G0: you approve the intent"}}
-        G0 --> S2["de-risk-intent, then decompose-intent"]
+        S1["intent frame"] --> G0{{"G0: you approve the intent"}}
+        G0 --> S2["intent de-risk, then intent decompose"]
         S2 --> G1(["G1: runs on its own unless a risk shows up"])
         G1 --> S3["explore-options"]
         S3 --> S4["frame-domain"]
         S4 --> G15{{"G1.5: you set the MVP boundary"}}
-        G15 --> T1["Product: decompose-intent"]
+        G15 --> T1["Product: intent decompose"]
         G15 --> T2["Experience: journey-mapping, service-blueprint, user-flow, ux-writing"]
         G15 --> T3["Architecture: architect-design, architect-diagram"]
         G15 --> T4["Contracts: api-contract, event-contract"]
@@ -33,10 +33,10 @@ flowchart TB
         T3 --> RV
         T4 --> RV
         RV --> G2{{"G2: you approve the decision brief"}}
-        G2 --> S5["decompose-intent: buildable pieces"]
+        G2 --> S5["intent decompose: buildable pieces"]
         S5 --> G3{{"G3: you commit to build"}}
-        SR["Short route: frame-intent, which may offer one architect-design pass, de-risk-intent, decompose-intent"]
-        LR["Longer route: frame-situation, identify-opportunities, diverge-solutions, de-risk-intent, place-bet, map-capabilities"]
+        SR["Short route: intent frame, which may offer one architect-design pass, intent de-risk, intent decompose"]
+        LR["Longer route: frame-situation, identify-opportunities, diverge-solutions, intent de-risk, place-bet, map-capabilities"]
         LA["Optional: architect-design at system scope, offered by map-capabilities once the build order is set"]
         LS["Optional: architect-design for subsystems that earn a doc, then architect-review"]
     end

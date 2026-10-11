@@ -43,26 +43,26 @@ Crucially, **`Level` is decoupled from `Scale`.** Scale (app ↔ business-unit) 
 
 ## Light and robust shaping paths
 
-The **light path is the default** when you can name an outcome and shape one intent at a time: `frame-intent` → `de-risk-intent` → `decompose-intent`. It recursively carries a vision, strategy, capability, or feature down to the next useful level.
+The **light path is the default** when you can name an outcome and shape one intent at a time: `intent frame` → `intent de-risk` → `intent decompose`. It recursively carries a vision, strategy, capability, or feature down to the next useful level.
 
-Reach for the **robust path** when the problem is unclear, the market is contested, or the bet needs a recorded rationale: `frame-situation` → `identify-opportunities` → `diverge-solutions` → `de-risk-intent` → `place-bet` → `map-capabilities`. The gated `discovery-loop` also serves that higher-uncertainty work; it keeps human consent and validation visible without replacing the light path.
+Reach for the **robust path** when the problem is unclear, the market is contested, or the bet needs a recorded rationale: `frame-situation` → `identify-opportunities` → `diverge-solutions` → `intent de-risk` → `place-bet` → `map-capabilities`. The gated `discovery-loop` also serves that higher-uncertainty work; it keeps human consent and validation visible without replacing the light path.
 
-Two things fall out of the recursion. **Decomposition** produces the *next level down*, one level at a time — deep at business-unit scale, often one level at app scale. And **assumptions are de-risked per intent at its own level** — product-level bets are **market-existence** questions (will anyone want this at all, *and* can it be a business — tested once at the top, distinct from feature desirability), capability bets are architectural/adoption questions, feature bets are desirability questions, and the same `de-risk-intent` habit handles all of them.
+Two things fall out of the recursion. **Decomposition** produces the *next level down*, one level at a time — deep at business-unit scale, often one level at app scale. And **assumptions are de-risked per intent at its own level** — product-level bets are **market-existence** questions (will anyone want this at all, *and* can it be a business — tested once at the top, distinct from feature desirability), capability bets are architectural/adoption questions, feature bets are desirability questions, and the same `intent de-risk` habit handles all of them.
 
 ## Why "shape, then de-risk, then decompose"
 
-The three skills are the three moves of shaping, in order:
+The three `intent` modes are the three moves of shaping, in order:
 
-1. **`frame-intent`** — name the outcome (a steerable input, a lagging result, a guardrail) and the solution-independent opportunity. Resolve **Scale** once.
-2. **`de-risk-intent`** — test the riskiest assumption against a **predeclared kill condition**, under a **prototype-approach** you choose by reversibility. This is the guard against shipping confident, un-validated bets.
-3. **`decompose-intent`** — break the survived intent into the next level, until
+1. **`intent frame`** — name the outcome (a steerable input, a lagging result, a guardrail) and the solution-independent opportunity. Resolve **Scale** once.
+2. **`intent de-risk`** — test the riskiest assumption against a **predeclared kill condition**, under a **prototype-approach** you choose by reversibility. This is the guard against shipping confident, un-validated bets.
+3. **`intent decompose`** — break the survived intent into the next level, until
    one independently shippable leaf can become a `core` spec directly. A
    multi-spec or cross-repository result becomes a coordinating brief first.
 
 Every node in the tree runs the same three moves before it splits:
 
 ```text
-  frame-intent          de-risk-intent              decompose-intent
+  intent frame          intent de-risk              intent decompose
   ──────────────        ────────────────────        ──────────────────
   name the         ──►  test the riskiest      ──►  break into the next
   outcome + the         assumption against           level down

@@ -92,7 +92,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Grade, score or judge what an `## Outcome` section contains. The review
   renders what is there.
 - Define, require or detect a reading representation inside `## Outcome`. That
-  section's contract belongs to `frame-intent`, and the accepted cut carries no
+  section's contract belongs to `intent` (frame mode), and the accepted cut carries no
   slice that adds one.
 - Omit an in-scope intent for any reason, including that its outcome section
   carries nothing beyond its declarations.

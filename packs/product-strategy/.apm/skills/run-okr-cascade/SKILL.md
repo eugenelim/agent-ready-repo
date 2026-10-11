@@ -48,6 +48,6 @@ Table — When presenting several items that share the same fields, render a Mar
 
 ## Anti-patterns
 
-- **Cascading to features.** OKR cascade aligns the organization to strategic objectives; it does not produce a feature backlog. Feature-level goals belong in `frame-intent`, not here.
+- **Cascading to features.** OKR cascade aligns the organization to strategic objectives; it does not produce a feature backlog. Feature-level goals belong in `intent frame`, not here.
 - **Skipping gap identification.** A cascade without gaps is a reporting exercise. The gaps are the deliverable — they become the shaping-queue entries the PE pack acts on.
 - **Assuming a single initiative.** Always check `workspace.toml` for the active initiative count before appending. Appending to the wrong initiative produces routing errors that are hard to detect later.

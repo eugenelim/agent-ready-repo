@@ -20,7 +20,7 @@ output_dir = "docs/product"    # a base; each skill composes its own subpath und
 ```
 
 - **`output_dir`** is a base directory, never a leaf. Each consuming skill
-  composes its own subpath under it: `frame-intent` writes
+  composes its own subpath under it: `intent` (frame mode) writes
   `<output_dir>/intents/<slug>.md`, `align-value-stream` writes
   `<output_dir>/rollups/<slug>.md`, and the six-step shaping sequence writes
   `<output_dir>/shaping/<slug>/...`.

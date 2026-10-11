@@ -4883,7 +4883,7 @@ def extract_top_level_backlog(workspace: dict) -> list[ShapingEntry]:
 
 
 _SHAPING_TYPE_TO_SKILL: dict[str, str] = {
-    "shape":    "frame-intent",
+    "shape":    "intent",
     "research": "desk-research-project-start",
     "strategy": "frame-situation",
     "design":   "experience-status",
@@ -4910,10 +4910,10 @@ def check_shaping_guard(
             continue
         for entry in ini.shaping.active + ini.shaping.backlog:
             if entry.slug == spec_slug:
-                return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "frame-intent")
+                return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "intent")
     for entry in (top_level_backlog or []):
         if entry.slug == spec_slug:
-            return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "frame-intent")
+            return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "intent")
     return None
 
 

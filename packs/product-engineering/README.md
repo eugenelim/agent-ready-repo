@@ -6,10 +6,10 @@ From raw idea to build-ready decision brief.
 
 ## Start here
 
-Type `frame-intent` and describe a product problem — any altitude, any level of clarity.
+Type `intent frame` and describe a product problem — any altitude, any level of clarity.
 
 ```text
-frame-intent
+intent frame
 
   Level    feature
   Problem  New users don't understand the product's value in the first session.
@@ -41,9 +41,9 @@ discovery-loop self-serve-onboarding
 | Say this | What happens |
 |----------|-------------|
 | `discovery-loop` | Start or resume a supervised end-to-end discovery |
-| `frame-intent` | Frame a product problem at any altitude |
-| `de-risk-intent` | Surface the riskiest assumption and design a prototype approach |
-| `decompose-intent` | Break the intent into delivery briefs and specs |
+| `intent frame` | Frame a product problem at any altitude |
+| `intent de-risk` | Surface the riskiest assumption and design a prototype approach |
+| `intent decompose` | Break the intent into delivery briefs and specs |
 | `ux-writing` | Characterize the product voice and write per-state UI copy |
 | `lean-canvas` | Elicit an initiative brief through an adapted Lean Canvas |
 | `diverge-solutions` | Generate structured comparable solution options |
@@ -55,7 +55,7 @@ discovery-loop self-serve-onboarding
 ## How a session runs
 
 ```text
-frame-intent [describe your product problem]
+intent frame [describe your product problem]
 
   Level    feature
   Problem  New users don't understand the product's value in the first session.
@@ -64,7 +64,7 @@ frame-intent [describe your product problem]
 ```
 
 ```text
-de-risk-intent
+intent de-risk
 
   Assumption   Users who finish the wizard go on to activate the core feature.
   Kill cond.   < 4 of 6 target users reach core-feature first-use in prototype.
@@ -73,7 +73,7 @@ de-risk-intent
 ```
 
 ```text
-decompose-intent
+intent decompose
 
   onboarding-activation
   ├─ onboarding/step-1-welcome      (app — spec ready to draft)
@@ -94,7 +94,7 @@ machine-readable; otherwise you receive the same portable rendered handoff.
 ```text
 docs/
 ├── product/
-│   ├── intents/          ← frame-intent, de-risk-intent, decompose-intent
+│   ├── intents/          ← intent frame, intent de-risk, intent decompose
 │   │   └── <slug>.md
 │   ├── rollups/          ← align-value-stream (business-unit scale)
 │   │   └── <slug>.md
@@ -119,18 +119,18 @@ Framework names are the procedure; the following is provenance only — who publ
 
 ## Cross-pack
 
-**Upstream — `product-strategy`:** OKR gaps and opportunity assessments from `product-strategy` feed `frame-situation` and `frame-intent` as strategic anchors. Absent means both skills degrade gracefully.
+**Upstream — `product-strategy`:** OKR gaps and opportunity assessments from `product-strategy` feed `frame-situation` and `intent frame` as strategic anchors. Absent means both skills degrade gracefully.
 
 **Downstream — `core`:** One independently shippable result from
-`decompose-intent` becomes a delivery contract; a multi-spec or
+`intent decompose` becomes a delivery contract; a multi-spec or
 cross-repository result becomes a delivery brief. A compatible Core invocation
 admits the bounded handoff through `work-intake`, then preserves the existing
 `new-spec` or `author-delivery-brief continue` approval path. Core is optional.
-When Core is present, `frame-intent` can also request its independent
+When Core is present, `intent frame` can also request its independent
 `shaping-reviewer` for a cold intent check; a fresh context or an independent
 human is the fallback, and Product Engineering retains lifecycle authority.
 
-**Optional — `architect`:** When the `architect` pack is installed, `frame-domain` and `de-risk-intent` offer `architect-assess` for a current-state model, and `frame-intent`, `decompose-intent`, and `map-capabilities` offer `architect-design` at the scope the work needs. Without it, they say nothing about it.
+**Optional — `architect`:** When the `architect` pack is installed, `frame-domain` and `intent de-risk` offer `architect-assess` for a current-state model, and `intent frame`, `intent decompose`, and `map-capabilities` offer `architect-design` at the scope the work needs. Without it, they say nothing about it.
 
 **Downstream — `experience-design`:** The per-screen state matrix from `user-flow` feeds `ux-writing`. Pass it to write per-state copy for every screen × state cell.
 

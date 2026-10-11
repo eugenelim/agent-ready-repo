@@ -95,9 +95,9 @@ flowchart TD
 
 <!-- Cross-reference downstream and upstream consumers by name. -->
 
-**Produces for `frame-intent` (`product-engineering` pack):** this map is the
-"current-state process map" input that `frame-intent` uses as a brownfield
-constraint. Hand off the resolved path of this file when running `frame-intent`.
+**Produces for `intent` (`product-engineering` pack):** this map is the
+"current-state process map" input that `intent` uses as a brownfield
+constraint. Hand off the resolved path of this file when running `intent`.
 
 **Cross-reference `service-blueprint`:** <!-- fill in only when the process is
 customer-triggered — name the blueprint artifact that covers the customer-facing

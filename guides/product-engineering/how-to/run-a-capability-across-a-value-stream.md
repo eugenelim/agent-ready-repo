@@ -54,7 +54,7 @@ Its spine is **currency**: a stale catalog or contract is the dominant failure m
 
 ## 2. Frame, de-risk, then slice the capability per component
 
-Frame the capability with **`frame-intent`** (Scale resolves to `business-unit` at intake) and de-risk its riskiest assumption with **`de-risk-intent`**, exactly as at app scale. Then **`decompose-intent`** produces feature intents and, at the leaf, **slices each feature per component** — one `core` **brief per affected repo**. Each slice carries:
+Frame the capability with **`intent frame`** (Scale resolves to `business-unit` at intake) and de-risk its riskiest assumption with **`intent de-risk`**, exactly as at app scale. Then **`intent decompose`** produces feature intents and, at the leaf, **slices each feature per component** — one `core` **brief per affected repo**. Each slice carries:
 
 - a **`parent-intent:`** pointer to the intent it came from (provenance only),
 - a **`contract@version`** reference + read-only courier snapshot, and

@@ -14,6 +14,12 @@ from pathlib import Path
 import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+# RFC-0099 is frozen and its R2 route cell names the skill `intent` replaces.
+RETIRED_SHAPING_SKILLS = (
+    "frame-intent",
+    "de-risk-intent",
+    "decompose-intent",
+)
 RFC = (
     REPOSITORY_ROOT
     / "docs"
@@ -52,10 +58,10 @@ ROUTING_SCENARIOS = (
         "Shape this raw product idea before deciding its repository artifact.",
         "core + product-engineering",
         "Core + product-engineering: “Shape this raw product idea before deciding its repository artifact.”",
-        "`frame-intent`, then `intake-intent` only when repository admission is requested",
+        f"`{RETIRED_SHAPING_SKILLS[0]}`, then `intake-intent` only when repository admission is requested",
         (
             (
-                "packs/product-engineering/.apm/skills/frame-intent/SKILL.md",
+                "packs/product-engineering/.apm/skills/intent/SKILL.md",
                 ("shaping a piece of product work before it becomes a spec",),
             ),
             (

@@ -1,6 +1,6 @@
 ---
 name: frame-domain
-description: Use when grounding a product in the real-world activity it serves and bounding its MVP before any screen, service, or architecture is drawn — at the G1.5 Domain & MVP point of the discovery loop, or standalone. Triggers on "frame the domain", "how is this activity really done", "ground this before we design", "what's in/out of the MVP", "draw the scope boundary", "is this scope creep". Produces two typed artifacts from one research-grounded pass — Domain Framing (real-world-activity grounding + best practice + naive-failure modes, plus a brownfield current-system half) and Scope Boundary (the MVP out-of-scope register). Do NOT use to shape the intent behind the work (use `frame-intent`), to test whether a bet holds (use `de-risk-intent`), or to break an intent down (use `decompose-intent`).
+description: Use when grounding a product in the real-world activity it serves and bounding its MVP before any screen, service, or architecture is drawn — at the G1.5 Domain & MVP point of the discovery loop, or standalone. Triggers on "frame the domain", "how is this activity really done", "ground this before we design", "what's in/out of the MVP", "draw the scope boundary", "is this scope creep". Produces two typed artifacts from one research-grounded pass — Domain Framing (real-world-activity grounding + best practice + naive-failure modes, plus a brownfield current-system half) and Scope Boundary (the MVP out-of-scope register). Do NOT use to shape the intent behind the work (use `intent frame`), to test whether a bet holds (use `intent de-risk`), or to break an intent down (use `intent decompose`).
 ---
 
 # Skill: frame-domain
@@ -9,7 +9,7 @@ Ground a product in the **real-world activity it serves** and **bound its MVP**
 *before* any screen, service, or architecture is drawn. This is the discovery
 loop's deepest correctness lever: the agent cannot reason through a domain it
 does not know, so left ungrounded it **hallucinates the domain and over-scopes**.
-`frame-domain` runs at the **G1.5 Domain & MVP** point — after `decompose-intent`
+`frame-domain` runs at the **G1.5 Domain & MVP** point — after `intent decompose`
 has produced capabilities, before the convergent design loop — or standalone.
 
 From **one `research`-grounded pass** the skill emits **two typed artifacts**.
@@ -60,8 +60,8 @@ Before framing, confirm:
 
 1. The ask is *grounding-and-bounding a domain*, not shaping or breaking down an
    intent. If the user wants to shape the outcome/opportunity, route to
-   `frame-intent`; to test whether a bet holds, `de-risk-intent`; to split a
-   shaped intent into the next level, `decompose-intent`.
+   `intent frame`; to test whether a bet holds, `intent de-risk`; to split a
+   shaped intent into the next level, `intent decompose`.
 2. There is a **domain to ground** — a real-world activity the product serves
    that the agent does not already hold (how owners actually plan, restock, act).
    A pure refactor or chore has no domain to frame; say so.
@@ -235,7 +235,7 @@ ambiguity rather than guess** — a marker search that returns **multiple** matc
 (which one is authoritative?) or **zero** matches (where should it land?) is
 surfaced to the human, not resolved by a guess. When the discovery key is
 eventually bound, surface the resolved path before the first write and reject any
-`..` escape or out-of-tree symlink, per the `frame-intent` /
+`..` escape or out-of-tree symlink, per the `intent frame` /
 `desk-research-project-start` sibling skills.
 
 ## Detect-and-degrade on optional dependencies

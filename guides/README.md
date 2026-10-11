@@ -89,13 +89,13 @@ Use this shaping route to turn that intent into Core intake, with an
 architecture concept when the work needs one.
 
 1. [Gather evidence](desk-research/) when the answer is not already known
-2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) — `frame-intent`
-3. De-risk it — `de-risk-intent`
+2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) — `intent frame`
+3. De-risk it — `intent de-risk`
 4. [Shape the architecture concept](architect/how-to/shape-an-architecture-concept.md)
-   against it when the work changes how the system is built. `frame-intent`
+   against it when the work changes how the system is built. `intent frame`
    offers `architect-design` while framing, and you can take it any time
    before you break the work down
-5. Break it down — `decompose-intent`
+5. Break it down — `intent decompose`
 6. [Hand the intent to the build loop](product-engineering/how-to/hand-an-intent-to-build.md)
 
 The spec the build loop writes follows your [reference architecture](architect/how-to/establish-reference-architecture.md)

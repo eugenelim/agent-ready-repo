@@ -8,7 +8,7 @@ kind: how-to
 # How to place a bet
 
 **Use this when:** You have evaluated your solution options and are ready to commit the team to a chosen direction and produce the `bet.md` artifact that `map-capabilities` will reason against.
-**Prerequisites:** `product-engineering` pack installed; a solutions artifact from `diverge-solutions` or `explore-options` (recommended); `validation-notes.md` from `de-risk-intent` (optional but folds kill conditions in automatically).
+**Prerequisites:** `product-engineering` pack installed; a solutions artifact from `diverge-solutions` or `explore-options` (recommended); `validation-notes.md` from `intent de-risk` (optional but folds kill conditions in automatically).
 **Result:** A committed `bet.md` at `<output_dir>/shaping/<slug>/bet.md` recording the chosen option, confidence, appetite, rationale, accepted risks, and assumptions — ready to anchor step 6.
 
 **Goal:** You have evaluated options and completed (or deliberately skipped)
@@ -23,11 +23,11 @@ De-risk this self-service export-retention approach, then place a bet if its kil
 
 ---
 
-## When to use `place-bet` vs `de-risk-intent`
+## When to use `place-bet` vs `intent de-risk`
 
-`de-risk-intent` (step 3.5) and `place-bet` (step 5) are sequential, not
+`intent de-risk` (step 3.5) and `place-bet` (step 5) are sequential, not
 alternatives. Run both when the bet rests on a fragile assumption worth testing
-first; skip `de-risk-intent` when the risk is accepted rather than worth
+first; skip `intent de-risk` when the risk is accepted rather than worth
 investigating.
 
 This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
@@ -35,13 +35,13 @@ This guide belongs to the [robust shaping path](../explanation/the-intent-tree.m
 | Step | Skill | Purpose |
 |---|---|---|
 | 3 | `diverge-solutions` | Generate structured comparable options |
-| 3.5 | `de-risk-intent` | Validate the riskiest assumption *before* committing |
+| 3.5 | `intent de-risk` | Validate the riskiest assumption *before* committing |
 | 5 | `place-bet` | Commit the chosen direction; produce `bet.md` |
 | 6 | `map-capabilities` | Use `bet.md` as the anchor for capability mapping |
 
 **Rule of thumb:** if you can articulate your chosen direction and name the
 risks you are accepting, `place-bet` is ready. If a core assumption has not
-been tested and the cost of a wrong bet is high, run `de-risk-intent` first.
+been tested and the cost of a wrong bet is high, run `intent de-risk` first.
 
 ---
 
@@ -53,7 +53,7 @@ The skill reads what it finds and accepts free-form otherwise:
    `*options*` file under `<output_dir>/shaping/<slug>/`. This is typically
    the output of `diverge-solutions` or `explore-options`. If absent, the skill
    offers to run `diverge-solutions` and degrades to free-form if you decline.
-2. **`validation-notes.md`** (optional) — the output of `de-risk-intent`, if
+2. **`validation-notes.md`** (optional) — the output of `intent de-risk`, if
    you ran it. Read if present; never required. Kill conditions and risks found
    there are folded into the betting table automatically.
 
@@ -93,7 +93,7 @@ to name it so it can be tracked and revisited.
 assumptions is easier to reassess when conditions change.
 
 **kill-condition** (optional) — the signal that would reverse this decision.
-Pull from `de-risk-intent` output when available. If not, leave it blank — the
+Pull from `intent de-risk` output when available. If not, leave it blank — the
 field is optional. A kill condition is most valuable when confidence is medium
 or low.
 
@@ -127,7 +127,7 @@ the absence of a structured artifact is visible in the audit trail.
 
 ## See also
 
-- `de-risk-intent` — step 3.5; validates the riskiest assumption before committing
+- `intent de-risk` — step 3.5; validates the riskiest assumption before committing
 - `diverge-solutions` — step 3; generates structured comparable options
 - `explore-options` — an alternative way to surface options for the betting table
 - `map-capabilities` — step 6; uses `bet.md` as the anchor for capability mapping

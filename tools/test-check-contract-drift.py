@@ -38,7 +38,7 @@ ANCHOR_PATHS = {
     ),
     "product-engineering": pathlib.Path(
         "packs/product-engineering/.apm/skills/"
-        "frame-intent/references/digital-experience-contract.md"
+        "intent/references/digital-experience-contract.md"
     ),
     "experience-design": pathlib.Path(
         "packs/experience-design/.apm/skills/"

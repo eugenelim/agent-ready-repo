@@ -24,7 +24,7 @@ Each entry carries a `type` field that routes it to the right shaping skill:
 
 | Type | What it means | Skill |
 |------|--------------|-------|
-| `shape` | Needs product-engineering shaping (default when `type` omitted) | `frame-intent` |
+| `shape` | Needs product-engineering shaping (default when `type` omitted) | `intent frame` |
 | `research` | Needs desk research before a spec can be written | `desk-research-project-start` |
 | `strategy` | Needs market or product strategy work | `frame-situation` |
 | `signal` | Ongoing monitoring context — has no discrete end state | (informational only — no action) |

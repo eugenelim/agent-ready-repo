@@ -13,7 +13,7 @@ backlog item called for, generalized to every copy that exists today:
 
   - `architect-diagram` reuses the full taxonomy as an as-is-drawing lens ({1..8};
     the lens itself consults only the 2/3/4 facets, but the table carries all 8);
-  - `frame-intent` reuses the problem-framing subset ({1, 2, 4, 8}); areas
+  - `intent` reuses the problem-framing subset ({1, 2, 4, 8}); areas
     3/5/6/7 are deliberately omitted there as solution-design.
 
 Invariants:
@@ -65,16 +65,16 @@ LAYOUT: tuple[tuple[str, str, str, frozenset[int]], ...] = (
         CANONICAL_AREAS,
     ),
     (
-        "frame-intent",
+        "intent",
         "KS_PE_FILE",
-        "packs/product-engineering/.apm/skills/frame-intent/references/knowledge-surfaces.md",
+        "packs/product-engineering/.apm/skills/intent/references/knowledge-surfaces.md",
         frozenset({1, 2, 4, 8}),
     ),
 )
 
 # A taxonomy data row: "| <n> | <area> | <question> | ...". The first three
 # columns (number, area, question-it-answers) are identical across every copy
-# even where a table adds extra columns after them (frame-intent's "Weight").
+# even where a table adds extra columns after them (the intent skill's "Weight").
 # `\d+` (not `\d`) so a future two-digit area parses as itself rather than
 # silently mis-parsing (e.g. "10" → "1" + stray "0").
 _ROW = re.compile(r"^\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|")

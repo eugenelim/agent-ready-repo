@@ -57,7 +57,7 @@ def test_product_engineering_declares_optional_exact_handoff() -> None:
         # CAT-V-019 resolves `consumers` inside the declaring pack and
         # `providers` inside the target pack: Core's work-intake provides the
         # handoff capability that these product-engineering skills consume.
-        "consumers": ["skill:discovery-loop", "skill:decompose-intent"],
+        "consumers": ["skill:discovery-loop", "skill:intent"],
         "providers": ["skill:work-intake"],
         "when": (
             "A confirmed shaping gate produces a delivery contract or delivery "
@@ -80,7 +80,7 @@ def test_product_engineering_declares_optional_exact_handoff() -> None:
 def test_producers_and_consumers_declare_untrusted_read_boundary() -> None:
     for pack, name in (
         (PRODUCT, "discovery-loop"),
-        (PRODUCT, "decompose-intent"),
+        (PRODUCT, "intent"),
         (CORE, "work-intake"),
         (CORE, "new-spec"),
         (CORE, "intake-intent"),
@@ -91,7 +91,9 @@ def test_producers_and_consumers_declare_untrusted_read_boundary() -> None:
 
 def test_skill_contracts_pin_role_capability_and_fallback() -> None:
     discovery = _skill(PRODUCT, "discovery-loop")
-    decompose = _skill(PRODUCT, "decompose-intent")
+    decompose = (
+        PRODUCT / ".apm" / "skills" / "intent" / "references" / "decompose.md"
+    ).read_text(encoding="utf-8")
     intake = _skill(CORE, "work-intake")
 
     for body in (discovery, decompose, intake):

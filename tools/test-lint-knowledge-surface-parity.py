@@ -10,13 +10,13 @@ through to its real repo file and breaks the fixture cases.
 
 Cases pin each invariant to a failure mode the linter must catch:
 
-  A — parity: canonical {1..8}, architect-diagram full {1..8}, frame-intent
+  A — parity: canonical {1..8}, architect-diagram full {1..8}, intent
       subset {1,2,4,8}, all byte-identical name+question.
       Must exit 0.
-  B — reworded question in the frame-intent copy for a shared area. Must fail.
+  B — reworded question in the intent copy for a shared area. Must fail.
   C — renamed area in the canonical copy. Must fail (the copies still name the
       old label).
-  D — frame-intent carries an extra area (3). Must fail (subset drift).
+  D — intent carries an extra area (3). Must fail (subset drift).
   E — canonical dropped an area (only 1..7). Must fail (canonical incomplete).
   F — a missing file must surface as an error, not a traceback.
   G — the architect-diagram copy drifts (reworded question). Must fail.
@@ -88,7 +88,7 @@ def _run(
         for key, name, text in (
             ("KS_CANONICAL_FILE", "canonical.md", canon_text),
             ("KS_DIAGRAM_FILE", "architect-diagram.md", diagram_text),
-            ("KS_PE_FILE", "frame-intent.md", pe_text),
+            ("KS_PE_FILE", "intent.md", pe_text),
         ):
             p = pathlib.Path(d) / name
             if text is not None:
@@ -123,10 +123,10 @@ def main() -> int:
     def pe_md(areas=None) -> str:
         return _render(areas if areas is not None else subset, weight_col=True)
 
-    # A — parity holds across the diagram and frame-intent copies.
+    # A — parity holds across the diagram and intent copies.
     _expect("A parity", _run(canon_md(), pe_md()), code=0)
 
-    # B — reworded question in the frame-intent copy for shared area 1.
+    # B — reworded question in the intent copy for shared area 1.
     drifted_pe = dict(subset)
     drifted_pe[1] = (CANON[1][0], "What do the words mean?")
     _expect("B reworded pe", _run(canon_md(), pe_md(drifted_pe)),
@@ -141,10 +141,10 @@ def main() -> int:
         code=1, needle="area #2 diverged",
     )
 
-    # D — frame-intent carries an extra area (3), breaking the subset.
+    # D — intent carries an extra area (3), breaking the subset.
     extra_pe = {n: CANON[n] for n in (1, 2, 3, 4, 8)}
     _expect("D subset drift", _run(canon_md(), pe_md(extra_pe)),
-            code=1, needle="frame-intent reference areas")
+            code=1, needle="intent reference areas")
 
     # E — canonical dropped an area (only 1..7), breaking the canonical set.
     short = {n: CANON[n] for n in range(1, 8)}

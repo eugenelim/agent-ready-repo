@@ -198,7 +198,7 @@ exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Check all activ
 initiatives' `[shaping_queue].active`, `.backlog`, and `[backlog].open` typed
 entries for a slug match. On match, stop: "This is a `[shape]` item (`type =
 <subtype>`); use `<skill>` — `work-loop` is for build items only."
-(shape→`frame-intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`frame-intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
+(shape→`intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
 
 After orientation, route by invocation shape. **Order matters: an explicit
 current request is decided before the workspace-dispatch branches, which exist

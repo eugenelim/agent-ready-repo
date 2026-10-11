@@ -41,7 +41,7 @@ If you do not yet have a bet, run `place-bet` first.
 
 **Not the right skill if:**
 
-- You are working on a single feature or screen → use `frame-intent`.
+- You are working on a single feature or screen → use `intent frame`.
 - You want to author the initiative brief → use `lean-canvas` or `author-delivery-brief create`
   (run those after this skill, not instead of it).
 
@@ -127,7 +127,7 @@ After the capability map is committed:
 - `place-bet` — step 5; produces the `bet.md` this skill reads
 - `lean-canvas` — brief-authoring from a committed bet and capability map
 - `frame-situation` — step 1; provides Wardley capability assessments the map reads opportunistically
-- `de-risk-intent` — step 4 (validate); runs assumption tests before the bet is placed
+- `intent de-risk` — step 4 (validate); runs assumption tests before the bet is placed
 - `workspace-status` — surfaces the spec queue after you seed it from the build sequence
 
 ## What you have now

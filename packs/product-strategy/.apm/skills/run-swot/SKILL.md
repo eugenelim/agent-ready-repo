@@ -54,4 +54,4 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 - **SWOT as a consensus ritual.** A SWOT that says only what the room already agrees on is a performance, not analysis. Push the Weaknesses and Threats sections until they are uncomfortable.
 - **Opportunities without evidence.** Every Opportunity cell should name its source — a macro trend, a research finding, a competitive gap. "There is an opportunity for AI" is not an Opportunity entry.
-- **Treating SWOT as a decision.** SWOT maps the situation; `frame-intent` or `run-okr-cascade` turns it into a direction.
+- **Treating SWOT as a decision.** SWOT maps the situation; `intent frame` or `run-okr-cascade` turns it into a direction.

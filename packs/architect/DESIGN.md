@@ -282,7 +282,7 @@ A design doc produced by `architect-design` reaches a spec or `work-loop` by
 exactly two routes:
 
 - **Delivery-contract design context.** When product-engineering's
-  `decompose-intent` projects a feature that a resolved design covers, it
+  `intent decompose` projects a feature that a resolved design covers, it
   carries the design's locator in the delivery contract's design context (or a
   delivery brief's design artifacts). `new-spec` reads that as attributed
   context.

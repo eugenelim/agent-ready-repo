@@ -25,18 +25,18 @@ This guide belongs to the [robust shaping path](../explanation/the-intent-tree.m
 
 ---
 
-## When to use `frame-situation` vs `frame-intent`
+## When to use `frame-situation` vs `intent frame`
 
 | Question | Answer | Skill |
 |---|---|---|
 | Is this affecting a whole capability area or initiative? | Yes | `frame-situation` |
-| Is this a specific feature or screen request? | Yes | `frame-intent` |
-| Do I know what outcome I want, just not how? | Yes | `frame-intent` |
+| Is this a specific feature or screen request? | Yes | `intent frame` |
+| Do I know what outcome I want, just not how? | Yes | `intent frame` |
 | Do I have a signal but not yet know what to do with it? | Yes | `frame-situation` |
 | Am I unsure of the altitude? | Ambiguous | Ask the skill — it will prompt you |
 
 **Rule of thumb:** if you can write "I want to build X so that Y" immediately,
-that is `frame-intent` territory. If you are holding an observation that
+that is `intent frame` territory. If you are holding an observation that
 something is wrong or an opportunity is emerging and you do not yet know how to
 respond — that is `frame-situation`.
 
@@ -121,7 +121,7 @@ entry-point skill).
 
 ## See also
 
-- `frame-intent` — for feature-scoped or known-outcome work
+- `intent frame` — for feature-scoped or known-outcome work
 - `identify-opportunities` — step 2 of the shaping sequence
 - `work-intake` — the front door for registering an entry in
   `workspace.toml [shaping_queue]`

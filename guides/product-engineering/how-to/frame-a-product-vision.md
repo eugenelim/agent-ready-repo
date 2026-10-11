@@ -23,9 +23,9 @@ Shape this product vision: a household coordination service should help busy fam
 
 ## 1. Frame the vision at the product-vision altitude
 
-Invoke `frame-intent`. It runs intake first: it infers **Scale** (a single repo with app code → `app`; many component pointers and no app code → `business-unit`), confirms it, and asks whether the work is **greenfield or brownfield**. For a greenfield product concept it asks the altitude outright instead of defaulting to `feature` — answer **`product-vision`**. Scale only *suggests* a starting altitude; you set it in a word.
+Invoke `intent frame`. It runs intake first: it infers **Scale** (a single repo with app code → `app`; many component pointers and no app code → `business-unit`), confirms it, and asks whether the work is **greenfield or brownfield**. For a greenfield product concept it asks the altitude outright instead of defaulting to `feature` — answer **`product-vision`**. Scale only *suggests* a starting altitude; you set it in a word.
 
-The intent template (`frame-intent/assets/intent-template.md`) lands at `docs/product/intents/<slug>.md`. Stamp `Level: product-vision` and fill three fields:
+The intent template (`intent/assets/intent-template.md`) lands at `docs/product/intents/<slug>.md`. Stamp `Level: product-vision` and fill three fields:
 
 - **Outcome** — a steerable *input* you can move, the *lagging* result it should drive, and a *guardrail* that must not get worse. At the vision altitude you are pre-product, so a **qualitative-but-falsifiable** outcome is first-class: name the signal you would accept as proof, not a conversion number you don't have traffic for.
 - **Opportunity** — the job the user is trying to get done, framed without a solution. "Get back into my account on my own", not "add a reset-link button". A vision built around a solution can't be tested as a bet.
@@ -33,11 +33,11 @@ The intent template (`frame-intent/assets/intent-template.md`) lands at `docs/pr
 
 The existence bet has a shape worth holding to: **why this product should exist, for whom, and through what wedge** — the narrow first foothold, not the eventual platform.
 
-`frame-intent` is knowledge-surface aware. When it can reach an internal knowledge surface — an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set — it consults the business-domain and in-flight areas so the vision uses your org's real terms and doesn't re-bet something already being delivered, and it names the surface it used (or "none", with confidence lowered to match).
+`intent frame` is knowledge-surface aware. When it can reach an internal knowledge surface — an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set — it consults the business-domain and in-flight areas so the vision uses your org's real terms and doesn't re-bet something already being delivered, and it names the surface it used (or "none", with confidence lowered to match).
 
 ## 2. De-risk the market-existence bet
 
-Invoke `de-risk-intent`. At the product altitudes the riskiest assumption is **market-existence**, not feature desirability: *will anyone want this at all* and *can it be a business*. The viability half is named so it can't quietly drop out, and you test it **once at the top** rather than re-litigating it per feature later.
+Invoke `intent de-risk`. At the product altitudes the riskiest assumption is **market-existence**, not feature desirability: *will anyone want this at all* and *can it be a business*. The viability half is named so it can't quietly drop out, and you test it **once at the top** rather than re-litigating it per feature later.
 
 Predeclare the **kill condition before you probe**. Pre-product, that's a qualitative bar stated in 0-to-1 terms — "proceed only if at least four of six target buyers say they'd switch and name a budget" — not a fabricated threshold. Writing the line down before you see the result is what separates a real test from theatre.
 
@@ -45,7 +45,7 @@ The verdict is **survive or kill**. Killed → reframe the vision or drop it; a 
 
 ## 3. Decompose toward a strategy
 
-Invoke `decompose-intent`. A surviving product-vision intent produces the **next level down** — a `product-strategy` child (or an intervening `initiative` if your org names one), not specs. Don't skip levels: the strategy is where the path gets named. Record *why* the cut went the way it did on the parent's `Decomposition`, so a later reader doesn't re-litigate a branch you already ruled out.
+Invoke `intent decompose`. A surviving product-vision intent produces the **next level down** — a `product-strategy` child (or an intervening `initiative` if your org names one), not specs. Don't skip levels: the strategy is where the path gets named. Record *why* the cut went the way it did on the parent's `Decomposition`, so a later reader doesn't re-litigate a branch you already ruled out.
 
 From here, [shape the product strategy](shape-a-product-strategy.md).
 
