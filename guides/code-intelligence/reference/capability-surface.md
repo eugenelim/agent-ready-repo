@@ -66,8 +66,9 @@ and create nothing; `clusters`, `context`, `semantic`, `semantics`, `drift`, `cr
 empty result. Before running one, check that `stats --json --db <path>` shows a
 non-zero `nodes` count for every database it will read. `semantic` and
 `clusters --weight semantic` also return an empty result when the index has no
-embeddings, with the reason only on stderr, and `drift` reports no live
-resources until live state is imported with `tfstate`. `rank --seeds`
+embeddings, with the reason only on stderr, and until `tfstate` has
+imported live state, `drift` lists every declared resource as undeployed, which
+is not drift. `rank --seeds`
 biases a graph-wide ranking — seeded output includes symbols the seeds cannot
 reach. To rank a dependent set, keep only the rows whose `symbol` is in your set
 and report missing members as unranked.

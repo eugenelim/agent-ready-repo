@@ -234,7 +234,7 @@ a result at the cap is also a floor.
 | Intent | CLI | Returns |
 | --- | --- | --- |
 | Index live Terraform state | `wicked-estate tfstate <file>` | Writes. Indexes live infrastructure state into the graph. |
-| IaC versus live drift | `wicked-estate drift` | Differences between declared infrastructure and live resources. Needs live state imported with `wicked-estate tfstate <file>` (a write); without it nothing counts as live, so the report shows no drift finding and prints no warning (source-read from `main.rs`). |
+| IaC versus live drift | `wicked-estate drift` | Differences between declared infrastructure and live resources. Needs live state imported with `wicked-estate tfstate <file>` (a write); until then it lists every declared resource as undeployed and gives no warning, so do not report that list or its counts as drift (source-read from `estate_drift` in `lib.rs`). |
 | Match symbols across two graphs | `wicked-estate correspond --db-a A.db --db-b B.db [--kind K] [--top N] [--min-score F] [--explain] [--json]` | Scored candidate pairs between two separately indexed repositories. Lexical BM25 only unless both graphs carry embeddings, in which case it fuses lexical and vector ranking. |
 
 `correspond` is the only comparison primitive Wicked Estate ships. It matches

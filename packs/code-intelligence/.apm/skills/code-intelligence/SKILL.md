@@ -339,9 +339,9 @@ the command only when every path shows a non-zero `nodes` count, and tell the
 user if one of these commands has already created a file. Even on a populated
 graph, `semantic` and `clusters --weight semantic` return an empty exit-0 result
 when the index has no embeddings, and the only sign is a note on stderr; do not
-report that result as an answer while the note is present. `drift` reports no
-live resources, with no note at all, until live state is imported with `tfstate`
-(source-read from `main.rs`). Exit 1 with nothing on stdout is never an answer.
+report that result as an answer while the note is present. Until `tfstate` has
+imported live state, `drift` lists every declared resource as undeployed and
+gives no warning; do not report that list or its counts as drift (source-read from `estate_drift` in `lib.rs`). Exit 1 with nothing on stdout is never an answer.
 
 ## Writes
 
