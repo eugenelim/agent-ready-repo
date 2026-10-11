@@ -2020,7 +2020,8 @@ def run_export(
             _delivery_provider=_delivery_provider, _resolver_loader=_resolver_loader,
         )
         html = view_mod.build_html(payload)
-        path = view_mod.publish(html, destination, name)
+        target = view_mod.validate_destination(root, destination, name)
+        path = view_mod.publish(html, target)
     except (ExportRefusal, view_mod.ViewRefusal) as exc:
         return refusal(exc.code, exc.message, exc.limits, exc.observed)
     return {

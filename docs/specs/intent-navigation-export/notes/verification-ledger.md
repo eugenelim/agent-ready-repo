@@ -15,3 +15,25 @@
 - `build_html`, `publish`, and `source_links` in `intent_view.py` are the minimal T1 forms:
   an unstyled document with only the data block, exclusive-create publication, and every
   source link `inert`. T2, T3, and T4 replace them.
+
+## T2
+
+- Gates: `python -m pytest packs/core/tests/skills/navigate-intents/ -q` gave 386 passed, 4 skipped
+  (the 4 skips are in other suites; `test_export_publication.py` alone gave 40 passed, 0 skipped).
+  `make lint-ruff lint-mypy` pass. `agentbundle catalogue self-host --root . --write --force`
+  run twice (second run changed nothing); `agentbundle catalogue verify --root .` ok.
+- AC-0016 ran, not skipped, on this macOS APFS machine (git 2.50.1): the probe
+  `CaseProbe` / `caseprobe` resolved to one directory, and `Root/Inner` was refused when given
+  as `root/inner`. The component-wise comparison does not catch it (macOS `realpath` keeps the
+  spelling); the `samefile` check against each ancestor of the destination does.
+- Observed Git behaviour pinned by the tests: for a `--separate-git-dir` main checkout and a
+  submodule, `git worktree list` lists the git directory, not the checkout, and does not mark
+  it `bare`. The listing therefore belongs to `--root` by the second form (the `.git` file's
+  `gitdir:` target equals an entry). A linked worktree of a `--separate-git-dir` repository
+  accepts its main checkout, as the accepted limit says.
+- `intent_view.py` T1 source held literal U+2028 and U+2029 characters as the escape-table
+  keys; they are now ` ` and ` ` escapes with the same value.
+- `publish` now takes the `Destination` that `validate_destination` returns. The budget check,
+  the platform-support check, and all file creation happen inside `publish`, after validation.
+- A test that wraps `os.open` must also add the wrapper to `os.supports_dir_fd`, because the
+  platform check compares `os.open` by identity.
