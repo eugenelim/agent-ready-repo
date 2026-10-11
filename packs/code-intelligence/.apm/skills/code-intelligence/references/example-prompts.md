@@ -45,7 +45,7 @@ bug, or write a fix. The `bug-fix` workflow owns the diagnosis and the change.
 **Pattern:** Analyze change impact (2).
 
 ```bash
-wicked-estate stats                                  # freshness, before anything else
+wicked-estate stats --json                           # staleness.commits_behind, before anything else
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
 wicked-estate rank --seeds '<dep-id-1>,<dep-id-2>,<dep-id-3>' --limit 200 --json
@@ -66,10 +66,10 @@ wicked-estate source --symbols '<chosen-ids>' --json   # indexed text of the one
 > and is unaffected. Members absent from the ranked output were reported as
 > unranked — cut by the row limit or character budget.
 >
-> I ran `blast-radius Money --depth 1 --json` to separate direct from transitive.
-> It reported no truncation, and the full run reported no cut, so the split is
-> complete: 12 of the 47 are direct dependents and 35 are transitive. Registering the MCP server would give per-
-> dependent depth and `summary.top_by_pagerank` directly.
+> Each row of the same `blast-radius Money --json` run carries a per-row
+> `depth`. The run reported no truncation and no cut, so the split is complete:
+> 12 of the 47 rows have `depth` 1 (direct dependents) and 35 are transitive.
+> Registering the MCP server would add `summary.top_by_pagerank` directly.
 
 **What the skill did not do:** estimate effort, propose a migration order, or
 decide whether the field should be optional.
@@ -133,8 +133,8 @@ wicked-estate dead-code --json | grep LegacyAuthAdapter
 > reflection, dynamic dispatch, or framework registration looks exactly like
 > this. `dead-code` is a wide net — on this catalogue it returns 65% of all
 > nodes. I checked its annotations — it carries `deprecated=true`, author
-> `platform-team`, confidence 0.9, recorded 2025-11-03. That is a timestamp
-> (`ts`), not a verification date; the JSON carries no `last_verified`.
+> `platform-team`, confidence 0.9, recorded 2025-11-03 and last verified
+> 2025-11-03, so the evidence is months old.
 >
 > The graph says nothing references it. Confirming it is dead needs a check the
 > index cannot perform: a search for string-based references to the class name,

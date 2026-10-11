@@ -57,7 +57,7 @@ consume this skill without any of them knowing about the others.
 Queries run against a graph built by the `wicked-estate` CLI. Install once:
 
 ```bash
-cargo install wicked-estate --version 0.21.0 --locked
+cargo install wicked-estate --version 0.26.0 --locked
 ```
 
 ### Step 1 — check the binary and the index before any real work
@@ -71,10 +71,10 @@ python '<skill-dir>/scripts/estate_preflight.py' --check
 
 | Exit | Meaning | What to do |
 | --- | --- | --- |
-| 0 | Binary and index both present | Proceed. |
+| 0 | Binary and index both present | Proceed. Preflight checks only that `graph.db` exists, so confirm with `wicked-estate stats --json`: a `no graph at <db>` refusal or a `nodes` count of 0 means the index is empty, so handle it like exit 3. |
 | 2 | Binary absent | Give the user the install command above. Offer `--install --yes` only if they ask; it compiles from source and takes minutes. Do not install silently. |
 | 3 | No index | Ask before running `wicked-estate index .` — it writes `.wicked-estate/graph.db`. |
-| 4 | Version below the floor | Report it; the documented verbs were verified against 0.21. |
+| 4 | Version below the floor | Report it; the documented verbs were verified against 0.26. |
 
 On exit 2, 3, or 4 you may still answer using your own repository tools, but you
 must say so — see [Degrading without the graph](#degrading-without-the-graph).
@@ -202,8 +202,9 @@ early as the objective allows.
 
 4. **Expand.** Follow only the relationships the question needs —
    `blast-radius` for dependents, `wicked-estate path A B --json` for a specific
-   route from one symbol to another, `wicked-estate lineage --symbol '<id>' --json`
-   for forward transitive dependencies (resolve first — a name returns empty),
+   route from one symbol to another, `wicked-estate lineage <symbol> --json`
+   for forward transitive dependencies (`<symbol>` is a name or a symbol id; an
+   ambiguous name fails, so `resolve` first when a name may be shared),
    `graph-view --focus` for a bounded neighbourhood, `clusters` for subsystem shape.
 
 5. **Stop.** Stop when you have enough evidence for the user's objective, not
@@ -245,7 +246,8 @@ Three rules are load-bearing:
 - **A blast radius is a floor, not a total.** `blast-radius --json` returns an
   `unresolved` count of references the indexer could not bind, a
   `truncated_dependents` count when output was capped at 25,000 characters, and
-  `searched_depth`, `depth_horizon_reached`, and `node_cap_reached` fields. Use
+  `searched_depth`, `depth_horizon_reached`, and `node_cap_reached` fields. Each
+  dependent row carries a per-row `depth`, where 1 is a direct dependent. Use
   `blast-radius <name> --depth N` (default 12, max 24) to control reach; when
   `depth_horizon_reached` is true, the result is bounded — raise `--depth`. A true
   `node_cap_reached` has no CLI remedy. Report `unresolved`,
@@ -258,12 +260,18 @@ Three rules are load-bearing:
   a flat list. Where an edge is load-bearing for your conclusion, verify it
   against source before relying on it: that means your own repository search
   confirms the call site, not indexed `source` output.
-- **Freshness differs by command.** Bridged commands (`traverse`, `rank`,
-  `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`;
-  in text mode, diagnostics go to stdout (source-read from `tool_bridge.rs`;
-  pinned on `rank --json`). `blast-radius` and `path` suppress it under `--json`.
-  Run a bare `wicked-estate stats` before blast-radius or path queries when
-  freshness matters, and say which revision you answered from.
+- **Freshness differs by command.** Bridged commands (`lineage`, `traverse`,
+  `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under
+  `--json`; in text mode they print it on stdout after the result (executed on
+  `lineage --json`; text mode source-read from `tool_bridge.rs`).
+  `blast-radius` and `path` suppress it under `--json`.
+  Run `wicked-estate stats --json` before blast-radius or path queries when
+  freshness matters and read `staleness`: `commits_behind` is how far behind
+  the graph is. The graph is current only when that count is 0 and `unknown`
+  is empty; a root listed in `unknown` has unknown freshness whatever the
+  count. Text `stats` stays silent in both the current and unknown cases, so
+  its silence proves nothing (source-read from `main.rs`). Say which revision
+  you answered from.
 
 Wherever you report a result, quote the command that produced it exactly as
 run, flags and all. `--depth 1` and the default depth answer different
@@ -286,8 +294,9 @@ what each one actually returns.
 
 The memory, knowledge, and proposal domains have no CLI verb and are reachable
 only if the optional MCP server is registered. The richer MCP response shapes
-(per-dependent `depth` and `summary.top_by_pagerank` on `BlastRadius`,
-`Communities` summaries, `ContextBundle`) are also MCP-only. The map says so
+(`summary.top_by_pagerank` on `BlastRadius`, `Communities` summaries,
+`ContextBundle`) are also MCP-only; the CLI `blast-radius --json` rows already
+carry a per-row `depth`. The map says so
 per row rather than implying coverage the CLI does not have.
 
 ## Known gaps
@@ -316,10 +325,28 @@ properties of an index. Without one you do not have them, and a plausible list
 of callers assembled from grep is not a blast radius. Report what you found and
 what you could not establish.
 
+## Reading a failed command
+
+`wicked-estate` parses its arguments strictly. A malformed value, a surplus
+operand, a repeated flag, or a `--db` with no path exits 1 with nothing on
+stdout and a usage line on stderr. Read that as a command error to fix, never as an empty
+answer. Most read commands refuse a missing or zero-byte `--db` with
+`no graph at <db>` and do not create it. `clusters`, `context`, `semantic`, `semantics`, `drift`, `cross-graph` and `correspond` do not: they turn a missing
+or zero-byte database path into an empty graph and return an empty result with
+exit 0 (source-read from `main.rs`). Before running one of them, run `stats --json --db <path>` on every database
+path it will read; that check refuses a missing path and creates nothing. Run
+the command only when every path shows a non-zero `nodes` count, and tell the
+user if one of these commands has already created a file. Even on a populated
+graph, `semantic` and `clusters --weight semantic` return an empty exit-0 result
+when the index has no embeddings, and the only sign is a note on stderr; do not
+report that result as an answer while the note is present. Until `tfstate` has
+imported live state, `drift` lists every declared resource as undeployed and
+gives no warning; do not report that list or its counts as drift (source-read from `estate_drift` in `lib.rs`). Exit 1 with nothing on stdout is never an answer.
+
 ## Writes
 
 This skill is read-only by default. `annotate`, `semantics`, `index`, `scip`,
-`tfstate`, `import-telemetry`, `compact`, and `watch` all mutate the graph or
+`evidence`, `tfstate`, `import-telemetry`, `compact`, and `watch` all mutate the graph or
 the working tree. Ask before running any of them, and never write workflow
 state — a migration phase, a bug status, a review verdict — into an annotation.
 

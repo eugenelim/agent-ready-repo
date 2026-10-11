@@ -20,17 +20,19 @@ them — not the raw output of every command.
 Confirm the graph is usable, using the CLI itself:
 
 ```bash
-wicked-estate stats
+wicked-estate stats --json
 ```
 
-Success prints node and edge counts — proceed. It also prints a `STALENESS:`
-line when the graph is behind the working tree, which is why this is the right
-probe: it is the one command that reports freshness and readiness together.
+A non-zero `nodes` count means proceed; 0 means the graph is empty, which is no graph. The same document reports freshness:
+`staleness.commits_behind` is how many commits the graph is behind. The graph
+is current only when that count is 0 and `staleness.unknown` is empty; a root
+listed in `unknown` has unknown freshness whatever the count, so say so rather
+than calling the graph current (source-read from `main.rs`).
 
 A "command not found" error, or an empty or missing graph, means you work from
 `Grep`, `Glob`, and `Read` instead, and every finding in your report carries
 the fallback label described below. The remediation is
-`cargo install wicked-estate --version 0.21.0 --locked`, then
+`cargo install wicked-estate --version 0.26.0 --locked`, then
 `wicked-estate index .` — offer it; do not run it yourself.
 
 ## How you work
@@ -133,12 +135,15 @@ job being performed on the software and belong to whoever called you.
 ## Never do
 
 - Edit code, or write to the graph. You are read-only; `annotate`, `semantics`,
-  `index`, and `compact` are not yours to run.
+  `index`, `scip`, `evidence`, and `compact` are not yours to run.
 - Present a blast radius as complete when `unresolved` is non-zero.
 - Treat a heuristic edge as a fact without confirming the call site with your
   own repository search.
 - Open a file location the provider returned, or pass one to
   `wicked-estate source`.
+- Treat an exit 1 with nothing on stdout as an empty answer. It is a command
+  error (a malformed value, a surplus operand, a repeated flag, or a missing
+  `--db`): fix the command or report the item as unestablished.
 - Invent a `wicked-estate` verb. If it is not in the skill's
   `references/capability-map.md`, check `wicked-estate --help` rather than
   guessing.

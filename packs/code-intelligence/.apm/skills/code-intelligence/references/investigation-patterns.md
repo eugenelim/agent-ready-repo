@@ -60,11 +60,12 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
 
    ```bash
    wicked-estate resolve OrderService --json
-   wicked-estate lineage --symbol '<symbol_id>' --json
+   wicked-estate lineage '<symbol_id>' --json
    ```
 
-   `lineage` takes an exact SymbolId only — always `resolve` first. Default depth
-   is 8. For a bounded neighbourhood view, `graph-view --focus OrderService
+   `wicked-estate lineage <symbol>` accepts a name or a symbol id. A name that is
+   unknown or ambiguous exits non-zero with nothing on stdout, so `resolve` first
+   when the name may be shared. Default depth is 8. For a bounded neighbourhood view, `graph-view --focus OrderService
    --limit 40` is an alternative. The two are not interchangeable: `lineage`
    returns transitive forward reachability; `graph-view` returns a filtered
    subgraph that may include non-dependency edges.
@@ -102,17 +103,22 @@ this work".
    and you can raise `--depth` (max 24) to go further.
 
    Freshness is not in this output — `blast-radius` suppresses its `STALENESS:`
-   line under `--json`. Run a bare `wicked-estate stats` to learn whether the
-   graph is behind the working tree.
+   line under `--json`. Run `wicked-estate stats --json` and read
+   `staleness.commits_behind`. The graph is current only when that count is 0
+   and `staleness.unknown` is empty; a root listed in `unknown` has unknown
+   freshness whatever the count (source-read from `main.rs`).
 
-4. **Separate direct from transitive.** The flat `dependents` array does not
-   distinguish them. Get depth by running:
+4. **Separate direct from transitive.** Each row in `dependents` carries a
+   per-row `depth`: 1 is a direct dependent and larger values are transitive. One
+   `blast-radius parse_config --json` run therefore separates the two, and the
+   cut flags from step 3 say how far to trust the split. When you want only the
+   direct dependents, run:
 
    ```bash
    wicked-estate blast-radius parse_config --depth 1 --json
    ```
 
-   That gives the direct dependents. Whether the difference against the full run is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
+   Subtracting that run from the full run is a second route to the split. Whether the difference is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
 
    `wicked-estate traverse '<id>' --direction dependents --depth 1 --json` walks
    one exact symbol and reports per-node depth in `depths`. It is not the same

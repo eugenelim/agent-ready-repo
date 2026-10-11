@@ -75,6 +75,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `close-work` gains one offer: when the change implemented a saved future-state design, it offers to reconcile that design into the `current-architecture` destination. The offer is optional and adds no gate.
 - `close-work` gains one behavior eval for the reconciliation offer.
 
+## [code-intelligence][0.1.8] — 2026-10-10
+
+### Highlights
+
+- Runs on Wicked Estate 0.26.0. See what a function depends on with `wicked-estate lineage <name>`; a plain name or a symbol id both work.
+- Impact analysis reads each dependent's own `depth` from `blast-radius --json`, so one call separates direct callers from indirect ones.
+- Trace where a value flows through TypeScript, TSX and JavaScript code with `wicked-estate lineage <name> --relation flows_to`.
+- `wicked-estate stats --json` tells you which commit the graph was built from and how many commits behind it is.
+- An exit 1 with nothing on stdout is treated as a command error, not as "nothing found".
+
+### Changed
+
+- Floor and pin move to 0.26 / 0.26.0 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.26.0 --locked`; the first `index` afterwards rebuilds the graph.
+- Annotation answers report `source_type`, `extraction_method` and `last_verified`, and `stale-annotations` accepts Unix seconds, a date, or `--older-than`.
+- `query --json` returns structured output and `--version` prints one line; `evidence` joins the commands that write to the graph.
+- The evidence guide covers `compiler` resolution and SCIP's reference-only role (it never adds call edges), the `STALENESS:` line forms, and `rules-recall --steering-type`.
+
 ## [architect][0.15.16] — 2026-10-10
 
 ### Highlights
