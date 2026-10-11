@@ -33,9 +33,9 @@ def _flat(text: str) -> str:
     return " ".join(text.split())
 
 
-def _skill(name: str) -> str:
+def _skill(skill_dir: Path) -> str:
     """Return one skill's SKILL.md with whitespace collapsed."""
-    return _flat((SKILLS / name / "SKILL.md").read_text(encoding="utf-8"))
+    return _flat((skill_dir / "SKILL.md").read_text(encoding="utf-8"))
 
 
 def _paragraphs(text: str) -> list[str]:
@@ -58,15 +58,15 @@ def _offer_problems(name: str, text: str) -> list[str]:
     return problems
 
 
-def _eval_cases(skill: str) -> dict[str, dict]:
+def _eval_cases(skill_dir: Path) -> dict[str, dict]:
     """Return a skill's eval cases keyed by string id."""
-    path = SKILLS / skill / "evals/evals.json"
+    path = skill_dir / "evals/evals.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     return {str(c["id"]): c for c in data["evals"]}
 
 
 def test_frame_domain_reuses_then_offers_then_extracts() -> None:
-    text = _skill("frame-domain")
+    text = _skill(SKILLS / "frame-domain")
     for phrase in (
         "current-architecture",
         "`architect-assess`",
@@ -83,7 +83,7 @@ def test_frame_domain_reuses_then_offers_then_extracts() -> None:
 
 
 def test_frame_intent_parks_system_shape_questions() -> None:
-    text = _skill("frame-intent")
+    text = _skill(SKILLS / "frame-intent")
     for phrase in (
         "## System-shape questions",
         "open design question",
@@ -100,14 +100,14 @@ def test_frame_intent_parks_system_shape_questions() -> None:
 
 
 def test_de_risk_intent_grounds_feasibility() -> None:
-    text = _skill("de-risk-intent")
+    text = _skill(SKILLS / "de-risk-intent")
     for phrase in ("feasibility", "current-architecture artifact", "`architect-assess`", "cheap probe"):
         assert phrase in text
 
 
 def test_option_skills_carry_feasibility_and_no_architect_skill() -> None:
-    explore = _skill("explore-options")
-    diverge = _skill("diverge-solutions")
+    explore = _skill(SKILLS / "explore-options")
+    diverge = _skill(SKILLS / "diverge-solutions")
     assert "feasibility: <optional" in explore
     assert "optional feasibility note citing it" in diverge
     assert "Trade-offs, Feasibility (optional)" in diverge
@@ -116,7 +116,7 @@ def test_option_skills_carry_feasibility_and_no_architect_skill() -> None:
 
 
 def test_decompose_and_map_capabilities_offers() -> None:
-    text = _skill("decompose-intent")
+    text = _skill(SKILLS / "decompose-intent")
     for phrase in (
         "subsystem boundaries",
         "Boundaries inform dependencies; the cut stays by shippability, never by component.",
@@ -127,7 +127,7 @@ def test_decompose_and_map_capabilities_offers() -> None:
     ):
         assert phrase in text
     assert "5. **Rank the children" in text and "6. **Project onto a tracker" in text
-    mapping = _skill("map-capabilities")
+    mapping = _skill(SKILLS / "map-capabilities")
     assert "`architect-design`" in mapping and "`application/system` scope for the Build capabilities" in mapping
 
 
@@ -171,9 +171,9 @@ def test_eval_ids_and_silent_assertions() -> None:
         "de-risk-intent": ("feasibility-architect-absent-silent",),
         "decompose-intent": ("architect-absent-silent",),
     }
-    for skill, ids in expected.items():
-        cases = _eval_cases(skill)
-        for case_id in ids:
+    for skill in ("frame-domain", "frame-intent", "de-risk-intent", "decompose-intent"):
+        cases = _eval_cases(SKILLS / skill)
+        for case_id in expected[skill]:
             assert case_id in cases, f"{skill}: missing {case_id}"
             if case_id.endswith(("-absent", "-absent-silent")):
                 assert any("Does not mention" in a for a in cases[case_id]["assertions"])
