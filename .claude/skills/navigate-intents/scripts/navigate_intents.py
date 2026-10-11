@@ -752,7 +752,8 @@ def _count_result_elements(
     """Count intents and edges in a result list.
 
     Returns ``(intent_count, edge_count)`` where edges include resolved and
-    refused parent edges plus delivery relations on each intent.
+    refused parent edges, delivery relations, and every entry of
+    ``related_written_here`` and ``related_written_elsewhere`` on each intent.
     """
     n_intents = len(intent_list)
     n_edges = 0

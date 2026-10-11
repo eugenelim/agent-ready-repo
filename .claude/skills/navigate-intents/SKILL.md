@@ -9,7 +9,9 @@ metadata:
 
 Read-only query skill for intent graph navigation.  Derives and traverses
 the directed acyclic graph formed by live intents, briefs, and specs using
-their ``Parent intent:``, ``Brief:``, ``Discovery:``, and ``Related intents:`` pointer fields.
+their ``Parent intent:``, ``Brief:``, and ``Discovery:`` pointer fields.  It also
+shows an intent's ``Related intents:`` links from both ends; those links never
+place or order anything in the graph.
 Results are candidate context derived from preamble headers at query time,
 not authoritative policy.
 
