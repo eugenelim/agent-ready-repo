@@ -11,7 +11,7 @@
 (function () {
   var SCHEMA = 'intent-navigation.view.v1';
   // Assembled in parts so a page for an unrecognised remote carries no host text.
-  var GITHUB_PREFIX = 'https://' + 'github' + '.com/';
+  var GITHUB_PREFIX = 'https://github.com/';
   var FILTER_KEYS = ['q', 'level', 'kind', 'status'];
 
   // Code points the text output escapes, as inclusive ranges.

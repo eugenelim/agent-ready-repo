@@ -187,7 +187,8 @@ def test_no_git_and_no_enclosing_repository_is_inert(tmp_path: pathlib.Path,
     monkeypatch.setenv("PATH", str(empty))
     payload, html = _export(root, tmp_path)
     assert {v["kind"] for v in payload["source_links"].values()} == {"inert"}
-    assert "github.com" not in html
+    # The view script carries the allowlisted prefix itself; no link may.
+    assert "github.com" not in json.dumps(payload)
 
 
 # ---------------------------------------------------------------------------
