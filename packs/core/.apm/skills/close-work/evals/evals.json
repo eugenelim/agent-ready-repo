@@ -157,6 +157,16 @@
         "Treats Approved → Shipped (x) as non-terminal",
         "Preserves full status values in evidence and writes no status"
       ]
+    },
+    {
+      "id": "reconcile-implemented-design",
+      "prompt": "Close a shipped spec whose plan names a future-state architecture-design artifact that the work implemented.",
+      "expected_output": "The agent offers to reconcile the design into the resolved current-architecture surface, applying it only under fresh confirmation and never overwriting a current-architecture source without per-file acceptance. When no current-architecture destination resolves, it reports that and leaves the design unchanged.",
+      "assertions": [
+        "Offers to reconcile the implemented design into the resolved current-architecture surface",
+        "Applies it only under fresh confirmation and never overwrites a current-architecture source without per-file acceptance",
+        "Reports and leaves the design unchanged when no current-architecture destination resolves"
+      ]
     }
   ]
 }

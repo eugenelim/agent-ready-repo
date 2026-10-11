@@ -69,6 +69,17 @@ Before decomposing, confirm:
      shippable, agent-buildable unit (one coherent scope, vertical, ships and
      tests on its own). Cut by **shippability**, never by component or layer.
 
+   When a reachable current-architecture or architecture-design artifact names
+   subsystem boundaries, check each child against them: a child that crosses a
+   boundary names the contract it depends on. Boundaries inform dependencies;
+   the cut stays by shippability, never by component. When a capability-level
+   intent needs a structural decomposition before its children can be cut,
+   check your available-skills roster for `architect-design` and offer it at
+   `subsystem` or `application/system` scope; its decomposition rubric decides
+   how many design documents result. If it is not in the roster, continue with
+   this skill's own behaviour and say nothing about it: no mention, no note, and
+   no error.
+
 2. **Record the decomposition decision.** Note *why* the cut went the way it did
    on the parent's `Decomposition` — the grouping rationale, and any branch you
    considered and dropped or replaced (with a pointer to the killed child's
@@ -97,6 +108,10 @@ Before decomposing, confirm:
      component repo, where `author-delivery-brief continue` → `new-spec` → `work-loop` take over.
      Coordinating across repos this way has hard limits (no atomic cross-repo
      commit, no shared release train) — `align-value-stream` states them honestly.
+
+   When a resolved `architecture-design` artifact covers this feature, carry
+   its locator in the delivery contract's design context, or in a delivery
+   brief's design artifacts, so the spec stage reads it as attributed context.
 
    At a confirmed discovery handoff gate, normalize the role and bounded fields
    into `normalized-intake.v1#handoff` only when the current Core invocation

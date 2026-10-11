@@ -44,7 +44,8 @@ skill asks, and pulling them in here would drift product-engineering out of
 problem space and into solution space — exactly the slide the pack's
 opportunity-stays-solution-independent discipline exists to prevent. If a framing
 conversation starts needing them, that's the signal the work has moved past
-framing and into design; hand it to the architect lens.
+framing and into design; park it as an open design question, as the skill's
+§ System-shape questions describes.
 
 ### Shared canonical core — keep the two copies aligned
 

@@ -68,7 +68,13 @@ Before de-risking, confirm:
 2. **Name the riskiest assumption — "what would have to be true".** From the
    intent's assumptions, pick the one with the highest risk × least evidence.
    Front it with *what would have to be true* for the bet to pay off, then
-   restate the single riskiest condition as the test target.
+   restate the single riskiest condition as the test target. When the riskiest
+   assumption is feasibility — can this be built on what exists — ground it
+   against a reachable current-architecture artifact and cite it in the test
+   target. When no such artifact exists, check your available-skills roster for
+   `architect-assess` and offer it as the cheap probe. If it is not in the
+   roster, continue with this skill's own behaviour and say nothing about it: no
+   mention, no note, and no error.
 
 3. **Predeclare the kill condition — in the test's own currency.** Write down,
    **before** running anything, what result would kill the bet — a number where

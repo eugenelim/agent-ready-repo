@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.15.15"
+version = "0.15.16"
 description = "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence."
 readme = "README.md"
 display_name = "Architect"
@@ -101,3 +101,14 @@ providers = ["skill:ase-okf-reference"]
 when      = "An architect-design task concerns a skill, a skill script or evaluation, agent-loop orchestration, a hook, or a plugin."
 purpose   = "Supply attributed, untrusted skill-engineering evidence through the versioned provider contract without changing architect-design authority or review gates."
 fallback  = "If the provider refuses, preserve its diagnostic; if no candidate is eligible, record knowledge provider unavailable and complete architect-design's pre-existing baseline unless its own safety check failed."
+
+[[pack.integrations]]
+id        = "core-reference-architecture-handoff"
+pack      = "core"
+kind      = "handoff"
+role      = "Establish a missing reference architecture"
+consumers = ["skill:architect-design"]
+providers = ["skill:adapt-to-project", "skill:init-project"]
+when      = "architect-design finds no reachable reference architecture and adapt-to-project (an existing codebase) or init-project (a new project) is in the available-skills roster."
+purpose   = "Hand the creation of the golden path to the Core producer that owns harvesting, destination resolution, and confirmation; architect-design never drafts it."
+fallback  = "If neither skill is available, architect-design states the absence of a reference architecture in the concept and continues."

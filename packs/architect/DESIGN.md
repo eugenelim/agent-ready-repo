@@ -143,9 +143,13 @@ current-architecture or external knowledge surface is reachable and states what
 it found in the concept; the absence of a surface is itself a visible signal.
 
 If no golden-path artifact exists, `architect-design` offers to establish one
-at the adopter-selected or resolved current-architecture destination. A design
-grounded against a known stack produces far tighter proposals than design
-against an implicit assumption of what the stack probably is.
+by handing off to Core's `adapt-to-project` (an existing codebase) or
+`init-project` (a new project) when either is installed. Those skills own
+harvesting, destination resolution, and confirmation; `architect-design` never
+drafts the artifact itself. When neither is available, it states the absence
+in the concept and continues. A design grounded against a known stack produces
+far tighter proposals than design against an implicit assumption of what the
+stack probably is.
 
 ### Platform contract grounding
 
@@ -274,10 +278,23 @@ The backstage column of a `service-blueprint` artifact (experience-design pack) 
 
 ### Downstream: core
 
-Architecture design docs produced by `architect-design` become an input for the
-core pack's `work-loop`. When a resolved architecture-design or
-current-architecture surface exists, `work-loop` reads it to orient against the
-current architectural intent before implementation begins.
+A design doc produced by `architect-design` reaches a spec or `work-loop` by
+exactly two routes:
+
+- **Delivery-contract design context.** When product-engineering's
+  `decompose-intent` projects a feature that a resolved design covers, it
+  carries the design's locator in the delivery contract's design context (or a
+  delivery brief's design artifacts). `new-spec` reads that as attributed
+  context.
+- **Reconciliation into current architecture.** After the change ships, the
+  design is reconciled into the `current-architecture` source; Core's
+  `close-work` offers this. `new-spec` and `work-loop` then read it only when an
+  `AGENTS.md` maps that source.
+
+A `workspace.toml` `needs` entry naming the design only orders work: it keeps a
+brief or spec blocked until the design lands and carries no content. Core reads
+only mapped architecture sources, so a future-state design never becomes a
+second architecture authority beside the system that actually runs.
 
 ---
 

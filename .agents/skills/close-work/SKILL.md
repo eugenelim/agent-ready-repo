@@ -102,6 +102,14 @@ passing test, ownership, writability, or a prior approval.
    surfaces. Leave exact internal shapes with code, contracts, docstrings, and
    tests. One-off task order and scaffolding may remain delivery residue. A lasting
    fact whose only copy is the delivery container blocks disposition.
+   When the closed work's spec, plan, or delivery contract names a future-state
+   `architecture-design` artifact that this work implemented, offer to reconcile
+   it into the resolved `current-architecture` surface: record what was built in
+   the current-architecture source and mark the design implemented or
+   superseded. Apply it only under step 7's confirmation, and never overwrite a
+   current-architecture source without per-file acceptance. When no
+   `current-architecture` destination resolves, report that and leave the design
+   unchanged.
 5. Reconcile obligations, live dependencies, contextual anchors, and both shaping
    and build coordination rooms. Sharing an initiative is neither a retention
    requirement nor deletion permission. An established RFC family, release train,

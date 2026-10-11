@@ -134,7 +134,9 @@ After delivery, ask `close-work` to verify that lasting product, user,
 architecture, decision, interface, operations, maintainer, release, and reusable
 learning facts reached their established owners. It reads the `work-loop`
 completion handoff, checks affected human-readable surfaces as wholes, and shows
-blockers plus one disposition recommendation before anything changes.
+blockers plus one disposition recommendation before anything changes. It can
+also offer to reconcile an implemented future-state design into current
+architecture, applied only after you confirm.
 
 Disposition is never permission. A local deletion or content-removing workspace
 compaction needs a separately resolved authority fact and fresh human confirmation
