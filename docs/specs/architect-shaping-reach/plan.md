@@ -1,7 +1,7 @@
 # Plan: Architect output reaches shaping and specs
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval
   harness, no internal citations); `packs/product-engineering/.apm/skills/frame-domain/SKILL.md`
   § Detect-and-degrade (the roster-check primitive reused here);
