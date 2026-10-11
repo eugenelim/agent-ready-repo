@@ -6,7 +6,9 @@ binary; the identity they need is set only in the setup commands' own environmen
 
 from __future__ import annotations
 
+import errno
 import importlib.util
+import json
 import os
 import pathlib
 import re
@@ -282,7 +284,8 @@ def test_git_calls_are_hardened(tmp_path: pathlib.Path, monkeypatch: pytest.Monk
     monkeypatch.setenv("GIT_DIR", "/unrelated")
     monkeypatch.setattr(view.subprocess, "run", fake_run)
     view._git_run(tmp_path, ["worktree", "list"])
-    assert seen["argv"][:5] == ["git", "-C", str(tmp_path), "-c", "core.fsmonitor=false"]
+    assert seen["argv"][:7] == ["git", "-C", str(tmp_path), "-c", "core.fsmonitor=false",
+                                "-c", "protocol.allow=never"]
     assert seen["shell"] is False and seen["timeout"] == 5
     assert seen["capture_output"] is True
     git_vars = {k: v for k, v in seen["env"].items() if k.startswith("GIT_")}
@@ -320,9 +323,6 @@ def test_case_variant_of_a_contained_directory_is_refused(tmp_path: pathlib.Path
 def test_bad_names_are_refused(tmp_path: pathlib.Path, bad: str) -> None:
     out = _dir(tmp_path / "out")
     root = _dir(tmp_path / "root")
-    if bad == "":  # an empty name falls back to the default, which is valid
-        assert view.validate_destination(root, str(out), bad)
-        return
     assert _refusal(root, out, bad).code == "invalid_destination"
     assert list(out.iterdir()) == []
 
@@ -418,6 +418,73 @@ def test_swapped_destination_directory_writes_nothing(tmp_path: pathlib.Path,
     assert list(moved.iterdir()) == [] and list(elsewhere.iterdir()) == []
     if replacement == "directory":
         assert list(directory.iterdir()) == []
+
+
+def test_directory_replaced_after_the_temporary_file_links_nothing(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The directory is swapped after the temp file exists; the pre-link re-check must refuse."""
+    target = _target(tmp_path)
+    directory = pathlib.Path(target.directory)
+    moved = tmp_path / "moved"
+    real_fsync = os.fsync
+
+    def swapping_fsync(fd: int) -> None:
+        real_fsync(fd)
+        directory.rename(moved)
+        directory.mkdir()
+
+    monkeypatch.setattr(os, "fsync", swapping_fsync)
+    with pytest.raises(view.ViewRefusal) as caught:
+        view.publish("<p>x</p>", target)
+    assert caught.value.code == "publish_failed"
+    assert list(moved.iterdir()) == [] and list(directory.iterdir()) == []
+
+
+def test_entry_created_after_validation_is_refused_and_left_unchanged(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A name taken between validation and linking is destination_exists, not publish_failed."""
+    target = _target(tmp_path)
+    entry = pathlib.Path(target.directory) / target.name
+    entry.write_bytes(b"raced")
+    before = os.lstat(entry)
+    with pytest.raises(view.ViewRefusal) as caught:
+        view.publish("<p>x</p>", target)
+    assert caught.value.code == "destination_exists"
+    after = os.lstat(entry)
+    assert entry.read_bytes() == b"raced"
+    assert (before.st_mtime_ns, before.st_size) == (after.st_mtime_ns, after.st_size)
+    assert [p.name for p in entry.parent.iterdir()] == [target.name]
+
+
+@pytest.mark.parametrize("stage", ["create_temp", "write", "link"])
+def test_publish_failed_names_the_stage_and_errno_without_a_path(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, stage: str
+) -> None:
+    target = _target(tmp_path)
+    real_open = os.open
+
+    def deny(*_a: Any, **_k: Any) -> Any:
+        raise OSError(errno.ENOSPC, "no space")
+
+    if stage == "create_temp":
+        def failing_open(path: Any, flags: int, *args: Any, **kwargs: Any) -> int:
+            if "dir_fd" in kwargs:
+                deny()
+            return real_open(path, flags, *args, **kwargs)
+
+        monkeypatch.setattr(os, "open", failing_open)
+        monkeypatch.setattr(os, "supports_dir_fd", {*os.supports_dir_fd, failing_open})
+    else:
+        monkeypatch.setattr(os, "write" if stage == "write" else "link", deny)
+        # The stand-in must count as dir_fd-capable, or the platform check refuses first.
+        monkeypatch.setattr(os, "supports_dir_fd", {*os.supports_dir_fd, deny})
+    with pytest.raises(view.ViewRefusal) as caught:
+        view.publish("<p>x</p>", target)
+    assert caught.value.code == "publish_failed"
+    assert caught.value.observed == {"stage": stage, "errno": "ENOSPC"}
+    assert target.directory not in json.dumps(caught.value.observed)
 
 
 @pytest.mark.parametrize("missing", ["supports_dir_fd", "O_NOFOLLOW", "O_DIRECTORY"])

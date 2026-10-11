@@ -1,4 +1,5 @@
-/* Intent graph view. Tokens first; every later value reads from them. */
+/* Intent graph view. Colour, spacing, radius, and target sizes read from the tokens below;
+   type sizes and focus-ring offsets are set where they are used. */
 :root {
   --bg: #f4f5f9;
   --surface: #fff;
@@ -8,19 +9,20 @@
   --text-muted: #4b5563;
   --accent: #1d4ed8;
   --focus: #1d4ed8;
-  --warn-bg: #fee2e2;
-  --warn-fg: #991b1b;
-  --note-bg: #dbeafe;
-  --note-fg: #1e40af;
-  --quiet-bg: #f3f4f6;
-  --quiet-fg: #374151;
+  --s-deprecated-bg: #fee2e2;
+  --s-deprecated-fg: #991b1b;
+  --s-proposed-bg: #dbeafe;
+  --s-proposed-fg: #1e40af;
+  --s-superseded-bg: #f3f4f6;
+  --s-superseded-fg: #374151;
   --space-1: .25rem;
   --space-2: .5rem;
   --space-3: .75rem;
   --space-4: 1rem;
   --space-5: 1.5rem;
-  --radius: 6px;
+  --radius-sm: 6px;
   --target: 28px;
+  --toggle-w: 7.5rem;
   --outline: 3px;
   --hair: 1px;
   --max-w: 90rem;
@@ -38,12 +40,12 @@
   --text-muted: #9ca3af;
   --accent: #60a5fa;
   --focus: #60a5fa;
-  --warn-bg: #450a0a;
-  --warn-fg: #fca5a5;
-  --note-bg: #1e3a5f;
-  --note-fg: #93c5fd;
-  --quiet-bg: #1f2937;
-  --quiet-fg: #d1d5db;
+  --s-deprecated-bg: #450a0a;
+  --s-deprecated-fg: #fca5a5;
+  --s-proposed-bg: #1e3a5f;
+  --s-proposed-fg: #93c5fd;
+  --s-superseded-bg: #1f2937;
+  --s-superseded-fg: #d1d5db;
   color-scheme: dark;
 }
 
@@ -58,12 +60,12 @@
     --text-muted: #9ca3af;
     --accent: #60a5fa;
     --focus: #60a5fa;
-    --warn-bg: #450a0a;
-    --warn-fg: #fca5a5;
-    --note-bg: #1e3a5f;
-    --note-fg: #93c5fd;
-    --quiet-bg: #1f2937;
-    --quiet-fg: #d1d5db;
+    --s-deprecated-bg: #450a0a;
+    --s-deprecated-fg: #fca5a5;
+    --s-proposed-bg: #1e3a5f;
+    --s-proposed-fg: #93c5fd;
+    --s-superseded-bg: #1f2937;
+    --s-superseded-fg: #d1d5db;
     color-scheme: dark;
   }
 }
@@ -141,24 +143,24 @@ body {
   margin: 0 0 var(--space-3);
   padding: var(--space-3);
   border-left: var(--outline) solid var(--accent);
-  background: var(--note-bg);
-  color: var(--note-fg);
+  background: var(--s-proposed-bg);
+  color: var(--s-proposed-fg);
 }
 
 .notice {
   margin: var(--space-3);
   padding: var(--space-3);
   border-left: var(--outline) solid var(--accent);
-  background: var(--note-bg);
-  color: var(--note-fg);
+  background: var(--s-proposed-bg);
+  color: var(--s-proposed-fg);
 }
 
 .alert {
   margin: var(--space-4) 0;
   padding: var(--space-4);
-  border-left: var(--outline) solid var(--warn-fg);
-  background: var(--warn-bg);
-  color: var(--warn-fg);
+  border-left: var(--outline) solid var(--s-deprecated-fg);
+  background: var(--s-deprecated-bg);
+  color: var(--s-deprecated-fg);
   font-weight: 600;
 }
 
@@ -183,7 +185,7 @@ body {
 
 .stat {
   border: var(--hair) solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--bg);
 }
 
@@ -223,6 +225,14 @@ body {
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     align-items: start;
   }
+
+  /* Keep the detail in view while the list scrolls; it scrolls within itself when taller. */
+  .detail {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow: auto;
+  }
 }
 
 .worklist,
@@ -230,7 +240,7 @@ body {
   min-width: 0;
   padding: var(--space-4);
   border: var(--hair) solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
@@ -249,7 +259,7 @@ body {
   min-height: var(--target);
   padding: var(--space-1) var(--space-3);
   border: var(--hair) solid var(--control-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   color: var(--accent);
   text-decoration: none;
 }
@@ -269,7 +279,7 @@ body {
   margin: 0 0 var(--space-3);
   padding: var(--space-3);
   border: var(--hair) solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   min-width: 0;
 }
 
@@ -290,7 +300,7 @@ body {
   min-height: var(--target);
   padding: var(--space-1) var(--space-2);
   border: var(--hair) solid var(--control-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -306,7 +316,7 @@ body {
   min-height: var(--target);
   padding: var(--space-1) var(--space-3);
   border: var(--hair) solid var(--control-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--accent);
   font: inherit;
@@ -401,11 +411,11 @@ body {
 }
 
 .toggle {
-  min-width: var(--target);
+  min-width: var(--toggle-w);
   min-height: var(--target);
   padding: var(--space-1) var(--space-2);
   border: var(--hair) solid var(--control-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -429,29 +439,44 @@ body {
 .mark {
   display: inline-block;
   padding: 0 var(--space-2);
-  border-radius: var(--radius);
-  background: var(--quiet-bg);
-  color: var(--quiet-fg);
+  border-radius: var(--radius-sm);
+  background: var(--s-superseded-bg);
+  color: var(--s-superseded-fg);
   font-size: .8125rem;
+}
+
+.f-status {
+  border: var(--hair) dashed var(--control-border);
+  background: transparent;
+}
+
+.f-status::before {
+  content: "status ";
+}
+
+.toggle-spacer {
+  display: inline-block;
+  min-width: var(--toggle-w);
+  min-height: var(--target);
 }
 
 .label-state,
 .label-trust {
-  background: var(--note-bg);
-  color: var(--note-fg);
+  background: var(--s-proposed-bg);
+  color: var(--s-proposed-fg);
   font-family: var(--mono);
 }
 
 .mark-refused {
-  background: var(--warn-bg);
-  color: var(--warn-fg);
+  background: var(--s-deprecated-bg);
+  color: var(--s-deprecated-fg);
   font-weight: 600;
 }
 
 .mark-latest,
 .mark-outside {
-  background: var(--note-bg);
-  color: var(--note-fg);
+  background: var(--s-proposed-bg);
+  color: var(--s-proposed-fg);
 }
 
 .value {
@@ -461,8 +486,8 @@ body {
 
 .pointer-value {
   padding: 0 var(--space-1);
-  background: var(--quiet-bg);
-  color: var(--quiet-fg);
+  background: var(--s-superseded-bg);
+  color: var(--s-superseded-fg);
 }
 
 .empty,

@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import datetime as _dt
+import errno as _errno
 import hashlib
 import importlib.util
 import json
@@ -172,12 +173,19 @@ class Destination(NamedTuple):
 def _git_run(root: Path, args: list[str]) -> subprocess.CompletedProcess[bytes]:
     """Run one hardened Git call: no shell, fixed argv, no prompt, no inherited GIT_ state.
 
+    ``protocol.allow=never`` stops a partial clone's lazy fetch from starting any transport,
+    so a missing object makes the call fail instead of reaching the promisor remote.
+
     Raises ``OSError`` when Git cannot start and ``subprocess.TimeoutExpired`` on timeout.
     """
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     env["GIT_TERMINAL_PROMPT"] = "0"
     return subprocess.run(  # noqa: S603
-        ["git", "-C", str(root), "-c", "core.fsmonitor=false", *args],  # noqa: S607
+        [  # noqa: S607
+            "git", "-C", str(root),
+            "-c", "core.fsmonitor=false", "-c", "protocol.allow=never",
+            *args,
+        ],
         shell=False,
         env=env,
         stdin=subprocess.DEVNULL,
@@ -477,7 +485,8 @@ def validate_destination(
 
     Raises ``ViewRefusal`` with ``invalid_destination`` or ``destination_exists``.
     """
-    file_name = name or _dt.datetime.now(tz=_UTC).strftime("intent-graph-%Y%m%dT%H%M%SZ.html")
+    stamp = _dt.datetime.now(tz=_UTC).strftime("intent-graph-%Y%m%dT%H%M%SZ.html")
+    file_name = stamp if name is None else name
     if not _NAME_RULE.fullmatch(file_name):
         raise ViewRefusal(
             "invalid_destination",
@@ -502,8 +511,17 @@ def validate_destination(
     return Destination(directory, file_name, (st.st_dev, st.st_ino))
 
 
-def _publish_failed() -> ViewRefusal:
-    return ViewRefusal("publish_failed", "the file could not be published; nothing was written")
+def _publish_failed(stage: str, exc: OSError | None = None) -> ViewRefusal:
+    """Build ``publish_failed``; ``observed`` names the stage and errno, never a path."""
+    observed: dict[str, Any] = {"stage": stage}
+    code = _errno.errorcode.get(exc.errno) if exc is not None and exc.errno else None
+    if code:
+        observed["errno"] = code
+    return ViewRefusal(
+        "publish_failed",
+        "the file could not be published; nothing was written",
+        observed=observed,
+    )
 
 
 def _same_directory(directory: str, identity: tuple[int, int]) -> bool:
@@ -535,17 +553,17 @@ def publish(html: str, destination: Destination) -> Path:
         or os.open not in supports
         or os.link not in supports
     ):
-        raise _publish_failed()
+        raise _publish_failed("platform_support")
     directory, name, identity = destination
     temp_name = f".intent-graph-{os.urandom(8).hex()}.tmp"
     try:
         dir_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-    except OSError:
-        raise _publish_failed() from None
+    except OSError as exc:
+        raise _publish_failed("open_directory", exc) from None
     try:
         st = os.fstat(dir_fd)
         if (st.st_dev, st.st_ino) != identity or not _same_directory(directory, identity):
-            raise _publish_failed()
+            raise _publish_failed("directory_changed")
         try:
             fd = os.open(
                 temp_name,
@@ -553,8 +571,9 @@ def publish(html: str, destination: Destination) -> Path:
                 0o600,
                 dir_fd=dir_fd,
             )
-        except OSError:
-            raise _publish_failed() from None
+        except OSError as exc:
+            raise _publish_failed("create_temp", exc) from None
+        stage = "write"
         try:
             try:
                 os.fchmod(fd, 0o600)
@@ -568,14 +587,15 @@ def publish(html: str, destination: Destination) -> Path:
             finally:
                 os.close(fd)
             if not _same_directory(directory, identity):
-                raise _publish_failed()
+                raise _publish_failed("directory_changed")
+            stage = "link"
             os.link(temp_name, name, src_dir_fd=dir_fd, dst_dir_fd=dir_fd, follow_symlinks=False)
         except FileExistsError:
             raise ViewRefusal(
                 "destination_exists", "an entry with that name already exists"
             ) from None
-        except OSError:
-            raise _publish_failed() from None
+        except OSError as exc:
+            raise _publish_failed(stage, exc) from None
         finally:
             with contextlib.suppress(OSError):
                 os.unlink(temp_name, dir_fd=dir_fd)

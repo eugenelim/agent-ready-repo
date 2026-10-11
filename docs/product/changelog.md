@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When an intent and a brief (or spec) share a slug, both now count, so a parent can no longer look ready to close while one of them is still open.
 - A broken parent pointer or a fault while building the intent tree now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
 - Relate two intents with one `Related intents:` line. `navigate-intents` shows the relation from both ends, and the intent lint refuses a value that is malformed, names the intent itself, or matches no live intent of that kind.
-- Export the whole intent graph as one HTML file that opens offline, to share with a reviewer or browse without a terminal. It lists every intent with its parents, outstanding work, refused pointers, and parentless intents, links each source file, works from the keyboard, runs no script from your records, and is always written outside the repository.
+- Export the whole intent graph as one HTML file that opens offline, to share with a reviewer or browse without a terminal. It lists every intent with its parents, outstanding work, refused pointers, and parentless intents. It links each source file. It works from the keyboard. Record text is shown as plain text. The file is always written outside the repository.
 
 ### Added
 

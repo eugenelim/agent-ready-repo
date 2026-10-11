@@ -481,7 +481,7 @@ def test_ac_0037_summary_strip_equals_the_summary(
             for li in item.page.locator("#summary-list li").all()
         }
         assert shown == {
-            "Outstanding": summary["outstanding"],
+            "Outstanding items": summary["outstanding"],
             "Refused edges": sum(summary["refused_edges_by_state"].values()),
             "Parentless intents": summary["parentless_intents"],
             "Intents": sum(summary["intents_by_level"].values()),
@@ -1263,3 +1263,185 @@ def test_ac_0064_contrast_in_both_themes(
         for stop in stops:
             ratio = _ratio(_rgb(stop["outlineColor"]), _rgb(stop["bg"]))
             assert ratio >= 3, (stop, ratio)
+
+
+# ---------------------------------------------------------------------------
+# Review round 1: relations on non-intent nodes, focus return, wording, and cues
+# ---------------------------------------------------------------------------
+
+
+def _opportunity_corpus(tmp: pathlib.Path) -> pathlib.Path:
+    """The coordinated-delivery corpus with beta-feat as an opportunity: its node id is
+    ``opportunity:beta-feat`` while its delivery relation still writes ``intent:beta-feat``."""
+    root = tmp / "opportunity"
+    shutil.copytree(_FIXTURES / "coordinated_delivery", root)
+    feat = root / "docs/product/intents/FEAT-0002-beta-feat.md"
+    feat.write_text(
+        feat.read_text(encoding="utf-8").replace(
+            "- **Level:** feature\n", "- **Level:** feature\n- **Kind:** opportunity\n"
+        ),
+        encoding="utf-8",
+    )
+    return root
+
+
+def test_delivery_relation_on_a_non_intent_node_renders_as_a_link(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    path = _export(_opportunity_corpus(tmp_path), tmp_path / "out", "opportunity.html")
+    payload = payload_of(path)
+    relation = payload["records"]["opportunity:beta-feat"]["delivery_relations"][0]
+    assert relation["intent"] == "intent:beta-feat"
+    assert "intent:beta-feat" not in {n["id"] for n in payload["nodes"]}
+    page = opener(path).page
+    for node, group in (("opportunity:beta-feat", 4), ("brief:beta-brief", 1)):
+        page.evaluate("id => { location.hash = 'view=tree&node=' + encodeURIComponent(id); }", node)
+        page.wait_for_function("id => document.getElementById('detail-heading').textContent === id", arg=node)
+        relations = page.locator("#detail-body section.group").nth(group)
+        assert relations.locator("h3").inner_text() == "Delivery relations"
+        assert relations.locator('a[data-node="opportunity:beta-feat"]').count() == 1
+        assert "outside this export" not in relations.inner_text()
+    page.locator('#detail-body a[data-node="opportunity:beta-feat"]').first.click()
+    page.wait_for_function(
+        "() => document.getElementById('detail-heading').textContent === 'opportunity:beta-feat'"
+    )
+
+
+def test_back_to_list_returns_focus_to_the_selected_row(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    page = opener(exports["related"]).page
+    # bravo-feat sits under a collapsed capability: its row does not exist yet.
+    page.evaluate("location.hash = 'view=tree&node=intent%3Abravo-feat'")
+    page.wait_for_function("() => document.activeElement.id === 'detail-heading'")
+    assert _ids(page).count("intent:bravo-feat") == 0
+    button = page.locator("#detail-body button.back-link")
+    box = button.bounding_box()
+    assert box is not None and box["width"] >= 24 and box["height"] >= 24
+    assert button.text_content().strip() == "Back to list (row intent:bravo-feat)"
+    assert button.locator(".visually-hidden").count() == 1
+    button.click()
+    assert page.evaluate("document.activeElement.dataset.node") == "intent:bravo-feat"
+    assert page.evaluate("document.activeElement.getAttribute('aria-current')") == "true"
+    toggle = page.locator("#list li.item", has=page.locator('a[data-node="capability:alpha-cap"]')).first.locator("button.toggle").first
+    assert toggle.get_attribute("aria-expanded") == "true"
+    # Keyboard: Enter on the focused button does the same from a fresh selection.
+    page.evaluate("location.hash = 'view=tree&node=outcome%3Acharlie-out'")
+    page.wait_for_function("() => document.activeElement.id === 'detail-heading'")
+    page.locator("#detail-body button.back-link").focus()
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.activeElement.dataset.node") == "outcome:charlie-out"
+    # A filtered flat list holds the row directly; a row the filter hides falls back to the heading.
+    page.evaluate("location.hash = 'view=tree&q=bravo&node=intent%3Abravo-feat'")
+    page.wait_for_function("() => document.activeElement.id === 'detail-heading'")
+    page.locator("#detail-body button.back-link").click()
+    assert page.evaluate("document.activeElement.dataset.node") == "intent:bravo-feat"
+    page.evaluate("location.hash = 'view=tree&q=bravo&node=outcome%3Acharlie-out'")
+    page.wait_for_function("() => document.activeElement.id === 'detail-heading'")
+    page.locator("#detail-body button.back-link").click()
+    assert page.evaluate("document.activeElement.id") == "view-heading"
+
+
+def test_detail_panel_stays_in_view_on_wide_screens_only(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    wide = _busy_page(opener, exports, width=1280, height=400).page
+    style = wide.evaluate("(() => { const c = getComputedStyle(document.querySelector('.detail')); return [c.position, c.top, c.overflowY]; })()")
+    assert style == ["sticky", "0px", "auto"]
+    assert wide.evaluate("document.documentElement.scrollHeight > innerHeight")
+    wide.evaluate("window.scrollTo(0, 300)")
+    lower = wide.evaluate(
+        "Array.from(document.querySelectorAll('#list a.row-link')).find(a => a.getBoundingClientRect().top > 200 && a.getAttribute('aria-current') !== 'true').dataset.node"
+    )
+    wide.locator(f'#list a.row-link[data-node="{lower}"]').click()
+    wide.wait_for_function("() => document.activeElement.id === 'detail-heading'")
+    rect = wide.evaluate("(() => { const r = document.querySelector('.detail').getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; })()")
+    assert 0 <= rect[0] < 1 and rect[1] <= rect[2] + 1, rect
+    heading = wide.evaluate("(() => { const r = document.getElementById('detail-heading').getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; })()")
+    assert heading[0] >= 0 and heading[1] <= heading[2], heading
+    narrow = _busy_page(opener, exports, width=320, height=700).page
+    assert narrow.evaluate("getComputedStyle(document.querySelector('.detail')).position") == "static"
+
+
+def test_state_and_trust_badges_keep_their_key_and_point_to_their_explanation(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    page = opener(exports["hostile"]).page
+    page.evaluate("location.hash = 'view=refused'")
+    page.wait_for_selector("#list .label-state")
+    pairs = page.evaluate(
+        """() => Array.from(document.querySelectorAll('#list .label-state, #list .label-trust')).map((c) => {
+          const d = document.getElementById(c.getAttribute('aria-describedby'));
+          return [c.textContent, d ? d.textContent : null, c.getAttribute('title')]; })"""
+    )
+    assert pairs and all(key in _STATES + _TRUST and text and text == title for key, text, title in pairs)
+    legend = page.evaluate(
+        "Array.from(document.querySelectorAll('#detail-legend dt .chip')).map(c => [c.className, c.textContent])"
+    )
+    assert [k for _, k in legend] == _STATES + _TRUST
+    assert page.locator("#detail-legend dt.label-state, #detail-legend dt.label-trust").count() == 0
+
+
+def test_status_chip_has_a_cue_that_is_not_colour(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    page = opener(exports["mixed"]).page
+    cue = page.evaluate(
+        """() => { const s = document.querySelector('#list .f-status'); const l = document.querySelector('#list .f-level');
+          return [getComputedStyle(s).borderTopStyle, getComputedStyle(s, '::before').content,
+                  getComputedStyle(l).borderTopStyle]; }"""
+    )
+    assert cue == ["dashed", '"status "', "none"]
+
+
+def test_childless_tree_rows_line_up_with_rows_that_have_a_toggle(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    page = opener(exports["mixed"]).page
+    lefts = page.evaluate(
+        """() => Array.from(document.querySelectorAll('#list > ul > li.item > .row > a.row-link'))
+          .map(a => Math.round(a.getBoundingClientRect().left))"""
+    )
+    kids = page.evaluate("document.querySelectorAll('#list > ul > li.item > .row > button.toggle').length")
+    assert len(lefts) > kids > 0 and len(set(lefts)) == 1, lefts
+
+
+def test_outstanding_says_filters_apply_to_intents_before_any_filter(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    page = opener(exports["mixed"]).page
+    page.evaluate("location.hash = 'view=outstanding'")
+    page.wait_for_selector("#list .subsection")
+    notes = page.locator("#list > p.note").all_inner_texts()
+    assert notes == ["Filters apply to intents only. Briefs and specs are hidden while a filter is set."]
+    page.select_option("#filter-level", "capability")
+    assert page.locator("#list > p.note").all_inner_texts() == notes
+
+
+def test_page_text_is_written_for_readers(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["related"])
+    page = item.page
+    assert re.fullmatch(
+        r"Read-only snapshot generated \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC\. "
+        r"Record text in this file is shown as plain text and is never run\.",
+        page.inner_text("#meta"),
+    )
+    provenance = payload_of(exports["related"])["provenance"]
+    assert "untrusted" in provenance["untrusted_data"] and provenance["generated_at"].count(":") == 3
+    page.evaluate("location.hash = 'view=tree&node=capability%3Aalpha-cap'")
+    face = page.evaluate(
+        "getComputedStyle(Array.from(document.querySelectorAll('#detail-body .fact')).find(r => r.querySelector('dt').textContent === 'Heading').querySelector('dd span')).fontFamily"
+    )
+    assert "monospace" not in face
+    assert "Parent intent field" in page.inner_text("#detail-legend")
+
+
+def test_startup_render_failure_shows_the_alert_and_logs_the_error(
+    opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    broken = _rewrite(
+        exports["mixed"], tmp_path / "broken.html", lambda p: {**p, "records": {"intent:bad": 1}}
+    )
+    item = opener(broken)
+    assert "damaged" in item.page.inner_text("#main .alert")
+    assert any("could not render" in line for line in item.console)

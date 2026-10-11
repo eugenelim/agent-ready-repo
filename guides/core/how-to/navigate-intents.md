@@ -151,7 +151,7 @@ The page has a summary strip and four views: Tree, Outstanding, Refused edges, a
 
 The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
 
-- **Source links** go to GitHub only when `origin` is a plain GitHub remote. A link marked "may be newer than this export" points to the latest version, because the file you exported is modified, untracked, or not yet pushed. Any other remote shows each source's path as plain text.
+- **Source links** go to GitHub only when `origin` is a plain GitHub remote. A link opens the file on the GitHub default branch. A link marked "may be newer than this export" points to that latest version, because the file you exported is modified, untracked, or not yet pushed, so an untracked or unpushed file may not exist there yet. Any other remote shows each source's path as plain text.
 - **With `--from`**, the page names the scoped intent and shows only that subtree. The summary strip still counts the whole corpus and says so.
 - **When delivery mapping is unavailable** (the delivery resolver hit its limit), the page says so and gives the reason where it would list delivery relations.
 - **Record text is inert.** The page never runs script from a record, never loads anything, and makes no network request when you open it. A header value that contains markup shows as plain text.
@@ -172,10 +172,10 @@ A refusal prints `status: error` with an `error` object (`code`, `message`, `lim
 |------|---------------|-----------|
 | `invalid_destination` | The destination is missing, is not a directory, or lies inside the repository, or `--name` is not allowed. The message names the directory it lies under. When `git` is unavailable or cannot list the work trees of an enclosing repository, every destination is refused. | Choose an existing directory outside the repository, fix the name, or make `git` available. |
 | `destination_exists` | An entry with that name is already there. | Choose another `--name`. |
-| `publish_failed` | The directory changed while the file was written, or the platform lacks the directory-relative file calls the export needs (Windows). | Retry on a stable directory; on Windows the export is not supported. |
+| `publish_failed` | The directory changed while the file was written, the directory cannot be written (permissions, no free space, or a read-only file system), or the platform lacks the directory-relative file calls the export needs (Windows). `error.observed` names the `stage` and the `errno` name when the system gave one, and never a path. | Pick a writable directory with free space; for a changed directory, retry on a stable one; on Windows the export is not supported. |
 | `export_too_large` | The page is larger than `error.limits.budget_bytes`. | Re-run with `--from`, the bounded route named in `error.limits.bounded_route`, on a smaller subtree. |
 
-The corpus codes from [When a query is refused](#when-a-query-is-refused) apply too: `duplicate_identity`, `malformed_record`, `unsafe_input`, `input_too_large`, `resolver_unavailable`, `not_found`, and `ambiguous_identity`. `not_found` and `ambiguous_identity` come from `--from`.
+The corpus codes from [When a query is refused](#when-a-query-is-refused) apply too: `duplicate_identity`, `malformed_record`, `unsafe_input`, `input_too_large`, `resolver_unavailable`, `not_found`, and `ambiguous_identity`. `not_found` and `ambiguous_identity` come from `--from`. `invalid_query` means a command-line argument is not valid UTF-8; pass valid UTF-8 arguments.
 
 ## Related intents
 
@@ -246,7 +246,7 @@ A refused query returns `status: error` with exit code 1 and an `error` object c
 
 ## Read-only boundary
 
-The `query` operations never write anything, and `export` never writes inside the repository. Every answer is derived from preamble headers (the `Status:`, `Level:`, and other fields at the top of each intent file) at the moment it is asked; nothing is cached or stored. Symlinks, hard links, special files, and paths outside the repository root are refused before any content is read. The `boundary` field in every JSON response states this explicitly.
+The `query` operations never write anything, and `export` never writes inside the repository. Every answer is derived from preamble headers (the `Status:`, `Level:`, and other fields at the top of each intent file) at the moment it is asked; `query` caches and stores nothing. Symlinks, hard links, special files, and paths outside the repository root are refused before any content is read. The `boundary` field in every `query` response states this explicitly. An `export` response carries no `boundary` field; it reports the one file it wrote.
 
 Results are candidate context derived at query time, not authoritative policy. The `provenance.generated_at` field is the only non-deterministic value; results are otherwise byte-identical across runs once it is removed.
 

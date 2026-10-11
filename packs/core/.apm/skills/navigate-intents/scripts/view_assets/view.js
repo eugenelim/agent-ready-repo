@@ -10,7 +10,7 @@
  */
 (function () {
   var SCHEMA = 'intent-navigation.view.v1';
-  // Assembled in parts so a page for an unrecognised remote carries no host text.
+  // A fixed literal.  A link is only ever built for a URL that starts with it.
   var GITHUB_PREFIX = 'https://github.com/';
   var FILTER_KEYS = ['q', 'level', 'kind', 'status'];
 
@@ -64,15 +64,15 @@
     pointers: 'Pointers'
   };
   var GROUP_HELP = {
-    parent: 'The Parent intent: pointer this intent writes, resolved or refused.',
-    children: 'Intents whose resolved Parent intent: pointer names this intent.',
-    briefs: 'Briefs whose resolved Parent intent: pointer names this intent.',
-    specs: 'Specs whose resolved Discovery: pointer names this intent.',
-    relations: 'Delivery links the resolver reports between this node, its briefs, and its specs.',
-    diagnostics: 'Findings the delivery resolver reports about this intent.',
-    relatedHere: 'Related intents: pointers this intent writes, resolved or refused.',
-    relatedElsewhere: 'Resolved Related intents: pointers other intents write that name this intent.',
-    pointers: 'Every pointer this brief or spec writes, resolved or refused.'
+    parent: 'The intent above this one (the Parent intent field), resolved or refused.',
+    children: 'Intents that name this one as their parent (their Parent intent field).',
+    briefs: 'Briefs that name this intent as their parent (their Parent intent field).',
+    specs: 'Specs that name this intent as their source (their Discovery field).',
+    relations: 'Links that show how this node is delivered, through its briefs and specs.',
+    diagnostics: 'Problems the delivery resolver found with this intent.',
+    relatedHere: 'Other intents this one lists as related (the Related intents field), resolved or refused.',
+    relatedElsewhere: 'Other intents that list this one as related (their Related intents field).',
+    pointers: 'Every pointer this brief or spec writes. A pointer is a field that names another record. Each is resolved or refused.'
   };
   var GROUP_ORDER = ['parent', 'children', 'briefs', 'specs', 'relations', 'diagnostics',
     'relatedHere', 'relatedElsewhere', 'pointers'];
@@ -132,6 +132,7 @@
   var recordIds = [];
   var kidsOf = new Map();
   var relsByNode = new Map();
+  var intentBySlug = new Map();
   var edgesFrom = new Map();
   var current = null;
   var expanded = new Set();
@@ -158,16 +159,28 @@
     map.get(key).push(value);
   }
 
+  // A delivery relation always writes its intent as intent:<slug>, while the node id may start
+  // with outcome:, opportunity:, or capability:.  Resolve it to the exported node of that slug.
+  function intentNodeId(id) {
+    if (!isStr(id) || nodes.has(id) || id.indexOf('intent:') !== 0) { return id; }
+    var found = intentBySlug.get(id.slice('intent:'.length));
+    return found === undefined ? id : found;
+  }
+
   function buildIndexes() {
     data.nodes.forEach(function (n) { nodes.set(n.id, n); });
     recordIds = Object.keys(data.records).sort(byId);
+    recordIds.forEach(function (id) {
+      var n = nodes.get(id);
+      if (n && isStr(n.slug) && !intentBySlug.has(n.slug)) { intentBySlug.set(n.slug, id); }
+    });
     recordIds.forEach(function (id) {
       var r = rec(id);
       var parent = resolvedParent(r);
       if (parent !== null && own(data.records, parent) !== undefined) { addTo(kidsOf, parent, id); }
       (Array.isArray(r.delivery_relations) ? r.delivery_relations : []).forEach(function (rel) {
         if (!isObj(rel)) { return; }
-        [rel.intent, rel.brief, rel.spec].forEach(function (nid) {
+        [intentNodeId(rel.intent), rel.brief, rel.spec].forEach(function (nid) {
           if (isStr(nid)) { addTo(relsByNode, nid, rel); }
         });
       });
@@ -206,9 +219,14 @@
   function hasFilters(r) { return FILTER_KEYS.some(function (k) { return r[k] !== ''; }); }
 
   // ------------------------------------------------------------ small parts
+  function helpId(kind, key) { return 'help-' + kind + '-' + key; }
   function labelChip(table, kind, key) {
     if (!isStr(key) || own(table, key) === undefined) { return null; }
-    return el('span', 'chip label-' + kind, key);
+    var chip = el('span', 'chip label-' + kind, key);
+    // The key stays the visible text; its plain-words sentence is the chip's description.
+    chip.setAttribute('aria-describedby', helpId(kind, key));
+    chip.setAttribute('title', own(table, key));
+    return chip;
   }
   function stateChip(key) {
     return labelChip(STATE_HELP, 'state', key);
@@ -286,7 +304,7 @@
       if (!isStr(id)) { return; }
       var part = add(line, el('span', 'part'));
       add(part, el('span', 'part-name', pair[1]));
-      add(part, nodeRef(id, 'node-link'));
+      add(part, nodeRef(pair[0] === 'intent' ? intentNodeId(id) : id, 'node-link'));
     });
     if (isStr(rel.route)) { add(line, el('span', 'value', 'route ' + rel.route)); }
     var tc = trustChip(rel.trust_class);
@@ -333,8 +351,13 @@
       toggle.setAttribute('aria-expanded', 'false');
       text(toggle, 'Children (' + kids.length + ')');
       add(toggle, el('span', 'visually-hidden', ' of ' + id));
+    } else if (withToggle) {
+      // Keep the id column aligned with rows that have a toggle.
+      add(row, el('span', 'toggle-spacer')).setAttribute('aria-hidden', 'true');
     }
-    add(row, nodeLink(id, 'node-link row-link'));
+    var link = add(row, nodeLink(id, 'node-link row-link'));
+    // A row built later, when a subtree opens, still shows the current selection.
+    if (current !== null && current.node === id) { link.setAttribute('aria-current', 'true'); }
     if (n.heading) { add(row, el('span', 'f-heading', n.heading)); }
     add(row, el('span', 'chip f-level', r.level || 'unrecorded'));
     if (r.kind) { add(row, el('span', 'chip f-kind', r.kind)); }
@@ -578,10 +601,8 @@
       dom.list.appendChild(emptyMessage('Nothing is outstanding.'));
       return { count: 0 };
     }
+    dom.list.appendChild(el('p', 'note', 'Filters apply to intents only. Briefs and specs are hidden while a filter is set.'));
     if (total === 0) { dom.list.appendChild(filteredEmpty(route)); return { count: 0 }; }
-    if (filtered) {
-      dom.list.appendChild(el('p', 'note', 'Filters apply to intents; briefs and specs are hidden while a filter is active.'));
-    }
     [['Placed', placed], ['No parent', noParent]].forEach(function (pair) {
       var sec = add(dom.list, el('section', 'subsection'));
       add(sec, el('h3', 'subheading', pair[0] + ' (' + pair[1].length + ')'));
@@ -688,16 +709,41 @@
       add(row, el('dt', 'fact-name label-group', own(GROUP_LABELS, key)));
       add(row, el('dd', 'fact-value', own(GROUP_HELP, key)));
     });
-    Object.keys(STATE_HELP).forEach(function (key) {
-      var row = add(dl, el('div', 'fact'));
-      add(row, el('dt', 'fact-name label-state', key));
-      add(row, el('dd', 'fact-value', own(STATE_HELP, key)));
+    [['state', STATE_HELP], ['trust', TRUST_HELP]].forEach(function (pair) {
+      Object.keys(pair[1]).forEach(function (key) {
+        var row = add(dl, el('div', 'fact'));
+        add(add(row, el('dt', 'fact-name')), el('span', 'chip label-' + pair[0], key));
+        var dd = add(row, el('dd', 'fact-value', own(pair[1], key)));
+        dd.setAttribute('id', helpId(pair[0], key));
+      });
     });
-    Object.keys(TRUST_HELP).forEach(function (key) {
-      var row = add(dl, el('div', 'fact'));
-      add(row, el('dt', 'fact-name label-trust', key));
-      add(row, el('dd', 'fact-value', own(TRUST_HELP, key)));
+  }
+
+  function rowLinkFor(id) {
+    var rows = dom.list.querySelectorAll('a.row-link');
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].getAttribute('data-node') === id) { return rows[i]; }
+    }
+    return null;
+  }
+
+  // Return focus to the selected node's row, opening any collapsed ancestors first.
+  function backToList(id) {
+    var chain = [];
+    var seen = new Set();
+    var up = resolvedParent(rec(id));
+    while (up !== null && !seen.has(up) && own(data.records, up) !== undefined) {
+      seen.add(up);
+      chain.unshift(up);
+      up = resolvedParent(rec(up));
+    }
+    chain.forEach(function (ancestor) {
+      var link = rowLinkFor(ancestor);
+      var toggle = link ? link.parentNode.querySelector('button.toggle') : null;
+      if (toggle && toggle.getAttribute('aria-expanded') !== 'true') { toggle.click(); }
     });
+    var target = rowLinkFor(id);
+    (target || dom.viewHeading).focus();
   }
 
   function renderDetail(route) {
@@ -714,8 +760,12 @@
       return;
     }
     var r = rec(id);
+    var back = add(dom.detailBody, el('button', 'action back-link', 'Back to list'));
+    back.setAttribute('type', 'button');
+    add(back, el('span', 'visually-hidden', ' (row ' + id + ')'));
+    back.addEventListener('click', function () { backToList(id); });
     var dl = add(dom.detailBody, el('dl', 'facts'));
-    if (n.heading) { fact(dl, 'Heading', valueSpan(n.heading)); }
+    if (n.heading) { fact(dl, 'Heading', el('span', '', n.heading)); }
     fact(dl, 'Path', valueSpan(n.path || ''));
     fact(dl, 'Type', valueSpan(n.type || ''));
     if (r) {
@@ -773,7 +823,7 @@
     var s = data.summary;
     dom.summaryList.textContent = '';
     var items = [
-      ['Outstanding', s.outstanding, 'outstanding'],
+      ['Outstanding items', s.outstanding, 'outstanding'],
       ['Refused edges', sumValues(s.refused_edges_by_state), 'refused'],
       ['Parentless intents', s.parentless_intents, 'parentless'],
       ['Intents', sumValues(s.intents_by_level), 'tree'],
@@ -791,9 +841,17 @@
     dom.summaryScope.textContent = isStr(scoped) ? 'These counts cover the whole corpus, not only the scoped subtree.' : 'These counts cover the whole corpus.';
   }
 
+  // The time to the minute in UTC; any other form is shown as written.
+  function generatedText(value) {
+    if (!isStr(value) || value === '') { return 'at an unknown time'; }
+    var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]00:00)$/.exec(value);
+    return m === null ? value : m[1] + ' ' + m[2] + ' UTC';
+  }
+
   function renderMeta() {
     var p = data.provenance;
-    dom.meta.textContent = escapeDisplay('Read-only snapshot generated ' + (p.generated_at || 'at an unknown time') + '. ' + (p.untrusted_data || ''));
+    dom.meta.textContent = escapeDisplay('Read-only snapshot generated ' + generatedText(p.generated_at) +
+      '. Record text in this file is shown as plain text and is never run.');
     var from = data.scope.from;
     if (isStr(from)) {
       dom.banner.hidden = false;
@@ -924,6 +982,8 @@
       performance.mark('view-ready');
     } catch (err) {
       showDamaged();
+      // The alert is the reader's message; the error stays visible to whoever debugs the page.
+      console.error('Intent view could not render:', err);
     }
   }
 

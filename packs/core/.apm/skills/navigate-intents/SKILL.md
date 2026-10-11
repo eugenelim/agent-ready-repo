@@ -1,6 +1,6 @@
 ---
 name: navigate-intents
-description: Use this skill when asked to look up, trace, explore, or summarise product intents, to find outstanding work placed under its parent intent, or to export them as offline HTML. Triggers on phrases like "show me intent:my-slug", "which intents are accepted", "trace the parent of this intent", "find outstanding intents", "intent graph", "show me the intent hierarchy", "show me outstanding work", "what are the children of this capability". For a brief or spec question, use `outstanding` to see placed items or `record` on the parent intent — `--id` and `--from` resolve only live intents. Do NOT use for workspace queue order and repair ("what's next in the queue", "repair the workspace") — use `workspace-status`. Do NOT use for ADR or RFC lookups or HTML views, or "how many roadmap intents do we have" — use `navigate-decisions` (governance-extras pack); for ADR or RFC authoring use `new-adr`/`new-rfc`. Do NOT use for creating, de-risking, decomposing, or closing intents — use `work-intake` or `close-work`.
+description: Use this skill when asked to look up, trace, explore, or summarise product intents, to find outstanding work placed under its parent intent, or to export them as offline HTML. Triggers on phrases like "show me intent:my-slug", "which intents are accepted", "trace the parent of this intent", "find outstanding intents", "intent graph", "intent hierarchy", "show me outstanding work", "what are the children of this capability". For a brief or spec question, use `outstanding` to see placed items or `record` on the parent intent — `--id` and `--from` resolve only live intents. Do NOT use for workspace queue order and repair ("what's next in the queue", "repair the workspace") — use `workspace-status`. Do NOT use for ADR or RFC lookups, ADR or RFC HTML views, or "how many roadmap intents do we have" — use `navigate-decisions` (governance-extras pack); for ADR or RFC authoring use `new-adr`/`new-rfc`. Do NOT use for creating, de-risking, decomposing, or closing intents — use `work-intake` or `close-work`.
 metadata:
   boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
@@ -215,13 +215,16 @@ repository path, and no remote URL beyond the host, owner, and repository
 name.  With ``--from``, the page names the scoped intent, shows that subtree,
 and keeps the summary counts whole-corpus.  Source links point to GitHub only
 when ``origin`` is a plain GitHub remote; otherwise each source shows its
-path as text.  A link marked "may be newer than this export" points to the
-latest version rather than the exported commit.
+path as text.  A link opens the file on the GitHub default branch.  A link marked "may be
+newer than this export" points to that latest version rather than the exported
+commit, and an untracked or unpushed file may not exist there yet.
 
 Refusals, beyond the corpus codes ``query`` returns (``duplicate_identity``,
 ``malformed_record``, ``unsafe_input``, ``input_too_large``,
 ``resolver_unavailable``, ``not_found``, ``ambiguous_identity``):
 
+- ``invalid_query`` — a command-line argument is not valid UTF-8.  Pass valid
+  UTF-8 arguments.
 - ``invalid_destination`` — the destination does not exist, is not a
   directory, lies inside the repository (any enclosing Git repository or any
   of its work trees), or the ``--name`` is not allowed.  The message names the
@@ -230,10 +233,13 @@ Refusals, beyond the corpus codes ``query`` returns (``duplicate_identity``,
   the export refuses every destination; make ``git`` available and retry.
 - ``destination_exists`` — a file, directory, or link with that name is already
   there.  Choose another ``--name``; the export never overwrites.
-- ``publish_failed`` — the directory changed while writing, or the platform
-  lacks the directory-relative file calls the export needs (Windows).  Nothing
-  was written; retry once on a stable directory, or report that the platform
-  is unsupported.
+- ``publish_failed`` — the directory changed while writing, the directory
+  cannot be written (permissions, no free space, or a read-only file system),
+  or the platform lacks the directory-relative file calls the export needs
+  (Windows).  Nothing was written.  ``error.observed`` names the ``stage`` and,
+  when the system gave one, the ``errno`` name, and never a path.  For a
+  write failure, choose a writable directory with free space; for a changed
+  directory, retry once on a stable one; on Windows the export is unsupported.
 - ``export_too_large`` — the page is larger than ``error.limits.budget_bytes``.
   Re-run with ``--from`` (named in ``error.limits.bounded_route``) on a
   smaller subtree.

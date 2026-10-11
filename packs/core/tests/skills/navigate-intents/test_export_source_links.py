@@ -347,15 +347,62 @@ def test_every_git_call_is_hardened_and_runs_no_repository_program(
 
     assert not marker.exists()
     assert {v["kind"] for v in payload["source_links"].values()} == {"latest"}
-    verbs = [c["argv"][c["argv"].index("core.fsmonitor=false") + 1] for c in calls]
+    verbs = [c["argv"][c["argv"].index("protocol.allow=never") + 1] for c in calls]
     assert {"config", "rev-parse", "ls-tree", "for-each-ref"} <= set(verbs)
     for call in calls:
         argv = call["argv"]
         assert isinstance(argv, list) and argv[0] == "git"
-        assert argv[1] == "-C" and argv[3:5] == ["-c", "core.fsmonitor=false"]
+        assert argv[1] == "-C" and argv[3:7] == [
+            "-c", "core.fsmonitor=false", "-c", "protocol.allow=never"
+        ]
         assert call["shell"] is False
         assert call["timeout"] <= 5
         assert call["capture_output"] is True
         env = call["env"]
         assert env["GIT_TERMINAL_PROMPT"] == "0"
         assert [k for k in env if k.startswith("GIT_") and k != "GIT_TERMINAL_PROMPT"] == []
+
+
+def _treeless_clone(tmp_path: pathlib.Path, name: str) -> tuple[pathlib.Path, pathlib.Path]:
+    """Return ``(clone, marker)``: a treeless clone whose promisor upload-pack writes *marker*.
+
+    The clone's ``origin`` URL reads as a GitHub remote, and ``insteadOf`` points real fetches at
+    the local bare repository, so a lazy fetch would run the marker-writing program.
+    """
+    bare = tmp_path / f"{name}-origin.git"
+    seed = tmp_path / f"{name}-seed"
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], env=_SETUP_ENV, check=True)
+    _git(bare, "config", "uploadpack.allowFilter", "true")
+    _git(bare, "config", "uploadpack.allowAnySHA1InWant", "true")
+    seed.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], env=_SETUP_ENV, check=True)
+    _write_corpus(seed)
+    _git(seed, "add", "-A")
+    _git(seed, "commit", "-q", "-m", "corpus")
+    _git(seed, "push", "-q", str(bare), "main")
+    clone = tmp_path / f"{name}-clone"
+    _git(tmp_path, "clone", "-q", "--filter=tree:0", "--no-checkout", bare.as_uri(), str(clone))
+    marker = tmp_path / f"{name}-marker.txt"
+    script = tmp_path / f"{name}-upload-pack.sh"
+    script.write_text(f"#!/bin/sh\necho ran >> '{marker}'\nexec git-upload-pack \"$@\"\n",
+                      encoding="utf-8")
+    script.chmod(script.stat().st_mode | stat.S_IXUSR)
+    _git(clone, "config", "remote.origin.uploadpack", str(script))
+    github = f"https://github.com/{_OWNER_REPO}"
+    _git(clone, "config", f"url.{bare.as_uri()}.insteadOf", github)
+    _git(clone, "remote", "set-url", "origin", github)
+    _write_corpus(clone)
+    return clone, marker
+
+
+@needs_git
+def test_a_treeless_clone_never_starts_a_lazy_fetch(tmp_path: pathlib.Path) -> None:
+    # Control: an unhardened Git call on the same fixture does reach the promisor program.
+    control, control_marker = _treeless_clone(tmp_path, "control")
+    _git(control, "ls-tree", "-r", "HEAD")
+    assert control_marker.exists()
+
+    clone, marker = _treeless_clone(tmp_path, "subject")
+    payload, _ = _export(clone, tmp_path)
+    assert not marker.exists()
+    assert {v["kind"] for v in payload["source_links"].values()} == {"latest"}
