@@ -124,7 +124,7 @@ no response schema ships. Not executed here.
 
 | Intent | CLI | Returns |
 | --- | --- | --- |
-| Transitive dependencies of a symbol | `wicked-estate lineage <symbol> [--depth N] [--cursor C] [--json]` | `<symbol>` is a name or an exact symbol id; `--symbol` is not a flag and exits 1. `--json` prints the result object directly: `{dependencies[] {symbol, name, kind, file, line, depth}, total, truncated, confidence, relation, searched_depth, depth_horizon_reached, node_cap_reached, next_cursor, page}`. `page` is `{dependencies {from, count, total}, flows {from, count, total}}`, `total` counts the whole answer, and `truncated` is true while more pages remain or on a depth or node cut. `relation` echoes `dependency`. Default depth 24 (the ceiling); `line` is 0-based. Lineage writes ``pass `cursor`: "<c>" for the rest`` with its other diagnostics (stderr under `--json`, stdout after the result in text mode); read `next_cursor` from the JSON and stop when it is `null`. An unknown or ambiguous name exits non-zero with nothing on stdout, so `resolve` first when a name may be shared (executed). |
+| Transitive dependencies of a symbol | `wicked-estate lineage <symbol> [--depth N] [--cursor C] [--json]` | `<symbol>` is a name or an exact symbol id; `--symbol` is not a flag and exits 1. `--json` prints the result object directly: `{dependencies[] {symbol, name, kind, file, line, depth}, total, truncated, confidence, relation, searched_depth, depth_horizon_reached, node_cap_reached, next_cursor, page}`. `page` is `{dependencies {from, count, total}, flows {from, count, total}}`, `total` counts dependency rows across all pages, `page.flows.total` counts flow rows, and `truncated` is true while more pages remain or on a depth or node cut. `relation` echoes `dependency`. Default depth 24 (the ceiling); `line` is 0-based. Lineage writes ``pass `cursor`: "<c>" for the rest`` with its other diagnostics (stderr under `--json`, stdout after the result in text mode); read `next_cursor` from the JSON and stop when it is `null`. An unknown or ambiguous name exits non-zero with nothing on stdout, so `resolve` first when a name may be shared (executed). |
 | Value lineage (TypeScript, TSX, JavaScript) | `wicked-estate lineage <symbol> --relation flows_to [--json]` | Adds `flows[]` rows per hop and echoes `relation` as `flows_to`. Each row carries `producer`, `consumer`, `confidence`, `provenance`, `resolved_by`; when present also `flow_semantics` (`value_preserving` / `may_influence`) and `flow_evidence` (`syntax` / `call_derived` / `convention` / `compiler`). Seed it with a parameter or local found by `resolve <name> --include-values --json`. Coverage is `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, and `.cjs` (source-read); callbacks, `await` and `.then`, destructuring, loops, and closure returns add hops, almost all `may_influence`. Any `--relation` other than `flows_to` exits 1 (executed). The `flows[]` fields and the new hop kinds are source-read from the 0.29.2 sources; the Python fixture produces no value flow. |
 
 A `--depth` above 24 is clamped to 24, and `CLAMPED:` goes to stderr under
@@ -221,7 +221,7 @@ it. `path` hops carry `confidence`, `provenance`, and `resolved_by` per hop;
 `blast-radius` rows carry no per-row confidence — the summary `confidence` object
 covers the full traversal, not individual rows.
 
-MCP `BlastRadius` and `Lineage` accept `cursor` and return `next_cursor` and `page` (schema-derived). MCP `BlastRadius` takes an explicit `depth` (default 8, max 24) and returns a
+MCP `BlastRadius` and `Lineage` accept `cursor` and return `next_cursor` (schema-derived) and `page` (source-read from `wicked-estate-retrieve` 0.29.2). MCP `BlastRadius` takes an explicit `depth` (default 8, max 24) and returns a
 per-dependent `depth` like the CLI, plus `depth_horizon_reached`, `node_cap_reached`, and
 `searched_depth`, so the horizon is fully visible there. MCP `TraverseGraph`
 truncates at `max_nodes` (default 200, max 1000) and reports depth per node, so
@@ -269,10 +269,8 @@ serves that store as an empty in-memory store and prints
 `read-only: no <store> store at '<path>'; serving it empty in memory` on stderr
 (source-read from `wicked-estate-mcp` 0.29.2). An empty answer from a server
 registered with a wrong path is therefore not evidence about the repository. The
-store paths come from `--db` for the graph and from `WICKED_MEMORY_DB`,
-`WICKED_KNOWLEDGE_DB`, `WICKED_XEDGE_DB`, or `WICKED_HOME` for the memory,
-knowledge, and cross-store databases. Check the path before trusting an empty
-result.
+the graph path comes from `--db`, else `WICKED_ESTATE_DB`, else `.wicked-estate/graph.db` relative to the server's working directory (so a server registered without `--db` from the wrong directory reads an
+empty graph), and the memory, knowledge, and cross-store paths come from `WICKED_MEMORY_DB`, `WICKED_KNOWLEDGE_DB`, and `WICKED_XEDGE_DB`, else from `WICKED_HOME`, else `$HOME/.wicked`. Check the path before trusting an empty result.
 
 ---
 

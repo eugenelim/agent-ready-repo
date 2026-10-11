@@ -89,14 +89,14 @@ stderr, so the bound is on the page and not on the answer (source-read).
 `page {from, count, total}`. Run the same command again with
 `--cursor <next_cursor>` and keep going until `next_cursor` is `null`. Only then
 is the list the whole resolved answer within `searched_depth`. In text mode, the
-reply ends with `...and N more (one reply is bounded at 25K chars): --cursor <c>`.
+reply ends with `…and N more (one reply is bounded at 25K chars): --cursor <c>`.
 A probe on a symbol with 1,500 callers returned 1,503 rows over 12 pages, all
 distinct (executed).
 
 `lineage --json` pages the same way. It adds `next_cursor` and
 `page {dependencies {from, count, total}, flows {from, count, total}}`. Its
 `truncated` is true while more pages remain or on a depth or node cut, and its
-`total` counts the whole answer. Lineage prints its page note, ``pass `cursor`:
+`total` counts dependency rows across all pages (`page.flows.total` counts flow rows). Lineage prints its page note, ``pass `cursor`:
 "<c>" for the rest``, with its other diagnostics: on stderr under `--json`, on
 stdout after the result in text mode. Read `next_cursor` from the JSON.
 
@@ -188,7 +188,7 @@ and a low `avg` means the set is largely speculative.
 
 MCP `BlastRadius` also returns the `confidence` envelope and per-dependent
 `depth`, plus `summary.top_by_pagerank`, and it takes `cursor` and returns
-`next_cursor` and `page` as the CLI does (schema-derived). The CLI rows carry `depth` too; the CLI
+`next_cursor` (schema-derived) and `page` (source-read) as the CLI does. The CLI rows carry `depth` too; the CLI
 does not offer a ranked-dependents view.
 
 Structural `contains` and `defines` edges are excluded from the confidence

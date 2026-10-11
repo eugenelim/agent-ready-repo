@@ -97,7 +97,7 @@ This compiles from source and can take several minutes. If `cargo` is missing
 or your machine blocks installation, use your usual IT/support route to prepare the
 tool. You do not need an MCP server for this walkthrough.
 
-**Check:** `wicked-estate --version` reports `wicked-estate 0.29.2` or newer.
+**Check:** `wicked-estate --version` reports version 0.29.0 or newer (0.29.2 is the tested version).
 
 ## 4. Build the app's index
 

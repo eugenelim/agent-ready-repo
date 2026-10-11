@@ -38,8 +38,8 @@ only if you need them, and prefer `--readonly`. The richer MCP response shapes
 (`summary.top_by_pagerank` on `BlastRadius`, `Communities` summaries,
 `ContextBundle`) are also MCP-only. With `--readonly`, a store path that does
 not exist is not created: the server serves that store as an empty in-memory
-store and says so on stderr. The paths come from `--db` and from
-`WICKED_MEMORY_DB`, `WICKED_KNOWLEDGE_DB`, `WICKED_XEDGE_DB`, or `WICKED_HOME`.
+store and says so on stderr. If every answer from one store is empty,
+check its path: the graph path comes from `--db`, else `WICKED_ESTATE_DB`, else `.wicked-estate/graph.db` relative to the server's working directory, and the memory, knowledge, and cross-store paths come from `WICKED_MEMORY_DB`, `WICKED_KNOWLEDGE_DB`, and `WICKED_XEDGE_DB`, else from `WICKED_HOME`, else `$HOME/.wicked`.
 
 ## Intent to command, in brief
 
@@ -86,12 +86,14 @@ and report missing members as unranked.
   `--cursor <next_cursor>` until `next_cursor` is `null` to get the whole
   resolved answer. A refused cursor (exit 1, nothing on stdout) means the
   answer changed, so start again from the first page. An accepted cursor says
-  nothing about freshness; `stats --json` does. `lineage --json` pages the same
-  way, and its default depth is 24. A true `depth_horizon_reached`
+  nothing about freshness; `stats --json` does. A true `depth_horizon_reached`
   means more dependents lie beyond the depth searched; raise `--depth`
   (default 12, maximum 24). A true `node_cap_reached` means the node budget cut
   the walk, and no flag raises it. Each `blast-radius` row carries a per-row
   `depth` (1 is a direct dependent) and no per-row confidence.
+- **`lineage --json`** pages the same way, with `next_cursor` and `--cursor`.
+  Its default depth is 24, which is also its ceiling, so a true
+  `depth_horizon_reached` there has no deeper setting to try.
 - **`path --json`** returns `found`, `depth_bounded`, `node_bounded` and
   `unresolved`. `found: false` means no route exists only when `unresolved` is
   null and both bound flags are false. A misspelled name sets `unresolved` and
