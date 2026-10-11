@@ -462,6 +462,31 @@ def _parent_edges_by_from(graph: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
+_RELATED_FIELD = "Related intents"
+
+
+def _related_edges_by_end(
+    graph: dict[str, Any],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
+    """Map each intent id to its related edges, from each end.
+
+    Returns ``(written_here, written_elsewhere)``.  ``written_here`` holds every
+    related edge the intent writes (resolved or refused) in derivation order;
+    ``written_elsewhere`` holds the resolved edges that name it, by ``from``.
+    """
+    here: dict[str, list[dict[str, Any]]] = {}
+    elsewhere: dict[str, list[dict[str, Any]]] = {}
+    for edge in graph["edges"]:
+        if edge.get("field") != _RELATED_FIELD:
+            continue
+        here.setdefault(edge["from"], []).append(edge)
+        if "state" not in edge and "to" in edge:
+            elsewhere.setdefault(edge["to"], []).append(edge)
+    for edges in elsewhere.values():
+        edges.sort(key=lambda e: e["from"])
+    return here, elsewhere
+
+
 def _children_by_parent(graph: dict[str, Any]) -> dict[str, list[str]]:
     """Map each intent id to its list of child intent ids (resolved parent edges only)."""
     result: dict[str, list[str]] = {}
@@ -586,6 +611,25 @@ def _refused_edge_text_line(edge: dict[str, Any], depth: int) -> str:
     return f"{indent}! refused {state}"
 
 
+def _related_text_lines(
+    node_id: str,
+    here: dict[str, list[dict[str, Any]]],
+    elsewhere: dict[str, list[dict[str, Any]]],
+    depth: int,
+) -> list[str]:
+    """Format an intent's related edges as text-tree lines at *depth*."""
+    indent = "  " * depth
+    lines: list[str] = []
+    for edge in here.get(node_id, []):
+        if "state" in edge:
+            lines.append(f"{indent}! refused related {_escape_display(str(edge['state']))}")
+        else:
+            lines.append(f"{indent}~ related {_escape_display(str(edge['to']))}")
+    for edge in elsewhere.get(node_id, []):
+        lines.append(f"{indent}~ related from {_escape_display(str(edge['from']))}")
+    return lines
+
+
 def _collect_tree_intents(
     intent_nodes: list[dict[str, Any]],
     children_map: dict[str, list[str]],
@@ -647,12 +691,18 @@ def _build_text_tree(
     *,
     depth_limit: int | None = None,
     start_id: str | None = None,
+    related_here: dict[str, list[dict[str, Any]]] | None = None,
+    related_elsewhere: dict[str, list[dict[str, Any]]] | None = None,
 ) -> str:
     """Build the text tree string for the intent forest (or a subtree).
 
     Each intent is one line; refused parent edges print one level deeper as
-    ``! refused <state>``.  Children are sorted by node id in code-point order.
+    ``! refused <state>``.  Related edges print next, before the first child,
+    as ``~ related <to>``, ``! refused related <state>``, and
+    ``~ related from <from>``.  Children are sorted by node id in code-point order.
     """
+    here = related_here or {}
+    elsewhere = related_elsewhere or {}
     lines: list[str] = []
 
     def _render(start: dict[str, Any], start_depth: int) -> None:
@@ -666,6 +716,7 @@ def _build_text_tree(
             edge = parent_edges.get(node["id"])
             if edge is not None and "state" in edge:
                 lines.append(_refused_edge_text_line(edge, depth + 1))
+            lines.extend(_related_text_lines(node["id"], here, elsewhere, depth + 1))
             if depth_limit is None or depth < depth_limit:
                 for child_id in sorted(children_map.get(node["id"], []), reverse=True):
                     child = node_by_id.get(child_id)
@@ -701,7 +752,8 @@ def _count_result_elements(
     """Count intents and edges in a result list.
 
     Returns ``(intent_count, edge_count)`` where edges include resolved and
-    refused parent edges plus delivery relations on each intent.
+    refused parent edges, delivery relations, and every entry of
+    ``related_written_here`` and ``related_written_elsewhere`` on each intent.
     """
     n_intents = len(intent_list)
     n_edges = 0
@@ -709,6 +761,8 @@ def _count_result_elements(
         if item.get("parent_edge") is not None:
             n_edges += 1
         n_edges += len(item.get("delivery_relations", []))
+        n_edges += len(item.get("related_written_here", []))
+        n_edges += len(item.get("related_written_elsewhere", []))
     return n_intents, n_edges
 
 
@@ -870,6 +924,7 @@ def _build_intent_record(
 ) -> dict[str, Any]:
     """Build the full record dict for a single intent node."""
     node_id = node["id"]
+    related_here, related_elsewhere = _related_edges_by_end(graph)
 
     # Parent edge for this intent
     parent_edge = parent_edges.get(node_id)
@@ -897,6 +952,8 @@ def _build_intent_record(
         "specs": specs_via_disc,
         "delivery_relations": delivery_rels,
         "delivery_diagnostics": diagnostics_by_id.get(node_id, []),
+        "related_written_here": related_here.get(node_id, []),
+        "related_written_elsewhere": related_elsewhere.get(node_id, []),
     }
 
 
@@ -1025,6 +1082,7 @@ def _op_tree(
     children_map = _children_by_parent(graph)
     delivery_by_id = _delivery_by_intent_id(delivery_snap, graph)
     diagnostics_by_id = _delivery_diagnostics_by_intent_id(delivery_snap, graph)
+    related_here, related_elsewhere = _related_edges_by_end(graph)
 
     start_node: dict[str, Any] | None = None
     if identity is not None:
@@ -1044,6 +1102,7 @@ def _op_tree(
         text = _build_text_tree(
             intent_list, parent_edges, children_map, node_by_id,
             depth_limit=depth_limit, start_id=start_id,
+            related_here=related_here, related_elsewhere=related_elsewhere,
         )
         err = _check_text_byte_limit(text, max_bytes)
         if err is not None:
@@ -1069,6 +1128,8 @@ def _op_tree(
             "parent_edge": parent_edges.get(node["id"]),
             "delivery_relations": delivery_by_id.get(node["id"], []),
             "delivery_diagnostics": diagnostics_by_id.get(node["id"], []),
+            "related_written_here": related_here.get(node["id"], []),
+            "related_written_elsewhere": related_elsewhere.get(node["id"], []),
         }
         intent_entries.append(entry)
 

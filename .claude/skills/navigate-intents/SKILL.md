@@ -9,7 +9,9 @@ metadata:
 
 Read-only query skill for intent graph navigation.  Derives and traverses
 the directed acyclic graph formed by live intents, briefs, and specs using
-their ``Parent intent:``, ``Brief:``, and ``Discovery:`` pointer fields.
+their ``Parent intent:``, ``Brief:``, and ``Discovery:`` pointer fields.  It also
+shows an intent's ``Related intents:`` links from both ends; those links never
+place or order anything in the graph.
 Results are candidate context derived from preamble headers at query time,
 not authoritative policy.
 
@@ -85,14 +87,16 @@ python3 scripts/navigate_intents.py query \
   --operation summary
 
 # All fields for one intent: node id, path, Level, Kind, Status, parent
-# edge, child intents, placed briefs and specs, and the delivery
-# resolver's relations and diagnostics for that intent.
+# edge, child intents, the related intents it writes and the ones that
+# name it, placed briefs and specs, and the delivery resolver's relations
+# and diagnostics for that intent.
 python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation record \
   --id intent:my-slug
 
-# Full intent tree as indented text, depth-limited.
+# Full intent tree as indented text, depth-limited. Each intent also lists
+# its related intents (written here and written elsewhere).
 python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation tree \

@@ -1,14 +1,14 @@
 # Spec: Related intents field
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-10 by eugenelim, spec and plan together, after clean spec-mode shaping (round 4) and adversarial (round 6) reviews with every sustained finding repaired (reports under `.context/reviews/7f4ee554-13ab-4692-8c7e-5cfd7fab5e58/`).
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
+- **Constrained by:** RFC-0105, RFC-0103, ADR-0007, ADR-0074
 - **Brief:** brief:intent-navigation-delivery
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
-- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / `references/spec-and-plan-contract.md` § Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
-- **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
-<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
+- **Discovery:** none
+- **Contract:** none
+- **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -22,303 +22,116 @@
 > gates the text it cites. Marking the tiers is the spec's job; honouring them
 > when a finding is adjudicated is the reviewing surface's.
 
-<!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Outcome, What Changes, Agent
-Rules, Testing Strategy, and Acceptance Criteria to the depth the durable work
-requires, and Assumptions only where something is unresolved. The sibling plan carries the implementation and verification strategy.
-Eligible direct-light work does not create this artifact. -->
-
-<!-- **Present tense, as-built.** Write every body section below as if the
-feature already exists and always worked this way — no "will be", no
-"previously X, now Y", no deprecation timelines, no version-stamped history.
-The body describes the current contract; decision history lives in ADRs and the
-release changelog. `plan.md` holds to the same rule: its `## Changelog` records
-approvals, not how the approach evolved. -->
-
 ## Outcome
 
-<!--
-Two sentences, no more. The first names who this is for and what they get; the
-second says what success looks like for them. Frame from their perspective,
-not the implementer's, and leave implementation detail to `plan.md`. The cap is
-the point: an outcome that needs a third sentence is usually carrying a delta,
-which belongs in the section below, or a mechanism, which belongs in the plan.
--->
+A maintainer or agent relates two intents by writing one `Related intents:` line on one of them, and `navigate-intents` shows that relation from both intents in `record` and `tree`, never as a parent, a dependency, or an ordering. The intent corpus lint refuses any value that is not a typed intent reference, names no intent the navigator admits with the stated kind, or names the intent itself, so in a lint-clean corpus every related edge the navigator shows is resolved.
 
 ## What Changes
 
-<!--
-The delta, as bullets, for a human landing on this spec cold. It sits here —
-above every contract section — because a reader's first question is what moves,
-and a paragraph of Outcome does not answer it scannably.
-
-One bullet per change, each naming the thing that moves and where it lives. No
-rationale, no mechanism, no restating the Outcome in list form: a reader who
-stops after this section should know the shape of the change and nothing they
-would have to unlearn.
-
-- <what moves> — <where it lives>
--->
+- New optional intent preamble field `Related intents:` — its one-file shape rule and its corpus resolution rule in `packs/core/.apm/skills/work-intake/scripts/intent_shape.py`, run by `intent_corpus_lint.py`, which resolves a target only among the intent files the navigator admits.
+- The intent-edge derivation reads the field into related edges — both byte-identical copies of `intent_graph.py` (`navigate-intents/scripts/`, `close-work/scripts/`).
+- `record` and `tree` (JSON and text) show related edges from both ends, and `summary` counts refused ones — `navigate-intents/scripts/navigate_intents.py`.
+- The closed set of refused-edge states gains `self_reference`, used only by this field.
+- The `frame-intent` template lists the field — `packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md`.
+- Reference and how-to rows for the field and its refusals — `guides/product-engineering/` and `guides/core/how-to/navigate-intents.md`.
+- The navigator contract [`intent-navigation`](../intent-navigation/spec.md) is amended in part by this spec, in its criteria 0003, 0007, 0016, 0017, 0071, 0072, and 0076, recorded on that spec's header.
+- Delivered through the `feature/intent-navigation` integration branch, inside its single `core` 3.1.0 release; `product-engineering` releases 0.13.25.
 
 ## Durable Outputs
 
-<!--
-Plan the lasting records this delivery must create or update before the spec is
-approved. This is repository-specific, not a fixed checklist. Consider user
-promise, current product truth, current architecture, decision rationale,
-interface compatibility, operations, maintainer procedure, release history, and
-reusable learning. Include only applicable roles.
-
-For each row, name:
-
-- Semantic role
-- Applicability
-- Destination
-- Owner
-- Expected evidence
-- Closeout condition
-
-If no durable output is applicable, write `none` with an explicit rationale.
-If a destination is ambiguous or absent, record the still-required decision as
-the closeout blocker; do not guess or create a placeholder. Read each applicable
-existing human-readable surface as a whole and name any refresh work before
-approval. For user-facing behavior, draft the established user-documentation
-surface before implementation approval.
--->
-
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+| Authoring template | Delivery decision 4 lists the field in the template | `packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md`; the preamble mirrors in `guides/product-engineering/how-to/frame-the-intent.md` and `guides/product-engineering/how-to/hand-it-to-build.md` (whole-block refresh, so every block marked as a mirror of the template lists the same fields) | `product-engineering` maintainer | AC-0018's test, which reads all three blocks; guide lints | All three blocks list the field with a comment-only value naming its typed form |
+| User reference | A new field with a value rule and a corpus rule | `guides/product-engineering/reference/intent-fields-and-modes.md` § Intent fields | `product-engineering` maintainer | AC-0019's test; guide lints | Row states the typed form, the four prefixes, one-sided writing, and both corpus rules |
+| User procedure — lint refusals | New refusal messages a writer can meet | `guides/product-engineering/how-to/fix-a-refused-intent.md`, a new section beside the supersession sections | `product-engineering` maintainer | Guide passes `tools/lint-guide-titles.py`, `tools/validate_guides.py`, and `tools/lint-guides-no-repo-only-refs.py` | Section lists each refusal with its message and remedy |
+| User procedure — navigation | Related edges appear in query and tree output | `guides/core/how-to/navigate-intents.md` (refused-edge table gains `self_reference`; a related-edges section; the text-line formats) | `core` maintainer | Same guide lints | Guide names both lists, both text lines, and that related edges never place or order anything |
+| Skill instructions | The skill's output description changes | `packs/core/.apm/skills/navigate-intents/SKILL.md` § How to run | `core` maintainer | Self-host re-run leaves no diff | `record` and `tree` descriptions name the related lists |
+| Architecture | The derivation admits a new field | `packs/core/DESIGN.md` § Intent-edge derivation | `core` maintainer | Section diff | Admitted fields include `Related intents:`, with the rule that no reconciler reads it |
+| Historical contract pointer | The navigator contract is amended in part | `docs/specs/intent-navigation/spec.md` header line `Amended in part by:` | `core` maintainer | Header present | Line names this spec and the seven criteria |
+| Release history | A `core` and a `product-engineering` behaviour change | `docs/product/changelog.md`: bullets inside `[core][3.1.0]`, including `### Highlights`; a new `[product-engineering][0.13.25]` entry; `packs/product-engineering/pack.toml` and `.claude-plugin/plugin.json` read `0.13.25`; `core` stays `3.1.0` | Pack maintainers | Version test and `/now/` projection test green | Both entries name the field |
+| Evaluation harness | `packs/AGENTS.md` asks a non-cosmetic pack change to update its harness | `navigate-intents/evals/eval_queries.json` gains a related-intents positive prompt; `frame-intent/evals/evals.json` gains a case for the template's optional `Related intents:` line, on the pattern of its `Outcome co-owner:` case | `core` and `product-engineering` maintainers | File diffs | Prompt and case present; no activation or eval run is claimed |
+| Executable proof | Contract tests | `packs/core/tests/skills/work-intake/`, `packs/core/tests/skills/navigate-intents/`, `packs/core/tests/skills/close-work/`, `tests/roster/test_intent_template_shape_conformance.py`, `tests/roster/test_intent_field_reference_parity.py` | `core` maintainer | Dispatched `build-check`, `test-corpus`, and `test-roster` runs green on the pull request's last commit before its ledger-only record commit, with run ids in that record | Every criterion's named test is green |
+| Verification record | CI run ids and the real-corpus lint result | `docs/specs/related-intents-field/notes/verification-ledger.md` (repository-durable) | Implementer | Ledger entries | Ledger present and cited by the closing PR |
 
 ## Agent Rules
 
-The three-tier guard that keeps an implementing agent inside the lines.
-*Always do* applies without asking; *Ask first* requires human sign-off
-before proceeding; *Never do* is a hard rule, even under time pressure.
-
 ### Always do
 
-<!-- Defaults the agent applies without asking. -->
-
--
--
--
+- Read `Related intents:` only from an intent's preamble, through the derivation's existing confined read.
+- Keep the two copies of `intent_graph.py` byte-identical; make every derivation change in both.
+- Show every related edge, resolved or refused, with its basis and trust class.
+- Fold this slice's `core` changelog bullets into `[core][3.1.0]`, and leave `core` at 3.1.0.
+- Merge to `feature/intent-navigation`, not to the default branch.
 
 ### Ask first
 
-<!-- Changes that need human sign-off before proceeding. -->
-
--
--
--
+- Any change to how `Parent intent:`, `Brief:`, or `Discovery:` edges resolve, or to the refused-edge states they can take.
+- Any reader other than the derivation, the navigator, and the corpus lint consuming the field.
+- Adding the field to any artifact type other than an intent, or to any writer other than the `frame-intent` template.
 
 ### Never do
 
-<!-- Hard rules. No exceptions, no clever workarounds. -->
-
--
--
--
+- Never let a related edge become a parent, a child, an ancestor, a cycle member, a placement, or an ordering or blocking input.
+- Never read `Related intents:` in `close-work`'s closure code, the delivery resolver, `lint-traceability.py`, `loop-cohort.py`, or `workspace-status`.
+- Never accept a bare slug, a repository path, or a markdown link as a related target.
+- Never add a runtime dependency outside the Python standard library, a new module, or a new query operation.
 
 ## Testing Strategy
 
-Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
-
-- **TDD** — for logic with a compressible invariant.
-- **Goal-based check** — a one-liner verifies the outcome (a build
-  command, a `grep`, a typecheck).
-- **Visual / manual QA** — a recorded gesture and an observable
-  outcome, for UX flows.
-
-A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
-*surface*: a goal-based or manual-QA behavior may be verified by an
-**integration** test (two components together) or an **end-to-end (E2E)**
-test (the whole journey, as the user drives it) rather than a unit test —
-name that surface when a behavior only proves out across a boundary or a
-full flow.
-
-<!--
-e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
-flow: manual QA, exercised by an E2E test. Cross-service order placement:
-goal-based, exercised by an integration test." If you can't pick a mode for
-a behavior, the behavior is too vague — sharpen it before moving on.
--->
+- **TDD (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0007, AC-0008, AC-0009, AC-0010, AC-0021, AC-0022, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0017):** Contract tests over temporary fixture corpora drive the corpus lint and the navigator's query entry point, one fixture per accepted form and per refusal, because each is an invariant over constructed inputs.
+- **TDD across two components (AC-0006):** One fixture set runs through both the lint and the navigator, because the guarantee is an agreement between them that neither suite alone can observe.
+- **Goal-based check (AC-0016, AC-0018, AC-0019, AC-0020):** A source scan, a template line read, the existing guide-parity test, and the existing byte-identity test. Each is a property of files, so a fixture would add nothing.
 
 ## Acceptance Criteria
 
-<!--
-The verifiable goals that close this spec. Each item should be checkable
-without subjective judgement — a reviewer can read it and know whether it
-holds. Notation: `- [ ]` open, `- [x]` met (see the `new-spec` skill's
-`references/spec-and-plan-contract.md` § Spec metadata contract). A newly Shipped spec has no open Acceptance Criteria.
+### Field shape and corpus rules
 
-This section owns criterion *shape*. Before writing criteria, work the six
-failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
-in order — they cover the failures shape rules cannot see, starting with a
-criterion that belongs to a different artifact. Two of those classes defer
-criterion shape back to this section; the rest defer elsewhere or own their own
-rules, and that reference states which.
+- [x] **AC-0001.** `intent_corpus_lint.py` reports a violation naming the field `Related intents` for a live intent whose value, after one trailing HTML comment and one pair of backticks around the whole value are stripped, is not empty and is neither of these: a value that AC-0007 reads as no relation; or a comma-separated list whose every item, trimmed of spaces, is `<kind>:<slug>` with `<kind>` one of `intent`, `capability`, `outcome`, or `opportunity` and `<slug>` matching `^[a-z0-9]+(?:-[a-z0-9]+)*$`, with no empty item and no item repeated. Fixtures for a bare slug, a repository path, a markdown link, a `brief:` item, a `spec:` item, an unknown prefix, an uppercase slug, a trailing comma, a repeated item, and items each wrapped in their own backticks each make the lint exit 1; a list using all four prefixes, and a value that is only an HTML comment, each exit 0.
+- [x] **AC-0002.** The lint reports a violation naming `Related intents` and the item for an item whose slug names no single live intent the navigator admits: a non-tombstone file directly in the linted directory whose name matches `^[A-Za-z0-9][A-Za-z0-9._-]*\.md$`. Fixtures for a slug no file carries, a slug only a tombstone carries, a slug only a file in a subdirectory carries, and a slug two admitted live intents carry each make the lint exit 1.
+- [x] **AC-0003.** The lint reports a violation naming `Related intents` and the item for an item whose prefix differs from the target's kind, where the target's kind is decided from its preamble by the node-id rule in [`intent-navigation`](../intent-navigation/spec.md) criterion 0004.
+- [x] **AC-0004.** The lint reports a violation naming `Related intents` and the item for an item whose slug is the intent's own `Slug:`, whichever of the four kinds prefixes it.
+- [x] **AC-0005.** A target's `Status:` never decides resolution: fixtures whose target is `Superseded`, `Withdrawn`, `Cancelled`, and `Fulfilled` each make the lint exit 0.
+- [x] **AC-0006.** The lint and the navigator agree on this field. Over a fixture corpus that the lint passes and that carries all four prefixes, with targets whose `Level:` values are written in mixed letter case and followed by ` (` or ` →`, and whose `Kind:` values sit beside a comment or inside backticks, and with one source whose whole value is wrapped in backticks and followed by a comment and another whose value is `None — later`, the navigator returns every `Related intents` edge resolved and none from the second source. For each refusal state AC-0008 or AC-0021 lets the navigator return for this field, a fixture producing that state makes the lint exit 1.
 
-Two recurring sources of criteria, so they don't slip into the plan as
-mere design detail:
+### Derivation
 
-- An **output-channel constraint** (e.g., "no sensitive data on stdout")
-  must enumerate *every* channel the consuming context makes user-visible
-  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
-  same constraint to each one explicitly — a constraint named on one
-  channel only is silently violated if the caller also sees another.
+- [x] **AC-0007.** An intent's `Related intents:` value is read after the stripping AC-0001 states, and produces one edge from that intent for each distinct non-empty item, split on `,` and trimmed. An empty value, or one whose first whitespace-separated word is `none` in any letter case, is no relation and produces no edge. This amends `intent-navigation` criterion 0003, which otherwise holds.
+- [x] **AC-0021.** When the field appears more than once in an intent's preamble and two or more distinct values remain after the values AC-0007 reads as no relation are dropped, the intent has exactly one related edge: a `multiple_values` refusal whose `basis.values` lists those remaining values. When one distinct value remains, it is read under AC-0007.
+- [x] **AC-0022.** No brief, spec, or tombstone produces a related edge, whatever its preamble carries.
+- [x] **AC-0008.** An intent-kind reference is an item `<kind>:<slug>` whose kind is one of the four intent kinds and whose slug matches `^[a-z0-9]+(?:-[a-z0-9]+)*$`. Such an item resolves when its slug names a live intent whose node id equals the item. Otherwise each item's edge is refused with exactly one state, checked in this order:
+      - `self_reference` — an intent-kind reference whose slug is the intent's own slug;
+      - `kind_mismatch` — an intent-kind reference whose slug names a live intent with a different node id;
+      - `retired_target` — an intent-kind reference whose slug names only a tombstone, with its `Reissued as:` value shown and never followed;
+      - `dangling` — an intent-kind reference whose slug names nothing;
+      - `out_of_type` — a `brief:` item whose remainder matches the slug pattern, or a `spec:` item whose remainder is a valid spec directory name;
+      - `unparseable` — any other item, including a known prefix with a malformed remainder such as `intent:Foo` or `brief:Bad_Slug`, a bare slug, a path, a markdown link, and an unknown prefix.
+      `self_reference` joins the closed set in `intent-navigation` criterion 0007 and applies to no other field. Each edge's `basis.form` follows that spec's criterion 0071.
+- [x] **AC-0009.** Every related edge, resolved or refused, carries `field` and `basis.field` `Related intents` and trust class `pointer_checked`. This amends `intent-navigation` criterion 0071 for this field only.
+- [x] **AC-0010.** Related edges change no parent edge, child list, ancestor chain, cycle refusal, forest root, outstanding set, or placement. A fixture corpus with a mutual pair and a three-intent loop of related edges, and the same corpus with every `Related intents:` line removed, give byte-identical results once `provenance.generated_at` is removed for `outstanding`, for `ancestors` and `record` on every intent, for `search` with no selector, and for whole-forest `tree` JSON, with the two related lists removed from `record` and `tree`. No related edge in the loop is refused as `cycle`.
 
-- A **UI state** is an acceptance criterion: phrase it as
-  *state / trigger / outcome* — "given <state>, when <trigger>, the user
-  sees <outcome>" (e.g. "given an empty cart, when the page loads, the
-  user sees the empty-state illustration and a 'browse' link"). The
-  per-screen design itself lives in the plan's `## Design (LLD)`; the
-  observable state belongs here.
-- A **non-functional requirement with a pass/fail bar** is an acceptance
-  criterion: it must name a threshold a test or audit can check —
-  "meets WCAG 2.2 AA", "p99 latency under 200ms at 1k rps", "zero criticals
-  in the dependency scan". An NFR with no bar ("should be fast") is not a
-  criterion; give it a number or move it to the plan.
+### Query surface
 
-- A criterion that needs "and" to join two **different predicates** is two
-  criteria: a conjunction is where a coverage check silently passes while half
-  the criterion is unimplemented. A criterion is more than one when its parts
-  have separate failure modes with separate remedies. Where the parts read as one
-  constraint over a set, rewrite the criterion as a single predicate with a
-  member substituted in; it stays one criterion only if that predicate is
-  checkable as written at every member rather than expanding into a different
-  check per member. The worked examples below fix where this boundary falls;
-  where the cue and an example conflict, the examples govern.
+- [x] **AC-0011.** `record --id <identity>` returns `related_written_here`, every related edge from that intent, resolved or refused, in the order its items appear in the value; and `related_written_elsewhere`, every resolved related edge whose target is that intent, ordered by source node id in code-point order. A refused edge from another intent appears in neither list of the intent it fails to name. This amends `intent-navigation` criterion 0072.
+- [x] **AC-0012.** Each intent in a `tree` JSON result carries the two lists of AC-0011. `search` and `ancestors` results carry neither. This amends `intent-navigation` criterion 0076.
+- [x] **AC-0013.** Each entry in either list counts as one edge toward `intent-navigation` criterion 0016 limit of 400 edges, so an edge that appears under both of its intents counts twice. A `tree` JSON fixture with at most 200 intents and at most 400 parent, delivery, and refused parent edges, whose related entries take the count above 400, returns `result_too_large` naming the edge limit and the observed count including related entries. This amends `intent-navigation` criterion 0016.
+- [x] **AC-0014.** In `tree --format text`, after an intent's line and any refused-parent line, and before its first child intent's line, each `related_written_here` edge prints one depth level deeper as `~ related <target node id>` when resolved, or `! refused related <state>` when refused; then each `related_written_elsewhere` edge prints at the same depth as the `related_written_here` lines, one level deeper than the intent's line, as `~ related from <source node id>`. Every field is escaped as `intent-navigation` criterion 0017 states. This amends that criterion.
+- [x] **AC-0015.** `summary`'s refused-edge counts by state include refused related edges, with `self_reference` counted under its own key.
 
-  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
-    order, and `--dry-run` prints that manifest without writing a file." Two
-    different predicates; no single sentence covers both. The base case where the
-    conjunction cue and the split test agree.
-  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
-    output surfaced to the agent." One predicate substituted at each member of an
-    enumerated set, checkable as written at every member.
-  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
-    bytes, the execute byte, the u64be content length, then the content bytes."
-    One comparison value expressed in parts — the split test never engages,
-    because there is one failure and one remedy.
-  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
-    the exit code." "X is correct" is not checkable as written: it expands into a
-    different check per member. This is the anti-licence against reframing a
-    bundle as one constraint over a domain, and without it E2's shape is available
-    to any author.
-  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
-    Different failure modes (interception, script access) but one substitutable
-    predicate and one remedy. Shows that separate failure modes alone do not
-    split when the predicate survives substitution.
+### No reconciler reads the field
 
-- A universal claim enumerates its closed set or names the mechanism that makes
-  coverage exhaustive: without one, a reviewer cannot tell which members the
-  claim covers or whether an omitted member is a defect.
+- [x] **AC-0016.** Across every `.py` file under `packs/core/.apm/`, the literal `Related intents` appears only in `navigate-intents/scripts/intent_graph.py`, `close-work/scripts/intent_graph.py`, `navigate-intents/scripts/navigate_intents.py`, and `work-intake/scripts/intent_shape.py`. A scan that plants the literal in another file under a temporary copy reports it.
+- [x] **AC-0017.** A `close-work` closure decision over a `children` closure whose descendants are all terminal returns `ClosureEligible`, reached through the descendant walk rather than a precondition refusal, both for a fixture corpus whose intents carry related edges and for the same corpus with every `Related intents:` line removed. The related edges include a resolved edge to a non-terminal intent outside the closure, a `self_reference`, and a `dangling` edge.
 
-- A new claim becomes a new checklist item, never a lettered or semicolon
-  graft: a graft hides a separately reviewable outcome inside an existing
-  criterion and makes its completion ambiguous.
+### Template, reference, and copies
 
-- For every numeric limit a criterion states, record the input that makes the
-  limit fire first and the enforcement mechanism that makes that ordering true;
-  a limit missing **either** fact is not yet a criterion. Where one quantity has
-  two limits, either order them so each is reachable for some input, or declare
-  one non-binding on that route and name the limit that fires instead.
-
-- A criterion stating a limit names the reference point it is measured from.
-  Choose an origin that gives the same input the same measurement however the
-  subject is organised; an unstated origin is not yet a criterion. A criterion
-  requiring a limit states its value and never asks an implementer to supply one:
-  a value invented to satisfy an unspecified requirement is worse than an absent
-  limit, because it reads as a decision that was made.
-
-- Make every claim earn its place by making a wrong implementation detectable.
-  Delete rationale, history, reassurance, restated context, and a figure that
-  merely explains where a threshold came from when it does not help establish the
-  outcome. Keep any claim that is the only written form of a comparison value,
-  such as a byte layout, exact key order, literal token, collection floor, or
-  stated bar. Ask: "could a wrong implementation now pass this?"
-
-- A criterion names an observable outcome. Naming a function's parameters, a
-  helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Outcome guidance and `SKILL.md`'s design-doc anti-pattern for
-  the document-level distinction.
-
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-
-Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
-is still required, keep the spec `Implementing` and resume it. If a separable
-item no longer belongs in the final accepted contract, pause for a reviewed
-spec/plan amendment, remove it from this checklist, and record it under
-`Follow-ons` with its owner and stable artifact or external evidence reference.
-Historical frozen specs may still contain older `(deferred: <slug>)` markers;
-do not copy that pattern into new shipped work.
--->
-
-<!--
-Optional story trace: when this spec was derived from a product brief that
-carries user stories (Shape B; see author-delivery-brief continue), append `Satisfies: US-n`
-to each acceptance criterion that satisfies that story, so coverage is
-story-granular:
-
-- [x] <observable outcome>. Satisfies: US-2
-
-The marker is optional — omit it for a no-stories brief (Shape A) or a spec
-authored directly.
--->
+- [x] **AC-0018.** The `frame-intent` template's preamble, and every guide preamble block marked as a mirror of that template, lists `- **Related intents:**` directly after `- **Outcome co-owner:**`, with a value that is only an HTML comment, and the resolved template still passes the live-intent and corpus-scoped rules.
+- [x] **AC-0019.** `guides/product-engineering/reference/intent-fields-and-modes.md` lists `Related intents` with the tier `constrained when present`, checked by the guide-to-validator parity test.
+- [x] **AC-0020.** `close-work/scripts/intent_graph.py` stays byte-identical to `navigate-intents/scripts/intent_graph.py`, checked by the test that pins the skills' copies.
 
 ## Follow-ons
 
-<!--
-Separately scoped work that does not belong to the final accepted AC set. Each
-entry needs an owner and a stable work-intake artifact or external evidence
-reference. Do not use this section to hide unfinished accepted intent.
-
-- <owner>: <stable artifact or external ref> — <one-sentence scope>
--->
+none
 
 ## Assumptions
 
-<!--
-What is still unresolved, and nothing else. Each item is a question the
-contract rests on that nobody has answered yet — so a reader sees the open
-questions instead of scrolling a list of facts that are already settled.
-
-A fact you settled is not an assumption, and how you checked it is not
-recorded here: that was the assumption checkpoint's evidence (`new-spec`
-SKILL.md step 3), and its job ended when the fact entered the contract. Route
-each settled fact by what it does. A fact that bounds what this delivery does
-goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
-into the plan's `## Design (LLD)` or `## Constraints`. There is no third
-destination, and nothing is left behind here as a receipt.
-
-Unresolved comes in two shapes, and both belong here.
-
-An **open question** — something that could still be answered:
-`- <category>: <open question> — <what it would change> (settled by: <who or
-what can answer it>)`
-
-A **named gap** — something that will not be answered on this delivery, such
-as a dependency that is absent or a corpus that is unreachable:
-`- <category>: <what is missing> — <what is therefore ungrounded>`
-
-Write `none` when nothing is unresolved. An empty section and an unexamined
-one read the same.
-
-- Technical: <open question> — <what it would change> (settled by: <…>)
-- Product: <what is missing> — <what is therefore ungrounded>
-
-When an item is settled later, route the fact to its destination above and
-delete the line. An item still here at approval is a known gap in the
-contract, recorded on purpose.
-
-A settled fact that later turns out wrong is a different event, and it does
-not come back here. Fix it where it lives — the spec body, or the plan's
-design — in the same PR that finds it, and say in that PR what changed. The
-correction belongs in the artifact the fact was doing work in, not in a note
-about the checkpoint that filed it.
--->
+none

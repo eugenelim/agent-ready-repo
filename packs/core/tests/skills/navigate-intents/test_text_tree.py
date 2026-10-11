@@ -250,3 +250,39 @@ def test_tree_text_not_limited_by_intent_count() -> None:
     assert isinstance(result, str), (
         "text tree must succeed even when max_intents=1 (text exempt from count limits)"
     )
+
+
+# ---------------------------------------------------------------------------
+# Related intents lines (related-intents-field AC-0014)
+# ---------------------------------------------------------------------------
+
+
+def _add_related(root: pathlib.Path, name: str, value: str) -> None:
+    path = root / "docs" / "product" / "intents" / name
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace("- **Parent intent:**", f"- **Related intents:** {value}\n- **Parent intent:**", 1), encoding="utf-8")
+
+
+def test_tree_text_related_lines_precede_child_line(tmp_path: pathlib.Path) -> None:
+    """AC-0014: resolved, refused, and incoming related lines print before the first child."""
+    import shutil
+
+    _skip_if_module_absent()
+    root = tmp_path / "corpus"
+    shutil.copytree(_FIXTURE_MIXED, root)
+    _add_related(root, "CAP-0001-alpha-cap.md", "intent:golf-new, intent:no-such-slug")
+    _add_related(root, "FEAT-0005-india-none.md", "capability:alpha-cap")
+    result, code = nav.run_query(  # type: ignore[union-attr]
+        root, ["query", "--operation", "tree", "--format", "text"]
+    )
+    assert code == 0
+    lines = result.splitlines()
+    start = lines.index("capability:alpha-cap · capability · Accepted")
+    assert lines[start + 1 : start + 5] == [
+        "  ~ related intent:golf-new",
+        "  ! refused related dangling",
+        "  ~ related from intent:india-none",
+        "  intent:bravo-feat · feature · Draft",
+    ]
+    golf = lines.index("intent:golf-new · feature · Draft")
+    assert lines[golf + 1] == "  ~ related from capability:alpha-cap"

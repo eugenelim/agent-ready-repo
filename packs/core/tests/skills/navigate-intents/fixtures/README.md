@@ -66,6 +66,7 @@ fixtures/
     ├── brief_parent_ambiguous/    AC-0064: brief Parent intent: two distinct slugs → multiple_values
     ├── brief_parent_repair/       AC-0064: one accepted + malformed values → repair case
     ├── brief_parent_unrecognized/ AC-0071: value matching no recognized shape
+    ├── self_reference/    related-intents-field AC-0008: Related intents: names the intent itself
     ├── no_decomposed/     AC-0064 no-relation: feature intent with no Decomposed:
     ├── spec_route/        AC-0064 no-relation: feature intent with spec route
     └── two_briefs/        AC-0064 no-relation: feature intent named by two briefs
