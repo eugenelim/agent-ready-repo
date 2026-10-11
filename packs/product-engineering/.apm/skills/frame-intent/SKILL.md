@@ -191,6 +191,19 @@ The handoff must not select engagement mode, visual direction, typography,
 color, layout, motion, first-viewport composition, a signature interaction, or
 an implementation approach. Leave those decisions downstream.
 
+## System-shape questions
+
+Framing sometimes hits a question about system shape: how to integrate, what
+stack is mandated, which reference architecture applies, or why a past design
+went the way it did. Do not answer it in the intent. Record it in
+`Assumptions` as an open design question and keep Outcome and Opportunity
+solution-independent. Then check your available-skills roster for
+`architect-design` and offer it at the scope the question needs:
+`application/system` for a whole system, `subsystem` for one part, or
+`architecture change` for a change to what already runs. If it is not in the
+roster, continue with this skill's own behaviour and say nothing about it: no
+mention, no note, and no error.
+
 ## Optional Core shaping-review augmentation
 
 When Core's `shaping-reviewer` is installed, prefer an isolated `Agent` review

@@ -87,3 +87,25 @@ providers = ["agent:shaping-reviewer"]
 when      = "Core's shaping-reviewer is installed and a product intent is ready for independent cold review."
 purpose   = "Pass one attributed, untrusted evidence packet to shaping-reviewer in intent mode, which returns one MALFORMED(field) token per failed well-formedness condition or nothing at all; frame-intent retains revision, token-resolution, and lifecycle authority."
 fallback  = "If Core or shaping-reviewer is unavailable, report that the optional Core intent shaping review is unavailable and continue authoring, claiming no review result. A genuinely fresh context or an independent human reviewing the same evidence packet may provide the optional review; warm self-review is advisory."
+
+[[pack.integrations]]
+id        = "architect-design-offer"
+pack      = "architect"
+kind      = "handoff"
+role      = "Optional architecture design offer"
+consumers = ["skill:frame-intent", "skill:decompose-intent", "skill:map-capabilities"]
+providers = ["skill:architect-design"]
+when      = "The architect pack's architect-design skill is in the available-skills roster and shaping needs a design at application/system, subsystem, or architecture-change scope."
+purpose   = "Offer a design at the scope the shaping question needs, without answering system-shape questions inside the intent."
+fallback  = "If the skill is not installed, the consuming skill continues with its own behaviour and must say nothing about it: no mention, no note, and no error."
+
+[[pack.integrations]]
+id        = "architect-current-state"
+pack      = "architect"
+kind      = "handoff"
+role      = "Optional current-state model"
+consumers = ["skill:frame-domain", "skill:de-risk-intent"]
+providers = ["skill:architect-assess"]
+when      = "The architect pack's architect-assess skill is in the available-skills roster and no current-architecture artifact is reachable."
+purpose   = "Offer a current-state model to ground brownfield framing or a feasibility assumption."
+fallback  = "If the skill is not installed, the consuming skill continues with its own behaviour and must say nothing about it: no mention, no note, and no error."
