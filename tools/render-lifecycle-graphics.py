@@ -252,17 +252,33 @@ OVERVIEW = [
      ["release-engineering"], "You ship it", "G5"),
 ]
 
+# Where architecture work meets each stage, in stage order: a label and the
+# skill that runs or offers it there, or None where no architecture skill
+# usually runs.
+OVERVIEW_ARCHITECTURE: list[tuple[list[str], str | None]] = [
+    (["Assess the area", "it touches"], "architect-assess"),
+    (["Design and revise", "the capabilities"], "architect-design"),
+    (["Fold the design in", "after the merge"], "close-work"),
+    (["Usually no", "architecture skill"], None),
+]
+
 
 def render_overview() -> str:
     """Four stage cards, read left to right, each ending on its decision."""
-    w_, h_ = 760, 468
+    w_, h_ = 760, 628
     svg = Svg(w_, h_)
     svg.add(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w_} {h_}" width="{w_}" '
             f'height="{h_}" role="img" aria-labelledby="ot od">')
     svg.add('<title id="ot">From idea to production in four stages</title>')
     svg.add('<desc id="od">Four stages, left to right. Decide what to build is optional and ends '
             'when you pick the outcome. Shape it ends when you commit to build. Build it ends '
-            'when you merge. Ship it ends when you ship it to production.</desc>')
+            'when you merge. Ship it ends when you ship it to production. Below the stages, '
+            'architecture work by stage. Before any work, once per repository, '
+            'architect-assess maps what exists and adapt-to-project or init-project writes '
+            'reference.md, which every plan follows. Then: assess the area the work touches, '
+            'design and revise the capabilities with architect-design, and after the merge '
+            'close-work offers to fold the design into the current-state map. Ship it '
+            'usually needs no architecture skill.</desc>')
     defs(svg)
     canvas(svg, [(110, 300, 190, "decide"), (290, 120, 200, "shape"),
                  (470, 330, 190, "build"), (650, 140, 190, "ship")])
@@ -272,7 +288,7 @@ def render_overview() -> str:
 
     m, gap = 28, 14
     cw = (w_ - 2 * m - 3 * gap) / 4
-    top, bot = 92, h_ - 26
+    top, bot = 92, 442
     for i, (key, when, packs, end, code) in enumerate(OVERVIEW):
         st = STAGES[key]
         x = m + i * (cw + gap)
@@ -296,6 +312,30 @@ def render_overview() -> str:
         gold_tag(svg, x + 6, bot - 50, cw - 12, end, None, h=36, size=11.5)
     for i in range(3):
         chevron(svg, m + (i + 1) * (cw + gap) - gap / 2, top + 34, 8)
+
+    shape = STAGES["shape"]
+    ay = bot + 14
+    svg.add(f'<rect x="{m}" y="{ay}" width="{w_ - 2 * m}" height="{h_ - 26 - ay}" rx="14" '
+            f'fill="{SURFACE}" fill-opacity="0.85" stroke="{shape.hi}" stroke-opacity="0.35"/>')
+    svg.text(m + 16, ay + 22, "ARCHITECTURE, STAGE BY STAGE", size=10, weight=700,
+             fill=shape.hi, spacing=1.4)
+    svg.text(m + 16, ay + 40, "Before any work, once per repo: architect-assess maps what "
+             "exists, and adapt-to-project", size=11.5, fill=SOFT)
+    svg.text(m + 16, ay + 56, "or init-project writes reference.md. Every plan follows "
+             "reference.md.", size=11.5, fill=SOFT)
+    for i, (label, name) in enumerate(OVERVIEW_ARCHITECTURE):
+        x, y = m + i * (cw + gap) + 8, ay + 68
+        if name is None:
+            svg.add(f'<rect x="{x:.1f}" y="{y}" width="{cw - 16:.1f}" height="62" rx="9" '
+                    f'fill="none" stroke="{CARD_EDGE}" stroke-dasharray="4 3"/>')
+            for j, ln in enumerate(label):
+                svg.text(x + 12, y + 26 + j * 16, ln, size=12, fill=MUTED)
+            continue
+        svg.add(f'<rect x="{x:.1f}" y="{y}" width="{cw - 16:.1f}" height="62" rx="9" '
+                f'fill="{CARD}" stroke="{CARD_EDGE}"/>')
+        for j, ln in enumerate(label):
+            svg.text(x + 12, y + 18 + j * 16, ln, size=12, weight=650)
+        svg.text(x + 12, y + 52, name, size=11, family=MONO, fill=shape.hi)
     svg.add("</svg>")
     return svg.render()
 
@@ -324,6 +364,17 @@ class Gate:
     auto: bool = False
 
 
+@dataclass
+class Loop:
+    """A return to an earlier step: repeat until the condition holds."""
+
+    label: list[str]
+    back: int  # how many items above this one the return arrow points to
+
+
+Item = Step | Gate | Loop
+
+
 def _lines(v: str | list[str] | None) -> list[str]:
     return [] if v is None else (v if isinstance(v, list) else [v])
 
@@ -334,7 +385,9 @@ def step_height(s: Step) -> float:
             + (2 if s.skills else -4))
 
 
-def item_height(it: Step | Gate) -> float:
+def item_height(it: Item) -> float:
+    if isinstance(it, Loop):
+        return 14 + 15 * len(it.label)
     if isinstance(it, Gate):
         return 26 if it.auto else 30
     return step_height(it)
@@ -368,16 +421,36 @@ def draw_step(svg: Svg, x: float, y: float, w: float, s: Step, st: Stage) -> flo
     return y + h
 
 
-def draw_column(svg: Svg, x: float, y: float, w: float, items: list[Step | Gate],
+def draw_loop(svg: Svg, x: float, y: float, w: float, lp: Loop, target_mid: float,
+              st: Stage) -> float:
+    """A dashed note with a return arrow to an earlier step's left edge. Returns bottom y."""
+    h = item_height(lp)
+    svg.add(f'<rect x="{x + 10:.1f}" y="{y:.1f}" width="{w - 20:.1f}" height="{h:.1f}" '
+            f'rx="{h / 2:.1f}" fill="none" stroke="{st.hi}" stroke-width="1.3" '
+            'stroke-dasharray="4 3"/>')
+    for i, ln in enumerate(lp.label):
+        svg.text(x + w / 2, y + 18 + i * 15, ln, size=11.5, fill=st.hi, anchor="middle")
+    mid = y + h / 2
+    svg.add(f'<path d="M{x + 10:.1f},{mid:.1f} C{x - 9:.1f},{mid:.1f} {x - 9:.1f},'
+            f'{target_mid:.1f} {x + 1:.1f},{target_mid:.1f}" fill="none" stroke="{st.hi}" '
+            f'stroke-width="1.6" marker-end="url(#arrow-{st.key})"/>')
+    return y + h
+
+
+def draw_column(svg: Svg, x: float, y: float, w: float, items: list[Item],
                 st: Stage) -> float:
     """Draw steps and decisions top to bottom with arrows between. Returns bottom y."""
+    mids: list[float] = []
     for i, it in enumerate(items):
         if i:
             svg.add(f'<line x1="{x + w / 2:.1f}" y1="{y + 1:.1f}" x2="{x + w / 2:.1f}" '
                     f'y2="{y + 13:.1f}" stroke="{ARROW}" stroke-width="1.6" '
                     'marker-end="url(#arrow)"/>')
             y += 15
-        if isinstance(it, Gate):
+        mids.append(y + item_height(it) / 2)
+        if isinstance(it, Loop):
+            y = draw_loop(svg, x, y, w, it, mids[i - it.back], st)
+        elif isinstance(it, Gate):
             y = (auto_tag(svg, x, y, w, it.label, it.code or "") if it.auto
                  else gold_tag(svg, x, y, w, it.label, it.code))
         else:
@@ -385,48 +458,71 @@ def draw_column(svg: Svg, x: float, y: float, w: float, items: list[Step | Gate]
     return y
 
 
-def column_height(items: list[Step | Gate]) -> float:
+def column_height(items: list[Item]) -> float:
     return sum(item_height(i) for i in items) + 15 * (len(items) - 1)
 
 
-DECIDE: list[Step | Gate] = [
+DECIDE: list[Item] = [
     Step("Find out what's true", ["desk-research"]),
+    Step(["Assess the area it", "touches (optional)"], ["architect-assess"], dashed=True),
     Step("Make the strategic call", ["write-prfaq", "run-okr-cascade", "define-ux-strategy"]),
 ]
-SHORT: list[Step | Gate] = [
+SHORT: list[Item] = [
     Step("Frame the intent", ["frame-intent"]), Gate("Approve the intent", "G0"),
     Step(["Test the riskiest", "assumption"], ["de-risk-intent"]),
+    Step(["Shape the architecture", "(optional)"], ["architect-design"],
+         note=["Offered while framing.", "Take it before you cut",
+               "the work. If it changes", "the capabilities, take",
+               "the longer route."],
+         dashed=True),
     Step(["Break it into", "buildable pieces"], ["decompose-intent"]),
 ]
-LONGER: list[Step | Gate] = [
+LONGER: list[Item] = [
     Step("Frame the situation", ["frame-situation"]),
     Step("Find the opportunities", ["identify-opportunities"]),
     Step("Generate options", ["diverge-solutions"]),
     Step(["Test the riskiest", "assumption"], ["de-risk-intent"]),
     Step("Place a bet", ["place-bet"]),
     Step(["Map the capabilities", "and a build order"], ["map-capabilities"]),
+    Step(["Design against the", "capabilities (optional)"], ["architect-design"],
+         note=["offered once the build", "order is set"], dashed=True),
+    Loop(["Revise the capabilities", "and design again"], back=2),
+    Step(["Design the subsystems", "that earn a doc"], ["architect-design", "architect-review"],
+         dashed=True),
 ]
-SUPERVISED: list[Step | Gate] = [
+SUPERVISED: list[Item] = [
     Step("Frame the intent", ["frame-intent"]), Gate("Approve the intent", "G0"),
     Step("De-risk and explore", ["de-risk-intent", "explore-options"]),
     Gate("Usually automatic", "G1", auto=True),
     Step("Ground the domain", ["frame-domain"]), Gate("Set the MVP", "G1.5"),
     Step(["Design, system, and", "contracts in parallel"],
-         ["journey-mapping", "user-flow", "architect-design", "api-contract"],
+         ["journey-mapping", "user-flow", "architect-design", "architect-diagram",
+          "api-contract"],
          note=["then a threat and", "reliability review"]),
     Gate("Approve the brief", "G2"),
     Step(["Break it into", "buildable pieces"], ["decompose-intent"]),
 ]
-BUILD: list[Step | Gate] = [
+BUILD: list[Item] = [
     Step("Route the work", ["work-intake"], note="picks a spec, a brief, or an intent", num=1),
-    Step("Write the spec and plan", ["new-spec"], num=2), Gate("Approve spec and plan"),
+    Step("Write the spec and plan", ["new-spec"],
+         note=["follows reference.md and", "reads the design as context"], num=2),
+    Gate("Approve spec and plan"),
     Step("Build and check", ["work-loop"], note="lint, types, tests, three reviews", num=3),
 ]
-SHIP: list[Step | Gate] = [
+SHIP: list[Item] = [
     Step(["Set an error budget", "(optional)"], ["define-slo"], dashed=True),
     Step(["Deploy somewhere", "safe and test it"], ["release-loop"],
          note="end-to-end tests, telemetry"),
     Step(["Read the readiness", "record"], note="operations, security, cost"),
+]
+
+# Before any work, once per repository: what each document is, who writes it,
+# and what it does.
+FOUNDATION = [
+    ("The current-state map", "architect-assess",
+     "maps what exists. close-work offers to fold each shipped design into it."),
+    ("The engineering patterns in reference.md", "adapt-to-project · init-project",
+     "write it. architect-design offers this when none exists."),
 ]
 
 # Who runs each stage and who usually makes its call. The roles come from the
@@ -449,11 +545,12 @@ def render_full() -> str:
     for k, w in widths.items():
         xs[k] = x
         x += w + gap
-    top, head = 150, 128
+    found_y, found_h = 140, 108
+    top, head = found_y + found_h + 24, 128
     body = top + head + 16
     route_top = body + 58
     body_end = max(route_top + column_height(SUPERVISED), route_top + column_height(LONGER),
-                   body + column_height(BUILD) + 110, body + column_height(DECIDE))
+                   body + column_height(BUILD) + 220, body + column_height(DECIDE))
     bot = body_end + 150 + 104  # room for converging lines, who-runs-it, and the ending
     h_ = int(bot + 150)
     svg = Svg(w_, h_)
@@ -462,8 +559,10 @@ def render_full() -> str:
     svg.add('<title id="ft">The full map: how one piece of work moves from idea to production'
             '</title>')
     svg.add('<desc id="fd">Four stages, left to right, with every route, step, skill, and '
-            'decision. The guide page lists the same flow under "The same flow, step by step".'
-            '</desc>')
+            'decision. Above the stages, the two documents set up once per repository before any '
+            'work: the current-state map and reference.md. Below them, the packs used at any '
+            'stage. The guide page lists the same flow under "The same flow, step by step" '
+            'and the architecture timeline under "Where architecture comes in".</desc>')
     defs(svg)
     canvas(svg, [(140, 560, 260, "decide"), (560, 340, 380, "shape"),
                  (1060, 600, 300, "build"), (1350, 340, 260, "ship")])
@@ -482,6 +581,25 @@ def render_full() -> str:
     svg.text(lx + 46, ly, "A deployed failure goes back to the build loop", size=13, fill=SOFT)
     svg.text(w_ - m, ly, "Codes like G3 are what the agents print when they stop for you.",
              size=13, fill=MUTED, anchor="end")
+
+    st = STAGES["shape"]
+    svg.add(f'<rect x="{m}" y="{found_y}" width="{w_ - 2 * m}" height="{found_h}" rx="16" '
+            f'fill="{SURFACE}" fill-opacity="0.85" stroke="{st.hi}" stroke-opacity="0.35"/>')
+    svg.text(m + 20, found_y + 28, "BEFORE ANY WORK", size=11, weight=700, fill=st.hi,
+             spacing=1.6)
+    svg.text(m + 172, found_y + 28, "Once per repository, then kept current. The architect "
+             "skills ground their work in these, and every plan follows reference.md.",
+             size=12.5, fill=SOFT)
+    fw = (w_ - 2 * m - 40 - 12) / 2
+    for i, (title, maker, does) in enumerate(FOUNDATION):
+        fx, fy = m + 20 + i * (fw + 12), found_y + 40
+        svg.add(f'<rect x="{fx:.1f}" y="{fy}" width="{fw:.1f}" height="56" rx="10" '
+                f'fill="{CARD}" stroke="{CARD_EDGE}"/>')
+        svg.add(f'<rect x="{fx:.1f}" y="{fy + 8}" width="3" height="40" rx="1.5" '
+                f'fill="url(#g-{st.key})"/>')
+        svg.text(fx + 16, fy + 22, title, size=13.5, weight=650)
+        svg.text(fx + 16, fy + 42, maker, size=11, family=MONO, fill=st.hi)
+        svg.text(fx + 26 + width_of(maker, 11, mono=True), fy + 42, does, size=12, fill=MUTED)
 
     starts = {
         "decide": ["Nobody has decided what's", "worth building. Optional."],
@@ -560,6 +678,9 @@ def render_full() -> str:
             f'stroke="{SOFT}" stroke-opacity="0.6" stroke-dasharray="5 4"/>')
     svg.text(bx + 14, by + 45, "Small, low-risk change?", size=12.5, weight=650)
     svg.text(bx + 14, by + 64, "It skips the spec and goes to step 3.", size=12, fill=SOFT)
+    draw_step(svg, bx, by + 96, bw,
+              Step(["After the merge: fold the", "design into the current map"],
+                   ["close-work", "architect-diagram"], dashed=True), st)
     ending("build", "Passes on: a merged change", "You merge", "G4")
 
     st = STAGES["ship"]
