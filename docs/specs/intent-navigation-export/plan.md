@@ -271,4 +271,4 @@ Owned by: T4, T5
 
 - 2026-10-11: spec approved by eugenelim
 - 2026-10-11: plan approved by eugenelim
-- 2026-10-11: amended by owner decision (eugenelim) after post-gates review: AC-0024 gains the Git 2.44 condition, AC-0073 states the older-Git fallback, T7 maps it, and T6 now depends on T7.
+- 2026-10-11: amended by owner decision (eugenelim) after post-gates review: AC-0024 gains the Git 2.44 condition, AC-0025 lists an older Git among the inputs that give `latest` links, AC-0073 states that no object-reading Git call runs on an older Git and the destination check is unchanged, T7 maps them with the inert-remote test and the exact allowed Git-verb set, and T6 now depends on T7.
