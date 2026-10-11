@@ -1026,7 +1026,10 @@ _FOCUS_INFO = """() => {
   e.__seen = true;
   const r = e.getBoundingClientRect();
   const cs = getComputedStyle(e);
-  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  // Probe the middle of the part inside the viewport (a tall region's own centre may lie below it).
+  const vy = (Math.max(r.top, 0) + Math.min(r.bottom, innerHeight)) / 2;
+  const vx = (Math.max(r.left, 0) + Math.min(r.right, innerWidth)) / 2;
+  const hit = document.elementFromPoint(vx, vy);
   let p = e.parentElement, bg = 'rgb(255, 255, 255)';
   while (p) { const c = getComputedStyle(p).backgroundColor;
     const m = c.match(/[\\d.]+/g);
@@ -1340,6 +1343,37 @@ def test_back_to_list_returns_focus_to_the_selected_row(
     page.wait_for_function("() => document.activeElement.id === 'detail-heading'")
     page.locator("#detail-body button.back-link").click()
     assert page.evaluate("document.activeElement.id") == "view-heading"
+    assert _live(page, "This item is not in the current list.")
+
+
+def test_detail_panel_is_a_named_tab_stop_that_scrolls_to_the_legend_end(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    page = opener(exports["related"], width=1280, height=900).page
+    region = page.locator(".detail")
+    assert region.get_attribute("role") == "region"
+    assert region.get_attribute("tabindex") == "0"
+    assert page.evaluate(
+        "document.getElementById(document.querySelector('.detail').getAttribute('aria-labelledby')).textContent"
+    ) == "Details"
+    page.evaluate("document.activeElement && document.activeElement.blur()")
+    for _ in range(400):
+        page.keyboard.press("Tab")
+        if page.evaluate("document.activeElement.classList.contains('detail')"):
+            break
+    else:
+        raise AssertionError("the detail region is not in the Tab order")
+    assert page.evaluate("getComputedStyle(document.activeElement).outlineStyle") == "solid"
+    last = "(() => { const rows = document.querySelectorAll('#detail-legend dt'); return rows[rows.length - 1]; })()"
+    for _ in range(60):
+        if page.evaluate(
+            f"(() => {{ const r = {last}.getBoundingClientRect(); const d = document.querySelector('.detail').getBoundingClientRect(); return r.bottom <= d.bottom + 1 && r.top >= d.top; }})()"
+        ):
+            break
+        page.keyboard.press("PageDown")
+        page.wait_for_timeout(300)  # keyboard scrolling animates
+    else:
+        raise AssertionError("keyboard scrolling never reached the last legend row")
 
 
 def test_detail_panel_stays_in_view_on_wide_screens_only(

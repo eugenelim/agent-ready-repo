@@ -104,7 +104,8 @@ body {
 .source-link:focus-visible,
 .toggle:focus-visible,
 .action:focus-visible,
-.control:focus-visible {
+.control:focus-visible,
+.detail:focus-visible {
   outline: var(--outline) solid var(--focus);
   outline-offset: 2px;
 }

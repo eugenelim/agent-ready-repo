@@ -352,7 +352,7 @@ def test_every_git_call_is_hardened_and_runs_no_repository_program(
     for call in calls:
         argv = call["argv"]
         assert isinstance(argv, list) and argv[0] == "git"
-        assert argv[1] == "-C" and argv[3:7] == [
+        assert argv[1] == "--no-lazy-fetch" and argv[2] == "-C" and argv[4:8] == [
             "-c", "core.fsmonitor=false", "-c", "protocol.allow=never"
         ]
         assert call["shell"] is False
@@ -391,6 +391,8 @@ def _treeless_clone(tmp_path: pathlib.Path, name: str) -> tuple[pathlib.Path, pa
     github = f"https://github.com/{_OWNER_REPO}"
     _git(clone, "config", f"url.{bare.as_uri()}.insteadOf", github)
     _git(clone, "remote", "set-url", "origin", github)
+    # A per-protocol allow key outranks protocol.allow=never; only --no-lazy-fetch holds.
+    _git(clone, "config", "protocol.file.allow", "always")
     _write_corpus(clone)
     return clone, marker
 

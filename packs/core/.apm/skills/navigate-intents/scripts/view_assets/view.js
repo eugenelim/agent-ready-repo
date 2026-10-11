@@ -180,7 +180,7 @@
       if (parent !== null && own(data.records, parent) !== undefined) { addTo(kidsOf, parent, id); }
       (Array.isArray(r.delivery_relations) ? r.delivery_relations : []).forEach(function (rel) {
         if (!isObj(rel)) { return; }
-        [intentNodeId(rel.intent), rel.brief, rel.spec].forEach(function (nid) {
+        [rel.intent, rel.brief, rel.spec].forEach(function (nid) {
           if (isStr(nid)) { addTo(relsByNode, nid, rel); }
         });
       });
@@ -743,7 +743,12 @@
       if (toggle && toggle.getAttribute('aria-expanded') !== 'true') { toggle.click(); }
     });
     var target = rowLinkFor(id);
-    (target || dom.viewHeading).focus();
+    if (target) {
+      target.focus();
+    } else {
+      dom.viewHeading.focus();
+      dom.live.textContent = 'This item is not in the current list.';
+    }
   }
 
   function renderDetail(route) {

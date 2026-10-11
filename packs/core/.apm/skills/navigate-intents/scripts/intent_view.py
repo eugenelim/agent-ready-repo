@@ -109,7 +109,7 @@ _SHELL = """<!doctype html>
 <p id="view-count" class="count"></p>
 <div id="list"></div>
 </div>
-<div class="detail">
+<div class="detail" tabindex="0" role="region" aria-labelledby="detail-heading">
 <h2 id="detail-heading" class="detail-heading focus-target" tabindex="-1">Details</h2>
 <div id="detail-body"></div>
 <div id="detail-legend"></div>
@@ -173,8 +173,10 @@ class Destination(NamedTuple):
 def _git_run(root: Path, args: list[str]) -> subprocess.CompletedProcess[bytes]:
     """Run one hardened Git call: no shell, fixed argv, no prompt, no inherited GIT_ state.
 
-    ``protocol.allow=never`` stops a partial clone's lazy fetch from starting any transport,
-    so a missing object makes the call fail instead of reaching the promisor remote.
+    The global ``--no-lazy-fetch`` option (Git 2.44 or later) makes a missing object fail the
+    call instead of reaching a partial clone's promisor remote, whatever the repository's
+    ``protocol.<name>.allow`` keys say; ``protocol.allow=never`` is kept as a second barrier.
+    An older Git rejects the option, so the call fails and the caller degrades.
 
     Raises ``OSError`` when Git cannot start and ``subprocess.TimeoutExpired`` on timeout.
     """
@@ -182,7 +184,7 @@ def _git_run(root: Path, args: list[str]) -> subprocess.CompletedProcess[bytes]:
     env["GIT_TERMINAL_PROMPT"] = "0"
     return subprocess.run(  # noqa: S603
         [  # noqa: S607
-            "git", "-C", str(root),
+            "git", "--no-lazy-fetch", "-C", str(root),
             "-c", "core.fsmonitor=false", "-c", "protocol.allow=never",
             *args,
         ],

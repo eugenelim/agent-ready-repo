@@ -284,8 +284,8 @@ def test_git_calls_are_hardened(tmp_path: pathlib.Path, monkeypatch: pytest.Monk
     monkeypatch.setenv("GIT_DIR", "/unrelated")
     monkeypatch.setattr(view.subprocess, "run", fake_run)
     view._git_run(tmp_path, ["worktree", "list"])
-    assert seen["argv"][:7] == ["git", "-C", str(tmp_path), "-c", "core.fsmonitor=false",
-                                "-c", "protocol.allow=never"]
+    assert seen["argv"][:8] == ["git", "--no-lazy-fetch", "-C", str(tmp_path), "-c",
+                                "core.fsmonitor=false", "-c", "protocol.allow=never"]
     assert seen["shell"] is False and seen["timeout"] == 5
     assert seen["capture_output"] is True
     git_vars = {k: v for k, v in seen["env"].items() if k.startswith("GIT_")}
