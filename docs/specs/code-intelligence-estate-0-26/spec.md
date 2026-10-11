@@ -1,6 +1,6 @@
 # Spec: Code-intelligence pack on Wicked Estate 0.26
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0104
@@ -88,56 +88,56 @@ Every check below is either a pack test under `packs/code-intelligence/tests/` o
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.26` when the binary reports version 0.25.0.
-- [ ] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.26.0 and an index exists.
-- [ ] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.26"`, equal to the preflight's `MINIMUM_VERSION`.
-- [ ] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.26.0 --locked`, and `0.26.0` equals the preflight's `PINNED_VERSION`.
-- [ ] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.26.0 --locked` and rejects the planted `cargo install wicked-estate --version 0.21.0 --locked`.
-- [ ] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
-- [ ] **AC-0007.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.26"`.
-- [ ] **AC-0008.** The vocabulary allowlist's CLI verbs include `evidence` and `version`.
-- [ ] **AC-0009.** A 0.26.0 binary dispatches every CLI verb in the vocabulary allowlist.
-- [ ] **AC-0010.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
-- [ ] **AC-0011.** On the fixture, every `blast-radius helper --json` dependent carries exactly the keys `id`, `name`, `kind`, `file`, `line`, `depth`.
-- [ ] **AC-0012.** On the fixture, the `blast-radius helper --json` row for the `core.py` `handle` has `depth` 1.
-- [ ] **AC-0013.** On the fixture, `lineage <entry id> --json` exits 0 and stdout parses to exactly the keys `dependencies`, `total`, `truncated`, `confidence`, `relation`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`.
-- [ ] **AC-0014.** On the fixture, `lineage <entry id> --json` reports `relation` as `dependency`.
-- [ ] **AC-0015.** On the fixture, `lineage <entry id> --json` reports `searched_depth` 8.
-- [ ] **AC-0016.** On the fixture, `lineage <entry id> --json` lists `handle` at depth 1 and `helper` at depth 2.
-- [ ] **AC-0017.** On the fixture, the `helper` row of `lineage <entry id> --json` has a `line` one less than the `line` `resolve helper --json` reports.
-- [ ] **AC-0018.** On the fixture, `lineage entry --json` (a unique name) exits 0 and lists `helper` at depth 2.
-- [ ] **AC-0019.** On the fixture, `lineage handle --json` (an ambiguous name) exits non-zero with empty stdout.
-- [ ] **AC-0020.** On the fixture, `lineage --symbol <entry id> --json` exits non-zero with empty stdout.
-- [ ] **AC-0021.** On the fixture, `lineage <entry id> --depth 25 --json` exits 0, writes a line starting `CLAMPED:` to stderr, and reports `searched_depth` 24.
-- [ ] **AC-0022.** On the fixture, `lineage <entry id> --relation flow_to` exits non-zero.
-- [ ] **AC-0023.** `wicked-estate --version` exits 0 and its stdout is exactly `wicked-estate 0.26.0` followed by one newline.
-- [ ] **AC-0024.** On the fixture, `query helper --json` exits 0 and parses to a list whose rows carry `symbol_id`, `name`, `kind`, `file`, `line`.
-- [ ] **AC-0025.** On the fixture, `path entry helper --max-depth 2 --json` returns `found` true and `depth_bounded` false.
-- [ ] **AC-0026.** On the fixture, after `annotate`, each `annotations <name> --json` annotation carries `source_type`, `extraction_method` and `last_verified`.
-- [ ] **AC-0027.** On the fixture, `stale-annotations 9999999999 --json`, `stale-annotations 2026-01-01 --json` and `stale-annotations --older-than 90d --json` each exit 0.
-- [ ] **AC-0028.** On the fixture, `stale-annotations 90 --older-than 9d` exits non-zero.
-- [ ] **AC-0029.** On the fixture, `stats foo` (a surplus operand) exits non-zero with empty stdout.
-- [ ] **AC-0030.** On the fixture, `blast-radius helper --depth abc --json` (a malformed value) exits non-zero with empty stdout.
-- [ ] **AC-0031.** On the fixture, `nodes --kind function --kind class` (a repeated flag) exits non-zero with empty stdout.
-- [ ] **AC-0032.** `blast-radius helper --db <missing path>` exits non-zero with empty stdout and does not create the file.
-- [ ] **AC-0033.** On the fixture, `lineage <entry id> --json` stdout parses as JSON while a line starting `STALENESS:` appears on stderr.
-- [ ] **AC-0034.** The retired-claim scanner finds no match in the shipped surface.
-- [ ] **AC-0035.** The retired-claim scanner matches every sentence in its planted stale sample, every pattern has a stale sample, and no sentence in its planted current sample matches.
-- [ ] **AC-0036.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
-- [ ] **AC-0037.** `SKILL.md`, `references/capability-map.md`, `references/investigation-patterns.md` and `references/evidence.md` each contain `wicked-estate lineage <`.
-- [ ] **AC-0038.** `agents/impact-analyst.md` and `references/investigation-patterns.md` each contain `` per-row `depth` ``.
-- [ ] **AC-0039.** `references/evidence.md` and `references/capability-map.md` each contain `` `compiler` `` and `never call edges`.
-- [ ] **AC-0040.** The value-lineage row of `references/capability-map.md` contains `TSX` and `JavaScript`.
-- [ ] **AC-0041.** `SKILL.md` contains `nothing on stdout`.
-- [ ] **AC-0042.** `references/evidence.md` contains `last_verified` and `--older-than`.
-- [ ] **AC-0043.** `SKILL.md` and `agents/code-investigator.md` each contain `` `evidence` ``.
-- [ ] **AC-0044.** `evals/evals.json` contains a case whose assertions contain both `wicked-estate lineage <` and `resolve`.
-- [ ] **AC-0045.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.8`.
-- [ ] **AC-0046.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.8`.
-- [ ] **AC-0047.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.8\] — \d{4}-\d{2}-\d{2}$`.
-- [ ] **AC-0048.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty.
-- [ ] **AC-0049.** `agentbundle catalogue verify --root .` exits 0.
-- [ ] **AC-0050.** The `packs/AGENTS.local.md` internal-citation grep, run over the pack test modules this change edits, finds no match.
+- [x] **AC-0001.** `estate_preflight.py --check` exits 4 and reports `required` as `0.26` when the binary reports version 0.25.0.
+- [x] **AC-0002.** `estate_preflight.py --check` exits 0 when the binary reports version 0.26.0 and an index exists.
+- [x] **AC-0003.** Both `[[pack.runtime-dependencies]]` entries in `pack.toml` declare `version = ">=0.26"`, equal to the preflight's `MINIMUM_VERSION`.
+- [x] **AC-0004.** In the shipped surface, every `cargo install wicked-estate` or `cargo install wicked-estate-mcp` occurrence is followed by `--version 0.26.0 --locked`, and `0.26.0` equals the preflight's `PINNED_VERSION`.
+- [x] **AC-0005.** The pin scanner accepts the planted `cargo install wicked-estate --version 0.26.0 --locked` and rejects the planted `cargo install wicked-estate --version 0.21.0 --locked`.
+- [x] **AC-0006.** `main(["guides/code-intelligence"], scanner="pin")` in the guidance test module exits 0.
+- [x] **AC-0007.** The vocabulary allowlist records `VERIFIED_AGAINST = "0.26"`.
+- [x] **AC-0008.** The vocabulary allowlist's CLI verbs include `evidence` and `version`.
+- [x] **AC-0009.** A 0.26.0 binary dispatches every CLI verb in the vocabulary allowlist.
+- [x] **AC-0010.** `references/capability-map.md` contains the allowlist's `VERIFIED_AGAINST` value.
+- [x] **AC-0011.** On the fixture, every `blast-radius helper --json` dependent carries exactly the keys `id`, `name`, `kind`, `file`, `line`, `depth`.
+- [x] **AC-0012.** On the fixture, the `blast-radius helper --json` row for the `core.py` `handle` has `depth` 1.
+- [x] **AC-0013.** On the fixture, `lineage <entry id> --json` exits 0 and stdout parses to exactly the keys `dependencies`, `total`, `truncated`, `confidence`, `relation`, `searched_depth`, `depth_horizon_reached`, `node_cap_reached`.
+- [x] **AC-0014.** On the fixture, `lineage <entry id> --json` reports `relation` as `dependency`.
+- [x] **AC-0015.** On the fixture, `lineage <entry id> --json` reports `searched_depth` 8.
+- [x] **AC-0016.** On the fixture, `lineage <entry id> --json` lists `handle` at depth 1 and `helper` at depth 2.
+- [x] **AC-0017.** On the fixture, the `helper` row of `lineage <entry id> --json` has a `line` one less than the `line` `resolve helper --json` reports.
+- [x] **AC-0018.** On the fixture, `lineage entry --json` (a unique name) exits 0 and lists `helper` at depth 2.
+- [x] **AC-0019.** On the fixture, `lineage handle --json` (an ambiguous name) exits non-zero with empty stdout.
+- [x] **AC-0020.** On the fixture, `lineage --symbol <entry id> --json` exits non-zero with empty stdout.
+- [x] **AC-0021.** On the fixture, `lineage <entry id> --depth 25 --json` exits 0, writes a line starting `CLAMPED:` to stderr, and reports `searched_depth` 24.
+- [x] **AC-0022.** On the fixture, `lineage <entry id> --relation flow_to` exits non-zero.
+- [x] **AC-0023.** `wicked-estate --version` exits 0 and its stdout is exactly `wicked-estate 0.26.0` followed by one newline.
+- [x] **AC-0024.** On the fixture, `query helper --json` exits 0 and parses to a list whose rows carry `symbol_id`, `name`, `kind`, `file`, `line`.
+- [x] **AC-0025.** On the fixture, `path entry helper --max-depth 2 --json` returns `found` true and `depth_bounded` false.
+- [x] **AC-0026.** On the fixture, after `annotate`, each `annotations <name> --json` annotation carries `source_type`, `extraction_method` and `last_verified`.
+- [x] **AC-0027.** On the fixture, `stale-annotations 9999999999 --json`, `stale-annotations 2026-01-01 --json` and `stale-annotations --older-than 90d --json` each exit 0.
+- [x] **AC-0028.** On the fixture, `stale-annotations 90 --older-than 9d` exits non-zero.
+- [x] **AC-0029.** On the fixture, `stats foo` (a surplus operand) exits non-zero with empty stdout.
+- [x] **AC-0030.** On the fixture, `blast-radius helper --depth abc --json` (a malformed value) exits non-zero with empty stdout.
+- [x] **AC-0031.** On the fixture, `nodes --kind function --kind class` (a repeated flag) exits non-zero with empty stdout.
+- [x] **AC-0032.** `blast-radius helper --db <missing path>` exits non-zero with empty stdout and does not create the file.
+- [x] **AC-0033.** On the fixture, `lineage <entry id> --json` stdout parses as JSON while a line starting `STALENESS:` appears on stderr.
+- [x] **AC-0034.** The retired-claim scanner finds no match in the shipped surface.
+- [x] **AC-0035.** The retired-claim scanner matches every sentence in its planted stale sample, every pattern has a stale sample, and no sentence in its planted current sample matches.
+- [x] **AC-0036.** `main(["guides/code-intelligence"], scanner="retired")` in the guidance test module exits 0.
+- [x] **AC-0037.** `SKILL.md`, `references/capability-map.md`, `references/investigation-patterns.md` and `references/evidence.md` each contain `wicked-estate lineage <`.
+- [x] **AC-0038.** `agents/impact-analyst.md` and `references/investigation-patterns.md` each contain `` per-row `depth` ``.
+- [x] **AC-0039.** `references/evidence.md` and `references/capability-map.md` each contain `` `compiler` `` and `never call edges`.
+- [x] **AC-0040.** The value-lineage row of `references/capability-map.md` contains `TSX` and `JavaScript`.
+- [x] **AC-0041.** `SKILL.md` contains `nothing on stdout`.
+- [x] **AC-0042.** `references/evidence.md` contains `last_verified` and `--older-than`.
+- [x] **AC-0043.** `SKILL.md` and `agents/code-investigator.md` each contain `` `evidence` ``.
+- [x] **AC-0044.** `evals/evals.json` contains a case whose assertions contain both `wicked-estate lineage <` and `resolve`.
+- [x] **AC-0045.** `pack.toml` and `.claude-plugin/plugin.json` both carry version `0.1.8`.
+- [x] **AC-0046.** The `code-intelligence` entry in `.claude-plugin/marketplace.json` carries version `0.1.8`.
+- [x] **AC-0047.** `docs/product/changelog.md` contains a line matching `^## \[code-intelligence\]\[0\.1\.8\] — \d{4}-\d{2}-\d{2}$`.
+- [x] **AC-0048.** On the PR head, one `agentbundle catalogue self-host --root . --write` run leaves `git status --porcelain` output empty.
+- [x] **AC-0049.** `agentbundle catalogue verify --root .` exits 0.
+- [x] **AC-0050.** The `packs/AGENTS.local.md` internal-citation grep, run over the pack test modules this change edits, finds no match.
 
 ## Follow-ons
 
