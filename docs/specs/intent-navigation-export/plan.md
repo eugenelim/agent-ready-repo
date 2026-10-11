@@ -1,7 +1,7 @@
 # Plan: Intent navigation export
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/DESIGN.md` § Intent-edge derivation (source, copies, pins, consumers); analogous implementation: `packs/governance-extras/.apm/skills/navigate-decisions/scripts/explorer.py` with `explorer_assets/`, its tests `packs/governance-extras/tests/skills/navigate-decisions/test_html_publication.py` and the uncollected Playwright suite `browser_checks.py`, its scale and browser evidence in `docs/specs/decision-navigation/notes/verification-ledger.md`; second safety precedent `packs/core/.apm/skills/explain-diff/scripts/publish_explanation.py`. Deviations: no record bodies, so no Markdown renderer and no "bounded" body-free mode — the bounded route is `--from`; both the script and the style are hash-pinned, where the precedent allows inline style; the destination is resolved to its real path before validation instead of refusing a symlinked ancestor, because the default temporary directory on macOS sits under a symlink.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -224,9 +224,22 @@ Owned by: T4, T5
 
 **Done when:** each listed check passes, self-host leaves no diff on its second run, and the ledger holds the AC-0066, AC-0067, and AC-0068 entries and the final browser-suite record.
 
+### T7: Older-Git link fallback
+
+**Depends on:** T5
+**Touches:** `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py`, `packs/core/tests/skills/navigate-intents/test_export_source_links.py`, `packs/core/.apm/skills/navigate-intents/SKILL.md`, `guides/core/how-to/navigate-intents.md`, the self-host projections of `navigate-intents`, `docs/specs/intent-navigation-export/notes/verification-ledger.md`
+**Verification mode:** TDD
+
+**Tests:**
+- AC-0024, AC-0073: `test_older_git_exports_with_latest_links_and_reads_no_objects` puts a `git` shim on `PATH` that rejects `--no-lazy-fetch`, records every call, and asserts the export succeeds from inside a repository, every link is `latest`, `provenance.commit` is null, the probe runs once, `ls-tree` and `for-each-ref` never run, and `worktree list` runs once without the option.
+- AC-0073: `test_unsupported_probe_seam_keeps_destination_check`, strengthened so that with the probe reporting unsupported a destination that only the `git worktree list` result can reject (a second linked worktree outside the corpus root) is refused with `invalid_destination`.
+- The probe's own failure branch: a probe that cannot start or times out reports supported, so later calls carry `--no-lazy-fetch` and fail closed.
+
+**Done when:** the listed tests pass, each fails under its mutation recorded in the ledger, and the slice gates in T5 still pass.
+
 ### T6: Publication
 
-**Depends on:** T5, and the slice pull request merged into `feature/intent-navigation`
+**Depends on:** T7, and the slice pull request merged into `feature/intent-navigation`
 **Touches:** `feature/intent-navigation` (merge commit of `origin/main`), `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `packs/product-engineering/pack.toml`, `packs/product-engineering/.claude-plugin/plugin.json`, `docs/product/changelog.md`, every `navigate-intents` and `close-work` copy of `intent_delivery_relations.py` and `_file_safety.py` and their projections, conflicted eval files, `docs/specs/intent-navigation/spec.md`, `docs/specs/intent-navigation/plan.md`, this spec and plan, `docs/product/briefs/intent-navigation-delivery.md` (Constraints wording: "brought up to date by merging the default branch"), `workspace.toml`, `docs/specs/intent-navigation-export/notes/verification-ledger.md`
 **Verification mode:** goal-based check
 
@@ -257,3 +270,4 @@ Owned by: T4, T5
 
 - 2026-10-11: spec approved by eugenelim
 - 2026-10-11: plan approved by eugenelim
+- 2026-10-11: amended by owner decision (eugenelim) after post-gates review: AC-0024 gains the Git 2.44 condition, AC-0073 states the older-Git fallback, T7 maps it, and T6 now depends on T7.
