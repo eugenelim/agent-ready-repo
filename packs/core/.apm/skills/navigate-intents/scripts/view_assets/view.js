@@ -137,6 +137,7 @@
   var current = null;
   var expanded = new Set();
   var dom = {};
+  var pendingLive = null;
 
   function validData(d) {
     return isObj(d) && d.schema === SCHEMA && isObj(d.scope) && isObj(d.provenance) &&
@@ -671,7 +672,10 @@
     }
     dom.viewCount.textContent = summary;
     markSelected(route);
-    if (announce) { dom.live.textContent = view.name + ' view, ' + summary; }
+    if (announce) {
+      clearTimeout(pendingLive);
+      dom.live.textContent = view.name + ' view, ' + summary;
+    }
     performance.mark('list-updated');
   }
 
@@ -749,7 +753,9 @@
       dom.viewHeading.focus();
       dom.live.textContent = '';
       // A later task, so a screen reader sees the cleared region change before the new text.
-      setTimeout(function () { dom.live.textContent = 'This item is not in the current list.'; }, 50);
+      // A later announcement cancels this one, so stale text never replaces it.
+      clearTimeout(pendingLive);
+      pendingLive = setTimeout(function () { dom.live.textContent = 'This item is not in the current list.'; }, 50);
     }
   }
 

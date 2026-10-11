@@ -1344,6 +1344,18 @@ def test_back_to_list_returns_focus_to_the_selected_row(
     page.locator("#detail-body button.back-link").click()
     assert page.evaluate("document.activeElement.id") == "view-heading"
     assert _live(page, "This item is not in the current list.")
+    # A newer announcement inside the delay cancels the pending message.
+    page.evaluate("location.hash = 'view=tree'")
+    _live(page, "Tree view, ")
+    page.evaluate("location.hash = 'view=tree&q=bravo&node=outcome%3Acharlie-out'")
+    page.wait_for_function("() => document.activeElement.id === 'detail-heading'")
+    page.evaluate(
+        "() => { document.querySelector('#detail-body button.back-link').click();"
+        " location.hash = 'view=tree'; }"
+    )
+    page.wait_for_function("() => document.querySelector('#live').textContent.startsWith('Tree view, ')")
+    page.wait_for_timeout(200)
+    assert page.evaluate("document.querySelector('#live').textContent").startswith("Tree view, ")
 
 
 def test_detail_panel_is_a_named_tab_stop_that_scrolls_to_the_legend_end(

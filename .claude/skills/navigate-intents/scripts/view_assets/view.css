@@ -109,7 +109,7 @@ body {
   outline-offset: 2px;
 }
 
-/* The detail region sits flush with the viewport edges when stuck: draw its ring inside. */
+/* The detail region scrolls its own content: draw its ring inside so the panel's scroll edge never clips it. */
 .detail:focus-visible {
   outline: var(--outline) solid var(--focus);
   outline-offset: calc(-1 * var(--outline));
