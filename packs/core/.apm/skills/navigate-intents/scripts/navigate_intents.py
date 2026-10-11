@@ -1,7 +1,8 @@
 """Navigate-intents query implementation.
 
 Exposes ``run_query(root, argv, *, _delivery_provider, _resolver_loader,
-_limits) -> (dict | str, int)`` and a CLI entry point.
+_limits) -> (dict | str, int)``, ``build_view_payload`` and ``run_export`` for
+the offline view, and a CLI entry point.
 
 All corpus reads go through the co-located ``intent_graph`` derivation
 module.  Delivery relations come from the co-located
@@ -1669,6 +1670,27 @@ def _build_outstanding_text(
     return "\n".join(lines)
 
 
+def _split_outstanding(
+    items: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split outstanding items into ``(placed, no_parent)``, id-ordered, internals stripped."""
+
+    def _clean_item(it: dict[str, Any]) -> dict[str, Any]:
+        """Remove internal-only fields from an item and its nested placements."""
+        cleaned: dict[str, Any] = {k: v for k, v in it.items() if not k.startswith("_")}
+        if "placements" in cleaned:
+            cleaned["placements"] = [
+                {pk: pv for pk, pv in p.items() if not pk.startswith("_")}
+                for p in cleaned["placements"]
+            ]
+        return cleaned
+
+    ordered = sorted(items, key=lambda it: it["id"])
+    placed = [_clean_item(it) for it in ordered if not it.get("_in_no_parent")]
+    no_parent = [_clean_item(it) for it in ordered if it.get("_in_no_parent")]
+    return placed, no_parent
+
+
 def _op_outstanding(
     graph: dict[str, Any],
     delivery_field: dict[str, Any],
@@ -1721,19 +1743,7 @@ def _op_outstanding(
         return text, 0
 
     # JSON format — strip internal fields before serialisation.
-    def _clean_item(it: dict[str, Any]) -> dict[str, Any]:
-        """Remove internal-only fields from an item and its nested placements."""
-        cleaned: dict[str, Any] = {k: v for k, v in it.items() if not k.startswith("_")}
-        if "placements" in cleaned:
-            cleaned["placements"] = [
-                {pk: pv for pk, pv in p.items() if not pk.startswith("_")}
-                for p in cleaned["placements"]
-            ]
-        return cleaned
-
-    ordered = sorted(items, key=lambda it: it["id"])
-    placed = [_clean_item(it) for it in ordered if not it.get("_in_no_parent")]
-    no_parent = [_clean_item(it) for it in ordered if it.get("_in_no_parent")]
+    placed, no_parent = _split_outstanding(items)
     full_result = _ok_response(env, delivery_field, placed=placed, no_parent=no_parent)
 
     compact = json.dumps(full_result, separators=(",", ":"), ensure_ascii=False)
@@ -1748,6 +1758,278 @@ def _op_outstanding(
         ), 1
 
     return full_result, 0
+
+
+# ---------------------------------------------------------------------------
+# Export: offline view payload and command
+# ---------------------------------------------------------------------------
+
+EXPORT_SCHEMA = "intent-navigation.export.v1"
+VIEW_SCHEMA = "intent-navigation.view.v1"
+_VIEW_MOD: Any = None
+
+
+class ExportRefusal(Exception):
+    """A refusal of the export, carrying the closed error-code fields."""
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        limits: dict[str, Any] | None = None,
+        observed: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.limits = limits or {}
+        self.observed = observed or {}
+
+
+def _load_view_mod() -> Any:
+    """Load the co-located ``intent_view.py`` at most once.
+
+    Raises ``ImportError`` when the file is absent, is not a regular
+    non-symlink file, or cannot be executed.
+    """
+    global _VIEW_MOD
+    if _VIEW_MOD is not None:
+        return _VIEW_MOD
+    path = _SCRIPT_DIR / "intent_view.py"
+    try:
+        st = os.lstat(path)
+    except OSError as exc:
+        raise ImportError("required helper unavailable: intent_view.py") from exc
+    if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
+        raise ImportError("required helper is not a regular file: intent_view.py")
+    name = "core_navigate_intents_view_nav"
+    if name in sys.modules:
+        _VIEW_MOD = sys.modules[name]
+        return _VIEW_MOD
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec_obj = importlib.util.spec_from_file_location(name, path)
+        if spec_obj is None or spec_obj.loader is None:
+            raise ImportError("cannot load intent_view.py")
+        mod = importlib.util.module_from_spec(spec_obj)
+        sys.modules[name] = mod
+        spec_obj.loader.exec_module(mod)  # type: ignore[union-attr]
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
+    finally:
+        sys.dont_write_bytecode = prev
+    _VIEW_MOD = mod
+    return mod
+
+
+def _scope_node_ids(graph: dict[str, Any], from_id: str) -> set[str]:
+    """Return the ids in scope for ``--from``: the intent, its subtree, and the
+    briefs and specs placed under it by resolved pointers."""
+    children = _children_by_parent(graph)
+    intents = {from_id}
+    frontier = [from_id]
+    while frontier:
+        for child in children.get(frontier.pop(), []):
+            if child not in intents:
+                intents.add(child)
+                frontier.append(child)
+    resolved = [
+        e for e in graph["edges"] if "to" in e and "state" not in e
+    ]
+    briefs = {
+        e["from"] for e in resolved
+        if e.get("field") == "Parent intent"
+        and e["from"].startswith("brief:") and e["to"] in intents
+    }
+    specs = {
+        e["from"] for e in resolved
+        if e["from"].startswith("spec:")
+        and (
+            (e.get("field") == "Brief" and e["to"] in briefs)
+            or (e.get("field") == "Discovery" and e["to"] in intents)
+        )
+    }
+    return intents | briefs | specs
+
+
+def build_view_payload(
+    root: Path,
+    from_identity: str | None = None,
+    *,
+    _delivery_provider: Any | None = None,
+    _resolver_loader: Any | None = None,
+) -> dict[str, Any]:
+    """Build the ``intent-navigation.view.v1`` payload over one derivation.
+
+    Uses the same builders ``run_query`` uses, so every fact equals what
+    ``query`` returns.  Raises :class:`ExportRefusal` with the code ``query``
+    returns for the same corpus failure.
+    """
+    root = Path(root).resolve()
+    try:
+        resolver_mod = _resolver_loader() if _resolver_loader is not None else _load_resolver_mod()
+    except Exception:  # noqa: BLE001
+        raise ExportRefusal("resolver_unavailable", "delivery resolver is unavailable") from None
+    try:
+        terminality_mod = _load_terminality_mod()
+    except Exception:  # noqa: BLE001
+        raise ExportRefusal("resolver_unavailable", "terminality module is unavailable") from None
+    try:
+        graph_mod = _load_graph_mod()
+    except Exception:  # noqa: BLE001
+        raise ExportRefusal(
+            "resolver_unavailable", "graph derivation module is unavailable"
+        ) from None
+    try:
+        view_mod = _load_view_mod()
+    except Exception:  # noqa: BLE001
+        raise ExportRefusal("resolver_unavailable", "view module is unavailable") from None
+    try:
+        graph = graph_mod.derive(root)
+    except ImportError:
+        raise ExportRefusal(
+            "resolver_unavailable", "graph derivation module is unavailable"
+        ) from None
+    except Exception as exc:  # noqa: BLE001
+        if isinstance(exc, graph_mod.DerivationError):
+            raise ExportRefusal(exc.code, str(exc)) from None
+        raise ExportRefusal(
+            "unsafe_input", "the intent graph could not be derived"
+        ) from None
+
+    intents = _intent_nodes(graph)
+    from_node: dict[str, Any] | None = None
+    if from_identity is not None:
+        match = _resolve_identity(from_identity, intents)
+        if match is None:
+            raise ExportRefusal("not_found", f"no intent matching {from_identity!r}")
+        if match is _AMBIGUOUS:
+            raise ExportRefusal(
+                "ambiguous_identity",
+                f"ordinal {from_identity!r} matches multiple intents",
+            )
+        from_node = match
+
+    snap = _run_delivery(root, resolver_mod, _delivery_provider)
+    delivery_field = _delivery_field_from_snap(snap)
+    scope_ids = _scope_node_ids(graph, from_node["id"]) if from_node else None
+
+    delivery_by_id = _delivery_by_intent_id(snap, graph)
+    diagnostics_by_id = _delivery_diagnostics_by_intent_id(snap, graph)
+    children_map = _children_by_parent(graph)
+    briefs_by_parent = _briefs_by_parent_intent(graph)
+    specs_by_disc = _specs_by_discovery_intent(graph)
+    parent_edges = _parent_edges_by_from(graph)
+    records = {
+        n["id"]: _build_intent_record(
+            n, graph, delivery_by_id, diagnostics_by_id, children_map,
+            briefs_by_parent, specs_by_disc, parent_edges,
+        )
+        for n in sorted(intents, key=lambda n: n["id"])
+        if scope_ids is None or n["id"] in scope_ids
+    }
+
+    outstanding: dict[str, Any]
+    if snap.get("complete"):
+        items = _build_outstanding_items(graph, terminality_mod, snap)
+        if from_node is not None:
+            items = _filter_outstanding_from(
+                items, from_node, _build_resolved_parent_map(graph),
+                {n["id"]: n for n in graph["nodes"]},
+            )
+        placed, no_parent = _split_outstanding(items)
+        outstanding = {"placed": placed, "no_parent": no_parent}
+    else:
+        outstanding = {
+            "available": False,
+            "reason": delivery_field["reason"],
+            "limit": delivery_field["limit"],
+        }
+
+    if scope_ids is None:
+        nodes, edges = graph["nodes"], graph["edges"]
+    else:
+        nodes = [n for n in graph["nodes"] if n["id"] in scope_ids]
+        edges = [e for e in graph["edges"] if e["from"] in scope_ids]
+
+    base = _provenance(root, graph)  # its ``root`` is deliberately not carried over
+    links, commit = view_mod.source_links(root, nodes)
+    return {
+        "schema": VIEW_SCHEMA,
+        "scope": {"from": from_node["id"] if from_node else None},
+        "provenance": {
+            "generated_at": base["generated_at"],
+            "counts": base["counts"],
+            "untrusted_data": base["untrusted_data"],
+            "commit": commit,
+        },
+        "summary": _op_summary(graph, delivery_field, terminality_mod)["summary"],
+        "records": records,
+        "outstanding": outstanding,
+        "nodes": nodes,
+        "edges": edges,
+        "source_links": links,
+    }
+
+
+def run_export(
+    root: Path,
+    destination: str | None = None,
+    name: str | None = None,
+    from_identity: str | None = None,
+    *,
+    _delivery_provider: Any | None = None,
+    _resolver_loader: Any | None = None,
+) -> tuple[dict[str, Any], int]:
+    """Build and publish the offline view; return the ``export.v1`` object and exit code."""
+
+    def refusal(
+        code: str,
+        message: str,
+        limits: dict[str, Any] | None = None,
+        observed: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], int]:
+        return {
+            "schema": EXPORT_SCHEMA,
+            "status": "error",
+            "error": {
+                "code": code, "message": message,
+                "limits": limits or {}, "observed": observed or {},
+            },
+        }, 1
+
+    # A value that is not valid Unicode cannot be echoed into UTF-8 output.
+    bad = sorted(
+        label for label, value in (
+            ("root", str(root)), ("destination", destination),
+            ("name", name), ("from", from_identity),
+        ) if isinstance(value, str) and not _is_utf8_encodable(value)
+    )
+    if bad:
+        return refusal("invalid_query", "argument is not valid UTF-8: " + ", ".join(bad))
+    try:
+        view_mod = _load_view_mod()
+    except Exception:  # noqa: BLE001
+        return refusal("resolver_unavailable", "view module is unavailable")
+    try:
+        payload = build_view_payload(
+            root, from_identity,
+            _delivery_provider=_delivery_provider, _resolver_loader=_resolver_loader,
+        )
+        html = view_mod.build_html(payload)
+        path = view_mod.publish(html, destination, name)
+    except (ExportRefusal, view_mod.ViewRefusal) as exc:
+        return refusal(exc.code, exc.message, exc.limits, exc.observed)
+    return {
+        "schema": EXPORT_SCHEMA,
+        "status": "ok",
+        "path": str(path),
+        "bytes": len(html.encode("utf-8")),
+        "scope": payload["scope"],
+    }, 0
 
 
 # ---------------------------------------------------------------------------
@@ -1772,6 +2054,16 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     q.add_argument("--root", required=True, metavar="DIR",
                    help="Repository root directory.")
     _add_query_args(q)
+
+    e = sub.add_parser("export", help="Write an offline HTML view of the intent graph.")
+    e.add_argument("--root", required=True, metavar="DIR",
+                   help="Repository root directory.")
+    e.add_argument("--destination", metavar="DIR", default=None,
+                   help="Directory to write into (default: the temporary directory).")
+    e.add_argument("--name", metavar="FILE", default=None,
+                   help="File name (default: intent-graph-<UTC time>.html).")
+    e.add_argument("--from", dest="from_id", metavar="IDENTITY", default=None,
+                   help="Limit the view to the subtree under this intent.")
     return parser
 
 
@@ -2104,6 +2396,14 @@ def main(argv: list[str] | None = None) -> int:
         else:
             sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=False))
             sys.stdout.write("\n")
+        return code
+
+    if args.command == "export":
+        result, code = run_export(
+            Path(args.root).resolve(), args.destination, args.name, args.from_id
+        )
+        sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=False))
+        sys.stdout.write("\n")
         return code
 
     return 1
