@@ -28,3 +28,21 @@ Command, run from each checkout: `python3 packs/core/.apm/skills/work-intake/scr
 | This slice | `4cbf4816c` plus the uncommitted T5 edits | 0 | 0 | `clean — 182 entries, 168 live, 14 tombstone, 0 unreadable` |
 
 The two outputs are identical line for line (169 lines each, a `diff` shows no difference). No intent in the corpus carries a `Related intents:` field, so the new rule adds no violation, as expected.
+
+## Dispatched CI on the pull request's last commit before this record — 2026-10-11
+
+Commit `1be4d41f5` on `vlx/Deliver-slice-3-relate-1339b20b-b4be-4987-a6df-3fd395e60a04`:
+
+- `build-check` run 38103819054 — success
+- `test-corpus` run 38103820420 — success
+- `test-roster` run 38103821957 — success
+
+Earlier runs on `e91464e10` (38102934662, 38102936273, 38102937612) failed only `tests/roster/test_verification_ledger_contract.py::test_the_core_release_heading_sits_directly_beneath_unreleased`, which requires `[core]` directly beneath `[Unreleased]`; `ad54048b9` moved `[product-engineering][0.13.25]` below `[core][3.1.0]`.
+
+## End-to-end run of the shipped skill
+
+On a copy of the real intent corpus with `- **Related intents:** intent:workspace-registry-retirement` added to `FEAT-0002`, the self-hosted `navigate_intents.py` returned the edge `pointer_checked` in `intent:intent-graph-navigation`'s `related_written_here` and in `intent:workspace-registry-retirement`'s `related_written_elsewhere`; `tree --format text --depth 0` printed `  ~ related intent:workspace-registry-retirement` under the intent line; and `intent_corpus_lint.py` exited 0 (182 entries, 168 live, 14 tombstone).
+
+## Review-round dispatch records
+
+Review repairs after T5 were made by the controller, not an implementer. `loop-cohort dispatch-receipt` offers only `no-implementer-installed` and `human-directed` as decline reasons, so those repair rounds are recorded as `human-directed`, the nearest available reason.
