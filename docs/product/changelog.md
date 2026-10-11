@@ -64,6 +64,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.0.3] — 2026-10-10
+
+### Highlights
+
+- After a design you saved before building ships, `close-work` can now offer to reconcile it into your current architecture documentation, so a future-state design is not mistaken for a description of the running system.
+
+### Changed
+
+- `close-work` gains one offer: when the change implemented a saved future-state design, it offers to reconcile that design into the `current-architecture` destination. The offer is optional and adds no gate.
+- `close-work` gains one behavior eval for the reconciliation offer.
+
 ## [code-intelligence][0.1.8] — 2026-10-10
 
 ### Highlights
@@ -80,17 +91,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Annotation answers report `source_type`, `extraction_method` and `last_verified`, and `stale-annotations` accepts Unix seconds, a date, or `--older-than`.
 - `query --json` returns structured output and `--version` prints one line; `evidence` joins the commands that write to the graph.
 - The evidence guide covers `compiler` resolution and SCIP's reference-only role (it never adds call edges), the `STALENESS:` line forms, and `rules-recall --steering-type`.
-
-## [core][3.0.3] — 2026-10-10
-
-### Highlights
-
-- After a design you saved before building ships, `close-work` can now offer to reconcile it into your current architecture documentation, so a future-state design is not mistaken for a description of the running system.
-
-### Changed
-
-- `close-work` gains one offer: when the change implemented a saved future-state design, it offers to reconcile that design into the `current-architecture` destination. The offer is optional and adds no gate.
-- `close-work` gains one behavior eval for the reconciliation offer.
 
 ## [architect][0.15.16] — 2026-10-10
 
