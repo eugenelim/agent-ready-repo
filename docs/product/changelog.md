@@ -64,16 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [product-engineering][0.13.25] — 2026-10-10
-
-### Highlights
-
-- Frame an intent that sits beside another one with an optional `Related intents:` line. The template offers it as comment-only guidance, so it stays absent until you fill it.
-
-### Changed
-
-- The `frame-intent` intent template offers an optional `Related intents:` line after `Outcome co-owner:`, and the two guide copies of the template match it. An eval case checks that the line stays optional and comment-only.
-
 ## [core][3.1.0] — 2026-10-09
 
 ### Highlights
@@ -100,6 +90,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
+
+## [product-engineering][0.13.25] — 2026-10-10
+
+### Highlights
+
+- Frame an intent that sits beside another one with an optional `Related intents:` line. The template offers it as comment-only guidance, so it stays absent until you fill it.
+
+### Changed
+
+- The `frame-intent` intent template offers an optional `Related intents:` line after `Outcome co-owner:`, and the two guide copies of the template match it. An eval case checks that the line stays optional and comment-only.
 
 ## [core][3.0.2] — 2026-10-10
 

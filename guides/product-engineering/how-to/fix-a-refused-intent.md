@@ -199,11 +199,17 @@ or a template reminder, leave it commented: absent optional fields are valid.
 
 `Related intents` is optional. When you use it, the value is `none` or a
 comma-separated list of typed pointers. The shape check refuses an item that is
-not a typed pointer, and an item written twice:
+not a typed pointer, and an item written twice. Each run reports the first bad
+item it finds, so fix it and run the check again:
 
 ```text
 FEAT-0016-bad-related.md: Related intents: item 'peer-intent' is not one of
 intent:<slug>, capability:<slug>, outcome:<slug>, opportunity:<slug>
+```
+
+After that fix, the same value reports its repeat:
+
+```text
 FEAT-0016-bad-related.md: Related intents: item 'intent:peer-intent' is repeated
 ```
 

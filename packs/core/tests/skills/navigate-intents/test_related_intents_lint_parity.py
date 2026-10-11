@@ -87,11 +87,11 @@ def _related(root: Path, from_slug: str) -> list[dict[str, Any]]:
     ]
 
 
-def _nav_edges(root: Path) -> list[dict[str, Any]]:
-    """Related edges as the navigator reports them on a tree query."""
+def _nav_written_here(root: Path) -> dict[str, list[dict[str, Any]]]:
+    """Each intent's ``related_written_here`` list from the navigator's tree query."""
     result, code = nav.run_query(root, ["query", "--operation", "tree"])
     assert code == 0, result
-    return [e for e in ig.derive(root)["edges"] if e["field"] == _FIELD]
+    return {entry["id"]: entry["related_written_here"] for entry in result["intents"]}
 
 
 # -- AC-0006: a clean corpus ---------------------------------------------------
@@ -116,9 +116,10 @@ def test_clean_corpus_lints_clean_and_resolves_every_edge(tmp_path: Path) -> Non
     assert result.exit_code == 0, (result.violations, result.unreadable)
     assert result.violations == []
 
-    edges = _nav_edges(tmp_path)
-    assert all("state" not in e for e in edges), edges
-    by_source = {s: _related(tmp_path, s) for s in ("src-all", "src-note", "src-none")}
+    written_here = _nav_written_here(tmp_path)
+    edges = [e for lst in written_here.values() for e in lst]
+    assert edges and all("state" not in e for e in edges), edges
+    by_source = {s: written_here[f"intent:{s}"] for s in ("src-all", "src-note", "src-none")}
     assert [e["to"] for e in by_source["src-all"]] == [
         "capability:t-cap", "capability:t-legacy", "capability:t-retired-name",
         "outcome:t-outcome", "opportunity:t-opp", "intent:t-plain",

@@ -1255,10 +1255,17 @@ def test_related_intents_self_reference_is_refused(tmp_path):
     "value",
     [
         "a",
+        "docs/product/intents/FEAT-0001-t.md",
+        "[a](FEAT-0001-t.md)",
         "intent:",
         "intent:Bad_Slug",
+        "intent:Foo",
         "brief:x",
+        "spec:x",
+        "foo:a",
         "intent:a,, intent:b",
+        "intent:a,",
+        "`intent:a`, `intent:a-b`",
         "intent:a, intent:a",
         "none, intent:a",
         "intent:a intent:b",
@@ -1340,11 +1347,14 @@ def test_related_intents_kind_mismatch_is_refused(tmp_path):
     assert "intent:cap" in v.reason
 
 
-@pytest.mark.parametrize("status", ["Draft", "Superseded", "Cancelled", "Fulfilled"])
+@pytest.mark.parametrize(
+    "status", ["Draft", "Superseded", "Withdrawn", "Cancelled", "Fulfilled"]
+)
 def test_related_intents_resolves_to_any_live_status(tmp_path, status):
     records = {
         "Draft": "",
         "Superseded": "- **Superseded by:** other",
+        "Withdrawn": "",
         "Cancelled": "- **Accepted:** 2026-09-01 owner approved",
         "Fulfilled": (
             "- **Accepted:** 2026-09-01 owner approved\n"
