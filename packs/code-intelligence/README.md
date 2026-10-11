@@ -68,7 +68,7 @@ investigation patterns may change as the pack evolves.
 You need the CLI and an index.
 
 ```bash
-cargo install wicked-estate --version 0.26.0 --locked
+cargo install wicked-estate --version 0.29.2 --locked
 echo '.wicked-estate/' >> .gitignore   # the index is large and local
 wicked-estate index .
 ```
@@ -95,7 +95,7 @@ example `/Users/<you>/.claude/skills/code-intelligence` or
 expand `~` inside the quotes.
 
 Exit 0 is ready, 2 means the binary is missing, 3 means there is no index, and
-4 means the binary is older than the 0.26 floor this pack was verified against.
+4 means the binary is older than the 0.29 floor this pack was verified against.
 
 ## CLI, not MCP, by default
 
@@ -123,6 +123,14 @@ claude mcp add wicked-estate -s project -- \
   wicked-estate-mcp --readonly --db "$PWD/.wicked-estate/graph.db"
 ```
 
+With `--readonly`, a store path that does not exist is not created: the server
+serves that store as an empty in-memory store and says so on stderr, so an empty
+answer from a wrongly registered path says nothing about your repository. The
+paths come from `--db` for the graph and from `WICKED_MEMORY_DB`,
+`WICKED_KNOWLEDGE_DB`, `WICKED_XEDGE_DB`, or `WICKED_HOME` for the memory,
+knowledge, and cross-store databases (source-read from `wicked-estate-mcp`
+0.29.2).
+
 The capability map marks every row with which surface serves it, so the skill
 never implies coverage that is not there.
 
@@ -138,6 +146,11 @@ Some of what that found:
 - **Ranking a dependent set is a composition.** `rank --seeds` biases a
   graph-wide ranking; keep only the rows in your set. The row list is capped at
   25K characters, so report members absent from the output as unranked.
+- **A long answer arrives in pages.** One reply stays under 25,000 characters.
+  `blast-radius --json` and `lineage --json` return `next_cursor` and `page`;
+  pass `--cursor <next_cursor>` until it is `null` and you hold the whole
+  resolved answer. A refused cursor means the answer changed, so start again
+  from the first page.
 - **Per-edge confidence and provenance are not in blast-radius rows**, although
   every edge carries them. Each row does carry a per-row `depth`, so one call
   separates direct from transitive dependents. The `confidence` object in
@@ -161,10 +174,10 @@ from `grep` is not a blast radius.
 
 ## Requires
 
-- `wicked-estate` ≥ 0.26 in `PATH` (Tier-2 dependency: detected first, installed
+- `wicked-estate` ≥ 0.29 in `PATH` (Tier-2 dependency: detected first, installed
   only on explicit consent, pinned, never with sudo)
 - An index built with `wicked-estate index <path>`
-- Optionally `wicked-estate-mcp` ≥ 0.26, for the memory, knowledge, and proposal
+- Optionally `wicked-estate-mcp` ≥ 0.29, for the memory, knowledge, and proposal
   domains and richer MCP response shapes
 
 The pack installs at repo or user scope and needs no other pack.

@@ -31,7 +31,7 @@ graph and therefore **no blast radius**. Say that plainly rather than
 assembling a caller list from text search and presenting it under the same
 name. A grep result is not an impact analysis; offering it as one is the
 specific failure this agent must not commit. Remediation is
-`cargo install wicked-estate --version 0.26.0 --locked` then
+`cargo install wicked-estate --version 0.29.2 --locked` then
 `wicked-estate index .` — offer it, do not run it.
 
 ## How you work
@@ -46,19 +46,22 @@ Follow the analyze-change-impact pattern in the `code-intelligence` skill's
 2. **Compute the blast radius.** `wicked-estate blast-radius <name> --json`.
 
 3. **Read the completeness fields first.** `unresolved` counts references the
-   indexer could not bind; `truncated_dependents` counts rows dropped at the
-   25,000-character output bound. Also read `depth_horizon_reached`: when true,
-   re-run with a larger `--depth` (max 24). A true `node_cap_reached` has no CLI
-   remedy; report the list as a floor. These go at the top of your report,
-   not in a footnote. The `confidence` object summarises the edges behind the
+   indexer could not bind; `truncated_dependents` counts rows on later pages,
+   because one reply stays under 25,000 characters. Page before you report: run
+   the same command with `--cursor <next_cursor>` until `next_cursor` is `null`.
+   If a cursor is refused, start again from the first page; never splice pages
+   from two answers. An accepted cursor says nothing about freshness. Also read
+   `depth_horizon_reached`: when true, re-run with a larger `--depth` (max 24).
+   A true `node_cap_reached` has no CLI remedy; report the list as a floor.
+   These go at the top of your report, not in a footnote. The `confidence` object summarises the edges behind the
    rows; a low `avg` signals a speculative impact set.
 
 4. **Separate direct from transitive.** Read the per-row `depth` on each
    dependent: 1 is a direct dependent, larger values are transitive, and one run
    needs no second call. Report the cut flags from step 3 beside the split. For
    direct dependents only, `blast-radius <name> --depth 1 --json` is still valid;
-   the truncation conditions in `references/evidence.md` § Direct and transitive
-   dependents apply to it.
+   page it to `null` first; the conditions in `references/evidence.md` § Direct and
+   transitive dependents apply to it.
 
 5. **Select, then confirm.** Confirming five dependents properly beats listing a
    hundred — and choosing the five matters. Use the seed-then-filter composition:

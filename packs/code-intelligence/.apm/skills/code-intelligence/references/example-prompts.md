@@ -54,7 +54,7 @@ wicked-estate source --symbols '<chosen-ids>' --json   # indexed text of the one
 
 **A good answer looks like:**
 
-> 47 resolved dependents, 0 unresolved, no truncation, `depth_horizon_reached`
+> 47 resolved dependents, 0 unresolved, `next_cursor` null on the first page, `depth_horizon_reached`
 > false and `node_cap_reached` false at depth 12. `stats` reports the graph is
 > current with the working tree.
 >
@@ -67,7 +67,7 @@ wicked-estate source --symbols '<chosen-ids>' --json   # indexed text of the one
 > unranked — cut by the row limit or character budget.
 >
 > Each row of the same `blast-radius Money --json` run carries a per-row
-> `depth`. The run reported no truncation and no cut, so the split is complete:
+> `depth`. The run reported a `null` `next_cursor` and no cut, so the split is complete:
 > 12 of the 47 rows have `depth` 1 (direct dependents) and 35 are transitive.
 > Registering the MCP server would add `summary.top_by_pagerank` directly.
 

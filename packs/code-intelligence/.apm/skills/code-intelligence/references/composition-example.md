@@ -44,7 +44,7 @@ Names are not unique. This step turns the name into a stable symbol ID and surfa
 wicked-estate blast-radius parse_config --depth 1 --json
 ```
 
-Before reading the dependent list, read `unresolved`, `truncated_dependents`, `searched_depth`, and any true cut flag from the response. A non-zero `unresolved` means call sites the resolver could not bind; a non-zero `truncated_dependents` means the list is a prefix; a true `node_cap_reached` also keeps the list a floor. All these values travel with the answer as limits. When `depth_horizon_reached` is true, see [`references/evidence.md`](evidence.md#the-depth-cut-is-reported) § The depth cut is reported for `searched_depth` and how to raise `--depth`. See [`references/evidence.md`](evidence.md) for how to phrase a bounded claim.
+Before reading the dependent list, read `unresolved`, `truncated_dependents`, `searched_depth`, and any true cut flag from the response. A non-zero `unresolved` means call sites the resolver could not bind; a non-zero `truncated_dependents` counts rows on later pages, so page with `--cursor <next_cursor>` until `next_cursor` is `null` before you report; a true `node_cap_reached` also keeps the list a floor. All these values travel with the answer as limits. When `depth_horizon_reached` is true, see [`references/evidence.md`](evidence.md#the-depth-cut-is-reported) § The depth cut is reported for `searched_depth` and how to raise `--depth`. See [`references/evidence.md`](evidence.md) for how to phrase a bounded claim.
 
 **Step 5 — Confirm the load-bearing call sites.**
 

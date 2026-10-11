@@ -22,5 +22,11 @@
   "truncated_dependents": 0,
   "searched_depth": 1,
   "depth_horizon_reached": false,
-  "node_cap_reached": false
+  "node_cap_reached": false,
+  "next_cursor": null,
+  "page": {
+    "from": 0,
+    "count": 2,
+    "total": 2
+  }
 }

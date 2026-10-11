@@ -1,7 +1,7 @@
 # Gaps against a general code-intelligence contract
 
 Fourteen capabilities a general code-intelligence provider could offer,
-assessed against what Wicked Estate 0.26 actually exposes. This exists so the
+assessed against what Wicked Estate 0.29 actually exposes. This exists so the
 skill can say "that is not available" with a reason instead of improvising.
 
 **Three provenances, and the difference matters.** The rule below classifies
@@ -13,7 +13,7 @@ sections, not the findings list near the end.
 1. **Executed.** Run against a real repository with Wicked Estate **0.16.7** —
    65,807 nodes, 104,113 edges, 4,625 files — and the output read. Those counts
    are attributed to 0.16.7; executed rows for later additions were run on a
-   small fixture with 0.26.0. Most CLI rows are this.
+   small fixture with 0.29.2. Most CLI rows are this.
 2. **Schema-derived.** Read from upstream's registered tool names and frozen
    conformance schemas. **Every MCP row is this. The MCP server has never been
    run here.**
@@ -139,7 +139,7 @@ The two surfaces differ, and the MCP form is richer in ranked dependents:
 | Traversal depth | `--depth` parameter, default 12, max 24 | `depth` parameter, default 8, max 24 |
 | Depth cut reported | `searched_depth`, `depth_horizon_reached`, `node_cap_reached` | `depth_horizon_reached`, `node_cap_reached`, `searched_depth` |
 | Unbound references | `unresolved` | `unresolved_callers` |
-| Output cut | `truncated_dependents` | `truncated` + `total` |
+| Output cut | `truncated_dependents` (rows on later pages) | `truncated` + `total` |
 
 *Note:* every CLI dependent row carries a per-row `depth`, so one run separates
 direct (`depth` 1) from transitive dependents; `blast-radius <name> --depth 1
@@ -215,7 +215,8 @@ on `blast-radius --json` (executed). Use `blast-radius <name> --depth N` (defaul
 12, max 24) to control reach; when `depth_horizon_reached` is true, the text
 output prints `CUT AT depth=N`. A true `node_cap_reached` means the traversal hit
 its node budget; no CLI flag raises it, so report the list as a floor.
-`max_nodes` truncation on MCP `TraverseGraph`.
+`max_nodes` truncation on MCP `TraverseGraph`. The output cut is not a floor once you
+page with `--cursor <next_cursor>` to a `null` cursor (executed); the other cuts remain.
 `stats` for overall graph size.
 
 `wicked-estate path --json` reports its own limits the same way: see
@@ -269,7 +270,7 @@ dispatch table. Verify a verb you plan to rely on by running it.
 | 9 | Compare | Partial |
 | 10 | Provenance / evidence | Partial on blast-radius (in the model, not per row); Direct on path hops |
 | 11 | Confidence | Direct on blast-radius summary; Direct on CLI path hops; Direct on MCP (schema-derived) |
-| 12 | Completeness | Direct — unresolved, truncation and depth cut all reported |
+| 12 | Completeness | Direct — unresolved, truncation (pageable) and depth cut all reported |
 | 13 | Snapshot / revision identity | Direct |
 | 14 | Capability discovery | Direct |
 

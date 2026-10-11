@@ -1,6 +1,6 @@
 # Capability map — tool-neutral intent to Wicked Estate surface
 
-Every row names a command or tool that exists in Wicked Estate 0.26 and says
+Every row names a command or tool that exists in Wicked Estate 0.29 and says
 what it actually returns. Nothing here is aspirational. If an intent has no row,
 the capability does not exist — see [`gaps.md`](gaps.md).
 
@@ -18,7 +18,7 @@ Some CLI facts here are also not observed, and are marked where they appear.
 The dispatch counts below and the value-lineage coverage and hops were read
 from upstream's source (source-read). The row count in the `nodes` warning
 comes from a one-off manual index. Provenance labels are executed (the CLI,
-run on 0.26.0), schema-derived (MCP rows), and source-read (read from the 0.26.0
+run on 0.29.2), schema-derived (MCP rows), and source-read (read from the 0.29.2
 sources).
 
 `wicked-estate` parses its arguments strictly. A malformed value, a surplus or
@@ -84,7 +84,7 @@ the server advertises **only** when an embedding backend is available.
 
 | Intent | CLI | Returns |
 | --- | --- | --- |
-| Blast radius / who depends on this | `wicked-estate blast-radius <name> [--depth N] [--json]` | JSON: `{target, dependents[], unresolved, truncated_dependents, searched_depth, depth_horizon_reached, node_cap_reached, confidence}`. Each dependent row is `{id, name, kind, file, line, depth}`, and the per-row `depth` is 1 for a direct dependent (executed). `confidence {min, avg, edge_count}` summarises the edges that admitted the rows. Default depth 12, max 24. Text adds an `evidence:` line. Structural `contains` and `defines` edges are excluded from the confidence evidence (source-read from `main.rs`); the traversal itself walks all edge kinds. Read [Completeness](#completeness-fields) below before quoting it. |
+| Blast radius / who depends on this | `wicked-estate blast-radius <name> [--depth N] [--cursor C] [--json]` | JSON: `{target, dependents[], unresolved, truncated_dependents, searched_depth, depth_horizon_reached, node_cap_reached, confidence, next_cursor, page}`. `next_cursor` is a string or `null`; `page` is `{from, count, total}`; `truncated_dependents` counts the rows on later pages, so `page.from + page.count + truncated_dependents == page.total` (executed). Pass `--cursor <next_cursor>` for the next page and stop when it is `null`; text mode ends with `…and N more (one reply is bounded at 25K chars): --cursor <c>`. Each dependent row is `{id, name, kind, file, line, depth}`, and the per-row `depth` is 1 for a direct dependent (executed). `confidence {min, avg, edge_count}` summarises the edges that admitted the rows. Default depth 12, max 24. Rows are ordered by depth, then symbol id. Text adds an `evidence:` line. Structural `contains` and `defines` edges are excluded from the confidence evidence (source-read from `main.rs`); the traversal itself walks all edge kinds. Read [Completeness](#completeness-fields) below before quoting it. |
 | Route from one symbol to another | `wicked-estate path <from> <to> [--max-depth N] --json` | `{from, to, hops[], found, depth_bounded, node_bounded, unresolved}`. Each hop: `{source, target, kind, confidence, provenance, resolved_by}`. Each endpoint: `{symbol, name, kind, file, line, line_1based}` — `line` is 0-based; use `line_1based`. Follows every dependency edge kind; read each hop's `kind`. `found:false` is proven absence only when `unresolved` is null and both bound flags are false. An unknown name sets `unresolved: "from"` or `"to"` and still exits 0. With `depth_bounded:true`, raise `--max-depth` (max 16); with `node_bounded:true`, report the answer as bounded — no flag raises the node budget. |
 | Bounded neighbourhood | `wicked-estate graph-view [--focus <name>] [--limit N] [--include-tests] [--include-trivial] [--ignore <pat>]` | A filtered subgraph. `--limit N` controls rows; each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Upstream does not commit to the JSON shape of `graph-view` output. |
 | Walk the graph by direction and edge kind | `wicked-estate traverse <symbol> [--depth N] [--direction dependencies\|dependents\|both] [--edge-kinds a,b] [--max-nodes N] [--json]` | JSON: `{nodes, edges, depths, truncated, searched_depth, depth_horizon_reached, node_cap_reached}`; each edge carries `kind`, `confidence`, `provenance`, `resolved_by`. Over-ceiling `--depth` or `--max-nodes` is clamped with `CLAMPED:` written to stderr. A `--direction` value outside the closed set exits 1. |
@@ -124,8 +124,8 @@ no response schema ships. Not executed here.
 
 | Intent | CLI | Returns |
 | --- | --- | --- |
-| Transitive dependencies of a symbol | `wicked-estate lineage <symbol> [--depth N] [--json]` | `<symbol>` is a name or an exact symbol id; `--symbol` is not a flag and exits 1. `--json` prints the result object directly: `{dependencies[] {symbol, name, kind, file, line, depth}, total, truncated, confidence, relation, searched_depth, depth_horizon_reached, node_cap_reached}`. `relation` echoes `dependency`. Default depth 8; `line` is 0-based. An unknown or ambiguous name exits non-zero with nothing on stdout, so `resolve` first when a name may be shared (executed). |
-| Value lineage (TypeScript, TSX, JavaScript) | `wicked-estate lineage <symbol> --relation flows_to [--json]` | Adds `flows[]` rows per hop and echoes `relation` as `flows_to`. Each row carries `producer`, `consumer`, `confidence`, `provenance`, `resolved_by`; when present also `flow_semantics` (`value_preserving` / `may_influence`) and `flow_evidence` (`syntax` / `call_derived` / `convention` / `compiler`). Seed it with a parameter or local found by `resolve <name> --include-values --json`. Coverage is `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, and `.cjs` (source-read); callbacks, `await` and `.then`, destructuring, loops, local object properties, and closure returns add hops, almost all `may_influence`. Any `--relation` other than `flows_to` exits 1 (executed). The `flows[]` fields and the new hop kinds are source-read from the 0.26.0 sources; the Python fixture produces no value flow. |
+| Transitive dependencies of a symbol | `wicked-estate lineage <symbol> [--depth N] [--cursor C] [--json]` | `<symbol>` is a name or an exact symbol id; `--symbol` is not a flag and exits 1. `--json` prints the result object directly: `{dependencies[] {symbol, name, kind, file, line, depth}, total, truncated, confidence, relation, searched_depth, depth_horizon_reached, node_cap_reached, next_cursor, page}`. `page` is `{dependencies {from, count, total}, flows {from, count, total}}`, `total` counts the whole answer, and `truncated` is true while more pages remain or on a depth or node cut. `relation` echoes `dependency`. Default depth 24 (the ceiling); `line` is 0-based. Lineage writes ``pass `cursor`: "<c>" for the rest`` with its other diagnostics (stderr under `--json`, stdout after the result in text mode); read `next_cursor` from the JSON and stop when it is `null`. An unknown or ambiguous name exits non-zero with nothing on stdout, so `resolve` first when a name may be shared (executed). |
+| Value lineage (TypeScript, TSX, JavaScript) | `wicked-estate lineage <symbol> --relation flows_to [--json]` | Adds `flows[]` rows per hop and echoes `relation` as `flows_to`. Each row carries `producer`, `consumer`, `confidence`, `provenance`, `resolved_by`; when present also `flow_semantics` (`value_preserving` / `may_influence`) and `flow_evidence` (`syntax` / `call_derived` / `convention` / `compiler`). Seed it with a parameter or local found by `resolve <name> --include-values --json`. Coverage is `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, and `.cjs` (source-read); callbacks, `await` and `.then`, destructuring, loops, and closure returns add hops, almost all `may_influence`. Any `--relation` other than `flows_to` exits 1 (executed). The `flows[]` fields and the new hop kinds are source-read from the 0.29.2 sources; the Python fixture produces no value flow. |
 
 A `--depth` above 24 is clamped to 24, and `CLAMPED:` goes to stderr under
 `--json` and to stdout after the result in text mode (executed under `--json`).
@@ -200,14 +200,14 @@ result, not a contradiction. Do not run the write to make the read succeed.
 
 ## Completeness fields
 
-Four limits decide whether an answer is a total or a floor. The CLI and the MCP
+Four limits decide whether an answer is a total or a floor; the output cut stops mattering once you have paged to a `null` `next_cursor`. The CLI and the MCP
 server **use different field names for the same ideas** — do not read one set
 from the other.
 
 | Limit | CLI field | MCP field | Means |
 | --- | --- | --- | --- |
 | Unbound call sites | `unresolved` | `unresolved_callers` | References the resolver could not bind. Potential missing dependents. |
-| Output cut | `truncated_dependents` (rows dropped) | `truncated` (boolean) plus `total` | The list is a prefix. |
+| Output cut | `truncated_dependents` (rows on later pages), with `next_cursor` and `page` | `truncated` (boolean) plus `total`, with `next_cursor` and `page` | The rest is retrievable on both surfaces: pass the cursor back (`--cursor` on the CLI, `cursor` on MCP) until `next_cursor` is `null`. A refused cursor means start again from the first page. |
 | Traversal depth cap | `searched_depth`, `depth_horizon_reached`, `node_cap_reached` | `depth_horizon_reached`, `node_cap_reached`, `searched_depth` | Use `blast-radius <name> --depth N` (default 12, max 24) to control reach. |
 | Index freshness | `stats --json` `staleness.commits_behind`; the `STALENESS:` line from bridged commands (stderr under `--json`, stdout after the result in text mode); suppressed by `blast-radius`/`path` under `--json` | not surfaced | A positive count means the graph describes an older revision. The graph is current only when the count is 0 and `staleness.unknown` is empty; a root listed there has unknown freshness. |
 | Source-bundle cut | `summary.truncated_count` with `requested` / `returned` | n/a | `source --json` reports how many of the selected symbols it actually returned within `budget`. A large `--cluster` easily exceeds it. |
@@ -221,7 +221,7 @@ it. `path` hops carry `confidence`, `provenance`, and `resolved_by` per hop;
 `blast-radius` rows carry no per-row confidence — the summary `confidence` object
 covers the full traversal, not individual rows.
 
-MCP `BlastRadius` takes an explicit `depth` (default 8, max 24) and returns a
+MCP `BlastRadius` and `Lineage` accept `cursor` and return `next_cursor` and `page` (schema-derived). MCP `BlastRadius` takes an explicit `depth` (default 8, max 24) and returns a
 per-dependent `depth` like the CLI, plus `depth_horizon_reached`, `node_cap_reached`, and
 `searched_depth`, so the horizon is fully visible there. MCP `TraverseGraph`
 truncates at `max_nodes` (default 200, max 1000) and reports depth per node, so
@@ -263,6 +263,16 @@ skill that only fires when an optional server is registered triggers unreliably.
 Ten of these mutate state. Running `wicked-estate-mcp --readonly` drops the
 write tools from the advertised set, leaving 20 read tools (21 with SemanticSearch).
 Prefer it.
+
+With `--readonly`, a store path that does not exist creates no file: the server
+serves that store as an empty in-memory store and prints
+`read-only: no <store> store at '<path>'; serving it empty in memory` on stderr
+(source-read from `wicked-estate-mcp` 0.29.2). An empty answer from a server
+registered with a wrong path is therefore not evidence about the repository. The
+store paths come from `--db` for the graph and from `WICKED_MEMORY_DB`,
+`WICKED_KNOWLEDGE_DB`, `WICKED_XEDGE_DB`, or `WICKED_HOME` for the memory,
+knowledge, and cross-store databases. Check the path before trusting an empty
+result.
 
 ---
 
