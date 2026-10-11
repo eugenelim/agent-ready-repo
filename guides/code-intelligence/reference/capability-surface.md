@@ -60,9 +60,11 @@ only if you need them, and prefer `--readonly`. The richer MCP response shapes
 or ambiguous name exits non-zero with nothing on stdout, so `resolve` first when
 a name may be shared. The CLI parses arguments strictly: a malformed value, a
 surplus operand, a repeated flag, or a `--db` with no path exits 1 with nothing
-on stdout, which is a command error and not an empty answer. A `--db` path that
-does not exist or is empty is refused with `no graph at <db>`, and nothing is
-created. `rank --seeds`
+on stdout, which is a command error and not an empty answer. Most read commands
+refuse a `--db` path that does not exist or is empty with `no graph at <db>`
+and create nothing; `clusters` and `context` instead turn it into an empty
+graph and return an empty result, so check `stats --json` for a non-zero
+`nodes` count first. `rank --seeds`
 biases a graph-wide ranking — seeded output includes symbols the seeds cannot
 reach. To rank a dependent set, keep only the rows whose `symbol` is in your set
 and report missing members as unranked.

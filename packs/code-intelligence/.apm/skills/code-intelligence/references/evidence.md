@@ -213,9 +213,9 @@ whether the value you passed was honoured.
 - `wicked-estate stats --json` returns the revision the graph was built from
   as fields: `provenance.commit`, `provenance.indexed_at`, and
   `staleness.commits_behind`. `provenance.commit` is null outside a git
-  checkout and on a graph indexed with `--repo`, which reports each
-  repository's `commit` and `commits_behind` under `repos[]` (source-read from
-  `main.rs`).
+  checkout. A graph indexed with `--repo` leaves the single-root provenance
+  fields null and reports `commit`, `indexed_version` and `commits_behind` per
+  repository under `repos[]` (source-read from `main.rs`).
 - `wicked-estate fingerprint <name>` gives a stable hex fingerprint for one
   symbol, which is how you tell whether a specific symbol changed between two
   indexed revisions.

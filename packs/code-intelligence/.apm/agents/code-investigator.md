@@ -23,7 +23,7 @@ Confirm the graph is usable, using the CLI itself:
 wicked-estate stats --json
 ```
 
-A `nodes` count means proceed. The same document reports freshness:
+A non-zero `nodes` count means proceed; 0 means the graph is empty, which is no graph. The same document reports freshness:
 `staleness.commits_behind` is how many commits the graph is behind. The graph
 is current only when that count is 0 and `staleness.unknown` is empty; a root
 listed in `unknown` has unknown freshness whatever the count, so say so rather

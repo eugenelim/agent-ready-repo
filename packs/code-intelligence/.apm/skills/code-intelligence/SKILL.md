@@ -71,7 +71,7 @@ python '<skill-dir>/scripts/estate_preflight.py' --check
 
 | Exit | Meaning | What to do |
 | --- | --- | --- |
-| 0 | Binary and index both present | Proceed. Preflight checks only that `graph.db` exists: if a read then says `no graph at <db>`, the file is empty, so handle it like exit 3. |
+| 0 | Binary and index both present | Proceed. Preflight checks only that `graph.db` exists, so confirm with `wicked-estate stats --json`: a `no graph at <db>` refusal or a `nodes` count of 0 means the index is empty, so handle it like exit 3. |
 | 2 | Binary absent | Give the user the install command above. Offer `--install --yes` only if they ask; it compiles from source and takes minutes. Do not install silently. |
 | 3 | No index | Ask before running `wicked-estate index .` — it writes `.wicked-estate/graph.db`. |
 | 4 | Version below the floor | Report it; the documented verbs were verified against 0.26. |
@@ -330,9 +330,12 @@ what you could not establish.
 `wicked-estate` parses its arguments strictly. A malformed value, a surplus
 operand, a repeated flag, or a `--db` with no path exits 1 with nothing on
 stdout and a usage line on stderr. Read that as a command error to fix, never as an empty
-answer. Read commands also refuse a missing or zero-byte `--db` with
-`no graph at <db>` and do not create it. An empty result with exit 0 is a real
-answer; exit 1 with nothing on stdout is not.
+answer. Most read commands refuse a missing or zero-byte `--db` with
+`no graph at <db>` and do not create it. `clusters` and `context` do not: they
+turn a missing or zero-byte `--db` into an empty graph and return an empty
+result with exit 0 (source-read from `main.rs`). An empty result with exit 0 is
+a real answer only once `stats --json` reports a non-zero `nodes` count; exit 1
+with nothing on stdout is never an answer.
 
 ## Writes
 

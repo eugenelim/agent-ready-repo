@@ -232,9 +232,10 @@ much alive. Never recommend a deletion on `dead-code` output alone.
 `wicked-estate stats --json` returns the graph's identity and freshness as
 fields: `provenance.commit`, `provenance.indexed_at` and
 `provenance.indexed_version`, plus `staleness.commits_behind`. `commit` is null
-when the graph was not indexed from a git checkout, and on a graph indexed with
-`--repo`, which reports each repository's `commit` and `commits_behind` under
-`repos[]` instead. `commits_behind` is the worst count over the roots that
+when the graph was not indexed from a git checkout. A graph indexed with
+`--repo` leaves `commit`, `branch`, `dirty`, `id_scheme` and `indexed_version`
+null in `provenance` and reports them per repository under `repos[]`, with each
+repository's `commits_behind`. `commits_behind` is the worst count over the roots that
 could be checked; `staleness.unknown` names the roots that could not
 (source-read from `main.rs`). `fingerprint` and `changed-since` support per-symbol and
 per-revision change detection.

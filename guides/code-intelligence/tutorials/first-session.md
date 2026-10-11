@@ -111,12 +111,13 @@ Then, from the app repository root, run:
 
 ```bash
 wicked-estate index .
-wicked-estate stats
+wicked-estate stats --json
 ```
 
 Indexing writes `.wicked-estate/graph.db`; it does not change application code.
-The time needed depends on the app. `stats` should report nodes and edges.
-If it reports `STALENESS:`, rebuild the index before continuing. If indexing
+The time needed depends on the app. `stats --json` should report non-zero
+`nodes` and `edges`. If `staleness.commits_behind` is above 0, rebuild the index
+before continuing. If indexing
 fails or produces an empty graph, stop before treating answers as graph-backed.
 Keep the error locally. For a self-serve trial, record the blocked step and a
 generic reason in your response worksheet; optional IT/support help is fine.
