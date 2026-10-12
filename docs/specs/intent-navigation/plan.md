@@ -1,7 +1,7 @@
 # Plan: Intent navigation — navigator core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/reference.md` (standard-library-only constraint); `packs/governance-extras/.apm/skills/navigate-decisions/` with `packs/governance-extras/tests/skills/navigate-decisions/` (query envelope, limits, and loader precedent); `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py` with `packs/core/tests/pack/test_intent_delivery_relations_copies.py` (shared-copy and pin precedent); `packs/core/.apm/skills/close-work/scripts/closure_terminality.py` with `tools/check_closure_terminality_parity.py` (terminality projection and parity precedent). Deviation: the shared intent-edge derivation's source lives in this skill, not in `adapter-root-bins/`, because no adopter bin consumes it.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -205,3 +205,4 @@ Owned by: T4
 - 2026-10-09: AC-0071 amended by owner decision (eugenelim) to state the form of a `multiple_values` refusal whose values differ in shape; the implementation already matched, and the review that raised it is recorded in the verification ledger. Planning reopened through the reset pair after the earlier run's amendment transition wedged.
 - 2026-10-09: amended spec re-approved by eugenelim
 - 2026-10-09: plan re-approved by eugenelim with the amended spec
+- 2026-10-11: shipped through the `feature/intent-navigation` integration pull request, after `origin/main` was merged into the integration branch (publication, owned by `intent-navigation-export` T6)
