@@ -144,7 +144,7 @@ def test_ac0011_refuse_when_collection_terminus_and_empty_set() -> None:
 
 def test_ac0012_refuse_when_closed_empty_has_descendants() -> None:
     """AC-0012: closed-empty terminus with non-empty descendants → refuse naming those descendants."""
-    desc = {"child-a": _dr("child-a")}
+    desc = {("spec", "child-a"): _dr("child-a")}
     verdict = _classify(status="Accepted", terminus="closed-empty", descendants=desc)
     assert isinstance(verdict, ci.ClosureRefuse), f"Expected ClosureRefuse, got {verdict!r}"  # type: ignore[attr-defined]
     assert "closed-empty-has-descendants" in verdict.reason, (  # type: ignore[union-attr]
@@ -154,7 +154,7 @@ def test_ac0012_refuse_when_closed_empty_has_descendants() -> None:
 
 def test_ac0013_refuse_when_direct_light_has_descendants() -> None:
     """AC-0013: direct-light terminus with non-empty descendants → refuse naming those descendants."""
-    desc = {"child-a": _dr("child-a")}
+    desc = {("spec", "child-a"): _dr("child-a")}
     verdict = _classify(status="Accepted", terminus="direct-light", descendants=desc)
     assert isinstance(verdict, ci.ClosureRefuse), f"Expected ClosureRefuse, got {verdict!r}"  # type: ignore[attr-defined]
     assert "direct-light-has-descendants" in verdict.reason, (  # type: ignore[union-attr]
@@ -237,7 +237,7 @@ def test_cross_product_terminus_vocabulary_verdict(terminus: str, has_descendant
     descendants = {}
     if has_descendants:
         # A live descendant so collection-terminus cases produce not-eligible, not eligible.
-        descendants = {"child-a": _dr("child-a", status="Implementing")}
+        descendants = {("spec", "child-a"): _dr("child-a", status="Implementing")}
 
     verdict = _classify(status="Accepted", terminus=terminus, descendants=descendants)
     assert isinstance(verdict, expected_type), (  # type: ignore[arg-type]
@@ -267,7 +267,7 @@ def test_ac0018_precedence_ac0009_outranks_eligible() -> None:
     Contrasting ground: children terminus, all-terminal descendant → AC-0016 eligible.
     With AC-0009: refuse because status is already terminal (Fulfilled).
     """
-    desc = {"child-a": _terminal_dr("child-a", kind="spec")}
+    desc = {("spec", "child-a"): _terminal_dr("child-a", kind="spec")}
     verdict = _classify(status="Fulfilled", terminus="children", descendants=desc)
     assert isinstance(verdict, ci.ClosureRefuse), (  # type: ignore[attr-defined]
         f"Expected ClosureRefuse (AC-0009 precedence), got {verdict!r}"
@@ -296,7 +296,7 @@ def test_ac0018_precedence_ac0010_outranks_eligible() -> None:
     eligible path (AC-0016 vacuously via empty live set).
     With AC-0010: refuse because terminus is absent.
     """
-    desc = {"child-a": _terminal_dr("child-a", kind="spec")}
+    desc = {("spec", "child-a"): _terminal_dr("child-a", kind="spec")}
     verdict = _classify(status="Accepted", terminus="", descendants=desc)
     assert isinstance(verdict, ci.ClosureRefuse), (  # type: ignore[attr-defined]
         f"Expected ClosureRefuse (AC-0010 precedence), got {verdict!r}"
@@ -324,7 +324,7 @@ def test_ac0018_precedence_ac0012_outranks_eligible() -> None:
     Contrasting ground: all-terminal descendant satisfies AC-0016; but
     closed-empty terminus + non-empty descendants triggers AC-0012 refusal first.
     """
-    desc = {"child-a": _terminal_dr("child-a", kind="spec")}
+    desc = {("spec", "child-a"): _terminal_dr("child-a", kind="spec")}
     verdict = _classify(status="Accepted", terminus="closed-empty", descendants=desc)
     assert isinstance(verdict, ci.ClosureRefuse), (  # type: ignore[attr-defined]
         f"Expected ClosureRefuse (AC-0012 precedence), got {verdict!r}"
@@ -338,7 +338,7 @@ def test_ac0018_precedence_ac0013_outranks_eligible() -> None:
     Contrasting ground: all-terminal descendant satisfies AC-0016; but
     direct-light terminus + non-empty descendants triggers AC-0013 refusal first.
     """
-    desc = {"child-a": _terminal_dr("child-a", kind="spec")}
+    desc = {("spec", "child-a"): _terminal_dr("child-a", kind="spec")}
     verdict = _classify(status="Accepted", terminus="direct-light", descendants=desc)
     assert isinstance(verdict, ci.ClosureRefuse), (  # type: ignore[attr-defined]
         f"Expected ClosureRefuse (AC-0013 precedence), got {verdict!r}"

@@ -64,6 +64,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.1.0] — 2026-10-11
+
+### Highlights
+
+- See every outstanding intent, brief, and spec placed under its parent intent, without opening files one by one and without `workspace.toml`. The new `navigate-intents` skill derives the intent graph from preamble headers each time it is asked and writes nothing back.
+- Walk the intent tree by level, parent, children, and recorded status. One broken parent link no longer hides the rest of the tree — it shows as a flagged line naming what is wrong. An incomplete outstanding-work list is refused rather than returned silently.
+- `close-work` now checks every intent ancestor that an artifact's parent pointers record, including capability, outcome, and opportunity parents. `close-work` and `navigate-intents` now agree on every parent link.
+- When an intent and a brief (or spec) share a slug, both now count, so a parent can no longer look ready to close while one of them is still open.
+- A broken parent pointer or a fault while building the intent tree now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
+- Relate two intents with one `Related intents:` line. `navigate-intents` shows the relation from both ends, and the intent lint refuses a value that is malformed, names the intent itself, or matches no live intent of that kind.
+- Export the whole intent graph as one HTML file that opens offline, to share with a reviewer or browse without a terminal. It lists every intent with its parents, outstanding work, refused pointers, and parentless intents. It links each source file. It works from the keyboard. Record text is shown as plain text. The file is always written outside the repository.
+
+### Added
+
+- A `navigate-intents` skill with a bundled query script. Its operations are `summary`, `record`, `tree`, `ancestors`, `search`, and `outstanding`, each returning a versioned JSON envelope with a closed set of error codes. `tree` and `outstanding` also print a text tree with control characters escaped.
+- Results stay bounded: a `tree` result over its limit is refused with `--depth` as the narrowing route; an `outstanding` result is refused with `--from`. `search` and `ancestors` refuse with the exceeded limit and name no bounded route. No result is truncated.
+- A `Related intents:` field in `work-intake`, with a lint rule. The value is `none` or comma-separated typed pointers (`intent:`, `capability:`, `outcome:`, `opportunity:`). The corpus lint refuses a repeated item, an item that names the intent itself, one that matches no live intent, and one whose prefix differs from the target's kind.
+- `record` and `tree` list the related intents an intent writes and the ones that name it. Text output prints `~ related <id>`, `! refused related <state>`, and `~ related from <id>`. A related value that names its own intent shows as the refused state `self_reference`. A related edge is never a parent or a dependency, and no closure or status check reads it.
+- The skill reads every file through a co-located confinement helper, shows the delivery resolver's typed relations and diagnostics with each intent, and decides what is outstanding by the same leading-word terminality rule as `close-work`. A parity check keeps that rule in step with its sources.
+- A `navigate-intents export` command that writes a single self-contained HTML view (`--destination`, `--name`, and `--from` for one subtree) with the same facts `query` returns, GitHub source links only for a plain GitHub `origin`, and a content security policy that pins its one script and one style. It refuses a destination inside the repository or any of its work trees, never overwrites a file, writes mode `0600` atomically, and refuses a page over the size budget with `--from` as the narrowing route. Its refusal codes are `invalid_destination`, `destination_exists`, `publish_failed`, and `export_too_large`, beside the query corpus codes.
+
+### Changed
+
+- `close-work` loads a byte-identical copy of the intent-edge derivation and drops its own parent-pointer parser. The parity tool now pins the parent kinds the derivation reads.
+
+### Fixed
+
+- Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
+
+## [product-engineering][1.0.1] — 2026-10-11
+
+### Highlights
+
+- Frame an intent that sits beside another one with an optional `Related intents:` line. The template offers it as comment-only guidance, so it stays absent until you fill it.
+
+### Changed
+
+- The `intent` skill's intent template offers an optional `Related intents:` line after `Outcome co-owner:`, and the guide copies of the template match it. An eval case checks that the line stays optional and comment-only.
+
 ## [core][3.0.5] — 2026-10-11
 
 ### Highlights

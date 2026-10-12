@@ -844,9 +844,15 @@ EXPECTED_SCRIPT_STEPS = [
     # vocabularies, because a cross-skill import is banned. The pack suite
     # proves the predicates; the parity script is what proves the projections
     # still agree with their upstreams, so it runs against the live corpus
-    # right after it.
+    # right after it. The self-test runs before the parity script so a
+    # broken checker is caught before it is used against the live corpus.
     "packs/core/tests/skills/close-work/test_closure_terminality.py",
+    "tools/test_check_closure_terminality_parity.py",
     "tools/check_closure_terminality_parity.py",
+    # Intent-navigation query contract. Runs the pack suite directly;
+    # the terminality copy it ships is governed by the closure-terminality
+    # steps above.
+    "packs/core/tests/skills/navigate-intents",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
     "tools/catalogue/tests/test_verify_host_checks.py",

@@ -15,6 +15,7 @@ HELPER = BINS / "_file_safety.py"
 
 _CLOSE_WORK_SCRIPTS = CORE / ".apm" / "skills" / "close-work" / "scripts"
 _WORK_LOOP_SCRIPTS = CORE / ".apm" / "skills" / "work-loop" / "scripts"
+_NAVIGATE_INTENTS_SCRIPTS = CORE / ".apm" / "skills" / "navigate-intents" / "scripts"
 _CLOSURE_INDEX = _CLOSE_WORK_SCRIPTS / "closure_index.py"
 _LINT_TRACEABILITY = _WORK_LOOP_SCRIPTS / "lint-traceability.py"
 
@@ -169,11 +170,12 @@ def test_vi1904_only_canonical_delivery_inverter_exists() -> None:
                         producers.append(path)
                         break
 
-    # Accepted producers: the adapter-root-bins source + 2 byte-identical copies.
+    # Accepted producers: the adapter-root-bins source + 3 byte-identical copies.
     accepted_relpaths = {
         SOURCE.relative_to(apm_root),
         (_CLOSE_WORK_SCRIPTS / "intent_delivery_relations.py").relative_to(apm_root),
         (_WORK_LOOP_SCRIPTS / "intent_delivery_relations.py").relative_to(apm_root),
+        (_NAVIGATE_INTENTS_SCRIPTS / "intent_delivery_relations.py").relative_to(apm_root),
     }
 
     non_accepted = [
@@ -193,11 +195,19 @@ def test_vi1904_only_canonical_delivery_inverter_exists() -> None:
         ), f"VI-1904: expected producer not found: {rel}"
 
     # Byte identity: each skill copy == source.
-    for skill_scripts in (_CLOSE_WORK_SCRIPTS, _WORK_LOOP_SCRIPTS):
+    for skill_scripts in (_CLOSE_WORK_SCRIPTS, _WORK_LOOP_SCRIPTS, _NAVIGATE_INTENTS_SCRIPTS):
         skill_copy = skill_scripts / "intent_delivery_relations.py"
         assert skill_copy.read_bytes() == SOURCE.read_bytes(), (
             f"VI-1904: {skill_copy.relative_to(apm_root)} is not byte-identical to source"
         )
+
+    # Byte identity: the two intent_graph.py copies match each other.
+    assert (
+        _CLOSE_WORK_SCRIPTS / "intent_graph.py"
+    ).read_bytes() == (_NAVIGATE_INTENTS_SCRIPTS / "intent_graph.py").read_bytes(), (
+        "AC-0001: close-work/scripts/intent_graph.py is not byte-identical to "
+        "navigate-intents/scripts/intent_graph.py"
+    )
 
     # ── Assertion 2: Each consumer locates resolver beside its own file ────────
     closure_src = _CLOSURE_INDEX.read_text(encoding="utf-8")

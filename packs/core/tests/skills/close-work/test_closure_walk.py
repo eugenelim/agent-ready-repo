@@ -7,7 +7,7 @@ Discovery:).
 Two failure shapes T2 hit — avoided here:
 1. Green suite over a dead branch: ``test_real_filesystem_brief_terminus_walk``
    runs with no injected seams under ``tmp_path``, exercising the default
-   confined reader and ``_default_dir_lister``.
+   confined reader.
 2. Unconfined path: all path derivation stays inside the module; no new
    field-value-to-path construction bypasses the confined reader.
 
@@ -20,7 +20,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 # ── Load the module under test ─────────────────────────────────────────────────
 # Unique sys.modules key to isolate this suite from T2 (test_closure_index_bounds).
@@ -49,6 +49,14 @@ def _load(name: str, key: str):
 
 
 ci = _load("closure_index", "closure_index__walk_t3")
+
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__walk", Path(__file__).resolve().parent / "closure_graph_fixture.py"
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__walk"] = _fx
+_fx_spec.loader.exec_module(_fx)
 
 # ── Fake root paths ────────────────────────────────────────────────────────────
 
@@ -181,12 +189,7 @@ def _spec(
 class FakeFS:
     """In-memory filesystem for injectable seams.
 
-    The dir_lister returns flat files: all paths under ``d`` with exactly one
-    additional path segment. Test fixtures for specs place spec files directly
-    under SPECS_DIR (flat), which the injected dir_lister handles correctly
-    because it is not the default ``_default_dir_lister`` (which uses
-    ``*/spec.md``). The real-filesystem tests use ``tmp_path`` with proper
-    nested layout.
+    The real-filesystem tests use ``tmp_path`` with proper nested layout.
     """
 
     def __init__(self, files: dict[str, str]):
@@ -198,30 +201,11 @@ class FakeFS:
             raise FileNotFoundError(path)
         return self.files[key]
 
-    def dir_lister(self, d: Path) -> Iterable[Path]:
-        """Mirror ``_default_dir_lister``: flat ``.md``, plus ``*/spec.md``.
-
-        A lister that returns only depth-1 files cannot see a spec, because a
-        spec lives at ``docs/specs/<slug>/spec.md``. Diverging from the real
-        layout here is what let the spec inversion look correct against
-        fixtures while resolving nothing on the corpus.
-        """
-        prefix = str(d) + "/"
-        out: list[Path] = []
-        for p in self.files:
-            if not p.startswith(prefix):
-                continue
-            rest = p[len(prefix):]
-            if "/" not in rest or (rest.count("/") == 1 and rest.endswith("/spec.md")):
-                out.append(Path(p))
-        return sorted(out)
-
 
 def _build(
     fs: FakeFS,
     ancestor_slug: str,
     ancestor_terminus: str,
-    dir_lister=None,
     snapshot_provider=None,
 ) -> dict:
     """Invoke the module-private closure builder with injected seams."""
@@ -230,8 +214,8 @@ def _build(
         ancestor_terminus,
         ROOT,
         _reader=fs.reader,
-        _dir_lister=dir_lister if dir_lister is not None else fs.dir_lister,
         _snapshot_provider=snapshot_provider,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
     )
 
 
@@ -295,7 +279,7 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
     ])
     result = _build(fs, ancestor_slug, "children", snapshot_provider=lambda _r: snap)
 
-    assert result.keys() == expected_all, (
+    assert {slug for _, slug in result} == expected_all, (
         f"expected {sorted(expected_all)}, got {sorted(result)}\n"
         "a one-hop implementation would stop at the 4 children and miss the 4 specs"
     )
@@ -303,11 +287,11 @@ def test_ac0019_three_level_fixture_returns_all_levels() -> None:
 
     # Kind check: children are intents, grandchildren are specs.
     for child_slug, _ in children:
-        assert result[child_slug].kind == "intent", (
+        assert result[("intent", child_slug)].kind == "intent", (
             f"child '{child_slug}' should be kind='intent'"
         )
     for spec_slug, _, _ in grandchildren:
-        assert result[spec_slug].kind == "spec", (
+        assert result[("spec", spec_slug)].kind == "spec", (
             f"grandchild '{spec_slug}' should be kind='spec'"
         )
 
@@ -346,11 +330,11 @@ def test_ac0020_brief_terminus_inverts_parent_intent_over_briefs() -> None:
     ])
     result = _build(fs, ancestor_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    assert brief_slug in result, f"expected brief '{brief_slug}' in closure"
-    assert unrelated_slug not in result, (
+    assert ("brief", brief_slug) in result, f"expected brief '{brief_slug}' in closure"
+    assert ("brief", unrelated_slug) not in result, (
         "brief with a different Parent intent: must not appear"
     )
-    assert result[brief_slug].kind == "brief"
+    assert result[("brief", brief_slug)].kind == "brief"
 
 
 def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
@@ -390,10 +374,10 @@ def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
     ])
     result = _build(fs, ancestor_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    assert brief_slug in result, f"brief '{brief_slug}' must be in closure"
+    assert ("brief", brief_slug) in result, f"brief '{brief_slug}' must be in closure"
     for spec_slug in spec_slugs:
-        assert spec_slug in result, f"spec '{spec_slug}' must be in closure"
-    assert unrelated_spec_slug not in result, (
+        assert ("spec", spec_slug) in result, f"spec '{spec_slug}' must be in closure"
+    assert ("spec", unrelated_spec_slug) not in result, (
         "spec with a different Brief: must not appear in closure"
     )
     # 1 brief + 2 specs = 3 descendants.
@@ -401,7 +385,7 @@ def test_ac0020_brief_terminus_inverts_brief_field_over_specs() -> None:
         f"expected 3 descendants, got {len(result)}: {sorted(result)}"
     )
     for spec_slug in spec_slugs:
-        assert result[spec_slug].kind == "spec"
+        assert result[("spec", spec_slug)].kind == "spec"
 
 
 def test_ac0020_spec_terminus_inverts_discovery_over_specs() -> None:
@@ -437,8 +421,8 @@ def test_ac0020_spec_terminus_inverts_discovery_over_specs() -> None:
     snap = _snapshot(relations=[_direct(ancestor_slug, spec_slug)])
     result = _build(fs, ancestor_slug, "spec", snapshot_provider=lambda _r: snap)
 
-    assert spec_slug in result, f"spec '{spec_slug}' must be in closure via snapshot"
-    assert unrelated_spec_slug not in result, (
+    assert ("spec", spec_slug) in result, f"spec '{spec_slug}' must be in closure via snapshot"
+    assert ("spec", unrelated_spec_slug) not in result, (
         "spec not in snapshot must not appear"
     )
     assert len(result) == 1, (
@@ -492,8 +476,8 @@ def test_intents_only_walk_returns_empty_for_brief_terminus_fixture() -> None:
         "brief",
         ROOT,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
         _snapshot_provider=lambda _r: empty_snap,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
     )
 
     # The empty-snapshot walk finds nothing. This demonstrates that snapshot
@@ -512,10 +496,10 @@ def test_intents_only_walk_returns_empty_for_brief_terminus_fixture() -> None:
         fs, ancestor_slug, "brief", snapshot_provider=lambda _r: correct_snap
     )
 
-    assert brief_slug in correct_result, (
+    assert ("brief", brief_slug) in correct_result, (
         "correct walk must find the live brief"
     )
-    assert spec_slug in correct_result, (
+    assert ("spec", spec_slug) in correct_result, (
         "correct walk must find the live spec via snapshot coordinated-delivery"
     )
     assert len(correct_result) == 2, (
@@ -573,17 +557,17 @@ def test_slug_field_not_filename_stem_determines_identity() -> None:
     result = _build(fs, ancestor_slug, "children")
 
     # Children must appear under their Slug: values, not filename stems.
-    assert child_slug_prefixed in result, (
+    assert ("intent", child_slug_prefixed) in result, (
         f"'{child_slug_prefixed}' not found; implementation may be using "
         f"filename stem '002-my-child' instead of Slug:"
     )
-    assert child_slug_plain in result, f"'{child_slug_plain}' not found"
+    assert ("intent", child_slug_plain) in result, f"'{child_slug_plain}' not found"
 
     # Filename stems must not appear as keys.
-    assert "001-my-intent" not in result, (
+    assert ("intent", "001-my-intent") not in result, (
         "ancestor filename stem must not be used as identity"
     )
-    assert "002-my-child" not in result, (
+    assert ("intent", "002-my-child") not in result, (
         "child filename stem must not be used as identity"
     )
 
@@ -599,13 +583,12 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
     """The cross-kind walk runs against the real filesystem with no injected seams.
 
     Closes the 'green suite over a dead branch' gap: every other test in this
-    file injects reader and dir_lister; this one passes neither, so the module's
-    default confined reader and ``_default_dir_lister`` both run against
+    file injects a reader; this one passes none, so the module's
+    default confined reader runs against
     on-disk files.
 
     Three node levels (ancestor intent → brief → spec), two artifact kinds.
-    The spec is nested one level under ``docs/specs/<feature>/spec.md`` as
-    ``_default_dir_lister`` requires for the specs collection.
+    The spec is nested one level under ``docs/specs/<feature>/spec.md``.
     """
     intents_dir = tmp_path / "docs" / "product" / "intents"
     briefs_dir = tmp_path / "docs" / "product" / "briefs"
@@ -627,7 +610,7 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
     (briefs_dir / f"{brief_slug}.md").write_text(
         _brief(brief_slug, parent=ancestor_slug), encoding="utf-8"
     )
-    # Spec: nested one level deep as _default_dir_lister expects.
+    # Spec: nested one level deep.
     spec_feature = specs_dir / spec_slug
     spec_feature.mkdir()
     (spec_feature / "spec.md").write_text(
@@ -640,9 +623,9 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
         _spec("other-feature", brief="some-other-brief"), encoding="utf-8"
     )
 
-    # No _reader or _dir_lister: both default seams execute against the real tree.
+    # No _reader: the default seam executes against the real tree.
     # _snapshot_provider is injected because the real resolver subprocess is not
-    # installed in tmp_path. This test targets the default reader and dir_lister
+    # installed in tmp_path. This test targets the default reader
     # seams (the real filesystem path), not the resolver subprocess; a dedicated
     # subprocess test lives in test_closure_delivery_snapshot.py (VI-1101/1103).
     snap = _snapshot(relations=[
@@ -655,13 +638,13 @@ def test_real_filesystem_brief_terminus_walk(tmp_path: Path) -> None:
         _snapshot_provider=lambda _r: snap,
     )
 
-    assert brief_slug in result, (
+    assert ("brief", brief_slug) in result, (
         "real-filesystem walk must find the brief"
     )
-    assert spec_slug in result, (
+    assert ("spec", spec_slug) in result, (
         "real-filesystem walk must find the nested spec"
     )
-    assert "other-feature" not in result, (
+    assert ("spec", "other-feature") not in result, (
         "spec not in snapshot must not appear"
     )
     assert len(result) == 2, (

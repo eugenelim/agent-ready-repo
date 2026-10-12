@@ -678,6 +678,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest visual-authority supersession (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest close-work graph-convergence supersession (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest delivery contract bundle (roster-owned)":
         LOCAL("test-after-build-check"),
     # AC-0014 Slice 1 guard: asserts code registry and doc matrix agree on
@@ -1041,6 +1043,7 @@ _GATE_MAIN_CHECKS = (
     "pytest visual-target release surface (roster-owned)",
     "pytest visual-target exclusive property (roster-owned)",
     "pytest visual-authority supersession (roster-owned)",
+    "pytest close-work graph-convergence supersession (roster-owned)",
     "pytest delivery contract bundle (roster-owned)",
     "pytest content-safety boundary matrix (roster-owned)",
     "pytest security-primitives schema parity (roster-owned)",
@@ -1270,6 +1273,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/core/tests/skills/navigate-intents/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
+            "the build gate chain step `test-navigate-intents`, which this lint does not trace."
         ),
     'packs/core/tests/skills/new-spec/':
         NO_PR_GATE(

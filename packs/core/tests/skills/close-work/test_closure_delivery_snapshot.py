@@ -63,6 +63,15 @@ def _load(name: str, key: str):
 
 ci = _load("closure_index", "closure_index__delivery_snap_t2")
 
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__delivery_snap",
+    Path(__file__).resolve().parent / "closure_graph_fixture.py",
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__delivery_snap"] = _fx
+_fx_spec.loader.exec_module(_fx)
+
 # ── Fake root paths ────────────────────────────────────────────────────────────
 
 ROOT = Path("/fake/root")
@@ -175,18 +184,6 @@ class FakeFS:
             raise FileNotFoundError(path)
         return self.files[key]
 
-    def dir_lister(self, d: Path):
-        """Return files — used only for children terminus in these tests."""
-        prefix = str(d) + "/"
-        out: list[Path] = []
-        for p in self.files:
-            if not p.startswith(prefix):
-                continue
-            rest = p[len(prefix):]
-            if "/" not in rest or (rest.count("/") == 1 and rest.endswith("/spec.md")):
-                out.append(Path(p))
-        return sorted(out)
-
 
 def _build(
     fs: FakeFS,
@@ -200,7 +197,7 @@ def _build(
         ancestor_terminus,
         ROOT,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=snapshot_provider,
     )
 
@@ -230,9 +227,9 @@ def test_vi1101_direct_delivery_spec_terminus_finds_named_spec() -> None:
 
     result = _build(fs, feat_slug, "spec", snapshot_provider=lambda _r: snap)
 
-    assert spec_slug in result, "named spec must appear in closure"
-    assert other_slug not in result, "unnamed spec must not appear"
-    assert result[spec_slug].kind == "spec"
+    assert ("spec", spec_slug) in result, "named spec must appear in closure"
+    assert ("spec", other_slug) not in result, "unnamed spec must not appear"
+    assert result[("spec", spec_slug)].kind == "spec"
 
 
 def test_vi1101_coordinated_delivery_brief_terminus_finds_brief_and_spec() -> None:
@@ -257,11 +254,11 @@ def test_vi1101_coordinated_delivery_brief_terminus_finds_brief_and_spec() -> No
 
     result = _build(fs, feat_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    assert brief_slug in result, "brief named in snapshot must appear"
-    assert spec_slug in result, "spec named in snapshot must appear"
-    assert unrelated_slug not in result, "spec not in snapshot must not appear"
-    assert result[brief_slug].kind == "brief"
-    assert result[spec_slug].kind == "spec"
+    assert ("brief", brief_slug) in result, "brief named in snapshot must appear"
+    assert ("spec", spec_slug) in result, "spec named in snapshot must appear"
+    assert ("spec", unrelated_slug) not in result, "spec not in snapshot must not appear"
+    assert result[("brief", brief_slug)].kind == "brief"
+    assert result[("spec", spec_slug)].kind == "spec"
 
 
 def test_vi1101_multiple_coordinated_delivery_finds_all_specs() -> None:
@@ -282,9 +279,9 @@ def test_vi1101_multiple_coordinated_delivery_finds_all_specs() -> None:
 
     result = _build(fs, feat_slug, "brief", snapshot_provider=lambda _r: snap)
 
-    assert brief_slug in result
+    assert ("brief", brief_slug) in result
     for s in spec_slugs:
-        assert s in result, f"spec '{s}' must appear via coordinated-delivery"
+        assert ("spec", s) in result, f"spec '{s}' must appear via coordinated-delivery"
     # 1 brief + 3 specs = 4 descendants
     assert len(result) == 4, f"expected 4 descendants, got {sorted(result)}"
 
@@ -313,7 +310,7 @@ def test_vi1101_delivery_diagnostic_causes_closure_refuse() -> None:
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=lambda _r: snap,
     )
 
@@ -352,7 +349,7 @@ def test_vi1101_all_diagnostic_codes_cause_closure_refuse(code: str) -> None:
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=lambda _r: snap,
     )
 
@@ -381,7 +378,7 @@ def test_vi1103_snapshot_provider_exception_yields_delivery_resolver_unavailable
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=_failing_provider,
     )
 
@@ -425,7 +422,7 @@ def test_vi1103_resolver_unavailable_never_falls_back_to_old_scanner() -> None:
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=_failing_provider,
     )
 
@@ -509,7 +506,7 @@ def test_vi1103_provider_raising_value_error_yields_delivery_resolver_unavailabl
         ROOT,
         _freshness_checker=lambda: True,
         _reader=fs.reader,
-        _dir_lister=fs.dir_lister,
+        _graph_provider=_fx.graph_provider_from_files(fs.files, ROOT),
         _snapshot_provider=_invalid_provider,
     )
 
@@ -614,8 +611,8 @@ def test_vi1103_real_subprocess_produces_valid_snapshot(tmp_path: Path) -> None:
         _snapshot_provider=lambda _r: snap,
     )
 
-    assert spec_slug in result, "spec must appear in closure via real subprocess snapshot"
-    assert result[spec_slug].kind == "spec"
+    assert ("spec", spec_slug) in result, "spec must appear in closure via real subprocess snapshot"
+    assert result[("spec", spec_slug)].kind == "spec"
 
 
 # ---------------------------------------------------------------------------

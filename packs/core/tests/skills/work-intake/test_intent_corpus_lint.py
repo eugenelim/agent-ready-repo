@@ -1228,3 +1228,147 @@ def test_every_forbidden_refusal_states_a_rationale_for_its_own_status() -> None
             status,
             [v.reason for v in forbidding],
         )
+
+
+# ── Related intents field ─────────────────────────────────────────────────────
+
+
+def _related(slug: str, value: str, **kwargs: str) -> str:
+    """A live intent carrying one ``Related intents`` line."""
+    return _broken(slug, extra=f"- **Related intents:** {value}", **kwargs)
+
+
+def _related_violations(result, path: str) -> list:
+    return [
+        v for v in result.violations if v.path == path and v.field == "Related intents"
+    ]
+
+
+def test_related_intents_self_reference_is_refused(tmp_path):
+    text = _live("me").replace("## Outcome", "- **Related intents:** intent:me\n\n## Outcome")
+    result = _run(tmp_path, {"FEAT-0001-me.md": text})
+    assert result.exit_code == 1
+    assert any(v.field == "Related intents" and "intent:me" in v.reason for v in result.violations)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "a",
+        "docs/product/intents/FEAT-0001-t.md",
+        "[a](FEAT-0001-t.md)",
+        "intent:",
+        "intent:Bad_Slug",
+        "intent:Foo",
+        "brief:x",
+        "spec:x",
+        "foo:a",
+        "intent:a,, intent:b",
+        "intent:a,",
+        "`intent:a`, `intent:a-b`",
+        "intent:a, intent:a",
+        "none, intent:a",
+        "intent:a intent:b",
+    ],
+)
+def test_related_intents_bad_shape_is_refused(tmp_path, value):
+    files = {
+        "FEAT-0001-t.md": _live("a"),
+        "FEAT-0002-src.md": _related("src", value),
+    }
+    result = _run(tmp_path, files)
+    assert result.exit_code == 1
+    assert _related_violations(result, "FEAT-0002-src.md")
+
+
+def test_related_intents_good_shapes_are_accepted(tmp_path):
+    files = {
+        "FEAT-0001-a.md": _live("a"),
+        "FEAT-0002-b.md": _live("b"),
+        "FEAT-0003-c.md": _live("c").replace("- **Level:** feature", "- **Level:** feature\n- **Kind:** outcome"),
+        "FEAT-0004-d.md": _live("d").replace("- **Level:** feature", "- **Level:** feature\n- **Kind:** opportunity"),
+    }
+    files["FEAT-0002-b.md"] = _live("b").replace("- **Level:** feature", "- **Level:** capability")
+    files["FEAT-0005-s1.md"] = _related("s1", "intent:a, capability:b, outcome:c, opportunity:d")
+    files["FEAT-0006-s2.md"] = _related("s2", "none — not yet")
+    files["FEAT-0007-s3.md"] = _related("s3", "<!-- nothing yet -->")
+    result = _run(tmp_path, files)
+    assert result.violations == []
+    assert result.exit_code == 0
+
+
+def test_related_intents_unknown_slug_is_refused(tmp_path):
+    result = _run(tmp_path, {"FEAT-0001-s.md": _related("s", "intent:ghost")})
+    (v,) = _related_violations(result, "FEAT-0001-s.md")
+    assert "intent:ghost" in v.reason
+
+
+def test_related_intents_tombstone_target_is_refused(tmp_path):
+    tomb = TOMBSTONE.format(slug="old", edge="Reissued as", target="new")
+    result = _run(
+        tmp_path,
+        {"FEAT-0001-old.md": tomb, "FEAT-0002-s.md": _related("s", "intent:old")},
+    )
+    (v,) = _related_violations(result, "FEAT-0002-s.md")
+    assert "intent:old" in v.reason
+
+
+def test_related_intents_target_in_subdirectory_is_refused(tmp_path):
+    directory = _corpus(tmp_path, {"FEAT-0002-s.md": _related("s", "intent:deep")})
+    (directory / "sub").mkdir()
+    (directory / "sub" / "FEAT-0001-deep.md").write_text(_live("deep"), encoding="utf-8")
+    result = lint.lint_corpus(tmp_path, directory)
+    (v,) = _related_violations(result, "FEAT-0002-s.md")
+    assert "intent:deep" in v.reason
+
+
+def test_related_intents_shared_slug_is_refused(tmp_path):
+    result = _run(
+        tmp_path,
+        {
+            "FEAT-0001-x.md": _live("dup"),
+            "FEAT-0002-y.md": _live("dup"),
+            "FEAT-0003-s.md": _related("s", "intent:dup"),
+        },
+    )
+    assert any(
+        "intent:dup" in v.reason for v in _related_violations(result, "FEAT-0003-s.md")
+    )
+
+
+def test_related_intents_kind_mismatch_is_refused(tmp_path):
+    cap = _live("cap").replace("- **Level:** feature", "- **Level:** capability")
+    result = _run(
+        tmp_path,
+        {"FEAT-0001-cap.md": cap, "FEAT-0002-s.md": _related("s", "intent:cap")},
+    )
+    assert result.exit_code == 1
+    (v,) = _related_violations(result, "FEAT-0002-s.md")
+    assert "intent:cap" in v.reason
+
+
+@pytest.mark.parametrize(
+    "status", ["Draft", "Superseded", "Withdrawn", "Cancelled", "Fulfilled"]
+)
+def test_related_intents_resolves_to_any_live_status(tmp_path, status):
+    records = {
+        "Draft": "",
+        "Superseded": "- **Superseded by:** other",
+        "Withdrawn": "",
+        "Cancelled": "- **Accepted:** 2026-09-01 owner approved",
+        "Fulfilled": (
+            "- **Accepted:** 2026-09-01 owner approved\n"
+            "- **Fulfilled:** 2026-09-20 shipped"
+        ),
+    }
+    target = _broken("tgt", status=status, extra=records[status])
+    result = _run(
+        tmp_path,
+        {
+            "FEAT-0001-tgt.md": target,
+            "FEAT-0002-other.md": _live("other"),
+            "FEAT-0003-s.md": _related("s", "intent:tgt"),
+        },
+    )
+    assert result.violations == []
+    assert result.exit_code == 0

@@ -1,0 +1,16 @@
+{
+  "outstanding": [
+    "brief:bravo-delivery",
+    "brief:charlie-delivery",
+    "brief:hidden-parent",
+    "capability:alpha-cap",
+    "intent:bravo-feat",
+    "intent:golf-new",
+    "intent:india-none",
+    "opportunity:delta-opp",
+    "outcome:charlie-out",
+    "outcome:echo-crosstype",
+    "spec:bravo-spec",
+    "spec:charlie-spec"
+  ]
+}

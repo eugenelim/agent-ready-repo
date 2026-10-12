@@ -710,6 +710,10 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_authority_supersession.py
 
+      - name: pytest close-work graph-convergence supersession (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_close_work_graph_convergence_supersession.py
+
       # The canonical delivery contract bundle spans contracts/delivery/,
       # contracts/README.md, and contracts/REGISTRY.md — all above any pack
       # tree, so lint-pack-test-boundary forbids a pack home. Sits ABOVE the

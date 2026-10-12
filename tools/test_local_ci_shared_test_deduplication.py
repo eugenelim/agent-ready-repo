@@ -1019,11 +1019,17 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # one. Verified: `_effective_composition_errors()` over this worktree's
 # Makefile with the superseded digests in place reported exactly the two
 # plan-digest drifts above and nothing else.
+# Bumped 2026-10-09 for the `navigate-intents` skill suite, on top of the
+# capture-work removal above. Sole cause: one added `run-test-suite` line,
+# `$(PYTHON) -m pytest packs/core/tests/skills/navigate-intents/ -q`, after
+# the `intake-intent` line; none removed or reordered. Prior pins were
+# current: `_effective_composition_errors()` over this Makefile with exactly
+# that line deleted returns no errors against `5b782195…` and `9c02dab8…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "5b782195a76845b9a0f42601af43ac36465b2b0d8850edc34084b231bf88739c"
+    "f2ca6521c7aed51253eb55bbec879efee67006eb5d76a396a8fba50b051a64af"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "9c02dab8c764c4580a3f2bbee3b820b700f16428ea47ef5ce9f13fcf57b068d1"
+    "98e25890eb60e0c298a5be04212b68e5e37e9510b53c259c1a7af89ca24ac63d"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
