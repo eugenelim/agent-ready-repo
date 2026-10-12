@@ -1237,6 +1237,18 @@
         "The dependents evidence comes from repository-exploration or from repository search, and either route is accepted",
         "No new gate, reviewer, or workflow state is added for the dependents question"
       ]
+    },
+    {
+      "id": "structured-review-boundary-synthetic-reviewer-port",
+      "prompt": "A team wants to add a new reviewer without changing the work-loop skill. The reviewer produces a structured report with a role, subject fingerprint, terminal status, and findings. What port does the work-loop expose for this, and does adding the reviewer require a code change to any shared delivery-policy module?",
+      "expected_output": "The work-loop exposes a generic reviewer port that accepts any conforming structured report. The reviewer selects its obligation from the published obligation set, submits a versioned structured report through the report store, and the boundary assesses findings and derives readiness from it. Adding a conforming reviewer requires no change to any shared delivery-policy module — the selection is driven by policy data, not by reviewer-role conditions in code. The report's role field identifies it; no reviewer-specific branch exists in the runtime modules.",
+      "assertions": [
+        "Names the generic reviewer port or obligation selection as the integration point",
+        "States that adding a reviewer requires no change to a shared delivery-policy module",
+        "States that selection is driven by policy data rather than role-name conditions in code",
+        "Does not claim the reviewer must implement a reviewer-specific work-loop hook",
+        "Identifies the report role field as the reviewer identifier"
+      ]
     }
   ]
 }

@@ -45,6 +45,7 @@ import tempfile
 import uuid as _uuid_mod
 from datetime import UTC, datetime
 from pathlib import Path
+from types import ModuleType
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -930,6 +931,8 @@ class GuardsUnavailable(RuntimeError):
 
 _guards_module: object | None = None
 _cohort_mutator_module: object | None = None
+_review_selection_module: ModuleType | None = None
+_review_compat_module: ModuleType | None = None
 
 # Sentinel distinguishing "never tried" from "tried and failed".
 _FACADE_UNAVAILABLE = object()
@@ -1069,6 +1072,113 @@ def _cohort_mutator():
         )
     _cohort_mutator_module = module
     return module
+
+
+def _review_selection() -> ModuleType:
+    """Load the sibling review-selection service for compatibility callers."""
+    global _review_selection_module
+    if _review_selection_module is not None:
+        return _review_selection_module
+    path = SCRIPT_DIR / "_review_selection.py"
+    try:
+        observed = os.lstat(path)
+    except OSError as exc:
+        raise ImportError(f"cannot load {path}: {exc}") from exc
+    if not stat.S_ISREG(observed.st_mode):
+        raise ImportError(
+            f"cannot load {path}: not a regular file (symlink or device)"
+        )
+    previous = sys.dont_write_bytecode
+    module_name = "_work_loop_review_selection"
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(module_name, str(path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
+    _review_selection_module = module
+    return module
+
+
+def project_current_engine_review_obligations(
+    delivery_subject: dict,
+    *,
+    changed_paths: list[dict],
+    review_policy: dict,
+    plan_digest: str | None = None,
+    task_projection_revision: str | None = None,
+    adapter_event_id: str | None = None,
+) -> tuple[dict, list[dict]]:
+    """Return current-engine review subject and obligations without CLI effects."""
+    return _review_selection().current_engine_review_obligations(
+        delivery_subject,
+        changed_paths=changed_paths,
+        review_policy=review_policy,
+        plan_digest=plan_digest,
+        task_projection_revision=task_projection_revision,
+        adapter_event_id=adapter_event_id,
+    )
+
+
+def _review_compat() -> ModuleType:
+    """Load the sibling review-compatibility adapter for importable callers."""
+    global _review_compat_module
+    if _review_compat_module is not None:
+        return _review_compat_module
+    path = SCRIPT_DIR / "_review_compat.py"
+    try:
+        observed = os.lstat(path)
+    except OSError as exc:
+        raise ImportError(f"cannot load {path}: {exc}") from exc
+    if not stat.S_ISREG(observed.st_mode):
+        raise ImportError(
+            f"cannot load {path}: not a regular file (symlink or device)"
+        )
+    previous = sys.dont_write_bytecode
+    module_name = "_work_loop_review_compat"
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(module_name, str(path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
+    _review_compat_module = module
+    return module
+
+
+def project_compat_reconcile_review_source_event(
+    store: object,
+    source_event: dict,
+    *,
+    legacy_state: dict,
+    review_subject: dict,
+    review_policy: dict,
+    issuer: object,
+    grant: object,
+    audit_sink: object,
+) -> dict:
+    """Importable, CLI-free compatibility caller for the T6 compat adapter.
+
+    Delegates to ``_review_compat.reconcile_review_source_event`` without any
+    CLI or transition-behavior side effects.  Mirrors the pattern established by
+    ``project_current_engine_review_obligations`` for review-obligation callers.
+    """
+    return _review_compat().reconcile_review_source_event(
+        store,
+        source_event,
+        legacy_state=legacy_state,
+        review_subject=review_subject,
+        review_policy=review_policy,
+        issuer=issuer,
+        grant=grant,
+        audit_sink=audit_sink,
+    )
 
 
 def _compat_facade():

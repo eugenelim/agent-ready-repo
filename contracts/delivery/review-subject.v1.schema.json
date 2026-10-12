@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/review-subject.v1.schema.json",
+  "title": "review-subject.v1",
+  "description": "Canonical review subject projected from the current delivery subject and review policy. Review identity excludes plan digest and task-projection revision; plan-only edits do not stale reports.",
+  "$comment": "Owned by: docs/specs/structured-review-boundary/. References approved Slice 1 delivery-subject identity properties.",
+  "x-spec": ["docs/specs/structured-review-boundary/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "review_subject_id",
+    "review_subject_fingerprint",
+    "delivery_subject_ref",
+    "review_policy_fingerprint",
+    "normalized_paths",
+    "normalized_statuses",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "review_subject_id": {"type": "string", "minLength": 1},
+    "review_subject_fingerprint": {"type": "string", "minLength": 1},
+    "delivery_subject_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject_id", "acceptance_fingerprint"],
+      "properties": {
+        "subject_id": {
+          "$ref": "delivery-subject.v1.schema.json#/properties/subject_id"
+        },
+        "acceptance_fingerprint": {
+          "$ref": "delivery-subject.v1.schema.json#/properties/acceptance_fingerprint"
+        }
+      }
+    },
+    "review_policy_fingerprint": {"type": "string", "minLength": 1},
+    "normalized_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "normalized_statuses": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["added", "modified", "deleted", "renamed", "unchanged"]}
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "projection_version"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "projection_version": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

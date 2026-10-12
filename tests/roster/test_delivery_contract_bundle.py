@@ -2,7 +2,10 @@
 import json
 from pathlib import Path
 
+import pytest
 from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT202012
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -30,8 +33,8 @@ _DELIVERY_ROOT = REPO_ROOT / "contracts" / "delivery"
 _README = REPO_ROOT / "contracts" / "README.md"
 _REGISTRY = REPO_ROOT / "contracts" / "REGISTRY.md"
 
-# Expected record names correspond to the 17 canonical delivery record types
-# defined in docs/specs/acceptance-authority-and-evidence/plan.md § Data & schema.
+# Expected record names correspond to the canonical delivery record types
+# defined by the shipped Slice 1 bundle and structured-review-boundary Slice 2.
 _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "delivery-subject.v1.schema.json",
     "acceptance-property.v1.schema.json",
@@ -50,6 +53,12 @@ _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "content-safety-policy.v1.schema.json",
     "content-safety-decision.v1.schema.json",
     "untrusted-data.v1.schema.json",
+    "review-subject.v1.schema.json",
+    "review-obligation.v1.schema.json",
+    "review-report.v1.schema.json",
+    "finding.v1.schema.json",
+    "finding-assessment.v1.schema.json",
+    "finding-disposition.v1.schema.json",
 })
 
 
@@ -60,13 +69,112 @@ def _load_schema(name: str) -> dict:
 
 def _validator(name: str) -> Draft202012Validator:
     """Return a validator for the named delivery schema."""
-    return Draft202012Validator(_load_schema(name))
+    resources = []
+    for path in _DELIVERY_ROOT.glob("*.schema.json"):
+        schema = _load_schema(path.name)
+        resource = Resource.from_contents(schema, DRAFT202012)
+        resources.append((schema["$id"], resource))
+        resources.append((path.name, resource))
+    return Draft202012Validator(
+        _load_schema(name), registry=Registry().with_resources(resources)
+    )
+
+
+def _review_subject(subject_id: str = "subject-current") -> dict:
+    """Build a valid review-subject.v1 record."""
+    return {
+        "schema_version": 1,
+        "review_subject_id": subject_id,
+        "review_subject_fingerprint": "review-subject-current",
+        "delivery_subject_ref": {
+            "subject_id": "delivery-subject-current",
+            "acceptance_fingerprint": "acceptance-current",
+        },
+        "review_policy_fingerprint": "review-policy-v1",
+        "normalized_paths": ["packs/core/.apm/skills/work-loop/scripts/x.py"],
+        "normalized_statuses": ["modified"],
+        "lineage": {"provider": "review-subject-projector", "projection_version": "v1"},
+    }
+
+
+def _finding(finding_id: str = "finding-1") -> dict:
+    """Build a valid finding.v1 record."""
+    return {
+        "schema_version": 1,
+        "finding_id": finding_id,
+        "rule_ref": "AC-0012",
+        "observation": "A report with executable content reached validation.",
+        "reachable_path": "review adapter to durable review report",
+        "actual_failure": "Executable reviewer content could alter procedure.",
+        "affected_acceptance_criteria": ["AC-0012"],
+        "evidence_refs": ["packs/core/.apm/skills/work-loop/scripts/x.py"],
+        "material": True,
+    }
+
+
+def _review_obligation() -> dict:
+    """Build a valid review-obligation.v1 record."""
+    return {
+        "schema_version": 1,
+        "obligation_id": "obligation-1",
+        "role": "adversarial-reviewer",
+        "review_subject_fingerprint": "review-subject-current",
+        "review_policy_fingerprint": "review-policy-v1",
+        "kind": "mandatory",
+        "lineage": {"selector": "core-policy", "policy_version": "v1"},
+    }
+
+
+def _review_report(status: str = "findings") -> dict:
+    """Build a valid review-report.v1 record."""
+    return {
+        "schema_version": 1,
+        "report_id": "report-1",
+        "role": "adversarial-reviewer",
+        "subject": _review_subject(),
+        "terminal_status": status,
+        "lineage": {
+            "sequence": 1,
+            "review_policy_fingerprint": "review-policy-v1",
+            "source_event_id": "event-1",
+            "producer": "synthetic-reviewer",
+        },
+        "findings": [_finding()] if status == "findings" else [],
+    }
+
+
+def _finding_assessment() -> dict:
+    """Build a valid finding-assessment.v1 record."""
+    return {
+        "schema_version": 1,
+        "assessment_id": "assessment-1",
+        "finding_id": "finding-1",
+        "report_id": "report-1",
+        "review_subject_fingerprint": "review-subject-current",
+        "assessment": "supported",
+        "evidence_refs": ["evidence-ref-1"],
+        "lineage": {"predicate_version": "v1"},
+    }
+
+
+def _finding_disposition() -> dict:
+    """Build a valid finding-disposition.v1 record."""
+    return {
+        "schema_version": 1,
+        "disposition_id": "disposition-1",
+        "finding_id": "finding-1",
+        "assessment_id": "assessment-1",
+        "review_subject_fingerprint": "review-subject-current",
+        "disposition": "accept-risk",
+        "decision_maker": {"identity": "review-owner", "role": "risk-owner"},
+        "lineage": {"authority_ref": "authority-1", "source_event_id": "event-1"},
+    }
 
 
 # ── Schema set completeness ───────────────────────────────────────────────────
 
 def test_delivery_bundle_has_all_17_expected_schemas() -> None:
-    """The bundle contains exactly the 17 canonical delivery record schemas."""
+    """The bundle contains the canonical delivery record schemas."""
     found = frozenset(p.name for p in _DELIVERY_ROOT.glob("*.schema.json"))
     missing = _EXPECTED_SCHEMA_NAMES - found
     extra = found - _EXPECTED_SCHEMA_NAMES
@@ -115,14 +223,112 @@ def test_every_delivery_schema_carries_x_spec() -> None:
     """Every schema carries x-spec pointing to the owning spec."""
     schemas = sorted(_DELIVERY_ROOT.glob("*.schema.json"))
     assert schemas
-    spec = "docs/specs/acceptance-authority-and-evidence/"
     violations = [
         p.name for p in schemas
-        if spec not in json.loads(p.read_text(encoding="utf-8")).get("x-spec", [])
+        if not json.loads(p.read_text(encoding="utf-8")).get("x-spec", [])
     ]
     assert not violations, (
-        f"schemas missing x-spec pointer to {spec!r}: {violations}"
+        f"schemas missing x-spec pointer: {violations}"
     )
+
+
+def test_review_schemas_accept_valid_examples() -> None:
+    """Every structured-review schema accepts its canonical example."""
+    examples = {
+        "review-subject.v1.schema.json": _review_subject(),
+        "review-obligation.v1.schema.json": _review_obligation(),
+        "review-report.v1.schema.json": _review_report(),
+        "finding.v1.schema.json": _finding(),
+        "finding-assessment.v1.schema.json": _finding_assessment(),
+        "finding-disposition.v1.schema.json": _finding_disposition(),
+    }
+    for schema_name, example in examples.items():
+        errors = list(_validator(schema_name).iter_errors(example))
+        assert not errors, f"valid {schema_name} rejected: {errors}"
+
+
+def test_review_subject_schema_rejects_duplicate_paths() -> None:
+    subject = _review_subject()
+    subject["normalized_paths"] = ["a.py", "a.py"]
+    subject["normalized_statuses"] = ["modified", "modified"]
+    errors = list(_validator("review-subject.v1.schema.json").iter_errors(subject))
+    assert errors, "review-subject.v1 accepted duplicate normalized paths"
+
+
+def test_review_subject_schema_rejects_unknown_status() -> None:
+    subject = _review_subject()
+    subject["normalized_statuses"] = ["unknown"]
+    errors = list(_validator("review-subject.v1.schema.json").iter_errors(subject))
+    assert errors, "review-subject.v1 accepted an unknown normalized status"
+
+
+def test_report_schema_requires_findings_for_findings_status() -> None:
+    report = _review_report(status="findings")
+    report["findings"] = []
+    errors = list(_validator("review-report.v1.schema.json").iter_errors(report))
+    assert errors, "review-report.v1 accepted findings status with no findings"
+
+
+def test_report_schema_rejects_findings_for_clean_status() -> None:
+    report = _review_report(status="clean")
+    report["findings"] = [_finding()]
+    errors = list(_validator("review-report.v1.schema.json").iter_errors(report))
+    assert errors, "review-report.v1 accepted clean status with findings"
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "schema_version", "report_id", "role", "subject", "terminal_status",
+        "lineage", "findings",
+    ],
+)
+def test_report_schema_rejects_missing_required_fields(field: str) -> None:
+    """Each mandatory report field has its own rejection fixture."""
+    report = _review_report()
+    report.pop(field)
+    errors = list(_validator("review-report.v1.schema.json").iter_errors(report))
+    assert errors, f"review-report.v1 accepted a missing {field!r}"
+
+
+@pytest.mark.parametrize(
+    "schema_name,example_factory,field",
+    [
+        ("review-subject.v1.schema.json", _review_subject, "review_subject_fingerprint"),
+        ("review-obligation.v1.schema.json", _review_obligation, "kind"),
+        ("review-report.v1.schema.json", _review_report, "terminal_status"),
+        ("finding.v1.schema.json", _finding, "actual_failure"),
+        ("finding-assessment.v1.schema.json", _finding_assessment, "assessment"),
+        ("finding-disposition.v1.schema.json", _finding_disposition, "decision_maker"),
+    ],
+)
+def test_each_review_schema_rejects_missing_required_field(
+    schema_name: str, example_factory: object, field: str
+) -> None:
+    record = example_factory()
+    record.pop(field)
+    errors = list(_validator(schema_name).iter_errors(record))
+    assert errors, f"{schema_name} accepted missing {field!r}"
+
+
+@pytest.mark.parametrize(
+    "schema_name,example_factory",
+    [
+        ("review-subject.v1.schema.json", _review_subject),
+        ("review-obligation.v1.schema.json", _review_obligation),
+        ("review-report.v1.schema.json", _review_report),
+        ("finding.v1.schema.json", _finding),
+        ("finding-assessment.v1.schema.json", _finding_assessment),
+        ("finding-disposition.v1.schema.json", _finding_disposition),
+    ],
+)
+def test_each_review_schema_rejects_unknown_field(
+    schema_name: str, example_factory: object
+) -> None:
+    record = example_factory()
+    record["_unknown_capability_grant"] = "admin"
+    errors = list(_validator(schema_name).iter_errors(record))
+    assert errors, f"{schema_name} accepted an unknown authority field"
 
 
 # ── Rejection of unknown or incomplete authority-shaped records ───────────────
