@@ -196,3 +196,26 @@ Final dispatch at code commit `2a275fb9a`, all `success`:
 - test-corpus: run 38194091550
 - test-roster: run 38194093995
 - PR native checks: 12 of 12 pass.
+
+### T6: Publication
+
+Slice PR #1544 was squash-merged into `feature/intent-navigation` as `4d2d6cbcb`. The integration branch then merged `origin/main` twice. `4a967fc75` merged `403204423`. `489350bc1` merged `36e524a41`, which had landed during the first merge. Both are two-parent merge commits, nothing was rebased or force-pushed, and `git merge-base --is-ancestor origin/main HEAD` holds.
+
+- Versions: `core` is 3.1.0 in `pack.toml` and `plugin.json`. Its changelog entry sits above main's newest `[core][3.0.4]`.
+- `product-engineering` became 1.0.1, not the planned 0.13.26. Main had moved to 1.0.0 (one `intent` skill), so 0.13.26 would sort below it. Slice 3's entry is `[product-engineering][1.0.1]`, above `[product-engineering][1.0.0]`.
+- Git's rename detection carried slice 3's `Related intents:` template line and eval into main's new `intent` skill. The entry now names that skill.
+- Conflicts resolved:
+  - the changelog;
+  - both manifests of each pack;
+  - the three `close-work/evals/evals.json` copies, as a union of eval 20 and `reconcile-implemented-design`;
+  - `.claude-plugin/marketplace.json`, regenerated;
+  - `skill-census.json`, with `population_size` set to the merged entry count, 132.
+- Copies: every `close-work`, `navigate-intents`, and `work-loop` copy of `intent_delivery_relations.py` and `_file_safety.py` is byte-identical to `packs/core/.apm/adapter-root-bins/` (`cmp`). `test_intent_delivery_relations_copies.py` passes.
+- Checks on the merged tree:
+  - `test_two_sided_prune_closure_invariant.py` 47 passed, including the delivery-contract test.
+  - Folder runs pass: `packs/core/tests/pack` 416, `navigate-intents` 439 with 4 skipped, `close-work` 412, `work-intake` 909, `product-engineering` 60, and `agent-skill-engineering` 267.
+  - `catalogue lint --deep` and `verify` are ok, the pack-boundary lint passes, `lint-ruff` and `lint-mypy` pass, and self-host is idempotent.
+  - In `packs/core/tests/skills/work-loop`, `test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content[deep-nesting]` fails locally under Python 3.14. It fails the same way on unmodified `origin/main`, so this branch did not cause it.
+- Status: slice 1 and this spec are `Shipped` with every criterion checked, and both plans are `Done`. Both entries are in `["ini-010".work].shipped`, and `["ini-010".work].active` is empty. `lint-spec-status` is clean, and `workspace_status.py reconcile` reports no finding for either spec. The brief's Constraints now say "brought up to date by merging the default branch".
+- Browser record on the merged head `6a6746e5409ea74a0c9e76944e06f8f7705c5d1a`: `view_browser_checks.py -q -rs` gave 50 passed and 0 skipped. `view.js` SHA-256 is `8091d41351577477db7684f8ce07b1ff7aac165838525f6767bfc1e632e82c00` and `view.css` is `b65172538e39efd36ddccfa72ad50cb18e3ed660f9957ac24c3d92f426aa708b`, unchanged by the merge.
+- AC-0068 export repeated on that head: `python3 packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py export --root . --destination <scratch> --name publish.html` returned `ok` at 577,498 bytes. Counts: 168 intents, 24 briefs, 558 specs, 202 outstanding, 0 refused edges, 100 parentless intents.
