@@ -471,20 +471,20 @@ DECIDE: list[Item] = [
     Step("Make the strategic call", ["write-prfaq", "run-okr-cascade", "define-ux-strategy"]),
 ]
 SHORT: list[Item] = [
-    Step("Frame the intent", ["frame-intent"]), Gate("Approve the intent", "G0"),
-    Step(["Test the riskiest", "assumption"], ["de-risk-intent"]),
+    Step("Frame the intent", ["intent frame"]), Gate("Approve the intent", "G0"),
+    Step(["Test the riskiest", "assumption"], ["intent de-risk"]),
     Step(["Shape the architecture", "(optional)"], ["architect-design"],
          note=["Offered while framing.", "Take it before you cut",
                "the work. If it changes", "the capabilities, take",
                "the longer route."],
          dashed=True),
-    Step(["Break it into", "buildable pieces"], ["decompose-intent"]),
+    Step(["Break it into", "buildable pieces"], ["intent decompose"]),
 ]
 LONGER: list[Item] = [
     Step("Frame the situation", ["frame-situation"]),
     Step("Find the opportunities", ["identify-opportunities"]),
     Step("Generate options", ["diverge-solutions"]),
-    Step(["Test the riskiest", "assumption"], ["de-risk-intent"]),
+    Step(["Test the riskiest", "assumption"], ["intent de-risk"]),
     Step("Place a bet", ["place-bet"]),
     Step(["Map the capabilities", "and a build order"], ["map-capabilities"]),
     Step(["Design against the", "capabilities (optional)"], ["architect-design"],
@@ -494,8 +494,8 @@ LONGER: list[Item] = [
          dashed=True),
 ]
 SUPERVISED: list[Item] = [
-    Step("Frame the intent", ["frame-intent"]), Gate("Approve the intent", "G0"),
-    Step("De-risk and explore", ["de-risk-intent", "explore-options"]),
+    Step("Frame the intent", ["intent frame"]), Gate("Approve the intent", "G0"),
+    Step("De-risk and explore", ["intent de-risk", "explore-options"]),
     Gate("Usually automatic", "G1", auto=True),
     Step("Ground the domain", ["frame-domain"]), Gate("Set the MVP", "G1.5"),
     Step(["Design, system, and", "contracts in parallel"],
@@ -503,7 +503,7 @@ SUPERVISED: list[Item] = [
           "api-contract"],
          note=["then a threat and", "reliability review"]),
     Gate("Approve the brief", "G2"),
-    Step(["Break it into", "buildable pieces"], ["decompose-intent"]),
+    Step(["Break it into", "buildable pieces"], ["intent decompose"]),
 ]
 BUILD: list[Item] = [
     Step("Route the work", ["work-intake"], note="picks a spec, a brief, or an intent", num=1),

@@ -31,7 +31,7 @@ Show me the Atlas Jira backlog and identify stories that are not ready for engin
 shaping happens in `docs/product/` and the tracker is a shallow copy for
 reporting and team visibility. Feature intents and slices are projected out;
 the intent tree stays canonical, status never returns from the tracker, and the
-[projection contract](../../packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md)
+[projection contract](../../packs/product-engineering/.apm/skills/intent/references/tracker-projection.md)
 is applied by hand or through a one-shot export you operate; no exporter or
 live API integration ships today.
 

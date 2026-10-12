@@ -30,7 +30,7 @@ Set up credentials for Linear so I can read the Checkout Redesign project into t
 **Repo-first projection (the product-shaping default):** Use this when product
 shaping happens in `docs/product/` and Linear is a shallow copy for reporting
 and team visibility. Feature intents and slices are projected out; the intent
-tree stays canonical, status never returns from Linear, and the [projection contract](../../packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md)
+tree stays canonical, status never returns from Linear, and the [projection contract](../../packs/product-engineering/.apm/skills/intent/references/tracker-projection.md)
 is applied by hand or through a one-shot export you operate; no exporter or
 live API integration ships today.
 

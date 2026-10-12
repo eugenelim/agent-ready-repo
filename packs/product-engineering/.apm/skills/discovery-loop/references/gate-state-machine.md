@@ -19,7 +19,7 @@ guards.
 | **approve-with-constraint** | OK, but a scope cut / condition that **must be honoured before proceeding, not jumped past** | record the constraint into the **Scope Boundary**; re-run only the lenses it touches; **do not advance** until the reduced surface re-converges |
 | **redirect / steer** | not this — go *this* way | record the new direction as an `intent` steer; **surface the impact** (which slots it obsoletes); on confirm, cascade-invalidate that scoped set and re-enter convergence with the steer as input |
 | **explore-alternatives** | show me other paths first | route **back to the divergence phase** — `explore-options` regenerates candidate shapes around the steer, then converge the chosen one |
-| **abandon** | kill it | record the kill + rationale (the `de-risk-intent` kill-condition shape); cascade-invalidate the whole subtree to `abandoned`; close the node |
+| **abandon** | kill it | record the kill + rationale (the `intent de-risk` kill-condition shape); cascade-invalidate the whole subtree to `abandoned`; close the node |
 | **park / defer** | not now | set the node `parked` in the sub-idea index; resumable later; advance siblings |
 | **extend / override** | keep going past a bound | grant more `round_cap` / `cost_budget` (or lift a structural bound) and resume — the row used at a **paused-at-bound** gate; records the new bound + rationale |
 

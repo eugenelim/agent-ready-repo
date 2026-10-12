@@ -31,7 +31,7 @@ order: 3
 | Skill | Needs | What it produces | Needed? |
 | --- | --- | --- | --- |
 | `place-bet` | A selected candidate | The bet, what it assumes, and what would falsify it. | Required |
-| `de-risk-intent` | A placed bet | The riskiest assumptions, ranked, with how to test each. | Required |
+| `intent de-risk` | A placed bet | The riskiest assumptions, ranked, with how to test each. | Required |
 | `plan-validation` | Ranked assumptions | What to test, in what order, and what result decides what. | Optional |
 | `map-capabilities` | A placed bet | The capabilities the bet requires, and which exist today. | Optional |
 
@@ -42,7 +42,7 @@ where this repository keeps product artifacts, and the agent asks when it is
 not configured; `<discovery_dir>` is where the discovery loop keeps its
 initiative directories, defaulting to `docs/discovery/`. The agent tells you
 which path it wrote to.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/agentbundle-layout.md -->
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->
@@ -114,45 +114,45 @@ requiring webhooks have been identified).
 
 *An excerpt of the example the skill ships. Risks accepted, assumptions, the kill condition, the next step and the `workspace.toml` transition continue below it.*
 
-## Run `de-risk-intent` — attack the assumptions
+## Run `intent de-risk` — attack the assumptions
 
 **You type:**
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 ```
 De-risk this bet — what are the riskiest assumptions, and how would we test each cheaply?
 ```
 
 **Agent returns:**
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 > **Agent:** Done — I've ranked the assumptions by risk, each with a test that would resolve it, and carried the validation hook onto the intent.
 
 **You push back:**
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 > **You:** The riskiest assumption is ranked third because it is the hardest to test. Rank by risk, and let the test cost be a separate column.
 >
 > **Agent:** I re-ranked by risk alone and moved test cost into its own column, which changed what we should test first.
 
 **Output varies** with how novel the bet is and how much of it rests on unverified belief.
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 **No decision gate at this step.**
 <!-- rung: authored -->
 
 **Check (testable):** Ask which assumption, if wrong, costs the most to discover late; this surfaces a ranking sorted by convenience.
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 **Watch out for:** Assumptions get ranked by how easy they are to test rather than by risk, which puts the dangerous one last. Notice a ranking that matches test cost exactly.
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 **Where it lands:** `<output_dir>/intents/<slug>.md` — no new file; the verdict and a `validation_hook` go back onto the intent.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 **What it looks like:**
-<!-- rung: packs/product-engineering/.apm/skills/de-risk-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/de-risk.md -->
 
 ```
 validation_hook:

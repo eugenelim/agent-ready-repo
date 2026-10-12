@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0142 D3,D4,D9
 - **Related:** RFC-0030 (the product-engineering pack — decision #9 + Appendix A, which
   accepted this layer); ADR-0019 (the v1 `intent` ontology /
   brief-as-projection / contract-maturity, which deferred these decisions to

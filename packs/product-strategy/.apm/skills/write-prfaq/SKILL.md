@@ -49,6 +49,6 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 ## Anti-patterns
 
-- **PRFAQ as a spec.** The PRFAQ is not an implementation contract — it does not define API boundaries, architecture, or feature-level acceptance criteria. Those belong in `frame-intent` and downstream specs.
+- **PRFAQ as a spec.** The PRFAQ is not an implementation contract — it does not define API boundaries, architecture, or feature-level acceptance criteria. Those belong in `intent frame` and downstream specs.
 - **Jargon-filled problem statements.** The problem section must be written in the customer's words. "Lack of operational visibility into cross-functional dependencies" is not a customer problem; "I can't tell if my team's work is blocked by another team" is.
 - **Leadership quote as a placeholder.** A "TBD" or "[CEO name]" quote defeats the purpose — the quote should force the author to articulate the strategic rationale clearly enough to attribute to a role.

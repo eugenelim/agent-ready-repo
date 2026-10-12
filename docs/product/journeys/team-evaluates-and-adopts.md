@@ -44,7 +44,7 @@ Two distinct paths share this journey:
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
 | core | repo | current | `work-loop`, `workspace-status`, `new-spec`, `receive-brief`, `workspace.toml` schema |
-| PE pack | user | optional for evaluation | `frame-intent`, `de-risk-intent` — not needed to evaluate or demonstrate the build room |
+| PE pack | user | optional for evaluation | `intent frame`, `intent de-risk` — not needed to evaluate or demonstrate the build room |
 
 **Self-serve setup:**
 1. Install core pack at repo scope.

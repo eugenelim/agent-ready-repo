@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.52.1] — 2026-10-11
+
+### Changed
+
+- The packaged `workspace_status_engine.py` maps the `shape` entry type, and its
+  fallback, to `intent`, in step with Core 3.0.4. The MCP `workspace_status`
+  tool's `shape` dispatch names `intent` too.
+- Compatibility: the shaping suggestion and the `shape` dispatch now name
+  `intent`, which needs `product-engineering` 1.0.0 or later.
+
 ## [0.52.0] — 2026-10-08
 
 ### Changed

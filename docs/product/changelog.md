@@ -64,6 +64,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.0.4] — 2026-10-11
+
+### Highlights
+
+- `workspace-status` now suggests `intent` for a `shape` entry. Install `product-engineering` 1.0.0 or later so that suggestion resolves to a skill you have.
+
+### Changed
+
+- `workspace-status` maps the `shape` entry type, and its fallback, to `intent`. `work-intake`, `work-loop`, and `init-project` name `intent` where they named a retired shaping skill.
+- **Compatibility:** the shaping suggestion and the `shape` dispatch now name `intent`, which needs `product-engineering` 1.0.0 or later.
+
+## [product-engineering][1.0.0] — 2026-10-11
+
+### Highlights
+
+- Shape product work with one skill. Use `intent frame` to turn an idea into an outcome and the opportunity behind it. Use `intent de-risk` to test the assumption that would sink it. Use `intent decompose` to break what survives into child intents or a delivery contract.
+- Not sure how much shaping a piece of work needs? Ask `intent` which way to go. Route mode names the short, longer, or supervised route and where it starts, then offers the first step without taking it.
+- Every `intent` mode shows where you are on the intent lifecycle, offers the next step, and recommends the shaping review at the point it applies.
+
+### Removed
+
+- `frame-intent`: use `intent frame`.
+- `de-risk-intent`: use `intent de-risk`.
+- `decompose-intent`: use `intent decompose`.
+- There are no aliases. A request that used to reach one of these skills now reaches `intent` and its mode.
+- **Stale installed directories.** `agentbundle upgrade` adds `intent/` but leaves the three old skill directories in place, so the old names stay discoverable. After updating, either delete `frame-intent/`, `de-risk-intent/`, and `decompose-intent/` from your installed skills directory, or run `agentbundle uninstall --pack product-engineering` and then `agentbundle install --pack product-engineering` at the same scope.
+
+### Changed
+
+- `discovery-loop`'s description and its G3 row hand a converged decision brief to Core's `work-intake`. `discovery-loop` and the `discovery-lead` agent name the `intent` mode at each gate.
+- Sibling skill descriptions name `intent frame`, `intent de-risk`, or `intent decompose` where they named a retired skill.
+- The `intent` evals merge the three source eval sets.
+- `intent` pre-approves no tools. `frame-intent` pre-approved writes, edits, and agent dispatch; now every `intent` mode, `frame` included, writes and edits under your permission settings. An interactive session asks before the first write. A headless run (`claude -p`) must grant `Write` and `Edit`, for example with `--allowed-tools` or `--permission-mode acceptEdits`.
+
+### Evidence
+
+- **Hosts measured:** activation was measured on Claude Code only. Cursor, Copilot, and Gemini CLI were not measured.
+- **Activation:** on 42 held-out queries run 3 times each, the positive trigger rate was 0.711 against 0.70 before the fold, and the false-trigger rate was 0.000 against 0.00. The held-out misses from an earlier run informed the `de-risk` wording, so the held-out set is not a fully unseen test of that revision.
+- **Mode accuracy:** this was evidenced by a classification probe that read skill descriptions, not by an activation run. In the probe, 33 of 33 post-fold runs chose the expected skill and mode at high confidence.
+- **Pre-fold misses:** before the fold, two probe cases fell short. The "which way should we shape this" request chose `intake-intent` at low confidence instead of `frame-intent`. The raw market-signal request chose `frame-situation`, as expected, but at medium confidence.
+
+## [agentbundle][0.52.1] — 2026-10-11
+
+### Highlights
+
+- The workspace-status MCP tool now dispatches a `shape` entry to `intent`. Install `product-engineering` 1.0.0 or later so the dispatch resolves.
+
+### Changed
+
+- The packaged `workspace_status_engine.py` and the workspace-status MCP tool's `shape` dispatch now name `intent`, in step with Core 3.0.4.
+- **Compatibility:** the shaping suggestion and the `shape` dispatch now name `intent`, which needs `product-engineering` 1.0.0 or later.
+
+## [experience-design][4.1.5] — 2026-10-11
+
+### Changed
+
+- Seven skill descriptions (`creative-direction`, `process-mapping`, `service-blueprint`, `interaction-design`, `design-review`, `user-flow`, and `design-system`) name `intent` or `intent frame` where they named `frame-intent`. The `process-mapping` template and eval name `intent` too.
+
+## [governance-extras][1.0.2] — 2026-10-11
+
+### Changed
+
+- `new-rfc` and its product-engineering design-proposal integration name `intent` (frame or de-risk output) as the shaping provider, in place of `frame-intent` and `de-risk-intent`.
+
+## [product-strategy][0.2.8] — 2026-10-11
+
+### Changed
+
+- `run-okr-cascade`, `run-swot`, and `write-prfaq` name `intent frame` where they named `frame-intent`.
+
 ## [core][3.0.3] — 2026-10-10
 
 ### Highlights

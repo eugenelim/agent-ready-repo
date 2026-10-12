@@ -26,9 +26,9 @@ skills:
   - name: discovery-loop
     description: "The discovery supervisor. Diverges across candidate product shapes, drives the lens roster to convergence, and emits a connected hypothesis with validation hooks."
     humanTouches: 4
-  - name: frame-intent
-    description: "Establishes product framing — problem, user, outcome — before the loop begins; optionally requests Core's independent shaping review when available."
-    humanTouches: 1
+  - name: intent
+    description: "Shapes product work on the short route: frames a problem, user, and outcome into a level-tagged intent (optionally requesting Core's independent shaping review), surfaces the riskiest assumption and designs a prototype approach to de-risk it, then decomposes the chosen direction into briefs and specs for the delivery loop."
+    humanTouches: 3
   - name: frame-domain
     description: "Grounds the product in the real-world activity it serves and bounds the MVP — produces Domain Framing and Scope Boundary artifacts before the convergent design loop."
     humanTouches: 1
@@ -44,17 +44,11 @@ skills:
   - name: lean-canvas
     description: "Elicits an initiative brief through an adapted Lean Canvas (simple 5-box or full 9-box) and produces a single shareable initiative brief with a Value Proposition section."
     humanTouches: 1
-  - name: de-risk-intent
-    description: "Surfaces the riskiest assumption and designs a prototype approach to de-risk it before committing to build."
-    humanTouches: 1
   - name: place-bet
     description: "Step 5 of the PE six-step shaping sequence — commits the team to a chosen direction by producing a structured bet.md with a full betting table for map-capabilities to reason against."
     humanTouches: 1
   - name: map-capabilities
     description: "Step 6 (terminal) of the PE six-step shaping sequence — translates a committed bet into a Capability Map with L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing."
-    humanTouches: 1
-  - name: decompose-intent
-    description: "Decomposes the chosen direction into briefs and specs for the delivery loop."
     humanTouches: 1
   - name: explore-options
     description: "Generates candidate product shapes with distinct tradeoff profiles."
@@ -72,7 +66,7 @@ humanGates:
   - id: approve-intent
     globalGate: "G0"
     label: "Approve the intent"
-    trigger: "After frame-intent emits the initial framing"
+    trigger: "After intent frame emits the initial framing"
     duration: "10–15 minutes"
     whatToCheck:
       - "Is the problem statement specific enough to eliminate candidates? (A vague problem cannot be de-risked.)"
@@ -150,9 +144,9 @@ goodOutputDescription: |-
 | Say this | What happens |
 |----------|-------------|
 | `discovery-loop` | Start or resume a supervised end-to-end discovery |
-| `frame-intent` | Frame a product problem at any altitude |
-| `de-risk-intent` | Surface the riskiest assumption and design a prototype approach |
-| `decompose-intent` | Break the converged intent into delivery briefs and specs |
+| `intent frame` | Frame a product problem at any altitude |
+| `intent de-risk` | Surface the riskiest assumption and design a prototype approach |
+| `intent decompose` | Break the converged intent into delivery briefs and specs |
 | `ux-writing` | Characterize the product voice and write per-state UI copy |
 
 ---
@@ -178,18 +172,18 @@ The set is **open**: if your org operates at an altitude the recognized set does
 
 **De-risking shifts with the level.** At `product-vision` and `product-strategy`, the riskiest assumption is market-existence — will anyone want this at all, can it be a business? That bet is tested once at the top, not relitigated per feature. At `capability`, the risk is architectural or adoption-shaped. At `feature`, it's desirability — do users want this feature?
 
-**Decomposition runs one level at a time.** A `capability` intent decomposes into `feature` intents; a `feature` intent decomposes into a spec/slice — the shippable unit your delivery loop builds. Each child re-enters the loop at its own level: `frame-intent` → `de-risk-intent` → `decompose-intent`.
+**Decomposition runs one level at a time.** A `capability` intent decomposes into `feature` intents; a `feature` intent decomposes into a spec/slice — the shippable unit your delivery loop builds. Each child re-enters the loop at its own level: `intent frame` → `intent de-risk` → `intent decompose`.
 
 ---
 
 ### 1. Shape intent
 
-Type `frame-intent` and describe the product problem — any altitude, any level of clarity. The agent will confirm the level with you before framing begins; if the scope implies a higher bet, it will offer to raise it.
+Type `intent frame` and describe the product problem — any altitude, any level of clarity. The agent will confirm the level with you before framing begins; if the scope implies a higher bet, it will offer to raise it.
 
 **At feature level** — the scope is already clear, one shippable slice:
 
 ```text
-frame-intent
+intent frame
 
   Level    feature
   Problem  New users don't understand the product's value in the first session.
@@ -202,7 +196,7 @@ Ratify framing? ›
 **At capability level** — committing a bounded platform or capability:
 
 ```text
-frame-intent
+intent frame
 
   Level    capability
   Problem  Every team builds its own billing integration — no shared primitives.
@@ -215,7 +209,7 @@ Ratify framing? ›
 **At product-vision level** — the existence bet is the open question:
 
 ```text
-frame-intent
+intent frame
 
   Level    product-vision
   Problem  Small studios can't afford dedicated developer tooling, so they ship slowly and inconsistently.
@@ -294,10 +288,10 @@ Mid-discovery check — confirm candidates? ›
 
 ### 5. Converge on the candidate
 
-The agent runs `de-risk-intent` to surface the riskiest assumption and design a test, then `decompose-intent` to break the winning shape into the next level down.
+The agent runs `intent de-risk` to surface the riskiest assumption and design a test, then `intent decompose` to break the winning shape into the next level down.
 
 ```text
-de-risk-intent
+intent de-risk
 
   Assumption   Users complete the wizard without abandoning at step 2.
   Kill cond.   < 4 of 6 target users reach step 3 in a moderated prototype session.
@@ -305,7 +299,7 @@ de-risk-intent
   Hook         Conduct 6 moderated prototype sessions with target user profile.
 ```
 
-What `decompose-intent` produces depends on your level:
+What `intent decompose` produces depends on your level:
 
 - **At `capability` or above** — child intents at the next level down (e.g. a capability intent produces feature intents). Each child re-enters the loop at its own level and is de-risked independently.
 - **At `feature`** — one independently shippable feature becomes a delivery

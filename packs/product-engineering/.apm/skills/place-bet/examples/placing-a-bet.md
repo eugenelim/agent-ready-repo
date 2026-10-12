@@ -146,12 +146,12 @@ The skill resolves:
 **Skill surfaces missing validation before populating the table:**
 
 > No validation evidence found at `docs/product/shaping/onboarding-friction/`.
-> I see no `validation-notes.md` and no `de-risk-intent` output, and you
+> I see no `validation-notes.md` and no `intent de-risk` output, and you
 > haven't described validation you have done.
 >
 > **Placing a bet without validation is an accepted risk, not a silent default.**
 >
-> Would you like to proceed, or run `de-risk-intent` (or document validation
+> Would you like to proceed, or run `intent de-risk` (or document validation
 > notes) first?
 
 **PE confirms:** "Proceed — we're time-boxed and comfortable with the risk."
@@ -167,7 +167,7 @@ The skill resolves:
 | rationale | Testable step-by-step; no video production budget required. Video tour (Option 2) ruled out on cost and maintainability grounds. |
 | risks-accepted | No comparative user validation; team is betting on the checklist pattern without structured evidence |
 | assumptions | Users complete the checklist rather than skipping; analytics events are instrumented on first-login steps |
-| kill-condition | _(blank — no de-risk-intent output available)_ |
+| kill-condition | _(blank — no intent de-risk output available)_ |
 | next-step | map-capabilities |
 
 Artifact written to `docs/product/shaping/onboarding-friction/bet.md`

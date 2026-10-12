@@ -62,9 +62,9 @@ these types (RFC-0067 §B3):
 
 | Type | Skill routed by `workspace-status` | Notes |
 | --- | --- | --- |
-| `shape` (default) | `frame-intent` | Default when `type` is absent |
+| `shape` (default) | `intent frame` | Default when `type` is absent |
 | `research` | `desk-research-project-start` | Requires desk-research pack |
-| `strategy` | `frame-situation` (PE pack — M2); interim: `frame-intent` | |
+| `strategy` | `frame-situation` (PE pack — M2); interim: `intent frame` | |
 | `signal` | no action — surfaces in "active context" only | Ongoing; does not graduate |
 | `design` | `experience-status` (requires experience-design pack); fallback: `journey-mapping` | RFC-0067 §B3 |
 

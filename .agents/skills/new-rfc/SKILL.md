@@ -110,7 +110,7 @@ implementation review for a reversible, time-bounded trial with exit criteria.
    when no assumption is genuinely at risk.
 
    If a promoted research or design artifact already exists — a `desk-research` brief, a
-   `frame-intent`/`de-risk-intent` shaping output, an `architect-design` or
+   `intent frame`/`intent de-risk` shaping output, an `architect-design` or
    `architect-review` result — read it and cite it instead of repeating the work. Say so
    when a provider is absent; absence is never a failure and never justifies a stand-in
    file. A direct RFC request needs no synthetic intent; an accepted intent or design

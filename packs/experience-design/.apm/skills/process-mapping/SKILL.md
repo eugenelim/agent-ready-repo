@@ -1,13 +1,13 @@
 ---
 name: process-mapping
-description: "Use when a team asks how an internal business operation works today or should work tomorrow across actors and handoffs. Produces a SIPOC scope, swimlane map, as-is/to-be flow, and pain-and-waste register. Use `journey-mapping` for the customer's experience, `service-blueprint` to connect a journey to backstage support, and `user-flow` for screens. Operating or product strategy belongs upstream; shaping an automation bet belongs to `frame-intent`; implementing workflow software belongs to engineering. Triggers on \"map our monthly close process as it works today\", \"show the handoffs in our supplier invoice process\", \"design the to-be process for customer refunds\"."
+description: "Use when a team asks how an internal business operation works today or should work tomorrow across actors and handoffs. Produces a SIPOC scope, swimlane map, as-is/to-be flow, and pain-and-waste register. Use `journey-mapping` for the customer's experience, `service-blueprint` to connect a journey to backstage support, and `user-flow` for screens. Operating or product strategy belongs upstream; shaping an automation bet belongs to `intent`; implementing workflow software belongs to engineering. Triggers on \"map our monthly close process as it works today\", \"show the handoffs in our supplier invoice process\", \"design the to-be process for customer refunds\"."
 ---
 
 # Skill: process-mapping
 
 Produces an **internal business process map** — the inside-out sibling of `journey-mapping`. Where the journey skill maps what a customer experiences frontstage and outside-in, this skill maps what the organisation does backstage and inside-out: the actors, the handoffs, the decision gates, the waste, and the target state. The method is anchored on the APQC L3 process (named flow: trigger → outcome → roles → steps), decomposed to L4 activities (cross-functional handoffs and decision gates — the swimlane content). L5 tasks are work-instruction territory and are out of scope here. See `references/process-mapping.md`.
 
-**Inputs:** job aids, SOPs, or work instructions (primary); SME knowledge elicited inline when no documents are present. Both are standalone-useful without upstream design artifacts. **Consumed by:** `product-engineering`'s `frame-intent` skill — this map is the producer of the "current-state process map" input that `frame-intent` uses as a brownfield constraint. **Cross-reference:** when the process being mapped is triggered by a customer action, cross-reference the service blueprint by name (the `service-blueprint` output for the same journey).
+**Inputs:** job aids, SOPs, or work instructions (primary); SME knowledge elicited inline when no documents are present. Both are standalone-useful without upstream design artifacts. **Consumed by:** `product-engineering`'s `intent` skill — this map is the producer of the "current-state process map" input that `intent` uses as a brownfield constraint. **Cross-reference:** when the process being mapped is triggered by a customer action, cross-reference the service blueprint by name (the `service-blueprint` output for the same journey).
 
 ## Output rendering
 
@@ -58,7 +58,7 @@ Confirm all three before drafting; if any fails, resolve it first.
 
 7. **Write the artifact.** Use the template in `assets/process-flow-template.md`. Write to the resolved path with frontmatter `type: process-flow`. Confirm the written path matches the path surfaced in step 1.
 
-8. **Name the seams.** At the end of the map, add a `## Seams` section. If the process is customer-triggered, name the `service-blueprint` artifact that covers the customer-facing layer of the same journey. Name `frame-intent` (in the `product-engineering` pack) as the consumer of this map — it uses it as a brownfield constraint input.
+8. **Name the seams.** At the end of the map, add a `## Seams` section. If the process is customer-triggered, name the `service-blueprint` artifact that covers the customer-facing layer of the same journey. Name `intent` (in the `product-engineering` pack) as the consumer of this map — it uses it as a brownfield constraint input.
 
 ## Anti-patterns to refuse
 

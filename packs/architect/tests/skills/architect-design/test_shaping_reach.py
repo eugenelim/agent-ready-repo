@@ -81,7 +81,7 @@ def test_design_md_downstream_names_only_consumed_routes() -> None:
     section = _design_section("Downstream: core")
     assert "reads it to orient" not in section
     for phrase in (
-        "`decompose-intent`",
+        "`intent decompose`",
         "design context",
         "`current-architecture`",
         "`AGENTS.md` maps",

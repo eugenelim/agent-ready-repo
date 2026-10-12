@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.52.1
+
+The workspace-status engine and MCP tool now route `shape` entries to
+`intent`. The shaping suggestion and the `shape` dispatch need
+`product-engineering` 1.0.0 or later.
+
 ## What's new in 0.52.0
 
 The workspace-status MCP tool now surfaces a former legacy entry (a bare

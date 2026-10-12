@@ -41,7 +41,7 @@ where this repository keeps product artifacts, and the agent asks when it is
 not configured; `<discovery_dir>` is where the discovery loop keeps its
 initiative directories, defaulting to `docs/discovery/`. The agent tells you
 which path it wrote to.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/agentbundle-layout.md -->
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->

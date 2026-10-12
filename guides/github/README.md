@@ -29,7 +29,7 @@ Intake the release-planning milestone from example-org/example-repo as repositor
 **Repo-first projection (the product-shaping default):** Use this when product
 shaping happens in `docs/product/` and GitHub is a shallow copy for reporting
 and team visibility. Feature intents and slices are projected out; the intent
-tree stays canonical, status never returns from GitHub, and the [projection contract](../../packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md)
+tree stays canonical, status never returns from GitHub, and the [projection contract](../../packs/product-engineering/.apm/skills/intent/references/tracker-projection.md)
 is applied by hand or through a one-shot export you operate; no exporter or
 live API integration ships today.
 

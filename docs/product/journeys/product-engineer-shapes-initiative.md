@@ -36,7 +36,7 @@ updated: 2026-07-18
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| PE pack | user | current (M1 skills); M2 skills planned | `frame-intent`, `de-risk-intent` (current); `frame-situation`, `identify-opportunities`, `diverge-solutions`, `place-bet`, `map-capabilities` (M2) |
+| PE pack | user | current (M1 skills); M2 skills planned | `intent frame`, `intent de-risk` (current); `frame-situation`, `identify-opportunities`, `diverge-solutions`, `place-bet`, `map-capabilities` (M2) |
 | core | repo | M1 required for queue write-back | `workspace-status`, `author-brief`, `receive-brief`; `[shaping_queue]` and `[brief_queue]` schema |
 
 **One-time setup:**
@@ -56,14 +56,14 @@ updated: 2026-07-18
 sequenceDiagram
     participant PE as Product Engineer
     participant A as Agent
-    participant SK as Skills (frame-intent, de-risk-intent)
+    participant SK as Skills (intent frame, intent de-risk)
     participant F as Repo files
 
     Note over PE,F: Shaping today — session-bound
     PE->>A: Shape the X initiative
-    A->>SK: frame-intent [intent description]
+    A->>SK: intent frame [intent description]
     SK-->>A: Intent framed — altitude 1
-    A->>SK: de-risk-intent
+    A->>SK: intent de-risk
     SK-->>A: Risks surfaced
     A-->>PE: Here is the framing and risk register
     Note over A: Session closes — artifacts in context only
@@ -81,7 +81,7 @@ sequenceDiagram
     participant FS as frame-situation
     participant IO as identify-opportunities
     participant DS as diverge-solutions
-    participant DRI as de-risk-intent
+    participant DRI as intent de-risk
     participant PB as place-bet
     participant MC as map-capabilities
     participant AB as author-brief
@@ -108,7 +108,7 @@ sequenceDiagram
     DS->>SA: solution-options.md (structured comparable options)
     DS-->>PE: Options framed · identify riskiest assumption?
 
-    PE->>DRI: de-risk-intent [option set]
+    PE->>DRI: intent de-risk [option set]
     DRI-->>PE: Riskiest assumption: X · prototype approach: Y · what to validate
 
     Note over PE: Validate — prototype / research / user contact (human judgment)
@@ -133,11 +133,11 @@ sequenceDiagram
 
 ## Stage 1: Signal → Situation
 
-### Now (frame-intent only)
+### Now (intent frame only)
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Receives a signal (user pain, metric drop, strategic gap). Runs `frame-intent` to articulate the intent. Produces a session-bound framing. |
+| **Actions** | Receives a signal (user pain, metric drop, strategic gap). Runs `intent frame` to articulate the intent. Produces a session-bound framing. |
 | **Emotions** | Engaged but uncertain (neutral). The framing is useful but ephemeral — it doesn't survive the session and has no structured route to next steps. |
 | **Pains** | "I've framed the intent but I don't know what kind of problem this is or which step of the six-step sequence to run next." "The framing lives in session context — if I close the terminal, it's gone." "No structured way to classify signals (user pain vs. market gap vs. strategic gap vs. engineering finding)." |
 | **Opportunities** | A situation-framing skill that classifies the signal type, produces a typed finding, and routes to the right next step. Committed output that survives the session. |
@@ -152,7 +152,7 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Tries to articulate what job-to-be-done or opportunity underlies the signal. Runs `frame-intent` for framing, but it doesn't surface JTBD structure. Works it out manually. |
+| **Actions** | Tries to articulate what job-to-be-done or opportunity underlies the signal. Runs `intent frame` for framing, but it doesn't surface JTBD structure. Works it out manually. |
 | **Emotions** | Frustrated (negative). Without a structured opportunity-assessment skill, the work is ad-hoc and the output varies wildly in quality and structure. |
 | **Pains** | "I know there's an opportunity here but I can't structure it consistently." "No JTBD framing — I miss the emotional and social jobs behind the functional one." "Different PEs produce incomparable opportunity assessments." |
 | **Opportunities** | `identify-opportunities` producing a structured assessment with functional / emotional / social job framing. Committed artifact that any reviewer can compare across initiatives. |
@@ -182,12 +182,12 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Selects a preferred option from the brainstorm. Runs `de-risk-intent` to surface the riskiest assumption. Validates through research, user contact, or internal review — with no structured handoff from the options artifact. |
+| **Actions** | Selects a preferred option from the brainstorm. Runs `intent de-risk` to surface the riskiest assumption. Validates through research, user contact, or internal review — with no structured handoff from the options artifact. |
 | **Emotions** | Uncertain (neutral). No clear signal about what specifically to validate or when enough is enough. |
 | **Pains** | "I know I should validate but I'm not sure what the riskiest assumption actually is." "Validation findings live in email threads or Notion — the next person picking this up doesn't know what was checked." "No minimum bar for 'validated enough' — I commit when I feel ready, not when I've hit a defined threshold." |
-| **Opportunities** | `de-risk-intent` as structured validate-step entry: identifies the riskiest assumption in the option set and suggests a prototype approach — gives the PE a concrete thing to go test rather than validating blindly. A `validation-notes.md` seed (convention, not a skill) captures findings for the next person. |
+| **Opportunities** | `intent de-risk` as structured validate-step entry: identifies the riskiest assumption in the option set and suggests a prototype approach — gives the PE a concrete thing to go test rather than validating blindly. A `validation-notes.md` seed (convention, not a skill) captures findings for the next person. |
 
-> **With M2** — `de-risk-intent` positions as step-3.5: called after `diverge-solutions`, before the human validation work; surfaces riskiest assumption + prototype approach so the PE knows exactly what to test. The actual validation (prototype, research, user contact) remains human-judgment territory. `validation-notes.md` convention decision (M2 or M3) is deferred to the M2 sub-RFC.
+> **With M2** — `intent de-risk` positions as step-3.5: called after `diverge-solutions`, before the human validation work; surfaces riskiest assumption + prototype approach so the PE knows exactly what to test. The actual validation (prototype, research, user contact) remains human-judgment territory. `validation-notes.md` convention decision (M2 or M3) is deferred to the M2 sub-RFC.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 133,
+  "population_size": 131,
   "entries": [
     {
       "pack": "_example",
@@ -937,22 +937,6 @@
     },
     {
       "pack": "product-engineering",
-      "skill": "de-risk-intent",
-      "families": [
-        "artifact-template-producer"
-      ],
-      "exception": null
-    },
-    {
-      "pack": "product-engineering",
-      "skill": "decompose-intent",
-      "families": [
-        "artifact-template-producer"
-      ],
-      "exception": null
-    },
-    {
-      "pack": "product-engineering",
       "skill": "discovery-loop",
       "families": [
         "composed-workflow-or-skill-family",
@@ -986,14 +970,6 @@
     },
     {
       "pack": "product-engineering",
-      "skill": "frame-intent",
-      "families": [
-        "artifact-template-producer"
-      ],
-      "exception": null
-    },
-    {
-      "pack": "product-engineering",
       "skill": "frame-situation",
       "families": [
         "artifact-template-producer"
@@ -1003,6 +979,14 @@
     {
       "pack": "product-engineering",
       "skill": "identify-opportunities",
+      "families": [
+        "artifact-template-producer"
+      ],
+      "exception": null
+    },
+    {
+      "pack": "product-engineering",
+      "skill": "intent",
       "families": [
         "artifact-template-producer"
       ],

@@ -43,7 +43,7 @@ and hand it to the build loop. They differ in how much ground they cover first.
 - **The short route** is where most teams start. You write the intent, test its
   riskiest assumption, and break it into pieces the build loop can take. Plan on
   about three hours. If framing hits a question about how the system is
-  built, `frame-intent` offers to shape an architecture concept before you
+  built, `intent frame` offers to shape an architecture concept before you
   break it down. If that concept changes the
   capabilities, switch to the longer route.
 - **The longer route** replaces the short one with six steps: a situation,
@@ -125,27 +125,27 @@ carries everything the pictures show, in words.
    to build, and passes on buildable pieces or a capability map.
    `discovery-lead` runs the supervised loop, and a product manager usually
    decides.
-   - *Short route, the default:* `frame-intent`, then you approve the intent
-     (G0), then `de-risk-intent`. If framing hits a question about how the
-     system is built, `frame-intent` parks it as an open design question and
+   - *Short route, the default:* `intent frame`, then you approve the intent
+     (G0), then `intent de-risk`. If framing hits a question about how the
+     system is built, `intent frame` parks it as an open design question and
      offers `architect-design`. Take that one-pass concept any time before you
      break the work down. If that concept changes the
-     capabilities, take the longer route instead. `decompose-intent` breaks it
+     capabilities, take the longer route instead. `intent decompose` breaks it
      into pieces the build loop can take.
    - *Longer route:* `frame-situation`, `identify-opportunities`,
-     `diverge-solutions`, `de-risk-intent`, `place-bet`, and `map-capabilities`.
+     `diverge-solutions`, `intent de-risk`, `place-bet`, and `map-capabilities`.
      Once the build order is set, `map-capabilities` offers `architect-design`
      to design against the capabilities, and you revise them until each one has
      a home. `architect-design` designs
      the subsystems that earn a doc, and `architect-review` checks them. The
      route passes on a capability map with a suggested build order.
-   - *Supervised loop:* `frame-intent` and G0, then `de-risk-intent` and
+   - *Supervised loop:* `intent frame` and G0, then `intent de-risk` and
      `explore-options`. G1 usually passes on its own. `frame-domain` grounds
      the domain and you set the MVP (G1.5). Design, system, and contract work
      run in parallel: `journey-mapping`, `user-flow`, `architect-design`,
      `architect-diagram`, and `api-contract`. A threat and reliability review
      follows. You approve
-     the brief (G2), and `decompose-intent` breaks it into buildable pieces.
+     the brief (G2), and `intent decompose` breaks it into buildable pieces.
 3. **Build it.** `work-intake` picks a spec, a delivery brief, or a minimum
    intent. `new-spec` writes the spec and plan, and you approve both. The
    plan's design follows your `reference.md`, and `new-spec` reads any design
@@ -191,12 +191,12 @@ Two documents come first. The architect skills ground their work in them, and
 | Stage | When | What runs | What it settles |
 | --- | --- | --- | --- |
 | Decide what to build | The bet touches a system that already exists | You run `architect-assess` on that area | What's feasible and what's costly, before the strategic call |
-| Shape it | Feasibility is the riskiest assumption | `de-risk-intent` tests it against the current-state map, or offers `architect-assess` when there is none | Whether it can be built on what exists |
-| Shape it | Framing hits a question about how the system is built | `frame-intent` parks it as an open design question and offers `architect-design` at the scope it needs | The system's shape, kept out of the intent |
+| Shape it | Feasibility is the riskiest assumption | `intent de-risk` tests it against the current-state map, or offers `architect-assess` when there is none | Whether it can be built on what exists |
+| Shape it | Framing hits a question about how the system is built | `intent frame` parks it as an open design question and offers `architect-design` at the scope it needs | The system's shape, kept out of the intent |
 | Shape it | The build order is set | `map-capabilities` offers `architect-design` at system scope | Whether the capabilities fit the system's boundaries |
 | Shape it | The capabilities have settled | `architect-design` at subsystem scope, then `architect-review` | A design doc for each part that earns one |
 | Shape it | The domain you're framing sits in a system that already exists | `frame-domain` starts from the current-state map, or offers `architect-assess` when there is none | How the existing system works today |
-| Shape it | The work is cut into pieces | `decompose-intent` checks each piece against the subsystem boundaries and carries the design into the delivery contract | Pieces that name the contracts they cross |
+| Shape it | The work is cut into pieces | `intent decompose` checks each piece against the subsystem boundaries and carries the design into the delivery contract | Pieces that name the contracts they cross |
 | Build it | `new-spec` writes the plan | Nothing extra | The plan's design follows `reference.md`, and `new-spec` reads the design the contract carries as context |
 | Build it | The build shows a design is wrong | You run `architect-design` at change scope | A change to the design, made in the open |
 | Build it, after the merge | The work closes | `close-work` offers to fold the shipped design into the current-state map. `architect-diagram` can redraw it | The map stays true for the next piece of work |
@@ -208,10 +208,10 @@ In *Shape it*, capabilities and architecture shape each other. Neither one
 finishes before the other starts. The skills supply the offers named here. The
 order and the stop rule are a recommended practice that no skill enforces:
 
-1. **Frame the problem.** `frame-intent` stays on the problem. When framing
+1. **Frame the problem.** `intent frame` stays on the problem. When framing
    hits a question about how the system is built, it records the question and
    offers `architect-design`. When feasibility is the riskiest assumption,
-   `de-risk-intent` tests it against the current-state map.
+   `intent de-risk` tests it against the current-state map.
 2. **Propose the capabilities.** `map-capabilities` does this on the longer
    route. On the short route, the intent itself is the starting point.
 3. **Design against them.** Once the build order is set, `map-capabilities`
@@ -224,10 +224,10 @@ order and the stop rule are a recommended practice that no skill enforces:
    subsystem or an element, no open architecture decision blocks slicing, and
    the decisions worth an ADR are written down. Then design the subsystems that earn a doc,
    and check them with `architect-review`.
-6. **Cut the work.** `decompose-intent` cuts pieces by what can ship on its
+6. **Cut the work.** `intent decompose` cuts pieces by what can ship on its
    own, not by component. A piece that crosses a subsystem boundary names the
    contract it depends on. If a capability needs a structural split before it
-   can be cut, `decompose-intent` offers `architect-design` at subsystem
+   can be cut, `intent decompose` offers `architect-design` at subsystem
    scope. You commit to build at G3.
 
 The short route usually makes one pass. If its concept changes the
@@ -260,7 +260,7 @@ The plan `new-spec` writes has a design section. That section follows
 `reference.md` when it exists, and any current architecture your `AGENTS.md`
 maps. A design doc reaches the spec by two routes:
 
-- **Through the delivery contract.** When `decompose-intent` cuts a feature a
+- **Through the delivery contract.** When `intent decompose` cuts a feature a
   design covers, it carries the design's location in the contract's design
   context. `new-spec` reads it there as context, not as a rule to follow.
 - **Through the current-state map.** After the work ships, `close-work` offers

@@ -31,7 +31,7 @@ The loop first **scans for existing discoveries** (none yet), then scaffolds a n
 
 ## 2. Ratify the value seed (G0)
 
-`frame-intent` writes a `product-vision` intent slot — *an assistant that helps a household run food, calendar, vendors, and budget by drafting and acting only on approval*. The loop pauses with an **option card** and waits. You read it and reply **approve**. The verdict + your rationale land in the (append-only) decision log.
+`intent frame` writes a `product-vision` intent slot — *an assistant that helps a household run food, calendar, vendors, and budget by drafting and acting only on approval*. The loop pauses with an **option card** and waits. You read it and reply **approve**. The verdict + your rationale land in the (append-only) decision log.
 
 ## 3. See the divergence (pre-G1.5)
 
@@ -51,7 +51,7 @@ The loop **surfaces the altitude bet to you** — it is a value/scope call, not 
 
 ## 5. Converge through the lenses
 
-On the chosen spine, the lenses run as parallel writers onto the blackboard — product (`decompose-intent`), UX (`map-customer-journey`, `map-screen-flow`), tech (`architect-design`, `architect-diagram`, and contracts) — bouncing off each other only through the **open-questions queue**. The security lens raises an open question (OQ): *approved-learning needs an audit trail.* The controller resolves it by adding an `audit-view` screen + an `audit` service — no agent-to-agent chat.
+On the chosen spine, the lenses run as parallel writers onto the blackboard — product (`intent decompose`), UX (`map-customer-journey`, `map-screen-flow`), tech (`architect-design`, `architect-diagram`, and contracts) — bouncing off each other only through the **open-questions queue**. The security lens raises an open question (OQ): *approved-learning needs an audit trail.* The controller resolves it by adding an `audit-view` screen + an `audit` service — no agent-to-agent chat.
 
 ## 6. Watch a rejection cascade (recovery)
 

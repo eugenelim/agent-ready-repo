@@ -23,7 +23,7 @@ see where human judgment controlled it.
 | --- | --- | --- | --- | --- |
 | One bounded, independently testable feature | **Technical** | Core at repo scope | `new-spec` | No brief; one Draft spec/plan pair |
 | A structured multi-feature handoff | **Enterprise** | Core at repo scope | `author-delivery-brief continue` → selected slice → `new-spec` | Source brief `Ready`; one Draft spec/plan pair |
-| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `frame-intent` → `de-risk-intent` → `decompose-intent` → `new-spec` | Draft intent and one Draft spec/plan pair; add `author-delivery-brief` only for multi-spec or cross-repository coordination |
+| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `intent frame` → `intent de-risk` → `intent decompose` → `new-spec` | Draft intent and one Draft spec/plan pair; add `author-delivery-brief` only for multi-spec or cross-repository coordination |
 
 The labels name likely audiences; the **input shape chooses the workflow**. A
 technical participant with a multi-feature handoff still uses the enterprise

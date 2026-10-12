@@ -13,8 +13,8 @@ kind: reference
 
 ## Intent fields
 
-The `intent` template (shipped with the `frame-intent` skill at
-`frame-intent/assets/intent-template.md`). An intent's **preamble** is the run
+The `intent` template (shipped with the `intent` skill at
+`intent/assets/intent-template.md`). An intent's **preamble** is the run
 of `- **Field:** value` lines before the first `## ` heading. A corpus check
 reads that region and decides each field by the tier below; a field-shaped line
 in the body is neither read nor judged.
@@ -146,7 +146,7 @@ When `Level` is a product altitude, the `intent` template seeds an extra, **leve
 
 ## De-risk kind by level
 
-`de-risk-intent` tests *this* intent's riskiest assumption in the kind its level calls for:
+`intent de-risk` tests *this* intent's riskiest assumption in the kind its level calls for:
 
 | Level | De-risk kind |
 | --- | --- |
@@ -162,8 +162,8 @@ One **global** axis, resolved once; the rest are **per-intent** flags.
 | --- | --- | --- | --- |
 | **Scale** | global (per repo) | `app` ↔ `business-unit` | *suggests* a starting altitude (decoupled from `Level`, overridable in a word), and sets where work lives + leaf shape; resolved at intake (infer → confirm → ask) |
 | **Maturity** | per-intent | `greenfield` ↔ `brownfield` | brownfield unlocks current-state inputs (journey / process map) |
-| **Reversibility** | per-intent (in `de-risk-intent`) | one-way ↔ two-way door | recommends the prototype-approach |
-| **Prototype-approach** | per-intent (in `de-risk-intent`) | `validate-first` ↔ `prototype-led` | how the bet is tested; defaulted by reversibility, overridable |
+| **Reversibility** | per-intent (in `intent de-risk`) | one-way ↔ two-way door | recommends the prototype-approach |
+| **Prototype-approach** | per-intent (in `intent de-risk`) | `validate-first` ↔ `prototype-led` | how the bet is tested; defaulted by reversibility, overridable |
 
 ## Business-unit scale — cross-component fields
 
@@ -180,14 +180,14 @@ The hard limits are stated honestly: **no atomic cross-repo commit**, **no share
 
 ## Output locations — config-driven, `docs/product` by default
 
-`frame-intent` writes intents to `<parent>/intents/<slug>.md` and
+`intent frame` writes intents to `<parent>/intents/<slug>.md` and
 `align-value-stream` writes rollups to `<parent>/rollups/<slug>.md`. Both resolve
 `parent` from the `[product]` table of an adopter-created
 `agentbundle-layout.toml` (repo-root file overrides user-profile file per table;
 default `docs/product` when no section resolves). Each intent and rollup is a
 single file — a per-topic folder is deliberately not used. Full schema and
 anchor/security-rail details are in each skill's
-`references/agentbundle-layout.md`. `decompose-intent`'s
+`references/agentbundle-layout.md`. `intent decompose`'s
 `docs/product/briefs/<slug>.md` output is pinned and not governed by this config.
 
 ## Contract maturity by stage
@@ -204,7 +204,7 @@ The detailed wire contract is pinned at the **spec** stage, not at intent.
 ## Tracker projection profiles
 
 :::note
-The canonical profile table lives in the pack at `decompose-intent/references/tracker-projection.md` (with the tier annotations); this is a summary — when they disagree, the skill reference wins.
+The canonical profile table lives in the pack at `intent/references/tracker-projection.md` (with the tier annotations); this is a summary — when they disagree, the skill reference wins.
 :::
 
 The intent tree is deeper than any tracker. A repository may use a tracker as

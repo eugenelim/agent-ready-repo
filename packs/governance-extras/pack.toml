@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "1.0.1"
+version = "1.0.2"
 description = "Write the RFC, record the ADR, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -99,8 +99,8 @@ pack      = "product-engineering"
 kind      = "input"
 role      = "Design proposal"
 consumers = ["skill:new-rfc"]
-providers = ["skill:frame-intent", "skill:de-risk-intent"]
-when      = "A product-engineering shaping artifact (frame-intent or de-risk-intent output) is ready and informs the RFC under authorship."
+providers = ["skill:intent"]
+when      = "A product-engineering shaping artifact (`intent` frame or de-risk output) is ready and informs the RFC under authorship."
 purpose   = "Feed a product-engineering design proposal into the RFC drafting workflow as a typed input artifact."
 fallback  = "If product-engineering is absent, new-rfc proceeds without the design proposal input and notes the gap."
 

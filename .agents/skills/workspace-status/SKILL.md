@@ -336,9 +336,9 @@ anyway shows the reader a blank where a name should be.
 
 **Ready to start:**
 - `[build]` `<path>` — run `work-loop` on `docs/specs/<path>/`
-- `[shape]` `<slug>` (`shape`) — run `frame-intent`
+- `[shape]` `<slug>` (`shape`) — run `intent` (frame mode)
 - `[shape]` `<slug>` (`research`) — run `desk-research-project-start`
-- `[shape]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
+- `[shape]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `intent` as interim
 - `[shape]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
 - `[brief]` `<path>` (Ready) — run `author-delivery-brief continue` on `docs/product/briefs/<path>.md`
 
@@ -410,9 +410,9 @@ When surfacing shaping_queue entries, append the right skill invocation based on
 
 | Entry type | Skill to suggest |
 |-----------|-----------------|
-| `shape` (default) | `frame-intent` (available now); `frame-situation` (M2, when available) |
+| `shape` (default) | `intent` (available now); `frame-situation` (M2, when available) |
 | `research` | `desk-research-project-start` (requires desk-research pack) |
-| `strategy` | route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim |
+| `strategy` | route through `frame-situation` (PE pack — M2); if not yet available, run `intent` as interim |
 | `signal` | no action — surface in "active context" section only |
 | `design` | `experience-status` (requires experience-design pack); if experience-design is not installed: `journey-mapping` |
 

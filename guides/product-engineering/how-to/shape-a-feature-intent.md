@@ -25,12 +25,12 @@ Shape this feature intent: workspace owners need export retention controls so co
 ```
 
 :::note
-**Starting higher than a feature.** This walkthrough shapes a *feature* intent, but `Level` is an open set (`product-vision › product-strategy › capability › feature`) and is **no longer stamped from `Scale`**. An app-scale **greenfield product concept** — where the real question is "should this product exist at all" — can start at a **product altitude** (`product-vision`), not only at `feature`; for that route see [*Frame a product vision*](frame-a-product-vision.md) and [*Shape a product strategy*](shape-a-product-strategy.md). `frame-intent` asks the altitude for concept-shaped input; Scale only *suggests* a starting point you override in a word. The rest of the loop (de-risk, decompose) is the same shape at any level.
+**Starting higher than a feature.** This walkthrough shapes a *feature* intent, but `Level` is an open set (`product-vision › product-strategy › capability › feature`) and is **no longer stamped from `Scale`**. An app-scale **greenfield product concept** — where the real question is "should this product exist at all" — can start at a **product altitude** (`product-vision`), not only at `feature`; for that route see [*Frame a product vision*](frame-a-product-vision.md) and [*Shape a product strategy*](shape-a-product-strategy.md). `intent frame` asks the altitude for concept-shaped input; Scale only *suggests* a starting point you override in a word. The rest of the loop (de-risk, decompose) is the same shape at any level.
 :::
 
 ## 1. Frame the intent
 
-Invoke **`frame-intent`**. It runs intake first: it infers **Scale** (one repo with app code → `app`), confirms it, and asks whether this work is **greenfield** or **brownfield**. Then you fill an intent (the skill ships the template at `frame-intent/assets/intent-template.md`; copy it to `docs/product/intents/<slug>.md`):
+Invoke **`intent frame`**. It runs intake first: it infers **Scale** (one repo with app code → `app`), confirms it, and asks whether this work is **greenfield** or **brownfield**. Then you fill an intent (the skill ships the template at `intent/assets/intent-template.md`; copy it to `docs/product/intents/<slug>.md`):
 
 - **Outcome** — a steerable *input* metric, the *lagging* outcome it should drive, and a *guardrail* that must not get worse. In 0-to-1, a qualitative-but- falsifiable outcome is fine.
 - **Opportunity** — what the user is trying to get done, framed without a solution. In brownfield you may pull in a journey or process map; in greenfield, skip them.
@@ -38,7 +38,7 @@ Invoke **`frame-intent`**. It runs intake first: it infers **Scale** (one repo w
 
 ### JTBD enrichment in the Opportunity
 
-`frame-intent` step 5 prompts for all four dimensions of the opportunity using
+`intent frame` step 5 prompts for all four dimensions of the opportunity using
 a three-tier JTBD model. Fill each into the intent's optional Opportunity
 sub-fields:
 
@@ -58,9 +58,9 @@ when the opportunity is job-shaped and you want all three dimensions captured.
 For a deeper pass that surfaces and scores every job behind the opportunity
 area, run `identify-opportunities` after framing.
 
-`frame-intent` is **knowledge-surface aware**: when an internal knowledge surface is reachable (an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set), it consults the business-domain and meaning areas so the outcome and opportunity use your org's real terms and rules instead of generic ones, and it states which surface it used — or "none", with the confidence lowered to match.
+`intent frame` is **knowledge-surface aware**: when an internal knowledge surface is reachable (an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set), it consults the business-domain and meaning areas so the outcome and opportunity use your org's real terms and rules instead of generic ones, and it states which surface it used — or "none", with the confidence lowered to match.
 
-When the feature materially affects a human-facing surface, `frame-intent` can
+When the feature materially affects a human-facing surface, `intent frame` can
 add an optional **Product-to-experience handoff** to the same intent. It carries
 only product facts: the affected journey or surface, the user's first success,
 the product mechanism or proof the interface may expose, evidence for visible
@@ -70,28 +70,28 @@ visual direction, layout, motion, or implementation approach.
 
 ### Optional independent shaping review
 
-If the Core pack and its `shaping-reviewer` are installed, `frame-intent` can
+If the Core pack and its `shaping-reviewer` are installed, `intent frame` can
 send one attributed evidence packet to an isolated reviewer in `intent` mode.
 It is an optional augmentation: a genuinely fresh context or an independent
 human reviewing the same packet can stand in, while warm self-review is only
 advisory. The reviewer checks well-formedness, not quality: it returns one
 `MALFORMED(<field>)` token per failed condition, or nothing at all.
-`frame-intent` retains the decision and status, and an unresolved token blocks
+`intent frame` retains the decision and status, and an unresolved token blocks
 a reviewed handoff.
 
 Once the intent is well-formed, `adversarial-reviewer` in `intent` mode can
 attack the bet itself. It returns only an open question with a named decider or
 a validation hook — a kill condition plus the real-world activity that would
 trigger it — or nothing at all. That read is advisory: it settles no status, and
-`de-risk-intent` still authors your kill condition.
+`intent de-risk` still authors your kill condition.
 
 Without Core or another independent route, the intent remains authorable.
-`frame-intent` reports that the optional Core intent shaping review is
+`intent frame` reports that the optional Core intent shaping review is
 unavailable and claims no review result.
 
 ## 2. De-risk the riskiest assumption
 
-Invoke **`de-risk-intent`**. It triages reversibility (one-way vs two-way door), picks the riskiest assumption, and — crucially — **predeclares a kill condition** in the test's own currency (a number if you have traffic, a qualitative bar if you don't) *before* running anything. It then runs under a **prototype-approach**:
+Invoke **`intent de-risk`**. It triages reversibility (one-way vs two-way door), picks the riskiest assumption, and — crucially — **predeclares a kill condition** in the test's own currency (a number if you have traffic, a qualitative bar if you don't) *before* running anything. It then runs under a **prototype-approach**:
 
 - `validate-first` (default for irreversible bets) — build the cheapest probe that tests the kill condition, take the verdict.
 - `prototype-led` (default for cheap, reversible bets) — build a prototype early and let it *drive* the intent's refinement; the build is the test.
@@ -100,7 +100,7 @@ You get a **survive/kill** verdict. Killed → reframe. Survived → decompose.
 
 ## 3. Decompose to the smallest delivery contract
 
-Invoke **`decompose-intent`**. At app scale, one independently shippable feature
+Invoke **`intent decompose`**. At app scale, one independently shippable feature
 routes directly to a `core` **spec** at `docs/specs/<slug>/spec.md`. Use a
 **brief** only when the intent coordinates multiple specs or crosses repository
 boundaries; the brief carries the shared outcome, success metrics,
@@ -116,7 +116,7 @@ the `Contract:` seam pins the detailed contract at spec authoring time.
 
 ---
 
-**Business-unit / cross-component.** When a capability spans many component repos, `decompose-intent` slices the feature intent **per component** into one brief per repo, coordinated from a value-stream meta-repo via `align-value-stream`. See the how-to [*Run a capability across a value stream*](run-a-capability-across-a-value-stream.md).
+**Business-unit / cross-component.** When a capability spans many component repos, `intent decompose` slices the feature intent **per component** into one brief per repo, coordinated from a value-stream meta-repo via `align-value-stream`. See the how-to [*Run a capability across a value stream*](run-a-capability-across-a-value-stream.md).
 
 ## What you have now
 

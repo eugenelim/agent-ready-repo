@@ -41,7 +41,7 @@ file or restate your outcome.
 ## Carry the architecture with it
 
 If you shaped an architecture concept or design doc, it goes with the intent.
-When `decompose-intent` cuts a feature the design covers, it carries the
+When `intent decompose` cuts a feature the design covers, it carries the
 design's location in the delivery contract's design context, and `new-spec`
 reads it there when it writes the plan's design section. To make the spec wait
 until the design lands, register the design in `workspace.toml` and add it to
