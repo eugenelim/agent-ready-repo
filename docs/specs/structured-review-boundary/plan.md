@@ -1,8 +1,8 @@
 # Plan: Structured review boundary
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** [`work-loop-review-disposition.md`](../../architecture/work-loop-review-disposition.md), [`acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md), [`work-loop-acceptance-evidence.md`](../../architecture/work-loop-acceptance-evidence.md), [`work-loop-authority-migration.md`](../../architecture/work-loop-authority-migration.md), [`work-loop-execution-supervisor.md`](../../architecture/work-loop-execution-supervisor.md), the parent [`acceptance-centered-work-loop` brief](../../product/briefs/acceptance-centered-work-loop.md), the amended and approved Slice 1 spec and code-mode plan at `fd70edd51f7b45c4d0714223c07371798cca3391`, Slice 1's architecture and release closure at `cc4b6eb20e2fce7c58dac8958de27eb6c8a4e146`, and current work-loop policy and review scripts; Slice 1's contract, service, architecture, and release outputs exist, but Slice 2 execution remains gated until Slice 1's post-gates hardening and review freeze the final approved shape
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Repository anchors:** [`work-loop-review-disposition.md`](../../architecture/work-loop-review-disposition.md), [`acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md), [`work-loop-acceptance-evidence.md`](../../architecture/work-loop-acceptance-evidence.md), [`work-loop-authority-migration.md`](../../architecture/work-loop-authority-migration.md), [`work-loop-execution-supervisor.md`](../../architecture/work-loop-execution-supervisor.md), the parent [`acceptance-centered-work-loop` brief](../../product/briefs/acceptance-centered-work-loop.md), shipped Slice 1 at squash commit `9d39eae8b` (PR #1515), its [verification ledger](../acceptance-authority-and-evidence/notes/verification-ledger.md), and current work-loop policy and review scripts
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
@@ -34,8 +34,8 @@ task/cohort writers, procedure authority, or runtime provider selection.
   classification, delivery subject, evidence transaction, verdict, and shared
   content-safety interfaces. Their canonical schemas and callable ports now
   exist and conform to the approved inventory, so T1 can resolve imports
-  against them. Slice 2 execution still waits for Slice 1 closeout because its
-  post-gates security hardening and review remain in flight. Mutable task
+  against them. Slice 1 is shipped at `9d39eae8b`; its final security hardening
+  and review evidence are recorded in its verification ledger. Mutable task
   reprojection and removal of the legacy plan lock are excluded because Slice
   4 owns them.
 - The parent brief passed its Ready gate at
@@ -50,9 +50,10 @@ task/cohort writers, procedure authority, or runtime provider selection.
   only its review-owned durable surfaces instead of copying the matrix here.
 - Existing review authority remains active during compatible reads and shadow
   writes. A code deployment cannot move authority by implication.
-- Existing legacy plan-lock, task/cohort, and procedure authorities remain
-  active throughout Slice 2, including after any authorized review-only
-  cutover. Slice 2 does not project mutable tasks or reinterpret
+- Existing legacy plan-lock, task/cohort, review, and procedure authorities
+  remain active throughout Slice 2. The review-authority cutover is the
+  separate [follow-on](../../product/intents/FEAT-0036-review-authority-cutover.md).
+  Slice 2 does not project mutable tasks or reinterpret
   `initial-plan-review.v1` as task approval.
 - Pi is an optional external compatibility target owned by Slice 6. Slice 2
   neither imports, bundles, installs, selects, nor tests through Pi, and Pi
@@ -92,6 +93,13 @@ task/cohort writers, procedure authority, or runtime provider selection.
 
 ## Construction tests
 
+**Shipped-predecessor reconciliation:** the [interface check](notes/slice-1-reconciliation.md)
+records the exact Slice 1 append/replay, validator, content-safety, audit, and
+shadow interfaces at `9d39eae8b`. T1, T3, T4, and T6 below consume that check.
+This task regeneration changes no accepted criterion, schema, authority, scope,
+durable output, or accepted risk. Pre-EXECUTE reviews and both human gates run
+again because the prior ignored engine/cohort state is absent.
+
 **Integration tests:** T6 owns the canonical definitions of VI-1012 and
 VI-1013; this summary adds no second statement of either obligation.
 
@@ -103,7 +111,7 @@ VI-1013; this summary adds no second statement of either obligation.
 | --- | --- | --- | --- |
 | Interface compatibility / review contract files resolved against the approved Slice 1 imports | T1 | VI-1001–VI-1003 schema, no-copy, and traceability results | Contract files are authoritative, linked from the spec, have no copies, and are covered by compatibility tests |
 | Current architecture / review-disposition and parent architecture pages | T7 | VI-1016 durable-output trace | Pages name the shipped owner, compatibility state, and remaining cutover work |
-| Maintainer procedure / canonical work-loop policy and review references | T6, T7 | VI-1012, VI-1014–VI-1019 integration, authority-isolation, self-containment, policy, pack, and durable-output checks | Published guidance contains only the opaque review boundary and preserves every authority outside Slice 2 |
+| Maintainer procedure / canonical work-loop policy and review references | T6, T7 | VI-1012, VI-1014–VI-1016, VI-1018, VI-1019, and VI-1020 integration, authority-isolation, self-containment, policy, pack, and durable-output checks | Published guidance gains no reviewer-specific procedure, retires no current review authority, and its projections match source |
 | Release history / `docs/product/changelog.md` | T7 | VI-1016 durable-output trace | Release entry identifies the shipped boundary and verification result |
 
 ## Design (LLD)
@@ -235,6 +243,12 @@ Owned by: T1, T6, T7
 - **Spec behavior:** Versioned report and record conformance; TDD.
 - **Touches:** approved Slice 1 contract inventory and the confirmed review
   contract destination; spec/contract traceability.
+- **Shipped seam:** use the owning sibling validators; no shared
+  `_schema_validation.py` exists. Review schemas reference the approved
+  delivery-subject and other shared schema properties rather than copying
+  them. Register a closed review-owned writer/replay map before use, preserving
+  `SLICE_1_WRITER_BOUNDARIES` and its existing profile assignments. Enforce
+  individual report free-text bounds as well as the shared whole-record bound.
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-1001 (AC-0004):** schema corpus accepts one complete current report,
@@ -295,6 +309,14 @@ Owned by: T1, T6, T7
 - **Spec behavior:** Structured report validity, current identity, and safe
   refusal; TDD.
 - **Touches:** review validator/store service and current review-artifact adapter.
+- **Shipped seam:** extend `EvidenceStore` with a backward-compatible batch
+  transaction port and a closed, code-owned set of review-record validators
+  and replay indexers. Existing receipt/supersession calls, schemas, frames,
+  denial codes, authority checks, and recovery behavior remain compatible.
+  Unknown record kinds refuse; callers cannot supply arbitrary validators.
+  Admit every embedded record through its registered content profile and
+  validator on append and replay. This implements the existing semantic
+  transaction contract rather than adding a second authoritative journal.
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-1006 (AC-0004, AC-0005):** atomic persistence and rehydration suite proves one
@@ -321,6 +343,11 @@ Owned by: T1, T6, T7
   lifecycle; TDD.
 - **Touches:** finding evaluator, independent-assessment port, and Slice 1
   evidence bridge.
+- **Shipped seam:** use T3's batch port for the assessment and the complete
+  deterministic criterion receipt set in one frame; use the same port for
+  source replacement and the complete supersession delta. Rebuild assessment
+  views from those frames. Do not encode assessments in receipt identifiers
+  or producer strings and do not substitute two separately committed logs.
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-1008 (AC-0006, AC-0007):** table-driven suite exercises every Finding truth-table
@@ -331,6 +358,11 @@ Owned by: T1, T6, T7
     replacement atomically supersede every derived receipt, including
     supported-to-unsupported and supported-to-indeterminate outcomes; those
     outcomes also remove or refuse current disposition eligibility.
+    Regression and mutation checks cover existing single-record callers,
+    whole-frame recovery, duplicate/first-wins replay, concurrent appends,
+    authority on retry, stable denial mapping, and a post-allow denial with the
+    same operation ID. Rehydration must recover the assessment and its entire
+    receipt set, not merely references to separately committed records.
   - **Stub:** `no stub (implementation-discovered)` — discovery predicate: T1
     exposes the approved evidence transaction and supersession call surface;
     constraint: assessment and receipt delta share that atomic boundary;
@@ -348,10 +380,21 @@ Owned by: T1, T6, T7
 - **Depends on:** T2, T4
 - **Spec behavior:** Disposition semantics and mandatory-obligation closure; TDD.
 - **Touches:** disposition port and review-readiness query.
+- **Shipped authority seam:** before any disposition becomes visible, validate
+  the named decision maker against current policy, subject, finding, and
+  capability record scope through the approved Slice 1 authority ports. Store
+  the durable security allow event before the ledger effect. Missing,
+  unauthorized, stale, or out-of-scope authority and an unavailable audit sink
+  refuse with stable codes and expose no semantic disposition. A refusal after
+  an allow stores a denial with the same operation ID.
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-1010 (AC-0008):** disposition table covers repair-request, fixed-by with fresh
     replacement report, and accept-risk without acceptance-support mutation.
+    Negative fixtures cover missing, unauthorized, stale, and out-of-scope
+    decision authority; audit-unavailable fixtures prove no ledger effect;
+    post-allow failure fixtures prove same-operation audit pairing. These checks
+    apply to every disposition kind, including replacement-subject fixed-by.
   - **VI-1011 (AC-0009):** readiness matrix refuses every combination with an
     unsatisfied mandatory obligation or open supported material finding.
   - **Stub:** `no stub (implementation-discovered)` — discovery predicate: T1
@@ -364,7 +407,8 @@ Owned by: T1, T6, T7
 - **Grounding:** decision authority rules come from current repository policy;
   stop if a disposition can rewrite assessment validity or Slice 1 support.
 - **Done when:** VI-1010–VI-1011 pass and deleting derived readiness state does not
-  change the recomputed result.
+  change the recomputed result; every disposition write proves authority and
+  audit-before-effect or returns its stable refusal without visibility.
 
 ### T6: Integrate the compatibility boundary
 
@@ -374,6 +418,11 @@ Owned by: T1, T6, T7
   integration checks.
 - **Touches:** current review-artifact, loop-engine, and loop-cohort seams plus
   the bundled service entry point discovered after Slice 1.
+- **Shipped seam:** preserve Slice 1's opt-in post-legacy-commit shadow calls
+  and redacted divergence behavior. A separate explicit review compatibility
+  adapter owns source-event reconciliation and acknowledges only after both
+  current and structured review facts exist. A shadow observation alone is
+  never that acknowledgement or a review-authority cutover.
 - **Verification mode:** goal-based check
 - **Tests:**
   - **VI-1012 (AC-0001):** synthetic reviewer conformance fixture reaches review-clear
@@ -402,43 +451,56 @@ Owned by: T1, T6, T7
   authorities enabled and the new records reconstruct the same admitted review
   results from a self-contained Core runtime.
 
-### T7: Remove reviewer mechanics from policy and refresh durable outputs
+### T7: Refresh durable outputs for the shipped boundary
 
 - **Depends on:** T6
-- **Spec behavior:** Reviewer opacity, non-review authority isolation, and
-  current maintainer truth; goal-based source and documentation checks.
-- **Touches:** canonical work-loop skill source, owned review references,
-  architecture pages, generated projections, and `docs/product/changelog.md`.
+- **Spec behavior:** Reviewer opacity of the shipped boundary, review and
+  non-review authority isolation, and current maintainer truth; goal-based source and
+  documentation checks.
+- **Touches:** review-owned architecture pages, `contracts/README.md` and
+  `contracts/REGISTRY.md`, generated projections, `packs/core/pack.toml`,
+  `packs/core/.claude-plugin/plugin.json`, the Core work-loop eval harness at
+  `packs/core/.apm/skills/work-loop/evals/evals.json`, and
+  `docs/product/changelog.md`.
 - **Verification mode:** goal-based check
 - **Tests:**
-  - **VI-1017 (AC-0010, AC-0011, AC-0013):** authority-cutover check requires a
-    repository-durable approval receipt that names the retiring and successor
-    review authorities, cites passing VI-1013 parity evidence, accepts tested
-    reversal evidence, and authorizes policy cleanup before any current-review
-    mechanic is removed; it grants no plan, task, cohort, procedure, or runtime
-    provider authority.
-  - **VI-1014 (AC-0010):** bounded source check fails on a reviewer-role condition or
-    any prompt, tool, model, retry, session, or reviewer-workflow field in the
-    delivery-policy surface.
+  - **VI-1014 (AC-0010):** bounded source check fails on a reviewer-role
+    condition, or a prompt, tool, model, retry, session, or reviewer-workflow
+    field, in the structured review-boundary runtime modules or the
+    review-policy data shape, and fails when this change adds such a condition
+    or field to the canonical work-loop skill or its owned references.
   - **VI-1015 (AC-0001, AC-0010, AC-0013):** pack and projection tests prove
     the public invocation and non-review authority surfaces are unchanged and
     generated copies match their source.
+  - **VI-1020 (AC-0013):** review-authority isolation fixture drives the legacy
+    review gate in a fake Git root under `tmp_path` through the real engine and
+    cohort scripts: raw classification, adjudication inspection, review
+    recording, and the `reviewers-clean` and `findings-remain` transitions. It
+    proves their decisions and resulting state, normalized for run IDs and
+    timestamps, are identical with and without the compatibility adapter having
+    reconciled the same review events.
   - **VI-1016 (AC-0001–AC-0016):** durable-output review traces the shipped contracts,
     architecture, maintainer procedure, and release entry to their owning tests.
+    Release checks prove matching Core pack/plugin versions above main's
+    current version, the eval-harness update, and a free-standing changelog
+    entry. Record the Highlights decision in the same step: outcome-led bullets
+    when consumer capability changes, otherwise a none-verdict with its reason
+    in the completion/PR-description evidence. No PR or external action is
+    authorized by these local release checks.
 - **Grounding:** edit the canonical pack source and regenerate projections per
-  repository guidance; do not hand-edit generated copies or remove the active
-  legacy plan-lock and task/cohort paths.
-- **Done when:** VI-1014–VI-1017 pass, VI-1018 and VI-1019 still pass after
-  policy cleanup, the authority-cutover receipt remains current for the shipped
-  review-policy and contract fingerprints and parity evidence, and every
-  Durable-output map row meets its closeout evidence condition.
+  repository guidance; do not hand-edit generated copies, change the current
+  review procedure, or remove the active legacy plan-lock, review, and
+  task/cohort paths.
+- **Done when:** VI-1014–VI-1016 and VI-1020 pass, VI-1018 and VI-1019 still pass, and every
+  Durable-output map row meets its closeout evidence condition; paired Core
+  versions, eval coverage, release entry, and Highlights decision are verified.
 
 ## Rollout
 
-- **Delivery:** compatible readers and shadow writers land first while the
-  current review path remains authoritative; role-by-role authority changes
-  only after parity and reversal evidence is accepted. Every plan, task/cohort,
-  and procedure authority remains unchanged.
+- **Delivery:** compatible readers, the compatibility adapter, and shadow
+  writers land while the current review path remains authoritative. Moving
+  review authority belongs to the review-authority cutover follow-on. Every
+  plan, task/cohort, review, and procedure authority remains unchanged.
 - **Infrastructure:** none beyond repository-local contract, evidence, review,
   and disposition records supplied by this migration.
 - **External-system integration:** none; reviewer implementations remain opaque
@@ -447,9 +509,7 @@ Owned by: T1, T6, T7
 - **Deployment sequencing:** start only after Slice 1 closeout freezes the
   implemented contract and service seam while the legacy plan lock remains
   active; land T1–T5 services; run T6 dual-path parity, authority-isolation, and
-  crash recovery; record the approved review-path switch and accepted reversal
-  evidence in VI-1017; then perform T7 review-policy cleanup and durable-output
-  refresh.
+  crash recovery; then perform the T7 durable-output refresh.
 
 ## Risks
 
@@ -476,3 +536,7 @@ Owned by: T1, T6, T7
 -->
 - 2026-10-04: spec approved by owner
 - 2026-10-04: plan approved by owner
+- 2026-10-07: spec approved by owner
+- 2026-10-07: plan approved by owner
+- 2026-10-10: spec approved by owner
+- 2026-10-10: plan approved by owner

@@ -3,8 +3,8 @@
 **Decision sought:** Reduce review to reviewer obligations, portable YAML
 reports, actual-failure findings, and explicit dispositions.
 **Author(s):** Platform Core maintainers
-**Status:** Draft
-**Last updated:** 2026-09-30
+**Status:** Implemented
+**Last updated:** 2026-10-10
 **Reviewers:** Core reviewer-role maintainers
 
 ## 1. Scope and Context
@@ -247,15 +247,24 @@ and unacknowledged checkouts never substitute for either manifest.
 
 ## 8. Implementation Mapping
 
+The Slice 2 structured review boundary shipped as self-contained standard-library
+Python modules under `packs/core/.apm/skills/work-loop/scripts/`. These replace
+the proposed `packages/agentbundle/agentbundle/work_supervisor/*` locations for
+the review boundary. The review-authority cutover that switches the engine review
+gate to structured readiness is owned by the FEAT-0036 review-authority cutover
+follow-on; the current legacy review path remains authoritative until that cutover.
+
 | Element | Source owner | Build unit | Verification |
 | --- | --- | --- | --- |
-| Slice-2 compatibility adapter | Proposed `review-compat.py` bundle source consumes `review-artifact.py`, `loop-cohort.py` classifiers/audits, `loop-engine.py` events, and `review-verdict.v1`; manifest embeds content safety, evidence store, review store/evaluator/bridge/dispositions | `work-supervisor.py review-compat`; current invoker and slice-1 subject source | Deterministic projection, closed-refusal, dual-write, crash-reconcile, and no-`agentbundle` tests |
-| Review-subject projector, obligation selector, and assessment/disposition policy | `packs/core/.apm/skills/work-loop/` plus proposed supervisor diff projector | Core pack and `agentbundle` | Diff normalization and policy evals |
-| Review invoker, content-validation port, and report validator | Proposed `packages/agentbundle/agentbundle/work_supervisor/review.py` | Supervisor bundle source; `agentbundle` builds/tests | Content-boundary, adapter, and stale-subject tests |
-| Reviewer-report store | Proposed `packages/agentbundle/agentbundle/work_supervisor/review_store.py` | Supervisor bundle source; `agentbundle` builds/tests | Atomic persistence, current-role, and recovery tests |
-| Finding evaluator and assessment view | Proposed `packages/agentbundle/agentbundle/work_supervisor/finding_assessment.py` plus the evidence store | Supervisor bundle source | Predicate, authority, atomic-transaction, rebuild, and indeterminate-path tests |
-| Disposition ledger | Proposed `packages/agentbundle/agentbundle/work_supervisor/dispositions.py` | Supervisor bundle source | Authority and replacement tests |
-| Obligation, report, finding, and disposition schemas | Proposed authoritative `contracts/delivery/`, projected into package data | Contract source | Schema-parity suite |
+| Review contracts and shared validators | `_review_contracts.py` | Core pack | Schema corpus, no-copy, and traceability tests |
+| Review-subject projector and obligation selector | `_review_selection.py` | Core pack | Diff normalization, policy evals, and policy-leakage source check |
+| Report validator and persistence store | `_review_persistence.py` | Core pack | Atomic persistence, current-role, and recovery tests |
+| Finding evaluator and assessment view | `_review_assessment.py` | Core pack | Finding truth-table and atomic-transaction tests |
+| Assessment-to-evidence bridge | `_review_bridge.py` | Core pack | Bridge lifecycle and supersession tests |
+| Disposition ledger and review readiness | `_review_disposition.py` | Core pack | Disposition truth-table and readiness matrix tests |
+| Compatibility adapter | `_review_compat.py` beside the authoritative legacy review path | Core pack | Deterministic projection, closed-refusal, crash-reconcile, authority-isolation, and no-`agentbundle` tests |
+| Evidence store semantic lifecycle | `_evidence_store.py` (Slice 1) | Core pack | Existing Slice 1 evidence-store suite |
+| Obligation, report, finding, and disposition schemas | Authoritative `contracts/delivery/`, no runtime copy in Core | Contract source; test-time only | Schema-parity and no-runtime-load suite |
 
 ## 9. Decisions, Alternatives, and Risks
 
@@ -279,22 +288,26 @@ and unacknowledged checkouts never substitute for either manifest.
 
 ## 10. Rollout, Migration, and Reversal
 
-The slice-2 adapter writes validated new records first, invokes the old
-`findings-remain` or `reviewers-clean` transition second, and acknowledges only
-both. Source digest and producer event ID reconcile a crash. Exact direct-clean
-maps to `clean`; conforming findings and paired audits map to reports and
-assessments.
+The compatibility adapter (`_review_compat.py`) runs beside the authoritative
+legacy review path. It writes validated new records to its evidence store first,
+then acknowledges only after both the current structured result and the legacy
+result exist. Source digest and producer event ID reconcile a crash. Exact
+direct-clean maps to `clean`; conforming findings and paired audits map to
+reports and assessments.
 
-Ambiguous, unsafe, invalid, or unpaired input yields `unable` or
-`indeterminate` and cannot close an obligation.
+Ambiguous, unsafe, invalid, or unpaired input yields `unable` or `indeterminate`
+and cannot close an obligation. The adapter imports only Slice 1 contracts and
+retains the current invoker and subject-source provider.
 
-The adapter imports only slice-1
-contracts and retains the current invoker and subject-source provider.
-Classifiers retire role by role after parity; rollback replays preserved raw
-reports through the adapter.
+Moving review authority—retiring the legacy classify-and-adjudicate path and
+switching the engine review gate to structured readiness—belongs to the
+[review-authority cutover follow-on](../../product/intents/FEAT-0036-review-authority-cutover.md).
+That follow-on owns the engine switch, its owner cutover receipt, the reversal
+path, and removal of reviewer-specific procedure from the canonical work-loop
+skill. Rollback, if needed before cutover, replays preserved raw reports through
+the compatibility adapter.
 
 | Responsibility | Owner |
 | --- | --- |
-| Role cutover and policy observation | Core reviewer-role maintainers |
-| Report and disposition store operation | `agentbundle` maintainers |
+| Review-authority cutover and policy switch | FEAT-0036 review-authority cutover follow-on |
 | Rollback authorization | Core reviewer-role maintainer after conformance or freshness failure |

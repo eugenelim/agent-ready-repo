@@ -103,6 +103,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The `intent` skill's intent template offers an optional `Related intents:` line after `Outcome co-owner:`, and the guide copies of the template match it. An eval case checks that the line stays optional and comment-only.
 
+## [core][3.0.5] — 2026-10-11
+
+### Highlights
+
+- Add a conforming reviewer to any repository without changing work-loop code. The structured review boundary ships a generic reviewer port: select an obligation, submit a versioned structured report, and the boundary assesses findings and derives review readiness from it. No reviewer-role condition or reviewer-specific hook exists in the runtime modules.
+- Integrate the compatibility adapter that reconciles legacy review events with structured boundary facts. The legacy review authority and reviewer-specific procedure remain active; moving authority belongs to the review-authority cutover follow-on.
+
+### Added
+
+- Seven self-contained review boundary modules ship under `packs/core/.apm/skills/work-loop/scripts/`: `_review_contracts.py`, `_review_selection.py`, `_review_persistence.py`, `_review_assessment.py`, `_review_bridge.py`, `_review_disposition.py`, and `_review_compat.py`. They import only the Python standard library or sibling work-loop modules.
+- Six review schemas (`review-subject.v1`, `review-obligation.v1`, `review-report.v1`, `finding.v1`, `finding-assessment.v1`, `finding-disposition.v1`) ship as test-time contracts under `contracts/delivery/`. No schema copy ships in the Core runtime.
+- Work-loop eval harness gains a case asserting a synthetic reviewer report is assessed through the structured boundary without a reviewer-specific work-loop change.
+- Architecture documents (`work-loop-review-disposition.md`, `acceptance-centered-work-loop.md`) describe the implemented boundary, the shipped module locations, the compatibility state, and the FEAT-0036 review-authority cutover follow-on.
+
+### Changed
+
+- The legacy review authority remains active. The compatibility adapter runs beside it; the review-authority cutover follow-on owns the engine review-gate switch, its owner cutover receipt, and removal of reviewer-specific procedure from the skill.
+
 ## [core][3.0.4] — 2026-10-11
 
 ### Highlights

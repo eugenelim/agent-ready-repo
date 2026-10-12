@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/finding.v1.schema.json",
+  "title": "finding.v1",
+  "description": "Reviewer finding embedded in a structured report. Blocking reachability fields are explicit data; assessment decides whether the finding is an actual failure.",
+  "$comment": "Owned by: docs/specs/structured-review-boundary/.",
+  "x-spec": ["docs/specs/structured-review-boundary/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "finding_id",
+    "rule_ref",
+    "observation",
+    "reachable_path",
+    "actual_failure",
+    "affected_acceptance_criteria",
+    "evidence_refs",
+    "material"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "finding_id": {"type": "string", "minLength": 1},
+    "rule_ref": {"type": "string", "minLength": 1},
+    "observation": {"type": "string", "minLength": 1},
+    "reachable_path": {"type": "string", "minLength": 1},
+    "actual_failure": {"type": "string", "minLength": 1},
+    "affected_acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "material": {"type": "boolean"}
+  }
+}

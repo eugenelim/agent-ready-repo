@@ -1,6 +1,6 @@
 # Spec: Structured review boundary
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -21,12 +21,14 @@
 
 ## Outcome
 
-Work-loop maintainers can add or replace a conforming reviewer without changing
-delivery policy, while the loop consumes only selected obligations, current
-typed reports, actual-failure assessments, and dispositions. The review boundary
-is complete when every mandatory obligation has one deterministic result and no
+Work-loop maintainers can add or replace a conforming reviewer through a
+structured review boundary that consumes only selected obligations, current
+typed reports, actual-failure assessments, and dispositions. The boundary is
+complete when every mandatory obligation has one deterministic result, no
 reviewer prompt, tool, model, retry, session, or internal workflow state can
-change delivery authority.
+change its decision, and a compatibility adapter reconstructs the same admitted
+review results from the current review path. The current review path stays
+authoritative until the separate review-authority cutover.
 
 ## What Changes
 
@@ -46,8 +48,12 @@ change delivery authority.
 
 This slice owns review-subject projection, obligation selection, typed reports,
 actual-failure assessment, dispositions, the review-to-evidence bridge, and the
-compatibility path that preserves current review outcomes until an authorized
-review cutover.
+compatibility path that preserves current review outcomes. It does not perform
+the review-authority cutover: the current review path remains authoritative,
+and switching the review gate to structured readiness or removing
+reviewer-specific procedure from the canonical work-loop skill belongs to the
+[review-authority cutover](../../product/intents/FEAT-0036-review-authority-cutover.md)
+follow-on.
 
 It consumes Slice 1's acceptance authority, reviewed-execution envelope,
 protected-mutation classification, semantic evidence transaction, delivery
@@ -63,7 +69,7 @@ not make `agentbundle` or another repository package a runtime dependency.
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility | Review reports, findings, assessments, and dispositions cross a producer boundary | `contracts/delivery/`, `contracts/README.md`, and `contracts/REGISTRY.md`; review-boundary schemas are authored by this slice and import only the approved Slice 1 shared contracts | Delivery-contract maintainers | JSON Schema 2020-12 validation, a no-copy check, reader/writer compatibility, and synthetic-producer conformance | Every shipped record type has one authoritative schema under `contracts/delivery/`, registered ownership, no schema copy, and bidirectional spec traceability |
 | Current architecture | The target review boundary becomes implemented architecture | [`docs/architecture/work-loop-review-disposition.md`](../../architecture/work-loop-review-disposition.md) and [`docs/architecture/acceptance-centered-work-loop.md`](../../architecture/acceptance-centered-work-loop.md) | Platform Core | Implementation mapping and parity evidence match the shipped boundary | Both pages describe the active owner, compatibility path, and remaining cutover state |
-| Maintainer procedure | Work-loop policy consumes the new review facts | Canonical work-loop skill source and owned review references | Core pack maintainers | Pack tests and generated-projection checks | Published work-loop guidance contains no reviewer-specific procedure or retired authority |
+| Maintainer procedure | The structured review boundary ships beside the current review path | Canonical work-loop skill source and owned review references | Core pack maintainers | Pack tests and generated-projection checks | Published work-loop guidance gains no reviewer-specific procedure, retires no current review authority, and its generated projections match source |
 | Release history | The shipped review boundary changes maintainer-visible behavior | `docs/product/changelog.md` | Release owner | Release entry links the shipped contract and verification | Closeout confirms the release record names the new boundary and its compatibility state |
 
 ## Agent Rules
@@ -125,12 +131,14 @@ not make `agentbundle` or another repository package a runtime dependency.
   review outcomes with the structured boundary, because the slice must not
   silently clean or split an acknowledged legacy result.
 - **Authority isolation (AC-0013):** goal-based compatibility checks compare the
-  active plan-lock, task/cohort, and procedure-authority decisions before and
-  after review-boundary wiring, because Slice 2 may move review facts without
-  introducing the Slice 4 execution cutover.
-- **Policy leakage (AC-0010):** goal-based source check over the canonical work-loop
-  policy surface, because reviewer-specific names and mechanics are forbidden
-  there regardless of runtime behavior.
+  active plan-lock, task/cohort, legacy review-gate, and procedure-authority
+  decisions before and after review-boundary wiring, because Slice 2 adds
+  review facts without moving review authority or introducing the Slice 4
+  execution cutover.
+- **Policy leakage (AC-0010):** goal-based source check over the review-boundary
+  runtime modules, the review-policy data shape, and the change to the canonical
+  work-loop policy surface, because reviewer-specific names and mechanics are
+  forbidden there regardless of runtime behavior.
 - **Report content safety (AC-0012):** TDD through the shared content-safety
   corpus, because an accepted inert report and each whole-report refusal need
   independent positive and negative fixtures.
@@ -188,61 +196,63 @@ not make `agentbundle` or another repository package a runtime dependency.
 | One-sided current or structured write | Reconcile from the source event identity to the missing side | Do not acknowledge until both sides exist |
 | Crash before acknowledgement | Replay produces the same paired facts without duplication | Acknowledge once after reconciliation completes |
 
-- [ ] **AC-0001.** A synthetic reviewer that knows only the published reviewer
+- [x] **AC-0001.** A synthetic reviewer that knows only the published reviewer
   contract can satisfy a selected obligation through the generic review
   boundary without a reviewer-specific work-loop change.
-- [ ] **AC-0002.** For the same current review subject and policy identity,
+- [x] **AC-0002.** For the same current review subject and policy identity,
   reviewer selection returns the same ordered mandatory, optional, and waived
   obligations through the current-engine compatibility caller and the
   runtime-neutral synthetic adapter corpus, across every plan-only or
   task-projection revision.
-- [ ] **AC-0003.** Every row in the Obligation truth table returns its stated review
+- [x] **AC-0003.** Every row in the Obligation truth table returns its stated review
   decision, and a mutation of any row's report, finding, waiver, subject, or
   policy input returns the row selected by the mutated values.
-- [ ] **AC-0004.** The structured-report conformance corpus accepts a current report
+- [x] **AC-0004.** The structured-report conformance corpus accepts a current report
   carrying the required version, role, subject, terminal status, lineage, and
   finding fields and rejects each fixture that omits or malforms one required
   field.
-- [ ] **AC-0005.** Current-report selection returns the unique safe lineage tip for
+- [x] **AC-0005.** Current-report selection returns the unique safe lineage tip for
   a role and subject; a plan-only or task-projection revision leaves that tip
   current, while a stale acceptance subject, duplicate sequence, or fork leaves
   the obligation unsatisfied.
-- [ ] **AC-0006.** Every row in the Finding truth table returns its stated
+- [x] **AC-0006.** Every row in the Finding truth table returns its stated
   assessment class, and the supported row becomes supported only when every
   required reachability edge has controlled evidence.
-- [ ] **AC-0007.** Only a current supported material finding enters disposition;
+- [x] **AC-0007.** Only a current supported material finding enters disposition;
   unsupported findings remain non-blocking and an indeterminate finding stops
   review without entering disposition.
-- [ ] **AC-0008.** The disposition truth table treats `repair-request` as open,
+- [x] **AC-0008.** The disposition truth table treats `repair-request` as open,
   `fixed-by` as closed only when it names a fresh replacement-subject report,
   and `accept-risk` as review closure that does not convert contradictory
   acceptance evidence into support.
-- [ ] **AC-0009.** The review result is acceptance-eligible only when every current
+- [x] **AC-0009.** The review result is acceptance-eligible only when every current
   mandatory obligation is satisfied and no supported material finding remains
   open.
-- [ ] **AC-0010.** The canonical work-loop policy surface contains no reviewer-role
-  condition and no field for prompts, tools, models, retries, sessions, or
-  reviewer workflow state.
-- [ ] **AC-0011.** Every row in the closed Compatibility corpus produces its
+- [x] **AC-0010.** The structured review-boundary runtime modules and the
+  review-policy data shape contain no reviewer-role condition and no field for
+  prompts, tools, models, retries, sessions, or reviewer workflow state, and
+  Slice 2 adds no such condition or field to the canonical work-loop policy
+  surface.
+- [x] **AC-0011.** Every row in the closed Compatibility corpus produces its
   required structured-boundary result and acknowledgement decision; no input
   class outside that table is admitted by the Slice 2 compatibility path.
-- [ ] **AC-0012.** The shared content-safety corpus accepts inert bounded reviewer
+- [x] **AC-0012.** The shared content-safety corpus accepts inert bounded reviewer
   prose and rejects a complete report containing protected data, an oversized
   field, or authority-shaped executable content before any semantic review
   record is persisted.
-- [ ] **AC-0013.** Slice 2 compatibility and review-cutover fixtures leave the
-  active legacy plan lock, task/cohort writer, and procedure authority
+- [x] **AC-0013.** Slice 2 compatibility fixtures leave the active legacy plan
+  lock, task/cohort writer, review authority, and procedure authority
   unchanged; no Slice 2 path treats `initial-plan-review.v1` as task approval
   or admits mutable task reprojection.
-- [ ] **AC-0014.** A current supported finding assessment atomically emits one
+- [x] **AC-0014.** A current supported finding assessment atomically emits one
   deterministic Slice 1 `review-failure` evidence receipt per affected
   criterion in the same semantic evidence transaction as the assessment; a
   crash exposes both the assessment and its complete receipt set or neither.
-- [ ] **AC-0015.** When a source report or supported assessment ceases to be
+- [x] **AC-0015.** When a source report or supported assessment ceases to be
   current, the review bridge atomically supersedes every receipt derived from
   that source, leaving no live `review-failure` receipt from a non-current
   report or assessment.
-- [ ] **AC-0016.** The projected Core review path completes the synthetic
+- [x] **AC-0016.** The projected Core review path completes the synthetic
   reviewer and compatibility corpus when `agentbundle` and other repository
   packages are unavailable; its runtime modules import only the Python standard
   library or sibling `work-loop` modules, and the run opens no file under
@@ -250,12 +260,16 @@ not make `agentbundle` or another repository package a runtime dependency.
 
 ## Follow-ons
 
-none
+- [Review-authority cutover](../../product/intents/FEAT-0036-review-authority-cutover.md)
+  switches the work-loop review gate to structured review readiness behind a
+  fresh owner approval and a tested reversal path, then removes
+  reviewer-specific procedure from the canonical work-loop skill. Owner:
+  Platform Core maintainer.
 
 ## Terminal Intent
 
 `code` — after approval, implement only the Slice 2 review boundary and its
-authorized review-path compatibility or cutover work.
+review-path compatibility work; the review-authority cutover is excluded.
 
 ## Accepted Risk
 

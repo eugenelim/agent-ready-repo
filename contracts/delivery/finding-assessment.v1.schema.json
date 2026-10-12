@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/finding-assessment.v1.schema.json",
+  "title": "finding-assessment.v1",
+  "description": "Current assessment of whether a finding is a reachable actual failure. Supported assessments bridge to Slice 1 evidence receipts in the same semantic evidence transaction.",
+  "$comment": "Owned by: docs/specs/structured-review-boundary/. References review report and review subject identity.",
+  "x-spec": ["docs/specs/structured-review-boundary/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "finding_id",
+    "report_id",
+    "review_subject_fingerprint",
+    "assessment",
+    "evidence_refs",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "assessment_id": {"type": "string", "minLength": 1},
+    "finding_id": {"type": "string", "minLength": 1},
+    "report_id": {"type": "string", "minLength": 1},
+    "review_subject_fingerprint": {
+      "$ref": "review-subject.v1.schema.json#/properties/review_subject_fingerprint"
+    },
+    "assessment": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "unsupported-opinion",
+        "unsupported-duplicate",
+        "unsupported-stale",
+        "unsupported-controlled-elsewhere",
+        "indeterminate"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["predicate_version"],
+      "properties": {
+        "predicate_version": {"type": "string", "minLength": 1},
+        "judgment_authority": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

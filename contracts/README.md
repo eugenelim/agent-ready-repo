@@ -65,6 +65,12 @@ disagree, `contracts/` is authoritative.
 | `delivery/content-safety-policy.v1.schema.json` | Content safety policy defining classification vocabulary, scanner corpus digest, and boundary profiles for every persistence boundary | no |
 | `delivery/content-safety-decision.v1.schema.json` | Content safety decision from the persistence guard with source record, policy, profile, normalized-record digest, and decision code | no |
 | `delivery/untrusted-data.v1.schema.json` | Typed inert-data wrapper for accepted free text ensuring downstream consumers treat content as data, not instructions or authority | no |
+| `delivery/review-subject.v1.schema.json` | Canonical review subject binding Slice 1 delivery identity, review policy, normalized paths, normalized statuses, and review lineage | no |
+| `delivery/review-obligation.v1.schema.json` | Selected review obligation for one role, review subject, policy, and mandatory/optional/waived kind | no |
+| `delivery/review-report.v1.schema.json` | Terminal structured reviewer report with role, subject, lineage, status, and embedded findings | no |
+| `delivery/finding.v1.schema.json` | Reviewer finding fields required for actual-failure assessment | no |
+| `delivery/finding-assessment.v1.schema.json` | Current finding assessment bound to report, subject, evidence, and assessment lineage | no |
+| `delivery/finding-disposition.v1.schema.json` | Authorized disposition for a supported material finding without mutating acceptance support | no |
 
 ## Which design governs which file
 
@@ -96,6 +102,11 @@ disagree, `contracts/` is authoritative.
   portable record shapes for acceptance properties, approvals, evidence,
   security primitives, and content safety decisions. These are test-time
   contracts only; no schema copy ships in the Core pack at runtime.
+- **The structured review delivery schemas** under `delivery/` come from the
+  [structured review boundary spec][review-contracts]. They define review
+  subjects, obligations, reports, findings, assessments, and dispositions.
+  These are test-time contracts only; no schema copy ships in the Core pack at
+  runtime.
 
 The authority model stated above comes from the
 [contracts composition, semantics, and discovery design][composition]. The
@@ -118,3 +129,4 @@ Future contracts land here too, each in its own PR.
 [work-intake-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/normalized-intake-workspace-contracts/spec.md
 [work-intake-migration]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/work-intake-migration-docs/spec.md
 [delivery-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/acceptance-authority-and-evidence/spec.md
+[review-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/structured-review-boundary/spec.md
