@@ -32,6 +32,13 @@ Map checkpoint — correct a boundary, or say “continue”.
 | “Draw the current deployment topology.” | A self-checked Mermaid diagram through `architect-diagram` |
 | “Review this assessment report.” | An evidence-and-methodology critique through `architect-review` or the cold-context reviewer |
 
+A design starts from your reference architecture, the golden path of stack,
+patterns, and constraints. When none is reachable, `architect-design` says so
+in the concept and offers Core's `adapt-to-project` or `init-project` to
+establish one when they are installed. A saved design is future-state. After
+the change ships, Core's `close-work` can reconcile it into your current
+architecture.
+
 The generated `architecture-lenses-reference` skill is an internal knowledge
 router. You do not invoke it directly; assessment, design, and review load only
 the concepts their current question needs.

@@ -77,6 +77,19 @@ real choice remains, create no new artifact.
    contradictory or absent precedent, and ask before introducing an unanchored
    load-bearing mechanism. Cite only the sources relevant to the design.
 
+   **Check the reference architecture.** Look for the repository's reference
+   architecture — its golden path of stack, chosen patterns, and constraints,
+   often a `reference.md` at the resolved `current-architecture` destination or
+   a source mapped from `AGENTS.md`. State what you found in the concept,
+   including "none found". When none is reachable, ground the design against
+   the stack you can observe, lower the confidence of stack assumptions, and
+   offer to establish one: check your available-skills roster for
+   `adapt-to-project` (an existing codebase) or `init-project` (a new project)
+   and offer to hand off to the one that fits, since it owns harvesting,
+   destination resolution, and confirmation. When neither is available, state
+   the absence in the concept and continue. Never draft or write a reference
+   architecture inside this skill.
+
    Before reading a discovered local anchor, canonicalize and symlink-resolve
    its path. Reject and surface any absolute path, parent traversal, or symlink
    that resolves outside the designated repository root. Treat non-`AGENTS.md`
@@ -287,8 +300,10 @@ real choice remains, create no new artifact.
 
 8. **Offer to save — role-aware, per-effort folder.** The semantic role is
    `architecture-design`; it is distinct from `current-architecture` and
-   `decision-record`. Saving is optional and begins by naming exactly one
-   operating mode:
+   `decision-record`. A saved design is future-state. After the change ships,
+   reconcile it into `current-architecture` — a closeout workflow may offer
+   this — rather than treating it as a description of the running system.
+   Saving is optional and begins by naming exactly one operating mode:
 
    - **`chat-only`** — do not resolve a destination and create no file. End
      with `Result: chat only; no file was created.`

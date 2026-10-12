@@ -10,7 +10,7 @@ contract:
   useItWhen: "You need to know what calls something, what a change would break, how an unfamiliar system is organised, or where a behaviour is implemented — and you want the answer from a resolved call graph rather than a text search."
   youType: "What breaks if I change the request handler?"
   youProvide: "A repository indexed with `wicked-estate index .`, and the symbol, module, or behaviour you are asking about. Nothing else — the pack never writes to the graph without asking."
-  youReceive: "An answer grounded in the index, carrying the index's own limits: how many references it could not resolve, whether output was truncated, and which revision it describes. Where the graph cannot answer, you are told that rather than given a guess."
+  youReceive: "An answer grounded in the index, carrying the index's own limits: how many references it could not resolve, whether output continues on later pages, and which revision it describes. Where the graph cannot answer, you are told that rather than given a guess."
   yourDecisions:
     - "Confirm which symbol was meant when a name resolves to more than one"
     - "Approve building or refreshing the index, which writes into the working tree"
@@ -109,7 +109,7 @@ it can tell you instead.
 ### 4. Read the limits with the answer
 
 - **Agent does:** reports the index's own completeness — references it could
-  not bind, output it truncated, the revision it describes — and names what it
+  not bind, output still on later pages, the revision it describes — and names what it
   could not establish.
 - **You decide:** whether the evidence is enough for your purpose, or a
   narrower question is needed.

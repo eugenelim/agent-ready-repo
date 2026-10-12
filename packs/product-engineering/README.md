@@ -130,6 +130,8 @@ When Core is present, `frame-intent` can also request its independent
 `shaping-reviewer` for a cold intent check; a fresh context or an independent
 human is the fallback, and Product Engineering retains lifecycle authority.
 
+**Optional — `architect`:** When the `architect` pack is installed, `frame-domain` and `de-risk-intent` offer `architect-assess` for a current-state model, and `frame-intent`, `decompose-intent`, and `map-capabilities` offer `architect-design` at the scope the work needs. Without it, they say nothing about it.
+
 **Downstream — `experience-design`:** The per-screen state matrix from `user-flow` feeds `ux-writing`. Pass it to write per-state copy for every screen × state cell.
 
 ---

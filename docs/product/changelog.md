@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][3.1.0] — 2026-10-09
+## [core][3.1.0] — 2026-10-11
 
 ### Highlights
 
@@ -93,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
 
-## [product-engineering][0.13.25] — 2026-10-10
+## [product-engineering][0.13.26] — 2026-10-11
 
 ### Highlights
 
@@ -102,6 +102,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The `frame-intent` intent template offers an optional `Related intents:` line after `Outcome co-owner:`, and the two guide copies of the template match it. An eval case checks that the line stays optional and comment-only.
+
+## [core][3.0.3] — 2026-10-10
+
+### Highlights
+
+- After a design you saved before building ships, `close-work` can now offer to reconcile it into your current architecture documentation, so a future-state design is not mistaken for a description of the running system.
+
+### Changed
+
+- `close-work` gains one offer: when the change implemented a saved future-state design, it offers to reconcile that design into the `current-architecture` destination. The offer is optional and adds no gate.
+- `close-work` gains one behavior eval for the reconciliation offer.
+
+## [code-intelligence][0.1.9] — 2026-10-11
+
+### Highlights
+
+- Runs on Wicked Estate 0.29.2. A large blast radius or lineage answer now arrives in pages instead of being cut off at the first one. The agent passes each page's token (`next_cursor`) back with `--cursor` until it is `null`, so every row the search found is retrievable.
+- If the answer changes between pages, the agent starts again from the first page instead of mixing two answers.
+- One `wicked-estate lineage` call now follows dependencies 24 levels deep by default, up from 8.
+
+### Changed
+
+- Floor and pin move to 0.29 / 0.29.2 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.29.2 --locked`; the first `index` afterwards rebuilds the graph.
+- `truncated_dependents` now counts rows on later pages rather than rows lost. A depth or node cut and a non-zero `unresolved` still mark the answer as incomplete after the last page.
+- The capability map documents the paged `blast-radius --json` and `lineage --json` key sets, including `next_cursor` and `page`, and the MCP `cursor` argument.
+- A `wicked-estate-mcp --readonly` server with a missing store path serves that store as an empty in-memory store; the pack names the graph, memory, knowledge and cross-store paths to check.
+- Local object properties leave the value-lineage hop list, matching upstream 0.27.0.
+
+## [code-intelligence][0.1.8] — 2026-10-10
+
+### Highlights
+
+- Runs on Wicked Estate 0.26.0. See what a function depends on with `wicked-estate lineage <name>`; a plain name or a symbol id both work.
+- Impact analysis reads each dependent's own `depth` from `blast-radius --json`, so one call separates direct callers from indirect ones.
+- Trace where a value flows through TypeScript, TSX and JavaScript code with `wicked-estate lineage <name> --relation flows_to`.
+- `wicked-estate stats --json` tells you which commit the graph was built from and how many commits behind it is.
+- An exit 1 with nothing on stdout is treated as a command error, not as "nothing found".
+
+### Changed
+
+- Floor and pin move to 0.26 / 0.26.0 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.26.0 --locked`; the first `index` afterwards rebuilds the graph.
+- Annotation answers report `source_type`, `extraction_method` and `last_verified`, and `stale-annotations` accepts Unix seconds, a date, or `--older-than`.
+- `query --json` returns structured output and `--version` prints one line; `evidence` joins the commands that write to the graph.
+- The evidence guide covers `compiler` resolution and SCIP's reference-only role (it never adds call edges), the `STALENESS:` line forms, and `rules-recall --steering-type`.
+
+## [architect][0.15.16] — 2026-10-10
+
+### Highlights
+
+- When a repository has no reference architecture, `architect-design` now says so, lowers its confidence in stack assumptions, and offers to hand off to `adapt-to-project` (existing code) or `init-project` (a new project) to establish one. It never drafts one itself.
+- `architect-design` now treats a saved design as future-state and points to reconciling it into current architecture once the change ships.
+
+### Changed
+
+- `architect-design` checks for a reference architecture, states the result in the concept including "none found", and routes a missing one to Core's producers when they are in the roster; with neither present it states the absence and continues.
+- `architect-design` describes a saved design as future-state to be reconciled into `current-architecture` after the change ships; the README and `DESIGN.md` match, and `pack.toml` records the optional Core hand-offs.
+- One behavior eval covers the no-reference-architecture case.
+
+## [product-engineering][0.13.25] — 2026-10-10
+
+### Highlights
+
+- With the `architect` pack installed, shaping now reaches architecture at the right moment. `frame-intent` offers `architect-design` when framing hits a system-shape question. `frame-domain` and `de-risk-intent` offer `architect-assess` for a current-state model. `decompose-intent` and `map-capabilities` offer a design before cutting work. Without `architect`, no architect offer, mention, note, or error appears.
+- When a saved design covers a feature, `decompose-intent` now carries it into the delivery contract's design context, so the spec stage reads it.
+- `explore-options`, `diverge-solutions`, `de-risk-intent`, and `decompose-intent` now use a current-architecture document, when one exists, to judge feasibility and check slices against subsystem boundaries.
+
+### Changed
+
+- Every architect offer is conditional on the available-skills roster and ends with one fixed sentence that keeps the absent case silent: no mention, no note, and no error.
+- `frame-domain`'s brownfield half reuses a current-architecture document first, and an absent `architect-assess` is never recorded as a grounding gap.
+- `frame-intent` parks a system-shape question as an open design question in `Assumptions`, outside Outcome and Opportunity.
+- `pack.toml` declares two optional `architect` integrations (`architect-design-offer`, `architect-current-state`) with a silent fallback. No dependency is added.
+- New behavior evals cover the installed and not-installed paths for `frame-domain`, `frame-intent`, `de-risk-intent`, and `decompose-intent`. A pack test pins the silent sentence at every offer.
 
 ## [core][3.0.2] — 2026-10-10
 

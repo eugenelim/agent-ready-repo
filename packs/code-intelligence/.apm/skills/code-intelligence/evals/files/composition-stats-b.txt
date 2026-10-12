@@ -1,4 +1,32 @@
-STALENESS: 2 commit(s) in 'example-repo' since last index — run `wicked-estate index . --repo example-repo` to refresh
-Nodes: 5 (function: 4, module: 1)
-Edges: 3 (Calls: 2, Imports: 1)
-Database: .wicked-estate/graph.db
+{
+  "db_size_bytes": 249856,
+  "edges": 6,
+  "edges_by_kind": {
+    "\"calls\"": 3,
+    "\"imports\"": 3
+  },
+  "files": 4,
+  "nodes": 9,
+  "nodes_by_kind": {
+    "\"file\"": 4,
+    "\"function\"": 5
+  },
+  "provenance": {
+    "branch": "main",
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "dirty": false,
+    "graph_version": "1",
+    "id_scheme": "4",
+    "indexed_at": "2026-10-10T12:00:00Z",
+    "indexed_root": "example-repo",
+    "indexed_version": "0.29.2",
+    "remote": null
+  },
+  "repos": [],
+  "staleness": {
+    "checked": 1,
+    "commits_behind": 2,
+    "unknown": []
+  },
+  "unresolved": 2
+}

@@ -23,6 +23,17 @@
         "Keeps authorship of the riskiest assumption and kill condition",
         "Treats any upstream hook as input rather than as the verdict"
       ]
+    },
+    {
+      "id": "feasibility-architect-absent-silent",
+      "prompt": "De-risk this intent. Its riskiest assumption is that the feature can be built on the existing platform. No current-architecture document exists and the architect skills are not in the available-skills roster.",
+      "expected_output": "Names feasibility as the riskiest assumption, predeclares a kill condition, and chooses its own probe, with no mention of the missing skill.",
+      "assertions": [
+        "Names the feasibility assumption as the test target",
+        "Predeclares a kill condition before running anything",
+        "Does not mention architect, its skills, or their absence",
+        "Chooses a prototype approach without a current-state model"
+      ]
     }
   ]
 }

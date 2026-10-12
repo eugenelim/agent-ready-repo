@@ -19,7 +19,9 @@ New here? [Why loop engineering](explanation/core-pack.md#why-loop-engineering) 
 
 This pack is the *Build it* stage. Work reaches it from anywhere: a committed
 bet from Product Engineering, a reviewed design set, a bug report, or a
-sentence you type. `work-intake` sends each one down the right route. You leave
+sentence you type. `work-intake` sends each one down the right route. The plan
+`new-spec` writes follows your `reference.md` and any architecture docs your
+`AGENTS.md` lists. You leave
 with a merged change you approved. If your team uses `release-engineering`, the
 merge is where release testing begins, and `close-work` wraps up the work once
 it's done. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).

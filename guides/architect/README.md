@@ -22,9 +22,13 @@ retrieval, executable checks, runtime evidence, experiments, and file writes.
 
 ## Where this fits
 
-In the *Shape it* stage, this pack sketches the architecture concept an intent
-needs before anyone writes a spec. It also stands on its own: an architecture
-assessment can start a piece of work at any point. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
+This pack keeps the architecture that shaping and building read: a
+current-state map set up once per repository, and designs for the whole
+system, a subsystem, or a change. It works at every stage, from assessing the
+area a bet touches to designing against the capabilities while you shape the
+work. Some shaping skills offer its steps when it's installed.
+[Where architecture comes in](../_shared/explanation/the-operating-model.md#where-architecture-comes-in)
+lays out the timeline stage by stage, and names which skill offers each step.
 
 ## Choose your task
 

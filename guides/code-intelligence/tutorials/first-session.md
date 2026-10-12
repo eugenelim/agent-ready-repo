@@ -87,17 +87,17 @@ whether its command is available:
 wicked-estate --version
 ```
 
-If it is absent or older than 0.21, run:
+If it is absent or older than 0.29, run:
 
 ```bash
-cargo install wicked-estate --version 0.21.0 --locked
+cargo install wicked-estate --version 0.29.2 --locked
 ```
 
 This compiles from source and can take several minutes. If `cargo` is missing
 or your machine blocks installation, use your usual IT/support route to prepare the
 tool. You do not need an MCP server for this walkthrough.
 
-**Check:** `wicked-estate --version` reports 0.21 or newer.
+**Check:** `wicked-estate --version` reports version 0.29.0 or newer (0.29.2 is the tested version).
 
 ## 4. Build the app's index
 
@@ -111,17 +111,18 @@ Then, from the app repository root, run:
 
 ```bash
 wicked-estate index .
-wicked-estate stats
+wicked-estate stats --json
 ```
 
 Indexing writes `.wicked-estate/graph.db`; it does not change application code.
-The time needed depends on the app. `stats` should report nodes and edges.
-If it reports `STALENESS:`, rebuild the index before continuing. If indexing
+The time needed depends on the app. `stats --json` should report non-zero
+`nodes` and `edges`. If `staleness.commits_behind` is above 0, rebuild the index
+before continuing. If indexing
 fails or produces an empty graph, stop before treating answers as graph-backed.
 Keep the error locally. For a self-serve trial, record the blocked step and a
 generic reason in your response worksheet; optional IT/support help is fine.
 
-**Check:** `stats` shows a populated graph without a staleness warning.
+**Check:** `wicked-estate stats --json` shows a non-zero `nodes` count, and `staleness` shows `commits_behind` 0 with an empty `unknown` list.
 
 ## 5. Open the agent and check readiness
 
@@ -130,13 +131,14 @@ Start a fresh Claude Code session in the app checkout. Paste:
 ```text
 Use the installed code-intelligence skill. Locate its bundled
 scripts/estate_preflight.py and run it with --check --root pointing to this
-repository. Then run wicked-estate stats here and check for staleness.
+repository. Then run wicked-estate stats --json here and read its staleness.
 Tell me whether the pack and graph are ready. Do not install tools, rebuild
 the index, or edit application code in this step.
 ```
 
 **Check:** the preflight reports `status: ready`, and the agent confirms a
-populated graph without a staleness warning. If it cannot find the skill,
+populated graph that is current: 0 commits behind and no root of unknown
+freshness. If it cannot find the skill,
 check the pack installation and reopen the session. A text-search fallback
 can still help, but it does not show that this graph trial is working.
 
@@ -172,7 +174,7 @@ in <file> to <one-sentence change>.
 
 Find its callers and other dependents. Read the important dependent code and
 explain whether it uses the behavior being changed. Distinguish direct callers
-from wider dependencies where the evidence supports that distinction.
+from wider dependencies using each dependent's per-row `depth`.
 Put unresolved references, truncated results, traversal limits, and staleness
 at the top. Give file and line references. Do not edit code or the graph.
 ```

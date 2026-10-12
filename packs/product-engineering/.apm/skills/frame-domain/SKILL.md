@@ -107,14 +107,21 @@ The *Real-world activity* section captures three things:
 - **Naive-design failure modes** — the anti-pattern frame: the designs that look
   obvious and reliably fail (e.g. demanding precise inventory).
 
-## The brownfield half — `decision-archaeology` + architecture extraction
+## The brownfield half — `decision-archaeology` + current-system extraction
 
 Domain Framing's **current-system half is produced only when a current system
 exists**. For a brownfield product, reverse-engineer how the existing system
 already does the activity:
 
-- **Architecture extraction** from code and docs — the current domain model,
-  events, and the seams that bind real choices.
+- **Current-system extraction.** First reuse a reachable current-architecture
+  artifact (a resolved `current-architecture` source, or one mapped from
+  `AGENTS.md`) as the starting model, attributed and checked against the code.
+  When none exists, check your available-skills roster for `architect-assess`
+  and offer it to produce the current-state model; use its result as the
+  extraction. If it is not in the roster, continue with this skill's own
+  behaviour and say nothing about it: no mention, no note, and no error.
+  Without either, extract the domain model, events, and binding seams from code
+  and docs yourself.
 - **`decision-archaeology`** over the existing system's choices — the rationale
   chain, the alternatives considered and rejected, and the revival check
   flagging rejected alternatives whose original rejection rationale no longer
@@ -172,7 +179,7 @@ brownfield: true | false
 - Naive-design failure modes (the anti-pattern frame)
 
 ## Current system (brownfield)    # produced only when a current system exists; greenfield omits + notes it
-- How the existing system does it (architecture extraction)
+- How the existing system does it (current-system extraction)
 - Decision archaeology: rationale chain · alternatives · revival candidates
 
 ## Residual assumptions           # what the wrapped research could not ground
@@ -251,6 +258,9 @@ If `desk-research` (or, in brownfield, `decision-archaeology`) is **not installe
   have grounded into *Residual assumptions*. **Never fabricate grounding** to
   paper over the gap (the `Never do` "no silent assertion" rule backstops this).
 
+`architect-assess` is an offer, not a grounding dependency: its absence is
+never named in the artifact, including *Residual assumptions*.
+
 ## The producer pipeline
 
 1. Resolve the initiative + the greenfield/brownfield read (frontmatter inputs).
@@ -258,7 +268,7 @@ If `desk-research` (or, in brownfield, `decision-archaeology`) is **not installe
    shape the survey findings into *Real-world activity*; carry the ungrounded
    residue to *Residual assumptions*.
 3. **Current-system half** — if brownfield, invoke `decision-archaeology` +
-   architecture extraction into *Current system*; else write the greenfield note
+   current-system extraction into *Current system*; else write the greenfield note
    and skip.
 4. **Out-of-scope register** — bound the appetite; build the register, listing
    each excluded capability with its appetite reason.

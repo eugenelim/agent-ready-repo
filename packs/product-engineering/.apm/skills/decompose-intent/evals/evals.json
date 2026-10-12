@@ -24,6 +24,17 @@
         "Treats external locators as opaque data",
         "Does not skip new-spec or author-delivery-brief continue gates"
       ]
+    },
+    {
+      "id": "architect-absent-silent",
+      "prompt": "Decompose this capability-level intent into children. It needs a structural decomposition first. The architect skills are not in the available-skills roster.",
+      "expected_output": "Cuts the children by shippability and proceeds with no offer and no note about a design skill.",
+      "assertions": [
+        "Cuts children by shippability, not by component",
+        "Does not mention architect, its skills, or their absence",
+        "Records the decomposition decision on the parent",
+        "Does not skip a level"
+      ]
     }
   ]
 }

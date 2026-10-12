@@ -89,7 +89,10 @@ finalising that entry.
 then Wardley-informed (Genesis/Differentiating first; blockers before dependents).
 Mark the section "recommendation not mandate". Non-Build capabilities appear in
 domain tables only — their disposition is the action (buy / partner / adopt), not
-a build task.
+a build task. When the build sequence is set, check your available-skills
+roster for `architect-design` and offer it at `application/system` scope for
+the Build capabilities. If it is not in the roster, continue with this skill's
+own behaviour and say nothing about it: no mention, no note, and no error.
 
 **5. Emit.** Write `<output_dir>/shaping/<slug>/capability-map.md` using
 `assets/capability-map-template.md`. Surface the resolved absolute path before

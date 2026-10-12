@@ -27,16 +27,16 @@ from pathlib import Path
 import pytest
 
 #: The upstream release both allowlists were transcribed from.
-VERIFIED_AGAINST = "0.21"
+VERIFIED_AGAINST = "0.29"
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_ROOT = PACK_ROOT / ".apm"
 
 #: Every subcommand `wicked-estate` dispatches. `hotspots` is an alias of `rank`.
-#: 0.21.0 adds `lineage`, `traverse`, `rules-inventory`, `rules-recall`, and
-#: `supports` for a total of 40 names: 35 top-level arms in main.rs (including
-#: `lineage` and `supports`) plus 4 bridged rows (`traverse`, `rank`,
-#: `rules-inventory`, `rules-recall`) plus the `hotspots` alias on bridged `rank`.
+#: 0.29.2 dispatches 42 names: 35 bespoke arms in main.rs (including `evidence`
+#: and `supports`), 5 bridged commands (`lineage`, `traverse`, `rank`,
+#: `rules-inventory`, `rules-recall`), the `hotspots` alias on bridged `rank`,
+#: and `version`, which is matched before dispatch.
 CLI_VERBS = frozenset(
     {
         "annotate",
@@ -52,6 +52,7 @@ CLI_VERBS = frozenset(
         "dead-code",
         "drift",
         "entrypoints",
+        "evidence",
         "export",
         "fingerprint",
         "graph-view",

@@ -21,8 +21,12 @@ The design rule upstream is that there are no bare edges — a heuristic edge is
 never presented as a fact. Several resolvers feed the graph, and they are not
 equally trustworthy:
 
-- A **SCIP-backed** edge comes from a real compiler index. It is about as close
-  to ground truth as static analysis gets.
+- A **`compiler`** edge is backed by compiler evidence. `compiler` is both a
+  resolution tier and a provenance value. A SCIP import adds reference support
+  and never call edges, so importing a SCIP index does not add a call edge.
+  Compiler evidence, such as Angular input and output bindings, reaches the graph
+  through `evidence`, a write verb this skill does not run (source-read from the
+  0.29.2 sources).
 - An **import-map or scoped** edge comes from resolving a name within a known
   module structure. Usually right.
 - A **name-matched** edge comes from a symbol name matching across files. It is
@@ -51,9 +55,10 @@ uniform list.
 
 ## Completeness is reported — quote it
 
-Three signals tell you an answer is a floor rather than a total. All three are
-easy to drop when summarizing, and dropping them turns a careful result into an
-overclaim.
+Three signals tell you an answer is incomplete. Two of them (`unresolved` and a
+cut flag) keep it a floor. The third, `truncated_dependents`, is pageable: page
+to the end and the rows it counted are in hand. All three are easy to drop when
+summarizing, and dropping them turns a careful result into an overclaim.
 
 ### `unresolved` (CLI) / `unresolved_callers` (MCP)
 
@@ -71,38 +76,76 @@ structurally but not precisely. A non-zero count is normal; hiding it is not.
 
 ### `truncated_dependents` (CLI) / `truncated` + `total` (MCP)
 
-The CLI bounds serialized output at 25,000 characters and reports how many rows
-it dropped. A non-zero value means you are looking at a prefix, ordered by
-whatever the store returned — not the most important dependents. On a mid-size
-repository this fires easily: a probe against this catalogue returned 7
-unresolved and **727 truncated**.
+One CLI reply stays under 25,000 characters. When the answer is longer, the
+reply holds one page, and `truncated_dependents` counts the rows on later pages
+(executed). On every page, `page.from + page.count + truncated_dependents` equals
+`page.total`. A non-zero value means the list you hold is the first part, not
+the whole. Pages are ordered by depth, then symbol id, so a page is not "the
+most important dependents" and pages from separate runs join exactly. A single
+row wider than the budget is carried whole on its own page with a note on
+stderr, so the bound is on the page and not on the answer (source-read).
+
+`blast-radius --json` adds `next_cursor` (a string, or `null`) and
+`page {from, count, total}`. Run the same command again with
+`--cursor <next_cursor>` and keep going until `next_cursor` is `null`. Only then
+is the list the whole resolved answer within `searched_depth`. In text mode, the
+reply ends with `…and N more (one reply is bounded at 25K chars): --cursor <c>`.
+A probe on a symbol with 1,500 callers returned 1,503 rows over 12 pages, all
+distinct (executed).
+
+`lineage --json` pages the same way. It adds `next_cursor` and
+`page {dependencies {from, count, total}, flows {from, count, total}}`. Its
+`truncated` is true while more pages remain or on a depth or node cut, and its
+`total` counts dependency rows across all pages (`page.flows.total` counts flow rows). Lineage prints its page note, ``pass `cursor`:
+"<c>" for the rest``, with its other diagnostics: on stderr under `--json`, on
+stdout after the result in text mode. Read `next_cursor` from the JSON.
+
+A depth or node cut is still reported on the last page, so paging to `null`
+does not lift it.
+
+**A refused cursor is a restart, not an end.** The cursor fingerprints the
+crate version, the tool, the query, and every row of the answer (source-read).
+So it is refused, with exit 1 and nothing on stdout, when the answer it pages
+has changed: another query or `--depth`, another build, or different rows after
+a re-index. The message says to restart without `cursor`. A malformed cursor
+gets its own message: pass back the `next_cursor` of the previous page
+unchanged, or omit `cursor` for the first page. On either,
+start again from the first page, and never splice pages from two answers. A re-index that leaves the
+answer's rows unchanged does not refuse the cursor, so an accepted cursor says
+nothing about freshness; `stats --json` is the freshness check.
 
 ### The depth cut is reported
 
 `blast-radius --json` returns `searched_depth`, `depth_horizon_reached`, and
 `node_cap_reached`. When `depth_horizon_reached` is true, the text output prints
 `CUT AT depth=N` — dependents beyond that depth are not in the list. Raise
-`--depth` (max 24) to go further. `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents) before subtracting.
+`--depth` (max 24) to go further; `lineage --depth` defaults to 24 and clamps above it. Each row carries a per-row `depth`, and `blast-radius <name> --depth 1 --json` gives only the direct dependents; see [Direct and transitive dependents](#direct-and-transitive-dependents).
 
 A true `node_cap_reached` means the traversal hit its node budget. No CLI flag
-raises it, so report the list as a floor.
+raises it, so report the list as a floor, even after you have paged to `null`.
 
 ### Direct and transitive dependents
 
-`blast-radius <name> --depth 1 --json` gives the direct dependents. Subtracting
-them from a full run gives the transitive dependents, but only as far as both
-runs are complete:
+Every `blast-radius --json` dependent row carries a per-row `depth`: 1 is a
+direct dependent, and larger values are transitive. Read `depth` first; one
+full run separates the two sets, and the cut flags below say how far to trust the
+split. `--depth 1` is still valid when you want only direct dependents.
+Subtracting a `--depth 1` run from a full run is a second route to the same
+split, and it holds only as far as both runs are complete:
 
-- **Both runs uncut** — the `--depth 1` run reports `truncated_dependents` 0,
-  and the full run reports `unresolved` 0, `truncated_dependents` 0,
-  `depth_horizon_reached: false` and `node_cap_reached: false`. The difference
-  is the complete transitive set.
-- **Only the full run cut** — the `--depth 1` run reports
-  `truncated_dependents` 0, and the full run reports a cut. The difference is a
-  floor on the transitive set within `searched_depth`.
-- **The `--depth 1` run truncated** — no split is possible. The missing direct
-  rows would land in the difference, so it is neither the transitive set nor a
-  floor. Report the direct list as partial and do not report a transitive count.
+Page each run to a `null` `next_cursor` first, then compare the whole lists.
+
+- **Both runs uncut** — the `--depth 1` run is whole (paged to `null`), and the
+  full run is whole with `unresolved` 0, `depth_horizon_reached: false` and
+  `node_cap_reached: false`. The difference is the complete transitive set.
+- **Only the full run cut** — the `--depth 1` run is whole, and the full run
+  reports a cut flag. The difference is a floor on the transitive set within
+  `searched_depth`.
+- **The `--depth 1` run not paged to `null`** — no split is possible. The
+  missing direct rows would land in the difference, so it is neither the
+  transitive set nor a floor. Page the `--depth 1` run to `null` first; if you
+  cannot, report the direct list as partial and do not report a transitive
+  count.
 
 A non-zero `unresolved` on the full run limits every case to resolved edges. A
 direct caller bound only through an unresolved reference can surface deeper in
@@ -128,8 +171,8 @@ result sitting at the cap is a partial subgraph. The response carries per-node
 depth, so you can at least say how far you got.
 
 `wicked-estate traverse` clamps `--depth` and `--max-nodes` when they exceed the
-ceiling and writes `CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>` to stderr, even under `--json`. The value after `used` is the one applied.
-Check stderr when you need to know whether the value you passed was honoured.
+ceiling and writes `CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>` to stderr under `--json` and to stdout after the result in text mode. The value after `used` is the one applied.
+Check that channel when you need to know whether the value you passed was honoured.
 
 ---
 
@@ -143,9 +186,10 @@ and a low `avg` means the set is largely speculative.
 `blast-radius` rows carry no per-row confidence. Use `wicked-estate path A B
 --json` when you need per-hop confidence on a specific route.
 
-MCP `BlastRadius` also returns the `confidence` envelope, plus per-dependent
-`depth` and `summary.top_by_pagerank`. The CLI does not offer per-row depth or a
-ranked-dependents view.
+MCP `BlastRadius` also returns the `confidence` envelope and per-dependent
+`depth`, plus `summary.top_by_pagerank`, and it takes `cursor` and returns
+`next_cursor` (schema-derived) and `page` (source-read) as the CLI does. The CLI rows carry `depth` too; the CLI
+does not offer a ranked-dependents view.
 
 Structural `contains` and `defines` edges are excluded from the confidence
 evidence (source-read from `main.rs`); they do not affect which rows appear in
@@ -165,13 +209,26 @@ STALENESS: 12 commit(s) in 'my-repo' since last index — run `wicked-estate ind
 
 **Staleness channels differ by command:**
 
-- **Bridged commands** (`traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr even under `--json`, so machine output from those commands may carry the warning as a stderr line.
-- **`lineage --json`** carries staleness in the `diagnostics` array — a placeholder entry is always present; a real `STALENESS: commits_behind=N` entry appears when the graph is behind HEAD (source-read).
+- **Bridged commands** (`lineage`, `traverse`, `rank`, `rules-inventory`, `rules-recall`) write `STALENESS:` to stderr under `--json`, so stdout stays one JSON document and the warning is a stderr line (executed on `lineage --json`). In text mode they print it on stdout after the result (source-read from `tool_bridge.rs`).
 - **`blast-radius` and `path`** suppress `STALENESS:` under `--json` so machine output stays one document. Do not treat its absence there as evidence of freshness.
-- **`stats`** in text mode always prints the staleness line when it applies, and is the best single command for a freshness check before blast-radius or path queries.
+- **`query`, `clusters` and `context`** print commits-behind `STALENESS:` lines on stdout before the JSON, even under `--json`. Parse from the first line that starts the JSON, and do not treat the absence of those lines as evidence of freshness (source-read from `main.rs`).
+- **`stats --json`** prints one JSON document that carries freshness as `staleness.commits_behind`. It is the best single check before blast-radius or path queries. The graph is current only when `commits_behind` is 0 and `staleness.unknown` is empty; a root listed in `unknown` has unknown freshness whatever the count. Its stderr may carry a `VERSION MISMATCH:` or `SYMBOL-ID SCHEME MISMATCH:` warning; either one means re-index before trusting answers (source-read from `main.rs`).
 
-When you see a staleness warning, every answer in that session describes an older
-revision. Two honest options:
+Bridged commands print a `STALENESS:` line for each stale or unknown root, or a
+single `0 commits` line when every root was checked and none is behind
+(source-read from `main.rs`):
+
+- `STALENESS: N commit(s) since last index` — that root is N commits behind.
+- `STALENESS: 0 commits since last index` — current for every checked root.
+- `STALENESS: unknown for <root> — freshness could not be determined`, or
+  `STALENESS: unknown — <db> records no indexed root to check` — no verdict
+  either way. Say freshness is unknown; do not report a revision gap.
+
+`path`, `blast-radius` and text `stats` print only commits-behind lines, so
+their silence does not prove the graph is current (source-read from `main.rs`).
+
+When a line reports commits behind, every answer in that session describes an
+older revision. Two honest options:
 
 1. Answer, and state the revision gap: *"As of the indexed revision, 12 commits
    behind the working tree, …"*
@@ -181,40 +238,51 @@ Never silently present stale graph output as current.
 
 ### Clamped parameters
 
-When `--depth` or `--max-nodes` exceeds the ceiling, bridged commands clamp the
-value and write `CLAMPED: <param>=<actual>` to stderr, even under `--json`. Check
-stderr when you need to know whether the value you passed was honoured.
+When a bridged command's limit flag exceeds its ceiling (`lineage --depth`,
+`traverse --depth` / `--max-nodes`, `rank --limit`, `rules-recall --limit`), the
+command clamps the value and writes
+`CLAMPED: <param>=<asked> is above this tool's ceiling; used <param>=<ceiling>`
+to stderr under `--json` and to stdout after the result in text mode. Check that channel when you need to know
+whether the value you passed was honoured.
 
 ### Establishing snapshot identity
 
-- `wicked-estate stats` reports node and edge counts and, where the repository
-  was indexed from a checkout, its git provenance.
+- `wicked-estate stats --json` returns the revision the graph was built from
+  as fields: `provenance.commit`, `provenance.indexed_at`, and
+  `staleness.commits_behind`. `provenance.commit` is null outside a git
+  checkout. A graph indexed with `--repo` leaves the single-root provenance
+  fields null and reports `commit`, `indexed_version` and `commits_behind` per
+  repository under `repos[]` (source-read from `main.rs`).
 - `wicked-estate fingerprint <name>` gives a stable hex fingerprint for one
   symbol, which is how you tell whether a specific symbol changed between two
   indexed revisions.
 - `wicked-estate changed-since <sha> --json` lists symbols in files that changed
   since a given git SHA.
 
-There is no single command that returns "the revision this graph was built
-from" as a value. Pair `stats` with the staleness line.
 
 ---
 
 ## Value lineage — `flows_to`
 
-`wicked-estate lineage --symbol '<id>' --relation flows_to --json` traces
+`wicked-estate lineage <symbol> --relation flows_to --json` traces
 producer-to-consumer value flow through parameters, returns, and field writes.
-TypeScript only. Each flow hop carries:
+`<symbol>` is a name or a symbol id. A parameter or local is a value slot, which
+plain `resolve` does not return, so find the seed with
+`resolve <name> --include-values --json` (source-read). Coverage is TypeScript,
+TSX, and JavaScript files (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`)
+(source-read).
+Callbacks, `await` and `.then`, destructuring, loops, and closure returns add hops, almost all of them `may_influence`. Each flow hop
+carries:
 
 - `producer`, `consumer`, `confidence`, `provenance`, `resolved_by`
 - When present: `flow_semantics` (`value_preserving` / `may_influence`) and
-  `flow_evidence` (`syntax` / `call_derived` / `convention`)
+  `flow_evidence` (`syntax` / `call_derived` / `convention` / `compiler`)
 
 Additional fields (`constructs`, `flow_rules`, `flow_support`, etc.) may appear;
-the list is not exhaustive (source-read from `wicked-estate-retrieve` 0.21.0
-`flow_hop_row`). The Python fixture produces no value flow, so these fields
-cannot be observed on the standard test index — treat them as source-read and
-label them as such when you quote them.
+the list is not exhaustive. The Python fixture produces no value flow, so these
+fields and the new hop kinds cannot be observed on the standard test index —
+they are source-read from the 0.29.2 sources, so label them as such when you
+quote them. Any `--relation` other than `flows_to` exits 1.
 
 ---
 
@@ -227,30 +295,28 @@ place the estate records a human or agent judgment alongside its provenance.
 wicked-estate annotations --symbol '<symbol_id>' --json
 ```
 
-Each annotation carries exactly these fields: `key`, `value`, `type`,
-`confidence`, `provenance`, `author`, `ts`, and `advisory`.
+Each annotation carries `key`, `value`, `type`, `confidence`, `provenance`,
+`author`, `ts`, `advisory`, `source_type`, `extraction_method`, and
+`last_verified` (executed on 0.29.2).
 
-Two shape traps, both verified against the binary:
-
-- **The `<name>` form returns an array**, one `{symbol, annotations[]}` entry
-  per name match. Only the `--symbol '<id>'` form returns a single object, which
-  is why the command above uses it.
-- **There is no `last_verified` field in the JSON.** The human-readable
-  `stale-annotations` output mentions one, but the machine output gives you
-  `ts`. Report `ts`; do not promise a verification date the payload does not
-  carry.
+One shape trap, verified against the binary: **the `<name>` form returns an
+array**, one `{symbol, annotations[]}` entry per name match. Only the
+`--symbol '<id>'` form returns a single object, which is why the command above
+uses it.
 
 Two rules:
 
 - **An annotation is a claim, not a fact.** It has an author and a confidence
   for a reason. Report it with its provenance attached: *"annotated as
-  deprecated by `platform-team`, confidence 0.8, recorded 2026-03-11"* — not
-  "this is deprecated".
+  deprecated by `platform-team`, confidence 0.8, last verified 2026-03-11"* — not
+  "this is deprecated". Report `last_verified` as the verification date and
+  `ts` as the recording time.
 - **Check whether it is stale.** `wicked-estate stale-annotations <cutoff>
-  --json` returns `{symbol, annotation}` pairs older than the cutoff. The
-  cutoff is **Unix seconds**; a date string is rejected with a usage error.
-  Never-verified annotations always come back stale. An old annotation on
-  fast-moving code is weak evidence.
+  --json` returns `{symbol, annotation}` pairs older than the cutoff. Give
+  exactly one cutoff: Unix seconds, a `YYYY-MM-DD` date, or
+  `--older-than <N>{s,m,h,d,w}` (for example `--older-than 90d`). Two cutoffs
+  exit non-zero. Never-verified annotations always come back stale. An old
+  annotation on fast-moving code is weak evidence.
 
 ### Do not write workflow state here
 

@@ -71,9 +71,10 @@ Options must span meaningfully different approaches
 addressed), or *bet* (what must be true) must differ across the set. For each
 option produce: name (short descriptive title), approach (one paragraph),
 key bets (1–3 assumptions that must hold), trade-offs (relative to other
-options). If all candidates collapse to trivial variations, name the constraint
-and ask before narrowing further — the problem is that the space did not open,
-not that a count was missed.
+options), and, when a current-architecture artifact is reachable, an optional
+feasibility note citing it. If all candidates collapse to trivial variations,
+name the constraint and ask before narrowing further — the problem is that the
+space did not open, not that a count was missed.
 
 **4. Recommend one option.** State the recommended option with one-sentence
 rationale naming the dominant bet and why the team is willing to take it.
@@ -89,7 +90,7 @@ Write to `<output_dir>/shaping/<slug>/solution-options.md`.
 Frontmatter: `type: solution-options`, `slug`, `opportunity` (one-line
 description), `date`, `recommendation` (name of the recommended option —
 same value as that option's `name` field). Sections: Opportunity, Options
-(one entry per option, each with name, Approach, Key bets list, Trade-offs, Status),
+(one entry per option, each with name, Approach, Key bets list, Trade-offs, Feasibility (optional), Status),
 Recommendation (option name + rationale), Residual bets (what must hold
 across options regardless of which is selected), Step 2 readiness (include
 only when proceeding without a step-2 artifact), Suggested workspace.toml
