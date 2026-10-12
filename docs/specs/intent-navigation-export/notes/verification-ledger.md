@@ -230,3 +230,10 @@ Final dispatch at `fafdc4734`, all `success`:
 - test-roster: run 38201345114
 - build-check: run 38201347744
 - Native checks: 38 pass, and `deploy` is skipped, as it is on every pull request.
+
+Main then landed `bfe30052c` (core 3.0.5, #1546), and #1545 conflicted. Merge commit `e6f67fe5f` resolved it: `core` stays 3.1.0, and its changelog entry sits above `[core][3.0.5]`. Final dispatch at `e6f67fe5f`, all `success`:
+
+- test-corpus: run 38202491501
+- test-roster: run 38202492954
+- build-check: run 38202494518
+- Native checks: 38 pass, `deploy` skipped. GitHub reports the PR `MERGEABLE` and `CLEAN`.
