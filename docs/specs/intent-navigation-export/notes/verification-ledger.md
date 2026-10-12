@@ -181,3 +181,18 @@ Every round 5 reviewer flagged the same advisory nit: the delayed "This item is 
 - New browser check (in the Back-to-list test): Back to list on a filtered-out row and a hash change in the same task leave "Tree view, …" in the live region 200 ms later. Mutation: removing `clearTimeout` from `renderList` fails it.
 - Browser record: code commit `15efa2caf691d395c2ba02a1ef3eca74d12980c4`, clean tree, `view_browser_checks.py -q -rs`: 50 passed, 0 skipped. `view.js` SHA-256 `8091d41351577477db7684f8ce07b1ff7aac165838525f6767bfc1e632e82c00`; `view.css` `b65172538e39efd36ddccfa72ad50cb18e3ed660f9957ac24c3d92f426aa708b` (these supersede the T7 digests).
 - Gates: `navigate-intents` folder 439 passed, 4 skipped; `make lint-ruff lint-mypy` pass; `catalogue lint --deep` ok; self-host run twice, the second leaving no further diff.
+
+### Slice PR CI
+
+PR #1544 (`vlx/Deliver-slice-4-intent-…` → `feature/intent-navigation`). The first dispatch at 473acb7a5 found two slice test defects, fixed in test-only commits. `view.js`, `view.css`, and the scripts are unchanged since the browser record at 15efa2caf.
+
+- The pack-boundary lint rejected `view_bench.py` reaching above `packs/core` and a computed fixture path in `test_export_html.py`. The benchmark now takes `--source <repo-root>` (required), and the HTML tests pass fixture paths directly. `tools/lint-pack-test-boundary.py` passes, and its self-test passes 158 cases.
+- `test_a_treeless_clone_never_starts_a_lazy_fetch` failed on CI's Git 2.55 with "Not a valid object name HEAD". The cause: the scratch bare repository took the runner's default branch while the seed pushed `main`. All three fixture bare repositories now use `init -b main`, and fixture Git failures report Git's stderr.
+- The first roster failure was outside this slice. `tests/roster/test_spec_retirement_candidates_cli.py` snapshots a scratch repository while Git's background maintenance briefly creates `objects/maintenance.lock`. It passed on re-run.
+
+Final dispatch at code commit `2a275fb9a`, all `success`:
+
+- build-check: run 38194089424
+- test-corpus: run 38194091550
+- test-roster: run 38194093995
+- PR native checks: 12 of 12 pass.
