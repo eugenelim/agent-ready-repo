@@ -219,3 +219,14 @@ Slice PR #1544 was squash-merged into `feature/intent-navigation` as `4d2d6cbcb`
 - Status: slice 1 and this spec are `Shipped` with every criterion checked, and both plans are `Done`. Both entries are in `["ini-010".work].shipped`, and `["ini-010".work].active` is empty. `lint-spec-status` is clean, and `workspace_status.py reconcile` reports no finding for either spec. The brief's Constraints now say "brought up to date by merging the default branch".
 - Browser record on the merged head `6a6746e5409ea74a0c9e76944e06f8f7705c5d1a`: `view_browser_checks.py -q -rs` gave 50 passed and 0 skipped. `view.js` SHA-256 is `8091d41351577477db7684f8ce07b1ff7aac165838525f6767bfc1e632e82c00` and `view.css` is `b65172538e39efd36ddccfa72ad50cb18e3ed660f9957ac24c3d92f426aa708b`, unchanged by the merge.
 - AC-0068 export repeated on that head: `python3 packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py export --root . --destination <scratch> --name publish.html` returned `ok` at 577,498 bytes. Counts: 168 intents, 24 briefs, 558 specs, 202 outstanding, 0 refused edges, 100 parentless intents.
+
+### Integration PR CI
+
+PR #1545 (`feature/intent-navigation` → `main`). The first dispatch at `71b5e9673` failed one test in all three workflows: `tests/roster/test_intent_template_shape_conformance.py::test_the_template_and_its_mirrors_list_related_intents_after_outcome_co_owner`. That test, added in slice 3, still searched the guides for the old `frame-intent` template rung, which main had moved to the `intent` skill. Commit `fafdc4734` points it at the new rung, and the file then passes 9 tests.
+
+Final dispatch at `fafdc4734`, all `success`:
+
+- test-corpus: run 38201342818
+- test-roster: run 38201345114
+- build-check: run 38201347744
+- Native checks: 38 pass, and `deploy` is skipped, as it is on every pull request.
