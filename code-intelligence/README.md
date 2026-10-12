@@ -68,7 +68,7 @@ investigation patterns may change as the pack evolves.
 You need the CLI and an index.
 
 ```bash
-cargo install wicked-estate --version 0.21.0 --locked
+cargo install wicked-estate --version 0.29.2 --locked
 echo '.wicked-estate/' >> .gitignore   # the index is large and local
 wicked-estate index .
 ```
@@ -95,7 +95,7 @@ example `/Users/<you>/.claude/skills/code-intelligence` or
 expand `~` inside the quotes.
 
 Exit 0 is ready, 2 means the binary is missing, 3 means there is no index, and
-4 means the binary is older than the 0.21 floor this pack was verified against.
+4 means the binary is older than the 0.29 floor this pack was verified against.
 
 ## CLI, not MCP, by default
 
@@ -106,15 +106,15 @@ The MCP server advertises **30 tool schemas**, and they stay resident in the
 agent's context for the entire session whether or not a single one is called.
 The CLI costs nothing until you run it.
 
-The CLI is also the larger surface. It accepts 40 names, including several with
+The CLI is also the larger surface. It accepts 42 names, including several with
 no MCP equivalent: requirement linkage (`by-requirement`, `semantics`), snapshot
 identity (`fingerprint`, `changed-since`, `stats`), the annotation evidence
 envelope (`annotations`, `stale-annotations`), and `entrypoints`, `leaves`,
 `dead-code`, `correspond`, and `drift`.
 
 The memory, knowledge, and proposal domains have **no CLI verb** and are
-reachable only over MCP. The richer MCP response shapes — per-dependent `depth`
-and `summary.top_by_pagerank` on `BlastRadius`, `Communities` summaries,
+reachable only over MCP. The richer MCP response shapes —
+`summary.top_by_pagerank` on `BlastRadius`, `Communities` summaries,
 `ContextBundle` — are also MCP-only. For those, register the server, preferably
 read-only:
 
@@ -122,6 +122,20 @@ read-only:
 claude mcp add wicked-estate -s project -- \
   wicked-estate-mcp --readonly --db "$PWD/.wicked-estate/graph.db"
 ```
+
+With `--readonly`, a store path that does not exist is not created: the server
+serves that store as an empty in-memory store and says so on stderr, so an empty
+answer from a wrongly registered path says nothing about your repository. If every
+answer from one store is empty, check its path first:
+
+- The graph path comes from `--db`, else `WICKED_ESTATE_DB`, else
+  `.wicked-estate/graph.db` relative to the server's working directory.
+- The memory, knowledge, and cross-store paths come from `WICKED_MEMORY_DB`,
+  `WICKED_KNOWLEDGE_DB`, and `WICKED_XEDGE_DB`, else from `WICKED_HOME`, else
+  `$HOME/.wicked`.
+
+These paths are source-read, meaning read from the `wicked-estate-mcp` 0.29.2
+source code rather than run.
 
 The capability map marks every row with which surface serves it, so the skill
 never implies coverage that is not there.
@@ -137,14 +151,20 @@ Some of what that found:
 
 - **Ranking a dependent set is a composition.** `rank --seeds` biases a
   graph-wide ranking; keep only the rows in your set. The row list is capped at
-  25K characters, so report members absent from the output as unranked.
+  25,000 characters, so report members absent from the output as unranked.
+- **A long answer arrives in pages.** One reply stays under 25,000 characters.
+  `blast-radius --json` and `lineage --json` return `next_cursor` and `page`;
+  pass `--cursor <next_cursor>` until it is `null` and you hold the whole
+  resolved answer. A refused cursor means the answer changed, so start again
+  from the first page.
 - **Per-edge confidence and provenance are not in blast-radius rows**, although
-  every edge carries them. The `confidence` object in `blast-radius --json` covers
-  the full traversal, not individual rows. Use `wicked-estate path A B --json`
+  every edge carries them. Each row does carry a per-row `depth`, so one call
+  separates direct from transitive dependents. The `confidence` object in
+  `blast-radius --json` covers the full traversal, not individual rows. Use `wicked-estate path A B --json`
   when you need per-hop confidence and provenance on a specific route.
 - **The memory, knowledge, and proposal domains are MCP-only.** Forward transitive
-  reachability (`lineage`), rules inventory, and rules recall have CLI verbs;
-  the memory, knowledge, and proposal domains do not.
+  reachability (`wicked-estate lineage <symbol>`), rules inventory, and rules
+  recall have CLI verbs; the memory, knowledge, and proposal domains do not.
 
 None of these are requests to change Wicked Estate, and nothing in this pack
 depends on them changing. They are the map of where an agent must stop and say
@@ -160,10 +180,10 @@ from `grep` is not a blast radius.
 
 ## Requires
 
-- `wicked-estate` ≥ 0.21 in `PATH` (Tier-2 dependency: detected first, installed
+- `wicked-estate` ≥ 0.29 in `PATH` (Tier-2 dependency: detected first, installed
   only on explicit consent, pinned, never with sudo)
 - An index built with `wicked-estate index <path>`
-- Optionally `wicked-estate-mcp` ≥ 0.21, for the memory, knowledge, and proposal
+- Optionally `wicked-estate-mcp` ≥ 0.29, for the memory, knowledge, and proposal
   domains and richer MCP response shapes
 
 The pack installs at repo or user scope and needs no other pack.
@@ -174,4 +194,4 @@ The `core` pack is optional. When it is installed, its exploration skill can use
 this pack as a provider of code-graph evidence.
 
 Read-only by default. The commands that mutate the graph — `index`, `annotate`,
-`semantics`, `compact`, and friends — always ask first.
+`semantics`, `scip`, `evidence`, `compact`, and friends — always ask first.

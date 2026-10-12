@@ -6,19 +6,27 @@
       "name": "bootstrap",
       "kind": "function",
       "file": "composition-app_main.py",
-      "line": 7
+      "line": 7,
+      "depth": 1
     },
     {
       "id": "sym-002",
       "name": "run",
       "kind": "function",
       "file": "composition-cli_entry.py",
-      "line": 9
+      "line": 9,
+      "depth": 1
     }
   ],
   "unresolved": 2,
   "truncated_dependents": 0,
   "searched_depth": 1,
   "depth_horizon_reached": false,
-  "node_cap_reached": false
+  "node_cap_reached": false,
+  "next_cursor": null,
+  "page": {
+    "from": 0,
+    "count": 2,
+    "total": 2
+  }
 }
