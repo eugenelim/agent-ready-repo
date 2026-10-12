@@ -116,14 +116,14 @@ Three honesty rails on detection:
 ## Degrade gracefully when a surface is absent
 
 Behave **compose-if-present, degrade-if-absent** — only more honestly. (Unlike
-the architect skill, `frame-intent` does not compose with a `desk-research` step
+the architect skill, `intent frame` does not compose with a `desk-research` step
 today; this is the generic compose/degrade discipline, not a reuse of that one.)
 
 - **(a) Ask, and lower confidence.** Ask the user for the missing domain /
   landscape / in-flight context, and lower the confidence of any part of the
   intent — the outcome or the opportunity — that leaned on knowledge you
   couldn't verify. Carry the lowered-confidence marker into the intent's
-  `Assumptions`, where `de-risk-intent` will pick the riskiest and test it.
+  `Assumptions`, where `intent de-risk` will pick the riskiest and test it.
 - **(b) Never fabricate.** Do not invent domain meanings, landscape facts, or
   in-flight context. An honest "unverified — confirm with your domain / product
   team" beats a confident guess.

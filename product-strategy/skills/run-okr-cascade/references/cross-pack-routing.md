@@ -22,7 +22,7 @@
 
 ## `workspace-status` routing
 
-`workspace-status` (core pack) routes `{type = "strategy"}` entries to `frame-situation` (PE pack — M2) or `frame-intent` as interim. This routing was updated as part of this pack's M4 implementation.
+`workspace-status` (core pack) routes `{type = "strategy"}` entries to `frame-situation` (PE pack — M2) or `intent frame` as interim. This routing was updated as part of this pack's M4 implementation.
 
 ## Co-install note
 

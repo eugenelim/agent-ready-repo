@@ -35,9 +35,9 @@ The choice ripples through all three skills:
 
 | Skill | `validate-first` | `prototype-led` |
 | --- | --- | --- |
-| `frame-intent` | frame fully before testing | frame thin (outcome + hypothesis); detail deferred |
-| `de-risk-intent` | predeclare, then build to test | build early; the build is the test |
-| `decompose-intent` | decompose the validated intent | decompose against what the prototype revealed |
+| `intent frame` | frame fully before testing | frame thin (outcome + hypothesis); detail deferred |
+| `intent de-risk` | predeclare, then build to test | build early; the build is the test |
+| `intent decompose` | decompose the validated intent | decompose against what the prototype revealed |
 
 ## The handoff to the spec
 

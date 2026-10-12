@@ -4,7 +4,7 @@
 > app-scale feature intent and how its leaf becomes an ordinary `core` brief.
 > Your intent will look different; copy the *moves*, not the wording.
 
-A solo developer on a single-repo SaaS app runs `frame-intent`. Intake infers
+A solo developer on a single-repo SaaS app runs `intent frame`. Intake infers
 **Scale: app** (one repo, app code present) and asks greenfield/brownfield — the
 login flow already exists, so **Maturity: brownfield**.
 
@@ -37,7 +37,7 @@ Users who forget their password today email support and wait hours. The job:
 
 ## De-risking it
 
-`de-risk-intent` triages reversibility: shipping behind a flag to 5% of users is
+`intent de-risk` triages reversibility: shipping behind a flag to 5% of users is
 a **two-way door**, so it picks `prototype-led` — build a thin reset flow for an
 internal cohort and watch completion. The predeclared kill condition (qualitative
 bar, low traffic): *"proceed only if ≥ 4 of 6 test users complete reset unaided
@@ -45,7 +45,7 @@ and none report feeling unsafe."* The cohort hits 5 of 6 → **survived**.
 
 ## The leaf becomes a brief
 
-Because Scale is **app** and this is a single feature, `decompose-intent`'s leaf
+Because Scale is **app** and this is a single feature, `intent decompose`'s leaf
 *is* a `core` brief — no new fields, no slicing. It lands at
 `docs/product/briefs/self-serve-password-reset.md` with the same Outcome,
 Success metrics (from the input/lagging/guardrail), Scope/Non-goals, and an

@@ -1,6 +1,6 @@
 ---
 name: lean-canvas
-description: Use when a product engineer or PM is ready to produce an initiative brief through an adapted Lean Canvas elicitation — after the PE shaping sequence or as a standalone exercise. Triggers on "lean canvas", "initiative brief", "canvas this initiative", "author initiative brief". Do NOT use for a feature-scoped request (use `frame-intent`) or for individual shaping steps (use `frame-situation`, `place-bet`, etc.).
+description: Use when a product engineer or PM is ready to produce an initiative brief through an adapted Lean Canvas elicitation — after the PE shaping sequence or as a standalone exercise. Triggers on "lean canvas", "initiative brief", "canvas this initiative", "author initiative brief". Do NOT use for a feature-scoped request (use `intent frame`) or for individual shaping steps (use `frame-situation`, `place-bet`, etc.).
 ---
 
 # Skill: lean-canvas
@@ -37,7 +37,7 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 Confirm the scope is **initiative-level** (quarters-long, cross-repo outcome).
 If the request is clearly a single feature or screen, name the altitude mismatch
-and offer to redirect to `frame-intent`. When altitude is genuinely ambiguous,
+and offer to redirect to `intent frame`. When altitude is genuinely ambiguous,
 ask rather than forcing one level.
 
 ## Procedure

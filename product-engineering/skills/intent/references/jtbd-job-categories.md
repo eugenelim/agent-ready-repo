@@ -6,7 +6,7 @@ and **social** — and a fourth complement, the **struggling moment**, names the
 friction point where the current situation fails the job-holder today.
 
 These definitions use the same vocabulary as `identify-opportunities` so that a
-lightweight `frame-intent` intake pass and a full job-discovery run share a
+lightweight `intent frame` intake pass and a full job-discovery run share a
 common language.
 
 ## Functional job
@@ -67,7 +67,7 @@ has already reset — so the submission sits in limbo until the next cycle.
 
 ## Going deeper
 
-`frame-intent` elicits one primary entry per tier as a lightweight intake pass.
+`intent frame` elicits one primary entry per tier as a lightweight intake pass.
 For full job discovery — surfacing every functional, emotional, and social job
 behind an opportunity area, scoring each via the Ulwick opportunity formula, and producing a ranked
 opportunity list — run `identify-opportunities`.

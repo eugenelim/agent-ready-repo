@@ -31,14 +31,14 @@ Scale **suggests a starting altitude** — it does not stamp one. The suggestion
 an `app` greenfield product concept → `product-vision`; an `app` effort with a
 known feature in hand → `feature`; a `business-unit` effort → `product-strategy`
 or `capability`. You override it in one word. Scale's **load-bearing** role is
-unchanged: it tells `decompose-intent` whether the leaf is a same-repo brief
+unchanged: it tells `intent decompose` whether the leaf is a same-repo brief
 (`app`) or a per-component slice that crosses repos (`business-unit`). At
 `business-unit` Scale
 the cross-component artifacts — catalog, shared contracts, architecture, and the
 delivery rollup — live in a coordinating **value-stream meta-repo** (the
-`align-value-stream` skill); `decompose-intent` slices each feature intent into
+`align-value-stream` skill); `intent decompose` slices each feature intent into
 one brief per component and seeds that rollup.
 
 > Scale is the *only* global mode. **Maturity** (greenfield/brownfield) and, in
-> `de-risk-intent`, **reversibility** + the **prototype-approach** are per-intent
+> `intent de-risk`, **reversibility** + the **prototype-approach** are per-intent
 > flags — not global ceremony.

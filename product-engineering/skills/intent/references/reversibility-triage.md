@@ -1,6 +1,6 @@
 # Reversibility triage — one-way vs two-way door
 
-The first move of `de-risk-intent`. It classifies the bet by **cost of being
+The first move of `intent de-risk`. It classifies the bet by **cost of being
 wrong**, which sets the default prototype-approach. It is a per-intent judgment,
 not a global mode.
 

@@ -1,6 +1,6 @@
 ---
 name: ux-writing
-description: Use when shaping the actual words a user reads in a product's UI — characterizing the UI copy voice (how the brand register applies to UI states), writing recurring UI-state microcopy (error, empty, button, label), or reviewing copy before it ships. Triggers on "what should this error say", "write the empty-state copy", "name this button", "characterize our product's UI copy voice", "make this microcopy blame-free", "review this copy". Characterizes voice along a few axes, writes each UI state from a blame-free + actionable formula, and runs a content checklist. When a per-screen state matrix from `user-flow` is present, writes copy per screen × state keyed to the matrix; when absent, behaves as today. Do NOT use to frame the intent behind the feature (use `frame-intent`), to make visual or layout design decisions, to write documentation prose (use `author-product-docs` if installed), or to establish the brand-level copy register (use `content-design`'s brand-level register mode).
+description: Use when shaping the actual words a user reads in a product's UI — characterizing the UI copy voice (how the brand register applies to UI states), writing recurring UI-state microcopy (error, empty, button, label), or reviewing copy before it ships. Triggers on "what should this error say", "write the empty-state copy", "name this button", "characterize our product's UI copy voice", "make this microcopy blame-free", "review this copy". Characterizes voice along a few axes, writes each UI state from a blame-free + actionable formula, and runs a content checklist. When a per-screen state matrix from `user-flow` is present, writes copy per screen × state keyed to the matrix; when absent, behaves as today. Do NOT use to frame the intent behind the feature (use `intent frame`), to make visual or layout design decisions, to write documentation prose (use `author-product-docs` if installed), or to establish the brand-level copy register (use `content-design`'s brand-level register mode).
 ---
 
 # Skill: ux-writing
@@ -63,7 +63,7 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 Before writing, confirm:
 
 1. The ask is about the **words users read**, not the *intent* behind the feature
-   (route to `frame-intent`) and not visual or layout design (out of scope — this
+   (route to `intent frame`) and not visual or layout design (out of scope — this
    skill shapes text only).
 2. There is a real **UI surface with copy** to write or review — an error, an
    empty state, a button, a label, or a screen full of them. If there's no

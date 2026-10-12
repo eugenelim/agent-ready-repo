@@ -14,7 +14,7 @@
 - **Status:** `<Draft | Accepted | Fulfilled | Withdrawn | Cancelled | Superseded>` <!-- required; one bare word. Withdrawn and Cancelled are peers of Fulfilled, not flavours of it — a rollup that counts them as delivered is the failure this vocabulary prevents -->
 - **Superseded by:** <!-- required when Status is Superseded, and refused otherwise; the Slug of the live intent that replaced this bet -->
 - **Kind:** `<outcome | opportunity>` <!-- optional, additive: the discovery-traceability chain rung this intent occupies on the opportunity-solution tree (outcome = the North Star / chain root; opportunity = a need in the OST). The structural-orphan lint reads this bold-body field to place the intent on the chain. Distinct from Level: (the altitude) — a `Level: capability` intent is placed by Level instead, and a feature intent maps downstream to a brief/spec. Omit it when not running the discovery-traceability chain; an intent still carries both an Outcome and an Opportunity section regardless. -->
-- **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
+- **Scale:** `<app | business-unit>` <!-- resolved at intake by intent frame -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
 - **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->
@@ -103,18 +103,18 @@ an empty heading is a prompt. Drop this whole section at any other Level. -->
 
 ## Assumptions
 
-<!-- What must be true for this bet to pay off. de-risk-intent picks the
+<!-- What must be true for this bet to pay off. intent de-risk picks the
 riskiest one, predeclares a kill condition in the test's own currency, and tests
 it under the chosen prototype-approach. -->
 
 - <assumption>
-- **Knowledge surface:** <name of the retrieval surface frame-intent consulted, or "none detected"> <!-- the audit home for frame-intent's knowledge-surface consult (see references/knowledge-surfaces.md); "none detected" is the trigger for the ask-and-lower-confidence path. Drop this line if no surface was relevant. -->
+- **Knowledge surface:** <name of the retrieval surface intent frame consulted, or "none detected"> <!-- the audit home for intent frame's knowledge-surface consult (see references/knowledge-surfaces.md); "none detected" is the trigger for the ask-and-lower-confidence path. Drop this line if no surface was relevant. -->
 
 ## Decomposition
 
 <!-- The next level down: child intents (a lower `Level:`) or, at the leaf, the
 spec/slice this becomes. At app scale the leaf feature intent *is* a `core`
-brief — `author-delivery-brief continue` takes it from there. Leave empty until decompose-intent
+brief — `author-delivery-brief continue` takes it from there. Leave empty until intent decompose
 runs. -->
 
 -
@@ -125,6 +125,6 @@ runs. -->
 dropped or replaced — with a pointer to the killed child's de-risk verdict when
 an upward kill forced the re-cut. A line or two per decision; omit if the cut was
 obvious. Keeps the parent from reading as if the tree were always this shape. See
-decompose-intent step 2. -->
+intent decompose step 2. -->
 
 -

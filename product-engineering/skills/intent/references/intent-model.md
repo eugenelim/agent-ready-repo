@@ -65,7 +65,7 @@ real bet, not ceremony bolted onto a known feature.
 
 ## Two consequences
 
-- **Decomposition is recursive.** `decompose-intent` produces the *next level
+- **Decomposition is recursive.** `intent decompose` produces the *next level
   down* — child intents, or specs at the leaf — never a fixed depth. At `app`
   Scale the tree is often one level deep; at `business-unit` Scale, three.
 - **Assumptions are de-risked per intent, at its level.** The *kind* of
@@ -79,7 +79,7 @@ real bet, not ceremony bolted onto a known feature.
     coordinate?", "will teams adopt this?").
   - **feature-level** → **desirability** ("do users want this feature?").
 
-  `de-risk-intent` always operates on *this* intent at its level, in the kind the
+  `intent de-risk` always operates on *this* intent at its level, in the kind the
   level calls for.
 
 ## The leaf is a spec
@@ -88,7 +88,7 @@ The tree bottoms out at a shippable spec/slice — the unit your delivery loop
 builds. At `app` Scale a leaf feature intent *is* an ordinary `core` brief;
 `author-delivery-brief continue` → `new-spec` → `work-loop` take it from there. The tree is
 deeper than any tracker, and projects **one-way** onto trackers (see
-`decompose-intent`'s `references/tracker-projection.md`).
+`intent decompose`'s `references/tracker-projection.md`).
 
 ## Placing an intent on the traceability chain
 

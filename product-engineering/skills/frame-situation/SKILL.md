@@ -1,6 +1,6 @@
 ---
 name: frame-situation
-description: Use when holding a raw signal (market observation, OKR gap, user pain pattern, engineering finding, competitive signal) at initiative or capability level — turning it into a typed finding, a Wardley capability maturity assessment, and an anchor into the PE six-step shaping sequence. Triggers on "frame this situation", "what do we do with this signal", "is this an opportunity or a risk", "where should we start", "map this to the shaping sequence". Do NOT use for a feature-scoped request (use `frame-intent`), testing an assumption (use `de-risk-intent`), or breaking down a shaped intent (use `decompose-intent`).
+description: Use when holding a raw signal (market observation, OKR gap, user pain pattern, engineering finding, competitive signal) at initiative or capability level — turning it into a typed finding, a Wardley capability maturity assessment, and an anchor into the PE six-step shaping sequence. Triggers on "frame this situation", "what do we do with this signal", "is this an opportunity or a risk", "where should we start", "map this to the shaping sequence". Do NOT use for a feature-scoped request (use `intent frame`), testing an assumption (use `intent de-risk`), or breaking down a shaped intent (use `intent decompose`).
 ---
 
 # Skill: frame-situation
@@ -37,7 +37,7 @@ Table — When presenting several items that share the same fields, render a Mar
 Confirm the signal is **initiative or capability level** (affects a whole
 product area or initiative). If it is clearly a single screen or endpoint,
 name the altitude mismatch and redirect: *"This looks feature-scoped;
-`frame-intent` is the right entry point."*
+`intent frame` is the right entry point."*
 If altitude is **genuinely ambiguous**, ask — never force one level.
 If the signal is **too thin to classify**, elicit more context first.
 

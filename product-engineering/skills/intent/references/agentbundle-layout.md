@@ -8,7 +8,7 @@ never-overwrite**). On the append of a *missing* section, the installer adds tha
 and leaves every other byte of the file unchanged — comments, key order,
 quoting style and line endings included. An existing section is never
 replaced. This page documents the
-`[product]` section that `frame-intent` and `align-value-stream` read.
+`[product]` section that `intent frame` and `align-value-stream` read.
 
 ## The `[product]` table
 
@@ -22,11 +22,11 @@ output_dir = "docs/product"   # a base directory; output files go *under* it
 - **`output_dir` is a base, not the leaf.** Each output file is written directly
   under a subdirectory of `output_dir` — never to `output_dir` itself. The
   file-per-slug shapes are:
-  - `frame-intent` → `<output_dir>/intents/<slug>.md`
+  - `intent frame` → `<output_dir>/intents/<slug>.md`
   - `align-value-stream` → `<output_dir>/rollups/<slug>.md`
 
   A **per-topic folder** is deliberately **not** used: each intent and each
-  rollup is a single file handed downstream (`de-risk-intent`, `decompose-intent`,
+  rollup is a single file handed downstream (`intent de-risk`, `intent decompose`,
   `author-delivery-brief continue`).
 
 ## Repo-root first, then user-profile
@@ -82,7 +82,7 @@ output_dir = "~/Documents/MyVault/product"   # absolute path; ~ is expanded
 A path that hands an artifact to core is pinned, because core has to find it.
 Two of them:
 
-- `decompose-intent`'s `docs/product/briefs/<slug>.md` — the hand-off to core's
+- `intent decompose`'s `docs/product/briefs/<slug>.md` — the hand-off to core's
   `author-delivery-brief continue`.
 - **A repository intent's `docs/product/intents/<slug>.md`** — the hand-off to
   core's `intake-intent`, which admits and registers it. `output_dir` governs an
@@ -97,7 +97,7 @@ Neither is a gap in this config; both are deliberate non-goals of it.
 
 ## Who reads `[product]`
 
-Eight skill bodies, not two: `frame-intent` (intents), `align-value-stream`
+Eight skill bodies, not two: `intent frame` (intents), `align-value-stream`
 (rollups), `frame-situation`, `identify-opportunities`, `diverge-solutions`,
 `place-bet`, `map-capabilities` (all under `shaping/`), and `lean-canvas`, which
 reads the section to scan but writes a pinned path. `ux-writing` additionally
