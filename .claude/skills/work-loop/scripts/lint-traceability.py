@@ -701,7 +701,7 @@ def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
     `feature` *levels*, so `capability` is a level while the other two are
     kinds. The extractor maps `**Kind:** outcome|opportunity` → that chain node,
     and `**Level:** capability` → the `capability` node — the producer format the
-    `frame-intent`/`decompose-intent` intent template now emits (see
+    `intent` skill's intent template now emits (see
     `product-engineering`'s `intent-model.md` § Placing an intent on the
     traceability chain). Returns slug→path for edge build."""
     found: dict[str, Path] = {}

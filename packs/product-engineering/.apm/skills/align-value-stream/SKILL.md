@@ -1,6 +1,6 @@
 ---
 name: align-value-stream
-description: Use at business-unit scale to stand up and keep current a value-stream meta-repo — a coordinating repo with no app code that holds the cross-component artifacts a polyrepo has nowhere else to put (the federated Backstage catalog, the shared-contract authority, the C4/bounded-context architecture, and the cross-component delivery rollup). Triggers on "set up a value-stream meta-repo", "coordinate across component repos", "stand up the cross-component catalog", "where does the shared contract live", "is this feature delivered across all the repos". Reads the per-component slices that decompose-intent produces and rolls up their delivery. Do NOT use at app scale (use decompose-intent — the leaf is one repo's brief) or to author an intent (use frame-intent).
+description: Use at business-unit scale to stand up and keep current a value-stream meta-repo — a coordinating repo with no app code that holds the cross-component artifacts a polyrepo has nowhere else to put (the federated Backstage catalog, the shared-contract authority, the C4/bounded-context architecture, and the cross-component delivery rollup). Triggers on "set up a value-stream meta-repo", "coordinate across component repos", "stand up the cross-component catalog", "where does the shared contract live", "is this feature delivered across all the repos". Reads the per-component slices that intent decompose produces and rolls up their delivery. Do NOT use at app scale (use intent decompose — the leaf is one repo's brief) or to author an intent (use intent).
 ---
 
 # Skill: align-value-stream
@@ -12,7 +12,7 @@ cross-cutting artifacts a polyrepo has nowhere else to put: the cross-component
 contracts** (or a reference to where they live), the **C4 / bounded-context
 architecture**, and the **cross-component delivery rollup**. It is a *place you
 read and edit*, never a running service. The slices it rolls up are produced by
-`decompose-intent`'s business-unit branch; its spine is **currency** — a stale
+`intent decompose`'s business-unit branch; its spine is **currency** — a stale
 map is the dominant failure mode. Depth lives in `references/`.
 
 ## Output rendering
@@ -44,9 +44,9 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 Before aligning, confirm:
 
-1. The work is at **`business-unit` Scale** (set by `frame-intent`) — a product
+1. The work is at **`business-unit` Scale** (set by `intent`) — a product
    org whose work fans out to many component repos. At `app` Scale there is no
-   meta-repo; `decompose-intent`'s leaf is one repo's brief.
+   meta-repo; `intent decompose`'s leaf is one repo's brief.
 2. You're in (or standing up) a **coordinating repo with no app code**. If app
    code lives here, it's a component repo, not the meta-repo.
 
@@ -78,7 +78,7 @@ Before aligning, confirm:
 5. **Keep the rollup current.** Resolve `output_dir` using the config-driven
    procedure below, then maintain the cross-component rollup (copy this skill's
    `assets/rollup-template.md` to `<output_dir>/rollups/<slug>.md`): one row per
-   slice `decompose-intent` produced → its brief → a **status snapshot + a
+   slice `intent decompose` produced → its brief → a **status snapshot + a
    pointer** to that repo's own auto-derived coverage. The **AND across rows** is
    the answer; an absent-source row is `unknown / not-yet-catalogued`, never
    silently delivered. See `references/cross-component-rollup.md` and, for the
@@ -143,7 +143,7 @@ writing.
 
 **Output shape — file-per-slug, not a per-topic folder.** Rollup files live
 directly under `<output_dir>/rollups/<slug>.md`. A per-topic folder is deliberately
-**not** used: each rollup is a single file. `decompose-intent`'s
+**not** used: each rollup is a single file. `intent decompose`'s
 `docs/product/briefs/<slug>.md` output stays **pinned** — that path is the
 hand-off to core's `author-delivery-brief continue` and is not governed by this config (a
 deliberate non-goal of this layout config).

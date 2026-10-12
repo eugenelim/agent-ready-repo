@@ -1,6 +1,6 @@
 ---
 name: map-capabilities
-description: Step 6 (terminal) of the PE six-step shaping sequence. Translates a committed bet into a Capability Map — L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing. Run after `place-bet`. Triggers on "map our capabilities", "what do we need to build", "what's our build/buy split", "capability areas for this bet". Do NOT use for a single feature (use `frame-intent`) or to author a brief (use `lean-canvas` / `author-delivery-brief create`).
+description: Step 6 (terminal) of the PE six-step shaping sequence. Translates a committed bet into a Capability Map — L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing. Run after `place-bet`. Triggers on "map our capabilities", "what do we need to build", "what's our build/buy split", "capability areas for this bet". Do NOT use for a single feature (use `intent frame`) or to author a brief (use `lean-canvas` / `author-delivery-brief create`).
 ---
 
 # Skill: map-capabilities
@@ -35,7 +35,7 @@ Table — When presenting several items that share the same fields, render a Mar
 ## When to invoke
 
 Confirm scope is initiative or capability level, not a single feature or endpoint.
-If clearly feature-scoped, name the altitude mismatch and redirect to `frame-intent`.
+If clearly feature-scoped, name the altitude mismatch and redirect to `intent frame`.
 If altitude is genuinely ambiguous, ask.
 
 ## Procedure
@@ -104,7 +104,7 @@ slug. Direct PE to `work-intake` or manual edit. Do not write to `workspace.toml
 
 ## Anti-patterns to refuse
 
-- Never use for a single feature — redirect to `frame-intent`.
+- Never use for a single feature — redirect to `intent frame`.
 - Never write to `workspace.toml` or a literal hardcoded path.
 - Never mint a new slug.
 - Never include Buy / Partner / Adopt capabilities in the suggested build sequence.

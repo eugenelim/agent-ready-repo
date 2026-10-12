@@ -248,7 +248,7 @@ def test_ac0034_normalization_discards_the_comment_before_stripping_backticks() 
 
 
 def test_ac0034_a_value_that_is_only_a_comment_is_absent_not_malformed() -> None:
-    """The `frame-intent` template seeds `Parent intent:` in exactly this shape."""
+    """The `intent` frame-mode template seeds `Parent intent:` in exactly this shape."""
     assert intent_shape.normalize_value("<!-- the parent's slug, or none -->") == ""
     text = _preamble(_with(**{"Parent intent": "<!-- the parent's slug, or none -->"}))
     assert "Parent intent" not in _fields_at_fault(text)
@@ -843,7 +843,7 @@ def test_ac0002_refuses_superseded_with_no_pointer_field() -> None:
 
 @pytest.mark.parametrize("shape", SHAPES)
 def test_ac0002_a_pointer_emptied_by_normalization_is_absent(shape: str) -> None:
-    """The `frame-intent` template's comment-only line renders exactly this.
+    """The `intent` frame-mode template's comment-only line renders exactly this.
 
     It is absent rather than malformed, so AC-0002 refuses it for absence and
     no value rule fires — and through COMPOSED, where an order-sensitive

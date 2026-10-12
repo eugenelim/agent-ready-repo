@@ -569,3 +569,19 @@ def test_no_prohibited_term_is_silently_dropped_by_line_wrapping() -> None:
         f"backticked span(s) in the vocabulary section never reach the parser, "
         f"so the term is not enforced: {dropped}"
     )
+
+
+def test_step_map_accepts_a_skill_mode_runnable() -> None:
+    """A row and a Run block may name a skill with its mode, such as `intent frame`."""
+    body = (
+        f"{lint_guidebook_steps.STEP_MAP_HEADING}\n\n"
+        "| Skill | Needs | Produces | Status |\n| --- | --- | --- | --- |\n"
+        "| `intent frame` | A problem | An intent | Required |\n\n"
+        "## Run `intent frame` — the outcome, written down\n\nBody.\n"
+    )
+    assert lint_guidebook_steps._check_step_map(body) is None
+    missing_row = body.replace(
+        "| `intent frame` | A problem | An intent | Required |\n",
+        "| `other` | x | y | Optional |\n",
+    )
+    assert lint_guidebook_steps._check_step_map(missing_row) is not None

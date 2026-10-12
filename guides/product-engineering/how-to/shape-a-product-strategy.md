@@ -23,9 +23,9 @@ Decompose this product vision into a strategy for independent retailers that nee
 
 ## 1. Decompose the vision, or frame the strategy directly
 
-If you came from a vision, invoke `decompose-intent` on it. A surviving `product-vision` intent produces a `product-strategy` child that inherits the vision's outcome context and carries a `Parent intent:` back-link.
+If you came from a vision, invoke `intent decompose` on it. A surviving `product-vision` intent produces a `product-strategy` child that inherits the vision's outcome context and carries a `Parent intent:` back-link.
 
-If you're entering at the strategy altitude with no framed vision above it, invoke `frame-intent` and answer the altitude as **`product-strategy`**. When the work really needs a vision above it, `decompose-intent` and `frame-intent` both carry a *missing-parent* offer — they'll propose framing the parent and hanging the strategy beneath it. It's an offer, never a block; accept it or proceed.
+If you're entering at the strategy altitude with no framed vision above it, invoke `intent frame` and answer the altitude as **`product-strategy`**. When the work really needs a vision above it, `intent decompose` and `intent frame` both carry a *missing-parent* offer — they'll propose framing the parent and hanging the strategy beneath it. It's an offer, never a block; accept it or proceed.
 
 ```text
 Shape this product strategy: independent retailers need a sequenced path to reduce stockouts.
@@ -44,11 +44,11 @@ Keep the outcome honest: a steerable input, the lagging result it drives, a guar
 
 ## 3. De-risk at the product level
 
-Invoke `de-risk-intent`. A strategy bet is still **market-existence** in kind — will this *path* reach a market that pays — not feature desirability. Predeclare the kill condition before you probe, take the survive/kill verdict, and fold what you learn back into the strategy. A killed strategy reshapes the vision above it; it doesn't spawn capabilities that inherit a dead bet.
+Invoke `intent de-risk`. A strategy bet is still **market-existence** in kind — will this *path* reach a market that pays — not feature desirability. Predeclare the kill condition before you probe, take the survive/kill verdict, and fold what you learn back into the strategy. A killed strategy reshapes the vision above it; it doesn't spawn capabilities that inherit a dead bet.
 
 ## 4. Decompose toward capabilities
 
-Invoke `decompose-intent` on the survived strategy. It produces the **next level down** — `capability` intents, each of which re-enters the loop (`frame → de-risk → decompose`) until one independently shippable leaf can go directly to a `core` spec. Use a coordinating brief first only when the result spans multiple specs or repositories. Don't skip the capability rung: it's where the architectural and adoption bets live, distinct from the market bet you tested up top.
+Invoke `intent decompose` on the survived strategy. It produces the **next level down** — `capability` intents, each of which re-enters the loop (`frame → de-risk → decompose`) until one independently shippable leaf can go directly to a `core` spec. Use a coordinating brief first only when the result spans multiple specs or repositories. Don't skip the capability rung: it's where the architectural and adoption bets live, distinct from the market bet you tested up top.
 
 Before you commit to *how* the capabilities get built, shape the [architecture concept](../../architect/how-to/shape-an-architecture-concept.md) against this strategy — the strategy's bets are its inputs.
 

@@ -30,11 +30,11 @@ order: 1
 
 | Skill | Needs | What it produces | Needed? |
 | --- | --- | --- | --- |
-| `frame-intent` | A problem worth solving | A level-tagged statement of the outcome and the opportunity behind it. | Required |
+| `intent frame` | A problem worth solving | A level-tagged statement of the outcome and the opportunity behind it. | Required |
 | `frame-domain` | An approved intent | The real-world activity the product sits in, and the MVP boundary. | Optional |
 | `frame-situation` | An approved intent | What is true now, and what is forcing a change. | Optional |
 | `lean-canvas` | An approved intent | The initiative's five core boxes on one page. | Optional |
-| `discovery-loop` | An approved intent | The loop itself — the plan tree, the lens roster, the gates, and the initiative directory holding them. | Optional |
+| `discovery-loop` | A raw idea — it starts before any intent is approved | The loop itself — the plan tree, the lens roster, the gates, and the initiative directory holding them. | Optional |
 
 Prompts go into an AI agent session with this pack installed — the same session
 throughout. In the paths below, `<slug>` is this piece of work's short
@@ -44,49 +44,49 @@ kebab-case name, fixed at step 1 so every later artifact traces back to it; `<in
 artifacts, and the agent asks when it is not configured; `<discovery_dir>` is
 where the discovery loop keeps its initiative directories, defaulting to
 `docs/discovery/`. The agent tells you which path it wrote to.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/agentbundle-layout.md -->
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
-## Run `frame-intent` — the outcome, written down
+## Run `intent frame` — the outcome, written down
 
 **You type:**
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/frame.md -->
 
 ```
 Frame this as a product intent: our onboarding drops half of new accounts before they connect a data source.
 ```
 
 **Agent returns:**
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/frame.md -->
 
 > **Agent:** Done — I've written to `<output_dir>/intents/<slug>.md` an intent naming the outcome, its level, and the opportunity behind it.
 
 **You push back:**
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/frame.md -->
 
 > **You:** You wrote the solution as the outcome. State what changes for the customer, and leave how we get there for later.
 >
 > **Agent:** I rewrote the outcome as the customer change and moved the proposed approach into the opportunity section.
 
 **Output varies** with how well formed the problem is and whether a parent intent already exists.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/frame.md -->
 
 **You decide:** Approve the intent before discovery runs against it — the pack's `approve-intent` gate. Everything downstream is traced back to this slug.
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
 **Check (falsifiable):** Ask what would have to be true for this outcome to be the wrong one to pursue; this surfaces an intent nothing could argue with.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/frame.md -->
 
 **Watch out for:** An intent that names a solution reads as decisive and forecloses discovery before it starts. Notice an outcome you could implement directly — that is a solution wearing an outcome's clothes.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/frame.md -->
 
 **Where it lands:** `<output_dir>/intents/<slug>.md`.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/frame.md -->
 
 **What it looks like:**
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/assets/intent-template.md -->
 
 ```markdown
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename -->
@@ -95,7 +95,7 @@ Frame this as a product intent: our onboarding drops half of new accounts before
 - **Status:** `<Draft | Accepted | Fulfilled | Withdrawn | Cancelled | Superseded>` <!-- required; one bare word. Withdrawn and Cancelled are peers of Fulfilled, not flavours of it — a rollup that counts them as delivered is the failure this vocabulary prevents -->
 - **Superseded by:** <!-- required when Status is Superseded, and refused otherwise; the Slug of the live intent that replaced this bet -->
 - **Kind:** `<outcome | opportunity>` <!-- optional, additive: the discovery-traceability chain rung this intent occupies on the opportunity-solution tree (outcome = the North Star / chain root; opportunity = a need in the OST). The structural-orphan lint reads this bold-body field to place the intent on the chain. Distinct from Level: (the altitude) — a `Level: capability` intent is placed by Level instead, and a feature intent maps downstream to a brief/spec. Omit it when not running the discovery-traceability chain; an intent still carries both an Outcome and an Opportunity section regardless. -->
-- **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
+- **Scale:** `<app | business-unit>` <!-- resolved at intake by intent frame -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
 - **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->
@@ -302,11 +302,13 @@ serving as the first filter before human reviewers engage.
 
 ## Run `discovery-loop` — run the whole loop
 
+The loop starts from a raw idea, not from an approved intent. It frames the intent itself at its first gate, so you do not run `intent frame` first.
+
 **You type:**
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/SKILL.md -->
 
 ```
-Run the discovery loop for this intent.
+Run the discovery loop for this raw idea.
 ```
 
 **Agent returns:**
@@ -319,9 +321,9 @@ Run the discovery loop for this intent.
 
 > **You:** You skipped straight to candidates without the plan tree. Scaffold the tree first so the traceability holds.
 >
-> **Agent:** I scaffolded the plan tree from the intent and re-entered the loop at the point it expects.
+> **Agent:** I scaffolded the plan tree from the idea and re-entered the loop at the point it expects.
 
-**Output varies** with how large the intent is and how many lenses the roster needs.
+**Output varies** with how large the idea is and how many lenses the roster needs.
 <!-- rung: packs/product-engineering/.apm/skills/discovery-loop/SKILL.md -->
 
 **No decision gate at this step.**

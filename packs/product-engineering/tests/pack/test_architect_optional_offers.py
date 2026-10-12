@@ -14,17 +14,22 @@ from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
 SKILLS = PACK_ROOT / ".apm/skills"
+INTENT = SKILLS / "intent"
+FRAME_MODE = INTENT / "references" / "frame.md"
+DE_RISK_MODE = INTENT / "references" / "de-risk.md"
+DECOMPOSE_MODE = INTENT / "references" / "decompose.md"
 SILENT = (
     "If it is not in the roster, continue with this skill's own behaviour and "
     "say nothing about it: no mention, no note, and no error."
 )
-OFFER_SKILLS = (
-    "frame-domain",
-    "frame-intent",
-    "de-risk-intent",
-    "decompose-intent",
-    "map-capabilities",
-)
+# The files that carry an architect offer: two skills, and three `intent` modes.
+OFFER_FILES = {
+    "frame-domain": SKILLS / "frame-domain" / "SKILL.md",
+    "intent frame": FRAME_MODE,
+    "intent de-risk": DE_RISK_MODE,
+    "intent decompose": DECOMPOSE_MODE,
+    "map-capabilities": SKILLS / "map-capabilities" / "SKILL.md",
+}
 FORBIDDEN = ("install architect", "install the architect", "architect is not installed")
 
 
@@ -98,8 +103,8 @@ def test_frame_domain_names_current_system_extraction() -> None:
     assert "architecture extraction" not in text.lower()
 
 
-def test_frame_intent_parks_system_shape_questions() -> None:
-    text = _skill(SKILLS / "frame-intent")
+def test_frame_mode_parks_system_shape_questions() -> None:
+    text = _flat(FRAME_MODE.read_text(encoding="utf-8"))
     for phrase in (
         "## System-shape questions",
         "open design question",
@@ -110,13 +115,13 @@ def test_frame_intent_parks_system_shape_questions() -> None:
         "`architecture change`",
     ):
         assert phrase in text
-    refs = _flat((SKILLS / "frame-intent/references/knowledge-surfaces.md").read_text(encoding="utf-8"))
+    refs = _flat((INTENT / "references" / "knowledge-surfaces.md").read_text(encoding="utf-8"))
     assert "hand it to the architect lens" not in refs
     assert "§ System-shape questions" in refs
 
 
-def test_de_risk_intent_grounds_feasibility() -> None:
-    text = _skill(SKILLS / "de-risk-intent")
+def test_de_risk_mode_grounds_feasibility() -> None:
+    text = _flat(DE_RISK_MODE.read_text(encoding="utf-8"))
     for phrase in ("feasibility", "current-architecture artifact", "`architect-assess`", "cheap probe"):
         assert phrase in text
 
@@ -132,7 +137,7 @@ def test_option_skills_carry_feasibility_and_no_architect_skill() -> None:
 
 
 def test_decompose_and_map_capabilities_offers() -> None:
-    text = _skill(SKILLS / "decompose-intent")
+    text = _flat(DECOMPOSE_MODE.read_text(encoding="utf-8"))
     for phrase in (
         "subsystem boundaries",
         "Boundaries inform dependencies; the cut stays by shippability, never by component.",
@@ -148,17 +153,17 @@ def test_decompose_and_map_capabilities_offers() -> None:
 
 
 def test_every_offer_carries_the_silent_clause() -> None:
-    for name in OFFER_SKILLS:
-        text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+    for name, path in OFFER_FILES.items():
+        text = path.read_text(encoding="utf-8")
         assert _offer_problems(name, text) == []
 
 
 def test_mutation_dropping_the_clause_is_reported() -> None:
-    text = (SKILLS / "decompose-intent/SKILL.md").read_text(encoding="utf-8")
+    text = DECOMPOSE_MODE.read_text(encoding="utf-8")
     paragraphs = _paragraphs(text)
     index = next(i for i, p in enumerate(paragraphs) if _is_offer(p))
     paragraphs[index] = paragraphs[index].replace(SILENT, "")
-    assert _offer_problems("decompose-intent", "\n\n".join(paragraphs))
+    assert _offer_problems("intent decompose", "\n\n".join(paragraphs))
 
 
 def test_no_install_or_absence_phrases_under_apm() -> None:
@@ -169,7 +174,7 @@ def test_no_install_or_absence_phrases_under_apm() -> None:
 
 
 def test_mutation_adding_a_forbidden_phrase_is_reported() -> None:
-    text = (SKILLS / "frame-intent/SKILL.md").read_text(encoding="utf-8")
+    text = FRAME_MODE.read_text(encoding="utf-8")
     assert not _forbidden_hits(text)
     assert _forbidden_hits(text + "\nTo get this offer, install the `architect` pack.\n")
 
@@ -191,11 +196,14 @@ def test_manifest_declares_optional_architect_integrations() -> None:
 def test_eval_ids_and_silent_assertions() -> None:
     expected = {
         "frame-domain": ("architect-installed-current-state", "architect-absent-silent"),
-        "frame-intent": ("system-shape-question-architect-installed", "system-shape-question-architect-absent"),
-        "de-risk-intent": ("feasibility-architect-absent-silent",),
-        "decompose-intent": ("architect-absent-silent",),
+        "intent": (
+            "system-shape-question-architect-installed",
+            "system-shape-question-architect-absent",
+            "feasibility-architect-absent-silent",
+            "architect-absent-silent",
+        ),
     }
-    for skill in ("frame-domain", "frame-intent", "de-risk-intent", "decompose-intent"):
+    for skill in ("frame-domain", "intent"):
         cases = _eval_cases(SKILLS / skill)
         for case_id in expected[skill]:
             assert case_id in cases, f"{skill}: missing {case_id}"

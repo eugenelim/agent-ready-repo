@@ -1,4 +1,4 @@
-"""`frame-intent`'s template satisfies the intent metadata shape contract.
+"""The `intent` skill's template satisfies the intent metadata shape contract.
 
 Covers the cross-pack half of T7 in
 `docs/specs/intent-metadata-shape-contract/plan.md`. It reads
@@ -26,7 +26,7 @@ TEMPLATE = (
     / "product-engineering"
     / ".apm"
     / "skills"
-    / "frame-intent"
+    / "intent"
     / "assets"
     / "intent-template.md"
 )

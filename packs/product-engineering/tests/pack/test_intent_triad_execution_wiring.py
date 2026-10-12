@@ -2,7 +2,7 @@
 
 Every assertion here reads a shipped artifact inside this pack. Each one slices
 to the sentence or section that carries the obligation before asserting, because
-the names these criteria are about -- `work-intake`, `frame-intent`,
+the names these criteria are about -- `work-intake`, the frame skill,
 `identify-opportunities` -- already appear elsewhere in the same files for
 unrelated and legitimate reasons. A file-scoped assertion would be green before
 the edit that satisfies it landed.
@@ -15,17 +15,22 @@ from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
 SKILLS = PACK_ROOT / ".apm" / "skills"
+# Retired source skills; no discovery surface may name them.
+RETIRED_SHAPING_SKILLS = (
+    "frame-intent",
+    "de-risk-intent",
+    "decompose-intent",
+)
 
 SIDECAR_SCHEMA = (
     SKILLS / "discovery-loop" / "references" / "sidecar-schema.md"
 )
 DISCOVERY_LEAD = PACK_ROOT / ".apm" / "agents" / "discovery-lead.md"
 DISCOVERY_LOOP = SKILLS / "discovery-loop" / "SKILL.md"
-DECOMPOSE_INTENT = SKILLS / "decompose-intent" / "SKILL.md"
-RECURSIVE_DECOMPOSITION = (
-    SKILLS / "decompose-intent" / "references" / "recursive-decomposition.md"
+INTENT_DECOMPOSE_MODE = SKILLS / "intent" / "references" / "decompose.md"
+INTENT_RECURSIVE_DECOMPOSITION = (
+    SKILLS / "intent" / "references" / "recursive-decomposition.md"
 )
-FRAME_INTENT = SKILLS / "frame-intent" / "SKILL.md"
 
 NEW_SLOT_TYPES = ("assumption-test", "delivery-contract")
 
@@ -263,12 +268,12 @@ def test_the_gate_ladder_walk_pairs_each_triad_skill_with_its_gate() -> None:
     # Each literal is a gate paired with the skill that runs at it. The G1
     # fragment is deliberately truncated before its closing parenthesis
     # because that gate carries two skills in one parenthetical, and
-    # `decompose-intent` is the second of them.
+    # the decompose skill is the second of them.
     for pairing in (
-        "G0 intake (`frame-intent`)",
-        "G1 strategy (`de-risk-intent`",
-        "then `decompose-intent`)",
-        "G3 handoff (`decompose-intent`)",
+        "G0 intake (`intent frame`)",
+        "G1 strategy (`intent de-risk`",
+        "then `intent decompose`)",
+        "G3 handoff (`intent decompose`)",
     ):
         assert pairing in walk, (pairing, walk)
 
@@ -283,7 +288,37 @@ def test_the_standalone_exclusion_keeps_two_names_and_drops_one() -> None:
     exclusion = _clause_containing(description, "author one discovery artifact")
     assert "frame-domain" in exclusion
     assert "explore-options" in exclusion
-    assert "frame-intent" not in exclusion
+    assert RETIRED_SHAPING_SKILLS[0] not in exclusion
+    assert "intent frame" not in exclusion
+
+
+def test_the_description_hands_off_through_work_intake_not_work_loop() -> None:
+    """AC-0015 -- the G3 handoff in the description is `work-intake`."""
+    description = re.search(
+        r"^description: (.*)$",
+        DISCOVERY_LOOP.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    ).group(1)
+    assert len(description) <= 1024, len(description)
+    assert "hands off through work-intake at G3" in description
+    assert "work-loop" not in description
+
+
+def test_the_discovery_surfaces_name_intent_modes_at_each_gate() -> None:
+    """AC-0014 -- the skill and agent name the `intent` modes, not the sources."""
+    for path in (DISCOVERY_LOOP, DISCOVERY_LEAD):
+        body = path.read_text(encoding="utf-8")
+        for retired in RETIRED_SHAPING_SKILLS:
+            assert retired not in body, (path.name, retired)
+    table = _flat(DISCOVERY_LOOP.read_text(encoding="utf-8"))
+    for row in (
+        "| **G0** | Intake | `intent frame`",
+        "| **G1** | Strategy | `intent de-risk`",
+        "`intent decompose` → child",
+        "| **G3** | Handoff | `intent decompose`",
+        "*product* (`intent decompose`)",
+    ):
+        assert row in table, row
 
 
 # --- T3: the Core-absent branch names `work-intake` on all three surfaces ---
@@ -298,78 +333,21 @@ def test_the_skill_fallback_sentence_names_work_intake() -> None:
     _assert_core_absent_clause_names_work_intake(handoff, "portable rendered")
 
 
-def test_the_decompose_skill_core_absent_sentence_names_work_intake() -> None:
-    """AC8 -- the `If Core is absent` sentence names the invocation."""
+def test_the_intent_decompose_mode_core_absent_sentence_names_work_intake() -> None:
+    """AC8, retargeted -- the same sentence holds in the `intent` decompose mode."""
     _assert_core_absent_clause_names_work_intake(
-        DECOMPOSE_INTENT.read_text(encoding="utf-8"), "If Core is absent"
+        INTENT_DECOMPOSE_MODE.read_text(encoding="utf-8"), "If Core is absent"
     )
 
 
-def test_the_recursive_decomposition_fallback_sentence_names_work_intake() -> None:
-    """AC9 -- the `Otherwise render` sentence names the invocation."""
+def test_the_intent_recursive_decomposition_fallback_names_work_intake() -> None:
+    """AC9, retargeted -- the same sentence holds under `intent/references`."""
     _assert_core_absent_clause_names_work_intake(
-        RECURSIVE_DECOMPOSITION.read_text(encoding="utf-8"), "Otherwise render"
+        INTENT_RECURSIVE_DECOMPOSITION.read_text(encoding="utf-8"), "Otherwise render"
     )
 
 
 # --- T5: the cross-sequence route menu -------------------------------------
-
-
-def test_frame_intent_carries_the_pick_a_route_section() -> None:
-    """AC10 -- the menu sits between `When to invoke` and `Procedure`."""
-    body = FRAME_INTENT.read_text(encoding="utf-8")
-    order = [
-        re.search(rf"^{re.escape(heading)}$", body, re.MULTILINE)
-        for heading in ("## When to invoke", "## Pick a route", "## Procedure")
-    ]
-    assert all(match is not None for match in order), order
-    positions = [match.start() for match in order]
-    assert positions == sorted(positions), positions
-
-
-def test_the_route_menu_names_three_routes_with_a_fit_line() -> None:
-    """AC11 -- three routes, each stating the situation it fits."""
-    menu = _section(FRAME_INTENT.read_text(encoding="utf-8"), "## Pick a route")
-    bullets = [_flat(b) for b in re.split(r"^- \*\*", menu, flags=re.MULTILINE)[1:]]
-    assert len(bullets) == 3, bullets
-
-    # AC11 requires three routes and states no order, so each expected route is
-    # matched to whichever bullet names it rather than to a position.
-    expected = (
-        ("frame-intent", "de-risk-intent", "decompose-intent"),
-        ("discovery-loop",),
-        ("frame-situation",),
-    )
-    matched: list[str] = []
-    for names in expected:
-        hits = [b for b in bullets if all(f"`{n}`" in b for n in names)]
-        assert len(hits) == 1, (names, hits)
-        matched.append(hits[0])
-    assert len(set(matched)) == 3, "two expected routes matched the same bullet"
-
-    for bullet in bullets:
-        # The bolded lead is the situation the route fits; the skills follow it.
-        situation, _, remainder = bullet.partition("**")
-        assert situation.strip(), bullet
-        assert remainder.strip(), bullet
-
-
-def test_the_menu_names_no_six_step_skill_but_frame_situation() -> None:
-    """AC12 -- the menu names the sequence's opener and no later step.
-
-    The slice is what makes this safe rather than destructive:
-    `identify-opportunities` is named legitimately in `frame-intent`'s step 5
-    opportunity-scoring pointer, which this delivery does not touch.
-    """
-    menu = _section(FRAME_INTENT.read_text(encoding="utf-8"), "## Pick a route")
-    assert "frame-situation" in menu
-    for later_step in (
-        "identify-opportunities",
-        "diverge-solutions",
-        "place-bet",
-        "map-capabilities",
-    ):
-        assert later_step not in menu, later_step
 
 
 def test_discovery_loop_points_at_the_menu() -> None:
@@ -377,5 +355,5 @@ def test_discovery_loop_points_at_the_menu() -> None:
     when = _flat(
         _section(DISCOVERY_LOOP.read_text(encoding="utf-8"), "## When to invoke")
     )
-    assert "`frame-intent`" in when
-    assert "## Pick a route" in when
+    assert "`intent`" in when
+    assert "## Route mode" in when

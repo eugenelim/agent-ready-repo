@@ -54,10 +54,11 @@ of what you get.
 3. [Commit and de-risk](how-to/commit-and-de-risk.md) — commit to the one you chose, say what would prove it wrong, and rank what could make it wrong.
 4. [Hand it to build](how-to/hand-it-to-build.md) — slice it so each piece ships something a customer would notice, and hand those slices to delivery.
 
-**The walk runs the whole pack.** Its four step maps name all fifteen skills
-this pack ships, so nothing is waiting off to one side. Seven of the fifteen
-are required; the rest are there for when a stage needs more than the short
-route — each step's table says which is which.
+**The walk runs the whole pack.** Its four step maps name all thirteen skills
+this pack ships, so nothing is waiting off to one side. `intent` gets one row
+per mode: `frame`, `de-risk`, and `decompose`. Seven rows are required, and
+they use five skills. The rest are there for when a stage needs more than the
+short route — each step's table says which is which.
 
 ## Where you decide
 

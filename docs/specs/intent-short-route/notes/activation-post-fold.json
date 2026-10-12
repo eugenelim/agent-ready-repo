@@ -1,0 +1,403 @@
+{
+  "pack": "product-engineering",
+  "adapter": "claude-code",
+  "mode": "headless",
+  "fidelity": "observed",
+  "runs": 3,
+  "iteration": 1,
+  "skills": {
+    "intent": {
+      "queries": [
+        {
+          "query_id": "q00",
+          "query": "Help me pin down who the saved-searches feature is really for and what changes for them",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q01",
+          "query": "Draft an intent for the team billing project: the outcome, the opportunity, and who benefits",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q02",
+          "query": "We keep saying 'improve reporting' \u2014 help me turn that into a clear outcome statement",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q03",
+          "query": "What problem is the new mobile checkout actually solving? Capture it as an intent",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q04",
+          "query": "Frame the outcome we want from the partner API before anyone writes a spec",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q05",
+          "query": "Put the bulk-invite idea into intent form so the team agrees on what success means",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q06",
+          "query": "Our sales team asked for 'better dashboards' \u2014 frame the real intent behind that ask",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q07",
+          "query": "Write up the intent for the accessibility overhaul, including the opportunity behind it",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q08",
+          "query": "Capture the product outcome for in-app notifications as a feature-level intent",
+          "should_trigger": true,
+          "trigger_rate": 0.6666666666666666,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q09",
+          "query": "Help me articulate the opportunity behind adding SSO for small teams",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q10",
+          "query": "Which assumption in the usage-based pricing idea would kill it if it were wrong?",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "passed": false,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q11",
+          "query": "Pick the riskiest assumption in the offline-sync intent and set a kill condition",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q12",
+          "query": "Is it worth prototyping the AI summary feature, or should we just build it?",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "passed": false,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q13",
+          "query": "Test whether customers will actually pay for the premium analytics tier before we commit",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q14",
+          "query": "What would have to be true for the marketplace bet to work? Help me check the weakest part",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "passed": false,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q15",
+          "query": "Choose a cheap experiment to validate demand for the scheduling add-on",
+          "should_trigger": true,
+          "trigger_rate": 0.6666666666666666,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q16",
+          "query": "Before we invest a quarter, help me de-risk the self-serve onboarding bet",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q17",
+          "query": "Is the 'teams will migrate their data themselves' assumption safe? How do we find out?",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "passed": false,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q18",
+          "query": "Run a reversibility check on the decision to drop the free plan",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q19",
+          "query": "Help me decide if the referral bet survives or should be killed",
+          "should_trigger": true,
+          "trigger_rate": 0.6666666666666666,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q20",
+          "query": "Break the de-risked workspace-permissions intent into its child intents",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q21",
+          "query": "Split the approved reporting capability into features we can ship one at a time",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "passed": false,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q22",
+          "query": "Turn the validated onboarding intent into delivery-ready pieces for engineering",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "passed": false,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q23",
+          "query": "This capability intent is too big for one spec \u2014 cut it into the next level down",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q24",
+          "query": "Decompose the notifications intent and tell me which piece becomes a delivery brief",
+          "should_trigger": true,
+          "trigger_rate": 0.6666666666666666,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q25",
+          "query": "Slice the export capability so each part can ship and be tested on its own",
+          "should_trigger": true,
+          "trigger_rate": 0.6666666666666666,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q26",
+          "query": "Take the de-risked billing intent and produce the leaf-level delivery contracts",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q27",
+          "query": "Break this feature intent into child intents and project them onto our Jira board",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q28",
+          "query": "What are the independently shippable pieces of the approved search capability?",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "passed": false,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q29",
+          "query": "Cut the multi-repo audit-log outcome into per-repo delivery pieces",
+          "should_trigger": true,
+          "trigger_rate": 1.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q30",
+          "query": "Store this stated outcome as a minimal intent in the repo: cut support tickets for password resets by half",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q31",
+          "query": "Admit this one-line outcome into the repository as a Draft intent without shaping it further",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q32",
+          "query": "Our biggest competitor just launched a free tier \u2014 what situation does that put our portfolio in?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": [
+            "frame-situation"
+          ]
+        },
+        {
+          "query_id": "q33",
+          "query": "There's an OKR gap in retention this quarter; map where we stand before choosing any bet",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": [
+            "frame-situation"
+          ]
+        },
+        {
+          "query_id": "q34",
+          "query": "Take a raw idea for a pet-care booking app all the way through discovery to a decision brief",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": [
+            "discovery-loop"
+          ]
+        },
+        {
+          "query_id": "q35",
+          "query": "Resume the tutoring-marketplace discovery we parked last week",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": [
+            "discovery-loop"
+          ]
+        },
+        {
+          "query_id": "q36",
+          "query": "Write the spec for adding dark mode to the settings page",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q37",
+          "query": "Start a feature spec for rate-limiting the public API",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q38",
+          "query": "The CSV export drops the last row \u2014 find the root cause and fix it",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q39",
+          "query": "Login redirects loop forever on Safari; diagnose and fix it",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q40",
+          "query": "How should we design the event pipeline between billing and analytics?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        },
+        {
+          "query_id": "q41",
+          "query": "Choose between a queue and webhooks for syncing orders to the warehouse",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "passed": true,
+          "errored_runs": 0,
+          "exclusivity_violations": []
+        }
+      ],
+      "pass_count": 35,
+      "total": 42,
+      "error_count": 0
+    }
+  }
+}

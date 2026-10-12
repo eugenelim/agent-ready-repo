@@ -107,3 +107,4 @@
 | 0104 | [The `code-intelligence` pack](0104-code-intelligence-pack.md) | Accepted | 2026-09-30 | 2026-09-30 |
 | 0105 | [Artifact-derived navigation and workspace retirement](0105-artifact-derived-navigation-and-workspace-retirement.md) | Accepted | 2026-10-02 | 2026-10-03 |
 | 0106 | [Stop registering derivable work, and give the remaining facts per-item homes](0106-stop-registering-derivable-work.md) | Accepted | 2026-10-08 | 2026-10-08 |
+| 0107 | [Verb-mode shaping and intake skills, with a slice handover across repositories](0107-verb-mode-shaping-and-intake-with-slice-handover.md) | Accepted | 2026-10-10 | 2026-10-10 |

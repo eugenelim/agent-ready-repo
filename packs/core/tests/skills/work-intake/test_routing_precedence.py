@@ -101,7 +101,7 @@ def test_public_precedence_routes_explicit_work_directly() -> None:
         "`new-rfc`",
         "`new-spec`",
         "`architect-design`",
-        "`frame-intent`",
+        "`intent`",
         "`bug-fix`",
     ):
         assert owner in body

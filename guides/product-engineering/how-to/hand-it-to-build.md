@@ -30,7 +30,7 @@ order: 4
 
 | Skill | Needs | What it produces | Needed? |
 | --- | --- | --- | --- |
-| `decompose-intent` | A ratified decision | Child intents or slices, each traceable to the parent. | Required |
+| `intent decompose` | A ratified decision | Child intents or slices, each traceable to the parent. | Required |
 | `align-value-stream` | Slices spanning components | A snapshot of one intent's delivery across every component it touches. | Optional |
 | `ux-writing` | A product to characterise | Where the product sits on its voice axes, and the words it prefers. | Optional |
 
@@ -38,48 +38,48 @@ Prompts go into an AI agent session with this pack installed — the same sessio
 throughout. In the paths below, `<slug>` is this piece of work's short
 kebab-case name, fixed at step 1 so every later artifact traces back to it; `<output_dir>` is where this repository keeps product artifacts — the
 agent asks when it is not configured, and tells you which path it wrote to.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/agentbundle-layout.md -->
 
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
-## Run `decompose-intent` — break it into work
+## Run `intent decompose` — break it into work
 
 **You type:**
-<!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/decompose.md -->
 
 ```
 Decompose this intent into deliverable slices, each traceable back to the parent.
 ```
 
 **Agent returns:**
-<!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/decompose.md -->
 
-> **Agent:** Done — I've recorded the decomposition on the parent intent. Each child re-enters at `frame-intent`, which writes its own intent file; at the leaf this hands on a delivery contract, or a coordinating brief when the outcome spans several specs.
+> **Agent:** Done — I've recorded the decomposition on the parent intent. Each child re-enters at `intent frame`, which writes its own intent file; at the leaf this hands on a delivery contract, or a coordinating brief when the outcome spans several specs.
 
 **You push back:**
-<!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/decompose.md -->
 
 > **You:** These slices are layers — one is the database, one is the API. Slice so that each one delivers something a customer would notice.
 >
 > **Agent:** I re-sliced along customer-visible outcomes; there are now three slices, each thinner but each shippable.
 
 **Output varies** with how large the intent is and how separable the outcome is.
-<!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/decompose.md -->
 
 **You decide:** Commit to build — the pack's `commit-to-build` gate. After this the build loop owns the work.
 <!-- rung: packs/product-engineering/JOURNEY.md -->
 
 **Check (sufficient-for-next):** Ask what a customer would notice after the first slice ships; this surfaces horizontal slicing dressed as decomposition.
-<!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/decompose.md -->
 
 **Watch out for:** Technical layers are the easiest slices to write and the least useful to ship. Notice a slice whose completion no customer could observe.
-<!-- rung: packs/product-engineering/.apm/skills/decompose-intent/SKILL.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/decompose.md -->
 
 **Where it lands:** for one shippable feature, a delivery contract handed on to `core`'s intake in session — this step writes no file for it. For an outcome spanning several specs or repositories, a coordinating brief at `docs/product/briefs/<slug>.md`, a fixed path because `core` has to find it. The decomposition itself is recorded on the parent intent at `<output_dir>/intents/<slug>.md`.
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/references/agentbundle-layout.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/references/agentbundle-layout.md -->
 
 **What it looks like:**
-<!-- rung: packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md -->
+<!-- rung: packs/product-engineering/.apm/skills/intent/assets/intent-template.md -->
 
 ```markdown
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename -->
@@ -88,7 +88,7 @@ Decompose this intent into deliverable slices, each traceable back to the parent
 - **Status:** `<Draft | Accepted | Fulfilled | Withdrawn | Cancelled | Superseded>` <!-- required; one bare word. Withdrawn and Cancelled are peers of Fulfilled, not flavours of it — a rollup that counts them as delivered is the failure this vocabulary prevents -->
 - **Superseded by:** <!-- required when Status is Superseded, and refused otherwise; the Slug of the live intent that replaced this bet -->
 - **Kind:** `<outcome | opportunity>` <!-- optional, additive: the discovery-traceability chain rung this intent occupies on the opportunity-solution tree (outcome = the North Star / chain root; opportunity = a need in the OST). The structural-orphan lint reads this bold-body field to place the intent on the chain. Distinct from Level: (the altitude) — a `Level: capability` intent is placed by Level instead, and a feature intent maps downstream to a brief/spec. Omit it when not running the discovery-traceability chain; an intent still carries both an Outcome and an Opportunity section regardless. -->
-- **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
+- **Scale:** `<app | business-unit>` <!-- resolved at intake by intent frame -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
 - **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->

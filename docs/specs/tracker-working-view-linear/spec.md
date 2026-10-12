@@ -60,7 +60,7 @@ legible — a reader can tell which canonical rung a label stands for.
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility | Applicable — a pack rule sending all writes through the refresh processor now covers a create | `packs/linear/.apm/skills/linear/SKILL.md` | this spec | the prohibition unchanged, and the create reachable only through the processor | no raw GraphQL write verb appears in the skill body |
 | Maintainer procedure | Applicable — the label encoding is the contract a fifth provider with a shallow hierarchy will copy | `packs/linear/.apm/skills/linear/SKILL.md` | this spec | the canonical-identity encoding documented in one place | a rendered label parses by the documented form |
-| Maintainer procedure | Applicable — the Linear column exists but predates ADR-0127's range | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Linear render | the render matches every row |
+| Maintainer procedure | Applicable — the Linear column exists but predates ADR-0127's range | `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Linear render | the render matches every row |
 | Release history | Applicable — `linear` changes | `packs/linear/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — this slice conforms to the pattern the Jira Software slice documents | — | — | — | — |
 

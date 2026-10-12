@@ -47,7 +47,7 @@ a runner checking a projection, because both read the same classification.
 
 - Every cell of the level-to-object profile table carries an explicit
   `managed | trace | none` classification —
-  `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
+  `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md`
 - The table's leaf and story-as-trace rows stop classifying below-floor objects
   as managed, and the canonical column gains a cross-repository delivery-brief
   rung — same file
@@ -59,7 +59,7 @@ a runner checking a projection, because both read the same classification.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Maintainer procedure | Applicable — the table is the procedure a person follows to project by hand, and today its cells are free prose | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | this spec | the classified, reconciled table | every row resolves against ADR-0127 by classification |
+| Maintainer procedure | Applicable — the table is the procedure a person follows to project by hand, and today its cells are free prose | `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md` | this spec | the classified, reconciled table | every row resolves against ADR-0127 by classification |
 | Release history | Applicable — `product-engineering` changes | `packs/product-engineering/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — this slice changes a reference table, not a structure | — | — | — | — |
 

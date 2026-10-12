@@ -86,7 +86,7 @@ _LIFECYCLE_MANIFEST: dict[str, dict] = {
         "required_pack": "desk-research",
     },
     "shape": {
-        "dispatch_skill": "frame-intent",
+        "dispatch_skill": "intent",
         "output_pattern": [
             "docs/product/intents/{slug}.md",
             "docs/product/shaping/{slug}/**",

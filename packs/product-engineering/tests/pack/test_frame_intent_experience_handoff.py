@@ -1,4 +1,4 @@
-"""Contract checks for frame-intent's situational experience handoff."""
+"""Contract checks for the `intent` frame mode's situational experience handoff."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import tomllib
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = PACK_ROOT / ".apm/skills/frame-intent/SKILL.md"
-TEMPLATE_PATH = PACK_ROOT / ".apm/skills/frame-intent/assets/intent-template.md"
+INTENT_FRAME_PATH = PACK_ROOT / ".apm/skills/intent/references/frame.md"
+INTENT_TEMPLATE_PATH = PACK_ROOT / ".apm/skills/intent/assets/intent-template.md"
 
 
 def _section(path: Path, title: str) -> str:
@@ -24,7 +24,7 @@ def _section(path: Path, title: str) -> str:
 
 
 def test_handoff_activates_only_for_material_surface_effects() -> None:
-    section = _section(SKILL_PATH, "Situational product-to-experience handoff")
+    section = _section(INTENT_FRAME_PATH, "Situational product-to-experience handoff")
     assert "`capability` or `feature`" in section
     for trigger in (
         "creates a human-facing digital surface",
@@ -43,14 +43,14 @@ def test_handoff_activates_only_for_material_surface_effects() -> None:
 
 
 def test_product_altitudes_never_receive_the_handoff() -> None:
-    section = _section(SKILL_PATH, "Situational product-to-experience handoff")
+    section = _section(INTENT_FRAME_PATH, "Situational product-to-experience handoff")
     assert "`product-vision`" in section
     assert "`product-strategy`" in section
     assert "do not offer or emit" in section.lower()
 
 
 def test_optional_block_contains_only_product_facts() -> None:
-    block = _section(TEMPLATE_PATH, "Product-to-experience handoff")
+    block = _section(INTENT_TEMPLATE_PATH, "Product-to-experience handoff")
     for label in (
         "Affected journey or surface",
         "User outcome and first-success behavior",
@@ -64,7 +64,7 @@ def test_optional_block_contains_only_product_facts() -> None:
 
 
 def test_handoff_leaves_experience_decisions_downstream() -> None:
-    section = _section(SKILL_PATH, "Situational product-to-experience handoff")
+    section = _section(INTENT_FRAME_PATH, "Situational product-to-experience handoff")
     for decision in (
         "engagement mode",
         "visual direction",
@@ -81,7 +81,7 @@ def test_handoff_leaves_experience_decisions_downstream() -> None:
 
 
 def test_experience_design_is_optional_and_has_no_pack_wiring() -> None:
-    section = _section(SKILL_PATH, "Situational product-to-experience handoff")
+    section = _section(INTENT_FRAME_PATH, "Situational product-to-experience handoff")
     assert "Experience Design is not installed" in section
     assert "must not invoke" in section
     manifest = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))

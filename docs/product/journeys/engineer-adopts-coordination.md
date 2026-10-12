@@ -94,7 +94,7 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Uses `frame-intent` and `de-risk-intent` to scope an initiative. Produces framing artifacts in-session. Tries to figure out when shaping is done enough to write a brief. |
+| **Actions** | Uses `intent frame` and `intent de-risk` to scope an initiative. Produces framing artifacts in-session. Tries to figure out when shaping is done enough to write a brief. |
 | **Emotions** | Engaged but uncertain (neutral). Output lives in session context, not the repo. |
 | **Pains** | "My shaping output doesn't survive the session." "I don't know when shaping is done enough to graduate to a brief." "I have no artifact I can hand to someone else." |
 | **Opportunities** | Committed shaping artifacts in `docs/product/shaping/` with a visible graduation criterion (Outcome + Appetite + ≥1 Rabbit hole = ready to brief). |
@@ -137,8 +137,8 @@ sequenceDiagram
 
 - **Skill:** install-agentbundle
 - **Skill:** read-agents-md
-- **Skill:** run-frame-intent
-- **Skill:** run-de-risk-intent
+- **Skill:** intent frame
+- **Skill:** intent de-risk
 - **Skill:** receive-external-brief
 - **Skill:** run-author-brief
 - **Skill:** run-receive-brief

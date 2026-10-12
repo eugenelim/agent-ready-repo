@@ -93,9 +93,13 @@ executing = [
   {path = "docs/product/briefs/phase-scoped-policy-delivery.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Key policy-family selection to the recorded FSM phase and inline the matching families into the acting agent's brief, extending the existing module-index mechanism", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/universal-implementer-dispatch.md"}]},
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
   {path = "docs/product/briefs/acceptance-centered-work-loop.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/architecture/acceptance-centered-work-loop.md", revision = "sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02"}, summary = "Replace workflow-engine authority with an acceptance-centered, runtime-neutral work loop through eight independently shippable slices", needs = []},
+  { path = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/rfc/0107-verb-mode-shaping-and-intake-with-slice-handover.md", revision = "sha256-bytes-v1:827618ab6cfc5ca9d160ab1aee5779d02841245bf41f77d7a0d9b5c664f47c4b" }, summary = "Deliver RFC-0107: one verb-mode intent skill for shaping, intent and brief authoring as work-intake modes, and a component-slice handover from a value-stream meta-repo to component repos", needs = [] },
 ]
 ready     = [
   {path = "docs/product/briefs/repository-grounding-preservation.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make Core recognize shared-substrate changes, derive bounded disposable consumer maps, and require preservation evidence without adapt-to-project, code intelligence, Pi, or whole-repository ingestion", needs = []},
+  # Ready 2026-10-10 on a revision-bound `Clean` shaping review and human confirmation.
+  # Zero specs; the slice cut is a separate confirmation. Platform Core owns the Core
+  # half (work-intake, handover contract); the product-engineering waves ride with it.
 ]
 draft     = [
   # Logged to shape 2026-09-03 out of universal-implementer-dispatch U1 delivery:
@@ -233,6 +237,9 @@ shipped   = [
 active  = [
 ]
 shipped = [
+  # Shipped 2026-10-11 (run b0a6f681): the `intent` skill with route mode and the
+  # short-route verbs; evidence in notes/verification-ledger.md.
+  { path = "docs/specs/intent-short-route/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "The intent skill with its read-only route mode and the short-route verbs frame, de-risk, and decompose, retiring the three short-route shaping skills", needs = [] },
   # Shipped 2026-10-09 as Core 3.0.0 (PR #1525, merge 7e745dbf7) with agentbundle
   # 0.52.0 on PyPI; evidence and the RFC-0083 authorization are in notes/verification-ledger.md.
   {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
@@ -942,8 +949,8 @@ open = [
   # Reader inventory, merged here 2026-09-20 rather than registered separately:
   # the same files this rename already has to touch also mis-state who reads each
   # section, so correcting both is one edit per file. Measured:
-  # `frame-intent/references/agentbundle-layout.md:72` says "Only `frame-intent`
-  # (intents) and `align-value-stream` (rollups) read `[product]`", while eight
+  # the layout reference of the former frame skill (line 72) said "Only the
+  # frame skill (intents) and `align-value-stream` (rollups) read `[product]`", while eight
   # bodies name it — adding `lean-canvas:65`, `frame-situation:68`,
   # `map-capabilities:44`, `diverge-solutions:81`, `place-bet:43` and
   # `identify-opportunities:75`. There is also a **second, differently worded**
@@ -2226,6 +2233,22 @@ open = [
   {path = "docs/specs/work-item-promotion-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"}, summary = "Hand a captured item to the owner that handles work of its shape or close it because it should go nowhere, committing the terminal disposition either way", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-capture/spec.md"}]},
   {path = "docs/specs/governance-item-record-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0008-governance-item-record-routing.md"}, summary = "Route a captured question whose deliverable is a decision to a record naming who decides, eliciting the record type rather than deriving it, and refusing loudly when the authoring pack is absent", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
   {path = "docs/specs/duplicate-coverage-offer/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"}, summary = "Offer the artifact that already covers a captured item before promotion creates a second one; path proximity is refuted and the surviving question is whether coverage is discoverable at all", needs = [{type = "local", kind = "spec", path = "docs/specs/work-item-promotion-handoff/spec.md"}]},
+  # Confirmed delivery slices of docs/product/briefs/verb-mode-skills-and-slice-handover.md,
+  # registered as Draft specs; the brief's Spec map owns the set. `needs` carries the build order.
+  { path = "docs/specs/intent-longer-and-supervised-verbs/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "The longer-route and supervised verbs as intent modes, folding plan-validation into de-risk and retiring the other nine shaping skills", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-short-route/spec.md"}] },
+  { path = "docs/specs/ux-writing-to-experience-design/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Move ux-writing and its evals from product-engineering to experience-design", needs = [] },
+  { path = "docs/specs/component-slice-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "The Core component-slice contract and shape check, brief template fields, the slices route, and the checker changes, with intent decompose writing component slices", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-short-route/spec.md"}] },
+  { path = "docs/specs/value-stream-acquire-and-refresh/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Acquire and refresh a component slice from a local meta-repo checkout at a pinned, reviewed-branch revision", needs = [{type = "local", kind = "spec", path = "docs/specs/component-slice-contract/spec.md"}] },
+  { path = "docs/specs/value-stream-status-collection/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Receipts-only status collection in align-value-stream, the value-stream repo list, and the rollup as a view over component slices", needs = [{type = "local", kind = "spec", path = "docs/specs/component-slice-contract/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/value-stream-acquire-and-refresh/spec.md"}] },
+  { path = "docs/specs/work-intake-modes/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Fold intent and brief authoring into work-intake modes behind a human-set write switch, retiring four Core skills at the removal gate", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-short-route/spec.md"}] },
+  { path = "docs/specs/value-stream-provider-read/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Stretch: a provider-pack read surface for meta-repos available only remotely", needs = [{type = "local", kind = "spec", path = "docs/specs/value-stream-acquire-and-refresh/spec.md"}] },
+  # Pre-existing on HEAD 2026-10-11: packs/core/tests/skills/work-loop/test_loop_engine.py::
+  # test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content[deep-nesting]
+  # fails with "decision was silent" on an unmodified detached HEAD worktree.
+  { slug = "pre-existing-recover-engine-state-deep-nesting", source = "pre-flight/2026-10-11" },
+  # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
+  # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
+  { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
 ]
 
 

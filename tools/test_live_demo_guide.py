@@ -12,6 +12,12 @@ GUIDE_PATH = REPO_ROOT / "guides/core/how-to/run-a-live-demo.md"
 WALKTHROUGHS_PATH = (
     REPO_ROOT / "docs/specs/m6-live-demo-guide/notes/walkthroughs.md"
 )
+# The recorded 2026-08 walkthrough receipt names the skills as they were then.
+RETIRED_SHAPING_SKILLS = (
+    "frame-intent",
+    "de-risk-intent",
+    "decompose-intent",
+)
 
 
 def _section(text: str, heading: str) -> str:
@@ -84,7 +90,7 @@ class LiveDemoGuideTests(unittest.TestCase):
                 "Source brief `Ready`",
                 "**Non-technical**",
                 "Product Engineering at user scope, then Core at repo scope",
-                "`frame-intent` → `de-risk-intent` → `decompose-intent` → `new-spec`",
+                "`intent frame` → `intent de-risk` → `intent decompose` → `new-spec`",
                 "Draft intent and one Draft spec/plan pair",
                 "input shape chooses the workflow",
             ),
@@ -284,8 +290,8 @@ class LiveDemoGuideTests(unittest.TestCase):
                 "Track: Non-technical",
                 "Packs and scopes used: Product Engineering at user scope, "
                 "then Core at repo scope",
-                "Skills invoked: frame-intent, de-risk-intent, "
-                "decompose-intent, receive-brief, new-spec",
+                "Skills invoked: " + ", ".join(RETIRED_SHAPING_SKILLS)
+                + ", receive-brief, new-spec",
                 "Changed paths and statuses: "
                 "docs/product/intents/demo-onboarding-proof-intent.md — Draft; "
                 "docs/product/briefs/demo-onboarding-proof-brief.md — Ready; "

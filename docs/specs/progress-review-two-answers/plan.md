@@ -3,10 +3,10 @@
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
-  `packs/product-engineering/.apm/skills/frame-intent/SKILL.md` (the
+  `packs/product-engineering/.apm/skills/intent/references/frame.md` (the
   `[product] output_dir` resolution, anchored to the layout file's own
   location, and the compose-if-present degrade-if-absent pattern this follows);
-  `packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md`
+  `packs/product-engineering/.apm/skills/intent/assets/intent-template.md`
   (the `## Outcome` section this reads);
   `docs/specs/delivery-forecast-with-uncertainty/` (the forecast this takes as
   input). Named deviation: this skill renders a review, and no existing
@@ -51,7 +51,7 @@ resolve and confine a repository path on four providers.
 The outcome half always works, because it reads an artifact that is always
 there. The delivery half degrades to a stated absence. Both degradations are
 rendered rather than silent, which is the same compose-if-present pattern
-`frame-intent` already ships.
+`intent` (frame mode) already ships.
 
 The riskiest part is the unchecked case, and it is risky because it is
 tempting to drop. An intent whose outcome has no reading contributes nothing to
@@ -68,7 +68,7 @@ criterion with its own test rather than a rendering nicety.
   scheduler.
 - **No provider dependency.** Delivery-system packs install at user scope;
   this skill neither calls one nor declares one.
-- The intent's `## Outcome` section is the frame-intent template's, and this
+- The intent's `## Outcome` section is the `intent` frame template's, and this
   slice reads it without changing it. There is no new field and no lint.
 - The forecast's shape belongs to `delivery-forecast-with-uncertainty`.
 
@@ -106,7 +106,7 @@ criterion with its own test rather than a rendering nicety.
   benefit overstatement the parent's evidence measures, so the review renders
   the reading and stops.
 - **Nothing is detected inside `## Outcome`.** That section's contract belongs
-  to `frame-intent`, which defines declarations and no reading representation,
+  to `intent` (frame mode), which defines declarations and no reading representation,
   and the accepted cut carries no slice that adds one. The review reproduces
   the section and adds nothing, so it never has to decide what a reading is.
 - **Scope is closed and every member renders.** Asserting that *an* intent with
@@ -162,13 +162,13 @@ No new dependency, and explicitly no provider pack.
 
 **Tests:**
 - Configured relative, configured absolute, and unset each resolve or fail as
-  `frame-intent` specifies. Verifies *resolves through the configured
+  `intent` (frame mode) specifies. Verifies *resolves through the configured
   `[product] output_dir`*.
 - An unresolvable tree produces a stated failure, not an empty review.
   Verifies *says so rather than rendering an empty review*.
 
 **Approach:**
-- Reuses `frame-intent`'s resolution semantics — anchored to the layout file's
+- Reuses `intent` (frame mode)'s resolution semantics — anchored to the layout file's
   own location, `..` rejected after anchoring — rather than reimplementing
   them, so the two skills cannot disagree about where intents live.
 

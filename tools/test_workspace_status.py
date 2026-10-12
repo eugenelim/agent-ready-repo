@@ -1135,8 +1135,8 @@ def case_shaping_item_guard() -> None:
         ws = parse_workspace(root / "workspace.toml")
         initiatives = extract_initiatives(ws)
 
-        expect(check_shaping_guard("needs-shaping", initiatives) == "frame-intent",
-               "[AC3f] shape → frame-intent")
+        expect(check_shaping_guard("needs-shaping", initiatives) == "intent",
+               "[AC3f] shape → intent")
         expect(check_shaping_guard("needs-research", initiatives) == "desk-research-project-start",
                "[AC3f] research → desk-research-project-start")
         expect(check_shaping_guard("needs-strategy", initiatives) == "frame-situation",
@@ -1210,8 +1210,8 @@ def case_shaping_guard_top_level_backlog() -> None:
 
         # With top_level_backlog parameter → correctly routed
         result = check_shaping_guard("top-shape", initiatives, top_level_backlog=top_backlog)
-        expect(result == "frame-intent",
-               f"[AC3f-toplevel] top-level shape → frame-intent, got {result!r}")
+        expect(result == "intent",
+               f"[AC3f-toplevel] top-level shape → intent, got {result!r}")
 
         result2 = check_shaping_guard("top-research", initiatives, top_level_backlog=top_backlog)
         expect(result2 == "desk-research-project-start",
@@ -1515,8 +1515,10 @@ _WL_FINISH_END = r'Conventional commit format'
 # information-only shaping lists. Reviewed as the pin requires; the engine needs no edit,
 # because canonical reconciliation already emits that finding and ownership is
 # unchanged.
+# Moved 2026-10-11: the shaping-item guard line names `intent` instead of
+# the retired skill name. The engine mapping moved with it; ownership is unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "6fd9a3fb045b2ce19b675f3547656b95a35a08a7e34eb92563b520101efe5d8c"
+    "9c56676392af3423c147803af6b04647ab3235d916cf7e6d5bc3350f5e67def2"
 )
 # Reconciled 2026-08-21: the finish-time lint now resolves from the installed
 # skill directory. Status ownership is unchanged, so the engine needs no edit.
@@ -1879,8 +1881,8 @@ def case_untyped_backlog_not_shaping() -> None:
         # Explicitly typed shape entry must still route correctly
         r2 = check_shaping_guard("typed-shape", inits, top_level_backlog=top_backlog)
         expect(
-            r2 == "frame-intent",
-            f"[F1b] typed shape entry → frame-intent, got {r2!r}",
+            r2 == "intent",
+            f"[F1b] typed shape entry → intent, got {r2!r}",
         )
 
 
@@ -2292,8 +2294,8 @@ def case_work_loop_slug_normalization() -> None:
                     "spec/my-feature", "my-feature"]:
             slug = normalize_for_shaping_guard(raw)
             result = check_shaping_guard(slug, inits)
-            expect(result == "frame-intent",
-                   f"[normalize+guard] {raw!r} → slug={slug!r} → {result!r} (want 'frame-intent')")
+            expect(result == "intent",
+                   f"[normalize+guard] {raw!r} → slug={slug!r} → {result!r} (want 'intent')")
 
 
 # ── Order 1B: analyze_bounded + explain_item ─────────────────────────────────

@@ -1094,3 +1094,17 @@ record. Corrections are appended here, Approver-signed.
   ledger, not D7: the adopter routing study was waived and never run, its
   question stays unanswered, and no entry here claims the study passed or that
   the activation fixtures answer it.
+- **2026-10-10 (Approver: eugenelim) — superseded in part by [RFC-0107](0107-verb-mode-shaping-and-intake-with-slice-handover.md).**
+  - D1's separate `intake-intent` and `author-delivery-brief` entry points become modes
+    of `work-intake`
+    ([ADR-0141](../adr/0141-core-intake-lifecycle-intent-and-brief-modes-in-work-intake.md)).
+  - The "generic shaping skill" exclusion and the rejected "generic shaping
+    orchestrator" give way to one verb-mode `intent` skill whose route mode holds no
+    state ([ADR-0140](../adr/0140-shaping-entry-point-one-verb-mode-intent-skill.md)).
+  - §2's rule that an external locator is never read no longer applies to
+    component-slice sources
+    ([ADR-0142](../adr/0142-meta-repo-handover-component-slices-and-pinned-receipts.md)).
+    Every other locator stays opaque.
+  - The §11 erratum to RFC-0083, which moved intent authoring out of `work-intake`,
+    is reversed for that move only.
+  - Every other holding of this RFC stands.

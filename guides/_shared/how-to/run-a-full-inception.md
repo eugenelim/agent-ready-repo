@@ -76,13 +76,13 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
 
 ### `product-engineering` — when the bet is uncertain
 
-- **Skills:** `frame-intent` (idea → outcome plus opportunity),
-  `de-risk-intent` (test the riskiest assumption against a predeclared kill
-  condition), `decompose-intent` (cut it into one independently shippable leaf,
+- **Skills:** `intent frame` (idea → outcome plus opportunity),
+  `intent de-risk` (test the riskiest assumption against a predeclared kill
+  condition), `intent decompose` (cut it into one independently shippable leaf,
   or a coordinating brief for multi-spec or cross-repository work). At app
   scale a single leaf goes directly to a `core` spec. The
   `frame → de-risk → decompose` loop hands its leaf into `init-project`'s value
-  gate — an `intent` from `frame-intent` is one
+  gate — an `intent` from `intent frame` is one
   of `init-project`'s four recognized discovery sources (alongside `desk-research`, a
   PRD, and an `author-delivery-brief` brief), named as **optional upstream**: present when
   this pack is installed.

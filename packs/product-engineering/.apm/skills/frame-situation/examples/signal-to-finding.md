@@ -21,7 +21,7 @@ The signal affects multiple teams and their shared agent skill infrastructure.
 That is initiative/capability level — proceed.
 
 *(If a team had asked "can we add a skill discovery flag to our CLI?" that
-would be feature-scoped → altitude mismatch → redirect to `frame-intent`.)*
+would be feature-scoped → altitude mismatch → redirect to `intent frame`.)*
 
 ---
 

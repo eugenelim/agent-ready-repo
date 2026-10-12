@@ -121,10 +121,10 @@ non-dispatchable workspace membership. Do not paste a comment-backed or
 slug-only entry into `workspace.toml`.
 
 **What happens next:** once the option is selected, the next step is validation
-(`de-risk-intent`, step 4). Run it on the selected option to pressure-test the
+(`intent de-risk`, step 4). Run it on the selected option to pressure-test the
 dominant bet before `place-bet` commits the direction.
 
 ## What you have now
 
 - A structured options artifact with comparable choices and retained rationale for parked or rejected alternatives.
-- The selected option can move to `de-risk-intent` before `place-bet` commits the direction.
+- The selected option can move to `intent de-risk` before `place-bet` commits the direction.

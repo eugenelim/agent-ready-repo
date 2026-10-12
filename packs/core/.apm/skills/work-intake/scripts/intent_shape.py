@@ -176,7 +176,7 @@ def normalize_value(raw: str) -> str:
     Discards a trailing HTML comment, then strips surrounding backticks. The
     order is the contract: reversing it leaves the corpus's dominant shape
     backticked. A value that is empty once this has run is absent, not
-    malformed — that is the `frame-intent` template's comment-only
+    malformed — that is the `intent` frame-mode template's comment-only
     ``Parent intent:`` line, which no rule may refuse.
     """
     value = raw.strip()

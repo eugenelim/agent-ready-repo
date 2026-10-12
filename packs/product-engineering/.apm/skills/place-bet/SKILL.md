@@ -1,6 +1,6 @@
 ---
 name: place-bet
-description: Step 5 of the PE six-step shaping sequence — the bet-commitment gate. Reads a diverge-solutions artifact if present (offers to run it first if absent); accepts options from any source; folds in validation-notes when available; emits bet.md with the full betting table anchoring map-capabilities. Do NOT use to generate options (use diverge-solutions or explore-options) or validate assumptions (use de-risk-intent).
+description: Step 5 of the PE six-step shaping sequence — the bet-commitment gate. Reads a diverge-solutions artifact if present (offers to run it first if absent); accepts options from any source; folds in validation-notes when available; emits bet.md with the full betting table anchoring map-capabilities. Do NOT use to generate options (use diverge-solutions or explore-options) or validate assumptions (use intent de-risk).
 ---
 
 # Skill: place-bet
@@ -33,7 +33,7 @@ Table — When presenting several items that share the same fields, render a Mar
 
 ## When to invoke
 
-Run after any validation work (de-risk-intent, validation-notes.md) and before
+Run after any validation work (intent de-risk, validation-notes.md) and before
 `map-capabilities`. Confirm options exist in some form; if not, this skill offers
 `diverge-solutions` first.
 
@@ -58,7 +58,7 @@ table are less defensible."* If the PE declines, continue with free-form: ask
 for options considered and the chosen direction.
 Accept any prior options source — diverge-solutions, explore-options, external
 research, or informal notes.
-Check validation: if no `validation-notes.md`, no `de-risk-intent` output, and
+Check validation: if no `validation-notes.md`, no `intent de-risk` output, and
 no stated validation is present in any form — name the gap and ask whether to
 proceed or validate first; an unvalidated bet is an accepted risk, not a silent
 default. Otherwise when only `validation-notes.md` is absent — continue without
