@@ -91,7 +91,7 @@ def _pushed_repo(tmp_path: pathlib.Path, sub: str = "", spec_dir: str = "alpha",
                  remote_url: str | None = None) -> tuple[pathlib.Path, pathlib.Path]:
     """Return ``(repo, corpus root)`` with a clean pushed HEAD and a local bare origin."""
     bare = tmp_path / "origin.git"
-    subprocess.run(["git", "init", "-q", "--bare", str(bare)], env=_SETUP_ENV, check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", "--bare", str(bare)], env=_SETUP_ENV, check=True)
     repo = tmp_path / "repo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], env=_SETUP_ENV, check=True)
@@ -274,7 +274,7 @@ def test_detached_unpushed_head_gives_latest(tmp_path: pathlib.Path) -> None:
 def test_head_pushed_only_to_second_remote_gives_latest(tmp_path: pathlib.Path) -> None:
     repo, root = _pushed_repo(tmp_path)
     other = tmp_path / "other.git"
-    subprocess.run(["git", "init", "-q", "--bare", str(other)], env=_SETUP_ENV, check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", "--bare", str(other)], env=_SETUP_ENV, check=True)
     _git(repo, "commit", "-q", "--allow-empty", "-m", "second")
     _git(repo, "remote", "add", "second", str(other))
     _git(repo, "push", "-q", "second", "main")
@@ -384,7 +384,7 @@ def _treeless_clone(tmp_path: pathlib.Path, name: str) -> tuple[pathlib.Path, pa
     """
     bare = tmp_path / f"{name}-origin.git"
     seed = tmp_path / f"{name}-seed"
-    subprocess.run(["git", "init", "-q", "--bare", str(bare)], env=_SETUP_ENV, check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", "--bare", str(bare)], env=_SETUP_ENV, check=True)
     _git(bare, "config", "uploadpack.allowFilter", "true")
     _git(bare, "config", "uploadpack.allowAnySHA1InWant", "true")
     seed.mkdir()
