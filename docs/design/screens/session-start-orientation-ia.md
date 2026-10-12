@@ -38,7 +38,7 @@ Question 1's 20 today are 1 Implementing spec, 4 Approved specs, 11 Executing br
 
 The records hold stage, not priority, so order follows only recorded facts, and the page says what the order is.
 
-1. **Readiness bridge live.** Question 1 lists `workspace-status`'s canonical sets in this order: active (resumable), then ready, then blocked with its finding. The first ready item is labelled "`work-loop` takes this first". That is true, because an argless `work-loop` takes the first canonical ready entry.
+1. **Readiness bridge live.** Question 1 lists `workspace-status`'s canonical sets in this order: active (resumable), then ready, then blocked with its finding. One item is marked as the one an argless `work-loop` starts, following `work-loop`'s own order. With exactly one active item, that item is the one it resumes. With more than one, it asks, so nothing is marked. With none, the first ready item is the one it starts.
 2. **Readiness bridge absent.** Question 1 is titled "In a startable stage" and its lead line reads "Readiness not checked in this snapshot". Nothing is called ready. Order is by stage: Implementing spec, Approved spec, Executing brief, Ready brief, then Accepted intent not yet decomposed. Ties sort by heading.
 3. **Every list** names its sort key in its header, for example "By stage, then name". No list is ordered by a computed score.
 
@@ -212,7 +212,7 @@ Guards:
 - **Date:** 2026-10-12.
 - **Approach:** prototype-led, because the view is a two-way door: a disposable file, cheap to change.
 - **Kill condition, set before the build:** kill if, on a prototype first screen built from real export data, the owner cannot answer any one of the four questions without searching.
-- **Prototype:** a throwaway page outside the repository. It was built from that day's real export payload and `workspace-status` canonical output (4 ready, 0 active, 29 blocked, 75 problems), following this note, `docs/design/direction/skill-html-views.md` and `docs/design/tokens/skill-html-views.md`. It was checked at 320, 1280, 1680 and 2560px in light and dark.
+- **Prototype:** a throwaway page outside the repository. It was built from that day's real export payload and `workspace-status` canonical output (4 ready, 0 active, 29 blocked, 65 findings; the prototype's Broken count of 75 adds 10 delivery diagnostics from the graph), following this note, `docs/design/direction/skill-html-views.md` and `docs/design/tokens/skill-html-views.md`. It was checked at 320, 1280, 1680 and 2560px in light and dark.
 - **Verdict: survived.** The owner answered all four questions from the first screen without searching.
 - **Gaps the build must close.**
   - The export payload gives specs and briefs no heading, so rows cannot lead with a name. The prototype read first-line titles from the files to stand in.

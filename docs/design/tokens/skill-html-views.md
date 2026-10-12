@@ -9,11 +9,11 @@ governed_by:
 
 # Design system: skill-emitted HTML views
 
-These are the values behind the shared style that every skill-emitted HTML view follows. Values are CSS custom properties, because every view is a single offline file styled by one hashed stylesheet.
+These are the values behind the shared style for the maintainer views that skills emit as HTML. Values are CSS custom properties. Each view joins this shared base with its own layout rules into the one hashed style element its policy names. The adopters are `navigate-intents`, `navigate-decisions`, `explain-diff` and `render-proof`; `markdown-to-html` keeps its author themes.
 
 ## Authority and route
 
-- **Route: originate.** There is no coherent source of visual truth across the four views. `navigate-intents` and `navigate-decisions` share a copied palette. `markdown-to-html` has five accent themes and no dark mode. `explain-diff` has no house style.
+- **Route: originate.** There is no coherent source of visual truth across the four maintainer views. `navigate-intents` and `navigate-decisions` share a copied palette, `explain-diff` has no house style, and `render-proof` has its own distinct palette.
 - **Rungs.** Each domain records the rung that supplied it.
   - `stated-constraint`: system fonts only, offline, no motion, WCAG 2.2 AA, and the 320/1280/1680/2560 checks.
   - `approved-direction`: `docs/design/direction/skill-html-views.md`.
@@ -136,5 +136,5 @@ The glyph is hidden from assistive tech, and the word is read. Each view maps it
 
 ## Unresolved
 
-- How `explain-diff`'s model-written pages take these tokens without losing per-page freedom. The HTML standard RFC decides that.
+- None for `explain-diff`: RFC-0108 D2 has its publisher inject this base as trusted bytes and hash the joined style.
 - Data-visualisation colours for `navigate-decisions`' lineage diagram beyond accent and neutrals. Its own adoption slice decides them, under this floor.

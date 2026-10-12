@@ -13,7 +13,9 @@ This direction covers every offline HTML file a catalogue skill emits:
 - `navigate-intents`: the session-start worklist;
 - `navigate-decisions`: the ADR and RFC explorer;
 - `explain-diff`: a narrative explanation of a change;
-- `markdown-to-html`: a converted long document.
+- `render-proof`: a review proof of a converted document.
+
+`markdown-to-html` output is a document an author publishes for their own readers. It keeps its author-chosen themes and is not covered by this direction.
 
 It is one family with two densities:
 - **worklist** density for navigators and explorers;
@@ -31,7 +33,7 @@ The owner selected it on 2026-10-12 from three candidates, on the agent's advice
 ## Engagement mode
 
 - **Primary mode:** operate. A maintainer decides and starts work.
-- **Secondary mode:** read. `markdown-to-html` and `explain-diff` serve the distinct job of reading a long argument through.
+- **Secondary mode:** read. `explain-diff` and `render-proof` serve the distinct job of reading a long argument through.
 - **Surface genre:** workspace and analytical for the navigators; informational for documents.
 
 ## Product-specific visual thesis
@@ -74,7 +76,7 @@ The owner selected it on 2026-10-12 from three candidates, on the agent's advice
   - *Precedent:* transit-map keys, where one key reads every line.
   - *Standards:* Nielsen's consistency-and-standards heuristic.
   - *Platform conventions:* native controls, so behaviour matches the browser.
-- **Every width earns its space.** It means worklists widen into more columns and a wider detail zone. Documents keep a readable line length and use the spare width for margin heads and notes. It is violated by a centred fixed-width page with empty side bands.
+- **Every width earns its space.** It means worklists widen into more columns and a wider detail zone. Document views keep a readable line length and use the spare width for margin heads and notes. It is violated by a centred fixed-width page with empty side bands.
   - *Persona:* a maintainer on a wide monitor or a phone.
   - *Precedent:* the technical manual's margin column.
   - *Standards:* WCAG 2.2 reflow at 320 CSS px.
@@ -133,8 +135,7 @@ Resolved trade-offs:
 ## Open questions
 
 - How the warning hue clears AA contrast in dark mode while staying distinct from the accent; `design-system` settles the values.
-- How `explain-diff`, whose page is written by a model, adopts shared tokens without losing its per-page freedom; the HTML standard settles it.
-- `markdown-to-html` has no dark mode today. Adopting this direction adds it.
+- `explain-diff` pages are written by a model; RFC-0108 D2 has its publisher inject the shared base as trusted bytes.
 
 ## Borrowed discipline
 
