@@ -4,9 +4,9 @@
 Not collected by pytest: the file name does not match ``test_*.py``.  Run it
 locally; it needs Playwright and Chromium:
 
-    python packs/core/tests/skills/navigate-intents/view_bench.py [--counts 1 10 25 50]
+    python packs/core/tests/skills/navigate-intents/view_bench.py --source <repo-root> [--counts 1 10 25 50]
 
-It builds N renumbered copies of this repository's intents, briefs, and spec
+It builds N renumbered copies of the source repository's intents, briefs, and spec
 directories (each copied whole) in a scratch repository under the system
 temporary directory.  Every copy suffixes its slugs, directory names, and file
 stems with ``-cNN`` and rewrites each pointer header, so each copy is a
@@ -29,8 +29,8 @@ from typing import Any
 
 from playwright.sync_api import Browser, sync_playwright
 
-_REPO = pathlib.Path(__file__).resolve().parents[5]
-_SCRIPT = _REPO / "packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py"
+_PACK = pathlib.Path(__file__).resolve().parents[3]
+_SCRIPT = _PACK / ".apm/skills/navigate-intents/scripts/navigate_intents.py"
 
 # Thresholds frozen by the spec.
 MAX_BYTES = 104_857_600
@@ -85,8 +85,8 @@ def rewrite_text(text: str, tag: str) -> str:
     return "\n".join(out)
 
 
-def build_corpus(dest: pathlib.Path, copies: int) -> None:
-    """Write *copies* renumbered copies of this repository's records under *dest*."""
+def build_corpus(dest: pathlib.Path, copies: int, source: pathlib.Path) -> None:
+    """Write *copies* renumbered copies of the records in repository *source* under *dest*."""
     intents = dest / "docs/product/intents"
     briefs = dest / "docs/product/briefs"
     specs = dest / "docs/specs"
@@ -95,13 +95,13 @@ def build_corpus(dest: pathlib.Path, copies: int) -> None:
     for n in range(1, copies + 1):
         tag = f"-c{n:02d}"
         for src_dir, out_dir in (
-            (_REPO / "docs/product/intents", intents),
-            (_REPO / "docs/product/briefs", briefs),
+            (source / "docs/product/intents", intents),
+            (source / "docs/product/briefs", briefs),
         ):
             for f in sorted(src_dir.glob("*.md")):
                 text = f.read_text(encoding="utf-8")
                 (out_dir / f"{f.stem}{tag}.md").write_text(rewrite_text(text, tag), encoding="utf-8")
-        for d in sorted((_REPO / "docs/specs").iterdir()):
+        for d in sorted((source / "docs/specs").iterdir()):
             if not d.is_dir():
                 continue
             target = specs / f"{d.name}{tag}"
@@ -187,9 +187,9 @@ def _search_and_heap(browser: Browser, url: str) -> tuple[float, float, dict[str
         ctx.close()
 
 
-def measure(copies: int, browser: Browser, work: pathlib.Path) -> dict[str, Any]:
+def measure(copies: int, browser: Browser, work: pathlib.Path, source: pathlib.Path) -> dict[str, Any]:
     root = work / f"corpus-{copies}"
-    build_corpus(root, copies)
+    build_corpus(root, copies, source)
     init_repo(root)
     out = work / f"out-{copies}"
     out.mkdir()
@@ -217,6 +217,8 @@ def measure(copies: int, browser: Browser, work: pathlib.Path) -> dict[str, Any]
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--counts", type=int, nargs="+", default=[1, 10, 25, 50])
+    ap.add_argument("--source", type=pathlib.Path, required=True,
+                    help="repository whose intents, briefs, and specs are copied")
     args = ap.parse_args()
     work = pathlib.Path(tempfile.mkdtemp(prefix="intent-view-bench-"))
     rows = []
@@ -225,7 +227,7 @@ def main() -> int:
             browser = pw.chromium.launch(args=["--enable-precise-memory-info"])
             try:
                 for n in args.counts:
-                    row = measure(n, browser, work)
+                    row = measure(n, browser, work, args.source.resolve())
                     print(json.dumps(row), file=sys.stderr, flush=True)
                     rows.append(row)
             finally:

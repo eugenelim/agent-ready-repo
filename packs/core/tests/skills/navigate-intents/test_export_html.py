@@ -48,9 +48,9 @@ _DATA_BLOCK = re.compile(
 )
 
 
-def _export(corpus: str, out: pathlib.Path) -> str:
+def _export(corpus: pathlib.Path, out: pathlib.Path) -> str:
     out.mkdir(parents=True, exist_ok=True)
-    result, code = nav.run_export(_FIXTURES / corpus, str(out), "view.html", None)
+    result, code = nav.run_export(corpus, str(out), "view.html", None)
     assert code == 0, result
     return pathlib.Path(result["path"]).read_text(encoding="utf-8")
 
@@ -107,12 +107,12 @@ def _digest(content: str) -> str:
 
 @pytest.fixture(scope="module")
 def mixed_html(tmp_path_factory: pytest.TempPathFactory) -> str:
-    return _export("mixed", tmp_path_factory.mktemp("mixed"))
+    return _export(_FIXTURES / "mixed", tmp_path_factory.mktemp("mixed"))
 
 
 @pytest.fixture(scope="module")
 def hostile_html(tmp_path_factory: pytest.TempPathFactory) -> str:
-    return _export("hostile", tmp_path_factory.mktemp("hostile"))
+    return _export(_FIXTURES / "hostile", tmp_path_factory.mktemp("hostile"))
 
 
 def test_csp_is_first_head_child_and_pins_both_digests(mixed_html: str) -> None:

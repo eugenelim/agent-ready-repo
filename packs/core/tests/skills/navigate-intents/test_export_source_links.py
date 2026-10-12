@@ -69,10 +69,12 @@ def _fresh_probe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _git(cwd: pathlib.Path, *args: str) -> str:
+    """Run a fixture-setup Git command; a failure reports Git's own stderr."""
     done = subprocess.run(
         ["git", "-C", str(cwd), "-c", "protocol.file.allow=always", *args],
-        env=_SETUP_ENV, capture_output=True, text=True, check=True, timeout=60,
+        env=_SETUP_ENV, capture_output=True, text=True, check=False, timeout=60,
     )
+    assert done.returncode == 0, f"git {' '.join(args)} exited {done.returncode}: {done.stderr}"
     return done.stdout.strip()
 
 
