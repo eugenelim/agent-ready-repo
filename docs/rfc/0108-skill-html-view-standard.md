@@ -1,10 +1,10 @@
 # RFC-0108: One usability-first standard and shared style for skill-emitted HTML views
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** Platform Core maintainer
 - **Date opened:** 2026-10-12
-- **Date closed:**
+- **Date closed:** 2026-10-12
 - **Decision weight:** standard
 - **Related:** [RFC-0105](0105-artifact-derived-navigation-and-workspace-retirement.md) (D3 and D4 each receive an errata exception), [RFC-0106](0106-stop-registering-derivable-work.md), [CAP-0001](../product/intents/CAP-0001-repository-work-graph.md), [FEAT-0002](../product/intents/FEAT-0002-intent-graph-navigation.md), [FEAT-0034](../product/intents/FEAT-0034-workspace-registry-retirement.md), [`intent-navigation-export` spec](../specs/intent-navigation-export/spec.md)
 

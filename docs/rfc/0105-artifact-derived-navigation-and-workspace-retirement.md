@@ -274,3 +274,10 @@ Acceptance creates these required follow-ons:
 Advisory experience and implementation design is optional and explicitly non-binding under D5.
 
 No ADR is required merely to repeat this RFC. A later architectural choice warrants an ADR only if it settles a durable implementation decision not already made here.
+
+## Errata
+
+- 2026-10-12: [RFC-0108](0108-skill-html-view-standard.md), accepted the same day by the Platform Core maintainer, makes two exceptions here.
+  - **D3.** `navigate-intents` may embed a validated, allowlisted projection of `workspace-status`'s canonical ready, active and blocked sets and findings. The agent pipes that output to the export. This is an exception to "New navigation work must not add further dependencies on them". The navigator still never reads `workspace.toml` as its inventory, lifecycle authority, or graph source. The bridge is listed in this decision's consumer inventory, and it ends in the release where `work-loop` stops dispatching from `workspace-status`.
+  - **D4.** A view may offer a prompt built from a closed template set and one grammar-checked repository path, copied on a person's click. This is the only generated content that may become an input to another workflow.
+
