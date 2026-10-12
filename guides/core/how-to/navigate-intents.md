@@ -1,15 +1,15 @@
 ---
 title: How to navigate intents, briefs, and specs
-summary: Query the intent graph to find outstanding work, trace parents, and walk the hierarchy without opening files one by one.
+summary: Query the intent graph to find outstanding work, trace parents, and walk the hierarchy without opening files one by one, or export it as one offline HTML page.
 pack: core
 kind: how-to
 ---
 
 # How to navigate intents, briefs, and specs
 
-**Use this when:** You want to see outstanding work, walk the intent hierarchy, trace the parent of an intent, or get a count of live intents (intent files without a `Tombstone:` field) by level.
-**Prerequisites:** `core` pack installed; a terminal or agent session open in the repo root.
-**Result:** A list of outstanding artifacts placed under their parent, a tree of intents, or a focused view of one intent's record and delivery links.
+**Use this when:** You want to see outstanding work, walk the intent hierarchy, trace the parent of an intent, get a count of live intents (intent files without a `Tombstone:` field) by level, or hand a reviewer an offline page of the whole graph.
+**Prerequisites:** `core` pack installed; a terminal or agent session open in the repo root; Git 2.44 or later for commit-pinned source links in the HTML export (older Git still exports, and every GitHub link is marked "may be newer than this export").
+**Result:** A list of outstanding artifacts placed under their parent, a tree of intents, a focused view of one intent's record and delivery links, or one HTML file that shows all of it offline.
 
 `<skill-dir>` is the installed skill directory — for example, `.agents/skills/navigate-intents` for most adapters, or `.claude/skills/navigate-intents` for Claude Code. Replace `<repo-root>` with your repository root.
 
@@ -42,9 +42,11 @@ This output is trimmed. The capability prints under `(no parent)` because it has
 
 For queue order and workspace repair, use `workspace-status` instead. This skill never reads `workspace.toml`.
 
+For a page you can open offline or send to a reviewer, see [Export an offline view](#export-an-offline-view).
+
 ## Query operations
 
-The skill exposes six operations, each described below.
+The skill exposes six query operations, each described below. A seventh command, `export`, is described in [Export an offline view](#export-an-offline-view).
 
 ### summary
 
@@ -127,6 +129,54 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
   --format text
 ```
 
+## Export an offline view
+
+`export` writes the whole intent graph to one HTML file that opens in any browser with no network. Use it to share the graph with a reviewer, or to browse it without a terminal. The `query` operations above only read; `export` also writes one file, always outside your repository.
+
+```bash
+python3 <skill-dir>/scripts/navigate_intents.py export --root <repo-root>
+```
+
+The command prints one JSON object. On success it carries `status: ok`, `path` (the file's absolute path), `bytes`, and `scope`; open `path` in a browser. Without `--destination` the file goes to your system's temporary directory, named `intent-graph-<UTC time as YYYYMMDDTHHMMSSZ>.html`.
+
+| Flag | Meaning |
+|------|---------|
+| `--destination <dir>` | An existing directory outside the repository. |
+| `--name <file>` | One name made of letters, digits, `.`, `_`, and `-`, ending in `.html`, at most 100 characters before the suffix. |
+| `--from <identity>` | Only the subtree under one intent. Takes the same identities as `query --from`. |
+
+### What the file contains
+
+The page has a summary strip and four views: Tree, Outstanding, Refused edges, and Parentless. A search box and level, kind, and status filters narrow the list, and selecting an intent, brief, or spec shows its header facts, its parent, children, briefs, specs, delivery relations, related intents, and refused pointers, each with a link to its source file. It works from the keyboard and in light and dark themes.
+
+The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
+
+- **Source links** go to GitHub only when `origin` is a plain GitHub remote. A link marked "at commit ..." opens the file at the exported commit. A link marked "may be newer than this export" opens it on the GitHub default branch. Every link carries that mark when the exported commit is not on origin, when any intent file differs from it, or when Git is older than 2.44. An untracked or unpushed file may not exist there yet. Any other remote shows each source's path as plain text.
+- **With `--from`**, the page names the scoped intent and shows only that subtree. The summary strip still counts the whole corpus and says so.
+- **When delivery mapping is unavailable** (the delivery resolver hit its limit), the page says so and gives the reason where it would list delivery relations.
+- **Record text is inert.** The page never runs script from a record, never loads anything, and makes no network request when you open it. A header value that contains markup shows as plain text.
+
+### Where the file may go
+
+The export refuses to write inside the repository: not in the root, not in any Git repository that encloses it, and not in any work tree of that repository. If your home directory is itself a Git repository, pass a `--destination` outside it. The default temporary directory is unaffected.
+
+One case is not covered. If you export from a linked worktree whose main checkout was created with `--separate-git-dir`, or moved with `core.worktree`, Git does not list that main checkout, so the export cannot tell you a destination inside it is wrong. Do not choose one.
+
+The file is written complete or not at all, with mode `0600` (readable only by you), and an existing entry is never overwritten.
+
+### When an export is refused
+
+A refusal prints `status: error` with an `error` object (`code`, `message`, `limits`, `observed`), writes nothing, and exits 1. A command the argument parser rejects exits 2 with no JSON.
+
+| Code | What it means | What to do |
+|------|---------------|-----------|
+| `invalid_destination` | The destination is missing, is not a directory, or lies inside the repository, or `--name` is not allowed. The message names the directory it lies under. When `git` is unavailable or cannot list the work trees of an enclosing repository, every destination is refused. | Choose an existing directory outside the repository, fix the name, or make `git` available. |
+| `destination_exists` | An entry with that name is already there. | Choose another `--name`. |
+| `publish_failed` | The directory changed while the file was written, the directory cannot be written (permissions, no free space, or a read-only file system), or the platform lacks the directory-relative file calls the export needs (Windows). `error.observed` names the `stage` and the `errno` name when the system gave one, and never a path. | Pick a writable directory with free space; for a changed directory, retry on a stable one; on Windows the export is not supported. |
+| `export_too_large` | The page is larger than `error.limits.budget_bytes`. | Re-run with `--from`, the bounded route named in `error.limits.bounded_route`, on a smaller subtree. |
+
+The corpus codes from [When a query is refused](#when-a-query-is-refused) apply too: `duplicate_identity`, `malformed_record`, `unsafe_input`, `input_too_large`, `resolver_unavailable`, `not_found`, and `ambiguous_identity`. `not_found` and `ambiguous_identity` come from `--from`. `invalid_query` means a command-line argument is not valid UTF-8; pass valid UTF-8 arguments.
+
 ## Related intents
 
 An intent can name another intent it sits beside with a `Related intents:` line. The author writes the line on one side only, and the navigator shows the relation from both ends. `record` and `tree` list the edges the intent writes in `related_written_here`, and the edges that name it in `related_written_elsewhere`.
@@ -196,7 +246,7 @@ A refused query returns `status: error` with exit code 1 and an `error` object c
 
 ## Read-only boundary
 
-This skill never writes to the repository. Every answer is derived from preamble headers (the `Status:`, `Level:`, and other fields at the top of each intent file) at the moment it is asked; nothing is cached or stored. Symlinks, hard links, special files, and paths outside the repository root are refused before any content is read. The `boundary` field in every JSON response states this explicitly.
+The `query` operations never write anything, and `export` never writes inside the repository. Every answer is derived from preamble headers (the `Status:`, `Level:`, and other fields at the top of each intent file) at the moment it is asked; `query` caches and stores nothing. Symlinks, hard links, special files, and paths outside the repository root are refused before any content is read. The `boundary` field in every `query` response states this explicitly. An `export` response carries no `boundary` field; it reports the one file it wrote.
 
 Results are candidate context derived at query time, not authoritative policy. The `provenance.generated_at` field is the only non-deterministic value; results are otherwise byte-identical across runs once it is removed.
 
