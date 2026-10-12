@@ -201,7 +201,7 @@ def test_the_unresolved_template_asset_is_not_corpus_input() -> None:
 
 GUIDES_HOW_TO = ROOT / "guides" / "product-engineering" / "how-to"
 TEMPLATE_RUNG = (
-    "<!-- rung: packs/product-engineering/.apm/skills/frame-intent/assets/"
+    "<!-- rung: packs/product-engineering/.apm/skills/intent/assets/"
     "intent-template.md -->"
 )
 RELATED_LINE = re.compile(r"^- \*\*Related intents:\*\* (<!--.*-->)$")
