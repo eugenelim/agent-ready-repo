@@ -11,7 +11,10 @@ directories (each copied whole) in a scratch repository under the system
 temporary directory.  Every copy suffixes its slugs, directory names, and file
 stems with ``-cNN`` and rewrites each pointer header, so each copy is a
 self-consistent graph.  It exports each corpus with the real command, opens the
-file from ``file://`` in headless Chromium, and prints a Markdown table.
+file from ``file://`` with no fragment (so startup measures the default question,
+"What can I work on next?") in headless Chromium, types ``graph`` into the header
+search field for the search timing, and prints a Markdown table that includes
+whether ``outstanding`` was available and the default list's row count.
 """
 
 from __future__ import annotations
@@ -149,7 +152,7 @@ def _startup(browser: Browser, url: str) -> float:
 
 _TYPE_SCRIPT = """() => {
   window.__t0 = null;
-  document.getElementById('filter-q').addEventListener('keydown', () => {
+  document.getElementById('search').addEventListener('keydown', () => {
     if (window.__t0 === null) { window.__t0 = performance.now(); }
   }, true);
 }"""
@@ -165,13 +168,15 @@ def _search_and_heap(browser: Browser, url: str) -> tuple[float, float, dict[str
             "() => { const d = JSON.parse(document.getElementById('intent-data').textContent);"
             " return {available: d.outstanding.available !== false,"
             " reason: d.outstanding.reason || null, limit: d.outstanding.limit || null, summary: d.summary,"
-            " intents: Object.keys(d.records).length}; }"
+            " intents: Object.keys(d.records).length,"
+            " default_rows: document.querySelectorAll('#list a.row-link').length}; }"
         )
         page.evaluate(_TYPE_SCRIPT)
         times = []
         for _ in range(5):
-            page.fill("#filter-q", "")
+            page.fill("#search", "")
             page.evaluate("() => { window.__t0 = null; performance.clearMarks('list-updated'); }")
+            page.focus("#search")
             page.keyboard.type("graph")
             page.wait_for_function("() => performance.getEntriesByName('list-updated').length > 0")
             times.append(float(page.evaluate(
@@ -179,7 +184,7 @@ def _search_and_heap(browser: Browser, url: str) -> tuple[float, float, dict[str
                 " return m[m.length - 1].startTime - window.__t0; }"
             )))
         facts["search_count"] = page.evaluate(
-            "() => document.getElementById('view-count').textContent"
+            "() => document.getElementById('list-count').textContent"
         )
         heap = float(page.evaluate("() => performance.memory.usedJSHeapSize"))
         return statistics.median(times), heap, facts
@@ -204,7 +209,7 @@ def measure(copies: int, browser: Browser, work: pathlib.Path, source: pathlib.P
     search_ms, heap, facts = _search_and_heap(browser, url)
     row.update(search_ms=search_ms, heap_bytes=heap, outstanding_available=facts["available"],
                outstanding_reason=[facts["reason"], facts["limit"]],
-               intents=facts["intents"], summary=facts["summary"],
+               intents=facts["intents"], default_rows=facts["default_rows"], summary=facts["summary"],
                search_count=facts["search_count"])
     row["meets_all"] = (
         row["bytes"] <= MAX_BYTES and row["startup_ms"] <= MAX_STARTUP_MS
@@ -234,14 +239,14 @@ def main() -> int:
                 browser.close()
     finally:
         shutil.rmtree(work, ignore_errors=True)
-    print("| copies | outstanding available | file bytes | startup ms | search ms | heap MiB | meets all |")
-    print("| --- | --- | --- | --- | --- | --- | --- |")
+    print("| copies | outstanding available | default rows | file bytes | startup ms | search ms | heap MiB | meets all |")
+    print("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for r in rows:
         if r["status"] != "ok":
-            print(f"| {r['copies']} | export refused: {r.get('error')} | | | | | no |")
+            print(f"| {r['copies']} | export refused: {r.get('error')} | | | | | | no |")
             continue
         avail = "yes" if r["outstanding_available"] else "no ({}, limit {})".format(*r["outstanding_reason"])
-        print(f"| {r['copies']} | {avail} | {r['bytes']:,} "
+        print(f"| {r['copies']} | {avail} | {r['default_rows']} | {r['bytes']:,} "
               f"| {r['startup_ms']:.0f} | {r['search_ms']:.0f} | {r['heap_bytes'] / 2**20:.0f} "
               f"| {'yes' if r['meets_all'] else 'no'} |")
     return 0
