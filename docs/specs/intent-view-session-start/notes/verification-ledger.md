@@ -76,4 +76,4 @@ Reports are under `.context/reviews/63e509d4-5537-4666-b9af-ae46a254bfa1/` (`5-e
 
 ## Owner check (AC-0049)
 
-Pending.
+- 2026-10-13: the owner (eugenelim) opened `/private/tmp/s10/owner-check.html`, an export of this repository at `abf8d30bb` (669,590 bytes), and answered all four questions (what can I work on next, what is open under a capability, what has no parent, what is broken) from the first screen without search.

@@ -1,7 +1,7 @@
 # Plan: Intent view for session start
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py` (`_SHELL`, `_read_asset`, `build_html`); `view_assets/view.js` (`escapeDisplay`, `el`, `parseRoute`, `handleRoute`, `renderDetail`) and `view_assets/view.css`; tests `packs/core/tests/skills/navigate-intents/test_export_html.py`, `view_browser_checks.py`, `view_bench.py`; the build-check chain in `tools/repo/build_gate_chain.py` (`build_check`, the closure-terminality checker and self-test pair as the step pattern); design inputs `docs/design/screens/session-start-orientation-ia.md`, `docs/design/direction/skill-html-views.md`, `docs/design/tokens/skill-html-views.md`.
 
 > **Plan contract:** this is the implementation strategy. It may change
