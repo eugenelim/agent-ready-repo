@@ -3,7 +3,21 @@
 - **Slug:** review-authority-cutover
 - **Level:** feature
 - **Owner:** Platform Core maintainer
-- **Status:** Draft
+- **Status:** Withdrawn
+
+## Disposition — withdrawn 2026-10-11, folded into Slice 4
+
+**Do not shape this intent on its own.** The owner folded the review-gate switch
+into Slice 4 of
+[`acceptance-centered-work-loop`](../briefs/acceptance-centered-work-loop.md),
+delivered by
+[`execution-supervisor-review-gate`](../../specs/execution-supervisor-review-gate/spec.md) and [`execution-supervisor-cutover`](../../specs/execution-supervisor-cutover/spec.md).
+[ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md) D8 records the
+decision: review closure derives only from structured review readiness, every
+reviewer role switches at once, and reviewer-specific procedure leaves the skill.
+No execution evidence existed when it was withdrawn. Its two unresolved
+questions are answered there: all roles switch together, and reversal is
+reinstalling the prior Core release (ADR-0144 D7).
 
 ## Outcome
 

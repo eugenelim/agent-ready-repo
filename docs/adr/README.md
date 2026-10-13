@@ -126,7 +126,7 @@
 | 0122 | [A gate-main step may carry a roster-authorized widening condition](0122-a-gate-main-step-may-carry-a-widening-condition.md) | Accepted | 2026-09-21 |
 | 0123 | [Product changelog uses per-update sources and generated views](0123-product-changelog-per-update-sources-and-generated-views.md) | Accepted | 2026-09-22 |
 | 0124 | [The experience contract's frontend section is owned by `frontend-engineering`, not `core`](0124-experience-contract-frontend-section-owned-by-frontend-engineering.md) | Accepted | 2026-09-22 |
-| 0125 | [Durable transitions make four cohort mutations engine-invoked](0125-engine-invoked-cohort-mutations.md) | Accepted | 2026-09-25 |
+| 0125 | [Durable transitions make four cohort mutations engine-invoked](0125-engine-invoked-cohort-mutations.md) | Superseded by ADR-0144 | 2026-09-25 |
 | 0126 | [Integration packs carry standalone value, and coupling lives in named bridge skills](0126-integration-packs-standalone-value-and-bridge-skills.md) | Accepted | 2026-09-24 |
 | 0127 | [What projects into a delivery system: a range from the tree's top down to a floor](0127-managed-unit-floor-and-projected-range.md) | Accepted | 2026-09-23 |
 | 0128 | [Project token values are resolved by routes inside `design-system`, not by a second skill](0128-design-system-one-skill-resolves-project-values.md) | Accepted | 2026-09-27 |
@@ -145,3 +145,4 @@
 | 0141 | [Core intake lifecycle: intent and brief authoring become `work-intake` modes](0141-core-intake-lifecycle-intent-and-brief-modes-in-work-intake.md) | Accepted | 2026-10-10 |
 | 0142 | [Meta-repo handover: component slices acquired by component repos, status by pinned receipts](0142-meta-repo-handover-component-slices-and-pinned-receipts.md) | Accepted | 2026-10-10 |
 | 0143 | [Released changelog records move into monthly bundles](0143-released-changelog-records-move-into-monthly-bundles.md) | Accepted | 2026-10-03 |
+| 0144 | [Work-loop procedure and review authority: a skill-shipped supervisor over the phase engine, cohort writer, and legacy review gate](0144-work-loop-supervisor-owns-procedure.md) | Accepted | 2026-10-11 |

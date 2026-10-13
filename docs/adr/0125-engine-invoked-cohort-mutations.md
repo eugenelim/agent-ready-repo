@@ -1,13 +1,13 @@
 # ADR-0125: Durable transitions make four cohort mutations engine-invoked
 
-- **Status:** Accepted
+- **Status:** Superseded
 - **Date:** 2026-09-25
 - **Areas:** orchestration, work-loop
 - **Reversibility:** high
 - **Decision-makers:** @eugenelim
 - **Supersedes:** none
 - **Supersedes in part:** ADR-0061 D3, D4
-- **Superseded by:** none
+- **Superseded by:** ADR-0144
 - **Superseded in part:** none
 - **Related:** ADR-0061 (the record this supersedes in part — its D3 write clause and D4 invoker clause); RFC-0102 (the mutability classes that route this to a superseding record rather than an erratum)
 
