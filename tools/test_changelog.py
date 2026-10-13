@@ -8,6 +8,20 @@ from tempfile import TemporaryDirectory
 
 
 _SCRIPT = Path(__file__).with_name("changelog.py")
+
+
+def _lint_git_ignore():
+    """Load the repository's one-subprocess gitignore resolver by path."""
+    source = Path(__file__).with_name("lint_git_ignore.py")
+    spec = importlib.util.spec_from_file_location("lint_git_ignore", source)
+    assert spec is not None and spec.loader is not None
+    module = sys.modules.get("lint_git_ignore") or importlib.util.module_from_spec(spec)
+    if "lint_git_ignore" not in sys.modules:
+        sys.modules["lint_git_ignore"] = module
+        spec.loader.exec_module(module)
+    return module
+
+
 _SPEC = importlib.util.spec_from_file_location("product_changelog", _SCRIPT)
 assert _SPEC is not None and _SPEC.loader is not None
 changelog = importlib.util.module_from_spec(_SPEC)
@@ -1082,12 +1096,14 @@ def test_render_cli_preserves_frozen_history_digest_and_git_cleanliness(
         _HISTORICAL_DIGEST
     )
     assert rendered == baseline.read_text(encoding="utf-8")
-    assert subprocess.run(
-        ["git", "-C", str(repo), "check-ignore", "build/product-changelog.md"],
-        check=False,
-        capture_output=True,
-        text=True,
-    ).returncode == 0
+    ignored_output = Path("build/product-changelog.md")
+    resolution = _lint_git_ignore().git_ignored_paths(
+        repo,
+        [ignored_output],
+        missing_git_policy=_lint_git_ignore().MissingGitPolicy.RAISE,
+        timeout=30.0,
+    )
+    assert resolution.ignored == (ignored_output,)
     assert subprocess.run(
         ["git", "-C", str(repo), "status", "--porcelain"],
         check=True,
@@ -2303,7 +2319,7 @@ def test_compute_git_object_id_sha1_matches_known_hash() -> None:
     import hashlib as _hashlib
     data = b"hello world\n"
     header = b"blob " + str(len(data)).encode() + b"\0"
-    expected = _hashlib.sha1(header + data).hexdigest()
+    expected = _hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
     result = changelog._compute_git_object_id(data, "sha1")
     assert result == expected
 
@@ -3567,7 +3583,7 @@ def test_validate_cross_form_raises_on_malformed_base_retraction_toml(
     import hashlib as _hashlib
     malformed_blob = b"\xff\xfe not valid utf-8 TOML"  # invalid UTF-8
     header = b"blob " + str(len(malformed_blob)).encode() + b"\0"
-    base_retract_obj = _hashlib.sha1(header + malformed_blob).hexdigest()
+    base_retract_obj = _hashlib.sha1(header + malformed_blob, usedforsecurity=False).hexdigest()
 
     # Valid current retraction content differs from malformed base,
     # so the startswith check fails and we try to parse the base TOML.
@@ -3650,7 +3666,7 @@ def test_validate_cross_form_refuses_edited_retraction_entry(
     import hashlib as _hashlib
     blob_data = base_content.encode("utf-8")
     header = b"blob " + str(len(blob_data)).encode() + b"\0"
-    base_retract_obj = _hashlib.sha1(header + blob_data).hexdigest()
+    base_retract_obj = _hashlib.sha1(header + blob_data, usedforsecurity=False).hexdigest()
 
     # The current content doesn't start with the base (different category line),
     # so the startswith check fails and we fall into per-entry comparison.
@@ -3716,7 +3732,7 @@ def test_validate_cross_form_refuses_deleted_retraction_list(
     )
     blob_data = base_content.encode("utf-8")
     header = b"blob " + str(len(blob_data)).encode() + b"\0"
-    base_retract_obj = __import__("hashlib").sha1(header + blob_data).hexdigest()
+    base_retract_obj = __import__("hashlib").sha1(header + blob_data, usedforsecurity=False).hexdigest()
     ls_tree_output = f"100644 blob {base_retract_obj}\tchangelog-retractions.toml\n"
     _GitResult = changelog._GitResult
 
@@ -3784,7 +3800,7 @@ def _sha1_obj_id(data: bytes) -> str:
     """Compute the git SHA-1 blob object id for raw bytes."""
     import hashlib as _hashlib
     header = b"blob " + str(len(data)).encode() + b"\0"
-    return _hashlib.sha1(header + data).hexdigest()
+    return _hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
 
 
 # ── Test A-1: new id added directly to a part ────────────────────────────────

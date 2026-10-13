@@ -2063,7 +2063,8 @@ def _compute_git_object_id(data: bytes, object_format: str) -> str:
     payload = header + data
     if object_format == "sha256":
         return hashlib.sha256(payload).hexdigest()
-    return hashlib.sha1(payload).hexdigest()  # default / sha1
+    # A Git object id, not a security digest; FIPS hosts allow it only so marked.
+    return hashlib.sha1(payload, usedforsecurity=False).hexdigest()
 
 
 def _get_repo_object_format(repo: Path, git_runner=_run_git) -> str:
