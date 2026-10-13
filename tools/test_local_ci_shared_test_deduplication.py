@@ -260,6 +260,9 @@ FIRST_TOOL_BATCH = (
     "tools/test_build_site_link_rewrites.py",
     "tools/test_check_rendered_site_links.py",
     "tools/test_build_site_routing.py",
+    "tools/test_changelog.py",
+    "tools/test_changelog_bundles.py",
+    "tools/test_changelog_bundle_edges.py",
     "tools/test_check_docs_contrast.py",
     "tools/test_build_site_inventory.py",
     "tools/test_build_site_projection.py",
@@ -1025,11 +1028,19 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # the `intake-intent` line; none removed or reordered. Prior pins were
 # current: `_effective_composition_errors()` over this Makefile with exactly
 # that line deleted returns no errors against `5b782195…` and `9c02dab8…`.
+# Bumped 2026-10-13 for the product changelog model suites. Sole cause: three
+# paths appended to the existing site/catalogue batch line, after
+# `tools/test_build_site_routing.py` — `tools/test_changelog.py`,
+# `tools/test_changelog_bundles.py`, `tools/test_changelog_bundle_edges.py`.
+# No line was added, removed or reordered, so no plan index moves; the batch
+# line's text is the whole change. Prior pins were current:
+# `_effective_composition_errors()` over this Makefile with exactly those three
+# paths deleted returns no errors against `f2ca6521…` and `98e25890…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "f2ca6521c7aed51253eb55bbec879efee67006eb5d76a396a8fba50b051a64af"
+    "21b35923f9bfa392b90a3728a81ce274f4f362dda014c12723100aff06d7e22f"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "98e25890eb60e0c298a5be04212b68e5e37e9510b53c259c1a7af89ca24ac63d"
+    "d2981f8aab6c7b4fca7414d469a39a6cd13cec814edcaf26962044b108f8e660"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
