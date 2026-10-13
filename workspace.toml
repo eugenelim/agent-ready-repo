@@ -2247,6 +2247,10 @@ open = [
   # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
   # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
   { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
+  # Pre-existing on origin/main cf26e8475 (2026-10-13): tools/check-core-release.py fact 5 projects /now/
+  # from raw docs/product/changelog.md, so a core release recorded as a changelog.d fragment is refused
+  # ("/now/ payload carries 0 core <v> groups") although the rendered changelog projects it correctly.
+  { slug = "pre-existing-check-core-release-ignores-fragments", source = "pre-flight/2026-10-13" },
 ]
 
 

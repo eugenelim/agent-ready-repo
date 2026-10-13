@@ -1,6 +1,6 @@
 # Spec: Intent node headings
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-12 by eugenelim, spec and plan together, after clean spec-mode shaping (round 2) and adversarial (round 2) reviews.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -69,11 +69,11 @@ Every brief and spec in the intent graph carries a human-readable `heading`, tak
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Every brief, spec and intent node carries `heading`. The preamble region is every line before the first line that, with HTML comment regions hidden, starts with `## `, which is the boundary the preamble reader stops at. Within that region, with comment regions hidden, the first line whose whitespace-trimmed form starts with `# ` supplies the heading: the whitespace-trimmed text after `# `, with any leading type label kept.
-- [ ] **AC-0002.** A node whose preamble region holds no such line has `heading` equal to the empty string. That includes a file whose only `# ` line is inside an HTML comment or below the boundary.
-- [ ] **AC-0003.** Every item in the `outstanding` operation's `placed` and `no_parent` lists carries `heading` equal to its node's `heading`. Over the `mixed` fixture, the outstanding items `brief:bravo-delivery` and `spec:bravo-spec` carry the non-empty headings `Brief: Bravo delivery` and `Spec: Bravo spec`.
-- [ ] **AC-0004.** `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py` and `packs/core/.apm/skills/close-work/scripts/intent_graph.py` are byte-identical.
-- [ ] **AC-0005.** `navigate-intents`' `evals/eval_queries.json` holds a `should_trigger: true` case asking for open specs or briefs by title.
+- [x] **AC-0001.** Every brief, spec and intent node carries `heading`. The preamble region is every line before the first line that, with HTML comment regions hidden, starts with `## `, which is the boundary the preamble reader stops at. Within that region, with comment regions hidden, the first line whose whitespace-trimmed form starts with `# ` supplies the heading: the whitespace-trimmed text after `# `, with any leading type label kept.
+- [x] **AC-0002.** A node whose preamble region holds no such line has `heading` equal to the empty string. That includes a file whose only `# ` line is inside an HTML comment or below the boundary.
+- [x] **AC-0003.** Every item in the `outstanding` operation's `placed` and `no_parent` lists carries `heading` equal to its node's `heading`. Over the `mixed` fixture, the outstanding items `brief:bravo-delivery` and `spec:bravo-spec` carry the non-empty headings `Brief: Bravo delivery` and `Spec: Bravo spec`.
+- [x] **AC-0004.** `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py` and `packs/core/.apm/skills/close-work/scripts/intent_graph.py` are byte-identical.
+- [x] **AC-0005.** `navigate-intents`' `evals/eval_queries.json` holds a `should_trigger: true` case asking for open specs or briefs by title.
 
 ## Assumptions
 

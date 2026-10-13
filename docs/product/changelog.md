@@ -67,16 +67,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
-## [core][3.1.1] — 2026-10-13
-
-### Highlights
-
-- Open briefs and specs are now named by their title in `navigate-intents` query results and in the offline export, so you can tell them apart without opening each file.
-
-### Changed
-
-- Brief and spec nodes carry a `heading`: the title line above the first `## ` heading, kept as written, or empty when there is none. `outstanding` items carry their node's heading. `search` matches an intent's title only when it sits above the intent's first `## ` heading.
-
 ## [core][3.1.0] — 2026-10-11
 
 ### Highlights

@@ -1,7 +1,7 @@
 # Plan: Intent node headings
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py` (`_first_h1_heading`, the brief and spec node builders in `derive`); `navigate_intents.py` `_build_outstanding_items`; the byte-identity assertion in `packs/core/tests/pack/test_intent_delivery_relations_copies.py`; the preamble boundary in `_preamble_visible` and `_visible_line`; the node-heading test precedent `test_derive_intent_node_records_first_h1_heading` in `test_derivation_contract.py`.
 
 > **Plan contract:** this is the implementation strategy. It may change
