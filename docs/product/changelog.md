@@ -5,6 +5,9 @@ All notable user-visible changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> New product changelog updates are authored as fragments and rendered into the public `/changelog/` view with `python3 tools/changelog.py render --output build/product-changelog.md`.
+> Run `python3 tools/changelog.py new --package package-name --version 0.0.0 --date 2026-09-30 --highlight "Describe the released outcome."`, replacing the generic package, version, date and highlight values with the release's actual values. Edit the created file under `docs/product/changelog.d/`, and stop. Use `docs/product/changelog-fragment-template.md` as the tracked example; it lives outside `docs/product/changelog.d/` so the validator never treats the template as a real fragment.
+
 > Maintenance: an entry is owed in the same change that bumps a released
 > artifact's version — you know the version at write time, because you are
 > setting it. Tooling that ships in no release owes none. This header covers

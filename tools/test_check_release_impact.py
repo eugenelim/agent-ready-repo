@@ -69,6 +69,23 @@ def test_changelog_alone_is_a_release_indicator() -> None:
     assert has_release_indicator(["docs/product/changelog.md"]) is True
 
 
+def test_changelog_fragment_is_a_release_indicator() -> None:
+    assert has_release_indicator(
+        ["docs/product/changelog.d/11111111-1111-4111-8111-111111111111.md"]
+    ) is True
+
+
+def test_release_impacting_change_with_fragment_indicator_passes() -> None:
+    changed = [
+        "packages/agentbundle/agentbundle/cli.py",
+        "docs/product/changelog.d/11111111-1111-4111-8111-111111111111.md",
+    ]
+    assert [f for f in changed if is_release_impacting(f)] == [
+        "packages/agentbundle/agentbundle/cli.py"
+    ]
+    assert has_release_indicator(changed) is True
+
+
 def test_deleted_docs_contracts_prefix_is_gone() -> None:
     """`docs/` is governance; nothing under it should gate a release now."""
     from check_release_impact import RELEASE_IMPACTING_PREFIXES
@@ -98,3 +115,49 @@ def test_catalogue_tooling_and_cli_remain_impacting() -> None:
         "packages/agentbundle/agentbundle/catalogue_tooling/lint.py"
     ) is True
     assert is_release_impacting("packages/agentbundle/agentbundle/cli.py") is True
+
+
+# ── AC-B8a: release evidence rules for bundle operations ─────────────────────
+
+FRAGMENT_PATH = "docs/product/changelog.d/11111111-1111-4111-8111-111111111111.md"
+BUNDLE_PART_PATH = "docs/product/changelog.months/2026-10-00.bundle"
+RETRACTION_PATH = "docs/product/changelog-retractions.toml"
+
+
+def test_added_fragment_is_a_release_indicator() -> None:
+    """AC-B8a: an added fragment counts as a release indicator."""
+    assert has_release_indicator([FRAGMENT_PATH], added=[FRAGMENT_PATH]) is True
+
+
+def test_deleted_fragment_is_not_a_release_indicator() -> None:
+    """AC-B8a: a deleted fragment does NOT count as a release indicator."""
+    # Fragment appears in changed but NOT in added.
+    assert has_release_indicator([FRAGMENT_PATH], added=[]) is False
+
+
+def test_bundle_part_addition_is_not_a_release_indicator() -> None:
+    """AC-B8a: adding a bundle part does NOT count as a release indicator."""
+    assert has_release_indicator([BUNDLE_PART_PATH], added=[BUNDLE_PART_PATH]) is False
+
+
+def test_retraction_list_change_is_not_a_release_indicator() -> None:
+    """AC-B8a: changing the retraction list does NOT count as a release indicator."""
+    assert has_release_indicator([RETRACTION_PATH], added=[RETRACTION_PATH]) is False
+
+
+def test_fragment_deletion_with_bundle_part_addition_is_not_an_indicator() -> None:
+    """AC-B8a: compaction deletes a fragment and adds a bundle part — neither is evidence."""
+    changed = [FRAGMENT_PATH, BUNDLE_PART_PATH]
+    # Fragment is deleted (not in added), bundle part is added.
+    assert has_release_indicator(changed, added=[BUNDLE_PART_PATH]) is False
+
+
+def test_version_bump_paired_with_fragment_deletions_passes() -> None:
+    """AC-B8a: a compaction's fragment deletions don't cancel a version bump."""
+    changed = ["packages/agentbundle/pyproject.toml", FRAGMENT_PATH, BUNDLE_PART_PATH]
+    assert has_release_indicator(changed, added=[BUNDLE_PART_PATH]) is True
+
+
+def test_fragment_deletion_without_added_kwarg_still_counts_backwards_compat() -> None:
+    """When added is not supplied every file in changed is treated as added."""
+    assert has_release_indicator([FRAGMENT_PATH]) is True
