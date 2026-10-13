@@ -849,3 +849,69 @@ def test_derive_symlinked_admitted_spec_is_unsafe_input(case: str, tmp_path: pat
     with pytest.raises(Exception) as excinfo:
         ig.derive(root)  # type: ignore[union-attr]
     assert getattr(excinfo.value, "code", None) == "unsafe_input"
+
+
+_HEADING_INTENT = "- **Slug:** `alpha`\n- **Status:** Accepted\n- **Level:** feature\n- **Parent intent:** none\n"
+_HEADING_BRIEF = "- **Slug:** `beta`\n- **Status:** Draft\n- **Parent intent:** none\n"
+_HEADING_SPEC = "- **Status:** Draft\n- **Owner:** placeholder-owner\n"
+
+
+def _write_heading_corpus(root: pathlib.Path, intent: str, brief: str, spec: str) -> None:
+    """Write one intent, one brief and one spec with the given file bodies."""
+    files = {
+        "docs/product/intents/FEAT-0001-alpha.md": intent,
+        "docs/product/briefs/beta.md": brief,
+        "docs/specs/gamma/spec.md": spec,
+    }
+    for rel, body in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8")
+
+
+def _headings(root: pathlib.Path) -> dict[str, str]:
+    """Return the public node id to heading map for the corpus at *root*."""
+    nodes = ig.derive(root)["nodes"]  # type: ignore[union-attr]
+    return {n["id"]: n.get("heading") for n in nodes}
+
+
+def test_derive_brief_and_spec_headings_keep_label(tmp_path: pathlib.Path) -> None:
+    """Brief and spec nodes carry the first title line with its label."""
+    _skip_if_module_absent()
+    _write_heading_corpus(
+        tmp_path,
+        "# Feature: Alpha\n\n" + _HEADING_INTENT + "\n## Outcome\n\nx\n",
+        "# Brief: Beta\n\n" + _HEADING_BRIEF + "\n## Outcome\n\nx\n",
+        "# Spec: Alpha\n\n" + _HEADING_SPEC + "\n## Outcome\n\nx\n",
+    )
+    heads = _headings(tmp_path)
+    assert heads["spec:gamma"] == "Spec: Alpha"
+    assert heads["brief:beta"] == "Brief: Beta"
+    assert heads["intent:alpha"] == "Feature: Alpha"
+
+
+def test_derive_headings_empty_without_title_above_boundary(tmp_path: pathlib.Path) -> None:
+    """No title line above the first section heading yields an empty heading."""
+    _skip_if_module_absent()
+    _write_heading_corpus(
+        tmp_path,
+        _HEADING_INTENT + "\n## Outcome\n\n# Feature: Late\n",
+        _HEADING_BRIEF + "<!-- x -->## Outcome\n\n# Brief: Late\n",
+        _HEADING_SPEC + "\n## Outcome\n\nx\n",
+    )
+    heads = _headings(tmp_path)
+    assert heads["intent:alpha"] == ""
+    assert heads["spec:gamma"] == ""
+    assert heads["brief:beta"] == ""
+
+
+def test_derive_heading_inside_comment_is_hidden(tmp_path: pathlib.Path) -> None:
+    """A title line inside an HTML comment above the boundary is not a heading."""
+    _skip_if_module_absent()
+    _write_heading_corpus(
+        tmp_path,
+        "# Feature: Alpha\n\n" + _HEADING_INTENT,
+        "# Brief: Beta\n\n" + _HEADING_BRIEF,
+        "<!--\n# Spec: Hidden\n-->\n\n" + _HEADING_SPEC + "\n## Outcome\n\nx\n",
+    )
+    assert _headings(tmp_path)["spec:gamma"] == ""

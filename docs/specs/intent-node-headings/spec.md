@@ -1,6 +1,7 @@
 # Spec: Intent node headings
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-12 by eugenelim, spec and plan together, after clean spec-mode shaping (round 2) and adversarial (round 2) reviews.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108, ADR-0007, ADR-0074
