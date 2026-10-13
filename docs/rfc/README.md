@@ -108,3 +108,4 @@
 | 0105 | [Artifact-derived navigation and workspace retirement](0105-artifact-derived-navigation-and-workspace-retirement.md) | Accepted | 2026-10-02 | 2026-10-03 |
 | 0106 | [Stop registering derivable work, and give the remaining facts per-item homes](0106-stop-registering-derivable-work.md) | Accepted | 2026-10-08 | 2026-10-08 |
 | 0107 | [Verb-mode shaping and intake skills, with a slice handover across repositories](0107-verb-mode-shaping-and-intake-with-slice-handover.md) | Accepted | 2026-10-10 | 2026-10-10 |
+| 0108 | [One usability-first standard and shared style for skill-emitted HTML views](0108-skill-html-view-standard.md) | Accepted | 2026-10-12 | 2026-10-12 |

@@ -8,9 +8,9 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:repository-work-graph
 - **De-risked:** 2026-10-07
-- **Shaping-reviewed:** 2026-10-07
+- **Shaping-reviewed:** 2026-10-12
 - **Decomposed:** 2026-10-08 brief
-- **Accepted:** 2026-10-07 by eugenelim, lifecycle owner. Revision `8014f2622eab1841` (file blob) returned a clean independent intent-mode shaping review after the owner's four delivery decisions were recorded; an earlier revision had also reviewed clean. The riskiest assumption survived `de-risk-intent` against a kill condition predeclared before the probe ran.
+- **Accepted:** 2026-10-07 by eugenelim, lifecycle owner. Revision `8014f2622eab1841` (file blob) returned a clean independent intent-mode shaping review after the owner's four delivery decisions were recorded; an earlier revision had also reviewed clean. The riskiest assumption survived `de-risk-intent` against a kill condition predeclared before the probe ran. Re-accepted 2026-10-12 by eugenelim, lifecycle owner, after the material 2026-10-11 Amendment (session-start orientation): revision `1f5600549e0ceab0` (file blob) returned a clean independent intent-mode shaping review.
 
 ## Outcome
 
@@ -209,7 +209,7 @@ validation_hook:
 
 ## Decomposition
 
-**Re-cut, 2026-10-08, eugenelim (owner): one coordinating brief, [`intent-navigation-delivery`](../briefs/intent-navigation-delivery.md).** The single-spec cut below was drafted as `docs/specs/intent-navigation/` and ran four spec-mode shaping rounds without converging. The scope had grown to 69 acceptance criteria, and its four parts each had to reconcile with a different shipped component: the delivery resolver, `close-work`'s closure index, the intent-field lint, and the export's browser safety rules. Its Spec map owns the slice set. The text from here to § Delivery contract is the superseded single-spec cut, kept as provenance. Its delivery decisions and both Amendments still apply to the slices.
+**Re-cut, 2026-10-08, eugenelim (owner): one coordinating brief, [`intent-navigation-delivery`](../briefs/intent-navigation-delivery.md).** The single-spec cut below was drafted as `docs/specs/intent-navigation/` and ran four spec-mode shaping rounds without converging. The scope had grown to 69 acceptance criteria, and its four parts each had to reconcile with a different shipped component: the delivery resolver, `close-work`'s closure index, the intent-field lint, and the export's browser safety rules. Its Spec map owns the slice set. The text from here to § Delivery contract is the superseded single-spec cut, kept as provenance. Its delivery decisions and the Amendments below still apply to the slices.
 
 **One slice, a spec proposed as `docs/specs/intent-navigation/`**, materialized directly as a spec rather than through a delivery brief. The slice is the public read-only `navigate-intents` skill: one header-only derivation of the intent graph, a bounded query with JSON and plain-text tree output, and an on-demand single-file HTML view. That is one independently shippable repository feature, and `navigate-decisions` shipped the same shape as one spec, [`decision-navigation`](../../specs/decision-navigation/spec.md).
 
@@ -246,6 +246,20 @@ This shaping handoff is retained as provenance. The [delivery spec](../../specs/
 - The convergence supersedes the read bounds of the shipped closure check (its criteria 0024, 0025, and 0037) rather than narrowing the convergence to the ancestor walk. One closure decision may run the whole-corpus derivation once. Its verdict still uses only the ancestor chain and the descendant closure, which is the reading of FEAT-0005's Boundary condition (c) that the closure check already records.
 - A derivation failure, or a refused `Parent intent:` pointer that bears on a closure decision, refuses closure. It never reads as "no parent".
 
+**Amendment, 2026-10-11, eugenelim (owner): usability-first view and session-start orientation.** This carries [CAP-0001](CAP-0001-repository-work-graph.md)'s 2026-10-11 Amendment into this feature. The view is redesigned around four questions a maintainer brings to a session, not around the data model. What can I work on next? What is still open under this capability? What has no parent? What is broken?
+
+- **Why.** In the shipped view, a reader lands on 6 counts, 4 tabs, 4 filters and a 168-row tree. Each row leads with a machine id, and a 15-row legend fills the detail panel before anything is picked. The 202 outstanding items form a flat list. At 1680px wide the page leaves empty bands on both sides and gives 40% of the width to reference text, and no review checked it wider than 1280px.
+- **Decisions.**
+  1. **Readiness comes from one source, through a gated bridge.** The view may show the canonical ready, active, blocked and findings sets of `workspace-status`, embedded read-only at export time. It never re-derives readiness from headers. RFC-0105 D3 forbids new navigation work from depending on `workspace-status`, so this bridge waits for an accepted RFC that amends D3 to admit it. That amendment must make the bridge optional, read-only and temporary, ending when FEAT-0034 gives readiness an artifact-derived home. Until then the view shows no readiness and calls nothing ready. When the bridge is live but `workspace-status` is absent or fails, the view still renders the graph and says readiness is unavailable. The navigator never parses `workspace.toml` itself.
+  2. **Hand-over is a paste-ready prompt.** For a picked item, the view shows the exact prompt that starts the right skill — `work-loop` for a ready spec, `intent` for shaping — with a copy control. The exported file stays inert: no server, no launching, no network, no writes. A loopback server, a launcher, or a host integration would each move a security boundary and needs its own security-reviewed decision.
+  3. **Order within this feature.** The brief takes three new or changed slices, in this order:
+     - a redesign of the view around the four questions, as the first adopter of the repository's usability-first HTML standard once that standard is accepted;
+     - queued slice 8, `intent-dependency-graphs`, re-fitted to the new layout before it is built;
+     - the readiness bridge and hand-over in the view, once the D3 amendment is accepted.
+- **Outside this feature.** The cross-pack HTML standard, and its adoption by other skills, belong to that RFC's follow-on work. Moving `work-loop` Step 0 and the session-start activation boundary to the view, and retiring the old entry point, belong to FEAT-0034 after parity.
+- **Unchanged.** The view stays a disposable projection under RFC-0105 D4. Its safety controls, WCAG 2.2 AA, keyboard completeness and no-motion rule carry over. "Sharing a renderer with `navigate-decisions`" stays a non-goal; a shared stylesheet is not a shared renderer.
+- **Validation.** This redesign is the build that the De-risk record's validation hook should run against. The hook's questions widen to the four above. The kill condition stays the same in kind: at least 4 of 6 sessions answer correctly and faster than repository search, now from the first screen.
+
 - **Outcome:** A person or an agent can learn what intents exist and how they relate without opening intent files one by one. For each intent they see its altitude, `Kind:`, echoed status, parent, children, related edges, and the delivery mapping FEAT-0003 supplies. An agent gets this through a bounded JSON query. A person gets it as an indented plain-text tree in a terminal, or as one self-contained HTML file opened offline. The graph is derived from preamble headers each time and never written into the repository.
 - **Success signals:**
   - Over the corpus at decomposition (168 live intents, 22 briefs, 535 specs), every edge that names a target resolves to exactly one node by field-scoped resolution. At de-risk that was all 166, with 0 ambiguous.
@@ -267,7 +281,7 @@ This shaping handoff is retained as provenance. The [delivery spec](../../specs/
 - **Non-goals:**
   - Persisting a graph or index.
   - Reading artifact bodies to build the graph.
-  - Reading `workspace.toml` for anything.
+  - Reading `workspace.toml` for anything. The 2026-10-11 Amendment adds a gated, read-only bridge to `workspace-status` output; the navigator still never parses the file.
   - Mutating any intent, brief, spec, or coordination record.
   - Owning or inferring the intent-to-delivery mapping.
   - Changing intent identity or the reference grammar.
