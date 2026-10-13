@@ -1,5 +1,9 @@
 [
   {
+    "query": "List the open specs and briefs by title",
+    "should_trigger": true
+  },
+  {
     "query": "What intents are still outstanding?",
     "should_trigger": true
   },
