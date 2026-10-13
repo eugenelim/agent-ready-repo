@@ -1042,6 +1042,11 @@
   var STAGE_NOUNS = [['Implementing spec', 'Implementing specs'], ['Approved spec', 'Approved specs'],
     ['Executing brief', 'Executing briefs'], ['Ready brief', 'Ready briefs'],
     ['Accepted intent with nothing beneath', 'Accepted intents with nothing beneath']];
+  // Counts with their nouns, leaving out any that are zero.
+  function nonZero(pairs) {
+    return pairs.filter(function (p) { return p[0] > 0; })
+      .map(function (p) { return plural(p[0], p[1]); }).join(', ');
+  }
   // A plain count of what the list holds, from fixed words and numbers only.
   function listSummary(route) {
     if (shownCount === null || emptyCorpus()) { return ''; }
@@ -1056,19 +1061,23 @@
     if (route.q === 'broken') {
       var entries = brokenEntries();
       var pointers = entries.filter(function (b) { return b.edge; }).length;
-      return 'In this list: ' + plural(pointers, ['broken pointer', 'broken pointers']) + ', ' +
-        plural(entries.length - pointers, ['delivery diagnostic', 'delivery diagnostics']) + '.';
+      if (deliveryUnavailable()) {
+        return 'In this list: ' + plural(pointers, ['broken pointer', 'broken pointers']) +
+          '. Delivery diagnostics were unavailable.';
+      }
+      return 'In this list: ' + nonZero([[pointers, ['broken pointer', 'broken pointers']],
+        [entries.length - pointers, ['delivery diagnostic', 'delivery diagnostics']]]) + '.';
     }
     if (route.q === 'noparent') {
-      var byType = TYPE_GROUPS.map(function (pair) {
-        return plural(noParentIds().filter(function (id) { return typeOf(id) === pair[0]; }).length,
-          [pair[1].toLowerCase().replace(/s$/, ''), pair[1].toLowerCase()]);
-      });
-      return 'In this list: ' + byType.join(', ') + '.';
+      return 'In this list: ' + nonZero(TYPE_GROUPS.map(function (pair) {
+        return [noParentIds().filter(function (id) { return typeOf(id) === pair[0]; }).length,
+          [pair[1].toLowerCase().replace(/s$/, ''), pair[1].toLowerCase()]];
+      })) + '.';
     }
     if (route.q === 'capabilities') {
       var open = capabilityIds().reduce(function (sum, id) { return sum + openCount(id); }, 0);
-      return 'In this list: ' + plural(open, ['open item', 'open items']) + ' beneath these capabilities, counted once per capability.';
+      return 'In this list: ' + plural(open, ['open item', 'open items']) +
+        ' in total across these capabilities; an item under two capabilities counts twice.';
     }
     return '';
   }
@@ -1144,12 +1153,13 @@
     if (!lists.length) {
       add(sits, el('p', 'empty', 'No parent.'));
     } else {
-      lists.forEach(function (list) {
-        var trail = add(sits, el('p', 'trail'));
-        list.slice().reverse().forEach(function (a, i) {
-          if (i > 0) { add(trail, el('span', 'sep', ' \u203A ')).setAttribute('aria-hidden', 'true'); }
+      lists.forEach(function (list, n) {
+        add(sits, el('p', 'trail-label', lists.length > 1 ?
+          'Path ' + (n + 1) + ' of ' + lists.length + ', from the top:' : 'From the top:'));
+        var trail = add(sits, el('ol', 'trail'));
+        list.slice().reverse().forEach(function (a) {
           if (!isObj(a) || !isStr(a.id)) { return; }
-          var step = add(trail, el('span', 'trail-step'));
+          var step = add(trail, el('li', 'trail-step'));
           add(step, nodeRef(a.id, 'node-link'));
           if (nodes.has(a.id)) { text(step, ' '); add(step, stateMark(a.id)); }
         });
