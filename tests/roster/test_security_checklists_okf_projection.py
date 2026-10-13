@@ -6,6 +6,8 @@ import json
 import tomllib
 from pathlib import Path
 
+from product_changelog_releases import latest_release_version
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACK_ROOT = REPO_ROOT / "packs" / "core"
 SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "security-checklists"
@@ -111,15 +113,13 @@ def test_core_version_and_okf_declaration_are_synchronized() -> None:
     # different code state. Three surfaces have to move together instead.
     version = pack["pack"]["version"]
     assert plugin["version"] == version
-    changelog = (REPO_ROOT / "docs" / "product" / "changelog.md").read_text(
-        encoding="utf-8"
-    )
-    topmost_core = next(
-        line for line in changelog.splitlines() if line.startswith("## [core][")
-    )
-    assert topmost_core.startswith(f"## [core][{version}]"), (
-        f"pack.toml is {version!r} but the topmost core changelog heading is "
-        f"{topmost_core!r}"
+    # Restated from "the topmost core heading names this version": records are
+    # appended after the frozen history, so the property is that the newest
+    # core release, in either storage form, is the shipped version.
+    newest_core = latest_release_version("core")
+    assert newest_core == version, (
+        f"pack.toml is {version!r} but the newest core changelog release is "
+        f"{newest_core!r}"
     )
     assert pack["pack"]["metadata"]["okf"]["profile"] == "agentbundle-okf/v1"
     bundle = pack["pack"]["metadata"]["okf"]["bundles"][0]

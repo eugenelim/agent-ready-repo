@@ -1197,7 +1197,7 @@ def test_ac31_release_surfaces_agree_above_the_floor() -> None:
     heading = re.search(r"^## \[core\]\[([^\]]+)\] — \d{4}-\d{2}-\d{2}", changelog, re.M)
 
     # pack<->plugin agreement is already pinned by
-    # tests/conformance/test_pack_metadata.py, and pack<->topmost-[core] by
+    # tests/conformance/test_pack_metadata.py, and pack<->newest-[core]-release by
     # tests/roster/test_security_checklists_okf_projection.py. What is not
     # gated elsewhere is that the heading is dated and that the version clears
     # the floor, so only those are asserted here.

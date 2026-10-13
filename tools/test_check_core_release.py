@@ -82,6 +82,11 @@ def _model_source(*, dataclass: bool = False) -> str:
             "        records.append(ValidatedFragment(path, 1, path.stem, 'anchor', date, "
             "[{'name': 'core', 'version': version}], sections))\n"
             "    return records\n"
+            "def render_complete_changelog(*, baseline, fragments):\n"
+            "    text = Path(baseline).read_text(encoding='utf-8')\n"
+            "    for record in collect_validated_fragments(fragments):\n"
+            "        text += '\\n## ' + _fragment_heading(record.packages, record.date)\n"
+            "    return text\n"
             "def collect_changelog_records(*, fragment_dir, **kwargs):\n"
             "    return collect_validated_fragments(fragment_dir), []\n"
             "def _fragment_heading(packages, date):\n"
@@ -251,6 +256,23 @@ def test_changed_fragment_still_must_reach_now_projection(tmp_path):
     )
 
     assert "/now/ payload carries 0 core 1.4.8 groups" in _refuses(root)
+
+
+def test_now_projection_reads_the_complete_view_including_fragment_records(tmp_path):
+    """A release stored as a fragment must reach the projection's input text."""
+    root = _repo(tmp_path, version="1.4.8", changelog=_changelog(("1.4.7", True)))
+    _fragment(root, "1.4.8")
+    _projection(
+        root,
+        "def project_now_highlights(text):\n"
+        "    groups = []\n"
+        "    if '## [core][1.4.8]' in text:\n"
+        "        groups = [{'packages': [{'name': 'core', 'version': '1.4.8'}],\n"
+        "                   'highlights': [{'source': 'A consumer-visible change.'}]}]\n"
+        "    return {'schemaVersion': 1, 'groups': groups}\n",
+    )
+
+    assert ccr.check(root, "HEAD") == []
 
 
 @pytest.mark.parametrize("version", ["2.4.8", "1.5.8", "1.4.7", "1.4.6", "1.4.9"])

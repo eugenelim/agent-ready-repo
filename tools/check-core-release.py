@@ -344,8 +344,13 @@ def _projection_reasons(root: Path, version: str, entry_body: str) -> list[str]:
         spec = importlib.util.spec_from_file_location("build_site", site)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        payload = module.project_now_highlights(
-            (root / CHANGELOG).read_text(encoding="utf-8"))
+        # Project from the complete view (frozen history plus every record in
+        # either storage form): a release stored as a record is not in the raw
+        # file, so projecting the raw file yields no group for it.
+        model = _load_changelog_model(root)
+        complete = model.render_complete_changelog(
+            baseline=root / CHANGELOG, fragments=root / FRAGMENTS)
+        payload = module.project_now_highlights(complete)
     except Exception as exc:  # the projection is third-party to this check
         return [f"the /now/ projection could not be built: {exc}"]
     try:

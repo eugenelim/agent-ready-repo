@@ -11,13 +11,13 @@ from types import SimpleNamespace
 from agentbundle.commands import show
 from agentbundle.version import CLI_VERSION
 from jsonschema import Draft202012Validator
+from product_changelog_releases import latest_release_version
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "agentbundle"
 SHOW_SCHEMA = REPO_ROOT / "contracts" / "jsonschema" / "agentbundle-show.schema.json"
 CORE_PACK = REPO_ROOT / "packs" / "core"
 COST_PILOT_PACK = REPO_ROOT / "packs" / "_okf-pilot-cost-engineering"
-PRODUCT_CHANGELOG = REPO_ROOT / "docs" / "product" / "changelog.md"
 
 
 def _args(pack: str, catalogue: Path) -> SimpleNamespace:
@@ -81,9 +81,7 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
     # release leaves behind.
     assert _first_heading(readme, "## What's new in ") == f"## What's new in {expected}"
     assert _first_heading(changelog, "## [").startswith(f"## [{expected}]")
-    assert _first_heading(
-        PRODUCT_CHANGELOG.read_text(encoding="utf-8"), "## [agentbundle]["
-    ).startswith(f"## [agentbundle][{expected}]")
+    assert latest_release_version("agentbundle") == expected
     assert "pre-release" in agentbundle_doc
     assert "list-packs" in agentbundle_doc
     assert "marketplace" in agentbundle_doc
@@ -93,7 +91,7 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
 
 
 def test_okf_pack_releases_name_themselves_in_the_topmost_changelog_heading() -> None:
-    """Each OKF-releasing pack's topmost changelog heading names its version.
+    """Each OKF-releasing pack's newest changelog release is its pack.toml version.
 
     Scoped to the packs this change releases, not to every pack: `packs/core` and
     the cost-engineering pilot also ship OKF surfaces and are deliberately not
@@ -105,21 +103,21 @@ def test_okf_pack_releases_name_themselves_in_the_topmost_changelog_heading() ->
     its own pack, and `docs/product/changelog.md` is repository-level. The two
     in-pack surfaces are asserted by each pack's release test.
     """
-    lines = PRODUCT_CHANGELOG.read_text(encoding="utf-8").splitlines()
-
+    # Restated from "the topmost heading": records are appended after the frozen
+    # history, so the property is that the newest release of the pack, in
+    # either storage form, is the pack.toml version.
     for pack_name in ("catalogue-curation", "architect"):
         pack_dir = REPO_ROOT / "packs" / pack_name
         pack = tomllib.loads((pack_dir / "pack.toml").read_text(encoding="utf-8"))
         version = pack["pack"]["version"]
-        heading = f"## [{pack_name}]["
-        topmost = next((line for line in lines if line.startswith(heading)), None)
-        assert topmost is not None, (
-            f"docs/product/changelog.md has no {heading}…] heading at all, so "
+        newest = latest_release_version(pack_name)
+        assert newest, (
+            f"the product changelog has no [{pack_name}] release at all, so "
             f"packs/{pack_name} {version!r} has no release entry"
         )
-        assert topmost.startswith(f"{heading}{version}]"), (
-            f"packs/{pack_name}/pack.toml is {version!r} but the topmost "
-            f"{pack_name} changelog heading is {topmost!r}"
+        assert newest == version, (
+            f"packs/{pack_name}/pack.toml is {version!r} but the newest "
+            f"{pack_name} changelog release is {newest!r}"
         )
 
 
