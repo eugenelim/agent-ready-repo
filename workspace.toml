@@ -2261,6 +2261,8 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
+  # Slice 10, approved 2026-10-13 and Implementing; merges straight to the default branch before slice 8 is re-fitted.
+  { path = "docs/specs/intent-view-session-start/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Redesign the offline intent view around four session-start questions, with the shared view stylesheet and its parity gate", needs = [] },
 ]
 shipped = [
   {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},
@@ -2440,8 +2442,6 @@ queue   = [
   # Slices 5 and 7, approved together on 2026-10-08, each target the default branch.
   { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
-  # Slice 10, approved 2026-10-13, merges straight to the default branch before slice 8 is re-fitted.
-  { path = "docs/specs/intent-view-session-start/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Redesign the offline intent view around four session-start questions, with the shared view stylesheet and its parity gate", needs = [] },
   # Slice 8, approved 2026-10-08, extends slices 1 and 4 and targets the default branch after both land.
   { path = "docs/specs/intent-dependency-graphs/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Read-only intent dependency graphs from typed Depends on headers, in bounded JSON, text, and offline HTML", needs = [{type = "local", kind = "spec", path = "docs/specs/intent-navigation/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/intent-navigation-export/spec.md"}] },
 ]
