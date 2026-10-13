@@ -441,6 +441,17 @@ jobs:
       - name: changelog cross-form identity validate
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python3 tools/changelog.py validate
+      # The product changelog model's own suites: fragments, bundle parts,
+      # compact, retract and cross-form identity. Stdlib plus pytest; the
+      # fixtures build their own throwaway Git repositories.
+      - name: pytest product changelog model
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: >-
+          python -m pytest
+          tools/test_changelog.py
+          tools/test_changelog_bundles.py
+          tools/test_changelog_bundle_edges.py
+          -q
 
       # spec/docs-site-build-contract-hardening AC7. Posture of the DEPLOY workflow,
       # asserted from a required context — pages.yml is not itself required, so

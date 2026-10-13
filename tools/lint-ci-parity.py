@@ -532,6 +532,9 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest site build + link rewriting":
         LOCAL("test-after-build-check"),
+    # The product changelog model suites ride the same run-test-suite line.
+    "pytest product changelog model":
+        LOCAL("test-after-build-check"),
     # spec/site-ci-contract-closure AC4/AC6. Both halves are reachable from
     # `make ci` via the `test-after-build-check` target: the checker on its own
     # line near the top, and its suite on the site/catalogue pytest line.
@@ -1004,6 +1007,7 @@ _GATE_MAIN_CHECKS = (
     "pytest stasis-stop retirement claims",
     "pytest site build + link rewriting",
     "changelog cross-form identity validate",
+    "pytest product changelog model",
     "docs palette contrast gate",
     "pages.yml deploy-gate posture",
     "pages.yml concurrency posture",
@@ -1577,6 +1581,18 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_build_site_routing.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest site build + link rewriting"
+        ),
+    'tools/test_changelog.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
+        ),
+    'tools/test_changelog_bundles.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
+        ),
+    'tools/test_changelog_bundle_edges.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
         ),
     'tools/test_check_docs_contrast.py':
         PR_GATED(
