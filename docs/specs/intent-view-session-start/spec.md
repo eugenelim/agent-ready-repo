@@ -87,7 +87,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - **Display name:** the node's heading with one leading `Spec: `, `Brief: `, `Intent: `, `Feature: `, `Capability: `, `Outcome: ` or `Opportunity: ` label removed; the node's slug when the heading is empty.
 - **Name order:** ascending by display name compared case-insensitively, ties broken by node id.
 - **Beneath:** an open item is beneath a node when that node's id is in the item's `ancestors`, or, for a spec, in any of its placements' `ancestors`.
-- **Ancestor list:** for an open item, its `ancestors` or, for a spec, each placement's `ancestors`, nearest first. For any other node, the chain built by following resolved edges from it: an intent's resolved `Parent intent:` edge, a brief's resolved `Parent intent:` edge, and a spec's resolved `Brief:` or `Discovery:` edges, one list per starting edge, stopping at a repeated node.
+- **Ancestor list:** for an open item, its `ancestors` or, for a spec, each placement's `ancestors`, nearest first. For any other node, the chain built by following resolved edges from it: an intent's resolved `Parent intent:` edge, a brief's resolved `Parent intent:` edge, and a spec's resolved `Brief:` or `Discovery:` edges, one list per starting edge in the order those edges appear in the payload's `edges`, each stopping at a repeated node.
 - **Lists children:** an intent record lists children when any of its `children`, `briefs` or `specs` is non-empty.
 - **Broken entry:** an edge in `edges` that carries a `state`, or one delivery diagnostic of one record.
 - **Outside the export:** a node id that is not in the payload's `nodes`.
@@ -108,7 +108,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 ### Rows and marks
 
 - [ ] **AC-0009.** Every worklist row is one link holding, in order, a name cell, a state cell and a context cell. Its accessible name starts with the item's display name and contains the state word, and its visible text contains its node id only when the display name is the slug.
-- [ ] **AC-0010.** Every row, the detail state line and every trail entry carry one state mark: a glyph with `aria-hidden="true"` followed by a word. The first rule that matches sets it: ✕ and "Broken" on a row of "What is broken?"; ● for status word `Implementing` or `Executing`; ◆ for `Approved`, `Accepted` or `Ready`; ✓ for a node in the export that is not an open item while `outstanding` is available; ◇ otherwise. Outside the first rule, the word is the status word. A trail entry outside the export carries no state mark.
+- [ ] **AC-0010.** Every row, the detail state line and every trail entry inside the export carry one state mark: a glyph with `aria-hidden="true"` followed by a word. The first rule that matches sets it: ✕ and "Broken" on a row of "What is broken?"; ● for status word `Implementing` or `Executing`; ◆ for `Approved`, `Accepted` or `Ready`; ✓ for a node in the export that is not an open item while `outstanding` is available; ◇ otherwise. Outside the first rule, the word is the status word.
 - [ ] **AC-0011.** Every row's context cell holds the type ("Spec", "Brief", or "Intent" with its level), followed, when the item has an ancestor list, by "under" and the display name of the nearest ancestor in its first list, or that ancestor's node id and "outside this export" when it is outside the export.
 - [ ] **AC-0012.** In "Browse all intents", the row of an intent whose parent edge carries a `state` shows "refused parent:" and that state label in its context cell.
 
@@ -190,7 +190,7 @@ Every view criterion of the export spec, from 0028 to 0071, is either carried un
 | 0054 damaged data, 0055 no script, 0065 no motion | Carried; their checks are kept |
 | 0066 scale, 0067 activation | Carried; AC-0044 and AC-0046 re-run them |
 | 0035 closed label set | Replaced by AC-0022 |
-| 0037 summary strip | Replaced by AC-0050 (corpus totals) and AC-0001 (question counts), as the design replaces the strip; the strip's outstanding, refused-edge and parentless totals become the question counts |
+| 0037 summary strip | Replaced by AC-0050 for the intent, brief and spec totals. The strip's outstanding, refused-edge and parentless-intent totals are dropped: the question counts of AC-0001 take their place and count different sets (startable open items, capabilities, open items with no parent, and broken entries including delivery diagnostics) |
 | 0042, 0043 detail | Replaced by AC-0013 to AC-0019 |
 | 0038 Tree view | Replaced by AC-0024, AC-0012 |
 | 0039 Outstanding view | Replaced by AC-0002, AC-0005, AC-0016, AC-0018 |
