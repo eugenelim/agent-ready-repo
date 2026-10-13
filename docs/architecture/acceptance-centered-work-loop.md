@@ -27,7 +27,7 @@ governance needed for each writer cutover.
 | Reviewer selection, reports, findings, and disposition | Review policy plus opaque reviewer implementations | [Review and disposition](work-loop-review-disposition.md) |
 | Filesystem and process confinement | Shared infrastructure primitives | [Runtime security primitives](runtime-security-primitives.md) |
 | Classification, redaction, and inert persisted content | Shared semantic boundary | [Delivery content safety](delivery-content-safety.md) |
-| Reusable observations | Stateless projection into a separate knowledge lifecycle | [Knowledge projection](work-loop-knowledge-handoff.md) |
+| Reusable observations | Shadow-scoped read-only feed and stateless projection into unadmitted candidates; capture stays the existing project-knowledge path | [Knowledge projection](work-loop-knowledge-handoff.md) |
 
 Success means one verdict and one owner per mechanism.
 
@@ -42,17 +42,18 @@ that Slice 6 gate those later cuts.
 | --- | --- | --- | --- |
 | 1. Acceptance authority, security foundation, and initial plan review | Criteria become authoritative; a derived execution envelope binds separately approved protected facts; the current approved pair imports atomically as spec-policy approval plus an initial review that grants no task-content authority; shared security, evidence, and content-safety services ship without moving orchestration | Atomic-import, derived-envelope, mutation-classification, subject/verdict, evidence-recovery, security, and content-safety conformance pass | [Acceptance and evidence](work-loop-acceptance-evidence.md), [authority migration](work-loop-authority-migration.md), [security primitives](runtime-security-primitives.md), [content safety](delivery-content-safety.md) |
 | 2. Review simplification | Opaque reports, actual-failure assessments, and dispositions ship as self-contained modules beside the current legacy review path; the compatibility adapter (`_review_compat.py`) reconciles legacy review events without moving authority; the review-authority cutover belongs to the FEAT-0036 follow-on | Synthetic reviewer integrates without work-loop changes; closed compatibility corpus, authority-isolation, and self-containment conformance pass; legacy review authority retained | [Review and disposition](work-loop-review-disposition.md) |
-| 3. Knowledge separation | A stateless projector derives observations from existing facts; knowledge owns cursor, retry, and admission | Dropped notifications recover by pull scan; unavailable intake never blocks readiness | [Knowledge projection](work-loop-knowledge-handoff.md) |
+| 3. Knowledge separation | A read-only feed reads each spec's shadow evidence log through the confined file helpers, and a stateless projector derives one unadmitted `gotcha` candidate per unsuperseded `review-failure` receipt; project-knowledge gains a read-only candidate mode, and a person or agent keeps a candidate through the existing `--capture`; the read-only knowledge paths quarantine an invalid committed record per record while writers still refuse; the `spec-approved` and `plan-locked` capture gates and the close-time `work-item` path are retained | Pull scanning is the only discovery path, with no notification; absent, failing, or refusing knowledge tooling never changes a delivery decision; the retained capture paths behave as before | [Knowledge projection](work-loop-knowledge-handoff.md) |
 | 4. FSM strangler, mutable task projection, and engine inversion | Existing facade launches the supervisor; plan tasks, order, decomposition, and local method can reproject inside the reviewed envelope without human reapproval; the legacy result adapter retains current worktree application | Current commands, readiness rehydration, protected-boundary refusal, task-replanning, acknowledged-result parity, and slice-1 security conformance pass | [Execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
 | 5. Canonical result integration | Results advance the protected product ref; the subject provider switches after parity | Both providers yield the same manifest; sequential crash recovery passes | [Product result integration](work-loop-result-integration.md) |
 | 6. Pi compatibility conformance | The neutral supervisor protocol and conformance kit can be consumed by a separately installed Pi extension without importing, bundling, selecting, or depending on Pi in Core | An external Pi-hosted run passes sequential, recovery, interruption, containment, and control-plane-forgery conformance; removing Pi changes no Core artifact or default behavior | [Runtime adapter crosswalk](runtime-adapter-crosswalk.md), [execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
 | 7. Parallel read coverage and concurrency | After explicit ADR supersession, enforced read allowlisting or complete tracing enables provider-neutral concurrency; Pi compatibility is not a prerequisite | Missing governance or read coverage serializes; undeclared reads deny/trace; permutations equal sequential results | [Authority migration](work-loop-authority-migration.md), [execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
-| 8. Cutover and removal | New semantic paths become authoritative; old FSM writers retire | Parity, cache deletion, provenance-backed reversal, and engine-removal rehearsal pass | This parent design and all child quality suites |
+| 8. Cutover and removal (`legacy-engine-cutover`) | New semantic paths become authoritative; old FSM writers retire; the reusable `spec-approved` and `plan-locked` capture gates are removed once delivery facts are written by default | Parity, cache deletion, provenance-backed reversal, and engine-removal rehearsal pass | This parent design and all child quality suites |
 
 Slices 1–3 add services without moving orchestration. Slice 4 inverts control
 and makes replanning mechanical. Slice 6 proves optional compatibility off the
 cutover and parallelism critical path. Review alone persists
-acceptance-critical records; knowledge owns no delivery state.
+acceptance-critical records; delivery owns no knowledge state, and knowledge
+owns every capture, admission, and storage concern.
 
 ## 2. Structural Change
 
@@ -118,7 +119,7 @@ persistence, and typed skill calls.
 | Backward review or rework | Open contradiction projects repair work; changed product requires fresh evidence and review | Rework remains mandatory before readiness | Acceptance, execution, and review designs | Existing wave reopen and backward edge remain authoritative | Gates-failed, findings-remain, and blocker-applied corpus |
 | Human gate and decision | Readiness derives from approval, evidence, review closure, and accepted risk | Named humans retain amendment and risk authority | Parent policy plus acceptance and review designs | Old human gate remains authoritative before cutover | Derived-readiness parity corpus |
 | Closeout | No change | `close-work` retains lifecycle and archival authority | Existing closeout subsystem | Reads old state before cutover and derived readiness after cutover | Existing closeout suite plus adapter fixture |
-| Knowledge capture | Delivery projects observations from existing facts and may notify | Project-knowledge owns scan cursor, retry, admission, distillation, and enquiry | [Knowledge projection](work-loop-knowledge-handoff.md) | Pull projection shadows current capture gates | Drop-and-rescan, disabled-provider, privacy corpus |
+| Knowledge capture | Delivery exposes a read-only, shadow-scoped feed and a stateless projection; it sends no notification and stores nothing | Project-knowledge owns the candidate mode, capture, admission, distillation, enquiry, and per-record read quarantine | [Knowledge projection](work-loop-knowledge-handoff.md) | The feed runs beside the retained capture gates, whose removal Slice 8 owns | Pull-rescan, disabled-tooling, retained-capture-path, quarantine, and privacy corpus |
 
 `Plan → Execute → Establish support → Review → Decide` is a query over criteria,
 initial review, current tasks, Git, evidence, review facts, and effect
@@ -140,7 +141,7 @@ complete.
 | A supported finding cannot hide behind disposition | Current assessment lineage owns its contradictory receipt; accept-risk changes review closure only |
 | Security policy is implemented once | Runtime code receives a primitive capability instead of reimplementing confinement |
 | Persisted untrusted content follows one policy | Every semantic port uses `content-safety-policy.v1` and typed inert-data framing |
-| Knowledge capture cannot block delivery | Delivery projects observations from durable facts and owns no capture state |
+| Knowledge capture cannot block delivery | Delivery exposes candidates from durable facts through a read-only pull scan and owns no capture state |
 | Mechanical state is repairable | Deleting projections cannot change accepted scope or durable proof |
 | Contract fields have one authority | `contracts/delivery/` schemas alone define fields and identity; prose states local invariants |
 | Deployment cannot supersede accepted authority | [Authority migration](work-loop-authority-migration.md) gates each writer switch on parity, reversal, and its accepted governance record |
@@ -188,7 +189,7 @@ Monthly checks enforce retention; rehearsal covers lease and write.
 | Recovery and reversal | Semantic state, journal reconciliation, verified reversal bundle | Cache deletion preserves readiness; retained release reads and writes a post-cutover snapshot | Crash, reconstruction, provenance-failure, and full reversal rehearsal |
 | Review simplicity | Opaque `review-report.v1` boundary | A synthetic reviewer integrates without a work-loop change | Reviewer conformance fixture |
 | Security | Capability-only API plus verified host sandbox or restricted principal for untrusted code | Zero worker writes reach semantic control-plane paths | Cross-adapter control-plane forgery fixtures |
-| Knowledge isolation | Stateless projection from durable facts | Delivery completes with capture unavailable and owns no capture state | Disabled, dropped-notification, and rescan fixtures |
+| Knowledge isolation | Shadow-scoped read-only feed and stateless projection | Delivery decisions are identical with knowledge tooling absent, disabled, unavailable, timing out, refusing, or failing, and delivery owns no knowledge state | `test_delivery_knowledge_isolation.py` and the pull-rescan and retained-capture fixtures |
 | Semantic scale | Disposable indexes | At 1,000 criteria, 100,000 evidence records, and 10,000 review records: p95 readiness ≤2 s and cold rehydration ≤10 s on the CI reference worker | Indexed and index-deleted stress fixtures |
 | Infrastructure scale | Bounded subsystem inputs | Child maxima cover product paths, result bytes, tasks, edges, journal, and candidates | Traversal, scheduling, merge, rebuild, diff, and intake stress fixtures |
 
@@ -204,6 +205,6 @@ Monthly checks enforce retention; rehearsal covers lease and write.
 | Result integration | Proposed `work_supervisor/result_integration.py` and `git_integration.py` | Merge, CAS, conflict, cancellation, and crash suite |
 | Security primitive | `packs/core/.apm/skills/work-loop/scripts/file_safety.py` (Slice 1 confinement base) plus `_security_capability.py`, `_confined_mutation.py`, `_process_safety.py`, `_security_events.py`, `_containment.py`, and `_effect_broker.py` beside it | Security boundary suite |
 | Content safety | `contracts/delivery/` policy plus `packs/core/.apm/skills/work-loop/scripts/_content_safety.py` | Shared boundary corpus |
-| Knowledge projection | Proposed stateless projector plus `packs/core/.apm/skills/project-knowledge/` collector/intake | Determinism, rescan, dedupe, and independent-admission tests |
+| Knowledge projection | `delivery-fact-feed.py`, `_delivery_feed.py`, and `_knowledge_projection.py` in `packs/core/.apm/skills/work-loop/scripts/`; the `--candidates` mode and read quarantine in `packs/core/.apm/skills/project-knowledge/scripts/`; canonical schemas [`delivery-fact-feed.v1`](../../contracts/delivery/delivery-fact-feed.v1.schema.json) and [`knowledge-observation.v1`](../../contracts/delivery/knowledge-observation.v1.schema.json) | Feed, projection, candidate-mode, quarantine, isolation, and retained-capture suites listed in [Knowledge projection](work-loop-knowledge-handoff.md#8-implementation-mapping) |
 | Reversal manifest and bundle | `contracts/delivery/` schemas; release-loop slice-gate writer; `agentbundle` cutover reader | Manifest-only derivation, explicitly approved downgrade snapshot, retention, and rehearsal |
 | Authority and baseline cutovers | [Authority migration](work-loop-authority-migration.md); `ARCHITECTURE.md`, `loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`, and `knowledge-capture.md` update with their owning cutover | Missing-governance refusal, writer-switch CAS, baseline-link, and reversal fixtures |
