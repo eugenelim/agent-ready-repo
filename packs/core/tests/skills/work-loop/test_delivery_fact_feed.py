@@ -470,12 +470,24 @@ def test_unrepresentable_identifiers_do_not_hide_the_logs_other_facts(
         if e["source"]["record_id"].startswith("digest-sha256:")
     ]
     assert len(stand_ins) >= 2
+    # The records that carry a stand-in id are the report and assessment records, which
+    # are never candidates; the two receipts built on the unrepresentable finding ids
+    # are explicit `unrepresentable` nones, and only the good receipt is a candidate.
+    standing_in = [
+        e for e in entries if e["source"]["record_id"].startswith("digest-sha256:")
+    ]
+    assert standing_in
+    assert {e["none_reason"] for e in standing_in} == {"ineligible-record-kind"}
+    receipts = [e for e in entries if e["source"]["record_kind"] == "evidence-receipt.v1"]
+    assert [e["none_reason"] for e in receipts if e["observation"] is None].count(
+        "unrepresentable"
+    ) == 2
     for entry in entries:
         assert identifier.search(entry["source"]["record_id"])
         assert identifier.search(entry["source"]["transaction_id"])
     # The stand-in is the SHA-256 of the UTF-8 id, so it is the same in any process.
     shown = {e["source"]["record_id"] for e in entries}
-    for raw in _raw_ids(repo, "alpha"):
+    for raw in _raw_ids(repo, "alpha", identifier):
         assert "digest-sha256:" + hashlib.sha256(raw).hexdigest() in shown
     script = Path(feed.__file__).with_name("delivery-fact-feed.py")
     outputs = [
@@ -491,17 +503,14 @@ def test_unrepresentable_identifiers_do_not_hide_the_logs_other_facts(
     assert json.loads(outputs[0])["entries"] == scan(feed, repo.root)[1]
 
 
-def _raw_ids(repo: dfs.FeedRepo, slug: str) -> list[bytes]:
-    """Return the UTF-8 bytes of every record id in the log that the identifier pattern refuses."""
-    import re
-
-    pattern = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}")
+def _raw_ids(repo: dfs.FeedRepo, slug: str, pattern: Any) -> list[bytes]:
+    """Return the UTF-8 bytes of every record id in the log that *pattern* (the projector's) refuses."""
     found: list[bytes] = []
     for line in repo.log_bytes(slug).splitlines():
         frame = json.loads(line)
         for record in frame["records"]:
             record_id = repo.es._semantic_record_id(record)
-            if not pattern.fullmatch(record_id):
+            if not pattern.search(record_id):
                 found.append(record_id.encode("utf-8"))
     return found
 

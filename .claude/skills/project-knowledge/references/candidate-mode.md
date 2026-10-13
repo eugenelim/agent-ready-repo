@@ -46,16 +46,21 @@ follows the normal pending, distill, and promote lifecycle.
   or not a valid `delivery-fact-feed.v1` page is refused whole: nothing is
   printed and stderr carries one `strict_parse` diagnostic with no page text.
 - A valid page can still hold a candidate that fails the text or path privacy
-  checks, or a line terminator or control, bidi, zero-width, or surrogate
-  character, or repeats a source. That candidate is omitted and the frame shows
+  checks, or holds a refused character, or repeats a source. The refused
+  characters are line terminators, controls (C0 and C1), bidi controls,
+  zero-width characters, the other default-ignorable characters (soft hyphen,
+  combining grapheme joiner, Hangul fillers, variation selectors), tag
+  characters (U+E0000-U+E0FFF), and surrogates. That candidate is omitted and the frame shows
   `<omitted ordinal="N" entry="E" reason="CODE"/>` with a code from
   `privacy`, `unsafe_character`, `duplicate`, or `oversized`, and no candidate
   text.
 - A spec whose evidence log the feed could not read appears as
   `<unread-source path="docs/specs/<slug>" reason="CODE"/>` with the feed's closed
   reason code and no content. A frame with no candidate and no such element means
-  the scan found nothing to suggest; an `unread-source` element means that spec
-  was not scanned.
+  only that its feed page, from the frame's continuation ordinal onward, held
+  nothing to suggest and no unread source; an `unread-source` element means that
+  spec was not scanned. A claim about the whole scan needs every feed page and
+  every candidate range of each page.
 - When the feed refuses with `snapshot-changed`, the logs changed between pages.
   Restart from the first page with no `--continuation` token; the same token
   never succeeds again.

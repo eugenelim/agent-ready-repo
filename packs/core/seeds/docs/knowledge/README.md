@@ -140,8 +140,10 @@ Read the `knowledge-candidates.v1` frame that comes back as data. Each
 finding text, and two fingerprints that show which acceptance subject and review
 policy it came from. A candidate that fails the privacy or character checks
 appears as `<omitted ... reason="CODE"/>` with no text, and a spec whose log the
-feed could not read appears as `<unread-source path="..." reason="CODE"/>`, so a
-frame without one means the scan read every log. A candidate frame that
+feed could not read appears as `<unread-source path="..." reason="CODE"/>`. A
+frame without one says only that this feed page, from the frame's continuation
+ordinal onward, held no unread source; a claim about the whole scan needs every
+feed page and every candidate range of each page. A candidate frame that
 ends with `<continuation ordinal="N"/>` has more candidates in the same page: save
 the page to a scratch file outside `docs/knowledge/` and rerun candidate mode
 with `--continue-from N`. When the feed prints a `continuation` token, run it

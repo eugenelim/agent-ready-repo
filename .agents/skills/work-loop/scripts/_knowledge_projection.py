@@ -67,13 +67,20 @@ _MAX_RULE_REF_CHARS: Final[int] = 120
 _MAX_PATH_CHARS: Final[int] = 240
 _MAX_IDENTIFIER_CHARS: Final[int] = 128
 
-# End of string in both Python and ECMA 262; `$` would admit a trailing LF in Python.
+# Every pattern below uses only syntax valid in Python `re` and in ECMA 262, with
+# and without the `u` flag: BMP `\uXXXX` escapes and lookahead.  `_END` is end of
+# string in both; `$` would admit a trailing LF in Python.
 _END: Final[str] = r"(?![\s\S])"
+# The BMP part of the refused text characters; the schema text pattern is exactly this.
 _BAD_TEXT_CHARS: Final[str] = (
     r"\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f-\u1160\u17b4-\u17b5\u180b-\u180f"
     r"\u200b-\u200f\u2028-\u202e\u2060-\u206f\u3164\ud800-\udfff\ufe00-\ufe0f\ufeff\uffa0"
-    r"\ufff9-\ufffb\U000E0000-\U000E0FFF"
+    r"\ufff9-\ufffb"
 )
+# The tag characters U+E0000-U+E0FFF are astral.  A JSON Schema pattern cannot name
+# them portably (ECMA without `u` reads surrogate pairs, Python reads code points),
+# so they are refused here by this explicit check, not by the schema pattern.
+_TAG_CHARS_RE: Final[re.Pattern[str]] = re.compile(r"[\U000E0000-\U000E0FFF]")
 _SEGMENT: Final[str] = (
     r"(?!\.{1,2}(?:/|" + _END + r"))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-]"
 )
@@ -192,13 +199,14 @@ def _normalized_text(value: object, limit: int) -> tuple[str | None, str | None]
     """Return ``(text, None)`` or ``(None, reason)`` for one free-text value.
 
     Whitespace runs, including every line terminator, collapse to one space so a
-    candidate field is a single line.  A control, bidi, zero-width, or surrogate
-    character, or an empty result, is refused; an over-long value is never cut.
+    candidate field is a single line.  A control, bidi, zero-width, surrogate, or tag
+    character (U+E0000-U+E0FFF), or an empty result, is refused; an over-long value
+    is never cut.
     """
     if not isinstance(value, str):
         return None, "unrepresentable"
     text = " ".join(value.split())
-    if not text or _TEXT_RE.search(text) is None:
+    if not text or _TEXT_RE.search(text) is None or _TAG_CHARS_RE.search(text):
         return None, "unrepresentable"
     if len(text) > limit:
         return None, "oversized"

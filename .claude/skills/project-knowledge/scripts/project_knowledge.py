@@ -1634,8 +1634,12 @@ _FEED_END = r"(?![\s\S])"
 _FEED_BAD_TEXT_CHARACTERS = (
     r"\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f-\u1160\u17b4-\u17b5\u180b-\u180f"
     r"\u200b-\u200f\u2028-\u202e\u2060-\u206f\u3164\ud800-\udfff\ufe00-\ufe0f\ufeff\uffa0"
-    r"\ufff9-\ufffb\U000E0000-\U000E0FFF"
+    r"\ufff9-\ufffb"
 )
+# The tag characters U+E0000-U+E0FFF are astral, which a JSON Schema pattern cannot
+# name portably, so `FEED_PATTERNS["text"]` (the schema text) omits them and the
+# explicit `_CANDIDATE_UNSAFE_CHARACTERS` check below refuses them.
+_FEED_TAG_CHARACTERS = r"\U000E0000-\U000E0FFF"
 _FEED_PATH_SEGMENT = (
     r"(?!\.{1,2}(?:/|" + _FEED_END + r"))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-]"
 )
@@ -1701,7 +1705,9 @@ _CANDIDATE_TEXT_FIELDS = (
     ("reachable_path", 600),
     ("actual_failure", 600),
 )
-_CANDIDATE_UNSAFE_CHARACTERS = re.compile("[" + _FEED_BAD_TEXT_CHARACTERS + "]")
+_CANDIDATE_UNSAFE_CHARACTERS = re.compile(
+    "[" + _FEED_BAD_TEXT_CHARACTERS + _FEED_TAG_CHARACTERS + "]"
+)
 
 
 def _feed_fail() -> NoReturn:
@@ -1731,6 +1737,8 @@ def _feed_string(value: Any, pattern: str, *, minimum: int = 1, maximum: int) ->
     if not isinstance(value, str) or not minimum <= len(value) <= maximum:
         _feed_fail()
     if _FEED_RE[pattern].search(value) is None:
+        _feed_fail()
+    if pattern == "text" and _CANDIDATE_UNSAFE_CHARACTERS.search(value):
         _feed_fail()
     return value
 

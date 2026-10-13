@@ -10,7 +10,6 @@ import html
 import importlib.util
 import json
 import os
-import re
 import shutil
 import stat
 import subprocess
@@ -197,6 +196,15 @@ def _assert_confined_components(root: Path, target: Path) -> None:
             _refuse("confinement")
 
 
+def _is_plain_regular_stat(metadata: os.stat_result) -> bool:
+    """Return True for a regular file that is not a symlink or Windows reparse point."""
+    return (
+        stat.S_ISREG(metadata.st_mode)
+        and not stat.S_ISLNK(metadata.st_mode)
+        and not bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
+    )
+
+
 def _read_regular_file_bounded(
     path: Path,
     max_bytes: int,
@@ -212,11 +220,8 @@ def _read_regular_file_bounded(
         _refuse("confinement")
     except OSError:
         _refuse("confinement")
-    if (
-        not stat.S_ISREG(metadata.st_mode)
-        or stat.S_ISLNK(metadata.st_mode)
-        or bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
-        or (reject_hard_links and metadata.st_nlink > 1)
+    if not _is_plain_regular_stat(metadata) or (
+        reject_hard_links and metadata.st_nlink > 1
     ):
         _refuse("confinement")
     try:
@@ -241,12 +246,7 @@ def _is_plain_regular_file(path: Path) -> bool:
 
     An `OSError` from the `lstat` propagates: the caller refuses the whole read.
     """
-    metadata = path.lstat()
-    return (
-        stat.S_ISREG(metadata.st_mode)
-        and not stat.S_ISLNK(metadata.st_mode)
-        and not bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
-    )
+    return _is_plain_regular_stat(path.lstat())
 
 
 def _regular_file_size_bounded(path: Path, max_bytes: int) -> int:
@@ -254,11 +254,7 @@ def _regular_file_size_bounded(path: Path, max_bytes: int) -> int:
         metadata = path.lstat()
     except OSError:
         _refuse("confinement")
-    if (
-        not stat.S_ISREG(metadata.st_mode)
-        or stat.S_ISLNK(metadata.st_mode)
-        or bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
-    ):
+    if not _is_plain_regular_stat(metadata):
         _refuse("confinement")
     try:
         with path.open("rb") as handle:
@@ -435,15 +431,10 @@ QUARANTINE_REASON_CODES = (
 )
 QUARANTINE_MAX_ENTRIES = 100
 _QUARANTINE_LOCATOR_MAX_CHARS = 240
-# Characters a quarantine locator never shows: control (C0 and C1, so NEL
-# too), line terminators, bidi, zero-width and other default-ignorable,
-# variation-selector, tag, and surrogate characters. The same class bounds the
-# candidate text.
-_QUARANTINE_UNSAFE_CHARACTERS = re.compile(
-    "[\\x00-\\x1f\\x7f-\\x9f\\u00ad\\u034f\\u061c\\u115f-\\u1160\\u17b4-\\u17b5"
-    "\\u180b-\\u180f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\u3164"
-    "\\ud800-\\udfff\\ufe00-\\ufe0f\\ufeff\\uffa0\\ufff9-\\ufffb\\U000E0000-\\U000E0FFF]"
-)
+# Characters a quarantine locator never shows: the candidate bad-text class,
+# built once in `project_knowledge` (control, line terminators, bidi, zero-width
+# and other default-ignorable, variation-selector, tag, and surrogate characters).
+_QUARANTINE_UNSAFE_CHARACTERS = PK._CANDIDATE_UNSAFE_CHARACTERS
 _QUARANTINE_REASON_FOR_REFUSAL = {
     "privacy": "policy_invalid",
     "confinement": "unsafe",

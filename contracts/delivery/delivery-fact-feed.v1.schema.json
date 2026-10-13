@@ -140,7 +140,8 @@
               "$ref": "knowledge-observation.v1.schema.json#/$defs/specPath"
             },
             "transaction_id": {
-              "$ref": "knowledge-observation.v1.schema.json#/$defs/identifier"
+              "$ref": "knowledge-observation.v1.schema.json#/$defs/identifier",
+              "description": "A digest-sha256:<64 hex> stand-in replaces an id that fails the identifier pattern; it is the SHA-256 of the original id's UTF-8 bytes."
             },
             "record_kind": {
               "type": "string",
@@ -157,7 +158,8 @@
               ]
             },
             "record_id": {
-              "$ref": "knowledge-observation.v1.schema.json#/$defs/identifier"
+              "$ref": "knowledge-observation.v1.schema.json#/$defs/identifier",
+              "description": "A digest-sha256:<64 hex> stand-in replaces an id that fails the identifier pattern; it is the SHA-256 of the original id's UTF-8 bytes."
             },
             "predecessor_schema_version": {
               "type": "integer",

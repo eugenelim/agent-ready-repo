@@ -234,7 +234,8 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 600,
-          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\u00ad\\u034f\\u061c\\u115f-\\u1160\\u17b4-\\u17b5\\u180b-\\u180f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\u3164\\ud800-\\udfff\\ufe00-\\ufe0f\\ufeff\\uffa0\\ufff9-\\ufffb\\U000E0000-\\U000E0FFF]+(?![\\s\\S])"
+          "description": "Untrusted free text. The pattern refuses line terminators, controls, bidi, zero-width, and other BMP default-ignorable characters. Producers and consumers additionally refuse U+E0000-U+E0FFF, which this pattern cannot express portably.",
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\u00ad\\u034f\\u061c\\u115f-\\u1160\\u17b4-\\u17b5\\u180b-\\u180f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\u3164\\ud800-\\udfff\\ufe00-\\ufe0f\\ufeff\\uffa0\\ufff9-\\ufffb]+(?![\\s\\S])"
         }
       }
     }

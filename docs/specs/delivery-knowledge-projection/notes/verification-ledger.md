@@ -318,3 +318,29 @@ untouched.
 work-loop, project-knowledge, and close-work suites and the three roster files
 pass: 4215 passed, 6 skipped, and the known `test_loop_engine.py` `[deep-nesting]`
 failure that predates this change. Self-host was rerun after the last edit.
+
+## Review round 2 fixes
+
+Each sustained finding of review round 2 maps to one change and one proof. No
+version moved and no commit was made. The spec and plan are untouched. The SEC-1
+row above describes the round 1 state; the tag-range handling below supersedes it.
+
+| Finding | Change | Proof |
+| --- | --- | --- |
+| ADV Blocker 1, SEC Nit 1: `\U000E0000-\U000E0FFF` is not ECMA-262 | The schema text pattern and the Python copies (`_BAD_TEXT_CHARS`, `_FEED_BAD_TEXT_CHARACTERS`) now hold only BMP `\uXXXX` escapes. The astral tag range U+E0000-U+E0FFF is an explicit extra check: `_TAG_CHARS_RE` in `_knowledge_projection.py` (`_normalized_text`), and `_CANDIDATE_UNSAFE_CHARACTERS` (BMP class plus tag range) in `project_knowledge.py`, used by `_feed_string` for the page's text fields and by the per-candidate check. The `text` field description in `knowledge-observation.v1` states the asymmetry. The projector `_END` comment now says every pattern uses only syntax valid in both dialects. | `test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax` (pure Python allow-list of escapes and groups, no `\U`, `\A`, `\Z`, `\z`, `(?P`, atomic or possessive forms). `test_every_schema_pattern_compiles_and_behaves_under_an_ecma_engine` runs under Node v26.4.0 here: every pattern compiles with `new RegExp(p)` and `new RegExp(p, "u")`, text such as `Step 2 failed` matches, and 20 refused characters do not, in both modes (2 passed, not skipped). The test skips with a reason when `node` is absent. The differential corpus asserts the three `tag-*` cases are refused by the validator and accepted by `jsonschema` only on observation text fields, and agree everywhere else. The roster constants pin still passes; its normalizer reads `\uXXXX` only. |
+| Mutation | Put `\U000E0000-\U000E0FFF` back into the schema text pattern, then restored it | Both guards failed: the portable-syntax test ("escape outside the portable set") and the Node test (`SyntaxError: Invalid regular expression ... Invalid escape` under `u`). |
+| QE Nit 1 quarantine class copy | `_QUARANTINE_UNSAFE_CHARACTERS` is now `PK._CANDIDATE_UNSAFE_CHARACTERS`, one compiled class built from `_FEED_BAD_TEXT_CHARACTERS` plus the tag range. The unused `re` import left. | `test_a_locator_with_a_default_ignorable_character_falls_back_to_an_ordinal` still passes. |
+| ADV Concern 2 single-frame claim | The seed `docs/knowledge/README.md` and `candidate-mode.md` limit the no-unread-source statement to that frame's page and continuation range, and say a whole-scan claim needs every feed page and every candidate range. | Wording check in both files; no code path changed. |
+| ADV Nit 4 stand-in descriptions | `transaction_id` and `record_id` in `delivery-fact-feed.v1` carry a `description`: a `digest-sha256:<64 hex>` stand-in replaces an id that fails the identifier pattern, and is the SHA-256 of the original id's UTF-8 bytes. | The roster schema tests pass with the sibling `description` next to `$ref`. |
+| QE Concern 2 none-reason assertion | `test_unrepresentable_identifiers_do_not_hide_the_logs_other_facts` now asserts the two receipts built on the unrepresentable finding ids are `unrepresentable` nones. The records that carry a `digest-sha256:` record id are the report and assessment records, so it asserts those are `ineligible-record-kind`: the finding's stand-in id never lands on the receipt fact. | Test passes. |
+| QE Nit 3 `_raw_ids` | `_raw_ids` takes the projector's compiled identifier pattern. | Same test. |
+| QE Nit 4 writer proof | `test_writers_still_see_the_same_code_for_a_git_read_failure` now drives `capture_observation` (through `qs.capture`) with every Git call except the worktree-root probe failing, and asserts its `map_mismatch` diagnostic. | Test passes. |
+| QE Nit 5 regular-file predicate | One `_is_plain_regular_stat` is used by `_is_plain_regular_file` (the pending-page exclusion), `_regular_file_size_bounded`, and `_read_regular_file_bounded`. | `test_ac19_*` partition tests and the project-knowledge suite pass. |
+| QE Nit 6 refused set | `candidate-mode.md` lists the full refused set: line terminators, controls, bidi, zero-width, default-ignorable (soft hyphen, combining grapheme joiner, Hangul fillers, variation selectors), tag characters, surrogates. | Wording check. |
+
+### Gates
+
+`make lint-ruff lint-mypy` and `tools/test-lint-pack-test-boundary.py` pass. The
+work-loop, project-knowledge, and close-work suites and the three roster files:
+4217 passed, 6 skipped, plus the known `test_loop_engine.py` `[deep-nesting]`
+failure. Self-host was rerun after the last edit.

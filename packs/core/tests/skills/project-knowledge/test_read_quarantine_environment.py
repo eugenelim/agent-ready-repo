@@ -84,12 +84,16 @@ def test_a_git_read_failure_on_one_topic_blob_refuses_the_whole_enquiry(
 def test_writers_still_see_the_same_code_for_a_git_read_failure(
     repo: Path, store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def broken(*_args: Any, **_kwargs: Any) -> Any:
-        raise subprocess.CalledProcessError(128, ["git"])
+    real_check_output = subprocess.check_output
+
+    def broken(command: list[str], *args: Any, **kwargs: Any) -> Any:
+        if "--show-toplevel" in command:  # the worktree root probe still works
+            return real_check_output(command, *args, **kwargs)
+        raise subprocess.CalledProcessError(128, command)
 
     monkeypatch.setattr(subprocess, "check_output", broken)
     with pytest.raises(store.KnowledgeStoreError) as refused:
-        store._head_snapshot(repo)
+        qs.capture(repo, store, "A lesson a writer cannot record while Git fails.")
     assert refused.value.diagnostic["reason_code"] == "map_mismatch"
 
 

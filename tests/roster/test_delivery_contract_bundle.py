@@ -655,6 +655,102 @@ def test_patterns_end_with_a_lookahead_not_a_dollar() -> None:
     walk(_load_schema(_OBSERVATION))
 
 
+def _all_patterns() -> list[tuple[str, str]]:
+    """Return ``(location, pattern)`` for every `pattern` in the two projection schemas."""
+    found: list[tuple[str, str]] = []
+
+    def walk(node: object, where: str) -> None:
+        if isinstance(node, dict):
+            pattern = node.get("pattern")
+            if isinstance(pattern, str):
+                found.append((where, pattern))
+            for key, value in node.items():
+                walk(value, f"{where}/{key}")
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{where}/{index}")
+
+    for name in (_FEED, _OBSERVATION):
+        walk(_load_schema(name), name)
+    return found
+
+
+_ECMA_PORTABLE_ESCAPE = r"\\(?:u[0-9a-fA-F]{4}|[sSdDwW.\\/\-\[\](){}+*?|^$])"
+
+
+def test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax() -> None:
+    """JSON Schema 2020-12 reads `pattern` as ECMA 262; Python `re` must read it alike.
+
+    Allowed: BMP `\\uXXXX`, class shorthands, escaped punctuation, `(?:`, `(?=`, `(?!`.
+    Refused: `\\U`, `\\A`, `\\Z`, `\\z`, named groups, atomic or possessive forms.
+    """
+    import re
+
+    patterns = _all_patterns()
+    assert len(patterns) >= 10
+    for where, pattern in patterns:
+        stripped = re.sub(_ECMA_PORTABLE_ESCAPE, "E", pattern)
+        assert "\\" not in stripped, (where, "escape outside the portable set", pattern)
+        for group in re.finditer(r"\(\?(.?)", stripped):
+            assert group.group(1) in (":", "=", "!"), (where, "non-portable group", pattern)
+        no_classes = re.sub(r"\[(?:\\.|[^\]\\])*\]", "C", pattern)
+        assert re.search(r"(?<!\\)[*+?}]\+", no_classes) is None, (where, "possessive", pattern)
+    assert not [w for w, p in patterns if "\\U" in p or "(?P" in p]
+
+
+_ECMA_NODE_SCRIPT = """
+const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+const out = {compiled: [], text: []};
+for (const [where, p] of input.patterns) {
+  for (const flags of ['', 'u']) {
+    try { new RegExp(p, flags); out.compiled.push([where, flags, true]); }
+    catch (e) { out.compiled.push([where, flags, false, String(e)]); }
+  }
+}
+for (const flags of ['', 'u']) {
+  const re = new RegExp(input.text, flags);
+  for (const s of input.accept) out.text.push([flags, 'accept', s, re.test(s)]);
+  for (const s of input.refuse) out.text.push([flags, 'refuse', s, re.test(s)]);
+}
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+def test_every_schema_pattern_compiles_and_behaves_under_an_ecma_engine() -> None:
+    """Compile each pattern with and without the `u` flag in Node and test the text pattern."""
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not on PATH, so the ECMA 262 engine check cannot run")
+    text_pattern = _load_schema(_OBSERVATION)["$defs"]["untrustedText"]["properties"]["value"]["pattern"]
+    accept = ["Step 2 failed", "ABC UXYZ 0123456789 Under U+0041", "plain text, with: punctuation (ok)"]
+    refuse = [
+        "a\u0000b", "a\u007fb", "a\u0085b", "a\u00adb", "a\u034fb", "a\u061cb", "a\u115fb",
+        "a\u17b4b", "a\u180eb", "a\u200bb", "a\u2028b", "a\u202eb", "a\u2060b", "a\u3164b",
+        "a\ud800b", "a\ufe0fb", "a\ufeffb", "a\uffa0b", "a\ufff9b", "a\n",
+    ]
+    payload = json.dumps(
+        {"patterns": _all_patterns(), "text": text_pattern, "accept": accept, "refuse": refuse}
+    )
+    result = subprocess.run(
+        [node, "-e", _ECMA_NODE_SCRIPT], input=payload, capture_output=True, text=True, timeout=60, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    out = json.loads(result.stdout)
+    bad_compile = [entry for entry in out["compiled"] if not entry[2]]
+    assert not bad_compile, bad_compile
+    assert len(out["compiled"]) == 2 * len(_all_patterns())
+    wrong = [
+        (flags, kind, sample)
+        for flags, kind, sample, matched in out["text"]
+        if matched != (kind == "accept")
+    ]
+    assert not wrong, wrong
+    assert len(out["text"]) == 2 * (len(accept) + len(refuse))
+
+
 def test_free_text_fields_are_typed_as_untrusted_data() -> None:
     observation = _load_schema(_OBSERVATION)
     text_fields = ["rule_ref", "observed", "reachable_path", "actual_failure"]
@@ -963,14 +1059,28 @@ def test_the_candidate_validator_agrees_with_jsonschema_on_every_corpus_page() -
     cases = _corpus()
     assert len(cases) > 500
     disagreements = []
+    stricter = []
     rejected = 0
     for label, page in cases:
         schema_ok = not list(validator.iter_errors(page))
         consumer_ok = _consumer_accepts(module, page)
         rejected += not schema_ok
-        if schema_ok != consumer_ok:
+        if label.startswith("tag-"):
+            # The one documented asymmetry: a JSON Schema pattern cannot express the
+            # astral tag range portably, so the validator refuses it by an explicit
+            # check and is stricter than `jsonschema` on free text.
+            assert not consumer_ok, label
+            if schema_ok:
+                stricter.append(label)
+        elif schema_ok != consumer_ok:
             disagreements.append((label, schema_ok, consumer_ok))
     assert not disagreements, disagreements[:10]
+    text_fields = ("rule_ref", "observed", "reachable_path", "actual_failure")
+    for label in stricter:
+        _, path = label.split(":", 1)
+        assert "/observation/" in path and path.split("/")[-2:][0] in text_fields, label
+        assert path.endswith("/value"), label
+    assert stricter, "the tag-character asymmetry must be exercised on free text"
     assert rejected > 400, "the corpus must exercise many refusals, not only acceptances"
     assert _consumer_accepts(module, cases[0][1]) and not list(validator.iter_errors(cases[0][1]))
 
@@ -1023,7 +1133,7 @@ def test_the_candidate_validator_constants_match_the_canonical_schemas() -> None
 
     def normalize(pattern: str) -> str:
         return re.sub(
-            r"\\[uU]([0-9a-fA-F]{4}(?:[0-9a-fA-F]{4})?)",
+            r"\\u([0-9a-fA-F]{4})",
             lambda m: chr(int(m.group(1), 16)),
             pattern,
         )
