@@ -140,3 +140,4 @@ summary { cursor: pointer; display: list-item; padding: var(--s-1) 0; }
   clip-path: inset(50%);
   white-space: nowrap;
 }
+.q-name { text-decoration: underline; text-underline-offset: 0.15em; }

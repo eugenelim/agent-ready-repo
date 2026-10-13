@@ -1052,8 +1052,25 @@
       per.forEach(function (n, i) { if (n > 0) { parts.push(plural(n, STAGE_NOUNS[i])); } });
       return parts.length ? 'In this list: ' + parts.join(', ') + '.' : '';
     }
-    var noun = route.search !== '' ? ['result', 'results'] : question(route.q).noun;
-    return 'This list holds ' + plural(shownCount, noun) + '.';
+    if (shownCount === 0 || route.search !== '') { return ''; }
+    if (route.q === 'broken') {
+      var entries = brokenEntries();
+      var pointers = entries.filter(function (b) { return b.edge; }).length;
+      return 'In this list: ' + plural(pointers, ['broken pointer', 'broken pointers']) + ', ' +
+        plural(entries.length - pointers, ['delivery diagnostic', 'delivery diagnostics']) + '.';
+    }
+    if (route.q === 'noparent') {
+      var byType = TYPE_GROUPS.map(function (pair) {
+        return plural(noParentIds().filter(function (id) { return typeOf(id) === pair[0]; }).length,
+          [pair[1].toLowerCase().replace(/s$/, ''), pair[1].toLowerCase()]);
+      });
+      return 'In this list: ' + byType.join(', ') + '.';
+    }
+    if (route.q === 'capabilities') {
+      var open = capabilityIds().reduce(function (sum, id) { return sum + openCount(id); }, 0);
+      return 'In this list: ' + plural(open, ['open item', 'open items']) + ' beneath these capabilities, counted once per capability.';
+    }
+    return '';
   }
 
   function renderDetail(route) {
