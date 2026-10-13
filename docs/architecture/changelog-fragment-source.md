@@ -6,7 +6,7 @@ frozen history, and render the complete changelog as a deterministic build
 projection.
 **Author(s):** Platform Core maintainers
 **Status:** Accepted
-**Last updated:** 2026-09-23
+**Last updated:** 2026-10-03
 **Reviewers:** Platform Core maintainers
 
 **Baseline — current architecture:** [Repository architecture](../../ARCHITECTURE.md),
@@ -57,12 +57,14 @@ baseline, and which are simply linked because they don't change?
 
 | Element or relationship | Change type | Responsibility | Baseline reference |
 | --- | --- | --- | --- |
-| Fragment store at `docs/product/changelog.d/<id>.md` | Added | Own each reviewed update as an independent tracked record | New |
+| Fragment store at `docs/product/changelog.d/<id>.md` | Added | Own each reviewed update as an independent tracked record until its month is compacted | New |
+| Bundle store at `docs/product/changelog.months/YYYY-MM-NN.bundle` | Added by ADR-0143 | Hold released records, byte for byte, in append-only monthly parts written only by `compact` and `retract` | New |
+| Retraction list at `docs/product/changelog-retractions.toml` | Added by ADR-0143 | Record, append-only, each bundled record withdrawn from publication, by `id` and fixed category | New |
 | Historical baseline at `docs/product/changelog.md` | Modified | Preserve historical release sections and existing GitHub links at the current tracked path | The current [product changelog](../product/changelog.md) becomes read-only after a migration notice is added |
 | Fragment schema and confined reader | Added | Admit only safe, well-formed records into the model | New |
 | Shared changelog model and deterministic assembler | Added | Own identity, ordering, diagnostics, and rendering | New |
 | Complete changelog projection at `build/product-changelog.md` | Added | Provide a regenerable local view without entering the Git merge surface | Existing ignored build-output boundary |
-| Git index relationship | Modified | Keep the historical path tracked, add only fragments for updates, and keep combined outputs outside the index | No `merge=regen` rule is added for the changelog |
+| Git index relationship | Modified | Keep the historical path tracked, add only fragments for updates, and keep generated combined outputs outside the index. Under ADR-0143, compaction moves released records into byte-exact bundle parts, which are authoring source and never a generated view | No `merge=regen` rule is added for the changelog |
 | Site changelog and `/now/` source relationship | Modified | Render both views from the same model, at an unchanged payload shape the five `/now/` consumers already guard | [Documentation/site publishing](../../ARCHITECTURE.md#systems) |
 | Core release and release-impact checks | Modified | Validate changed fragments against release metadata | [Repository validation flow](../../ARCHITECTURE.md#major-flows) |
 
@@ -174,13 +176,14 @@ change, and how does that affect every existing party?
 
 | Semantic name | Change type | Baseline reference | Compatibility during transition | Enforcement | Verification |
 | --- | --- | --- | --- | --- | --- |
-| Fragment identity and path | New | New | A lowercase UUIDv4 is present in both `changelog.d/<id>.md` and the envelope `id` | `new` command creates the ID; validator rejects mismatches and duplicates | Creation, mismatch, duplicate, and case fixtures |
+| Fragment identity and path | New; changed by ADR-0143 | New | A lowercase UUIDv4 is present in both `changelog.d/<id>.md` and the envelope `id`. Under ADR-0143 the identity is the `id` in either storage form: a fragment is bound to its filename stem, and a bundled record to its part's month | `new` command creates the ID; validator rejects mismatches and duplicates, across both forms under ADR-0143 | Creation, mismatch, duplicate, and case fixtures, plus ADR-0143's part-name and month fixtures |
 | Fragment envelope | New | New | The file starts with `+++`, contains TOML fields `schema`, `id`, `anchor`, `date`, and one or more `packages` records with `name` and `version`, then closes front matter with a second `+++` line | Standard-library TOML parser plus explicit field and type validation | Valid, delimiter, missing-field, unknown-field, malformed, and version fixtures |
 | Fragment body | New | New | The body accepts established changelog section names; each fragment has a non-empty `Highlights` section | Parser rejects unknown or duplicate sections and release-level headings | Round-trip fixtures and exact-body assertions |
 | Atomic Highlights | New | [`/now/` content contract](../specs/site-now-surface/spec.md), as the five payload consumers implement it | Each fragment's Highlights remains a distinct update group in `/now/`, and therefore one permalink page and one feed entry | Shared model exposes Highlights by fragment identity | Every source Highlights item appears exactly once and byte-for-byte in `/now/` data |
 | Canonical identity and order | New | New | `id` is globally unique; output order is `date` descending then `id` ascending, and same-date order carries no editorial meaning | Duplicate checks and canonical sort | Shuffled-input and duplicate-identity tests |
-| Stable links | New | Current generated heading slugs, now also the `/now/<anchor>/` URL segment and the Atom `<id>` | Historical anchors are unchanged. A new update's anchor is the package-and-date slug the existing slugger produces, a hyphen, and the fragment's own UUID as 32 lowercase hexadecimal digits — readable at its head, and unique on the same basis as the fragment's own path, which ADR-0123 D2 already rests on | `new` composes and writes `anchor`; the validator recomputes it from `packages`, `date` and `id` and rejects a mismatch, a duplicate, or an edit; the renderer emits `<a id="<anchor>"></a>` immediately before the update heading | Rendered-DOM and local-Markdown tests over repeated package, version and date labels, plus a fixture where two fragments share a slug and receive distinct anchors |
-| Published identity permanence | New | `/now/<anchor>/` and the Atom `<id>` the feed emits | A merged fragment's `packages`, `date` and `id` are immutable, so its anchor is too; a page URL and a syndication identity cannot move once published | Validator recomputes the anchor from those three fields, and a merge-base comparison rejects an edit to any of them in an already-merged fragment | A fixture editing each of the three fields in a merged fragment and requiring refusal |
+| Stable links | New; narrowed by ADR-0143 | Current generated heading slugs, now also the `/now/<anchor>/` URL segment and the Atom `<id>` | Historical anchors are unchanged. A new update's anchor is the package-and-date slug the existing slugger produces, a hyphen, and the fragment's own UUID as 32 lowercase hexadecimal digits — readable at its head, and unique on the same basis as the fragment's own path, which ADR-0123 D2 already rests on | `new` composes and writes `anchor`; the validator recomputes it from `packages`, `date` and `id` and rejects a mismatch, a duplicate, or an edit; the renderer emits `<a id="<anchor>"></a>` immediately before the update heading | Rendered-DOM and local-Markdown tests over repeated package, version and date labels, plus a fixture where two fragments share a slug and receive distinct anchors. Under ADR-0143 a retracted record's anchor is withdrawn and never reused |
+| Published identity permanence | New; changed by ADR-0143 | `/now/<anchor>/` and the Atom `<id>` the feed emits | A merged fragment's `packages`, `date` and `id` are immutable, so its anchor is too; a page URL and a syndication identity cannot move once published. Under ADR-0143 a bundled record is byte-immutable and leaves publication only through a listed retraction | Validator recomputes the anchor from those three fields, and a merge-base comparison rejects an edit to any of them in an already-merged fragment. Under ADR-0143 the comparison is keyed by `id` across both forms, reads only changed entries as raw bytes, and never relies on Git rename pairing | A fixture editing each of the three fields in a merged fragment and requiring refusal, plus ADR-0143's move, edit, removal and retraction fixtures |
+| Bundle record container | Added by ADR-0143 | New | A part is a sequence of records, each an exact `+++ record +++` separator line followed by one fragment's exact UTF-8, LF-only, LF-terminated bytes, in canonical order. Parts are append-only and stay within the 1,048,576-byte per-file bound | Container parser in `tools/changelog.py`; `compact` and `retract` are the only writers | Container, part-name, bounds, compaction and retraction fixtures |
 | Projection schema version | Unchanged | `now-highlights.generated.json` at `schemaVersion` 1 | Fragment-backed groups carry the same fields as history-backed ones, so the version does not move | Five importers each throw on a version other than 1, and `NowHighlights.astro` owns the group type they share | An assembled payload validates against the existing consumer guards without editing them |
 | Immutable historical baseline | Narrowed | [Current product changelog](../product/changelog.md) | Existing release sections and anchor-producing headings stay at the same tracked path | Migration notice plus a gate rejecting later release-section edits | Historical-section digest and full-corpus parse test |
 | Generated complete view | New | [Current product changelog](../product/changelog.md) | Complete local and public views contain frozen history plus every fragment | Existing ignored `build/` boundary, source-only gate, and generator ownership check | Clean-index regeneration and end-to-end render test |
@@ -273,6 +276,14 @@ The assembler performs one bounded scan of regular files under the fragment
 directory. It rejects links and non-regular files through the repository's
 confined file helpers, and it never executes fragment content.
 
+Under ADR-0143, it also scans the bundle directory with the same
+bounds. Records across both forms share a 65,536-record cap. The site build
+reports three loose-fragment conditions:
+
+- it warns above 375 released loose fragments;
+- it refuses to build above 500;
+- it warns above 250 pending fragments.
+
 ## 7. Quality Regression and Verification
 
 Which quality attributes could regress because of this change, and how do we
@@ -285,7 +296,7 @@ verify they didn't?
 | Historical compatibility | Existing changelog and `/now/` output parse successfully | New parsing changes history, order, or links | Require identical historical release sections, model payloads, and anchors at the original tracked path and in generated views |
 | Determinism | Site projections are clock-free and generated at build time | Filesystem order or volatile metadata changes output | Build from at least five shuffled enumerations and require byte-identical outputs |
 | Git cleanliness | Authored source is reviewable in ordinary diffs | A generator accidentally stages or depends on the aggregate | Regenerate from a clean checkout and require no tracked diff; verify outputs stay under ignored build boundaries |
-| Build performance | Existing `make site-build` duration at an equal release count | Many small files increase scan and parse cost | Time three arms, interleaved, each discarding one warm-up: today's corpus, a monolith carrying ten times the released entries, and the same corpus as fragments. The two large arms are generated from one canonical set of records and differ only in physical layout — identical entries, bytes, Highlights, dates and package fan-out — so their difference cannot be content. The fragment arm's median minus the monolith arm's, over the monolith arm's, must stay under 10%. The monolith-versus-today difference is recorded separately as release-growth cost this design does not own |
+| Build performance | Existing `make site-build` duration at an equal release count | Many small files increase scan and parse cost | Time three arms, interleaved, each discarding one warm-up: today's corpus, a monolith carrying ten times the released entries, and the same corpus as fragments. Under ADR-0143, the fragment arm stores that corpus at the compaction policy's worst admitted state for released records: at least the ceiling's count of released records loose as fragments and every other record in bundle parts written by the `compact` part writer. T18 measured it with 1,000 loose, above the 500 ceiling, which bounds the ceiling's worst state from above. Pending fragments are outside this arm. The two large arms are generated from one canonical set of records and differ only in physical layout — identical entries, bytes, Highlights, dates and package fan-out — so their difference cannot be content. The fragment arm's median minus the monolith arm's, over the monolith arm's, must stay under 10%. The monolith-versus-today difference is recorded separately as release-growth cost this design does not own |
 | Published page count | 216 pages at 157 release groups | `/now/[release].astro` emits one page per release group, so page count tracks release count however entries are stored | Record page count per arm beside each duration, and require the fragment arm and the monolith arm at equal release count to emit the same number of pages |
 | Failure diagnosability | Existing gates identify a failing source | Fragment validation adds failure modes | Fixture-test every diagnostic class and require a source path plus actionable field or invariant |
 | Dependency and privacy posture | Publication has no model or network dependency and contains public release text | Automated synthesis or remote validation enters the path | Static dependency check plus an offline end-to-end build |
@@ -306,6 +317,8 @@ how does that differ from the baseline mapping?
 | Semantic element | Change type | Source owner | Build unit | Deployable | Verification |
 | --- | --- | --- | --- | --- | --- |
 | Fragment store | New | `docs/product/changelog.d/<id>.md` | Authored Markdown and TOML-front-matter records | Repository source | Contract fixtures and changed-path merge replay |
+| Bundle store | New, ADR-0143 | `docs/product/changelog.months/YYYY-MM-NN.bundle` | Byte-exact released records written by `compact` and `retract` | Repository source | Container, identity, compaction and retraction fixtures, plus merge replay with parts on the base |
+| Retraction list | New, ADR-0143 | `docs/product/changelog-retractions.toml` | Append-only list of withdrawn record ids and categories | Repository source | Schema, append-only and reappearance fixtures |
 | Historical baseline | Modified | `docs/product/changelog.md` | Read-only source input and historical compatibility surface | Repository source | Historical-section digest, inbound-link, and full-corpus tests |
 | Complete local changelog | New | `build/product-changelog.md` | Output of `tools/changelog.py render` | Local build output | Ignored-output, clean-index, and content-equivalence tests |
 | Git index boundary | Modified | Existing `build/` ignore rule and changelog source gate | Source ownership rule | Repository source | `git check-ignore build/product-changelog.md` and tracked-source assertions |
@@ -314,7 +327,7 @@ how does that differ from the baseline mapping?
 | `/now/` adapter | Modified | `tools/build-site.py` and the five payload consumers — `web/src/pages/now/index.astro`, `page/[page].astro`, `archive/index.astro`, `[release].astro`, `feed.xml.ts` — and `web/src/components/now/NowHighlights.astro`, where the anchor becomes the date index key, the DOM id, the permalink href and the changelog link | Documentation builder and web pages | Documentation site | Exact per-fragment Highlights correspondence test, plus the existing assertion that every `/now/` anchor resolves to an element of that id in the emitted changelog |
 | Core release validator | Modified | `tools/check-core-release.py` | Release validation tool | Repository validation job | Fragment-to-release match tests |
 | Release-impact detector | Modified | `tools/repo/check_release_impact.py` | Repository validation tool | Repository validation job | Added and changed fragment path tests |
-| Documentation workflow filters | Modified | `.github/workflows/pages.yml` | GitHub Actions workflow | Documentation build job | Path-trigger test for `docs/product/changelog.d/**` and the baseline |
+| Documentation workflow filters | Modified | `.github/workflows/pages.yml` | GitHub Actions workflow | Documentation build job | Path-trigger test for `docs/product/changelog.d/**` and the baseline, plus `docs/product/changelog.months/**` and the retraction list under ADR-0143 |
 | Author guidance | Modified | `docs/product/AGENTS.md`, `packs/AGENTS.local.md`, baseline header, and fragment template | Repository guidance | Repository source | Guidance search, documentation review, and lint |
 
 One shared Python owner prevents fragment logic from diverging across

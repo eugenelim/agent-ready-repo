@@ -9,6 +9,7 @@ the public `/now/` route, and the blank-line separation of every heading in
 """
 from __future__ import annotations
 
+import contextlib
 import copy
 import importlib.util
 import json
@@ -110,6 +111,12 @@ def _assert_shared_chrome_rejected(contract: dict, expected: str) -> None:
 
 def _link(destination_id: str, label: str, target: str, kind: str) -> dict:
     return {"id": destination_id, "label": label, "target": target, "kind": kind}
+
+
+# STUB: AC1 — build-site calls the parser owned by tools/changelog.py
+def test_build_site_uses_shared_changelog_parser() -> None:
+    owner = Path(build_site.parse_changelog_releases.__code__.co_filename)
+    assert owner.name == "changelog.py"
 
 
 # ---------------------------------------------------------------------------
@@ -841,6 +848,7 @@ def _generator_fixture(tmp_path):
     """A minimal tree where the generator can run with REPO_ROOT == tmp_path."""
     (tmp_path / "tools").mkdir()
     shutil.copy2(_SCRIPT, tmp_path / "tools" / "build-site.py")
+    shutil.copy2(_SCRIPT.with_name("changelog.py"), tmp_path / "tools" / "changelog.py")
     real_site_toml = _SCRIPT.parent.parent / "site.toml"
     if real_site_toml.is_file():
         shutil.copy2(real_site_toml, tmp_path / "site.toml")
@@ -2212,7 +2220,7 @@ def test_the_real_changelog_parser_keeps_a_sane_release_population():
         f"the real changelog parsed only {actual} releases, below the safety floor "
         f"of {_MIN_REAL_CHANGELOG_RELEASES}; parser state likely swallowed the "
         "remaining release history — inspect HTML-comment and fenced-code handling "
-        "in tools/build-site.py::parse_changelog_releases"
+        "in tools/changelog.py::parse_changelog_releases"
     )
 
 
@@ -2616,6 +2624,25 @@ _HOOK_EXEMPT = {
 }
 
 
+def test_site_build_projects_once_then_suppresses_package_lifecycle_hooks():
+    """The aggregate target owns projection before both package builds."""
+    makefile = (_REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    lines = makefile.splitlines()
+    target_index = lines.index(
+        "site-build: site-sync  ## Build full site → build/ (marketing) + build/docs/ (Starlight)"
+    )
+    recipe: list[str] = []
+    for line in lines[target_index + 1:]:
+        if not line.startswith("\t"):
+            break
+        recipe.append(line.strip())
+
+    assert recipe == [
+        "npm run build --prefix web --ignore-scripts",
+        "npm run build --prefix docs-site --ignore-scripts",
+    ]
+
+
 def test_every_npm_entry_point_projects_its_renderer_inputs_first():
     """Each runnable npm script that imports a generated input has a pre-hook.
 
@@ -2654,3 +2681,824 @@ def test_every_npm_entry_point_projects_its_renderer_inputs_first():
                 )
 
     assert not problems, "\n".join(problems)
+
+
+# ---------------------------------------------------------------------------
+# Product changelog fragments — T7 of spec/product-changelog-fragments
+# ---------------------------------------------------------------------------
+
+_APPROVED_BASE_NOW_SHA = "72305605f91380cc591c488a956695f8d2856770411f514a7d12a8705d538b40"
+_CURRENT_HEAD_NOW_SHA = "3eead7a920851bef972c9e0636a0e859e12353bee6ef21d04aef0f489a4fd614"
+
+
+def _fragment_source(
+    fragment_id: str,
+    *,
+    package_name: str = "core",
+    version: str = "3.0.0",
+    date: str = "2026-09-29",
+    highlights: tuple[str, ...] = ("Fragment highlight.",),
+) -> str:
+    packages = [{"name": package_name, "version": version}]
+    anchor = build_site._changelog._compose_fragment_anchor(packages, date, fragment_id)
+    bullets = "\n".join(f"- {highlight}" for highlight in highlights)
+    return (
+        "+++\n"
+        "schema = 1\n"
+        f'id = "{fragment_id}"\n'
+        f'anchor = "{anchor}"\n'
+        f"date = {date}\n"
+        "[[packages]]\n"
+        f'name = "{package_name}"\n'
+        f'version = "{version}"\n'
+        "+++\n"
+        "## Highlights\n"
+        f"{bullets}\n"
+    )
+
+
+def _write_fragment(
+    directory: Path,
+    fragment_id: str,
+    *,
+    package_name: str = "core",
+    version: str = "3.0.0",
+    highlight: str = "Fragment highlight.",
+) -> Path:
+    path = directory / f"{fragment_id}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        _fragment_source(
+            fragment_id,
+            package_name=package_name,
+            version=version,
+            highlights=(highlight,),
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _baseline_for_fragments() -> str:
+    return (
+        "# Changelog\n\n"
+        "## [core][3.0.0] — 2026-09-28\n\n"
+        "### Highlights\n\n"
+        "- Historical released version.\n"
+    )
+
+
+def _write_pack_metadata(root: Path, *, version: str) -> Path:
+    pack = root / "packs/core"
+    pack.mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        "[pack]\n"
+        'name = "core"\n'
+        f'version = "{version}"\n',
+        encoding="utf-8",
+    )
+    site_toml = root / "site.toml"
+    site_toml.write_text(
+        "[[groups]]\n"
+        'label = "Foundation"\n'
+        'packs = ["core"]\n',
+        encoding="utf-8",
+    )
+    return site_toml
+
+
+def _payload_sources(payload: dict) -> set[str]:
+    return {
+        highlight["source"]
+        for group in payload["groups"]
+        for highlight in group["highlights"]
+    }
+
+
+def test_changelog_model_approved_base_zero_fragment_sha_matches_shipping_projector(
+    tmp_path: Path,
+):
+    result = subprocess.run(
+        ["git", "show", "93bf9cc9e:docs/product/changelog.md"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text(result.stdout, encoding="utf-8")
+    shipping_payload = build_site.project_now_highlights(result.stdout)
+
+    payload, _diagnostics = build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=tmp_path / "now-highlights.generated.json",
+        changelog_out=tmp_path / "changelog.md",
+        root=tmp_path,
+    )
+
+    rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    assert payload == shipping_payload
+    assert __import__("hashlib").sha256(rendered.encode("utf-8")).hexdigest() == (
+        _APPROVED_BASE_NOW_SHA
+    )
+
+
+def test_changelog_model_current_head_zero_fragment_sha_is_preserved(tmp_path: Path):
+    baseline = _REPO_ROOT / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    now_out = tmp_path / "now-highlights.generated.json"
+    changelog_out = tmp_path / "changelog.md"
+
+    payload, _diagnostics = build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=now_out,
+        changelog_out=changelog_out,
+    )
+
+    rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    assert __import__("hashlib").sha256(rendered.encode("utf-8")).hexdigest() == (
+        _CURRENT_HEAD_NOW_SHA
+    )
+    assert payload["schemaVersion"] == 1
+
+
+def test_changelog_model_releases_fragments_from_pack_metadata(tmp_path: Path):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text("# Changelog\n", encoding="utf-8")
+    site_toml = _write_pack_metadata(tmp_path, version="3.1.0")
+    _write_fragment(
+        fragments,
+        "11111111-1111-4111-8111-111111111111",
+        version="3.1.0",
+        highlight="Current pack version ships.",
+    )
+    _write_fragment(
+        fragments,
+        "22222222-2222-4222-8222-222222222222",
+        version="9.0.0",
+        highlight="Future pack version stays pending.",
+    )
+
+    payload, _diagnostics = build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=tmp_path / "now.json",
+        changelog_out=tmp_path / "changelog.md",
+        root=tmp_path,
+        site_toml=site_toml,
+    )
+
+    sources = _payload_sources(payload)
+    assert "Current pack version ships." in sources
+    assert "Future pack version stays pending." not in sources
+    emitted = (tmp_path / "changelog.md").read_text(encoding="utf-8")
+    assert "## [Unreleased]" in emitted
+    assert "### [core][9.0.0] — 2026-09-29" in emitted
+
+
+def test_changelog_model_keeps_older_fragment_released_after_pack_advances(
+    tmp_path: Path,
+):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text("# Changelog\n", encoding="utf-8")
+    site_toml = _write_pack_metadata(tmp_path, version="3.1.0")
+    _write_fragment(
+        fragments,
+        "11111111-1111-4111-8111-111111111111",
+        version="3.0.0",
+        highlight="Older released fragment remains shipped.",
+    )
+
+    payload, _diagnostics = build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=tmp_path / "now.json",
+        changelog_out=tmp_path / "changelog.md",
+        root=tmp_path,
+        site_toml=site_toml,
+    )
+
+    assert "Older released fragment remains shipped." in _payload_sources(payload)
+    assert "## [Unreleased]" not in (tmp_path / "changelog.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_changelog_model_fails_closed_for_missing_and_uncomparable_versions(
+    tmp_path: Path,
+):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text("# Changelog\n", encoding="utf-8")
+    site_toml = _write_pack_metadata(tmp_path, version="3.1.0-rc")
+    _write_fragment(
+        fragments,
+        "11111111-1111-4111-8111-111111111111",
+        version="3.1.0-rc",
+        highlight="Exact uncomparable manifest version may ship.",
+    )
+    _write_fragment(
+        fragments,
+        "22222222-2222-4222-8222-222222222222",
+        version="3.1.1-rc",
+        highlight="Different uncomparable version stays pending.",
+    )
+    _write_fragment(
+        fragments,
+        "33333333-3333-4333-8333-333333333333",
+        package_name="missing-pack",
+        version="1.0.0",
+        highlight="Missing pack metadata stays pending.",
+    )
+
+    payload, _diagnostics = build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=tmp_path / "now.json",
+        changelog_out=tmp_path / "changelog.md",
+        root=tmp_path,
+        site_toml=site_toml,
+    )
+
+    sources = _payload_sources(payload)
+    assert "Exact uncomparable manifest version may ship." in sources
+    assert "Different uncomparable version stays pending." not in sources
+    assert "Missing pack metadata stays pending." not in sources
+
+
+def test_changelog_model_payload_matches_unchanged_now_consumer_guards():
+    guarded_consumers = (
+        "web/src/pages/now/index.astro",
+        "web/src/pages/now/page/[page].astro",
+        "web/src/pages/now/archive/index.astro",
+        "web/src/pages/now/[release].astro",
+        "web/src/pages/now/feed.xml.ts",
+    )
+    for consumer in guarded_consumers:
+        source = (_REPO_ROOT / consumer).read_text(encoding="utf-8")
+        assert "now-highlights.generated.json" in source
+        assert "projection.schemaVersion !== 1" in source
+
+    component = (
+        _REPO_ROOT / "web/src/components/now/NowHighlights.astro"
+    ).read_text(encoding="utf-8")
+    for field in (
+        "readonly packages:",
+        "readonly date: string;",
+        "readonly heading: string;",
+        "readonly changelogAnchor: string;",
+        "readonly highlights:",
+    ):
+        assert field in component
+
+
+def test_changelog_model_keeps_historical_anchors_and_fragment_anchors(tmp_path: Path):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    now_out = tmp_path / "now-highlights.generated.json"
+    changelog_out = tmp_path / "changelog.md"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+    first = _write_fragment(
+        fragments,
+        "11111111-1111-4111-8111-111111111111",
+        highlight="First same-date fragment.",
+    )
+    second = _write_fragment(
+        fragments,
+        "22222222-2222-4222-8222-222222222222",
+        highlight="Second same-date fragment.",
+    )
+
+    payload, _diagnostics = build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=now_out,
+        changelog_out=changelog_out,
+    )
+
+    emitted = changelog_out.read_text(encoding="utf-8")
+    historical = build_site.project_now_highlights(_baseline_for_fragments())
+    historical_anchors = {group["changelogAnchor"] for group in historical["groups"]}
+    payload_anchors = {group["changelogAnchor"] for group in payload["groups"]}
+    first_anchor = build_site._changelog.validate_fragment(first).anchor
+    second_anchor = build_site._changelog.validate_fragment(second).anchor
+    assert historical_anchors <= payload_anchors
+    assert first_anchor in payload_anchors
+    assert second_anchor in payload_anchors
+    assert f'id="{first_anchor}"' in emitted
+    assert f'id="{second_anchor}"' in emitted
+    first_group = [g for g in payload["groups"] if g["changelogAnchor"] == first_anchor]
+    second_group = [g for g in payload["groups"] if g["changelogAnchor"] == second_anchor]
+    assert len(first_group) == 1
+    assert len(second_group) == 1
+    assert first_group[0]["highlights"][0]["source"] == "First same-date fragment."
+    assert second_group[0]["highlights"][0]["source"] == "Second same-date fragment."
+
+
+def test_changelog_view_emits_starlight_frontmatter_without_duplicate_h1(
+    tmp_path: Path,
+):
+    """The docs-site page is a Starlight entry, fragments present or not.
+
+    Starlight's docsSchema() rejects an entry with no `title`, so a page written
+    without frontmatter fails the whole docs-site build. The H1 assertion is the
+    other half: the title is derived from `# Changelog`, and leaving that heading
+    in the body renders the title twice.
+    """
+    for fragment_count in (0, 1):
+        case = tmp_path / f"corpus-{fragment_count}"
+        baseline = case / "docs/product/changelog.md"
+        fragments = case / "docs/product/changelog.d"
+        changelog_out = case / "changelog.md"
+        baseline.parent.mkdir(parents=True)
+        baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+        for index in range(fragment_count):
+            _write_fragment(
+                fragments, f"{index + 1:08d}-1111-4111-8111-111111111111"
+            )
+
+        build_site.generate_changelog_views(
+            changelog=baseline,
+            fragments=fragments,
+            now_out=case / "now.json",
+            changelog_out=changelog_out,
+        )
+
+        emitted = changelog_out.read_text(encoding="utf-8")
+        assert emitted.startswith("---\n"), fragment_count
+        frontmatter, _, body = emitted.partition("\n---\n")
+        assert 'title: "Changelog"' in frontmatter, fragment_count
+        assert "# Changelog" not in body, fragment_count
+
+
+def test_changelog_view_matches_the_copy_file_frontmatter_path(tmp_path: Path):
+    """One destination, one frontmatter treatment.
+
+    The docs-site changelog used to be written through `copy_file`. This asserts
+    the generator reproduces that path byte for byte, so the historical-output
+    contract survives the move to a generated view.
+    """
+    baseline = tmp_path / "docs/product/changelog.md"
+    changelog_out = tmp_path / "changelog.md"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+
+    expected = build_site._rewrite_changelog(
+        baseline.read_text(encoding="utf-8")
+    )
+    expected = build_site._inject_frontmatter(expected, baseline)
+
+    build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=tmp_path / "docs/product/changelog.d",
+        now_out=tmp_path / "now.json",
+        changelog_out=changelog_out,
+    )
+
+    assert changelog_out.read_text(encoding="utf-8") == expected
+
+
+def test_changelog_model_uses_one_historical_parse_for_views(tmp_path: Path, monkeypatch):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+    _write_fragment(fragments, "11111111-1111-4111-8111-111111111111")
+    calls = []
+    original = build_site.parse_changelog_releases
+
+    def counted(text: str):
+        calls.append(text)
+        return original(text)
+
+    monkeypatch.setattr(build_site, "parse_changelog_releases", counted)
+
+    build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=tmp_path / "now.json",
+        changelog_out=tmp_path / "changelog.md",
+    )
+
+    assert len(calls) == 1
+
+
+def test_changelog_model_reports_counts(tmp_path: Path, capsys):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+    _write_fragment(fragments, "11111111-1111-4111-8111-111111111111")
+
+    build_site.report_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=tmp_path / "now.json",
+        changelog_out=tmp_path / "changelog.md",
+    )
+
+    out = capsys.readouterr().out
+    assert "1 fragment(s)" in out
+    assert "2 released highlight group(s)" in out
+    assert "2 highlight(s)" in out
+
+
+def test_changelog_model_fails_closed_without_replacing_views(tmp_path: Path):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    now_out = tmp_path / "now.json"
+    changelog_out = tmp_path / "changelog.md"
+    baseline.parent.mkdir(parents=True)
+    fragments.mkdir(parents=True)
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+    now_out.write_text("old now\n", encoding="utf-8")
+    changelog_out.write_text("old changelog\n", encoding="utf-8")
+    bad = fragments / "11111111-1111-4111-8111-111111111111.md"
+    bad.mkdir()
+
+    try:
+        build_site.generate_changelog_views(
+            changelog=baseline,
+            fragments=fragments,
+            now_out=now_out,
+            changelog_out=changelog_out,
+        )
+    except build_site._changelog.FragmentValidationError:
+        pass
+    else:
+        raise AssertionError("unsafe fragment directory was accepted")
+
+    assert now_out.read_text(encoding="utf-8") == "old now\n"
+    assert changelog_out.read_text(encoding="utf-8") == "old changelog\n"
+
+
+def test_changelog_model_schema_refusal_keeps_existing_views(tmp_path: Path):
+    baseline = tmp_path / "docs/product/changelog.md"
+    fragments = tmp_path / "docs/product/changelog.d"
+    now_out = tmp_path / "now.json"
+    changelog_out = tmp_path / "changelog.md"
+    baseline.parent.mkdir(parents=True)
+    fragments.mkdir(parents=True)
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+    now_out.write_text("old now\n", encoding="utf-8")
+    changelog_out.write_text("old changelog\n", encoding="utf-8")
+    (fragments / "11111111-1111-4111-8111-111111111111.md").write_text(
+        "+++\n"
+        "schema = 2\n"
+        'id = "11111111-1111-4111-8111-111111111111"\n'
+        'anchor = "core-3-0-0-2026-09-29-11111111"\n'
+        "date = 2026-09-29\n"
+        "[[packages]]\n"
+        'name = "core"\n'
+        'version = "3.0.0"\n'
+        "+++\n"
+        "## Highlights\n"
+        "- Invalid schema.\n",
+        encoding="utf-8",
+    )
+
+    try:
+        build_site.generate_changelog_views(
+            changelog=baseline,
+            fragments=fragments,
+            now_out=now_out,
+            changelog_out=changelog_out,
+        )
+    except build_site._changelog.FragmentValidationError:
+        pass
+    else:
+        raise AssertionError("invalid fragment schema was accepted")
+
+    assert now_out.read_text(encoding="utf-8") == "old now\n"
+    assert changelog_out.read_text(encoding="utf-8") == "old changelog\n"
+
+
+# ── AC-B8: no-substitute-seam fixture ────────────────────────────────────────
+
+def test_generate_changelog_views_uses_collect_changelog_records(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    """AC-B8: generate_changelog_views must call collect_changelog_records, not a substitute."""
+    import pytest as _pytest  # noqa: F401
+    baseline = tmp_path / "changelog.md"
+    baseline.write_text(
+        "# Changelog\n\n## [core][1.0.0] — 2020-01-01\n\n### Highlights\n\n- Old.\n",
+        encoding="utf-8",
+    )
+    fragments = tmp_path / "changelog.d"
+    fragments.mkdir()
+    now_out = tmp_path / "now.json"
+
+    calls: list[str] = []
+    original = build_site.collect_changelog_records
+
+    def recording_collect(**kwargs):
+        calls.append("collect_changelog_records")
+        return original(**kwargs)
+
+    monkeypatch.setattr(build_site, "collect_changelog_records", recording_collect)
+
+    build_site.generate_changelog_views(
+        changelog=baseline,
+        fragments=fragments,
+        now_out=now_out,
+    )
+    assert "collect_changelog_records" in calls, (
+        "generate_changelog_views did not call collect_changelog_records"
+    )
+
+
+def test_build_site_threshold_constants_are_wired() -> None:
+    """AC-B8: build-site.py exposes the threshold constants from changelog.py."""
+    assert build_site._LOOSE_RELEASED_WARN == 375
+    assert build_site._LOOSE_RELEASED_REFUSE == 500
+    assert build_site._PENDING_WARN == 250
+
+
+# ── K / AC-B8: threshold behavior — six fixtures through the real check path ──
+
+
+def test_acb8_threshold_behavior(tmp_path: Path, monkeypatch) -> None:
+    """K / AC-B8: six threshold fixtures via the real build-site comparison path.
+
+    Thresholds are monkeypatched to small values (WARN=2, REFUSE=4, PENDING=3)
+    so the fixtures need only 2–5 fragment files.  The real comparison code in
+    generate_changelog_views runs unchanged.  Production constants are asserted
+    at 375, 500 and 250 before patching.
+
+    Mapping to the spec's six fixtures:
+      released at WARN   (=375 analog) → passes cleanly    (2 > 2 is False)
+      released at WARN+1 (=376 analog) → warns only        (3 > 2 True, 3 > 4 False)
+      released at REFUSE (=500 analog) → warns, no refusal (4 > 2 True, 4 > 4 False)
+      released REFUSE+1  (=501 analog) → refuses           (5 > 4 True)
+      pending at PENDING (=250 analog) → passes cleanly    (3 > 3 is False)
+      pending at PENDING+1(=251 analog)→ warns only        (4 > 3 True)
+    """
+    import warnings as _warnings
+
+    # Assert production constants before patching.
+    assert build_site._LOOSE_RELEASED_WARN == 375
+    assert build_site._LOOSE_RELEASED_REFUSE == 500
+    assert build_site._PENDING_WARN == 250
+
+    SMALL_WARN = 2
+    SMALL_REFUSE = 4
+    SMALL_PENDING = 3
+
+    monkeypatch.setattr(build_site, "_LOOSE_RELEASED_WARN", SMALL_WARN)
+    monkeypatch.setattr(build_site, "_LOOSE_RELEASED_REFUSE", SMALL_REFUSE)
+    monkeypatch.setattr(build_site, "_PENDING_WARN", SMALL_PENDING)
+
+    def _run(label: str, n_released: int, n_pending: int):
+        """Set up a fixture directory and call generate_changelog_views."""
+        sub = tmp_path / label
+        sub.mkdir()
+        baseline = sub / "changelog.md"
+        baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+        site_toml = _write_pack_metadata(sub, version="3.0.0")
+        frags = sub / "changelog.d"
+        frags.mkdir()
+        now_out = sub / "now.json"
+        # Released fragments carry core 3.0.0 (in inventory).
+        for i in range(n_released):
+            _write_fragment(frags, f"aa{i:06d}-0000-4000-8000-000000000001",
+                            version="3.0.0")
+        # Pending fragments carry core 4.0.0 (not in inventory).
+        for i in range(n_pending):
+            _write_fragment(frags, f"bb{i:06d}-0000-4000-8000-000000000002",
+                            version="4.0.0")
+        msgs: list[str] = []
+        raised = None
+        with _warnings.catch_warnings(record=True) as caught:
+            _warnings.simplefilter("always")
+            try:
+                build_site.generate_changelog_views(
+                    changelog=baseline, fragments=frags, now_out=now_out,
+                    root=sub, site_toml=site_toml,
+                )
+            except build_site._changelog.FragmentValidationError as exc:
+                raised = exc
+        msgs = [str(w.message) for w in caught]
+        return msgs, raised
+
+    # --- released loose: at warn threshold (375 analog) → no warning, no refusal ---
+    msgs, raised = _run("r-at-warn", n_released=SMALL_WARN, n_pending=0)
+    assert not any("released" in m for m in msgs), (
+        f"unexpected released warning at warn threshold: {msgs}"
+    )
+    assert raised is None, f"unexpected refusal at warn threshold: {raised}"
+
+    # --- released loose: one above warn threshold (376 analog) → warns only ---
+    msgs, raised = _run("r-above-warn", n_released=SMALL_WARN + 1, n_pending=0)
+    assert any("released" in m for m in msgs), (
+        f"no released warning above warn threshold: {msgs}"
+    )
+    assert raised is None, (
+        f"unexpected refusal above warn threshold (warning only expected): {raised}"
+    )
+
+    # --- released loose: at refuse threshold (500 analog) → warns, no refusal ---
+    msgs, raised = _run("r-at-refuse", n_released=SMALL_REFUSE, n_pending=0)
+    assert any("released" in m for m in msgs), (
+        f"no released warning at refuse threshold (should exceed warn): {msgs}"
+    )
+    assert raised is None, (
+        f"unexpected refusal at (but not above) refuse threshold: {raised}"
+    )
+
+    # --- released loose: one above refuse threshold (501 analog) → refuses ---
+    msgs, raised = _run("r-above-refuse", n_released=SMALL_REFUSE + 1, n_pending=0)
+    assert raised is not None, (
+        f"no refusal above refuse threshold; msgs: {msgs}"
+    )
+
+    # --- pending: at pending threshold (250 analog) → no warning ---
+    msgs, raised = _run("p-at-pending", n_released=0, n_pending=SMALL_PENDING)
+    assert not any("pending" in m.lower() for m in msgs), (
+        f"unexpected pending warning at pending threshold: {msgs}"
+    )
+    assert raised is None, f"unexpected refusal at pending threshold: {raised}"
+
+    # --- pending: one above pending threshold (251 analog) → warns only ---
+    msgs, raised = _run("p-above-pending", n_released=0, n_pending=SMALL_PENDING + 1)
+    assert any("pending" in m.lower() for m in msgs), (
+        f"no pending warning above pending threshold: {msgs}"
+    )
+    assert raised is None, (
+        f"unexpected refusal above pending warn threshold: {raised}"
+    )
+
+
+def _bundled_fixture(sub: Path, *, n_bundled: int, n_loose: int) -> tuple[Path, Path, Path]:
+    """Build a fixture holding n_bundled records in parts and n_loose loose fragments."""
+    sub.mkdir()
+    baseline = sub / "changelog.md"
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+    site_toml = _write_pack_metadata(sub, version="3.0.0")
+    frags = sub / "changelog.d"
+    for i in range(n_bundled):
+        _write_fragment(frags, f"cc{i:06d}-0000-4000-8000-000000000003", version="3.0.0")
+    if n_bundled:
+        build_site._changelog.compact_month(
+            "2026-09", fragment_dir=frags, bundle_dir=sub / "changelog.months",
+            released_versions={"core": {"3.0.0"}},
+        )
+    for i in range(n_loose):
+        _write_fragment(frags, f"dd{i:06d}-0000-4000-8000-000000000004", version="3.0.0")
+    return baseline, frags, site_toml
+
+
+def test_build_reads_bundled_records_without_a_fragment_directory(tmp_path: Path) -> None:
+    """D10 / AC-B8: a fully compacted checkout publishes every bundled record.
+
+    Git keeps no empty directory, so after a full compaction `changelog.d/`
+    is absent. The build must still read the parts, and its output must be
+    byte-identical to the same records held as loose fragments.
+    """
+    outputs = {}
+    for label, compact in (("loose", False), ("bundled", True)):
+        sub = tmp_path / label
+        sub.mkdir()
+        baseline = sub / "changelog.md"
+        baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+        site_toml = _write_pack_metadata(sub, version="3.0.0")
+        frags = sub / "changelog.d"
+        for i in range(3):
+            _write_fragment(frags, f"ee{i:06d}-0000-4000-8000-000000000005", version="3.0.0")
+        if compact:
+            build_site._changelog.compact_month(
+                "2026-09", fragment_dir=frags, bundle_dir=sub / "changelog.months",
+                released_versions={"core": {"3.0.0"}},
+            )
+            frags.rmdir()  # what a fresh checkout of a fully compacted tree looks like
+        now_out = sub / "now.json"
+        changelog_out = sub / "complete.md"
+        _payload, diagnostics = build_site.generate_changelog_views(
+            changelog=baseline, fragments=frags, now_out=now_out,
+            changelog_out=changelog_out, root=sub, site_toml=site_toml,
+        )
+        outputs[label] = (now_out.read_bytes(), changelog_out.read_bytes(), diagnostics)
+    assert outputs["bundled"][2]["bundled_count"] == 3
+    assert outputs["bundled"][2]["loose_count"] == 0
+    assert outputs["bundled"][0] == outputs["loose"][0], "/now/ payload differs by storage form"
+    assert outputs["bundled"][1] == outputs["loose"][1], "complete changelog differs by storage form"
+
+
+def test_compact_and_build_classify_same_fragments_as_released(tmp_path: Path) -> None:
+    """AC-B6 pinned: compact derives the same released-version inventory as the build.
+
+    Both pathways (build-site's ``_released_versions_from_packs`` with
+    ``discover_packs``, and changelog.py's ``released_versions_from_packs``
+    with ``current_pack_versions``) must produce identical inventories for
+    the same record set, pack manifests, and historical changelog.  That is
+    what ensures compact moves exactly the fragments the build would classify
+    as released (spec AC-B6).
+    """
+    sub = tmp_path / "repo"
+    sub.mkdir()
+    baseline = sub / "changelog.md"
+    baseline.write_text(_baseline_for_fragments(), encoding="utf-8")
+    # The pack's current version is absent from frozen history, so only the
+    # pack-manifest read can classify the 3.1.0 fragment as released; an
+    # ungrouped pack and an underscore pack exercise discovery parity.
+    site_toml = _write_pack_metadata(sub, version="3.1.0")
+    extra = sub / "packs" / "extra"
+    extra.mkdir(parents=True)
+    (extra / "pack.toml").write_text('[pack]\nname = "extra"\nversion = "1.2.0"\n', encoding="utf-8")
+    hidden = sub / "packs" / "_template"
+    hidden.mkdir(parents=True)
+    (hidden / "pack.toml").write_text('[pack]\nname = "template"\nversion = "9.9.9"\n', encoding="utf-8")
+    frags = sub / "changelog.d"
+    _write_fragment(frags, "aa000001-0000-4000-8000-000000000001", version="3.1.0")
+    _write_fragment(frags, "aa000002-0000-4000-8000-000000000002", version="3.2.0")
+
+    # Both pathways read through the one reader for records.
+    loose_recs, bundled_recs = build_site._changelog.collect_changelog_records(
+        fragment_dir=frags,
+        bundle_dir=sub / "changelog.months",
+        retraction_path=sub / "changelog-retractions.toml",
+    )
+    all_records = loose_recs + bundled_recs
+    parsed = build_site.parse_changelog_releases(baseline.read_text(encoding="utf-8"))
+
+    # Build-site pathway: _released_versions_from_packs uses discover_packs.
+    build_inventory = build_site._released_versions_from_packs(
+        root=sub,
+        site_toml=site_toml,
+        fragments=all_records,
+        historical=build_site._released_versions_from_parsed(parsed),
+    )
+
+    # Compact pathway: the exact inventory function the compact CLI passes to
+    # compact_month, which resolves paths against the working directory.
+    changelog_module = build_site._changelog
+    inventory_fn = changelog_module.compact_inventory_fn(
+        changelog_module.released_versions_from_parsed(parsed)
+    )
+    with contextlib.chdir(sub):
+        compact_inventory = inventory_fn(all_records)
+
+    assert "3.1.0" in build_inventory["core"]
+    assert "3.2.0" not in build_inventory["core"]
+    assert build_inventory == compact_inventory, (
+        f"build and compact inventories differ:\n"
+        f"  build:   {build_inventory}\n"
+        f"  compact: {compact_inventory}"
+    )
+
+
+def test_compact_and_build_inventories_agree_on_the_real_repository() -> None:
+    """AC-B6 pinned on real data: the compact CLI's inventory equals the build's.
+
+    Runs both pathways against this repository's own pack manifests, frozen
+    changelog and records, so a divergence between ``current_pack_versions``
+    and ``discover_packs`` on any real pack fails here.
+    """
+    changelog_module = build_site._changelog
+    product = _REPO_ROOT / "docs" / "product"
+    loose_recs, bundled_recs = changelog_module.collect_changelog_records(
+        fragment_dir=product / "changelog.d"
+    )
+    all_records = loose_recs + bundled_recs
+    parsed = build_site.parse_changelog_releases(
+        (product / "changelog.md").read_text(encoding="utf-8")
+    )
+    historical = changelog_module.released_versions_from_parsed(parsed)
+    build_inventory = build_site._released_versions_from_packs(
+        root=_REPO_ROOT,
+        site_toml=_REPO_ROOT / "site.toml",
+        fragments=all_records,
+        historical=historical,
+    )
+    with contextlib.chdir(_REPO_ROOT):
+        compact_inventory = changelog_module.compact_inventory_fn(historical)(all_records)
+    assert build_inventory, "the real repository yields an empty inventory"
+    assert build_inventory == compact_inventory
+
+
+def test_build_ceiling_counts_loose_fragments_only(tmp_path: Path, monkeypatch) -> None:
+    """AC-B8: bundled records never count toward the loose-fragment ceiling."""
+    import warnings as _warnings
+
+    monkeypatch.setattr(build_site, "_LOOSE_RELEASED_WARN", 1)
+    monkeypatch.setattr(build_site, "_LOOSE_RELEASED_REFUSE", 2)
+    baseline, frags, site_toml = _bundled_fixture(tmp_path / "mixed", n_bundled=3, n_loose=1)
+    with _warnings.catch_warnings(record=True) as caught:
+        _warnings.simplefilter("always")
+        _payload, diagnostics = build_site.generate_changelog_views(
+            changelog=baseline, fragments=frags, now_out=tmp_path / "now.json",
+            root=tmp_path / "mixed", site_toml=site_toml,
+        )
+    assert diagnostics["bundled_count"] == 3 and diagnostics["loose_count"] == 1
+    assert not any("released loose" in str(w.message) for w in caught), (
+        "bundled records were counted toward the loose-fragment ceiling"
+    )

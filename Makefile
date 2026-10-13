@@ -786,8 +786,8 @@ site-sync:  ## Aggregate repo content into docs-site/src/content/docs/ (run befo
 	$(PYTHON) tools/build-site.py
 
 site-build: site-sync  ## Build full site → build/ (marketing) + build/docs/ (Starlight)
-	npm run build --prefix web
-	npm run build --prefix docs-site
+	npm run build --prefix web --ignore-scripts
+	npm run build --prefix docs-site --ignore-scripts
 
 site-link-check: site-build  ## Build both sites, then audit emitted internal links
 	$(PYTHON) tools/check-rendered-site-links.py --build-dir build
