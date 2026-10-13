@@ -525,14 +525,20 @@ def test_no_guarded_region_names_a_non_canonical_ledger_path() -> None:
 
 
 def test_the_core_release_heading_sits_directly_beneath_unreleased() -> None:
-    """AC4 requires adjacency, which "first [core] heading anywhere" does not give."""
+    """The newest core release is the shipped version, and nothing is dated later.
+
+    Weaker than AC4's adjacency ("the core heading sits directly beneath
+    `[Unreleased]`"). Records are appended after the frozen history and their
+    order within a day cannot be recovered; many releases share one date. This
+    asserts only that the newest core release equals pack.toml and that no
+    release carries a later date, so the adjacency guarantee now holds at day
+    level, not release level.
+    """
     import tomllib
 
-    # Restated. "Directly beneath [Unreleased]" was how the newest release was
-    # found when releases were prepended; records are now appended after the
-    # frozen history, so no heading position identifies it. The equivalent
-    # property: the newest release is a core one (nothing is dated later than
-    # the newest core release) and that core release is the shipped version.
+    # Restated, and weaker. "Directly beneath [Unreleased]" located the newest
+    # release when releases were prepended. Records are appended and have no
+    # recoverable order within a day, so only day-level recency is asserted.
     pack = tomllib.loads(_read("packs/core/pack.toml"))["pack"]["version"]
     newest_core = latest_release_version("core")
     assert newest_core, "no versioned core release heading in the changelog"

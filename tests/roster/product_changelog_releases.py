@@ -8,6 +8,10 @@ release may sit in a record that the raw file does not contain. This module
 answers those questions from the complete view that
 ``tools/changelog.py`` assembles, so a release recorded in either form is seen.
 
+Precondition: an ``origin/main`` ref must resolve, because the tool validates
+fragments against ``git merge-base`` with it. The CI jobs get it from
+``fetch-depth: 0``; a local checkout needs ``git fetch origin main``.
+
 Not collected by pytest (no ``test_`` prefix); import it from a roster test.
 """
 
@@ -61,14 +65,20 @@ def _parsed_view() -> tuple[str, tuple[dict, ...], tuple]:
     return text, tuple(parsed.releases), tuple(parsed.headings)
 
 
-def release_versions(package: str, *, include_nested: bool = False) -> list[str]:
+def release_versions(
+    package: str, *, include_nested: bool = False, text: str | None = None
+) -> list[str]:
     """Every released version of ``package`` in either form, newest first.
 
     Entries nested beneath ``[Unreleased]`` are left out unless
     ``include_nested`` is set; the frozen history holds some artifacts' current
     release there, and a caller matching the heading at either level needs them.
+    ``text`` reads a synthetic complete-view changelog instead of the repository's.
     """
-    _, releases, _ = _parsed_view()
+    if text is None:
+        releases = _parsed_view()[1]
+    else:
+        releases = tuple(_model().parse_changelog_releases(text).releases)
     found = {
         entry["version"]
         for release in releases
@@ -79,9 +89,11 @@ def release_versions(package: str, *, include_nested: bool = False) -> list[str]
     return sorted(found, key=version_tuple, reverse=True)
 
 
-def latest_release_version(package: str, *, include_nested: bool = False) -> str:
+def latest_release_version(
+    package: str, *, include_nested: bool = False, text: str | None = None
+) -> str:
     """Highest released version of ``package`` by version tuple, or ``""``."""
-    versions = release_versions(package, include_nested=include_nested)
+    versions = release_versions(package, include_nested=include_nested, text=text)
     return versions[0] if versions else ""
 
 
@@ -95,29 +107,3 @@ def latest_release_date(package: str | None = None) -> str:
         and (package is None or any(p["name"] == package for p in release["packages"]))
     ]
     return max(dates, default="")
-
-
-def release_entry_text(package: str, version: str) -> str:
-    """Text of the release entry covering ``package`` at ``version``, or ``""``.
-
-    From the entry's heading to the next heading of the same or a shallower
-    level. A record's anchor line precedes its heading and is not included.
-    """
-    text, releases, headings = _parsed_view()
-    lines = text.splitlines()
-    for release in releases:
-        if release["unreleased"] or not any(
-            p["name"] == package and p["version"] == version
-            for p in release["packages"]
-        ):
-            continue
-        for index, heading in enumerate(headings):
-            if heading.title != release["heading"]:
-                continue
-            end = len(lines)
-            for later in headings[index + 1 :]:
-                if later.level <= heading.level:
-                    end = later.lineno - 1
-                    break
-            return "\n".join(lines[heading.lineno - 1 : end])
-    return ""

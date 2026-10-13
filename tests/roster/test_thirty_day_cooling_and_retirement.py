@@ -1633,7 +1633,7 @@ def test_the_contract_names_both_owning_specs() -> None:
 
 # STUB: AC16 (spec/cooling-untrusted-input-refusals)
 def test_the_release_surfaces_agree_and_advance() -> None:
-    """The two manifests, the topmost changelog heading, and the step all agree.
+    """The two manifests, the newest core changelog release, and the step all agree.
 
     The merge-base version is a literal so this holds in a shallow clone and in
     CI, where `origin/main` may not be a local ref. A self-consistent but stale

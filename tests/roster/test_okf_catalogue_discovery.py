@@ -91,7 +91,7 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
 
 
 def test_okf_pack_releases_name_themselves_in_the_topmost_changelog_heading() -> None:
-    """Each OKF-releasing pack's topmost changelog heading names its version.
+    """Each OKF-releasing pack's newest changelog release is its pack.toml version.
 
     Scoped to the packs this change releases, not to every pack: `packs/core` and
     the cost-engineering pilot also ship OKF surfaces and are deliberately not

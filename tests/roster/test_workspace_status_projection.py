@@ -125,8 +125,9 @@ def _sha256_file(path: Path) -> str:
 # interleaved across three `[Unreleased]` regions).
 #
 # This is a RATCHET, not a floor: it may only ever go DOWN. It is the mechanical
-# enforcement of D3 — the correspondence check in
-# version-correspondence check in `test_t4_repair_determinism_projection_and_release_surface` deliberately accepts either level.
+# enforcement of D3 — the version-correspondence check in
+# `test_t4_repair_determinism_projection_and_release_surface` deliberately
+# accepts either heading level.
 _MAROONED_RELEASE_BASELINE = 59
 
 
