@@ -48,7 +48,7 @@
 | 2560 | light | `screens/2560-light.png` | `83bff6e19dc9b310f3868a02567b039ea56b0955035b87636aad06c1193ed0bd` |
 | 2560 | dark | `screens/2560-dark.png` | `56ca58b2042827a99bbe0abb343e5bfc4b53894ac7601e43b94ded2407df0031` |
 
-- Looked at 320 light, 1280 dark, 1680 light and 2560 light. Each shows the default "What can I work on next?" list with its four counts and no clipped text. No defect seen beyond the deferred Minor items (rail labels wrap at 1680 and 2560; the 320 column shows the details pane below the list).
+- Looked at 320 light, 1280 dark, 1680 light and 2560 light. Each shows the default "What can I work on next?" list with its four counts and no clipped text. No defect seen beyond the deferred Minor items (rail labels wrap at 1680 and 2560).
 
 ## Final browser suite
 
