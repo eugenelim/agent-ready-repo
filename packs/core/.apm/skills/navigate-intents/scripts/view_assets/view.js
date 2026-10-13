@@ -1090,6 +1090,8 @@
 
   function backToList(id) {
     location.hash = hashFor({ node: '' });
+    // The list is hidden while a row is picked; show it now so the row can take focus.
+    dom.main.removeAttribute('data-picked');
     window.scrollTo(0, listScroll);
     var target = rowLinkFor(id);
     (target || dom.listTitle).focus();

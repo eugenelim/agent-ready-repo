@@ -46,6 +46,7 @@
   }
 }
 *, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-padding-top: var(--s-7); }
 body {
   margin: 0;
@@ -63,6 +64,12 @@ code, .value { font-family: var(--font-mono); font-size: 0.875em; overflow-wrap:
 ul.rows, ul.plain { list-style: none; margin: 0; padding: 0; }
 :focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
 .focus-target:focus { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+a.node-link, a.source-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target);
+  min-width: 1.5rem;
+}
 button, select, input, summary {
   font: inherit;
   color: inherit;

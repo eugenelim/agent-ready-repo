@@ -277,6 +277,7 @@ class Opened:
             color_scheme=scheme,  # type: ignore[arg-type]
             java_script_enabled=js,
         )
+        self.context.set_default_timeout(8000)
         self.page: Page = self.context.new_page()
         self.requests: list[str] = []
         self.console: list[str] = []
@@ -746,8 +747,8 @@ def _row_ax_names(page: Page) -> list[str]:
     names = []
     for node_id in found["nodeIds"]:
         tree = cdp.send("Accessibility.getPartialAXTree", {"nodeId": node_id, "fetchRelatives": False})
-        node = next(n for n in tree["nodes"] if not n.get("ignored"))
-        names.append(node["name"]["value"])
+        live = [n for n in tree["nodes"] if not n.get("ignored")]
+        names.append(live[0]["name"]["value"] if live else None)  # None: not rendered (display: none)
     cdp.detach()
     return names
 
@@ -1476,3 +1477,386 @@ def test_startup_render_failure_shows_the_alert_and_logs_the_error(
     item = opener(broken)
     assert "damaged" in item.page.inner_text("#main .alert")
     assert any("could not render" in line for line in item.console)
+
+
+# ---------------------------------------------------------------------------
+# Layout, reach and names: AC-0031 .. AC-0041
+# ---------------------------------------------------------------------------
+
+_WIDTHS = [320, 1280, 1680, 2560]
+_SCHEMES = ["light", "dark"]
+_MATRIX = [(w, s) for w in _WIDTHS for s in _SCHEMES]
+_MATRIX_EXPORTS = ["mixed", "hostile"]
+_MATRIX_ID = [f"{w}-{s}" for w, s in _MATRIX]
+
+
+def _rect(page: Page, selector: str) -> dict[str, float]:
+    return page.eval_on_selector(  # type: ignore[no-any-return]
+        selector,
+        "e => { const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; }",
+    )
+
+
+def _tab_to(page: Page, predicate: str, limit: int = 400) -> None:
+    for _ in range(limit):
+        page.keyboard.press("Tab")
+        if page.evaluate(f"(() => {{ const e = document.activeElement; return !!e && ({predicate}); }})()"):
+            return
+    raise AssertionError(f"keyboard never reached: {predicate}")
+
+
+def _pick_first(page: Page) -> str:
+    """Open the browse list, click its first row and wait until the detail zone shows it."""
+    page.locator('nav a[data-q="browse"]').click()
+    page.wait_for_selector("#list a.row-link")
+    first = page.locator("#list a.row-link").first
+    node = first.get_attribute("data-node")
+    first.click()
+    page.wait_for_function("() => document.getElementById('main').hasAttribute('data-picked')")
+    page.wait_for_function("n => document.querySelector('#detail-body .state-line') !== null", arg=node)
+    return node or ""
+
+
+def _no_overflow(page: Page) -> list[int]:
+    return page.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")  # type: ignore[no-any-return]
+
+
+def test_ac_0031_narrow_is_one_column_with_back_to_list(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    for name in _MATRIX_EXPORTS:
+        item = opener(exports[name], width=320, height=800)
+        page = item.page
+        wide = _no_overflow(page)
+        assert wide[0] <= wide[1], (name, wide)
+        page.locator('nav a[data-q="browse"]').click()
+        page.wait_for_selector("#list a.row-link")
+        nav, list_ = _rect(page, "#question-list"), _rect(page, "#list-title")
+        assert nav["bottom"] <= list_["top"], (name, nav, list_)
+        links = page.eval_on_selector_all("#question-list a", "els => els.map(e => Math.round(e.getBoundingClientRect().left))")
+        assert len(set(links)) == 1, (name, links)
+        node = _pick_first(page)
+        _wait_focus_id(page, "detail-heading")
+        assert not page.locator("#list").is_visible()
+        assert page.locator("#detail-heading").is_visible()
+        wide = _no_overflow(page)
+        assert wide[0] <= wide[1], (name, "detail", wide)
+        page.get_by_role("button", name="Back to list").click()
+        page.wait_for_function("() => document.getElementById('list').offsetParent !== null")
+        page.wait_for_function("() => !document.querySelector('#detail-body .back-link')")
+        page.wait_for_function("n => document.activeElement.dataset.node === n", arg=node)
+        wide = _no_overflow(page)
+        assert wide[0] <= wide[1], (name, "list", wide)
+
+
+def test_ac_0031_back_to_list_restores_scroll(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = opener(exports["mixed"], width=320, height=400).page
+    page.locator('nav a[data-q="browse"]').click()
+    _expand_all(page)
+    page.wait_for_selector("#list a.row-link")
+    last = page.locator("#list a.row-link").last
+    last.evaluate("e => e.scrollIntoView({ block: 'center' })")
+    page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+    page.wait_for_function(  # programmatic scrolls animate: wait until the last row is on screen and still
+        "() => { const r = Array.from(document.querySelectorAll('#list a.row-link')).pop().getBoundingClientRect();"
+        " const ok = r.bottom <= innerHeight && window.__y === scrollY; window.__y = scrollY; return ok; }"
+    )
+    before = page.evaluate("scrollY")
+    assert before > 0
+    node = last.get_attribute("data-node")
+    last.evaluate("e => e.click()")  # no scroll: the reader's position is the one measured above
+    _wait_focus_id(page, "detail-heading")
+    page.get_by_role("button", name="Back to list").click()
+    page.wait_for_function("n => document.activeElement.dataset.node === n", arg=node)
+    assert abs(page.evaluate("scrollY") - before) <= 2
+
+
+def test_ac_0032_mid_width_questions_row_above_list_beside_detail(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    for name in _MATRIX_EXPORTS:
+        page = opener(exports[name], width=1280).page
+        _pick_first(page)
+        tops = page.eval_on_selector_all("#question-list a", "els => els.map(e => Math.round(e.getBoundingClientRect().top))")
+        assert len(set(tops)) == 1, (name, tops)
+        nav, work, detail = _rect(page, "#question-list"), _rect(page, ".worklist"), _rect(page, ".detail")
+        assert nav["bottom"] <= work["top"] and nav["bottom"] <= detail["top"], name
+        assert work["right"] <= detail["left"] + 1, (name, work, detail)
+        assert abs(work["top"] - detail["top"]) <= 2, (name, work, detail)
+        assert page.locator("#list").is_visible() and page.locator("#detail-heading").is_visible()
+
+
+@pytest.mark.parametrize("width", [1680, 2560])
+def test_ac_0033_wide_is_rail_list_detail(opener: Any, exports: dict[str, pathlib.Path], width: int) -> None:
+    for name in _MATRIX_EXPORTS:
+        page = opener(exports[name], width=width).page
+        _pick_first(page)
+        nav, work, detail = _rect(page, "#question-list"), _rect(page, ".worklist"), _rect(page, ".detail")
+        assert nav["right"] <= work["left"] + 1 and work["right"] <= detail["left"] + 1, (name, nav, work, detail)
+        tops = [nav["top"], work["top"], detail["top"]]
+        assert max(tops) - min(tops) <= 120 and nav["bottom"] > work["top"], (name, nav, work, detail)
+        assert width - detail["right"] <= 48, (name, width, detail)
+        assert abs(page.evaluate("document.documentElement.scrollWidth") - width) <= 0
+
+
+_FOCUS_INFO = """() => {
+  const e = document.activeElement;
+  if (!e || e === document.body) return null;
+  if (e.__seen) return { repeat: true };
+  e.__seen = true;
+  const r = e.getBoundingClientRect();
+  const cs = getComputedStyle(e);
+  const vy = (Math.max(r.top, 0) + Math.min(r.bottom, innerHeight)) / 2;
+  const vx = (Math.max(r.left, 0) + Math.min(r.right, innerWidth)) / 2;
+  const hit = document.elementFromPoint(vx, vy);
+  // The nearest opaque ancestor background (the page when none is painted).
+  let p = e.parentElement, bg = getComputedStyle(document.body).backgroundColor;
+  while (p) { const c = getComputedStyle(p).backgroundColor;
+    const m = c.match(/[\\d.]+/g);
+    if (m && (m.length === 3 || parseFloat(m[3]) > 0.99)) { bg = c; break; } p = p.parentElement; }
+  return { repeat: false, tag: e.tagName, text: (e.textContent || '').slice(0, 30), width: r.width,
+    height: r.height, outlineStyle: cs.outlineStyle, outlineWidth: parseFloat(cs.outlineWidth),
+    outlineColor: cs.outlineColor, bg, hit: hit === e || e.contains(hit),
+    visible: r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth };
+}"""
+
+
+def _sweep(page: Page, limit: int = 400) -> list[dict[str, Any]]:
+    page.evaluate(
+        """() => { const s = document.createElement('span'); s.tabIndex = -1; s.id = 'sweep-start';
+          document.body.prepend(s); window.scrollTo(0, 0); s.focus(); }"""
+    )
+    stops: list[dict[str, Any]] = []
+    for _ in range(limit):
+        page.keyboard.press("Tab")
+        info = page.evaluate(_FOCUS_INFO)
+        if info is None or info["repeat"]:
+            break
+        stops.append(info)
+    return stops
+
+
+def _busy(item: Opened, payload: dict[str, Any], name: str, *, picked: bool) -> None:
+    """Browse list fully expanded; optionally with a detail open, the Key and Record details open."""
+    page = item.page
+    node = "intent:bravo-feat" if name == "mixed" else payload["nodes"][0]["id"]
+    item.go(_frag(q="browse"))
+    page.wait_for_selector("#list a.row-link")
+    _expand_all(page)
+    page.locator("#key summary").click()  # open while the list is on screen (a narrow page hides it once picked)
+    if picked:
+        item.go(_frag(q="browse", node=node))
+        page.wait_for_selector("#detail-body details.record summary")
+        page.locator("#detail-body details.record summary").click()
+
+
+def _matrix_states(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> Any:
+    for name in _MATRIX_EXPORTS:
+        payload = payload_of(exports[name])
+        for picked in (False, True):
+            item = opener(exports[name], width=width, height=700, scheme=scheme)
+            _busy(item, payload, name, picked=picked)
+            yield name, picked, item.page
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_ac_0034_focus_is_never_hidden(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    for name, picked, page in _matrix_states(opener, exports, width, scheme):
+        stops = _sweep(page)
+        assert len(stops) > 10, (name, picked, len(stops))
+        for stop in stops:
+            assert stop["hit"] and stop["visible"], (name, picked, stop)
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_ac_0035_targets_are_at_least_24_px(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    for name, picked, page in _matrix_states(opener, exports, width, scheme):
+        small = page.evaluate(
+            """() => Array.from(document.querySelectorAll('a[href], button, input, select, summary'))
+              .map(e => [e, e.getBoundingClientRect()])
+              .filter(([e, r]) => r.width > 0 && !e.classList.contains('skip') && (r.width < 24 || r.height < 24))
+              .map(([e, r]) => e.outerHTML.slice(0, 80) + ' ' + r.width + 'x' + r.height)"""
+        )
+        assert small == [], (name, picked, small)
+
+
+def _contrast_report(page: Page) -> list[tuple[str, float]]:
+    raw = page.evaluate(
+        """() => {
+          const parse = (c) => c.match(/[\\d.]+/g).map(Number);
+          const bgOf = (el) => { for (let p = el; p; p = p.parentElement) {
+              const m = parse(getComputedStyle(p).backgroundColor);
+              if (m.length === 3 || m[3] > 0.99) return m.slice(0, 3); }
+            return parse(getComputedStyle(document.body).backgroundColor).slice(0, 3); };
+          const out = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) {
+            const n = walker.currentNode; const el = n.parentElement;
+            if (!n.textContent.trim() || el.closest('select, option, script, noscript')) continue;
+            if (!el.getClientRects().length) continue;
+            const cs = getComputedStyle(el);
+            if (cs.visibility !== 'visible' || el.closest('.visually-hidden, .skip:not(:focus)')) continue;
+            out.push([n.textContent.trim().slice(0, 30), parse(cs.color).slice(0, 3), bgOf(el)]);
+          }
+          for (const el of document.querySelectorAll('input, select')) {
+            const cs = getComputedStyle(el);
+            out.push([el.id, parse(cs.color).slice(0, 3), bgOf(el)]);
+          }
+          return out;
+        }"""
+    )
+    return [(label, _ratio(tuple(fg), tuple(bg))) for label, fg, bg in raw]  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_ac_0036_text_contrast(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    checked = 0
+    for name, picked, page in _matrix_states(opener, exports, width, scheme):
+        expected = "rgb(18, 20, 24)" if scheme == "dark" else "rgb(251, 251, 250)"
+        assert page.evaluate("getComputedStyle(document.body).backgroundColor") == expected
+        rows = _contrast_report(page)
+        checked += len(rows)
+        low = [r for r in rows if r[1] < 4.5]
+        assert not low, (name, picked, low[:5])
+    assert checked > 100
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_ac_0037_focus_indicator_contrast(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    for name, picked, page in _matrix_states(opener, exports, width, scheme):
+        stops = _sweep(page)
+        assert stops
+        for stop in stops:
+            assert stop["outlineStyle"] == "solid" and stop["outlineWidth"] >= 2, (name, picked, stop)
+            ratio = _ratio(_rgb(stop["outlineColor"]), _rgb(stop["bg"]))
+            assert ratio >= 3, (name, picked, stop, ratio)
+
+
+def test_ac_0038_keyboard_alone_reaches_every_function(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["related"])
+    page = item.page
+    page.evaluate("document.body.focus()")
+    for key in ("next", "capabilities", "noparent", "broken", "browse"):
+        _tab_to(page, f"e.dataset.q === '{key}'")
+        page.keyboard.press("Enter")
+        page.wait_for_function("k => document.querySelector('nav a[aria-current]').dataset.q === k", arg=key)
+    _tab_to(page, "e.id === 'search'")
+    page.keyboard.type("bravo")
+    page.wait_for_function("() => document.getElementById('list-title').textContent.includes('bravo')")
+    page.keyboard.press("Escape")
+    page.wait_for_function("() => !document.getElementById('list-title').textContent.includes('bravo')")
+    _tab_to(page, "e.id === 'filter-level'")
+    page.select_option("#filter-level", "feature")
+    page.wait_for_function("() => document.activeElement.id === 'filter-level' || true")
+    page.select_option("#filter-level", "")
+    _tab_to(page, "e.matches('button.toggle')")
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.activeElement.getAttribute('aria-expanded')") == "true"
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.activeElement.getAttribute('aria-expanded')") == "false"
+    _tab_to(page, "e.matches('#list a.row-link')")
+    page.keyboard.press("Enter")
+    page.wait_for_function("() => document.getElementById('main').hasAttribute('data-picked')")
+    _tab_to(page, "e.matches('#detail-body a[data-node]')")
+    hash_before = page.evaluate("location.hash")
+    page.keyboard.press("Enter")
+    _wait_focus_id(page, "detail-heading")
+    assert page.evaluate("location.hash") != hash_before
+    page.evaluate("document.body.focus()")
+    _tab_to(page, "e.matches('#key summary')")
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.getElementById('key').open") is True
+    _tab_to(page, "e.matches('#detail-body details.record summary')")
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.querySelector('#detail-body details.record').open") is True
+    page.go_back()
+    page.wait_for_function("h => location.hash === h", arg=hash_before)
+
+
+def test_ac_0039_landmarks_and_one_h1(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    for name in ("mixed", "empty", "hostile", "incomplete"):
+        page = opener(exports[name]).page
+        for tag in ("h1", "header", "nav", "main"):
+            assert page.locator(tag).count() == 1, (name, tag)
+
+
+def test_ac_0040_live_region_announces_list_title_and_count(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = opener(exports["mixed"]).page
+    assert page.locator("#live").get_attribute("aria-live") == "polite"
+
+    def announced() -> str:
+        return " ".join(_text(page, "#live").split())
+
+    def expect_matches_list() -> None:
+        page.wait_for_function(
+            """() => { const t = (id) => document.getElementById(id).textContent;
+              return t('live') !== '' && t('live') === t('list-title') + ', ' + t('list-count'); }"""
+        )
+        assert announced().startswith(_text(page, "#list-title"))
+
+    page.locator('nav a[data-q="capabilities"]').click()
+    expect_matches_list()
+    page.locator('nav a[data-q="browse"]').click()
+    expect_matches_list()
+    page.locator("#search").click()
+    page.keyboard.type("bravo")
+    page.wait_for_function("() => document.getElementById('list-title').textContent.includes('bravo')")
+    expect_matches_list()
+    page.locator("#search").fill("")
+    page.locator('nav a[data-q="browse"]').click()
+    page.select_option("#filter-level", "feature")
+    expect_matches_list()
+
+
+def _accessible_names(page: Page) -> list[tuple[str, str]]:
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("DOM.enable")
+    cdp.send("Accessibility.enable")
+    doc = cdp.send("DOM.getDocument", {"depth": 0})
+    found = cdp.send(
+        "DOM.querySelectorAll",
+        {"nodeId": doc["root"]["nodeId"], "selector": "a[href], button, input, select, summary"},
+    )
+    names: list[str] = []
+    for node_id in found["nodeIds"]:
+        tree = cdp.send("Accessibility.getPartialAXTree", {"nodeId": node_id, "fetchRelatives": False})
+        live = [n for n in tree["nodes"] if not n.get("ignored")]
+        names.append(live[0]["name"]["value"] if live else None)  # None: not rendered (display: none)
+    labels = page.evaluate(
+        """() => {
+          const visible = (n) => Array.from(n.childNodes).map((c) =>
+            c.nodeType === 3 ? c.textContent
+            : (c.classList && c.classList.contains('visually-hidden')) || c.getAttribute && c.getAttribute('aria-hidden') === 'true' ? '' : visible(c)).join('');
+          return Array.from(document.querySelectorAll('a[href], button, input, select, summary')).map((e) =>
+            (e.tagName === 'INPUT' || e.tagName === 'SELECT') ? e.labels[0].textContent : visible(e).trim());
+        }"""
+    )
+    cdp.detach()
+    assert len(names) == len(labels)
+    return [(n, lab) for n, lab in zip(names, labels, strict=True) if n is not None]
+
+
+def test_ac_0041_names_contain_visible_labels(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    for name in _MATRIX_EXPORTS:
+        item = opener(exports[name])
+        _busy(item, payload_of(exports[name]), name, picked=True)
+        page = item.page
+        pairs = _accessible_names(page)
+        assert len(pairs) > 15
+        for accessible, label in pairs:
+            assert accessible.strip(), (name, label)
+            # A toggle's glyph is aria-hidden, so its visible label is empty and checked below.
+            assert _squash(label) in _squash(accessible), (name, accessible, label)
+        toggles = page.evaluate(
+            """() => Array.from(document.querySelectorAll('button.toggle')).map(
+              (b) => [b.getAttribute('aria-label') || b.textContent,
+                      b.closest('li').querySelector('a.row-link .c-name').textContent])"""
+        )
+        assert toggles, name
+    page = opener(exports["mixed"]).page
+    page.locator('nav a[data-q="browse"]').click()
+    page.wait_for_selector("button.toggle")
+    names = page.evaluate(
+        """() => Array.from(document.querySelectorAll('button.toggle')).map(
+          (b) => [b.closest('li').querySelector('a.row-link .c-name').textContent])"""
+    )
+    toggle_names = [n for n, _ in _accessible_names(page) if n.startswith("Show ")]
+    assert len(toggle_names) == len(names) > 0
+    for accessible, (display,) in zip(toggle_names, names, strict=True):
+        assert _squash(display) in _squash(accessible), (accessible, display)

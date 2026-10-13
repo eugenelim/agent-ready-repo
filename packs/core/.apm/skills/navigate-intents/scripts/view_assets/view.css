@@ -27,7 +27,8 @@
 .list-head { padding: var(--s-3) 0; border-bottom: 1px solid var(--c-rule-strong); }
 .list-head .meta span + span::before { content: " \00B7  "; }
 .filters { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-2); }
-.filters .field { display: flex; flex-direction: column; gap: var(--s-1); }
+.filters .field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; max-width: 100%; }
+.filters select { max-width: 100%; min-width: 0; }
 .key { margin-top: var(--s-2); }
 .key-list .fact { display: grid; grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr); gap: var(--s-3); padding: var(--s-1) 0; border-bottom: 1px solid var(--c-rule); }
 .key-list dd, .facts dd { margin: 0; }
@@ -66,3 +67,4 @@
   .questions { padding-top: var(--s-3); }
   .zones { grid-template-columns: minmax(0, 3fr) minmax(26rem, 2fr); }
 }
+.source { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); }
