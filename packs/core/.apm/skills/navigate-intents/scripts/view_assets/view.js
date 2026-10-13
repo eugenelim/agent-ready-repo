@@ -1,18 +1,17 @@
 'use strict';
 /*
- * Offline intent graph view.
+ * Offline intent graph view, organised around four session-start questions.
  *
  * Reads the one JSON data block in the page and builds the whole view with
  * createElement and textContent.  Record text is only ever placed in a text
- * node or in a value attribute, after the unsafe-character escape below, and
- * the fixed label tables are the only source of group, state, and trust
- * class labels.  No library, no build step, no network.
+ * node or in an attribute value, after the unsafe-character escape below, and
+ * fixed tables are the only source of question, group, state, trust class and
+ * next-step text.  No library, no build step, no network.
  */
 (function () {
   var SCHEMA = 'intent-navigation.view.v1';
   // A fixed literal.  A link is only ever built for a URL that starts with it.
   var GITHUB_PREFIX = 'https://github.com/';
-  var FILTER_KEYS = ['q', 'level', 'kind', 'status'];
 
   // Code points the text output escapes, as inclusive ranges.
   var UNSAFE_RANGES = [
@@ -91,12 +90,47 @@
     pointer_checked: 'A pointer the derivation checked against a live record.',
     pointer_unchecked: 'A pointer written in a field, not checked beyond resolving it.'
   };
-  var VIEWS = [
-    { key: 'tree', name: 'Tree', noun: 'intents' },
-    { key: 'outstanding', name: 'Outstanding', noun: 'items' },
-    { key: 'refused', name: 'Refused edges', noun: 'edges' },
-    { key: 'parentless', name: 'Parentless', noun: 'intents' }
+  // State marks: the glyph is decoration, the word beside it is what is read.
+  var MARKS = {
+    active: { glyph: '\u25CF', help: 'In progress: a spec being built or a brief being delivered.' },
+    approved: { glyph: '\u25C6', help: 'Approved, accepted, or a brief ready for its slices.' },
+    draft: { glyph: '\u25C7', help: 'Open and still being shaped.' },
+    broken: { glyph: '\u2715', help: 'A pointer that did not resolve, or a delivery problem.' },
+    stale: { glyph: '\u25B3', help: 'The linked file may be newer than this snapshot.' },
+    done: { glyph: '\u2713', help: 'Finished or closed: not open work.' }
+  };
+  var MARK_ORDER = ['active', 'approved', 'draft', 'broken', 'stale', 'done'];
+  var ACTIVE_WORDS = { Implementing: true, Executing: true };
+  var APPROVED_WORDS = { Approved: true, Accepted: true, Ready: true };
+  var NAME_LABELS = ['Spec: ', 'Brief: ', 'Intent: ', 'Feature: ', 'Capability: ', 'Outcome: ',
+    'Opportunity: '];
+  var TYPE_NAMES = { intent: 'Intent', brief: 'Brief', spec: 'Spec' };
+  var TYPE_GROUPS = [['intent', 'Intents'], ['brief', 'Briefs'], ['spec', 'Specs']];
+
+  var QUESTIONS = [
+    { key: 'next', name: 'What can I work on next?', title: 'In a startable stage',
+      lead: 'Readiness not checked in this snapshot.', sort: 'By stage, then name',
+      empty: 'Nothing is in a startable stage.', noun: ['item', 'items'] },
+    { key: 'capabilities', name: 'What is still open under a capability?',
+      title: 'Capabilities with open work', lead: 'Pick a capability to see the open work beneath it.',
+      sort: 'By open count, then name', empty: 'No capability has open work beneath it.',
+      noun: ['capability', 'capabilities'] },
+    { key: 'noparent', name: 'What has no parent?', title: 'Open with no parent',
+      lead: 'Open items whose parent pointer is absent or did not resolve.',
+      sort: 'By type, then name', empty: 'Every open item has a parent.', noun: ['item', 'items'],
+      filters: ['type', 'level'] },
+    { key: 'broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
+      lead: 'Pointers that did not resolve, and problems the delivery resolver found.',
+      sort: 'By name', empty: 'Nothing is broken.', noun: ['entry', 'entries'] },
+    { key: 'browse', name: 'Browse all intents', title: 'All intents',
+      lead: 'Every live intent under its parent.', sort: 'Under each parent, by name',
+      empty: 'No intents were found.', noun: ['intent', 'intents'],
+      filters: ['level', 'kind', 'status'] }
   ];
+  var FILTER_LABELS = { type: ['Type', 'Any type'], level: ['Level', 'Any level'],
+    kind: ['Kind', 'Any kind'], status: ['Status', 'Any status'] };
+  var ROUTE_KEYS = ['q', 'node', 'search', 'type', 'level', 'kind', 'status'];
+  var FILTER_KEYS = ['type', 'level', 'kind', 'status'];
 
   // ------------------------------------------------------------- utilities
   function own(obj, key) {
@@ -104,16 +138,9 @@
   }
   function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
   function isStr(v) { return typeof v === 'string'; }
+  function arr(v) { return Array.isArray(v) ? v : []; }
   function cmp(a, b) { return a < b ? -1 : (a > b ? 1 : 0); }
-  function byId(a, b) { return cmp(a, b); }
-  function sumValues(obj) {
-    var total = 0;
-    if (!isObj(obj)) { return total; }
-    Object.keys(obj).forEach(function (k) {
-      if (typeof obj[k] === 'number') { total += obj[k]; }
-    });
-    return total;
-  }
+  function plural(n, noun) { return n + ' ' + (n === 1 ? noun[0] : noun[1]); }
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -125,6 +152,11 @@
   function byIdEl(id) { return document.getElementById(id); }
   function clear(node) { while (node.firstChild) { node.removeChild(node.firstChild); } }
   function text(parent, value) { parent.appendChild(document.createTextNode(escapeDisplay(value))); }
+  function button(cls, label) {
+    var b = el('button', cls, label);
+    b.setAttribute('type', 'button');
+    return b;
+  }
 
   // ------------------------------------------------------------------ data
   var data = null;
@@ -134,10 +166,14 @@
   var relsByNode = new Map();
   var intentBySlug = new Map();
   var edgesFrom = new Map();
+  var openById = new Map();
+  var beneath = new Map();
   var current = null;
   var expanded = new Set();
   var dom = {};
-  var pendingLive = null;
+  var listScroll = 0;
+  var followedDetailLink = false;
+  var wide = null;
 
   function validData(d) {
     return isObj(d) && d.schema === SCHEMA && isObj(d.scope) && isObj(d.provenance) &&
@@ -159,6 +195,7 @@
     if (!map.has(key)) { map.set(key, []); }
     map.get(key).push(value);
   }
+  function deliveryUnavailable() { return data.outstanding.available === false; }
 
   // A delivery relation always writes its intent as intent:<slug>, while the node id may start
   // with outcome:, opportunity:, or capability:.  Resolve it to the exported node of that slug.
@@ -168,9 +205,107 @@
     return found === undefined ? id : found;
   }
 
+  function displayName(id) {
+    var n = nodes.get(id);
+    if (!n) { return id; }
+    var h = isStr(n.heading) ? n.heading.trim() : '';
+    for (var i = 0; i < NAME_LABELS.length; i++) {
+      if (h.indexOf(NAME_LABELS[i]) === 0) { h = h.slice(NAME_LABELS[i].length).trim(); break; }
+    }
+    return h !== '' ? h : (slugOf(n) || id);
+  }
+  // Briefs and specs carry no slug field; their id is the slug behind a type prefix.
+  function slugOf(n) {
+    if (isStr(n.slug) && n.slug !== '') { return n.slug; }
+    var cut = n.id.indexOf(':');
+    return cut === -1 ? n.id : n.id.slice(cut + 1);
+  }
+  function nameKey(id) { return displayName(id).toLowerCase(); }
+  function byName(a, b) { return cmp(nameKey(a), nameKey(b)) || cmp(a, b); }
+
+  function statusOf(id) {
+    var r = rec(id);
+    if (r) { return isStr(r.status) ? r.status : ''; }
+    var n = nodes.get(id);
+    return n && isStr(n.status) ? n.status : '';
+  }
+  function statusWord(id) {
+    var m = /^[A-Za-z]+/.exec(statusOf(id));
+    return m === null ? '' : m[0];
+  }
+  function typeOf(id) {
+    var n = nodes.get(id);
+    return n && isStr(n.type) ? n.type : '';
+  }
+  function isOpen(id) { return openById.has(id); }
+
+  function markKey(id) {
+    var word = statusWord(id);
+    if (own(ACTIVE_WORDS, word)) { return 'active'; }
+    if (own(APPROVED_WORDS, word)) { return 'approved'; }
+    if (!deliveryUnavailable() && !isOpen(id)) { return 'done'; }
+    return 'draft';
+  }
+
+  function markEl(key, word) {
+    var wrap = el('span', 'mark');
+    wrap.setAttribute('data-mark', key);
+    var g = add(wrap, el('span', 'mark-g', MARKS[key].glyph));
+    g.setAttribute('aria-hidden', 'true');
+    add(wrap, el('span', 'mark-w', word));
+    return wrap;
+  }
+  function stateMark(id) {
+    var word = statusWord(id);
+    return markEl(markKey(id), word !== '' ? word : 'No status');
+  }
+
+  // Every ancestor list of a node, nearest first.  An open item carries its own; any other node
+  // walks resolved parent pointers, stopping on a repeat.
+  function ancestorLists(id) {
+    var it = openById.get(id);
+    if (it) {
+      if (it.type === 'spec') {
+        return arr(it.placements).map(function (pl) { return isObj(pl) ? arr(pl.ancestors) : []; })
+          .filter(function (l) { return l.length > 0; });
+      }
+      return arr(it.ancestors).length ? [arr(it.ancestors)] : [];
+    }
+    var lists = [];
+    var starts = [];
+    if (rec(id)) {
+      var p = resolvedParent(rec(id));
+      if (p !== null) { starts.push(p); }
+    } else {
+      (edgesFrom.get(id) || []).forEach(function (e) {
+        if (!e.state && isStr(e.to) && (e.field === 'Parent intent' || e.field === 'Brief' ||
+          e.field === 'Discovery')) { starts.push(e.field === 'Discovery' ? intentNodeId(e.to) : e.to); }
+      });
+    }
+    starts.forEach(function (start) {
+      var list = [];
+      var seen = new Set([id]);
+      var at = start;
+      while (at !== null && !seen.has(at)) {
+        seen.add(at);
+        list.push({ id: at });
+        if (rec(at)) {
+          at = resolvedParent(rec(at));
+        } else {
+          var up = (edgesFrom.get(at) || []).filter(function (e) {
+            return !e.state && isStr(e.to) && e.field === 'Parent intent';
+          });
+          at = up.length ? up[0].to : null;
+        }
+      }
+      lists.push(list);
+    });
+    return lists;
+  }
+
   function buildIndexes() {
     data.nodes.forEach(function (n) { nodes.set(n.id, n); });
-    recordIds = Object.keys(data.records).sort(byId);
+    recordIds = Object.keys(data.records).sort(cmp);
     recordIds.forEach(function (id) {
       var n = nodes.get(id);
       if (n && isStr(n.slug) && !intentBySlug.has(n.slug)) { intentBySlug.set(n.slug, id); }
@@ -179,45 +314,117 @@
       var r = rec(id);
       var parent = resolvedParent(r);
       if (parent !== null && own(data.records, parent) !== undefined) { addTo(kidsOf, parent, id); }
-      (Array.isArray(r.delivery_relations) ? r.delivery_relations : []).forEach(function (rel) {
+      arr(r.delivery_relations).forEach(function (rel) {
         if (!isObj(rel)) { return; }
         [rel.intent, rel.brief, rel.spec].forEach(function (nid) {
           if (isStr(nid)) { addTo(relsByNode, nid, rel); }
         });
       });
     });
-    kidsOf.forEach(function (list) { list.sort(byId); });
+    kidsOf.forEach(function (list) { list.sort(byName); });
     data.edges.forEach(function (e) { addTo(edgesFrom, e.from, e); });
+    if (!deliveryUnavailable()) {
+      arr(data.outstanding.placed).concat(arr(data.outstanding.no_parent)).forEach(function (it) {
+        if (isObj(it) && isStr(it.id) && !openById.has(it.id)) { openById.set(it.id, it); }
+      });
+      openById.forEach(function (it, id) {
+        var seen = new Set();
+        ancestorLists(id).forEach(function (list) {
+          list.forEach(function (a) {
+            if (isObj(a) && isStr(a.id) && !seen.has(a.id)) { seen.add(a.id); addTo(beneath, a.id, id); }
+          });
+        });
+      });
+    }
   }
 
-  function deliveryUnavailable() { return data.outstanding.available === false; }
+  // ----------------------------------------------------------- the lists
+  var STAGES = [['spec', 'Implementing'], ['spec', 'Approved'], ['brief', 'Executing'],
+    ['brief', 'Ready'], ['intent', 'Accepted']];
+
+  function hasNothingBeneath(id) {
+    var r = rec(id);
+    return r !== null && arr(r.children).length === 0 && arr(r.briefs).length === 0 &&
+      arr(r.specs).length === 0;
+  }
+  function stageOf(id) {
+    var type = typeOf(id);
+    var word = statusWord(id);
+    for (var i = 0; i < STAGES.length; i++) {
+      if (STAGES[i][0] === type && STAGES[i][1] === word) {
+        return (type !== 'intent' || hasNothingBeneath(id)) ? i : -1;
+      }
+    }
+    return -1;
+  }
+  function startableIds() {
+    var ids = [];
+    openById.forEach(function (_it, id) { if (stageOf(id) >= 0) { ids.push(id); } });
+    return ids.sort(function (a, b) { return (stageOf(a) - stageOf(b)) || byName(a, b); });
+  }
+  function openCount(id) { return (beneath.get(id) || []).length; }
+  function capabilityIds() {
+    return recordIds.filter(function (id) {
+      return (rec(id).level || '') === 'capability' && openCount(id) > 0;
+    }).sort(function (a, b) { return (openCount(b) - openCount(a)) || byName(a, b); });
+  }
+  function noParentIds() {
+    if (deliveryUnavailable()) { return []; }
+    return arr(data.outstanding.no_parent).filter(function (it) {
+      return isObj(it) && isStr(it.id) && nodes.has(it.id);
+    }).map(function (it) { return it.id; });
+  }
+  function brokenEntries() {
+    var list = [];
+    data.edges.forEach(function (e) {
+      if (e.state) { list.push({ holder: e.from, edge: e }); }
+    });
+    if (!deliveryUnavailable()) {
+      recordIds.forEach(function (id) {
+        arr(rec(id).delivery_diagnostics).forEach(function (d) {
+          if (isObj(d)) { list.push({ holder: id, diag: d }); }
+        });
+      });
+    }
+    return list.sort(function (a, b) { return byName(a.holder, b.holder); });
+  }
+
+  function questionCount(key) {
+    if (key === 'browse') { return recordIds.length; }
+    if (key === 'broken') { return brokenEntries().length; }
+    if (deliveryUnavailable()) { return null; }
+    if (key === 'next') { return startableIds().length; }
+    if (key === 'capabilities') { return capabilityIds().length; }
+    return noParentIds().length;
+  }
 
   // --------------------------------------------------------------- routing
+  function question(key) {
+    for (var i = 0; i < QUESTIONS.length; i++) { if (QUESTIONS[i].key === key) { return QUESTIONS[i]; } }
+    return QUESTIONS[0];
+  }
   function parseRoute() {
     var p = new URLSearchParams(location.hash.replace(/^#/, ''));
-    var view = p.get('view');
-    var known = VIEWS.some(function (v) { return v.key === view; });
-    return {
-      view: known ? view : 'tree',
-      node: p.get('node') || '',
-      q: p.get('q') || '',
-      level: p.get('level') || '',
-      kind: p.get('kind') || '',
-      status: p.get('status') || ''
-    };
+    var route = {};
+    ROUTE_KEYS.forEach(function (k) { route[k] = p.get(k) || ''; });
+    route.q = question(route.q).key;
+    return route;
   }
-
   function hashFor(over) {
     var r = Object.assign({}, current, over);
     var p = new URLSearchParams();
-    p.set('view', r.view);
-    ['node', 'q', 'level', 'kind', 'status'].forEach(function (k) {
-      if (r[k]) { p.set(k, r[k]); }
-    });
+    ROUTE_KEYS.forEach(function (k) { if (r[k]) { p.set(k, r[k]); } });
     return '#' + p.toString();
   }
-
-  function hasFilters(r) { return FILTER_KEYS.some(function (k) { return r[k] !== ''; }); }
+  function replaceRoute(over) {
+    history.replaceState(null, '', hashFor(over));
+    handleRoute();
+  }
+  function questionHash(key) {
+    var over = { q: key, node: '', search: '' };
+    FILTER_KEYS.forEach(function (k) { over[k] = ''; });
+    return hashFor(over);
+  }
 
   // ------------------------------------------------------------ small parts
   function helpId(kind, key) { return 'help-' + kind + '-' + key; }
@@ -226,18 +433,13 @@
     var chip = el('span', 'chip label-' + kind, key);
     // The key stays the visible text; its plain-words sentence is the chip's description.
     chip.setAttribute('aria-describedby', helpId(kind, key));
-    chip.setAttribute('title', own(table, key));
     return chip;
   }
-  function stateChip(key) {
-    return labelChip(STATE_HELP, 'state', key);
-  }
-  function trustChip(key) {
-    return labelChip(TRUST_HELP, 'trust', key);
-  }
+  function stateChip(key) { return labelChip(STATE_HELP, 'state', key); }
+  function trustChip(key) { return labelChip(TRUST_HELP, 'trust', key); }
 
   function nodeLink(id, cls) {
-    var a = el('a', cls || 'node-link', id);
+    var a = el('a', cls || 'node-link', displayName(id));
     a.setAttribute('href', hashFor({ node: id }));
     a.setAttribute('data-node', id);
     return a;
@@ -245,18 +447,10 @@
   function outsideRef(id) {
     var s = el('span', 'outside');
     add(s, el('span', 'value', id));
-    add(s, el('span', 'mark mark-outside', 'outside this export'));
+    add(s, el('span', 'note-inline', 'outside this export'));
     return s;
   }
-  function nodeRef(id, cls) {
-    return nodes.has(id) ? nodeLink(id, cls) : outsideRef(id);
-  }
-  function viewLink(key, name) {
-    var a = el('a', 'view-link', name);
-    a.setAttribute('href', hashFor({ view: key }));
-    a.setAttribute('data-view', key);
-    return a;
-  }
+  function nodeRef(id, cls) { return nodes.has(id) ? nodeLink(id, cls) : outsideRef(id); }
 
   function edgeValue(e) {
     if (isStr(e.value)) { return e.value; }
@@ -270,18 +464,17 @@
 
   function edgeItem(e, withSource) {
     var li = el('li', 'edge');
-    var line = add(li, el('div', 'row'));
+    var line = add(li, el('div', 'edge-line'));
     if (withSource) { add(line, nodeRef(e.from, 'node-link')); }
-    add(line, el('span', 'value field', isStr(e.field) ? e.field : ''));
+    add(line, el('span', 'field', isStr(e.field) ? e.field : ''));
     if (e.state) {
-      add(line, el('code', 'value pointer-value', edgeValue(e)));
+      add(line, el('code', 'value', edgeValue(e)));
       var sc = stateChip(e.state);
-      if (sc) { add(line, sc); } else { add(line, el('span', 'value', String(e.state))); }
-      add(line, el('span', 'mark mark-refused', 'refused'));
+      add(line, sc || el('span', 'value', String(e.state)));
     } else if (isStr(e.to)) {
       add(line, nodeRef(e.to, 'node-link'));
     } else {
-      add(line, el('code', 'value pointer-value', edgeValue(e)));
+      add(line, el('code', 'value', edgeValue(e)));
     }
     var tc = trustChip(e.trust_class);
     if (tc) { add(line, tc); }
@@ -298,14 +491,13 @@
 
   function relationItem(rel) {
     var li = el('li', 'edge');
-    var line = add(li, el('div', 'row'));
-    add(line, el('span', 'value field', isStr(rel.type) ? rel.type : ''));
+    var line = add(li, el('div', 'edge-line'));
+    add(line, el('span', 'field', isStr(rel.type) ? rel.type : ''));
     [['intent', 'Intent'], ['brief', 'Brief'], ['spec', 'Spec']].forEach(function (pair) {
       var id = rel[pair[0]];
       if (!isStr(id)) { return; }
-      var part = add(line, el('span', 'part'));
-      add(part, el('span', 'part-name', pair[1]));
-      add(part, nodeRef(pair[0] === 'intent' ? intentNodeId(id) : id, 'node-link'));
+      add(line, el('span', 'part-name', pair[1]));
+      add(line, nodeRef(pair[0] === 'intent' ? intentNodeId(id) : id, 'node-link'));
     });
     if (isStr(rel.route)) { add(line, el('span', 'value', 'route ' + rel.route)); }
     var tc = trustChip(rel.trust_class);
@@ -313,85 +505,164 @@
     return li;
   }
 
-  // ------------------------------------------------------------ source link
   function sourceBlock(id) {
-    var wrap = el('span', 'source');
+    var wrap = el('p', 'source');
     var link = own(data.source_links, id);
     var n = nodes.get(id) || {};
     var url = isObj(link) && isStr(link.url) ? link.url : '';
     var kind = isObj(link) ? link.kind : '';
+    var path = isObj(link) && isStr(link.path) ? link.path : (n.path || '');
     if ((kind === 'commit' || kind === 'latest') && url.indexOf(GITHUB_PREFIX) === 0) {
       var a = add(wrap, el('a', 'source-link', 'Open on GitHub'));
       a.setAttribute('href', url);
       a.setAttribute('rel', 'noopener noreferrer');
-      add(wrap, el('span', 'value', isStr(link.path) ? link.path : ''));
+      add(wrap, el('span', 'value', path));
       if (kind === 'latest') {
-        add(wrap, el('span', 'mark mark-latest', 'may be newer than this export'));
+        add(wrap, markEl('stale', 'may be newer than this export'));
       } else if (isStr(data.provenance.commit)) {
-        add(wrap, el('span', 'mark', 'at commit ' + data.provenance.commit.slice(0, 12)));
+        add(wrap, el('span', 'note-inline', 'at commit ' + data.provenance.commit.slice(0, 12)));
       }
     } else {
-      add(wrap, el('span', 'value', isObj(link) && isStr(link.path) ? link.path : (n.path || '')));
-      add(wrap, el('span', 'mark', 'no link available'));
+      add(wrap, el('span', 'value', path));
+      add(wrap, el('span', 'note-inline', 'no link available'));
     }
     return wrap;
   }
 
-  // ----------------------------------------------------------------- list
-  function intentRow(id, withToggle, seen) {
-    var r = rec(id) || {};
-    var n = nodes.get(id) || {};
-    var li = el('li', 'item');
-    var row = add(li, el('div', 'row'));
-    var kids = withToggle ? (kidsOf.get(id) || []) : [];
-    var sub = null;
-    var toggle = null;
-    if (kids.length) {
-      toggle = add(row, el('button', 'toggle'));
-      toggle.setAttribute('type', 'button');
-      toggle.setAttribute('aria-expanded', 'false');
-      text(toggle, 'Children (' + kids.length + ')');
-      add(toggle, el('span', 'visually-hidden', ' of ' + id));
-    } else if (withToggle) {
-      // Keep the id column aligned with rows that have a toggle.
-      add(row, el('span', 'toggle-spacer')).setAttribute('aria-hidden', 'true');
+  // ------------------------------------------------------------------ rows
+  function contextText(id) {
+    var type = typeOf(id);
+    var label = own(TYPE_NAMES, type) || type;
+    var r = rec(id);
+    if (r) { label += ' \u00B7 ' + (r.level || 'unrecorded'); }
+    var lists = ancestorLists(id);
+    if (lists.length && lists[0].length && isObj(lists[0][0]) && isStr(lists[0][0].id)) {
+      var up = lists[0][0].id;
+      label += ' \u00B7 under ' + (nodes.has(up) ? displayName(up) : up + ' outside this export');
     }
-    var link = add(row, nodeLink(id, 'node-link row-link'));
-    // A row built later, when a subtree opens, still shows the current selection.
-    if (current !== null && current.node === id) { link.setAttribute('aria-current', 'true'); }
-    if (n.heading) { add(row, el('span', 'f-heading', n.heading)); }
-    add(row, el('span', 'chip f-level', r.level || 'unrecorded'));
-    if (r.kind) { add(row, el('span', 'chip f-kind', r.kind)); }
-    add(row, el('span', 'chip f-status', r.status || ''));
-    var pe = r.parent_edge;
-    if (isObj(pe) && pe.state) {
-      add(row, el('span', 'mark mark-refused f-refused', 'refused parent'));
-      var sc = stateChip(pe.state);
-      if (sc) { add(row, sc); }
+    if (r && isObj(r.parent_edge) && r.parent_edge.state) {
+      var st = r.parent_edge.state;
+      label += ' \u00B7 refused parent: ' + (own(STATE_HELP, st) !== undefined ? st : 'unrecognised');
     }
-    if (toggle) {
-      var setOpen = function (open) {
-        if (open && sub === null) { sub = buildSubtree(id, seen); li.appendChild(sub); }
-        if (sub !== null) { sub.hidden = !open; }
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if (open) { expanded.add(id); } else { expanded.delete(id); }
-      };
-      toggle.addEventListener('click', function () {
-        setOpen(toggle.getAttribute('aria-expanded') !== 'true');
-      });
-      if (expanded.has(id)) { setOpen(true); }
-    }
-    return li;
+    return label;
   }
 
-  function buildSubtree(id, seen) {
-    var ul = el('ul', 'tree subtree');
-    (kidsOf.get(id) || []).forEach(function (kid) {
-      if (seen.has(kid)) { return; }
-      seen.add(kid);
-      add(ul, intentRow(kid, true, seen));
-    });
+  function rowLink(id, mark, context) {
+    var a = el('a', 'row-link');
+    a.setAttribute('href', hashFor({ node: id }));
+    a.setAttribute('data-node', id);
+    add(a, el('span', 'c-name', displayName(id)));
+    var state = add(a, el('span', 'c-state'));
+    add(state, mark);
+    add(a, el('span', 'c-context', context));
+    if (current !== null && current.node === id) { a.setAttribute('aria-current', 'true'); }
+    return a;
+  }
+  function itemRow(id) {
+    var li = el('li', 'row');
+    add(li, rowLink(id, stateMark(id), contextText(id)));
+    return li;
+  }
+  function rows(ids) {
+    var ul = el('ul', 'rows');
+    ids.forEach(function (id) { add(ul, itemRow(id)); });
     return ul;
+  }
+
+  // ------------------------------------------------------------- list bodies
+  function unavailableStatement() {
+    var p = el('p', 'notice');
+    text(p, 'Can\'t list open work: delivery mapping incomplete. Reason: ');
+    add(p, el('span', 'value', isStr(data.outstanding.reason) ? data.outstanding.reason : 'unknown'));
+    if (data.outstanding.limit !== undefined && data.outstanding.limit !== null) {
+      text(p, ', limit ');
+      add(p, el('span', 'value', String(data.outstanding.limit)));
+    }
+    text(p, '.');
+    return p;
+  }
+  function emptyLine(message) { return el('p', 'empty', message); }
+
+  function grouped(ids) {
+    var frag = document.createDocumentFragment();
+    TYPE_GROUPS.forEach(function (pair) {
+      var these = ids.filter(function (id) { return typeOf(id) === pair[0]; }).sort(byName);
+      if (!these.length) { return; }
+      add(frag, el('h3', 'group-head', pair[1]));
+      add(frag, rows(these));
+    });
+    return frag;
+  }
+
+  function filterOptions(key, ids) {
+    var values = new Set();
+    ids.forEach(function (id) {
+      var r = rec(id);
+      if (key === 'type') { values.add(typeOf(id)); }
+      if (key === 'level' && r) { values.add(r.level || 'unrecorded'); }
+      if (key === 'kind' && r && r.kind) { values.add(r.kind); }
+      if (key === 'status' && r) { values.add(r.status || ''); }
+    });
+    return Array.from(values).sort(cmp);
+  }
+  function passes(id, route) {
+    var r = rec(id);
+    if (route.type && typeOf(id) !== route.type) { return false; }
+    if (route.level && (!r || (r.level || 'unrecorded').toLowerCase() !== route.level.toLowerCase())) {
+      return false;
+    }
+    if (route.kind && (!r || (r.kind || '').toLowerCase() !== route.kind.toLowerCase())) { return false; }
+    if (route.status && (!r || (r.status || '') !== route.status)) { return false; }
+    return true;
+  }
+  function activeFilters(route, q) {
+    return (q.filters || []).filter(function (k) { return route[k] !== ''; });
+  }
+  function describeFilters(route, keys) {
+    return keys.map(function (k) { return FILTER_LABELS[k][0].toLowerCase() + ' "' + route[k] + '"'; })
+      .join(', ');
+  }
+  function clearControl(label, over, focusTarget) {
+    var b = button('action', label);
+    b.addEventListener('click', function () {
+      replaceRoute(over);
+      focusTarget().focus();
+    });
+    return b;
+  }
+  function filteredEmpty(route, keys) {
+    var box = el('div', 'empty');
+    add(box, el('p', '', 'Nothing matches ' + describeFilters(route, keys) + '.'));
+    var over = {};
+    FILTER_KEYS.forEach(function (k) { over[k] = ''; });
+    add(box, clearControl('Clear filters', over, function () { return dom.list; }));
+    return box;
+  }
+
+  function buildFilters(q, route, pool) {
+    clear(dom.filters);
+    var keys = q.filters || [];
+    dom.filters.hidden = keys.length === 0 || route.search !== '';
+    keys.forEach(function (key) {
+      var field = add(dom.filters, el('div', 'field'));
+      var id = 'filter-' + key;
+      var label = add(field, el('label', '', FILTER_LABELS[key][0]));
+      label.setAttribute('for', id);
+      var select = add(field, el('select', 'control'));
+      select.setAttribute('id', id);
+      var first = add(select, el('option', '', FILTER_LABELS[key][1]));
+      first.setAttribute('value', '');
+      filterOptions(key, pool).forEach(function (v) {
+        var o = add(select, el('option', '', key === 'type' ? (own(TYPE_NAMES, v) || v) : v));
+        o.setAttribute('value', v);
+      });
+      select.value = route[key];
+      select.addEventListener('change', function () {
+        var over = {};
+        over[key] = select.value;
+        replaceRoute(over);
+      });
+    });
   }
 
   function treeRoots() {
@@ -411,548 +682,512 @@
     recordIds.forEach(function (id2) {
       if (!reach.has(id2)) { roots.push(id2); reach.add(id2); }
     });
-    return roots.sort(byId);
+    return roots.sort(byName);
   }
 
-  function matchesFilters(id, route) {
-    var r = rec(id) || {};
-    var n = nodes.get(id) || {};
-    if (route.level && (r.level || 'unrecorded').toLowerCase() !== route.level.toLowerCase()) {
-      return false;
-    }
-    if (route.kind && (r.kind || '').toLowerCase() !== route.kind.toLowerCase()) { return false; }
-    if (route.status && (r.status || '') !== route.status) { return false; }
-    if (route.q) {
-      var want = route.q.toLowerCase();
-      var slug = (n.slug || '').toLowerCase();
-      var heading = (n.heading || '').toLowerCase();
-      if (slug.indexOf(want) === -1 && heading.indexOf(want) === -1) { return false; }
-    }
-    return true;
-  }
-
-  function describeFilters(route) {
-    var parts = [];
-    if (route.q) { parts.push('search "' + route.q + '"'); }
-    if (route.level) { parts.push('level ' + route.level); }
-    if (route.kind) { parts.push('kind ' + route.kind); }
-    if (route.status) { parts.push('status "' + route.status + '"'); }
-    return parts.join(', ');
-  }
-
-  function plainList(cls) { return el('ul', cls || 'tree'); }
-
-  function emptyMessage(message) {
-    var p = el('p', 'empty', message);
-    return p;
-  }
-
-  function filteredEmpty(route) {
-    var box = el('div', 'empty');
-    add(box, el('p', '', 'No results. These filters emptied the list: ' + describeFilters(route) + '.'));
-    var b = add(box, el('button', 'action', 'Clear filters'));
-    b.setAttribute('type', 'button');
-    b.addEventListener('click', function () {
-      replaceRoute({ q: '', level: '', kind: '', status: '' });
-      dom.q.focus();
-    });
-    return box;
-  }
-
-  function filterNote(route, shown, total, what) {
-    return el('p', 'note', 'Filters apply to intents. Showing ' + shown + ' of ' + total + ' ' +
-      what + ' for ' + describeFilters(route) + '.');
-  }
-
-  // Each view renderer returns { count, noun }.
-  function renderTree(route) {
-    var filtered = hasFilters(route);
-    if (recordIds.length === 0) {
-      dom.list.appendChild(emptyMessage('No intents were found in docs/product/intents.'));
-      return { count: 0 };
-    }
-    if (filtered) {
-      var ids = recordIds.filter(function (id) { return matchesFilters(id, route); });
-      if (ids.length === 0) { dom.list.appendChild(filteredEmpty(route)); return { count: 0 }; }
-      dom.list.appendChild(filterNote(route, ids.length, recordIds.length, 'intents'));
-      var flat = add(dom.list, plainList());
-      ids.forEach(function (id) { add(flat, intentRow(id, false, new Set())); });
-      return { count: ids.length };
-    }
-    var seen = new Set();
-    var ul = add(dom.list, plainList());
-    treeRoots().forEach(function (id) {
-      seen.add(id);
-      add(ul, intentRow(id, true, seen));
-    });
-    return { count: recordIds.length };
-  }
-
-  function renderParentless(route) {
-    var base = recordIds.filter(function (id) { return resolvedParent(rec(id)) === null; });
-    if (base.length === 0) {
-      dom.list.appendChild(emptyMessage('Every intent has a parent.'));
-      return { count: 0 };
-    }
-    var ids = base.filter(function (id) { return matchesFilters(id, route); });
-    if (ids.length === 0) { dom.list.appendChild(filteredEmpty(route)); return { count: 0 }; }
-    if (hasFilters(route)) {
-      dom.list.appendChild(filterNote(route, ids.length, base.length, 'parentless intents'));
-    }
-    var ul = add(dom.list, plainList());
-    ids.forEach(function (id) { add(ul, intentRow(id, false, new Set())); });
-    return { count: ids.length };
-  }
-
-  function unavailableStatement() {
-    var p = el('p', 'notice');
-    text(p, 'Delivery mapping was unavailable, so this export holds no delivery facts. Reason: ');
-    add(p, el('span', 'value', isStr(data.outstanding.reason) ? data.outstanding.reason : ''));
-    if (data.outstanding.limit !== undefined && data.outstanding.limit !== null) {
-      text(p, ', limit ');
-      add(p, el('span', 'value', String(data.outstanding.limit)));
-    }
-    text(p, '.');
-    return p;
-  }
-
-  function chain(ancestors) {
-    var wrap = el('div', 'chain');
-    add(wrap, el('span', 'part-name', 'Under'));
-    var list = Array.isArray(ancestors) ? ancestors.slice().reverse() : [];
-    if (list.length === 0) { add(wrap, el('span', 'value', 'nothing')); return wrap; }
-    list.forEach(function (a, i) {
-      if (i > 0) { add(wrap, el('span', 'sep', '\u203A')); }
-      if (!isObj(a) || !isStr(a.id)) { return; }
-      var part = add(wrap, el('span', 'part'));
-      add(part, nodeRef(a.id, 'node-link'));
-      if (a.terminal) { add(part, el('span', 'mark mark-terminal', 'terminal')); }
-    });
-    return wrap;
-  }
-
-  function outstandingItem(it) {
-    var li = el('li', 'item');
-    var row = add(li, el('div', 'row'));
-    add(row, nodeRef(it.id, 'node-link row-link'));
-    add(row, el('span', 'chip f-type', it.type || ''));
-    add(row, el('span', 'chip f-status', it.status || ''));
-    if (it.type === 'intent') {
-      add(row, el('span', 'chip f-level', it.level || 'unrecorded'));
-      if (it.kind) { add(row, el('span', 'chip f-kind', it.kind)); }
-    }
-    if (it.type === 'spec') {
-      var ul = add(li, el('ul', 'placements'));
-      (Array.isArray(it.placements) ? it.placements : []).forEach(function (pl) {
-        var pli = add(ul, el('li', 'placement'));
-        var prow = add(pli, el('div', 'row'));
-        add(prow, el('span', 'value field', pl.pointer_field || 'no pointer'));
-        var pe = pl.parent_edge;
-        if (isObj(pe) && pe.state) {
-          add(prow, el('code', 'value pointer-value', edgeValue(pe)));
-          var sc = stateChip(pe.state);
-          if (sc) { add(prow, sc); }
-          add(prow, el('span', 'mark mark-refused', 'refused'));
-        } else if (pl.ancestors && pl.ancestors.length) {
-          add(pli, chain(pl.ancestors));
-        }
-        if (isStr(pl.relation_type)) { add(prow, el('span', 'value', pl.relation_type)); }
-      });
+  function treeRow(id, seen) {
+    var li = el('li', 'row tree-row');
+    var kids = kidsOf.get(id) || [];
+    var sub = null;
+    var toggle = null;
+    if (kids.length) {
+      toggle = add(li, button('toggle'));
+      toggle.setAttribute('aria-expanded', 'false');
+      var g = add(toggle, el('span', 'toggle-g', '\u25B8'));
+      g.setAttribute('aria-hidden', 'true');
+      add(toggle, el('span', 'visually-hidden', 'Show ' + kids.length + ' beneath ' + displayName(id)));
     } else {
-      var pe2 = it.parent_edge;
-      if (isObj(pe2) && pe2.state) {
-        var prow2 = add(li, el('div', 'row'));
-        add(prow2, el('span', 'value field', 'Parent intent'));
-        add(prow2, el('code', 'value pointer-value', edgeValue(pe2)));
-        var sc2 = stateChip(pe2.state);
-        if (sc2) { add(prow2, sc2); }
-        add(prow2, el('span', 'mark mark-refused', 'refused'));
-      } else if (Array.isArray(it.ancestors) && it.ancestors.length) {
-        add(li, chain(it.ancestors));
-      } else {
-        add(li, el('p', 'note', 'No parent.'));
-      }
-      (Array.isArray(it.refused_parent_edges) ? it.refused_parent_edges : []).forEach(function (e) {
-        var rrow = add(li, el('div', 'row'));
-        add(rrow, el('span', 'value field', 'Parent intent'));
-        add(rrow, el('code', 'value pointer-value', edgeValue(e)));
-        var sc3 = stateChip(e.state);
-        if (sc3) { add(rrow, sc3); }
-        add(rrow, el('span', 'mark mark-refused', 'refused'));
+      add(li, el('span', 'toggle-spacer')).setAttribute('aria-hidden', 'true');
+    }
+    add(li, rowLink(id, stateMark(id), contextText(id)));
+    if (toggle) {
+      var setOpen = function (open) {
+        if (open && sub === null) {
+          sub = el('ul', 'rows subtree');
+          kids.forEach(function (kid) {
+            if (seen.has(kid)) { return; }
+            seen.add(kid);
+            add(sub, treeRow(kid, seen));
+          });
+          li.appendChild(sub);
+        }
+        if (sub !== null) { sub.hidden = !open; }
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.firstChild.textContent = open ? '\u25BE' : '\u25B8';
+        if (open) { expanded.add(id); } else { expanded.delete(id); }
+      };
+      toggle.addEventListener('click', function () {
+        setOpen(toggle.getAttribute('aria-expanded') !== 'true');
       });
+      if (expanded.has(id)) { setOpen(true); }
     }
     return li;
   }
 
-  function renderOutstanding(route) {
-    if (deliveryUnavailable()) {
-      dom.list.appendChild(unavailableStatement());
-      return { count: 0, unavailable: true };
+  function brokenRow(entry) {
+    var li = el('li', 'row');
+    var context;
+    if (entry.edge) {
+      context = (isStr(entry.edge.field) ? entry.edge.field : 'Pointer') + ': ' +
+        (own(STATE_HELP, entry.edge.state) !== undefined ? entry.edge.state : 'refused');
+    } else {
+      context = 'Delivery diagnostic: ' + (isStr(entry.diag.code) ? entry.diag.code : 'unknown');
     }
-    var filtered = hasFilters(route);
-    function keep(it) {
-      if (!isObj(it) || !isStr(it.id)) { return false; }
-      return !filtered || (it.type === 'intent' && matchesFilters(it.id, route));
-    }
-    var placed = (Array.isArray(data.outstanding.placed) ? data.outstanding.placed : []).filter(keep);
-    var noParent = (Array.isArray(data.outstanding.no_parent) ? data.outstanding.no_parent : []).filter(keep);
-    var baseTotal = (data.outstanding.placed || []).length + (data.outstanding.no_parent || []).length;
-    var total = placed.length + noParent.length;
-    if (baseTotal === 0) {
-      dom.list.appendChild(emptyMessage('Nothing is outstanding.'));
-      return { count: 0 };
-    }
-    dom.list.appendChild(el('p', 'note', 'Filters apply to intents only. Briefs and specs are hidden while a filter is set.'));
-    if (total === 0) { dom.list.appendChild(filteredEmpty(route)); return { count: 0 }; }
-    [['Placed', placed], ['No parent', noParent]].forEach(function (pair) {
-      var sec = add(dom.list, el('section', 'subsection'));
-      add(sec, el('h3', 'subheading', pair[0] + ' (' + pair[1].length + ')'));
-      if (pair[1].length === 0) {
-        add(sec, el('p', 'empty', 'None.'));
-        return;
-      }
-      var ul = add(sec, plainList());
-      pair[1].forEach(function (it) { add(ul, outstandingItem(it)); });
+    add(li, rowLink(entry.holder, markEl('broken', 'Broken'), context));
+    return li;
+  }
+
+  // Each body builder fills dom.list and returns the count it shows.
+  function bodyNext() {
+    if (deliveryUnavailable()) { add(dom.list, unavailableStatement()); return null; }
+    var ids = startableIds();
+    if (!ids.length) { add(dom.list, emptyLine(question('next').empty)); return 0; }
+    add(dom.list, rows(ids));
+    return ids.length;
+  }
+  function bodyCapabilities() {
+    if (deliveryUnavailable()) { add(dom.list, unavailableStatement()); return null; }
+    var ids = capabilityIds();
+    if (!ids.length) { add(dom.list, emptyLine(question('capabilities').empty)); return 0; }
+    var ul = add(dom.list, el('ul', 'rows'));
+    ids.forEach(function (id) {
+      var li = add(ul, el('li', 'row'));
+      add(li, rowLink(id, stateMark(id), openCount(id) + ' open'));
     });
-    return { count: total };
+    return ids.length;
   }
-
-  function renderRefused(route) {
-    var all = data.edges.filter(function (e) { return e.state; });
-    if (all.length === 0) {
-      dom.list.appendChild(emptyMessage('Every pointer resolved.'));
-      return { count: 0 };
+  function bodyNoParent(route) {
+    if (deliveryUnavailable()) { add(dom.list, unavailableStatement()); return null; }
+    var base = noParentIds();
+    buildFilters(question('noparent'), route, base);
+    if (!base.length) { add(dom.list, emptyLine(question('noparent').empty)); return 0; }
+    var ids = base.filter(function (id) { return passes(id, route); });
+    var keys = activeFilters(route, question('noparent'));
+    if (!ids.length) { add(dom.list, filteredEmpty(route, keys)); return 0; }
+    add(dom.list, grouped(ids));
+    return ids.length;
+  }
+  function bodyBroken() {
+    var entries = brokenEntries();
+    if (deliveryUnavailable()) {
+      add(dom.list, el('p', 'notice', 'Delivery diagnostics were unavailable: delivery mapping incomplete. Broken pointers are listed below.'));
     }
-    var filtered = hasFilters(route);
-    var edges = filtered ? all.filter(function (e) {
-      return rec(e.from) !== null && matchesFilters(e.from, route);
-    }) : all;
-    if (edges.length === 0) { dom.list.appendChild(filteredEmpty(route)); return { count: 0 }; }
-    if (filtered) {
-      dom.list.appendChild(filterNote(route, edges.length, all.length, 'refused edges'));
+    if (!entries.length) { add(dom.list, emptyLine(question('broken').empty)); return 0; }
+    var ul = add(dom.list, el('ul', 'rows'));
+    entries.forEach(function (entry) { add(ul, brokenRow(entry)); });
+    return entries.length;
+  }
+  function bodyBrowse(route) {
+    var q = question('browse');
+    buildFilters(q, route, recordIds);
+    if (!recordIds.length) { add(dom.list, emptyLine(q.empty)); return 0; }
+    var keys = activeFilters(route, q);
+    if (keys.length) {
+      var ids = recordIds.filter(function (id) { return passes(id, route); }).sort(byName);
+      if (!ids.length) { add(dom.list, filteredEmpty(route, keys)); return 0; }
+      add(dom.list, rows(ids));
+      return ids.length;
     }
-    var ul = add(dom.list, plainList());
-    edges.forEach(function (e) { add(ul, edgeItem(e, true)); });
-    return { count: edges.length };
+    var seen = new Set();
+    var ul = add(dom.list, el('ul', 'rows tree'));
+    treeRoots().forEach(function (id) {
+      seen.add(id);
+      add(ul, treeRow(id, seen));
+    });
+    return recordIds.length;
   }
-
-  var RENDERERS = {
-    tree: renderTree,
-    outstanding: renderOutstanding,
-    refused: renderRefused,
-    parentless: renderParentless
-  };
-
-  function viewName(key) {
-    for (var i = 0; i < VIEWS.length; i++) { if (VIEWS[i].key === key) { return VIEWS[i]; } }
-    return VIEWS[0];
-  }
-
-  function markSelected(route) {
-    var rows = dom.list.querySelectorAll('a.row-link');
-    for (var i = 0; i < rows.length; i++) {
-      if (rows[i].getAttribute('data-node') === route.node) {
-        rows[i].setAttribute('aria-current', 'true');
-      } else {
-        rows[i].removeAttribute('aria-current');
-      }
+  function bodySearch(route) {
+    var want = route.search.toLowerCase();
+    var ids = data.nodes.filter(function (n) {
+      return slugOf(n).toLowerCase().indexOf(want) !== -1 ||
+        (isStr(n.heading) ? n.heading : '').toLowerCase().indexOf(want) !== -1;
+    }).map(function (n) { return n.id; }).sort(byName);
+    if (!ids.length) {
+      var box = add(dom.list, el('div', 'empty'));
+      add(box, el('p', '', 'Nothing matches the search "' + route.search + '".'));
+      add(box, clearControl('Clear search', { search: '' }, function () { return dom.search; }));
+      return 0;
     }
+    add(dom.list, rows(ids));
+    return ids.length;
   }
+  var BODIES = { next: bodyNext, capabilities: bodyCapabilities, noparent: bodyNoParent,
+    broken: bodyBroken, browse: bodyBrowse };
+
+  function emptyCorpus() { return data.nodes.length === 0; }
 
   function renderList(route, announce) {
-    var view = viewName(route.view);
+    var q = question(route.q);
     clear(dom.list);
-    dom.viewHeading.textContent = view.name;
-    var result = RENDERERS[view.key](route);
-    var summary;
-    if (result.unavailable) {
-      summary = 'delivery mapping unavailable';
+    clear(dom.filters);
+    dom.filters.hidden = true;
+    var count;
+    if (route.search !== '') {
+      dom.listTitle.textContent = escapeDisplay('Search results for "' + route.search + '"');
+      dom.listLead.textContent = 'Intents, briefs and specs whose name or id contains the search.';
+      dom.listSort.textContent = 'By name';
+      count = bodySearch(route);
+    } else if (emptyCorpus()) {
+      dom.listTitle.textContent = q.title;
+      dom.listLead.textContent = q.key === 'next' ? q.lead : '';
+      dom.listSort.textContent = q.sort;
+      var box = add(dom.list, el('div', 'empty'));
+      add(box, el('p', '', 'No intents, briefs or specs found under this root.'));
+      add(box, el('p', 'note', 'The export reads docs/product/intents, docs/product/briefs and docs/specs.'));
+      count = 0;
     } else {
-      summary = result.count + ' ' + (result.count === 1 ? view.noun.replace(/s$/, '') : view.noun);
+      dom.listTitle.textContent = q.title;
+      dom.listLead.textContent = q.lead;
+      dom.listSort.textContent = q.sort;
+      count = BODIES[q.key](route);
     }
-    dom.viewCount.textContent = summary;
-    markSelected(route);
+    var noun = route.search !== '' ? ['result', 'results'] : q.noun;
+    dom.listCount.textContent = count === null ? 'Count unavailable' : plural(count, noun);
     if (announce) {
-      clearTimeout(pendingLive);
-      dom.live.textContent = view.name + ' view, ' + summary;
+      dom.live.textContent = escapeDisplay(dom.listTitle.textContent + ', ' + dom.listCount.textContent);
     }
     performance.mark('list-updated');
   }
 
-  // --------------------------------------------------------------- detail
+  function markSelected(route) {
+    var links = dom.list.querySelectorAll('a.row-link');
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute('data-node') === route.node) {
+        links[i].setAttribute('aria-current', 'true');
+      } else {
+        links[i].removeAttribute('aria-current');
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- detail
+  function nextStep(id) {
+    if (deliveryUnavailable()) {
+      return 'No next step shown: delivery mapping was incomplete, so this snapshot cannot tell what is open.';
+    }
+    var type = typeOf(id);
+    var word = statusWord(id);
+    if (!isOpen(id)) { return 'Nothing to do. It is ' + (word !== '' ? word : 'not open') + '.'; }
+    if (type === 'spec') {
+      if (word === 'Implementing') { return 'Continue building it with the work-loop skill. It is already being built.'; }
+      if (word === 'Approved') { return 'Build it with the work-loop skill. It is approved, and work-loop checks readiness before it starts.'; }
+      return 'Finish the spec with the new-spec skill. It needs approval before it is built.';
+    }
+    if (type === 'brief') {
+      return 'Work on it with the author-delivery-brief skill in continue mode. Briefs are delivered through their slices.';
+    }
+    if (word === 'Accepted') {
+      if (hasNothingBeneath(id)) {
+        return 'Decompose it with the intent skill. It is accepted but has nothing beneath it yet.';
+      }
+      return openCount(id) > 0 ? 'Pick an item from Open beneath. Its work is already decomposed.' :
+        'Close it with the close-work skill if its outcome is met. Everything beneath it is finished.';
+    }
+    return 'Keep shaping it with the intent skill. It is not accepted yet.';
+  }
+
+  function brokenOf(id) {
+    var list = (edgesFrom.get(id) || []).filter(function (e) { return e.state; })
+      .map(function (e) { return { holder: id, edge: e }; });
+    if (!deliveryUnavailable() && rec(id)) {
+      arr(rec(id).delivery_diagnostics).forEach(function (d) {
+        if (isObj(d)) { list.push({ holder: id, diag: d }); }
+      });
+    }
+    return list;
+  }
+
+  function part(title) {
+    var sec = add(dom.detailBody, el('section', 'part'));
+    add(sec, el('h3', 'part-head', title));
+    return sec;
+  }
+
+  function stateLine(id) {
+    var p = el('p', 'state-line');
+    add(p, stateMark(id));
+    var open = deliveryUnavailable() ? null : openCount(id);
+    text(p, ' \u00B7 ' + (own(TYPE_NAMES, typeOf(id)) || typeOf(id)) + ' \u00B7 ' +
+      (open === null ? 'open work unknown' : open + ' open beneath') + ' \u00B7 ' +
+      brokenOf(id).length + ' broken');
+    return p;
+  }
+
+  function factList(dl, name, value) {
+    var row = add(dl, el('div', 'fact'));
+    add(row, el('dt', 'fact-name', name));
+    add(add(row, el('dd', 'fact-value')), el('span', 'value', value));
+  }
   function group(parent, key, build) {
     var sec = add(parent, el('section', 'group'));
-    add(sec, el('h3', 'subheading label-group', own(GROUP_LABELS, key)));
+    add(sec, el('h4', 'group-label label-group', own(GROUP_LABELS, key)));
     build(sec);
-    return sec;
   }
   function groupList(sec, items, make) {
     if (items.length === 0) { add(sec, el('p', 'empty', 'None.')); return; }
-    var ul = add(sec, plainList('plain'));
+    var ul = add(sec, el('ul', 'plain'));
     items.forEach(function (it) { add(ul, make(it)); });
   }
   function refLine(id) {
     var li = el('li', 'edge');
-    add(add(li, el('div', 'row')), nodeRef(id, 'node-link'));
+    add(add(li, el('div', 'edge-line')), nodeRef(id, 'node-link'));
     return li;
   }
-  function fact(dl, name, valueNode) {
-    var row = add(dl, el('div', 'fact'));
-    add(row, el('dt', 'fact-name', name));
-    var dd = add(row, el('dd', 'fact-value'));
-    dd.appendChild(valueNode);
-  }
-  function valueSpan(v) { return el('span', 'value', v); }
 
-  function renderLegend() {
-    var sec = add(dom.legend, el('section', 'group legend'));
-    add(sec, el('h3', 'subheading', 'Legend'));
-    var dl = add(sec, el('dl', 'legend-list'));
-    GROUP_ORDER.forEach(function (key) {
-      var row = add(dl, el('div', 'fact'));
-      add(row, el('dt', 'fact-name label-group', own(GROUP_LABELS, key)));
-      add(row, el('dd', 'fact-value', own(GROUP_HELP, key)));
-    });
-    [['state', STATE_HELP], ['trust', TRUST_HELP]].forEach(function (pair) {
-      Object.keys(pair[1]).forEach(function (key) {
-        var row = add(dl, el('div', 'fact'));
-        add(add(row, el('dt', 'fact-name')), el('span', 'chip label-' + pair[0], key));
-        var dd = add(row, el('dd', 'fact-value', own(pair[1], key)));
-        dd.setAttribute('id', helpId(pair[0], key));
+  function unavailableDetail() {
+    var p = el('p', 'notice');
+    text(p, 'Delivery mapping was unavailable, so this export holds no delivery facts. Reason: ');
+    add(p, el('span', 'value', isStr(data.outstanding.reason) ? data.outstanding.reason : 'unknown'));
+    text(p, '.');
+    return p;
+  }
+
+  function recordDetails(id) {
+    var n = nodes.get(id);
+    var r = rec(id);
+    var box = add(dom.detailBody, el('details', 'record'));
+    add(box, el('summary', '', 'Record details'));
+    var dl = add(box, el('dl', 'facts'));
+    factList(dl, 'Id', id);
+    factList(dl, 'Path', n.path || '');
+    factList(dl, 'Type', n.type || '');
+    if (r) {
+      factList(dl, 'Level', r.level || 'unrecorded');
+      factList(dl, 'Kind', r.kind || 'none recorded');
+    }
+    factList(dl, 'Status', statusOf(id));
+    var unavailable = deliveryUnavailable();
+    if (r) {
+      group(box, 'parent', function (sec) {
+        groupList(sec, isObj(r.parent_edge) ? [r.parent_edge] : [], function (e) { return edgeItem(e, false); });
       });
-    });
-  }
-
-  function rowLinkFor(id) {
-    var rows = dom.list.querySelectorAll('a.row-link');
-    for (var i = 0; i < rows.length; i++) {
-      if (rows[i].getAttribute('data-node') === id) { return rows[i]; }
-    }
-    return null;
-  }
-
-  // Return focus to the selected node's row, opening any collapsed ancestors first.
-  function backToList(id) {
-    var chain = [];
-    var seen = new Set();
-    var up = resolvedParent(rec(id));
-    while (up !== null && !seen.has(up) && own(data.records, up) !== undefined) {
-      seen.add(up);
-      chain.unshift(up);
-      up = resolvedParent(rec(up));
-    }
-    chain.forEach(function (ancestor) {
-      var link = rowLinkFor(ancestor);
-      var toggle = link ? link.parentNode.querySelector('button.toggle') : null;
-      if (toggle && toggle.getAttribute('aria-expanded') !== 'true') { toggle.click(); }
-    });
-    var target = rowLinkFor(id);
-    if (target) {
-      target.focus();
+      group(box, 'children', function (sec) { groupList(sec, arr(r.children), refLine); });
+      group(box, 'briefs', function (sec) { groupList(sec, arr(r.briefs), refLine); });
+      group(box, 'specs', function (sec) { groupList(sec, arr(r.specs), refLine); });
+      if (unavailable) {
+        add(box, unavailableDetail());
+      } else {
+        group(box, 'relations', function (sec) { groupList(sec, arr(r.delivery_relations), relationItem); });
+        group(box, 'diagnostics', function (sec) {
+          groupList(sec, arr(r.delivery_diagnostics), function (d) {
+            var li = el('li', 'edge');
+            add(add(li, el('div', 'edge-line')), el('span', 'value', describe(d)));
+            return li;
+          });
+        });
+      }
+      group(box, 'relatedHere', function (sec) {
+        groupList(sec, arr(r.related_written_here), function (e) { return edgeItem(e, false); });
+      });
+      group(box, 'relatedElsewhere', function (sec) {
+        groupList(sec, arr(r.related_written_elsewhere), function (e) { return edgeItem(e, true); });
+      });
     } else {
-      dom.viewHeading.focus();
-      dom.live.textContent = '';
-      // A later task, so a screen reader sees the cleared region change before the new text.
-      // A later announcement cancels this one, so stale text never replaces it.
-      clearTimeout(pendingLive);
-      pendingLive = setTimeout(function () { dom.live.textContent = 'This item is not in the current list.'; }, 50);
+      group(box, 'pointers', function (sec) {
+        groupList(sec, edgesFrom.get(id) || [], function (e) { return edgeItem(e, false); });
+      });
+      if (unavailable) {
+        add(box, unavailableDetail());
+      } else {
+        group(box, 'relations', function (sec) { groupList(sec, relsByNode.get(id) || [], relationItem); });
+      }
     }
   }
 
   function renderDetail(route) {
     clear(dom.detailBody);
     var id = route.node;
-    dom.detailHeading.textContent = escapeDisplay(id || 'Details');
+    dom.main.toggleAttribute('data-picked', id !== '' && nodes.has(id));
     if (!id) {
-      add(dom.detailBody, el('p', 'note', 'Select an intent, brief, or spec to see its facts and edges.'));
+      dom.detailHeading.textContent = 'Details';
+      add(dom.detailBody, el('p', 'note', 'Pick an item to see its next step.'));
       return;
     }
-    var n = nodes.get(id);
-    if (!n) {
-      add(dom.detailBody, el('p', 'note', 'This node is not in the export.'));
+    if (!nodes.has(id)) {
+      dom.detailHeading.textContent = 'Details';
+      add(dom.detailBody, el('p', 'note', 'That item is not in this snapshot.'));
       return;
     }
-    var r = rec(id);
-    var back = add(dom.detailBody, el('button', 'action back-link', 'Back to list'));
-    back.setAttribute('type', 'button');
-    add(back, el('span', 'visually-hidden', ' (row ' + id + ')'));
+    dom.detailHeading.textContent = escapeDisplay(displayName(id));
+    var back = add(dom.detailBody, button('action back-link', 'Back to list'));
     back.addEventListener('click', function () { backToList(id); });
-    var dl = add(dom.detailBody, el('dl', 'facts'));
-    if (n.heading) { fact(dl, 'Heading', el('span', '', n.heading)); }
-    fact(dl, 'Path', valueSpan(n.path || ''));
-    fact(dl, 'Type', valueSpan(n.type || ''));
-    if (r) {
-      fact(dl, 'Level', valueSpan(r.level || 'unrecorded'));
-      fact(dl, 'Kind', valueSpan(r.kind || 'none recorded'));
-    }
-    fact(dl, 'Status', valueSpan(r ? (r.status || '') : (n.status || '')));
-    fact(dl, 'Source', sourceBlock(id));
+    add(dom.detailBody, stateLine(id));
 
-    var unavailable = deliveryUnavailable();
-    var body = dom.detailBody;
-    if (r) {
-      group(body, 'parent', function (sec) {
-        groupList(sec, isObj(r.parent_edge) ? [r.parent_edge] : [], function (e) { return edgeItem(e, false); });
-      });
-      group(body, 'children', function (sec) { groupList(sec, r.children || [], refLine); });
-      group(body, 'briefs', function (sec) { groupList(sec, r.briefs || [], refLine); });
-      group(body, 'specs', function (sec) { groupList(sec, r.specs || [], refLine); });
-      if (unavailable) {
-        add(body, unavailableStatement());
-      } else {
-        group(body, 'relations', function (sec) {
-          groupList(sec, r.delivery_relations || [], relationItem);
-        });
-        group(body, 'diagnostics', function (sec) {
-          groupList(sec, r.delivery_diagnostics || [], function (d) {
-            var li = el('li', 'edge');
-            add(add(li, el('div', 'row')), el('span', 'value', describe(d)));
-            return li;
-          });
-        });
-      }
-      group(body, 'relatedHere', function (sec) {
-        groupList(sec, r.related_written_here || [], function (e) { return edgeItem(e, false); });
-      });
-      group(body, 'relatedElsewhere', function (sec) {
-        groupList(sec, r.related_written_elsewhere || [], function (e) { return edgeItem(e, true); });
-      });
+    add(part('Next step'), el('p', 'next-step', nextStep(id)));
+
+    var openSec = part('Open beneath');
+    var under = deliveryUnavailable() ? null : (beneath.get(id) || []);
+    if (under === null) {
+      add(openSec, el('p', 'empty', 'Open work unknown: delivery mapping incomplete.'));
+    } else if (!under.length) {
+      add(openSec, el('p', 'empty', 'Nothing open beneath.'));
     } else {
-      group(body, 'pointers', function (sec) {
-        groupList(sec, edgesFrom.get(id) || [], function (e) { return edgeItem(e, false); });
-      });
-      if (unavailable) {
-        add(body, unavailableStatement());
-      } else {
-        group(body, 'relations', function (sec) {
-          groupList(sec, relsByNode.get(id) || [], relationItem);
+      TYPE_GROUPS.forEach(function (pair) {
+        var these = under.filter(function (u) { return typeOf(u) === pair[0]; }).sort(byName);
+        if (!these.length) { return; }
+        add(openSec, el('h4', 'group-label', pair[1]));
+        var ul = add(openSec, el('ul', 'plain'));
+        these.forEach(function (u) {
+          var li = add(ul, el('li', 'edge'));
+          var line = add(li, el('div', 'edge-line'));
+          add(line, nodeLink(u, 'node-link'));
+          add(line, stateMark(u));
         });
-      }
+      });
     }
+
+    var brokenSec = part('What is broken');
+    var broken = brokenOf(id);
+    if (deliveryUnavailable()) { add(brokenSec, el('p', 'note', 'Delivery diagnostics were unavailable.')); }
+    if (!broken.length) {
+      add(brokenSec, el('p', 'empty', 'Nothing broken here.'));
+    } else {
+      var bl = add(brokenSec, el('ul', 'plain'));
+      broken.forEach(function (b) {
+        var li = add(bl, el('li', 'edge'));
+        if (b.edge) {
+          add(li, edgeItem(b.edge, false).firstChild);
+          if (own(STATE_HELP, b.edge.state) !== undefined) {
+            add(li, el('p', 'meaning', own(STATE_HELP, b.edge.state)));
+          }
+        } else {
+          var line = add(li, el('div', 'edge-line'));
+          add(line, el('span', 'field', 'Delivery diagnostic'));
+          add(line, el('span', 'value', isStr(b.diag.code) ? b.diag.code : 'unknown'));
+          add(li, el('p', 'meaning', describe(b.diag)));
+        }
+      });
+    }
+
+    var sits = part('Where it sits');
+    var lists = ancestorLists(id);
+    if (!lists.length) {
+      add(sits, el('p', 'empty', 'No parent.'));
+    } else {
+      lists.forEach(function (list) {
+        var trail = add(sits, el('p', 'trail'));
+        list.slice().reverse().forEach(function (a, i) {
+          if (i > 0) { add(trail, el('span', 'sep', ' \u203A ')).setAttribute('aria-hidden', 'true'); }
+          if (!isObj(a) || !isStr(a.id)) { return; }
+          var step = add(trail, el('span', 'trail-step'));
+          add(step, nodeRef(a.id, 'node-link'));
+          if (nodes.has(a.id)) { text(step, ' '); add(step, stateMark(a.id)); }
+        });
+      });
+    }
+
+    add(part('Open the file'), sourceBlock(id));
+    recordDetails(id);
   }
 
-  // --------------------------------------------------------- page chrome
-  function renderSummary() {
-    var s = data.summary;
-    dom.summaryList.textContent = '';
-    var items = [
-      ['Outstanding items', s.outstanding, 'outstanding'],
-      ['Refused edges', sumValues(s.refused_edges_by_state), 'refused'],
-      ['Parentless intents', s.parentless_intents, 'parentless'],
-      ['Intents', sumValues(s.intents_by_level), 'tree'],
-      ['Briefs', s.briefs, null],
-      ['Specs', s.specs, null]
-    ];
-    items.forEach(function (it) {
-      var li = add(dom.summaryList, el('li', 'stat'));
-      var holder = it[2] ? add(li, el('a', 'stat-link stat-nav')) : add(li, el('span', 'stat-link'));
-      if (it[2]) { holder.setAttribute('href', hashFor({ view: it[2] })); }
-      add(holder, el('span', 'stat-value', String(it[1])));
-      add(holder, el('span', 'stat-label', it[0]));
-    });
-    var scoped = data.scope.from;
-    dom.summaryScope.textContent = isStr(scoped) ? 'These counts cover the whole corpus, not only the scoped subtree.' : 'These counts cover the whole corpus.';
+  function rowLinkFor(id) {
+    var links = dom.list.querySelectorAll('a.row-link');
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute('data-node') === id) { return links[i]; }
+    }
+    return null;
   }
 
+  function backToList(id) {
+    location.hash = hashFor({ node: '' });
+    window.scrollTo(0, listScroll);
+    var target = rowLinkFor(id);
+    (target || dom.listTitle).focus();
+  }
+
+  // ------------------------------------------------------------ page chrome
   // The time to the minute in UTC; any other form is shown as written.
   function generatedText(value) {
     if (!isStr(value) || value === '') { return 'at an unknown time'; }
     var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]00:00)$/.exec(value);
     return m === null ? value : m[1] + ' ' + m[2] + ' UTC';
   }
+  function sumValues(obj) {
+    var total = 0;
+    if (!isObj(obj)) { return total; }
+    Object.keys(obj).forEach(function (k) { if (typeof obj[k] === 'number') { total += obj[k]; } });
+    return total;
+  }
 
   function renderMeta() {
-    var p = data.provenance;
-    dom.meta.textContent = escapeDisplay('Read-only snapshot generated ' + generatedText(p.generated_at) +
-      '. Record text in this file is shown as plain text and is never run.');
-    var from = data.scope.from;
-    if (isStr(from)) {
+    var s = data.summary;
+    var scoped = isStr(data.scope.from);
+    dom.meta.textContent = escapeDisplay('Read-only snapshot generated ' +
+      generatedText(data.provenance.generated_at) + '. ' + sumValues(s.intents_by_level) +
+      ' intents, ' + s.briefs + ' briefs and ' + s.specs + ' specs' +
+      (scoped ? ' in the whole corpus' : '') +
+      '. Record text is shown as plain text and never run.');
+    if (scoped) {
       dom.banner.hidden = false;
       clear(dom.banner);
-      text(dom.banner, 'Scoped export: this file shows ');
-      add(dom.banner, nodeRef(from, 'node-link'));
-      text(dom.banner, ' and every intent beneath it.');
+      text(dom.banner, 'Scoped export: the questions cover ');
+      add(dom.banner, nodeRef(data.scope.from, 'node-link'));
+      text(dom.banner, ' and everything beneath it. The totals above cover the whole corpus.');
     }
   }
 
   function renderNav(route) {
-    clear(dom.viewList);
-    VIEWS.forEach(function (v) {
-      var li = add(dom.viewList, el('li', 'view-item'));
-      var a = add(li, viewLink(v.key, v.name));
-      if (v.key === route.view) { a.setAttribute('aria-current', 'page'); }
+    clear(dom.questions);
+    QUESTIONS.forEach(function (q) {
+      var li = add(dom.questions, el('li', 'question'));
+      var a = add(li, el('a', 'question-link'));
+      a.setAttribute('href', questionHash(q.key));
+      a.setAttribute('data-q', q.key);
+      add(a, el('span', 'q-name', q.name));
+      if (q.key !== 'browse') {
+        var count = emptyCorpus() ? 0 : questionCount(q.key);
+        add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
+      }
+      if (q.key === route.q) { a.setAttribute('aria-current', 'page'); }
     });
   }
 
-  function fillSelect(select, firstLabel, values) {
-    var first = document.createElement('option');
-    first.setAttribute('value', '');
-    first.textContent = firstLabel;
-    select.appendChild(first);
-    values.forEach(function (v) {
-      var o = document.createElement('option');
-      o.setAttribute('value', v);
-      o.textContent = escapeDisplay(v);
-      select.appendChild(o);
+  function renderKey() {
+    var dl = add(dom.keyBody, el('dl', 'key-list'));
+    function row(term, def, id) {
+      var r = add(dl, el('div', 'fact'));
+      var dt = add(r, el('dt', 'fact-name'));
+      add(dt, term);
+      var dd = add(r, el('dd', 'fact-value', def));
+      if (id) { dd.setAttribute('id', id); }
+    }
+    MARK_ORDER.forEach(function (key) {
+      var words = { active: 'Implementing, Executing', approved: 'Approved, Accepted, Ready',
+        draft: 'Draft and other open states', broken: 'Broken', stale: 'Stale', done: 'Closed states' };
+      row(markEl(key, words[key]), MARKS[key].help);
     });
-  }
-
-  function buildFilters() {
-    var levels = new Set();
-    var kinds = new Set();
-    var statuses = new Set();
-    recordIds.forEach(function (id) {
-      var r = rec(id);
-      levels.add(r.level || 'unrecorded');
-      if (r.kind) { kinds.add(r.kind); }
-      statuses.add(r.status || '');
+    GROUP_ORDER.forEach(function (key) {
+      row(el('span', 'label-group', own(GROUP_LABELS, key)), own(GROUP_HELP, key));
     });
-    fillSelect(dom.level, 'Any level', Array.from(levels).sort(byId));
-    fillSelect(dom.kind, 'Any kind', Array.from(kinds).sort(byId));
-    fillSelect(dom.status, 'Any status', Array.from(statuses).sort(byId));
-    dom.q.addEventListener('input', function () { replaceRoute({ q: dom.q.value }); });
-    [['level', dom.level], ['kind', dom.kind], ['status', dom.status]].forEach(function (pair) {
-      pair[1].addEventListener('change', function () {
-        var over = {};
-        over[pair[0]] = pair[1].value;
-        replaceRoute(over);
+    [['state', STATE_HELP], ['trust', TRUST_HELP]].forEach(function (pair) {
+      Object.keys(pair[1]).forEach(function (key) {
+        row(el('span', 'chip label-' + pair[0], key), own(pair[1], key), helpId(pair[0], key));
       });
     });
-  }
-
-  function syncControls(route) {
-    if (dom.q.value !== route.q) { dom.q.value = route.q; }
-    dom.level.value = route.level;
-    dom.kind.value = route.kind;
-    dom.status.value = route.status;
-  }
-
-  function replaceRoute(over) {
-    history.replaceState(null, '', hashFor(over));
-    handleRoute();
   }
 
   function handleRoute() {
     var next = parseRoute();
     var prev = current;
     current = next;
-    var viewChanged = prev === null || prev.view !== next.view;
-    var filterChanged = prev === null || FILTER_KEYS.some(function (k) { return prev[k] !== next[k]; });
+    var listChanged = prev === null || ['q', 'search'].concat(FILTER_KEYS).some(function (k) {
+      return prev[k] !== next[k];
+    });
     var nodeChanged = prev === null || prev.node !== next.node;
-    syncControls(next);
+    if (dom.search.value !== next.search) { dom.search.value = next.search; }
     renderNav(next);
-    renderMeta();
-    renderSummary();
-    if (viewChanged || filterChanged) {
+    if (listChanged) {
       renderList(next, prev !== null);
     } else if (nodeChanged) {
       markSelected(next);
     }
-    renderDetail(next);
-    if (prev !== null) {
-      if (viewChanged) {
-        dom.viewHeading.focus();
-      } else if (nodeChanged) {
+    if (nodeChanged || listChanged) { renderDetail(next); }
+    if (prev !== null && nodeChanged && !listChanged && next.node !== '' && nodes.has(next.node)) {
+      var fromDetail = followedDetailLink;
+      followedDetailLink = false;
+      if (wide.matches && !fromDetail) {
+        dom.live.textContent = escapeDisplay('Showing ' + displayName(next.node));
+      } else {
         dom.detailHeading.focus();
       }
     }
@@ -963,7 +1198,10 @@
     var alertBox = el('div', 'alert', 'This file is damaged and cannot be shown. Export it again.');
     alertBox.setAttribute('role', 'alert');
     main.replaceChildren(alertBox);
-    main.hidden = false;
+    byIdEl('app').hidden = false;
+    byIdEl('questions-nav').hidden = true;
+    var field = byIdEl('search').parentNode;
+    field.parentNode.removeChild(field);
   }
 
   function start() {
@@ -977,19 +1215,34 @@
     try {
       dom = {
         live: byIdEl('live'), meta: byIdEl('meta'), banner: byIdEl('scope-banner'),
-        summarySection: byIdEl('summary-section'), summaryList: byIdEl('summary-list'),
-        summaryScope: byIdEl('summary-scope'), viewList: byIdEl('view-list'),
-        q: byIdEl('filter-q'), level: byIdEl('filter-level'), kind: byIdEl('filter-kind'),
-        status: byIdEl('filter-status'), viewHeading: byIdEl('view-heading'),
-        viewCount: byIdEl('view-count'), list: byIdEl('list'),
+        search: byIdEl('search'), questions: byIdEl('question-list'), main: byIdEl('main'),
+        listTitle: byIdEl('list-title'), listLead: byIdEl('list-lead'),
+        listCount: byIdEl('list-count'), listSort: byIdEl('list-sort'),
+        filters: byIdEl('filters'), keyBody: byIdEl('key-body'), list: byIdEl('list'),
         detailHeading: byIdEl('detail-heading'), detailBody: byIdEl('detail-body'),
-        legend: byIdEl('detail-legend')
+        skip: byIdEl('skip-details')
       };
+      wide = window.matchMedia('(min-width: 40rem)');
       buildIndexes();
-      buildFilters();
-      renderLegend();
-      byIdEl('main').hidden = false;
-      dom.summarySection.hidden = false;
+      renderMeta();
+      renderKey();
+      dom.search.addEventListener('input', function () { replaceRoute({ search: dom.search.value }); });
+      dom.search.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape' && dom.search.value !== '') {
+          ev.preventDefault();
+          replaceRoute({ search: '' });
+        }
+      });
+      dom.skip.addEventListener('click', function () { dom.detailHeading.focus(); });
+      dom.detailBody.addEventListener('click', function (ev) {
+        var link = ev.target.closest ? ev.target.closest('a.node-link') : null;
+        if (link) { followedDetailLink = true; }
+      });
+      dom.list.addEventListener('click', function (ev) {
+        var link = ev.target.closest ? ev.target.closest('a.row-link') : null;
+        if (link) { listScroll = window.scrollY; }
+      });
+      byIdEl('app').hidden = false;
       handleRoute();
       window.addEventListener('hashchange', handleRoute);
       performance.mark('view-ready');

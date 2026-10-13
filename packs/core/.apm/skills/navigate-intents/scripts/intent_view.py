@@ -85,37 +85,33 @@ _SHELL = """<!doctype html>
 <noscript><p class="notice">This view needs JavaScript to show the intent graph. The file is inert otherwise: it holds data and a single script, and it makes no network request.</p></noscript>
 <div id="live" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 <header class="page-header">
+<div class="title-row">
 <h1 class="page-title">Intent graph</h1>
+<div class="search"><label for="search">Search names and ids</label><input id="search" class="control" type="search" autocomplete="off"></div>
+</div>
 <p id="meta" class="meta"></p>
 <div id="scope-banner" class="banner" hidden></div>
-<section id="summary-section" aria-labelledby="summary-title" hidden>
-<h2 id="summary-title" class="visually-hidden">Summary</h2>
-<p id="summary-scope" class="summary-scope"></p>
-<ul id="summary-list" class="stats"></ul>
-</section>
 </header>
-<main id="main" hidden>
-<div class="layout">
-<div class="worklist">
-<nav aria-label="Views"><ul id="view-list" class="view-list"></ul></nav>
-<fieldset class="filters">
-<legend class="filters-title">Filter intents</legend>
-<div class="field"><label for="filter-q">Search slug or heading</label><input id="filter-q" class="control" type="search" autocomplete="off"></div>
-<div class="field"><label for="filter-level">Level</label><select id="filter-level" class="control"></select></div>
-<div class="field"><label for="filter-kind">Kind</label><select id="filter-kind" class="control"></select></div>
-<div class="field"><label for="filter-status">Status</label><select id="filter-status" class="control"></select></div>
-</fieldset>
-<h2 id="view-heading" class="view-heading focus-target" tabindex="-1"></h2>
-<p id="view-count" class="count"></p>
-<div id="list"></div>
+<div id="app" class="app" hidden>
+<nav id="questions-nav" class="questions" aria-label="Questions"><ul id="question-list" class="question-list"></ul></nav>
+<main id="main" class="zones">
+<section class="worklist" aria-labelledby="list-title">
+<div class="list-head">
+<button id="skip-details" class="skip" type="button">Skip to details</button>
+<h2 id="list-title" class="list-title focus-target" tabindex="-1"></h2>
+<p id="list-lead" class="lead"></p>
+<p class="meta"><span id="list-count"></span><span id="list-sort"></span></p>
+<div id="filters" class="filters" hidden></div>
+<details id="key" class="key"><summary>Key</summary><div id="key-body"></div></details>
 </div>
-<div class="detail" tabindex="0" role="region" aria-labelledby="detail-heading">
+<div id="list"></div>
+</section>
+<section class="detail" aria-labelledby="detail-heading">
 <h2 id="detail-heading" class="detail-heading focus-target" tabindex="-1">Details</h2>
 <div id="detail-body"></div>
-<div id="detail-legend"></div>
-</div>
-</div>
+</section>
 </main>
+</div>
 <script type="application/json" id="intent-data">{data}</script>
 <script>{script}</script>
 </body>

@@ -197,6 +197,10 @@ def test_script_holds_no_forbidden_api() -> None:
     ):
         assert token not in code, token
     assert not re.search(r"set(Timeout|Interval)\(\s*['\"`]", code)
+    # No inline style writes: a property write, a cssText write, or a style attribute.
+    assert not re.search(r"\.style\b", code)
+    assert "cssText" not in code
+    assert not re.search(r"setAttribute\(\s*['\"]style['\"]", code)
     for char in code:
         assert not (ord(char) > 0x7E or (ord(char) < 0x20 and char not in "\n\t")), hex(ord(char))
 
