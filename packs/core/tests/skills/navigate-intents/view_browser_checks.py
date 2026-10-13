@@ -1016,13 +1016,13 @@ def test_ac_0018_where_it_sits(opener: Any, exports: dict[str, pathlib.Path]) ->
     item = opener(exports["mixed"])
     model = Model(payload_of(exports["mixed"]))
     page = _pick(item, "spec:golf-new", "browse")
-    trail = _detail_part(page, "Where it sits").locator("p.trail")
+    trail = _detail_part(page, "Where it sits").locator("ol.trail")
     assert trail.count() == len(model.ancestor_lists("spec:golf-new"))
     last = trail.first.locator("a[data-node]").last
     assert last.get_attribute("data-node") == "intent:golf-new"
     assert trail.first.locator(".mark").count() == trail.first.locator("a[data-node]").count()
     page = _pick(item, "spec:bravo-spec")
-    trails = _detail_part(page, "Where it sits").locator("p.trail")
+    trails = _detail_part(page, "Where it sits").locator("ol.trail")
     assert trails.count() == 2
     for i, chain in enumerate(model.ancestor_lists("spec:bravo-spec")):
         shown = trails.nth(i).locator("a[data-node]").evaluate_all("els => els.map(e => e.dataset.node)")
@@ -2006,6 +2006,15 @@ def test_fix_first_screen_detail_summarises_the_list(opener: Any, exports: dict[
     text = _text(broken.page, "#detail-body .list-summary")
     counts = [int(n) for n in re.findall(r"(\d+) ", text)]
     assert sum(counts) == len(_ids(broken.page)) and "1 delivery diagnostic" in text, text
+
+
+def test_fix_broken_summary_states_no_count_it_cannot_know(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["hostile_incomplete"], width=1280)
+    _choose(item, "broken")
+    item.page.wait_for_function("() => document.querySelector('#detail-body .list-summary') !== null")
+    text = _text(item.page, "#detail-body .list-summary")
+    assert "Delivery diagnostics were unavailable." in text and "delivery diagnostic," not in text, text
+    assert " 0 " not in f" {text} ", text
 
 
 def test_fix_context_cell_is_never_clipped(opener: Any, exports: dict[str, pathlib.Path]) -> None:
