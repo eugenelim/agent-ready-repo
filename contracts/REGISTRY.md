@@ -58,4 +58,7 @@ the spec corpus disagree.
 | `contracts/vendor/agent-plugins/1.0.0/PROVENANCE.md` | `docs/specs/portable-agent-plugin-projection/` |
 | `contracts/delivery` | `docs/specs/acceptance-authority-and-evidence/` |
 | `contracts/delivery` | `docs/specs/delivery-knowledge-projection/` |
+| `contracts/delivery` | `docs/specs/execution-supervisor-attempt-security/` |
+| `contracts/delivery` | `docs/specs/execution-supervisor-core/` |
+| `contracts/delivery` | `docs/specs/execution-supervisor-review-gate/` |
 | `contracts/delivery` | `docs/specs/structured-review-boundary/` |

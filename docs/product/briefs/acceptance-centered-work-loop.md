@@ -118,6 +118,12 @@ current work-loop usable. A slice cannot assume the authority transfer owned by
 a later slice, and shared contracts must deploy compatible readers before
 writers.
 
+Slice 4 is the exception to compatible readers.
+[ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md) D7 ships no
+compatibility adapter, reverse reader, or dual-write path to the old engine,
+because distribution is small enough for the loop to re-derive an in-flight run
+from durable facts. Slice 4's reversal is reinstalling the prior Core release.
+
 Pi remains optional at runtime, but Slice 6's compatibility proof is part of
 this brief's outcome. It may ship independently after the neutral supervisor
 protocol exists; Slices 7 and 8 neither depend on Pi nor require that proof.
@@ -202,7 +208,7 @@ the slice's acceptance boundary.
 | [Parent architecture and order](../../architecture/acceptance-centered-work-loop.md) | Acceptance-centered outcome, initial-review/mutable-task boundary, eight-slice order, parity, reversal, and legacy removal | 1–8 |
 | [Authority migration](../../architecture/work-loop-authority-migration.md) | Atomic legacy import, explicit governance before writer cutover, protected-boundary refusal, downgrade approval, and reverse readers | 1, 4, 7, 8 |
 | [Acceptance and evidence](../../architecture/work-loop-acceptance-evidence.md) | Criteria and evidence policy own completion; a derived envelope binds separately approved protected facts; initial plan review does not pin tasks; evidence is fresh, admissible, and rehydratable | 1 |
-| [Review and disposition](../../architecture/work-loop-review-disposition.md) | Opaque reviewer reports, actual-failure assessment, mandatory obligations, review-to-evidence contradiction, and risk-disposition separation | 2 |
+| [Review and disposition](../../architecture/work-loop-review-disposition.md) | Opaque reviewer reports, actual-failure assessment, mandatory obligations, review-to-evidence contradiction, and risk-disposition separation; review-gate cutover to structured readiness | 2, 4 |
 | [Knowledge projection](../../architecture/work-loop-knowledge-handoff.md) | Stateless delivery projection, pull recovery, read quarantine, independent lifecycle, and retained explicit `work-item` capture | 3 |
 | [Execution supervisor](../../architecture/work-loop-execution-supervisor.md) | Bundled sequential floor, mutable task projection, terminal/TDD guard, leases, recovery, unknown-effect resolution, and neutral extension protocol | 4, 6, 7 |
 | [Product result integration](../../architecture/work-loop-result-integration.md) | Protected product ref, compare-and-swap, conflict/cancellation handling, provider parity, and crash recovery | 5 |
@@ -220,17 +226,20 @@ order. It does not create or register child delivery artifacts.
 | 1. `acceptance-authority-and-evidence` | Accepted criteria and evidence policy become durable authority; a derived envelope fingerprints every separately approved protected fact; the current approved pair imports atomically as one spec-policy decision plus an initial-plan review record that grants no continuing authority to task order, decomposition, test shape, or local method; shared security, subject, evidence, content-safety, and verdict services become callable without moving orchestration | none | Canonical digest and atomic-import parity, derived-envelope and mutation-classification truth tables, plan-task non-authority, subject/verdict parity, evidence recovery, capability intersection, confinement/refusal, control-plane denial, and content-safety conformance pass |
 | 2. `structured-review-boundary` | Work-loop sees only selected obligations, current typed reviewer reports, actual-failure assessments, dispositions, and criterion-bound contradictory evidence for supported findings | Slice 1 | A synthetic reviewer integrates without work-loop changes; mandatory-obligation and finding truth tables pass; risk acceptance closes review without turning a contradicted criterion true |
 | 3. `delivery-knowledge-projection` | A stateless fact feed and projector replace reusable capture gates; project-knowledge owns lifecycle and read quarantine while explicit close-time `work-item` capture remains | Slices 1–2 | Dropped notification recovers by pull scan; invalid merged records quarantine; unavailable knowledge tooling never changes readiness |
-| 4. `execution-supervisor-inversion` | The bundled supervisor becomes procedure owner, preserves the legacy result boundary, reprojects in-envelope tasks without approval, refuses protected-boundary changes, enforces `spec-plan` no-dispatch and current-task red-before-green proof, and resolves unknown external effects durably | Slices 1–3 | Command, readiness, interruption, task-replan/cancellation, boundary-refusal, terminal-mode, byte-identity, red-before-green, journal-loss/effect-resolution, acknowledged-result, containment, and control-plane-forgery parity pass |
+| 4. `execution-supervisor-inversion` | The supervisor shipped in the `work-loop` skill becomes procedure owner and replaces the phase engine, cohort writer, whole-plan lock, and legacy review gate; it keeps the worktree as the result boundary, reprojects in-envelope tasks without approval, refuses protected-boundary changes, enforces `spec-plan` no-dispatch and current-task red-before-green proof, closes review only from structured readiness, and resolves unknown external effects durably | Slices 1–3 | Readiness, interruption, task-replan/cancellation, boundary-refusal, terminal-mode, byte-identity, red-before-green, journal-loss/effect-resolution, structured-review closure with a synthetic reviewer, containment, control-plane-forgery, and clean-environment import-fence checks pass; the old engine and cohort scripts are removed |
 | 5. `canonical-result-integration` | Successful results advance a protected product ref through one compare-and-swap integration boundary, and the subject provider switches after parity | Slice 4 | Legacy and protected-ref providers yield the same manifest; sequential conflict and crash recovery pass |
 | 6. `pi-runtime-compatibility` | A separately installed Pi extension consumes the neutral supervisor protocol behind the unchanged skill facade; Core contains no Pi dependency, bundled adapter, or default selection | Slice 4 | Shared sequential, recovery, authority, interruption, containment, and forgery suites pass from a Pi-hosted environment; clean Core dependency and default-selection checks pass with Pi absent |
 | 7. `verified-infrastructure-parallelism` | After explicit ADR supersession, provider-neutral concurrency is admitted only with enforced read allowlisting or complete tracing and otherwise degrades to the sequential floor | Slice 5 | Missing governance or read coverage serializes; undeclared reads deny or expand the attested set; schedule permutations equal the sequential product tree and verdict with Pi absent |
-| 8. `legacy-engine-cutover` | New semantic paths become authoritative and obsolete FSM/cohort writers, compatibility paths, and engine code are removed; optional Pi compatibility is not a prerequisite | Slices 1–5 and 7 | Parity, cache deletion, reverse-reader provenance, approved downgrade snapshot, full reversal, and engine-removal rehearsals pass in a clean environment with Pi absent |
+| 8. `legacy-engine-cutover` | Remaining shadow and compatibility paths are removed and every semantic path is authoritative; the engine and cohort scripts already left in Slice 4; optional Pi compatibility is not a prerequisite | Slices 1–5 and 7 | Cache deletion and removal rehearsals pass in a clean environment with Pi absent |
 
 Slice 1 owns the shared acceptance boundary even though its plan may span
 several implementation tasks or pull requests. Slices 2 and 3 stay separate
 because review facts can block acceptance while knowledge capture cannot.
 Slices 4 and 5 stay separate so procedure ownership proves parity before the
 canonical product authority changes.
+Slice 4 delivers through four specs: `execution-supervisor-core`,
+`execution-supervisor-attempt-security`, and `execution-supervisor-review-gate`
+ship dark, and `execution-supervisor-cutover` alone moves authority.
 Slice 6 proves that optional compatibility and does not gate parallelism or
 legacy removal, although the brief cannot close until the compatibility outcome
 also ships.
@@ -242,6 +251,10 @@ also ships.
 | `acceptance-authority-and-evidence` | <auto> |
 | `structured-review-boundary` | <auto> |
 | `delivery-knowledge-projection` | <auto> |
+| `execution-supervisor-core` | <auto> |
+| `execution-supervisor-attempt-security` | <auto> |
+| `execution-supervisor-review-gate` | <auto> |
+| `execution-supervisor-cutover` | <auto> |
 
 ## Design artifacts
 

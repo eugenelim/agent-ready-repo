@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0144 D1,D2,D5,D6
 - **Related:** none
 
 ## Decision summary
