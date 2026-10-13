@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108, ADR-0007, ADR-0074
-- **Amends:** [intent-navigation-export](../intent-navigation-export/spec.md) — its view criteria 0035, 0037 to 0044, 0046 to 0053, 0056 to 0064, 0068 and 0069 to 0071, which this spec's criteria replace as the table at the end of § Acceptance Criteria states. Its other criteria carry over unchanged.
+- **Amends:** [intent-navigation-export](../intent-navigation-export/spec.md) — its view criteria 0037 to 0041, 0044, 0046 to 0053, 0056 to 0064, 0068 and 0069 to 0071, which this spec's criteria replace as the table at the end of § Acceptance Criteria states. Its other criteria carry over unchanged.
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none
 - **Contract:** none
@@ -74,7 +74,7 @@ A maintainer opens the exported intent view at the start of a session and answer
 ## Testing Strategy
 
 - **TDD (AC-0026, AC-0027, AC-0028, AC-0029):** the style join, the token values, the layout file's limits and the parity checker are properties of files and of a script's exit code, so collected pytest tests decide them on every CI run.
-- **Scripted browser check (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043):** the Playwright suite `view_browser_checks.py` drives exported fixture files in headless Chromium at true viewport sizes; a browser is the only oracle for rendered lists, focus and layout. It is not collected by CI, so its pass at the final code commit, with the commit id, the SHA-256 of the three view assets and the count of tests run with none skipped, is recorded in the ledger.
+- **Scripted browser check (AC-0050, AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043):** the Playwright suite `view_browser_checks.py` drives exported fixture files in headless Chromium at true viewport sizes; a browser is the only oracle for rendered lists, focus and layout. It is not collected by CI, so its pass at the final code commit, with the commit id, the SHA-256 of the three view assets and the count of tests run with none skipped, is recorded in the ledger.
 - **Goal-based check (AC-0044, AC-0045, AC-0046, AC-0047):** the scale benchmark, the real export, the activation run and the screenshots are measurements recorded in the ledger.
 - **Visual / manual QA (AC-0048, AC-0049):** an `experience-reviewer` pass over the rendered real export, and the owner's first-screen check, decide the design-intent outcome no script can.
 
@@ -87,6 +87,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - **Display name:** the node's heading with one leading `Spec: `, `Brief: `, `Intent: `, `Feature: `, `Capability: `, `Outcome: ` or `Opportunity: ` label removed; the node's slug when the heading is empty.
 - **Name order:** ascending by display name compared case-insensitively, ties broken by node id.
 - **Beneath:** an open item is beneath a node when that node's id is in the item's `ancestors`, or, for a spec, in any of its placements' `ancestors`.
+- **Ancestor list:** for an open item, its `ancestors` or, for a spec, each placement's `ancestors`, nearest first. For any other node, the chain built by following resolved edges from it: an intent's resolved `Parent intent:` edge, a brief's resolved `Parent intent:` edge, and a spec's resolved `Brief:` or `Discovery:` edges, one list per starting edge, stopping at a repeated node.
 - **Lists children:** an intent record lists children when any of its `children`, `briefs` or `specs` is non-empty.
 - **Broken entry:** an edge in `edges` that carries a `state`, or one delivery diagnostic of one record.
 - **Outside the export:** a node id that is not in the payload's `nodes`.
@@ -101,12 +102,13 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - [ ] **AC-0005.** "What has no parent?" lists exactly `outstanding.no_parent`, under the subheadings "Intents", "Briefs" and "Specs" in that order, each holding its items in name order, with a subheading shown only when it holds an item. Its only filters are type and level, and each lists the same items as the unfiltered list restricted to that type or level.
 - [ ] **AC-0006.** "What is broken?" lists one row per broken entry, in name order of the record that holds it. An edge row's context shows the field and its state label; a diagnostic row's context shows "Delivery diagnostic: <code>". Over the `hostile` export built with a resolver seam that adds one delivery diagnostic, the list holds every edge carrying a `state` and that diagnostic.
 - [ ] **AC-0007.** Every list header names its sort key: "By stage, then name", "By open count, then name", "By type, then name", "By name", and, for "Browse all intents", "Under each parent, by name".
+- [ ] **AC-0050.** The header's meta line shows the snapshot time and the intent, brief and spec totals, each equal to the matching `summary` value (intents as the sum of `intents_by_level`).
 - [ ] **AC-0008.** Given a question with nothing to list, the list area shows its positive line instead of a list: "Nothing is in a startable stage.", "No capability has open work beneath it.", "Every open item has a parent." or "Nothing is broken.".
 
 ### Rows and marks
 
 - [ ] **AC-0009.** Every worklist row is one link holding, in order, a name cell, a state cell and a context cell. Its accessible name starts with the item's display name and contains the state word, and its visible text contains its node id only when the display name is the slug.
-- [ ] **AC-0010.** Every row, the detail state line and every trail entry carry one state mark: a glyph with `aria-hidden="true"` followed by a word. The first rule that matches sets it: ✕ and "Broken" on a row of "What is broken?"; ● for status word `Implementing` or `Executing`; ◆ for `Approved`, `Accepted` or `Ready`; ✓ for a record that is not an open item while `outstanding` is available; ◇ otherwise. Outside the first rule, the word is the status word.
+- [ ] **AC-0010.** Every row, the detail state line and every trail entry carry one state mark: a glyph with `aria-hidden="true"` followed by a word. The first rule that matches sets it: ✕ and "Broken" on a row of "What is broken?"; ● for status word `Implementing` or `Executing`; ◆ for `Approved`, `Accepted` or `Ready`; ✓ for a node in the export that is not an open item while `outstanding` is available; ◇ otherwise. Outside the first rule, the word is the status word. A trail entry outside the export carries no state mark.
 - [ ] **AC-0011.** Every row's context cell holds the type ("Spec", "Brief", or "Intent" with its level), followed, when the item has an ancestor list, by "under" and the display name of the nearest ancestor in its first list, or that ancestor's node id and "outside this export" when it is outside the export.
 - [ ] **AC-0012.** In "Browse all intents", the row of an intent whose parent edge carries a `state` shows "refused parent:" and that state label in its context cell.
 
@@ -126,25 +128,25 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
   9. any other `Accepted` intent: "Close it with the close-work skill if its outcome is met. Everything beneath it is finished.";
   10. any other intent: "Keep shaping it with the intent skill. It is not accepted yet.".
 
-  Over a copy of the `mixed` fixture where an `Accepted` intent's only child intent is terminal, that intent shows sentence 9.
-- [ ] **AC-0016.** "Open beneath" lists every open item beneath the picked node as a link with its state mark, under "Intents", "Briefs" and "Specs" subheadings in name order, or reads "Nothing open beneath."
+  Over a copy of the `mixed` fixture where the terminal `intent:juliet-done` names `intent:india-none` as its parent, `intent:india-none` shows sentence 9.
+- [ ] **AC-0016.** "Open beneath" lists every open item beneath the picked node as a link with its state mark, under "Intents", "Briefs" and "Specs" subheadings in name order, or reads "Nothing open beneath." While `outstanding` is unavailable it reads "Open work unknown: delivery mapping incomplete."
 - [ ] **AC-0017.** "What is broken" lists every broken entry the picked record holds, an edge with the plain-words meaning the Key gives its state and a diagnostic with its code, or reads "Nothing broken here." While `outstanding` is unavailable it lists the record's edges carrying a `state` and reads "Delivery diagnostics were unavailable."
-- [ ] **AC-0018.** "Where it sits" shows each ancestor list of the item as a trail from the root to the nearest ancestor, one trail per placement for a spec, or reads "No parent." Each trail entry is a link to that node with its state mark, or, outside the export, its node id as plain text marked "outside this export".
-- [ ] **AC-0019.** Opening "Record details" shows the item's node id, path, type, level, kind and status, and every edge group the export spec's intent and brief-or-spec detail criteria (0042 and 0043) require, with the labels its closed-label-set criterion (0035) lists. While `outstanding` is unavailable, it states that delivery mapping was unavailable in place of the delivery groups.
+- [ ] **AC-0018.** "Where it sits" shows each ancestor list of the item as a trail from the root to the nearest ancestor, or reads "No parent." only when the item has no ancestor list. Over the `mixed` fixture, `spec:golf-new`, which is not an open item, shows a trail ending at `intent:golf-new`. Each trail entry is a link to that node with its state mark, or, outside the export, its node id as plain text marked "outside this export".
+- [ ] **AC-0019.** Opening "Record details" shows the item's node id, path, type, level, kind and status, and every edge group the export spec's intent and brief-or-spec detail criteria (0042 and 0043) require, with the labels its closed-label-set criterion (0035) lists. While `outstanding` is unavailable, it states that delivery mapping was unavailable, with the payload's `outstanding.reason`, in place of the delivery groups.
 - [ ] **AC-0020.** Given a fragment naming a node id not in the payload, the detail zone reads "That item is not in this snapshot." and the question's list still shows.
 - [ ] **AC-0021.** Focus after an action: choosing a question leaves focus on its link; picking a row at 40rem wide or more leaves focus on the row and the live region announces "Showing <display name>"; picking a row below 40rem, or following a link inside the detail zone, moves focus to the detail `h2`.
 
 ### Key, search and browse
 
-- [ ] **AC-0022.** A "Key" disclosure sits in the worklist header, closed on load. Opened, it explains each state mark, each edge group, each state label and each trust-class label; nothing outside it carries a legend. Every group, state and trust-class label the page renders over the `hostile` fixture is in the closed set the export spec's criterion 0035 lists, and every state-mark glyph is one of ● ◆ ◇ ✕ △ ✓, where △ marks only a source link labelled "may be newer than this export".
+- [ ] **AC-0022.** A "Key" disclosure sits in the worklist header, closed on load. Opened, it explains each state mark, each edge group, each state label and each trust-class label; nothing outside it carries a legend. Every group, state and trust-class label the page renders over the `hostile` fixture is in the closed set the export spec's criterion 0035 lists, every state-mark glyph is one of ● ◆ ◇ ✕ ✓, and the only other mark glyph is △, which appears only beside a source link labelled "may be newer than this export". The Key explains all six glyphs.
 - [ ] **AC-0023.** The header holds a search field on every destination. Typing lists every node whose slug or heading contains the text case-insensitively, in name order, and in a whole-corpus export its intents equal what `query --operation search` returns for the `text` selector. Escape empties the field and restores the question's list. Given no match, the list names the search text and offers one "Clear search" control.
 - [ ] **AC-0024.** "Browse all intents" lists every live intent once under its resolved parent, roots and siblings in name order. Its level, kind and status filters, in a whole-corpus export, list the same intents as `query --operation search` with the same selectors. Given a filter result with nothing, the list names the filters that emptied it and offers one "Clear filters" control.
-- [ ] **AC-0025.** Given an export with `--from`, a banner names the scoped intent, every question lists only in-scope items, "Browse all intents" has the scoped intent as its only root, search and each filter list the in-scope subset of what `query --operation search` returns for the same selectors, and the header's totals say they cover the whole corpus.
+- [ ] **AC-0025.** Given an export with `--from`, a banner names the scoped intent, every question lists only in-scope items, "Browse all intents" has the scoped intent as its only root, search and each filter list the in-scope subset of what `query --operation search` returns for the same selectors, and the header's totals (AC-0050) say they cover the whole corpus.
 
 ### Shared style and parity
 
 - [ ] **AC-0026.** The page's one `<style>` element's content is the UTF-8 text of `view-base.css`, one newline, then the text of `view.css`, and the content-security policy's style digest is the digest of that content.
-- [ ] **AC-0027.** `view-base.css` declares each colour role of the design token table, from `--c-bg` to `--c-warn`, with its light value on `:root` and its dark value inside `@media (prefers-color-scheme: dark)`, and neither stylesheet declares `transition`, `animation`, `@keyframes`, `url(` or `@import`.
+- [ ] **AC-0027.** `view-base.css` declares each colour role of the § Colour table in `docs/design/tokens/skill-html-views.md`, from `--c-bg` to `--c-warn`, with its light value on `:root` and its dark value inside `@media (prefers-color-scheme: dark)`. The export spec's carried criteria 0030 (no `url(` or `@import`) and 0065 (no motion) apply to both stylesheets.
 - [ ] **AC-0028.** `view.css` declares no colour literal (hex, `rgb(`, `hsl(` or a named colour), no `font-family`, and no `--c-` or `--t-` custom property.
 - [ ] **AC-0029.** `tools/check_view_base_parity.py` exits 0 when every file named `view-base.css` under `packs/*/.apm/` is byte-identical to the canonical `navigate-intents` file, and exits 1 naming each file that differs. Its self-test proves both outcomes, and both run in the build-check chain.
 
@@ -183,19 +185,21 @@ Every view criterion of the export spec, from 0028 to 0071, is either carried un
 
 | Export spec criterion | Disposition |
 | --- | --- |
-| 0028 source links, 0034 escapes, 0036 no network | Carried; their browser checks are kept |
+| 0028 source links, 0034 escapes | Carried; their browser checks are kept |
+| 0029 to 0033 policy, banned elements, data-block escape, forbidden APIs, escape parity | Carried; their `test_export_html.py` checks are kept, with 0029's style digest taken over the joined style (AC-0026) |
+| 0036 no network | Carried; "every view" means each of the five destinations |
 | 0045 outside-export targets as plain text | Carried; AC-0011 and AC-0018 apply it to rows and trails |
-| 0054 damaged data, 0055 no script, 0065 no motion | Carried; their checks are kept |
+| 0054 damaged data | Carried; "no view" means no destination and no list |
+| 0055 no script, 0065 no motion | Carried; their checks are kept |
+| 0035 closed label set, 0042 and 0043 detail facts and edge groups | Carried; AC-0022 applies 0035 to the Key, and AC-0019 applies 0042 and 0043 to Record details |
 | 0066 scale, 0067 activation | Carried; AC-0044 and AC-0046 re-run them |
-| 0035 closed label set | Replaced by AC-0022 |
-| 0037 summary strip | Replaced by AC-0001, AC-0025 |
+| 0037 summary strip | Replaced by AC-0050 (corpus totals) and AC-0001 (question counts), as the design replaces the strip; the strip's outstanding, refused-edge and parentless totals become the question counts |
 | 0038 Tree view | Replaced by AC-0024, AC-0012 |
 | 0039 Outstanding view | Replaced by AC-0002, AC-0005, AC-0016, AC-0018 |
 | 0040 Refused edges view | Replaced by AC-0006 |
 | 0041 Parentless view | Replaced by AC-0005; a terminal parentless intent stays in AC-0024 |
-| 0042, 0043 detail | Replaced by AC-0013 to AC-0019 |
 | 0044 legend | Replaced by AC-0022 |
-| 0046, 0069, 0070, 0071 scoped export | Replaced by AC-0025 |
+| 0046, 0069, 0070, 0071 scoped export | Replaced by AC-0025, AC-0050 |
 | 0047, 0050 outstanding unavailable | Replaced by AC-0014, AC-0015, AC-0017, AC-0019, AC-0042 |
 | 0048 search and filters | Replaced by AC-0023, AC-0024 |
 | 0049 empty filter | Replaced by AC-0023, AC-0024 |

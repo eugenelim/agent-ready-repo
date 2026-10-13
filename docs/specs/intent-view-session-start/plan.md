@@ -96,7 +96,7 @@ Owned by: T2
 
 **Tests:**
 - `test_export_html.py`: `test_csp_is_first_head_child_and_pins_both_digests` compares the style with `view-base.css + "\n" + view.css` (AC-0026).
-- `test_export_html.py`: a token test parses `view-base.css` and compares each `--c-*` light and dark value with a literal table copied from the token file; `test_stylesheet_declares_no_motion` covers both files and bans `url(` and `@import` (AC-0027).
+- `test_export_html.py`: a token test parses the § Colour table of `docs/design/tokens/skill-html-views.md` and compares each role's light and dark value with `view-base.css`; `test_stylesheet_declares_no_motion` and the `url(`/`@import` ban cover both files (AC-0027).
 - `test_export_html.py`: a test scans `view.css` for `#` hex, `rgb(`, `hsl(`, named colours, `font-family` and `--c-`/`--t-` declarations (AC-0028).
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/navigate-intents/test_export_html.py -q` passes.
@@ -118,8 +118,8 @@ Owned by: T2
 **Touches:** `view_assets/view.js`, `intent_view.py` (`_SHELL`), `packs/core/tests/skills/navigate-intents/view_browser_checks.py`
 
 **Tests:**
-- `view_browser_checks.py` is rewritten with one test per criterion in AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0030, AC-0042 and AC-0043, at a 1280 CSS px viewport unless the criterion names a width.
-- Its exports fixture keeps the `mixed`, `hostile`, `empty`, incomplete-delivery, scoped (`--from intent:bravo-feat`) and related exports. It adds a `hostile` export whose resolver seam appends one delivery diagnostic (AC-0006), and a copy of `mixed` where an `Accepted` intent's only child intent is terminal (AC-0015).
+- `view_browser_checks.py` is rewritten with one test per criterion in AC-0050, AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0030, AC-0042 and AC-0043, at a 1280 CSS px viewport unless the criterion names a width.
+- Its exports fixture keeps the `mixed`, `hostile`, `empty`, incomplete-delivery, scoped (`--from intent:bravo-feat`) and related exports. It adds a `hostile` export whose resolver seam appends one delivery diagnostic (AC-0006), and a copy of `mixed` where `intent:juliet-done` names `intent:india-none` as its parent (AC-0015).
 - The tests kept for the carried export criteria are: source links (0028), escapes (0034), no network (0036), outside-export plain text (0045), damaged data (0054) and no script (0055).
 - The regression tests kept are `test_delivery_relation_on_a_non_intent_node_renders_as_a_link` and `test_startup_render_failure_shows_the_alert_and_logs_the_error`, re-targeted to the new DOM.
 - `test_export_html.py`'s forbidden-API and escape-parity tests stay green.
@@ -169,8 +169,9 @@ Owned by: T2
 - A throwaway Playwright script exports this repository to the temporary directory and captures 8 first-screen PNGs at true viewports (AC-0047).
 - The `experience-reviewer` agent reviews the screenshots and the rendered page facts, and its findings are adjudicated (AC-0048).
 - The owner's first-screen check is recorded (AC-0049).
+- After the last code-bearing commit, `view_browser_checks.py` and `test_export_html.py` run once more and the ledger records the commit id, the SHA-256 of `view.js`, `view.css` and `view-base.css`, and the count of tests run with none skipped (Testing Strategy record for the browser criteria).
 
-**Done when:** the ledger lists the 8 digests, the adjudicated review and the owner's answer.
+**Done when:** the ledger lists the 8 digests, the adjudicated review, the owner's answer and the final-commit browser-suite record.
 
 ## Rollout
 
