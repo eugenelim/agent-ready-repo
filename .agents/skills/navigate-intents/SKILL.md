@@ -117,7 +117,7 @@ python3 scripts/navigate_intents.py query \
 # Filter intents by level, kind, status, or text.
 # Pass selectors as a JSON object with one or more of the keys:
 # level, kind, exact_status, parentless, text.
-# text matches the slug or the first # heading, case-insensitively.
+# text matches the slug or the intent's title line above its first `## ` heading, case-insensitively.
 python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation search \
@@ -164,7 +164,9 @@ envelope.
 
 An ``outstanding`` result lists ``placed`` items and ``no_parent`` items, each
 ordered by node id. An item carries its parent edge and its ancestor chain up
-to a root, with terminal ancestors marked ``terminal``. A spec carries one
+to a root, with terminal ancestors marked ``terminal``. Each item also carries
+its node's ``heading``: the title line, kept as written, or empty when there is
+none. A spec carries one
 placement per pointer, each naming the pointer field and, where the delivery
 resolver joins them, its relation type. An intent with no ``Level:`` shows
 level ``unrecorded``. In ``--format text``, a terminal ancestor that places an

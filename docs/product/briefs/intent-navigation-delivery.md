@@ -153,6 +153,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `lint-traceability-intent-parity` | <auto> |
 | `typed-discovery-pointers` | <auto> |
 | `intent-dependency-graphs` | <auto> |
+| `intent-node-headings` | <auto> |
 
 ## Governance references (optional)
 

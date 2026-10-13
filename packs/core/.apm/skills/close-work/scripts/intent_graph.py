@@ -232,13 +232,21 @@ def _preamble_visible(text: str) -> dict[str, list[str]]:
 
 
 def _first_h1_heading(text: str) -> str:
-    """Return the text of the first ``# `` heading in *text*, or empty string.
+    """Return the title line's text, or empty string when there is none.
 
-    Matches a ``# `` prefix at the start of any line.  Only the stripped
-    heading text is returned (no ``# `` marker).
+    Walks lines through ``_visible_line`` (so HTML comments are hidden) and
+    stops at the first visible ``## `` line, the same boundary
+    ``_preamble_visible`` uses.  The first visible line above that boundary
+    whose trimmed form starts with ``# `` supplies the heading; the trimmed
+    text after ``# `` is returned, keeping any ``Spec:`` / ``Brief:`` /
+    ``Intent:`` label.
     """
+    inside_comment = False
     for line in text.splitlines():
-        stripped = line.strip()
+        visible, inside_comment = _visible_line(line, inside_comment)
+        if visible.startswith(_HEADING_PREFIX):
+            break
+        stripped = visible.strip()
         if stripped.startswith("# "):
             return stripped[2:].strip()
     return ""
@@ -1186,6 +1194,7 @@ def derive(root: Path) -> dict[str, Any]:
             "slug": slug,
             "path": rel,
             "status": status_vals[0] if status_vals else "",
+            "heading": _first_h1_heading(text),
             "_text": text,  # kept for resolver's _preamble_all; stripped from output
         }
         brief_nodes.append(node)
@@ -1210,6 +1219,7 @@ def derive(root: Path) -> dict[str, Any]:
             "type": "spec",
             "path": rel,
             "status": status_vals[0] if status_vals else "",
+            "heading": _first_h1_heading(text),
             "_fields": fields,
             "_file_path": f,
         }

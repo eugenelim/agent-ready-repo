@@ -610,3 +610,32 @@ def test_summary_outstanding_count_matches_outstanding_items() -> None:
         f"summary.outstanding ({r_sum['summary']['outstanding']}) must equal "
         f"len(outstanding items) ({len(all_items)})"
     )
+
+
+def _derived_headings(root: pathlib.Path) -> dict[str, str]:
+    """Map node id to heading using the bundled derivation, loaded under a unique name."""
+    spec = importlib.util.spec_from_file_location(
+        "core_navigate_intents_intent_graph_outstanding_headings",
+        _SCRIPTS / "intent_graph.py",
+    )
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return {n["id"]: n.get("heading", "") for n in mod.derive(root)["nodes"]}
+
+
+def test_outstanding_items_carry_their_node_heading() -> None:
+    """Every outstanding item carries its node's heading, and titled briefs and specs are named."""
+    _skip_if_module_absent()
+    result, code = nav.run_query(  # type: ignore[union-attr]
+        _FIXTURE_MIXED, ["query", "--operation", "outstanding"]
+    )
+    assert code == 0 and result["status"] == "ok"
+    headings = _derived_headings(_FIXTURE_MIXED)
+    items = {item["id"]: item for item in _all_outstanding_items(result)}
+    for item_id, item in items.items():
+        assert "heading" in item, f"{item_id} has no heading"
+        assert item["heading"] == headings[item_id], item_id
+    assert items["brief:bravo-delivery"]["heading"] == "Brief: Bravo delivery"
+    assert items["spec:bravo-spec"]["heading"] == "Spec: Bravo spec"

@@ -1414,6 +1414,7 @@ def _build_outstanding_items(
                 "id": node_id,
                 "type": node_type,
                 "status": node.get("status", ""),
+                "heading": node.get("heading", ""),
                 "parent_edge": parent_edge,
                 "ancestors": ancestors,
                 "_in_no_parent": in_no_parent,
@@ -1476,6 +1477,7 @@ def _build_outstanding_items(
                 "id": node_id,
                 "type": "spec",
                 "status": node.get("status", ""),
+                "heading": node.get("heading", ""),
                 "placements": placements,
                 # in_no_parent: all placements are in no_parent
                 "_in_no_parent": all(p["_in_no_parent"] for p in placements),
