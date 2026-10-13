@@ -28,16 +28,8 @@ For a non-engine change, the trailer accepts `n/a — <reason>`; never invent an
 1. Bump matching pack and plugin versions; see [Version bump rule](AGENTS.md#version-bump-rule).
 2. Run `FORCE=1 make build-self` to regenerate `marketplace.json`.
 3. Run `python3 tools/changelog.py new --package package-name --version 0.0.0 --date 2026-09-30 --highlight "Describe the released outcome."`,
-   replacing the generic package, version, date and highlight values with the
-   release's actual values. Edit the created file under `docs/product/changelog.d/`,
-   and stop. Start from `docs/product/changelog-fragment-template.md` when you need
-   the full section shape, but keep the tracked template outside
-   `docs/product/changelog.d/`.
-4. After a release month closes, run `python3 tools/changelog.py compact --month YYYY-MM`
-   for each closed month that still has released fragments loose in `docs/product/changelog.d/`.
-   This moves them into a bundle part under `docs/product/changelog.months/` and deletes
-   the loose files. Commit the result. Omit this step when no released fragments for the month exist.
-6. Decide the fragment's `Highlights` disposition in the same step; do not leave it
+   with the release's real values; edit the created file under `docs/product/changelog.d/` and stop (`docs/product/changelog-fragment-template.md` shows the full shape).
+4. Decide the fragment's `Highlights` disposition in the same step; do not leave it
    to a human to remember. Read the release diff and its verification evidence
    and answer one question: **does this change what a consumer of the pack can
    do?** If yes, draft the outcome-led bullets under a `## Highlights`
@@ -48,6 +40,8 @@ For a non-engine change, the trailer accepts `n/a — <reason>`; never invent an
    parser over the fragment bytes, and by contract no model runs in CI, release
    automation, or site generation. An unwritten `Highlights` block is a release
    the public page never mentions.
+5. After a release month closes, run `python3 tools/changelog.py compact --month YYYY-MM` for each
+   closed month with released fragments still loose in `docs/product/changelog.d/`, and commit the result.
 
 Design against projected adopter state, not this checkout's internal corpus. Forks
 own their own publishing mechanism.
