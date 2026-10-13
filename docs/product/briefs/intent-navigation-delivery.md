@@ -154,6 +154,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `typed-discovery-pointers` | <auto> |
 | `intent-dependency-graphs` | <auto> |
 | `intent-node-headings` | <auto> |
+| `intent-view-session-start` | <auto> |
 
 ## Governance references (optional)
 
