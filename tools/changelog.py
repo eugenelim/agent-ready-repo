@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.util
-import os
 import re
 import subprocess
 import sys
@@ -2638,13 +2637,14 @@ def write_bundle_part(
     content = b"".join(lines)
     directory.mkdir(parents=True, exist_ok=True)
     try:
-        fd = os.open(str(part_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        # Exclusive create; the mode follows the process umask like any checkout file.
+        part_file = part_path.open("xb")
     except FileExistsError as exc:
         raise FragmentValidationError(
             f"{part_path}: part already exists; refusing to overwrite"
         ) from exc
     try:
-        with os.fdopen(fd, "wb") as fh:
+        with part_file as fh:
             fh.write(content)
     except Exception:
         import contextlib as _contextlib
@@ -3027,9 +3027,9 @@ def _atomic_write_bytes(path: Path, content: bytes) -> None:
     """
     tmp = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
     try:
-        fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        tmp_file = tmp.open("xb")
         try:
-            with os.fdopen(fd, "wb") as fh:
+            with tmp_file as fh:
                 fh.write(content)
         except Exception:
             tmp.unlink(missing_ok=True)
