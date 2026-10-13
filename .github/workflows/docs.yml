@@ -197,6 +197,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # `make site-build` validates changelog fragments against their merge
+          # base with origin/main; the default depth of 1 has no such ref.
+          fetch-depth: 0
       - name: Install tooling requirements
         run: pip install -r tools/requirements.txt
       # The step contract, checked against the source.
@@ -334,6 +338,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # The pack-journey sync step validates changelog fragments against
+          # their merge base with origin/main; the default depth of 1 has no such ref.
+          fetch-depth: 0
       - name: Install tools dependencies
         run: pip install -r tools/requirements.txt
       - name: Seed a healthy state.json so the aggregator exercises loop-cohort check
