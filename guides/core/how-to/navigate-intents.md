@@ -147,12 +147,23 @@ The command prints one JSON object. On success it carries `status: ok`, `path` (
 
 ### What the file contains
 
-The page has a summary strip and four views: Tree, Outstanding, Refused edges, and Parentless. A search box and level, kind, and status filters narrow the list, and selecting an intent, brief, or spec shows its header facts, its parent, children, briefs, specs, delivery relations, related intents, and refused pointers, each with a link to its source file. It works from the keyboard and in light and dark themes.
+The page opens on four questions, each a link in the page's nav:
+
+- **What can I work on next?** Open work in a startable stage (Implementing spec, Approved spec, Executing brief, Ready brief), then Accepted intents with nothing beneath them. The page says that readiness is not checked in this snapshot, so an item can still be blocked for a reason the file does not show.
+- **What is still open under a capability?** Open work, grouped by the capability it sits beneath.
+- **What has no parent?** Intents with no resolved parent.
+- **What is broken?** Pointers that did not resolve, and delivery problems.
+
+**Browse all intents** shows the whole tree with level, kind, and status filters. A search box in the header covers intents, briefs, and specs.
+
+Each row leads with the human name, shows its state as a word plus a shape (so colour is never the only cue), and carries a context tag. A **Key** opens on demand to explain the marks.
+
+Selecting a row opens a detail panel: the state line; a **Next step** that names which skill to use and why, in plain words; what is open beneath the item; what is broken; where it sits in the graph; a link to its source file; and collapsed record details with the header facts. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system.
 
 The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
 
 - **Source links** go to GitHub only when `origin` is a plain GitHub remote. A link marked "at commit ..." opens the file at the exported commit. A link marked "may be newer than this export" opens it on the GitHub default branch. Every link carries that mark when the exported commit is not on origin, when any intent file differs from it, or when Git is older than 2.44. An untracked or unpushed file may not exist there yet. Any other remote shows each source's path as plain text.
-- **With `--from`**, the page names the scoped intent and shows only that subtree. The summary strip still counts the whole corpus and says so.
+- **With `--from`**, the page names the scoped intent and shows only that subtree. The totals still count the whole corpus and the page says so.
 - **When delivery mapping is unavailable** (the delivery resolver hit its limit), the page says so and gives the reason where it would list delivery relations.
 - **Record text is inert.** The page never runs script from a record, never loads anything, and makes no network request when you open it. A header value that contains markup shows as plain text.
 
