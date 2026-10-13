@@ -205,3 +205,79 @@ E   knowledge_store_under_test.KnowledgeStoreError: postimage_mismatch
   propagate. Proof: `test_read_quarantine.py::test_a_refusal_that_is_not_a_record_fault_propagates_instead_of_quarantining`
   passes (3 cases); with the old mapping restored, 2 of its 3 cases fail
   (`deadline_exceeded` already propagated).
+
+## T3: delivery decisions ignore knowledge tooling and both retained capture paths are unchanged
+
+Goal-based check. These fixtures pin behavior that already holds, so there is no
+red phase; the evidence is that each fixture family fails when one compared
+decision or capture result is deliberately changed. No production module changed.
+
+### Fixtures
+
+- `packs/core/tests/skills/work-loop/test_delivery_knowledge_isolation.py` drives
+  `loop-engine.py` and `loop-cohort.py` through one full code-mode pass (init,
+  spec-ready, reviewers-clean, spec-approved, plan-approved, approve-plan,
+  schedule, plan-locked, two waves with dispatch receipts, gates-clean,
+  reviewers-clean, done, then the status and spec-status reads) in a temporary
+  repository, once per knowledge condition (absent, disabled, unavailable, timeout,
+  refusing, failing) and per shadow setting (unset, `1`): 12 passes, computed once
+  per module. The engine never calls knowledge tooling, so each condition plants a
+  stub that appends to a log outside the repository; the log staying absent, and
+  the planted bytes staying identical, is the proof delivery never reached for it.
+  A sleeping stub would hang the pass. A positive control runs the refusing and
+  failing stubs directly and shows they exit 2 and 1 and write the log.
+- Decisions compared against the `absent` run of the same shadow setting: every
+  step's exit code and masked output, the final engine and cohort state, and every
+  delivery file. The shadow-unset `absent` run is also pinned to a pre-slice
+  literal (eleven accepted transitions, DONE, exactly six files). Shadow set versus
+  unset adds only files under `.shadow-acceptance/` and changes no decision.
+- State inventory after every one of the 12 paths: no object key or file name that
+  is a whole-word queue, cursor, ack, skip, admission, retention, revocation, or
+  knowledge name in the state, cohort, or event files; the delivery retry counters
+  are listed by name; the engine applied only the eleven pre-slice events. A source
+  inventory over `work-loop` and `close-work` finds only the retained "capture
+  gate" instruction in `SKILL.md`, no `--semantic-gate` value beyond the two
+  retained gates, and no engine, cohort, or shadow-facade script that names
+  knowledge tooling. The feed also returns the empty snapshot with the flag unset,
+  and a scan after a real shadow pass yields no candidate and a byte-identical tree.
+- `packs/core/tests/skills/project-knowledge/test_retained_capture_paths.py`
+  holds the capture regressions. Every literal was first observed on the
+  pre-slice `project_knowledge.py` and `knowledge_store.py` (extracted from commit
+  `3f393c8fe`) and matched the current scripts for 26 scenarios, the only
+  differences being time-derived producer capture ids. Compared: the deliberate
+  close-time work-item receipt (pinned `capture_id`), stored record, pending-page
+  observability and replay; refusal codes for no or unrecognized verdict, wrong
+  ordinal, explicit unnecessary and threshold verdicts, the provenance window,
+  instruction-shaped, email, oversized, and secrets-attested content; producer
+  captures at `spec-approved` and `plan-locked` (receipt, stored request, producer
+  version, freshness digest, partition, pending page); the producer refusals for a
+  wrong gate or artifact, `close-time`, privacy, size, escaping provenance, and a
+  producer-supplied id. An inferred work-item: the candidate frame carries only
+  `gotcha` entries, a page offering a `work-item` observation is refused whole, and
+  a work-item built from candidate text is refused with no verdict and with a
+  verdict not computed for it. A repository that scanned candidates first captures
+  the same records as one that did not.
+
+### Mutation observations (each restored afterwards)
+
+| Family | Deliberate change | Observed failure |
+| --- | --- | --- |
+| Delivery decisions | spec left `Approved` at the review exit under the `failing` variant | `test_knowledge_tooling_condition_leaves_every_decision_unchanged[failing-*]`: final state and files differ from baseline |
+| Pre-slice literal | an extra `gates-clean` in the pinned transition list | `test_shadow_unset_pass_matches_the_pre_slice_run`: index 9 differs |
+| Shadow parity | shifted the shadow-set transcript by one step | `test_shadow_set_adds_only_the_shadow_files_and_keeps_every_decision` fails |
+| State inventory | a `knowledge-cursor.json` file in the delivery files of the planted-tooling runs | `test_no_delivery_owned_knowledge_lifecycle_state_exists[failing-shadow-unset]`: `knowledge-cursor.json: file name` |
+| Source inventory | emptied the retained probe hit list; unlisted the feed script | `test_source_inventory_finds_only_the_retained_capture_gate_mention` and `test_no_delivery_runtime_script_references_knowledge_tooling` fail |
+| Work-item capture | one character changed in the pinned `capture_id` | `test_a_deliberate_close_time_work_item_is_accepted_exactly_as_before`: receipt differs |
+| Work-item refusal | `privacy` expectation changed to `strict_parse` | `...refusals_render_no_dispatch_message[email-in-statement]`: `'privacy' == 'strict_parse'` |
+| Producer gates | `close-time` added to the expected gate set | `test_the_retained_gates_are_exactly_spec_approved_and_plan_locked` fails |
+| Producer capture | expected partition changed to `work-item` | `test_a_producer_capture_at_each_retained_gate_is_accepted_exactly_as_before[spec-approved]` fails |
+| Inferred work-item | expected a receipt where a refusal was observed | `test_a_work_item_built_from_a_candidate_is_refused_and_nothing_is_synthesized` fails |
+| Candidate frame | expected no `gotcha` entry | `test_the_candidate_mode_only_ever_presents_unadmitted_gotchas` fails |
+
+### Deviations and notes
+
+- The engine has no knowledge invocation seam, so "tooling absent, disabled,
+  unavailable, timing out, refusing, failing" is modeled by repository and
+  environment conditions plus planted stubs, with proof of non-invocation, not by
+  a fault injected into a call.
+- The suite is one module-scoped fixture of 12 full passes (about 15 seconds).
