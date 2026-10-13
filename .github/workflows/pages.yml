@@ -10,6 +10,9 @@ on:
       - 'site.toml'
       - 'guide-nav-baseline.toml'
       - 'docs/product/changelog.md'
+      - 'docs/product/changelog.d/**'
+      - 'docs/product/changelog.months/**'
+      - 'docs/product/changelog-retractions.toml'
       - 'CONTRIBUTING.md'
       - 'packs/**/README.md'
       # Scope changes flip whether a pack may advertise the Claude-plugin
@@ -36,6 +39,9 @@ on:
       - 'site.toml'
       - 'guide-nav-baseline.toml'
       - 'docs/product/changelog.md'
+      - 'docs/product/changelog.d/**'
+      - 'docs/product/changelog.months/**'
+      - 'docs/product/changelog-retractions.toml'
       - 'CONTRIBUTING.md'
       - 'packs/**/README.md'
       # Scope changes flip whether a pack may advertise the Claude-plugin
@@ -123,6 +129,9 @@ jobs:
 
       - name: Install Python dependencies
         run: pip install pyyaml pytest
+
+      - name: Validate frozen product changelog baseline
+        run: python3 tools/changelog.py render --output build/product-changelog.md
 
       # Projects BOTH marketing-renderer inputs, despite the flag's name: the
       # pack journeys under web/src/content/journeys/ and the released-highlight

@@ -32,9 +32,22 @@ Every commit is built as a detached object through a scratch index
 measurement cannot disturb a worktree a coordination lease may be sharing. The
 script leaves `git status --porcelain` empty.
 
-Fragment identifiers come from a seeded generator so that two runs at the same
-base produce byte-identical output. They are UUIDv4-shaped because the anchor
-under test is `change-` plus a UUID's 32 hexadecimal digits.
+Fragment identifiers come from the delivered `python3 tools/changelog.py new`
+command, invoked in a temporary directory, so the measurement exercises the
+same authoring path as contributors. The temporary files are read into detached
+commit objects and never enter this working tree.
+
+Bundle-part merge properties (AC-B9):
+- A fragment-adding branch vs a base that contains a bundle part in
+  `docs/product/changelog.months/` does not conflict: the two paths are disjoint.
+- A fragment-adding branch vs a compaction commit (which deletes loose fragments
+  and creates a bundle part) does not conflict in the common case where the
+  fragment being added is a different file from those compacted.
+- A body edit to a loose fragment vs a compaction commit that deletes that same
+  fragment reports a modify/delete conflict (the compaction removes the file the
+  edit depends on).
+- Two concurrent compactions of the same month conflict if they write different
+  bundle part names or if they delete the same loose fragment differently.
 
 Usage:
     python3 tools/measure-changelog-fragment-merges.py
@@ -60,6 +73,7 @@ CHANGELOG = "docs/product/changelog.md"
 FRAGMENT_DIR = "docs/product/changelog.d"
 BRANCH_COUNT = 20
 BUILD_SITE = REPO_ROOT / "tools" / "build-site.py"
+CHANGELOG_TOOL = REPO_ROOT / "tools" / "changelog.py"
 # Seeded so the run reproduces; the value itself carries no meaning.
 UUID_SEED = 0x5C_11_A9_00
 
@@ -72,6 +86,13 @@ class ArmResult(NamedTuple):
     clean: int
     conflicted: int
     errored: int
+
+
+class MergeTreeResult(NamedTuple):
+    """One `merge-tree` replay bucket plus any changed/conflicted paths."""
+
+    returncode: int
+    paths: tuple[str, ...]
 
 
 # Redirect variables that would silently point git at another repository or
@@ -119,7 +140,9 @@ def git_session() -> Generator[dict[str, str], None, None]:
         ["git", "-C", str(REPO_ROOT), "rev-parse", "--git-path", "objects"],
         capture_output=True, text=True, env=env, check=True,
     ).stdout.strip()
-    with tempfile.TemporaryDirectory(prefix="changelog-merge-measure-") as scratch:
+    with tempfile.TemporaryDirectory(
+        prefix="changelog-merge-measure-", ignore_cleanup_errors=True
+    ) as scratch:
         objects = Path(scratch) / "objects"
         objects.mkdir()
         env["GIT_OBJECT_DIRECTORY"] = str(objects)
@@ -147,8 +170,10 @@ def git(*args: str, env: dict[str, str], index: Path | None = None) -> str:
     return done.stdout
 
 
-def merge_tree(base: str, ours: str, theirs: str, env: dict[str, str]) -> int:
-    """Replay one pair; return `git merge-tree`'s exit status.
+def merge_tree(
+    base: str, ours: str, theirs: str, env: dict[str, str]
+) -> MergeTreeResult:
+    """Replay one pair; return `git merge-tree`'s status and named paths.
 
     0 clean, 1 conflicted, anything else a harness error. The status is returned
     rather than interpreted here so the caller can report the error bucket: a
@@ -171,7 +196,8 @@ def merge_tree(base: str, ours: str, theirs: str, env: dict[str, str]) -> int:
         text=True,
         env=env,
     )
-    return done.returncode
+    paths = tuple(line for line in done.stdout.splitlines() if line)
+    return MergeTreeResult(done.returncode, paths)
 
 
 def write_blob(content: str, env: dict[str, str]) -> str:
@@ -196,7 +222,7 @@ def commit_with(
     Uses a scratch `GIT_INDEX_FILE`, so neither the repository index nor the
     working tree is read or written.
     """
-    with tempfile.TemporaryDirectory() as scratch:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as scratch:
         index = Path(scratch) / "index"
         git("read-tree", base, env=env, index=index)
         for path, blob in path_blobs.items():
@@ -208,20 +234,79 @@ def commit_with(
     return git("commit-tree", tree, "-p", base, "-m", message, env=env).strip()
 
 
-def fragment_body(identifier: str, ordinal: int) -> str:
-    """One per-update fragment: TOML envelope, then a Highlights section."""
-    return (
-        "+++\n"
-        'schema = "changelog-fragment/v1"\n'
-        f'id = "{identifier}"\n'
-        'date = "2026-09-23"\n'
-        'packages = [{ name = "core", version = "2.26.36" }]\n'
-        "+++\n"
-        "\n"
-        "### Highlights\n"
-        "\n"
-        f"- Synthetic fragment {ordinal:02d} for the merge-independence measurement.\n"
-    )
+def fragment_body(ordinal: int) -> tuple[str, str]:
+    """Create one fragment through the delivered CLI and return path plus bytes."""
+    with tempfile.TemporaryDirectory(
+        prefix="changelog-fragment-new-", ignore_cleanup_errors=True
+    ) as scratch:
+        root = Path(scratch)
+        fragment_dir = root / FRAGMENT_DIR
+        done = subprocess.run(
+            [
+                sys.executable,
+                str(CHANGELOG_TOOL),
+                "new",
+                "--directory",
+                str(fragment_dir),
+                "--package",
+                "core",
+                "--version",
+                f"2.27.{ordinal}",
+                "--date",
+                "2026-09-23",
+                "--highlight",
+                (
+                    "Synthetic fragment "
+                    f"{ordinal:02d} for the merge-independence measurement."
+                ),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if done.returncode != 0:
+            raise RuntimeError(
+                f"{CHANGELOG_TOOL} new failed: {done.stderr.strip()}"
+            )
+        path = Path(done.stdout.strip())
+        if not path.is_file() or path.parent != fragment_dir:
+            raise RuntimeError(
+                f"{CHANGELOG_TOOL} new returned unexpected path {path}"
+            )
+        relative = f"{FRAGMENT_DIR}/{path.name}"
+        return relative, path.read_text(encoding="utf-8")
+
+
+def is_changelog_path(path: str) -> bool:
+    """Return whether a merge-tree path belongs to the changelog surface."""
+    return path == CHANGELOG or path.startswith(f"{FRAGMENT_DIR}/")
+
+
+def bucket_merge_result(result: MergeTreeResult) -> str:
+    """Classify one merge-tree result for reportable changelog conflicts."""
+    if result.returncode == 0:
+        return "clean"
+    if result.returncode == 1 and any(is_changelog_path(path) for path in result.paths):
+        return "conflicted"
+    return "errored"
+
+
+def merge_tree_detail(result: MergeTreeResult) -> str:
+    """Describe a replay result for the classifier self-check report."""
+    path_text = ",".join(result.paths) if result.paths else "<no paths>"
+    return f"exit {result.returncode}; paths {path_text}"
+
+
+def assert_status_unchanged(before: str, env: dict[str, str]) -> str:
+    """Fail if the measurement changed the shared working tree."""
+    after = git("status", "--porcelain", env=env)
+    if after != before:
+        raise RuntimeError(
+            "measurement changed git status:\n"
+            f"before:\n{before.rstrip()}\n"
+            f"after:\n{after.rstrip()}"
+        )
+    return after
 
 
 def release_section(identifier: str, ordinal: int) -> str:
@@ -325,8 +410,9 @@ def build_arm(
     commits = []
     for ordinal, identifier in enumerate(ids, start=1):
         if name == "fragment":
-            blob = write_blob(fragment_body(identifier, ordinal), env)
-            paths = {f"{FRAGMENT_DIR}/{identifier}.md": blob}
+            relative, source = fragment_body(ordinal)
+            blob = write_blob(source, env)
+            paths = {relative: blob}
         else:
             updated = prepend_release(
                 changelog_at_base, release_section(identifier, ordinal), anchor
@@ -344,10 +430,10 @@ def replay(base: str, name: str, commits: list[str], env: dict[str, str]) -> Arm
     pairs = 0
     for ours, theirs in itertools.combinations(commits, 2):
         pairs += 1
-        status = merge_tree(base, ours, theirs, env)
-        if status == 0:
+        bucket = bucket_merge_result(merge_tree(base, ours, theirs, env))
+        if bucket == "clean":
             clean += 1
-        elif status == 1:
+        elif bucket == "conflicted":
             conflicted += 1
         else:
             errored += 1
@@ -366,15 +452,23 @@ def classifier_self_check(
     right_blob = write_blob("right\n" + changelog_at_base, env)
     left = commit_with(base, {CHANGELOG: left_blob}, "sc left", env)
     right = commit_with(base, {CHANGELOG: right_blob}, "sc right", env)
-    conflict_status = merge_tree(base, left, right, env)
+    conflict_result = merge_tree(base, left, right, env)
 
     a = commit_with(base, {f"{FRAGMENT_DIR}/self-check-a.md": write_blob("a\n", env)}, "sc a", env)
     b = commit_with(base, {f"{FRAGMENT_DIR}/self-check-b.md": write_blob("b\n", env)}, "sc b", env)
-    clean_status = merge_tree(base, a, b, env)
+    clean_result = merge_tree(base, a, b, env)
 
     return [
-        ("known-conflicting pair", f"exit {conflict_status} (want 1)", conflict_status == 1),
-        ("known-clean pair", f"exit {clean_status} (want 0)", clean_status == 0),
+        (
+            "known-conflicting pair",
+            f"{merge_tree_detail(conflict_result)} (want changelog conflict)",
+            bucket_merge_result(conflict_result) == "conflicted",
+        ),
+        (
+            "known-clean pair",
+            f"{merge_tree_detail(clean_result)} (want clean)",
+            bucket_merge_result(clean_result) == "clean",
+        ),
     ]
 
 
@@ -399,6 +493,7 @@ def report(base: str, checks: list[tuple[str, str, bool]], arms: list[ArmResult]
 def main() -> int:
     with git_session() as env:
         base = git("rev-parse", "HEAD", env=env).strip()
+        status_before = git("status", "--porcelain", env=env)
         changelog_at_base = git("show", f"{base}:{CHANGELOG}", env=env)
         anchor = first_release_line(load_build_site(), changelog_at_base)
         ids = identifiers(BRANCH_COUNT)
@@ -416,7 +511,12 @@ def main() -> int:
             replay(base, name, build_arm(base, name, changelog_at_base, ids, anchor, env), env)
             for name in ("fragment", "control")
         ]
+        status_after = assert_status_unchanged(status_before, env)
     report(base, checks, arms)
+    if status_after:
+        print("\ngit status: unchanged from pre-existing workspace state")
+    else:
+        print("\ngit status: clean")
     return 0
 
 

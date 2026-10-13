@@ -65,6 +65,11 @@ REQUIRED_PATHS = (
     "guides/**",
     "site.toml",
     "tools/build-site.py",
+    "docs/product/changelog.md",
+    "docs/product/changelog.d/**",
+    # AC-B10: monthly bundle parts and retraction list also trigger a site rebuild.
+    "docs/product/changelog.months/**",
+    "docs/product/changelog-retractions.toml",
 )
 # What `test:plugins` must actually BE. An explicit path fails closed when the suite
 # moves; a glob exits 0 with `tests 0`, and so does `true`.
@@ -470,6 +475,15 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("      - 'site.toml'\n", "", 1)),
     ("drop-generator-filter", "path-filter[tools/build-site.py]",
      lambda t: t.replace("      - 'tools/build-site.py'\n", "", 1)),
+    ("drop-changelog-filter", "path-filter[docs/product/changelog.md]",
+     lambda t: t.replace("      - 'docs/product/changelog.md'\n", "", 1)),
+    ("drop-fragment-filter", "path-filter[docs/product/changelog.d/**]",
+     lambda t: t.replace("      - 'docs/product/changelog.d/**'\n", "", 1)),
+    # AC-B10: bundle parts and retraction list.
+    ("drop-bundle-months-filter", "path-filter[docs/product/changelog.months/**]",
+     lambda t: t.replace("      - 'docs/product/changelog.months/**'\n", "", 1)),
+    ("drop-retractions-filter", "path-filter[docs/product/changelog-retractions.toml]",
+     lambda t: t.replace("      - 'docs/product/changelog-retractions.toml'\n", "", 1)),
 ]
 
 
