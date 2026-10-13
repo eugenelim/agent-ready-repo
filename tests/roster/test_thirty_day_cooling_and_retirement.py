@@ -15,6 +15,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
+from product_changelog_releases import latest_release_version
 
 ROOT = Path(__file__).resolve().parents[2]
 COOLING_PATH = ROOT / "packs/core/.apm/skills/close-work/scripts/cooling.py"
@@ -1645,19 +1646,15 @@ def test_the_release_surfaces_agree_and_advance() -> None:
     version = pack["pack"]["version"]
     assert plugin["version"] == version
 
-    changelog = (ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
-    # The repository writes these headings with an em dash, not a hyphen; the
-    # shipped Wave 4 release test pins the same shape.
-    headings = re.findall(
-        # The topmost heading may cover several artifacts:
-        # `## [core][2.15.2] / [governance-extras][0.10.2] / ... — <date>`.
-        # Anchoring the em dash straight after the core segment skipped it
-        # entirely and returned the *previous* release as "topmost".
-        r"^## \[core\]\[([0-9.]+)\][^\n]* — \d{4}-\d{2}-\d{2}$", changelog, re.M
-    )
-    assert headings, "no dated core changelog heading"
-    assert headings[0] == version, (
-        f"topmost core heading is {headings[0]!r}, manifests say {version!r}"
+    # Restated from "the topmost dated core heading is the shipped version":
+    # records are appended after the frozen history, so the equivalent property
+    # is that the newest core release (by version, either storage form) is it.
+    # A heading may cover several artifacts (`## [core][2.15.2] / [x][1.0.0]`);
+    # the changelog tool's reader sees every package a heading names.
+    newest = latest_release_version("core")
+    assert newest, "no dated core changelog heading"
+    assert newest == version, (
+        f"newest core release is {newest!r}, manifests say {version!r}"
     )
     step = tuple(int(part) for part in version.split("."))
     merge_base = tuple(int(part) for part in MERGE_BASE_CORE_VERSION.split("."))

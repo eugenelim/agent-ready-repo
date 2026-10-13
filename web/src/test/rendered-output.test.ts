@@ -1184,9 +1184,30 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     for (const group of projection.groups) {
       const target = emitted.getElementById(group.changelogAnchor);
       expect(target, `#${group.changelogAnchor} is absent from the changelog`).not.toBeNull();
+      // A release stored as a record renders its anchor as an empty inline
+      // `<a id>` on its own line, which Markdown wraps in a `<p>` BEFORE the
+      // heading, so the id names that anchor rather than the heading. Resolve
+      // the heading it introduces: the target itself or its enclosing heading
+      // when it is one, else the first h1-h6 at or after it (the next element
+      // sibling of its block, or that sibling's first heading descendant,
+      // since Starlight wraps headings in a div).
+      const headingSelector = 'h1, h2, h3, h4, h5, h6';
+      let heading: Element | null = target!.closest(headingSelector);
+      if (heading === null) {
+        const block =
+          target!.parentElement?.tagName === 'P' ? target!.parentElement : target!;
+        const next = block.nextElementSibling;
+        heading = next === null ? null : next.matches(headingSelector)
+          ? next
+          : next.querySelector(headingSelector);
+      }
+      expect(
+        heading,
+        `#${group.changelogAnchor} is not a heading and no heading follows it`
+      ).not.toBeNull();
       // Starlight appends an anchor-link affordance to headings, so compare the
       // heading's own text rather than requiring exact equality.
-      expect(normalise(target!.textContent ?? '')).toContain(normalise(group.heading));
+      expect(normalise(heading!.textContent ?? '')).toContain(normalise(group.heading));
     }
   });
 

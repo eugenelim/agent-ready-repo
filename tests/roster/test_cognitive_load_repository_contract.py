@@ -21,6 +21,7 @@ from agentbundle.catalogue_tooling import file_safety
 from agentbundle.catalogue_tooling import lint as catalogue_lint
 from agentbundle.catalogue_tooling.lint import _agent_rules_violations
 from agentbundle.commands._common import deliver_seeds
+from product_changelog_releases import complete_changelog
 
 ROOT = Path(__file__).resolve().parents[2]
 SEEDS = ROOT / "packs" / "core" / "seeds"
@@ -828,7 +829,8 @@ def test_cognitive_load_release_inventory_is_complete() -> None:
     )
     private_packs = {pack.name for pack in changed_packs if pack.name.startswith("_")}
     assert private_packs == set(private_dispositions)
-    changelog = (ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
+    # The complete view: a release may be recorded as a fragment, not in the frozen file.
+    changelog = complete_changelog()
     for pack in changed_packs:
         manifest = tomllib.loads((pack / "pack.toml").read_text(encoding="utf-8"))
         name = manifest["pack"]["name"]

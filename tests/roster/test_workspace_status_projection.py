@@ -25,6 +25,7 @@ from typing import Any
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
 from agentbundle.scope import shipped_adapters_from_contract
+from product_changelog_releases import latest_release_version
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
@@ -117,19 +118,6 @@ def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _product_release_heading_version(text: str, name: str) -> str:
-    # Version correspondence only. Either heading level is accepted because the
-    # 59 pre-RFC-0095 nested entries include some artifacts' CURRENT release
-    # (agentbundle 0.38.5 among them), so a `##`-only match would read a stale
-    # free-standing heading. RFC-0095 D3 is enforced by the ratchet in
-    # `test_no_new_release_is_nested_under_unreleased`, not here.
-    match = re.search(
-        rf"^#{{2,3}} \[{re.escape(name)}\]\[([^\]]+)\]", text, re.MULTILINE
-    )
-    assert match, f"missing {name} changelog heading"
-    return match.group(1)
-
-
 # RFC-0095 D3 baseline. 59 versioned entries were nested under a `## [Unreleased]`
 # heading when D3 was accepted; every one is invisible to the `/now/` projection
 # permanently, because nothing ever moves an entry out. Their promotion needs
@@ -138,7 +126,7 @@ def _product_release_heading_version(text: str, name: str) -> str:
 #
 # This is a RATCHET, not a floor: it may only ever go DOWN. It is the mechanical
 # enforcement of D3 — the correspondence check in
-# `_product_release_heading_version` deliberately accepts either level.
+# version-correspondence check in `test_t4_repair_determinism_projection_and_release_surface` deliberately accepts either level.
 _MAROONED_RELEASE_BASELINE = 59
 
 
@@ -552,9 +540,12 @@ print(engine.canonical_result_identity(canonical, **{base!r}))
         package_changelog,
         re.MULTILINE,
     )
-    product_changelog = (REPO_ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
-    assert _product_release_heading_version(product_changelog, "agentbundle") == pyproject_version
-    assert _product_release_heading_version(product_changelog, "core") == pack_version
+    # Newest release by version across the frozen history and every record,
+    # at either heading level: the 59 pre-RFC-0095 nested entries include some
+    # artifacts' CURRENT release (agentbundle among them). The old
+    # "first heading in the raw file" misses a release recorded as a fragment.
+    assert latest_release_version("agentbundle", include_nested=True) == pyproject_version
+    assert latest_release_version("core", include_nested=True) == pack_version
 
     for adapter_name in shipped_adapters_from_contract():
         assert adapter_name in ADAPTERS

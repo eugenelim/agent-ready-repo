@@ -21,6 +21,7 @@ from types import ModuleType
 from typing import Any
 
 import pytest
+from product_changelog_releases import complete_changelog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -1530,7 +1531,9 @@ def test_pack_delivery_contract_is_complete_and_version_increased(workspace_stat
     core = (REPO_ROOT / "packs/core/pack.toml").read_text(encoding="utf-8")
     plugin = (REPO_ROOT / "packs/core/.claude-plugin/plugin.json").read_text(encoding="utf-8")
     evals = list((REPO_ROOT / "packs/core/.apm/skills/workspace-status/evals").rglob("*"))
-    changelog = (REPO_ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
+    # The complete view: a core release may be recorded as a fragment, which the
+    # raw frozen file does not contain.
+    changelog = complete_changelog()
     core_version = re.search(r'^version = "([^"]+)"', core, re.M).group(1)
     plugin_version = re.search(r'"version":\s*"([^"]+)"', plugin).group(1)
     assert core_version == plugin_version, (core_version, plugin_version)

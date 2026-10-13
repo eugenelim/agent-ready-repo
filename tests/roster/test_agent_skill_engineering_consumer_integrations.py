@@ -47,6 +47,7 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml  # noqa: E402
 from agentbundle.catalogue_tooling.verify import verify_catalogue  # noqa: E402
+from product_changelog_releases import latest_release_version  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs" / "specs" / "agent-skill-engineering-consumer-integrations"
@@ -354,9 +355,9 @@ def _topmost_changelog_version(artifact: str) -> str:
     Returns the empty string when no release heading names the artifact, which
     AC10 asserts against rather than comparing silently.
     """
-    return _newest_release_version(
-        artifact, CHANGELOG.read_text(encoding="utf-8").splitlines()
-    )
+    # Read through the record view: a release recorded as a fragment is not in
+    # the raw file, so "newest" is the highest version across both forms.
+    return latest_release_version(artifact)
 
 
 def _newest_release_version(artifact: str, lines: list[str]) -> str:

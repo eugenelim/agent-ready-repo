@@ -34,6 +34,8 @@ import re
 from pathlib import Path
 from types import ModuleType
 
+from product_changelog_releases import latest_release_date, latest_release_version
+
 ROOT = Path(__file__).resolve().parents[2]
 GUARDS = ROOT / "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py"
 
@@ -399,11 +401,13 @@ def test_the_core_release_surfaces_agree() -> None:
     plugin = json.loads(_read("packs/core/.claude-plugin/plugin.json"))["version"]
     assert pack == plugin, f"core pack {pack} and plugin {plugin} must agree"
 
-    changelog = _read("docs/product/changelog.md")
-    core_headings = re.findall(r"^## \[core\]\[([^\]]+)\]", changelog, re.MULTILINE)
-    assert core_headings, "changelog carries no [core] release heading"
-    assert core_headings[0] == pack, (
-        f"topmost [core] changelog heading is {core_headings[0]}, not the shipped {pack}"
+    # "Leads with it" was a heading position. Records are appended after the
+    # frozen history, so the property is that the newest [core] release, in
+    # either storage form, is the shipped version.
+    newest = latest_release_version("core")
+    assert newest, "changelog carries no [core] release heading"
+    assert newest == pack, (
+        f"newest [core] changelog release is {newest}, not the shipped {pack}"
     )
 
 
@@ -524,19 +528,20 @@ def test_the_core_release_heading_sits_directly_beneath_unreleased() -> None:
     """AC4 requires adjacency, which "first [core] heading anywhere" does not give."""
     import tomllib
 
-    changelog = _read("docs/product/changelog.md")
-    following = re.findall(
-        r"^## \[([^\]]+)\]\[([^\]]+)\]",
-        changelog[changelog.index("## [Unreleased]") :],
-        re.MULTILINE,
-    )
-    assert following, "no versioned release heading follows [Unreleased]"
-    artifact, version = following[0]
+    # Restated. "Directly beneath [Unreleased]" was how the newest release was
+    # found when releases were prepended; records are now appended after the
+    # frozen history, so no heading position identifies it. The equivalent
+    # property: the newest release is a core one (nothing is dated later than
+    # the newest core release) and that core release is the shipped version.
     pack = tomllib.loads(_read("packs/core/pack.toml"))["pack"]["version"]
-    assert artifact == "core", (
-        f"the heading directly beneath [Unreleased] is [{artifact}], not [core]"
+    newest_core = latest_release_version("core")
+    assert newest_core, "no versioned core release heading in the changelog"
+    assert newest_core == pack, (
+        f"the newest core release is {newest_core}, not the shipped {pack}"
     )
-    assert version == pack, (
-        f"the heading directly beneath [Unreleased] is core {version}, "
-        f"not the shipped {pack}"
+    core_date = latest_release_date("core")
+    newest_date = latest_release_date()
+    assert newest_date == core_date, (
+        f"a release dated {newest_date} is newer than the newest core release "
+        f"({core_date}), so core is not the newest release"
     )

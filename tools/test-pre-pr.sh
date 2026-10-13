@@ -45,7 +45,10 @@ seed_sandbox() {
   (cd "$SANDBOX" \
     && git init -q \
     && git -c user.email=t@t -c user.name=t add -A \
-    && git -c user.email=t@t -c user.name=t commit -q -m baseline)
+    && git -c user.email=t@t -c user.name=t commit -q -m baseline \
+    && git update-ref refs/remotes/origin/main HEAD)
+  # The sandbox has no remote; pre-pr's fragment validation resolves a merge
+  # base against origin/main, so the baseline commit stands in for it.
 }
 seed_sandbox
 
