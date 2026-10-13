@@ -1997,9 +1997,27 @@ def test_fix_first_screen_detail_summarises_the_list(opener: Any, exports: dict[
     assert sum(counts) == len(_ids(page)) > 0, summary
     assert "brief" in summary or "spec" in summary or "intent" in summary, summary
     _choose(item, "broken")
-    page.wait_for_function("() => document.querySelector('#detail-body .list-summary') !== null")
-    assert str(len(_ids(page))) in _text(page, "#detail-body .list-summary")
+    # An empty list adds no summary beside its positive line.
+    assert page.locator("#detail-body .list-summary").count() == 0
     assert page.locator("#main[data-picked]").count() == 0
+    broken = opener(exports["hostile_diag"], width=1280)
+    _choose(broken, "broken")
+    broken.page.wait_for_function("() => document.querySelector('#detail-body .list-summary') !== null")
+    text = _text(broken.page, "#detail-body .list-summary")
+    counts = [int(n) for n in re.findall(r"(\d+) ", text)]
+    assert sum(counts) == len(_ids(broken.page)) and "1 delivery diagnostic" in text, text
+
+
+def test_fix_context_cell_is_never_clipped(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    """The count, the ancestor and the diagnostic code stay visible at every three-track width."""
+    for width in (1024, 1280, 1440, 1680, 2560):
+        for name, question in (("mixed", "next"), ("mixed", "capabilities"), ("hostile_diag", "broken")):
+            item = opener(exports[name], width=width)
+            _choose(item, question)
+            clipped = item.page.eval_on_selector_all(
+                "#list .c-context", "els => els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent)"
+            )
+            assert clipped == [], (width, question, clipped)
 
 
 def test_fix_open_beneath_aligns_name_and_state(opener: Any, exports: dict[str, pathlib.Path]) -> None:
