@@ -853,6 +853,9 @@ EXPECTED_SCRIPT_STEPS = [
     # the terminality copy it ships is governed by the closure-terminality
     # steps above.
     "packs/core/tests/skills/navigate-intents",
+    # Shared view stylesheet: the self-test, then byte parity of every copy.
+    "tools/test_check_view_base_parity.py",
+    "tools/check_view_base_parity.py",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
     "tools/catalogue/tests/test_verify_host_checks.py",
