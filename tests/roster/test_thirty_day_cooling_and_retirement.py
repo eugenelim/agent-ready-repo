@@ -1635,9 +1635,10 @@ def test_the_contract_names_both_owning_specs() -> None:
 def test_the_release_surfaces_agree_and_advance() -> None:
     """The two manifests, the newest core changelog release, and the step all agree.
 
-    The merge-base version is a literal so this holds in a shallow clone and in
-    CI, where `origin/main` may not be a local ref. A self-consistent but stale
-    version set fails the strict-greater comparison.
+    The merge-base version is a literal, so that half needs no `origin/main`
+    ref. The changelog half reads the complete record view, which does need one
+    (see `product_changelog_releases`). A self-consistent but stale version set
+    fails the strict-greater comparison.
     """
     pack = tomllib.loads((ROOT / "packs/core/pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads(
