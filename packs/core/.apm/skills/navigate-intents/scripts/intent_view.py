@@ -150,9 +150,15 @@ def build_html(payload: dict[str, Any]) -> str:
     The shell interpolates no record text; every record string lives only in the data block.
     The content-security policy pins the style and the script by digest, so nothing else runs.
     """
-    style = _read_asset("view.css")
+    base = _read_asset("view-base.css")
+    layout = _read_asset("view.css")
     script = _read_asset("view.js")
-    for name, body, closer in (("view.css", style, "</style"), ("view.js", script, "</script")):
+    style = base + "\n" + layout
+    for name, body, closer in (
+        ("view-base.css", base, "</style"),
+        ("view.css", layout, "</style"),
+        ("view.js", script, "</script"),
+    ):
         if closer in body.lower() or "<!--" in body:
             raise ViewRefusal("resolver_unavailable", f"view asset cannot be inlined: {name}")
     csp = (

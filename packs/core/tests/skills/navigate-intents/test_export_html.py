@@ -29,6 +29,11 @@ _PACK = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _ASSETS = _SCRIPTS / "view_assets"
 _FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
+_REPO = pathlib.Path(__file__).resolve().parents[5]
+_TOKENS = _REPO / "docs" / "design" / "tokens" / "skill-html-views.md"
+_BASE_CSS = (_ASSETS / "view-base.css").read_text(encoding="utf-8")
+_LAYOUT_CSS = (_ASSETS / "view.css").read_text(encoding="utf-8")
+_STYLE_TEXT = _BASE_CSS + "\n" + _LAYOUT_CSS
 
 
 def _load(path: pathlib.Path, module_name: str) -> Any:
@@ -128,7 +133,7 @@ def test_csp_is_first_head_child_and_pins_both_digests(mixed_html: str) -> None:
     )
     assert shape.executable == 1 and shape.style_elements == 1
     assert script == (_ASSETS / "view.js").read_text(encoding="utf-8")
-    assert style == (_ASSETS / "view.css").read_text(encoding="utf-8")
+    assert style == _STYLE_TEXT
 
 
 def test_page_has_no_banned_elements_attributes_or_urls(mixed_html: str) -> None:
@@ -231,7 +236,35 @@ def test_escape_function_matches_the_text_output() -> None:
     assert json.loads(done.stdout) == [nav._escape_display(p) for p in probes]
 
 
-def test_stylesheet_declares_no_motion() -> None:
-    css = (_ASSETS / "view.css").read_text(encoding="utf-8")
-    for word in ("transition", "animation", "@keyframes"):
-        assert word not in css
+def test_stylesheets_declare_no_motion_or_external_loads() -> None:
+    """Neither stylesheet may animate, load a url, or import another sheet."""
+    for css in (_BASE_CSS, _LAYOUT_CSS):
+        for word in ("transition", "animation", "@keyframes", "url(", "@import"):
+            assert word not in css
+
+
+def test_base_stylesheet_carries_every_colour_token() -> None:
+    """Each documented role's light value is on :root and its dark value in the dark query."""
+    rows = re.findall(
+        r"^\| `(--c-[a-z-]+)` \| `(#[0-9a-f]{6})` \| `(#[0-9a-f]{6})` \|",
+        _TOKENS.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    assert len(rows) >= 9
+    marker = "@media (prefers-color-scheme: dark)"
+    light_part, dark_part = _BASE_CSS.split(marker, 1)
+    dark_block = dark_part.split("\n}\n", 1)[0]
+    for role, light, dark in rows:
+        assert f"{role}: {light};" in light_part
+        assert f"{role}: {dark};" in dark_block
+
+
+def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
+    """The layout sheet arranges only: no colour literal, font family, or token declaration."""
+    css = re.sub(r"/\*.*?\*/", "", _LAYOUT_CSS, flags=re.DOTALL)
+    assert not re.search(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\b(?:hwb|lab|lch|oklab|oklch)\(", css)
+    assert not re.search(
+        r"(?<![\w-])(?:transparent|currentcolor|white|black|red|green|blue|gray|grey)(?![\w-])", css
+    )
+    assert "font-family" not in css
+    assert not re.search(r"(?<![\w(])--(?:c|t)-[\w-]*\s*:", css)
