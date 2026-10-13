@@ -220,7 +220,12 @@
     var cut = n.id.indexOf(':');
     return cut === -1 ? n.id : n.id.slice(cut + 1);
   }
-  function nameKey(id) { return displayName(id).toLowerCase(); }
+  var nameKeys = new Map();
+  function nameKey(id) {
+    var k = nameKeys.get(id);
+    if (k === undefined) { k = displayName(id).toLowerCase(); nameKeys.set(id, k); }
+    return k;
+  }
   function byName(a, b) { return cmp(nameKey(a), nameKey(b)) || cmp(a, b); }
 
   function statusOf(id) {
@@ -530,7 +535,13 @@
   }
 
   // ------------------------------------------------------------------ rows
+  var contexts = new Map();
   function contextText(id) {
+    var known = contexts.get(id);
+    if (known === undefined) { known = buildContext(id); contexts.set(id, known); }
+    return known;
+  }
+  function buildContext(id) {
     var type = typeOf(id);
     var label = own(TYPE_NAMES, type) || type;
     var r = rec(id);
@@ -563,9 +574,20 @@
     add(li, rowLink(id, stateMark(id), contextText(id)));
     return li;
   }
+  // A long list renders its first rows at once and the rest in later batches, so typing stays
+  // responsive; rows only ever append below, so nothing above them moves.
+  var ROW_BATCH = 150;
+  var listGeneration = 0;
   function rows(ids) {
     var ul = el('ul', 'rows');
-    ids.forEach(function (id) { add(ul, itemRow(id)); });
+    var generation = listGeneration;
+    function fill(from) {
+      if (generation !== listGeneration) { return; }
+      var end = Math.min(ids.length, from + ROW_BATCH);
+      for (var i = from; i < end; i++) { add(ul, itemRow(ids[i])); }
+      if (end < ids.length) { setTimeout(function () { fill(end); }, 0); }
+    }
+    fill(0);
     return ul;
   }
 
@@ -798,10 +820,9 @@
   }
   function bodySearch(route) {
     var want = route.search.toLowerCase();
-    var ids = data.nodes.filter(function (n) {
-      return slugOf(n).toLowerCase().indexOf(want) !== -1 ||
-        (isStr(n.heading) ? n.heading : '').toLowerCase().indexOf(want) !== -1;
-    }).map(function (n) { return n.id; }).sort(byName);
+    var ids = searchIndex().filter(function (entry) {
+      return entry.slug.indexOf(want) !== -1 || entry.heading.indexOf(want) !== -1;
+    }).map(function (entry) { return entry.id; });
     if (!ids.length) {
       var box = add(dom.list, el('div', 'empty'));
       add(box, el('p', '', 'Nothing matches the search "' + route.search + '".'));
@@ -811,6 +832,17 @@
     add(dom.list, rows(ids));
     return ids.length;
   }
+  // Every node once, already in name order, with its lowercased slug and heading.
+  var searchEntries = null;
+  function searchIndex() {
+    if (searchEntries === null) {
+      searchEntries = data.nodes.map(function (n) {
+        return { id: n.id, slug: slugOf(n).toLowerCase(),
+          heading: (isStr(n.heading) ? n.heading : '').toLowerCase() };
+      }).sort(function (a, b) { return byName(a.id, b.id); });
+    }
+    return searchEntries;
+  }
   var BODIES = { next: bodyNext, capabilities: bodyCapabilities, noparent: bodyNoParent,
     broken: bodyBroken, browse: bodyBrowse };
 
@@ -818,6 +850,7 @@
 
   function renderList(route, announce) {
     var q = question(route.q);
+    listGeneration += 1;
     clear(dom.list);
     clear(dom.filters);
     dom.filters.hidden = true;
