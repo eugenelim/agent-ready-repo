@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
+from product_changelog_releases import complete_changelog, latest_release_version
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = REPO_ROOT / "docs/specs/conventions-retirement"
@@ -1141,7 +1142,8 @@ def _core_entry(body: str, version: str) -> str | None:
 
 def test_changelog_names_the_seed_withdrawal() -> None:
     """AC11. A heading check cannot observe this; the body is read."""
-    body = CHANGELOG.read_text(encoding="utf-8")
+    # The complete view: the entry may sit in the frozen history or in a record.
+    body = complete_changelog()
     # The free-standing check is the no-append clause: `_CORE_HEADING_RE` is
     # anchored to `^## `, so a sentence appended under another release's
     # heading is not matched and the entry reads as absent.
@@ -1173,7 +1175,7 @@ def test_both_manifests_carry_the_same_bumped_version() -> None:
         f"AC12 released {RELEASE_VERSION}; the manifests now read "
         f"{pack.group(1)}, which is behind it."
     )
-    assert _core_entry(CHANGELOG.read_text(encoding="utf-8"), RELEASE_VERSION) is not None, (
+    assert _core_entry(complete_changelog(), RELEASE_VERSION) is not None, (
         f"the {RELEASE_VERSION} release AC12 names has no changelog entry"
     )
 
@@ -1184,11 +1186,15 @@ def test_changelog_version_matches_the_manifests() -> None:
     Without this, an entry headed with any other version satisfies AC11 and
     AC12 together while nothing in the required gate notices.
     """
-    match = _CORE_HEADING_RE.search(CHANGELOG.read_text(encoding="utf-8"))
-    assert match, "the changelog carries no free-standing `core` entry"
+    # Restated from "the topmost `core` heading equals pack.toml": a release
+    # recorded as a fragment is appended after the frozen history, so no
+    # heading position identifies the newest. The property that survives is
+    # that the newest `core` release by version equals pack.toml.
+    newest = latest_release_version("core")
+    assert newest, "the changelog carries no free-standing `core` entry"
     pack = re.search(r'version = "([^"]+)"', PACK_TOML.read_text(encoding="utf-8"))
-    assert pack and match.group("version") == pack.group(1), (
-        f"changelog heading is {match.group('version')!r} but pack.toml is "
+    assert pack and newest == pack.group(1), (
+        f"newest changelog core release is {newest!r} but pack.toml is "
         f"{pack.group(1) if pack else None!r}"
     )
 

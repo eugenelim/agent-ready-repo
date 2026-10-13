@@ -47,6 +47,7 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml  # noqa: E402
 from agentbundle.catalogue_tooling.verify import verify_catalogue  # noqa: E402
+from product_changelog_releases import latest_release_version  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs" / "specs" / "agent-skill-engineering-consumer-integrations"
@@ -332,8 +333,13 @@ def _version_tuple(version: str) -> tuple[int, ...]:
         return ()
 
 
-def _topmost_changelog_version(artifact: str) -> str:
-    """Return an artifact's version from the newest release heading naming it.
+def _topmost_changelog_version(artifact: str, text: str | None = None) -> str:
+    """Return the highest released version of an artifact, in either storage form.
+
+    "Highest" is by version tuple across the frozen history and every record,
+    not by heading position: records are appended after the frozen history, so
+    no position identifies the newest. ``text`` substitutes a synthetic
+    complete-view changelog, which the control test below uses.
 
     A release heading may cover several artifacts at once — `## [core][2.15.2]
     / [governance-extras][0.10.2] / ... — <date>`. the product README's changelog rule
@@ -354,21 +360,7 @@ def _topmost_changelog_version(artifact: str) -> str:
     Returns the empty string when no release heading names the artifact, which
     AC10 asserts against rather than comparing silently.
     """
-    return _newest_release_version(
-        artifact, CHANGELOG.read_text(encoding="utf-8").splitlines()
-    )
-
-
-def _newest_release_version(artifact: str, lines: list[str]) -> str:
-    """Scan release headings newest-first for one naming the artifact."""
-    segment = re.compile(rf"\[{re.escape(artifact)}\]\[([^\]]+)\]")
-    for line in lines:
-        if RELEASE_HEADING.fullmatch(line) is None:
-            continue
-        named = segment.search(line)
-        if named is not None:
-            return named.group(1)
-    return ""
+    return latest_release_version(artifact, text=text)
 
 
 def _workspace() -> dict[str, object]:
@@ -595,12 +587,19 @@ def test_ac10_reads_a_release_heading_that_covers_several_artifacts(
         "## [core][2.24.0] / [architect][0.15.6] "
         "/ [agent-skill-engineering][0.4.1] — 2026-09-03"
     )
-    stale = ["## [core][2.23.0] — 2026-09-03"]
+    stale = "## [core][2.23.0] — 2026-09-03"
     expected = {"core": "2.24.0", "architect": "0.15.6", "agent-skill-engineering": "0.4.1"}
-    assert _newest_release_version(artifact, [combined, *stale]) == expected[artifact]  # external-comparison
-    # Newest-first ordering, and a heading that names no artifact is skipped.
-    assert _newest_release_version(artifact, ["## [Unreleased]", combined]) == expected[artifact]  # external-comparison
-    assert _newest_release_version("desk-research", [combined]) == ""  # external-comparison
+
+    def view(*headings: str) -> str:
+        return "# Changelog\n\n" + "\n\n".join(headings) + "\n"
+
+    # The reader AC10 uses, on a synthetic complete view. The newest release is
+    # the highest version wherever it sits, so a record appended after the
+    # older standalone heading is still found.
+    assert _topmost_changelog_version(artifact, view(combined, stale)) == expected[artifact]  # external-comparison
+    assert _topmost_changelog_version(artifact, view(stale, combined)) == expected[artifact]  # external-comparison
+    assert _topmost_changelog_version(artifact, view("## [Unreleased]", combined)) == expected[artifact]  # external-comparison
+    assert _topmost_changelog_version("desk-research", view(combined)) == ""  # external-comparison
 
 
 @pytest.mark.parametrize(
