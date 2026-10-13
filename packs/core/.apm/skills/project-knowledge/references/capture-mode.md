@@ -19,3 +19,11 @@ At `plan-locked`, terminal distillation uses `--distill --pending` with the
 same producer profile and gate. Its input is only the full capture receipts
 returned by captures at that gate; it refuses other-gate receipts, guessed
 identifiers, and `direct-maintainer-pending`.
+
+## Capturing from a delivery candidate
+
+A candidate printed by `--candidates` is a suggestion, not a request. Write the
+`lesson` and give the `privacy_attestation` yourself, cite repository-relative
+provenance, and submit the request through this mode like any other. Capture
+never reads the candidate frame, and its validation, identity rule, and time
+window do not change.

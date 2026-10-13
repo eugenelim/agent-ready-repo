@@ -28,7 +28,7 @@ MARKER = b"*\n"
 def load_script(alias: str, filename: str) -> ModuleType:
     """Load a work-loop script by literal path under a unique module name."""
     assert "/" not in filename and filename not in {"", ".", ".."}, filename
-    path = Path(SCRIPTS) / filename
+    path = Path(os.path.join(SCRIPTS, filename))  # noqa: PTH118 — the pack-boundary lint traces this form
     assert stat.S_ISREG(os.lstat(path).st_mode), f"not a regular file: {path}"
     previous = sys.dont_write_bytecode
     try:

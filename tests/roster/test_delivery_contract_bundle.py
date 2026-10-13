@@ -751,3 +751,302 @@ def test_projection_runtime_never_reads_a_delivery_schema() -> None:
             elif isinstance(node, ast.ImportFrom):
                 modules = [node.module or ""]
             assert not [m for m in modules if m.split(".")[0] in {"agentbundle", "credbroker"}], name
+
+
+# ── Candidate-mode validator parity (Slice 3, task T2) ───────────────────────
+# The project-knowledge candidate mode validates a feed page in self-contained
+# code. These tests run one differential corpus through `jsonschema` and through
+# that validator, and pin the validator's constants to the canonical schemas.
+
+_PROJECT_KNOWLEDGE_SCRIPT = (
+    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge" / "scripts" / "project_knowledge.py"
+)
+
+
+def _load_candidate_validator():  # noqa: ANN202 - test-time module loader
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location("dfp_roster_project_knowledge", str(_PROJECT_KNOWLEDGE_SCRIPT))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module  # the module defines dataclasses
+    spec.loader.exec_module(module)
+    return module
+
+
+def _corpus_base_page() -> dict:
+    """One valid page: a fact with an observation, a fact with none, and an unread source."""
+    page = _sample_page()
+    observation = page["entries"][0]["observation"]
+    page["entries"].insert(
+        1,
+        {
+            "entry_kind": "fact",
+            "ordinal": 1,
+            "source": {
+                "spec_path": "docs/specs/example",
+                "transaction_id": "tx-2",
+                "record_kind": "evidence-receipt.v1",
+                "record_id": "receipt-2",
+                "predecessor_schema_version": 1,
+            },
+            "observation": None,
+            "none_reason": "superseded",
+        },
+    )
+    page["entries"][2]["ordinal"] = 2
+    page["continuation"] = "dff1." + "c" * 64 + ".3"
+    assert observation is page["entries"][0]["observation"]
+    return page
+
+
+def _walk(node: object, path: tuple = ()):  # noqa: ANN202
+    """Yield (path, value) for every node of a JSON value."""
+    yield path, node
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield from _walk(value, (*path, key))
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _walk(value, (*path, index))
+
+
+def _at(page: dict, path: tuple) -> object:
+    node: object = page
+    for key in path:
+        node = node[key]  # type: ignore[index]
+    return node
+
+
+def _corpus() -> list[tuple[str, dict]]:
+    """The valid page plus one violation per schema constraint, generated over the valid page.
+
+    For each node: delete a key (required), add a key (additionalProperties),
+    swap its type (type, null, boolean), and, by type, break each bound the
+    schema states: string length and pattern, integer range and fractions, array
+    length and uniqueness. Named cases cover the keyword combinations that need
+    a coordinated edit (oneOf arms, if/then/else, const and enum members).
+    """
+    import copy
+
+    base = _corpus_base_page()
+    cases: list[tuple[str, dict]] = [("valid", copy.deepcopy(base))]
+
+    def add(label: str, path: tuple, replacement: object) -> None:
+        page = copy.deepcopy(base)
+        if path:
+            parent = _at(page, path[:-1])
+            parent[path[-1]] = replacement  # type: ignore[index]
+        else:
+            page = replacement  # type: ignore[assignment]
+        cases.append((f"{label}:{'/'.join(map(str, path)) or '<root>'}", page))
+
+    for path, value in _walk(base):
+        add("to-string", path, "x")
+        add("to-integer", path, 7)
+        add("to-boolean", path, True)
+        add("to-list", path, [])
+        add("to-object", path, {})
+        if path:
+            add("to-null", path, None)
+        if isinstance(value, dict):
+            for key in value:
+                page = copy.deepcopy(base)
+                del _at(page, path)[key]  # type: ignore[arg-type]
+                cases.append((f"missing-key:{'/'.join(map(str, (*path, key)))}", page))
+            page = copy.deepcopy(base)
+            _at(page, path)["extra_key"] = 1  # type: ignore[index]
+            cases.append((f"extra-key:{'/'.join(map(str, path)) or '<root>'}", page))
+        elif isinstance(value, str):
+            add("empty-string", path, "")
+            add("trailing-lf", path, value + "\n")
+            add("leading-space", path, " " + value)
+            add("overlong", path, value + "x" * 700)
+            add("control-char", path, value + "\x07")
+            add("zero-width", path, value + "​")
+            add("bidi", path, value + "‮")
+            add("nel", path, value + "\u0085")
+            add("line-separator", path, value + " ")
+            add("not-a-member", path, "not-a-member")
+        elif isinstance(value, bool):
+            continue
+        elif isinstance(value, int):
+            add("below-range", path, -1)
+            add("above-range", path, 10**10)
+            add("fraction", path, 0.5)
+            add("integral-float", path, float(value))
+            add("string-number", path, str(value))
+        elif isinstance(value, list):
+            add("too-many-items", path, [value[0] if value else "a"] * 1001)
+            if value:
+                add("duplicate-item", path, [*value, value[0]])
+                add("append-null", path, [*value, None])
+    # Combinations a per-node edit cannot reach.
+    for label, edit in (
+        ("oneof-both-arms", lambda p: p["entries"][2].update({"observation": None, "none_reason": "superseded", "source": {}})),
+        ("observation-with-reason", lambda p: p["entries"][0].update({"none_reason": "superseded"})),
+        ("none-without-reason", lambda p: p["entries"][1].update({"none_reason": None})),
+        ("none-with-bad-reason", lambda p: p["entries"][1].update({"none_reason": "other"})),
+        ("unread-with-fact-keys", lambda p: p["entries"][2].update({"observation": None})),
+        ("fact-kind-on-unread", lambda p: p["entries"][2].update({"entry_kind": "fact"})),
+        ("unread-kind-on-fact", lambda p: p["entries"][0].update({"entry_kind": "unread-source"})),
+        ("wrong-field-path", lambda p: p["entries"][0]["observation"]["observed"].update({"field_path": "rule_ref"})),
+        ("rule-ref-121", lambda p: p["entries"][0]["observation"]["rule_ref"].update({"value": "r" * 121})),
+        ("rule-ref-120", lambda p: p["entries"][0]["observation"]["rule_ref"].update({"value": "r" * 120})),
+        ("text-600", lambda p: p["entries"][0]["observation"]["observed"].update({"value": "t" * 600})),
+        ("text-601", lambda p: p["entries"][0]["observation"]["observed"].update({"value": "t" * 601})),
+        ("ten-paths", lambda p: p["entries"][0]["observation"].update({"scope_paths": [f"a/{i}" for i in range(10)]})),
+        ("eleven-paths", lambda p: p["entries"][0]["observation"].update({"scope_paths": [f"a/{i}" for i in range(11)]})),
+        ("path-dot-segment", lambda p: p["entries"][0]["observation"].update({"scope_paths": ["a/./b"]})),
+        ("path-trailing-dot", lambda p: p["entries"][0]["observation"].update({"scope_paths": ["a/b."]})),
+        ("path-leading-slash", lambda p: p["entries"][0]["observation"].update({"scope_paths": ["/a/b"]})),
+        ("spec-path-dotdot", lambda p: p["entries"][0]["source"].update({"spec_path": "docs/specs/.."})),
+        ("spec-path-nested", lambda p: p["entries"][0]["source"].update({"spec_path": "docs/specs/a/b"})),
+        ("snapshot-uppercase", lambda p: p.update({"snapshot_id": "snapshot-sha256-" + "A" * 64})),
+        ("continuation-null", lambda p: p.update({"continuation": None})),
+        ("continuation-short", lambda p: p.update({"continuation": "dff1." + "c" * 63 + ".3"})),
+        ("continuation-ten-digits", lambda p: p.update({"continuation": "dff1." + "c" * 64 + ".1234567890"})),
+        ("ordinal-max", lambda p: p["entries"][0].update({"ordinal": 999_999_999})),
+        ("ordinal-over-max", lambda p: p["entries"][0].update({"ordinal": 1_000_000_000})),
+        ("predecessor-version-1000", lambda p: p["entries"][0]["source"].update({"predecessor_schema_version": 1000})),
+        ("predecessor-version-1001", lambda p: p["entries"][0]["source"].update({"predecessor_schema_version": 1001})),
+        ("predecessor-version-zero", lambda p: p["entries"][0]["source"].update({"predecessor_schema_version": 0})),
+        ("identifier-128", lambda p: p["entries"][0]["source"].update({"transaction_id": "a" * 128})),
+        ("identifier-129", lambda p: p["entries"][0]["source"].update({"transaction_id": "a" * 129})),
+        ("identifier-leading-dash", lambda p: p["entries"][0]["source"].update({"transaction_id": "-a"})),
+        ("1000-entries", lambda p: p.update({"entries": [p["entries"][2]] * 1000})),
+        ("1001-entries", lambda p: p.update({"entries": [p["entries"][2]] * 1001})),
+        ("empty-entries", lambda p: p.update({"entries": []})),
+        ("shadow-disabled", lambda p: p.update({"shadow_services": "disabled"})),
+        ("kind-pattern", lambda p: p["entries"][0]["observation"].update({"kind": "pattern"})),
+        ("observation-schema-version-2", lambda p: p["entries"][0]["observation"].update({"schema_version": 2})),
+        ("wrapper-schema-version-2", lambda p: p["entries"][0]["observation"]["observed"].update({"schema_version": 2})),
+        ("version-label-33", lambda p: p["entries"][0]["observation"].update({"projection_policy_version": "a" * 33})),
+        ("version-label-upper", lambda p: p["entries"][0]["observation"].update({"content_policy_version": "V1"})),
+        ("lone-surrogate", lambda p: p["entries"][0]["observation"]["observed"].update({"value": "a\ud800b"})),
+    ):
+        page = copy.deepcopy(base)
+        edit(page)
+        cases.append((label, page))
+    return cases
+
+
+def _consumer_accepts(module, page: object) -> bool:  # noqa: ANN001
+    try:
+        raw = json.dumps(page, ensure_ascii=True).encode("ascii")
+        module.parse_feed_page(raw)
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def test_the_candidate_validator_agrees_with_jsonschema_on_every_corpus_page() -> None:
+    module = _load_candidate_validator()
+    validator = _validator(_FEED)
+    cases = _corpus()
+    assert len(cases) > 500
+    disagreements = []
+    rejected = 0
+    for label, page in cases:
+        schema_ok = not list(validator.iter_errors(page))
+        consumer_ok = _consumer_accepts(module, page)
+        rejected += not schema_ok
+        if schema_ok != consumer_ok:
+            disagreements.append((label, schema_ok, consumer_ok))
+    assert not disagreements, disagreements[:10]
+    assert rejected > 400, "the corpus must exercise many refusals, not only acceptances"
+    assert _consumer_accepts(module, cases[0][1]) and not list(validator.iter_errors(cases[0][1]))
+
+
+def test_the_corpus_exercises_every_constraint_keyword_in_the_schemas() -> None:
+    """Each keyword the two schemas use is broken by at least one corpus page the schema rejects."""
+    wanted = {"required", "additionalProperties", "type", "enum", "const", "minLength", "maxLength",
+              "pattern", "minimum", "maximum", "maxItems", "uniqueItems", "oneOf", "if"}
+    used: set[str] = set()
+
+    def keywords(node: object) -> None:
+        if isinstance(node, dict):
+            used.update(k for k in node if k in wanted)
+            for value in node.values():
+                keywords(value)
+        elif isinstance(node, list):
+            for value in node:
+                keywords(value)
+
+    for name in (_FEED, _OBSERVATION, "untrusted-data.v1.schema.json"):
+        keywords(_load_schema(name))
+    seen: set[str] = set()
+    validator = _validator(_FEED)
+
+    def collect(error) -> None:  # noqa: ANN001 - jsonschema ValidationError
+        seen.add(error.validator)
+        for inner in error.context or ():
+            collect(inner)
+
+    for _label, page in _corpus()[1:]:
+        for error in validator.iter_errors(page):
+            collect(error)
+    assert used <= wanted
+    # `if` is exercised through its then and else arms, which report their own keywords.
+    assert used - {"if"} <= seen, used - seen
+
+
+def test_no_constraint_the_consumer_enforces_relies_on_annotation_only_format() -> None:
+    for name in (_FEED, _OBSERVATION):
+        assert '"format"' not in json.dumps(_load_schema(name)), name
+
+
+def test_the_candidate_validator_constants_match_the_canonical_schemas() -> None:
+    import re
+
+    module = _load_candidate_validator()
+    feed = _load_schema(_FEED)
+    observation = _load_schema(_OBSERVATION)
+    defs = observation["$defs"]
+
+    def normalize(pattern: str) -> str:
+        return re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), pattern)
+
+    expected = {
+        "identifier": defs["identifier"]["pattern"],
+        "spec_path": defs["specPath"]["pattern"],
+        "repository_path": defs["repositoryPath"]["pattern"],
+        "text": defs["untrustedText"]["properties"]["value"]["pattern"],
+        "field_path": defs["untrustedText"]["properties"]["field_path"]["pattern"],
+        "snapshot_id": feed["properties"]["snapshot_id"]["pattern"],
+        "continuation": feed["properties"]["continuation"]["oneOf"][1]["pattern"],
+        "observation_id": observation["properties"]["observation_id"]["pattern"],
+        "version_label": observation["properties"]["projection_policy_version"]["pattern"],
+    }
+    assert set(module.FEED_PATTERNS) == set(expected)
+    for name, pattern in expected.items():
+        assert normalize(module.FEED_PATTERNS[name]) == normalize(pattern), name
+    assert defs["untrustedText"]["properties"]["policy_version"]["pattern"] == expected["version_label"]
+    assert observation["properties"]["content_policy_version"]["pattern"] == expected["version_label"]
+    assert defs["untrustedText"]["properties"]["record_id"]["pattern"] == expected["identifier"]
+
+    assert module.FEED_PAGE_MAX_BYTES == feed["x-max-page-bytes"] == 1024 * 1024
+    assert module.FEED_PAGE_MAX_ENTRIES == feed["properties"]["entries"]["maxItems"] == 1000
+    assert module.FEED_OBSERVATION_MAX_BYTES == feed["x-max-observation-bytes"] == observation["x-max-observation-bytes"]
+    assert set(module.FEED_NONE_REASONS) == set(feed["x-none-reason-codes"])
+    assert set(module.FEED_UNREAD_REASONS) == set(feed["x-unread-source-reason-codes"])
+    assert tuple(module.FEED_RECORD_KINDS) == tuple(
+        feed["$defs"]["factEntry"]["properties"]["source"]["properties"]["record_kind"]["enum"]
+    )
+    assert observation["properties"]["scope_paths"]["maxItems"] == 10
+    assert observation["properties"]["rule_ref"]["allOf"][1]["properties"]["value"]["maxLength"] == 120
+    assert defs["untrustedText"]["properties"]["value"]["maxLength"] == 600
+    assert module.CANDIDATE_OUTPUT_MAX_BYTES == 32 * 1024
+
+
+def test_the_observation_byte_bound_is_a_consumer_rule_the_schema_cannot_state() -> None:
+    """A page the schema accepts but whose observation exceeds 4 KiB is refused by the consumer."""
+    module = _load_candidate_validator()
+    page = _corpus_base_page()
+    observation = page["entries"][0]["observation"]
+    for field in ("observed", "reachable_path", "actual_failure"):
+        observation[field]["value"] = "y" * 600
+    observation["scope_paths"] = [f"packs/core/example/{'z' * 200}/{i}.py" for i in range(10)]
+    assert not list(_validator(_FEED).iter_errors(page))
+    assert not _consumer_accepts(module, page)

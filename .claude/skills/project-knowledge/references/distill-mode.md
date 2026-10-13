@@ -18,3 +18,19 @@ routing.
 
 Routing output is a suggestion for normal repository work intake. It must never
 edit agent instruction files or adapter projections directly.
+
+## Invalid committed observations
+
+The pending drain excludes an invalid journal line on its own and lists it in
+the receipt's `diagnostics` as a location and a closed reason code, never as
+record text. A capture whose disposition line is invalid is excluded too, rather
+than shown as pending again, and a disposition whose capture is invalid is
+excluded. When a partition holds an invalid line that cannot be tied to one
+capture, the drain shows no capture from that partition. At most 100 entries are
+listed, followed by one counted `overflow` entry.
+
+A workflow-receipt selection whose named capture is excluded or hidden still
+refuses with `replay_required`, so a gate never drains fewer captures than it
+named. Every disposition and promotion still refuses the whole operation when
+its partition or the topic store holds an invalid record; repair or revert it
+through version control.
