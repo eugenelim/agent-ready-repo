@@ -1,6 +1,6 @@
 # Spec: Delivery knowledge projection
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -67,9 +67,10 @@ boundary on contract fixtures; real yield arrives with those later cutovers.
   stores nothing. A person or agent turns a chosen candidate into an ordinary
   capture through the existing `--capture` path, writing the lesson and giving
   the privacy attestation there.
-- Project-knowledge read paths exclude an invalid committed record and report a
-  bounded quarantine reason, instead of refusing the whole read as they do
-  today.
+- Project-knowledge's read-only paths, enquiry and the distillation pending
+  page, exclude an invalid committed record and report a bounded quarantine
+  reason, instead of refusing the whole read as they do today. Every path that
+  writes or checks store integrity still refuses the whole operation.
 - Delivery sends no notification. Pull scanning is the only discovery path,
   which is the architecture's dropped-notification case made permanent.
 - The `spec-approved` and `plan-locked` capture gates and the explicit
@@ -105,7 +106,7 @@ of readiness.
 | Interface compatibility | The feed and observation records cross the delivery and project-knowledge boundary. | `contracts/delivery/delivery-fact-feed.v1.schema.json`, `contracts/delivery/knowledge-observation.v1.schema.json`, `contracts/README.md`, and the existing `contracts/REGISTRY.md` row for this spec | Core and project-knowledge contract maintainers | JSON Schema 2020-12 validation, an `x-spec` pointer on each schema, the delivery bundle inventory, a no-copy check, and producer-consumer fixtures | Each exposed record has one canonical schema under `contracts/delivery/`, producer and consumer validation agree, and no schema copy or runtime schema load exists. |
 | Current architecture | The delivery-knowledge boundary changes, and the current pages misdescribe it. | `docs/architecture/work-loop-knowledge-handoff.md`, `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, and `docs/architecture/knowledge-capture.md` | Platform Core and project-knowledge maintainers | Architecture text linked to contracts, implementation, and conformance suites | The pages name the shadow-scoped confined feed, the stateless projection, notification-free pull scanning, the read-only candidate mode with capture through the existing path, per-record read quarantine, the retained capture gates with their removal owned by Slice 8, and the actual close-time `work-item` command path, and none still describes a Slice 3 intake, deduplication, revocation, or knowledge-owned cursor. |
 | Maintainer procedure | Maintainers need runnable pull-scan, candidate, quarantine, and disabled-tooling checks. | `packs/core/seeds/docs/knowledge/README.md` and `packs/core/.apm/skills/project-knowledge/SKILL.md` | Core and project-knowledge maintainers | Documented commands exercise a pull scan piped into the candidate mode, turning a candidate into a capture, quarantine output, and unavailable tooling | A maintainer can run the supported checks without reading this delivery record. |
-| Release history | Core pack behavior changes ship through its existing release owner. | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, the `work-loop` and `project-knowledge` eval harnesses under `packs/core/.apm/skills/*/evals/`, and `docs/product/changelog.md` | Core pack release maintainers | Version parity, build output, targeted suites, updated eval cases, and an outcome-led changelog entry | Released Core projections contain the matching behavior, canonical contracts stay unbundled, and the changelog names the maintainer-visible result. |
+| Release history | Core pack behavior changes ship through its existing release owner. | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, the `work-loop` and `project-knowledge` eval harnesses under `packs/core/.apm/skills/*/evals/`, and a product changelog fragment under `docs/product/changelog.d/` created with `tools/changelog.py new` | Core pack release maintainers | Version parity, build output, targeted suites, updated eval cases, and an outcome-led changelog entry | Released Core projections contain the matching behavior, canonical contracts stay unbundled, and the changelog names the maintainer-visible result. |
 
 ## Agent Rules
 
@@ -204,7 +205,7 @@ of readiness.
 - [ ] **AC-0002:** Replaying the same eligible durable facts under the same projection and content-policy versions yields byte-identical observation identities and payloads of at most 4 KiB each, while an ineligible, oversized, or refused fact yields no observation and no delivery record; reviewed-envelope, initial-plan-review, plan, task-projection, mutation-classification, and superseded `review-failure` receipt inputs are ineligible, and every observation carries its source receipt's acceptance fingerprint and the review-policy fingerprint from the `lineage` of the review report that the receipt's supported assessment derives from.
 - [ ] **AC-0003:** With no notification sent for any eligible fact, a later pull scan presents every projected observation that the same facts yield, so discovery never depends on a notification arriving.
 - [ ] **AC-0004:** Repeated and overlapping scans may repeat the same deterministic observation, but create no delivery-owned or knowledge-owned cursor, deduplication, acknowledgement, retry, skip, admission, or retention state, and leave every file under the knowledge store byte-identical.
-- [ ] **AC-0005:** When Git introduces a malformed, unsafe, unknown-version, or policy-invalid committed knowledge record outside intake, enquiry and distillation exclude that record, still return results from the remaining valid records, and leave the committed record unchanged. Excluding a record never makes any other record more usable: a subject whose restricting, dispositioning, superseding, or revoking record is excluded is excluded too, and records left orphaned by an exclusion are excluded. Each quarantine entry carries only a record locator and a code from a closed knowledge-owned reason-code set, with no record bytes, excerpt, or content-derived hash. The locator is a validated, bounded, repository-relative path plus line number, escaped inside an inert frame; when the path fails validation, a non-content-derived ordinal replaces it. One read reports at most 100 quarantine entries, then a single counted overflow marker, and still returns the valid records.
+- [ ] **AC-0005:** When Git introduces a malformed, unsafe, unknown-version, or policy-invalid committed knowledge record outside intake, the read-only paths (enquiry through `--enquire` and the distillation pending page through `--distill --pending`) exclude that record, still return results from the remaining valid records, and leave the committed record unchanged; every path that writes, dispositions, promotes, rebuilds the topic map, admits a writer, or stages, activates, or reverses a migration still refuses the whole operation and changes no byte when any record it reads is invalid. Excluding a record never makes any other record more usable: a subject whose restricting, dispositioning, superseding, or revoking record is excluded is excluded too, and records left orphaned by an exclusion are excluded. Each quarantine entry carries only a record locator and a code from a closed knowledge-owned reason-code set, with no record bytes, excerpt, or content-derived hash. The locator is a validated, bounded, repository-relative path plus line number, escaped inside an inert frame; when the path fails validation, a non-content-derived ordinal replaces it. One read reports at most 100 quarantine entries, then a single counted overflow marker, and still returns the valid records.
 - [ ] **AC-0006:** A deliberate close-time `work-item` capture that satisfies the existing contract in `packs/core/.apm/skills/work-loop/references/work-item-capture.md`, and a work-loop producer capture at the `spec-approved` or `plan-locked` gate, are each accepted and observable through project-knowledge exactly as before this slice, while projected observations never infer or synthesize a `work-item`.
 - [ ] **AC-0007:** For identical delivery facts, absent, disabled, unavailable, timing-out, refusing, or failing knowledge tooling produces the same spec, plan, review, acceptance, readiness, and closeout decisions as successful knowledge tooling.
 - [ ] **AC-0008:** A source and durable-state inventory after this slice finds no delivery-owned knowledge queue, cursor, retry, acknowledgement, skip log, admission record, retention record, revocation record, or knowledge-specific readiness transition, and no capture gate beyond the `spec-approved` and `plan-locked` gates and the close-time `work-item` path that existed before it.
@@ -224,15 +225,15 @@ of readiness.
 
 ## Terminal Intent
 
-`spec-plan` — this run stops after the spec and initial plan review are
-accepted. It creates no repository implementation or test artifact and
-dispatches no implementation task. Building T1-T4 needs a later owner-approved
-terminal-intent amendment to `code`, with fresh review and approval, as Slice 1
-had.
+`code` — after approval, implement the Slice 3 boundary in Scope and
+Non-goals through tasks T1-T4 until every Acceptance Criterion is satisfied.
 
 ## Accepted Risk
 
-Both risks below were accepted by the owner at spec approval on 2026-10-13.
+The first two risks below were accepted by the owner at spec approval on
+2026-10-13; the store-wide write stop was accepted during the code-mode
+amendment review on the same day, as recorded in
+[`notes/owner-decision-2026-10-13.md`](notes/owner-decision-2026-10-13.md).
 
 - **Unverified local provenance.** Evidence-log frame checksums are not keyed,
   so a contributor who force-adds a crafted `.shadow-acceptance/` log and marker
@@ -249,6 +250,13 @@ Both risks below were accepted by the owner at spec approval on 2026-10-13.
   agent making the capture under the existing capture contract, and enquiry
   replays stored knowledge inside its evidence-only frame. This slice adds no
   stricter capture gate. Owner: Platform Core.
+- **Store-wide write stop.** One invalid committed observation record blocks
+  every promotion and terminal disposition, plus captures into its partition.
+  One invalid committed topic or topic-map entry blocks every write, captures
+  included, through writer admission. Either stop lasts until a maintainer
+  repairs or reverts the record through Git; the quarantine report on the
+  read paths gives its location. This is today's behavior, kept so that no
+  write runs against a reduced view. Owner: Platform Core.
 
 ## Assumptions
 

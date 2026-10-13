@@ -1,7 +1,7 @@
 # Plan: Delivery knowledge projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Executing
 - **Repository anchors:** `docs/product/briefs/acceptance-centered-work-loop.md` at `sha256-bytes-v1:5b4cc8d489a256eda3f5edbb0e51de07ccd35dcfa6bd0f38964286ca563f8910`, which carries the 2026-10-11 owner decision; the reviewed architecture set at `sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02`, as since amended by the Slice 2 release; Slice 1 shipped at `9d39eae8b` (Core shadow services) and Slice 2 shipped at `bfe30052c` (Core 3.0.5). Direct owners: `docs/architecture/work-loop-knowledge-handoff.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/work-loop-review-disposition.md`, and `docs/architecture/knowledge-capture.md`. Analogous self-contained script seams: Slice 2's `_review_*.py` modules under `packs/core/.apm/skills/work-loop/scripts/`, with their no-runtime-schema-read spy in `packs/core/tests/skills/work-loop/test_review_compat.py` and schema parity in `tests/roster/`. Knowledge lifecycle code: `packs/core/.apm/skills/project-knowledge/scripts/project_knowledge.py` and `knowledge_store.py`, constructed through `packs/core/tests/skills/project-knowledge/`. Uncertainty: no reproducible snapshot reader exists over the evidence log, so T1 builds one.
 
 > **Plan contract:** this is the implementation strategy. The current legacy
@@ -67,7 +67,35 @@ and the hint would have changed the Slice 1 `_compat_facade.py` writer.
 - Project-knowledge today refuses a whole read on one malformed committed
   record (`_validated_event_lines` and `_validate_event` in `knowledge_store.py`;
   `map_mismatch` on enquiry). T2 changes that to per-record exclusion with a
-  bounded reason.
+  bounded reason on the read-only entry points only. Those are the
+  enquire-mode helpers `enquire` (the `--enquire` route), `read_committed_topic`,
+  and `read_freshness_source`, which read the committed topic map and topic
+  blobs, and the `--distill --pending` page (`distill_pending` over
+  `pending_page`), which reads observation partitions. A lookup whose named
+  topic is itself excluded still refuses. Likewise the pending page's
+  `workflow-receipts` mode, which the work-loop `plan-locked` terminal
+  distillation uses, keeps its `replay_required` whole refusal when any
+  selected capture is excluded or hidden, so a gate's drain never reports
+  fewer captures than it named. `select_pending`, which shares the pending
+  page's `_load_pending_partition_window` loader but has no production caller,
+  keeps whole refusal, so exclusion is applied in `pending_page` rather than
+  in that shared loader, and the refusal pinned in
+  `packs/core/tests/skills/project-knowledge/test_observation_store.py` stays
+  unchanged. Every other caller of the shared
+  readers (`_read_events`, `_bounded_topic_records`, `_read_committed_topic_map`,
+  `_verify_committed_topic_headers`) keeps today's whole-operation refusal when
+  any observation, topic, or map record it reads is invalid. That set includes
+  `--capture` and the work-loop producer gates, `_find_capture` over every
+  partition, `distill_capture`, the terminal-disposition write, the promotion
+  mutation in `distill_observation`, `rebuild_topic_map`,
+  `recover_guarded_mutation`, `_verify_promoted_state`,
+  `current_tree_snapshot`, `committed_knowledge_snapshot`, the committed-map
+  coherence check behind writer admission (`_committed_v1_map_is_coherent`,
+  `_assert_v1_writer_allowed`, `_coherent_worktree_map`), and migration
+  staging, activation, reversal, and `legacy_append`. So no write can drop a
+  quarantined line or map entry, miss an excluded terminal disposition, or
+  pass an integrity or admission check against a reduced view; the
+  store-wide write stop this keeps is a spec Accepted Risk.
 - The close-time `work-item` path uses plain `--capture` with a cold reasoning
   verdict and `semantic_gate.name: close-time`, per
   `packs/core/.apm/skills/work-loop/references/work-item-capture.md`. It does
@@ -180,11 +208,34 @@ are excluded per record with a locator and closed reason code only. The
 exclusion closes over dependents in the store's real record kinds: a capture
 whose `observation.dispositioned` event (`promoted`, `duplicate`, `routed`,
 `rejected`, or `superseded`) is excluded is excluded too rather than reverting
-to pending, and a disposition whose capture is excluded is excluded. The
-closure reaches the topic layer that enquiry and distillation read: a topic
-whose `occurrences` name an excluded capture is excluded, an excluded topic is
-not rendered, and a `topics.index.json` entry pointing at an excluded topic is
-excluded instead of failing the whole enquiry with `map_mismatch`. Repeated
+to pending, and a disposition whose capture is excluded is excluded. A
+disposition is written into its capture's own partition, so while a partition
+holds an invalid line whose target capture cannot be identified from validated
+fields, the pending page shows no capture from that partition unless validated
+data proves the line did not close it. That closure applies on the pending
+page, the only read-only path that reads observations. For AC-0005, a record is orphaned when its only purpose is to
+act on or point at another record, such as a disposition or a map entry. A
+topic is a self-contained distilled record that `validate_topic` checks on its
+own, and its `occurrences` are provenance, so excluding a capture orphans no
+topic. Enquiry reads no observation journal, so its closure stays in the
+topic layer: an invalid topic is not rendered, and a `topics.index.json`
+entry that is invalid or points at an excluded topic is excluded instead of
+failing the whole enquiry with `map_mismatch`. A missing, unparseable, or
+link-like map file still refuses the whole enquiry, because no valid record
+set exists. Quarantine output never enters the `knowledge-evidence.v1` element,
+which stays byte-identical. On `--enquire`, the rendered text gains a separate
+`<knowledge-quarantine version="knowledge-quarantine.v1">` element after the
+evidence element, present only when an entry exists, holding each entry's
+escaped locator or ordinal and reason code as attributes, and the CLI result
+gains a top-level `quarantine` list carrying the same entries; the
+`knowledge-enquiry-receipt.v1` receipt is unchanged. On `--distill --pending`,
+the entries fill the drain receipt's existing `diagnostics` list. Both carry
+the counted overflow marker after 100 entries. For AC-0005, a locator is
+valid only when it is a repository-relative path under `docs/knowledge/` that
+passes `assert_persistable_paths` and holds no line terminator (LF, CR, NEL,
+U+2028, U+2029) or control, bidi, or zero-width character, the same limits
+AC-0014 sets for candidate fields; any other locator is replaced by its
+non-content-derived ordinal. Repeated
 scans present the same candidates and store nothing. Traces to AC-0001, AC-0003 through AC-0007, AC-0010, AC-0012, and
 AC-0013. Owned by: T1-T3.
 
@@ -231,19 +282,22 @@ contract schema. Traces to AC-0001 through AC-0014. Owned by: T1-T4.
 
 **Tests:**
 - Candidate-mode fixtures send no notification, restart, rescan overlapping pages, replay replaced reports, replaced assessments, and superseded receipts, and rescan with a log removed or refused. They compare the presented candidates, one per current source identity, with AC-0003 and AC-0010, and compare every knowledge-store file and all delivery-owned state before and after with AC-0004.
-- Page fixtures feed malformed, duplicate-key, oversized, schema-invalid, and privacy-failing pages and candidates, with one fixture per candidate text and path field, and compare whole-page refusal, closed reason codes with no candidate text, and zero writes with AC-0014.
+- Page fixtures feed malformed, duplicate-key, oversized, schema-invalid, and privacy-failing pages and candidates, with one fixture per candidate text and path field, and compare whole-page refusal, closed reason codes with no candidate text, and zero writes with AC-0014. A deeply nested page within the byte bound is refused the same way, with a closed reason code, no output, and no traceback.
 - Framing fixtures render candidates containing frame-closing tags, markup, control text, and a line terminator followed by a forged `provenance:` or admitted-marker line in every field, and a candidate set larger than 32 KiB, and check the `knowledge-candidates.v1` element and unadmitted marker, full escaping, whole-candidate paging with a continuation ordinal, and no truncation, per AC-0014.
 - A capture fixture turns one presented candidate into an ordinary `--capture` with a written lesson and attestation, then rescans after the source is superseded, and checks that the capture follows the store's existing lifecycle untouched, per AC-0010.
-- A positive committed-read fixture passes a current valid `knowledge-captured-observation.v2` record through enquiry and distillation and compares its usable result and empty quarantine output with AC-0009.
-- Merge-bypass fixtures commit malformed, unsafe, unknown-version, and policy-invalid records, and a partition file with a hostile name, beside valid ones, then run enquiry and distillation. They compare per-record exclusion, results from the valid records, and byte-identical committed files with AC-0005, and check that each quarantine entry holds only an escaped, validated locator or an ordinal and a closed reason code. A further fixture commits more than 100 invalid records and checks the counted overflow marker and that valid results still return.
-- Dependency fixtures corrupt an `observation.dispositioned` line for each terminal disposition, and separately corrupt a capture that a disposition points at. They check that the capture is excluded rather than reverting to pending and that the orphaned disposition is excluded, per AC-0005.
-- Topic fixtures exclude a capture named in a topic's `occurrences`, corrupt a topic, and leave a `topics.index.json` entry pointing at an excluded topic. They check that each dependent topic or map entry is excluded, that enquiry still renders the valid topics, and that no excluded record's text appears, per AC-0005.
+- A positive committed-read fixture passes a current valid `knowledge-captured-observation.v2` record through the `--distill --pending` page and a promotion, then enquires over the topic that promotion produced, and compares the usable results and empty quarantine output with AC-0009.
+- A differential corpus holds one valid feed page plus one violation per constraint in the `delivery-fact-feed.v1` schema. Every page runs through `jsonschema` and through the candidate-mode validator, and the two must agree on accept or refuse; no constraint the consumer must enforce relies on annotation-only `format`.
+- Write-path fixtures commit an invalid line beside valid captures and a terminal disposition, then run `--capture`, a work-loop producer capture, and a disposition into that partition. A second set commits an invalid topic and, separately, an invalid map entry beside valid ones, then runs a promotion, a map rebuild, a capture (writer admission), and legacy-migration staging and activation. Each operation refuses as it does before this slice, and every partition file, topic file, and `topics.index.json` stays byte-identical, per AC-0005 and AC-0006.
+- Merge-bypass fixtures commit malformed, unsafe, unknown-version, and policy-invalid records, and a partition file with a hostile name, beside valid ones, then run `--enquire` and the `--distill --pending` page. They compare per-record exclusion, results from the valid records, and byte-identical committed files with AC-0005, and check that each quarantine entry holds only an escaped, validated locator or an ordinal and a closed reason code, and appears only in the `knowledge-quarantine.v1` element and top-level `quarantine` list on enquiry or the `diagnostics` list on the pending page, never inside `knowledge-evidence.v1`. A further fixture commits more than 100 invalid records and checks the counted overflow marker and that valid results still return.
+- Dependency fixtures corrupt an `observation.dispositioned` line for each terminal disposition, and separately corrupt a capture that a disposition points at. Two more fixtures place an unparseable line and a disposition line with an invalid `capture_id` beside a closed capture, and check that the capture is not shown as pending. A `workflow-receipts` fixture selects a valid capture in a partition that also holds such a line and checks the `replay_required` refusal. They check that the capture is excluded rather than reverting to pending and that the orphaned disposition is excluded, per AC-0005.
+- Hostile-locator fixtures commit an invalid topic file and an invalid `topics.index.json` entry whose names each hold frame-closing markup, an attribute-breaking quote, a line terminator followed by a forged line, and a bidi or zero-width character. They check that each appears in the `knowledge-quarantine.v1` attributes only as a fully escaped valid locator or an ordinal, that nothing closes, reopens, or adds lines to that element or `knowledge-evidence.v1`, and that the evidence element is byte-identical to a run without the invalid records.
+- Topic fixtures corrupt a topic, corrupt a `topics.index.json` entry, and leave a map entry pointing at an excluded topic. They check that the invalid topic and each dependent map entry are excluded, that a topic whose `occurrences` name a capture excluded on the pending page still renders on enquiry with no journal opened, that enquiry still renders the valid topics, and that no excluded record's text appears, per AC-0005.
 
 **PLAN TDD disposition:** `no stub (implementation-discovered)`. **Discovery predicate:** T1 has fixed the feed page and observation contract, and implementation inspection has chosen where in `project_knowledge.py` the candidate mode sits and which read paths in `knowledge_store.py` move from whole-read refusal to per-record exclusion. **Constraint:** the first test uses the existing knowledge store, adds no delivery-owned state, and never mutates an invalid committed record. **Required outcome:** an integration test fails because the candidate mode does not yet present a fixture's current candidate or because one invalid committed record refuses the whole read, then passes through the candidate mode or per-record exclusion. **Verification mode:** TDD through integration tests. **Proof obligation:** this spec's `notes/verification-ledger.md` records the chosen seams and the first behavioral red result mapped to AC-0010 or AC-0005 before implementation turns it green.
 
-**Grounding:** Extend the existing validation in `_validate_event` and `validate_topic` rather than adding a second store or validator. Keep `--capture`, its write-time refusals, `derive_capture_id`, its time window, and the `knowledge-evidence.v1` enquiry frame unchanged; the candidate mode calls `assert_persistable_text` and `assert_persistable_paths` directly and reuses the envelope's escaping rule for its own frame. Stop if the candidate mode needs to write any file, or if safe exclusion cannot be decided without changing a committed record's bytes.
+**Grounding:** Extend the existing validation in `_validate_event` and `validate_topic` rather than adding a second store or validator. Confine per-record exclusion to the read-only entry points named in Constraints; every writer and integrity check listed there keeps whole-operation refusal on any invalid observation, topic, or map record it reads. Revise the existing whole-enquiry refusal tests in `packs/core/tests/skills/project-knowledge/test_enquiry.py` for a corrupt map entry or an unsafe topic to the per-record contract, and keep the missing, unparseable, and symlinked map-file cases as whole refusals. Stop if per-record exclusion on enquiry would need a new observation-journal read. Keep `--capture`, its write-time refusals, `derive_capture_id`, its time window, and the `knowledge-evidence.v1` enquiry frame unchanged; the candidate mode calls `assert_persistable_text` and `assert_persistable_paths` directly and reuses the envelope's escaping rule for its own frame. Stop if the candidate mode needs to write any file, or if safe exclusion cannot be decided without changing a committed record's bytes.
 
-**Done when:** the candidate, page, framing, capture, quarantine, dependency, and topic tests pass, the eval harness covers the candidate mode and quarantine output, and the project-knowledge skill documents the candidate command and the capture step after it.
+**Done when:** the candidate, page, differential-corpus, framing, capture, write-path, quarantine, dependency, and topic tests pass, the eval harness covers the candidate mode and quarantine output, and the project-knowledge skill documents the candidate command and the capture step after it.
 
 ### T3: Delivery decisions ignore knowledge tooling and both retained capture paths are unchanged
 
@@ -266,7 +320,7 @@ contract schema. Traces to AC-0001 through AC-0014. Owned by: T1-T4.
 
 **Depends on:** T1-T3
 
-**Touches:** cross-boundary conformance fixtures, `docs/architecture/work-loop-knowledge-handoff.md`, `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/knowledge-capture.md`, `packs/core/seeds/docs/knowledge/README.md`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, and `docs/product/changelog.md`
+**Touches:** cross-boundary conformance fixtures, `docs/architecture/work-loop-knowledge-handoff.md`, `docs/architecture/acceptance-centered-work-loop.md`, `docs/architecture/work-loop-authority-migration.md`, `docs/architecture/knowledge-capture.md`, `packs/core/seeds/docs/knowledge/README.md`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, and a product changelog fragment under `docs/product/changelog.d/` created with `tools/changelog.py new`
 
 **Verification mode:** goal-based check through integration, build, and documentation gates
 
@@ -330,5 +384,7 @@ contract schema. Traces to AC-0001 through AC-0014. Owned by: T1-T4.
 - YYYY-MM-DD: spec approved by <handle>
 - YYYY-MM-DD: plan approved by <handle>
 -->
-- 2026-10-13: spec approved by eugenelim
-- 2026-10-13: plan approved by eugenelim
+- 2026-10-13: spec approved by eugenelim (spec-plan run)
+- 2026-10-13: plan approved by eugenelim (spec-plan run)
+- 2026-10-13: spec approved by eugenelim (code-mode run, terminal intent `code`)
+- 2026-10-13: plan approved by eugenelim (code-mode run)
