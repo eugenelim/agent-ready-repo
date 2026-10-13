@@ -29,8 +29,6 @@ _PACK = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _ASSETS = _SCRIPTS / "view_assets"
 _FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
-_REPO = pathlib.Path(__file__).resolve().parents[5]
-_TOKENS = _REPO / "docs" / "design" / "tokens" / "skill-html-views.md"
 _BASE_CSS = (_ASSETS / "view-base.css").read_text(encoding="utf-8")
 _LAYOUT_CSS = (_ASSETS / "view.css").read_text(encoding="utf-8")
 _STYLE_TEXT = _BASE_CSS + "\n" + _LAYOUT_CSS
@@ -245,22 +243,6 @@ def test_stylesheets_declare_no_motion_or_external_loads() -> None:
     for css in (_BASE_CSS, _LAYOUT_CSS):
         for word in ("transition", "animation", "@keyframes", "url(", "@import"):
             assert word not in css
-
-
-def test_base_stylesheet_carries_every_colour_token() -> None:
-    """Each documented role's light value is on :root and its dark value in the dark query."""
-    rows = re.findall(
-        r"^\| `(--c-[a-z-]+)` \| `(#[0-9a-f]{6})` \| `(#[0-9a-f]{6})` \|",
-        _TOKENS.read_text(encoding="utf-8"),
-        re.MULTILINE,
-    )
-    assert len(rows) >= 9
-    marker = "@media (prefers-color-scheme: dark)"
-    light_part, dark_part = _BASE_CSS.split(marker, 1)
-    dark_block = dark_part.split("\n}\n", 1)[0]
-    for role, light, dark in rows:
-        assert f"{role}: {light};" in light_part
-        assert f"{role}: {dark};" in dark_block
 
 
 def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:

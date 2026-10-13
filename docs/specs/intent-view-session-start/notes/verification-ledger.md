@@ -77,3 +77,7 @@ Reports are under `.context/reviews/63e509d4-5537-4666-b9af-ae46a254bfa1/` (`5-e
 ## Owner check (AC-0049)
 
 - 2026-10-13: the owner (eugenelim) opened `/private/tmp/s10/owner-check.html`, an export of this repository at `abf8d30bb` (669,590 bytes), and answered all four questions (what can I work on next, what is open under a capability, what has no parent, what is broken) from the first screen without search.
+
+## Execution notes
+
+- The colour-token check (AC-0027) lives in `tools/test_check_view_base_parity.py` (`test_canonical_base_carries_every_documented_colour_token`), not in `test_export_html.py` as plan T1 names: it reads `docs/design/tokens/skill-html-views.md`, and the pack-test boundary lint forbids a pack test from reading above its pack. The test runs in the build-check chain step `test-check-view-base-parity`.

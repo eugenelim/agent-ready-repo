@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -55,3 +56,24 @@ def test_symlink_copy_fails_and_is_named(tmp_path: Path, capsys: pytest.CaptureF
     link.symlink_to(canonical)
     assert _run(tmp_path) == 1
     assert COPY.as_posix() in capsys.readouterr().err
+
+
+_REPO = Path(__file__).resolve().parents[1]
+_TOKENS = _REPO / "docs" / "design" / "tokens" / "skill-html-views.md"
+
+
+def test_canonical_base_carries_every_documented_colour_token() -> None:
+    """Each documented role's light value is on :root and its dark value in the dark query."""
+    rows = re.findall(
+        r"^\| `(--c-[a-z-]+)` \| `(#[0-9a-f]{6})` \| `(#[0-9a-f]{6})` \|",
+        _TOKENS.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    assert len(rows) >= 9
+    base = (_REPO / parity.CANONICAL).read_text(encoding="utf-8")
+    marker = "@media (prefers-color-scheme: dark)"
+    light_part, dark_part = base.split(marker, 1)
+    dark_block = dark_part.split("\n}\n", 1)[0]
+    for role, light, dark in rows:
+        assert f"{role}: {light};" in light_part
+        assert f"{role}: {dark};" in dark_block
