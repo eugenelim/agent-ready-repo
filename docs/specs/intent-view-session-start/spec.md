@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108, ADR-0007, ADR-0074
-- **Amends:** [intent-navigation-export](../intent-navigation-export/spec.md) — its view criteria 0037 to 0041, 0044, 0046 to 0053, 0056 to 0064, 0068 and 0069 to 0071, which this spec's criteria replace as the table at the end of § Acceptance Criteria states. Its other criteria carry over unchanged.
+- **Amends:** [intent-navigation-export](../intent-navigation-export/spec.md) — its view criteria 0035, 0037 to 0044, 0046 to 0053, 0056 to 0064, 0068 and 0069 to 0071, which this spec's criteria replace as the table at the end of § Acceptance Criteria states. Its other criteria carry over unchanged.
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none
 - **Contract:** none
@@ -132,13 +132,13 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - [ ] **AC-0016.** "Open beneath" lists every open item beneath the picked node as a link with its state mark, under "Intents", "Briefs" and "Specs" subheadings in name order, or reads "Nothing open beneath." While `outstanding` is unavailable it reads "Open work unknown: delivery mapping incomplete."
 - [ ] **AC-0017.** "What is broken" lists every broken entry the picked record holds, an edge with the plain-words meaning the Key gives its state and a diagnostic with its code, or reads "Nothing broken here." While `outstanding` is unavailable it lists the record's edges carrying a `state` and reads "Delivery diagnostics were unavailable."
 - [ ] **AC-0018.** "Where it sits" shows each ancestor list of the item as a trail from the root to the nearest ancestor, or reads "No parent." only when the item has no ancestor list. Over the `mixed` fixture, `spec:golf-new`, which is not an open item, shows a trail ending at `intent:golf-new`. Each trail entry is a link to that node with its state mark, or, outside the export, its node id as plain text marked "outside this export".
-- [ ] **AC-0019.** Opening "Record details" shows the item's node id, path, type, level, kind and status, and every edge group the export spec's intent and brief-or-spec detail criteria (0042 and 0043) require, with the labels its closed-label-set criterion (0035) lists. While `outstanding` is unavailable, it states that delivery mapping was unavailable, with the payload's `outstanding.reason`, in place of the delivery groups.
+- [ ] **AC-0019.** Opening "Record details" shows the item's node id, path, type, level, kind and status, and every edge group the export spec's intent and brief-or-spec detail criteria (0042 and 0043) require, with the labels its closed-label-set criterion (0035) lists. While `outstanding` is unavailable, it states that delivery mapping was unavailable in place of the delivery groups.
 - [ ] **AC-0020.** Given a fragment naming a node id not in the payload, the detail zone reads "That item is not in this snapshot." and the question's list still shows.
 - [ ] **AC-0021.** Focus after an action: choosing a question leaves focus on its link; picking a row at 40rem wide or more leaves focus on the row and the live region announces "Showing <display name>"; picking a row below 40rem, or following a link inside the detail zone, moves focus to the detail `h2`.
 
 ### Key, search and browse
 
-- [ ] **AC-0022.** A "Key" disclosure sits in the worklist header, closed on load. Opened, it explains each state mark, each edge group, each state label and each trust-class label; nothing outside it carries a legend. Every group, state and trust-class label the page renders over the `hostile` fixture is in the closed set the export spec's criterion 0035 lists, every state-mark glyph is one of ● ◆ ◇ ✕ ✓, and the only other mark glyph is △, which appears only beside a source link labelled "may be newer than this export". The Key explains all six glyphs.
+- [ ] **AC-0022.** A "Key" disclosure sits in the worklist header, closed on load. Opened, it explains each state mark, each edge group, each state label and each trust-class label; nothing outside it carries a legend. Every group, state and trust-class label the page renders over the `hostile` fixture is in the closed set the export spec's criterion 0035 lists, and every state-mark glyph is one of ● ◆ ◇ ✕ △ ✓, where △ marks only a source link labelled "may be newer than this export".
 - [ ] **AC-0023.** The header holds a search field on every destination. Typing lists every node whose slug or heading contains the text case-insensitively, in name order, and in a whole-corpus export its intents equal what `query --operation search` returns for the `text` selector. Escape empties the field and restores the question's list. Given no match, the list names the search text and offers one "Clear search" control.
 - [ ] **AC-0024.** "Browse all intents" lists every live intent once under its resolved parent, roots and siblings in name order. Its level, kind and status filters, in a whole-corpus export, list the same intents as `query --operation search` with the same selectors. Given a filter result with nothing, the list names the filters that emptied it and offers one "Clear filters" control.
 - [ ] **AC-0025.** Given an export with `--from`, a banner names the scoped intent, every question lists only in-scope items, "Browse all intents" has the scoped intent as its only root, search and each filter list the in-scope subset of what `query --operation search` returns for the same selectors, and the header's totals (AC-0050) say they cover the whole corpus.
@@ -146,7 +146,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 ### Shared style and parity
 
 - [ ] **AC-0026.** The page's one `<style>` element's content is the UTF-8 text of `view-base.css`, one newline, then the text of `view.css`, and the content-security policy's style digest is the digest of that content.
-- [ ] **AC-0027.** `view-base.css` declares each colour role of the § Colour table in `docs/design/tokens/skill-html-views.md`, from `--c-bg` to `--c-warn`, with its light value on `:root` and its dark value inside `@media (prefers-color-scheme: dark)`. The export spec's carried criteria 0030 (no `url(` or `@import`) and 0065 (no motion) apply to both stylesheets.
+- [ ] **AC-0027.** `view-base.css` declares each colour role of the § Colour table in `docs/design/tokens/skill-html-views.md`, from `--c-bg` to `--c-warn`, with its light value on `:root` and its dark value inside `@media (prefers-color-scheme: dark)`. Neither stylesheet declares `transition`, `animation`, `@keyframes`, `url(` or `@import`.
 - [ ] **AC-0028.** `view.css` declares no colour literal (hex, `rgb(`, `hsl(` or a named colour), no `font-family`, and no `--c-` or `--t-` custom property.
 - [ ] **AC-0029.** `tools/check_view_base_parity.py` exits 0 when every file named `view-base.css` under `packs/*/.apm/` is byte-identical to the canonical `navigate-intents` file, and exits 1 naming each file that differs. Its self-test proves both outcomes, and both run in the build-check chain.
 
@@ -185,15 +185,13 @@ Every view criterion of the export spec, from 0028 to 0071, is either carried un
 
 | Export spec criterion | Disposition |
 | --- | --- |
-| 0028 source links, 0034 escapes | Carried; their browser checks are kept |
-| 0029 to 0033 policy, banned elements, data-block escape, forbidden APIs, escape parity | Carried; their `test_export_html.py` checks are kept, with 0029's style digest taken over the joined style (AC-0026) |
-| 0036 no network | Carried; "every view" means each of the five destinations |
+| 0028 source links, 0034 escapes, 0036 no network | Carried; their browser checks are kept |
 | 0045 outside-export targets as plain text | Carried; AC-0011 and AC-0018 apply it to rows and trails |
-| 0054 damaged data | Carried; "no view" means no destination and no list |
-| 0055 no script, 0065 no motion | Carried; their checks are kept |
-| 0035 closed label set, 0042 and 0043 detail facts and edge groups | Carried; AC-0022 applies 0035 to the Key, and AC-0019 applies 0042 and 0043 to Record details |
+| 0054 damaged data, 0055 no script, 0065 no motion | Carried; their checks are kept |
 | 0066 scale, 0067 activation | Carried; AC-0044 and AC-0046 re-run them |
+| 0035 closed label set | Replaced by AC-0022 |
 | 0037 summary strip | Replaced by AC-0050 (corpus totals) and AC-0001 (question counts), as the design replaces the strip; the strip's outstanding, refused-edge and parentless totals become the question counts |
+| 0042, 0043 detail | Replaced by AC-0013 to AC-0019 |
 | 0038 Tree view | Replaced by AC-0024, AC-0012 |
 | 0039 Outstanding view | Replaced by AC-0002, AC-0005, AC-0016, AC-0018 |
 | 0040 Refused edges view | Replaced by AC-0006 |
