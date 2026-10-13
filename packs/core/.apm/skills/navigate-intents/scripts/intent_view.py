@@ -106,7 +106,7 @@ _SHELL = """<!doctype html>
 </div>
 <div id="list"></div>
 </section>
-<section class="detail" aria-labelledby="detail-heading">
+<section class="detail" aria-labelledby="detail-heading" tabindex="0">
 <h2 id="detail-heading" class="detail-heading focus-target" tabindex="-1">Details</h2>
 <div id="detail-body"></div>
 </section>

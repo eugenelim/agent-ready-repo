@@ -272,3 +272,6 @@ def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
     )
     assert "font-family" not in css
     assert not re.search(r"(?<![\w(])--(?:c|t)-[\w-]*\s*:", css)
+    # Colour roles and type weight belong to the shared base, not to the layout.
+    assert "var(--c-" not in css
+    assert not re.search(r"font-weight|(?<![\w-])font\s*:", css)

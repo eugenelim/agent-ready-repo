@@ -150,8 +150,8 @@ The command prints one JSON object. On success it carries `status: ok`, `path` (
 The page opens on four questions, each a link in the page's nav:
 
 - **What can I work on next?** Open work in a startable stage (Implementing spec, Approved spec, Executing brief, Ready brief), then Accepted intents with nothing beneath them. The page says that readiness is not checked in this snapshot, so an item can still be blocked for a reason the file does not show.
-- **What is still open under a capability?** Open work, grouped by the capability it sits beneath.
-- **What has no parent?** Intents with no resolved parent.
+- **What is still open under a capability?** The capabilities, each with its open count. Picking one shows the open work beneath it.
+- **What has no parent?** Open intents, briefs and specs with no resolved parent, grouped by type.
 - **What is broken?** Pointers that did not resolve, and delivery problems.
 
 **Browse all intents** shows the whole tree with level, kind, and status filters. A search box in the header covers intents, briefs, and specs.

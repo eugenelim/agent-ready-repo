@@ -174,6 +174,7 @@
   var listScroll = 0;
   var followedDetailLink = false;
   var wide = null;
+  var shownCount = null;
 
   function validData(d) {
     return isObj(d) && d.schema === SCHEMA && isObj(d.scope) && isObj(d.provenance) &&
@@ -558,6 +559,7 @@
     return label;
   }
 
+  // The context is a string, or a node when part of it needs its own element (a diagnostic code).
   function rowLink(id, mark, context) {
     var a = el('a', 'row-link');
     a.setAttribute('href', hashFor({ node: id }));
@@ -565,7 +567,11 @@
     add(a, el('span', 'c-name', displayName(id)));
     var state = add(a, el('span', 'c-state'));
     add(state, mark);
-    add(a, el('span', 'c-context', context));
+    if (isStr(context)) {
+      add(a, el('span', 'c-context', context));
+    } else {
+      add(add(a, el('span', 'c-context')), context);
+    }
     if (current !== null && current.node === id) { a.setAttribute('aria-current', 'true'); }
     return a;
   }
@@ -575,7 +581,8 @@
     return li;
   }
   // A long list renders its first rows at once and the rest in later batches, so typing stays
-  // responsive; rows only ever append below, so nothing above them moves.
+  // responsive. Rows append below within their own list; a later group can shift down while
+  // earlier batches land.
   var ROW_BATCH = 150;
   var listGeneration = 0;
   function rows(ids) {
@@ -644,6 +651,8 @@
     return keys.map(function (k) { return FILTER_LABELS[k][0].toLowerCase() + ' "' + route[k] + '"'; })
       .join(', ');
   }
+  // The control is removed by the render its click causes, so focus is placed on a target that
+  // stays: the list title (it takes focus), or the search field.
   function clearControl(label, over, focusTarget) {
     var b = button('action', label);
     b.addEventListener('click', function () {
@@ -657,7 +666,7 @@
     add(box, el('p', '', 'Nothing matches ' + describeFilters(route, keys) + '.'));
     var over = {};
     FILTER_KEYS.forEach(function (k) { over[k] = ''; });
-    add(box, clearControl('Clear filters', over, function () { return dom.list; }));
+    add(box, clearControl('Clear filters', over, function () { return dom.listTitle; }));
     return box;
   }
 
@@ -753,7 +762,9 @@
       context = (isStr(entry.edge.field) ? entry.edge.field : 'Pointer') + ': ' +
         (own(STATE_HELP, entry.edge.state) !== undefined ? entry.edge.state : 'refused');
     } else {
-      context = 'Delivery diagnostic: ' + (isStr(entry.diag.code) ? entry.diag.code : 'unknown');
+      context = el('span');
+      text(context, 'Delivery diagnostic: ');
+      add(context, el('span', 'value', isStr(entry.diag.code) ? entry.diag.code : 'unknown'));
     }
     add(li, rowLink(entry.holder, markEl('broken', 'Broken'), context));
     return li;
@@ -774,7 +785,7 @@
     var ul = add(dom.list, el('ul', 'rows'));
     ids.forEach(function (id) {
       var li = add(ul, el('li', 'row'));
-      add(li, rowLink(id, stateMark(id), openCount(id) + ' open'));
+      add(li, rowLink(id, stateMark(id), contextText(id) + ' \u00B7 ' + openCount(id) + ' open'));
     });
     return ids.length;
   }
@@ -874,6 +885,7 @@
       dom.listSort.textContent = q.sort;
       count = BODIES[q.key](route);
     }
+    shownCount = count;
     var noun = route.search !== '' ? ['result', 'results'] : q.noun;
     dom.listCount.textContent = count === null ? 'Count unavailable' : plural(count, noun);
     if (announce) {
@@ -1027,6 +1039,23 @@
     }
   }
 
+  var STAGE_NOUNS = [['Implementing spec', 'Implementing specs'], ['Approved spec', 'Approved specs'],
+    ['Executing brief', 'Executing briefs'], ['Ready brief', 'Ready briefs'],
+    ['Accepted intent with nothing beneath', 'Accepted intents with nothing beneath']];
+  // A plain count of what the list holds, from fixed words and numbers only.
+  function listSummary(route) {
+    if (shownCount === null || emptyCorpus()) { return ''; }
+    if (route.search === '' && route.q === 'next') {
+      var per = STAGES.map(function () { return 0; });
+      startableIds().forEach(function (id) { per[stageOf(id)] += 1; });
+      var parts = [];
+      per.forEach(function (n, i) { if (n > 0) { parts.push(plural(n, STAGE_NOUNS[i])); } });
+      return parts.length ? 'In this list: ' + parts.join(', ') + '.' : '';
+    }
+    var noun = route.search !== '' ? ['result', 'results'] : question(route.q).noun;
+    return 'This list holds ' + plural(shownCount, noun) + '.';
+  }
+
   function renderDetail(route) {
     clear(dom.detailBody);
     var id = route.node;
@@ -1034,6 +1063,8 @@
     if (!id) {
       dom.detailHeading.textContent = 'Details';
       add(dom.detailBody, el('p', 'note', 'Pick an item to see its next step.'));
+      var summary = listSummary(route);
+      if (summary !== '') { add(dom.detailBody, el('p', 'list-summary', summary)); }
       return;
     }
     if (!nodes.has(id)) {
@@ -1061,10 +1092,9 @@
         add(openSec, el('h4', 'group-label', pair[1]));
         var ul = add(openSec, el('ul', 'plain'));
         these.forEach(function (u) {
-          var li = add(ul, el('li', 'edge'));
-          var line = add(li, el('div', 'edge-line'));
-          add(line, nodeLink(u, 'node-link'));
-          add(line, stateMark(u));
+          var li = add(ul, el('li', 'beneath-row'));
+          add(li, nodeLink(u, 'node-link'));
+          add(li, stateMark(u));
         });
       });
     }
@@ -1161,8 +1191,9 @@
     }
   }
 
-  function renderNav(route) {
-    clear(dom.questions);
+  // The five links are built once, so a link that has focus keeps it across routes; a route only
+  // moves aria-current.  The counts come from the data, which never changes, so they are set here.
+  function buildNav() {
     QUESTIONS.forEach(function (q) {
       var li = add(dom.questions, el('li', 'question'));
       var a = add(li, el('a', 'question-link'));
@@ -1173,8 +1204,17 @@
         var count = emptyCorpus() ? 0 : questionCount(q.key);
         add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
       }
-      if (q.key === route.q) { a.setAttribute('aria-current', 'page'); }
     });
+  }
+  function markNav(route) {
+    var links = dom.questions.querySelectorAll('a.question-link');
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute('data-q') === route.q) {
+        links[i].setAttribute('aria-current', 'page');
+      } else {
+        links[i].removeAttribute('aria-current');
+      }
+    }
   }
 
   function renderKey() {
@@ -1210,9 +1250,16 @@
     });
     var nodeChanged = prev === null || prev.node !== next.node;
     if (dom.search.value !== next.search) { dom.search.value = next.search; }
-    renderNav(next);
+    markNav(next);
+    // A filter select is rebuilt with the list; keep the reader on the one they were using.
+    var held = document.activeElement;
+    var heldFilter = held && held.closest && held.closest('#filters') ? held.id : '';
     if (listChanged) {
       renderList(next, prev !== null);
+      if (heldFilter !== '') {
+        var again = byIdEl(heldFilter);
+        if (again) { again.focus(); }
+      }
     } else if (nodeChanged) {
       markSelected(next);
     }
@@ -1224,6 +1271,14 @@
         dom.live.textContent = escapeDisplay('Showing ' + displayName(next.node));
       } else {
         dom.detailHeading.focus();
+      }
+    } else if (prev !== null && prev.node !== '' && next.node === '' && !wide.matches) {
+      // The detail that held focus is gone (browser Back, for one): return to the picked row.
+      var active = document.activeElement;
+      // Focus inside the detail is about to be lost: the zone is hidden by this very render.
+      if (!active || active === document.body || (active.closest && active.closest('.detail'))) {
+        window.scrollTo(0, listScroll);
+        (rowLinkFor(prev.node) || dom.listTitle).focus();
       }
     }
   }
@@ -1261,7 +1316,13 @@
       buildIndexes();
       renderMeta();
       renderKey();
-      dom.search.addEventListener('input', function () { replaceRoute({ search: dom.search.value }); });
+      buildNav();
+      dom.search.addEventListener('input', function () {
+        // Below 40rem a picked item hides the list, so a search drops the pick to show its results.
+        var over = { search: dom.search.value };
+        if (!wide.matches && dom.search.value !== '') { over.node = ''; }
+        replaceRoute(over);
+      });
       dom.search.addEventListener('keydown', function (ev) {
         if (ev.key === 'Escape' && dom.search.value !== '') {
           ev.preventDefault();
@@ -1271,11 +1332,12 @@
       dom.skip.addEventListener('click', function () { dom.detailHeading.focus(); });
       dom.detailBody.addEventListener('click', function (ev) {
         var link = ev.target.closest ? ev.target.closest('a.node-link') : null;
-        if (link) { followedDetailLink = true; }
+        // A link to the item already shown changes no route, so it must not mark the next one.
+        if (link && link.getAttribute('href') !== location.hash) { followedDetailLink = true; }
       });
       dom.list.addEventListener('click', function (ev) {
         var link = ev.target.closest ? ev.target.closest('a.row-link') : null;
-        if (link) { listScroll = window.scrollY; }
+        if (link) { followedDetailLink = false; listScroll = window.scrollY; }
       });
       byIdEl('app').hidden = false;
       handleRoute();

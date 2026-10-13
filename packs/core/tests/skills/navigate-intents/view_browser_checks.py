@@ -643,7 +643,9 @@ def test_ac_0004_capabilities_with_open_counts(opener: Any, exports: dict[str, p
     assert expected == [("capability:alpha-cap", 4), ("outcome:charlie-out", 2)]
     assert _ids(item.page) == [i for i, _ in expected]
     contexts = item.page.eval_on_selector_all("#list .c-context", "els => els.map(e => e.textContent)")
-    assert list(contexts) == [f"{n} open" for _, n in expected]
+    assert len(contexts) == len(expected)
+    for context, (_, n) in zip(contexts, expected, strict=True):
+        assert context.endswith(f" \u00b7 {n} open"), context
 
 
 def test_ac_0005_no_parent_groups_and_filters(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -818,11 +820,13 @@ def test_ac_0011_context_cell(opener: Any, exports: dict[str, pathlib.Path]) -> 
     item = opener(exports["mixed"])
     page = item.page
     model = Model(payload_of(exports["mixed"]))
-    for key in ("next", "noparent"):
+    for key in ("next", "noparent", "capabilities"):
         _choose(item, key)
         contexts = page.eval_on_selector_all("#list .c-context", "els => els.map(e => e.textContent)")
         for node_id, context in zip(_ids(page), contexts, strict=True):
             node = model.nodes[node_id]
+            if key == "capabilities":
+                assert context.endswith(f" \u00b7 {len(model.beneath(node_id))} open"), context
             label = {"intent": "Intent", "brief": "Brief", "spec": "Spec"}[node["type"]]
             assert context.startswith(label), context
             if node["type"] == "intent":
@@ -1068,11 +1072,24 @@ def test_ac_0020_unknown_node_names_the_gap_and_keeps_the_list(opener: Any, expo
     assert page.locator("#list a.row-link").count() == 3 and page.locator("#list a.row-link").first.is_visible()
 
 
+def _wait_title(page: Page, title: str) -> None:
+    page.wait_for_function("t => document.getElementById('list-title').textContent === t", arg=title)
+
+
 def test_ac_0021_focus_after_an_action(opener: Any, exports: dict[str, pathlib.Path]) -> None:
     item = opener(exports["mixed"])
     page = item.page
     page.locator('nav a[data-q="noparent"]').click()
+    _wait_title(page, "Open with no parent")
     assert page.evaluate("document.activeElement.dataset.q") == "noparent"
+    # The same by keyboard: the link keeps focus once the route has rendered.
+    page.locator('nav a[data-q="broken"]').focus()
+    page.keyboard.press("Enter")
+    _wait_title(page, "Broken pointers and delivery problems")
+    assert page.evaluate("document.activeElement.dataset.q") == "broken"
+    assert page.evaluate("document.querySelectorAll('nav a[aria-current]').length") == 1
+    page.locator('nav a[data-q="noparent"]').click()
+    _wait_title(page, "Open with no parent")
     page.locator('#list a.row-link[data-node="capability:alpha-cap"]').click()
     assert page.evaluate("document.activeElement.dataset.node") == "capability:alpha-cap"
     assert _live(page, "Showing Alpha capability") == "Showing Alpha capability"
@@ -1085,6 +1102,7 @@ def test_ac_0021_focus_after_an_action(opener: Any, exports: dict[str, pathlib.P
     _wait_focus_id(narrow.page, "detail-heading")
     # A narrow page that picks a question keeps focus on its link too.
     narrow.page.locator('nav a[data-q="broken"]').click()
+    _wait_title(narrow.page, "Broken pointers and delivery problems")
     assert narrow.page.evaluate("document.activeElement.dataset.q") == "broken"
 
 
@@ -1508,6 +1526,7 @@ def _tab_to(page: Page, predicate: str, limit: int = 400) -> None:
 def _pick_first(page: Page) -> str:
     """Open the browse list, click its first row and wait until the detail zone shows it."""
     page.locator('nav a[data-q="browse"]').click()
+    _wait_title(page, "All intents")  # the earlier list's rows are still there until the route renders
     page.wait_for_selector("#list a.row-link")
     first = page.locator("#list a.row-link").first
     node = first.get_attribute("data-node")
@@ -1742,8 +1761,9 @@ def test_ac_0038_keyboard_alone_reaches_every_function(opener: Any, exports: dic
     page.keyboard.press("Escape")
     page.wait_for_function("() => !document.getElementById('list-title').textContent.includes('bravo')")
     _tab_to(page, "e.id === 'filter-level'")
-    page.select_option("#filter-level", "feature")
-    page.wait_for_function("() => document.activeElement.id === 'filter-level' || true")
+    page.keyboard.type("f")  # type-ahead picks "feature" without opening the native popup
+    page.wait_for_function("() => document.getElementById('filter-level').value === 'feature'")
+    page.wait_for_function("() => document.activeElement.id === 'filter-level'")
     page.select_option("#filter-level", "")
     _tab_to(page, "e.matches('button.toggle')")
     page.keyboard.press("Enter")
@@ -1860,3 +1880,153 @@ def test_ac_0041_names_contain_visible_labels(opener: Any, exports: dict[str, pa
     assert len(toggle_names) == len(names) > 0
     for accessible, (display,) in zip(toggle_names, names, strict=True):
         assert _squash(display) in _squash(accessible), (accessible, display)
+
+
+# ---------------------------------------------------------------------------
+# Review round 1: focus, row layout, narrow search, skip link, first-screen summary
+# ---------------------------------------------------------------------------
+
+
+def test_fix_filter_change_keeps_focus_and_clear_controls_leave_focus(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = opener(exports["related"]).page
+    _choose_via(page, "browse")
+    page.locator("#filter-level").focus()
+    page.keyboard.type("f")
+    page.wait_for_function("() => document.getElementById('filter-level').value === 'feature'")
+    page.wait_for_function("() => document.activeElement.id === 'filter-level'")
+    # Clear filters: the button vanishes with the re-render, so focus must be placed on purpose.
+    item = opener(exports["related"])
+    item.go(_frag(q="browse", level="feature", status="No-such-status"))
+    item.page.get_by_role("button", name="Clear filters").click()
+    item.page.wait_for_function("() => document.querySelector('#list a.row-link, #list .tree') !== null")
+    assert item.page.evaluate("document.activeElement.id") == "list-title"
+    # Clear search lands on the search field.
+    item.page.locator("#search").fill("zzzz-nothing")
+    item.page.get_by_role("button", name="Clear search").click()
+    item.page.wait_for_function("() => document.getElementById('search').value === ''")
+    assert item.page.evaluate("document.activeElement.id") == "search"
+
+
+def _choose_via(page: Page, key: str) -> None:
+    page.locator(f'nav a[data-q="{key}"]').click()
+    page.wait_for_selector("#filters:not([hidden]) select")
+
+
+def test_fix_rows_stay_inside_their_row_from_640_to_1440(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    for width in (640, 700, 730, 800, 900, 1024, 1280, 1440):
+        page = opener(exports["mixed"], width=width, height=900).page
+        _pick_first(page)
+        rows = page.evaluate(
+            """() => Array.from(document.querySelectorAll('#list a.row-link')).map((row) => {
+              const r = row.getBoundingClientRect();
+              const cells = Array.from(row.children).map((c) => c.getBoundingClientRect());
+              return { right: r.right, cells: cells.map((c) => c.right), name: cells[0].width,
+                       height: r.height };
+            })"""
+        )
+        assert rows, width
+        for row in rows:
+            assert all(c <= row["right"] + 0.5 for c in row["cells"]), (width, row)
+            assert row["name"] >= 100, (width, row)
+        wide = _no_overflow(page)
+        assert wide[0] <= wide[1], (width, wide)
+
+
+def test_fix_narrow_search_while_picked_shows_the_results(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = opener(exports["mixed"], width=320, height=800).page
+    _pick_first(page)
+    assert not page.locator("#list").is_visible()
+    page.locator("#detail-body .back-link").click()
+    _pick_first_row = page.locator("#list a.row-link").first
+    _pick_first_row.click()
+    page.wait_for_function("() => document.getElementById('main').hasAttribute('data-picked')")
+    assert not page.locator("#list").is_visible()
+    page.locator("#search").evaluate("e => e.scrollIntoView()")
+    page.locator("#search").fill("bravo")
+    page.wait_for_function("() => document.getElementById('list').offsetParent !== null")
+    assert page.locator("#list a.row-link").count() > 0
+    assert page.evaluate("document.activeElement.id") == "search"
+
+
+def test_fix_skip_link_is_a_control_only_when_the_detail_is_beside_the_list(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    narrow = opener(exports["mixed"], width=320).page
+    assert narrow.evaluate("getComputedStyle(document.getElementById('skip-details')).display") == "none"
+    wide = opener(exports["mixed"], width=1280).page
+    wide.locator("#skip-details").focus()
+    assert wide.locator("#skip-details").is_visible()
+    wide.keyboard.press("Enter")
+    _wait_focus_id(wide, "detail-heading")
+
+
+def test_fix_detail_link_to_the_current_item_does_not_stick(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"], width=1280)
+    page = item.page
+    _choose(item, "capabilities")
+    page.locator('#list a.row-link[data-node="capability:alpha-cap"]').click()
+    page.wait_for_function("() => document.querySelector('#detail-body .state-line') !== null")
+    # A detail link back to the same item changes nothing; the next list pick must still be announced.
+    page.evaluate(
+        """() => { const a = document.createElement('a'); a.className = 'node-link';
+          a.href = location.hash; a.id = 'self-link'; a.textContent = 'self';
+          document.getElementById('detail-body').appendChild(a); }"""
+    )
+    page.locator("#self-link").click()
+    page.locator('#list a.row-link[data-node="outcome:charlie-out"]').click()
+    assert _live(page, "Showing Charlie").startswith("Showing")
+
+
+def test_fix_browser_back_below_40rem_keeps_focus(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = opener(exports["mixed"], width=390, height=800).page
+    node = _pick_first(page)
+    page.go_back()
+    page.wait_for_function("() => document.getElementById('list').offsetParent !== null")
+    page.wait_for_function("n => document.activeElement.dataset.node === n", arg=node)
+
+
+def test_fix_detail_zone_is_keyboard_scrollable(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = opener(exports["mixed"], width=1280).page
+    assert page.locator("section.detail").get_attribute("tabindex") == "0"
+
+
+def test_fix_first_screen_detail_summarises_the_list(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"], width=1280)
+    page = item.page
+    assert "Pick an item to see its next step." in _text(page, "#detail-body")
+    summary = _text(page, "#detail-body .list-summary")
+    counts = [int(n) for n in re.findall(r"(\d+) ", summary)]
+    assert sum(counts) == len(_ids(page)) > 0, summary
+    assert "brief" in summary or "spec" in summary or "intent" in summary, summary
+    _choose(item, "broken")
+    page.wait_for_function("() => document.querySelector('#detail-body .list-summary') !== null")
+    assert str(len(_ids(page))) in _text(page, "#detail-body .list-summary")
+    assert page.locator("#main[data-picked]").count() == 0
+
+
+def test_fix_open_beneath_aligns_name_and_state(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = _pick(opener(exports["mixed"], width=1280), "capability:alpha-cap")
+    section = _detail_part(page, "Open beneath")
+    rows = section.locator("li").evaluate_all(
+        """els => els.map(li => [Math.round(li.querySelector('a[data-node]').getBoundingClientRect().left),
+          Math.round(li.querySelector('.mark').getBoundingClientRect().left)])"""
+    )
+    assert len(rows) == 4
+    assert len({r[1] for r in rows}) == 1, rows  # the state column starts at the same place on every row
+
+
+def test_fix_broken_row_diagnostic_code_is_mono_and_unbroken(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["hostile_diag"], width=1280)
+    _choose(item, "broken")
+    code = item.page.locator("#list .c-context .value", has_text="delivery-relation-ambiguous").first
+    assert code.count() == 1
+    assert "mono" in code.evaluate("e => getComputedStyle(e).fontFamily").lower() or "Menlo" in code.evaluate("e => getComputedStyle(e).fontFamily")
+    assert code.evaluate("e => getComputedStyle(e).overflowWrap") == "normal"
+    assert code.evaluate("e => getComputedStyle(e).whiteSpace") == "nowrap"
+
+
+def test_fix_approved_glyph_uses_the_text_colour(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    page = opener(exports["mixed"]).page
+    colours = page.evaluate(
+        """() => { const g = document.querySelector('.mark[data-mark="approved"] .mark-g');
+          return g ? [getComputedStyle(g).color, getComputedStyle(document.body).color] : null; }"""
+    )
+    assert colours is not None and colours[0] == colours[1], colours
