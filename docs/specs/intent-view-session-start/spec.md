@@ -1,6 +1,7 @@
 # Spec: Intent view for session start
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-13 by eugenelim, spec and plan together, after spec-mode shaping (clean, round 3), adversarial (round 3 findings repaired) and security spec-stage (advisory findings repaired in the plan) reviews; reports under `.context/reviews/63e509d4-5537-4666-b9af-ae46a254bfa1/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108, ADR-0007, ADR-0074

@@ -1,7 +1,7 @@
 # Plan: Intent view for session start
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py` (`_SHELL`, `_read_asset`, `build_html`); `view_assets/view.js` (`escapeDisplay`, `el`, `parseRoute`, `handleRoute`, `renderDetail`) and `view_assets/view.css`; tests `packs/core/tests/skills/navigate-intents/test_export_html.py`, `view_browser_checks.py`, `view_bench.py`; the build-check chain in `tools/repo/build_gate_chain.py` (`build_check`, the closure-terminality checker and self-test pair as the step pattern); design inputs `docs/design/screens/session-start-orientation-ia.md`, `docs/design/direction/skill-html-views.md`, `docs/design/tokens/skill-html-views.md`.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -107,7 +107,7 @@ Owned by: T2
 **Touches:** `tools/check_view_base_parity.py`, `tools/test_check_view_base_parity.py`, `tools/repo/build_gate_chain.py`
 
 **Tests:**
-- `tools/test_check_view_base_parity.py` covers identical copies giving exit 0, a differing copy giving exit 1 with its path on stderr, and a missing canonical file giving exit 1; both run as build-check chain steps (AC-0029).
+- `tools/test_check_view_base_parity.py` covers identical copies giving exit 0, a differing copy giving exit 1 with its path on stderr, a missing canonical file giving exit 1, and a copy that is a symlink to the canonical file giving exit 1; both run as build-check chain steps (AC-0029).
 - `tools/test-lint-ci-parity.py` and `tools/lint-ci-parity.py` stay green with the two new chain steps.
 
 **Done when:** both tests pass, and `python3 tools/check_view_base_parity.py` exits 0 on the tree.
@@ -122,7 +122,7 @@ Owned by: T2
 - Its exports fixture keeps the `mixed`, `hostile`, `empty`, incomplete-delivery, scoped (`--from intent:bravo-feat`) and related exports. It adds a `hostile` export whose resolver seam appends one delivery diagnostic (AC-0006), and a copy of `mixed` where `intent:juliet-done` names `intent:india-none` as its parent (AC-0015).
 - The tests kept for the carried export criteria are: source links (0028), escapes (0034), no network (0036), outside-export plain text (0045), damaged data (0054) and no script (0055).
 - The regression tests kept are `test_delivery_relation_on_a_non_intent_node_renders_as_a_link` and `test_startup_render_failure_shows_the_alert_and_logs_the_error`, re-targeted to the new DOM.
-- `test_export_html.py`'s forbidden-API and escape-parity tests stay green.
+- `test_export_html.py`'s forbidden-API and escape-parity tests stay green, and the forbidden-API scan also refuses a script write of inline style: a `.style` property write, `cssText`, or `setAttribute('style'`.
 
 **Done when:** `view_browser_checks.py` passes with none skipped.
 
@@ -185,3 +185,6 @@ Owned by: T2
 - A large startable list could push startup past budget with full rendering; T5 measures it before any chunking is built.
 
 ## Changelog
+
+- 2026-10-13: spec approved by eugenelim
+- 2026-10-13: plan approved by eugenelim
