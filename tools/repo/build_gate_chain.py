@@ -352,6 +352,14 @@ def build_check(args: argparse.Namespace) -> int:
             "test-navigate-intents",
             "packs", "core", "tests", "skills", "navigate-intents",
         ),
+        _pytest_step(
+            "test-check-view-base-parity",
+            "tools", "test_check_view_base_parity.py",
+        ),
+        _script_step(
+            "check-view-base-parity",
+            "tools", "check_view_base_parity.py",
+        ),
         _script_step(
             "test-workspace-status",
             "tools", "test_workspace_status.py",
