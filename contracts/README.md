@@ -71,6 +71,8 @@ disagree, `contracts/` is authoritative.
 | `delivery/finding.v1.schema.json` | Reviewer finding fields required for actual-failure assessment | no |
 | `delivery/finding-assessment.v1.schema.json` | Current finding assessment bound to report, subject, evidence, and assessment lineage | no |
 | `delivery/finding-disposition.v1.schema.json` | Authorized disposition for a supported material finding without mutating acceptance support | no |
+| `delivery/delivery-fact-feed.v1.schema.json` | One bounded page of a reproducible read-only snapshot of committed delivery facts, each with its knowledge candidate or an explicit none, or an unread-source report | no |
+| `delivery/knowledge-observation.v1.schema.json` | Attributed, reproducible knowledge candidate projected from one eligible delivery fact, with every free-text field typed as untrusted data | no |
 
 ## Which design governs which file
 
@@ -107,6 +109,10 @@ disagree, `contracts/` is authoritative.
   subjects, obligations, reports, findings, assessments, and dispositions.
   These are test-time contracts only; no schema copy ships in the Core pack at
   runtime.
+- **The delivery knowledge projection schemas** under `delivery/` come from the
+  [delivery knowledge projection spec][projection-contracts]. They define the
+  fact feed page and the knowledge observation. These are test-time contracts
+  only; no schema copy ships in the Core pack at runtime.
 
 The authority model stated above comes from the
 [contracts composition, semantics, and discovery design][composition]. The
@@ -129,4 +135,5 @@ Future contracts land here too, each in its own PR.
 [work-intake-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/normalized-intake-workspace-contracts/spec.md
 [work-intake-migration]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/work-intake-migration-docs/spec.md
 [delivery-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/acceptance-authority-and-evidence/spec.md
+[projection-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/delivery-knowledge-projection/spec.md
 [review-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/structured-review-boundary/spec.md

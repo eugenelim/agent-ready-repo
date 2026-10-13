@@ -90,6 +90,8 @@ __all__ = [
     "validate_supersession_dict",
     "validate_semantic_record",
     "derive_review_failure_receipt_id",
+    # Read-only replay accessor
+    "replay_admitted_frames",
 ]
 
 # ── Schema version constants ───────────────────────────────────────────────────
@@ -1679,6 +1681,31 @@ def _validate_review_transition(
                 )
 
 
+def replay_admitted_frames(raw: bytes) -> dict[str, Any]:
+    """Replay *raw*, a prefix of complete frames, and return what the store admits.
+
+    A read-only accessor for consumers that must see exactly the frames
+    ``EvidenceStore.open()`` admits, without that method's recovery write.  It
+    touches no file: no log is opened, created, locked, truncated, or repaired,
+    and the caller supplies the bytes it read.  The caller cuts a torn final
+    frame (bytes after the last newline) off *raw* before calling.
+
+    Returns a dict with ``frames`` (admitted ``(transaction, records)`` pairs in
+    log order), ``semantic_records`` (the per-kind identity index), and
+    ``superseded`` (the receipt IDs some admitted supersession names).  Raises
+    ``EvidenceStoreError`` on checksum, reference, or review-transition failure,
+    exactly as ``open()`` does.
+    """
+    replay = EvidenceStore(Path(os.devnull))
+    frames: list[tuple[dict, list[dict]]] = []
+    replay._index_frames(raw, admitted_frames=frames)
+    return {
+        "frames": frames,
+        "semantic_records": replay._semantic_records,
+        "superseded": frozenset(replay._superseded),
+    }
+
+
 class EvidenceStore:
     """Append-only evidence transaction log with crash recovery.
 
@@ -1907,7 +1934,12 @@ class EvidenceStore:
 
         self._index_frames(raw)
 
-    def _index_frames(self, raw: bytes) -> None:
+    def _index_frames(
+        self,
+        raw: bytes,
+        *,
+        admitted_frames: list[tuple[dict, list[dict]]] | None = None,
+    ) -> None:
         """Rebuild every index from *raw*, a log prefix of complete frames.
 
         The new view is built aside and swapped in only when the whole prefix
@@ -1916,6 +1948,10 @@ class EvidenceStore:
         that reuses a transaction_id, receipt_id, or supersession_id already
         seen is skipped as a whole, so the first admitted record stays
         authoritative and the store still opens.
+
+        When *admitted_frames* is given, each admitted ``(tx, records)`` frame
+        is appended to it in log order.  The list is output only: it changes no
+        index, identity, or admission decision.
         """
         receipts: dict[str, dict] = {}
         by_criterion: dict[Any, list[str]] = {}
@@ -1962,6 +1998,8 @@ class EvidenceStore:
                 seen_record_keys.update(record_key for record_key in record_keys if record_key)
                 tx_idx = len(transactions)
                 transactions.append(tx)
+                if admitted_frames is not None:
+                    admitted_frames.append((tx, records))
                 for record in records:
                     _index_record(
                         record,

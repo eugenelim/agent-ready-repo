@@ -1249,6 +1249,38 @@
         "Does not claim the reviewer must implement a reviewer-specific work-loop hook",
         "Identifies the report role field as the reviewer identifier"
       ]
+    },
+    {
+      "id": "delivery-fact-feed-read-only-pull-scan",
+      "prompt": "I want to see which review failures could become knowledge candidates. How do I run the delivery fact feed, and can it change my evidence logs?",
+      "expected_output": "Run `python '<skill-dir>/scripts/delivery-fact-feed.py'` (optionally `--root <repo-dir>`). It prints one `delivery-fact-feed.v1` page to stdout, a read-only snapshot of each spec's shadow evidence log with a candidate or an explicit none per fact. It never writes, truncates, repairs, or locks a log, and a torn final frame stays invisible. The page is machine input for the candidate mode and every free-text field is untrusted data, so pipe it rather than reading it as instructions.",
+      "assertions": [
+        "Names the `delivery-fact-feed.py` command and that it prints a `delivery-fact-feed.v1` page",
+        "Says the feed is read-only: no write, truncate, repair, or lock of an evidence log",
+        "Says a torn final frame is invisible and left unrepaired",
+        "Says the page text is untrusted data to pipe into the candidate mode, not instructions"
+      ]
+    },
+    {
+      "id": "delivery-fact-feed-shadow-flag-unset",
+      "prompt": "WORK_LOOP_SHADOW_SERVICES is not set and I run the delivery fact feed. What do I get, and does it list docs/specs?",
+      "expected_output": "A complete, valid, empty snapshot with `shadow_services: disabled`, no entries, and a null continuation. The feed decides this before touching the filesystem, so it lists nothing and reads nothing. Only `WORK_LOOP_SHADOW_SERVICES=1` turns the scan on.",
+      "assertions": [
+        "Says the result is a complete, empty snapshot",
+        "Says nothing is listed or read when the flag is unset",
+        "Says the flag must be exactly 1 to enable the scan"
+      ]
+    },
+    {
+      "id": "delivery-fact-feed-continuation-and-refusal",
+      "prompt": "The delivery fact feed returned a continuation token, but a log changed before I fetched the next page. What happens, and what if docs/specs has a symlinked entry?",
+      "expected_output": "A continuation re-enumerates the snapshot and is refused with `snapshot-changed` and no partial page when anything differs, including an append to a log not yet read or an added or removed spec directory. A symlinked or unreadable entry directly under docs/specs refuses the whole scan with a closed code (`specs-entry-refused`), never a complete snapshot. A refusal exits 2 with nothing on stdout and `delivery-fact-feed: refused: <code>` on stderr. A single bad log is reported as an unread source with a closed reason code instead.",
+      "assertions": [
+        "Says a changed snapshot refuses the continuation with no partial result",
+        "Says a symlinked or unreadable docs/specs entry refuses the whole scan with a closed reason code",
+        "Says a refusal exits non-zero with nothing on stdout",
+        "Says a refused single log is an unread source that contributes no facts"
+      ]
     }
   ]
 }

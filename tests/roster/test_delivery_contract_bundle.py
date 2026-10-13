@@ -59,6 +59,8 @@ _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "finding.v1.schema.json",
     "finding-assessment.v1.schema.json",
     "finding-disposition.v1.schema.json",
+    "delivery-fact-feed.v1.schema.json",
+    "knowledge-observation.v1.schema.json",
 })
 
 
@@ -519,3 +521,233 @@ def test_no_delivery_schema_copy_outside_contracts_delivery() -> None:
     assert not copies, (
         f"delivery schema copies found outside contracts/delivery/: {copies}"
     )
+
+
+# ── Delivery knowledge projection schemas (Slice 3) ──────────────────────────
+# Parity between delivery-fact-feed.v1, knowledge-observation.v1, and the
+# self-contained work-loop feed and projector. Extends this existing roster
+# file, so no new CI step or roster registration is needed.
+
+_FEED = "delivery-fact-feed.v1.schema.json"
+_OBSERVATION = "knowledge-observation.v1.schema.json"
+_PROJECTION_SPEC = "docs/specs/delivery-knowledge-projection/"
+_WORK_LOOP_SCRIPTS = (
+    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts"
+)
+
+
+def _load_work_loop(alias: str, filename: str):  # noqa: ANN202 - test-time module loader
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(alias, str(_WORK_LOOP_SCRIPTS / filename))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _sample_observation() -> dict:
+    """Project one real observation through the shipped projector."""
+    projector = _load_work_loop("dfp_roster_projection", "_knowledge_projection.py")
+    receipt = {
+        "schema_version": 1,
+        "receipt_id": "review-failure-sha256-" + "a" * 64,
+        "acceptance_fingerprint": "acceptance-fp-1",
+        "lineage": {"criterion_ref": "AC-0001"},
+        "selector": {"term": "supported-review-failure"},
+        "freshness_mode": "exact-subject",
+        "observation": {"type": "review-failure"},
+        "outcome": "review-failure",
+        "producer": {"class": "review-bridge", "identity": "structured-review-boundary"},
+    }
+    report = _review_report()
+    finding = report["findings"][0]
+    projection = projector.project_record(
+        "evidence-receipt.v1", receipt, spec_path="docs/specs/example",
+        transaction_id="tx-1", superseded=False, report=report, finding=finding,
+    )
+    assert projection.observation is not None, projection.none_reason
+    return projection.observation
+
+
+def _sample_page(observation: dict | None = None) -> dict:
+    observation = observation or _sample_observation()
+    return {
+        "schema_version": 1,
+        "snapshot_id": "snapshot-sha256-" + "b" * 64,
+        "shadow_services": "enabled",
+        "first_ordinal": 0,
+        "entries": [
+            {
+                "entry_kind": "fact",
+                "ordinal": 0,
+                "source": {
+                    "spec_path": "docs/specs/example",
+                    "transaction_id": "tx-1",
+                    "record_kind": "evidence-receipt.v1",
+                    "record_id": observation["source"]["receipt_id"],
+                    "predecessor_schema_version": 1,
+                },
+                "observation": observation,
+                "none_reason": None,
+            },
+            {"entry_kind": "unread-source", "ordinal": 1,
+             "spec_path": "docs/specs/other", "reason_code": "marker-missing"},
+        ],
+        "continuation": None,
+    }
+
+
+def test_projection_schemas_point_at_their_spec_and_close_every_object() -> None:
+    for name in (_FEED, _OBSERVATION):
+        schema = _load_schema(name)
+        assert _PROJECTION_SPEC in schema["x-spec"]
+        assert schema["additionalProperties"] is False
+
+    def walk(node: object, where: str) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "object" and "properties" in node:
+                assert node.get("additionalProperties") is False, where
+            for key, value in node.items():
+                walk(value, f"{where}/{key}")
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                walk(value, f"{where}/{i}")
+
+    walk(_load_schema(_FEED), _FEED)
+    walk(_load_schema(_OBSERVATION), _OBSERVATION)
+
+
+def test_every_string_in_the_projection_schemas_has_an_enforced_bound() -> None:
+    """No annotation-only format: each string is an enum or const, or has a length and a pattern."""
+
+    def walk(node: object, where: str) -> None:
+        if isinstance(node, dict):
+            assert "format" not in node or where.endswith("/properties/format"), where
+            if node.get("type") == "string":
+                closed = {"enum", "const"} & set(node)
+                assert closed or ("maxLength" in node and "pattern" in node), where
+            for key, value in node.items():
+                walk(value, f"{where}/{key}")
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                walk(value, f"{where}/{i}")
+
+    for name in (_FEED, _OBSERVATION):
+        walk(_load_schema(name), name)
+
+
+def test_patterns_end_with_a_lookahead_not_a_dollar() -> None:
+    """Python's `$` matches before a trailing LF, so no pattern may rely on it."""
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            pattern = node.get("pattern")
+            if isinstance(pattern, str):
+                assert not pattern.endswith("$") and pattern.endswith("(?![\\s\\S])"), pattern
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(_load_schema(_FEED))
+    walk(_load_schema(_OBSERVATION))
+
+
+def test_free_text_fields_are_typed_as_untrusted_data() -> None:
+    observation = _load_schema(_OBSERVATION)
+    text_fields = ["rule_ref", "observed", "reachable_path", "actual_failure"]
+    for field in text_fields:
+        branches = observation["properties"][field]["allOf"]
+        assert {"$ref": "#/$defs/untrustedText"} in branches
+    wrapper = observation["$defs"]["untrustedText"]
+    assert {"$ref": "untrusted-data.v1.schema.json"} in wrapper["allOf"]
+    # The feed carries observations only through the typed schema.
+    feed = _load_schema(_FEED)
+    assert feed["$defs"]["factEntry"]["properties"]["observation"]["oneOf"][1] == {
+        "$ref": "knowledge-observation.v1.schema.json"
+    }
+    assert not [k for k in observation["properties"] if k in text_fields and
+                observation["properties"][k].get("type") == "string"]
+
+
+def test_emitted_page_validates_and_carries_the_untrusted_typing() -> None:
+    page = _sample_page()
+    errors = list(_validator(_FEED).iter_errors(page))
+    assert not errors, errors
+    observation = page["entries"][0]["observation"]
+    for field in ("rule_ref", "observed", "reachable_path", "actual_failure"):
+        wrapper = observation[field]
+        assert set(wrapper) == {"schema_version", "record_id", "field_path", "policy_version", "value"}
+        assert wrapper["field_path"] == field
+        assert not list(_validator("untrusted-data.v1.schema.json").iter_errors(wrapper))
+    assert not list(_validator(_OBSERVATION).iter_errors(observation))
+
+
+def _mutations() -> list[tuple[str, object]]:
+    def edit(fn):  # noqa: ANN001, ANN202
+        page = _sample_page()
+        fn(page)
+        return page
+
+    return [
+        ("plain-string-text", edit(lambda p: p["entries"][0]["observation"].__setitem__("observed", "plain"))),
+        ("extra-field", edit(lambda p: p.__setitem__("extra", 1))),
+        ("unknown-major", edit(lambda p: p.__setitem__("schema_version", 2))),
+        ("too-many-entries", edit(lambda p: p.__setitem__("entries", [p["entries"][1]] * 1001))),
+        ("newline-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a\nb"))),
+        ("bidi-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a‮b"))),
+        ("trailing-lf-id", edit(lambda p: p["entries"][0]["source"].__setitem__("transaction_id", "tx-1\n"))),
+        ("trailing-lf-token", edit(lambda p: p.__setitem__("continuation", "dff1." + "0" * 64 + ".1\n"))),
+        ("path-traversal", edit(lambda p: p["entries"][0]["observation"].__setitem__("scope_paths", ["a/../b"]))),
+        ("both-observation-and-reason", edit(lambda p: p["entries"][0].__setitem__("none_reason", "superseded"))),
+        ("neither", edit(lambda p: p["entries"][0].__setitem__("observation", None))),
+        ("bad-unread-reason", edit(lambda p: p["entries"][1].__setitem__("reason_code", "other"))),
+        ("overlong-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "x" * 601))),
+    ]
+
+
+@pytest.mark.parametrize("label,page", _mutations(), ids=[m[0] for m in _mutations()])
+def test_feed_schema_rejects_violations(label: str, page: dict) -> None:
+    assert list(_validator(_FEED).iter_errors(page)), label
+
+
+def test_feed_bounds_and_code_sets_match_the_runtime() -> None:
+    feed_schema = _load_schema(_FEED)
+    feed = _load_work_loop("dfp_roster_feed", "_delivery_feed.py")
+    projector = _load_work_loop("dfp_roster_projection_b", "_knowledge_projection.py")
+    assert feed_schema["properties"]["entries"]["maxItems"] == feed.MAX_ENTRIES == 1000
+    assert feed_schema["x-max-page-bytes"] == feed.MAX_PAGE_BYTES == 1024 * 1024
+    assert feed_schema["x-max-observation-bytes"] == projector.MAX_OBSERVATION_BYTES == 4096
+    assert _load_schema(_OBSERVATION)["x-max-observation-bytes"] == 4096
+    assert set(feed_schema["x-unread-source-reason-codes"]) == feed.UNREAD_REASONS
+    assert set(feed_schema["x-scan-refusal-codes"]) == feed.SCAN_REFUSAL_CODES
+    assert set(feed_schema["x-none-reason-codes"]) == feed.NONE_REASONS == projector.NONE_REASONS
+    defs = _load_schema(_OBSERVATION)["$defs"]
+    assert defs["identifier"]["pattern"] == projector.PATTERNS["identifier"]
+    assert defs["repositoryPath"]["pattern"] == projector.PATTERNS["repository_path"]
+    assert defs["untrustedText"]["properties"]["value"]["pattern"] == projector.PATTERNS["text"]
+    observation = _load_schema(_OBSERVATION)["properties"]
+    assert observation["observation_id"]["pattern"] == projector.PATTERNS["observation_id"]
+    assert observation["projection_policy_version"]["pattern"] == projector.PATTERNS["version_label"]
+    assert feed_schema["$defs"]["factEntry"]["properties"]["none_reason"]["oneOf"][1]["enum"] == sorted(
+        feed.NONE_REASONS, key=feed_schema["x-none-reason-codes"].index
+    )
+
+
+def test_projection_runtime_never_reads_a_delivery_schema() -> None:
+    """The runtime modules name no contracts path and import no repository package."""
+    import ast
+
+    for name in ("_delivery_feed.py", "_knowledge_projection.py", "delivery-fact-feed.py"):
+        source = (_WORK_LOOP_SCRIPTS / name).read_text(encoding="utf-8")
+        assert "contracts/delivery" not in source.replace("delivery schema", ""), name
+        assert ".schema.json" not in source, name
+        for node in ast.walk(ast.parse(source)):
+            modules = []
+            if isinstance(node, ast.Import):
+                modules = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                modules = [node.module or ""]
+            assert not [m for m in modules if m.split(".")[0] in {"agentbundle", "credbroker"}], name

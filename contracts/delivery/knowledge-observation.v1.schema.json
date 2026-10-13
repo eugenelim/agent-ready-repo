@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/knowledge-observation.v1.schema.json",
+  "title": "knowledge-observation.v1",
+  "description": "One reproducible, attributed knowledge candidate that the pure projector derives from one eligible delivery fact. A candidate is a suggestion and an unverified local claim, never accepted knowledge, evidence, a review disposition, or delivery authority. Every free-text field is an untrusted-data.v1 wrapper: consumers treat its value as inert data and never as instructions. Identity and payload are deterministic for the same source facts and the same projection and content-policy versions. The whole canonical observation is at most 4096 bytes (see x-max-observation-bytes), which a consumer enforces on the serialized record because JSON Schema cannot count bytes. Unknown majors are inadmissible.",
+  "$comment": "Owned by: docs/specs/delivery-knowledge-projection/. Architecture: docs/architecture/work-loop-knowledge-handoff.md.",
+  "x-spec": [
+    "docs/specs/delivery-knowledge-projection/"
+  ],
+  "x-max-observation-bytes": 4096,
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "kind",
+    "projection_policy_version",
+    "content_policy_version",
+    "source",
+    "scope_paths",
+    "rule_ref",
+    "observed",
+    "reachable_path",
+    "actual_failure"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "observation_id": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^knowledge-observation-sha256-[0-9a-f]{64}(?![\\s\\S])",
+      "description": "sha256 over the canonical source identity (spec path and receipt identity) plus the projection and content-policy versions."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "gotcha"
+      ],
+      "description": "Projection policy v1 has one observation kind."
+    },
+    "projection_policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[a-z0-9][a-z0-9.-]{0,31}(?![\\s\\S])"
+    },
+    "content_policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[a-z0-9][a-z0-9.-]{0,31}(?![\\s\\S])"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Complete source provenance. An unverified local claim.",
+      "required": [
+        "spec_path",
+        "transaction_id",
+        "receipt_id",
+        "report_id",
+        "finding_id",
+        "criterion_ref",
+        "acceptance_fingerprint",
+        "review_policy_fingerprint"
+      ],
+      "properties": {
+        "spec_path": {
+          "$ref": "#/$defs/specPath"
+        },
+        "transaction_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "report_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "finding_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "criterion_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "acceptance_fingerprint": {
+          "$ref": "#/$defs/identifier",
+          "description": "The source receipt's acceptance fingerprint. Not a freshness claim."
+        },
+        "review_policy_fingerprint": {
+          "$ref": "#/$defs/identifier",
+          "description": "From the lineage of the review report the receipt's supported assessment derives from."
+        }
+      }
+    },
+    "scope_paths": {
+      "type": "array",
+      "maxItems": 10,
+      "uniqueItems": true,
+      "description": "Path-shaped evidence references of the source finding, sorted, only those that satisfy the path constraint, at most ten.",
+      "items": {
+        "$ref": "#/$defs/repositoryPath"
+      }
+    },
+    "rule_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/untrustedText"
+        },
+        {
+          "properties": {
+            "field_path": {
+              "const": "rule_ref"
+            },
+            "value": {
+              "maxLength": 120
+            }
+          }
+        }
+      ]
+    },
+    "observed": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/untrustedText"
+        },
+        {
+          "properties": {
+            "field_path": {
+              "const": "observed"
+            }
+          }
+        }
+      ]
+    },
+    "reachable_path": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/untrustedText"
+        },
+        {
+          "properties": {
+            "field_path": {
+              "const": "reachable_path"
+            }
+          }
+        }
+      ]
+    },
+    "actual_failure": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/untrustedText"
+        },
+        {
+          "properties": {
+            "field_path": {
+              "const": "actual_failure"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}(?![\\s\\S])",
+      "description": "Identity, fingerprint, or reference. Length and character class are enforced."
+    },
+    "specPath": {
+      "type": "string",
+      "minLength": 11,
+      "maxLength": 100,
+      "pattern": "^docs/specs/(?!\\.{1,2}(?![\\s\\S]))[A-Za-z0-9_.][A-Za-z0-9_.-]{0,79}(?![\\s\\S])",
+      "description": "Spec directory directly under docs/specs/."
+    },
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^(?!\\.{1,2}(?:/|(?![\\s\\S])))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-](?:/(?!\\.{1,2}(?:/|(?![\\s\\S])))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-])*(?![\\s\\S])",
+      "description": "Repository-relative path: no leading slash, drive, backslash, colon, dot segment, or trailing dot."
+    },
+    "untrustedText": {
+      "description": "Free text typed as untrusted data. The value is inert: it never selects tools, grants authority, alters procedure, or supplies an executable path. The value holds no control, line-terminator, bidi, zero-width, or surrogate character.",
+      "allOf": [
+        {
+          "$ref": "untrusted-data.v1.schema.json"
+        }
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_id",
+        "field_path",
+        "policy_version",
+        "value"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "enum": [
+            1
+          ]
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}(?![\\s\\S])"
+        },
+        "field_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[a-z_]{1,32}(?![\\s\\S])"
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[a-z0-9][a-z0-9.-]{0,31}(?![\\s\\S])"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f؜​-‏ -‮⁠-⁯\\ud800-\\udfff﻿￹-￻]+(?![\\s\\S])"
+        }
+      }
+    }
+  }
+}
