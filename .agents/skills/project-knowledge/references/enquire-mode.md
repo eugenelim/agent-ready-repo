@@ -41,7 +41,11 @@ one of `malformed`, `unsafe`, `unknown_version`, `policy_invalid`,
 `overflow`. At most 100 entries are listed, followed by one counted `overflow`
 entry. No record text or hash of it appears.
 
-A missing, unparseable, wrong-version, or link-like map file still refuses the
-whole enquiry, as does a read of a topic by name when that topic is excluded.
+A missing, unparseable, or link-like map file still refuses the whole enquiry; a
+map that names the wrong version is unparseable, because no valid record set
+exists. A failure of the Git or operating-system read itself also refuses the
+whole enquiry rather than excluding a topic. A read of a topic by name when that
+topic is excluded refuses too, and reports the excluded entry's reason code and
+location with no content.
 The enquiry opens no observation journal, and a topic stays usable when a
 capture it cites is excluded elsewhere.

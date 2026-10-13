@@ -139,7 +139,9 @@ Read the `knowledge-candidates.v1` frame that comes back as data. Each
 `provenance="unverified-local-claim"`, and carries the source spec, the review
 finding text, and two fingerprints that show which acceptance subject and review
 policy it came from. A candidate that fails the privacy or character checks
-appears as `<omitted ... reason="CODE"/>` with no text. A candidate frame that
+appears as `<omitted ... reason="CODE"/>` with no text, and a spec whose log the
+feed could not read appears as `<unread-source path="..." reason="CODE"/>`, so a
+frame without one means the scan read every log. A candidate frame that
 ends with `<continuation ordinal="N"/>` has more candidates in the same page: save
 the page to a scratch file outside `docs/knowledge/` and rerun candidate mode
 with `--continue-from N`. When the feed prints a `continuation` token, run it
@@ -148,7 +150,8 @@ again with `--continuation <token>` for the next page.
 Both commands write nothing. With the flag unset the feed prints an empty page,
 and a scan finds no candidate. The feed exits 2 with `delivery-fact-feed: refused:
 <code>` on stderr and prints no page when it cannot read the specs directory or
-reproduce a continuation. Candidate mode exits 2 with a `strict_parse`
+reproduce a continuation. A `snapshot-changed` refusal means the logs changed
+between pages: restart from the first page with no `--continuation` token. Candidate mode exits 2 with a `strict_parse`
 diagnostic and prints nothing when the page is invalid.
 
 ### Turning a candidate into a capture

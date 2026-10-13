@@ -25,7 +25,8 @@ The pending drain excludes an invalid journal line on its own and lists it in
 the receipt's `diagnostics` as a location and a closed reason code, never as
 record text. A capture whose disposition line is invalid is excluded too, rather
 than shown as pending again, and a disposition whose capture is invalid is
-excluded. When a partition holds an invalid line that cannot be tied to one
+excluded. A partition file that is a link or not a regular file is excluded as
+`unsafe` and never read. When a partition holds an invalid line that cannot be tied to one
 capture, the drain shows no capture from that partition. At most 100 entries are
 listed, followed by one counted `overflow` entry.
 

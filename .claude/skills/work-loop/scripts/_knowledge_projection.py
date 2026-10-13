@@ -1,6 +1,6 @@
 """_knowledge_projection — pure projection of one delivery fact into a knowledge candidate.
 
-Projection policy v1 has exactly one eligible source: a Slice 2 ``review-failure``
+Projection policy v1 has exactly one eligible source: a ``review-failure``
 receipt that no supersession names.  It becomes one ``gotcha``
 ``knowledge-observation.v1`` whose text comes only from the typed review report
 and finding the receipt derives from, after the ``knowledge-observation``
@@ -70,8 +70,9 @@ _MAX_IDENTIFIER_CHARS: Final[int] = 128
 # End of string in both Python and ECMA 262; `$` would admit a trailing LF in Python.
 _END: Final[str] = r"(?![\s\S])"
 _BAD_TEXT_CHARS: Final[str] = (
-    r"\u0000-\u001f\u007f-\u009f؜​-‏ -‮⁠-⁯"
-    r"\ud800-\udfff﻿￹-￻"
+    r"\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f-\u1160\u17b4-\u17b5\u180b-\u180f"
+    r"\u200b-\u200f\u2028-\u202e\u2060-\u206f\u3164\ud800-\udfff\ufe00-\ufe0f\ufeff\uffa0"
+    r"\ufff9-\ufffb\U000E0000-\U000E0FFF"
 )
 _SEGMENT: Final[str] = (
     r"(?!\.{1,2}(?:/|" + _END + r"))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-]"
@@ -161,7 +162,7 @@ def is_identifier(value: object) -> bool:
 def observation_id(spec_path: str, receipt_id: str, content_version: str) -> str:
     """Return the deterministic candidate identity for one source and version pair.
 
-    The source identity is the spec directory plus the Slice 1 receipt identity.
+    The source identity is the spec directory plus the evidence receipt identity.
     """
     payload = canonical_json({
         "content_policy_version": content_version,
@@ -173,7 +174,7 @@ def observation_id(spec_path: str, receipt_id: str, content_version: str) -> str
 
 
 def is_review_failure_receipt(receipt: dict) -> bool:
-    """Return True for a receipt the Slice 2 review bridge wrote for a supported failure."""
+    """Return True for a receipt the review bridge wrote for a supported failure."""
     observation = receipt.get("observation")
     selector = receipt.get("selector")
     producer = receipt.get("producer")

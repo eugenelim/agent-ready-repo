@@ -71,6 +71,17 @@ _DEADLINE: float | None = None
 
 
 class KnowledgeStoreError(Exception):
+    """A closed refusal.
+
+    `environmental` marks a refusal that comes from the Git or operating-system
+    read itself rather than from any record, so a read-only caller never turns it
+    into a quarantine entry. `quarantine` carries the closed-code entries that
+    explain a named lookup's refusal; neither changes `diagnostic`.
+    """
+
+    environmental: bool = False
+    quarantine: list[dict[str, Any]] | None = None
+
     def __init__(self, diagnostic: dict[str, Any]) -> None:
         super().__init__(diagnostic["reason_code"])
         self.diagnostic = diagnostic
@@ -112,6 +123,13 @@ def _reraise_deadline(error: KnowledgeStoreError) -> None:
     """
     if error.diagnostic.get("reason_code") == DEADLINE_EXCEEDED:
         raise error
+
+
+def _refuse_environmental() -> None:
+    """Refuse as `map_mismatch`, as the writers always saw, and mark the fault environmental."""
+    error = KnowledgeStoreError(_diagnostic("map_mismatch"))
+    error.environmental = True
+    raise error
 
 
 def _refuse_with_diagnostic(diagnostic: dict[str, Any]) -> None:
@@ -216,6 +234,19 @@ def _read_regular_file_bounded(
     if len(raw) > max_bytes:
         _refuse("journal_capacity")
     return raw
+
+
+def _is_plain_regular_file(path: Path) -> bool:
+    """Return True for a regular file that is not a symlink or Windows reparse point.
+
+    An `OSError` from the `lstat` propagates: the caller refuses the whole read.
+    """
+    metadata = path.lstat()
+    return (
+        stat.S_ISREG(metadata.st_mode)
+        and not stat.S_ISLNK(metadata.st_mode)
+        and not bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
+    )
 
 
 def _regular_file_size_bounded(path: Path, max_bytes: int) -> int:
@@ -404,11 +435,14 @@ QUARANTINE_REASON_CODES = (
 )
 QUARANTINE_MAX_ENTRIES = 100
 _QUARANTINE_LOCATOR_MAX_CHARS = 240
-# The AC-0014 character limits: control (C0 and C1, so NEL too), line
-# terminators, bidi, zero-width, and surrogate characters.
+# Characters a quarantine locator never shows: control (C0 and C1, so NEL
+# too), line terminators, bidi, zero-width and other default-ignorable,
+# variation-selector, tag, and surrogate characters. The same class bounds the
+# candidate text.
 _QUARANTINE_UNSAFE_CHARACTERS = re.compile(
-    "[\\x00-\\x1f\\x7f-\\x9f\\u061c\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f"
-    "\\ud800-\\udfff\\ufeff\\ufff9-\\ufffb]"
+    "[\\x00-\\x1f\\x7f-\\x9f\\u00ad\\u034f\\u061c\\u115f-\\u1160\\u17b4-\\u17b5"
+    "\\u180b-\\u180f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\u3164"
+    "\\ud800-\\udfff\\ufe00-\\ufe0f\\ufeff\\uffa0\\ufff9-\\ufffb\\U000E0000-\\U000E0FFF]"
 )
 _QUARANTINE_REASON_FOR_REFUSAL = {
     "privacy": "policy_invalid",
@@ -451,6 +485,7 @@ class _Quarantine:
 
     def __init__(self) -> None:
         self._entries: list[dict[str, Any]] = []
+        self._subjects: list[str | None] = []
         self._seen = 0
         self._omitted = 0
 
@@ -461,7 +496,9 @@ class _Quarantine:
         *,
         line: int | None = None,
         entry: int | None = None,
+        subject: str | None = None,
     ) -> None:
+        """Record one exclusion; *subject* names the topic file it concerns, never shown."""
         self._seen += 1
         if len(self._entries) >= QUARANTINE_MAX_ENTRIES:
             self._omitted += 1
@@ -477,6 +514,14 @@ class _Quarantine:
             if entry is not None:
                 record["entry"] = entry
         self._entries.append(record)
+        self._subjects.append(subject if subject is not None else (path if locator else None))
+
+    def entry_for(self, subject: str) -> dict[str, Any] | None:
+        """Return the first reported entry that concerns the topic file *subject*, if any."""
+        for record, recorded in zip(self._entries, self._subjects, strict=True):
+            if recorded == subject:
+                return record
+        return None
 
     def report(self) -> list[dict[str, Any]]:
         """Return the entries, followed by one counted overflow marker when any were dropped."""
@@ -513,6 +558,8 @@ def _quarantine_reason(
     """
 
     _reraise_deadline(error)
+    if error.environmental:
+        raise error
     code = error.diagnostic["reason_code"]
     if code == "strict_parse":
         if _names_another_version(parsed, version_key):
@@ -752,12 +799,15 @@ def _observation_partitions(
                 if quarantine is None:
                     _validate_partition_name(partition)
                 else:
-                    # A partition file whose name fails validation is excluded,
-                    # not read; link-like and non-regular files still refuse.
+                    # A partition file whose name fails validation, or that is a
+                    # link or not a regular file, is excluded and never read.
                     try:
                         _validate_partition_name(partition)
+                        unsafe = not _is_plain_regular_file(path)
                     except KnowledgeStoreError as error:
                         _reraise_deadline(error)
+                        unsafe = True
+                    if unsafe:
                         quarantine.add("unsafe", f"docs/knowledge/{partition}")
                         continue
                 if len(paths) >= limits["retained_partitions"]:
@@ -1348,7 +1398,7 @@ def _git_read(repo_root: Path | str, args: Sequence[str]) -> bytes:
     except subprocess.TimeoutExpired:
         _refuse("deadline_exceeded", retryable=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        _refuse("map_mismatch")
+        _refuse_environmental()
     raise AssertionError("unreachable")
 
 
@@ -1370,14 +1420,16 @@ def _git_read_bounded(
                 timeout=_remaining_timeout(),
                 check=False,
             )
-            if completed.returncode != 0 or output.tell() > max_bytes:
-                _refuse("journal_capacity" if output.tell() > max_bytes else "map_mismatch")
+            if output.tell() > max_bytes:
+                _refuse("journal_capacity")
+            if completed.returncode != 0:
+                _refuse_environmental()
             output.seek(0)
             raw = output.read(max_bytes + 1)
     except subprocess.TimeoutExpired:
         _refuse("deadline_exceeded", retryable=True)
     except (FileNotFoundError, OSError):
-        _refuse("map_mismatch")
+        _refuse_environmental()
     if len(raw) > max_bytes:
         _refuse("journal_capacity")
     return raw
@@ -1484,9 +1536,9 @@ def _committed_blob_size(repo_root: Path | str, commit_id: str, relative_path: s
     try:
         value = int(raw.decode("ascii", errors="strict").strip())
     except (UnicodeDecodeError, ValueError):
-        _refuse("map_mismatch")
+        _refuse_environmental()
     if value < 0:
-        _refuse("map_mismatch")
+        _refuse_environmental()
     return value
 
 
@@ -2474,13 +2526,13 @@ def _read_committed_topic_map_excluding(
     for position, entry in shaped:
         path = f"docs/knowledge/{entry['path']}"
         if path_counts[path] > 1:
-            quarantine.add("inconsistent", map_locator, entry=position)
+            quarantine.add("inconsistent", map_locator, entry=position, subject=path)
         elif path in unsafe_paths:
-            quarantine.add("dependent", map_locator, entry=position)
+            quarantine.add("dependent", map_locator, entry=position, subject=path)
         elif path not in committed_paths:
-            quarantine.add("orphaned", map_locator, entry=position)
+            quarantine.add("orphaned", map_locator, entry=position, subject=path)
         elif committed_blobs.get(path) != entry["blob"]["object_id"]:
-            quarantine.add("inconsistent", map_locator, entry=position)
+            quarantine.add("inconsistent", map_locator, entry=position, subject=path)
         else:
             entries.append(entry)
             positions[entry["path"]] = position
@@ -2512,7 +2564,7 @@ def _read_committed_topic_excluding(
 
     def exclude(reason: str) -> None:
         quarantine.add(reason, topic_locator)
-        quarantine.add("dependent", TOPIC_MAP.as_posix(), entry=position)
+        quarantine.add("dependent", TOPIC_MAP.as_posix(), entry=position, subject=topic_locator)
 
     try:
         raw = _committed_blob(
@@ -2962,18 +3014,38 @@ def read_confined_source(repo_root: Path | str, relative_path: str) -> bytes:
     return raw
 
 
+def _refuse_named_lookup(topic_key: str, quarantine: _Quarantine) -> None:
+    """Refuse a named lookup, reporting the closed reason when its own entry was excluded.
+
+    The refusal stays `map_mismatch`. When the collector holds an exclusion for
+    the named topic's file, the diagnostic carries that entry's validated
+    locator and the entry rides on `quarantine`; no record content is read.
+    """
+    try:
+        subject = f"docs/knowledge/topics/{_topic_relative_path(topic_key).as_posix()}"
+    except KnowledgeStoreError:
+        _refuse("map_mismatch")
+    own = quarantine.entry_for(subject)
+    if own is None:
+        _refuse("map_mismatch")
+    error = KnowledgeStoreError(_diagnostic("map_mismatch", path=own.get("path")))
+    error.quarantine = [own]
+    raise error
+
+
 def read_committed_topic(repo_root: Path | str, topic_key: str) -> dict[str, Any]:
     repo_root = resolve_worktree_root(repo_root)
     snapshot = _head_snapshot(repo_root)
     # Other entries' invalid records do not stop a lookup; the named topic and
     # its own map entry are still held to the strict checks below.
-    topic_map = _read_committed_topic_map_excluding(repo_root, snapshot, _Quarantine())
+    quarantine = _Quarantine()
+    topic_map = _read_committed_topic_map_excluding(repo_root, snapshot, quarantine)
     entry = next(
         (item for item in topic_map["entries"] if item["topic_key"] == topic_key),
         None,
     )
     if entry is None:
-        _refuse("map_mismatch")
+        _refuse_named_lookup(topic_key, quarantine)
     topic = _read_committed_topic(repo_root, snapshot, entry, body_budget=[0])
     _assert_topic_matches_map_entry(entry, topic)
     return topic

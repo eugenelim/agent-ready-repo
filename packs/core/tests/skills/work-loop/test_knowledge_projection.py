@@ -102,6 +102,32 @@ def test_refused_text_yields_no_observation(kp: ModuleType, over: dict, reason: 
     assert run(kp, finding=finding(**over)) == (None, reason)
 
 
+_INVISIBLE_FAMILIES = {
+    "soft-hyphen": "\u00ad",
+    "combining-grapheme-joiner": "\u034f",
+    "hangul-choseong-filler": "\u115f",
+    "hangul-jungseong-filler": "\u1160",
+    "khmer-inherent-vowel": "\u17b4",
+    "khmer-inherent-aa": "\u17b5",
+    "mongolian-selector": "\u180b",
+    "mongolian-vowel-separator": "\u180e",
+    "mongolian-selector-last": "\u180f",
+    "hangul-filler": "\u3164",
+    "variation-selector": "\ufe00",
+    "variation-selector-last": "\ufe0f",
+    "halfwidth-hangul-filler": "\uffa0",
+    "tag-first": "\U000e0000",
+    "tag-latin-a": "\U000e0041",
+    "tag-last": "\U000e0fff",
+}
+
+
+@pytest.mark.parametrize("char", sorted(_INVISIBLE_FAMILIES.values()), ids=sorted(_INVISIBLE_FAMILIES))
+def test_default_ignorable_characters_yield_no_observation(kp: ModuleType, char: str) -> None:
+    """Soft hyphen, fillers, selectors, and tag characters render as nothing, so they are refused."""
+    assert run(kp, finding=finding(observation=f"before{char}after")) == (None, "unrepresentable")
+
+
 def test_total_size_bound_is_enforced_on_the_whole_observation(kp: ModuleType) -> None:
     refs = [f"d{i}/{'p' * 230}.py" for i in range(10)]
     big = finding(observation="a" * 600, reachable_path="b" * 600, actual_failure="c" * 600,

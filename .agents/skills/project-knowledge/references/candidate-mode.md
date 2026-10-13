@@ -51,4 +51,12 @@ follows the normal pending, distill, and promote lifecycle.
   `<omitted ordinal="N" entry="E" reason="CODE"/>` with a code from
   `privacy`, `unsafe_character`, `duplicate`, or `oversized`, and no candidate
   text.
+- A spec whose evidence log the feed could not read appears as
+  `<unread-source path="docs/specs/<slug>" reason="CODE"/>` with the feed's closed
+  reason code and no content. A frame with no candidate and no such element means
+  the scan found nothing to suggest; an `unread-source` element means that spec
+  was not scanned.
+- When the feed refuses with `snapshot-changed`, the logs changed between pages.
+  Restart from the first page with no `--continuation` token; the same token
+  never succeeds again.
 - One output holds at most 32 KiB of whole candidates. Nothing is truncated.

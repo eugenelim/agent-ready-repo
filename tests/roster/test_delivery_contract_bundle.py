@@ -723,7 +723,7 @@ def test_feed_bounds_and_code_sets_match_the_runtime() -> None:
     assert _load_schema(_OBSERVATION)["x-max-observation-bytes"] == 4096
     assert set(feed_schema["x-unread-source-reason-codes"]) == feed.UNREAD_REASONS
     assert set(feed_schema["x-scan-refusal-codes"]) == feed.SCAN_REFUSAL_CODES
-    assert set(feed_schema["x-none-reason-codes"]) == feed.NONE_REASONS == projector.NONE_REASONS
+    assert set(feed_schema["x-none-reason-codes"]) == projector.NONE_REASONS
     defs = _load_schema(_OBSERVATION)["$defs"]
     assert defs["identifier"]["pattern"] == projector.PATTERNS["identifier"]
     assert defs["repositoryPath"]["pattern"] == projector.PATTERNS["repository_path"]
@@ -732,7 +732,7 @@ def test_feed_bounds_and_code_sets_match_the_runtime() -> None:
     assert observation["observation_id"]["pattern"] == projector.PATTERNS["observation_id"]
     assert observation["projection_policy_version"]["pattern"] == projector.PATTERNS["version_label"]
     assert feed_schema["$defs"]["factEntry"]["properties"]["none_reason"]["oneOf"][1]["enum"] == sorted(
-        feed.NONE_REASONS, key=feed_schema["x-none-reason-codes"].index
+        projector.NONE_REASONS, key=feed_schema["x-none-reason-codes"].index
     )
 
 
@@ -867,6 +867,22 @@ def _corpus() -> list[tuple[str, dict]]:
             add("zero-width", path, value + "​")
             add("bidi", path, value + "‮")
             add("nel", path, value + "\u0085")
+            add("soft-hyphen", path, value + "\u00ad")
+            add("combining-grapheme-joiner", path, value + "\u034f")
+            add("hangul-choseong-filler", path, value + "\u115f")
+            add("hangul-jungseong-filler", path, value + "\u1160")
+            add("khmer-inherent-vowel", path, value + "\u17b4")
+            add("khmer-inherent-aa", path, value + "\u17b5")
+            add("mongolian-selector", path, value + "\u180b")
+            add("mongolian-vowel-separator", path, value + "\u180e")
+            add("mongolian-selector-last", path, value + "\u180f")
+            add("hangul-filler", path, value + "\u3164")
+            add("variation-selector", path, value + "\ufe00")
+            add("variation-selector-last", path, value + "\ufe0f")
+            add("halfwidth-hangul-filler", path, value + "\uffa0")
+            add("tag-first", path, value + "\U000e0000")
+            add("tag-latin-a", path, value + "\U000e0041")
+            add("tag-last", path, value + "\U000e0fff")
             add("line-separator", path, value + " ")
             add("not-a-member", path, "not-a-member")
         elif isinstance(value, bool):
@@ -1006,7 +1022,11 @@ def test_the_candidate_validator_constants_match_the_canonical_schemas() -> None
     defs = observation["$defs"]
 
     def normalize(pattern: str) -> str:
-        return re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), pattern)
+        return re.sub(
+            r"\\[uU]([0-9a-fA-F]{4}(?:[0-9a-fA-F]{4})?)",
+            lambda m: chr(int(m.group(1), 16)),
+            pattern,
+        )
 
     expected = {
         "identifier": defs["identifier"]["pattern"],

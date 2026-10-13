@@ -234,7 +234,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 600,
-          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f؜​-‏ -‮⁠-⁯\\ud800-\\udfff﻿￹-￻]+(?![\\s\\S])"
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\u00ad\\u034f\\u061c\\u115f-\\u1160\\u17b4-\\u17b5\\u180b-\\u180f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\u3164\\ud800-\\udfff\\ufe00-\\ufe0f\\ufeff\\uffa0\\ufff9-\\ufffb\\U000E0000-\\U000E0FFF]+(?![\\s\\S])"
         }
       }
     }

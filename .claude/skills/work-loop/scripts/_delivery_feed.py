@@ -1,4 +1,4 @@
-"""_delivery_feed — read-only, reproducible snapshot feed over Slice 1 evidence logs.
+"""_delivery_feed — read-only, reproducible snapshot feed over evidence logs.
 
 ``feed_page`` scans ``docs/specs/<feature>/.shadow-acceptance/shadow-evidence.log``
 under a repository root and returns one ``delivery-fact-feed.v1`` page of
@@ -49,7 +49,6 @@ if hasattr(sys.stderr, "reconfigure"):
 __all__ = [
     "MAX_ENTRIES",
     "MAX_PAGE_BYTES",
-    "NONE_REASONS",
     "SCAN_REFUSAL_CODES",
     "SHADOW_ENV_VAR",
     "UNREAD_REASONS",
@@ -90,15 +89,6 @@ SCAN_REFUSAL_CODES: Final[frozenset[str]] = frozenset({
     "token-invalid",
     "snapshot-changed",
     "scan-failed",
-})
-NONE_REASONS: Final[frozenset[str]] = frozenset({
-    "ineligible-record-kind",
-    "ineligible-receipt",
-    "superseded",
-    "source-unresolved",
-    "content-refused",
-    "unrepresentable",
-    "oversized",
 })
 
 _TOKEN_RE: Final[re.Pattern[str]] = re.compile(r"dff1\.([0-9a-f]{64})\.([0-9]{1,9})")
@@ -224,23 +214,22 @@ def _marker_refusal(root: Path, shadow_dir: Path) -> str | None:
 
 
 def _admit(raw: bytes) -> _LogView | str:
-    """Replay the log's complete frames as the store does, or return a refusal reason."""
+    """Replay the log's complete frames as the store does, or return a refusal reason.
+
+    A record id or transaction id the feed's identifier pattern cannot hold does
+    not refuse the log: ``_feed_identifier`` gives it a stable stand-in, so the
+    log's other facts stay listed.
+    """
     es = _evidence_store()
-    kp = _projection()
     try:
         replay = es.replay_admitted_frames(raw)
-    except Exception:  # noqa: BLE001 - any fault in a frame makes the whole log unread
+    except es.EvidenceStoreError:
         return "log-corrupt"
-    for tx, records in replay["frames"]:
-        if not kp.is_identifier(tx.get("transaction_id")):
-            return "log-identity-invalid"
+    for _tx, records in replay["frames"]:
         for record in records:
             version = record.get("schema_version")
-            kind = es._semantic_record_kind(record)
-            record_id = es._semantic_record_id(record)
             if (
-                kind is None
-                or not kp.is_identifier(record_id)
+                es._semantic_record_kind(record) is None
                 or type(version) is not int
                 or not 1 <= version <= _MAX_RECORD_SCHEMA_VERSION
             ):
@@ -250,6 +239,20 @@ def _admit(raw: bytes) -> _LogView | str:
         semantic_records=replay["semantic_records"],
         superseded=replay["superseded"],
     )
+
+
+def _feed_identifier(value: object) -> str:
+    """Return *value* when the identifier pattern holds it, else a stable stand-in.
+
+    The stand-in is ``digest-sha256:`` plus the SHA-256 of the identifier's UTF-8
+    bytes, so one id maps to one stand-in in every process and the entry still
+    validates.  Only the shown identity changes; the record is read by its own id.
+    """
+    kp = _projection()
+    if kp.is_identifier(value):
+        return str(value)
+    digest = hashlib.sha256(str(value).encode("utf-8", errors="surrogatepass")).hexdigest()
+    return "digest-sha256:" + digest
 
 
 def _read_spec_source(root: Path, spec_dir: Path, spec_path: str, log_cap: int) -> _SpecSource:
@@ -375,9 +378,9 @@ def _entry(slot: _Slot, ordinal: int) -> dict[str, Any]:
         "ordinal": ordinal,
         "source": {
             "spec_path": slot.spec_path,
-            "transaction_id": slot.transaction_id,
+            "transaction_id": _feed_identifier(slot.transaction_id),
             "record_kind": slot.record_kind,
-            "record_id": slot.record_id,
+            "record_id": _feed_identifier(slot.record_id),
             "predecessor_schema_version": slot.schema_version,
         },
         "observation": projection.observation,

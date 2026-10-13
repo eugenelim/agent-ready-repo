@@ -19,8 +19,10 @@ Read only: never writes, truncates, repairs, or locks a log.  With
 the filesystem is not listed.
 
 Exit 0 and one page on stdout, or exit 2 with nothing on stdout and
-``delivery-fact-feed: refused: <code>`` on stderr.  ``<repo-dir>`` defaults to
-the nearest ancestor of the working directory that holds ``.git``.
+``delivery-fact-feed: refused: <code>`` on stderr.  An unexpected fault is
+``scan-failed`` plus a second stderr line naming the stage and exception class.
+``<repo-dir>`` defaults to the nearest ancestor of the working directory that
+holds ``.git``.
 """
 
 from __future__ import annotations
@@ -75,6 +77,13 @@ def _refuse(code: str) -> int:
     return _REFUSED_EXIT
 
 
+def _refuse_unexpected(stage: str, exc: BaseException) -> int:
+    """Refuse as ``scan-failed``, naming the stage and exception class but no content."""
+    code = _refuse("scan-failed")
+    print(f"delivery-fact-feed: scan-failed: {stage}: {type(exc).__name__}", file=sys.stderr)
+    return code
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the feed command."""
     parser = argparse.ArgumentParser(prog="delivery-fact-feed", description=__doc__.split("\n")[0])
@@ -83,16 +92,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         feed = _load_feed()
-    except Exception:  # noqa: BLE001 - a missing sibling is a refusal, never a traceback
-        return _refuse("scan-failed")
+    except Exception as exc:  # noqa: BLE001 - a missing sibling is a refusal, never a traceback
+        return _refuse_unexpected("load", exc)
     root = args.root.resolve() if args.root is not None else _default_root()
     try:
         page = feed.feed_page(root, continuation=args.continuation)
         payload = feed.render_page(page)
     except feed.ScanRefused as refusal:
         return _refuse(refusal.code)
-    except Exception:  # noqa: BLE001 - never a traceback; no partial page
-        return _refuse("scan-failed")
+    except Exception as exc:  # noqa: BLE001 - never a traceback; no partial page
+        return _refuse_unexpected("scan", exc)
     sys.stdout.write(payload.decode("ascii"))
     sys.stdout.flush()
     return 0

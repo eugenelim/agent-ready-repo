@@ -143,11 +143,31 @@ def test_a_removed_refused_or_disabled_log_yields_no_candidate(pk, repo) -> None
     rendered = pk.render_candidates(cs.first_page(repo.root))
 
     assert presented(rendered) == []
-    assert 'items="0"' in rendered
+    # The symlinked log is reported on its own, as an unread source with no content;
+    # the removed log is simply absent.
+    assert rendered.count("<unread-source ") == 1
+    assert '<unread-source path="docs/specs/beta" reason="log-unsafe"/>' in rendered
     disabled = pk.render_candidates(
         page_bytes(cs._FEED.feed_page(repo.root, environ={}))  # shadow flag unset
     )
     assert presented(disabled) == []
+
+
+def test_a_corrupt_log_shows_as_an_unread_source_not_as_an_empty_scan(pk, repo) -> None:
+    """The frame names the spec and the closed reason, with none of the log's bytes."""
+    store = repo.open_store("alpha")
+    repo.add_review_failure("alpha", store, "one")
+    other = repo.open_store("beta")
+    kept = repo.add_review_failure("beta", other, "two")
+    repo.log_path("alpha").write_bytes(b"not-a-frame secret-log-content\n")
+
+    rendered = pk.render_candidates(cs.first_page(repo.root))
+
+    assert '<unread-source path="docs/specs/alpha" reason="log-corrupt"/>' in rendered
+    assert rendered.count("<unread-source ") == 1
+    assert presented(rendered) == kept
+    assert "secret-log-content" not in rendered
+    assert 'items="2"' in rendered
 
 
 def test_a_candidate_becomes_knowledge_only_through_an_ordinary_capture(
@@ -412,6 +432,22 @@ _UNSAFE = {
     "zero-width-space": "​",
     "word-joiner": "⁠",
     "byte-order-mark": "﻿",
+    "soft-hyphen": "\u00ad",
+    "combining-grapheme-joiner": "\u034f",
+    "hangul-choseong-filler": "\u115f",
+    "hangul-jungseong-filler": "\u1160",
+    "khmer-inherent-vowel": "\u17b4",
+    "khmer-inherent-aa": "\u17b5",
+    "mongolian-selector": "\u180b",
+    "mongolian-vowel-separator": "\u180e",
+    "mongolian-selector-last": "\u180f",
+    "hangul-filler": "\u3164",
+    "variation-selector": "\ufe00",
+    "variation-selector-last": "\ufe0f",
+    "halfwidth-hangul-filler": "\uffa0",
+    "tag-first": "\U000e0000",
+    "tag-latin-a": "\U000e0041",
+    "tag-last": "\U000e0fff",
 }
 
 

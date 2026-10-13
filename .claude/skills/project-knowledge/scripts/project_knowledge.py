@@ -1632,8 +1632,9 @@ CANDIDATE_OUTPUT_MAX_BYTES = 32 * 1024
 CANDIDATE_OMISSION_CODES = frozenset({"privacy", "unsafe_character", "duplicate", "oversized"})
 _FEED_END = r"(?![\s\S])"
 _FEED_BAD_TEXT_CHARACTERS = (
-    r"\u0000-\u001f\u007f-\u009f؜​-‏ -‮⁠-⁯"
-    r"\ud800-\udfff﻿￹-￻"
+    r"\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f-\u1160\u17b4-\u17b5\u180b-\u180f"
+    r"\u200b-\u200f\u2028-\u202e\u2060-\u206f\u3164\ud800-\udfff\ufe00-\ufe0f\ufeff\uffa0"
+    r"\ufff9-\ufffb\U000E0000-\U000E0FFF"
 )
 _FEED_PATH_SEGMENT = (
     r"(?!\.{1,2}(?:/|" + _FEED_END + r"))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-]"
@@ -1927,17 +1928,22 @@ def candidate_omission_reason(observation: dict[str, Any]) -> str | None:
 
 
 def _candidate_items(page: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return one item per candidate-bearing entry, in feed order.
+    """Return one item per candidate-bearing or unread-source entry, in feed order.
 
-    An item is a kept candidate or an omission with a closed reason code and no
-    candidate text. A second candidate for the same source identity and policy
-    versions is a duplicate and is omitted, so a page presents one per identity.
+    An item is a kept candidate, an omission with a closed reason code and no
+    candidate text, or an unread source: a spec whose log the feed could not
+    read, with its closed reason code and no content. A second candidate for the
+    same source identity and policy versions is a duplicate and is omitted, so a
+    page presents one per identity.
     """
 
     items: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str, str]] = set()
     for entry in page["entries"]:
-        if entry["entry_kind"] != "fact" or entry["observation"] is None:
+        if entry["entry_kind"] == "unread-source":
+            items.append({"entry": int(entry["ordinal"]), "unread": entry})
+            continue
+        if entry["observation"] is None:
             continue
         observation = entry["observation"]
         identity = (
@@ -1963,7 +1969,13 @@ def _escape_candidate_field(value: Any) -> str:
 
 
 def _render_candidate_item(position: int, item: dict[str, Any]) -> str:
-    """Render one kept candidate or one omission, with every field escaped."""
+    """Render one kept candidate, omission, or unread source, with every field escaped."""
+    if "unread" in item:
+        unread = item["unread"]
+        return (
+            f'<unread-source path="{_escape_candidate_field(unread["spec_path"])}" '
+            f'reason="{_escape_candidate_field(unread["reason_code"])}"/>'
+        )
     if item["reason"] is not None:
         return (
             f'<omitted ordinal="{position}" entry="{item["entry"]}" '

@@ -204,9 +204,16 @@ bytes unchanged.
   every write, captures included, through writer admission. Either stop lasts
   until a maintainer repairs or reverts the record through Git; the
   quarantine report gives its location.
-- **Whole refusals that remain.** A missing, unparseable, wrong-version, or
-  link-like topic map, a link-like or non-regular partition file, and every
-  capacity or budget refusal still refuse the whole read.
+- **Whole refusals that remain.** A missing, unparseable, or link-like topic
+  map, and every capacity or budget refusal, still refuse the whole read. A
+  map that names the wrong version counts as unparseable: no valid record set
+  exists to answer from. A failure of the Git or operating-system read itself
+  (a non-zero exit, a spawn or temporary-file error, a failed size probe) is
+  never a record fault; it refuses the whole read rather than hiding the topic
+  it touched. A link-like or non-regular observation partition file is not a
+  whole refusal on the pending page: it is excluded as `unsafe` and never read.
+  A read of one topic by name that fails because its own entry was excluded
+  reports that entry's closed reason code and locator, and no content.
 
 The implementation is in `knowledge_store.py`; the suites are
 `packs/core/tests/skills/project-knowledge/test_read_quarantine.py` and

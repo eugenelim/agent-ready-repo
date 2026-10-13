@@ -301,8 +301,9 @@ def test_completing_a_torn_frame_between_pages_changes_the_snapshot(
     page = _first_page(feed, repo, monkeypatch)
     with repo.log_path("beta").open("ab") as handle:
         handle.write(b'"x"}}\n')
-    with pytest.raises(feed.ScanRefused):
+    with pytest.raises(feed.ScanRefused) as caught:
         feed.feed_page(repo.root, continuation=page["continuation"], environ=ENABLED)
+    assert caught.value.code == "snapshot-changed"
 
 
 @pytest.mark.parametrize(
@@ -438,6 +439,115 @@ def test_frame_with_a_record_kind_outside_the_registry_makes_the_log_unread(
     repo.log_path("alpha").write_bytes((repo.es._canonical_json(frame) + "\n").encode("utf-8"))
     _, entries = scan(feed, repo.root)
     assert [e["reason_code"] for e in entries] == ["log-corrupt"]
+
+
+# ── Identifiers the feed cannot hold stay per record ─────────────────────────
+
+
+def test_unrepresentable_identifiers_do_not_hide_the_logs_other_facts(
+    feed: ModuleType, repo: dfs.FeedRepo
+) -> None:
+    """A finding id with a space or over the length limit costs only its own fact."""
+    import hashlib
+    import re
+    import subprocess
+    import sys
+
+    store = repo.open_store("alpha")
+    repo.add_engine_transition("alpha", store)
+    repo.add_review_failure("alpha", store, "has space")
+    repo.add_review_failure("alpha", store, "x" * 150)
+    good = repo.add_review_failure("alpha", store, "good")
+
+    _, entries = scan(feed, repo.root)
+
+    assert not [e for e in entries if e["entry_kind"] == "unread-source"]
+    assert [o["source"]["receipt_id"] for o in observations(entries)] == good
+    identifier = re.compile(feed._projection().PATTERNS["identifier"])
+    stand_ins = [
+        e["source"]["record_id"]
+        for e in entries
+        if e["source"]["record_id"].startswith("digest-sha256:")
+    ]
+    assert len(stand_ins) >= 2
+    for entry in entries:
+        assert identifier.search(entry["source"]["record_id"])
+        assert identifier.search(entry["source"]["transaction_id"])
+    # The stand-in is the SHA-256 of the UTF-8 id, so it is the same in any process.
+    shown = {e["source"]["record_id"] for e in entries}
+    for raw in _raw_ids(repo, "alpha"):
+        assert "digest-sha256:" + hashlib.sha256(raw).hexdigest() in shown
+    script = Path(feed.__file__).with_name("delivery-fact-feed.py")
+    outputs = [
+        subprocess.run(
+            [sys.executable, "-I", str(script), "--root", str(repo.root)],
+            env={"WORK_LOOP_SHADOW_SERVICES": "1"},
+            capture_output=True,
+            check=True,
+        ).stdout
+        for _ in range(2)
+    ]
+    assert outputs[0] == outputs[1]
+    assert json.loads(outputs[0])["entries"] == scan(feed, repo.root)[1]
+
+
+def _raw_ids(repo: dfs.FeedRepo, slug: str) -> list[bytes]:
+    """Return the UTF-8 bytes of every record id in the log that the identifier pattern refuses."""
+    import re
+
+    pattern = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}")
+    found: list[bytes] = []
+    for line in repo.log_bytes(slug).splitlines():
+        frame = json.loads(line)
+        for record in frame["records"]:
+            record_id = repo.es._semantic_record_id(record)
+            if not pattern.fullmatch(record_id):
+                found.append(record_id.encode("utf-8"))
+    return found
+
+
+# ── An unexpected fault is a stage diagnostic, not a data fault ──────────────
+
+
+def test_an_unexpected_replay_fault_is_not_reported_as_a_corrupt_log(
+    feed: ModuleType, repo: dfs.FeedRepo, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the store's own admission error makes a log unread; a code defect surfaces."""
+    store = repo.open_store("alpha")
+    repo.add_engine_transition("alpha", store)
+
+    def defective(_raw: bytes) -> Any:
+        raise RuntimeError("defect")
+
+    monkeypatch.setattr(feed._evidence_store(), "replay_admitted_frames", defective)
+    with pytest.raises(RuntimeError):
+        feed.feed_page(repo.root, environ=ENABLED)
+
+
+def test_the_command_names_the_stage_and_exception_class_of_an_unexpected_fault(
+    repo: dfs.FeedRepo, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The closed refusal line is unchanged; a second line adds stage and class, no content."""
+    cli = dfs.load_script("dfp_feed_cli", "delivery-fact-feed.py")
+
+    class Stub:
+        class ScanRefused(Exception):
+            code = "unused"
+
+        @staticmethod
+        def feed_page(*_args: Any, **_kwargs: Any) -> Any:
+            raise KeyError("secret-record-content")
+
+    monkeypatch.setattr(cli, "_load_feed", lambda: Stub)
+
+    assert cli.main(["--root", str(repo.root)]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.splitlines() == [
+        "delivery-fact-feed: refused: scan-failed",
+        "delivery-fact-feed: scan-failed: scan: KeyError",
+    ]
+    assert "secret-record-content" not in captured.err
 
 
 # ── Projection refusals reached through real logs ────────────────────────────
