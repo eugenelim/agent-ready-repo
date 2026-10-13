@@ -144,3 +144,4 @@
 | 0140 | [Shaping entry point: one verb-mode `intent` skill with a stateless route mode](0140-shaping-entry-point-one-verb-mode-intent-skill.md) | Accepted | 2026-10-10 |
 | 0141 | [Core intake lifecycle: intent and brief authoring become `work-intake` modes](0141-core-intake-lifecycle-intent-and-brief-modes-in-work-intake.md) | Accepted | 2026-10-10 |
 | 0142 | [Meta-repo handover: component slices acquired by component repos, status by pinned receipts](0142-meta-repo-handover-component-slices-and-pinned-receipts.md) | Accepted | 2026-10-10 |
+| 0143 | [Released changelog records move into monthly bundles](0143-released-changelog-records-move-into-monthly-bundles.md) | Accepted | 2026-10-03 |

@@ -532,11 +532,24 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest site build + link rewriting":
         LOCAL("test-after-build-check"),
+    # The product changelog model suites ride the same run-test-suite line.
+    "pytest product changelog model":
+        LOCAL("test-after-build-check"),
     # spec/site-ci-contract-closure AC4/AC6. Both halves are reachable from
     # `make ci` via the `test-after-build-check` target: the checker on its own
     # line near the top, and its suite on the site/catalogue pytest line.
     "docs palette contrast gate":
         LOCAL("test-after-build-check"),
+    # AC-B11: changelog cross-form identity validate. Runs `changelog.py validate`
+    # which exits 0 outside a git repo; no make target covers this in isolation.
+    "changelog cross-form identity validate":
+        CI_ONLY(
+            "DECIDED: exits 0 outside a git repo and also when there is no merge "
+            "base, so the local signal is the test_changelog.py suite which covers "
+            "the same predicates. Running `changelog.py validate` in the working "
+            "tree would compare HEAD against origin/main, which only applies on a "
+            "PR branch."
+        ),
     # spec/docs-site-build-contract-hardening AC7. Reachable from `make ci` via
     # `test-after-build-check`, which invokes the same script.
     "pages.yml deploy-gate posture":
@@ -993,6 +1006,8 @@ _GATE_MAIN_CHECKS = (
     "pytest guides + catalogue navigation",
     "pytest stasis-stop retirement claims",
     "pytest site build + link rewriting",
+    "changelog cross-form identity validate",
+    "pytest product changelog model",
     "docs palette contrast gate",
     "pages.yml deploy-gate posture",
     "pages.yml concurrency posture",
@@ -1566,6 +1581,18 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_build_site_routing.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest site build + link rewriting"
+        ),
+    'tools/test_changelog.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
+        ),
+    'tools/test_changelog_bundles.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
+        ),
+    'tools/test_changelog_bundle_edges.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
         ),
     'tools/test_check_docs_contrast.py':
         PR_GATED(
