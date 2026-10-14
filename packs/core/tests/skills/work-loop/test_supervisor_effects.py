@@ -9,19 +9,33 @@ receipt.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import supervisor_harness as h  # noqa: E402
-import supervisor_support as sup  # noqa: E402
+
+def _helper(name: str) -> ModuleType:
+    """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
+    alias = f"core_work_loop_{name}"
+    if alias not in sys.modules:
+        path = Path(__file__).resolve().parent / f"{name}.py"
+        spec = importlib.util.spec_from_file_location(alias, path)
+        assert spec is not None and spec.loader is not None
+        sys.modules[alias] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sys.modules[alias])
+    return sys.modules[alias]
+
+
+h = _helper("supervisor_harness")
+sup = _helper("supervisor_support")
 
 pytestmark = sup.INTEGRATION
 
@@ -109,6 +123,17 @@ def test_receipt_means_done_and_never_repeated(run: Run) -> None:
     code, refused = run.effect_result(request, "completed")
     assert code == 1 and refused["refusal"]["code"] == "no-open-effect"
     assert run.finish().get("terminal") and len(run.lines("receipt")) == 1
+
+
+def test_an_effect_result_with_a_changed_spec_directory_is_refused(run: Run) -> None:
+    # AC-0031 covers every result kind: no effect line commits over a dirty spec.
+    request = _dispatched(run)
+    spec = run.repo / SPEC / "spec.md"
+    spec.write_text(spec.read_text("utf-8") + "\nAn edit the attempt made.\n", "utf-8")
+    head = run.head()
+    code, refused = run.effect_result(request, "completed")
+    assert code == 1 and refused["refusal"]["code"] == "protected-path-changed"
+    assert run.head() == head and run.lines("receipt") == []
 
 
 def test_no_record_records_the_intent_then_dispatches(run: Run) -> None:
