@@ -66,3 +66,60 @@ Implemented by the `implementer` subagent at base `814962997`, uncommitted in th
 ### Gates
 
 - `make lint-ruff lint-mypy` clean; `packs/core/tests/skills/navigate-intents/` 497 passed, 4 skipped (by design); `packs/core/tests/pack/` plus the roster version-parity, ledger-contract, cognitive-load, delivery-relations and skill-census suites 471 passed; `tools/test_changelog.py` and `tools/test-run-pack-evals.py` 72 passed.
+
+## T5: scale, real export and screenshots (VI-5001, VI-5002)
+
+Implemented by the `implementer` subagent at `eaa20e66d`, uncommitted in the worktree for the controller. `view_bench.py` needed no change. The experience review (VI-5003) and the final-commit browser record (VI-5004) are the controller's.
+
+### Scale (AC-0025)
+
+- Command: `uv run --no-project -q --with playwright --with pytest --with pyyaml python packs/core/tests/skills/navigate-intents/view_bench.py --source . --counts 1 10 25 50` at `eaa20e66d8c9c53e24f2a56b259a6cca08c05a64`. Chromium headless, macOS. Corpora are N renumbered copies of this repository's records.
+- Asset digests under `packs/core/.apm/skills/navigate-intents/scripts/view_assets/`:
+  - `view.js` `bdab0fb3b2b36a3bfd705a3b77767fee49c2e6407f77201e202952510dea7483`
+  - `view.css` `02ea78557e0ebde16fb4e90f2b5e7e0e8596cdc95e0f7052c557c46ba9c86dd2`
+  - `view-base.css` `52c618bea9b58edc484f5dde5945b3ccf1b75343b22f67f0e99fc93b1cb596c1`
+- Thresholds unchanged: file at most 104,857,600 bytes, startup at most 3,000 ms (median of 3 cold loads), search at most 300 ms (median of 5), heap at most 1,024 MiB.
+
+| Copies | `outstanding` available | Default rows | File bytes | Startup ms | Search ms | Heap MiB | Meets every threshold |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | yes | 31 | 676,099 | 10 | 10 | 5 | yes |
+| 10 | no (`resource_limit`, limit `files`) | 0 | 5,015,736 | 32 | 38 | 11 | yes |
+| 25 | no (`resource_limit`, limit `files`) | 0 | 12,414,836 | 74 | 46 | 28 | yes |
+| 50 | no (`resource_limit`, limit `files`) | 0 | 24,746,665 | 102 | 50 | 47 | yes |
+
+- Result: pass at every size. The default list is empty from 10 times up for the same reason as the earlier scale entry (`outstanding` unavailable at the file limit).
+
+### Real export (AC-0026)
+
+- Command: `uv run --no-project -q --with playwright --with pyyaml python /tmp/s8/real_check.py <repo root> <screens dir>` (script outside the repository, not committed), at `eaa20e66d`. It ran `python packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py export --root . --destination /tmp/s8 --name real.html`: exit 0, `status: ok`, `/private/tmp/s8/real.html`, 656,573 bytes, outside the repository.
+- Holders of `Depends on:` found from the payload's `dependencies` (edge sources and diagnostic sources): `opportunity:duplicate-coverage-check`, `opportunity:governance-item-record-routing`, `opportunity:work-item-promotion-routing`. The payload has 3 edges and 0 diagnostics. Live intents: 169.
+- For each, the export was opened from `file://` at 1280 by 900, the intent picked with Show = Both (`#dep-dir` read back `both`) and Steps = All (`#dep-steps` read back `all`), and the part's waiting/prerequisite pairs, intent set (line ends plus the start) and diagnostic count compared with `query --operation dependencies --id <id> --direction both --depth 169`:
+
+| Intent | Page lines | Query edges | Intents page / query | Diagnostics page / query | Result |
+| --- | --- | --- | --- | --- | --- |
+| `opportunity:duplicate-coverage-check` | 2 | 2 | 3 / 3 | 0 / 0 | match |
+| `opportunity:governance-item-record-routing` | 2 | 2 | 3 / 3 | 0 / 0 | match |
+| `opportunity:work-item-promotion-routing` | 3 | 3 | 4 / 4 | 0 / 0 | match |
+
+- Result: pass, all three match as sorted pair sets. The query's order was not compared; the page's order is covered by the browser suite.
+
+### Screenshots
+
+- Retaken at `eff8130fa`, after the experience-review fix (one ruled unit per line; the picked intent's end carries the selected 3px left rule). Same script and procedure as above: `opportunity:work-item-promotion-routing` (3 lines) picked with Both and All, a fresh context per width (height 900) and theme, the Dependencies part scrolled into view. The real-export comparison was re-run with the fix and all three holders still match.
+
+| Width | Theme | File | SHA-256 |
+| --- | --- | --- | --- |
+| 320 | light | `screens/320-light.png` | `3d03b8404c59f535632079101871e8ccd8ceff4fbef933761de71f36f20000d1` |
+| 320 | dark | `screens/320-dark.png` | `47b0fcc88e35be5adbb803ea55b4a4055591740f8d2685eb42d3e6284c7c7591` |
+| 1280 | light | `screens/1280-light.png` | `f3b69dbc200caf767b1bf77fbd0385d280f44d0d83a571b0daf5b0897795fb2a` |
+| 1280 | dark | `screens/1280-dark.png` | `fce004283426b39e668508490a16fa454faae8c96df2c35288f34fa43d572f04` |
+| 1680 | light | `screens/1680-light.png` | `ca49c3e59ac7c2923dbee209c32d2f17e498817167089d9b38af08b8e50066bd` |
+| 1680 | dark | `screens/1680-dark.png` | `2ece3f8f762bf4c386d7eafe9f3ccd8b690d1af6e140d891feaced510caf58bf` |
+| 2560 | light | `screens/2560-light.png` | `7bab63224a88ffacbd40c593d46204bee13fe5f05a1e0efa04dc75f44d5881d1` |
+| 2560 | dark | `screens/2560-dark.png` | `86831e0effb34148441fcd74737dfac2b3b3212287f0b9d49ce792c1a26a1424` |
+
+(Paths are under `docs/specs/intent-dependency-graphs/notes/screens/`. Each PNG is the stated width by 900.)
+
+- At 320 the detail replaces the list. Each dependency is one ruled unit of two rows: the waiting intent's link with its state, then an indented row holding "waits for" and the prerequisite's link with its state. A hairline divides one line from the next. The picked intent's end carries a 3px left rule wherever it appears, so the two lines that wait for it and the one it waits for read apart without comparing names.
+- At 1280 and 1680 the part sits in the right-hand detail zone after "Where it sits" and before "Open the file", with the same two-row unit.
+- At 2560 the part is wide enough that each line lays out in aligned tracks: the waiting end on the left, "waits for" with the prerequisite end on the right. Dark files match light in layout. Nothing is clipped or scrolled sideways at any width.
