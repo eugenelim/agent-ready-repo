@@ -393,4 +393,3 @@ Run on the review-satisfied tree before the spec moved to Shipped.
   complete empty `disabled` snapshot and exits 0; with it set on this repository it
   prints an empty `enabled` snapshot; a malformed continuation token exits 2 with
   `refused: token-invalid`.
-
