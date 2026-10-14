@@ -385,10 +385,11 @@ def test_no_discovery_surface_hands_off_to_work_loop() -> None:
 
 
 def test_requirements_ingest_creates_a_new_brief() -> None:
-    """An outside BRD/PRD/SRS becomes a new Draft brief, so ingest uses `create`.
+    """A multi-slice BRD/PRD/SRS becomes a new Draft brief through `create`.
 
     `continue` reviews an existing repository brief, which an outside
-    requirements document is not.
+    requirements document is not, and `create` refuses a single feature, so a
+    single-feature document routes to `new-spec`.
     """
     skill = _list_item_containing(
         DISCOVERY_LOOP.read_text(encoding="utf-8"), "**Requirements as input**"
@@ -400,3 +401,5 @@ def test_requirements_ingest_creates_a_new_brief() -> None:
     for item in (skill, crosswalk):
         assert "`author-delivery-brief create`" in item, item
         assert "author-delivery-brief continue" not in item, item
+        assert "multi-slice" in item, item
+        assert "`new-spec`" in item, item

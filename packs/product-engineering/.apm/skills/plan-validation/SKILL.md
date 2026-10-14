@@ -11,7 +11,7 @@ scaffold the instruments that would test them.** This is the discovery loop's
 converged blackboard is internally coherent but **not validated** — *converged ≠
 validated* — and this skill makes that gap a worked plan, not a footnote.
 
-It is **prompt-only** (CHARTER Principle 3): no engine, no survey tool, no
+It is **prompt-only**: no engine, no survey tool, no
 transcript pipeline — the agent writes the plan and the instrument scaffolds. **No
 new agent, no new reviewer.**
 

@@ -87,7 +87,7 @@ Before aligning, confirm:
 ## Where the rollup lives — config-driven, elicit when not configured
 
 Resolve the rollup **output directory** in this order, **in this skill body**.
-Reading is **prompt-only** (Charter Principle 3): this skill reads a file and
+Reading is **prompt-only**: this skill reads a file and
 reasons about a path — there is no engine, index, daemon, or watcher behind it,
 and the only code that ever *writes* the layout file is the install-time append.
 See [`references/agentbundle-layout.md`](references/agentbundle-layout.md) for the

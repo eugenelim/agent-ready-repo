@@ -17,11 +17,11 @@ shapes, **converges** the chosen one through a lens roster, **pauses at a few
 human sign-off points**, and **hands off through `work-intake` at G3** — **with no new
 engine, scheduler, service, message bus, or convergence solver.**
 
-The whole capability is **content, not runtime** (CHARTER Principle 3): a
+The whole capability is **content, not runtime**: a
 `discovery-lead` agent def + this skill + a carried, versioned sidecar schema, all
 in `product-engineering`. The harness an adopter already runs executes it; the
 prototype walked it as **one reasoning context editing plain files plus a ~60-line
-connectedness lint**. What Principle 3 forbids is the harness — which we do not
+connectedness lint**. What content-not-runtime forbids is the harness — which we do not
 ship.
 
 **Converged ≠ validated.** The brief this loop emits is a **connected
@@ -244,9 +244,9 @@ roster of its own:
 - **Lens conflicts:** factual → `discovery-lead` arbitrates via referents on the
   blackboard; **value → the human at G2** (the conflict-adjudication act).
 
-The CHARTER's "three reviewers is the ceiling" stays a **`work-loop`/code-review
-cap**; the loop-scoped discovery roster is recorded as a **tracked amendment,
-not a CHARTER edit**.
+The three-reviewer ceiling stays a **`work-loop`/code-review cap**; the
+loop-scoped discovery roster is a **tracked exception** to it, not a change to
+that cap.
 
 ## Security & integrity — falsifiable controls, not prose
 
@@ -371,13 +371,15 @@ probe, read, or execute them, and it never imports Core implementation code.
 
 This loop does **not** replace classic requirements work (BRD / PRD / SRS/FRD /
 use cases / RTM) and adds **no requirements pillar of its own** — it *maps* those
-artifacts onto what it already produces, **ingests** them as input, and can **emit**
+artifacts onto what it already produces, **ingests** multi-slice ones as input, and can **emit**
 in their format for sign-off. The full crosswalk is
 [`references/requirements-crosswalk.md`](references/requirements-crosswalk.md). In
 brief:
 
-- **Requirements as input** — `author-delivery-brief create` + `intent frame` brownfield ingest
-  seeds the loop (a thin `author-delivery-brief create` extension at most — **not** a new skill).
+- **Requirements as input** — a document for a multi-slice or cross-repository
+  outcome seeds the loop through `author-delivery-brief create` + `intent frame`
+  brownfield ingest (a thin `author-delivery-brief create` extension at most —
+  **not** a new skill); a single-feature document goes to `new-spec` instead.
 - **The traceability slot serves as the RTM.**
 - **Requirements as output** — a formal BRD/SRS/RTM with sign-off rides the
   **converters / md-to-office projection adapter**, not a discovery
@@ -407,7 +409,7 @@ operating-model doctrine).
 
 - **Shipping a coordinator runtime / engine / scheduler / message bus /
   convergence solver.** The whole point the spike confirmed is that none is needed
-  (Option C, rejected; CHARTER Principle 3). The recursion is data; the bounds are
+  (content, not runtime). The recursion is data; the bounds are
   counters; the verdict set is status edits + a recorded row.
 - **Letting a lens write `ratified` slots or trusted edges.** A lens only
   *proposes*; only the controller promotes; lens-asserted edges are advisory.

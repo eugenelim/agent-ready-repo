@@ -17,7 +17,7 @@ A repo set up for engineering agents can take a *brief* and build it (`work-loop
 
 ## The coordinator contract — content, not a runtime
 
-The whole capability is **content**: a `discovery-lead` agent definition, a `discovery-loop` skill, and a carried, versioned sidecar schema. The harness you already run executes them. There is **no new engine, scheduler, service, message bus, or convergence solver** — a spike confirmed none is needed, walking the loop as *one reasoning context editing plain files plus a ~60-line connectedness lint*. What the charter forbids is the harness; we do not ship one.
+The whole capability is **content**: a `discovery-lead` agent definition, a `discovery-loop` skill, and a carried, versioned sidecar schema. The harness you already run executes them. There is **no new engine, scheduler, service, message bus, or convergence solver** — a spike confirmed none is needed, walking the loop as *one reasoning context editing plain files plus a ~60-line connectedness lint*. What content-not-runtime forbids is the harness; we do not ship one.
 
 ## Divergence → convergence → validation
 
