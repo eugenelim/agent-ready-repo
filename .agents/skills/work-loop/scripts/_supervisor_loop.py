@@ -147,7 +147,12 @@ class State:
 def _evidence_receipts(ws: Workspace) -> list[dict[str, Any]]:
     es = sibling("_evidence_store.py")
     raw = ws.evidence_bytes()
-    replay = es.replay_admitted_frames(raw[: raw.rfind(b"\n") + 1])
+    try:
+        replay = es.replay_admitted_frames(raw[: raw.rfind(b"\n") + 1])
+    except es.EvidenceStoreError as exc:
+        raise Refusal(
+            "malformed-record", "controller", "delivery/evidence.jsonl does not replay"
+        ) from exc
     receipts = []
     for _tx, records in replay["frames"]:
         for record in records:
