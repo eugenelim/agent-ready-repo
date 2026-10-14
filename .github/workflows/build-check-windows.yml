@@ -123,8 +123,10 @@ jobs:
 
       - name: pytest safe-process POSIX suite on Windows (evidence only)
         # Not a gate: this suite was written for POSIX hosts. Its Windows
-        # result is recorded as evidence for the Job Object launch path.
+        # result is recorded as evidence for the Job Object launch path, and a
+        # hang is bounded here so it cannot cancel the gating job.
         continue-on-error: true
+        timeout-minutes: 5
         run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety.py -q -rs
 
   credbroker-tests-windows:
