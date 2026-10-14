@@ -233,6 +233,24 @@ def test_output_past_the_pipe_buffer_that_then_ends_is_a_truncated_success(
     assert result.output_was_truncated and len(result.stdout_redacted) <= 100
 
 
+def test_a_flood_after_the_leader_exits_is_refused_within_the_settle_window(
+        ps: ModuleType, tmp_path: Path) -> None:
+    flood = "import sys\nwhile True: sys.stdout.write('x' * 65536); sys.stdout.flush()"
+    leader = ("import subprocess, sys\n"
+              f"subprocess.Popen([sys.executable, '-c', {flood!r}], stdout=sys.stdout)")
+    spec = _spec(tmp_path, leader)
+    spec["output_bound_bytes"] = 100
+    started = time.monotonic()
+    with pytest.raises(ps.ProcessDenied) as info:
+        ps.launch_safe_process(
+            spec, cwd_roots=(str(tmp_path),),
+            env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")},
+            audit_sink=_sink)
+    assert info.value.denial_code == "denied-output-cap-exceeded"
+    # The launch timeout is 20 s; the settle window is 0.2 s plus a bounded drain.
+    assert time.monotonic() - started < 10
+
+
 PROBE_HANDLE = r"""
 import ctypes, sys
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
