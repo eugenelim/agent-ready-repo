@@ -114,7 +114,11 @@ ul.dep-diags { margin-top: var(--s-4); padding-top: var(--s-2); border-top-width
   .dep-lines { display: grid; grid-template-columns: fit-content(50%) auto minmax(0, 1fr); column-gap: var(--s-3); }
   .dep-line { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: start; }
   .dep-row, .dep-to { display: contents; }
-  ul.dep-diags { display: grid; grid-template-columns: max-content max-content fit-content(16rem) minmax(12rem, 1fr) max-content; column-gap: var(--s-3); }
+}
+/* Problem rows switch to columns only where the fixed tracks (mark, state, a 12rem value, the note)
+   still leave the source at least 12rem, so a name and its state mark always fit their own cell. */
+@container (min-width: 51rem) {
+  ul.dep-diags { display: grid; grid-template-columns: max-content max-content minmax(12rem, 16rem) minmax(12rem, 1fr) max-content; column-gap: var(--s-3); }
   .dep-diag { grid-template-columns: subgrid; grid-column: 1 / -1; }
   .dep-diag + .dep-diag { padding-top: var(--s-1); margin-top: 0; }
   .dep-diag > .edge-line > .mark { grid-column: 1; }

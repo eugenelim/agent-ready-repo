@@ -2837,10 +2837,14 @@ def test_vi_4001_part_across_width_and_theme(opener: Any, exports: dict[str, pat
     assert right <= width + 0.5
 
 
-@pytest.mark.parametrize("width", [320, 1280, 1680, 2560])
-def test_vi_4001_long_source_titles_keep_values_readable(opener: Any, exports: dict[str, pathlib.Path], width: int) -> None:
-    """A long source title never squeezes a problem row's value or makes the detail scroll sideways (AC-0010, AC-0019)."""
-    item = opener(exports["dependency_long"], width=width, height=900)
+# 2000 to 2240 CSS px put the part's result just above the wide breakpoint, where tracks are tightest.
+@pytest.mark.parametrize("width", [320, 1280, 1680, 2000, 2080, 2160, 2240, 2560])
+@pytest.mark.parametrize("corpus", ["dependency_long", "dependency"])
+def test_vi_4001_long_source_titles_keep_values_readable(
+    opener: Any, exports: dict[str, pathlib.Path], width: int, corpus: str,
+) -> None:
+    """A source title, long or short, never squeezes a problem row's cells into each other (AC-0010, AC-0019)."""
+    item = opener(exports[corpus], width=width, height=900)
     page = _dep_pick(item, "intent:golf", "both", "1")
     assert page.locator("#detail-body li.dep-diag").count() >= 19
     detail = page.evaluate("(() => { const d = document.querySelector('.detail'); return [d.scrollWidth, d.clientWidth]; })()")
@@ -2854,6 +2858,20 @@ def test_vi_4001_long_source_titles_keep_values_readable(opener: Any, exports: d
           .filter(([t, h, lh]) => h > 3.5 * lh)"""
     )
     assert tall == [], tall[:3]
+    # Each cell keeps its children inside it: no name or state mark runs into the value beside it.
+    clash = page.evaluate(
+        """() => [...document.querySelectorAll('#detail-body li.dep-diag')].flatMap(li => {
+          const src = li.querySelector('.dep-source'), val = li.querySelector('code.value');
+          if (!src || !val) { return []; }
+          const s = src.getBoundingClientRect(), v = val.getBoundingClientRect();
+          const right = Math.max(...[...src.querySelectorAll('*')].map(e => e.getBoundingClientRect().right), s.right);
+          const sameRow = v.top < s.bottom - 1 && s.top < v.bottom - 1;
+          const lines = s.height / (parseFloat(getComputedStyle(src).lineHeight) || 24);
+          return (right > s.right + 0.5 || (sameRow && right > v.left + 0.5) || lines > 6)
+            ? [[val.textContent, Math.round(s.width), Math.round(right - s.right), Math.round(s.height)]] : [];
+        })"""
+    )
+    assert clash == [], clash[:3]
 
 
 _BANNED_TAGS = {"img", "svg", "iframe", "object", "embed", "link", "style", "base", "form", "math", "video", "audio", "canvas", "template", "textarea", "frame"}
