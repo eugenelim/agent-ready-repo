@@ -125,7 +125,8 @@ jobs:
         # Not a gate: this suite was written for POSIX hosts. Its Windows
         # result is recorded as evidence for the Job Object launch path.
         continue-on-error: true
-        run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety.py -q -rs
+        timeout-minutes: 8  # DIAGNOSTIC (temporary): keep the log when a test hangs
+        run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety.py -v -rs -p no:cacheprovider -o faulthandler_timeout=45 --durations=15
 
   credbroker-tests-windows:
     name: pytest credbroker (windows)
