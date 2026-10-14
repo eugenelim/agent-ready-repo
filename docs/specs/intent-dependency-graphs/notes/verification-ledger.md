@@ -28,3 +28,8 @@ Three headers, all legacy paths with a trailing preamble comment: 3 accepted, 0 
 - Implemented by the `implementer` subagent. The payload gains `dependencies` after `source_links`; a `--from` export carries the linked set's records.
 - Golden for the unchanged members: the pre-change navigator from `93c105475` was loaded by path from a scratch directory outside the repository and run over copies of `mixed` and `dependency`; each member's SHA-256 over canonical JSON (excluding `provenance.generated_at`) is inlined in `test_export_payload.py`.
 - Gates: navigator and `close-work` suites 907 passed, 4 skipped (by design) in 26 s; `make lint-ruff lint-mypy` clean.
+
+## T3: the Dependencies part, broken entries, record groups and Key
+
+- Implemented by the `implementer` subagent. Browser suite 115 passed, 0 skipped in 39 s (91 inherited checks, some amended as the spec states, plus 24 new). Collected suites 907 passed, 4 skipped (by design) in 26 s.
+- Design calls inside the spec's latitude: the sort-key line shows only when edge lines exist; an `outside_scope` entry also names its source intent; a self-dependency's "What is broken" entry reads "It names itself."; changing "Show" or "Steps" refills only the part's result, so the control keeps focus; "Show"/"Steps" persist across picks.

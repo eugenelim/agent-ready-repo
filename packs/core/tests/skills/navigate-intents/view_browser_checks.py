@@ -33,6 +33,8 @@ _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
 
 _GROUPS = [
+    "Depends on, written here",
+    "Depends on, written elsewhere",
     "Parent",
     "Child intents",
     "Briefs",
@@ -52,7 +54,9 @@ _STATES = [
     "cycle",
     "unparseable",
     "self_reference",
+    "outside_scope",
 ]
+_FORMS = ["typed", "path", "bare_slug", "markdown_link", "unrecognized"]
 _TRUST = ["delivery_contract", "pointer_checked", "pointer_unchecked"]
 _QUESTIONS = ["next", "capabilities", "noparent", "broken", "browse"]
 _DATA_BLOCK = re.compile(
@@ -180,6 +184,7 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
     for name, root in (
         ("mixed", _FIXTURES / "mixed"),
         ("hostile", _FIXTURES / "hostile"),
+        ("dependency", _FIXTURES / "dependency"),
         ("empty", _FIXTURES / "empty"),
         ("terminality", _FIXTURES / "terminality"),
         ("coordinated", _FIXTURES / "coordinated_delivery"),
@@ -201,6 +206,12 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
     )
     found["from_hostile"] = _export(
         _FIXTURES / "hostile", out, "from_hostile.html", "intent:hostile-root"
+    )
+    found["dependency_from"] = _export(
+        _FIXTURES / "dependency", out, "dependency_from.html", "capability:root-a"
+    )
+    found["dependency_incomplete"] = _export(
+        _FIXTURES / "dependency", out, "dependency_incomplete.html", _delivery_provider=_incomplete
     )
     found["incomplete"] = _export(
         _FIXTURES / "mixed", out, "incomplete.html", _delivery_provider=_incomplete
@@ -519,7 +530,24 @@ class Model:
                     (node_id, f"Delivery diagnostic: {d['code']}")
                     for d in rec.get("delivery_diagnostics", [])
                 ]
+        entries += self.dependency_broken()
         return sorted(entries, key=lambda e: (self.display(e[0]).lower(), e[0]))
+
+    def dependency_broken(self) -> list[tuple[str, str]]:
+        """Dependency broken entries (holder id, context): faults by position, then the cycle.
+
+        A fault is held by its source and a cycle by each member, only by an intent with a record
+        (so in scope), whether or not delivery mapping is available.
+        """
+        deps = self.p["dependencies"]
+        found: list[tuple[str, str]] = []
+        for d in sorted((d for d in deps["diagnostics"] if "from" in d), key=lambda d: d["position"]):
+            if d["state"] != "outside_scope" and d["from"] in self.records:
+                found.append((d["from"], f"Depends on: {d['state']}"))
+        for d in deps["diagnostics"]:
+            if d["state"] == "cycle":
+                found += [(m, "Depends on: cycle") for m in d["members"] if m in self.records]
+        return found
 
     def mark(self, node_id: str) -> tuple[str, str]:
         word = self.word(node_id)
@@ -684,7 +712,7 @@ def test_ac_0006_broken_list(opener: Any, exports: dict[str, pathlib.Path]) -> N
     model = Model(payload_of(exports["hostile_diag"]))
     expected = model.broken()
     states = [e for e in model.p["edges"] if e.get("state")]
-    assert len(expected) == len(states) + 1 and states
+    assert len(expected) == len(states) + 1 + len(model.dependency_broken()) and states
     assert _ids(page) == [h for h, _ in expected]
     contexts = page.eval_on_selector_all("#list .c-context", "els => els.map(e => e.textContent)")
     assert contexts == [c for _, c in expected]
@@ -904,6 +932,7 @@ def test_ac_0014_state_line_counts(opener: Any, exports: dict[str, pathlib.Path]
     for node_id in um.nodes:
         page = _pick(unknown, node_id)
         states = [e for e in um.p["edges"] if e["from"] == node_id and e.get("state")]
+        states += [h for h, _ in um.dependency_broken() if h == node_id]
         line = _text(page, ".state-line")
         assert "open work unknown" in line and "open beneath" not in line
         assert f"{len(states)} broken" in line
@@ -996,10 +1025,11 @@ def test_ac_0017_what_is_broken_in_detail(opener: Any, exports: dict[str, pathli
         page = _pick(item, node_id, "broken")
         held = [e for e in model.p["edges"] if e["from"] == node_id and e.get("state")]
         held_diag = [c for h, c in model.broken() if h == node_id and c.startswith("Delivery diagnostic")]
+        held_dep = [c for h, c in model.broken() if h == node_id and c.startswith("Depends on:")]
         text = _detail_part(page, "What is broken").inner_text()
-        if held or held_diag:
+        if held or held_diag or held_dep:
             assert "Nothing broken here." not in text
-            assert _detail_part(page, "What is broken").locator("li.edge").count() == len(held) + len(held_diag)
+            assert _detail_part(page, "What is broken").locator("li.edge").count() == len(held) + len(held_diag) + len(held_dep)
         else:
             assert "Nothing broken here." in text
     unavailable = opener(exports["hostile_incomplete"])
@@ -1007,9 +1037,10 @@ def test_ac_0017_what_is_broken_in_detail(opener: Any, exports: dict[str, pathli
     for node_id in um.nodes:
         page = _pick(unavailable, node_id)
         held = [e for e in um.p["edges"] if e["from"] == node_id and e.get("state")]
+        held_dep = [h for h, _ in um.dependency_broken() if h == node_id]
         section = _detail_part(page, "What is broken")
         assert "Delivery diagnostics were unavailable." in section.inner_text()
-        assert section.locator("li.edge").count() == len(held)
+        assert section.locator("li.edge").count() == len(held) + len(held_dep)
 
 
 def test_ac_0018_where_it_sits(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -1042,7 +1073,7 @@ def test_ac_0019_record_details(opener: Any, exports: dict[str, pathlib.Path]) -
     item = opener(exports["related"])
     page = item.page
     for node_id, groups in (
-        ("intent:bravo-feat", ["Parent", "Child intents", "Briefs", "Specs", "Delivery relations", "Delivery diagnostics", "Related, written here", "Related, written elsewhere"]),
+        ("intent:bravo-feat", ["Parent", "Child intents", "Briefs", "Specs", "Delivery relations", "Delivery diagnostics", "Related, written here", "Related, written elsewhere", "Depends on, written here", "Depends on, written elsewhere"]),
         ("brief:bravo-delivery", ["Pointers", "Delivery relations"]),
         ("spec:bravo-spec", ["Pointers", "Delivery relations"]),
     ):
@@ -1121,9 +1152,9 @@ def test_ac_0022_key_and_closed_label_set(opener: Any, exports: dict[str, pathli
     for glyph in "●◆◇✕△✓":
         assert glyph in key
     assert page.locator("dl.key-list").count() == 1 and page.locator("#key dl.key-list").count() == 1
-    rendered = {"label-group": set(), "label-state": set(), "label-trust": set()}
+    rendered = {"label-group": set(), "label-state": set(), "label-trust": set(), "label-form": set()}
     glyphs: set[str] = set()
-    for name in ("hostile", "cycle", "multiple", "self_reference", "dangling", "retired", "kind_mismatch", "out_of_type", "unparseable", "coordinated", "related", "latest"):
+    for name in ("hostile", "dependency", "dependency_from", "cycle", "multiple", "self_reference", "dangling", "retired", "kind_mismatch", "out_of_type", "unparseable", "coordinated", "related", "latest"):
         opened = opener(exports[name])
         payload = payload_of(exports[name])
         for key_name in ("browse", "broken"):
@@ -1137,6 +1168,7 @@ def test_ac_0022_key_and_closed_label_set(opener: Any, exports: dict[str, pathli
     assert rendered["label-group"] == set(_GROUPS)
     assert rendered["label-state"] == set(_STATES)
     assert rendered["label-trust"] == set(_TRUST)
+    assert rendered["label-form"] == set(_FORMS)
     assert glyphs <= set("●◆◇✕△✓")
     latest = opener(exports["latest"])
     _pick(latest, "capability:alpha-cap")
@@ -1324,7 +1356,7 @@ def test_ac_0042_unavailable_open_work(opener: Any, exports: dict[str, pathlib.P
     payload = payload_of(exports["hostile_incomplete"])
     reason = payload["outstanding"]["reason"]
     counts = page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)")
-    assert counts[:3] == ["unknown"] * 3 and counts[3] == str(len([e for e in payload["edges"] if e.get("state")]))
+    assert counts[:3] == ["unknown"] * 3 and counts[3] == str(len(Model(payload).broken()))
     for key in _QUESTIONS[:3]:
         _choose(item, key)
         text = _text(page, "#list")
@@ -1332,7 +1364,7 @@ def test_ac_0042_unavailable_open_work(opener: Any, exports: dict[str, pathlib.P
         assert page.locator("#list a.row-link").count() == 0
     _choose(item, "broken")
     states = [e for e in payload["edges"] if e.get("state")]
-    assert states and len(_ids(page)) == len(states)
+    assert states and len(_ids(page)) == len(states) + len(Model(payload).dependency_broken())
     assert "Delivery diagnostics were unavailable" in _text(page, "#list")
     _choose(item, "browse")
     _expand_all(page)
@@ -2057,3 +2089,603 @@ def test_fix_approved_glyph_uses_the_text_colour(opener: Any, exports: dict[str,
           return g ? [getComputedStyle(g).color, getComputedStyle(document.body).color] : null; }"""
     )
     assert colours is not None and colours[0] == colours[1], colours
+
+
+# ---------------------------------------------------------------------------
+# Intent dependency graphs: the "Dependencies" part, broken entries, record groups, Key, routing
+# ---------------------------------------------------------------------------
+
+_DEP_ROOT = _FIXTURES / "dependency"
+_DIRS = {"prerequisites": "What it waits for", "dependents": "What waits for it", "both": "Both"}
+_STEPS = ["1", "2", "3", "all"]
+_DEP_LEAD = "From Depends on: headers only. This does not check whether work can start."
+_PART_ID = """el => { const a = el.querySelector('a[data-node]');
+  return a ? a.dataset.node : el.querySelector('.outside .value').textContent; }"""
+
+
+def _dep_frag(node: str, dep: str = "prerequisites", steps: str = "1", q: str = "browse") -> str:
+    """A fragment holding the choices only when they are not the defaults."""
+    return _frag(q=q, node=node, dir="" if dep == "prerequisites" else dep, steps="" if steps == "1" else steps)
+
+
+def _dep_pick(item: Opened, node: str, dep: str = "prerequisites", steps: str = "1") -> Page:
+    item.go(_dep_frag(node, dep, steps))
+    item.page.wait_for_selector("#detail-body .state-line")
+    return item.page
+
+
+def _depth(payload: dict[str, Any], steps: str) -> int:
+    """The query depth for a "Steps" choice; All is the number of live intents."""
+    live = payload["summary"]["intents_by_level"]
+    return sum(live.values()) if steps == "all" else int(steps)
+
+
+def _page_part(page: Page) -> dict[str, Any]:
+    """What the "Dependencies" part shows, read as ids: lines, pointer diagnostics, cycles."""
+    return page.evaluate(  # type: ignore[no-any-return]
+        """() => {
+          const id = (el) => { const a = el.querySelector('a[data-node]');
+            return a ? a.dataset.node : el.querySelector('.outside .value').textContent; };
+          const part = [...document.querySelectorAll('#detail-body section.part')]
+            .find(s => s.querySelector('h3').textContent === 'Dependencies');
+          const lines = [...part.querySelectorAll('.dep-line')].map(li =>
+            [id(li.querySelector('.dep-waiting')), id(li.querySelector('.dep-prereq'))]);
+          const pointers = [], cycles = [];
+          part.querySelectorAll('.dep-diag').forEach(li => {
+            const members = li.querySelector('.dep-members');
+            if (members) { cycles.push([...members.children].map(id)); return; }
+            const chip = li.querySelector('.label-state');
+            pointers.push([id(li.querySelector('.dep-source')), li.querySelector('code.value').textContent,
+              chip ? chip.textContent : 'outside_scope']);
+          });
+          return { lines, pointers, cycles };
+        }"""
+    )
+
+
+class _DepModel:
+    """A reference for the part, written from the spec's terms and not from the page code."""
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self.model = Model(payload)
+        deps = payload["dependencies"]
+        self.edges = [(e["from"], e["to"]) for e in deps["edges"]]
+        self.pointers = [d for d in deps["diagnostics"] if "from" in d]
+        self.cycles = [d["members"] for d in deps["diagnostics"] if d["state"] == "cycle"]
+
+    def name(self, node_id: str) -> tuple[str, str]:
+        label = self.model.display(node_id) if node_id in self.model.nodes else node_id
+        return label.lower(), node_id
+
+    def steps(self, start: str, direction: str, depth: int) -> dict[str, int]:
+        found: dict[str, int] = {}
+        for forward in (True, False):
+            if direction == ("dependents" if forward else "prerequisites"):
+                continue
+            seen = {start: 0}
+            frontier = [start]
+            for hop in range(1, depth + 1):
+                nxt = []
+                for at in frontier:
+                    for waiting, prerequisite in self.edges:
+                        near, far = (waiting, prerequisite) if forward else (prerequisite, waiting)
+                        if near == at and far not in seen:
+                            seen[far] = hop
+                            nxt.append(far)
+                frontier = nxt
+            for node_id, hop in seen.items():
+                found[node_id] = min(hop, found.get(node_id, hop))
+        return found
+
+    def expect(self, start: str, direction: str, depth: int) -> dict[str, Any]:
+        counts = self.steps(start, direction, depth)
+        lines = sorted(
+            ((w, p) for w, p in self.edges if w in counts and p in counts),
+            key=lambda e: (max(counts[e[0]], counts[e[1]]), self.name(e[0]), self.name(e[1])),
+        )
+        pointers = sorted(
+            (d for d in self.pointers if d["from"] in counts), key=lambda d: (self.name(d["from"]), d["position"])
+        )
+        cycles = sorted(
+            (sorted(c, key=self.name) for c in self.cycles if any(m in counts for m in c)),
+            key=lambda c: self.name(c[0]),
+        )
+        return {
+            "counts": counts,
+            "lines": [list(line) for line in lines],
+            "pointers": [[d["from"], d["value"], d["state"]] for d in pointers],
+            "cycles": cycles,
+        }
+
+
+def test_vi_3001_part_placement_lead_and_controls(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency"])
+    page = _dep_pick(item, "intent:alpha")
+    order = page.eval_on_selector_all(
+        "#detail-body > *",
+        "els => els.map(e => e.classList.contains('state-line') ? 'state-line' : e.tagName === 'SECTION' ? e.querySelector('h3').textContent : e.tagName === 'DETAILS' ? 'details' : 'other')",
+    )
+    assert [o for o in order if o != "other"] == [
+        "state-line", "Next step", "Open beneath", "What is broken", "Where it sits", "Dependencies", "Open the file", "details",
+    ]
+    part = _detail_part(page, "Dependencies")
+    assert part.locator("h3").evaluate("e => e.tagName") == "H3"
+    assert part.locator("p.lead").inner_text() == _DEP_LEAD
+    assert part.evaluate("e => e.querySelector('h3').nextElementSibling.classList.contains('lead')")
+    labels = part.locator("label").all_inner_texts()
+    assert labels == ["Show", "Steps"]
+    for label, expected in (("Show", list(_DIRS.values())), ("Steps", ["1", "2", "3", "All"])):
+        select = part.locator("label", has_text=label).evaluate("l => document.getElementById(l.htmlFor)")
+        assert select is not None
+        control = page.locator(f"#{part.locator('label', has_text=label).get_attribute('for')}")
+        assert control.evaluate("e => e.tagName") == "SELECT"
+        assert control.locator("option").all_inner_texts() == expected
+    assert page.locator("#dep-dir").input_value() == "prerequisites"
+    assert page.locator("#dep-steps").input_value() == "1"
+    assert page.locator("#dep-dir option").evaluate_all("els => els.map(e => e.value)") == list(_DIRS)
+    assert page.locator("#dep-steps option").evaluate_all("els => els.map(e => e.value)") == _STEPS
+    # A brief or spec has no such part, and an intent of any export has it.
+    mixed = opener(exports["mixed"])
+    for node_id, has_part in (("brief:bravo-delivery", False), ("spec:bravo-spec", False), ("intent:bravo-feat", True)):
+        page = _pick(mixed, node_id)
+        titles = page.eval_on_selector_all("#detail-body h3.part-head", "els => els.map(e => e.textContent)")
+        assert ("Dependencies" in titles) is has_part, node_id
+        assert titles[:2] == ["Next step", "Open beneath"]
+    assert titles.index("Dependencies") == titles.index("Where it sits") + 1
+    assert titles.index("Open the file") == titles.index("Dependencies") + 1
+
+
+def test_vi_3002_edge_lines_order_named_intents_and_empty_lines(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency"])
+    payload = payload_of(exports["dependency"])
+    ref = _DepModel(payload)
+    model = ref.model
+    # One line per edge, "<waiting> waits for <prerequisite>", nearest first and then by name.
+    page = _dep_pick(item, "intent:delta", "prerequisites", "all")
+    lines = _detail_part(page, "Dependencies").locator("li.dep-line")
+    assert lines.count() == 4
+    first = lines.first
+    assert first.locator(".dep-word").inner_text() == "waits for"
+    assert first.locator(".dep-waiting a").inner_text() == "Delta"
+    assert first.locator(".dep-prereq a").inner_text() == "Echo"
+    assert first.locator(".dep-waiting .mark").count() == 1 and first.locator(".dep-prereq .mark").count() == 1
+    assert re.fullmatch(r"Delta\s*◇\s*Draft\s+waits for\s+Echo\s*◇\s*Draft", first.inner_text().strip()), first.inner_text()
+    assert _page_part(page)["lines"] == [
+        ["intent:delta", "intent:echo"], ["intent:delta", "intent:foxtrot"],
+        ["intent:echo", "intent:golf"], ["intent:foxtrot", "intent:golf"],
+    ]
+    assert _detail_part(page, "Dependencies").locator("p.dep-sort").inner_text() == "Nearest first, then by name"
+    # Both directions across a cycle: every edge of the group is one line, by name.
+    page = _dep_pick(item, "intent:november", "both", "all")
+    shown = _page_part(page)
+    assert shown["lines"] == [
+        ["intent:mike", "intent:november"], ["intent:november", "intent:mike"],
+        ["intent:november", "intent:oscar"], ["intent:oscar", "intent:november"],
+    ]
+    assert shown["cycles"] == [["intent:mike", "intent:november", "intent:oscar"]]
+    # Step count orders lines: the chain's nearest edge comes first, and an edge's count is its larger end.
+    page = _dep_pick(item, "intent:alpha", "prerequisites", "3")
+    assert _page_part(page)["lines"] == [
+        ["intent:alpha", "intent:bravo"], ["intent:bravo", "intent:charlie"],
+        ["intent:charlie", "outcome:quebec"], ["intent:charlie", "opportunity:romeo"], ["intent:charlie", "capability:root-b"],
+    ]
+    # The whole reference model agrees for every choice of every intent.
+    for node_id in model.nodes:
+        for direction in _DIRS:
+            for steps in _STEPS:
+                page = _dep_pick(item, node_id, direction, steps)
+                want = ref.expect(node_id, direction, _depth(payload, steps))
+                got = _page_part(page)
+                assert got["lines"] == want["lines"], (node_id, direction, steps)
+                assert got["pointers"] == want["pointers"], (node_id, direction, steps)
+                assert got["cycles"] == want["cycles"], (node_id, direction, steps)
+    # Named intents outside the export are plain text marked so, in id name order.
+    scoped = opener(exports["dependency_from"])
+    page = _dep_pick(scoped, "intent:india", "both", "all")
+    part = _detail_part(page, "Dependencies")
+    outside = part.locator("li.dep-line .outside")
+    assert outside.count() >= 2
+    assert {o.locator(".value").inner_text() for o in outside.all()} == {"intent:juliet", "intent:kilo"}
+    for o in outside.all():
+        assert "outside this export" in o.inner_text()
+        assert o.locator("a").count() == 0 and o.locator(".mark").count() == 0
+    assert _page_part(page)["lines"] == [
+        ["intent:india", "intent:juliet"], ["intent:juliet", "intent:kilo"], ["intent:kilo", "intent:india"],
+    ]
+    # The three empty lines, and the line for an intent with values but no edge.
+    for direction, line in (
+        ("prerequisites", "It waits for nothing in its Depends on: header."),
+        ("dependents", "No intent's Depends on: header names it."),
+        ("both", "No dependencies recorded."),
+    ):
+        page = _dep_pick(item, "capability:root-a", direction, "all")
+        part = _detail_part(page, "Dependencies")
+        assert part.locator("p.empty").inner_text() == line
+        assert part.locator("li").count() == 0 and part.locator("p.dep-sort").count() == 0
+    page = _dep_pick(item, "intent:golf", "prerequisites", "1")
+    part = _detail_part(page, "Dependencies")
+    assert part.locator("p.empty").inner_text() == "No line to show. Its Depends on: values are listed below."
+    assert part.locator("li.dep-line").count() == 0 and part.locator("li.dep-diag").count() > 0
+
+
+def test_vi_3002_diagnostics_order_marks_and_code_values(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency"])
+    payload = payload_of(exports["dependency"])
+    page = _dep_pick(item, "intent:golf", "prerequisites", "1")
+    part = _detail_part(page, "Dependencies")
+    golf = [d for d in payload["dependencies"]["diagnostics"] if d.get("from") == "intent:golf"]
+    items = part.locator("li.dep-diag")
+    assert items.count() == len(golf) == 11
+    shown = _page_part(page)["pointers"]
+    assert shown == [[d["from"], d["value"], d["state"]] for d in golf]  # written order
+    for i, d in enumerate(golf):
+        li = items.nth(i)
+        assert li.locator("code.value").all_inner_texts() == [d["value"]]
+        assert li.locator(".dep-source a").get_attribute("data-node") == "intent:golf"
+        if d["state"] == "outside_scope":
+            assert li.locator(".edge-line > .mark").count() == 0 and li.locator(".label-state").count() == 0
+            assert "not an intent, outside this view" in li.inner_text()
+            assert "✕" not in li.inner_text()
+        else:
+            assert li.locator(".edge-line > .mark").count() == 1
+            assert li.locator(".edge-line > .mark .mark-g").inner_text() == "✕"
+            assert li.locator(".edge-line > .mark .mark-g").get_attribute("aria-hidden") == "true"
+            assert li.locator(".edge-line > .mark .mark-w").inner_text() == "Broken"
+            assert li.locator(".label-state").inner_text() == d["state"]
+            # Generated words never sit inside the value's own element.
+            assert d["state"] not in li.locator("code.value").inner_text() or d["state"] in d["value"]
+    # Pointer diagnostics by source name then position, then cycles by their first member by name.
+    page = _dep_pick(item, "intent:india", "both", "all")
+    part = _detail_part(page, "Dependencies")
+    cycle = part.locator("li.dep-diag", has=page.locator(".dep-members"))
+    assert cycle.count() == 1
+    assert cycle.locator(".edge-line > .mark .mark-w").inner_text() == "Broken" and cycle.locator(".label-state").inner_text() == "cycle"
+    members = cycle.locator(".dep-members > *")
+    assert members.evaluate_all("els => els.map(e => e.querySelector('a').dataset.node)") == [
+        "intent:india", "intent:juliet", "intent:kilo",
+    ]
+    assert cycle.locator("code").count() == 0
+    kinds = part.locator("li.dep-diag").evaluate_all("els => els.map(e => !!e.querySelector('.dep-members'))")
+    assert kinds == sorted(kinds)  # cycles after every pointer diagnostic
+    # Only the cycle's own members are named: a self-dependency is a one-member cycle.
+    page = _dep_pick(item, "intent:hotel", "both", "1")
+    part = _detail_part(page, "Dependencies")
+    assert _page_part(page)["lines"] == [["intent:hotel", "intent:hotel"]]
+    assert _page_part(page)["cycles"] == [["intent:hotel"]]
+    # The picked intent's own dependency record names an intent outside the export in plain text.
+    scoped = opener(exports["dependency_from"])
+    page = _dep_pick(scoped, "intent:india", "prerequisites", "1")
+    cyc = _page_part(page)["cycles"]
+    assert cyc == [["intent:india", "intent:juliet", "intent:kilo"]]
+
+
+def _query_part(root: pathlib.Path, node_id: str, direction: str, depth: int) -> dict[str, Any]:
+    result = _query(root, "--operation", "dependencies", "--id", node_id, "--direction", direction, "--depth", str(depth))
+    return {
+        "pairs": {(e["from"], e["to"]) for e in result["edges"]},
+        "intents": {i["id"] for i in result["intents"]},
+        "pointers": {(d["from"], d["value"], d["state"]) for d in result["diagnostics"] if "from" in d},
+        "cycles": {tuple(d["members"]) for d in result["diagnostics"] if d["state"] == "cycle"},
+    }
+
+
+@pytest.mark.parametrize("export_name", ["dependency", "dependency_from"])
+def test_vi_3003_part_equals_the_query(opener: Any, exports: dict[str, pathlib.Path], export_name: str) -> None:
+    payload = payload_of(exports[export_name])
+    scoped = export_name == "dependency_from"
+    whole = payload_of(exports["dependency"])
+    if scoped:
+        # The scope's linked set holds an intent outside nodes, and the whole corpus holds
+        # an edge and a diagnostic this export does not.
+        edge_keys = {(e["from"], e["to"]) for e in payload["dependencies"]["edges"]}
+        outside = {i for e in edge_keys for i in e} - {n["id"] for n in payload["nodes"]}
+        assert outside
+        assert len(whole["dependencies"]["edges"]) > len(payload["dependencies"]["edges"])
+        assert len(whole["dependencies"]["diagnostics"]) > len(payload["dependencies"]["diagnostics"])
+    item = opener(exports[export_name])
+    seen = 0
+    for node in payload["nodes"]:
+        node_id = node["id"]
+        for direction in _DIRS:
+            for steps in _STEPS:
+                page = _dep_pick(item, node_id, direction, steps)
+                shown = _page_part(page)
+                want = _query_part(_DEP_ROOT, node_id, direction, _depth(whole, steps))
+                assert {tuple(p) for p in shown["lines"]} == want["pairs"], (node_id, direction, steps)
+                assert len(shown["lines"]) == len(want["pairs"])
+                assert {node_id} | {i for line in shown["lines"] for i in line} == want["intents"], (node_id, direction, steps)
+                assert {tuple(p) for p in shown["pointers"]} == want["pointers"], (node_id, direction, steps)
+                assert {tuple(c) for c in shown["cycles"]} == want["cycles"], (node_id, direction, steps)
+                seen += 1
+    assert seen == len(payload["nodes"]) * len(_DIRS) * len(_STEPS)
+
+
+def _holder_contexts(page: Page) -> list[tuple[str, str]]:
+    found = page.eval_on_selector_all(
+        "#list a.row-link", "els => els.map(e => [e.dataset.node, e.querySelector('.c-context').textContent])"
+    )
+    return [(h, c) for h, c in found]
+
+
+@pytest.mark.parametrize("export_name", ["dependency", "dependency_from", "dependency_incomplete", "hostile_diag"])
+def test_vi_3004_broken_rows_and_state_line(opener: Any, exports: dict[str, pathlib.Path], export_name: str) -> None:
+    payload = payload_of(exports[export_name])
+    model = Model(payload)
+    item = opener(exports[export_name])
+    page = item.page
+    _choose(item, "broken")
+    expected = model.broken()
+    assert _holder_contexts(page) == expected
+    assert _count_text(page) == f"{len(expected)} entries"
+    assert page.locator("nav a[data-q='broken'] .q-count").inner_text() == str(len(expected))
+    assert page.locator("#list .mark-w", has_text="Broken").count() == len(expected)
+    deps = model.dependency_broken()
+    assert deps and {h for h, _ in deps} <= set(model.records)
+    if export_name == "dependency_from":
+        # Only in-scope intents hold an entry: the linked set's other members hold none here.
+        assert {h for h, _ in expected} <= {n["id"] for n in payload["nodes"]}
+        assert [c for h, c in expected if h == "intent:india"] == [
+            "Depends on: dangling", "Depends on: kind_mismatch", "Depends on: cycle",
+        ]
+        assert "intent:juliet" not in {h for h, _ in expected}
+    if export_name == "dependency_incomplete":
+        assert payload["outstanding"]["available"] is False
+        assert "Delivery diagnostics were unavailable" in _text(page, "#list")
+        counts = page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)")
+        assert counts[:3] == ["unknown"] * 3 and counts[3] == str(len(expected))
+    for node_id in model.nodes:
+        page = _pick(item, node_id, "broken")
+        held = [c for h, c in expected if h == node_id]
+        assert f"{len(held)} broken" in _text(page, ".state-line"), node_id
+        section = _detail_part(page, "What is broken")
+        dep_items = section.locator("li.edge", has=page.locator(".field", has_text="Depends on:"))
+        assert dep_items.count() == len([c for c in held if c.startswith("Depends on:")]), node_id
+
+
+def test_vi_3004_holder_order_and_detail_rendering(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency"])
+    page = item.page
+    _choose(item, "broken")
+    rows = _holder_contexts(page)
+    assert [c for h, c in rows if h == "intent:india"] == ["Depends on: dangling", "Depends on: kind_mismatch", "Depends on: cycle"]
+    assert [c for h, c in rows if h == "intent:golf"][:2] == ["Depends on: unparseable", "Depends on: dangling"]
+    assert [c for h, c in rows if h == "intent:hotel"] == ["Depends on: cycle"]
+    # A cycle is one entry for each of its members.
+    assert {h for h, c in rows if c == "Depends on: cycle"} == {
+        "intent:hotel", "intent:india", "intent:juliet", "intent:kilo", "intent:mike", "intent:november", "intent:oscar",
+    }
+    # The detail part: field, the Key's meaning of the state, then the value or the other members.
+    page = _pick(item, "intent:india", "broken")
+    key_text = page.text_content("#key-body") or ""
+    section = _detail_part(page, "What is broken")
+    entries = section.locator("li.edge")
+    assert entries.count() == 3
+    assert [entries.nth(i).locator(".field").inner_text() for i in range(3)] == ["Depends on:"] * 3
+    assert [entries.nth(i).locator(".label-state").inner_text() for i in range(3)] == ["dangling", "kind_mismatch", "cycle"]
+    for i in range(3):
+        meaning = entries.nth(i).locator("p.meaning").inner_text()
+        assert meaning in key_text
+    assert entries.nth(0).locator("code.value").all_inner_texts() == ["intent:ghost"]
+    assert entries.nth(1).locator("code.value").all_inner_texts() == ["capability:alpha"]
+    cyc = entries.nth(2)
+    assert cyc.locator("code").count() == 0
+    assert cyc.locator("a[data-node]").evaluate_all("els => els.map(e => e.dataset.node)") == ["intent:juliet", "intent:kilo"]
+    assert "0 open beneath · 3 broken" in _text(page, ".state-line") or "3 broken" in _text(page, ".state-line")
+    # A one-member cycle names no other member.
+    page = _pick(item, "intent:hotel", "broken")
+    only = _detail_part(page, "What is broken").locator("li.edge")
+    assert only.count() == 1 and only.locator("a[data-node]").count() == 0
+    # Inherited entries come first: a refused parent, then dependency faults by position, then the cycle.
+    hostile = opener(exports["hostile_diag"])
+    _choose(hostile, "broken")
+    contexts = [c for h, c in _holder_contexts(hostile.page) if h == "intent:hostile-child"]
+    inherited = [c for c in contexts if not c.startswith("Depends on:")]
+    assert contexts == inherited + ["Depends on: unparseable"] * 4 + ["Depends on: cycle"]
+    assert any(c.startswith("Delivery diagnostic") for c in inherited)
+    page = _pick(hostile, "intent:hostile-pointer", "broken")
+    fields = _detail_part(page, "What is broken").locator("li.edge .field").all_inner_texts()
+    assert fields == ["Parent intent", "Depends on:"]
+    # Entries come from intent headers: all of this holds with outstanding unavailable.
+    gone = opener(exports["hostile_incomplete"])
+    _choose(gone, "broken")
+    held = [c for h, c in _holder_contexts(gone.page) if h == "intent:hostile-child" and c.startswith("Depends on:")]
+    assert held == ["Depends on: unparseable"] * 4 + ["Depends on: cycle"]
+
+
+def test_vi_3004_mixed_counts_are_unchanged(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"])
+    counts = item.page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)")
+    assert counts == ["3", "2", "6", "0"]
+    assert payload_of(exports["mixed"])["dependencies"] == {"edges": [], "diagnostics": []}
+
+
+def _open_record(page: Page) -> Any:
+    page.locator("#detail-body details.record summary").click()
+    return page.locator("#detail-body details.record")
+
+
+def test_vi_3004_record_detail_groups(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency"])
+    page = _dep_pick(item, "intent:alpha")
+    record = _open_record(page)
+    groups = record.locator("h4.label-group").all_inner_texts()
+    assert groups[-2:] == ["Depends on, written here", "Depends on, written elsewhere"]
+    assert groups[groups.index("Related, written elsewhere") + 1 :] == groups[-2:]
+    here = record.locator("section.group", has=page.locator("h4", has_text="Depends on, written here")).first
+    rows = here.locator("li.edge")
+    assert rows.count() == 3  # intent:bravo once, its path, and the spec value: each distinct value once
+    assert here.locator("code.value").all_inner_texts() == [
+        "intent:bravo", "docs/product/intents/FEAT-0002-bravo.md", "spec:some-spec",
+    ]
+    assert here.locator(".label-form").all_inner_texts() == ["typed", "path", "typed"]
+    assert here.locator(".label-trust").all_inner_texts() == ["pointer_unchecked"] * 3
+    assert rows.nth(0).locator("a[data-node]").get_attribute("data-node") == "intent:bravo"
+    assert rows.nth(1).locator("a[data-node]").get_attribute("data-node") == "intent:bravo"
+    assert rows.nth(2).locator(".label-state").inner_text() == "outside_scope"
+    assert rows.nth(2).locator("a").count() == 0
+    # A refused value shows its state label in place of a target.
+    page = _dep_pick(item, "intent:delta")
+    here = _open_record(page).locator("section.group", has=page.locator("h4", has_text="Depends on, written here")).first
+    assert here.locator("code.value").all_inner_texts() == ["intent:echo", "intent:foxtrot", "feature:typo"]
+    assert here.locator("li.edge").nth(2).locator(".label-state").inner_text() == "unparseable"
+    assert here.locator("li.edge").nth(2).locator(".label-form").inner_text() == "unrecognized"
+    # Written elsewhere: named intents in name order, each with its trust class.
+    page = _dep_pick(item, "intent:golf")
+    elsewhere = _open_record(page).locator("section.group", has=page.locator("h4", has_text="Depends on, written elsewhere")).first
+    assert elsewhere.locator("a[data-node]").evaluate_all("els => els.map(e => e.dataset.node)") == ["intent:echo", "intent:foxtrot"]
+    assert elsewhere.locator(".label-trust").all_inner_texts() == ["pointer_unchecked"] * 2
+    page = _dep_pick(item, "capability:root-a")
+    elsewhere = _open_record(page).locator("section.group", has=page.locator("h4", has_text="Depends on, written elsewhere")).first
+    assert elsewhere.locator("p.empty").inner_text() == "None."
+    # A brief or spec gains neither group.
+    mixed = opener(exports["mixed"])
+    page = _pick(mixed, "spec:bravo-spec")
+    titles = _open_record(page).locator("h4.label-group").all_inner_texts()
+    assert not [t for t in titles if t.startswith("Depends on")]
+    # Under --from, a dependent outside the export is named in plain text.
+    scoped = opener(exports["dependency_from"])
+    page = _dep_pick(scoped, "intent:india")
+    elsewhere = _open_record(page).locator("section.group", has=page.locator("h4", has_text="Depends on, written elsewhere")).first
+    assert elsewhere.locator(".outside .value").all_inner_texts() == ["intent:kilo"]
+    assert "outside this export" in elsewhere.inner_text()
+
+
+def test_vi_3004_key_additions(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"])
+    page = item.page
+    page.locator("#key summary").click()
+    key = page.locator("#key dl.key-list")
+    terms = key.locator("dt").all_inner_texts()
+    for name in ("Depends on, written here", "Depends on, written elsewhere", "outside_scope", "waits for", *_FORMS):
+        assert any(name in t for t in terms), name
+    waits = key.locator(".fact", has=page.locator("dt", has_text="waits for")).locator("dd").inner_text()
+    assert waits == "The first intent's Depends on: header names the second. The view does not decide whether either can start."
+    for form in _FORMS:
+        row = key.locator(".fact", has=page.locator(".label-form", has_text=re.compile(f"^{form}$")))
+        assert row.count() == 1 and row.locator("dd").inner_text().strip() != ""
+    cycle = key.locator(".fact", has=page.locator(".label-state", has_text=re.compile("^cycle$"))).locator("dd").inner_text()
+    assert "parent loop" in cycle and "dependency loop" in cycle
+    assert "outside_scope" in key.inner_text()
+    cross = key.locator(".fact", has=page.locator(".mark[data-mark='broken']")).locator("dd").inner_text()
+    assert "dependency loop" in cross
+    _choose(item, "broken")
+    assert "dependency loops" in _text(page, "#list-lead")
+    assert _text(page, "#list-lead") == "Pointers that did not resolve, parent or dependency loops made of resolved pointers, and problems the delivery resolver found."
+
+
+def test_vi_3004_closed_label_set_over_the_hostile_export(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["hostile"])
+    assert payload["dependencies"]["diagnostics"]
+    item = opener(exports["hostile"])
+    rendered = {"label-group": set(), "label-state": set(), "label-trust": set(), "label-form": set()}
+    glyphs: set[str] = set()
+    for node in payload["nodes"]:
+        for direction in _DIRS:
+            page = _dep_pick(item, node["id"], direction, "all")
+            if node["type"] == "intent":
+                _open_record(page)
+            for cls in rendered:
+                rendered[cls] |= set(page.eval_on_selector_all(f".{cls}", "e => e.map(x => x.textContent)"))
+            glyphs |= {g for g, _, _ in _marks(page, "body")}
+    assert rendered["label-group"] <= set(_GROUPS)
+    assert rendered["label-state"] <= set(_STATES)
+    assert rendered["label-trust"] <= set(_TRUST)
+    assert rendered["label-form"] <= set(_FORMS)
+    assert {"outside_scope", "unparseable", "cycle"} <= rendered["label-state"]
+    assert glyphs <= set("●◆◇✕△✓")
+    # Values that copy a glyph, a state label or the phrase never become a mark, chip or line.
+    page = _dep_pick(item, "intent:hostile-child", "prerequisites", "1")
+    part = _detail_part(page, "Dependencies")
+    codes = part.locator("code.value").all_inner_texts()
+    assert "✕ waits for pointer_checked" in codes and "dangling" in codes
+    assert part.locator(".dep-line").count() == 2  # child waits for root, root waits for child
+    states = part.locator(".label-state").all_inner_texts()
+    assert states[-1] == "cycle" and set(states[:-1]) == {"unparseable"} and len(states) == 7
+    assert "pointer_checked" not in part.locator(".label-trust, .label-state, .label-form").all_inner_texts()
+    broken_marks = [m for m in _marks(page, "#detail-body section.part") if m[0] == "✕"]
+    assert len(broken_marks) == len(states) and all(m[1] == "Broken" and m[2] == "true" for m in broken_marks)
+    # No link target anywhere but an in-page fragment, and no markup built from a value.
+    for href in page.eval_on_selector_all("a[href]", "els => els.map(e => e.getAttribute('href'))"):
+        assert href.startswith("#") or href.startswith("https://github.com/")
+    assert page.locator("#detail-body script, #detail-body img, #detail-body svg").count() == 0
+    assert item.errors == [] and set(item.requests) == {item.url}
+
+
+def _fragment(page: Page) -> dict[str, str]:
+    return dict(urllib.parse.parse_qsl(page.evaluate("location.hash").lstrip("#")))
+
+
+def test_vi_3004_fragment_reload_and_history(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency"])
+    page = _dep_pick(item, "intent:charlie")
+    assert "dir" not in _fragment(page) and "steps" not in _fragment(page)
+    start = _history_length(page)
+    page.select_option("#dep-dir", "both")
+    assert _fragment(page)["dir"] == "both" and "steps" not in _fragment(page)
+    page.select_option("#dep-steps", "all")
+    assert _fragment(page)["steps"] == "all"
+    assert _history_length(page) == start  # a change adds no history entry
+    shown = _page_part(page)["lines"]
+    assert ["intent:bravo", "intent:charlie"] in shown and ["intent:charlie", "capability:root-b"] in shown
+    page.reload()
+    assert page.locator("#dep-dir").input_value() == "both" and page.locator("#dep-steps").input_value() == "all"
+    assert _page_part(page)["lines"] == shown
+    # Choosing the defaults drops the keys.
+    page.select_option("#dep-dir", "prerequisites")
+    page.select_option("#dep-steps", "1")
+    assert "dir" not in _fragment(page) and "steps" not in _fragment(page)
+    assert _history_length(page) == start
+    # Following a link picks that intent with a history entry and keeps the choices; Back returns.
+    page.select_option("#dep-dir", "both")
+    page.select_option("#dep-steps", "2")
+    before = _history_length(page)
+    page.locator("#detail-body section.part", has=page.locator("h3", has_text="Dependencies")).locator("a[data-node='intent:bravo']").first.click()
+    _wait_heading(page, "Bravo")
+    assert _history_length(page) == before + 1
+    assert _fragment(page)["node"] == "intent:bravo" and _fragment(page)["dir"] == "both" and _fragment(page)["steps"] == "2"
+    assert page.locator("#dep-dir").input_value() == "both" and page.locator("#dep-steps").input_value() == "2"
+    page.go_back()
+    _wait_heading(page, "Charlie")
+    assert _fragment(page)["node"] == "intent:charlie" and page.locator("#dep-dir").input_value() == "both"
+    # A change keeps the control in use focused.
+    page.focus("#dep-dir")
+    page.keyboard.press("ArrowUp")
+    assert page.evaluate("document.activeElement.id") == "dep-dir"
+
+
+@pytest.mark.parametrize(
+    "bad",
+    ["steps=-1", "steps=1e12", "steps=abc", "steps=0", "steps=99999999999999999999", "dir=__proto__", "dir=constructor", "dir=<b>x</b>"],
+)
+def test_vi_3004_invalid_fragment_values_read_as_defaults(opener: Any, exports: dict[str, pathlib.Path], bad: str) -> None:
+    item = opener(exports["dependency"], fragment=f"#q=browse&node=intent%3Aalpha&{bad}")
+    page = item.page
+    page.wait_for_selector("#dep-dir")
+    assert page.locator("#dep-dir").input_value() == "prerequisites" and page.locator("#dep-steps").input_value() == "1"
+    value = bad.split("=", 1)[1]
+    if not value.lstrip("-").isdigit() or len(value) > 3:
+        assert value not in page.inner_text("body")
+    assert bad not in page.inner_text("body")
+    assert _page_part(page)["lines"] == [["intent:alpha", "intent:bravo"]]
+    # The next fragment the page writes drops the invalid value.
+    page.select_option("#dep-dir", "dependents")
+    assert bad.split("=", 1)[0] not in _fragment(page) or _fragment(page)[bad.split("=", 1)[0]] != value
+    assert bad not in page.evaluate("location.hash")
+    other = opener(exports["dependency"], fragment=f"#q=browse&node=intent%3Aalpha&{bad}")
+    other.page.wait_for_selector("#dep-dir")
+    other.page.locator("a[data-node='intent:bravo']").first.click()
+    other.page.wait_for_function("() => location.hash.includes('bravo')")
+    assert bad not in other.page.evaluate("location.hash")
+    assert other.errors == [] and item.errors == []
+
+
+def test_vi_3002_edge_lines_wrap_their_names_at_320_px(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency_from"], width=320, height=700)
+    page = _dep_pick(item, "intent:india", "both", "all")
+    assert _page_part(page)["cycles"]
+    scroll, client = _no_overflow(page)
+    assert scroll <= client
+    lines = page.locator("#detail-body li.dep-line")
+    assert lines.count() == 3
+    for box in lines.evaluate_all("els => els.map(e => e.getBoundingClientRect().right - document.documentElement.clientWidth)"):
+        assert box <= 0.5
