@@ -1,6 +1,6 @@
 ---
 name: frame-situation
-description: Use when holding a raw signal (market observation, OKR gap, user pain pattern, engineering finding, competitive signal) at initiative or capability level — turning it into a typed finding, a Wardley capability maturity assessment, and an anchor into the PE six-step shaping sequence. Triggers on "frame this situation", "what do we do with this signal", "is this an opportunity or a risk", "where should we start", "map this to the shaping sequence". Do NOT use for a feature-scoped request (use `intent frame`), testing an assumption (use `intent de-risk`), or breaking down a shaped intent (use `intent decompose`).
+description: Use when a signal needs sorting out before anyone shapes work — a market shift, a metric drop, a competitor move, a recurring user pain. Classifies the signal, rates capability maturity on a Wardley map, and names the shaping step to start from. Not for a single feature (use `intent frame`).
 ---
 
 # Skill: frame-situation

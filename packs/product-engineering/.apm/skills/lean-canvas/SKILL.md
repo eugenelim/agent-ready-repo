@@ -1,6 +1,6 @@
 ---
 name: lean-canvas
-description: Use when a product engineer or PM is ready to produce an initiative brief through an adapted Lean Canvas elicitation — after the PE shaping sequence or as a standalone exercise. Triggers on "lean canvas", "initiative brief", "canvas this initiative", "author initiative brief". Do NOT use for a feature-scoped request (use `intent frame`) or for individual shaping steps (use `frame-situation`, `place-bet`, etc.).
+description: Use to fill in a lean canvas for an initiative and write it up as a one-page initiative brief — problem, customer segments, value proposition, solution, key metrics. Triggers on "lean canvas", "initiative brief", "canvas this initiative". Not for a single feature (use `intent frame`).
 ---
 
 # Skill: lean-canvas

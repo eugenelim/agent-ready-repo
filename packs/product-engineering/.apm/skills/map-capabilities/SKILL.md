@@ -1,6 +1,6 @@
 ---
 name: map-capabilities
-description: Step 6 (terminal) of the PE six-step shaping sequence. Translates a committed bet into a Capability Map — L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing. Run after `place-bet`. Triggers on "map our capabilities", "what do we need to build", "what's our build/buy split", "capability areas for this bet". Do NOT use for a single feature (use `intent frame`) or to author a brief (use `lean-canvas` / `author-delivery-brief create`).
+description: Use after a bet is committed to list the capabilities it needs, decide build, buy, partner, or adopt for each, and suggest a build order, in a capability map. Triggers on "what do we need to build", "build or buy", "map our capabilities". Not for a single feature (use `intent frame`).
 ---
 
 # Skill: map-capabilities

@@ -1,6 +1,6 @@
 ---
 name: diverge-solutions
-description: Use at step 3 of the PE shaping sequence when you hold an initiative- or capability-scope opportunity and need structured, comparable solution options that place-bet can reason against. Emits solution-options.md with an options array and a recommendation. Do NOT use for freeform brainstorm (use explore-options), feature-scope divergence (use explore-options), or committing a bet (use place-bet).
+description: Use to lay out comparable solution options for an initiative-sized opportunity, each with trade-offs, plus a recommendation, in solution-options.md. Triggers on "compare solution options", "options with trade-offs". For loose product-shape ideas use `explore-options`; to commit to one use `place-bet`.
 ---
 
 # Skill: diverge-solutions
