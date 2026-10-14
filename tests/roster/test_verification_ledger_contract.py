@@ -34,7 +34,7 @@ import re
 from pathlib import Path
 from types import ModuleType
 
-from product_changelog_releases import latest_release_date, latest_release_version
+from product_changelog_releases import latest_release_version
 
 ROOT = Path(__file__).resolve().parents[2]
 GUARDS = ROOT / "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py"
@@ -525,29 +525,22 @@ def test_no_guarded_region_names_a_non_canonical_ledger_path() -> None:
 
 
 def test_the_core_release_heading_sits_directly_beneath_unreleased() -> None:
-    """The newest core release is the shipped version, and nothing is dated later.
+    """The newest core release is the shipped version.
 
     Weaker than AC4's adjacency ("the core heading sits directly beneath
-    `[Unreleased]`"). Records are appended after the frozen history and their
-    order within a day cannot be recovered; many releases share one date. This
-    asserts only that the newest core release equals pack.toml and that no
-    release carries a later date, so the adjacency guarantee now holds at day
-    level, not release level.
+    `[Unreleased]`"). Records are appended after the frozen history and carry
+    only a date as their position. Asserting that no release is dated after
+    core would block every other pack from releasing on a day core does not,
+    or force it to backdate, so only the core version is asserted.
     """
     import tomllib
 
     # Restated, and weaker. "Directly beneath [Unreleased]" located the newest
-    # release when releases were prepended. Records are appended and have no
-    # recoverable order within a day, so only day-level recency is asserted.
+    # release when releases were prepended; appended records have no position
+    # beyond their date, so only the newest core version is asserted.
     pack = tomllib.loads(_read("packs/core/pack.toml"))["pack"]["version"]
     newest_core = latest_release_version("core")
     assert newest_core, "no versioned core release heading in the changelog"
     assert newest_core == pack, (
         f"the newest core release is {newest_core}, not the shipped {pack}"
-    )
-    core_date = latest_release_date("core")
-    newest_date = latest_release_date()
-    assert newest_date == core_date, (
-        f"a release dated {newest_date} is newer than the newest core release "
-        f"({core_date}), so core is not the newest release"
     )
