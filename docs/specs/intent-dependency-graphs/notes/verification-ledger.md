@@ -145,6 +145,13 @@ Implemented by the `implementer` subagent at `eaa20e66d`, uncommitted in the wor
 | 25 | no (`resource_limit`, limit `files`) | 0 | 12,420,115 | 64 | 48 | 28 | yes |
 | 50 | no (`resource_limit`, limit `files`) | 0 | 24,752,019 | 100 | 43 | 47 | yes |
 
+## Code review round 1 repairs
+
+- Reviews are under `.context/reviews/3f9e2ddc-66e7-4d49-9e83-decaf02878e2/`. Rebased on `origin/main` at `3216c5b40`, which had released Core 3.1.4; this release moved to 3.1.5 (§ Release above).
+- Deviation from T3/T4 `Touches`: the second experience-review fix added four border-colour rules to `view_assets/view-base.css` (`.dep-line` joins `.part` and `.key-list .fact` on `--c-rule`; `.dep-waiting, .dep-prereq` on `--c-bg`; `.dep-self` on `--c-accent`). The plan forbids colour in `view.css`, and the base file's own rule is that a layout file sets a border's width and style while its colour is chosen there; `tools/check_view_base_parity.py` passes (one copy).
+- VI-1001 cases added to the dependency fixture and its hand-written manifest: an empty segment, a `..` segment, a leading `/`, a URL scheme, `featre:a/b`, a `docs/specs/` path, a typed value with a malformed slug, a tombstone with no reissue (`quebec-old`), and `intent:ghost` written twice by `india` (one diagnostic). New tests: removing or tombstoning an intent between the two reads refuses with `unsafe_input`; live brief and spec targets, typed and path, are `outside_scope`; JSON and text byte limits admit at exactly the observed size and refuse one byte under it. Dropping the empty-segment guard now fails 1 test. `test_dependencies.py`: 43 passed.
+- The skill's `outside_scope` sentence now names typed `brief:`/`spec:` values and brief/spec paths only, and says other non-intent values such as ADR references are unparseable. The guide counts `export` as the eighth command.
+
 ### Visual polish review
 
 - Asked for after the contract-fit passes: a finish review over the real-export set and a fixture-state set, taken (latest at `6210b86e3`) with the throwaway `/tmp/s8/polish.py` (outside the repository) from an export of the dependency fixture: `golf-faults` (`intent:golf`, Both, 1 step: 2 lines and 19 problem rows), `india-cycle` (`intent:india`, Both, All: a 3-intent cycle and two faults), `rootb-empty` (`capability:root-b`, empty state, keyboard focus on "Steps"), at 320 and 2560 CSS px in light and dark, height 1100.

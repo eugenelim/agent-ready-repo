@@ -1,6 +1,6 @@
 # Plan: Intent dependency graphs
 
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 - **Constrained by:** RFC-0106 D3; RFC-0105; RFC-0103; RFC-0108 D1
 - **Repository anchors:** `packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py` (`_VALID_OPS`, `run_query`, `_check_limits`, `_check_text_byte_limit`, `_resolve_identity`, `build_view_payload`, `_scope_node_ids`); `intent_graph.py` (`_walk_artifact_dir`, `_read_artifact_bytes`, `_decode_utf8`, `_preamble_visible`, `_value_form_intent_parent`, `_resolve_intent_typed`, `_resolve_intent_path`, `_make_related_edges` as the closest analogue); `view_assets/view.js` (`renderDetail`, `recordDetails`, `brokenEntries`, `brokenOf`, `parseRoute`, `hashFor`, `GROUP_LABELS`, `STATE_HELP`, `MARKS`); `view_assets/view.css`. Tests: `packs/core/tests/skills/navigate-intents/test_query_contract.py`, `test_related_intents.py`, `test_export_payload.py`, `test_export_html.py`, `view_browser_checks.py`, `view_bench.py`, and `navigate_intents_fixture_builders.py`.
