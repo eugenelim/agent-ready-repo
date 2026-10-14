@@ -1981,6 +1981,18 @@ def _dependency_records(
     return {"edges": edge_list, "diagnostics": pointer_diags + cycles}
 
 
+def _dependency_adjacency(
+    records: dict[str, list[dict[str, Any]]],
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Return ``(prerequisites, dependents)`` adjacency over the resolved edges."""
+    forward: dict[str, list[str]] = {}
+    backward: dict[str, list[str]] = {}
+    for e in records["edges"]:
+        forward.setdefault(e["from"], []).append(e["to"])
+        backward.setdefault(e["to"], []).append(e["from"])
+    return forward, backward
+
+
 def _dependency_steps(
     records: dict[str, list[dict[str, Any]]], start: str, direction: str, depth: int | None,
 ) -> dict[str, int]:
@@ -1989,11 +2001,7 @@ def _dependency_steps(
     Breadth-first along prerequisites, dependents, or both (each intent keeps
     its smaller count). ``depth`` ``None`` means no limit.
     """
-    forward: dict[str, list[str]] = {}
-    backward: dict[str, list[str]] = {}
-    for e in records["edges"]:
-        forward.setdefault(e["from"], []).append(e["to"])
-        backward.setdefault(e["to"], []).append(e["from"])
+    forward, backward = _dependency_adjacency(records)
     adjacency = {"prerequisites": [forward], "dependents": [backward],
                  "both": [forward, backward]}[direction]
     steps: dict[str, int] = {start: 0}
@@ -2033,11 +2041,7 @@ def _dependency_linked_set(
     """Return *starts* plus every intent reachable from any of them along
     prerequisites, and every intent reachable along dependents (one unlimited
     breadth-first pass each way)."""
-    forward: dict[str, list[str]] = {}
-    backward: dict[str, list[str]] = {}
-    for e in records["edges"]:
-        forward.setdefault(e["from"], []).append(e["to"])
-        backward.setdefault(e["to"], []).append(e["from"])
+    forward, backward = _dependency_adjacency(records)
     linked = set(starts)
     for adj in (forward, backward):
         seen = set(starts)
