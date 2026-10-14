@@ -5,14 +5,28 @@ VI-4010 (AC-0007, AC-0009), VI-4011 (AC-0005), VI-4012 (AC-0006), VI-4013.
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import supervisor_support as sup  # noqa: E402
+
+def _helper(name: str) -> ModuleType:
+    """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
+    alias = f"core_work_loop_{name}"
+    if alias not in sys.modules:
+        path = Path(__file__).resolve().parent / f"{name}.py"
+        spec = importlib.util.spec_from_file_location(alias, path)
+        assert spec is not None and spec.loader is not None
+        sys.modules[alias] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sys.modules[alias])
+    return sys.modules[alias]
+
+
+sup = _helper("supervisor_support")
 
 proj = sup.load("_supervisor_projector.py")
 

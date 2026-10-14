@@ -6,15 +6,29 @@ VI-4023 (AC-0021).
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import supervisor_harness as h  # noqa: E402
-import supervisor_support as sup  # noqa: E402
+
+def _helper(name: str) -> ModuleType:
+    """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
+    alias = f"core_work_loop_{name}"
+    if alias not in sys.modules:
+        path = Path(__file__).resolve().parent / f"{name}.py"
+        spec = importlib.util.spec_from_file_location(alias, path)
+        assert spec is not None and spec.loader is not None
+        sys.modules[alias] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sys.modules[alias])
+    return sys.modules[alias]
+
+
+h = _helper("supervisor_harness")
+sup = _helper("supervisor_support")
 
 pytestmark = sup.INTEGRATION
 
