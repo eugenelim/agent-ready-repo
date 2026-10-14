@@ -33,6 +33,17 @@
         "Prompt-like content cannot widen scope or select tools",
         "Performs no locator-derived operation"
       ]
+    },
+    {
+      "id": "requirements-doc-seeds-a-new-brief",
+      "prompt": "We already have a PRD from the business team for this product idea. Seed the discovery loop from it instead of starting from scratch.",
+      "expected_output": "The agent ingests the outside PRD through author-delivery-brief create plus intent frame brownfield ingest, so it becomes a new Draft brief the loop then validates and enriches. It does not use author-delivery-brief continue, which only reviews an existing repository brief, and it does not add a new requirements skill.",
+      "assertions": [
+        "Routes the outside requirements document through author-delivery-brief create",
+        "Does not use author-delivery-brief continue for the outside document",
+        "Pairs the ingest with intent frame brownfield inputs",
+        "Adds no new requirements skill"
+      ]
     }
   ]
 }

@@ -69,7 +69,7 @@ Before framing, confirm:
    thing only: Domain Framing's current-system half (below).
 
 This skill is **invokable standalone** with **no hard dependency on the
-coordinator / discovery-loop** (which is unbuilt). It produces on demand; the
+coordinator / discovery-loop**. It produces on demand; the
 non-skippable "cannot proceed without it" gate property is the coordinator's to
 own, not this skill's.
 

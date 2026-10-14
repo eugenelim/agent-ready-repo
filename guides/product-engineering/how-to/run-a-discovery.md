@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** You have a raw product idea and want a ratified, build-ready decision brief by running the full discovery loop through three consent gates — without skipping the divergence, lensing, and validation steps.
 **Prerequisites:** `product-engineering` pack installed; a harness that supports human-in-the-loop gate pauses with an append-only verdict store.
-**Result:** A ratified decision brief with a validated spine, ordered dependency-aware backlog, and validation plan, handed to `work-loop` at G3.
+**Result:** A ratified decision brief with a validated spine, ordered dependency-aware backlog, and validation plan, handed off through `work-intake` at G3.
 
 :::note
 **Diátaxis: how-to.** A goal-oriented walk through the discovery loop. For *why* it is shaped this way, see the explanation [*The discovery loop*](../explanation/the-discovery-loop.md); for a fully worked example, the tutorial [*Walk a discovery end-to-end*](../tutorials/walk-a-discovery-end-to-end.md); for the slots and roster, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md).
@@ -72,4 +72,4 @@ At **G3** the brief decomposes into an ordered, dependency-aware backlog (parked
 ## What you have now
 
 - A ratified decision brief with a validated spine, ordered backlog, and validation plan after the required consent gates.
-- At G3, hand the approved delivery item to `work-loop`; unresolved validation remains visible rather than silently accepted.
+- At G3, submit the approved delivery item through `work-intake`; unresolved validation remains visible rather than silently accepted.

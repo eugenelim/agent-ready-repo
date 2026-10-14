@@ -14,7 +14,7 @@ Turn a **raw product idea** into a ratified, **build-ready decision brief**. Thi
 is the **upstream** loop — the peer of `work-loop`'s downstream spec→build loop —
 run by the **`discovery-lead`** agent. It **diverges** across candidate product
 shapes, **converges** the chosen one through a lens roster, **pauses at a few
-human sign-off points**, and **hands off to `work-loop` at G3** — **with no new
+human sign-off points**, and **hands off through `work-intake` at G3** — **with no new
 engine, scheduler, service, message bus, or convergence solver.**
 
 The whole capability is **content, not runtime** (CHARTER Principle 3): a
@@ -376,8 +376,8 @@ in their format for sign-off. The full crosswalk is
 [`references/requirements-crosswalk.md`](references/requirements-crosswalk.md). In
 brief:
 
-- **Requirements as input** — `author-delivery-brief continue` + `intent frame` brownfield ingest
-  seeds the loop (a thin `author-delivery-brief continue` extension at most — **not** a new skill).
+- **Requirements as input** — `author-delivery-brief create` + `intent frame` brownfield ingest
+  seeds the loop (a thin `author-delivery-brief create` extension at most — **not** a new skill).
 - **The traceability slot serves as the RTM.**
 - **Requirements as output** — a formal BRD/SRS/RTM with sign-off rides the
   **converters / md-to-office projection adapter**, not a discovery

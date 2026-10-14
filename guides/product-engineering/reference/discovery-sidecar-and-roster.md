@@ -75,6 +75,6 @@ The two discovery reviewers are **distinct agents from `work-loop`'s code `secur
 | G1 | Strategy | auto unless a risk trigger fires |
 | G1.5 | Domain & MVP (after divergence) | consent — ratify the altitude/MVP bet |
 | G2 | Convergence (after self-coverage + reviewers) | consent — ratify the "what"; adjudicate value conflict |
-| G3 | Handoff | hand off to `work-loop` |
+| G3 | Handoff | hand off through `work-intake` |
 
 Bounds (round / cost / concentration ~40% / depth / breadth) are **pause-and-confirm gates**, never auto-terminals: hitting one sets `paused-at-bound` and surfaces the verdict set.
