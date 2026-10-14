@@ -1094,12 +1094,20 @@
     return { counts: counts, edges: edges, pointers: pointers, cycles: ordered };
   }
 
-  function dependencyLine(entry) {
+  // One line reads waiting end, then "waits for" with the prerequisite end, so the
+  // connector stays with the name it points to; the picked intent's end is marked.
+  function dependencyEnd(id, picked, cls) {
+    var end = el('span', id === picked ? cls + ' dep-self' : cls);
+    add(end, namedIntent(id));
+    return end;
+  }
+  function dependencyLine(entry, picked) {
     var li = el('li', 'edge dep-line');
-    var line = add(li, el('div', 'edge-line'));
-    add(add(line, el('span', 'dep-waiting')), namedIntent(entry.edge.from));
-    add(line, el('span', 'dep-word', 'waits for'));
-    add(add(line, el('span', 'dep-prereq')), namedIntent(entry.edge.to));
+    var row = add(li, el('div', 'dep-row'));
+    add(row, dependencyEnd(entry.edge.from, picked, 'dep-waiting'));
+    var to = add(row, el('span', 'dep-to'));
+    add(to, el('span', 'dep-word', 'waits for'));
+    add(to, dependencyEnd(entry.edge.to, picked, 'dep-prereq'));
     return li;
   }
 
@@ -1142,7 +1150,7 @@
     if (res.edges.length) {
       add(dom.depBody, el('p', 'note dep-sort', 'Nearest first, then by name'));
       var ul = add(dom.depBody, el('ul', 'plain dep-lines'));
-      res.edges.forEach(function (entry) { add(ul, dependencyLine(entry)); });
+      res.edges.forEach(function (entry) { add(ul, dependencyLine(entry, id)); });
     } else {
       add(dom.depBody, el('p', 'empty', has ? 'No line to show. Its Depends on: values are listed below.' :
         EMPTY_LINES[dir]));

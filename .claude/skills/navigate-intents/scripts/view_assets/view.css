@@ -74,6 +74,20 @@
 .dep-controls { display: flex; flex-wrap: wrap; gap: var(--s-3); margin: var(--s-2) 0; }
 .dep-controls .field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; max-width: 100%; }
 .dep-controls select { max-width: 100%; min-width: 0; }
-.dep-line .edge-line, .dep-diag .edge-line { min-width: 0; max-width: 100%; }
+.dep-diag .edge-line { min-width: 0; max-width: 100%; }
+/* A dependency line is one ruled unit: two rows when narrow, three aligned tracks when the part is wide. */
+.dep-lines { container-type: inline-size; }
+.dep-line { border-bottom-width: 1px; border-bottom-style: solid; padding: var(--s-1) 0; }
+.dep-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1) var(--s-3); align-items: baseline; }
+.dep-to { display: flex; gap: var(--s-2); align-items: baseline; min-width: 0; padding-left: var(--s-3); }
+.dep-word { flex: none; }
+.named { display: inline-flex; flex-wrap: wrap; gap: 0 var(--s-2); align-items: baseline; }
+.named .mark { white-space: nowrap; }
+/* The picked intent's end carries the same 3px left rule a selected row does. */
+.dep-self { border-left-width: 3px; border-left-style: solid; padding-left: var(--s-1); }
+@container (min-width: 40rem) {
+  .dep-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .dep-to { padding-left: 0; }
+}
 .dep-waiting, .dep-prereq, .dep-source, .dep-members, .named { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .dep-members { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
