@@ -17,6 +17,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import supervisor_harness as h  # noqa: E402
+import supervisor_support as sup  # noqa: E402
+
+pytestmark = sup.INTEGRATION
 
 SPEC = h.SPEC_DIR
 

@@ -251,6 +251,8 @@ jobs:
           PYTHONUTF8: "1"
         run: >-
           python -m pytest
+          packs/core/tests/skills/work-loop/test_supervisor_admission.py
+          packs/core/tests/skills/work-loop/test_supervisor_commit.py
           packs/core/tests/skills/work-loop/test_supervisor_crash_corpus.py
           packs/core/tests/skills/work-loop/test_supervisor_effects.py
           packs/core/tests/skills/work-loop/test_supervisor_step_loop.py
