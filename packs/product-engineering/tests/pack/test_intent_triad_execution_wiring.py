@@ -357,3 +357,46 @@ def test_discovery_loop_points_at_the_menu() -> None:
     )
     assert "`intent`" in when
     assert "## Route mode" in when
+
+
+# --- The G3 handoff and requirements ingest name the right Core skills ------
+
+REQUIREMENTS_CROSSWALK = (
+    SKILLS / "discovery-loop" / "references" / "requirements-crosswalk.md"
+)
+_HANDOFF_TO_WORK_LOOP = re.compile(r"hand(?:s|ed)? (?:off )?to `?work-loop")
+
+
+def test_no_discovery_surface_hands_off_to_work_loop() -> None:
+    """The loop hands off through `work-intake`; `work-loop` is only its peer.
+
+    Matching the handoff verb, not the name, leaves the legitimate peer
+    mentions of `work-loop` free.
+    """
+    for path in (DISCOVERY_LOOP, DISCOVERY_LEAD):
+        flat = _flat(path.read_text(encoding="utf-8"))
+        assert not _HANDOFF_TO_WORK_LOOP.search(flat), (
+            path.name,
+            _HANDOFF_TO_WORK_LOOP.search(flat),
+        )
+    lead = _flat(DISCOVERY_LEAD.read_text(encoding="utf-8"))
+    assert "hands off through work-intake at G3" in lead
+    assert "hand off through `work-intake` at **G3**" in lead
+
+
+def test_requirements_ingest_creates_a_new_brief() -> None:
+    """An outside BRD/PRD/SRS becomes a new Draft brief, so ingest uses `create`.
+
+    `continue` reviews an existing repository brief, which an outside
+    requirements document is not.
+    """
+    skill = _list_item_containing(
+        DISCOVERY_LOOP.read_text(encoding="utf-8"), "**Requirements as input**"
+    )
+    crosswalk = _list_item_containing(
+        REQUIREMENTS_CROSSWALK.read_text(encoding="utf-8"),
+        "**Requirements as input (ingest).**",
+    )
+    for item in (skill, crosswalk):
+        assert "`author-delivery-brief create`" in item, item
+        assert "author-delivery-brief continue" not in item, item

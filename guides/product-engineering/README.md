@@ -145,7 +145,7 @@ guidebook.
 
 ## Tutorials
 
-- [Walk a discovery end-to-end](tutorials/walk-a-discovery-end-to-end.md) — follow one full discovery, from a raw idea to a ratified decision brief handed to `work-loop`, seeing each gate, a divergence, a rejection/recovery, and the validation hooks.
+- [Walk a discovery end-to-end](tutorials/walk-a-discovery-end-to-end.md) — follow one full discovery, from a raw idea to a ratified decision brief handed off through `work-intake`, seeing each gate, a divergence, a rejection/recovery, and the validation hooks.
 
 ## How-to
 
