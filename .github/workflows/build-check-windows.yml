@@ -126,7 +126,15 @@ jobs:
         # result is recorded as evidence for the Job Object launch path.
         continue-on-error: true
         timeout-minutes: 8  # DIAGNOSTIC (temporary): keep the log when a test hangs
-        run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety.py -v -rs -p no:cacheprovider -o faulthandler_timeout=45 --durations=15
+        run: |
+          $args = '-X faulthandler -c "import faulthandler, sys, pytest; faulthandler.dump_traceback_later(240, exit=True); sys.exit(pytest.main([''packs/core/tests/skills/work-loop/test_process_safety.py'', ''-v'', ''-rs'', ''-p'', ''no:cacheprovider'', ''-o'', ''faulthandler_timeout=40'']))"'
+          $p = Start-Process python -ArgumentList $args -NoNewWindow -PassThru -RedirectStandardOutput diag-out.txt -RedirectStandardError diag-err.txt
+          $done = $p.WaitForExit(300000)
+          Write-Output "DIAG exited=$done"
+          if (-not $done) { Stop-Process -Id $p.Id -Force }
+          Get-Content diag-out.txt
+          Get-Content diag-err.txt
+          Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId, Name, CommandLine | Format-Table -AutoSize -Wrap | Out-String -Width 400
 
   credbroker-tests-windows:
     name: pytest credbroker (windows)
