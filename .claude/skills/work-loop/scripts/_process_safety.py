@@ -516,9 +516,9 @@ def _run_in_job(
                 break
             if remaining_ms() == 0:
                 break
-        if leader_done:
-            for thread in threads[:2]:
-                thread.join(remaining_ms() / 1000)
+        # Join in short slices so a cap breach after the leader exits narrows the wait.
+        while leader_done and remaining_ms() and any(t.is_alive() for t in threads[:2]):
+            next(t for t in threads[:2] if t.is_alive()).join(min(remaining_ms(), 50) / 1000)
         if not leader_done or any(thread.is_alive() for thread in threads[:2]):
             k32.TerminateJobObject(job, 1)
             for thread in threads:
