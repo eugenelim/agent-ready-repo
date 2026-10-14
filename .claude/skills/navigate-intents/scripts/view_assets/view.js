@@ -1115,6 +1115,16 @@
     return li;
   }
 
+  // The value in a code element with a <wbr> after each slash, backslash or colon so a long path breaks at a separator;
+  // the element's text is the value itself.
+  function breakableValue(value) {
+    var code = el('code', 'value');
+    String(value).split(/([\/\\:])/).forEach(function (piece, i) {
+      if (i % 2) { text(code, piece); add(code, document.createElement('wbr')); } else if (piece) { text(code, piece); }
+    });
+    return code;
+  }
+
   function dependencyFault(d) {
     var li = el('li', 'edge dep-diag');
     var line = add(li, el('div', 'edge-line'));
@@ -1125,7 +1135,7 @@
       add(line, chip || el('span', 'value', String(d.state)));
     }
     add(add(line, el('span', 'dep-source')), namedIntent(d.from));
-    add(line, el('code', 'value', isStr(d.value) ? d.value : ''));
+    add(line, breakableValue(isStr(d.value) ? d.value : ''));
     if (outside) { add(line, el('span', 'note-inline', 'not an intent, outside this view')); }
     return li;
   }

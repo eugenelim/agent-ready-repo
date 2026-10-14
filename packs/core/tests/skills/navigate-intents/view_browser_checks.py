@@ -2317,7 +2317,7 @@ def test_vi_3002_diagnostics_order_marks_and_code_values(opener: Any, exports: d
     part = _detail_part(page, "Dependencies")
     golf = [d for d in payload["dependencies"]["diagnostics"] if d.get("from") == "intent:golf"]
     items = part.locator("li.dep-diag")
-    assert items.count() == len(golf) == 11
+    assert items.count() == len(golf) == 19
     shown = _page_part(page)["pointers"]
     assert shown == [[d["from"], d["value"], d["state"]] for d in golf]  # written order
     for i, d in enumerate(golf):
