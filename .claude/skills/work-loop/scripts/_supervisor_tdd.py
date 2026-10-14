@@ -137,7 +137,7 @@ def _write_inside(root: Path, rel: str, content: bytes) -> None:
     try:
         if target.is_symlink():
             raise OSError("the stub path is a link")
-        fd = os.open(target, flags, 0o644)
+        fd = os.open(target, flags, 0o600)
     except OSError as exc:
         raise Refusal("red-proof-link-refused", "controller", f"{rel}: {exc}") from exc
     with os.fdopen(fd, "wb") as handle:

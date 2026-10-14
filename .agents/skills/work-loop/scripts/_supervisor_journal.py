@@ -129,7 +129,7 @@ class LocalState:
         self._append(self.journal, {"schema_version": 1, **line})
         kill_point("journal")
 
-    def audit_sink(self) -> Callable[[object], None]:
+    def security_sink(self) -> Callable[[object], None]:
         """An audit sink that durably appends each security event locally."""
 
         def sink(event: object) -> None:
