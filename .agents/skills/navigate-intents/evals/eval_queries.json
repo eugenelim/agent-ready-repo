@@ -168,6 +168,10 @@
     "should_trigger": false
   },
   {
+    "query": "Export the offline intent view so I can pick what to work on this session",
+    "should_trigger": true
+  },
+  {
     "query": "Export our ADRs and RFCs as an offline HTML explorer",
     "should_trigger": false
   },

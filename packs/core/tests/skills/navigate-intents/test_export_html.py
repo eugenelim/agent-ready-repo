@@ -29,6 +29,9 @@ _PACK = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _ASSETS = _SCRIPTS / "view_assets"
 _FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
+_BASE_CSS = (_ASSETS / "view-base.css").read_text(encoding="utf-8")
+_LAYOUT_CSS = (_ASSETS / "view.css").read_text(encoding="utf-8")
+_STYLE_TEXT = _BASE_CSS + "\n" + _LAYOUT_CSS
 
 
 def _load(path: pathlib.Path, module_name: str) -> Any:
@@ -128,7 +131,7 @@ def test_csp_is_first_head_child_and_pins_both_digests(mixed_html: str) -> None:
     )
     assert shape.executable == 1 and shape.style_elements == 1
     assert script == (_ASSETS / "view.js").read_text(encoding="utf-8")
-    assert style == (_ASSETS / "view.css").read_text(encoding="utf-8")
+    assert style == _STYLE_TEXT
 
 
 def test_page_has_no_banned_elements_attributes_or_urls(mixed_html: str) -> None:
@@ -192,6 +195,10 @@ def test_script_holds_no_forbidden_api() -> None:
     ):
         assert token not in code, token
     assert not re.search(r"set(Timeout|Interval)\(\s*['\"`]", code)
+    # No inline style writes: a property write, a cssText write, or a style attribute.
+    assert not re.search(r"\.style\b", code)
+    assert "cssText" not in code
+    assert not re.search(r"setAttribute\(\s*['\"]style['\"]", code)
     for char in code:
         assert not (ord(char) > 0x7E or (ord(char) < 0x20 and char not in "\n\t")), hex(ord(char))
 
@@ -231,7 +238,22 @@ def test_escape_function_matches_the_text_output() -> None:
     assert json.loads(done.stdout) == [nav._escape_display(p) for p in probes]
 
 
-def test_stylesheet_declares_no_motion() -> None:
-    css = (_ASSETS / "view.css").read_text(encoding="utf-8")
-    for word in ("transition", "animation", "@keyframes"):
-        assert word not in css
+def test_stylesheets_declare_no_motion_or_external_loads() -> None:
+    """Neither stylesheet may animate, load a url, or import another sheet."""
+    for css in (_BASE_CSS, _LAYOUT_CSS):
+        for word in ("transition", "animation", "@keyframes", "url(", "@import"):
+            assert word not in css
+
+
+def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
+    """The layout sheet arranges only: no colour literal, font family, or token declaration."""
+    css = re.sub(r"/\*.*?\*/", "", _LAYOUT_CSS, flags=re.DOTALL)
+    assert not re.search(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\b(?:hwb|lab|lch|oklab|oklch)\(", css)
+    assert not re.search(
+        r"(?<![\w-])(?:transparent|currentcolor|white|black|red|green|blue|gray|grey)(?![\w-])", css
+    )
+    assert "font-family" not in css
+    assert not re.search(r"(?<![\w(])--(?:c|t)-[\w-]*\s*:", css)
+    # Colour roles and type weight belong to the shared base, not to the layout.
+    assert "var(--c-" not in css
+    assert not re.search(r"font-weight|(?<![\w-])font\s*:", css)

@@ -185,8 +185,18 @@ the argument parser rejects the command before a query is formed.
 ``export`` writes one self-contained HTML file that shows the whole intent
 graph: every live intent, brief, and spec header fact, and every parent,
 pointer, delivery, related, and refused edge the query returns.  The page
-has a summary strip and Tree, Outstanding, Refused edges, and Parentless
-views with search and filters, and each node links to its source file.
+opens on four questions in a nav: "What can I work on next?" (open work in
+a startable stage, then accepted intents with nothing beneath them),
+"What is still open under a capability?", "What has no parent?", and "What is
+broken?".  "Browse all intents" shows the whole tree with level, kind, and
+status filters, and a header search covers intents, briefs, and specs.  Each
+row leads with the human name, shows its state as a word plus a shape, and
+carries a context tag; a Key opens on demand.  Picking a row shows a detail
+panel with the state line, a Next step (which skill to use and why, in plain
+words), what is open beneath it, what is broken, where it sits, a link to the
+source file, and collapsed record details.  The page says readiness is not
+checked in the snapshot.  It adapts its layout at 40rem and 90rem and follows
+the system light or dark theme.
 
 ```bash
 # Whole corpus, into the system temporary directory as

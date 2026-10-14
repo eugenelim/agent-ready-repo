@@ -2462,6 +2462,8 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 10 of `intent-navigation-delivery`, shipped 2026-10-13 (core 3.1.2); moved from `active` when the spec was set Shipped.
+  { path = "docs/specs/intent-view-session-start/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Redesign the offline intent view around four session-start questions, with the shared view stylesheet and its parity gate", needs = [] },
   { path = "docs/specs/intent-node-headings/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Give brief and spec nodes a heading from their title line, bounded to the preamble region, and carry it on outstanding items", needs = [] },
   # Slices 1 and 4 of `intent-navigation-delivery`, delivered 2026-10-11 on `feature/intent-navigation`
   # and published with it; moved from `active` in the same commit that set both specs `Shipped`.
