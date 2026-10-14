@@ -2,45 +2,46 @@
 
 > Discipline: applied (practitioner-pattern survey)
 
-Surveyed 2026-10-13. Scope: how the `product-engineering` pack should group its nine
-longer-route and supervised shaping skills now that folding them into verb modes has
-failed twice. The nine are `frame-situation`, `identify-opportunities`,
-`diverge-solutions`, `explore-options`, `plan-validation`, `place-bet`,
-`map-capabilities`, `frame-domain`, and `lean-canvas`. This is research only. It changes
-no skill, pack, test, or decision record.
+Surveyed 2026-10-13; updated 2026-10-14 after option C shipped. Scope: how the
+`product-engineering` pack should group its nine longer-route and supervised shaping
+skills now that folding them into verb modes has failed twice. The nine are
+`frame-situation`, `identify-opportunities`, `diverge-solutions`, `explore-options`,
+`plan-validation`, `place-bet`, `map-capabilities`, `frame-domain`, and `lean-canvas`.
 
 ## Answer
 
-Keep the nine skills narrow. Test a rewrite of their descriptions in the words users
-say, and ship it only if it holds activation. Treat listing cost as a catalogue
-problem, not a problem inside this pack.
+Keep the nine skills narrow. Their descriptions now lead with the words users say
+(option C, shipped in `product-engineering` 1.0.4). Treat what is left of listing cost
+as a catalogue problem, not a problem inside this pack.
 
 - **Keep them narrow (option A as the structure).** Every fold lost activation. The
   only thing a fold fixed was listing cost, and that cost is catalogue-wide anyway.
-- **Rewrite the nine descriptions if Experiment 1 passes (option C).** Lead with the
-  artifact and the user's own words, not "Step 5 of the PE six-step shaping sequence".
-  Keep only the fencing a probe has shown is needed. Aim for about 350 characters each.
-  That cuts the nine from 5,059 to about 3,150 characters, a 38% cut. The narrow
-  descriptions have the most room to gain: on the fresher query set they fired only 57%
-  of the time. The case that wording causes those misses is weak, so the experiment
-  decides.
-- **If the rewrite loses activation, cut listing cost another way.** Use option D (move
-  the nine to an optional pack) or option I (make rare steps callable by name only).
+- **Option C has shipped.** Each description opens with the artifact or outcome in the
+  user's words, not "Step 5 of the PE six-step shaping sequence". The nine went from
+  5,059 to 2,801 characters, a 45% cut, and the pack's listing from 8,670 to 6,412.
+  - Against the committed eval files, the rewrite holds: 40 of 46 queries pass, against
+    41 of 46 before, with no false triggers.
+  - A cold probe routes all 72 runs to the right skill.
+  - The owner shipped it without the held-out run, so whether it *raises* activation on
+    paraphrased requests is still unmeasured. Experiment 1 now checks that after the
+    fact. See [What the shipped rewrite shows](#what-the-shipped-rewrite-shows).
+- **If Experiment 1 shows a loss, revert the skills that lost and cut listing cost
+  another way.** Use option D (move the nine to an optional pack) or option I (make rare
+  steps callable by name only).
 - **Treat listing cost as a catalogue rule (option E).** Set a per-description length
-  budget and size each install profile against the host budgets. Core alone (10,552
-  characters) is already over Codex's 8,000-character fallback, so no change inside this
-  pack can fix that. A cap alone is not enough either: a profile fits 8,000 characters
-  only at about 20 skills of 350 characters each.
+  budget and size each install profile against the host budgets. Core alone (10,671
+  characters today) is already over Codex's 8,000-character fallback, so no change inside
+  this pack can fix that. A cap alone is not enough either: a profile fits 8,000
+  characters only at about 20 skills of 350 characters each.
 - **Raise D's priority only if Experiment 2 shows that removing the nine raises
   activation of the skills that stay.**
 - **Do not fold again (options B and F),** and do not rely on Claude-Code-only fields
   or hooks (options G and H).
 
-The top two options are **C** (rewrite the descriptions and keep the skills where they
-are) and **D** (move the skills out of the default install). Three experiments on the
-existing harness decide between them. They take 1,242 headless sessions, or up to about
-1,640 with the conditional re-runs. See
-[Experiments](#experiments-that-decide-c-versus-d).
+The open question is now **C as shipped** against **D** (move the skills out of the
+default install). Three experiments on the existing harness settle it. They take 1,242
+headless sessions, or up to about 1,640 with the conditional re-runs. See
+[Experiments](#experiments-that-remain).
 
 ## Terms used here
 
@@ -170,7 +171,10 @@ with the applied-mode overlay. Every downgrade names its reason.
   against narrow skills. Only community posts claim that "I do everything" descriptions
   are ignored, and none of those was fetched.
 
-### What the narrow descriptions get wrong today
+### What the narrow descriptions got wrong before C
+
+This section diagnoses the descriptions as they stood before 1.0.4, at commit
+`d5e916d7c`. Option C replaced them.
 
 - **[moderate]** The nine narrow skills fired far less on the fresher query set.
   Averaged over the nine groups, the pre-fold rate was 0.93 on the 2026-10-11 set and
@@ -196,9 +200,9 @@ with the applied-mode overlay. Every downgrade names its reason.
   | `diverge-solutions` | "Use at step 3 of the PE shaping sequence…" | 1.00 | 0.33 |
   | `place-bet` | "Step 5 of the PE six-step shaping sequence — the bet-commitment gate." | 0.67 | 0.20 |
 
-  `place-bet` and `diverge-solutions` carry no trigger phrases at all. The held-out bet
+  `place-bet` and `diverge-solutions` carried no trigger phrases at all. The held-out bet
   queries say "make the call", "choose between", "commit… fund", and "write the decision
-  record". None of those phrasings appears in the `place-bet` description. [synthesis,
+  record". None of those phrasings appeared in the old `place-bet` description. [synthesis,
   local descriptions and queries] Downgraded: nine skills, five queries each, and no
   controlled test of wording.
 - **[high]** Vendor guidance agrees on the fix in principle. Say what the skill does and
@@ -213,23 +217,53 @@ with the applied-mode overlay. Every downgrade names its reason.
   The advice is high. No source measures how much it gains, so the size of the gain is
   `[uncertain]`.
 
+### What the shipped rewrite shows
+
+Option C shipped on 2026-10-14 in `product-engineering` 1.0.4
+([PR #1559](https://github.com/eugenelim/agent-ready-repo/pull/1559)). The evidence
+below was gathered on the shipped text.
+
+- **[moderate]** On the three skills that have committed eval files, the rewrite holds
+  activation. Each query ran three times in each version, with zero errored runs:
+
+  | Skill | Queries passed, before → after | Positive rate, before → after | False triggers |
+  | --- | ---: | ---: | ---: |
+  | `explore-options` | 12/14 → 12/14 | 0.714 → 0.667 | 0 → 0 |
+  | `frame-domain` | 16/17 → 15/17 | 0.852 → 0.815 | 0 → 0 |
+  | `plan-validation` | 13/15 → 13/15 | 0.750 → 0.750 | 0 → 0 |
+
+  Each remaining drop is one query moving one run of three. Downgraded: 46 queries, and
+  the eval files were written against the old descriptions' trigger phrases, so they
+  favour the old wording. They cannot show a gain on paraphrased requests.
+- **[moderate]** The rewrite created no wrong picks among the probe's cases. The
+  24-case cold probe routed 72 of 72 runs to the right skill, with every case at high
+  confidence in at least two of three runs. Downgraded: the probe is forced choice, so
+  it measures routing, not activation, and it has no negative cases.
+- **[moderate]** A trigger phrase is also fencing. A first draft of `plan-validation`
+  added "write an interview guide". That made "Design the research study for customer
+  interviews", a query the skill should not take, fire it in 3 of 3 runs. Removing the
+  phrase brought it back to 0 of 3. The eval file's negatives caught this; the probe has
+  no such case and did not. Six of the nine skills have no eval file, so nothing would
+  catch the same slip in them. Downgraded: one observed case.
+
 ### What listing cost really is
 
-- **[high]** Listing cost is catalogue-wide. Description characters, measured
-  2026-10-13:
+- **[high]** Listing cost is catalogue-wide. Description characters, as parsed
+  description text:
 
-  | Surface | Skills | Characters |
-  | --- | ---: | ---: |
-  | Core | 21 | 10,552 |
-  | `experience-design` | 12 | 9,534 |
-  | `desk-research` | 12 | 8,901 |
-  | `product-engineering` | 13 | 8,654 |
-  | The nine longer-route skills | 9 | 5,059 |
-  | Whole catalogue | 132 | 73,412 |
+  | Surface | Skills | Before C (2026-10-13) | After C (2026-10-14) |
+  | --- | ---: | ---: | ---: |
+  | Core | 21 | 10,552 | 10,671 |
+  | `experience-design` | 12 | 9,534 | — |
+  | `desk-research` | 12 | 8,901 | — |
+  | `product-engineering` | 13 | 8,654 (8,670 just before C) | 6,412 |
+  | The nine longer-route skills | 9 | 5,059 | 2,801 |
+  | Whole catalogue | 132 | 73,412 | about 71,300 |
 
-  The nine are 58% of this pack and 6.9% of the catalogue. Core alone is 32% over
-  Codex's 8,000-character fallback. Counts are parsed description text, measured before
-  Core 3.1.2 and 3.1.3 merged the same day; Core is now about 10,670. Sources: the
+  Core grew between the two dates through its own releases, and two `product-engineering`
+  releases added 16 characters before C; the other packs were not re-measured. Before C, the nine were 58% of this pack and 6.9% of the catalogue. C
+  saved 2,258 characters, about 3% of the catalogue. Core alone is 33% over Codex's
+  8,000-character fallback. Sources: the
   [routing survey](pe-skill-routing-survey.md) for Codex's budget; local measurement for
   the counts. [synthesis]
 - **[moderate]** A length cap alone cannot fit a profile into Codex's fallback. At 8,000
@@ -238,8 +272,10 @@ with the applied-mode overlay. Every downgrade names its reason.
   Fitting Codex's fallback therefore means smaller profiles, or adopters raising
   `skills.max_context_tokens`. [inference, from the counts above]
 - **[uncertain]** The activation harness may itself overflow Claude Code's listing. The
-  three-pack world's pack descriptions total about 22,360 characters (Core 10,552,
-  `product-engineering` 8,654, `architect` 3,154), before the host's built-in skills.
+  slice 1b three-pack world's pack descriptions totalled about 22,360 characters (Core
+  10,552, `product-engineering` 8,654, `architect` 3,154), before the host's built-in
+  skills. Today's projection is about 20,240 (Core 10,671, `product-engineering` 6,412,
+  `architect` 3,154).
   The open variable is the harness model's context window, which no record names. At
   1% of 200,000 tokens, the budget is about 2,000 tokens, or roughly 8,000 characters,
   and the listing overflows. At 1% of 1,000,000 tokens, it is about 40,000 characters,
@@ -256,21 +292,21 @@ them. "Churn" means renames, retired names, or install changes that adopters see
 
 | Option | Activation evidence | Collisions | Listing cost | Adopter churn | Host coverage |
 | --- | --- | --- | --- | --- | --- |
-| **A. Today's hybrid:** `intent` for the short route, nine narrow skills | Measured baseline: 0.93 / 0.57 on the two sets for the nine groups | None measured (24 of 24 probe) | 5,059 | None | All five |
+| **A. The pre-1.0.4 baseline:** `intent` for the short route, nine narrow skills with the old descriptions | Measured baseline: 0.93 / 0.57 on the two sets for the nine groups | None measured (24 of 24 probe) | 5,059 | None | All five |
 | **B. Thin router `intent`, every step narrow again** (re-split `frame`, `de-risk`, `decompose`) | Untested. Might recover `de-risk` (0.70 → 0.53), but slice 1 passed overall | Low. The router overlaps every step's triggers | About +800 more (three descriptions back, smaller router) [inference] | High: re-adds names that slice 1 just retired, with no aliases (ADR-0054) | All five |
-| **C. Shorter narrow descriptions:** artifact noun and user words first, minimal fencing | Untested. Strongest indirect case: the weakest skills use internal vocabulary, and the nine fire only 57% on paraphrases | Risk if needed fencing is cut. A probe catches it | About 3,150 (−1,900, −38%) at 350 each | None: names unchanged | All five |
-| **D. Move the nine to an optional pack, or into `product-strategy`** | Same per-skill activation where installed. Zero where not installed | None new | 0 for adopters who skip the pack; 5,059 where installed | Medium: a pack split, a profile change, and cross-pack hand-offs | All five |
+| **C. Shorter narrow descriptions** (shipped in 1.0.4): artifact noun and user words first, minimal fencing | Eval files: 40 of 46 pass, against 41 of 46 before. Held-out effect unmeasured (Experiment 1) | None: probe 72 of 72. One new trigger phrase pulled a neighbour's request until it was removed | 2,801 (−2,258, −45%) | None: names unchanged | All five |
+| **D. Move the nine to an optional pack, or into `product-strategy`** | Same per-skill activation where installed. Zero where not installed | None new | 0 for adopters who skip the pack; 2,801 where installed | Medium: a pack split, a profile change, and cross-pack hand-offs | All five |
 | **E. Catalogue-wide description budget and install profiles** | No direct effect. Indirect if overflow is dropping descriptions | None | Catalogue-wide. A 350-character cap holds a 20-skill profile near 8,000 | Low per pack, but every pack is touched | All five. Profiles are pack-grained today (`profiles/*.toml`) |
 | **F. Fold only distinctive-noun steps** (for example `canvas` and `find` into `intent`) | Partly measured: canvas 1.00 → 0.93, find 0.73 → 0.80 | Low | Saves at most 959. But `intent` is at about 1,000 of 1,024 characters, so its description has no room to name more modes | Medium: two retired names | All five |
 | **G. Claude Code's `when_to_use` for extra trigger text** | Untested here. Adds text, not reach | None | Adds characters on Claude Code only | None | One host |
 | **H. A forced-evaluation prompt hook** (a hook that tells the model to check every skill before answering) | One independent study (the sandboxed-evals post): about 50% → 100% on 22 prompts, but more false triggers on no-skill prompts | Raises the false-trigger risk | 0 in the listing; the hook text costs context on every turn | None | Claude Code only (hooks are host-specific) |
 | **I. Explicit-only for rare steps** (`disable-model-invocation` or Codex's `allow_implicit_invocation: false`), reached through the `intent` route hand-off | Activation goes to zero by design. Reach depends on the route mode naming the step | None | Saves each hidden skill's characters | Low: names unchanged, behavior changes | Four hosts. Gemini CLI disables only per user |
 
-### Why C leads, and why D is the runner-up
+### Why C came first, and why D is the runner-up
 
 - C targets the measured failure: a skill that should fire stays silent. The fresher
   set's rate of 0.57 leaves the most room to gain, and C costs adopters nothing.
-- C saves only 2.6% of the catalogue listing. It cannot bring any profile under Codex's
+- C saved about 3% of the catalogue listing. It cannot bring any profile under Codex's
   fallback on its own. E sets the rule for that across packs, but only smaller profiles
   or a raised Codex budget actually fit.
 - D is the clean answer if removing the nine raises activation of the skills that stay,
@@ -279,10 +315,11 @@ them. "Churn" means renames, retired names, or install changes that adopters see
 - B and F reopen folds the evidence has already priced. G and H reach one host. I gives
   up natural-language reach for the steps it hides.
 
-## Experiments that decide C versus D
+## Experiments that remain
 
-Experiment 1 decides whether C ships. Experiment 2 decides whether D is worth its churn.
-Experiment 0 sets the listing budget both of them run under.
+Experiment 1 checks whether shipped C kept or raised activation on paraphrased
+requests. Experiment 2 decides whether D is worth its churn. Experiment 0 sets the
+listing budget both of them run under.
 
 ### The harness
 
@@ -332,11 +369,11 @@ its standard error is probably 0.04 to 0.05. So each experiment measures its own
 - State every result in SE units, with an absolute floor so a lucky quiet run cannot
   set a tiny bar.
 
-### Experiment 1: do rewritten narrow descriptions hold activation? (decides C)
+### Experiment 1: did the shipped rewrite hold activation? (keeps or reverts C)
 
-- **Arms:** A (today's nine descriptions), A again (for SE), and C (rewritten). Same
-  projection and model, paired on one query set.
-- **Set:** 66 queries.
+- **Arms:** A (the nine descriptions before 1.0.4, at commit `d5e916d7c`), A again (for
+  SE), and C (as shipped in 1.0.4). Same projection and model, paired on one query set.
+- **Set:** 66 fresh queries.
   - 54 positives, six per skill, written as a user would ask, without the skill's own
     nouns.
   - 12 negatives, two each owned by `intent`, `discovery-loop`, `intake-intent`,
@@ -344,22 +381,18 @@ its standard error is probably 0.04 to 0.05. So each experiment measures its own
     projection.
 - **False trigger:** a run on a negative query in which any of the nine skills fires.
   The bound is at most 1 of 36 negative runs (0.03).
-- **C's constraints:** each description is at most 350 characters, and the nine total at
-  most 3,200. Each opens with the artifact or outcome in user words. Each keeps only
-  fencing against a neighbour the probe has confused.
-- **Probe first:** 18 cases (two per skill), three cold runs each. C must route all 54
-  runs to the right skill, with at least two of three runs per case at high confidence.
-  That is slice 1b's AC-0025 bar.
-- **Cost:** 66 queries × 3 runs × 3 arms = 594 headless sessions, plus 54 probe runs.
+- **Probe:** already passed for C. 24 cases × 3 cold runs routed 72 of 72 right, every
+  case at least two of three runs at high confidence.
+- **Cost:** 66 queries × 3 runs × 3 arms = 594 headless sessions.
 
 Let D1 = C's positive rate minus the mean of the two A runs. SE is computed against that
 same mean. C is held to the loss limit that rejected the folds: 0.03.
 
 | Outcome | Bound | Reading |
 | --- | --- | --- |
-| C wins | D1 ≥ max(0.06, 3 SE), false triggers ≤ 1 of 36, probe passes | Ship C. |
-| C holds | D1 − 2 SE > −0.03, false triggers ≤ 1 of 36, probe passes | Ship C for the 38% listing cut. Activation is neutral. |
-| C fails | D1 ≤ −0.03, or false triggers > 1 of 36, or the probe fails | Shorter loses reach. Get listing savings from D or I instead. |
+| C wins | D1 ≥ max(0.06, 3 SE), false triggers ≤ 1 of 36 | Keep C. Apply the same rewrite rules under E. |
+| C holds | D1 − 2 SE > −0.03, false triggers ≤ 1 of 36 | Keep C for the 45% listing cut. Activation is neutral. |
+| C fails | D1 ≤ −0.03, or false triggers > 1 of 36 | Revert the flagged skills below. Get listing savings from D or I instead. |
 | Inconclusive | D1 > −0.03 but D1 − 2 SE ≤ −0.03 | The noise is too wide to rule out a loss past the limit. Double the positives to 108 and re-run all three arms. |
 
 At an SE near 0.045, "C holds" needs D1 above about 0.06, so a neutral C will often read
@@ -369,9 +402,8 @@ one round. [inference]
 Each skill is also checked on its own, against its own control spread. For each skill,
 take the larger of 0.17 (one query's worth) and twice the gap between its two A runs. A
 skill is flagged when its C rate falls below its mean A rate by more than that, or falls
-to 0 from a non-zero A rate. A flagged skill keeps its old description. The mixed set of
-old and new descriptions is then run once more as its own arm (198 sessions) and must
-meet "C holds". The listing cut is restated from that mixed set's measured length.
+to 0 from a non-zero A rate. A flagged skill goes back to its old description. The mixed
+set is then run once more as its own arm (198 sessions) and must meet "C holds".
 
 ### Experiment 2: does removing the nine raise activation of the skills that stay? (decides D)
 
@@ -393,13 +425,19 @@ Let D2 = the rate with the nine removed minus the mean of the two runs today.
 | Outcome | Bound | Reading |
 | --- | --- | --- |
 | Removal helps | D2 ≥ max(0.06, 3 SE) | The nine's listing silences other skills. Raise D, and E's profile sizing, to the next change. |
-| No effect | D2 < max(0.04, 2 SE) | The nine cost budget only. Prefer C plus E. D stays in reserve for profiles that must fit 8,000 characters. |
+| No effect | D2 < max(0.04, 2 SE) | The nine cost budget only. Keep C and pursue E. D stays in reserve for profiles that must fit 8,000 characters. |
 | Unclear | max(0.04, 2 SE) ≤ D2 < max(0.06, 3 SE) | Repeat the removal arm once before deciding. |
 
 ## Known unknowns
 
 - **Known-unknown:** whether the slice 1b harness listing overflowed Claude Code's budget.
   Would be closed by: Experiment 0.
+- **Known-unknown:** whether shipped C raised or lowered activation on paraphrased
+  requests. Would be closed by: Experiment 1.
+- **Known-unknown:** how the six skills with no eval file behave after C:
+  `frame-situation`, `identify-opportunities`, `diverge-solutions`, `place-bet`,
+  `map-capabilities`, and `lean-canvas`. Would be closed by: an eval file for each,
+  including negatives owned by its nearest neighbour.
 - **Known-unknown:** activation on Codex, Cursor, Copilot, and Gemini CLI. Every rate
   here is Claude Code only. Would be closed by: a headless run of the same held-out set
   on each host, which needs a detector per host in `pack_evals`.
