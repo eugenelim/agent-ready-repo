@@ -219,6 +219,20 @@ def test_launch_contract_cases(ps: ModuleType, tmp_path: Path) -> None:
     assert info.value.denial_code == "denied-output-cap-exceeded"
 
 
+def test_output_past_the_pipe_buffer_that_then_ends_is_a_truncated_success(
+        ps: ModuleType, tmp_path: Path) -> None:
+    # Far more than one pipe buffer: the reader must keep draining past the cap,
+    # or the child blocks on its write and the launch reads as a flood.
+    spec = _spec(tmp_path, "import sys; sys.stdout.write('x' * 1048576)")
+    spec["output_bound_bytes"] = 100
+    result = ps.launch_safe_process(
+        spec, cwd_roots=(str(tmp_path),),
+        env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")},
+        audit_sink=_sink)
+    assert result.exit_code == 0
+    assert result.output_was_truncated and len(result.stdout_redacted) <= 100
+
+
 PROBE_HANDLE = r"""
 import ctypes, sys
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
