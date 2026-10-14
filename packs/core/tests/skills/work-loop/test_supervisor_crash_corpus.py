@@ -17,14 +17,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from jsonschema import Draft202012Validator
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import supervisor_harness as h  # noqa: E402
+import supervisor_support as sup  # noqa: E402
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-EVENT_SCHEMA = json.loads(
-    (REPO_ROOT / "contracts" / "jsonschema" / "loop-run-event.schema.json").read_text("utf-8"))
+pytestmark = sup.INTEGRATION
+# The event envelope's required fields and their types; the roster validates
+# emitted lines against the canonical schema itself.
+EVENT_FIELDS = {"seq": int, "run_id": str, "spec": str, "from": str, "event": str, "to": str,
+                "at": str, "schema": int, "step_id": str, "awaiting_input": bool}
+ATTEMPT_KINDS = ("write-stub", "implement-task", "run-gates", "review-role", "assess-finding")
 STEP_KINDS = {"approval", "replan", "stub", "red", "implement", "evidence", "gate-fail", "review",
               "effect-intent", "effect-dispatch", "effect-receipt", "claim", "resolution",
               "terminal"}
@@ -150,16 +153,31 @@ def summarize(repo: Path, effect_log: Path, end: dict[str, Any], log: list[dict[
     steps = [c.step for c in commits]
     events_path = repo / ".loop-run" / "events.jsonl"
     events = [json.loads(line) for line in events_path.read_text("utf-8").splitlines()]
-    validator = Draft202012Validator(EVENT_SCHEMA)
     events_ok = (
         sorted(e["step_id"] for e in events) == sorted(steps)
         and len({e["step_id"] for e in events}) == len(events)
-        and all(not list(validator.iter_errors(e)) for e in events)
+        and all(set(e) == set(EVENT_FIELDS) for e in events)
+        and all(isinstance(e[k], kind) and (kind is not str or e[k])
+                for e in events for k, kind in EVENT_FIELDS.items())
         and all(e["event"] in STEP_KINDS for e in events)
         and all(c.operation in STEP_KINDS for c in commits)
     )
     dispatched = effect_log.read_text("utf-8").split() if effect_log.exists() else []
+    working_matches_head = all(
+        (repo / ws.git.delivery_rel / name).read_bytes()
+        == ws.git.show(f"{ws.git.delivery_rel}/{name}")
+        for name in ws.git.delivery_names()
+    )
+    attempts: list[str] = []
+    for payload in log:
+        request = payload.get("request") or {}
+        if request.get("kind") in ATTEMPT_KINDS and request["request_id"] not in attempts:
+            attempts.append(request["request_id"])
+    _, view = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
     return {
+        "working_matches_head": working_matches_head,
+        "attempts": attempts,
+        "retry_count": view["retry_count"],
         "end": "terminal" if end.get("terminal") else json.dumps(end)[:300],
         "done": done,
         "delivery": delivery,
@@ -191,6 +209,10 @@ def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool =
     assert run["effects"] == base["effects"] == {next(iter(base["effects"])): 1}
     assert run["decisions"] == base["decisions"]
     assert run["events_ok"]
+    assert run["working_matches_head"]
+    assert run["retry_count"] == base["retry_count"] == 1
+    if trees:
+        assert run["attempts"] == base["attempts"]
     assert run["staged_after_sync"] == []
     assert run["run_json_problems"] == []
 

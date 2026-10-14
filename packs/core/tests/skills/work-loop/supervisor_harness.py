@@ -23,10 +23,14 @@ import supervisor_support as sup
 SPEC_DIR = "docs/specs/calc"
 FIXED_TIME = "2026-10-13T00:00:00Z"
 GIT_ENV = {
-    "GIT_AUTHOR_NAME": "Fixture Author", "GIT_AUTHOR_EMAIL": "author@example.invalid",
-    "GIT_COMMITTER_NAME": "Fixture Author", "GIT_COMMITTER_EMAIL": "author@example.invalid",
-    "GIT_AUTHOR_DATE": FIXED_TIME, "GIT_COMMITTER_DATE": FIXED_TIME,
-    "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_AUTHOR_NAME": "Fixture Author",
+    "GIT_AUTHOR_EMAIL": "author@example.invalid",
+    "GIT_COMMITTER_NAME": "Fixture Author",
+    "GIT_COMMITTER_EMAIL": "author@example.invalid",
+    "GIT_AUTHOR_DATE": FIXED_TIME,
+    "GIT_COMMITTER_DATE": FIXED_TIME,
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_CONFIG_GLOBAL": os.devnull,
 }
 
 cli = sup.load("work-supervisor.py")
@@ -42,8 +46,14 @@ class Crash(Exception):
 
 
 def git(repo: Path, *args: str) -> str:
-    return subprocess.run(["git", *args], cwd=repo, env={**os.environ, **GIT_ENV},
-                          capture_output=True, text=True, check=True).stdout
+    return subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        env={**os.environ, **GIT_ENV},
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
 
 
 def make_repo(root: Path, *, plan: str = sup.PLAN, spec: str = sup.SPEC) -> Path:
@@ -63,15 +73,13 @@ def make_repo(root: Path, *, plan: str = sup.PLAN, spec: str = sup.SPEC) -> Path
 
 
 @contextlib.contextmanager
-def in_repo(repo: Path):  # noqa: ANN201 - context manager
-    previous = Path.cwd()
+def git_identity():  # noqa: ANN201 - context manager
+    """Pin Git's identity, dates, and config for the duration of one call."""
     saved = {k: os.environ.get(k) for k in GIT_ENV}
     os.environ.update(GIT_ENV)
-    os.chdir(repo)
     try:
         yield
     finally:
-        os.chdir(previous)
         for key, value in saved.items():
             if value is None:
                 os.environ.pop(key, None)
@@ -80,13 +88,13 @@ def in_repo(repo: Path):  # noqa: ANN201 - context manager
 
 
 def run_cli(repo: Path, *argv: str) -> tuple[int, dict[str, Any]]:
-    """Run one verb in-process with the fixed clock; return (exit code, JSON)."""
+    """Run one verb in-process from *repo* with the fixed clock; return (exit code, JSON)."""
     out = io.StringIO()
-    with in_repo(repo), contextlib.redirect_stdout(out):
+    with git_identity(), contextlib.redirect_stdout(out):
         original = admission.CLOCK[0]
         admission.CLOCK[0] = lambda: FIXED_TIME
         try:
-            code = cli.main(list(argv))
+            code = cli.main(list(argv), cwd=repo)
         finally:
             admission.CLOCK[0] = original
     text = out.getvalue()
@@ -104,20 +112,25 @@ def report_review(role: str, subject: dict[str, Any], sequence: int) -> dict[str
         "role": role,
         "subject": subject,
         "terminal_status": "findings",
-        "lineage": {"sequence": sequence,
-                    "review_policy_fingerprint": subject["review_policy_fingerprint"],
-                    "source_event_id": f"event-{sequence}", "producer": "synthetic-reviewer"},
-        "findings": [{
-            "schema_version": 1,
-            "finding_id": "finding-1",
-            "rule_ref": "AC-0001",
-            "observation": "The calculator has no docstring.",
-            "reachable_path": "calc.answer",
-            "actual_failure": "A reader may not know what answer means.",
-            "affected_acceptance_criteria": ["AC-0001"],
-            "evidence_refs": ["calc.py"],
-            "material": False,
-        }],
+        "lineage": {
+            "sequence": sequence,
+            "review_policy_fingerprint": subject["review_policy_fingerprint"],
+            "source_event_id": f"event-{sequence}",
+            "producer": "synthetic-reviewer",
+        },
+        "findings": [
+            {
+                "schema_version": 1,
+                "finding_id": "finding-1",
+                "rule_ref": "AC-0001",
+                "observation": "The calculator has no docstring.",
+                "reachable_path": "calc.answer",
+                "actual_failure": "A reader may not know what answer means.",
+                "affected_acceptance_criteria": ["AC-0001"],
+                "evidence_refs": ["calc.py"],
+                "material": False,
+            }
+        ],
     }
 
 
@@ -137,9 +150,13 @@ def assessment(request: dict[str, Any]) -> dict[str, Any]:
 class Controller:
     """Drives one run the way a trusted controller following the skill would."""
 
-    def __init__(self, repo: Path, effect_log: Path,
-                 between: Callable[[Controller, dict[str, Any], str], None] | None = None,
-                 decide: Callable[[Controller, dict[str, Any]], bool] | None = None) -> None:
+    def __init__(
+        self,
+        repo: Path,
+        effect_log: Path,
+        between: Callable[[Controller, dict[str, Any], str], None] | None = None,
+        decide: Callable[[Controller, dict[str, Any]], bool] | None = None,
+    ) -> None:
         self.repo = repo
         self.effect_log = effect_log
         self.between = between or (lambda c, r, phase: None)
@@ -151,8 +168,12 @@ class Controller:
     # ── the synthetic worker ───────────────────────────────────────────────
 
     def work(self, request: dict[str, Any]) -> dict[str, Any]:
-        result: dict[str, Any] = {"schema_version": 1, "request_id": request["request_id"],
-                                  "run_id": request["run_id"], "kind": request["kind"]}
+        result: dict[str, Any] = {
+            "schema_version": 1,
+            "request_id": request["request_id"],
+            "run_id": request["run_id"],
+            "kind": request["kind"],
+        }
         kind = request["kind"]
         if kind == "write-stub":
             task = self.task(request["task"]["task_id"])
@@ -163,7 +184,9 @@ class Controller:
         elif kind == "implement-task":
             title = request["task"]["title"]
             if title.startswith("Calculator"):
-                (self.repo / "calc.py").write_text("def answer():\n    return 42\n", encoding="utf-8")
+                (self.repo / "calc.py").write_text(
+                    "def answer():\n    return 42\n", encoding="utf-8"
+                )
                 passed = True
             elif title.startswith("Release"):
                 (self.repo / "release.txt").write_text("ready\n", encoding="utf-8")
@@ -176,8 +199,9 @@ class Controller:
             result["gate"] = {"passed": passed}
         elif kind == "run-gates":
             result["gate"] = {"passed": True}
-            result["criteria"] = [{"criterion_ref": ac, "outcome": "pass"}
-                                  for ac in request["criteria"]]
+            result["criteria"] = [
+                {"criterion_ref": ac, "outcome": "pass"} for ac in request["criteria"]
+            ]
         elif kind == "review-role":
             sequence = int(request["request_id"].rsplit(":", 1)[1])
             result["report"] = report_review(request["role"], request["review_subject"], sequence)
@@ -201,17 +225,27 @@ class Controller:
         with self.effect_log.open("a", encoding="utf-8") as handle:
             handle.write(key + "\n")
         commit_module.kill_point("effect-dispatched")
-        return {"schema_version": 1, "request_id": request["request_id"],
-                "run_id": request["run_id"], "kind": "external-effect",
-                "effect": {"outcome": "completed", "receipt_ref": f"remote:{key}"}}
+        return {
+            "schema_version": 1,
+            "request_id": request["request_id"],
+            "run_id": request["run_id"],
+            "kind": "external-effect",
+            "effect": {"outcome": "completed", "receipt_ref": f"remote:{key}"},
+        }
 
     def query(self, request: dict[str, Any]) -> dict[str, Any]:
         key = request["effect"]["operation_key"]
         outcome = "present" if key in self.dispatched() else "absent"
-        return {"schema_version": 1, "request_id": request["request_id"],
-                "run_id": request["run_id"], "kind": "effect-query",
-                "effect": {"outcome": outcome, **({"receipt_ref": f"remote:{key}"}
-                                                  if outcome == "present" else {})}}
+        return {
+            "schema_version": 1,
+            "request_id": request["request_id"],
+            "run_id": request["run_id"],
+            "kind": "effect-query",
+            "effect": {
+                "outcome": outcome,
+                **({"receipt_ref": f"remote:{key}"} if outcome == "present" else {}),
+            },
+        }
 
     # ── the loop ───────────────────────────────────────────────────────────
 
@@ -234,7 +268,9 @@ class Controller:
             if request["kind"] == "external-effect":
                 self.handle_effect(request)
                 continue
-            result = self.query(request) if request["kind"] == "effect-query" else self.work(request)
+            result = (
+                self.query(request) if request["kind"] == "effect-query" else self.work(request)
+            )
             self.between(self, request, "worked")
             code, admitted = self.report(result)
             if code != 0:
@@ -253,6 +289,16 @@ class Controller:
 
 
 def start(repo: Path, intent: str = "code") -> tuple[int, dict[str, Any]]:
-    return run_cli(repo, "start", SPEC_DIR, "--intent", intent, "--code-trust", "trusted",
-                   "--authority-ref", "owner:0123456789ab",
-                   "--review-authority-ref", "plan-reviewer:0123456789ab")
+    return run_cli(
+        repo,
+        "start",
+        SPEC_DIR,
+        "--intent",
+        intent,
+        "--code-trust",
+        "trusted",
+        "--authority-ref",
+        "owner:0123456789ab",
+        "--review-authority-ref",
+        "plan-reviewer:0123456789ab",
+    )

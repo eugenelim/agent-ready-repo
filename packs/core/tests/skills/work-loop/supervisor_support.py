@@ -7,12 +7,33 @@ synthetic spec, plan, and cited ADR the suites edit.
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
 PYTHON = sys.executable.replace("\\", "/")
+
+# Suites that drive whole git-backed runs. They take minutes, so they run in
+# their own CI lane, which sets this variable, rather than in the pack lane.
+INTEGRATION = pytest.mark.skipif(
+    os.environ.get("WORK_SUPERVISOR_INTEGRATION") != "1",
+    reason="supervisor integration suite: runs in the supervisor integration lane "
+    "(set WORK_SUPERVISOR_INTEGRATION=1)",
+)
+
+
+# Each script by literal path, so every file a suite loads stays visibly inside
+# this pack.
+_SCRIPT_PATHS = {
+    "work-supervisor.py": SCRIPTS / "work-supervisor.py",
+    "_supervisor_projector.py": SCRIPTS / "_supervisor_projector.py",
+    "_policy_import.py": SCRIPTS / "_policy_import.py",
+    "_security_capability.py": SCRIPTS / "_security_capability.py",
+}
 
 
 def load(filename: str) -> ModuleType:
@@ -20,7 +41,7 @@ def load(filename: str) -> ModuleType:
     alias = "core_work_loop_supervisor_" + filename.removesuffix(".py").replace("-", "_").lstrip(
         "_"
     )
-    spec = importlib.util.spec_from_file_location(alias, str(SCRIPTS / filename))
+    spec = importlib.util.spec_from_file_location(alias, str(_SCRIPT_PATHS[filename]))
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules[alias] = module

@@ -23,6 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import supervisor_harness as h  # noqa: E402
 import supervisor_support as sup  # noqa: E402
 
+pytestmark = sup.INTEGRATION
+
 SPEC = h.SPEC_DIR
 
 
@@ -174,10 +176,16 @@ def test_retry_already_claimed_needs_a_new_decision(run: Run, outcome: str) -> N
 @pytest.mark.parametrize("outcome", ["absent", "unknowable"])
 def test_do_not_retry_ends_the_operation(run: Run, outcome: str) -> None:
     request = _dispatched(run)
-    run.resolve("do-not-retry", request["effect"]["operation_key"])
+    key = request["effect"]["operation_key"]
+    # Reach "Intent, no receipt" with this query outcome needing a decision.
+    for _ in range(3 if outcome == "absent" else 1):
+        admitted = run.effect_result(_query(run), outcome)[1]["admitted"]
+    assert admitted == "decision-required"
+    dispatches = len(run.lines("dispatch"))
+    run.resolve("do-not-retry", key)
     assert run.next()["request"]["kind"] == "run-gates"
     assert run.finish().get("terminal")
-    assert run.lines("receipt") == []
+    assert run.lines("receipt") == [] and len(run.lines("dispatch")) == dispatches
 
 
 def test_absent_with_effect_confirmed_asks_a_human(run: Run) -> None:

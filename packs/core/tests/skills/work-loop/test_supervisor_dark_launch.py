@@ -1,6 +1,8 @@
-"""The core stays dark and leaves the engine untouched (T8).
+"""The core stays dark (T8).
 
-VI-4060 (AC-0027), VI-4061 (AC-0028), VI-4062 (AC-0029).
+VI-4060 (AC-0027) and VI-4061 (AC-0028). AC-0029 (VI-4062) is a one-time check
+against the merge-base and is recorded in the spec's verification ledger, not
+kept as a standing test that later legitimate changes would break.
 """
 
 from __future__ import annotations
@@ -19,11 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import supervisor_harness as h  # noqa: E402
 import supervisor_support as sup  # noqa: E402
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
 SKILL = sup.SCRIPTS.parent
-TESTS = Path(__file__).resolve().parent
-# The merge-base with main when this delivery's first task started.
-MERGE_BASE = "9662d3780458f9f475505a0bcc0fde6af930c63f"
 
 # Runs one verb with the standard library and the skill's scripts directory as
 # the only importable code (-I -S), then fails if any other module was loaded.
@@ -60,6 +58,7 @@ def _isolated_cli(repo: Path, *argv: str) -> tuple[int, dict[str, Any]]:
     return done.returncode, (json.loads(done.stdout) if done.stdout.strip() else {})
 
 
+@sup.INTEGRATION
 def test_uninterrupted_run_completes_on_the_standard_library_alone(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = h.make_repo(tmp_path)
@@ -72,7 +71,8 @@ def test_uninterrupted_run_completes_on_the_standard_library_alone(
 
 
 def test_nothing_in_the_skill_but_the_supervisor_invokes_it() -> None:
-    own = {"work-supervisor.py"} | {p.name for p in sup.SCRIPTS.glob("_supervisor_*.py")}
+    own = {"work-supervisor.py", "supervisor-policy.json"} | {
+        p.name for p in sup.SCRIPTS.glob("_supervisor_*.py")}
     offenders = []
     for path in sorted(SKILL.rglob("*")):
         if not path.is_file() or path.name in own or "__pycache__" in path.parts:
@@ -81,30 +81,3 @@ def test_nothing_in_the_skill_but_the_supervisor_invokes_it() -> None:
         if "work-supervisor" in text or "_supervisor_" in text:
             offenders.append(str(path.relative_to(SKILL)))
     assert offenders == []
-
-
-def _merge_base_files() -> list[str] | None:
-    done = subprocess.run(["git", "ls-tree", "-r", "--name-only", MERGE_BASE, "--",
-                           "packs/core/tests/skills/work-loop"],
-                          cwd=REPO_ROOT, capture_output=True, text=True, check=False)
-    return done.stdout.split() if done.returncode == 0 and done.stdout else None
-
-
-def test_merge_base_work_loop_suites_are_unchanged() -> None:
-    files = _merge_base_files()
-    if files is None:
-        pytest.skip("the merge-base commit is not in this clone")
-    changed = subprocess.run(["git", "diff", "--name-only", MERGE_BASE, "--", *files],
-                             cwd=REPO_ROOT, capture_output=True, text=True,
-                             check=True).stdout.split()
-    assert changed == [], "merge-base work-loop suites must pass unchanged"
-
-
-def test_the_engine_scripts_are_byte_identical_to_the_merge_base() -> None:
-    if _merge_base_files() is None:
-        pytest.skip("the merge-base commit is not in this clone")
-    scripts = "packs/core/.apm/skills/work-loop/scripts"
-    changed = subprocess.run(["git", "diff", "--name-only", MERGE_BASE, "--",
-                              f"{scripts}/loop-engine.py", f"{scripts}/loop-cohort.py"],
-                             cwd=REPO_ROOT, capture_output=True, text=True, check=True)
-    assert changed.stdout.split() == []
