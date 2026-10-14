@@ -10,6 +10,7 @@
 - Merge-base with `main` when T1 started: `9662d3780458f9f475505a0bcc0fde6af930c63f`.
 - At that commit, under Python 3.11 (the CI version), `pytest packs/core/tests/skills/work-loop -n 8` gave 3021 passed, 7 skipped, 46.16 s. Under Python 3.14, one merge-base test fails on its own (`test_loop_engine.py::test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content[deep-nesting]`), so every gate here runs on 3.11.
 - `git diff 9662d3780 HEAD -- <every work-loop test file present at the merge-base>` is empty, and so is the diff of `loop-engine.py` and `loop-cohort.py`. Both were checked once here instead of as standing tests, because the cutover spec deletes both engine scripts and later work edits those suites legitimately.
+- One merge-base test file changed, without changing what it asserts. `test_process_safety.py::TestRedactionAtTheCapAndAtScale::test_redaction_cost_stays_linear` now names its five cases by their labels (`ids=`). Its megabyte-sized parameters had produced test IDs that Windows cannot hold in `PYTEST_CURRENT_TEST`, which broke the new Windows evidence step (see the attempt-security ledger). Its inputs and assertions are byte-identical, and it passes on POSIX before and after.
 - The full work-loop suite on the final tree is recorded under "Final gates".
 
 ## Departures from the plan text
