@@ -343,9 +343,12 @@ def test_a_finish_push_runs_once_and_survives_a_rewrite(tmp_path: Path) -> None:
     first = run.lines("intent")
     finish = [line for line in first if line["scope"] == "finish"]
     assert len(finish) == 1 and finish[0]["terminal_head"]
-    # A rebase that rewrites every commit but keeps the tree keeps the same push.
+    # A rebase that rewrites every commit but keeps the tree keeps the same push,
+    # even once the old HEAD the intent recorded is pruned away.
     root = h.git(run.repo, "rev-list", "--max-parents=0", "HEAD").strip()
     h.git(run.repo, "rebase", "-q", "--force-rebase", root)
+    h.git(run.repo, "reflog", "expire", "--expire=now", "--all")
+    h.git(run.repo, "gc", "-q", "--prune=now")
     assert run.finish().get("terminal")
     log = (run.tmp / "effects.log").read_text("utf-8").split()
     assert sorted(key.rsplit(":", 2)[-2] if key.count(":") > 1 else key.split(":")[-1]

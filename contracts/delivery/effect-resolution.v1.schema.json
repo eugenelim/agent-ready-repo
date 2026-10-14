@@ -69,6 +69,13 @@
       "maxLength": 64,
       "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
     },
+    "terminal_tree": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "description": "Digest of the product tree when a finish effect was first intended."
+    },
     "dispatch": {
       "type": "integer",
       "minimum": 1,
@@ -192,6 +199,27 @@
       "then": {
         "required": [
           "terminal_head"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": "finish"
+          },
+          "entry": {
+            "const": "intent"
+          }
+        },
+        "required": [
+          "scope",
+          "entry"
+        ]
+      },
+      "then": {
+        "required": [
+          "terminal_tree"
         ]
       }
     }
