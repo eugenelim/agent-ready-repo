@@ -50,6 +50,10 @@ questions include:
 - **Parent** — what is the parent intent of a given intent.
 - **Children** — which intents are directly below a given intent.
 - **Parentless intents** — which live intents have no resolved parent.
+- **Dependencies** — which intents an intent's ``Depends on:`` header names
+  (its prerequisites), and which intents name it (its dependents).  Run
+  ``query --operation dependencies`` (see below), or use the Dependencies part
+  of the offline view.
 - **Offline or shareable view** — the user asks to export the intent graph or
   outstanding work as an HTML file they can open offline or send to a reviewer.
   Run ``export`` (see below).
@@ -64,6 +68,11 @@ live intents.
   "repair the workspace", or similar operational questions about the work
   queue: use `workspace-status` instead.  This skill never reads
   ``workspace.toml``.
+- **Dependency enforcement, ordering, migration, or editing** — blocking work
+  until prerequisites ship, reordering the work queue by dependencies, moving
+  workspace needs into ``Depends on:`` headers, or editing a header: this skill
+  only shows what the headers say and never decides readiness.  Use
+  `workspace-status` for queue order and `work-intake` to change an intent.
 - **ADR or RFC lookups** — questions about architecture decision records or
   requests for comment, including an HTML or offline view of them: use
   `navigate-decisions` instead.
@@ -133,6 +142,15 @@ python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation outstanding \
   --from capability:my-slug
+
+# What one intent waits for, two steps out, as "A waits for B" lines.
+python3 scripts/navigate_intents.py query \
+  --root <repo-root> \
+  --operation dependencies \
+  --id intent:my-slug \
+  --direction prerequisites \
+  --depth 2 \
+  --format text
 ```
 
 Every response is a JSON object with ``schema: "intent-navigation.query.v1"``,
@@ -156,8 +174,8 @@ limit in ``error.observed.limit``) or ``unsafe`` (it refused part of the
 corpus without naming the file: a link, special file, or non-UTF-8 file).
 For ``unsafe``, report that such a file must be replaced.  For
 ``resource_limit``, no flag raises the limit.  Only ``outstanding`` returns
-``delivery_incomplete``: ``summary``, ``record``, ``tree``, ``ancestors``, and
-``search`` still answer for either reason.
+``delivery_incomplete``: ``summary``, ``record``, ``tree``, ``ancestors``,
+``search``, and ``dependencies`` still answer for either reason.
 ``resolver_unavailable`` means a bundled helper is missing or broken:
 reinstall the skill.  A command the argument parser rejects exits 2 with no
 envelope.
@@ -172,6 +190,25 @@ resolver joins them, its relation type. An intent with no ``Level:`` shows
 level ``unrecorded``. In ``--format text``, a terminal ancestor that places an
 outstanding item prints as a context line ending ``· (terminal ancestor)``; it
 is not itself outstanding.
+
+``dependencies`` follows the ``Depends on:`` headers of live intents from one
+intent.  ``--id`` is required.  ``--direction`` is ``prerequisites`` (the
+default: what the intent waits for), ``dependents`` (what waits for it), or
+``both``.  ``--depth`` counts steps from the start and defaults to 1; ``0``
+returns the start alone.  The JSON result carries ``start``, ``direction``,
+``depth``, a ``scope`` notice, the reached ``intents``, the ``edges`` between
+them (each edge's ``from`` waits for its ``to``, with the header values that
+name it), and ``diagnostics`` for values that did not resolve.  A diagnostic is
+a pointer that is dangling, retired, a wrong kind, unparseable, or outside the
+scope (a brief, spec, ADR, or other non-intent target), or a cycle among
+intents.  ``--format text`` prints ``edges (waiting -> prerequisite)`` and the
+diagnostics as lines.  A value is read as a typed id (``intent:``,
+``capability:``, ``outcome:``, ``opportunity:``) or as a legacy repository
+path to an intent file, so older headers still show.  Only the header is read:
+the operation never reads ``workspace.toml`` or workspace dependencies, never
+decides whether work may start, and never changes a file.  Check the listed
+diagnostics before relying on a chain.  When ``error.code`` is
+``result_too_large``, lower ``--depth``.
 
 ``record --id``, ``tree --id``, ``ancestors --id``, and ``outstanding
 --from`` accept a node id (``intent:slug``, ``capability:slug``, etc.), a
@@ -193,9 +230,13 @@ status filters, and a header search covers intents, briefs, and specs.  Each
 row leads with the human name, shows its state as a word plus a shape, and
 carries a context tag; a Key opens on demand.  Picking a row shows a detail
 panel with the state line, a Next step (which skill to use and why, in plain
-words), what is open beneath it, what is broken, where it sits, a link to the
-source file, and collapsed record details.  The page says readiness is not
-checked in the snapshot.  It adapts its layout at 40rem and 90rem and follows
+words), what is open beneath it, what is broken, where it sits, a Dependencies part, a link to the
+source file, and collapsed record details.  The Dependencies part shows what the intent
+waits for and what waits for it as "A waits for B" lines, with Show
+(prerequisites, dependents, or both) and Steps controls and any problems listed
+below the lines; dependency problems also appear in "What is broken?".  It reads
+``Depends on:`` headers only, and says it does not decide whether work can
+start.  The page says readiness is not checked in the snapshot.  It adapts its layout at 40rem and 90rem and follows
 the system light or dark theme.
 
 ```bash
@@ -221,11 +262,13 @@ tell the user the path.  An ``error`` object carries ``error.code``,
 ``ok``, 1 on ``error``, 2 when the argument parser rejects the command.
 
 The file holds exactly the facts ``query`` returns over the same corpus
-(summary, each intent's record, outstanding work, nodes, edges, and source
-links) in one JSON data block.  It holds no artifact body, no absolute
+(summary, each intent's record, outstanding work, nodes, edges, dependency
+records, and source links) in one JSON data block.  It holds no artifact body, no absolute
 repository path, and no remote URL beyond the host, owner, and repository
 name.  With ``--from``, the page names the scoped intent, shows that subtree,
-and keeps the summary counts whole-corpus.  Source links point to GitHub only
+and keeps the summary counts whole-corpus.  A scoped export also carries the
+dependency records of intents linked to that subtree and names those outside it
+by id.  Source links point to GitHub only
 when ``origin`` is a plain GitHub remote; otherwise each source shows its
 path as text.  A link marked "at commit ..." opens the file at the exported
 commit.  A link marked "may be newer than this export" opens it on the GitHub

@@ -52,7 +52,7 @@ _DEFAULT_MAX_EDGES = 400
 _DEFAULT_MAX_RESULT_BYTES = 512 * 1024  # 512 KiB
 
 _VALID_OPS: frozenset[str] = frozenset(
-    {"summary", "record", "tree", "ancestors", "search", "outstanding"}
+    {"summary", "record", "tree", "ancestors", "search", "outstanding", "dependencies"}
 )
 _VALID_SELECTORS: frozenset[str] = frozenset(
     {"level", "kind", "exact_status", "parentless", "text"}
@@ -775,14 +775,16 @@ def _check_limits(
     max_edges: int,
     max_bytes: int,
     bounded_route: str | None = None,
+    counts: tuple[int, int] | None = None,
 ) -> dict[str, Any] | None:
     """Check the three-way limit (intents, edges, bytes) on *full_result*.
 
     Returns an ``error`` dict suitable for ``_error_response`` on the first
     exceeded limit, checked in the order intents → edges → bytes.
-    Returns ``None`` when all limits pass.
+    Returns ``None`` when all limits pass. ``counts`` supplies
+    ``(intents, edges)`` for a result whose records are not intent entries.
     """
-    n_intents, n_edges = _count_result_elements(intent_list)
+    n_intents, n_edges = counts if counts is not None else _count_result_elements(intent_list)
     limits_info: dict[str, Any] = {
         "max_intents": max_intents,
         "max_edges": max_edges,
@@ -1767,6 +1769,382 @@ def _op_outstanding(
 # ---------------------------------------------------------------------------
 
 EXPORT_SCHEMA = "intent-navigation.export.v1"
+# ---------------------------------------------------------------------------
+# Dependency view (intent ``Depends on:`` headers)
+# ---------------------------------------------------------------------------
+
+_DEPENDS_FIELD = "Depends on"
+_DEPENDS_TRUST = "pointer_unchecked"
+_DIRECTIONS: tuple[str, ...] = ("prerequisites", "dependents", "both")
+_DEPENDS_SCOPE = (
+    "Reads the Depends on: headers of live intents only. Workspace dependencies "
+    "are not read, and nothing here decides whether work can start."
+)
+
+
+def _depends_items(fields: dict[str, list[str]]) -> list[str]:
+    """Return the item list of one intent's ``Depends on:`` field.
+
+    Every occurrence is read in file order. An empty, comment-only or
+    ``none``-led occurrence is dropped, then each kept occurrence is split on
+    commas and empty items are dropped. Repeats stay, so a value's position is
+    the index of its first occurrence.
+    """
+    items: list[str] = []
+    for raw in fields.get(_DEPENDS_FIELD, []):
+        words = raw.split()
+        if not words or words[0].lower() == "none":
+            continue
+        items.extend(part.strip() for part in raw.split(",") if part.strip())
+    return items
+
+
+def _read_dependency_inputs(
+    root: Path, graph_mod: Any, graph: dict[str, Any],
+) -> tuple[dict[str, list[str]], dict[str, Any], dict[str, Any]]:
+    """Re-read the intent collection for its ``Depends on:`` items.
+
+    ``derive`` drops preamble fields and tombstones from its output, so this
+    reads the same files through the same confined helpers and the same
+    admission, tombstone and identity rules. Returns the item list per live
+    intent id and the tombstone indexes by slug and by path.
+
+    Raises ``graph_mod.DerivationError`` with ``unsafe_input`` when the live
+    intents read here differ from ``derive``'s, because a file changed between
+    the two reads; any read refusal propagates with its own code.
+    """
+    fs = graph_mod._get_file_safety()
+    resolver = graph_mod._get_resolver()
+    intents_root = root / "docs" / "product" / "intents"
+    items_by_id: dict[str, list[str]] = {}
+    tomb_by_slug: dict[str, Any] = {}
+    tomb_by_path: dict[str, Any] = {}
+    changed = graph_mod.DerivationError(
+        "unsafe_input", "an intent file changed while it was being read"
+    )
+    for f in sorted(graph_mod._walk_artifact_dir(root, intents_root, fs),
+                    key=lambda p: p.relative_to(root).as_posix()):
+        if f.parent != intents_root or not resolver._ARTIFACT_FILE_RE.fullmatch(f.name):
+            continue
+        rel = f.relative_to(root).as_posix()
+        text = graph_mod._decode_utf8(graph_mod._read_artifact_bytes(root, f, fs), rel)
+        fields = graph_mod._preamble_visible(text)
+        slug_vals = fields.get("Slug", [])
+        slug = slug_vals[0] if slug_vals else ""
+        if not resolver._SLUG_RE.match(slug):
+            raise changed
+        if fields.get("Tombstone", []):
+            reissued = fields.get("Reissued as", [])
+            tomb = {"slug": slug, "reissued_as": reissued[0] if reissued else "", "rel_path": rel}
+            tomb_by_slug[slug] = tomb
+            tomb_by_path[rel] = tomb
+            continue
+        node_id = graph_mod._compute_node_id(fields, slug)
+        if node_id in items_by_id:
+            raise changed
+        items_by_id[node_id] = _depends_items(fields)
+    if set(items_by_id) != {n["id"] for n in _intent_nodes(graph)}:
+        raise changed
+    return items_by_id, tomb_by_slug, tomb_by_path
+
+
+def _resolve_depends_item(
+    item: str,
+    resolver: Any,
+    graph_mod: Any,
+    intent_by_slug: dict[str, Any],
+    intent_by_path: dict[str, Any],
+    tomb_by_slug: dict[str, Any],
+    tomb_by_path: dict[str, Any],
+) -> tuple[str, dict[str, str]]:
+    """Return ``(form, resolution)`` for one ``Depends on:`` item.
+
+    The resolution carries ``to`` for an intent edge, or ``state`` (with
+    ``reissued_as`` for a reissued tombstone) for a pointer diagnostic.
+    """
+    form = graph_mod._value_form_intent_parent(item, resolver)
+    if form == "typed":
+        prefix, _, rest = item.partition(":")
+        if prefix not in resolver._PARENT_INTENT_KINDS:
+            return form, {"state": "outside_scope"}
+        return form, graph_mod._resolve_intent_typed(rest, prefix, intent_by_slug, tomb_by_slug)
+    if form == "path":
+        if any(seg in ("", ".", "..") for seg in item.split("/")):
+            return form, {"state": "unparseable"}
+        resolution = graph_mod._resolve_intent_path(item, intent_by_path, tomb_by_path)
+        if resolution.get("state") == "out_of_type":
+            return form, {"state": "outside_scope"}
+        return form, resolution
+    return form, {"state": "unparseable"}
+
+
+def _cycle_groups(edges: list[dict[str, Any]]) -> list[list[str]]:
+    """Return every cycle group among *edges*, each as sorted member ids.
+
+    A cycle group is a strongly connected component with more than one member
+    or a member that depends on itself. The pass is iterative (Tarjan), so a
+    long chain cannot exhaust the interpreter stack.
+    """
+    adj: dict[str, list[str]] = {}
+    self_loops: set[str] = set()
+    for e in edges:
+        adj.setdefault(e["from"], []).append(e["to"])
+        adj.setdefault(e["to"], [])
+        if e["from"] == e["to"]:
+            self_loops.add(e["from"])
+    index: dict[str, int] = {}
+    low: dict[str, int] = {}
+    on_stack: set[str] = set()
+    stack: list[str] = []
+    groups: list[list[str]] = []
+    counter = 0
+    for start in sorted(adj):
+        if start in index:
+            continue
+        work: list[tuple[str, int]] = [(start, 0)]
+        while work:
+            node, i = work.pop()
+            if i == 0:
+                index[node] = low[node] = counter
+                counter += 1
+                stack.append(node)
+                on_stack.add(node)
+            succ = adj[node]
+            if i < len(succ):
+                work.append((node, i + 1))
+                nxt = succ[i]
+                if nxt not in index:
+                    work.append((nxt, 0))
+                elif nxt in on_stack:
+                    low[node] = min(low[node], index[nxt])
+                continue
+            if work:
+                parent = work[-1][0]
+                low[parent] = min(low[parent], low[node])
+            if low[node] == index[node]:
+                members: list[str] = []
+                while True:
+                    top = stack.pop()
+                    on_stack.discard(top)
+                    members.append(top)
+                    if top == node:
+                        break
+                if len(members) > 1 or node in self_loops:
+                    groups.append(sorted(members))
+    return sorted(groups, key=lambda g: g[0])
+
+
+def _dependency_records(
+    root: Path, graph_mod: Any, graph: dict[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
+    """Build every dependency edge record and diagnostic of the corpus.
+
+    Edges are ordered by ``from`` then ``to``; pointer diagnostics by ``from``
+    then ``position``; cycle diagnostics follow, by first member.
+    """
+    resolver = graph_mod._get_resolver()
+    items_by_id, tomb_by_slug, tomb_by_path = _read_dependency_inputs(root, graph_mod, graph)
+    intents = _intent_nodes(graph)
+    intent_by_slug = {n["slug"]: n for n in intents}
+    intent_by_path = {n["path"]: n for n in intents}
+    edges: dict[tuple[str, str], dict[str, Any]] = {}
+    pointer_diags: list[dict[str, Any]] = []
+    for from_id in sorted(items_by_id):
+        seen: set[str] = set()
+        for position, item in enumerate(items_by_id[from_id]):
+            if item in seen:
+                continue
+            seen.add(item)
+            form, resolution = _resolve_depends_item(
+                item, resolver, graph_mod, intent_by_slug, intent_by_path,
+                tomb_by_slug, tomb_by_path,
+            )
+            value = {"value": item, "form": form, "position": position}
+            if "to" in resolution:
+                key = (from_id, resolution["to"])
+                edge = edges.setdefault(key, {
+                    "from": from_id, "to": resolution["to"], "field": _DEPENDS_FIELD,
+                    "trust_class": _DEPENDS_TRUST,
+                    "basis": {"field": _DEPENDS_FIELD, "values": []},
+                })
+                edge["basis"]["values"].append(value)
+                continue
+            diag: dict[str, Any] = {
+                "from": from_id, "field": _DEPENDS_FIELD, **value,
+                "state": resolution["state"], "trust_class": _DEPENDS_TRUST,
+            }
+            if resolution.get("reissued_as"):
+                diag["reissued_as"] = resolution["reissued_as"]
+            pointer_diags.append(diag)
+    edge_list = [edges[k] for k in sorted(edges)]
+    cycles = [{"state": "cycle", "members": g} for g in _cycle_groups(edge_list)]
+    return {"edges": edge_list, "diagnostics": pointer_diags + cycles}
+
+
+def _dependency_steps(
+    records: dict[str, list[dict[str, Any]]], start: str, direction: str, depth: int | None,
+) -> dict[str, int]:
+    """Return each reachable intent's step count from *start*.
+
+    Breadth-first along prerequisites, dependents, or both (each intent keeps
+    its smaller count). ``depth`` ``None`` means no limit.
+    """
+    forward: dict[str, list[str]] = {}
+    backward: dict[str, list[str]] = {}
+    for e in records["edges"]:
+        forward.setdefault(e["from"], []).append(e["to"])
+        backward.setdefault(e["to"], []).append(e["from"])
+    adjacency = {"prerequisites": [forward], "dependents": [backward],
+                 "both": [forward, backward]}[direction]
+    steps: dict[str, int] = {start: 0}
+    for adj in adjacency:
+        dist = {start: 0}
+        frontier = [start]
+        while frontier and (depth is None or dist[frontier[0]] < depth):
+            nxt: list[str] = []
+            for node in frontier:
+                for other in adj.get(node, []):
+                    if other not in dist:
+                        dist[other] = dist[node] + 1
+                        nxt.append(other)
+            frontier = nxt
+        for node, d in dist.items():
+            steps[node] = min(d, steps.get(node, d))
+    return steps
+
+
+def _dependency_selection(
+    records: dict[str, list[dict[str, Any]]], ids: set[str],
+) -> dict[str, list[dict[str, Any]]]:
+    """Return the edges with both ends in *ids*, the pointer diagnostics
+    written by *ids*, and the cycle diagnostics with a member in *ids*."""
+    return {
+        "edges": [e for e in records["edges"] if e["from"] in ids and e["to"] in ids],
+        "diagnostics": [
+            d for d in records["diagnostics"]
+            if (d["from"] in ids if "from" in d else any(m in ids for m in d["members"]))
+        ],
+    }
+
+
+def _dependency_linked_set(
+    records: dict[str, list[dict[str, Any]]], starts: set[str],
+) -> set[str]:
+    """Return *starts* plus every intent reachable from any of them along
+    prerequisites, and every intent reachable along dependents (one unlimited
+    breadth-first pass each way)."""
+    forward: dict[str, list[str]] = {}
+    backward: dict[str, list[str]] = {}
+    for e in records["edges"]:
+        forward.setdefault(e["from"], []).append(e["to"])
+        backward.setdefault(e["to"], []).append(e["from"])
+    linked = set(starts)
+    for adj in (forward, backward):
+        seen = set(starts)
+        frontier = sorted(starts)
+        while frontier:
+            nxt: list[str] = []
+            for node in frontier:
+                for other in adj.get(node, []):
+                    if other not in seen:
+                        seen.add(other)
+                        nxt.append(other)
+            frontier = nxt
+        linked |= seen
+    return linked
+
+
+def _dependency_text(
+    start: str, direction: str, depth: int, intent_ids: list[str],
+    selection: dict[str, list[dict[str, Any]]],
+) -> str:
+    """Format a ``dependencies`` result as plain text."""
+    lines = [
+        f"dependencies of {start} · direction {direction} · depth {depth}",
+        f"scope: {_DEPENDS_SCOPE}",
+        "intents:",
+        *(f"  {i}" for i in intent_ids),
+        "edges (waiting -> prerequisite):",
+        *(f"  {e['from']} -> {e['to']}" for e in selection["edges"]),
+        "diagnostics:",
+    ]
+    for d in selection["diagnostics"]:
+        if d["state"] == "cycle":
+            lines.append("  cycle · " + ", ".join(d["members"]))
+        else:
+            lines.append(f"  {d['from']} · {d['state']} · {_escape_display(d['value'])}")
+    return "\n".join(lines) + "\n"
+
+
+def _op_dependencies(
+    root: Path,
+    graph_mod: Any,
+    graph: dict[str, Any],
+    delivery_field: dict[str, Any],
+    *,
+    identity: str | None,
+    direction: str | None,
+    depth: int | None,
+    fmt: str,
+    max_intents: int,
+    max_edges: int,
+    max_bytes: int,
+    env: dict[str, Any],
+) -> tuple[dict[str, Any] | str, int]:
+    """Run the ``dependencies`` operation; returns (result, exit_code)."""
+    if not identity:
+        return _error_response(env, "invalid_query", "dependencies requires --id"), 1
+    direction = direction or "prerequisites"
+    if direction not in _DIRECTIONS:
+        return _error_response(
+            env, "invalid_query",
+            "--direction must be one of: " + ", ".join(_DIRECTIONS),
+        ), 1
+    depth = 1 if depth is None else depth
+    match = _resolve_identity(identity, _intent_nodes(graph))
+    if match is None:
+        return _error_response(env, "not_found", f"no intent matching {identity!r}"), 1
+    if match is _AMBIGUOUS:
+        return _error_response(
+            env, "ambiguous_identity", f"ordinal {identity!r} matches multiple intents",
+        ), 1
+    try:
+        records = _dependency_records(root, graph_mod, graph)
+    except graph_mod.DerivationError as exc:
+        return _error_response(env, exc.code, str(exc)), 1
+    start = match["id"]
+    intent_ids = sorted(_dependency_steps(records, start, direction, depth))
+    selection = _dependency_selection(records, set(intent_ids))
+
+    if fmt == "text":
+        text = _dependency_text(start, direction, depth, intent_ids, selection)
+        err = _check_text_byte_limit(text, max_bytes)
+        if err is not None:
+            return _error_response(
+                env, err["code"], err["message"],
+                limits=err.get("limits"), observed=err.get("observed"),
+            ), 1
+        return text, 0
+
+    full_result = _ok_response(
+        env, delivery_field,
+        start=start, direction=direction, depth=depth, scope=_DEPENDS_SCOPE,
+        intents=[{"id": i} for i in intent_ids], **selection,
+    )
+    err = _check_limits(
+        full_result, [],
+        max_intents=max_intents, max_edges=max_edges, max_bytes=max_bytes,
+        bounded_route="--depth",
+        counts=(len(intent_ids), len(selection["edges"]) + len(selection["diagnostics"])),
+    )
+    if err is not None:
+        return _error_response(
+            env, err["code"], err["message"],
+            limits=err.get("limits"), observed=err.get("observed"),
+        ), 1
+    return full_result, 0
+
+
 VIEW_SCHEMA = "intent-navigation.view.v1"
 _VIEW_MOD: Any = None
 
@@ -1957,6 +2335,18 @@ def build_view_payload(
         nodes = [n for n in graph["nodes"] if n["id"] in scope_ids]
         edges = [e for e in graph["edges"] if e["from"] in scope_ids]
 
+    try:
+        dep_records = _dependency_records(root, graph_mod, graph)
+    except graph_mod.DerivationError as exc:
+        raise ExportRefusal(exc.code, str(exc)) from None
+    if scope_ids is None:
+        dependencies = dep_records
+    else:
+        starts = scope_ids & {n["id"] for n in intents}
+        dependencies = _dependency_selection(
+            dep_records, _dependency_linked_set(dep_records, starts)
+        )
+
     base = _provenance(root, graph)  # its ``root`` is deliberately not carried over
     links, commit = view_mod.source_links(root, nodes)
     return {
@@ -1974,6 +2364,7 @@ def build_view_payload(
         "nodes": nodes,
         "edges": edges,
         "source_links": links,
+        "dependencies": dependencies,
     }
 
 
@@ -2089,7 +2480,9 @@ def _add_query_args(q: argparse.ArgumentParser) -> None:
     q.add_argument("--from", dest="from_id", metavar="IDENTITY", default=None,
                    help="Scope outstanding to the subtree under this intent.")
     q.add_argument("--depth", type=int, default=None, metavar="N",
-                   help="Maximum depth below start for tree.")
+                   help="Maximum depth below start for tree; steps for dependencies (default 1).")
+    q.add_argument("--direction", default=None, metavar="DIR",
+                   help="For dependencies: prerequisites (default), dependents, or both.")
     q.add_argument("--format", dest="fmt", choices=["json", "text"], default="json",
                    help="Output format (default: json).")
     q.add_argument("--selectors", metavar="JSON", default=None,
@@ -2160,7 +2553,7 @@ def run_query(
         name: getattr(args, attr, None)
         for name, attr in (
             ("operation", "operation"), ("id", "id"), ("from", "from_id"),
-            ("format", "fmt"), ("selectors", "selectors"),
+            ("format", "fmt"), ("selectors", "selectors"), ("direction", "direction"),
         )
     }
     raw_values["root"] = str(root)
@@ -2193,6 +2586,8 @@ def run_query(
         query_dict["from"] = args.from_id
     if args.depth is not None:
         query_dict["depth"] = args.depth
+    if args.direction is not None:
+        query_dict["direction"] = args.direction
     if args.fmt != "json":
         query_dict["format"] = args.fmt
 
@@ -2357,6 +2752,15 @@ def run_query(
             intent_nodes_list=_intent_nodes(graph),
         )
 
+    if operation == "dependencies":
+        return _op_dependencies(
+            root, graph_mod, graph, delivery_field,
+            identity=args.id, direction=args.direction, depth=depth_limit,
+            fmt=args.fmt,
+            max_intents=max_i, max_edges=max_e, max_bytes=max_b,
+            env=env,
+        )
+
     # Should not reach here.
     return _error_response(env, "unknown_operation", f"unhandled: {operation!r}"), 1
 
@@ -2386,6 +2790,8 @@ def main(argv: list[str] | None = None) -> int:
             rq_argv += ["--from", args.from_id]
         if args.depth is not None:
             rq_argv += ["--depth", str(args.depth)]
+        if args.direction is not None:
+            rq_argv += ["--direction", args.direction]
         if args.fmt and args.fmt != "json":
             rq_argv += ["--format", args.fmt]
         if args.selectors:

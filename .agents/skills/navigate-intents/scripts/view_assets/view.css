@@ -70,3 +70,10 @@
   .zones { grid-template-columns: minmax(0, 3fr) minmax(26rem, 2fr); }
 }
 .source { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); }
+/* A dependency line wraps its two names rather than overflowing at 320 CSS px. */
+.dep-controls { display: flex; flex-wrap: wrap; gap: var(--s-3); margin: var(--s-2) 0; }
+.dep-controls .field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; max-width: 100%; }
+.dep-controls select { max-width: 100%; min-width: 0; }
+.dep-line .edge-line, .dep-diag .edge-line { min-width: 0; max-width: 100%; }
+.dep-waiting, .dep-prereq, .dep-source, .dep-members, .named { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.dep-members { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
