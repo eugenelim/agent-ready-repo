@@ -1,6 +1,6 @@
 ---
 name: frame-domain
-description: Use when grounding a product in the real-world activity it serves and bounding its MVP before any screen, service, or architecture is drawn — at the G1.5 Domain & MVP point of the discovery loop, or standalone. Triggers on "frame the domain", "how is this activity really done", "ground this before we design", "what's in/out of the MVP", "draw the scope boundary", "is this scope creep". Produces two typed artifacts from one research-grounded pass — Domain Framing (real-world-activity grounding + best practice + naive-failure modes, plus a brownfield current-system half) and Scope Boundary (the MVP out-of-scope register). Do NOT use to shape the intent behind the work (use `intent frame`), to test whether a bet holds (use `intent de-risk`), or to break an intent down (use `intent decompose`).
+description: Use to frame the domain — how the real-world activity is actually done, its best practice, and how naive versions fail — and to draw the MVP scope boundary before design starts. Triggers on "how is this really done", "what's in the MVP", "is this scope creep". Not for shaping the intent (use `intent frame`).
 ---
 
 # Skill: frame-domain

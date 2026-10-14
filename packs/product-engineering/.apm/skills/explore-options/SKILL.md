@@ -1,6 +1,6 @@
 ---
 name: explore-options
-description: Use to generate multiple candidate product shapes before the discovery loop converges on one — the divergence stage that guards against myopic-greedy commitment. Triggers on "give me candidate product shapes", "diverge on the product shape", "what are the options before we commit", "explore alternatives for X", "don't converge yet". Generates N candidates across altitude × mechanic, each with its riskiest assumption, then frames an explicit compare-and-choose. Do NOT use to break down a chosen approach (use `intent decompose`), to critique one produced artifact (use `devils-advocate`), or to converge (that is the discovery loop's job).
+description: Use to diverge on the product shape — sketch several distinct shapes, each with its riskiest assumption, before converging. Triggers on "give me candidate product shapes", "explore alternatives", "don't converge yet". For initiative options use `diverge-solutions`; not to break down a chosen shape (`intent decompose`) or critique one (`devils-advocate`).
 ---
 
 # Skill: explore-options
