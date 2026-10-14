@@ -123,3 +123,16 @@ Implemented by the `implementer` subagent at `eaa20e66d`, uncommitted in the wor
 - At 320 the detail replaces the list. Each dependency is one ruled unit of two rows: the waiting intent's link with its state, then an indented row holding "waits for" and the prerequisite's link with its state. A hairline divides one line from the next. The picked intent's end carries the accent 3px left rule a selected row uses, wherever it appears, so the two lines that wait for it and the one it waits for read apart without comparing names.
 - At 1280 and 1680 the part sits in the right-hand detail zone after "Where it sits" and before "Open the file", with the same two-row unit.
 - At 2560 the part is wide enough that each line lays out in aligned tracks: the waiting end on the left, "waits for" with the prerequisite end on the right. Dark files match light in layout. Nothing is clipped or scrolled sideways at any width.
+
+### Experience review (AC-0027, VI-5003)
+
+- Round 1 (screens at `eaa20e66d`): SHIP WITH CHANGES. Adjudication sustained one Major (a dependency line did not hold together as one unit across widths) and one Minor (the picked intent was not marked); it refuted seven findings that contradicted AC-0018, AC-0024, AC-0026 or AC-0009, or stated a preference. Fixed in `7013131ae`'s parent fix commit.
+- Round 2: SHIP WITH CHANGES. One Major (the new hairline and picked-end rule had no colour role, so they drew in text colour) and three Minors (state placement, gutter alignment, picked end not exposed to assistive tech), all repaired in `7013131ae`: `.dep-line` takes the shared rule colour, every end keeps a 3px gutter coloured only on the picked intent, the state sits under each name, and the picked link carries `aria-current="true"`.
+- Round 3 (screens at `7013131ae`): no Blocker, no Major. Deferred, not acted on: Minor — the Key does not explain the picked end's accent bar (`view.js` Key rows; a Key row or an accent background would add it); Nit — the picked intent's link reopens the shown intent (AC-0018 requires the link); Nit — a one-line name sits a few px further above its mark because of the 24 px target floor.
+- Result: AC-0027 met.
+
+### Final-commit browser record (VI-5004)
+
+- Last code-bearing commit: `7013131ae`. Asset SHA-256: `view.js` `266f8f4330774ea06ec52d90eead065f90bc5ecb9d985e55a90bb7cdcf0d1227`; `view.css` `13ce089e60f32f0d2716bac0b0d054e6fcbeb65b61f509f7fe07187e6fe24283`; `view-base.css` `169980e3c1d48d43ca118dba6e2fc0860bb71c91b4ce45c8b5344ddb6d7fc0ff`.
+- `view_browser_checks.py`: 125 passed, 0 skipped in 41 s. `test_export_html.py`: 9 passed, 0 skipped. The contrast checks (AC-0010) cover the part's muted lead and sort lines in both themes.
+- Scale re-check at `7013131ae` after the layout fix: 1 copy 677,752 bytes, startup 10 ms, search 15 ms, heap 5 MiB; 50 copies 24,748,318 bytes, startup 111 ms, search 49 ms, heap 50 MiB; every threshold met.
