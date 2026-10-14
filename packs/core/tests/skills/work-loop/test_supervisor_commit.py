@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tarfile
 from pathlib import Path
 from typing import Any
 
@@ -136,3 +137,70 @@ def test_run_json_records_a_refusal(tmp_path: Path) -> None:
     h.run_cli(repo, "next", SPEC)
     run = json.loads((repo / SPEC / ".supervisor" / "run.json").read_text("utf-8"))
     assert run["refusal"]["code"] == "criteria-changed"
+
+
+# ── red-proof safety and the run lock ───────────────────────────────────────
+
+tdd = h.cli._supervisor("_supervisor_tdd.py")
+
+
+def _refusal_code(call: Any) -> str:
+    with pytest.raises(h.admission.Refusal) as info:
+        call()
+    return str(info.value.code)
+
+
+def test_a_head_link_escaping_the_scratch_root_refuses_red_proof(tmp_path: Path) -> None:
+    repo, ws, _run = _started(tmp_path)
+    Path(repo / "escape").symlink_to("/etc/hosts")
+    h.git(repo, "add", "escape")
+    h.git(repo, "commit", "-q", "-m", "an escaping link")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    assert _refusal_code(lambda: tdd._scratch_tree(h.workspace(repo), scratch)) == (
+        "red-proof-extraction-refused")
+
+
+def test_scratch_extraction_needs_the_data_filter(tmp_path: Path,
+                                                  monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, ws, _run = _started(tmp_path)
+    monkeypatch.delattr(tarfile, "data_filter")
+    assert _refusal_code(lambda: tdd._scratch_tree(ws, tmp_path)) == "red-proof-unsafe-extraction"
+
+
+@pytest.mark.parametrize("linked", ["file", "parent"])
+def test_an_overlay_write_never_follows_a_link(tmp_path: Path, linked: str) -> None:
+    root = tmp_path / "scratch"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+    if linked == "file":
+        Path(root / "test_calc.py").symlink_to(outside / "target.py")
+        rel = "test_calc.py"
+    else:
+        Path(root / "tests").symlink_to(outside)
+        rel = "tests/test_calc.py"
+    assert _refusal_code(lambda: tdd._write_inside(root, rel, b"x")) == "red-proof-link-refused"
+    assert list(outside.iterdir()) == []
+
+
+def test_a_held_run_lock_is_a_run_locked_refusal(tmp_path: Path,
+                                                 monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, _ws, _run = _started(tmp_path)
+    policy = h.admission.load_policy()
+    monkeypatch.setattr(h.admission, "load_policy",
+                        lambda: {**policy, "run_lock_timeout_seconds": 0.2})
+    with h.workspace(repo).run_lock():
+        code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and payload["refusal"]["code"] == "run-locked"
+
+
+@pytest.mark.parametrize(("budget", "stale"), [(1800, 1800), (2400, 2400), (1800, 2000)])
+def test_a_policy_whose_red_proof_outlasts_the_lock_is_refused(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, budget: int, stale: int) -> None:
+    policy = json.loads(h.admission._POLICY_PATH.read_text("utf-8"))
+    policy.update({"red_proof_budget_seconds": budget, "run_lock_stale_seconds": stale})
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(policy), "utf-8")
+    monkeypatch.setattr(h.admission, "_POLICY_PATH", path)
+    assert _refusal_code(h.admission.load_policy) == "invalid-policy"
