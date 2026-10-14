@@ -327,9 +327,12 @@ def test_replanning_the_effect_task_never_repeats_it(tmp_path: Path, name: str,
         run.effect_result(request, "completed")
     (run.repo / SPEC / "plan.md").write_text(REPLANS[name](), "utf-8")
     if when == "before-receipt":
-        code, admitted = run.effect_result(request, "completed")
-        assert code == 0 and admitted["admitted"] == "effect-receipt"
+        # AC-0031: no receipt commits over the uncommitted replan. The next step
+        # commits the replan, and the effect query then finds the push done.
+        code, refused = run.effect_result(request, "completed")
+        assert code == 1 and refused["refusal"]["code"] == "protected-path-changed"
     _exactly_once(run)
+    assert len(run.lines("receipt")) == 1
 
 
 def test_a_later_task_commit_after_the_receipt_does_not_reopen_it(tmp_path: Path) -> None:
