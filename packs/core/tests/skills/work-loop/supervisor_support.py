@@ -156,7 +156,7 @@ TASKS = {
         touches="`release.txt`",
         mode="goal-based",
         tests="no stub (goal-based)",
-        done="release.txt says ready",
+        done=kw.pop("done", "release.txt says ready"),
         effects=kw.pop("effects", "push"),
         **kw,
     ),
