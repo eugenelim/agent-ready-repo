@@ -13,13 +13,19 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+# Each shared helper by literal path, so every file a suite loads stays visibly
+# inside this pack.
+_HELPER_PATHS = {
+    "supervisor_harness": Path(__file__).resolve().parent / "supervisor_harness.py",
+    "supervisor_support": Path(__file__).resolve().parent / "supervisor_support.py",
+}
+
 
 def _helper(name: str) -> ModuleType:
     """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
     alias = f"core_work_loop_{name}"
     if alias not in sys.modules:
-        path = Path(__file__).resolve().parent / f"{name}.py"
-        spec = importlib.util.spec_from_file_location(alias, path)
+        spec = importlib.util.spec_from_file_location(alias, _HELPER_PATHS[name])
         assert spec is not None and spec.loader is not None
         sys.modules[alias] = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(sys.modules[alias])

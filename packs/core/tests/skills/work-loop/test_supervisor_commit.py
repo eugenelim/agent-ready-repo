@@ -17,13 +17,19 @@ from typing import Any
 
 import pytest
 
+# Each shared helper by literal path, so every file a suite loads stays visibly
+# inside this pack.
+_HELPER_PATHS = {
+    "supervisor_harness": Path(__file__).resolve().parent / "supervisor_harness.py",
+    "supervisor_support": Path(__file__).resolve().parent / "supervisor_support.py",
+}
+
 
 def _helper(name: str) -> ModuleType:
     """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
     alias = f"core_work_loop_{name}"
     if alias not in sys.modules:
-        path = Path(__file__).resolve().parent / f"{name}.py"
-        spec = importlib.util.spec_from_file_location(alias, path)
+        spec = importlib.util.spec_from_file_location(alias, _HELPER_PATHS[name])
         assert spec is not None and spec.loader is not None
         sys.modules[alias] = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(sys.modules[alias])
@@ -235,3 +241,12 @@ def test_a_policy_whose_red_proof_outlasts_the_lock_is_refused(
     path.write_text(json.dumps(policy), "utf-8")
     monkeypatch.setattr(h.admission, "_POLICY_PATH", path)
     assert _refusal_code(h.admission.load_policy) == "invalid-policy"
+
+
+def test_an_oversized_event_log_does_not_stop_next(tmp_path: Path) -> None:
+    repo, _ws, _run = _started(tmp_path)
+    limit = h.cli._supervisor("_supervisor_journal.py")._MAX_LOCAL_BYTES
+    with (repo / ".loop-run" / "events.jsonl").open("ab") as events:
+        events.truncate(limit + 1)  # sparse: past the read bound without writing it
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and "request" in payload, payload
