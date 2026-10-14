@@ -79,6 +79,7 @@ sibling = _commit.sibling
 __all__ = ["State", "derive", "next_request", "report", "status", "commit_terminal"]
 
 PRODUCER_CLASS = "work-supervisor"
+SCHEMA_VERSION = 1
 _STAGE_OF_KIND = {
     "implement-task": "implementing",
     "write-stub": "implementing",
@@ -518,7 +519,7 @@ def next_request(ws: Workspace) -> dict[str, Any]:
 
 
 def _validate_result(result: object) -> dict[str, Any]:
-    if not isinstance(result, dict) or result.get("schema_version") != 1:
+    if not isinstance(result, dict) or result.get("schema_version") != SCHEMA_VERSION:
         raise Refusal("invalid-result", "controller", "result must be an execution-result.v1")
     for key in ("request_id", "run_id", "kind"):
         if not isinstance(result.get(key), str) or not result[key]:
