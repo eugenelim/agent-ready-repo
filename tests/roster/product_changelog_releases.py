@@ -95,15 +95,3 @@ def latest_release_version(
     """Highest released version of ``package`` by version tuple, or ``""``."""
     versions = release_versions(package, include_nested=include_nested, text=text)
     return versions[0] if versions else ""
-
-
-def latest_release_date(package: str | None = None) -> str:
-    """Latest ISO release date of ``package`` (any package when ``None``), or ``""``."""
-    _, releases, _ = _parsed_view()
-    dates = [
-        str(release["date"])
-        for release in releases
-        if not release["unreleased"]
-        and (package is None or any(p["name"] == package for p in release["packages"]))
-    ]
-    return max(dates, default="")

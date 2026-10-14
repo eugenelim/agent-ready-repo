@@ -25,7 +25,7 @@ downstream lifecycles:
 
 The skill **wraps** existing skills (`desk-research` applied mode,
 `decision-archaeology`) and **shapes** their output into the typed artifacts; it
-does not re-implement retrieval. It is **prompt-only** (Charter Principle 3):
+does not re-implement retrieval. It is **prompt-only**:
 there is no engine, script, or filename generator — the agent following this body
 writes the artifacts and their paths.
 

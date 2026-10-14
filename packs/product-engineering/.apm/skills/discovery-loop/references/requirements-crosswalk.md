@@ -4,8 +4,8 @@ Depth for [`SKILL.md`](../SKILL.md). Many enterprises still do classic
 requirements work — a BRD, a PRD, an SRS/FRD, use cases, a requirements-traceability
 matrix (RTM) — and often refine requirements at several levels at different times.
 This loop does **not** replace that and adds **no requirements pillar of its own**;
-it *maps* those artifacts onto what it already produces, **ingests** them as input,
-and can **emit** in their format for sign-off.
+it *maps* those artifacts onto what it already produces, **ingests** multi-slice
+ones as input, and can **emit** in their format for sign-off.
 
 ## The crosswalk
 
@@ -22,15 +22,17 @@ and can **emit** in their format for sign-off.
 
 ## Three integration directions (reuse-first)
 
-- **Requirements as input (ingest).** An existing BRD/PRD/SRS *seeds* the loop
-  instead of being authored from scratch: **`author-delivery-brief create`** (core) +
-  **`intent frame`** brownfield current-state inputs ingest it at G0/G1.5; the loop
-  then **validates and enriches** it — `frame-domain` grounds it, the lenses add
+- **Requirements as input (ingest).** An existing BRD/PRD/SRS for a multi-slice
+  or cross-repository outcome *seeds* the loop instead of being authored from
+  scratch: **`author-delivery-brief create`** (core) + **`intent frame`**
+  brownfield current-state inputs ingest it at G0/G1.5; the loop then
+  **validates and enriches** it — `frame-domain` grounds it, the lenses add
   the journey/architecture a requirements doc usually lacks, `intent de-risk`
   surfaces the assumptions it states as fact, and the self-coverage gate covers
   completeness / ambiguity / scenario-variation. *Net-new: at most a thin
   `author-delivery-brief create` extension* that recognizes the requirements-doc shapes — **not** a
-  new skill.
+  new skill. A single-feature document skips the loop and goes to **`new-spec`**
+  (core).
 - **Refinement at various levels / different times.** Enterprises that refine
   business → system → functional over time map directly onto the **recursive
   plan-tree**: each level is a node at its altitude, refined when reached and
@@ -49,7 +51,8 @@ Do **not** add a requirements writing / validation / enrichment pillar — the l
 already authors the equivalents, and the self-coverage gate + traceability lint
 already validate them against the IEEE-29148-style quality attributes. Fold
 traditional requirements in via this **crosswalk** (guidance here),
-**`author-delivery-brief create` / `intent frame` ingest** (a thin extension at most), the
+**`author-delivery-brief create` / `intent frame` ingest** for a multi-slice outcome (a thin extension at
+most) or **`new-spec`** for a single feature, the
 **traceability slot as the RTM**, and a **projection adapter** to emit the
 enterprise format. This is a reuse-first *integration* recommendation — **not** a
 new decision.

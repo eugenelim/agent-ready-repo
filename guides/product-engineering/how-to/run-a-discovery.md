@@ -63,7 +63,7 @@ To resume directly: *Resume the `household-assistant` discovery.* The loop loads
 
 ## Fold in existing requirements
 
-If you already have a BRD / PRD / SRS, **seed the loop with it** rather than starting from scratch: hand it to `author-delivery-brief create` + `intent frame`'s brownfield ingest. The loop then validates and enriches it — `frame-domain` grounds it, the lenses add the journey/architecture the doc lacks, `intent de-risk` surfaces the assumptions it states as fact. The **traceability slot serves as your RTM**. Where governance needs a formal BRD/SRS/RTM with sign-off back out, the loop projects its brief + traceability matrix through the converters (md-to-office) path — not a discovery skill. Full crosswalk: the discovery-loop skill's `references/requirements-crosswalk.md`.
+If you already have a BRD / PRD / SRS for a multi-slice or cross-repository outcome, **seed the loop with it** rather than starting from scratch: hand it to `author-delivery-brief create` + `intent frame`'s brownfield ingest. The loop then validates and enriches it — `frame-domain` grounds it, the lenses add the journey/architecture the doc lacks, `intent de-risk` surfaces the assumptions it states as fact. A single-feature document skips the loop and goes to `new-spec`. The **traceability slot serves as your RTM**. Where governance needs a formal BRD/SRS/RTM with sign-off back out, the loop projects its brief + traceability matrix through the converters (md-to-office) path — not a discovery skill. Full crosswalk: the discovery-loop skill's `references/requirements-crosswalk.md`.
 
 ## When it hands off
 

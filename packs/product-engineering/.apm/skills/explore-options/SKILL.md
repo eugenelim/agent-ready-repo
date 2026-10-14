@@ -11,7 +11,7 @@ every other phase of the gate ladder is *convergent* — left alone the loop loc
 onto the first coherent framing and commits early (**myopic-greedy commitment**,
 the loop's headline risk). Sources: see the pack README.
 
-It is **prompt-only** (CHARTER Principle 3): no engine, no scorer, no candidate
+It is **prompt-only**: no engine, no scorer, no candidate
 generator script — the agent following this body writes the candidates as
 blackboard slots. **No new agent, no new reviewer.**
 

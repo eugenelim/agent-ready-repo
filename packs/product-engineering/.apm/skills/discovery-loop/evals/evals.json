@@ -36,12 +36,23 @@
     },
     {
       "id": "requirements-doc-seeds-a-new-brief",
-      "prompt": "We already have a PRD from the business team for this product idea. Seed the discovery loop from it instead of starting from scratch.",
-      "expected_output": "The agent ingests the outside PRD through author-delivery-brief create plus intent frame brownfield ingest, so it becomes a new Draft brief the loop then validates and enriches. It does not use author-delivery-brief continue, which only reviews an existing repository brief, and it does not add a new requirements skill.",
+      "prompt": "We already have a PRD from the business team for this product idea. It spans several releases across our web app and billing service. Seed the discovery loop from it instead of starting from scratch.",
+      "expected_output": "The PRD describes a multi-slice, cross-repository outcome, so the agent ingests it through author-delivery-brief create plus intent frame brownfield ingest, and it becomes a new Draft brief the loop then validates and enriches. It does not use author-delivery-brief continue, which only reviews an existing repository brief, and it does not add a new requirements skill.",
       "assertions": [
-        "Routes the outside requirements document through author-delivery-brief create",
+        "Routes the multi-slice outside requirements document through author-delivery-brief create",
         "Does not use author-delivery-brief continue for the outside document",
         "Pairs the ingest with intent frame brownfield inputs",
+        "Adds no new requirements skill"
+      ]
+    },
+    {
+      "id": "single-feature-requirements-doc-goes-to-new-spec",
+      "prompt": "The business team sent a short PRD for one feature: let users export their invoices as CSV. Fold it into our process instead of starting from scratch.",
+      "expected_output": "The PRD describes a single feature, so the agent routes it to new-spec rather than author-delivery-brief create, which covers only a multi-slice or cross-repository outcome. It does not use author-delivery-brief continue and does not add a new requirements skill.",
+      "assertions": [
+        "Routes the single-feature document to new-spec",
+        "Does not use author-delivery-brief create for the single-feature document",
+        "Does not use author-delivery-brief continue for the outside document",
         "Adds no new requirements skill"
       ]
     }

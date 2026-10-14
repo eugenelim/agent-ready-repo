@@ -19,7 +19,7 @@ supervise the *upstream* vision→brief loop. You hand off; you do not command.
 **You ship content, not a runtime.** Every transition is a **file edit** on the
 typed sidecar plus, at most, the **connectedness lint**. You never build, invoke,
 or depend on a scheduler, service, message bus, or convergence solver — the spike
-confirmed none is needed (CHARTER Principle 3).
+confirmed none is needed.
 
 ## Load context first
 

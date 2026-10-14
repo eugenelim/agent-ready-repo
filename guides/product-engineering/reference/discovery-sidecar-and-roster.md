@@ -65,7 +65,7 @@ A node = an `intent` slot + `parent_id` + the four per-node namespaces above + a
 | Architecture lens | `architect` pack (+ `design-reviewer`) | optional, detect-and-degrade |
 | Research lens | `research` pack | optional, detect-and-degrade |
 
-The two discovery reviewers are **distinct agents from `work-loop`'s code `security-reviewer` / `quality-engineer`** and degrade only in *depth*, never to nothing. The CHARTER's "three reviewers is the ceiling" stays a `work-loop`/code-review cap; the discovery roster is a tracked exception.
+The two discovery reviewers are **distinct agents from `work-loop`'s code `security-reviewer` / `quality-engineer`** and degrade only in *depth*, never to nothing. The three-reviewer ceiling stays a `work-loop`/code-review cap; the discovery roster is a tracked exception to it.
 
 ## The gates
 
