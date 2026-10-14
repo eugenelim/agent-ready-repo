@@ -115,6 +115,18 @@ jobs:
         # on pull requests so Windows-specific paths are not CI-only.
         run: python -m pytest packs/core/tests/skills/repository-grounding/test_read_locator.py -q
 
+      - name: pytest safe-process Job Object launch (Windows)
+        # The Windows launch path: suspended creation, a breakaway-denied
+        # kill-on-close Job Object, a standard-streams-only handle list, and
+        # job termination on timeout.
+        run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety_windows.py -q -rs --durations=10
+
+      - name: pytest safe-process POSIX suite on Windows (evidence only)
+        # Not a gate: this suite was written for POSIX hosts. Its Windows
+        # result is recorded as evidence for the Job Object launch path.
+        continue-on-error: true
+        run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety.py -q -rs
+
   credbroker-tests-windows:
     name: pytest credbroker (windows)
     runs-on: windows-latest
