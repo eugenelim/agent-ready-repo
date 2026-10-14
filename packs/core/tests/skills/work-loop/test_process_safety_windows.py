@@ -50,7 +50,7 @@ def ps() -> ModuleType:
 
 def _python_hash() -> str:
     digest = hashlib.sha256()
-    with open(PYTHON, "rb") as handle:
+    with Path(PYTHON).open("rb") as handle:
         for chunk in iter(lambda: handle.read(65536), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -65,11 +65,19 @@ def _spec(cwd: Path, code: str, *args: str, timeout: int = 20) -> dict:
     }
 
 
+EVENTS: list[object] = []
+
+
+def _sink(event: object) -> None:
+    EVENTS.append(event)
+
+
 def _launch(ps: ModuleType, tmp_path: Path, code: str, *args: str, timeout: int = 20,
             **kw: object) -> object:
     return ps.launch_safe_process(
         _spec(tmp_path, code, *args, timeout=timeout), cwd_roots=(str(tmp_path),),
-        env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")}, **kw)
+        env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")},
+        audit_sink=_sink, **kw)
 
 
 def _alive(pid: int) -> bool:
@@ -187,7 +195,7 @@ def test_launch_contract_cases(ps: ModuleType, tmp_path: Path) -> None:
     result = ps.launch_safe_process(
         spec, cwd_roots=(str(tmp_path),), stdin_bytes=b"in:",
         env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows"),
-                    "TOKEN": "s3cret-value"})
+                    "TOKEN": "s3cret-value"}, audit_sink=_sink)
     assert result.exit_code == 0
     assert result.stdout_redacted == b"in:[REDACTED]"
     assert result.stderr_redacted == b"e" and result.output_was_redacted
@@ -197,14 +205,16 @@ def test_launch_contract_cases(ps: ModuleType, tmp_path: Path) -> None:
     noisy["output_bound_bytes"] = 100
     bounded = ps.launch_safe_process(
         noisy, cwd_roots=(str(tmp_path),),
-        env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")})
+        env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")},
+        audit_sink=_sink)
     assert bounded.output_was_truncated and len(bounded.stdout_redacted) <= 100
     flood = _spec(tmp_path, "import sys, time\nwhile True: sys.stdout.write('x' * 65536)")
     flood["output_bound_bytes"] = 100
     with pytest.raises(ps.ProcessDenied) as info:
         ps.launch_safe_process(
             flood, cwd_roots=(str(tmp_path),),
-            env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")})
+            env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")},
+        audit_sink=_sink)
     assert info.value.denial_code == "denied-output-cap-exceeded"
 
 
@@ -231,3 +241,19 @@ def test_an_inheritable_parent_handle_does_not_reach_the_child(ps: ModuleType,
         assert result.stdout_redacted.strip() == b"unusable"
     finally:
         os.close(fd)
+
+
+def test_a_batch_file_is_refused_before_launch(ps: ModuleType, tmp_path: Path) -> None:
+    script = tmp_path / "tool.cmd"
+    marker = tmp_path / "ran.txt"
+    script.write_text(f"@echo ran> {marker}\r\n")
+    digest = hashlib.sha256(script.read_bytes()).hexdigest()
+    spec = _spec(tmp_path, "unused")
+    spec.update({"executable": str(script), "executable_identity": digest,
+                 "argv": ["a&echo injected"]})
+    with pytest.raises(ps.ProcessDenied) as info:
+        ps.launch_safe_process(spec, cwd_roots=(str(tmp_path),),
+                               env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", "")},
+                               audit_sink=_sink)
+    assert info.value.denial_code == "denied-non-native-executable"
+    assert not marker.exists()

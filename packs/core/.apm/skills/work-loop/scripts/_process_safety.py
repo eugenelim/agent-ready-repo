@@ -53,6 +53,7 @@ import signal
 import stat
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -206,6 +207,7 @@ _USE_PROC_FD: Final[bool] = (
 # the whole job; the job handle closing ends anything left.
 
 _IS_WINDOWS: Final[bool] = os.name == "nt"
+_WINDOWS_SCRIPT_SUFFIXES: Final[frozenset[str]] = frozenset({".bat", ".cmd"})
 _CREATE_SUSPENDED: Final[int] = 0x00000004
 _CREATE_UNICODE_ENVIRONMENT: Final[int] = 0x00000400
 _CREATE_NEW_PROCESS_GROUP: Final[int] = 0x00000200
@@ -340,7 +342,6 @@ def _run_in_job(
     the process exists terminates the job first.
     """
     import msvcrt
-    import threading
 
     api = _WIN
     assert api is not None
@@ -348,6 +349,7 @@ def _run_in_job(
     wintypes = api.wintypes_module  # type: ignore[attr-defined]
     k32 = api.kernel32  # type: ignore[attr-defined]
     handles: list[int] = []
+    handle_lock = threading.Lock()
 
     def close(handle: object) -> None:
         if handle:
@@ -442,10 +444,20 @@ def _run_in_job(
         overflow = threading.Event()
         lock = threading.Lock()
 
+        def adopt(handle: int, mode: str) -> object | None:
+            """Hand a pipe handle to a file object, or None if cleanup already closed it."""
+            with handle_lock:
+                if handle not in handles:
+                    return None
+                fd = msvcrt.open_osfhandle(handle, os.O_RDONLY if mode == "rb" else 0)
+                handles.remove(handle)
+            return os.fdopen(fd, mode, buffering=0)
+
         def reader(handle: int, stream: int) -> None:
-            fd = msvcrt.open_osfhandle(handle, os.O_RDONLY)
-            handles.remove(handle)
-            with Path(fd).open("rb", buffering=0) as source:
+            source = adopt(handle, "rb")
+            if source is None:
+                return
+            with source:  # type: ignore[attr-defined]
                 while True:
                     try:
                         chunk = source.read(65536)
@@ -461,12 +473,12 @@ def _run_in_job(
                             return
 
         def writer(handle: int) -> None:
-            fd = msvcrt.open_osfhandle(handle, 0)
-            handles.remove(handle)
-            with Path(fd).open("wb", buffering=0) as sink, \
-                    contextlib.suppress(OSError):
+            sink = adopt(handle, "wb")
+            if sink is None:
+                return
+            with sink, contextlib.suppress(OSError):  # type: ignore[attr-defined]
                 if stdin_input:
-                    sink.write(stdin_input)
+                    sink.write(stdin_input)  # type: ignore[attr-defined]
 
         threads = [threading.Thread(target=reader, args=(out_read, 1), daemon=True),
                    threading.Thread(target=reader, args=(err_read, 2), daemon=True),
@@ -522,8 +534,10 @@ def _run_in_job(
     finally:
         if process_info.hProcess:
             k32.TerminateJobObject(job, 1)
-        for handle in list(handles):
-            close(handle)
+        with handle_lock:
+            for handle in list(handles):
+                close(handle)
+            handles.clear()
         close(process_info.hThread)
         close(process_info.hProcess)
         if attributes is not None:
@@ -1339,6 +1353,16 @@ def _launch_safe_process_unguarded(
             "denied-unsupported-tree-kill",
             "process-tree timeout termination is not supported on this host; "
             "launch refused to avoid orphan children",
+        )
+
+    # Windows starts a batch file through cmd.exe, which reinterprets the
+    # command line; only native images may be launched there.
+    if _IS_WINDOWS and Path(spec_dict["executable"]).suffix.lower() in _WINDOWS_SCRIPT_SUFFIXES:
+        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+        raise ProcessDenied(
+            "denied-non-native-executable",
+            "a batch or command script would run through a command interpreter; "
+            "launch a native executable instead",
         )
 
     # Pin executable identity: open without following links (O_NOFOLLOW),
