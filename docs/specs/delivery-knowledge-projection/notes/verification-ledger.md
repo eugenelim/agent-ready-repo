@@ -393,3 +393,10 @@ Run on the review-satisfied tree before the spec moved to Shipped.
   complete empty `disabled` snapshot and exits 0; with it set on this repository it
   prints an empty `enabled` snapshot; a malformed continuation token exits 2 with
   `refused: token-invalid`.
+
+## Release version — 2026-10-13
+
+Main released core 3.1.2 in #1552 while this change was open, so this change
+ships as core 3.1.3: `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
+and the changelog fragment moved together, and `tools/changelog.py validate` passes.
+
