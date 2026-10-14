@@ -127,19 +127,14 @@ class Operation:
 def _finish_key(ws: Any, state: Any, name: str) -> tuple[str, str]:
     """The finish key: run, name, and the HEAD when terminal was first reached for this tree.
 
-    An intent whose recorded HEAD is no longer readable (a rebase dropped it and
-    the object was pruned) cannot be matched to this tree, so it is skipped.
+    Each finish intent records its product tree, so the match needs no old
+    commit: a rebase that keeps the tree, even after the old HEAD is pruned,
+    finds the same operation.
     """
-    commit = _supervisor("_supervisor_commit.py")
     tree = ws.git.product_tree()
     for line in state.effects:
-        if line["entry"] != "intent" or line["scope"] != "finish" or line["effect"] != name:
-            continue
-        try:
-            same_tree = ws.git.product_tree(line["terminal_head"]) == tree
-        except commit.SupervisorGitError:
-            same_tree = False
-        if same_tree:
+        if (line["entry"] == "intent" and line["scope"] == "finish" and line["effect"] == name
+                and line.get("terminal_tree") == tree):
             return line["operation_key"], line["terminal_head"]
     return f"{state.run_id}:{name}:{state.head}", state.head
 
@@ -267,6 +262,7 @@ def commit_intent(ws: Any, state: Any, detail: dict[str, Any]) -> dict[str, Any]
         dispatch=1,
         task_id=detail["task_id"],
         terminal_head=detail["terminal_head"],
+        terminal_tree=ws.git.product_tree() if scope == "finish" else None,
     )
     _append(ws, state, f"effect-intent:{key}", "effect-intent", [line], f"intend {name}")
     return _dispatch_request(ws, state, key, name, scope, 1)
