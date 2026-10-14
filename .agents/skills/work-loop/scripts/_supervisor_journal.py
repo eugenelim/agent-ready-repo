@@ -4,7 +4,7 @@ Nothing here is read for a decision. ``<spec>/.supervisor/`` holds the advisory
 journal, ``run.json`` for the workspace bridge, the security-event audit log,
 and the run lock; it ignores itself in Git. ``.loop-run/events.jsonl`` gets one
 line per supervisor step, projected from supervisor commits, so a lost or
-duplicated append is repaired at the next call.
+duplicated append is repaired at the next call that can read and write it.
 
 Standard library only. Python 3.11+.
 """
@@ -173,14 +173,29 @@ class LocalState:
     def reconcile_events(self, run_id: str, commits: list[Commit]) -> None:
         """Append an event line for every reachable step that has none.
 
-        The shared event log is advisory: when it is over the size bound or
-        unreadable, the projection is skipped so it never stops a verb that
-        commits delivery state, and a later call repairs it once it is readable.
+        The shared event log is advisory, so a failure to read or write it is
+        reported on stderr and never changes a verb's outcome. Projection resumes
+        once the log is readable and writable again. Both writers only append,
+        so a log past the size bound stays skipped until an operator rotates it.
         """
+        advisory = (
+            OSError,
+            ValueError,
+            _commit.SupervisorGitError,
+            sibling("_confined_mutation.py").MutationDenied,
+        )
         try:
-            recorded = self._recorded_steps(run_id)
-        except (OSError, ValueError):
-            return
+            self._project_events(run_id, commits)
+        except advisory as exc:
+            rel = self.events.relative_to(self.root).as_posix()
+            print(
+                f"work-supervisor: warning: {rel} was not updated ({type(exc).__name__}); "
+                "rotate or repair it to resume the event projection",
+                file=sys.stderr,
+            )
+
+    def _project_events(self, run_id: str, commits: list[Commit]) -> None:
+        recorded = self._recorded_steps(run_id)
         missing = [c for c in commits if c.step not in recorded]
         if not missing:
             return
