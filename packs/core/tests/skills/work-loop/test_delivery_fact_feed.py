@@ -573,7 +573,7 @@ def test_oversized_and_unsafe_text_yield_explicit_nones(
     ), finding_text={
         "observation": "a" * 590, "reachable_path": "b" * 590, "actual_failure": "c" * 590,
     })
-    repo.add_review_failure("alpha", store, "bidi", finding_text={"observation": "evil ‮ text"})
+    repo.add_review_failure("alpha", store, "bidi", finding_text={"observation": "evil \u202e text"})
     repo.add_review_failure("alpha", store, "ok", finding_text={"observation": "line one\n\tline two"})
 
     _, entries = scan(feed, repo.root)

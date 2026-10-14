@@ -817,7 +817,7 @@ def _mutations() -> list[tuple[str, object]]:
         ("unknown-major", edit(lambda p: p.__setitem__("schema_version", 2))),
         ("too-many-entries", edit(lambda p: p.__setitem__("entries", [p["entries"][1]] * 1001))),
         ("newline-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a\nb"))),
-        ("bidi-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a‮b"))),
+        ("bidi-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a\u202eb"))),
         ("trailing-lf-id", edit(lambda p: p["entries"][0]["source"].__setitem__("transaction_id", "tx-1\n"))),
         ("trailing-lf-token", edit(lambda p: p.__setitem__("continuation", "dff1." + "0" * 64 + ".1\n"))),
         ("path-traversal", edit(lambda p: p["entries"][0]["observation"].__setitem__("scope_paths", ["a/../b"]))),
@@ -984,8 +984,8 @@ def _corpus() -> list[tuple[str, dict]]:
             add("leading-space", path, " " + value)
             add("overlong", path, value + "x" * 700)
             add("control-char", path, value + "\x07")
-            add("zero-width", path, value + "​")
-            add("bidi", path, value + "‮")
+            add("zero-width", path, value + "\u200b")
+            add("bidi", path, value + "\u202e")
             add("nel", path, value + "\u0085")
             add("soft-hyphen", path, value + "\u00ad")
             add("combining-grapheme-joiner", path, value + "\u034f")

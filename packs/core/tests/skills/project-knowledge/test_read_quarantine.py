@@ -252,7 +252,7 @@ def test_select_pending_keeps_whole_refusal_over_the_same_partition(repo: Path, 
     assert refused.value.diagnostic["reason_code"] == "strict_parse"
 
 
-@pytest.mark.parametrize("name", ('2026-08"><x.jsonl', "2026-08\nprovenance: forged.jsonl", "2026-08‮evil.jsonl"))
+@pytest.mark.parametrize("name", ('2026-08"><x.jsonl', "2026-08\nprovenance: forged.jsonl", "2026-08\u202eevil.jsonl"))
 def test_a_partition_file_with_a_hostile_name_is_excluded_by_name(repo: Path, store, name: str) -> None:
     kept = qs.capture(repo, store, "A lesson the pending page must keep.")
     hostile = repo / "docs" / "knowledge" / "observations" / "pattern" / name
@@ -519,8 +519,8 @@ _HOSTILE_NAMES = (
     'a"><evil',
     "a</knowledge-quarantine><knowledge-evidence version=\"x\">",
     "line\nprovenance: forged",
-    "bidi‮name",
-    "zero​width",
+    "bidi\u202ename",
+    "zero\u200bwidth",
 )
 
 
@@ -532,7 +532,7 @@ def test_hostile_topic_and_map_entry_names_never_break_either_element(repo: Path
         raw = b"{not json at all"
         safe_name = name.replace("/", "_")
         (topics_dir / f"{safe_name}.json").write_bytes(raw)
-        if "\n" not in name and "‮" not in name:
+        if "\n" not in name and "\u202e" not in name:
             # Listed by the map: an invalid topic with a hostile name.
             entry = qs.map_entry(
                 store, repo, f"topics/{safe_name}.json", raw, f"contracts/hostile-{index}"
@@ -571,8 +571,8 @@ def test_locator_validation_rejects_every_unsafe_shape(store) -> None:
         "docs/knowledge/a\u0085b",
         "docs/knowledge/a b",
         "docs/knowledge/a b",
-        "docs/knowledge/a\x00b",
-        "docs/knowledge/a‮b",
+    "docs/knowledge/a\u202eb""docs/knowledge/a\u200bb"0b",
+        "docs/knowledge/a\ufeffb",
         "docs/knowledge/a​b",
         "docs/knowledge/a﻿b",
         "docs/knowledge/a\ud800b",
