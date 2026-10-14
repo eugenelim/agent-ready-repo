@@ -76,6 +76,7 @@ _AUTHORITY_RE = re.compile(r"(?P<role>[a-z][a-z-]{0,62})(?::[0-9a-f]{12,64})?")
 _SPEC_STATUSES = ("Approved", "Implementing")
 _PLAN_STATUSES = ("Approved", "Executing")
 SCHEMA_VERSION = 1
+_LOCK_MARGIN_SECONDS = 300.0
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -115,6 +116,18 @@ def load_policy() -> dict[str, Any]:
     data = json.loads(_POLICY_PATH.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or data.get("schema_version") != SCHEMA_VERSION:
         raise Refusal("invalid-policy", "skill maintainer", "supervisor-policy.json is malformed")
+    # The run lock's own rule: a contender's wait < the longest hold < the stale
+    # window. Red proof is the longest hold, so its budget plus a margin for the
+    # git work around it must end before the lock can be judged stale.
+    wait = float(data["run_lock_timeout_seconds"])
+    hold = float(data["red_proof_budget_seconds"]) + _LOCK_MARGIN_SECONDS
+    if not wait < hold < float(data["run_lock_stale_seconds"]):
+        raise Refusal(
+            "invalid-policy",
+            "skill maintainer",
+            "run_lock_timeout_seconds < red_proof_budget_seconds + "
+            f"{_LOCK_MARGIN_SECONDS:g} < run_lock_stale_seconds must hold",
+        )
     return data
 
 
@@ -129,7 +142,7 @@ class Workspace:
     root: Path
     spec_rel: str
     clock: Callable[[], str] | None = None
-    policy: dict[str, Any] = field(default_factory=load_policy)
+    policy: dict[str, Any] = field(default_factory=lambda: load_policy())
 
     def __post_init__(self) -> None:
         if self.clock is None:
@@ -260,7 +273,7 @@ class Workspace:
         self.local.ensure()
         return sibling("_statelock.py").exclusive(
             self.local.lock_target,
-            timeout=30.0,
+            timeout=float(self.policy["run_lock_timeout_seconds"]),
             stale_after=float(self.policy["run_lock_stale_seconds"]),
         )
 

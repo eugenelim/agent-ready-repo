@@ -57,7 +57,7 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Callable, Final
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -208,6 +208,18 @@ _USE_PROC_FD: Final[bool] = (
 
 _IS_WINDOWS: Final[bool] = os.name == "nt"
 _WINDOWS_SCRIPT_SUFFIXES: Final[frozenset[str]] = frozenset({".bat", ".cmd"})
+
+
+def _is_windows_script(executable: str) -> bool:
+    """True when Windows would start *executable* through a command interpreter.
+
+    Win32 drops trailing dots and spaces from a file name, so ``tool.cmd.`` and
+    ``tool.cmd `` name the same batch file and are judged by the name Windows uses.
+    """
+    name = PureWindowsPath(executable).name.rstrip(" .")
+    return PureWindowsPath(name).suffix.lower() in _WINDOWS_SCRIPT_SUFFIXES
+
+
 _CREATE_SUSPENDED: Final[int] = 0x00000004
 _CREATE_UNICODE_ENVIRONMENT: Final[int] = 0x00000400
 _CREATE_NEW_PROCESS_GROUP: Final[int] = 0x00000200
@@ -1361,7 +1373,7 @@ def _launch_safe_process_unguarded(
 
     # Windows starts a batch file through cmd.exe, which reinterprets the
     # command line; only native images may be launched there.
-    if _IS_WINDOWS and Path(spec_dict["executable"]).suffix.lower() in _WINDOWS_SCRIPT_SUFFIXES:
+    if _IS_WINDOWS and _is_windows_script(spec_dict["executable"]):
         _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
         raise ProcessDenied(
             "denied-non-native-executable",
