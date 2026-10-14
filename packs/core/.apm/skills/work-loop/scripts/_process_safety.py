@@ -756,7 +756,11 @@ def _open_and_verify_executable(path: str) -> tuple[str, int, int, int]:
         OSError: when the file cannot be opened, is not a regular file, or
                  exceeds _MAX_EXECUTABLE_BYTES.
     """
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    # O_BINARY matters on Windows only: a text-mode read would hash other bytes.
+    flags = (
+        os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        | getattr(os, "O_BINARY", 0)
+    )
     src_fd = os.open(path, flags)
     try:
         info = os.fstat(src_fd)
