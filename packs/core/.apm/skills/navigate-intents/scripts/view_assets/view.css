@@ -83,8 +83,9 @@
 .dep-word { flex: none; }
 .named { display: inline-flex; flex-wrap: wrap; gap: 0 var(--s-2); align-items: baseline; }
 .named .mark { white-space: nowrap; }
-/* The picked intent's end carries the same 3px left rule a selected row does. */
-.dep-self { border-left-width: 3px; border-left-style: solid; padding-left: var(--s-1); }
+/* Every end keeps a 3px left gutter, coloured only when it is the picked intent, as list rows do. */
+.dep-waiting, .dep-prereq { border-left-width: 3px; border-left-style: solid; padding-left: var(--s-1); }
+.dep-line .named { display: flex; flex-direction: column; align-items: flex-start; }
 @container (min-width: 40rem) {
   .dep-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .dep-to { padding-left: 0; }

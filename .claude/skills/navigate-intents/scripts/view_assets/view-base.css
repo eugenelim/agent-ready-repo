@@ -130,7 +130,9 @@ summary { cursor: pointer; display: list-item; padding: var(--s-1) 0; }
 .q-count { font-weight: 650; }
 /* A layout file sets a border's width and style; its colour is chosen here. */
 .page-header, .list-head, .detail, .record, .question-list { border-color: var(--c-rule-strong); }
-.part, .key-list .fact { border-color: var(--c-rule); }
+.part, .key-list .fact, .dep-line { border-color: var(--c-rule); }
+.dep-waiting, .dep-prereq { border-left-color: var(--c-bg); }
+.dep-self { border-left-color: var(--c-accent); }
 .visually-hidden {
   position: absolute;
   width: 1px;

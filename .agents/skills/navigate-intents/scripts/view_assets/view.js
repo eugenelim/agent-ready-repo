@@ -1099,6 +1099,10 @@
   function dependencyEnd(id, picked, cls) {
     var end = el('span', id === picked ? cls + ' dep-self' : cls);
     add(end, namedIntent(id));
+    if (id === picked) {
+      var self = end.querySelector('a');
+      if (self) { self.setAttribute('aria-current', 'true'); }
+    }
     return end;
   }
   function dependencyLine(entry, picked) {
