@@ -1,0 +1,19 @@
+[
+  {"query": "The bet is committed. What capabilities do we need to build?", "should_trigger": true},
+  {"query": "For the marketplace bet, decide build, buy, partner, or adopt for each capability", "should_trigger": true},
+  {"query": "Map our capabilities for the self-serve analytics initiative", "should_trigger": true},
+  {"query": "Which parts of this should we build ourselves and which should we buy?", "should_trigger": true},
+  {"query": "Group what the payments bet needs into capability areas and suggest a build order", "should_trigger": true},
+  {"query": "Which capabilities in this bet are commodity and which differentiate us?", "should_trigger": true},
+  {"query": "Turn bet.md into a capability map", "should_trigger": true},
+  {"query": "What's our build/buy split for the scheduling product?", "should_trigger": true},
+
+  {"query": "Map the jobs users are trying to get done in scheduling", "should_trigger": false},
+  {"query": "Draw a C4 container diagram of the payments system", "should_trigger": false},
+  {"query": "Which of our existing services are hotspots we should modernize first?", "should_trigger": false},
+  {"query": "Break the payments intent into specs", "should_trigger": false},
+  {"query": "Stand up a value-stream meta-repo across our three delivery repos", "should_trigger": false},
+  {"query": "Pick between the marketplace and direct-sales options", "should_trigger": false},
+  {"query": "Frame the intent for a single export feature", "should_trigger": false},
+  {"query": "Choose a message queue for the payments service", "should_trigger": false}
+]

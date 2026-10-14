@@ -175,7 +175,7 @@ them.
 
 | File | Tier | Question it answers | Run by |
 | --- | --- | --- | --- |
-| `evals/eval_queries.json` | **A — triggering** | Does this skill *activate* on the prompts it should, and stay quiet on the near-misses it shouldn't? | `tools/run-pack-evals.py` (today) |
+| `evals/eval_queries.json` | **A — triggering** | Does this skill *activate* on the prompts it should, and stay quiet on the near-misses it shouldn't? | `agentbundle pack evals run` |
 | `evals/evals.json` | **B — output quality** | Once activated, does it *do the job*? | authored by hand now; **automated running/grading is deferred to a future RFC** |
 
 ### Tier A — writing activation evals (`evals/eval_queries.json`)
@@ -207,7 +207,7 @@ skills = ["new-spec", "bug-fix"]
 Then run the evals locally (report-only; needs the `claude` CLI on PATH):
 
 ```bash
-python tools/run-pack-evals.py --pack <name>
+agentbundle pack evals run --pack <name>
 ```
 
 It projects the pack in isolation, runs each query through the headless `claude`
@@ -250,7 +250,7 @@ procedure:
    query; collect the single skill name it reports (or `null`).
 2. Assemble the reports as `{skill: {query_id: [reported | null | "__error__", …]}}`
    (one entry per run; `query_id` is `q00`, `q01`, … by position).
-3. Grade with `python tools/run-pack-evals.py --pack <name> --mode in-harness
+3. Grade with `agentbundle pack evals run --pack <name> --mode in-harness
    --reports <reports.json>` — same `trigger_rate`/0.5 grading and
    eval-workspace, but the summary is labelled `mode: in-harness`,
    `fidelity: reported`.
@@ -318,7 +318,7 @@ sharper containment requirement than the activation check** (the
    re-check. The harness never auto-installs. After the one-time install the run
    is repeatable: the skill's `--check` detects-present and you proceed.
 3. **Per eval:** get a confined working dir from the runner —
-   `python tools/run-pack-evals.py --pack <name> --prepare-workspace
+   `agentbundle pack evals run --pack <name> --prepare-workspace
    <skill>/<eval_id>` prints an OS-temp dir seeded with the eval's
    `evals/files/` fixtures (path-confined). Run the skill on the `prompt` **with
    that dir as cwd**, instructing it to confine writes there and bounding the
@@ -326,7 +326,7 @@ sharper containment requirement than the activation check** (the
    `.eval-output.txt` in that dir. Tear the dir down in a `finally`.
 4. **Collect** `{skill: {eval_id: {"assertions": [<bool per assertion>],
    "errored": <bool>, "workspace": "<dir>"}}}` and grade:
-   `python tools/run-pack-evals.py --pack <name> --mode in-harness --check
+   `agentbundle pack evals run --pack <name> --mode in-harness --check
    behavior --reports <file>`. The runner **re-derives** the deterministic
    checks (`expect.produces` files exist, `output_contains`/`excludes` against
    `.eval-output.txt`) from the working dir itself — you only attest the
@@ -344,7 +344,7 @@ own review skills (e.g. `architect-review`) are natural lenses.
 
 ```bash
 # point each eval at the artifact the skill produced, then judge:
-python tools/run-pack-evals.py --pack <name> --mode judge \
+agentbundle pack evals run --pack <name> --mode judge \
   --judge-adapter codex --artifacts artifacts.json   # {skill: {eval_id: <artifact-path>}}
 ```
 
@@ -365,7 +365,7 @@ templates**, not code — so you pick the backend/model, or add your own, by con
   extract    = "stdout"          # or "json:<field>" if the CLI emits a JSON envelope
   ```
   ```bash
-  python tools/run-pack-evals.py --pack <name> --mode judge \
+  agentbundle pack evals run --pack <name> --mode judge \
     --judge-adapter kiro-cli --model <your-model> --judge-config judges.toml --artifacts artifacts.json
   ```
   `{prompt}` is substituted as a discrete argv element (never a shell string);
