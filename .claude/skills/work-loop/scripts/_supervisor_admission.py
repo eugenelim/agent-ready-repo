@@ -251,9 +251,17 @@ class Workspace:
         return store
 
     def run_lock(self) -> Any:
-        """The exclusive run lock under ``.supervisor/``."""
+        """The exclusive run lock under ``.supervisor/``.
+
+        Its stale window exceeds the red-proof budget, the longest work done
+        while holding it, so a live holder is never judged dead.
+        """
         self.local.ensure()
-        return sibling("_statelock.py").exclusive(self.local.lock_target, timeout=30.0)
+        return sibling("_statelock.py").exclusive(
+            self.local.lock_target,
+            timeout=30.0,
+            stale_after=float(self.policy["run_lock_stale_seconds"]),
+        )
 
 
 def _status_refusals(ws: Workspace, spec_text: str, plan_text: str, intent: str) -> None:

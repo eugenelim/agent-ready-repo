@@ -304,7 +304,8 @@ def decide(ws: Workspace, state: State) -> Action:
                 ws,
                 state,
                 "retry-cap",
-                f"The implementation retry count reached {cap}. Replan, amend, or stop the run.",
+                f"The implementation retry count reached {cap}. The run is stopped: no "
+                "replan, amendment, or re-approval resets the count.",
             ),
         )
     task, any_pending = _first_incomplete(state)
@@ -435,7 +436,9 @@ def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
     ws.local.reconcile_events(state.run_id, state.commits)
     replan = _pending_replan(ws, state)
     if replan:
-        digest = hashlib.sha256()
+        # Bound to HEAD as well as content, so returning to earlier content is a
+        # new step rather than a skipped one.
+        digest = hashlib.sha256(state.head.encode() + b"\0")
         for path in replan:
             digest.update(path.encode() + b"\0" + (ws.git.read_working(path) or b"") + b"\0")
         ws.git.build_commit(

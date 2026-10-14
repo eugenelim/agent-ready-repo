@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -103,33 +104,75 @@ def task_action(ws: Any, state: Any, task: dict[str, Any]) -> Any:
 
 
 def _scratch_tree(ws: Any, directory: Path) -> None:
-    """Materialize HEAD's tree into *directory*."""
+    """Materialize HEAD's tree into *directory* with link-safe extraction only."""
+    if not hasattr(tarfile, "data_filter"):
+        raise Refusal(
+            "red-proof-unsafe-extraction",
+            "controller",
+            "this Python cannot extract archives safely; use 3.11.4 or later",
+        )
     archive = ws.git.run("archive", "--format=tar", "HEAD")
-    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
-        if hasattr(tarfile, "data_filter"):
+    try:
+        with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
             tar.extractall(directory, filter="data")
-        else:  # pragma: no cover - Python builds without extraction filters
-            tar.extractall(directory)  # noqa: S202 - the archive is this repository's own HEAD
+    except (tarfile.TarError, OSError) as exc:
+        raise Refusal(
+            "red-proof-extraction-refused",
+            "controller",
+            f"HEAD cannot be materialized safely: {exc}",
+        ) from exc
+
+
+def _write_inside(root: Path, rel: str, content: bytes) -> None:
+    """Write *content* at *rel* under *root*, refusing any link on the way."""
+    current = root
+    parts = rel.split("/")
+    for part in parts[:-1]:
+        current = current / part
+        if current.is_symlink() or (current.exists() and not current.is_dir()):
+            raise Refusal("red-proof-link-refused", "controller", f"{rel} crosses a link")
+        current.mkdir(exist_ok=True)
+    target = current / parts[-1]
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        if target.is_symlink():
+            raise OSError("the stub path is a link")
+        fd = os.open(target, flags, 0o644)
+    except OSError as exc:
+        raise Refusal("red-proof-link-refused", "controller", f"{rel}: {exc}") from exc
+    with os.fdopen(fd, "wb") as handle:
+        handle.write(content)
 
 
 def observe(
     ws: Any, task: dict[str, Any], overlay: dict[str, bytes]
 ) -> list[tuple[str, int | None]]:
-    """Run each stub on a scratch copy of HEAD plus *overlay*; return its exit code."""
-    timeout = float(ws.policy.get("stub_timeout_seconds", 600))
+    """Run each stub on a scratch copy of HEAD plus *overlay*; return its exit code.
+
+    The stubs share one budget, so red proof ends inside the run lock's stale
+    window however many stubs a task declares.
+    """
+    timeout = float(ws.policy["stub_timeout_seconds"])
+    deadline = time.monotonic() + float(ws.policy["red_proof_budget_seconds"])
     results: list[tuple[str, int | None]] = []
     with tempfile.TemporaryDirectory(prefix="work-supervisor-red-") as scratch:
         directory = Path(scratch).resolve()
         _scratch_tree(ws, directory)
         for rel, content in overlay.items():
-            target = directory / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(content)
+            _write_inside(directory, rel, content)
         for stub in task["stubs"]:
             argv = [part.replace("{path}", stub["path"]) for part in shlex.split(stub["run"])]
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                results.append((stub["path"], None))
+                continue
             try:
                 done = subprocess.run(
-                    argv, cwd=str(directory), capture_output=True, timeout=timeout, check=False
+                    argv,
+                    cwd=str(directory),
+                    capture_output=True,
+                    timeout=min(timeout, remaining),
+                    check=False,
                 )
                 results.append((stub["path"], done.returncode))
             except (OSError, subprocess.TimeoutExpired):

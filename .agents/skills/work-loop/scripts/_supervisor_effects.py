@@ -125,15 +125,21 @@ class Operation:
 
 
 def _finish_key(ws: Any, state: Any, name: str) -> tuple[str, str]:
-    """The finish key: run, name, and the HEAD when terminal was first reached for this tree."""
+    """The finish key: run, name, and the HEAD when terminal was first reached for this tree.
+
+    An intent whose recorded HEAD is no longer readable (a rebase dropped it and
+    the object was pruned) cannot be matched to this tree, so it is skipped.
+    """
+    commit = _supervisor("_supervisor_commit.py")
     tree = ws.git.product_tree()
     for line in state.effects:
-        if (
-            line["entry"] == "intent"
-            and line["scope"] == "finish"
-            and line["effect"] == name
-            and ws.git.product_tree(line["terminal_head"]) == tree
-        ):
+        if line["entry"] != "intent" or line["scope"] != "finish" or line["effect"] != name:
+            continue
+        try:
+            same_tree = ws.git.product_tree(line["terminal_head"]) == tree
+        except commit.SupervisorGitError:
+            same_tree = False
+        if same_tree:
             return line["operation_key"], line["terminal_head"]
     return f"{state.run_id}:{name}:{state.head}", state.head
 
