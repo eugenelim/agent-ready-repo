@@ -171,8 +171,16 @@ class LocalState:
         return steps
 
     def reconcile_events(self, run_id: str, commits: list[Commit]) -> None:
-        """Append an event line for every reachable step that has none."""
-        recorded = self._recorded_steps(run_id)
+        """Append an event line for every reachable step that has none.
+
+        The shared event log is advisory: when it is over the size bound or
+        unreadable, the projection is skipped so it never stops a verb that
+        commits delivery state, and a later call repairs it once it is readable.
+        """
+        try:
+            recorded = self._recorded_steps(run_id)
+        except (OSError, ValueError):
+            return
         missing = [c for c in commits if c.step not in recorded]
         if not missing:
             return
