@@ -30,8 +30,7 @@ def _helper(name: str) -> ModuleType:
     """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
     alias = f"core_work_loop_{name}"
     if alias not in sys.modules:
-        path = HARNESS_DIR / f"{name}.py"
-        spec = importlib.util.spec_from_file_location(alias, path)
+        spec = importlib.util.spec_from_file_location(alias, HARNESS_DIR / f"{name}.py")
         assert spec is not None and spec.loader is not None
         sys.modules[alias] = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(sys.modules[alias])
