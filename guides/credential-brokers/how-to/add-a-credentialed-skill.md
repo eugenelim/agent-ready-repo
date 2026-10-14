@@ -77,7 +77,7 @@ metadata:
 
 For `auth: env`: same shape, `auth: env`. For `auth: sso-cookie`: `auth: sso-cookie` plus `sso_profile: <profile>` (no namespace/keys). For `auth: cli`: just `auth: cli` (no namespace/keys/profile).
 
-`tools/lint-agent-artifacts.py` refuses unknown `auth:` values; `metadata.credentialed: true` requires `metadata.auth`.
+`agentbundle catalogue verify --root .` refuses unknown `auth:` values; `metadata.credentialed: true` requires `metadata.auth`.
 
 ## Step 5 — Declare the schema (`auth: creds` and `auth: env` only)
 
@@ -400,11 +400,11 @@ Registration opens a headed Chromium window and saves the cookie jar to the OS k
 ## Step 11 — Run the lint
 
 ```bash
-python3 tools/lint-agent-artifacts.py     # frontmatter schema
+agentbundle catalogue verify --root .     # frontmatter schema
 bash tools/lint-credentialed-skills.sh    # credentialed-skill rules
 ```
 
-`lint-agent-artifacts.py` validates the nested `metadata.credentialed`, `metadata.primitive-class`, and `metadata.auth` keys. `lint-credentialed-skills.sh` walks every credentialed skill and reports broker-agnostic findings (Don't-block presence; argv-ban flags; plaintext dotfile reads without opt-out) plus broker-specific findings:
+`agentbundle catalogue verify --root .` validates the nested `metadata.credentialed`, `metadata.primitive-class`, and `metadata.auth` keys. `lint-credentialed-skills.sh` walks every credentialed skill and reports broker-agnostic findings (Don't-block presence; argv-ban flags; plaintext dotfile reads without opt-out) plus broker-specific findings:
 
 - `auth: creds` — refuse if `scripts/` imports no credential resolver (`from credbroker import …`, or the legacy `from .credentials_shim`).
 - `auth: env` — refuse if any declared `<NAMESPACE>_<KEY>` is never read in `scripts/`.

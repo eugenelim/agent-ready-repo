@@ -1,6 +1,6 @@
 [pack]
 name = "contracts"
-version = "0.3.7"
+version = "0.3.8"
 description = "Write the OpenAPI or AsyncAPI contract before anyone writes a handler."
 readme = "README.md"
 display_name = "Contracts"
@@ -21,7 +21,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 
 # Pack activation evals:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
-# evals/eval_queries.json and is measured by tools/run-pack-evals.py. Both
+# evals/eval_queries.json and is measured by `agentbundle pack evals run`. Both
 # skills are user-prompt-triggered, so none are excluded.
 [pack.evals]
 skills = ["api-contract", "event-contract"]

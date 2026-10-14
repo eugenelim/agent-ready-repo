@@ -55,7 +55,7 @@ The arc describes the full flow; each operator enters at the stage their situati
 ### Layer 1: agentskills.io structural standard
 
 The agentskills.io specification defines the format every skill in this catalogue follows: six allowed top-level frontmatter keys, four allowed subdirectory names (`scripts/`, `references/`, `assets/`, `evals/`), and a `description:` that is a single-line scalar, trigger-phrased, under 1024 characters.
-The linters (`lint-skill-spec.py`, `lint-agent-artifacts.py`) enforce this structurally before a skill can project to any adapter.
+The linters (`agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`) enforce this structurally before a skill can project to any adapter.
 
 Context that a skill needs but does not use on every invocation lives in `references/` files.
 The skill body loads a reference file at the moment the workflow reaches it — "load `references/strategy-X.md` now" — not pre-loaded into every context.
@@ -71,7 +71,7 @@ The agentskills.io spec sets the format floor.
 Catalogue craft is the layer above it.
 
 The activation description is rewritten for this catalogue's conventions — a trigger-phrased "Use when…" sentence that activates on the right prompts and stays quiet on near-misses.
-`run-pack-evals` verifies this against authored activation evals after assimilation.
+`agentbundle pack evals run` verifies this against authored activation evals after assimilation.
 
 Detail that is only needed in specific branches of the workflow is moved to `references/` files linked from the body at the moment of need.
 The body routes to references — it does not replicate them inline.
@@ -118,7 +118,7 @@ A skill with no inventory entry is ungoverned regardless of its content.
 
 **AST10 — Cross-platform metadata survival.**
 Security metadata (risk tier, permission manifest) must survive projection across adapters.
-The projection pipeline and `lint-agent-artifacts.py` enforce this.
+The projection pipeline and `agentbundle catalogue verify --root .` enforce this.
 
 AST02 (supply chain) defers to the supply-chain security module.
 AST08 is addressed structurally by the `tool`/`hybrid`/`reason` review taxonomy built into the security review process.

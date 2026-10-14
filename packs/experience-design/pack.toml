@@ -1,6 +1,6 @@
 [pack]
 name = "experience-design"
-version = "4.1.5"
+version = "4.1.6"
 description = "Start from what the customer is trying to do and end at a screen someone could build. Journey, copy, flows, visual craft — and a reviewer that asks about the empty state and the focus ring you forgot."
 readme = "README.md"
 display_name = "Experience Design"
@@ -41,7 +41,7 @@ output_dir = "docs/design"
 
 # Pack activation evals: the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is
-# measured by tools/run-pack-evals.py. The judgment/authoring skills (all
+# measured by `agentbundle pack evals run`. The judgment/authoring skills (all
 # except experience-status) also ship a Tier-4 LLM-judge rubric
 # (evals/evals.json, keyed by file presence, graded via --mode judge).
 # `experience-status` is a read-only orient skill that writes no files, so it

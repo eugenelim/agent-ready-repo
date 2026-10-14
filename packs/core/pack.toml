@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "3.1.3"
+version = "3.1.4"
 
 description = "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 readme = "README.md"
@@ -40,7 +40,7 @@ optional = true
 
 # Pack activation evals: the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is
-# measured by tools/run-pack-evals.py. Deliberately excluded:
+# measured by `agentbundle pack evals run`. Deliberately excluded:
 #   - security-checklists — reviewer-internal, never self-discovered (no
 #     user-prompt activation surface).
 #   - operational-safety — reviewer-internal, never self-discovered (the

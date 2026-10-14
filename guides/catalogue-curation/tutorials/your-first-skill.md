@@ -107,7 +107,7 @@ allowed-tools:
 **[Standard 1 — agentskills.io structural]**
 Six keys, no others: `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`.
 `description:` is a single-line scalar (or a `>` block scalar that collapses to one line), under 1024 characters.
-`lint-skill-spec.py` enforces this — it's the authority, not this page.
+`agentbundle catalogue lint --root . --deep` enforces this — it's the authority, not this page.
 
 **[Standard 2 — Catalogue craft] `description:` is the activation signal.**
 This is the most important sentence you will write.
@@ -329,7 +329,7 @@ skills = ["<your-skill-name>"]
 
 Run:
 ```bash
-python3 tools/run-pack-evals.py --pack <pack>
+agentbundle pack evals run --pack <pack>
 ```
 
 **Reading the results:**
@@ -369,10 +369,10 @@ Assertions must be falsifiable behavior-level statements.
 All four must pass before the PR.
 
 ```bash
-python3 tools/lint-skill-spec.py              # Standard 1: agentskills.io structural
-make build-self                                # project source → adapters
-python3 tools/lint-agent-artifacts.py         # verify projection is clean
-python3 tools/run-pack-evals.py --pack <pack> # Standard 2: activation evals
+agentbundle catalogue lint --root . --deep   # Standard 1: agentskills.io structural
+make build-self                               # project source → adapters
+agentbundle catalogue verify --root .         # verify projection is clean
+agentbundle pack evals run --pack <pack>      # Standard 2: activation evals
 ```
 
 After `make build-self`, confirm the skill appears:
@@ -401,8 +401,8 @@ Check every item before asking for review.
 The [full table](../explanation/skill-standards.md#the-definition-of-done--both-paths) is in the standards file;
 this is the writing-path subset:
 
-- [ ] `lint-skill-spec.py` passes — no errors; warnings reviewed
-- [ ] `make build-self` clean; `lint-agent-artifacts.py` passes
+- [ ] `agentbundle catalogue lint --root . --deep` passes — no errors; warnings reviewed
+- [ ] `make build-self` clean; `agentbundle catalogue verify --root .` passes
 - [ ] Activation evals: all `should_trigger: true` queries > 0.5; all `should_trigger: false` < 0.5
 - [ ] `evals/evals.json` exists with at least one output-quality eval
 - [ ] `agentbundle show <pack>` lists the skill by name
