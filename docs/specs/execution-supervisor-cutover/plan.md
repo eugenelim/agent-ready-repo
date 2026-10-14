@@ -41,9 +41,9 @@ in the next Core major, under the gate stated in the spec's Scope.
 
 **Integration tests:**
 
-- **VI-7901 (AC-0011):** copy the installed skill into an empty directory, then
-  run a synthetic full code run under `python -I` with `sys.path` limited to
-  `scripts/`. An import hook fails on any module outside the standard library
+- **VI-7901 (AC-0011, AC-0021):** copy the installed skill into an empty
+  directory, then run a synthetic full code run under `python -I` with
+  `sys.path` limited to `scripts/` and project-knowledge absent. An import hook fails on any module outside the standard library
   and that directory. T2 owns this test.
 
 **Manual verification:** none.
@@ -87,6 +87,14 @@ in the next Core major, under the gate stated in the spec's Scope.
   - `test_plan_records_its_approval.py`;
   - `test_loop_*`;
   - the roster suites named by the search.
+- **Fact feed:** `_delivery_feed.py` changes its source from
+  `<spec>/.shadow-acceptance/shadow-evidence.log` to the committed
+  `<spec>/delivery/evidence.jsonl`, read through the same
+  `replay_admitted_frames` reader, and drops its shadow-services gate. Its
+  `delivery-fact-feed.v1` output is unchanged.
+- **Capture gates:** the rewritten skill keeps the `spec-approved` capture step
+  before `start` and the `plan-locked` step at `start`, because project-knowledge
+  accepts work-loop producer captures only under those names.
 - **Backlog entries:** the open entries in `workspace.toml` that target
   `loop-cohort.py` are dispositioned through `close-work`, as superseded by this
   cutover or rewritten against the supervisor.
@@ -119,11 +127,12 @@ Owned by: T1, T2.
 ### T2: The skill drives the supervisor and the old engine is gone
 
 - **Depends on:** T1; spec:execution-supervisor-core/T8; spec:execution-supervisor-attempt-security/T5; spec:execution-supervisor-review-gate/T4; ADR-0144 Accepted; Slice 3 shipped
-- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0016; goal-based.
+- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0016, AC-0019, AC-0020, AC-0021; goal-based.
 - **Touches:** every file the T2 search returns at the start of the task. That
   includes:
   - **Skill:** `SKILL.md`, `references/`, `evals/evals.json`,
-    `profiles/work-loop.toml`, and `scripts/`.
+    `profiles/work-loop.toml`, and `scripts/` (including `_delivery_feed.py`
+    and its tests).
   - **Core:** `packs/core/seeds/.gitignore`, `packs/core/DESIGN.md`, and the
     Core manifests.
   - **Root:** `.gitignore`, `.workspace-prune-protected.toml`, `Makefile`, and
@@ -160,14 +169,20 @@ Owned by: T1, T2.
     `.loop-run/`.
   - **VI-7018:** the dispatched roster suites pass. Each retired or rewritten
     test is listed in the ledger.
-  - **VI-7901 (AC-0011)**, cross-cutting.
+  - **VI-7019 (AC-0019):** a synthetic run through the rewritten skill
+    requests one `spec-approved` and one `plan-locked` capture, and Slice 3's
+    AC-0006 capture fixtures pass.
+  - **VI-7021 (AC-0020):** the Slice 3 feed suite, repointed at
+    `delivery/evidence.jsonl` with the shadow setting unset, passes, and a
+    supervisor run's review-failure receipt yields one candidate.
+  - **VI-7901 (AC-0011, AC-0021)**, cross-cutting.
 - **Done when:** every test above passes, `make lint-ruff lint-mypy` is clean, the Windows job passes, and security-reviewer returns clean.
 
 ### T3: Architecture, decisions, and coordination describe the shipped supervisor
 
 - **Depends on:** T2
 - **Spec behavior:** Durable Outputs rows for decision, architecture, and coordination; goal-based.
-- **Touches:** ADR-0125 `Status:`; the architecture pages named in the spec; `workspace.toml`
+- **Touches:** the architecture pages named in the spec, including the knowledge pages; `workspace.toml`
 - **Verification mode:** goal-based
 - **Tests:**
   - **VI-7020:** a bounded search of the named architecture pages finds no
