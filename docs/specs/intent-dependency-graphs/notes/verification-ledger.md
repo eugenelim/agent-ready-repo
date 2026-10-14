@@ -105,21 +105,21 @@ Implemented by the `implementer` subagent at `eaa20e66d`, uncommitted in the wor
 
 ### Screenshots
 
-- Retaken at `eff8130fa`, after the experience-review fix (one ruled unit per line; the picked intent's end carries the selected 3px left rule). Same script and procedure as above: `opportunity:work-item-promotion-routing` (3 lines) picked with Both and All, a fresh context per width (height 900) and theme, the Dependencies part scrolled into view. The real-export comparison was re-run with the fix and all three holders still match.
+- Retaken at `7013131ae`, after the two experience-review fixes (one ruled unit per line with the state under each name; line hairlines in the shared rule colour; every end keeps a 3px gutter, shown in the accent colour on the picked intent, whose link also carries `aria-current`). Same script and procedure as above: `opportunity:work-item-promotion-routing` (3 lines) picked with Both and All, a fresh context per width (height 900) and theme, the Dependencies part scrolled into view. The real-export comparison was re-run with the fix and all three holders still match.
 
 | Width | Theme | File | SHA-256 |
 | --- | --- | --- | --- |
-| 320 | light | `screens/320-light.png` | `3d03b8404c59f535632079101871e8ccd8ceff4fbef933761de71f36f20000d1` |
-| 320 | dark | `screens/320-dark.png` | `47b0fcc88e35be5adbb803ea55b4a4055591740f8d2685eb42d3e6284c7c7591` |
-| 1280 | light | `screens/1280-light.png` | `f3b69dbc200caf767b1bf77fbd0385d280f44d0d83a571b0daf5b0897795fb2a` |
-| 1280 | dark | `screens/1280-dark.png` | `fce004283426b39e668508490a16fa454faae8c96df2c35288f34fa43d572f04` |
-| 1680 | light | `screens/1680-light.png` | `ca49c3e59ac7c2923dbee209c32d2f17e498817167089d9b38af08b8e50066bd` |
-| 1680 | dark | `screens/1680-dark.png` | `2ece3f8f762bf4c386d7eafe9f3ccd8b690d1af6e140d891feaced510caf58bf` |
-| 2560 | light | `screens/2560-light.png` | `7bab63224a88ffacbd40c593d46204bee13fe5f05a1e0efa04dc75f44d5881d1` |
-| 2560 | dark | `screens/2560-dark.png` | `86831e0effb34148441fcd74737dfac2b3b3212287f0b9d49ce792c1a26a1424` |
+| 320 | light | `screens/320-light.png` | `4dd5a3790547f800a8238c7cba2b357f2d9b2e71f84413fa1af89f1de6d95275` |
+| 320 | dark | `screens/320-dark.png` | `b413a1b7a33b01f91f987e5a611a4619a555e7a14406b4d078f624eb96758616` |
+| 1280 | light | `screens/1280-light.png` | `0ef7d593f90699fe0ead9435666a173b81289e4497926dcacecc40d2426216c5` |
+| 1280 | dark | `screens/1280-dark.png` | `9b6dac91f7f4f441d357e93ad2bca99904ed3bccd0a648d463c965a821995a90` |
+| 1680 | light | `screens/1680-light.png` | `eb4c76220bc7c1724e581467c13ad3c47035d214ec2fa8db2a6e17f3f1bf6462` |
+| 1680 | dark | `screens/1680-dark.png` | `d034b5fe9598b18b026f8ab2044ad4810768debc9c6ae1e1c9b74ebb4a1fc81c` |
+| 2560 | light | `screens/2560-light.png` | `f02541cf1f53fe4bb0f61e2acf578b6ccd728b2d6ecbf27b461e74aca2e7b92f` |
+| 2560 | dark | `screens/2560-dark.png` | `b13ed815905bc0c96d7b61e43f107e2cf176062e3d391f42fedaa7dc74cb747e` |
 
 (Paths are under `docs/specs/intent-dependency-graphs/notes/screens/`. Each PNG is the stated width by 900.)
 
-- At 320 the detail replaces the list. Each dependency is one ruled unit of two rows: the waiting intent's link with its state, then an indented row holding "waits for" and the prerequisite's link with its state. A hairline divides one line from the next. The picked intent's end carries a 3px left rule wherever it appears, so the two lines that wait for it and the one it waits for read apart without comparing names.
+- At 320 the detail replaces the list. Each dependency is one ruled unit of two rows: the waiting intent's link with its state, then an indented row holding "waits for" and the prerequisite's link with its state. A hairline divides one line from the next. The picked intent's end carries the accent 3px left rule a selected row uses, wherever it appears, so the two lines that wait for it and the one it waits for read apart without comparing names.
 - At 1280 and 1680 the part sits in the right-hand detail zone after "Where it sits" and before "Open the file", with the same two-row unit.
 - At 2560 the part is wide enough that each line lays out in aligned tracks: the waiting end on the left, "waits for" with the prerequisite end on the right. Dark files match light in layout. Nothing is clipped or scrolled sideways at any width.
