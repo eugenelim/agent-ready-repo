@@ -390,6 +390,7 @@ def envelope_references(
         for token in re.split(r"[,;]", value):
             if not token.strip():
                 continue
+            token = token.strip()
             path = _cited_record_path(token, list_dir)
             if path is None:
                 continue

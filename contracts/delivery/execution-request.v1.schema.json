@@ -172,6 +172,10 @@
       "minLength": 1,
       "maxLength": 256
     },
+    "review_subject": {
+      "type": "object",
+      "description": "The current review-subject.v1 record a report must carry; validated by its canonical schema."
+    },
     "report_id": {
       "type": "string",
       "minLength": 1,
@@ -212,7 +216,7 @@
         "dispatch": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 3
+          "maximum": 64
         }
       }
     },
@@ -298,7 +302,8 @@
       "then": {
         "required": [
           "role",
-          "review_subject_fingerprint"
+          "review_subject_fingerprint",
+          "review_subject"
         ]
       }
     },

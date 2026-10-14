@@ -72,7 +72,7 @@
     "dispatch": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 3
+      "maximum": 64
     },
     "receipt_ref": {
       "type": "string",
