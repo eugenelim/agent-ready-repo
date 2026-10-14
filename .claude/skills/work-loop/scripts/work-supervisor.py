@@ -32,6 +32,7 @@ import os
 import stat
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -242,13 +243,15 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
             }
         })
         return EXIT_REFUSED
-    except (KeyError, TypeError, ValueError) as exc:
-        # A committed record that does not have the shape this supervisor writes.
+    except Exception as exc:  # noqa: BLE001 - every verb ends in one JSON object
+        # A defect in this script, not in the records: name where it was raised.
+        frame = traceback.extract_tb(exc.__traceback__)[-1]
         _emit({
             "refusal": {
-                "code": "malformed-record",
-                "owner": "controller",
-                "detail": f"{type(exc).__name__}: {exc}",
+                "code": "internal-error",
+                "owner": "skill maintainer",
+                "detail": f"{type(exc).__name__}: {exc} at "
+                f"{Path(frame.filename).name}:{frame.lineno}",
             }
         })
         return EXIT_REFUSED

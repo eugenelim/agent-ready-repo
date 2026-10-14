@@ -77,6 +77,21 @@ _SPEC_STATUSES = ("Approved", "Implementing")
 _PLAN_STATUSES = ("Approved", "Executing")
 SCHEMA_VERSION = 1
 _LOCK_MARGIN_SECONDS = 300.0
+_APPROVAL_FIELDS = frozenset({
+    "run_id",
+    "sequence",
+    "base",
+    "code_trust",
+    "terminal_intent",
+    "authority_ref",
+    "review_authority_ref",
+    "envelope",
+    "approval",
+    "initial_plan_review",
+})
+_RECORD_FIELDS = {
+    "effect-resolutions.jsonl": frozenset({"entry", "operation_key", "run_id", "effect", "scope"}),
+}
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -191,13 +206,42 @@ class Workspace:
 
     # ── committed records ───────────────────────────────────────────────────
 
+    def _lines(self, name: str, rev: str, required: frozenset[str]) -> list[dict[str, Any]]:
+        """Parse a committed ``delivery/`` file, refusing a line this supervisor did not write."""
+        raw = self.git.show(f"{self.git.delivery_rel}/{name}", rev) or b""
+        lines = []
+        for number, text in enumerate(raw.splitlines(), 1):
+            if not text.strip():
+                continue
+            try:
+                line = json.loads(text)
+            except ValueError:
+                line = None
+            if not isinstance(line, dict) or not required <= set(line):
+                raise Refusal(
+                    "malformed-record",
+                    "controller",
+                    f"{self.git.delivery_rel}/{name} line {number} is malformed",
+                )
+            lines.append(line)
+        return lines
+
     def approvals(self, rev: str = "HEAD") -> list[dict[str, Any]]:
-        raw = self.git.show(f"{self.git.delivery_rel}/approvals.jsonl", rev) or b""
-        return [json.loads(line) for line in raw.splitlines() if line.strip()]
+        lines = self._lines("approvals.jsonl", rev, _APPROVAL_FIELDS)
+        for number, line in enumerate(lines, 1):
+            envelope = line["envelope"]
+            if (
+                not isinstance(envelope, dict)
+                or not isinstance(envelope.get("refs"), dict)
+                or not isinstance(line["approval"], dict)
+            ):
+                raise Refusal(
+                    "malformed-record", "controller", f"approvals.jsonl line {number} is malformed"
+                )
+        return lines
 
     def records(self, name: str) -> list[dict[str, Any]]:
-        raw = self.git.show(f"{self.git.delivery_rel}/{name}") or b""
-        return [json.loads(line) for line in raw.splitlines() if line.strip()]
+        return self._lines(name, "HEAD", _RECORD_FIELDS.get(name, frozenset()))
 
     def evidence_bytes(self) -> bytes:
         return self.git.show(f"{self.git.delivery_rel}/evidence.jsonl") or b""
