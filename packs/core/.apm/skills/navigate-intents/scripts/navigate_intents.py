@@ -2027,6 +2027,33 @@ def _dependency_selection(
     }
 
 
+def _dependency_linked_set(
+    records: dict[str, list[dict[str, Any]]], starts: set[str],
+) -> set[str]:
+    """Return *starts* plus every intent reachable from any of them along
+    prerequisites, and every intent reachable along dependents (one unlimited
+    breadth-first pass each way)."""
+    forward: dict[str, list[str]] = {}
+    backward: dict[str, list[str]] = {}
+    for e in records["edges"]:
+        forward.setdefault(e["from"], []).append(e["to"])
+        backward.setdefault(e["to"], []).append(e["from"])
+    linked = set(starts)
+    for adj in (forward, backward):
+        seen = set(starts)
+        frontier = sorted(starts)
+        while frontier:
+            nxt: list[str] = []
+            for node in frontier:
+                for other in adj.get(node, []):
+                    if other not in seen:
+                        seen.add(other)
+                        nxt.append(other)
+            frontier = nxt
+        linked |= seen
+    return linked
+
+
 def _dependency_text(
     start: str, direction: str, depth: int, intent_ids: list[str],
     selection: dict[str, list[dict[str, Any]]],
@@ -2308,6 +2335,18 @@ def build_view_payload(
         nodes = [n for n in graph["nodes"] if n["id"] in scope_ids]
         edges = [e for e in graph["edges"] if e["from"] in scope_ids]
 
+    try:
+        dep_records = _dependency_records(root, graph_mod, graph)
+    except graph_mod.DerivationError as exc:
+        raise ExportRefusal(exc.code, str(exc)) from None
+    if scope_ids is None:
+        dependencies = dep_records
+    else:
+        starts = scope_ids & {n["id"] for n in intents}
+        dependencies = _dependency_selection(
+            dep_records, _dependency_linked_set(dep_records, starts)
+        )
+
     base = _provenance(root, graph)  # its ``root`` is deliberately not carried over
     links, commit = view_mod.source_links(root, nodes)
     return {
@@ -2325,6 +2364,7 @@ def build_view_payload(
         "nodes": nodes,
         "edges": edges,
         "source_links": links,
+        "dependencies": dependencies,
     }
 
 
