@@ -75,6 +75,7 @@ __all__ = [
 ]
 
 EVIDENCE_POLICY = "work-supervisor:criteria:v1"
+GATES_RUN = "run:gates"
 _CRITERION_RE = re.compile(r"^\s*[-*]\s*\[[ xX]\]\s*\*\*(AC-\d{4})\b", re.MULTILINE)
 
 
@@ -175,13 +176,18 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
         r["acceptance_fingerprint"] == fingerprint and r["observation"]["type"] == "gate"
         for r in state.receipts
     )
+    gates_failed = any(
+        r["acceptance_fingerprint"] == fingerprint and r["lineage"]["criterion_ref"] == GATES_RUN
+        for r in state.receipts
+    )
     review = review_subject(ws, state, subject)
     review_state = sibling("_review_disposition.py").review_readiness(
         store, review_subject=review, review_policy=ws.policy["review_policy"]
     )
     supported = all(v == "supported" for v in by_criterion.values())
     return {
-        "ready": supported and bool(review_state["acceptance_eligible"]),
+        "ready": supported and not gates_failed and bool(review_state["acceptance_eligible"]),
+        "gates_failed": gates_failed,
         "acceptance_fingerprint": fingerprint,
         "criteria": by_criterion,
         "gates_ran_for_subject": gated,
@@ -196,6 +202,17 @@ def readiness_action(ws: Any, state: Any) -> Any:
     if view["ready"]:
         return None
     fingerprint = view["acceptance_fingerprint"]
+    if view["gates_failed"]:
+        return _loop.Action(
+            "request",
+            _loop.human_decision(
+                ws,
+                state,
+                "gates-failed",
+                "Gates failed on this product without naming a criterion. Replan repair work.",
+                key=fingerprint,
+            ),
+        )
     unsupported = sorted(ac for ac, v in view["criteria"].items() if v != "supported")
     if unsupported:
         if not view["gates_ran_for_subject"]:
@@ -307,14 +324,9 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             raise Refusal(
                 "invalid-result", "controller", "a run-gates result needs gate and criteria"
             )
-        if not gate["passed"] and all(
+        unattributed = not gate["passed"] and all(
             isinstance(row, dict) and row.get("outcome") == "pass" for row in rows
-        ):
-            raise Refusal(
-                "inconsistent-gate-result",
-                "controller",
-                "a failed gate run must name the criterion it failed",
-            )
+        )
         wanted = set(request["criteria"])
         receipts = []
         for row in rows:
@@ -334,6 +346,20 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
                     term=term,
                     observation="gate",
                     outcome=outcome,
+                    fingerprint=fingerprint,
+                )
+            )
+        if unattributed:
+            # Gates failed without naming a criterion (a lint or typecheck, say):
+            # recorded for the run so readiness asks for repair work.
+            receipts.append(
+                _loop.receipt(
+                    state,
+                    step,
+                    criterion=GATES_RUN,
+                    term="gates-failed",
+                    observation="gate",
+                    outcome="fail",
                     fingerprint=fingerprint,
                 )
             )
