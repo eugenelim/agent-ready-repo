@@ -89,6 +89,19 @@ def test_row_criterion_contradicted_projects_repair_work(tmp_path: Path) -> None
     assert view["request"]["reason"] == "criteria-unsupported"
 
 
+def test_a_failed_gate_naming_no_criterion_projects_repair_work(tmp_path: Path) -> None:
+    repo, controller = _started(tmp_path)
+    request = _until(repo, controller, "run-gates")
+    result = controller.work(request)
+    result["gate"] = {"passed": False}
+    assert controller.report(result)[0] == 0
+    view = _status(repo)
+    assert set(view["readiness"]["criteria"].values()) == {"supported"}
+    assert view["readiness"]["ready"] is False and view["readiness"]["gates_failed"] is True
+    assert view["request"]["kind"] == "human-decision"
+    assert view["request"]["reason"] == "gates-failed"
+
+
 def test_row_review_not_eligible_projects_review_work(tmp_path: Path) -> None:
     repo, controller = _started(tmp_path)
     _until(repo, controller, "review-role")
