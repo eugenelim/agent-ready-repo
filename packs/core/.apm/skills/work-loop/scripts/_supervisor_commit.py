@@ -355,11 +355,6 @@ class GitPort:
         paths = [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
         return sorted(p for p in paths if not p.startswith(excluded))
 
-    def staged_changes(self) -> list[str]:
-        """Paths whose real index entry differs from HEAD (``git diff --cached``)."""
-        out = self.run("diff", "--cached", "--name-only", "-z", "HEAD")
-        return [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
-
     # ── the commit builder ──────────────────────────────────────────────────
 
     class _PrivateIndex:
