@@ -1,0 +1,383 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/execution-request.v1.schema.json",
+  "title": "execution-request.v1",
+  "description": "One request the supervisor issues to the trusted controller. The request id is deterministic, so a repeated `next` re-issues the current request unchanged. The controller executes it, possibly through an untrusted worker attempt, and reports an execution-result.v1.",
+  "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
+  "x-spec": [
+    "docs/specs/execution-supervisor-core/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "run_id",
+    "spec",
+    "kind",
+    "stage"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Deterministic attempt or request identity."
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "spec": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Repository-relative POSIX path."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "implement-task",
+        "write-stub",
+        "run-gates",
+        "review-role",
+        "assess-finding",
+        "external-effect",
+        "effect-query",
+        "regenerate",
+        "human-decision"
+      ]
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "admitted",
+        "implementing",
+        "gating",
+        "reviewing",
+        "awaiting-human",
+        "terminal"
+      ]
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "title",
+        "revision"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Task identity: derived from the task title without its number."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        }
+      },
+      "description": "The projected task this request or record concerns."
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "stubs": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "run",
+          "red_exit",
+          "digest"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Repository-relative POSIX path."
+          },
+          "run": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Command the supervisor runs to observe the stub; {path} expands to the stub path."
+          },
+          "red_exit": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "description": "Exit codes that count as red. Any other exit is not red."
+          },
+          "digest": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          }
+        }
+      }
+    },
+    "acceptance_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "criteria": {
+      "type": "array",
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "role": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "review_subject_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "review_subject": {
+      "type": "object",
+      "description": "The current review-subject.v1 record a report must carry; validated by its canonical schema."
+    },
+    "report_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "finding_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_key",
+        "name",
+        "scope",
+        "dispatch"
+      ],
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "task",
+            "finish"
+          ]
+        },
+        "dispatch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      }
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Stable code for why a human decision is needed."
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "description": "Question put to the human; supervisor-authored text."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "implement-task"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "task",
+          "attempt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "write-stub"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "task",
+          "stubs"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "run-gates"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "acceptance_fingerprint",
+          "criteria"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "review-role"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "role",
+          "review_subject_fingerprint",
+          "review_subject"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "assess-finding"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "role",
+          "report_id",
+          "finding_id",
+          "review_subject_fingerprint"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "external-effect"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "effect"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "effect-query"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "effect"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "human-decision"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "reason",
+          "question"
+        ]
+      }
+    }
+  ]
+}

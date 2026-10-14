@@ -534,6 +534,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
 
+      # The supervisor's emitted records are validated against `contracts/`,
+      # which sits above every pack's tests, so this check is roster-owned and
+      # sits ABOVE the carve-out step for named attribution.
+      - name: pytest execution-supervisor emitted-record parity (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_execution_supervisor_records.py
+
       # The allocator's owner-parity and cross-pack equivalence claims read
       # `docs/product/intents/` and a second pack's script, which a pack test
       # may not reach. It sits ABOVE the carve-out step below, whose

@@ -57,6 +57,7 @@ protected = [
   "docs/specs/escaped",
   "docs/specs/exact",
   "docs/specs/example",
+  "docs/specs/execution-supervisor-core",
   "docs/specs/file",
   "docs/specs/foo",
   "docs/specs/foo-bar",

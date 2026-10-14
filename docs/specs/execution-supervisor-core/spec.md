@@ -1,6 +1,6 @@
 # Spec: Execution supervisor core
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0061, ADR-0005, RFC-0028
@@ -97,7 +97,7 @@ trusted, and named-human decisions are recorded with authority references.
   run.
 - **Effects (AC-0019, AC-0020):** goal-based runs of the effect corpus plus a
   two-process claim race.
-- **Re-approval, worker edits, and effect names (AC-0030, AC-0031, AC-0032, AC-0033):** TDD over
+- **Re-approval, worker edits, effect names, and feed compatibility (AC-0030, AC-0031, AC-0032, AC-0033, AC-0034):** TDD over
   re-approval, cited-record, and index fixtures.
 - **Readiness, counts, and status (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026):**
   TDD over the Readiness truth table and status fixtures.
@@ -318,6 +318,9 @@ Legacy runs
   set changes the spec directory or any cited record.
 - [ ] **AC-0032.** After every supervisor commit and working-copy sync,
   `git diff --cached` shows no change.
+- [ ] **AC-0034.** Slice 3's `replay_admitted_frames` reads the supervisor's
+  `delivery/evidence.jsonl` and returns every admitted evidence frame the run
+  wrote.
 - [ ] **AC-0021.** `start` on a spec directory holding `engine-state.json` or a
   cohort `state.json` never reads either file.
 
