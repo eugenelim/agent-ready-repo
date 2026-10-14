@@ -109,18 +109,46 @@ def test_ac19_pending_refuses_malformed_cursor_without_traceback(
     assert refused.value.diagnostic["reason_code"] == "cursor_stale"
 
 
-def test_ac19_cursor_digest_refuses_non_regular_partition(repo: Path, store) -> None:
+def test_ac19_pending_page_excludes_a_non_regular_partition_and_writers_refuse(
+    repo: Path, store
+) -> None:
+    """The read-only pending page excludes a non-regular partition file as `unsafe`.
+
+    It reads no byte through it. A writer still refuses the whole operation.
+    """
     receipt = _capture(repo, store)
     path = store._journal_path(repo, receipt["partition"])
     path.unlink()
     path.mkdir()
+    request = {"selection_mode": "direct-maintainer-pending", "scope": "packs/core"}
 
+    page = store.pending_page(repo, request)
+
+    assert page["pending"] == []
+    assert [(entry["reason_code"], entry["path"]) for entry in page["quarantine"]] == [
+        ("unsafe", f"docs/knowledge/{receipt['partition']}")
+    ]
     with pytest.raises(store.KnowledgeStoreError) as refused:
-        store.pending_page(
-            repo,
-            {"selection_mode": "direct-maintainer-pending", "scope": "packs/core"},
-        )
+        _capture(repo, store, lesson="A later capture into the damaged partition.")
     assert refused.value.diagnostic["reason_code"] == "confinement"
+
+
+def test_ac19_pending_page_never_reads_through_a_symlinked_partition(
+    repo: Path, store, tmp_path: Path
+) -> None:
+    receipt = _capture(repo, store)
+    path = store._journal_path(repo, receipt["partition"])
+    target = tmp_path / "outside.jsonl"
+    target.write_bytes(path.read_bytes())
+    path.unlink()
+    path.symlink_to(target)
+
+    page = store.pending_page(
+        repo, {"selection_mode": "direct-maintainer-pending", "scope": "packs/core"}
+    )
+
+    assert page["pending"] == []
+    assert [entry["reason_code"] for entry in page["quarantine"]] == ["unsafe"]
 
 
 def test_ac4_pending_drain_is_explicit_scoped_and_receipted(repo: Path, store) -> None:

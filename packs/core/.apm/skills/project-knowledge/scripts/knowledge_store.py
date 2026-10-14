@@ -70,6 +70,17 @@ _DEADLINE: float | None = None
 
 
 class KnowledgeStoreError(Exception):
+    """A closed refusal.
+
+    `environmental` marks a refusal that comes from the Git or operating-system
+    read itself rather than from any record, so a read-only caller never turns it
+    into a quarantine entry. `quarantine` carries the closed-code entries that
+    explain a named lookup's refusal; neither changes `diagnostic`.
+    """
+
+    environmental: bool = False
+    quarantine: list[dict[str, Any]] | None = None
+
     def __init__(self, diagnostic: dict[str, Any]) -> None:
         super().__init__(diagnostic["reason_code"])
         self.diagnostic = diagnostic
@@ -111,6 +122,13 @@ def _reraise_deadline(error: KnowledgeStoreError) -> None:
     """
     if error.diagnostic.get("reason_code") == DEADLINE_EXCEEDED:
         raise error
+
+
+def _refuse_environmental() -> None:
+    """Refuse as `map_mismatch`, as the writers always saw, and mark the fault environmental."""
+    error = KnowledgeStoreError(_diagnostic("map_mismatch"))
+    error.environmental = True
+    raise error
 
 
 def _refuse_with_diagnostic(diagnostic: dict[str, Any]) -> None:
@@ -178,6 +196,15 @@ def _assert_confined_components(root: Path, target: Path) -> None:
             _refuse("confinement")
 
 
+def _is_plain_regular_stat(metadata: os.stat_result) -> bool:
+    """Return True for a regular file that is not a symlink or Windows reparse point."""
+    return (
+        stat.S_ISREG(metadata.st_mode)
+        and not stat.S_ISLNK(metadata.st_mode)
+        and not bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
+    )
+
+
 def _read_regular_file_bounded(
     path: Path,
     max_bytes: int,
@@ -193,11 +220,8 @@ def _read_regular_file_bounded(
         _refuse("confinement")
     except OSError:
         _refuse("confinement")
-    if (
-        not stat.S_ISREG(metadata.st_mode)
-        or stat.S_ISLNK(metadata.st_mode)
-        or bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
-        or (reject_hard_links and metadata.st_nlink > 1)
+    if not _is_plain_regular_stat(metadata) or (
+        reject_hard_links and metadata.st_nlink > 1
     ):
         _refuse("confinement")
     try:
@@ -217,16 +241,20 @@ def _read_regular_file_bounded(
     return raw
 
 
+def _is_plain_regular_file(path: Path) -> bool:
+    """Return True for a regular file that is not a symlink or Windows reparse point.
+
+    An `OSError` from the `lstat` propagates: the caller refuses the whole read.
+    """
+    return _is_plain_regular_stat(path.lstat())
+
+
 def _regular_file_size_bounded(path: Path, max_bytes: int) -> int:
     try:
         metadata = path.lstat()
     except OSError:
         _refuse("confinement")
-    if (
-        not stat.S_ISREG(metadata.st_mode)
-        or stat.S_ISLNK(metadata.st_mode)
-        or bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
-    ):
+    if not _is_plain_regular_stat(metadata):
         _refuse("confinement")
     try:
         with path.open("rb") as handle:
@@ -380,6 +408,174 @@ def _is_reason_code(value: Any) -> bool:
             for character in value
         )
     )
+
+
+# --- Per-record read quarantine --------------------------------------------
+#
+# The read-only paths (`enquire`, `read_committed_topic`, `read_freshness_source`
+# and `pending_page`) exclude an invalid committed record and report it here
+# instead of refusing the whole read. Every writer, admission, integrity, and
+# migration path keeps whole-operation refusal and never sees this collector.
+QUARANTINE_VERSION = "knowledge-quarantine.v1"
+QUARANTINE_REASON_CODES = (
+    "malformed",
+    "unsafe",
+    "unknown_version",
+    "policy_invalid",
+    "inconsistent",
+    "oversized",
+    "orphaned",
+    "dependent",
+    "partition_hidden",
+    "overflow",
+)
+QUARANTINE_MAX_ENTRIES = 100
+_QUARANTINE_LOCATOR_MAX_CHARS = 240
+# Characters a quarantine locator never shows: the candidate bad-text class,
+# built once in `project_knowledge` (control, line terminators, bidi, zero-width
+# and other default-ignorable, variation-selector, tag, and surrogate characters).
+_QUARANTINE_UNSAFE_CHARACTERS = PK._CANDIDATE_UNSAFE_CHARACTERS
+_QUARANTINE_REASON_FOR_REFUSAL = {
+    "privacy": "policy_invalid",
+    "confinement": "unsafe",
+    "postimage_mismatch": "inconsistent",
+    "map_mismatch": "inconsistent",
+    "journal_capacity": "oversized",
+}
+
+
+def _valid_quarantine_locator(path: Any) -> str | None:
+    """Return *path* when it may be shown as a locator, else None.
+
+    A locator is a bounded, canonical, repository-relative path under
+    `docs/knowledge/` that passes the path privacy check and holds no line
+    terminator or control, bidi, zero-width, or surrogate character.
+    """
+
+    if not isinstance(path, str) or not 0 < len(path) <= _QUARANTINE_LOCATOR_MAX_CHARS:
+        return None
+    if not path.startswith("docs/knowledge/") or _QUARANTINE_UNSAFE_CHARACTERS.search(path):
+        return None
+    try:
+        if PK._expect_repo_path(path) != path:
+            return None
+        PK.assert_persistable_paths(path)
+    except ValueError:
+        return None
+    return path
+
+
+class _Quarantine:
+    """Collects the exclusions of one read, at most 100 entries plus an overflow count.
+
+    An entry carries a closed reason code and either a validated locator (a
+    path, with a line or map-entry position) or, when the path fails validation,
+    the entry's own 1-based position in this read. Nothing derived from a
+    record's content is ever stored.
+    """
+
+    def __init__(self) -> None:
+        self._entries: list[dict[str, Any]] = []
+        self._subjects: list[str | None] = []
+        self._seen = 0
+        self._omitted = 0
+
+    def add(
+        self,
+        reason: str,
+        path: Any = None,
+        *,
+        line: int | None = None,
+        entry: int | None = None,
+        subject: str | None = None,
+    ) -> None:
+        """Record one exclusion; *subject* names the topic file it concerns, never shown."""
+        self._seen += 1
+        if len(self._entries) >= QUARANTINE_MAX_ENTRIES:
+            self._omitted += 1
+            return
+        record: dict[str, Any] = {"version": QUARANTINE_VERSION, "reason_code": reason}
+        locator = _valid_quarantine_locator(path)
+        if locator is None:
+            record["ordinal"] = self._seen
+        else:
+            record["path"] = locator
+            if line is not None:
+                record["line"] = line
+            if entry is not None:
+                record["entry"] = entry
+        self._entries.append(record)
+        self._subjects.append(subject if subject is not None else (path if locator else None))
+
+    def entry_for(self, subject: str) -> dict[str, Any] | None:
+        """Return the first reported entry that concerns the topic file *subject*, if any."""
+        for record, recorded in zip(self._entries, self._subjects, strict=True):
+            if recorded == subject:
+                return record
+        return None
+
+    def report(self) -> list[dict[str, Any]]:
+        """Return the entries, followed by one counted overflow marker when any were dropped."""
+        result = list(self._entries)
+        if self._omitted:
+            result.append(
+                {
+                    "version": QUARANTINE_VERSION,
+                    "reason_code": "overflow",
+                    "omitted": self._omitted,
+                }
+            )
+        return result
+
+
+def _names_another_version(parsed: Any, known: str) -> bool:
+    """Return True when *parsed* states a `schema_version` other than *known*."""
+    return (
+        bool(known)
+        and isinstance(parsed, dict)
+        and "schema_version" in parsed
+        and parsed["schema_version"] != known
+    )
+
+
+def _quarantine_reason(
+    error: KnowledgeStoreError, parsed: Any = None, *, version_key: str = ""
+) -> str:
+    """Map a store refusal to a closed quarantine reason code.
+
+    A deadline breach, or any refusal that does not describe the record itself,
+    is never a record fault: it propagates. A record whose own version field
+    names no known version is `unknown_version` rather than `malformed`.
+    """
+
+    _reraise_deadline(error)
+    if error.environmental:
+        raise error
+    code = error.diagnostic["reason_code"]
+    if code == "strict_parse":
+        if _names_another_version(parsed, version_key):
+            return "unknown_version"
+        return "malformed"
+    if code not in _QUARANTINE_REASON_FOR_REFUSAL:
+        raise error
+    return _QUARANTINE_REASON_FOR_REFUSAL[code]
+
+
+def render_quarantine(entries: Sequence[dict[str, Any]]) -> str:
+    """Render quarantine entries in the `knowledge-quarantine.v1` element, every field escaped."""
+
+    lines = [
+        f'<knowledge-quarantine version="{QUARANTINE_VERSION}">',
+        "Excluded records by location and reason only; no record content.",
+    ]
+    for entry in entries:
+        attributes = [f'reason="{html.escape(str(entry["reason_code"]), quote=True)}"']
+        for key in ("path", "line", "entry", "ordinal", "omitted"):
+            if key in entry:
+                attributes.append(f'{key}="{html.escape(str(entry[key]), quote=True)}"')
+        lines.append("<record " + " ".join(attributes) + "/>")
+    lines.append("</knowledge-quarantine>")
+    return "\n".join(lines)
 
 
 def knowledge_root(repo_root: Path | str) -> Path:
@@ -568,6 +764,7 @@ def _observation_partitions(
     repo_root: Path | str,
     *,
     budgets: dict[str, int] | None = None,
+    quarantine: _Quarantine | None = None,
 ) -> list[str]:
     limits = budgets or budget_contract()
     root = knowledge_root(repo_root) / "observations"
@@ -590,7 +787,20 @@ def _observation_partitions(
                 if path.suffix != ".jsonl":
                     continue
                 partition = path.relative_to(knowledge_root(repo_root)).as_posix()
-                _validate_partition_name(partition)
+                if quarantine is None:
+                    _validate_partition_name(partition)
+                else:
+                    # A partition file whose name fails validation, or that is a
+                    # link or not a regular file, is excluded and never read.
+                    try:
+                        _validate_partition_name(partition)
+                        unsafe = not _is_plain_regular_file(path)
+                    except KnowledgeStoreError as error:
+                        _reraise_deadline(error)
+                        unsafe = True
+                    if unsafe:
+                        quarantine.add("unsafe", f"docs/knowledge/{partition}")
+                        continue
                 if len(paths) >= limits["retained_partitions"]:
                     _refuse("journal_capacity")
                 raw_size = _regular_file_size_bounded(
@@ -1179,7 +1389,7 @@ def _git_read(repo_root: Path | str, args: Sequence[str]) -> bytes:
     except subprocess.TimeoutExpired:
         _refuse("deadline_exceeded", retryable=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        _refuse("map_mismatch")
+        _refuse_environmental()
     raise AssertionError("unreachable")
 
 
@@ -1201,14 +1411,16 @@ def _git_read_bounded(
                 timeout=_remaining_timeout(),
                 check=False,
             )
-            if completed.returncode != 0 or output.tell() > max_bytes:
-                _refuse("journal_capacity" if output.tell() > max_bytes else "map_mismatch")
+            if output.tell() > max_bytes:
+                _refuse("journal_capacity")
+            if completed.returncode != 0:
+                _refuse_environmental()
             output.seek(0)
             raw = output.read(max_bytes + 1)
     except subprocess.TimeoutExpired:
         _refuse("deadline_exceeded", retryable=True)
     except (FileNotFoundError, OSError):
-        _refuse("map_mismatch")
+        _refuse_environmental()
     if len(raw) > max_bytes:
         _refuse("journal_capacity")
     return raw
@@ -1250,6 +1462,8 @@ def _committed_blob_ids(
     repo_root: Path | str,
     commit_id: str,
     tree_path: str,
+    *,
+    unsafe: set[str] | None = None,
 ) -> dict[str, str]:
     """Map every committed blob under one tree path to its object id in a single call.
 
@@ -1280,13 +1494,15 @@ def _committed_blob_ids(
             listed_path = encoded_path.decode("utf-8", errors="strict")
         except (UnicodeDecodeError, ValueError):
             _refuse("map_mismatch")
-        if (
-            len(fields) != 3
-            or fields[0] not in {"100644", "100755"}
-            or fields[1] != "blob"
-            or listed_path in blobs
-        ):
+        if len(fields) != 3 or listed_path in blobs:
             _refuse("map_mismatch")
+        if fields[0] not in {"100644", "100755"} or fields[1] != "blob":
+            # A link or submodule is an unsafe record. A read-only caller that
+            # passes `unsafe` excludes it; every other caller refuses.
+            if unsafe is None:
+                _refuse("map_mismatch")
+            unsafe.add(listed_path)
+            continue
         blobs[listed_path] = fields[2]
     if len(blobs) > budget_contract()["map_entries"]:
         _refuse("journal_capacity")
@@ -1311,9 +1527,9 @@ def _committed_blob_size(repo_root: Path | str, commit_id: str, relative_path: s
     try:
         value = int(raw.decode("ascii", errors="strict").strip())
     except (UnicodeDecodeError, ValueError):
-        _refuse("map_mismatch")
+        _refuse_environmental()
     if value < 0:
-        _refuse("map_mismatch")
+        _refuse_environmental()
     return value
 
 
@@ -2246,6 +2462,131 @@ def _read_committed_topic_map(
     return {"schema_version": parsed["schema_version"], "entries": entries}
 
 
+def _read_committed_topic_map_excluding(
+    repo_root: Path | str,
+    snapshot: dict[str, str],
+    quarantine: _Quarantine,
+) -> dict[str, Any]:
+    """Read the committed topic map, excluding an invalid entry instead of refusing.
+
+    For the read-only enquiry paths. A missing, oversized, unparseable, or
+    wrong-version map still refuses the whole read, because no valid record set
+    exists. An entry that is malformed, duplicates another entry's path, names a
+    missing or link-like topic file, or disagrees with the committed blob is
+    excluded; a committed topic file that no entry names is reported. The
+    returned `positions` map each kept entry's path to its 1-based map position.
+    """
+
+    raw = _committed_blob(
+        repo_root,
+        snapshot["commit_id"],
+        TOPIC_MAP.as_posix(),
+        max_bytes=budget_contract()["map_bytes"],
+    )
+    parsed = _parse_committed_json(raw)
+    if (
+        not isinstance(parsed, dict)
+        or parsed.get("schema_version") != "knowledge-topic-map.v1"
+        or not isinstance(parsed.get("entries"), list)
+    ):
+        _refuse("map_mismatch")
+    if len(parsed["entries"]) > budget_contract()["map_entries"]:
+        _refuse("journal_capacity")
+    map_locator = TOPIC_MAP.as_posix()
+    shaped: list[tuple[int, dict[str, Any]]] = []
+    for position, candidate in enumerate(parsed["entries"], start=1):
+        _remaining_timeout()
+        try:
+            shaped.append((position, _validate_topic_map_entry(candidate)))
+        except KnowledgeStoreError as error:
+            _reraise_deadline(error)
+            quarantine.add("malformed", map_locator, entry=position)
+    path_counts: dict[str, int] = {}
+    for _position, entry in shaped:
+        path = f"docs/knowledge/{entry['path']}"
+        path_counts[path] = path_counts.get(path, 0) + 1
+    committed_paths = _committed_topic_paths(repo_root, snapshot["commit_id"])
+    unsafe_paths: set[str] = set()
+    committed_blobs = _committed_blob_ids(
+        repo_root, snapshot["commit_id"], "docs/knowledge/topics", unsafe=unsafe_paths
+    )
+    for path in sorted(unsafe_paths & committed_paths):
+        quarantine.add("unsafe", path)
+    entries: list[dict[str, Any]] = []
+    positions: dict[str, int] = {}
+    for position, entry in shaped:
+        path = f"docs/knowledge/{entry['path']}"
+        if path_counts[path] > 1:
+            quarantine.add("inconsistent", map_locator, entry=position, subject=path)
+        elif path in unsafe_paths:
+            quarantine.add("dependent", map_locator, entry=position, subject=path)
+        elif path not in committed_paths:
+            quarantine.add("orphaned", map_locator, entry=position, subject=path)
+        elif committed_blobs.get(path) != entry["blob"]["object_id"]:
+            quarantine.add("inconsistent", map_locator, entry=position, subject=path)
+        else:
+            entries.append(entry)
+            positions[entry["path"]] = position
+    listed = set(path_counts)
+    for path in sorted(committed_paths - listed - unsafe_paths):
+        quarantine.add("orphaned", path)
+    return {"schema_version": parsed["schema_version"], "entries": entries, "positions": positions}
+
+
+def _read_committed_topic_excluding(
+    repo_root: Path | str,
+    snapshot: dict[str, str],
+    entry: dict[str, Any],
+    query: dict[str, Any],
+    *,
+    now: datetime,
+    body_budget: list[int],
+    position: int,
+    quarantine: _Quarantine,
+) -> dict[str, Any] | None:
+    """Read one selected topic, or exclude it and its map entry and return None.
+
+    A topic that is oversized, unreadable, digest-mismatched, invalid under
+    `validate_topic`, or at odds with its map entry or the query is excluded.
+    The aggregate body budget and deadline stay whole-read refusals.
+    """
+
+    topic_locator = f"docs/knowledge/{entry['path']}"
+
+    def exclude(reason: str) -> None:
+        quarantine.add(reason, topic_locator)
+        quarantine.add("dependent", TOPIC_MAP.as_posix(), entry=position, subject=topic_locator)
+
+    try:
+        raw = _committed_blob(
+            repo_root,
+            snapshot["commit_id"],
+            topic_locator,
+            max_bytes=budget_contract()["topic_bytes"],
+        )
+    except KnowledgeStoreError as error:
+        exclude(_quarantine_reason(error))
+        return None
+    _charge_body_budget(raw, body_budget, None)
+    try:
+        topic = _decode_committed_topic(raw, entry)
+        _assert_topic_matches_map_entry(entry, topic)
+        if not _entry_matches_query(topic, query, now=now):
+            _refuse("map_mismatch")
+    except KnowledgeStoreError as error:
+        reason = _quarantine_reason(error)
+        if reason == "malformed":
+            try:
+                parsed = _parse_committed_json(raw)
+            except KnowledgeStoreError:
+                parsed = None
+            if _names_another_version(parsed, "knowledge-topic.v1"):
+                reason = "unknown_version"
+        exclude(reason)
+        return None
+    return topic
+
+
 def _committed_v1_map_is_coherent(repo_root: Path | str) -> bool:
     try:
         snapshot = _head_snapshot(repo_root)
@@ -2385,6 +2726,27 @@ def _validate_committed_topic(
     return topic
 
 
+def _charge_body_budget(
+    raw: bytes, body_budget: list[int] | None, body_budget_limit: int | None
+) -> None:
+    """Add *raw* to the running body budget, refusing the whole read past the limit."""
+    if body_budget is not None:
+        body_budget[0] += len(raw)
+        limit = body_budget_limit or budget_contract()["enquiry_body_read_bytes"]
+        if body_budget[0] > limit:
+            _refuse("journal_capacity")
+
+
+def _decode_committed_topic(raw: bytes, entry: dict[str, Any]) -> dict[str, Any]:
+    """Check a committed topic body against its map entry and the topic contract."""
+    if _git_blob_digest(raw, algorithm=entry["blob"]["algorithm"]) != entry["blob"]:
+        _refuse("map_mismatch")
+    topic = validate_topic(_parse_committed_json(raw))
+    if topic["topic_key"] != entry["topic_key"]:
+        _refuse("map_mismatch")
+    return topic
+
+
 def _read_committed_topic(
     repo_root: Path | str,
     snapshot: dict[str, str],
@@ -2399,17 +2761,8 @@ def _read_committed_topic(
         f"docs/knowledge/{entry['path']}",
         max_bytes=budget_contract()["topic_bytes"],
     )
-    if body_budget is not None:
-        body_budget[0] += len(raw)
-        limit = body_budget_limit or budget_contract()["enquiry_body_read_bytes"]
-        if body_budget[0] > limit:
-            _refuse("journal_capacity")
-    if _git_blob_digest(raw, algorithm=entry["blob"]["algorithm"]) != entry["blob"]:
-        _refuse("map_mismatch")
-    topic = validate_topic(_parse_committed_json(raw))
-    if topic["topic_key"] != entry["topic_key"]:
-        _refuse("map_mismatch")
-    return topic
+    _charge_body_budget(raw, body_budget, body_budget_limit)
+    return _decode_committed_topic(raw, entry)
 
 
 def _assert_topic_matches_map_entry(
@@ -2560,7 +2913,8 @@ def enquire(repo_root: Path | str, query: dict[str, Any]) -> dict[str, Any]:
     repo_root = resolve_worktree_root(repo_root)
     validated = _validate_enquiry_query(query)
     snapshot = _head_snapshot(repo_root)
-    topic_map = _read_committed_topic_map(repo_root, snapshot)
+    quarantine = _Quarantine()
+    topic_map = _read_committed_topic_map_excluding(repo_root, snapshot, quarantine)
     enquiry_time = datetime.now(tz=UTC)
     entries = _selected_entries(topic_map["entries"], validated, now=enquiry_time)
     topics: list[dict[str, Any]] = []
@@ -2568,10 +2922,18 @@ def enquire(repo_root: Path | str, query: dict[str, Any]) -> dict[str, Any]:
     body_budget = [0]
     for entry in entries:
         _remaining_timeout()
-        topic = _read_committed_topic(repo_root, snapshot, entry, body_budget=body_budget)
-        _assert_topic_matches_map_entry(entry, topic)
-        if not _entry_matches_query(topic, validated, now=enquiry_time):
-            _refuse("map_mismatch")
+        topic = _read_committed_topic_excluding(
+            repo_root,
+            snapshot,
+            entry,
+            validated,
+            now=enquiry_time,
+            body_budget=body_budget,
+            position=topic_map["positions"][entry["path"]],
+            quarantine=quarantine,
+        )
+        if topic is None:
+            continue
         owning_source = topic["owning_source"]
         if validated["risk"] == "consequential":
             if owning_source is None or not _verify_current_source(repo_root, owning_source):
@@ -2607,7 +2969,12 @@ def enquire(repo_root: Path | str, query: dict[str, Any]) -> dict[str, Any]:
         "opened_journals": 0,
         "mutation_path": None,
     }
-    return {"receipt": receipt, "rendered": rendered}
+    report = quarantine.report()
+    if report:
+        # A separate element after `knowledge-evidence.v1`; the evidence element
+        # and the receipt stay exactly as they are.
+        rendered = f"{rendered}\n{render_quarantine(report)}"
+    return {"receipt": receipt, "rendered": rendered, "quarantine": report}
 
 
 def enquire_head(repo_root: Path | str) -> dict[str, Any]:
@@ -2638,16 +3005,38 @@ def read_confined_source(repo_root: Path | str, relative_path: str) -> bytes:
     return raw
 
 
+def _refuse_named_lookup(topic_key: str, quarantine: _Quarantine) -> None:
+    """Refuse a named lookup, reporting the closed reason when its own entry was excluded.
+
+    The refusal stays `map_mismatch`. When the collector holds an exclusion for
+    the named topic's file, the diagnostic carries that entry's validated
+    locator and the entry rides on `quarantine`; no record content is read.
+    """
+    try:
+        subject = f"docs/knowledge/topics/{_topic_relative_path(topic_key).as_posix()}"
+    except KnowledgeStoreError:
+        _refuse("map_mismatch")
+    own = quarantine.entry_for(subject)
+    if own is None:
+        _refuse("map_mismatch")
+    error = KnowledgeStoreError(_diagnostic("map_mismatch", path=own.get("path")))
+    error.quarantine = [own]
+    raise error
+
+
 def read_committed_topic(repo_root: Path | str, topic_key: str) -> dict[str, Any]:
     repo_root = resolve_worktree_root(repo_root)
     snapshot = _head_snapshot(repo_root)
-    topic_map = _read_committed_topic_map(repo_root, snapshot)
+    # Other entries' invalid records do not stop a lookup; the named topic and
+    # its own map entry are still held to the strict checks below.
+    quarantine = _Quarantine()
+    topic_map = _read_committed_topic_map_excluding(repo_root, snapshot, quarantine)
     entry = next(
         (item for item in topic_map["entries"] if item["topic_key"] == topic_key),
         None,
     )
     if entry is None:
-        _refuse("map_mismatch")
+        _refuse_named_lookup(topic_key, quarantine)
     topic = _read_committed_topic(repo_root, snapshot, entry, body_budget=[0])
     _assert_topic_matches_map_entry(entry, topic)
     return topic
@@ -3260,6 +3649,146 @@ def _load_pending_partition_window(
     return loaded, True
 
 
+_UNIDENTIFIED = object()
+
+
+def _closing_target(parsed: Any) -> Any:
+    """Name the capture an invalid line may have closed, from validated fields only.
+
+    Returns the capture id when the line parses as a disposition naming a
+    well-formed capture id. Returns None when the line parses as a captured
+    event, which cannot close anything. Returns `_UNIDENTIFIED` otherwise: an
+    unparseable line, or one whose type or target cannot be read, might have
+    closed any capture in its partition.
+    """
+
+    if not isinstance(parsed, dict):
+        return _UNIDENTIFIED
+    event_type = parsed.get("event_type")
+    if event_type == _CAPTURED:
+        return None
+    if event_type == _DISPOSITIONED and _is_capture_id(parsed.get("capture_id")):
+        return parsed["capture_id"]
+    return _UNIDENTIFIED
+
+
+def _events_excluding_invalid(
+    partition: str, raw: bytes, quarantine: _Quarantine
+) -> list[dict[str, Any]]:
+    """Return the valid events of one partition, reporting every excluded line.
+
+    Mirrors `_validated_event_lines` record by record. The exclusion closes over
+    dependents in the journal's own record kinds: a capture whose disposition
+    line is excluded is excluded rather than reverting to pending, a disposition
+    whose capture is excluded is excluded, and a partition holding an invalid
+    line whose target cannot be identified shows no capture at all. Committed
+    bytes are never touched.
+    """
+
+    locator = f"docs/knowledge/{partition}"
+    captured: dict[str, tuple[int, dict[str, Any]]] = {}
+    terminal: dict[str, int] = {}
+    events: list[dict[str, Any]] = []
+    closers: set[str] = set()
+    hidden = False
+    for line_number, line in enumerate(raw.splitlines(), start=1):
+        parsed: Any = None
+        try:
+            parsed = json.loads(
+                line.decode("utf-8", errors="strict"),
+                object_pairs_hook=PK._reject_duplicate_keys,
+                parse_constant=PK._reject_constant,
+            )
+            event = _validate_event(parsed, partition)
+        except KnowledgeStoreError as error:
+            reason = _quarantine_reason(error, parsed, version_key="observation-event.v1")
+            if (
+                reason == "malformed"
+                and isinstance(parsed, dict)
+                and isinstance(parsed.get("request"), dict)
+                and "contract_version" in parsed["request"]
+                and parsed["request"]["contract_version"] not in PK.CAPTURE_VALIDATORS
+            ):
+                reason = "unknown_version"
+        except (UnicodeDecodeError, ValueError, RecursionError):
+            reason = "malformed"
+        else:
+            capture_id = event["capture_id"]
+            if event["event_type"] == _CAPTURED:
+                existing = captured.get(capture_id)
+                if existing is not None:
+                    if existing[1] != event:
+                        quarantine.add("inconsistent", locator, line=line_number)
+                    continue
+                captured[capture_id] = (line_number, event)
+                events.append(event)
+            elif capture_id not in captured:
+                quarantine.add("orphaned", locator, line=line_number)
+            elif capture_id in terminal:
+                quarantine.add("inconsistent", locator, line=line_number)
+            else:
+                terminal[capture_id] = line_number
+                events.append(event)
+            continue
+        quarantine.add(reason, locator, line=line_number)
+        target = _closing_target(parsed)
+        if target is _UNIDENTIFIED:
+            hidden = True
+        elif target is not None:
+            closers.add(target)
+    if hidden:
+        quarantine.add("partition_hidden", locator)
+        return []
+    for capture_id in sorted(closers & set(captured)):
+        events = [event for event in events if event["capture_id"] != capture_id]
+        quarantine.add("dependent", locator, line=captured[capture_id][0])
+        if capture_id in terminal:
+            quarantine.add("orphaned", locator, line=terminal[capture_id])
+    return events
+
+
+def _load_pending_partitions_excluding(
+    repo_root: Path | str,
+    partitions: Sequence[str],
+    quarantine: _Quarantine,
+) -> tuple[list[tuple[str, list[dict[str, Any]], bytes]], bool]:
+    """Load the pending-page window like `_load_pending_partition_window`, excluding invalid lines.
+
+    Kept apart from the shared loader so `select_pending` and every other caller
+    keep whole refusal. Budget, capacity, and confinement refusals stay whole.
+    """
+
+    loaded: list[tuple[str, list[dict[str, Any]], bytes]] = []
+    consumed_bytes = 0
+    consumed_events = 0
+    for partition in partitions:
+        path = _journal_path(repo_root, partition)
+        try:
+            raw = _read_regular_file_bounded(
+                path,
+                budget_contract()["pending_page_bytes"] - consumed_bytes,
+                missing_ok=True,
+            )
+        except KnowledgeStoreError as error:
+            if error.diagnostic["reason_code"] == "journal_capacity" and loaded:
+                return loaded, False
+            raise
+        raw = raw or b""
+        events = _events_excluding_invalid(partition, raw, quarantine)
+        next_bytes = consumed_bytes + len(raw)
+        next_events = consumed_events + len(events)
+        if next_events > budget_contract()["pending_page_events"]:
+            _refuse("journal_capacity")
+        if next_bytes > budget_contract()["pending_page_bytes"]:
+            if loaded:
+                return loaded, False
+            _refuse("journal_capacity")
+        loaded.append((partition, events, raw))
+        consumed_bytes = next_bytes
+        consumed_events = next_events
+    return loaded, True
+
+
 def _pending_from_loaded_partitions(
     loaded: Sequence[tuple[str, Sequence[dict[str, Any]], bytes]],
     *,
@@ -3287,7 +3816,11 @@ def _pending_from_loaded_partitions(
     return [event for _key, event in ranked]
 
 
-def _validate_pending_request(repo_root: Path | str, request: dict[str, Any]) -> dict[str, Any]:
+def _validate_pending_request(
+    repo_root: Path | str,
+    request: dict[str, Any],
+    quarantine: _Quarantine | None = None,
+) -> dict[str, Any]:
     if not isinstance(request, dict):
         _refuse("strict_parse")
     mode = request.get("selection_mode")
@@ -3296,7 +3829,7 @@ def _validate_pending_request(repo_root: Path | str, request: dict[str, Any]) ->
             scope = PK._expect_repo_path(request["scope"])
         except (KeyError, ValueError):
             _refuse("strict_parse")
-        all_partitions = _observation_partitions(repo_root)
+        all_partitions = _observation_partitions(repo_root, quarantine=quarantine)
         cursor = request.get("cursor")
         offset = 0
         if cursor is not None:
@@ -3361,7 +3894,8 @@ def _validate_pending_request(repo_root: Path | str, request: dict[str, Any]) ->
 
 def pending_page(repo_root: Path | str, request: dict[str, Any]) -> dict[str, Any]:
     repo_root = resolve_worktree_root(repo_root)
-    validated = _validate_pending_request(repo_root, request)
+    quarantine = _Quarantine()
+    validated = _validate_pending_request(repo_root, request, quarantine)
     limit = validated["page_event_limit"] or budget_contract()["pending_page_events"]
     if not isinstance(limit, int) or limit < 1 or limit > budget_contract()["pending_page_events"]:
         _refuse("strict_parse")
@@ -3420,7 +3954,9 @@ def pending_page(repo_root: Path | str, request: dict[str, Any]) -> dict[str, An
     if validated["selection_mode"] == "workflow-receipts":
         allowed = {item["capture_id"] for item in validated["receipt_selectors"]}
         scope = None
-    loaded, complete = _load_pending_partition_window(repo_root, validated["partitions"])
+    loaded, complete = _load_pending_partitions_excluding(
+        repo_root, validated["partitions"], quarantine
+    )
     processed_partitions = [partition for partition, _events, _raw in loaded]
     if validated["selection_mode"] == "workflow-receipts" and not complete:
         _refuse("journal_capacity")
@@ -3466,6 +4002,7 @@ def pending_page(repo_root: Path | str, request: dict[str, Any]) -> dict[str, An
         "partitions": processed_partitions,
         "pending": pending,
         "cursor": next_cursor,
+        "quarantine": quarantine.report(),
     }
 
 
@@ -3485,7 +4022,7 @@ def distill_pending(repo_root: Path | str, request: dict[str, Any]) -> dict[str,
         "pending": page["pending"],
         "cursor": page["cursor"],
         "counts": {"pending": pending_count, "processed": 0, "unresolved": pending_count},
-        "diagnostics": [],
+        "diagnostics": page["quarantine"],
     }
 
 

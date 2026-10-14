@@ -59,6 +59,8 @@ _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "finding.v1.schema.json",
     "finding-assessment.v1.schema.json",
     "finding-disposition.v1.schema.json",
+    "delivery-fact-feed.v1.schema.json",
+    "knowledge-observation.v1.schema.json",
 })
 
 
@@ -519,3 +521,696 @@ def test_no_delivery_schema_copy_outside_contracts_delivery() -> None:
     assert not copies, (
         f"delivery schema copies found outside contracts/delivery/: {copies}"
     )
+
+
+# ── Delivery knowledge projection schemas (Slice 3) ──────────────────────────
+# Parity between delivery-fact-feed.v1, knowledge-observation.v1, and the
+# self-contained work-loop feed and projector. Extends this existing roster
+# file, so no new CI step or roster registration is needed.
+
+_FEED = "delivery-fact-feed.v1.schema.json"
+_OBSERVATION = "knowledge-observation.v1.schema.json"
+_PROJECTION_SPEC = "docs/specs/delivery-knowledge-projection/"
+_WORK_LOOP_SCRIPTS = (
+    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts"
+)
+
+
+def _load_work_loop(alias: str, filename: str):  # noqa: ANN202 - test-time module loader
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(alias, str(_WORK_LOOP_SCRIPTS / filename))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _sample_observation() -> dict:
+    """Project one real observation through the shipped projector."""
+    projector = _load_work_loop("dfp_roster_projection", "_knowledge_projection.py")
+    receipt = {
+        "schema_version": 1,
+        "receipt_id": "review-failure-sha256-" + "a" * 64,
+        "acceptance_fingerprint": "acceptance-fp-1",
+        "lineage": {"criterion_ref": "AC-0001"},
+        "selector": {"term": "supported-review-failure"},
+        "freshness_mode": "exact-subject",
+        "observation": {"type": "review-failure"},
+        "outcome": "review-failure",
+        "producer": {"class": "review-bridge", "identity": "structured-review-boundary"},
+    }
+    report = _review_report()
+    finding = report["findings"][0]
+    projection = projector.project_record(
+        "evidence-receipt.v1", receipt, spec_path="docs/specs/example",
+        transaction_id="tx-1", superseded=False, report=report, finding=finding,
+    )
+    assert projection.observation is not None, projection.none_reason
+    return projection.observation
+
+
+def _sample_page(observation: dict | None = None) -> dict:
+    observation = observation or _sample_observation()
+    return {
+        "schema_version": 1,
+        "snapshot_id": "snapshot-sha256-" + "b" * 64,
+        "shadow_services": "enabled",
+        "first_ordinal": 0,
+        "entries": [
+            {
+                "entry_kind": "fact",
+                "ordinal": 0,
+                "source": {
+                    "spec_path": "docs/specs/example",
+                    "transaction_id": "tx-1",
+                    "record_kind": "evidence-receipt.v1",
+                    "record_id": observation["source"]["receipt_id"],
+                    "predecessor_schema_version": 1,
+                },
+                "observation": observation,
+                "none_reason": None,
+            },
+            {"entry_kind": "unread-source", "ordinal": 1,
+             "spec_path": "docs/specs/other", "reason_code": "marker-missing"},
+        ],
+        "continuation": None,
+    }
+
+
+def test_projection_schemas_point_at_their_spec_and_close_every_object() -> None:
+    for name in (_FEED, _OBSERVATION):
+        schema = _load_schema(name)
+        assert _PROJECTION_SPEC in schema["x-spec"]
+        assert schema["additionalProperties"] is False
+
+    def walk(node: object, where: str) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "object" and "properties" in node:
+                assert node.get("additionalProperties") is False, where
+            for key, value in node.items():
+                walk(value, f"{where}/{key}")
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                walk(value, f"{where}/{i}")
+
+    walk(_load_schema(_FEED), _FEED)
+    walk(_load_schema(_OBSERVATION), _OBSERVATION)
+
+
+def test_every_string_in_the_projection_schemas_has_an_enforced_bound() -> None:
+    """No annotation-only format: each string is an enum or const, or has a length and a pattern."""
+
+    def walk(node: object, where: str) -> None:
+        if isinstance(node, dict):
+            assert "format" not in node or where.endswith("/properties/format"), where
+            if node.get("type") == "string":
+                closed = {"enum", "const"} & set(node)
+                assert closed or ("maxLength" in node and "pattern" in node), where
+            for key, value in node.items():
+                walk(value, f"{where}/{key}")
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                walk(value, f"{where}/{i}")
+
+    for name in (_FEED, _OBSERVATION):
+        walk(_load_schema(name), name)
+
+
+def test_patterns_end_with_a_lookahead_not_a_dollar() -> None:
+    """Python's `$` matches before a trailing LF, so no pattern may rely on it."""
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            pattern = node.get("pattern")
+            if isinstance(pattern, str):
+                assert not pattern.endswith("$") and pattern.endswith("(?![\\s\\S])"), pattern
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(_load_schema(_FEED))
+    walk(_load_schema(_OBSERVATION))
+
+
+def _all_patterns() -> list[tuple[str, str]]:
+    """Return ``(location, pattern)`` for every `pattern` in the two projection schemas."""
+    found: list[tuple[str, str]] = []
+
+    def walk(node: object, where: str) -> None:
+        if isinstance(node, dict):
+            pattern = node.get("pattern")
+            if isinstance(pattern, str):
+                found.append((where, pattern))
+            for key, value in node.items():
+                walk(value, f"{where}/{key}")
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{where}/{index}")
+
+    for name in (_FEED, _OBSERVATION):
+        walk(_load_schema(name), name)
+    return found
+
+
+# `\d`, `\D`, `\w`, `\W` are Unicode classes in Python `re` and ASCII-only in ECMA-262, and a
+# bare `\s` covers different sets, so none is admitted. `[\s\S]` (any character) is the one
+# exact idiom both engines read alike; it is replaced before the escape scan.
+_ECMA_ANY_CHARACTER = r"[\s\S]"
+_ECMA_PORTABLE_ESCAPE = r"\\(?:u[0-9a-fA-F]{4}|[.\\/\-\[\](){}+*?|^$])"
+
+
+def test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax() -> None:
+    """JSON Schema 2020-12 reads `pattern` as ECMA 262; Python `re` must read it alike.
+
+    Allowed: BMP `\\uXXXX`, the exact `[\\s\\S]` any-character idiom, escaped punctuation
+    (`\\-` only inside a class),
+    `(?:`, `(?=`, `(?!`. Refused: `\\d`, `\\D`, `\\w`, `\\W` and a bare `\\s` or `\\S` (the two
+    engines read them differently), `\\U`, `\\A`, `\\Z`, `\\z`, named groups, atomic or
+    possessive forms.
+    """
+    import re
+
+    patterns = _all_patterns()
+    assert len(patterns) >= 10
+    for where, pattern in patterns:
+        stripped = re.sub(_ECMA_PORTABLE_ESCAPE, "E", pattern.replace(_ECMA_ANY_CHARACTER, "A"))
+        assert "\\" not in stripped, (where, "escape outside the portable set", pattern)
+        for group in re.finditer(r"\(\?(.?)", stripped):
+            assert group.group(1) in (":", "=", "!"), (where, "non-portable group", pattern)
+        no_classes = re.sub(r"\[(?:\\.|[^\]\\])*\]", "C", pattern)
+        # ECMA `u` mode allows `\-` only inside a character class.
+        assert "\\-" not in no_classes, (where, "bare escaped hyphen", pattern)
+        assert re.search(r"(?<!\\)[*+?}]\+", no_classes) is None, (where, "possessive", pattern)
+    assert not [w for w, p in patterns if "\\U" in p or "(?P" in p]
+
+
+_ECMA_NODE_SCRIPT = """
+const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+const out = {compiled: [], text: []};
+for (const [where, p] of input.patterns) {
+  for (const flags of ['', 'u']) {
+    try { new RegExp(p, flags); out.compiled.push([where, flags, true]); }
+    catch (e) { out.compiled.push([where, flags, false, String(e)]); }
+  }
+}
+for (const flags of ['', 'u']) {
+  const re = new RegExp(input.text, flags);
+  for (const s of input.accept) out.text.push([flags, 'accept', s, re.test(s)]);
+  for (const s of input.refuse) out.text.push([flags, 'refuse', s, re.test(s)]);
+  // Astral text: the pattern is defined under `u` (code points); without `u` the
+  // surrogate range in the class refuses every astral character.
+  for (const s of input.astral) out.text.push([flags, flags === 'u' ? 'accept' : 'refuse', s, re.test(s)]);
+}
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+def test_every_schema_pattern_compiles_and_behaves_under_an_ecma_engine() -> None:
+    """Compile each pattern with and without `u` in Node and test the text pattern.
+
+    The BMP samples behave the same in both modes. The pattern's behaviour is defined under
+    `u`: there an astral character such as an emoji is accepted, while without `u` the
+    surrogate range in the class refuses every astral character.
+    """
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not on PATH, so the ECMA 262 engine check cannot run")
+    text_pattern = _load_schema(_OBSERVATION)["$defs"]["untrustedText"]["properties"]["value"]["pattern"]
+    accept = ["Step 2 failed", "ABC UXYZ 0123456789 Under U+0041", "plain text, with: punctuation (ok)"]
+    refuse = [
+        "a\u0000b", "a\u007fb", "a\u0085b", "a\u00adb", "a\u034fb", "a\u061cb", "a\u115fb",
+        "a\u17b4b", "a\u180eb", "a\u200bb", "a\u2028b", "a\u202eb", "a\u2060b", "a\u3164b",
+        "a\ud800b", "a\ufe0fb", "a\ufeffb", "a\uffa0b", "a\ufff9b", "a\n",
+    ]
+    astral = ["ok \U0001f600 done", "\U00020000"]
+    payload = json.dumps(
+        {
+            "patterns": _all_patterns(),
+            "text": text_pattern,
+            "accept": accept,
+            "refuse": refuse,
+            "astral": astral,
+        }
+    )
+    result = subprocess.run(
+        [node, "-e", _ECMA_NODE_SCRIPT], input=payload, capture_output=True, text=True, timeout=60, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    out = json.loads(result.stdout)
+    bad_compile = [entry for entry in out["compiled"] if not entry[2]]
+    assert not bad_compile, bad_compile
+    assert len(out["compiled"]) == 2 * len(_all_patterns())
+    wrong = [
+        (flags, kind, sample)
+        for flags, kind, sample, matched in out["text"]
+        if matched != (kind == "accept")
+    ]
+    assert not wrong, wrong
+    assert len(out["text"]) == 2 * (len(accept) + len(refuse) + len(astral))
+
+
+def test_free_text_fields_are_typed_as_untrusted_data() -> None:
+    observation = _load_schema(_OBSERVATION)
+    text_fields = ["rule_ref", "observed", "reachable_path", "actual_failure"]
+    for field in text_fields:
+        branches = observation["properties"][field]["allOf"]
+        assert {"$ref": "#/$defs/untrustedText"} in branches
+    wrapper = observation["$defs"]["untrustedText"]
+    assert {"$ref": "untrusted-data.v1.schema.json"} in wrapper["allOf"]
+    # The feed carries observations only through the typed schema.
+    feed = _load_schema(_FEED)
+    assert feed["$defs"]["factEntry"]["properties"]["observation"]["oneOf"][1] == {
+        "$ref": "knowledge-observation.v1.schema.json"
+    }
+    assert not [k for k in observation["properties"] if k in text_fields and
+                observation["properties"][k].get("type") == "string"]
+
+
+def test_emitted_page_validates_and_carries_the_untrusted_typing() -> None:
+    page = _sample_page()
+    errors = list(_validator(_FEED).iter_errors(page))
+    assert not errors, errors
+    observation = page["entries"][0]["observation"]
+    for field in ("rule_ref", "observed", "reachable_path", "actual_failure"):
+        wrapper = observation[field]
+        assert set(wrapper) == {"schema_version", "record_id", "field_path", "policy_version", "value"}
+        assert wrapper["field_path"] == field
+        assert not list(_validator("untrusted-data.v1.schema.json").iter_errors(wrapper))
+    assert not list(_validator(_OBSERVATION).iter_errors(observation))
+
+
+def _mutations() -> list[tuple[str, object]]:
+    def edit(fn):  # noqa: ANN001, ANN202
+        page = _sample_page()
+        fn(page)
+        return page
+
+    return [
+        ("plain-string-text", edit(lambda p: p["entries"][0]["observation"].__setitem__("observed", "plain"))),
+        ("extra-field", edit(lambda p: p.__setitem__("extra", 1))),
+        ("unknown-major", edit(lambda p: p.__setitem__("schema_version", 2))),
+        ("too-many-entries", edit(lambda p: p.__setitem__("entries", [p["entries"][1]] * 1001))),
+        ("newline-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a\nb"))),
+        ("bidi-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a\u202eb"))),
+        ("trailing-lf-id", edit(lambda p: p["entries"][0]["source"].__setitem__("transaction_id", "tx-1\n"))),
+        ("trailing-lf-token", edit(lambda p: p.__setitem__("continuation", "dff1." + "0" * 64 + ".1\n"))),
+        ("path-traversal", edit(lambda p: p["entries"][0]["observation"].__setitem__("scope_paths", ["a/../b"]))),
+        ("both-observation-and-reason", edit(lambda p: p["entries"][0].__setitem__("none_reason", "superseded"))),
+        ("neither", edit(lambda p: p["entries"][0].__setitem__("observation", None))),
+        ("bad-unread-reason", edit(lambda p: p["entries"][1].__setitem__("reason_code", "other"))),
+        ("overlong-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "x" * 601))),
+    ]
+
+
+@pytest.mark.parametrize("label,page", _mutations(), ids=[m[0] for m in _mutations()])
+def test_feed_schema_rejects_violations(label: str, page: dict) -> None:
+    assert list(_validator(_FEED).iter_errors(page)), label
+
+
+def test_feed_bounds_and_code_sets_match_the_runtime() -> None:
+    feed_schema = _load_schema(_FEED)
+    feed = _load_work_loop("dfp_roster_feed", "_delivery_feed.py")
+    projector = _load_work_loop("dfp_roster_projection_b", "_knowledge_projection.py")
+    assert feed_schema["properties"]["entries"]["maxItems"] == feed.MAX_ENTRIES == 1000
+    assert feed_schema["x-max-page-bytes"] == feed.MAX_PAGE_BYTES == 1024 * 1024
+    assert feed_schema["x-max-observation-bytes"] == projector.MAX_OBSERVATION_BYTES == 4096
+    assert _load_schema(_OBSERVATION)["x-max-observation-bytes"] == 4096
+    assert set(feed_schema["x-unread-source-reason-codes"]) == feed.UNREAD_REASONS
+    assert set(feed_schema["x-scan-refusal-codes"]) == feed.SCAN_REFUSAL_CODES
+    assert set(feed_schema["x-none-reason-codes"]) == projector.NONE_REASONS
+    defs = _load_schema(_OBSERVATION)["$defs"]
+    assert defs["identifier"]["pattern"] == projector.PATTERNS["identifier"]
+    assert defs["repositoryPath"]["pattern"] == projector.PATTERNS["repository_path"]
+    assert defs["untrustedText"]["properties"]["value"]["pattern"] == projector.PATTERNS["text"]
+    observation = _load_schema(_OBSERVATION)["properties"]
+    assert observation["observation_id"]["pattern"] == projector.PATTERNS["observation_id"]
+    assert observation["projection_policy_version"]["pattern"] == projector.PATTERNS["version_label"]
+    assert feed_schema["$defs"]["factEntry"]["properties"]["none_reason"]["oneOf"][1]["enum"] == sorted(
+        projector.NONE_REASONS, key=feed_schema["x-none-reason-codes"].index
+    )
+
+
+def test_projection_runtime_never_reads_a_delivery_schema() -> None:
+    """The runtime modules name no contracts path and import no repository package."""
+    import ast
+
+    for name in ("_delivery_feed.py", "_knowledge_projection.py", "delivery-fact-feed.py"):
+        source = (_WORK_LOOP_SCRIPTS / name).read_text(encoding="utf-8")
+        assert "contracts/delivery" not in source.replace("delivery schema", ""), name
+        assert ".schema.json" not in source, name
+        for node in ast.walk(ast.parse(source)):
+            modules = []
+            if isinstance(node, ast.Import):
+                modules = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                modules = [node.module or ""]
+            assert not [m for m in modules if m.split(".")[0] in {"agentbundle", "credbroker"}], name
+
+
+# ── Candidate-mode validator parity (Slice 3, task T2) ───────────────────────
+# The project-knowledge candidate mode validates a feed page in self-contained
+# code. These tests run one differential corpus through `jsonschema` and through
+# that validator, and pin the validator's constants to the canonical schemas.
+
+_PROJECT_KNOWLEDGE_SCRIPT = (
+    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge" / "scripts" / "project_knowledge.py"
+)
+
+
+def _load_candidate_validator():  # noqa: ANN202 - test-time module loader
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location("dfp_roster_project_knowledge", str(_PROJECT_KNOWLEDGE_SCRIPT))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module  # the module defines dataclasses
+    spec.loader.exec_module(module)
+    return module
+
+
+def _corpus_base_page() -> dict:
+    """One valid page: a fact with an observation, a fact with none, and an unread source."""
+    page = _sample_page()
+    observation = page["entries"][0]["observation"]
+    page["entries"].insert(
+        1,
+        {
+            "entry_kind": "fact",
+            "ordinal": 1,
+            "source": {
+                "spec_path": "docs/specs/example",
+                "transaction_id": "tx-2",
+                "record_kind": "evidence-receipt.v1",
+                "record_id": "receipt-2",
+                "predecessor_schema_version": 1,
+            },
+            "observation": None,
+            "none_reason": "superseded",
+        },
+    )
+    page["entries"][2]["ordinal"] = 2
+    page["continuation"] = "dff1." + "c" * 64 + ".3"
+    assert observation is page["entries"][0]["observation"]
+    return page
+
+
+def _walk(node: object, path: tuple = ()):  # noqa: ANN202
+    """Yield (path, value) for every node of a JSON value."""
+    yield path, node
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield from _walk(value, (*path, key))
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _walk(value, (*path, index))
+
+
+def _at(page: dict, path: tuple) -> object:
+    node: object = page
+    for key in path:
+        node = node[key]  # type: ignore[index]
+    return node
+
+
+def _corpus() -> list[tuple[str, dict]]:
+    """The valid page plus one violation per schema constraint, generated over the valid page.
+
+    For each node: delete a key (required), add a key (additionalProperties),
+    swap its type (type, null, boolean), and, by type, break each bound the
+    schema states: string length and pattern, integer range and fractions, array
+    length and uniqueness. Named cases cover the keyword combinations that need
+    a coordinated edit (oneOf arms, if/then/else, const and enum members).
+    """
+    import copy
+
+    base = _corpus_base_page()
+    cases: list[tuple[str, dict]] = [("valid", copy.deepcopy(base))]
+
+    def add(label: str, path: tuple, replacement: object) -> None:
+        page = copy.deepcopy(base)
+        if path:
+            parent = _at(page, path[:-1])
+            parent[path[-1]] = replacement  # type: ignore[index]
+        else:
+            page = replacement  # type: ignore[assignment]
+        cases.append((f"{label}:{'/'.join(map(str, path)) or '<root>'}", page))
+
+    for path, value in _walk(base):
+        add("to-string", path, "x")
+        add("to-integer", path, 7)
+        add("to-boolean", path, True)
+        add("to-list", path, [])
+        add("to-object", path, {})
+        if path:
+            add("to-null", path, None)
+        if isinstance(value, dict):
+            for key in value:
+                page = copy.deepcopy(base)
+                del _at(page, path)[key]  # type: ignore[arg-type]
+                cases.append((f"missing-key:{'/'.join(map(str, (*path, key)))}", page))
+            page = copy.deepcopy(base)
+            _at(page, path)["extra_key"] = 1  # type: ignore[index]
+            cases.append((f"extra-key:{'/'.join(map(str, path)) or '<root>'}", page))
+        elif isinstance(value, str):
+            add("empty-string", path, "")
+            add("trailing-lf", path, value + "\n")
+            add("leading-space", path, " " + value)
+            add("overlong", path, value + "x" * 700)
+            add("control-char", path, value + "\x07")
+            add("zero-width", path, value + "\u200b")
+            add("bidi", path, value + "\u202e")
+            add("nel", path, value + "\u0085")
+            add("soft-hyphen", path, value + "\u00ad")
+            add("combining-grapheme-joiner", path, value + "\u034f")
+            add("hangul-choseong-filler", path, value + "\u115f")
+            add("hangul-jungseong-filler", path, value + "\u1160")
+            add("khmer-inherent-vowel", path, value + "\u17b4")
+            add("khmer-inherent-aa", path, value + "\u17b5")
+            add("mongolian-selector", path, value + "\u180b")
+            add("mongolian-vowel-separator", path, value + "\u180e")
+            add("mongolian-selector-last", path, value + "\u180f")
+            add("hangul-filler", path, value + "\u3164")
+            add("variation-selector", path, value + "\ufe00")
+            add("variation-selector-last", path, value + "\ufe0f")
+            add("halfwidth-hangul-filler", path, value + "\uffa0")
+            add("tag-first", path, value + "\U000e0000")
+            add("tag-latin-a", path, value + "\U000e0041")
+            add("tag-last", path, value + "\U000e0fff")
+            add("line-separator", path, value + " ")
+            add("not-a-member", path, "not-a-member")
+        elif isinstance(value, bool):
+            continue
+        elif isinstance(value, int):
+            add("below-range", path, -1)
+            add("above-range", path, 10**10)
+            add("fraction", path, 0.5)
+            add("integral-float", path, float(value))
+            add("string-number", path, str(value))
+        elif isinstance(value, list):
+            add("too-many-items", path, [value[0] if value else "a"] * 1001)
+            if value:
+                add("duplicate-item", path, [*value, value[0]])
+                add("append-null", path, [*value, None])
+    # Combinations a per-node edit cannot reach.
+    for label, edit in (
+        ("oneof-both-arms", lambda p: p["entries"][2].update({"observation": None, "none_reason": "superseded", "source": {}})),
+        ("observation-with-reason", lambda p: p["entries"][0].update({"none_reason": "superseded"})),
+        ("none-without-reason", lambda p: p["entries"][1].update({"none_reason": None})),
+        ("none-with-bad-reason", lambda p: p["entries"][1].update({"none_reason": "other"})),
+        ("unread-with-fact-keys", lambda p: p["entries"][2].update({"observation": None})),
+        ("fact-kind-on-unread", lambda p: p["entries"][2].update({"entry_kind": "fact"})),
+        ("unread-kind-on-fact", lambda p: p["entries"][0].update({"entry_kind": "unread-source"})),
+        ("wrong-field-path", lambda p: p["entries"][0]["observation"]["observed"].update({"field_path": "rule_ref"})),
+        ("rule-ref-121", lambda p: p["entries"][0]["observation"]["rule_ref"].update({"value": "r" * 121})),
+        ("rule-ref-120", lambda p: p["entries"][0]["observation"]["rule_ref"].update({"value": "r" * 120})),
+        ("text-600", lambda p: p["entries"][0]["observation"]["observed"].update({"value": "t" * 600})),
+        ("text-601", lambda p: p["entries"][0]["observation"]["observed"].update({"value": "t" * 601})),
+        ("ten-paths", lambda p: p["entries"][0]["observation"].update({"scope_paths": [f"a/{i}" for i in range(10)]})),
+        ("eleven-paths", lambda p: p["entries"][0]["observation"].update({"scope_paths": [f"a/{i}" for i in range(11)]})),
+        ("path-dot-segment", lambda p: p["entries"][0]["observation"].update({"scope_paths": ["a/./b"]})),
+        ("path-trailing-dot", lambda p: p["entries"][0]["observation"].update({"scope_paths": ["a/b."]})),
+        ("path-leading-slash", lambda p: p["entries"][0]["observation"].update({"scope_paths": ["/a/b"]})),
+        ("spec-path-dotdot", lambda p: p["entries"][0]["source"].update({"spec_path": "docs/specs/.."})),
+        ("spec-path-nested", lambda p: p["entries"][0]["source"].update({"spec_path": "docs/specs/a/b"})),
+        ("snapshot-uppercase", lambda p: p.update({"snapshot_id": "snapshot-sha256-" + "A" * 64})),
+        ("continuation-null", lambda p: p.update({"continuation": None})),
+        ("continuation-short", lambda p: p.update({"continuation": "dff1." + "c" * 63 + ".3"})),
+        ("continuation-ten-digits", lambda p: p.update({"continuation": "dff1." + "c" * 64 + ".1234567890"})),
+        ("ordinal-max", lambda p: p["entries"][0].update({"ordinal": 999_999_999})),
+        ("ordinal-over-max", lambda p: p["entries"][0].update({"ordinal": 1_000_000_000})),
+        ("predecessor-version-1000", lambda p: p["entries"][0]["source"].update({"predecessor_schema_version": 1000})),
+        ("predecessor-version-1001", lambda p: p["entries"][0]["source"].update({"predecessor_schema_version": 1001})),
+        ("predecessor-version-zero", lambda p: p["entries"][0]["source"].update({"predecessor_schema_version": 0})),
+        ("identifier-128", lambda p: p["entries"][0]["source"].update({"transaction_id": "a" * 128})),
+        ("identifier-129", lambda p: p["entries"][0]["source"].update({"transaction_id": "a" * 129})),
+        ("identifier-leading-dash", lambda p: p["entries"][0]["source"].update({"transaction_id": "-a"})),
+        ("1000-entries", lambda p: p.update({"entries": [p["entries"][2]] * 1000})),
+        ("1001-entries", lambda p: p.update({"entries": [p["entries"][2]] * 1001})),
+        ("empty-entries", lambda p: p.update({"entries": []})),
+        ("shadow-disabled", lambda p: p.update({"shadow_services": "disabled"})),
+        ("kind-pattern", lambda p: p["entries"][0]["observation"].update({"kind": "pattern"})),
+        ("observation-schema-version-2", lambda p: p["entries"][0]["observation"].update({"schema_version": 2})),
+        ("wrapper-schema-version-2", lambda p: p["entries"][0]["observation"]["observed"].update({"schema_version": 2})),
+        ("version-label-33", lambda p: p["entries"][0]["observation"].update({"projection_policy_version": "a" * 33})),
+        ("version-label-upper", lambda p: p["entries"][0]["observation"].update({"content_policy_version": "V1"})),
+        ("lone-surrogate", lambda p: p["entries"][0]["observation"]["observed"].update({"value": "a\ud800b"})),
+    ):
+        page = copy.deepcopy(base)
+        edit(page)
+        cases.append((label, page))
+    return cases
+
+
+def _observation_at(page: dict, path: str) -> dict:
+    """Return the entry observation a corpus path (`...entries/N/observation/...`) lies in."""
+    entries = path.split("entries/", 1)[1].split("/", 1)[0]
+    return page["entries"][int(entries)]["observation"]
+
+
+def _consumer_accepts(module, page: object) -> bool:  # noqa: ANN001
+    try:
+        raw = json.dumps(page, ensure_ascii=True).encode("ascii")
+        module.parse_feed_page(raw)
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def test_the_candidate_validator_agrees_with_jsonschema_on_every_corpus_page() -> None:
+    module = _load_candidate_validator()
+    validator = _validator(_FEED)
+    cases = _corpus()
+    assert len(cases) > 500
+    disagreements = []
+    accepted_tags: list[str] = []
+    rejected = 0
+    for label, page in cases:
+        schema_ok = not list(validator.iter_errors(page))
+        consumer_ok = _consumer_accepts(module, page)
+        rejected += not schema_ok
+        if label.startswith("tag-"):
+            # The one documented asymmetry: a JSON Schema pattern cannot express the
+            # astral tag range portably, so `jsonschema` accepts a tag character in
+            # free text. The validator accepts the page too and omits that candidate
+            # per candidate (`unsafe_character`); a path field still refuses the page.
+            _, path = label.split(":", 1)
+            if "/observation/" in path and path.endswith("/value"):
+                assert schema_ok and consumer_ok, label
+                assert module.candidate_omission_reason(_observation_at(page, path)) == "unsafe_character", label
+                accepted_tags.append(label)
+            else:
+                assert schema_ok == consumer_ok, label
+        elif schema_ok != consumer_ok:
+            disagreements.append((label, schema_ok, consumer_ok))
+    assert not disagreements, disagreements[:10]
+    text_fields = ("rule_ref", "observed", "reachable_path", "actual_failure")
+    for label in accepted_tags:
+        _, path = label.split(":", 1)
+        assert path.split("/")[-2] in text_fields, label
+    assert accepted_tags, "the tag-character case must be exercised on free text"
+    assert rejected > 400, "the corpus must exercise many refusals, not only acceptances"
+    assert _consumer_accepts(module, cases[0][1]) and not list(validator.iter_errors(cases[0][1]))
+
+
+def test_the_corpus_exercises_every_constraint_keyword_in_the_schemas() -> None:
+    """Each keyword the two schemas use is broken by at least one corpus page the schema rejects."""
+    wanted = {"required", "additionalProperties", "type", "enum", "const", "minLength", "maxLength",
+              "pattern", "minimum", "maximum", "maxItems", "uniqueItems", "oneOf", "if"}
+    used: set[str] = set()
+
+    def keywords(node: object) -> None:
+        if isinstance(node, dict):
+            used.update(k for k in node if k in wanted)
+            for value in node.values():
+                keywords(value)
+        elif isinstance(node, list):
+            for value in node:
+                keywords(value)
+
+    for name in (_FEED, _OBSERVATION, "untrusted-data.v1.schema.json"):
+        keywords(_load_schema(name))
+    seen: set[str] = set()
+    validator = _validator(_FEED)
+
+    def collect(error) -> None:  # noqa: ANN001 - jsonschema ValidationError
+        seen.add(error.validator)
+        for inner in error.context or ():
+            collect(inner)
+
+    for _label, page in _corpus()[1:]:
+        for error in validator.iter_errors(page):
+            collect(error)
+    assert used <= wanted
+    # `if` is exercised through its then and else arms, which report their own keywords.
+    assert used - {"if"} <= seen, used - seen
+
+
+def test_no_constraint_the_consumer_enforces_relies_on_annotation_only_format() -> None:
+    for name in (_FEED, _OBSERVATION):
+        assert '"format"' not in json.dumps(_load_schema(name)), name
+
+
+def test_the_candidate_validator_constants_match_the_canonical_schemas() -> None:
+    import re
+
+    module = _load_candidate_validator()
+    feed = _load_schema(_FEED)
+    observation = _load_schema(_OBSERVATION)
+    defs = observation["$defs"]
+
+    def normalize(pattern: str) -> str:
+        return re.sub(
+            r"\\u([0-9a-fA-F]{4})",
+            lambda m: chr(int(m.group(1), 16)),
+            pattern,
+        )
+
+    expected = {
+        "identifier": defs["identifier"]["pattern"],
+        "spec_path": defs["specPath"]["pattern"],
+        "repository_path": defs["repositoryPath"]["pattern"],
+        "text": defs["untrustedText"]["properties"]["value"]["pattern"],
+        "field_path": defs["untrustedText"]["properties"]["field_path"]["pattern"],
+        "snapshot_id": feed["properties"]["snapshot_id"]["pattern"],
+        "continuation": feed["properties"]["continuation"]["oneOf"][1]["pattern"],
+        "observation_id": observation["properties"]["observation_id"]["pattern"],
+        "version_label": observation["properties"]["projection_policy_version"]["pattern"],
+    }
+    assert set(module.FEED_PATTERNS) == set(expected)
+    for name, pattern in expected.items():
+        assert normalize(module.FEED_PATTERNS[name]) == normalize(pattern), name
+    assert defs["untrustedText"]["properties"]["policy_version"]["pattern"] == expected["version_label"]
+    assert observation["properties"]["content_policy_version"]["pattern"] == expected["version_label"]
+    assert defs["untrustedText"]["properties"]["record_id"]["pattern"] == expected["identifier"]
+
+    assert module.FEED_PAGE_MAX_BYTES == feed["x-max-page-bytes"] == 1024 * 1024
+    assert module.FEED_PAGE_MAX_ENTRIES == feed["properties"]["entries"]["maxItems"] == 1000
+    assert module.FEED_OBSERVATION_MAX_BYTES == feed["x-max-observation-bytes"] == observation["x-max-observation-bytes"]
+    assert set(module.FEED_NONE_REASONS) == set(feed["x-none-reason-codes"])
+    assert set(module.FEED_UNREAD_REASONS) == set(feed["x-unread-source-reason-codes"])
+    assert tuple(module.FEED_RECORD_KINDS) == tuple(
+        feed["$defs"]["factEntry"]["properties"]["source"]["properties"]["record_kind"]["enum"]
+    )
+    assert observation["properties"]["scope_paths"]["maxItems"] == 10
+    assert observation["properties"]["rule_ref"]["allOf"][1]["properties"]["value"]["maxLength"] == 120
+    assert defs["untrustedText"]["properties"]["value"]["maxLength"] == 600
+    assert module.CANDIDATE_OUTPUT_MAX_BYTES == 32 * 1024
+
+
+def test_the_observation_byte_bound_is_a_consumer_rule_the_schema_cannot_state() -> None:
+    """A page the schema accepts but whose observation exceeds 4 KiB is refused by the consumer."""
+    module = _load_candidate_validator()
+    page = _corpus_base_page()
+    observation = page["entries"][0]["observation"]
+    for field in ("observed", "reachable_path", "actual_failure"):
+        observation[field]["value"] = "y" * 600
+    observation["scope_paths"] = [f"packs/core/example/{'z' * 200}/{i}.py" for i in range(10)]
+    assert not list(_validator(_FEED).iter_errors(page))
+    assert not _consumer_accepts(module, page)

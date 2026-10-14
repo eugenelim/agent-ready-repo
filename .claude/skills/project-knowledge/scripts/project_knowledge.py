@@ -6,16 +6,17 @@ import concurrent.futures
 import copy
 import dataclasses
 import hashlib
+import html
 import importlib.util
 import json
 import re
 import secrets
 import sys
 import unicodedata
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -1610,6 +1611,459 @@ def _read_bounded_stdin(limit: int) -> bytes:
     return raw
 
 
+# --- Candidate mode ----------------------------------------------------------
+#
+# Reads one `delivery-fact-feed.v1` page from standard input and renders its
+# checked candidates in an inert `knowledge-candidates.v1` frame. It writes
+# nothing, imports nothing from the work-loop skill or any repository package,
+# and reads no schema file: the constants and patterns below restate the page
+# contract, and a repository test pins each one to the canonical schemas.
+#
+# Character policy. `_parse_strict_json` already refuses controls, lone
+# surrogates, and the bidi embeddings through `_assert_safe_unicode`, so the page
+# parse reuses it unchanged. That function does not cover U+0085, U+2028,
+# U+2029, the zero-width characters, or the bidi isolates, so the candidate
+# check adds `_CANDIDATE_UNSAFE_CHARACTERS` for them rather than replacing it.
+
+FEED_PAGE_MAX_BYTES = 1024 * 1024
+FEED_PAGE_MAX_ENTRIES = 1000
+FEED_OBSERVATION_MAX_BYTES = 4096
+CANDIDATE_OUTPUT_MAX_BYTES = 32 * 1024
+CANDIDATE_OMISSION_CODES = frozenset({"privacy", "unsafe_character", "duplicate", "oversized"})
+_FEED_END = r"(?![\s\S])"
+_FEED_BAD_TEXT_CHARACTERS = (
+    r"\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f-\u1160\u17b4-\u17b5\u180b-\u180f"
+    r"\u200b-\u200f\u2028-\u202e\u2060-\u206f\u3164\ud800-\udfff\ufe00-\ufe0f\ufeff\uffa0"
+    r"\ufff9-\ufffb"
+)
+# The tag characters U+E0000-U+E0FFF are astral, which a JSON Schema pattern cannot
+# name portably, so `FEED_PATTERNS["text"]` (the schema text) omits them. A valid
+# page holding one is not refused whole: the per-candidate
+# `_CANDIDATE_UNSAFE_CHARACTERS` check omits that candidate as `unsafe_character`.
+_FEED_TAG_CHARACTERS = r"\U000E0000-\U000E0FFF"
+_FEED_PATH_SEGMENT = (
+    r"(?!\.{1,2}(?:/|" + _FEED_END + r"))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-]"
+)
+FEED_PATTERNS = {
+    "identifier": r"^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}" + _FEED_END,
+    "spec_path": (
+        r"^docs/specs/(?!\.{1,2}" + _FEED_END + r")[A-Za-z0-9_.][A-Za-z0-9_.-]{0,79}" + _FEED_END
+    ),
+    "repository_path": (
+        r"^" + _FEED_PATH_SEGMENT + r"(?:/" + _FEED_PATH_SEGMENT + r")*" + _FEED_END
+    ),
+    "text": r"^[^" + _FEED_BAD_TEXT_CHARACTERS + r"]+" + _FEED_END,
+    "snapshot_id": r"^snapshot-sha256-[0-9a-f]{64}" + _FEED_END,
+    "continuation": r"^dff1\.[0-9a-f]{64}\.[0-9]{1,9}" + _FEED_END,
+    "observation_id": r"^knowledge-observation-sha256-[0-9a-f]{64}" + _FEED_END,
+    "version_label": r"^[a-z0-9][a-z0-9.-]{0,31}" + _FEED_END,
+    "field_path": r"^[a-z_]{1,32}" + _FEED_END,
+}
+_FEED_RE = {name: re.compile(pattern) for name, pattern in FEED_PATTERNS.items()}
+FEED_RECORD_KINDS = (
+    "evidence-receipt.v1",
+    "evidence-supersession.v1",
+    "review-subject.v1",
+    "review-obligation.v1",
+    "review-report.v1",
+    "finding-assessment.v1",
+    "finding-disposition.v1",
+    "approval-record.v1",
+    "finding.v1",
+)
+FEED_NONE_REASONS = (
+    "ineligible-record-kind",
+    "ineligible-receipt",
+    "superseded",
+    "source-unresolved",
+    "content-refused",
+    "unrepresentable",
+    "oversized",
+)
+FEED_UNREAD_REASONS = (
+    "shadow-dir-unsafe",
+    "marker-missing",
+    "marker-invalid",
+    "marker-unsafe",
+    "log-unsafe",
+    "log-oversized",
+    "log-corrupt",
+    "log-identity-invalid",
+)
+_FEED_SOURCE_KEYS = (
+    "spec_path",
+    "transaction_id",
+    "receipt_id",
+    "report_id",
+    "finding_id",
+    "criterion_ref",
+    "acceptance_fingerprint",
+    "review_policy_fingerprint",
+)
+_CANDIDATE_TEXT_FIELDS = (
+    ("rule_ref", 120),
+    ("observed", 600),
+    ("reachable_path", 600),
+    ("actual_failure", 600),
+)
+_CANDIDATE_UNSAFE_CHARACTERS = re.compile(
+    "[" + _FEED_BAD_TEXT_CHARACTERS + _FEED_TAG_CHARACTERS + "]"
+)
+
+
+def _feed_fail() -> NoReturn:
+    raise ValueError("invalid delivery fact feed page")
+
+
+def _feed_exact_keys(value: Any, keys: tuple[str, ...]) -> dict[str, Any]:
+    """Return *value* when it is an object holding exactly *keys*."""
+    if not isinstance(value, dict) or set(value) != set(keys):
+        _feed_fail()
+    return value
+
+
+def _feed_integer(value: Any, low: int, high: int) -> int:
+    """Return *value* as an int in [low, high]; JSON booleans and fractions fail."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        _feed_fail()
+    if isinstance(value, float) and not value.is_integer():
+        _feed_fail()
+    if not low <= value <= high:
+        _feed_fail()
+    return int(value)
+
+
+def _feed_string(value: Any, pattern: str, *, minimum: int = 1, maximum: int) -> str:
+    """Return *value* when it is a string of the bounded length matching *pattern*."""
+    if not isinstance(value, str) or not minimum <= len(value) <= maximum:
+        _feed_fail()
+    if _FEED_RE[pattern].search(value) is None:
+        _feed_fail()
+    return value
+
+
+def _feed_enum(value: Any, allowed: tuple[str, ...]) -> str:
+    if not isinstance(value, str) or value not in allowed:
+        _feed_fail()
+    return value
+
+
+def _feed_identifier(value: Any) -> str:
+    return _feed_string(value, "identifier", maximum=128)
+
+
+def _feed_spec_path(value: Any) -> str:
+    return _feed_string(value, "spec_path", minimum=11, maximum=100)
+
+
+def _feed_text(value: Any, field: str, maximum: int) -> dict[str, Any]:
+    """Validate one untrusted-data wrapper for *field*."""
+    wrapper = _feed_exact_keys(
+        value, ("schema_version", "record_id", "field_path", "policy_version", "value")
+    )
+    _feed_integer(wrapper["schema_version"], 1, 1)
+    _feed_identifier(wrapper["record_id"])
+    _feed_string(wrapper["field_path"], "field_path", maximum=32)
+    if wrapper["field_path"] != field:
+        _feed_fail()
+    _feed_string(wrapper["policy_version"], "version_label", maximum=32)
+    _feed_string(wrapper["value"], "text", maximum=maximum)
+    return wrapper
+
+
+def _feed_observation(value: Any) -> dict[str, Any]:
+    """Validate one `knowledge-observation.v1` record, including its 4 KiB bound."""
+    observation = _feed_exact_keys(
+        value,
+        (
+            "schema_version",
+            "observation_id",
+            "kind",
+            "projection_policy_version",
+            "content_policy_version",
+            "source",
+            "scope_paths",
+            "rule_ref",
+            "observed",
+            "reachable_path",
+            "actual_failure",
+        ),
+    )
+    _feed_integer(observation["schema_version"], 1, 1)
+    _feed_string(observation["observation_id"], "observation_id", maximum=128)
+    _feed_enum(observation["kind"], ("gotcha",))
+    _feed_string(observation["projection_policy_version"], "version_label", maximum=32)
+    _feed_string(observation["content_policy_version"], "version_label", maximum=32)
+    source = _feed_exact_keys(observation["source"], _FEED_SOURCE_KEYS)
+    _feed_spec_path(source["spec_path"])
+    for key in _FEED_SOURCE_KEYS[1:]:
+        _feed_identifier(source[key])
+    paths = observation["scope_paths"]
+    if not isinstance(paths, list) or len(paths) > 10:
+        _feed_fail()
+    for path in paths:
+        _feed_string(path, "repository_path", maximum=240)
+    if len(set(paths)) != len(paths):
+        _feed_fail()
+    for field, maximum in _CANDIDATE_TEXT_FIELDS:
+        _feed_text(observation[field], field, maximum)
+    canonical = json.dumps(
+        observation, sort_keys=True, ensure_ascii=True, separators=(",", ":")
+    ).encode("ascii")
+    if len(canonical) > FEED_OBSERVATION_MAX_BYTES:
+        _feed_fail()
+    return observation
+
+
+def _feed_entry(value: Any) -> dict[str, Any]:
+    """Validate one fact or unread-source entry."""
+    if not isinstance(value, dict):
+        _feed_fail()
+    if value.get("entry_kind") == "unread-source":
+        entry = _feed_exact_keys(value, ("entry_kind", "ordinal", "spec_path", "reason_code"))
+        _feed_integer(entry["ordinal"], 0, 999_999_999)
+        _feed_spec_path(entry["spec_path"])
+        _feed_enum(entry["reason_code"], FEED_UNREAD_REASONS)
+        return entry
+    entry = _feed_exact_keys(
+        value, ("entry_kind", "ordinal", "source", "observation", "none_reason")
+    )
+    _feed_enum(entry["entry_kind"], ("fact",))
+    _feed_integer(entry["ordinal"], 0, 999_999_999)
+    source = _feed_exact_keys(
+        entry["source"],
+        (
+            "spec_path",
+            "transaction_id",
+            "record_kind",
+            "record_id",
+            "predecessor_schema_version",
+        ),
+    )
+    _feed_spec_path(source["spec_path"])
+    _feed_identifier(source["transaction_id"])
+    _feed_enum(source["record_kind"], FEED_RECORD_KINDS)
+    _feed_identifier(source["record_id"])
+    _feed_integer(source["predecessor_schema_version"], 1, 1000)
+    if entry["observation"] is None:
+        _feed_enum(entry["none_reason"], FEED_NONE_REASONS)
+    else:
+        _feed_observation(entry["observation"])
+        if entry["none_reason"] is not None:
+            _feed_fail()
+    return entry
+
+
+def validate_feed_page(page: Any) -> dict[str, Any]:
+    """Return *page* when it is a schema-valid `delivery-fact-feed.v1` page, else raise ValueError.
+
+    Self-contained: the rules restate the canonical page schema and a repository
+    test pins them to it. Entry ordinals are not required to be contiguous,
+    because the schema states that rule only in prose.
+    """
+
+    page = _feed_exact_keys(
+        page,
+        (
+            "schema_version",
+            "snapshot_id",
+            "shadow_services",
+            "first_ordinal",
+            "entries",
+            "continuation",
+        ),
+    )
+    _feed_integer(page["schema_version"], 1, 1)
+    _feed_string(page["snapshot_id"], "snapshot_id", maximum=128)
+    _feed_enum(page["shadow_services"], ("enabled", "disabled"))
+    _feed_integer(page["first_ordinal"], 0, 999_999_999)
+    entries = page["entries"]
+    if not isinstance(entries, list) or len(entries) > FEED_PAGE_MAX_ENTRIES:
+        _feed_fail()
+    for entry in entries:
+        _feed_entry(entry)
+    if page["continuation"] is not None:
+        _feed_string(page["continuation"], "continuation", maximum=80)
+    return page
+
+
+def parse_feed_page(raw: bytes) -> dict[str, Any]:
+    """Strictly parse and validate one feed page, or raise ValueError.
+
+    Refuses a page over the 1 MiB bound, invalid UTF-8, duplicate keys,
+    non-finite numbers, unsafe characters, a schema violation, and nesting deep
+    enough to exhaust the recursion limit; none of them reach a traceback.
+    """
+
+    if len(raw) > FEED_PAGE_MAX_BYTES:
+        raise ValueError("feed page budget exceeded")
+    try:
+        return validate_feed_page(_parse_strict_json(raw))
+    except RecursionError as exc:
+        raise ValueError("feed page nesting is too deep") from exc
+
+
+def candidate_omission_reason(observation: dict[str, Any]) -> str | None:
+    """Return the closed omission code for a validated observation, or None when it passes.
+
+    Every string in the observation, identifiers and provenance included, must
+    be free of line terminators and control, bidi, zero-width, and surrogate
+    characters. The four free-text values must pass `assert_persistable_text`
+    and every path field `assert_persistable_paths`.
+    """
+
+    def strings(value: Any) -> Iterator[str]:
+        if isinstance(value, str):
+            yield value
+        elif isinstance(value, dict):
+            for item in value.values():
+                yield from strings(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from strings(item)
+
+    if any(_CANDIDATE_UNSAFE_CHARACTERS.search(text) for text in strings(observation)):
+        return "unsafe_character"
+    try:
+        assert_persistable_text(
+            *(observation[field]["value"] for field, _ in _CANDIDATE_TEXT_FIELDS)
+        )
+        assert_persistable_paths(observation["source"]["spec_path"], *observation["scope_paths"])
+    except PrivacyRefusal:
+        return "privacy"
+    return None
+
+
+def _candidate_items(page: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return one item per candidate-bearing or unread-source entry, in feed order.
+
+    An item is a kept candidate, an omission with a closed reason code and no
+    candidate text, or an unread source: a spec whose log the feed could not
+    read, with its closed reason code and no content. A second candidate for the
+    same source identity and policy versions is a duplicate and is omitted, so a
+    page presents one per identity.
+    """
+
+    items: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for entry in page["entries"]:
+        if entry["entry_kind"] == "unread-source":
+            items.append({"entry": int(entry["ordinal"]), "unread": entry})
+            continue
+        if entry["observation"] is None:
+            continue
+        observation = entry["observation"]
+        identity = (
+            observation["source"]["spec_path"],
+            observation["source"]["receipt_id"],
+            observation["projection_policy_version"],
+            observation["content_policy_version"],
+        )
+        reason = candidate_omission_reason(observation)
+        if reason is None and identity in seen:
+            reason = "duplicate"
+        if reason is None:
+            seen.add(identity)
+        items.append(
+            {"entry": int(entry["ordinal"]), "observation": observation, "reason": reason}
+        )
+    return items
+
+
+def _escape_candidate_field(value: Any) -> str:
+    """Escape one field with the rule `knowledge_store._render_envelope` applies."""
+    return html.escape(str(value), quote=True)
+
+
+def _render_candidate_item(position: int, item: dict[str, Any]) -> str:
+    """Render one kept candidate, omission, or unread source, with every field escaped."""
+    if "unread" in item:
+        unread = item["unread"]
+        return (
+            f'<unread-source path="{_escape_candidate_field(unread["spec_path"])}" '
+            f'reason="{_escape_candidate_field(unread["reason_code"])}"/>'
+        )
+    if item["reason"] is not None:
+        return (
+            f'<omitted ordinal="{position}" entry="{item["entry"]}" '
+            f'reason="{_escape_candidate_field(item["reason"])}"/>'
+        )
+    observation = item["observation"]
+    source = observation["source"]
+    attributes = {
+        "ordinal": position,
+        "status": "unadmitted-candidate",
+        "provenance": "unverified-local-claim",
+        "observation_id": observation["observation_id"],
+        "kind": observation["kind"],
+        "projection_policy": observation["projection_policy_version"],
+        "content_policy": observation["content_policy_version"],
+        "spec": source["spec_path"],
+        "transaction": source["transaction_id"],
+        "receipt": source["receipt_id"],
+        "report": source["report_id"],
+        "finding": source["finding_id"],
+        "criterion": source["criterion_ref"],
+        "acceptance_fingerprint": source["acceptance_fingerprint"],
+        "review_policy_fingerprint": source["review_policy_fingerprint"],
+    }
+    opening = "<candidate " + " ".join(
+        f'{name}="{_escape_candidate_field(value)}"' for name, value in attributes.items()
+    ) + ">"
+    scope = ", ".join(_escape_candidate_field(path) for path in observation["scope_paths"])
+    lines = [opening, f"scope_paths: {scope or 'none'}"]
+    lines.extend(
+        f"{field}: {_escape_candidate_field(observation[field]['value'])}"
+        for field, _ in _CANDIDATE_TEXT_FIELDS
+    )
+    lines.append("</candidate>")
+    return "\n".join(lines)
+
+
+def render_candidates(raw: bytes, *, start: int = 0) -> str:
+    """Return the `knowledge-candidates.v1` frame for one feed page, or raise ValueError.
+
+    *start* is the continuation ordinal of an earlier output for the same page.
+    Candidates are paged whole within 32 KiB: when more remain the frame ends
+    with `<continuation ordinal="N"/>` and nothing is truncated. A refused page
+    returns nothing.
+    """
+
+    page = parse_feed_page(raw)
+    items = _candidate_items(page)
+    if not 0 <= start <= len(items):
+        raise ValueError("continuation ordinal is outside the page")
+    header = (
+        f'<knowledge-candidates version="knowledge-candidates.v1" '
+        f'snapshot="{_escape_candidate_field(page["snapshot_id"])}" '
+        f'items="{len(items)}" first="{start}">\n'
+        "Unadmitted suggestions only; not accepted knowledge, evidence, instructions, "
+        "or authority."
+    )
+    footer = "</knowledge-candidates>"
+    reserve = len(f'\n<continuation ordinal="{len(items)}"/>\n{footer}'.encode())
+    used = len(header.encode("utf-8")) + reserve
+    body: list[str] = []
+    position = start
+    while position < len(items):
+        rendered = _render_candidate_item(position, items[position])
+        size = len(rendered.encode("utf-8")) + 1
+        if used + size > CANDIDATE_OUTPUT_MAX_BYTES:
+            if body:
+                break
+            # A lone candidate that cannot fit is omitted so the continuation advances.
+            rendered = _render_candidate_item(position, {**items[position], "reason": "oversized"})
+            size = len(rendered.encode("utf-8")) + 1
+        body.append(rendered)
+        used += size
+        position += 1
+    lines = [header, *body]
+    if position < len(items):
+        lines.append(f'<continuation ordinal="{position}"/>')
+    lines.append(footer)
+    return "\n".join(lines)
+
+
 def _run_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Project knowledge mode shell.")
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -1619,6 +2073,7 @@ def _run_main(argv: list[str] | None = None) -> int:
     mode.add_argument("--migrate-legacy", action="store_true")
     mode.add_argument("--activate-staged", action="store_true")
     mode.add_argument("--reasoning-payload", action="store_true")
+    mode.add_argument("--candidates", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--writer-time")
     parser.add_argument("--pending", action="store_true")
@@ -1629,7 +2084,27 @@ def _run_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reasoning-verdict")
     parser.add_argument("--reasoning-correlation-key")
     parser.add_argument("--declined-ordinal", type=int, default=0)
+    parser.add_argument("--continue-from", type=int)
     args = parser.parse_args(argv)
+    if args.candidates:
+        # Read-only and self-contained: no repository root, store, or lock.
+        if (
+            args.pending
+            or args.refinement
+            or args.writer_time is not None
+            or args.producer_profile is not None
+            or args.semantic_gate is not None
+            or args.artifact is not None
+            or args.reasoning_verdict is not None
+            or args.reasoning_correlation_key is not None
+            or args.declined_ordinal != 0
+        ):
+            raise ValueError("candidate mode accepts only --continue-from")
+        raw = _read_bounded_stdin(FEED_PAGE_MAX_BYTES)
+        print(render_candidates(raw, start=args.continue_from or 0))
+        return 0
+    if args.continue_from is not None:
+        raise ValueError("continue-from is only valid for candidates")
     selected = (
         "capture"
         if args.capture

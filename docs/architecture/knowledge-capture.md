@@ -19,6 +19,13 @@ artifact, instruction, or runtime control.
   call its bounded journal, topic, source, and guarded-mutation helpers.
 - `project-knowledge --enquire` loads `references/enquire-mode.md` and may
   call only committed-topic, map, and current-source read helpers.
+- `project-knowledge --candidates` loads `references/candidate-mode.md`, reads
+  one `delivery-fact-feed.v1` page from standard input, and calls no store
+  helper. It prints checked suggestions in an inert `knowledge-candidates.v1`
+  frame, marked unadmitted with unverified provenance, and writes no file. A
+  person or agent keeps a candidate by writing the lesson, giving the privacy
+  attestation, and running the ordinary `--capture`; capture never reads the
+  candidate frame.
 
 `--producer-profile work-loop` is an additive producer seam. It accepts only
 workflow semantic judgments, then constructs deterministic capture fields and
@@ -48,6 +55,25 @@ Knowledge code may read confined repository sources for provenance and freshness
 It has no network, arbitrary-command, credential, or permission-management
 authority. Canonical artifacts retain authority for their concerns.
 
+## 4a. Delivery feed and candidates
+
+Delivery owns no knowledge state. The work-loop skill's read-only
+`delivery-fact-feed.py` reads each spec's shadow evidence log through its
+confined file helpers, only when `WORK_LOOP_SHADOW_SERVICES=1` has made the
+writer produce one, and prints a `delivery-fact-feed.v1` page whose candidates
+come from unsuperseded `review-failure` receipts. Pull scanning is the only
+discovery path: no notification is sent, and the scan keeps no cursor,
+deduplication, acknowledgement, retry, or admission state. The two skills
+exchange only that page; neither imports the other. The retained
+`spec-approved` and `plan-locked` producer capture gates and the close-time
+`work-item` capture work as before, and the gates' removal is owned by Slice 8
+`legacy-engine-cutover`. The full boundary is in
+[work-loop-knowledge-handoff.md](work-loop-knowledge-handoff.md); the
+contracts are
+[`delivery-fact-feed.v1`](../../contracts/delivery/delivery-fact-feed.v1.schema.json)
+and
+[`knowledge-observation.v1`](../../contracts/delivery/knowledge-observation.v1.schema.json).
+
 ## 5. Primary flows
 
 1. A workflow submits explicit reusable residue to `--capture`, which records
@@ -56,6 +82,8 @@ authority. Canonical artifacts retain authority for their concerns.
    propose a topic and map mutation for review and commit.
 3. `--enquire` resolves a task question against the committed topic map and
    returns a bounded evidence receipt or abstains.
+4. `--candidates` turns one feed page into unadmitted suggestions. A chosen
+   suggestion re-enters at step 1 as an ordinary capture request.
 
 ## 6. Provenance for a multi-artifact terminal gate
 
@@ -123,10 +151,18 @@ the single home for what that leaves open.
 rules, the privacy scan, the instruction-shape refusal, the reasoning
 check — run once, at `--capture`. A record can also enter the committed
 store by a path other than that API: a merge, or a contributor branch,
-carrying a record validated elsewhere or not at all. Nothing here
-re-validates a record already in the store; `--enquire` and any later
-consumer read it as committed content, on the same trust footing as any
-other file the merge brought in.
+carrying a record validated elsewhere or not at all. The read-only paths
+now revalidate the committed records they read (see § 8a), but that
+validation checks schema, version, content policy, and consistency, not the
+reasoning verdict a `work-item` needed at capture, so a merged record still
+sits on the same trust footing as any other file the merge brought in.
+
+The close-time `work-item` command path is plain `--capture` (no
+`--producer-profile`), with `semantic_gate.name: close-time` and a per-item
+cold reasoning verdict passed as `--reasoning-verdict` and
+`--reasoning-correlation-key`; the key comes from a prior `--reasoning-payload`
+call. `packs/core/.apm/skills/work-loop/references/work-item-capture.md` owns
+the steps. A projected candidate never creates a `work-item`.
 
 ## 8. Failure and recovery behavior
 
@@ -140,11 +176,55 @@ idempotent missing step or refuses recovery.
 Uncertain, stale, retired, malformed, or out-of-scope topics are excluded from
 ordinary enquiry. Enquiry abstains when it cannot verify eligible evidence.
 
+## 8a. Read validation of committed records
+
+A record can reach Git outside capture, so the two read-only paths,
+`--enquire` and `--distill --pending`, validate each committed record they
+read. An invalid record is one that is malformed, unsafe, of an unknown version,
+policy-invalid, inconsistent, oversized, or orphaned. The path excludes it
+on its own, still answers from the valid records, and leaves the committed
+bytes unchanged.
+
+- **Closed exclusion.** Excluding a record never makes another more usable. A
+  subject whose restricting, dispositioning, superseding, or revoking record is
+  excluded is excluded too, and records left orphaned are excluded.
+- **Bounded report.** Each entry is a repository-relative locator (or a
+  non-content-derived ordinal when the path fails validation) and a code from a
+  closed set, with no record bytes, excerpt, or content-derived hash. One read
+  lists at most 100 entries, then one counted overflow marker. Enquiry
+  renders them in a separate `knowledge-quarantine.v1` element after the
+  evidence element; the pending drain returns them as the receipt's
+  `diagnostics`.
+- **Writers refuse whole.** Capture, disposition, promotion, topic-map
+  rebuild, writer admission, and migration staging or activation still
+  refuse the whole operation and change no byte when any record they read
+  is invalid, so no write runs against a reduced view. One invalid
+  observation record blocks every promotion and terminal disposition, plus
+  captures into its partition. One invalid topic or topic-map entry blocks
+  every write, captures included, through writer admission. Either stop lasts
+  until a maintainer repairs or reverts the record through Git; the
+  quarantine report gives its location.
+- **Whole refusals that remain.** A missing, unparseable, or link-like topic
+  map, and every capacity or budget refusal, still refuse the whole read. A
+  map that names the wrong version counts as unparseable: no valid record set
+  exists to answer from. A failure of the Git or operating-system read itself
+  (a non-zero exit, a spawn or temporary-file error, a failed size probe) is
+  never a record fault; it refuses the whole read rather than hiding the topic
+  it touched. A link-like or non-regular observation partition file is not a
+  whole refusal on the pending page: it is excluded as `unsafe` and never read.
+  A read of one topic by name that fails because its own entry was excluded
+  reports that entry's closed reason code and locator, and no content.
+
+The implementation is in `knowledge_store.py`; the suites are
+`packs/core/tests/skills/project-knowledge/test_read_quarantine.py` and
+`test_quarantine_write_paths.py`.
+
 ## 9. Observability and evidence
 
 Capture returns receipts. Distillation records dispositions and proposed store
 changes. Enquiry returns selected topic identifiers, source pointers, limits,
-and abstention state.
+abstention state, and any quarantine entries. Candidate mode returns the
+`knowledge-candidates.v1` frame and writes nothing.
 
 The store, committed topic map, Git history, and redacted refusal diagnostics
 provide the durable evidence trail.
@@ -166,3 +246,5 @@ named command enforces it.
 
 `615b68d8c` for sections 1-6 and 8-11. Section 7 (`work-item`) added by
 `docs/specs/work-item-capture/spec.md`, current on this pack's landed T1-T7.
+The candidate mode, § 4a, and § 8a were added by
+`docs/specs/delivery-knowledge-projection/spec.md` and match its T1-T3 code.

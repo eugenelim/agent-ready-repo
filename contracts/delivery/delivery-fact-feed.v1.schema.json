@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/delivery-fact-feed.v1.schema.json",
+  "title": "delivery-fact-feed.v1",
+  "description": "One page of a reproducible, read-only snapshot of committed delivery facts, ordered by spec path then evidence-log frame and record order. Each entry is a fact with its projection or an explicit none with a bounded reason, or an unread source with a closed reason code. Every observation free-text field is typed as untrusted data through knowledge-observation.v1. This schema states the page bounds once: at most 1000 entries (entries.maxItems), at most 1048576 bytes of canonical page JSON (x-max-page-bytes), and at most 4096 bytes per observation (x-max-observation-bytes). A page ends before the entry that would exceed either bound, so no entry is split or dropped. Entry ordinals are contiguous from first_ordinal. A continuation that cannot reproduce its snapshot is refused with no page. Unknown majors are inadmissible.",
+  "$comment": "Owned by: docs/specs/delivery-knowledge-projection/. Architecture: docs/architecture/work-loop-knowledge-handoff.md.",
+  "x-spec": [
+    "docs/specs/delivery-knowledge-projection/"
+  ],
+  "x-max-page-bytes": 1048576,
+  "x-max-observation-bytes": 4096,
+  "x-unread-source-reason-codes": [
+    "shadow-dir-unsafe",
+    "marker-missing",
+    "marker-invalid",
+    "marker-unsafe",
+    "log-unsafe",
+    "log-oversized",
+    "log-corrupt",
+    "log-identity-invalid"
+  ],
+  "x-scan-refusal-codes": [
+    "root-invalid",
+    "specs-root-refused",
+    "specs-entry-refused",
+    "specs-entry-name-invalid",
+    "token-invalid",
+    "snapshot-changed",
+    "scan-failed"
+  ],
+  "x-none-reason-codes": [
+    "ineligible-record-kind",
+    "ineligible-receipt",
+    "superseded",
+    "source-unresolved",
+    "content-refused",
+    "unrepresentable",
+    "oversized"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "shadow_services",
+    "first_ordinal",
+    "entries",
+    "continuation"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "snapshot_id": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^snapshot-sha256-[0-9a-f]{64}(?![\\s\\S])",
+      "description": "Digest of the fixed source set: the docs/specs/ listing and each log's state, byte length, and sha256."
+    },
+    "shadow_services": {
+      "type": "string",
+      "enum": [
+        "enabled",
+        "disabled"
+      ],
+      "description": "disabled: WORK_LOOP_SHADOW_SERVICES was not 1, so the snapshot is complete and empty."
+    },
+    "first_ordinal": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 999999999
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/factEntry"
+          },
+          {
+            "$ref": "#/$defs/unreadSourceEntry"
+          }
+        ]
+      }
+    },
+    "continuation": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^dff1\\.[0-9a-f]{64}\\.[0-9]{1,9}(?![\\s\\S])"
+        }
+      ],
+      "description": "null: this page ends the snapshot. Otherwise the token of the next page."
+    }
+  },
+  "$defs": {
+    "factEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry_kind",
+        "ordinal",
+        "source",
+        "observation",
+        "none_reason"
+      ],
+      "properties": {
+        "entry_kind": {
+          "type": "string",
+          "enum": [
+            "fact"
+          ]
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999999999
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "spec_path",
+            "transaction_id",
+            "record_kind",
+            "record_id",
+            "predecessor_schema_version"
+          ],
+          "properties": {
+            "spec_path": {
+              "$ref": "knowledge-observation.v1.schema.json#/$defs/specPath"
+            },
+            "transaction_id": {
+              "$ref": "knowledge-observation.v1.schema.json#/$defs/identifier",
+              "description": "A digest-sha256:<64 hex> stand-in replaces an id that fails the identifier pattern; it is the SHA-256 of the original id's UTF-8 bytes."
+            },
+            "record_kind": {
+              "type": "string",
+              "enum": [
+                "evidence-receipt.v1",
+                "evidence-supersession.v1",
+                "review-subject.v1",
+                "review-obligation.v1",
+                "review-report.v1",
+                "finding-assessment.v1",
+                "finding-disposition.v1",
+                "approval-record.v1",
+                "finding.v1"
+              ]
+            },
+            "record_id": {
+              "$ref": "knowledge-observation.v1.schema.json#/$defs/identifier",
+              "description": "A digest-sha256:<64 hex> stand-in replaces an id that fails the identifier pattern; it is the SHA-256 of the original id's UTF-8 bytes."
+            },
+            "predecessor_schema_version": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "schema_version of the Slice 1 or Slice 2 source record."
+            }
+          }
+        },
+        "observation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "knowledge-observation.v1.schema.json"
+            }
+          ]
+        },
+        "none_reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "ineligible-record-kind",
+                "ineligible-receipt",
+                "superseded",
+                "source-unresolved",
+                "content-refused",
+                "unrepresentable",
+                "oversized"
+              ]
+            }
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "observation": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "observation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "none_reason": {
+            "type": "string",
+            "enum": [
+              "ineligible-record-kind",
+              "ineligible-receipt",
+              "superseded",
+              "source-unresolved",
+              "content-refused",
+              "unrepresentable",
+              "oversized"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "none_reason": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    "unreadSourceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry_kind",
+        "ordinal",
+        "spec_path",
+        "reason_code"
+      ],
+      "properties": {
+        "entry_kind": {
+          "type": "string",
+          "enum": [
+            "unread-source"
+          ]
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999999999
+        },
+        "spec_path": {
+          "$ref": "knowledge-observation.v1.schema.json#/$defs/specPath"
+        },
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "shadow-dir-unsafe",
+            "marker-missing",
+            "marker-invalid",
+            "marker-unsafe",
+            "log-unsafe",
+            "log-oversized",
+            "log-corrupt",
+            "log-identity-invalid"
+          ]
+        }
+      }
+    }
+  }
+}

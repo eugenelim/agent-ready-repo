@@ -11,6 +11,8 @@
   {"query": "enquire over active committed topics for CQ-DIAGNOSE", "should_trigger": true},
   {"query": "capture this as a blocked work item", "should_trigger": true},
   {"query": "capture this defect whose repro command find . -delete just got refused", "should_trigger": true},
+  {"query": "list knowledge candidates from the delivery review failures", "should_trigger": true},
+  {"query": "pipe the delivery fact feed into project-knowledge --candidates", "should_trigger": true},
 
   {"query": "capture these backlog items", "should_trigger": false},
   {"query": "add this to workspace.toml", "should_trigger": false},

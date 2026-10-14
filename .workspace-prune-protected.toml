@@ -12,6 +12,7 @@
 
 protected = [
   "docs/specs/acceptance-authority-and-evidence",
+  "docs/specs/delivery-knowledge-projection",
   "docs/specs/design-handoff-read",
   "docs/specs/repair-round-dispatch-assertion",
   "docs/specs/a",
