@@ -188,7 +188,8 @@ def test_timeout_leaves_no_survivor(ps: ModuleType, tmp_path: Path, mode: str) -
 
 
 def test_launch_contract_cases(ps: ModuleType, tmp_path: Path) -> None:
-    echo = "import sys, os; sys.stdout.write(sys.stdin.read() + os.environ['TOKEN']); sys.stderr.write('e')"
+    # Stdin bytes are redacted from output too, so the child reports their length.
+    echo = "import sys, os; sys.stdout.write(str(len(sys.stdin.read())) + ':' + os.environ['TOKEN']); sys.stderr.write('e')"
     spec = _spec(tmp_path, echo)
     spec["stdin_mode"] = "bounded-bytes"
     spec["environment_allowlist"] = ["SYSTEMROOT", "TOKEN"]
@@ -197,7 +198,7 @@ def test_launch_contract_cases(ps: ModuleType, tmp_path: Path) -> None:
         env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows"),
                     "TOKEN": "s3cret-value"}, audit_sink=_sink)
     assert result.exit_code == 0
-    assert result.stdout_redacted == b"in:[REDACTED]"
+    assert result.stdout_redacted == b"3:[REDACTED]"
     assert result.stderr_redacted == b"e" and result.output_was_redacted
     exit_three = _launch(ps, tmp_path, "import sys; sys.exit(3)")
     assert exit_three.exit_code == 3
@@ -243,13 +244,15 @@ def test_an_inheritable_parent_handle_does_not_reach_the_child(ps: ModuleType,
         os.close(fd)
 
 
-def test_a_batch_file_is_refused_before_launch(ps: ModuleType, tmp_path: Path) -> None:
+@pytest.mark.parametrize("tail", ["", ".", " ", ". ."], ids=["plain", "dot", "space", "mixed"])
+def test_a_batch_file_is_refused_before_launch(ps: ModuleType, tmp_path: Path,
+                                              tail: str) -> None:
     script = tmp_path / "tool.cmd"
     marker = tmp_path / "ran.txt"
     script.write_text(f"@echo ran> {marker}\r\n")
     digest = hashlib.sha256(script.read_bytes()).hexdigest()
     spec = _spec(tmp_path, "unused")
-    spec.update({"executable": str(script), "executable_identity": digest,
+    spec.update({"executable": str(script) + tail, "executable_identity": digest,
                  "argv": ["a&echo injected"]})
     with pytest.raises(ps.ProcessDenied) as info:
         ps.launch_safe_process(spec, cwd_roots=(str(tmp_path),),
