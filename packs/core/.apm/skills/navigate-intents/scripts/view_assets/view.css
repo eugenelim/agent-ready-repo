@@ -77,7 +77,8 @@
 .dep-diag .edge-line { min-width: 0; max-width: 100%; }
 /* A dependency line is one ruled unit: two rows when narrow; when the part is wide, lines share three
    tracks (source capped at half, "waits for" sized to its word, target takes the rest) and problem rows
-   share four (status, source, value, note), each row a subgrid so the columns align down the list. */
+   share five (mark, state, source capped at 16rem, value at least 12rem, note), each row a subgrid so the
+   columns align down the list and a long source title wraps instead of squeezing the value. */
 .dep-body { container-type: inline-size; }
 .part > .lead { text-wrap: pretty; }
 .dep-line { border-bottom-width: 1px; border-bottom-style: solid; padding: var(--s-1) 0; }
@@ -113,7 +114,7 @@ ul.dep-diags { margin-top: var(--s-4); padding-top: var(--s-2); border-top-width
   .dep-lines { display: grid; grid-template-columns: fit-content(50%) auto minmax(0, 1fr); column-gap: var(--s-3); }
   .dep-line { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: start; }
   .dep-row, .dep-to { display: contents; }
-  ul.dep-diags { display: grid; grid-template-columns: max-content max-content max-content fit-content(60%) max-content minmax(0, 1fr); column-gap: var(--s-3); }
+  ul.dep-diags { display: grid; grid-template-columns: max-content max-content fit-content(16rem) minmax(12rem, 1fr) max-content; column-gap: var(--s-3); }
   .dep-diag { grid-template-columns: subgrid; grid-column: 1 / -1; }
   .dep-diag + .dep-diag { padding-top: var(--s-1); margin-top: 0; }
   .dep-diag > .edge-line > .mark { grid-column: 1; }

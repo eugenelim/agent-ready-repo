@@ -161,6 +161,19 @@ def _india_parent_corpus(tmp: pathlib.Path) -> pathlib.Path:
     return root
 
 
+_LONG_TITLE = "Show an intent's dependencies in the offline view for reviewers"
+
+
+def _long_title_corpus(tmp: pathlib.Path) -> pathlib.Path:
+    """The dependency fixture with Golf and Echo, two diagnostic sources, given realistic long titles."""
+    root = tmp / "dependency_long"
+    shutil.copytree(_FIXTURES / "dependency", root)
+    for name, old in (("FEAT-0007-golf.md", "# Feature: Golf"), ("FEAT-0005-echo.md", "# Feature: Echo")):
+        path = root / "docs" / "product" / "intents" / name
+        path.write_text(path.read_text(encoding="utf-8").replace(old, "# Feature: " + _LONG_TITLE, 1), encoding="utf-8")
+    return root
+
+
 def _git_corpus(tmp: pathlib.Path) -> pathlib.Path:
     """A Git repository with a GitHub origin and an unpushed commit: every link is ``latest``."""
     root = tmp / "gitrepo"
@@ -225,6 +238,7 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
         _FIXTURES / "hostile", out, "hostile_diag.html", _delivery_provider=_hostile_diagnostic
     )
     found["india_parent"] = _export(_india_parent_corpus(tmp), out, "india_parent.html")
+    found["dependency_long"] = _export(_long_title_corpus(tmp), out, "dependency_long.html")
     found["latest"] = _export(_git_corpus(tmp), out, "latest.html")
     inert_root = tmp / "inert"
     shutil.copytree(_FIXTURES / "mixed", inert_root)
@@ -2821,6 +2835,25 @@ def test_vi_4001_part_across_width_and_theme(opener: Any, exports: dict[str, pat
         "Math.max(...[...document.querySelectorAll('#detail-body section.part *')].map(e => e.getBoundingClientRect().right))"
     )
     assert right <= width + 0.5
+
+
+@pytest.mark.parametrize("width", [320, 1280, 1680, 2560])
+def test_vi_4001_long_source_titles_keep_values_readable(opener: Any, exports: dict[str, pathlib.Path], width: int) -> None:
+    """A long source title never squeezes a problem row's value or makes the detail scroll sideways (AC-0010, AC-0019)."""
+    item = opener(exports["dependency_long"], width=width, height=900)
+    page = _dep_pick(item, "intent:golf", "both", "1")
+    assert page.locator("#detail-body li.dep-diag").count() >= 19
+    detail = page.evaluate("(() => { const d = document.querySelector('.detail'); return [d.scrollWidth, d.clientWidth]; })()")
+    assert detail[0] <= detail[1], detail
+    scroll, client = _no_overflow(page)
+    assert scroll <= client, (scroll, client)
+    # A squeezed value breaks one character per line; a readable one takes at most three lines.
+    tall = page.evaluate(
+        """() => [...document.querySelectorAll('#detail-body li.dep-diag code.value')]
+          .map(c => [c.textContent, c.getBoundingClientRect().height, parseFloat(getComputedStyle(c).lineHeight) || 20])
+          .filter(([t, h, lh]) => h > 3.5 * lh)"""
+    )
+    assert tall == [], tall[:3]
 
 
 _BANNED_TAGS = {"img", "svg", "iframe", "object", "embed", "link", "style", "base", "form", "math", "video", "audio", "canvas", "template", "textarea", "frame"}
