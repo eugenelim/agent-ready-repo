@@ -200,7 +200,3 @@ class LocalState:
             )
             recorded.add(commit.step)
             kill_point("event")
-
-    def remove_journal(self) -> None:
-        """Delete the advisory journal (used by tests; nothing depends on it)."""
-        Path(self.journal).unlink(missing_ok=True)

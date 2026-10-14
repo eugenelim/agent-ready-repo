@@ -532,6 +532,19 @@ def _validate_result(result: object) -> dict[str, Any]:
     return result
 
 
+def _refuse_protected_change(ws: Workspace, state: State) -> list[str]:
+    """Return the change set, refusing one that touches the spec directory or a cited record."""
+    changed = ws.git.change_set()
+    protected = [p for p in changed if p.startswith(ws.spec_rel + "/") or p in state.cited_paths]
+    if protected:
+        raise Refusal(
+            "protected-path-changed",
+            "controller",
+            "the attempt changed trusted files: " + ", ".join(protected),
+        )
+    return changed
+
+
 def report(ws: Workspace, result: object) -> dict[str, Any]:
     """The ``report`` verb: admit a result for the current request, or refuse it."""
     tdd = _supervisor("_supervisor_tdd.py")
@@ -548,6 +561,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         if foreign:
             raise Refusal("foreign-delivery-edit", "controller", ", ".join(foreign))
         if checked["kind"] in ("external-effect", "effect-query"):
+            _refuse_protected_change(ws, state)
             outcome = effects.report_effect(ws, state, checked)
         else:
             action = decide(ws, state)
@@ -562,16 +576,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     "controller",
                     "the result is not for the current request",
                 )
-            changed = ws.git.change_set()
-            protected = [
-                p for p in changed if p.startswith(ws.spec_rel + "/") or p in state.cited_paths
-            ]
-            if protected:
-                raise Refusal(
-                    "protected-path-changed",
-                    "controller",
-                    "the attempt changed trusted files: " + ", ".join(protected),
-                )
+            changed = _refuse_protected_change(ws, state)
             kind = checked["kind"]
             if kind in ("implement-task", "write-stub"):
                 outcome = tdd.report_task(ws, state, current, checked, changed)
