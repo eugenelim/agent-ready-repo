@@ -1,0 +1,1075 @@
+{
+ "world": "pre-fold (base 216d34bc9), fresh held-out set",
+ "score": {
+  "positive_trigger_rate": 0.6,
+  "false_trigger_rate": 0.0,
+  "errored_runs_in_scored_records": 0,
+  "by_group": {
+   "situate": 0.467,
+   "find": 0.733,
+   "diverge-init": 0.333,
+   "diverge-shape": 0.667,
+   "de-risk-plan": 0.4,
+   "bet": 0.2,
+   "map": 0.667,
+   "ground": 0.667,
+   "canvas": 1.0,
+   "frame": 1.0,
+   "de-risk": 0.6,
+   "decompose": 0.467
+  },
+  "discovery_loop_passed": [
+   "Before we build, scaffold a discovery: what product shapes should we explore for the notifications system?",
+   "Break this intent down into deliverable specs",
+   "Design the architecture for the scheduling service",
+   "Diverge on the product shape then converge to a brief",
+   "Frame the domain before we design",
+   "Generate candidate product shapes for the scheduling feature",
+   "Plan the validation for these assumptions",
+   "Run a discovery for the new expense reporting product",
+   "Scaffold the product vision for a team-scheduling tool",
+   "Shape this product outcome into an intent before we spec it",
+   "Take this raw idea for a developer onboarding tool to a decision brief",
+   "What's the riskiest assumption in this intent?",
+   "Write a spec for the notifications system"
+  ],
+  "discovery_loop_total": 15
+ },
+ "summaries": {
+  "discovery-loop-0": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "discovery-loop": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "Scaffold the product vision for a team-scheduling tool",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Run a discovery for the new expense reporting product",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Diverge on the product shape then converge to a brief",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Take this raw idea for a developer onboarding tool to a decision brief",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Resume the task-management discovery from where we left off",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q05",
+       "query": "We have a rough idea \u2014 run it through the full discovery loop and give us a brief to hand off",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q06",
+       "query": "Before we build, scaffold a discovery: what product shapes should we explore for the notifications system?",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q07",
+       "query": "Generate candidate product shapes for the scheduling feature",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": [
+        "explore-options"
+       ]
+      }
+     ],
+     "pass_count": 6,
+     "total": 8,
+     "error_count": 0
+    }
+   }
+  },
+  "discovery-loop-1": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "discovery-loop": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "Write a spec for the notifications system",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Break this intent down into deliverable specs",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "What's the riskiest assumption in this intent?",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Frame the domain before we design",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": [
+        "frame-domain"
+       ]
+      },
+      {
+       "query_id": "q04",
+       "query": "Plan the validation for these assumptions",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": [
+        "plan-validation"
+       ]
+      },
+      {
+       "query_id": "q05",
+       "query": "Design the architecture for the scheduling service",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q06",
+       "query": "Shape this product outcome into an intent before we spec it",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": [
+        "intent"
+       ]
+      }
+     ],
+     "pass_count": 7,
+     "total": 7,
+     "error_count": 0
+    }
+   }
+  },
+  "diverge-solutions": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "diverge-solutions": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "We ranked repair coordination as the top opportunity. What distinct directions could we take, side by side?",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Lay out four different approaches for reducing month-end close time, each with its main bets and costs.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "For the clinic-scheduling opportunity we scored last week, give me alternatives I can weigh against each other.",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Draft a comparison of solution directions for the supplier-onboarding problem and say which you'd pick.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Give me a few genuinely distinct ways to attack the churn-at-renewal opportunity, not variations of one idea.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 2,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "explore-options": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "explore-options": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "Before we narrow down, what shapes could a carpool app for school runs take, from tiny to ambitious?",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Sketch several possible forms for a recipe-sharing idea, each with the assumption most likely to break it.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Keep options open: list the different product forms a home-energy coach could take.",
+       "should_trigger": true,
+       "trigger_rate": 0.3333333333333333,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "What could a tool for amateur sports leagues look like, ranging from one feature to a full platform?",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Brainstorm distinct shapes for a peer mentoring product before the team settles on one.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 3,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "frame-domain": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "frame-domain": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "How do insurance adjusters actually work a claim today? I want that understood before any design.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Set the boundary for the first release of our dental-practice app: what is in and what stays out?",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Someone wants inventory forecasting in v1 of the bakery tool. Help me decide whether that's in scope.",
+       "should_trigger": true,
+       "trigger_rate": 0.3333333333333333,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Study how volunteer coordinators really run shift sign-ups, including the spreadsheet they use now.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Describe the real-world workflow of freight dispatchers and where simple tools fall over.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 3,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "frame-situation": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "frame-situation": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "Our biggest reseller just signed with a rival. Help us figure out what this means and where to begin.",
+       "should_trigger": true,
+       "trigger_rate": 0.3333333333333333,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Activation in the Japanese market is half of everywhere else. Turn that into something we can act on.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Three enterprise prospects asked for an on-prem version this month. Is that a trend worth pursuing?",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "A regulator published draft rules on AI disclosures that touch our product line. How should we treat this?",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Our cloud costs per customer doubled since spring. Read this as a product signal and suggest a starting point.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 2,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "identify-opportunities": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "identify-opportunities": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "What are small-business owners really trying to accomplish when they reconcile their books each month?",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Interview notes keep mentioning anxiety around payroll deadlines. Pull out the underlying jobs and rank them.",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Which needs of first-year nurses around shift handover go least well served today? Give me a scored list.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Help me see the jobs, including the social ones, that event organisers hire a ticketing tool for.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Rank the unmet needs of landlords managing repairs by how important and how poorly met they are.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 4,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "intent-0": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "intent": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "Before anyone builds the export scheduler, help me pin down the outcome and who it is for.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Our CEO wants 'smarter search'. Turn that into a crisp intent with the opportunity behind it.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "What are we really trying to change with the new approvals inbox? Write it as an intent.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Capture the problem and desired outcome behind the request for team templates.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Shape the vague 'better onboarding emails' ask into an intent we can test.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q05",
+       "query": "Which assumption, if wrong, would sink the shared-calendar feature, and what's a cheap way to check it?",
+       "should_trigger": true,
+       "trigger_rate": 0.3333333333333333,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q06",
+       "query": "Set a kill condition before we test whether users want offline editing.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q07",
+       "query": "Is there a quick experiment that tells us if the referral bonus will change behaviour?",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q08",
+       "query": "Help me test the bet behind auto-tagging before we commit engineering time.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 7,
+     "total": 9,
+     "error_count": 0
+    }
+   }
+  },
+  "intent-1": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "intent": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "What belief under the bulk-import feature is least supported, and how do we probe it this week?",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Our de-risked reporting overhaul is too big. Break it into smaller intents.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Turn the surviving SSO intent into pieces engineering can deliver one by one.",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "What are the child intents under our validated self-serve billing goal?",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Split the approved mobile notifications work into deliverable slices.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q05",
+       "query": "This tested bet on audit logs needs breaking down into specs. Do the next level.",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q06",
+       "query": "Just record the outcome we already agreed, faster payouts for sellers, as a minimal intent.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q07",
+       "query": "File 'reduce password resets by half' in the repo as a bare intent without shaping it.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q08",
+       "query": "Draft the spec for the CSV column-mapping screen.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 7,
+     "total": 9,
+     "error_count": 0
+    }
+   }
+  },
+  "intent-2": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "intent": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "Open a spec for the webhook retry policy.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Run the full discovery on our idea for a neighbourhood repair caf\u00e9 network, through to the decision brief.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": [
+        "discovery-loop"
+       ]
+      },
+      {
+       "query_id": "q02",
+       "query": "Pick up the pet-insurance discovery where we left it.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Set up the coordinating meta-repo for our six product repos.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": [
+        "align-value-stream"
+       ]
+      },
+      {
+       "query_id": "q04",
+       "query": "Show me whether checkout v2 has shipped in every component repo.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": [
+        "align-value-stream"
+       ]
+      },
+      {
+       "query_id": "q05",
+       "query": "Login fails for users with plus signs in their email. Find the cause and fix it.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q06",
+       "query": "Our nightly export started timing out yesterday. Diagnose it.",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q07",
+       "query": "What's the right architecture for streaming events from billing into the data warehouse?",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q08",
+       "query": "How should we design tenant isolation for the new analytics service?",
+       "should_trigger": false,
+       "trigger_rate": 0.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 9,
+     "total": 9,
+     "error_count": 0
+    }
+   }
+  },
+  "lean-canvas": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "lean-canvas": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "Turn our customer-support automation initiative into a one-page canvas brief.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "I need the problem, solution, metrics, and unfair advantage written up for the partner-portal initiative.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Summarise the analytics initiative in canvas form so leadership can review it.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Do the quick version of the canvas, five boxes, for the developer-community initiative.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Write the initiative brief for our mobile-ordering push as a canvas.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 5,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "map-capabilities": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "map-capabilities": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "We're going ahead with the logistics marketplace. Which building blocks do we need, and which do we own versus buy?",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Break our chosen direction for telehealth into the capabilities it depends on, with a build order.",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "For the committed payments direction, mark each needed capability as commodity or differentiating.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "What should we build ourselves, buy, or partner for, given the bet we just placed on field service?",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "List the capabilities behind our new learning-platform bet and how mature each one is in the market.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 4,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "place-bet": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "place-bet": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "We've compared the three routing options. Make the call and write down how much time we're willing to spend.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Choose between the white-label and direct options and record our confidence level.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Time to commit: which of these onboarding concepts do we fund for the next cycle?",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Help me write the decision record for going with the partner-led option, including the appetite.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "We've de-risked two approaches to invoicing. Pick one and capture why.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 1,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  },
+  "plan-validation": {
+   "pack": "product-engineering",
+   "adapter": "claude-code",
+   "mode": "headless",
+   "fidelity": "observed",
+   "runs": 3,
+   "iteration": 1,
+   "skills": {
+    "plan-validation": {
+     "queries": [
+      {
+       "query_id": "q00",
+       "query": "We have five shaky assumptions left in our concept. Write the field plan to check each, with go or no-go lines.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q01",
+       "query": "Prepare the discussion guide and session plan for interviewing warehouse managers about our assumptions.",
+       "should_trigger": true,
+       "trigger_rate": 1.0,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q02",
+       "query": "Design how we'd check whether teachers will actually adopt this, including a script for the sessions.",
+       "should_trigger": true,
+       "trigger_rate": 0.0,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q03",
+       "query": "Make a plan to confirm or kill our riskiest beliefs through customer conversations next sprint.",
+       "should_trigger": true,
+       "trigger_rate": 0.3333333333333333,
+       "passed": false,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      },
+      {
+       "query_id": "q04",
+       "query": "Set up the framework for synthesising interview transcripts against the assumptions we listed.",
+       "should_trigger": true,
+       "trigger_rate": 0.6666666666666666,
+       "passed": true,
+       "errored_runs": 0,
+       "exclusivity_violations": []
+      }
+     ],
+     "pass_count": 2,
+     "total": 5,
+     "error_count": 0
+    }
+   }
+  }
+ }
+}

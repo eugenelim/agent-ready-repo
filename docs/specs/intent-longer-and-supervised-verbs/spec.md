@@ -1,14 +1,13 @@
 # Spec: intent-longer-and-supervised-verbs
 
-- **Status:** Draft
+- **Status:** Archived
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0107, ADR-0140
+- **Constrained by:** RFC-0107 (D1, D2, D6); ADR-0140 (D2, D3, D5, and D4 as ADR-0145 D3 restates it); ADR-0145; ADR-0111 (D8, as its Errata reads); RFC-0067 (clean retire)
 - **Brief:** brief:verb-mode-skills-and-slice-handover
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
-- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / `references/spec-and-plan-contract.md` § Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
-- **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
-<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
+- **Discovery:** none
+- **Contract:** none
+- **Shape:** mixed
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -16,317 +15,555 @@
 > **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
 > `Acceptance Criteria` are what a completion gate reads, and an amendment
 > changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
-> `Assumptions` are working material: they orient a reader and an author corrects them in place
-> as the work teaches, without an amendment and without a review round. A review
-> finding against working material is advisory — it cannot block, because nothing
-> gates the text it cites. Marking the tiers is the spec's job; honouring them
-> when a finding is adjudicated is the reviewing surface's.
-
-<!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Outcome, What Changes, Agent
-Rules, Testing Strategy, and Acceptance Criteria to the depth the durable work
-requires, and Assumptions only where something is unresolved. The sibling plan carries the implementation and verification strategy.
-Eligible direct-light work does not create this artifact. -->
-
-<!-- **Present tense, as-built.** Write every body section below as if the
-feature already exists and always worked this way — no "will be", no
-"previously X, now Y", no deprecation timelines, no version-stamped history.
-The body describes the current contract; decision history lives in ADRs and the
-release changelog. `plan.md` holds to the same rule: its `## Changelog` records
-approvals, not how the approach evolved. -->
+> `Assumptions` are working material.
 
 ## Outcome
 
-<!--
-Two sentences, no more. The first names who this is for and what they get; the
-second says what success looks like for them. Frame from their perspective,
-not the implementer's, and leave implementation detail to `plan.md`. The cap is
-the point: an outcome that needs a third sentence is usually carrying a delta,
-which belongs in the section below, or a mechanism, which belongs in the plan.
--->
+A team shaping product work reaches every shaping step through two verb-mode skills that
+show where they are and offer the next step: `intent` for one intent's lifecycle, and
+`initiative` for the initiative-scale longer route, while `discovery-loop` runs its gates
+on their modes and hands off through `work-intake`. Success means held-out shaping
+requests trigger within 3 percentage points of how often they triggered the skills the two
+replace, and no operative surface names those skills.
 
 ## What Changes
 
-<!--
-The delta, as bullets, for a human landing on this spec cold. It sits here —
-above every contract section — because a reader's first question is what moves,
-and a paragraph of Outcome does not answer it scannably.
-
-One bullet per change, each naming the thing that moves and where it lives. No
-rationale, no mechanism, no restating the Outcome in list form: a reader who
-stops after this section should know the shape of the change and nothing they
-would have to unlearn.
-
-- <what moves> — <where it lives>
--->
-
-Carried in from `intent-short-route`, to confirm when this spec is authored:
-
-- The remaining nine shaping skills become `intent` modes — `packs/product-engineering/.apm/skills/`.
-- The rest of `discovery-loop`'s gates name `intent` modes — `discovery-loop/SKILL.md`.
-- The stale statements in `frame-domain` — `frame-domain/SKILL.md` — and in `run-a-discovery.md` — `guides/product-engineering/how-to/`.
-- The stale `work-loop` hand-off at G3 becomes `work-intake` — `.apm/agents/discovery-lead.md` (description and G3 hand-off paragraphs) and the opening section of `discovery-loop/SKILL.md`.
-- The `intent` description trim, with its eval update — `intent/SKILL.md`, `intent/evals/`.
+- `intent` gains the `ground` mode (from `frame-domain`), and its `de-risk` mode gains
+  `plan-validation`'s procedure as a validation-plan section.
+- A new `initiative` skill lives in `packs/product-engineering/.apm/skills/initiative/`,
+  with six verb modes, each procedure in `references/<mode>.md`:
+  - `situate` from `frame-situation`;
+  - `find` from `identify-opportunities`;
+  - `diverge` from `diverge-solutions` (initiative options) and `explore-options`
+    (candidate product shapes);
+  - `bet` from `place-bet`;
+  - `map` from `map-capabilities`;
+  - `canvas` from `lean-canvas`.
+- The source skills' assets and examples move under the skill that holds their mode.
+  Their eval queries and cases merge into that skill's `evals/`.
+- `intent`'s lifecycle map draws the longer route through `initiative` modes and
+  `intent de-risk`, the supervised route's gate calls, and `initiative canvas` as an
+  off-route aid. Route mode's longer route starts at `initiative situate`.
+- `initiative/SKILL.md` lists the longer route in the same order.
+- `tools/add-rendering-directives.py` gives `intent` and `initiative` one shape-directive
+  entry each, in place of the nine sources' entries.
+- The `intent` and `initiative` descriptions each fit in 1024 characters.
+- The nine source directories are removed:
+  - `frame-situation`, `identify-opportunities`, `diverge-solutions`, `explore-options`;
+  - `plan-validation`, `place-bet`, `map-capabilities`, `frame-domain`, `lean-canvas`.
+- `discovery-loop`:
+  - Its description is trimmed.
+  - Its gate table, references, and assets name `initiative diverge`, `intent ground`,
+    and `intent de-risk`.
+  - Its opening section, and `discovery-lead`'s description and G3 paragraphs, say the
+    hand-off goes through `work-intake`.
+  - Its requirements ingest names `author-delivery-brief create`, which matches that
+    skill's rule that `continue` takes only an existing repository brief.
+  - Its evals gain negatives that send one standalone discovery artifact to `intent` or
+    `initiative`.
+- `run-a-discovery.md` says the loop hands off through `work-intake`.
+- `ground`'s procedure no longer calls `discovery-loop` "unbuilt".
+- Core's `workspace-status` sends the `strategy` entry type to `initiative`. The
+  `agentbundle` mirror and `workspace_mcp.py` follow, and so does `work-loop`'s
+  shaping-item guard.
+- Every other operative caller moves to `intent <mode>` or `initiative <mode>`:
+  - Core's `new-spec` contract reference;
+  - `desk-research`, `product-strategy`, and `experience-design`;
+  - tools, tests, guides, site pages, pack docs, the skill census, and the live
+    architecture and journey records;
+  - the two Draft specs that name a retired skill.
+- ADR-0145 is accepted once the evidence passes; RFC-0107 then gains an erratum that
+  points D1 at it. The brief's Outcome, success metric, mode map, and `discovery-loop`
+  line name both skills.
+- Versions: `product-engineering` 2.0.0. Every other edited pack takes a patch, and
+  `agentbundle` follows its own rule.
 
 ## Durable Outputs
 
-<!--
-Plan the lasting records this delivery must create or update before the spec is
-approved. This is repository-specific, not a fixed checklist. Consider user
-promise, current product truth, current architecture, decision rationale,
-interface compatibility, operations, maintainer procedure, release history, and
-reusable learning. Include only applicable roles.
-
-For each row, name:
-
-- Semantic role
-- Applicability
-- Destination
-- Owner
-- Expected evidence
-- Closeout condition
-
-If no durable output is applicable, write `none` with an explicit rationale.
-If a destination is ambiguous or absent, record the still-required decision as
-the closeout blocker; do not guess or create a placeholder. Read each applicable
-existing human-readable surface as a whole and name any refresh work before
-approval. For user-facing behavior, draft the established user-documentation
-surface before implementation approval.
--->
-
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+| User promise | Guides tell adopters which skill and mode to call for each shaping step | `guides/` files that name the retired skills; the regenerated lifecycle graphic | eugenelim | Edited guides; regenerated SVG | AC-0016, AC-0018, AC-0034 pass |
+| Current product truth | Pack and site pages state the skill roster | `packs/product-engineering/{README,JOURNEY,DESIGN}.md`, `web/src/content/` | eugenelim | Edited pages | AC-0016 passes |
+| Current architecture | The lifecycle flow names shaping skills | `docs/architecture/lifecycle-flow.md` | eugenelim | Edited flow | AC-0016 passes |
+| Decision rationale | The shaping entry points split across two skills | ADR-0145; RFC-0107 § Errata; the brief | eugenelim | The accepted ADR, a dated erratum, and the edited brief | AC-0044, AC-0046, AC-0047 pass |
+| Release history | A breaking removal needs an adopter action | `docs/product/changelog.md`, `packages/agentbundle/CHANGELOG.md` | eugenelim | Entries for each released pack and the package | AC-0030, AC-0031, AC-0032, AC-0033 pass |
 
 ## Agent Rules
 
-The three-tier guard that keeps an implementing agent inside the lines.
-*Always do* applies without asking; *Ask first* requires human sign-off
-before proceeding; *Never do* is a hard rule, even under time pressure.
-
 ### Always do
 
-<!-- Defaults the agent applies without asking. -->
-
--
--
--
+- Move each source procedure into its mode reference unchanged, except for the edits
+  the first Ask-first item exempts.
+- Follow `packs/AGENTS.md` and `packages/AGENTS.md` for version bumps, eval harness
+  updates, and self-host.
+- Record in `notes/verification-ledger.md` every eval case or fixture dropped, every
+  test assertion replaced or dropped, and why.
 
 ### Ask first
 
-<!-- Changes that need human sign-off before proceeding. -->
+- Changing what any procedure does. These edits are exempt:
+  - retargeting skill names and paths, including "this skill" to "this mode";
+  - adding the `Stage:` line and the `## Next` section this spec requires;
+  - removing a readiness note that fires only when a now-folded skill is absent, since
+    a mode of `intent` or `initiative` cannot be absent;
+  - deleting the two stale statements: `place-bet`'s "until `diverge-solutions` ships"
+    note, and `frame-domain`'s "(which is unbuilt)";
+  - joining `diverge`'s two procedures, and `de-risk`'s two, with one entry rule each
+    that picks the procedure;
+  - dropping a source's managed output-rendering block and shape-directive lines,
+    since each skill's `SKILL.md` carries one managed block.
 
--
--
--
+  The ledger lists each exempt edit by file.
+- Changing any probe-candidate description after the post-fold probe has run.
+- Editing a frozen record (a shipped spec, or an accepted RFC or ADR) beyond an
+  erratum.
+- Retargeting a name inside `packs/core/tests/skills/work-loop/fixtures/corpus/`.
+- Renaming or deleting a guide page.
 
 ### Never do
 
-<!-- Hard rules. No exceptions, no clever workarounds. -->
-
--
--
--
+- Add an alias, shim, or stub directory for a retired name.
+- Give route mode state, retries, or gate control, or give `initiative` a route mode.
+- Add `allowed-tools` to `intent` or `initiative`, or a boundary beyond
+  `filesystem_write` and `filesystem_read_untrusted`.
+- Let the `de-risk` mode, including its validation-plan section, dispatch
+  `adversarial-reviewer`.
+- Fold `align-value-stream`, `discovery-loop`, or `ux-writing`, or change `work-intake`'s
+  modes.
+- Edit `.claude/` or `.agents/` projections by hand.
+- Add a top-level directory or a new dependency.
 
 ## Testing Strategy
 
-Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
-
-- **TDD** — for logic with a compressible invariant.
-- **Goal-based check** — a one-liner verifies the outcome (a build
-  command, a `grep`, a typecheck).
-- **Visual / manual QA** — a recorded gesture and an observable
-  outcome, for UX flows.
-
-A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
-*surface*: a goal-based or manual-QA behavior may be verified by an
-**integration** test (two components together) or an **end-to-end (E2E)**
-test (the whole journey, as the user drives it) rather than a unit test —
-name that surface when a behavior only proves out across a boundary or a
-full flow.
-
-<!--
-e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
-flow: manual QA, exercised by an E2E test. Cross-service order placement:
-goal-based, exercised by an integration test." If you can't pick a mode for
-a behavior, the behavior is too vague — sharpen it before moving on.
--->
+- **Skill structure (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0011, AC-0012, AC-0036, AC-0039, AC-0041, AC-0042, AC-0043):**
+  goal-based. `test_intent_skill_structure.py`, an `initiative` structure test, and
+  their siblings decide these, and the directive tool's `--check` run decides AC-0036's
+  tool half.
+- **Lifecycle orientation (AC-0007, AC-0008, AC-0009):** goal-based. The structure tests
+  pin the map, each `Stage:` line, and each `## Next` section's offers. They compare the
+  longer route in both skills with `situate`'s entry-point sequence.
+- **Discovery loop (AC-0013, AC-0014, AC-0015, AC-0038, AC-0040):** goal-based.
+  `test_intent_triad_execution_wiring.py` is extended for the pack's own files. AC-0015's
+  guide file is checked by a roster test, and AC-0040's owners by the ledger.
+- **Faithful move (AC-0037):** goal-based. A recorded diff decides it, because a
+  procedure moved with a hidden change passes every structural test.
+- **Retirement sweep and callers (AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0048, AC-0049):**
+  goal-based, except AC-0017, which is TDD: `tools/test_workspace_status.py`'s
+  expectation changes first, then the engine and its mirror.
+- **Eval carry-over (AC-0021, AC-0022, AC-0023, AC-0045):** goal-based. Checks run over the merged
+  eval files and the ledger.
+- **Mode routing (AC-0024, AC-0025, AC-0026, AC-0027, AC-0028):** bounded
+  routing-classification evidence.
+  - The eval runner cannot assert a mode, so a cold classification probe is the only
+    mode evidence in this slice.
+  - This departs from RFC-0107 Experiment's bar, which asks for mode accuracy within 3
+    percentage points. eugenelim approved the departure for this slice on 2026-10-11.
+- **Activation (AC-0029):** a headless `pack_evals` run over a fresh held-out set,
+  comparing trigger rates before and after the fold. This is RFC-0107 Experiment's
+  release gate.
+- **Guided walks (AC-0010):** manual QA, recorded in the ledger.
+- **Release and decision records (AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0044, AC-0046, AC-0047):**
+  goal-based. Changelog entries, an install observation, version fields, lint and verify
+  runs, a regenerated graphic, the erratum, the brief text, and the ADR status decide
+  these.
 
 ## Acceptance Criteria
 
-<!--
-The verifiable goals that close this spec. Each item should be checkable
-without subjective judgement — a reviewer can read it and know whether it
-holds. Notation: `- [ ]` open, `- [x]` met (see the `new-spec` skill's
-`references/spec-and-plan-contract.md` § Spec metadata contract). A newly Shipped spec has no open Acceptance Criteria.
+### The `intent` and `initiative` skills
 
-This section owns criterion *shape*. Before writing criteria, work the six
-failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
-in order — they cover the failures shape rules cannot see, starting with a
-criterion that belongs to a different artifact. Two of those classes defer
-criterion shape back to this section; the rest defer elsewhere or own their own
-rules, and that reference states which.
+- [ ] **AC-0001.** `intent/SKILL.md` has, in order, the sections `## When to invoke`,
+      `## The intent lifecycle`, `## Route mode`, and `## Modes`. `## Modes` holds one
+      table with exactly five rows, in this order: `route`, `frame`, `de-risk`,
+      `decompose`, `ground`. *(goal-based)*
+- [ ] **AC-0043.** `initiative/SKILL.md` has, in order, the sections `## When to invoke`,
+      `## The initiative route`, and `## Modes`, and no route mode. `## Modes` holds one
+      table with exactly six rows, in this order: `situate`, `find`, `diverge`, `bet`,
+      `map`, `canvas`. *(goal-based)*
+- [ ] **AC-0002.** Each verb mode's procedure is in `references/<mode>.md` of the skill
+      whose `## Modes` table lists it, and its table row names that file. *(goal-based)*
+- [ ] **AC-0003.** The `intent` description is at most 1024 characters, and names
+      `` `frame` ``, `` `de-risk` ``, `` `decompose` ``, and `` `ground` `` in backticks.
+      *(goal-based)*
+- [ ] **AC-0004.** The `intent` description names `intake-intent`, `new-spec`,
+      `discovery-loop`, and `initiative`, each in backticks. *(goal-based)*
+- [ ] **AC-0041.** The `initiative` description is at most 1024 characters. It names
+      `` `situate` ``, `` `find` ``, `` `diverge` ``, `` `bet` ``, `` `map` ``, and
+      `` `canvas` `` in backticks, and names `intent` and `discovery-loop` in backticks.
+      *(goal-based)*
+- [ ] **AC-0005.** `intent`'s `## Route mode` names exactly three routes, each with its
+      first step: short `intent frame`, longer `initiative situate`, supervised
+      `discovery-loop`. It names three out-of-stage owners, `bug-fix`, `work-intake`, and
+      `architect-design`, and no other hyphenated skill name. Its text matches none of the
+      stems `writ`, `save`, `saving`, `creat`, `remember`, `retr(y|ie)`, `gate`, `record`,
+      `persist`, `updat`, `append`, `stor`, and `edit`, matched case-insensitively as
+      `\b<stem>`. *(goal-based)*
+- [ ] **AC-0006.** Neither `intent` nor `initiative` declares `allowed-tools` in its
+      frontmatter, and each one's boundaries are exactly `filesystem_write` and
+      `filesystem_read_untrusted`. *(goal-based)*
+- [ ] **AC-0007.** `intent`'s `## The intent lifecycle` lays out three routes as ordered
+      stages, and marks each stage as an `intent` mode, an `initiative` mode, or a
+      separate skill:
+      - **short:** `frame`, `de-risk`, `decompose`, then the hand-off to build through
+        `work-intake`. The `shaping-reviewer` well-formedness check follows `frame`, the
+        advisory `adversarial-reviewer` read comes before `de-risk`, and the
+        `author-delivery-brief` review gates for a brief, or the `new-spec` review gates
+        for a spec, follow the hand-off;
+      - **longer:** `initiative situate`, `initiative find`, `initiative diverge`,
+        `intent de-risk`, `initiative bet`, `initiative map`, then the hand-off through
+        `work-intake`;
+      - **supervised:** `discovery-loop`, with the modes it calls: `intent frame` at G0,
+        `intent de-risk` and `intent decompose` at G1, `initiative diverge` at the
+        divergence stage, `intent ground` at G1.5, `intent decompose` at G3, and
+        `intent de-risk`'s validation-plan section when a plan-tree node ratifies. The map
+        adds no gate or stage to the loop.
 
-Two recurring sources of criteria, so they don't slip into the plan as
-mere design detail:
+      Outside the three routes, the section names `initiative canvas` as an optional aid
+      offered after `initiative map`. `initiative/SKILL.md`'s `## The initiative route`
+      lists the same six longer-route stages in the same order. A pack test compares both
+      lists with the sequence `initiative/references/situate.md` states in its
+      entry-point step, with its validate step shown as `intent de-risk`. *(goal-based)*
+- [ ] **AC-0008.** Each of the ten mode references opens with one `Stage:` line. The line
+      names its skill, each route in `## The intent lifecycle` that includes the mode,
+      with its position on that route, and each route that does not use it. `canvas`'s
+      line says it sits on no route. *(goal-based)*
+- [ ] **AC-0009.** Each of the ten mode references ends with a `## Next` section.
+      - Its first line says that when `discovery-loop` or its `discovery-lead` agent
+        called the mode, control returns to the loop's next gate and no offer is made.
+      - It offers at most three options per outcome. Every offered skill or mode is a
+        stage or review on the lifecycle map, or `initiative canvas`, the off-route aid
+        the map names.
+      - `frame` and `decompose` keep their slice 1 offers.
+      - The other modes offer, with the first one recommended:
 
-- An **output-channel constraint** (e.g., "no sensitive data on stdout")
-  must enumerate *every* channel the consuming context makes user-visible
-  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
-  same constraint to each one explicitly — a constraint named on one
-  channel only is silently violated if the caller also sees another.
+      | Mode | Outcome | Offers |
+      | --- | --- | --- |
+      | `situate` | entry point chosen | the mode for that entry: `initiative find`, `initiative diverge`, or `initiative bet` |
+      | `find` | opportunities ranked | `initiative diverge` |
+      | `diverge` | options written | `intent de-risk`, then `initiative bet` |
+      | `de-risk` | survive | `intent decompose` (short route) and `initiative bet` (longer route), recommending the route the conversation shows, or asking when none shows |
+      | `de-risk` | kill | `intent frame` |
+      | `de-risk` | validation plan written | `intent de-risk` once the field results return |
+      | `bet` | bet placed | `initiative map` |
+      | `map` | map written | the hand-off through `work-intake`, then `initiative canvas` |
+      | `ground` | artifacts written | `intent de-risk`, then the hand-off through `work-intake` |
+      | `canvas` | brief written | the hand-off through `work-intake` |
 
-- A **UI state** is an acceptance criterion: phrase it as
-  *state / trigger / outcome* — "given <state>, when <trigger>, the user
-  sees <outcome>" (e.g. "given an empty cart, when the page loads, the
-  user sees the empty-state illustration and a 'browse' link"). The
-  per-screen design itself lives in the plan's `## Design (LLD)`; the
-  observable state belongs here.
-- A **non-functional requirement with a pass/fail bar** is an acceptance
-  criterion: it must name a threshold a test or audit can check —
-  "meets WCAG 2.2 AA", "p99 latency under 200ms at 1k rps", "zero criticals
-  in the dependency scan". An NFR with no bar ("should be fast") is not a
-  criterion; give it a number or move it to the plan.
+      *(goal-based)*
+- [ ] **AC-0010.** Headless walks, recorded verbatim in `notes/manual-qa-walks.md`, show:
+      - one longer-route walk that starts with an `intent` route reply selecting the
+        longer route, then runs `situate`, `find`, `diverge`, `de-risk`, `bet`, and `map`
+        on one sample signal;
+      - one standalone `ground` reply and one standalone `canvas` reply;
+      - one `diverge` reply to a request for candidate product shapes, which runs the
+        shapes procedure, and one `de-risk` reply to a request for a validation plan,
+        which runs the validation-plan section. The ledger names the procedure each ran;
+      - in every reply, the user's stage named on the first line, and the next options
+        offered as AC-0009 lists them;
+      - no reply that starts the next mode before the user chooses it.
 
-- A criterion that needs "and" to join two **different predicates** is two
-  criteria: a conjunction is where a coverage check silently passes while half
-  the criterion is unimplemented. A criterion is more than one when its parts
-  have separate failure modes with separate remedies. Where the parts read as one
-  constraint over a set, rewrite the criterion as a single predicate with a
-  member substituted in; it stays one criterion only if that predicate is
-  checkable as written at every member rather than expanding into a different
-  check per member. The worked examples below fix where this boundary falls;
-  where the cue and an example conflict, the examples govern.
+      *(manual QA)*
+- [ ] **AC-0011.** The files under each skill's `references/`, `assets/`, and `examples/`
+      are exactly these, and no two in one skill share a path:
+      - `intent`: the slice 1 files, plus `references/ground.md` and
+        `examples/example-assistant.md`;
+      - `initiative`: `references/situate.md`, `find.md`, `diverge.md`, `bet.md`,
+        `map.md`, and `canvas.md`; `assets/opportunity-assessment-template.md` and
+        `capability-map-template.md`; `examples/signal-to-finding.md`,
+        `opportunity-assessment-worked-example.md`, `opportunity-to-options.md`,
+        `placing-a-bet.md`, `ini-003-ai-developer-brief.md`, `acme-crm/bet.md`,
+        `acme-crm/capability-map.md`, `bloom-marketplace/bet.md`, and
+        `bloom-marketplace/capability-map.md`.
 
-  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
-    order, and `--dry-run` prints that manifest without writing a file." Two
-    different predicates; no single sentence covers both. The base case where the
-    conjunction cue and the split test agree.
-  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
-    output surfaced to the agent." One predicate substituted at each member of an
-    enumerated set, checkable as written at every member.
-  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
-    bytes, the execute byte, the u64be content length, then the content bytes."
-    One comparison value expressed in parts — the split test never engages,
-    because there is one failure and one remedy.
-  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
-    the exit code." "X is correct" is not checkable as written: it expands into a
-    different check per member. This is the anti-licence against reframing a
-    bundle as one constraint over a domain, and without it E2's shape is available
-    to any author.
-  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
-    Different failure modes (interception, script access) but one substitutable
-    predicate and one remedy. Shows that separate failure modes alone do not
-    split when the predicate survives substitution.
+      *(goal-based)*
+- [ ] **AC-0012.** `intent/references/de-risk.md`, including its validation-plan section,
+      names `adversarial-reviewer` only in the bullet that refuses to dispatch it, and
+      `test_de_risk_intent_reviewer_boundary.py` passes. *(goal-based)*
+- [ ] **AC-0042.** A case-sensitive search for `(?<![\w-])intent (situate|find|diverge|bet|map|canvas)\b`
+      and for `(?<![\w-])initiative (frame|de-risk|decompose|ground)\b` finds no match in
+      any file under `intent/` or `initiative/`, or in any surface AC-0016 searches.
+      `initiative` has no route mode, so the phrase "initiative route" is not a mode name
+      and is not searched. *(goal-based)*
+- [ ] **AC-0036.** No file under `intent/references/` or `initiative/references/` contains
+      the `agentbundle:output-rendering:start` marker. `tools/add-rendering-directives.py`'s
+      skill map has an `intent` entry with the narrative, key-value, and tree shapes and an
+      `initiative` entry with the table, narrative, and key-value shapes, and each
+      `SKILL.md` carries the directive lines its entry produces.
+      `python3 tools/add-rendering-directives.py --check` exits 0 or 1 and prints no line
+      starting `output-rendering: packs/product-engineering/.apm/skills/intent/SKILL.md:`
+      or `output-rendering: packs/product-engineering/.apm/skills/initiative/SKILL.md:` on
+      stdout or stderr. Drift it reports for other skills is out of scope, and this change
+      leaves those skills' `SKILL.md` files byte-identical. *(goal-based)*
+- [ ] **AC-0037.** Before any source is deleted, the ledger records a named base commit
+      and a diff of each of the nine source bodies at that base against its mode
+      reference, and attributes every differing hunk to an exempt edit listed by file.
+      Before the branch is pushed, and right after `git fetch origin main`, the ledger
+      records the fetched commit, and `git diff <recorded base> <fetched commit>` over
+      the nine source directories is empty, or the diff is recorded again against the
+      fetched commit with every hunk attributed. *(goal-based)*
 
-- A universal claim enumerates its closed set or names the mechanism that makes
-  coverage exhaustive: without one, a reviewer cannot tell which members the
-  claim covers or whether an omitted member is a defect.
+### `discovery-loop`
 
-- A new claim becomes a new checklist item, never a lettered or semicolon
-  graft: a graft hides a separately reviewable outcome inside an existing
-  criterion and makes its completion ambiguous.
+- [ ] **AC-0013.** `discovery-loop/SKILL.md`'s gate table and `discovery-lead.md`'s gate
+      walk name `initiative diverge` at the divergence stage and `intent ground` at G1.5,
+      and `discovery-loop/assets/plan-tree.md`'s validation step names `intent de-risk`
+      as the source of a ratified node's validation hook. None of the three files gains
+      a gate or stage row. *(goal-based)*
+- [ ] **AC-0014.** `discovery-loop`'s description is at most 600 characters, names
+      `work-intake` as its G3 hand-off, and does not contain `work-loop`. *(goal-based)*
+- [ ] **AC-0015.** With each file's whitespace collapsed to single spaces, no sentence in
+      `discovery-loop/SKILL.md`, `discovery-lead.md`, or
+      `guides/product-engineering/how-to/run-a-discovery.md` matches
+      ``\bhand(s|ed|ing)?\b[^.]*\bto `?work-loop``, case-insensitively. The test also
+      asserts, as fixed cases, that the pattern matches "hand the approved delivery item
+      to `work-loop`" and does not match "hands off through `work-intake`".
+      *(goal-based)*
+- [ ] **AC-0038.** `discovery-loop/references/requirements-crosswalk.md` does not
+      contain `author-delivery-brief continue`, and names `author-delivery-brief create`
+      for the requirements ingest. `discovery-loop/SKILL.md` § Folding in traditional
+      requirements capture does the same. *(goal-based)*
+- [ ] **AC-0039.** `intent/references/ground.md` does not contain `unbuilt`.
+      *(goal-based)*
+- [ ] **AC-0040.** `discovery-loop/evals/eval_queries.json` holds at least two negative
+      queries that each ask for one standalone discovery artifact: at least one domain
+      grounding, which the ledger owns to `intent`, and at least one set of candidate
+      product shapes, which the ledger owns to `initiative`. *(goal-based)*
 
-- For every numeric limit a criterion states, record the input that makes the
-  limit fire first and the enforcement mechanism that makes that ordering true;
-  a limit missing **either** fact is not yet a criterion. Where one quantity has
-  two limits, either order them so each is reachable for some input, or declare
-  one non-binding on that route and name the limit that fires instead.
+### Retirement
 
-- A criterion stating a limit names the reference point it is measured from.
-  Choose an origin that gives the same input the same measurement however the
-  subject is organised; an unstated origin is not yet a criterion. A criterion
-  requiring a limit states its value and never asks an implementer to supply one:
-  a value invented to satisfy an unspecified requirement is worse than an absent
-  limit, because it reads as a decision that was made.
+- [ ] **AC-0016.** The nine source directories are absent. A case-sensitive search for
+      the nine names finds no match in:
+      - `packs/`, `guides/`, `web/src/`, `tools/`, `tests/`, `packages/`, and
+        `contracts/`;
+      - `workspace.toml`;
+      - `docs/architecture/`, `docs/product/journeys/`, `docs/guides/`,
+        `docs/product/workspace-toml-deps.md`, and `docs/product/initiatives/_template.md`;
+      - `docs/specs/guide-invocation-outcome-coverage/` and
+        `docs/specs/how-to-sample-output-coverage/`;
+      - the root `AGENTS.md`, `ARCHITECTURE.md`, `README.md`, and `docs/CHARTER.md`.
 
-- Make every claim earn its place by making a wrong implementation detectable.
-  Delete rationale, history, reassurance, restated context, and a figure that
-  merely explains where a threshold came from when it does not help establish the
-  outcome. Keep any claim that is the only written form of a comparison value,
-  such as a byte layout, exact key order, literal token, collection floor, or
-  stated bar. Ask: "could a wrong implementation now pass this?"
+      Only four kinds of match are allowed:
+      - lines inside a test-module constant named `RETIRED_SHAPING_SKILLS`;
+      - files under `packs/core/tests/skills/work-loop/fixtures/corpus/`;
+      - a match inside the directory name of a `docs/specs/` spec whose `Status` reads
+        `Shipped`, such as `m2-place-bet`;
+      - a link or path to the guide pages
+        `guides/product-engineering/how-to/identify-opportunities.md`,
+        `guides/product-engineering/how-to/map-capabilities.md`, and
+        `guides/product-engineering/how-to/create-a-lean-canvas.md`.
 
-- A criterion names an observable outcome. Naming a function's parameters, a
-  helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Outcome guidance and `SKILL.md`'s design-doc anti-pattern for
-  the document-level distinction.
+      *(goal-based)*
+- [ ] **AC-0017.** `workspace-status` maps the `strategy` entry type to `initiative`. The
+      engine under `packs/core`, its mirror under `packages/agentbundle`, and
+      `workspace_mcp.py` agree, and `tools/test_workspace_status.py` passes. *(TDD)*
+- [ ] **AC-0048.** The engine surfaces that state where the `strategy` entry type goes name
+      `initiative`: `workspace-status/SKILL.md`, `work-loop/SKILL.md`'s shaping-item
+      guard, `guides/core/explanation/two-room-model.md`,
+      `guides/core/tutorials/your-first-workspace.md`, and
+      `docs/product/workspace-toml-deps.md`. *(goal-based)*
+- [ ] **AC-0049.** A case-insensitive search over the surfaces AC-0016 searches, for lines
+      that contain the backticked token `` `intent` `` and any of `strategy`, `situate`,
+      `longer route`, `opportunit`, `capability map`, `lean canvas`, `product shape`, `OKR`,
+      or the word `bet`, finds only lines the ledger lists with one of three dispositions:
+      - it names `initiative` or an `initiative` mode for that work;
+      - it keeps `intent` because the work is one of `intent`'s own modes, with the
+        reason stated;
+      - it keeps `intent` because the line uses it as the artifact's name, a typed-pointer
+        prefix, a reviewer mode, or a historical record, not as where work goes, with the
+        reason stated.
 
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-- [ ] <observable outcome>
+      The ledger states each line's disposition and reason.
+      `guides/product-strategy/how-to/route-it-to-work.md`'s route for queued gap entries,
+      and `run-okr-cascade`'s PE-pack diagnostic in its `SKILL.md`,
+      `references/cross-pack-routing.md`, and `evals/evals.json`, name `initiative`.
+      *(goal-based)*
+- [ ] **AC-0018.** Each `guides/` page that named a retired skill as the skill to invoke
+      names the matching `intent <mode>` or `initiative <mode>` instead, and
+      `python3 tools/lint-guidebook-steps.py guides/product-engineering` passes.
+      *(goal-based)*
+- [ ] **AC-0019.** `[pack.evals].skills` in `packs/product-engineering/pack.toml` lists
+      `intent`, `initiative`, `align-value-stream`, `discovery-loop`, and `ux-writing`,
+      and every name it lists has a directory under `.apm/skills/`. *(goal-based)*
+- [ ] **AC-0020.** The `product-engineering` integration that named `map-capabilities`
+      reads `consumers = ["skill:intent", "skill:initiative"]`, and the one that named
+      `frame-domain` reads `consumers = ["skill:intent"]`. *(goal-based)*
 
-Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
-is still required, keep the spec `Implementing` and resume it. If a separable
-item no longer belongs in the final accepted contract, pause for a reviewed
-spec/plan amendment, remove it from this checklist, and record it under
-`Follow-ons` with its owner and stable artifact or external evidence reference.
-Historical frozen specs may still contain older `(deferred: <slug>)` markers;
-do not copy that pattern into new shipped work.
--->
+### Evals and routing evidence
 
-<!--
-Optional story trace: when this spec was derived from a product brief that
-carries user stories (Shape B; see author-delivery-brief continue), append `Satisfies: US-n`
-to each acceptance criterion that satisfies that story, so coverage is
-story-granular:
+- [ ] **AC-0021.** Every distinct query from the `explore-options` query file is in
+      `initiative/evals/eval_queries.json`, and every distinct query from the
+      `plan-validation` and `frame-domain` query files is in
+      `intent/evals/eval_queries.json`.
+      - The ledger labels each carried query with its owner.
+      - A query whose owner is a mode of the skill whose file it lands in is positive and
+        carries a `mode` key naming that mode.
+      - Every other query, including one owned by a mode of the other skill, is negative
+        and carries no `mode` key.
+      - No query appears twice in one file.
 
-- [x] <observable outcome>. Satisfies: US-2
+      *(goal-based)*
+- [ ] **AC-0022.** `initiative/evals/eval_queries.json` holds at least three positive
+      queries for each of `situate`, `find`, `bet`, `map`, and `canvas`, and for `diverge`
+      at initiative altitude. Each skill's file holds at least four negative queries
+      owned in the ledger by the other skill, and the two files together hold at least
+      six negatives owned by a named skill that is neither. *(goal-based)*
+- [ ] **AC-0045.** In each skill's query file, every positive carries a `mode` key naming
+      one of that skill's own modes, and every query the ledger owns to the other skill is
+      negative. *(goal-based)*
+- [ ] **AC-0023.** Each `frame-domain` `evals/evals.json` case and `evals/files/` fixture
+      is in `intent/evals/` or listed in the ledger with its drop reason. *(goal-based)*
+- [ ] **AC-0024.** `notes/routing-classification-evidence.md` records the 24 pre-fold
+      classifications of 2026-10-11 as a recorded baseline that gates nothing, and one
+      scored post-fold attempt for the two-skill fold: the 24 cases, three runs each, on
+      one byte-identical candidate set.
+      - **No retries:** no run inside a scored attempt is repeated or dropped.
+      - **New attempt:** a new scored attempt starts only after a recorded AC-0025 or
+        AC-0029 failure, a dated ledger entry recording eugenelim's choice to revise, and
+        a change to at least one candidate description. The attempt it replaces, and that
+        attempt's post-fold activation run, become unscored history, as do the one-skill
+        attempts 1 to 3.
 
-The marker is optional — omit it for a no-stories brief (Shape A) or a spec
-authored directly.
--->
+      The expected post-fold selections are:
+
+      | Cases | Post-fold |
+      | --- | --- |
+      | SI1, SI2 (raw signal) | `initiative` (`situate`) |
+      | FI1, FI2 (job mapping) | `initiative` (`find`) |
+      | DV1, DV2 (initiative options; product shapes) | `initiative` (`diverge`) |
+      | VP1, VP2 (validation plan) | `intent` (`de-risk`) |
+      | BT1, BT2 (bet) | `initiative` (`bet`) |
+      | MP1, MP2 (capability map) | `initiative` (`map`) |
+      | GR1, GR2 (domain grounding) | `intent` (`ground`) |
+      | CV1, CV2 (lean canvas) | `initiative` (`canvas`) |
+      | F1, D1, C1, R1 | `intent` (`frame`, `de-risk`, `decompose`, `route`) |
+      | S1, I1, N1, A1 | `discovery-loop`, `intake-intent`, `new-spec`, `align-value-stream` |
+
+      *(bounded routing-classification evidence)*
+- [ ] **AC-0025.** Each of the 24 post-fold cases passes when all three of its runs match
+      AC-0024's table in skill and mode, and at least two of the three are at high
+      confidence. A failing case stops the slice before any source directory is deleted,
+      and eugenelim decides whether to revise a candidate description under the Ask-first
+      rule or to end the slice. *(bounded routing-classification evidence)*
+- [ ] **AC-0026.** In each world, the probe's candidate set is every `product-engineering`
+      skill installed in that world, plus `intake-intent`, `new-spec`, `bug-fix`, and
+      `architect-design`. The note records each candidate description verbatim once per
+      world or attempt, each case's prompt and expected selection, and each run's selected
+      skill, mode, and confidence. *(bounded routing-classification evidence)*
+- [ ] **AC-0027.** The `intent`, `initiative`, and `discovery-loop` descriptions ship
+      byte-identical to their text in the candidate set of the scored attempt that passed
+      AC-0025. *(bounded routing-classification evidence)*
+- [ ] **AC-0028.** The note states that it is a classification proxy, not a `Skill`
+      activation event, and that neither one pre-fold run nor three post-fold runs per
+      case establishes recall or repeatability. *(bounded routing-classification evidence)*
+- [ ] **AC-0029.** A fresh held-out set has 60 positive and 12 negative queries. It shares
+      no query with the held-out set of 2026-10-11, and the probe sees none of them.
+      - **Positives:** five for each of twelve groups: `situate`, `find`, `diverge`
+        initiative options, `diverge` product shapes, `de-risk` validation plans, `bet`,
+        `map`, `ground`, `canvas`, `frame`, `de-risk` assumption tests, and `decompose`.
+      - **Negatives:** two each owned by `intake-intent`, `new-spec`, `discovery-loop`,
+        `align-value-stream`, `bug-fix`, and `architect-design`.
+      - **Runner:** `pack_evals` headless, three runs per query, on Claude Code. It also
+        runs on Codex if a Codex detector ships before this check.
+      - **Worlds:** the pre-fold world is the base commit the post-fold world is built
+        from. Each world is a projection outside every repository holding that world's
+        `product-engineering`, plus `core` and `architect`. Each run passes
+        `--setting-sources project,local`. The ledger records the skills the host listed
+        in each world.
+      - **Errors:** every query ends with zero errored runs in both worlds. An errored
+        query is re-run before scoring.
+      - **Positive trigger rate:** the mean of each positive's `trigger_rate`, measured
+        against its owning source before the fold and against the skill that holds its
+        mode after it. The post-fold rate is no more than 3 percentage points below the
+        pre-fold rate.
+      - **False-trigger rate:** the mean, over the negatives, of the share of runs in
+        which `intent`, `initiative`, or any of the nine sources fired, read from each
+        run's fired skills. The post-fold rate is no more than 3 percentage points above
+        the pre-fold rate.
+      - **`discovery-loop`:** its `evals/eval_queries.json` as it stands before this
+        change runs unchanged in both worlds. Every query that `pack_evals` marks passed
+        in the pre-fold world is also marked passed in the post-fold world.
+      - **Held-out set:** it shares no query with any source eval file or with either
+        skill's `evals/eval_queries.json`. The ledger records the hash of each candidate
+        description this change edits before the set is written, and the hash of each
+        revised description before its new scored attempt, and each scored attempt's
+        candidate descriptions match one of those recorded hashes. No held-out query, and no run
+        of five consecutive words from one, appears in any candidate description; words
+        are whitespace-split tokens, compared lowercased with punctuation stripped.
+
+      If any bound fails, nothing is deleted. eugenelim chooses one of three paths:
+      - split the weakest mode back out;
+      - revise a candidate description under the Ask-first rule, then make a new scored
+        attempt under AC-0024 and a new post-fold run. The ledger states beside the
+        re-measured result that held-out misses informed the revision;
+      - end the slice.
+
+      Each scored attempt admits exactly one post-fold run, and re-running its errored
+      queries is the only exception. The run on the descriptions of the scored attempt
+      that passed AC-0025 is the one this criterion judges. *(activation)*
+
+### Release and decision records
+
+- [ ] **AC-0030.** `product-engineering`'s `pack.toml` and `plugin.json` both read
+      `2.0.0`. Every other pack whose `.apm/` content this change edits has a patch bump.
+      `packages/agentbundle` follows `packages/AGENTS.md`. *(goal-based)*
+- [ ] **AC-0031.** `docs/product/changelog.md` has a `product-engineering` 2.0.0 entry
+      with a `### Removed` section. That section names each retired skill with its
+      replacement skill and mode, and gives the adopter step for a stale installed
+      directory that matches the install-then-upgrade behavior recorded in the ledger.
+      *(goal-based)*
+- [ ] **AC-0032.** The Core entry and the `agentbundle` entry in
+      `docs/product/changelog.md`, and `packages/agentbundle/CHANGELOG.md`, each say the
+      `strategy` dispatch names `initiative` and needs `product-engineering` 2.0.0 or
+      later. The newest Core entry sits directly under `[Unreleased]`. *(goal-based)*
+- [ ] **AC-0033.** The 2.0.0 entry names the hosts the activation run measured, states
+      that Cursor, Copilot, and Gemini CLI were not measured, states that mode accuracy
+      rests on a classification probe, and names every pre-fold classification that
+      missed its expected pre-fold selection, the `pre` value in `notes/probe-cases.json`,
+      or fell below high confidence. *(goal-based)*
+- [ ] **AC-0034.** Re-running `tools/render-lifecycle-graphics.py` leaves
+      `guides/_shared/explanation/the-operating-model-full-map.svg` unchanged.
+      *(goal-based)*
+- [ ] **AC-0035.** `agentbundle catalogue lint --root . --deep` and
+      `agentbundle catalogue verify --root .` pass after self-host. *(goal-based)*
+- [ ] **AC-0047.** ADR-0145's `Status` reads `Accepted`, and `docs/adr/README.md`'s row for
+      it says so. The ledger's dated sign-off entry comes after the entries recording a
+      passing AC-0025 and AC-0029 result, and before the entries recording the RFC-0107
+      erratum, the brief edit, and the deletion of any source directory. ADR-0140's
+      `Superseded in part: ADR-0145 D1` mirror predates acceptance because the ADR shape
+      lint requires both records to carry the relation from the moment ADR-0145 exists.
+      *(goal-based)*
+- [ ] **AC-0044.** `docs/rfc/0107-verb-mode-shaping-and-intake-with-slice-handover.md`
+      carries a dated, approver-signed `## Errata` entry stating that ADR-0145 supersedes
+      ADR-0140 D1 in part, so the shaping modes span `intent` and `initiative` rather than
+      one skill. *(goal-based)*
+- [ ] **AC-0046.** `docs/product/briefs/verb-mode-skills-and-slice-handover.md` matches
+      ADR-0145:
+      - its Outcome and Scope say shaping runs through `intent` and `initiative`, not one
+        `intent` skill;
+      - its success metric names four skills: `intent`, `initiative`, `discovery-loop`,
+        and `align-value-stream`;
+      - its mode map assigns each of the ten verb modes and route mode to the skill
+        AC-0001 and AC-0043 give it;
+      - its eval lines send `frame-intent`'s, `de-risk-intent`'s, `decompose-intent`'s,
+        `plan-validation`'s, and `frame-domain`'s queries to `intent` and
+        `explore-options`'s to `initiative`, give a mode assertion only to a query owned
+        by a mode of the skill whose file it lands in, call every other carried query a negative, and put the new `situate`, `find`,
+        `diverge`, `bet`, `map`, and `canvas` queries under `initiative`;
+      - its `discovery-loop` line names `initiative diverge`, `intent ground`, and
+        `intent de-risk`.
+
+      *(goal-based)*
 
 ## Follow-ons
 
-<!--
-Separately scoped work that does not belong to the final accepted AC set. Each
-entry needs an owner and a stable work-intake artifact or external evidence
-reference. Do not use this section to hide unfinished accepted intent.
-
-- <owner>: <stable artifact or external ref> — <one-sentence scope>
--->
+- eugenelim: `docs/specs/ux-writing-to-experience-design/` — move `ux-writing` to
+  `experience-design`.
+- eugenelim: `docs/specs/work-intake-modes/` — `work-intake`'s modes, including the
+  retirement of `intake-intent`.
 
 ## Assumptions
 
-<!--
-What is still unresolved, and nothing else. Each item is a question the
-contract rests on that nobody has answered yet — so a reader sees the open
-questions instead of scrolling a list of facts that are already settled.
-
-A fact you settled is not an assumption, and how you checked it is not
-recorded here: that was the assumption checkpoint's evidence (`new-spec`
-SKILL.md step 3), and its job ended when the fact entered the contract. Route
-each settled fact by what it does. A fact that bounds what this delivery does
-goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
-into the plan's `## Design (LLD)` or `## Constraints`. There is no third
-destination, and nothing is left behind here as a receipt.
-
-Unresolved comes in two shapes, and both belong here.
-
-An **open question** — something that could still be answered:
-`- <category>: <open question> — <what it would change> (settled by: <who or
-what can answer it>)`
-
-A **named gap** — something that will not be answered on this delivery, such
-as a dependency that is absent or a corpus that is unreachable:
-`- <category>: <what is missing> — <what is therefore ungrounded>`
-
-Write `none` when nothing is unresolved. An empty section and an unexamined
-one read the same.
-
-- Technical: <open question> — <what it would change> (settled by: <…>)
-- Product: <what is missing> — <what is therefore ungrounded>
-
-When an item is settled later, route the fact to its destination above and
-delete the line. An item still here at approval is a known gap in the
-contract, recorded on purpose.
-
-A settled fact that later turns out wrong is a different event, and it does
-not come back here. Fix it where it lives — the spec body, or the plan's
-design — in the same PR that finds it, and say in that PR what changed. The
-correction belongs in the artifact the fact was doing work in, not in a note
-about the checkpoint that filed it.
--->
+- Technical: Cursor, Copilot, and Gemini CLI have no activation runner here, so
+  activation on those hosts is ungrounded.
+- Technical: whether two descriptions recover the activation the nine narrow skills had
+  — a failure stops the slice before deletion (settled by: the scored probe and the
+  activation run on the fresh held-out set).

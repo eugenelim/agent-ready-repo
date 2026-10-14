@@ -1,0 +1,482 @@
+[
+ {
+  "query": "Signups from small agencies dropped sharply after the last release; what kind of finding is that and where do we begin?",
+  "should_trigger": true,
+  "mode": "situate",
+  "group": "situate",
+  "pre_owner": "frame-situation"
+ },
+ {
+  "query": "A big competitor just made their API free. Classify the signal and point us at the right starting step.",
+  "should_trigger": true,
+  "mode": "situate",
+  "group": "situate",
+  "pre_owner": "frame-situation"
+ },
+ {
+  "query": "Our OKR on enterprise retention is off track by a wide margin. Turn that gap into a typed finding with a maturity read.",
+  "should_trigger": true,
+  "mode": "situate",
+  "group": "situate",
+  "pre_owner": "frame-situation"
+ },
+ {
+  "query": "Support tickets about data exports tripled. Is this an opportunity, a risk, or a gap, and which shaping step comes first?",
+  "should_trigger": true,
+  "mode": "situate",
+  "group": "situate",
+  "pre_owner": "frame-situation"
+ },
+ {
+  "query": "Engineering found that our search index can't scale past two regions. Frame that as a situation for the product team.",
+  "should_trigger": true,
+  "mode": "situate",
+  "group": "situate",
+  "pre_owner": "frame-situation"
+ },
+ {
+  "query": "List the jobs warehouse supervisors hire a scheduling tool for, emotional and social ones included, and score them.",
+  "should_trigger": true,
+  "mode": "find",
+  "group": "find",
+  "pre_owner": "identify-opportunities"
+ },
+ {
+  "query": "Which jobs around expense approval are most underserved? Score them with importance and satisfaction.",
+  "should_trigger": true,
+  "mode": "find",
+  "group": "find",
+  "pre_owner": "identify-opportunities"
+ },
+ {
+  "query": "Surface the jobs-to-be-done behind 'teachers want easier grading' and produce a ranked opportunity assessment.",
+  "should_trigger": true,
+  "mode": "find",
+  "group": "find",
+  "pre_owner": "identify-opportunities"
+ },
+ {
+  "query": "Score the opportunity in contractor onboarding: what are people actually trying to accomplish, and where is the gap biggest?",
+  "should_trigger": true,
+  "mode": "find",
+  "group": "find",
+  "pre_owner": "identify-opportunities"
+ },
+ {
+  "query": "Map the functional and emotional jobs of first-time landlords and rank which ones we should go after.",
+  "should_trigger": true,
+  "mode": "find",
+  "group": "find",
+  "pre_owner": "identify-opportunities"
+ },
+ {
+  "query": "We have a scored opportunity in vendor risk reviews. Give me structured solution options we can compare before committing.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-init",
+  "pre_owner": "diverge-solutions"
+ },
+ {
+  "query": "Generate a few genuinely different approaches to the capability-level opportunity in field data capture, each with key bets and trade-offs.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-init",
+  "pre_owner": "diverge-solutions"
+ },
+ {
+  "query": "For the initiative to reduce onboarding time, produce a solution-options document with a recommendation.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-init",
+  "pre_owner": "diverge-solutions"
+ },
+ {
+  "query": "Lay out comparable solution options for the billing-consolidation opportunity, differing in scope or mechanic.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-init",
+  "pre_owner": "diverge-solutions"
+ },
+ {
+  "query": "Our top-ranked opportunity is audit readiness. What are the distinct solution directions, and which would you recommend?",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-init",
+  "pre_owner": "diverge-solutions"
+ },
+ {
+  "query": "Don't converge yet: show me four or five product shapes for a community garden coordination idea, across scope and mechanic.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-shape",
+  "pre_owner": "explore-options"
+ },
+ {
+  "query": "What candidate shapes could a pet-sitting idea take, from a single feature to a full marketplace, each with its riskiest assumption?",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-shape",
+  "pre_owner": "explore-options"
+ },
+ {
+  "query": "Explore alternative product shapes for the framed intent around volunteer scheduling before we pick one.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-shape",
+  "pre_owner": "explore-options"
+ },
+ {
+  "query": "Spread out the possible shapes of a household budgeting product so we can compare them side by side.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-shape",
+  "pre_owner": "explore-options"
+ },
+ {
+  "query": "Give me a divergent set of product shapes for the language-exchange idea, varying altitude and mechanic.",
+  "should_trigger": true,
+  "mode": "diverge",
+  "group": "diverge-shape",
+  "pre_owner": "explore-options"
+ },
+ {
+  "query": "Build a validation plan for the assumptions our converged spine still marks as to-validate, with an interview guide.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk-plan",
+  "pre_owner": "plan-validation"
+ },
+ {
+  "query": "Draft the research instruments, an interview guide and a usability-test plan, to check our load-bearing assumptions.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk-plan",
+  "pre_owner": "plan-validation"
+ },
+ {
+  "query": "Which assumptions need real-world validation, and what would confirm or refute each? Put it in a plan.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk-plan",
+  "pre_owner": "plan-validation"
+ },
+ {
+  "query": "Create a transcript-synthesis frame so we can make sense of the customer sessions we're about to run.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk-plan",
+  "pre_owner": "plan-validation"
+ },
+ {
+  "query": "Turn the assumption list from our discovery into hooks with kill conditions we can validate in the field.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk-plan",
+  "pre_owner": "plan-validation"
+ },
+ {
+  "query": "We validated two options for the self-serve portal. Commit to one and record the appetite.",
+  "should_trigger": true,
+  "mode": "bet",
+  "group": "bet",
+  "pre_owner": "place-bet"
+ },
+ {
+  "query": "Use the solution options file to make a bet, with confidence and the reasoning in a betting table.",
+  "should_trigger": true,
+  "mode": "bet",
+  "group": "bet",
+  "pre_owner": "place-bet"
+ },
+ {
+  "query": "Pick the option we're going with for offline sync and write it down as our committed bet.",
+  "should_trigger": true,
+  "mode": "bet",
+  "group": "bet",
+  "pre_owner": "place-bet"
+ },
+ {
+  "query": "Which of these three integration approaches should we bet on, given what validation told us?",
+  "should_trigger": true,
+  "mode": "bet",
+  "group": "bet",
+  "pre_owner": "place-bet"
+ },
+ {
+  "query": "Lock in the bet for the loyalty programme: chosen option, appetite, and confidence.",
+  "should_trigger": true,
+  "mode": "bet",
+  "group": "bet",
+  "pre_owner": "place-bet"
+ },
+ {
+  "query": "For the committed logistics bet, what capability areas do we need, and what's our build or buy split?",
+  "should_trigger": true,
+  "mode": "map",
+  "group": "map",
+  "pre_owner": "map-capabilities"
+ },
+ {
+  "query": "Break our bet on clinical scheduling into L1 capability domains with Wardley stages.",
+  "should_trigger": true,
+  "mode": "map",
+  "group": "map",
+  "pre_owner": "map-capabilities"
+ },
+ {
+  "query": "Which capabilities for the new payments bet are commodity, and which do we have to build ourselves?",
+  "should_trigger": true,
+  "mode": "map",
+  "group": "map",
+  "pre_owner": "map-capabilities"
+ },
+ {
+  "query": "Produce a capability map for the creator-tools bet, with a suggested order for the build-only parts.",
+  "should_trigger": true,
+  "mode": "map",
+  "group": "map",
+  "pre_owner": "map-capabilities"
+ },
+ {
+  "query": "Translate our committed bet into the capabilities it requires and a disposition for each.",
+  "should_trigger": true,
+  "mode": "map",
+  "group": "map",
+  "pre_owner": "map-capabilities"
+ },
+ {
+  "query": "How is wedding planning really done by professional planners? Ground our product in that before we design anything.",
+  "should_trigger": true,
+  "mode": "ground",
+  "group": "ground",
+  "pre_owner": "frame-domain"
+ },
+ {
+  "query": "Bound the MVP for our fleet maintenance app: what's in, what's out, and why.",
+  "should_trigger": true,
+  "mode": "ground",
+  "group": "ground",
+  "pre_owner": "frame-domain"
+ },
+ {
+  "query": "Is adding payroll to the timesheet product scope creep? Draw the scope boundary.",
+  "should_trigger": true,
+  "mode": "ground",
+  "group": "ground",
+  "pre_owner": "frame-domain"
+ },
+ {
+  "query": "Research how small bakeries actually manage orders and where simple tools break down, before we sketch screens.",
+  "should_trigger": true,
+  "mode": "ground",
+  "group": "ground",
+  "pre_owner": "frame-domain"
+ },
+ {
+  "query": "Ground the legal-intake assistant in how intake paralegals work today, including the current system we'd replace.",
+  "should_trigger": true,
+  "mode": "ground",
+  "group": "ground",
+  "pre_owner": "frame-domain"
+ },
+ {
+  "query": "Produce the initiative brief for our observability push using a lean canvas.",
+  "should_trigger": true,
+  "mode": "canvas",
+  "group": "canvas",
+  "pre_owner": "lean-canvas"
+ },
+ {
+  "query": "Canvas the marketplace initiative: problem, segments, value proposition, channels, and the rest.",
+  "should_trigger": true,
+  "mode": "canvas",
+  "group": "canvas",
+  "pre_owner": "lean-canvas"
+ },
+ {
+  "query": "Run a simple five-box lean canvas for the internal-tools initiative.",
+  "should_trigger": true,
+  "mode": "canvas",
+  "group": "canvas",
+  "pre_owner": "lean-canvas"
+ },
+ {
+  "query": "We finished shaping the payments initiative; write it up as a lean-canvas initiative brief.",
+  "should_trigger": true,
+  "mode": "canvas",
+  "group": "canvas",
+  "pre_owner": "lean-canvas"
+ },
+ {
+  "query": "Fill out a full nine-box canvas for the AI-assistant initiative.",
+  "should_trigger": true,
+  "mode": "canvas",
+  "group": "canvas",
+  "pre_owner": "lean-canvas"
+ },
+ {
+  "query": "Before we spec the team calendar, help me name who it's for and what changes for them.",
+  "should_trigger": true,
+  "mode": "frame",
+  "group": "frame",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Turn the vague 'make admin easier' request into an intent with a clear outcome.",
+  "should_trigger": true,
+  "mode": "frame",
+  "group": "frame",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "What's the opportunity behind adding comments to reports? Capture it as an intent.",
+  "should_trigger": true,
+  "mode": "frame",
+  "group": "frame",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Frame the feature request for CSV import as an outcome and the problem behind it.",
+  "should_trigger": true,
+  "mode": "frame",
+  "group": "frame",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Help me write the intent for the onboarding checklist idea.",
+  "should_trigger": true,
+  "mode": "frame",
+  "group": "frame",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "What would have to be true for usage-based alerts to work, and how do we check it before building?",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Pick the riskiest assumption in our referral intent and set a kill condition up front.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Should we prototype the new search ranking or just build it? Help me test the bet.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Find the assumption most likely to sink the bulk-edit feature and a cheap way to test it.",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Before we invest in multi-currency, which belief is shakiest and what experiment would settle it?",
+  "should_trigger": true,
+  "mode": "de-risk",
+  "group": "de-risk",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Split our de-risked analytics intent into the next level of child intents.",
+  "should_trigger": true,
+  "mode": "decompose",
+  "group": "decompose",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "This approved capability is too large; cut it into independently shippable pieces.",
+  "should_trigger": true,
+  "mode": "decompose",
+  "group": "decompose",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Break the surviving notifications intent down into delivery contracts.",
+  "should_trigger": true,
+  "mode": "decompose",
+  "group": "decompose",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "What child intents sit under the de-risked mobile app strategy?",
+  "should_trigger": true,
+  "mode": "decompose",
+  "group": "decompose",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Slice the validated permissions overhaul into features engineering can pick up.",
+  "should_trigger": true,
+  "mode": "decompose",
+  "group": "decompose",
+  "pre_owner": "intent"
+ },
+ {
+  "query": "Add this agreed goal to the repo as a bare intent record: halve time-to-first-invoice.",
+  "should_trigger": false,
+  "owner": "intake-intent"
+ },
+ {
+  "query": "Log the outcome 'fewer abandoned carts' as a minimal intent, no framing needed.",
+  "should_trigger": false,
+  "owner": "intake-intent"
+ },
+ {
+  "query": "Write the spec for rate-limiting the public API.",
+  "should_trigger": false,
+  "owner": "new-spec"
+ },
+ {
+  "query": "Start a spec for exporting audit logs to S3.",
+  "should_trigger": false,
+  "owner": "new-spec"
+ },
+ {
+  "query": "Run a discovery on a brand-new idea for a hobbyist drone club platform and take it to a decision brief.",
+  "should_trigger": false,
+  "owner": "discovery-loop"
+ },
+ {
+  "query": "Resume the meal-kit discovery where we paused at the vision gate.",
+  "should_trigger": false,
+  "owner": "discovery-loop"
+ },
+ {
+  "query": "Stand up a value-stream meta-repo to coordinate our eight component repos.",
+  "should_trigger": false,
+  "owner": "align-value-stream"
+ },
+ {
+  "query": "Where should the shared order-event contract live across our polyrepo?",
+  "should_trigger": false,
+  "owner": "align-value-stream"
+ },
+ {
+  "query": "The export button throws a 500 on large reports; find the root cause and fix it.",
+  "should_trigger": false,
+  "owner": "bug-fix"
+ },
+ {
+  "query": "Why does the nightly sync fail only in CI? Diagnose it.",
+  "should_trigger": false,
+  "owner": "bug-fix"
+ },
+ {
+  "query": "How should we design the integration between billing and the CRM, given our NFRs?",
+  "should_trigger": false,
+  "owner": "architect-design"
+ },
+ {
+  "query": "What's the right way to build multi-region failover for the job queue?",
+  "should_trigger": false,
+  "owner": "architect-design"
+ }
+]
