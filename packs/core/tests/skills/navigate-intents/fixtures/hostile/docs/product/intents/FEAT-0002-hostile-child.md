@@ -7,6 +7,7 @@
 - **Owner:** placeholder-owner
 - **Parent intent:** intent:hostile-root
 - **Related intents:** javascript:alert(1)
+- **Depends on:** intent:hostile-root, ✕ waits for pointer_checked, dangling, <img src=x onerror=alert(1)>, ‮evil⁦‏
 
 ## Outcome
 

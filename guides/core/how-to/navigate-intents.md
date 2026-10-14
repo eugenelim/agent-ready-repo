@@ -46,7 +46,7 @@ For a page you can open offline or send to a reviewer, see [Export an offline vi
 
 ## Query operations
 
-The skill exposes six query operations, each described below. A seventh command, `export`, is described in [Export an offline view](#export-an-offline-view).
+The skill exposes seven query operations, each described below. An eighth command, `export`, is described in [Export an offline view](#export-an-offline-view).
 
 ### summary
 
@@ -129,6 +129,34 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
   --format text
 ```
 
+### dependencies
+
+Ask which intents an intent depends on, or which depend on it. Run `query --operation dependencies --id <identity> --direction prerequisites --depth 2 --format text`, or open the offline view, pick an intent and use its **Dependencies** part. Each line reads "A waits for B": A's `Depends on:` header names B.
+
+```bash
+python3 <skill-dir>/scripts/navigate_intents.py query \
+  --root <repo-root> --operation dependencies \
+  --id intent:alpha --direction both --depth 2 --format text
+```
+
+```text
+dependencies of intent:alpha · direction both · depth 2
+scope: Reads the Depends on: headers of live intents only. Workspace dependencies are not read, and nothing here decides whether work can start.
+intents:
+  intent:alpha
+  intent:bravo
+  intent:charlie
+edges (waiting -> prerequisite):
+  intent:alpha -> intent:bravo
+  intent:bravo -> intent:charlie
+diagnostics:
+  intent:alpha · outside_scope · spec:some-spec
+```
+
+This output comes from a small example set of intents. `--direction` is `prerequisites` (the default), `dependents`, or `both`. `--depth` counts steps from the start and defaults to 1; `0` returns the start alone. `--id` takes the identities in [Identities](#identities).
+
+The view reads `Depends on:` headers, accepting typed references (`intent:`, `capability:`, `outcome:`, `opportunity:` and a slug) and legacy repository paths to intent files. It does not include workspace-only dependencies or decide whether work may start. Check the listed problems before relying on a dependency chain. A problem is a value that is dangling, retired, a wrong kind, unparseable or outside the scope (such as a brief or spec), or a cycle among intents. Only `--format text` and JSON are offered; `result_too_large` means lower `--depth`.
+
 ## Export an offline view
 
 `export` writes the whole intent graph to one HTML file that opens in any browser with no network. Use it to share the graph with a reviewer, or to browse it without a terminal. The `query` operations above only read; `export` also writes one file, always outside your repository.
@@ -143,7 +171,7 @@ The command prints one JSON object. On success it carries `status: ok`, `path` (
 |------|---------|
 | `--destination <dir>` | An existing directory outside the repository. |
 | `--name <file>` | One name made of letters, digits, `.`, `_`, and `-`, ending in `.html`, at most 100 characters before the suffix. |
-| `--from <identity>` | Only the subtree under one intent. Takes the same identities as `query --from`. |
+| `--from <identity>` | Only the subtree under one intent. Takes the same identities as `query --from`. The export also carries the dependency records of intents linked to that subtree, and names those outside it by id. |
 
 ### What the file contains
 
@@ -152,18 +180,20 @@ The page opens on four questions, each a link in the page's nav:
 - **What can I work on next?** Open work in a startable stage (Implementing spec, Approved spec, Executing brief, Ready brief), then Accepted intents with nothing beneath them. The page says that readiness is not checked in this snapshot, so an item can still be blocked for a reason the file does not show.
 - **What is still open under a capability?** The capabilities, each with its open count. Picking one shows the open work beneath it.
 - **What has no parent?** Open intents, briefs and specs with no resolved parent, grouped by type.
-- **What is broken?** Pointers that did not resolve, and delivery problems.
+- **What is broken?** Pointers that did not resolve, dependency problems, and delivery problems.
 
 **Browse all intents** shows the whole tree with level, kind, and status filters. A search box in the header covers intents, briefs, and specs.
 
+The **Dependencies** part of a detail panel lists "A waits for B" lines for the picked intent. **Show** chooses prerequisites, dependents, or both, and **Steps** chooses how far to follow them. Problems are listed below the lines and in "What is broken?". The part says it does not decide whether work can start, and the Key explains its marks.
+
 Each row leads with the human name, shows its state as a word plus a shape (so colour is never the only cue), and carries a context tag. A **Key** opens on demand to explain the marks.
 
-Selecting a row opens a detail panel: the state line; a **Next step** that names which skill to use and why, in plain words; what is open beneath the item; what is broken; where it sits in the graph; a link to its source file; and collapsed record details with the header facts. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system.
+Selecting a row opens a detail panel: the state line; a **Next step** that names which skill to use and why, in plain words; what is open beneath the item; what is broken; where it sits in the graph; a **Dependencies** part; a link to its source file; and collapsed record details with the header facts, including two "Depends on" groups. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system.
 
 The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
 
 - **Source links** go to GitHub only when `origin` is a plain GitHub remote. A link marked "at commit ..." opens the file at the exported commit. A link marked "may be newer than this export" opens it on the GitHub default branch. Every link carries that mark when the exported commit is not on origin, when any intent file differs from it, or when Git is older than 2.44. An untracked or unpushed file may not exist there yet. Any other remote shows each source's path as plain text.
-- **With `--from`**, the page names the scoped intent and shows only that subtree. The totals still count the whole corpus and the page says so.
+- **With `--from`**, the page names the scoped intent and shows only that subtree. The totals still count the whole corpus and the page says so. A scoped export also carries the dependency records of intents linked to that subtree and names those outside it by id.
 - **When delivery mapping is unavailable** (the delivery resolver hit its limit), the page says so and gives the reason where it would list delivery relations.
 - **Record text is inert.** The page never runs script from a record, never loads anything, and makes no network request when you open it. A header value that contains markup shows as plain text.
 

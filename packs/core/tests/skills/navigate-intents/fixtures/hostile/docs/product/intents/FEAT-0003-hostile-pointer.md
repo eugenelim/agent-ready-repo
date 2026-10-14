@@ -5,6 +5,7 @@
 - **Level:** feature‏
 - **Owner:** placeholder-owner
 - **Parent intent:** javascript:alert(1)
+- **Depends on:** intent:hostile-child, ✕ dangling waits for retired_target
 
 ## Outcome
 

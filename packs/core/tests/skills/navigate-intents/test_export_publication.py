@@ -520,3 +520,77 @@ def test_over_budget_refuses_with_limits_and_writes_nothing(
 
 def test_budget_constant() -> None:
     assert view.EXPORT_BUDGET_BYTES == 104_857_600
+
+
+# ---------------------------------------------------------------------------
+# Dependencies member: between-reads seam, deep input, no repository writes
+# ---------------------------------------------------------------------------
+
+_DEP = pathlib.Path(__file__).resolve().parent / "fixtures" / "dependency"
+
+
+def _write_intent(root: pathlib.Path, fname: str, slug: str, deps: list[str]) -> None:
+    """Write one minimal live intent with the given ``Depends on`` lines."""
+    lines = [f"# Feature: {slug}", "", f"- **Slug:** `{slug}`", "- **Status:** Draft",
+             "- **Level:** feature", "- **Parent intent:** none"]
+    lines += [f"- **Depends on:** {d}" for d in deps]
+    lines += ["", "## Outcome", "", "Placeholder.", ""]
+    (root / "docs" / "product" / "intents" / fname).write_text("\n".join(lines), encoding="utf-8")
+
+
+def _snapshot(root: pathlib.Path) -> dict[str, bytes]:
+    """Map every file under *root* to its bytes."""
+    return {str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
+
+
+def test_a_change_between_the_two_reads_refuses_and_writes_nothing(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "corpus"
+    shutil.copytree(_DEP, root)
+    out = _dir(tmp_path / "out")
+    graph_mod = nav._load_graph_mod()
+    real_derive = graph_mod.derive
+
+    def derive_then_add(r: Any, *a: Any, **k: Any) -> Any:
+        graph = real_derive(r, *a, **k)
+        _write_intent(pathlib.Path(r), "FEAT-9999-late.md", "late", [])
+        return graph
+
+    monkeypatch.setattr(graph_mod, "derive", derive_then_add)
+    result, code = nav.run_export(root, str(out))
+    assert code == 1 and result["error"]["code"] == "unsafe_input", result
+    assert list(out.iterdir()) == []
+
+
+@pytest.mark.parametrize("cycle", [False, True])
+def test_a_2001_intent_chain_or_cycle_exports_or_refuses_cleanly(
+    tmp_path: pathlib.Path, cycle: bool
+) -> None:
+    root = tmp_path / "deep"
+    (root / "docs" / "product" / "intents").mkdir(parents=True)
+    n = 2001
+    for i in range(n):
+        nxt = (i + 1) % n if cycle else i + 1
+        deps = [f"intent:n{nxt:05d}"] if cycle or i + 1 < n else []
+        _write_intent(root, f"FEAT-{i:04d}-n{i:05d}.md", f"n{i:05d}", deps)
+    out = _dir(tmp_path / "out")
+    result, code = nav.run_export(root, str(out))
+    if code == 0:
+        assert pathlib.Path(result["path"]).is_file()
+    else:
+        assert code == 1 and result["error"]["code"] == "export_too_large", result
+        assert list(out.iterdir()) == []
+
+
+def test_export_leaves_repository_bytes_unchanged_apart_from_its_output(
+    tmp_path: pathlib.Path,
+) -> None:
+    root = tmp_path / "corpus"
+    shutil.copytree(_DEP, root)
+    before = _snapshot(root)
+    out = _dir(tmp_path / "out")
+    result, code = nav.run_export(root, str(out))
+    assert code == 0, result
+    assert _snapshot(root) == before
+    assert [p.name for p in out.iterdir()] == [pathlib.Path(result["path"]).name]

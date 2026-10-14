@@ -1,0 +1,22 @@
+{
+  "outstanding": [
+    "capability:root-a",
+    "capability:root-b",
+    "intent:alpha",
+    "intent:bravo",
+    "intent:charlie",
+    "intent:delta",
+    "intent:echo",
+    "intent:foxtrot",
+    "intent:golf",
+    "intent:hotel",
+    "intent:india",
+    "intent:juliet",
+    "intent:kilo",
+    "intent:mike",
+    "intent:november",
+    "intent:oscar",
+    "opportunity:romeo",
+    "outcome:quebec"
+  ]
+}

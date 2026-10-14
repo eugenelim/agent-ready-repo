@@ -70,3 +70,62 @@
   .zones { grid-template-columns: minmax(0, 3fr) minmax(26rem, 2fr); }
 }
 .source { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); }
+/* A dependency line wraps its two names rather than overflowing at 320 CSS px. */
+.dep-controls { display: flex; flex-wrap: wrap; gap: var(--s-3); margin: var(--s-2) 0; }
+.dep-controls .field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; max-width: 100%; }
+.dep-controls select { max-width: 100%; min-width: 0; }
+.dep-diag .edge-line { min-width: 0; max-width: 100%; }
+/* A dependency line is one ruled unit: two rows when narrow; when the part is wide, lines share three
+   tracks (source capped at half, "waits for" sized to its word, target takes the rest) and problem rows
+   share five (mark, state, source capped at 16rem, value at least 12rem, note), each row a subgrid so the
+   columns align down the list and a long source title wraps instead of squeezing the value. */
+.dep-body { container-type: inline-size; }
+.part > .lead { text-wrap: pretty; }
+.dep-line { border-bottom-width: 1px; border-bottom-style: solid; padding: var(--s-1) 0; }
+.dep-line:last-child { border-bottom-width: 0; }
+.dep-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1) var(--s-3); align-items: baseline; }
+.dep-to { display: flex; gap: var(--s-2); align-items: baseline; min-width: 0; padding-left: var(--s-3); }
+.dep-word { flex: none; }
+.named { display: inline-flex; flex-wrap: wrap; gap: 0 var(--s-2); align-items: baseline; }
+.named .mark { white-space: nowrap; }
+/* Every end keeps a 3px left gutter, coloured only when it is the picked intent, as list rows do.
+   The waiting end hangs that gutter into the panel padding so its name sits on the heading's edge. */
+.dep-waiting, .dep-prereq { border-left-width: 3px; border-left-style: solid; padding-left: var(--s-1); }
+/* A relative offset, not a margin, so the hung gutter never shrinks the track below the name's width. */
+.dep-waiting { position: relative; left: calc(-3px - var(--s-1)); }
+/* One gap between a name and its state mark whether the name takes one line or two. */
+.dep-line .named { display: flex; flex-direction: column; align-items: flex-start; row-gap: var(--s-1); }
+.dep-line .named a.node-link { padding-top: 0; padding-bottom: 0; min-height: 1.5rem; line-height: 1.5rem; }
+ul.dep-diags { margin-top: var(--s-4); padding-top: var(--s-2); border-top-width: 1px; border-top-style: solid; }
+/* Each problem row is ruled off like a dependency line, so a row with no status still reads as its own. */
+.dep-diag + .dep-diag { border-top-width: 1px; border-top-style: solid; padding-top: var(--s-2); margin-top: var(--s-2); }
+/* A problem row stacks the same way for every kind: status, then source, then value, then its note. */
+.dep-diag { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s-2) var(--s-3);
+  justify-items: start; align-items: baseline; padding: var(--s-1) 0; min-width: 0; }
+.dep-diag .edge-line { display: contents; }
+.dep-diag > .edge-line > .dep-source, .dep-diag > .edge-line > code.value,
+.dep-diag > .edge-line > .note-inline, .dep-diag > .edge-line > .dep-members { grid-column: 1 / -1; }
+.dep-diag .note-inline { margin-left: 0; }
+.dep-diag code.value { overflow-wrap: break-word; min-width: 0; max-width: 100%; }
+.dep-members { display: flex; flex-direction: column; gap: var(--s-2); }
+@container (min-width: 40rem) {
+  .dep-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .dep-to { padding-left: 0; }
+  .dep-lines { display: grid; grid-template-columns: fit-content(50%) auto minmax(0, 1fr); column-gap: var(--s-3); }
+  .dep-line { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: start; }
+  .dep-row, .dep-to { display: contents; }
+}
+/* Problem rows switch to columns only where the fixed tracks (mark, state, a 12rem value, the note)
+   still leave the source at least 12rem, so a name and its state mark always fit their own cell. */
+@container (min-width: 51rem) {
+  ul.dep-diags { display: grid; grid-template-columns: max-content max-content minmax(12rem, 16rem) minmax(12rem, 1fr) max-content; column-gap: var(--s-3); }
+  .dep-diag { grid-template-columns: subgrid; grid-column: 1 / -1; }
+  .dep-diag + .dep-diag { padding-top: var(--s-1); margin-top: 0; }
+  .dep-diag > .edge-line > .mark { grid-column: 1; }
+  .dep-diag > .edge-line > .label-state { grid-column: 2; }
+  .dep-diag > .edge-line > .dep-source { grid-column: 3; }
+  .dep-diag > .edge-line > code.value { grid-column: 4; }
+  .dep-diag > .edge-line > .note-inline { grid-column: 5; }
+  .dep-diag > .edge-line > .dep-members { grid-column: 3 / 5; flex-direction: row; flex-wrap: wrap; gap: var(--s-1) var(--s-5); }
+}
+.dep-waiting, .dep-prereq, .dep-source, .dep-members, .named { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }

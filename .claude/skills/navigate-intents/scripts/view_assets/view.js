@@ -60,6 +60,8 @@
     diagnostics: 'Delivery diagnostics',
     relatedHere: 'Related, written here',
     relatedElsewhere: 'Related, written elsewhere',
+    dependsHere: 'Depends on, written here',
+    dependsElsewhere: 'Depends on, written elsewhere',
     pointers: 'Pointers'
   };
   var GROUP_HELP = {
@@ -71,19 +73,30 @@
     diagnostics: 'Problems the delivery resolver found with this intent.',
     relatedHere: 'Other intents this one lists as related (the Related intents field), resolved or refused.',
     relatedElsewhere: 'Other intents that list this one as related (their Related intents field).',
+    dependsHere: 'Each value this intent writes in its Depends on field, with how it was written and what it resolved to.',
+    dependsElsewhere: 'Other intents whose Depends on field names this one. The view does not decide whether either can start.',
     pointers: 'Every pointer this brief or spec writes. A pointer is a field that names another record. Each is resolved or refused.'
   };
   var GROUP_ORDER = ['parent', 'children', 'briefs', 'specs', 'relations', 'diagnostics',
-    'relatedHere', 'relatedElsewhere', 'pointers'];
+    'relatedHere', 'relatedElsewhere', 'dependsHere', 'dependsElsewhere', 'pointers'];
   var STATE_HELP = {
     dangling: 'The pointer names no live record.',
     retired_target: 'The pointer names a retired record.',
     kind_mismatch: 'The pointer names a record of a different kind than it declares.',
     out_of_type: 'The pointer names a record of a type this field does not accept.',
     multiple_values: 'The field carries more than one value.',
-    cycle: 'The pointer would make an intent its own ancestor.',
+    cycle: 'The pointers make a loop: a parent loop would make an intent its own ancestor, and a dependency loop leads a Depends on field back to the same intent.',
+    outside_scope: 'The value names a brief or a spec, not an intent, so this view does not follow it.',
     unparseable: 'The value is not a pointer the derivation can read.',
     self_reference: 'The pointer names the record that writes it.'
+  };
+  // How a Depends on value was written, as the navigator's classifier reads it.
+  var FORM_HELP = {
+    typed: 'A kind and a name joined by a colon, such as intent:example.',
+    path: 'A repository path to a file.',
+    bare_slug: 'A name alone, with no kind in front of it.',
+    markdown_link: 'A link written as [text](target).',
+    unrecognized: 'Text that is none of the other forms.'
   };
   var TRUST_HELP = {
     delivery_contract: 'The delivery resolver reports this link from the records\' own contract.',
@@ -95,7 +108,7 @@
     active: { glyph: '\u25CF', help: 'In progress: a spec being built or a brief being delivered.' },
     approved: { glyph: '\u25C6', help: 'Approved, accepted, or a brief ready for its slices.' },
     draft: { glyph: '\u25C7', help: 'Open and still being shaped.' },
-    broken: { glyph: '\u2715', help: 'A pointer that did not resolve, or a delivery problem.' },
+    broken: { glyph: '\u2715', help: 'A pointer that did not resolve, a parent or dependency loop made of pointers that did resolve, or a delivery problem.' },
     stale: { glyph: '\u25B3', help: 'The linked file may be newer than this snapshot.' },
     done: { glyph: '\u2713', help: 'Finished or closed: not open work.' }
   };
@@ -120,7 +133,7 @@
       sort: 'By type, then name', empty: 'Every open item has a parent.', noun: ['item', 'items'],
       filters: ['type', 'level'] },
     { key: 'broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
-      lead: 'Pointers that did not resolve, and problems the delivery resolver found.',
+      lead: 'Pointers that did not resolve, parent or dependency loops made of resolved pointers, and problems the delivery resolver found.',
       sort: 'By name', empty: 'Nothing is broken.', noun: ['entry', 'entries'] },
     { key: 'browse', name: 'Browse all intents', title: 'All intents',
       lead: 'Every live intent under its parent.', sort: 'Under each parent, by name',
@@ -129,7 +142,11 @@
   ];
   var FILTER_LABELS = { type: ['Type', 'Any type'], level: ['Level', 'Any level'],
     kind: ['Kind', 'Any kind'], status: ['Status', 'Any status'] };
-  var ROUTE_KEYS = ['q', 'node', 'search', 'type', 'level', 'kind', 'status'];
+  var ROUTE_KEYS = ['q', 'node', 'search', 'type', 'level', 'kind', 'status', 'dir', 'steps'];
+  // The "Dependencies" controls: the offered choices, with the default first.
+  var DIR_CHOICES = [['prerequisites', 'What it waits for'], ['dependents', 'What waits for it'],
+    ['both', 'Both']];
+  var STEP_CHOICES = [['1', '1'], ['2', '2'], ['3', '3'], ['all', 'All']];
   var FILTER_KEYS = ['type', 'level', 'kind', 'status'];
 
   // ------------------------------------------------------------- utilities
@@ -168,6 +185,15 @@
   var edgesFrom = new Map();
   var openById = new Map();
   var beneath = new Map();
+  // Dependency records, indexed once: edges by waiting intent, neighbours each way, pointer
+  // diagnostics by source, and the payload's cycle diagnostics by member.
+  var depEdgesFrom = new Map();
+  var depOut = new Map();
+  var depIn = new Map();
+  var depEdgesTo = new Map();
+  var depPointers = new Map();
+  var depCycles = new Map();
+  var depCycleList = [];
   var current = null;
   var expanded = new Set();
   var dom = {};
@@ -309,8 +335,35 @@
     return lists;
   }
 
+  function indexDependencies() {
+    var dep = isObj(data.dependencies) ? data.dependencies : {};
+    arr(dep.edges).forEach(function (e) {
+      if (!isObj(e) || !isStr(e.from) || !isStr(e.to)) { return; }
+      addTo(depEdgesFrom, e.from, e);
+      addTo(depEdgesTo, e.to, e);
+      addTo(depOut, e.from, e.to);
+      addTo(depIn, e.to, e.from);
+    });
+    arr(dep.diagnostics).forEach(function (d) {
+      if (!isObj(d)) { return; }
+      if (d.state === 'cycle' && Array.isArray(d.members)) {
+        var cycle = { members: d.members.filter(isStr).sort(byName) };
+        if (!cycle.members.length) { return; }
+        depCycleList.push(cycle);
+        cycle.members.forEach(function (m) { addTo(depCycles, m, cycle); });
+      } else if (isStr(d.from) && isStr(d.state)) {
+        addTo(depPointers, d.from, d);
+      }
+    });
+    depPointers.forEach(function (list) {
+      list.sort(function (a, b) { return posOf(a) - posOf(b); });
+    });
+  }
+  function posOf(item) { return typeof item.position === 'number' ? item.position : 0; }
+
   function buildIndexes() {
     data.nodes.forEach(function (n) { nodes.set(n.id, n); });
+    indexDependencies();
     recordIds = Object.keys(data.records).sort(cmp);
     recordIds.forEach(function (id) {
       var n = nodes.get(id);
@@ -392,7 +445,22 @@
         });
       });
     }
+    // Dependency entries follow a holder's inherited ones; the stable sort keeps that order.
+    recordIds.forEach(function (id) {
+      depEntriesOf(id).forEach(function (entry) { list.push(entry); });
+    });
     return list.sort(function (a, b) { return byName(a.holder, b.holder); });
+  }
+  // A dependency fault is held by its source, a cycle by each member; only an intent with a
+  // record (so, in scope) holds one, and outstanding availability does not matter.
+  function depEntriesOf(id) {
+    if (rec(id) === null) { return []; }
+    var list = [];
+    (depPointers.get(id) || []).forEach(function (d) {
+      if (d.state !== 'outside_scope') { list.push({ holder: id, dep: d }); }
+    });
+    (depCycles.get(id) || []).forEach(function (c) { list.push({ holder: id, cycle: c }); });
+    return list;
   }
 
   function questionCount(key) {
@@ -414,6 +482,9 @@
     var route = {};
     ROUTE_KEYS.forEach(function (k) { route[k] = p.get(k) || ''; });
     route.q = question(route.q).key;
+    // Only the non-default offered choices are kept; anything else reads as the default.
+    route.dir = route.dir === 'dependents' || route.dir === 'both' ? route.dir : '';
+    route.steps = route.steps === '2' || route.steps === '3' || route.steps === 'all' ? route.steps : '';
     return route;
   }
   function hashFor(over) {
@@ -443,6 +514,7 @@
   }
   function stateChip(key) { return labelChip(STATE_HELP, 'state', key); }
   function trustChip(key) { return labelChip(TRUST_HELP, 'trust', key); }
+  function formChip(key) { return labelChip(FORM_HELP, 'form', key); }
 
   function nodeLink(id, cls) {
     var a = el('a', cls || 'node-link', displayName(id));
@@ -457,6 +529,16 @@
     return s;
   }
   function nodeRef(id, cls) { return nodes.has(id) ? nodeLink(id, cls) : outsideRef(id); }
+  // An intent in this export is its display-name link with its state mark; any other is its
+  // node id as plain text marked "outside this export".
+  function namedIntent(id) {
+    if (!nodes.has(id)) { return outsideRef(id); }
+    var s = el('span', 'named');
+    add(s, nodeLink(id, 'node-link'));
+    text(s, ' ');
+    add(s, stateMark(id));
+    return s;
+  }
 
   function edgeValue(e) {
     if (isStr(e.value)) { return e.value; }
@@ -761,6 +843,9 @@
     if (entry.edge) {
       context = (isStr(entry.edge.field) ? entry.edge.field : 'Pointer') + ': ' +
         (own(STATE_HELP, entry.edge.state) !== undefined ? entry.edge.state : 'refused');
+    } else if (entry.dep || entry.cycle) {
+      var depState = entry.cycle ? 'cycle' : entry.dep.state;
+      context = 'Depends on: ' + (own(STATE_HELP, depState) !== undefined ? depState : 'refused');
     } else {
       context = el('span');
       text(context, 'Delivery diagnostic: ');
@@ -939,7 +1024,185 @@
         if (isObj(d)) { list.push({ holder: id, diag: d }); }
       });
     }
-    return list;
+    return list.concat(depEntriesOf(id));
+  }
+
+  // A dependency broken entry in the holder's "What is broken" part: the field, the Key's meaning
+  // of its state, then the value written (a fault) or the other members (a cycle).
+  function dependencyBroken(li, id, b) {
+    var state = b.cycle ? 'cycle' : b.dep.state;
+    var line = add(li, el('div', 'edge-line'));
+    add(line, el('span', 'field', 'Depends on:'));
+    var chip = stateChip(state);
+    add(line, chip || el('span', 'value', String(state)));
+    if (own(STATE_HELP, state) !== undefined) { add(li, el('p', 'meaning', own(STATE_HELP, state))); }
+    var detail = add(li, el('div', 'edge-line'));
+    if (b.dep) {
+      add(detail, el('code', 'value', b.dep.value));
+      return;
+    }
+    var others = b.cycle.members.filter(function (m) { return m !== id; });
+    if (!others.length) {
+      add(detail, el('span', 'note', 'It names itself.'));
+    }
+    others.forEach(function (m) { add(detail, namedIntent(m)); });
+  }
+
+  // ---------------------------------------------------------- dependencies
+  // Breadth-first step counts from start along one direction's neighbour lists; start is 0.
+  function walkSteps(start, adj, limit) {
+    var seen = new Map([[start, 0]]);
+    var frontier = [start];
+    for (var d = 1; d <= limit && frontier.length; d++) {
+      var next = [];
+      frontier.forEach(function (at) {
+        (adj.get(at) || []).forEach(function (to) {
+          if (!seen.has(to)) { seen.set(to, d); next.push(to); }
+        });
+      });
+      frontier = next;
+    }
+    return seen;
+  }
+
+  // What the query returns for the same choices: the intents within `limit` steps, every edge
+  // with both ends among them, their pointer diagnostics and the cycle groups they touch.
+  function dependencyResult(id, dir, limit) {
+    var counts = new Map();
+    if (dir !== 'dependents') { counts = walkSteps(id, depOut, limit); }
+    if (dir !== 'prerequisites') {
+      walkSteps(id, depIn, limit).forEach(function (n, at) {
+        if (!counts.has(at) || n < counts.get(at)) { counts.set(at, n); }
+      });
+    }
+    var edges = [];
+    var pointers = [];
+    var cycles = new Set();
+    counts.forEach(function (_n, at) {
+      (depEdgesFrom.get(at) || []).forEach(function (e) {
+        if (counts.has(e.to)) { edges.push({ edge: e, step: Math.max(counts.get(e.from), counts.get(e.to)) }); }
+      });
+      (depPointers.get(at) || []).forEach(function (d) { pointers.push(d); });
+      (depCycles.get(at) || []).forEach(function (c) { cycles.add(c); });
+    });
+    edges.sort(function (a, b) {
+      return (a.step - b.step) || byName(a.edge.from, b.edge.from) || byName(a.edge.to, b.edge.to);
+    });
+    // Source name order, then written order (the lists are already in written order).
+    pointers.sort(function (a, b) { return byName(a.from, b.from) || (posOf(a) - posOf(b)); });
+    var ordered = Array.from(cycles).sort(function (a, b) { return byName(a.members[0], b.members[0]); });
+    return { counts: counts, edges: edges, pointers: pointers, cycles: ordered };
+  }
+
+  // One line reads waiting end, then "waits for" with the prerequisite end, so the
+  // connector stays with the name it points to; the picked intent's end is marked.
+  function dependencyEnd(id, picked, cls) {
+    var end = el('span', id === picked ? cls + ' dep-self' : cls);
+    add(end, namedIntent(id));
+    if (id === picked) {
+      var self = end.querySelector('a');
+      if (self) { self.setAttribute('aria-current', 'true'); }
+    }
+    return end;
+  }
+  function dependencyLine(entry, picked) {
+    var li = el('li', 'edge dep-line');
+    var row = add(li, el('div', 'dep-row'));
+    add(row, dependencyEnd(entry.edge.from, picked, 'dep-waiting'));
+    var to = add(row, el('span', 'dep-to'));
+    add(to, el('span', 'dep-word', 'waits for'));
+    add(to, dependencyEnd(entry.edge.to, picked, 'dep-prereq'));
+    return li;
+  }
+
+  // The value in a code element with a <wbr> after each slash, backslash or colon so a long path breaks at a separator;
+  // the element's text is the value itself.
+  function breakableValue(value) {
+    var code = el('code', 'value');
+    String(value).split(/([\/\\:])/).forEach(function (piece, i) {
+      if (i % 2) { text(code, piece); add(code, document.createElement('wbr')); } else if (piece) { text(code, piece); }
+    });
+    return code;
+  }
+
+  function dependencyFault(d) {
+    var li = el('li', 'edge dep-diag');
+    var line = add(li, el('div', 'edge-line'));
+    var outside = d.state === 'outside_scope';
+    if (!outside) {
+      add(line, markEl('broken', 'Broken'));
+      var chip = stateChip(d.state);
+      add(line, chip || el('span', 'value', String(d.state)));
+    }
+    add(add(line, el('span', 'dep-source')), namedIntent(d.from));
+    add(line, breakableValue(isStr(d.value) ? d.value : ''));
+    if (outside) { add(line, el('span', 'note-inline', 'not an intent, outside this view')); }
+    return li;
+  }
+
+  function dependencyCycle(c) {
+    var li = el('li', 'edge dep-diag');
+    var line = add(li, el('div', 'edge-line'));
+    add(line, markEl('broken', 'Broken'));
+    add(line, stateChip('cycle'));
+    var members = add(line, el('span', 'dep-members'));
+    c.members.forEach(function (m) { add(members, namedIntent(m)); });
+    return li;
+  }
+
+  var EMPTY_LINES = { prerequisites: 'It waits for nothing in its Depends on: header.',
+    dependents: 'No intent\'s Depends on: header names it.', both: 'No dependencies recorded.' };
+
+  function fillDependencies(id, route) {
+    var dir = route.dir || 'prerequisites';
+    var limit = route.steps === 'all' ? Infinity : parseInt(route.steps || '1', 10);
+    dom.depDir.value = dir;
+    dom.depSteps.value = route.steps || '1';
+    clear(dom.depBody);
+    var res = dependencyResult(id, dir, limit);
+    var has = res.pointers.length + res.cycles.length > 0;
+    if (res.edges.length) {
+      add(dom.depBody, el('p', 'note dep-sort', 'Nearest first, then by name'));
+      var ul = add(dom.depBody, el('ul', 'plain dep-lines'));
+      res.edges.forEach(function (entry) { add(ul, dependencyLine(entry, id)); });
+    } else {
+      add(dom.depBody, el('p', 'empty', has ? 'No line to show. Its Depends on: values are listed below.' :
+        EMPTY_LINES[dir]));
+    }
+    if (has) {
+      var dl = add(dom.depBody, el('ul', 'plain dep-diags'));
+      res.pointers.forEach(function (d) { add(dl, dependencyFault(d)); });
+      res.cycles.forEach(function (c) { add(dl, dependencyCycle(c)); });
+    }
+  }
+
+  function dependencySelect(key, label, choices) {
+    var field = add(dom.depControls, el('div', 'field'));
+    var selectId = 'dep-' + key;
+    var lab = add(field, el('label', '', label));
+    lab.setAttribute('for', selectId);
+    var select = add(field, el('select', 'control'));
+    select.setAttribute('id', selectId);
+    choices.forEach(function (c) {
+      var o = add(select, el('option', '', c[1]));
+      o.setAttribute('value', c[0]);
+    });
+    select.addEventListener('change', function () {
+      var over = {};
+      over[key] = select.value === choices[0][0] ? '' : select.value;
+      replaceRoute(over);
+    });
+    return select;
+  }
+
+  function dependenciesPart(id, route) {
+    var sec = part('Dependencies');
+    add(sec, el('p', 'lead', 'From Depends on: headers only. This does not check whether work can start.'));
+    dom.depControls = add(sec, el('div', 'dep-controls'));
+    dom.depDir = dependencySelect('dir', 'Show', DIR_CHOICES);
+    dom.depSteps = dependencySelect('steps', 'Steps', STEP_CHOICES);
+    dom.depBody = add(sec, el('div', 'dep-body'));
+    fillDependencies(id, route);
   }
 
   function part(title) {
@@ -987,6 +1250,54 @@
     return p;
   }
 
+  // Each distinct value the intent writes in Depends on, by written position: the resolved ones
+  // (from its edges' basis) and the refused or out-of-scope ones (its pointer diagnostics).
+  function dependsWrittenHere(id) {
+    var items = [];
+    (depEdgesFrom.get(id) || []).forEach(function (e) {
+      var values = isObj(e.basis) ? arr(e.basis.values) : [];
+      values.forEach(function (v) {
+        if (isObj(v) && isStr(v.value)) {
+          items.push({ value: v.value, form: v.form, position: posOf(v), trust: e.trust_class, to: e.to });
+        }
+      });
+    });
+    (depPointers.get(id) || []).forEach(function (d) {
+      items.push({ value: isStr(d.value) ? d.value : '', form: d.form, position: posOf(d),
+        trust: d.trust_class, state: d.state });
+    });
+    return items.sort(function (a, b) { return (a.position - b.position) || cmp(a.value, b.value); });
+  }
+  function dependsHereItem(it) {
+    var li = el('li', 'edge');
+    var line = add(li, el('div', 'edge-line'));
+    add(line, el('code', 'value', it.value));
+    var fc = formChip(it.form);
+    if (fc) { add(line, fc); }
+    if (isStr(it.to)) {
+      add(line, namedIntent(it.to));
+    } else {
+      add(line, stateChip(it.state) || el('span', 'value', String(it.state)));
+    }
+    var tc = trustChip(it.trust);
+    if (tc) { add(line, tc); }
+    return li;
+  }
+  // Intents whose resolved edge names this one, once each, in name order.
+  function dependsWrittenElsewhere(id) {
+    var seen = new Map();
+    (depEdgesTo.get(id) || []).forEach(function (e) { if (!seen.has(e.from)) { seen.set(e.from, e); } });
+    return Array.from(seen.keys()).sort(byName).map(function (from) { return seen.get(from); });
+  }
+  function dependsElsewhereItem(e) {
+    var li = el('li', 'edge');
+    var line = add(li, el('div', 'edge-line'));
+    add(line, namedIntent(e.from));
+    var tc = trustChip(e.trust_class);
+    if (tc) { add(line, tc); }
+    return li;
+  }
+
   function recordDetails(id) {
     var n = nodes.get(id);
     var r = rec(id);
@@ -1027,6 +1338,10 @@
       group(box, 'relatedElsewhere', function (sec) {
         groupList(sec, arr(r.related_written_elsewhere), function (e) { return edgeItem(e, true); });
       });
+      group(box, 'dependsHere', function (sec) { groupList(sec, dependsWrittenHere(id), dependsHereItem); });
+      group(box, 'dependsElsewhere', function (sec) {
+        groupList(sec, dependsWrittenElsewhere(id), dependsElsewhereItem);
+      });
     } else {
       group(box, 'pointers', function (sec) {
         groupList(sec, edgesFrom.get(id) || [], function (e) { return edgeItem(e, false); });
@@ -1060,7 +1375,7 @@
     if (shownCount === 0 || route.search !== '') { return ''; }
     if (route.q === 'broken') {
       var entries = brokenEntries();
-      var pointers = entries.filter(function (b) { return b.edge; }).length;
+      var pointers = entries.filter(function (b) { return b.edge || b.dep || b.cycle; }).length;
       if (deliveryUnavailable()) {
         return 'In this list: ' + plural(pointers, ['broken pointer', 'broken pointers']) +
           '. Delivery diagnostics were unavailable.';
@@ -1084,6 +1399,7 @@
 
   function renderDetail(route) {
     clear(dom.detailBody);
+    dom.depBody = null;
     var id = route.node;
     dom.main.toggleAttribute('data-picked', id !== '' && nodes.has(id));
     if (!id) {
@@ -1139,6 +1455,8 @@
           if (own(STATE_HELP, b.edge.state) !== undefined) {
             add(li, el('p', 'meaning', own(STATE_HELP, b.edge.state)));
           }
+        } else if (b.dep || b.cycle) {
+          dependencyBroken(li, id, b);
         } else {
           var line = add(li, el('div', 'edge-line'));
           add(line, el('span', 'field', 'Delivery diagnostic'));
@@ -1165,6 +1483,8 @@
         });
       });
     }
+
+    if (typeOf(id) === 'intent') { dependenciesPart(id, route); }
 
     add(part('Open the file'), sourceBlock(id));
     recordDetails(id);
@@ -1261,11 +1581,13 @@
     GROUP_ORDER.forEach(function (key) {
       row(el('span', 'label-group', own(GROUP_LABELS, key)), own(GROUP_HELP, key));
     });
-    [['state', STATE_HELP], ['trust', TRUST_HELP]].forEach(function (pair) {
+    [['state', STATE_HELP], ['trust', TRUST_HELP], ['form', FORM_HELP]].forEach(function (pair) {
       Object.keys(pair[1]).forEach(function (key) {
         row(el('span', 'chip label-' + pair[0], key), own(pair[1], key), helpId(pair[0], key));
       });
     });
+    row(el('span', 'dep-word', 'waits for'), 'The first intent\'s Depends on: header names the second. ' +
+      'The view does not decide whether either can start.');
   }
 
   function handleRoute() {
@@ -1290,7 +1612,12 @@
     } else if (nodeChanged) {
       markSelected(next);
     }
-    if (nodeChanged || listChanged) { renderDetail(next); }
+    if (nodeChanged || listChanged) {
+      renderDetail(next);
+    } else if (prev !== null && dom.depBody && (prev.dir !== next.dir || prev.steps !== next.steps)) {
+      // Only the part's own result changes, so the control in use keeps focus and the zone its scroll.
+      fillDependencies(next.node, next);
+    }
     if (prev !== null && nodeChanged && !listChanged && next.node !== '' && nodes.has(next.node)) {
       var fromDetail = followedDetailLink;
       followedDetailLink = false;
