@@ -125,16 +125,24 @@ jobs:
   diag-evidence-windows:  # DIAGNOSTIC (temporary): find the hanging POSIX-suite test on Windows
     name: diag evidence (windows)
     runs-on: windows-latest
-    timeout-minutes: 7
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
         group:
-          - "TestSpecValidation or TestAuditSinkUnavailable or TestAuditEventOrder or TestSuccessfulLaunch or TestExecutableIdentity"
-          - "TestWorkingDirectory or TestEnvironmentIsolation or TestStdinModes or TestProcessTreeTimeout or TestBoundedOutput"
-          - "TestOutputRedaction or TestOutputEncoding or TestSecurityInvariants or TestStdinBound or TestPostAllowDenialEvents"
-          - "TestExecIdentityMechanism or TestBoundedPostKillDrain or TestProcessSpecTypeValidation or TestNulByteDenial or TestProcessGroupCleanup"
-          - "TestSpecIdentifierFields or TestGroupKillBeforeReap or TestRedactionOverlap or TestRedactionAtTheCapAndAtScale or TestRedactionMatchesTheBoundaryEncoding"
+          - test_invalid_identifier_refused_before_allow
+          - test_leader_unreaped_when_group_is_signalled
+          - test_overlapping_values_leave_no_fragment
+          - test_nested_env_value_does_not_split_a_credential_in_launch_output
+          - test_matches_the_reference_with_bounds_and_overflow
+          - test_complete_value_ending_in_another_values_prefix_stays_covered
+          - test_self_overlapping_value_at_the_cut_stays_covered
+          - test_cut_off_value_containing_a_short_value_leaves_no_fragment
+          - test_overflowed_launch_never_emits_part_of_a_complete_value
+          - test_stderr_filling_the_cap_cannot_expose_stdout_fragments
+          - test_redaction_cost_stays_linear
+          - test_echoed_periodic_stdin_is_redacted_promptly
+          - test_collected_forms_include_the_os_boundary_bytes
     env:
       PYTHONUTF8: "1"
       PYTHONIOENCODING: "utf-8"
@@ -146,7 +154,7 @@ jobs:
       - run: python -m pip install -q -e ./packages/credbroker -e packages/agentbundle/ pytest -r tools/requirements.txt
       - name: evidence group
         continue-on-error: true
-        run: python -X faulthandler -c "import faulthandler, sys, pytest; faulthandler.dump_traceback_later(150, exit=True); sys.exit(pytest.main(['packs/core/tests/skills/work-loop/test_process_safety.py', '-v', '-rs', '-p', 'no:cacheprovider', '-o', 'faulthandler_timeout=30', '-k', '${{ matrix.group }}']))"
+        run: python -X faulthandler -c "import faulthandler, sys, pytest; faulthandler.dump_traceback_later(100, exit=True); sys.exit(pytest.main(['packs/core/tests/skills/work-loop/test_process_safety.py', '-v', '-rs', '-p', 'no:cacheprovider', '-o', 'faulthandler_timeout=30', '-k', '${{ matrix.group }}']))"
 
   credbroker-tests-windows:
     name: pytest credbroker (windows)
