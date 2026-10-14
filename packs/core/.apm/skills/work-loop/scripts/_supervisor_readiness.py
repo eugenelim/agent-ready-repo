@@ -307,6 +307,14 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             raise Refusal(
                 "invalid-result", "controller", "a run-gates result needs gate and criteria"
             )
+        if not gate["passed"] and all(
+            isinstance(row, dict) and row.get("outcome") == "pass" for row in rows
+        ):
+            raise Refusal(
+                "inconsistent-gate-result",
+                "controller",
+                "a failed gate run must name the criterion it failed",
+            )
         wanted = set(request["criteria"])
         receipts = []
         for row in rows:
@@ -391,7 +399,7 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
         writer = write_assessment
     try:
         evidence = ws.evidence_append(writer=writer)
-    except Exception as exc:  # noqa: BLE001 - every Slice 2 refusal names its own code
+    except Exception as exc:  # noqa: BLE001 - every review-record refusal names its own code
         code = getattr(exc, "denial_code", None) or type(exc).__name__
         raise Refusal("review-record-refused", "controller", str(code)) from exc
     ws.git.build_commit(

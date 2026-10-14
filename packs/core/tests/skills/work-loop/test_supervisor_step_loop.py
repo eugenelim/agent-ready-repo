@@ -18,6 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import supervisor_harness as h  # noqa: E402
 import supervisor_support as sup  # noqa: E402
 
+pytestmark = sup.INTEGRATION
+
 SPEC = h.SPEC_DIR
 
 
@@ -139,7 +141,7 @@ def test_renumbering_never_re_requests_a_completed_task(
         tmp_path: Path, plan_factory: Callable[[], str]) -> None:
     repo, _controller = _through_calculator(tmp_path)
     (repo / SPEC / "plan.md").write_text(plan_factory(), "utf-8")
-    assert _requested_title(repo) != "Calculator answers"
+    assert _requested_title(repo) == "Plain note is written"
 
 
 def _calc_commits(repo: Path) -> list[str]:
@@ -154,9 +156,39 @@ def test_content_edit_re_requests_the_task_and_keeps_history(tmp_path: Path) -> 
                        sup.TASKS["push"](), sup.TASKS["plain"]())
     (repo / SPEC / "plan.md").write_text(revised, "utf-8")
     code, payload = _next(repo)
-    assert payload["request"]["kind"] == "implement-task"
+    assert code == 0 and payload["request"]["kind"] == "implement-task"
     assert payload["request"]["task"]["title"] == "Calculator answers"
-    assert set(old) <= set(_calc_commits(repo))
+    assert old and set(old) <= set(_calc_commits(repo))
+
+
+FIRST_ROW_REPLANS: dict[str, Callable[[], str]] = {
+    "delete": lambda: sup.plan(sup.TASKS["calc"](), sup.TASKS["push"]()),
+    "replace": lambda: sup.plan(sup.TASKS["calc"](), sup.TASKS["push"](),
+                                sup.task("T3", "Something else entirely", mode="goal-based",
+                                         tests="no stub (goal-based)")),
+    "change-tests": lambda: sup.plan(
+        sup.TASKS["calc"](), sup.TASKS["push"](),
+        sup.task("T3", "Plain note is written", touches="`plain.txt`", mode="goal-based",
+                 tests="no stub (checked by reading the file)", done="plain.txt says done")),
+    "change-stubs": lambda: sup.plan(
+        sup.task("T1", "Calculator answers",
+                 tests="- **VI-1:** x\n\n" + sup.stub_fence(
+                     body=sup.STUB + "assert calc.answer() > 41\n", indent="  ")),
+        sup.TASKS["push"](), sup.TASKS["plain"]()),
+    "change-effects": lambda: sup.plan(sup.TASKS["calc"](), sup.TASKS["push"](effects="publish"),
+                                       sup.TASKS["plain"]()),
+}
+
+
+@pytest.mark.parametrize("name", sorted(FIRST_ROW_REPLANS))
+def test_first_row_replan_mid_run_needs_no_approval(tmp_path: Path, name: str) -> None:
+    repo, _controller = _through_calculator(tmp_path)
+    (repo / SPEC / "plan.md").write_text(FIRST_ROW_REPLANS[name](), "utf-8")
+    code, payload = _next(repo)
+    assert code == 0, payload
+    assert payload["request"]["kind"] in ("implement-task", "write-stub")
+    assert len(h.workspace(repo).approvals()) == 1
+    assert "replan" in h.git(repo, "log", "-1", "--format=%s")
 
 
 @pytest.mark.parametrize("tasks", [

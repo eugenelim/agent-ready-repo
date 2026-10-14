@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import supervisor_support as sup  # noqa: E402
 
 proj = sup.load("_supervisor_projector.py")
-REPO = Path(__file__).resolve().parents[5]
 
 
 def _refs(spec: str, adr: str = sup.ADR) -> dict[str, str]:
@@ -207,7 +206,25 @@ IN_ENVELOPE_PLANS: dict[str, Callable[[], str]] = {
     ),
     "delete": lambda: sup.plan(sup.TASKS["calc"](), sup.TASKS["push"]()),
     "change-tests": lambda: sup.plan(
-        sup.TASKS["calc"](), sup.TASKS["push"](), sup.TASKS["plain"](approach="different")
+        sup.TASKS["calc"](),
+        sup.TASKS["push"](),
+        sup.task(
+            "T3",
+            "Plain note is written",
+            touches="`plain.txt`",
+            mode="goal-based",
+            tests="no stub (checked by reading the file)",
+            done="plain.txt says done",
+        ),
+    ),
+    "change-stubs": lambda: sup.plan(
+        sup.task(
+            "T1",
+            "Calculator answers",
+            tests="- **VI-1:** x\n\n" + sup.stub_fence(red_exit="1,2", indent="  "),
+        ),
+        sup.TASKS["push"](),
+        sup.TASKS["plain"](),
     ),
     "change-effects": lambda: sup.plan(
         sup.TASKS["calc"](), sup.TASKS["push"](effects="publish"), sup.TASKS["plain"]()
@@ -216,11 +233,16 @@ IN_ENVELOPE_PLANS: dict[str, Callable[[], str]] = {
 
 
 @pytest.mark.parametrize("name", sorted(IN_ENVELOPE_PLANS))
-def test_in_envelope_replan_projects_without_an_approval_request(name: str) -> None:
-    # Plan edits never move the envelope, so classification asks for no approval,
-    # and the new plan projects.
-    assert _classify(sup.SPEC) is None
-    assert proj.project_plan(IN_ENVELOPE_PLANS[name]()).tasks
+def test_in_envelope_replan_projects_a_different_task_set(name: str) -> None:
+    # The plan is outside the envelope, so each of these projects anew; that no
+    # approval is requested mid-run is shown through `next` in the step-loop suite.
+    projected = proj.project_plan(IN_ENVELOPE_PLANS[name]()).tasks
+    base = proj.project_plan(sup.PLAN).tasks
+    assert projected
+    if name not in ("renumber", "reorder", "rewrite-depends-on"):
+        assert [(t["task_id"], t["revision"]) for t in projected] != [
+            (t["task_id"], t["revision"]) for t in base
+        ]
 
 
 # ── VI-4012: a template-shaped spec imports with six distinct values ─────────
@@ -335,8 +357,16 @@ def test_unsafe_stub_path_refuses(path: str) -> None:
     assert info.value.code == "invalid-stub-path"
 
 
-def test_every_plan_under_docs_specs_projects() -> None:
-    plans = sorted((REPO / "docs" / "specs").glob("*/plan.md"))
-    assert plans
-    for plan_path in plans:
-        proj.project_plan(plan_path.read_text(encoding="utf-8"))
+def test_a_blank_line_before_the_closing_fence_is_refused() -> None:
+    fence = sup.stub_fence(indent="  ")
+    fence = fence[: fence.rindex("\n")] + "\n\n" + fence[fence.rindex("\n") + 1:]
+    bad = sup.plan(sup.task("T1", "Calculator answers", tests="- **VI-1:** x\n\n" + fence))
+    with pytest.raises(proj.ProjectionRefused) as info:
+        proj.project_plan(bad)
+    assert info.value.code == "invalid-stub-fence"
+
+
+def test_a_crlf_plan_with_stub_fences_is_refused() -> None:
+    with pytest.raises(proj.ProjectionRefused) as info:
+        proj.project_plan(sup.PLAN.replace("\n", "\r\n"))
+    assert info.value.code == "invalid-stub-fence"

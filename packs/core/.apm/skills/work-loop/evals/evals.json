@@ -1281,6 +1281,17 @@
         "Says a refusal exits non-zero with nothing on stdout",
         "Says a refused single log is an unread source that contributes no facts"
       ]
+    },
+    {
+      "id": "tdd-stub-uses-the-stub-fence",
+      "prompt": "Record the exact red stub for a TDD task whose test lives at tests/test_orders.py and runs with `python -m pytest -q`. A collection error must not count as red.",
+      "files": [],
+      "expected_output": "The task's `Tests:` subsection carries a fenced block whose info string is `stub path=tests/test_orders.py run=\"python -m pytest -q {path}\" red-exit=1`. The payload is the exact test file content. The red-exit list names only the exit code of a failing test, so pytest's collection-error exit (2) is not red.",
+      "assertions": [
+        "Uses a `stub` fence with `path=`, `run=`, and `red-exit=` attributes",
+        "Uses `{path}` in the run command rather than repeating the path",
+        "Keeps `red-exit` to the failing-test exit code, excluding collection or setup errors"
+      ]
     }
   ]
 }

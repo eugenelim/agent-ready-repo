@@ -1223,8 +1223,8 @@ def test_the_observation_byte_bound_is_a_consumer_rule_the_schema_cannot_state()
 
 # ── Execution supervisor core contracts ──────────────────────────────────────
 # One valid and one invalid fixture per supervisor schema, and one request per
-# request kind. Emitted-record parity for the shipped supervisor lives in the
-# work-loop supervisor suites, which validate every record a run writes.
+# request kind. Emitted-record parity for the shipped supervisor lives in
+# test_execution_supervisor_records.py, which validates every record a run writes.
 
 _SUPERVISOR_SPEC = "docs/specs/execution-supervisor-core/"
 _HEX = "0" * 64

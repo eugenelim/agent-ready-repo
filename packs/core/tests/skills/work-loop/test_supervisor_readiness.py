@@ -15,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import supervisor_harness as h  # noqa: E402
 import supervisor_support as sup  # noqa: E402
 
+pytestmark = sup.INTEGRATION
+
 SPEC = h.SPEC_DIR
 
 
@@ -113,6 +115,21 @@ def test_row_envelope_mismatch_refuses_per_the_replan_table(tmp_path: Path) -> N
                     "utf-8")
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 1 and payload["refusal"]["code"] == "scope-changed"
+
+
+def test_a_stored_verdict_or_readiness_answer_is_not_read(tmp_path: Path) -> None:
+    repo, controller = _started(tmp_path)
+    _until(repo, controller, "run-gates")
+    before = _status(repo)["readiness"]
+    forged = {"schema_version": 1, "evaluation_fingerprint": "forged", "verdict": "supported",
+              "criteria_refs": ["AC-0001", "AC-0002"], "receipt_refs": [], "ready": True,
+              "acceptance_eligible": True}
+    (repo / SPEC / "delivery" / "verdicts.json").write_text(json.dumps(forged), "utf-8")
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "forge a stored verdict")
+    after = _status(repo)["readiness"]
+    assert after["ready"] is False
+    assert after["criteria"] == before["criteria"]
 
 
 def test_no_stored_verdict_or_readiness_answer_exists(tmp_path: Path) -> None:
