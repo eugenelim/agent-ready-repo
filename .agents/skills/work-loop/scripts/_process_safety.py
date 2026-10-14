@@ -455,6 +455,9 @@ def _run_in_job(
         captured = {1: bytearray(), 2: bytearray()}
         overflow = threading.Event()
         lock = threading.Lock()
+        deadline = time.monotonic() + timeout_s
+        # Once output passes the cap, the tree has _CAP_SETTLE_S to finish, as on POSIX.
+        settle_by: list[float] = []
 
         def adopt(handle: int, mode: str) -> object | None:
             """Hand a pipe handle to a file object, or None if cleanup already closed it."""
@@ -478,11 +481,13 @@ def _run_in_job(
                     if not chunk:
                         return
                     with lock:
+                        if overflow.is_set():
+                            continue  # past the cap: drain and discard while settling
                         room = hard_cap + 1 - len(captured[1]) - len(captured[2])
                         captured[stream] += chunk[:max(room, 0)]
                         if len(captured[1]) + len(captured[2]) > hard_cap:
+                            settle_by.append(time.monotonic() + _CAP_SETTLE_S)
                             overflow.set()
-                            return
 
         def writer(handle: int) -> None:
             sink = adopt(handle, "wb")
@@ -497,40 +502,31 @@ def _run_in_job(
                    threading.Thread(target=writer, args=(in_write,), daemon=True)]
         for thread in threads:
             thread.start()
-        deadline = time.monotonic() + timeout_s
 
         def remaining_ms() -> int:
-            return max(0, int((deadline - time.monotonic()) * 1000))
+            return max(0, int((min([deadline, *settle_by]) - time.monotonic()) * 1000))
 
+        # The tree has settled once the leader has exited and both output pipes
+        # reached EOF, within the deadline (or the settle window after a cap breach).
         leader_done = False
-        while not overflow.is_set():
+        while True:
             waited = k32.WaitForSingleObject(process_info.hProcess, min(remaining_ms(), 50))
             if waited != _WAIT_TIMEOUT:
                 leader_done = True
                 break
             if remaining_ms() == 0:
                 break
-        if overflow.is_set():
-            settled = leader_done
+        if leader_done:
+            for thread in threads[:2]:
+                thread.join(remaining_ms() / 1000)
+        if not leader_done or any(thread.is_alive() for thread in threads[:2]):
             k32.TerminateJobObject(job, 1)
-            if not settled:
+            for thread in threads:
+                thread.join(_DRAIN_TIMEOUT_S)
+            if overflow.is_set():
                 raise refuse("denied-output-cap-exceeded",
                              f"process output exceeded the hard cap ({hard_cap} bytes) while "
                              "still running; all children killed, no output returned")
-        elif not leader_done:
-            k32.TerminateJobObject(job, 1)
-            for thread in threads:
-                thread.join(_DRAIN_TIMEOUT_S)
-            raise refuse("denied-timeout",
-                         f"process tree timeout exceeded ({timeout_s}s); "
-                         "all children killed, no output returned")
-        for thread in threads[:2]:
-            thread.join(remaining_ms() / 1000)
-        if any(thread.is_alive() for thread in threads[:2]) and not overflow.is_set():
-            # A descendant still holds a stream at the deadline.
-            k32.TerminateJobObject(job, 1)
-            for thread in threads:
-                thread.join(_DRAIN_TIMEOUT_S)
             raise refuse("denied-timeout",
                          f"process tree timeout exceeded ({timeout_s}s); "
                          "all children killed, no output returned")
