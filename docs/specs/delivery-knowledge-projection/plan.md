@@ -1,7 +1,7 @@
 # Plan: Delivery knowledge projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** `docs/product/briefs/acceptance-centered-work-loop.md` at `sha256-bytes-v1:5b4cc8d489a256eda3f5edbb0e51de07ccd35dcfa6bd0f38964286ca563f8910`, which carries the 2026-10-11 owner decision; the reviewed architecture set at `sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02`, as since amended by the Slice 2 release; Slice 1 shipped at `9d39eae8b` (Core shadow services) and Slice 2 shipped at `bfe30052c` (Core 3.0.5). Direct owners: `docs/architecture/work-loop-knowledge-handoff.md`, `docs/architecture/work-loop-acceptance-evidence.md`, `docs/architecture/work-loop-review-disposition.md`, and `docs/architecture/knowledge-capture.md`. Analogous self-contained script seams: Slice 2's `_review_*.py` modules under `packs/core/.apm/skills/work-loop/scripts/`, with their no-runtime-schema-read spy in `packs/core/tests/skills/work-loop/test_review_compat.py` and schema parity in `tests/roster/`. Knowledge lifecycle code: `packs/core/.apm/skills/project-knowledge/scripts/project_knowledge.py` and `knowledge_store.py`, constructed through `packs/core/tests/skills/project-knowledge/`. Uncertainty: no reproducible snapshot reader exists over the evidence log, so T1 builds one.
 
 > **Plan contract:** this is the implementation strategy. The current legacy

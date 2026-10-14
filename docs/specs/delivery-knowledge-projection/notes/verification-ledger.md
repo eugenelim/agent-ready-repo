@@ -378,3 +378,19 @@ one change and one proof. No version moved, and the spec and plan are untouched.
 | QE Nit 1: the portability guard admitted a bare `\-`, which ECMA-262 rejects outside a class under `u` | `test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax` now refuses `\-` outside a character class and still allows it inside one. | Mutation: a bare `\-` added to the observation id pattern turned the test red with no Node involved, then the schema was restored (zero diff). |
 | ADV Nit 1 and QE Nit 2: the round 3 header said no commit was made and the section had no gate receipt | The round 3 header names commit db07f3f8b, and a round 3 Gates receipt records the post-fix run. | Wording check against `git log`. |
 
+## Final gates — 2026-10-13
+
+Run on the review-satisfied tree before the spec moved to Shipped.
+
+- `make lint-ruff lint-mypy`: pass. `tools/test-lint-pack-test-boundary.py`: 158 cases ok.
+- `agentbundle catalogue self-host --write`: no drift. `agentbundle catalogue verify`: ok.
+- Work-loop, project-knowledge, and close-work pack suites plus the delivery roster
+  suites: 4217 passed, 6 skipped, 1 failed in 64s. The failure is the pre-existing
+  `test_loop_engine.py::test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content[deep-nesting]`,
+  tracked in `workspace.toml` as `pre-existing-recover-engine-state-deep-nesting`; it
+  fails the same way on the base.
+- Real CLI: with `WORK_LOOP_SHADOW_SERVICES` unset, `delivery-fact-feed.py` prints the
+  complete empty `disabled` snapshot and exits 0; with it set on this repository it
+  prints an empty `enabled` snapshot; a malformed continuation token exits 2 with
+  `refused: token-invalid`.
+
