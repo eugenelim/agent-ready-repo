@@ -1,5 +1,5 @@
 {
-  "_comment": "Hand-written expectations for the dependency fixture; edges as from/to with [value, form, position] basis values.",
+  "_comment": "Hand-written expectations for the dependency fixture; edges as from/to with [value, form, position] basis values. india writes intent:ghost twice (one diagnostic); quebec-old is a tombstone with no reissue.",
   "edges": [
     {
       "from": "intent:alpha",
@@ -294,6 +294,62 @@
       "form": "unrecognized",
       "position": 10,
       "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs/product/intents//FEAT-0001-alpha.md",
+      "form": "path",
+      "position": 11,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs/product/intents/../intents/FEAT-0001-alpha.md",
+      "form": "path",
+      "position": 12,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "/docs/product/intents/FEAT-0001-alpha.md",
+      "form": "unrecognized",
+      "position": 13,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "https://example.com/x",
+      "form": "unrecognized",
+      "position": 14,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "featre:a/b",
+      "form": "path",
+      "position": 15,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs/specs/some-spec/spec.md",
+      "form": "path",
+      "position": 16,
+      "state": "outside_scope"
+    },
+    {
+      "from": "intent:golf",
+      "value": "intent:Bad_Slug",
+      "form": "unrecognized",
+      "position": 17,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "intent:quebec-old",
+      "form": "typed",
+      "position": 18,
+      "state": "retired_target"
     },
     {
       "from": "intent:india",

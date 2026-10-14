@@ -6,6 +6,7 @@
 - **Owner:** placeholder-owner
 - **Parent intent:** capability:root-a
 - **Depends on:** intent:juliet, intent:ghost, capability:alpha
+- **Depends on:** intent:ghost
 
 ## Outcome
 

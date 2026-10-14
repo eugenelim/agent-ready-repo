@@ -236,17 +236,39 @@ def test_edge_and_intent_limits_admit_at_and_refuse_over(limits: dict[str, int],
         assert code == 0
 
 
-def test_byte_limit_admits_at_and_refuses_over() -> None:
+@pytest.fixture
+def _fixed_provenance(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin provenance, whose timestamp length varies, so byte sizes repeat exactly."""
+    real = nav._provenance
+
+    def fixed(root: Any, graph: Any) -> dict[str, Any]:
+        prov = real(root, graph)
+        prov["generated_at"] = "2026-01-01T00:00:00+00:00"
+        return prov  # type: ignore[no-any-return]
+
+    monkeypatch.setattr(nav, "_provenance", fixed)
+
+
+@pytest.mark.usefixtures("_fixed_provenance")
+def test_byte_limit_admits_at_exactly_the_size_and_refuses_one_under() -> None:
+    """JSON bytes: admitted at the observed size, refused one byte below (AC-0007)."""
     ok = _ok(_DEP, "--id", "intent:golf")
     size = len(json.dumps(ok, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
-    _, code = _q(_DEP, "--id", "intent:golf", limits={"max_result_bytes": size + 200})
+    _, code = _q(_DEP, "--id", "intent:golf", limits={"max_result_bytes": size})
     assert code == 0
-    result, code = _q(_DEP, "--id", "intent:golf", limits={"max_result_bytes": 100})
+    result, code = _q(_DEP, "--id", "intent:golf", limits={"max_result_bytes": size - 1})
     assert code == 1 and result["error"]["code"] == "result_too_large"
+    assert result["error"]["observed"] == {"bytes": size}
 
 
-def test_text_byte_limit_refuses() -> None:
-    result, code = _q(_DEP, "--id", "intent:golf", "--format", "text", limits={"max_result_bytes": 50})
+def test_text_byte_limit_admits_at_exactly_the_size_and_refuses_one_under() -> None:
+    """Text bytes: admitted at the observed size, refused one byte below (AC-0007)."""
+    text, code = _q(_DEP, "--id", "intent:golf", "--format", "text")
+    assert code == 0
+    size = len(text.encode("utf-8"))
+    _, code = _q(_DEP, "--id", "intent:golf", "--format", "text", limits={"max_result_bytes": size})
+    assert code == 0
+    result, code = _q(_DEP, "--id", "intent:golf", "--format", "text", limits={"max_result_bytes": size - 1})
     assert code == 1 and result["error"]["code"] == "result_too_large"
 
 
@@ -305,21 +327,60 @@ def test_text_output_identifies_an_isolated_start_and_escapes_controls(tmp_path:
     assert "‮" not in text
 
 
+def test_live_brief_and_spec_targets_are_outside_scope_too(tmp_path: pathlib.Path) -> None:
+    """A typed or path pointer to a brief or spec that exists is still ``outside_scope`` (AC-0002, AC-0003)."""
+    root = _copy(tmp_path)
+    (root / "docs" / "product" / "briefs" / "some-brief.md").write_text(
+        "# Brief: Some brief\n\n- **Slug:** `some-brief`\n- **Status:** Draft\n"
+        "- **Parent intent:** capability:root-a\n\n## Outcome\n\nPlaceholder.\n", encoding="utf-8")
+    spec_dir = root / "docs" / "specs" / "some-spec"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text("# Spec: Some spec\n\n- **Status:** Draft\n- **Brief:** brief:some-brief\n",
+                                       encoding="utf-8")
+    _write_intent(root, "FEAT-0052-uniform.md", "uniform",
+                  ["brief:some-brief, spec:some-spec, docs/product/briefs/some-brief.md, docs/specs/some-spec/spec.md"])
+    r = _ok(root, "--id", "intent:uniform")
+    assert r["edges"] == []
+    assert [(d["value"], d["form"], d["state"]) for d in r["diagnostics"]] == [
+        ("brief:some-brief", "typed", "outside_scope"),
+        ("spec:some-spec", "typed", "outside_scope"),
+        ("docs/product/briefs/some-brief.md", "path", "outside_scope"),
+        ("docs/specs/some-spec/spec.md", "path", "outside_scope"),
+    ]
+
+
 # ---------------------------------------------------------------- safety and compatibility
 
 
-def test_a_file_changed_between_the_two_reads_refuses(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Adding an intent between ``derive`` and the dependency read gives ``unsafe_input`` (AC-0004)."""
+def _add_tango(root: pathlib.Path) -> None:
+    _write_intent(root, "FEAT-0051-tango.md", "tango", [])
+
+
+def _remove_oscar(root: pathlib.Path) -> None:
+    (root / "docs" / "product" / "intents" / "FEAT-0014-oscar.md").unlink()
+
+
+def _tombstone_oscar(root: pathlib.Path) -> None:
+    (root / "docs" / "product" / "intents" / "FEAT-0014-oscar.md").write_text(
+        "# Oscar (tombstone)\n\n- **Slug:** `oscar`\n- **Tombstone:** retired 2026-01-01\n"
+        "- **Status:** Withdrawn\n\n## Note\n\nRetired.\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize("change", [_add_tango, _remove_oscar, _tombstone_oscar])
+def test_a_file_changed_between_the_two_reads_refuses(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, change: Any,
+) -> None:
+    """Adding, removing or tombstoning an intent between the two reads gives ``unsafe_input`` (AC-0004)."""
     root = _copy(tmp_path)
     graph_mod = nav._load_graph_mod()
     real = graph_mod.derive
 
-    def derive_then_add(r: pathlib.Path) -> dict[str, Any]:
+    def derive_then_change(r: pathlib.Path) -> dict[str, Any]:
         graph = real(r)
-        _write_intent(root, "FEAT-0051-tango.md", "tango", [])
+        change(root)
         return graph  # type: ignore[no-any-return]
 
-    monkeypatch.setattr(graph_mod, "derive", derive_then_add)
+    monkeypatch.setattr(graph_mod, "derive", derive_then_change)
     result, code = _q(root, "--id", "intent:alpha")
     assert code == 1 and result["error"]["code"] == "unsafe_input"
 

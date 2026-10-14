@@ -199,9 +199,10 @@ returns the start alone.  The JSON result carries ``start``, ``direction``,
 ``depth``, a ``scope`` notice, the reached ``intents``, the ``edges`` between
 them (each edge's ``from`` waits for its ``to``, with the header values that
 name it), and ``diagnostics`` for values that did not resolve.  A diagnostic is
-a pointer that is dangling, retired, a wrong kind, unparseable, or outside the
-scope (a brief, spec, ADR, or other non-intent target), or a cycle among
-intents.  ``--format text`` prints ``edges (waiting -> prerequisite)`` and the
+a pointer that is dangling, retired, a wrong kind or unparseable, a pointer
+outside the scope (a typed ``brief:`` or ``spec:`` value, or a path under the
+briefs or specs directory), or a cycle among intents.  Any other non-intent
+value, such as an ADR reference, is unparseable.  ``--format text`` prints ``edges (waiting -> prerequisite)`` and the
 diagnostics as lines.  A value is read as a typed id (``intent:``,
 ``capability:``, ``outcome:``, ``opportunity:``) or as a legacy repository
 path to an intent file, so older headers still show.  Only the header is read:

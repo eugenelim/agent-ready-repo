@@ -46,7 +46,7 @@ For a page you can open offline or send to a reviewer, see [Export an offline vi
 
 ## Query operations
 
-The skill exposes seven query operations, each described below. A seventh command, `export`, is described in [Export an offline view](#export-an-offline-view).
+The skill exposes seven query operations, each described below. An eighth command, `export`, is described in [Export an offline view](#export-an-offline-view).
 
 ### summary
 
