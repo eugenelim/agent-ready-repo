@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import tarfile
 from pathlib import Path
@@ -243,10 +244,29 @@ def test_a_policy_whose_red_proof_outlasts_the_lock_is_refused(
     assert _refusal_code(h.admission.load_policy) == "invalid-policy"
 
 
-def test_an_oversized_event_log_does_not_stop_next(tmp_path: Path) -> None:
+def test_an_oversized_event_log_does_not_stop_next(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     repo, _ws, _run = _started(tmp_path)
     limit = h.cli._supervisor("_supervisor_journal.py")._MAX_LOCAL_BYTES
     with (repo / ".loop-run" / "events.jsonl").open("ab") as events:
         events.truncate(limit + 1)  # sparse: past the read bound without writing it
+    capsys.readouterr()
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 0 and "request" in payload, payload
+    assert ".loop-run/events.jsonl was not updated" in capsys.readouterr().err
+
+
+@pytest.mark.skipif(not hasattr(os, "geteuid") or os.geteuid() == 0,
+                    reason="needs a user that a read-only file stops")
+def test_an_unwritable_event_log_changes_no_verb_outcome(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo, _ws, _run = _started(tmp_path)
+    events = repo / ".loop-run" / "events.jsonl"
+    events.chmod(0o444)
+    capsys.readouterr()
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and "request" in payload, payload
+    code, admitted = controller.report(controller.work(payload["request"]))
+    assert code == 0 and "admitted" in admitted, admitted
+    assert ".loop-run/events.jsonl was not updated" in capsys.readouterr().err
