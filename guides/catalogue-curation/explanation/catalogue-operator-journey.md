@@ -45,7 +45,7 @@ The engineer does not configure input file paths; the skill discovers what it ne
 No ledger is opened on a direct assimilation — the assimilation is its own record.
 The engineer reviews the diff before the PR is merged; the PR is the governance artifact for a single-primitive adoption.
 
-After landing, run `python tools/run-pack-evals.py --pack <name>` to verify the new skill activates on the right prompts and stays quiet on near-misses.
+After landing, run `agentbundle pack evals run --pack <name>` to verify the new skill activates on the right prompts and stays quiet on near-misses.
 
 **Primary touchpoints:** `assimilate-primitive`.
 
@@ -134,13 +134,13 @@ They have shaped a skill to their catalogue's craft and want to upstream it.
 The path is a PR against the upstream repo: take the shaped skill from `packs/<pack>/.apm/skills/<name>/`, open a PR against the upstream, and let the upstream's own assimilation review run.
 
 The upstream will run its own OWASP AST review and activation evals — it treats the contribution as a fresh primitive.
-The author can pre-clear these by running `python tools/lint-skill-spec.py` and `python tools/run-pack-evals.py --pack <name>` locally before opening the PR.
+The author can pre-clear these by running `agentbundle catalogue lint --root . --deep` and `agentbundle pack evals run --pack <name>` locally before opening the PR.
 
 There is no `export-to-upstream` skill — the upstream PR is intentionally a manual, human-reviewed act.
 The no-merge-back principle means the upstream reviews the contribution as new work, not as a trusted sync.
 This is the correct posture: bidirectional sync between a catalogue and its derivatives is where divergence accumulates and identity-leak accidents happen.
 
-**Primary touchpoints:** The upstream repo's own assimilation review; `lint-skill-spec.py` and `run-pack-evals.py` for pre-clearance.
+**Primary touchpoints:** The upstream repo's own assimilation review; `agentbundle catalogue lint --deep` and `agentbundle pack evals run` for pre-clearance.
 
 **Where to go next:** [The convergence model](the-convergence-model.md) — the no-merge-back principle explained.
 
