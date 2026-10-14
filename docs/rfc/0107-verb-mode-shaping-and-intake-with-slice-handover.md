@@ -520,3 +520,21 @@ their 2026-08-28 deprecation. Every §10 removal condition still applies.
     `the-operating-model.md` in #1531.
   - The link under *Terms used here* now points at the new path.
   - Nothing else changes.
+- **2026-10-13 (Approver: eugenelim) — the longer-route and supervised shaping skills stay narrow.**
+  - The Experiment section's activation check failed for folding the nine longer-route
+    and supervised shaping skills (`frame-situation`, `identify-opportunities`,
+    `diverge-solutions`, `explore-options`, `plan-validation`, `place-bet`,
+    `map-capabilities`, `frame-domain`, `lean-canvas`) into verb modes.
+  - One `intent` skill holding all ten modes reached a positive trigger rate of 0.728,
+    then 0.739, against a pre-fold 0.856 and a floor of 0.826. A repeated pre-fold run
+    gave 0.856 again, so the drop is not noise.
+  - The two-skill split in ADR-0145 (`intent` plus `initiative`) reached 0.461 against a
+    pre-fold 0.600 on a fresh query set, with a floor of 0.570. ADR-0145 is Rejected.
+  - In every run, almost every miss fired no skill, while a cold forced-choice probe
+    picked the right skill and mode. A broad description routes correctly but loads less
+    often than narrow ones.
+  - D1 therefore applies to the short route only: `intent` holds `frame`, `de-risk`, and
+    `decompose`, as shipped. The nine skills above keep their own names and
+    descriptions, and D6's hard retirement does not reach them.
+  - The listing-cost problem in Problem & goals still stands; it needs another lever.
+  - Evidence: `docs/specs/intent-longer-and-supervised-verbs/notes/verification-ledger.md`.

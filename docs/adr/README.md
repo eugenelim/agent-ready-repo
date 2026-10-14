@@ -146,3 +146,4 @@
 | 0142 | [Meta-repo handover: component slices acquired by component repos, status by pinned receipts](0142-meta-repo-handover-component-slices-and-pinned-receipts.md) | Accepted | 2026-10-10 |
 | 0143 | [Released changelog records move into monthly bundles](0143-released-changelog-records-move-into-monthly-bundles.md) | Accepted | 2026-10-03 |
 | 0144 | [Work-loop procedure and review authority: a skill-shipped supervisor over the phase engine, cohort writer, and legacy review gate](0144-work-loop-supervisor-owns-procedure.md) | Accepted | 2026-10-11 |
+| 0145 | [Shaping entry points: `intent` for the intent lifecycle, `initiative` for the longer route](0145-shaping-entry-points-intent-and-initiative.md) | Rejected | 2026-10-12 |

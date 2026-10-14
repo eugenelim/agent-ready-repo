@@ -12,8 +12,10 @@
 Shaping and intake each get one entry point, and work crosses from a meta-repo to its
 component repos without a hand copy.
 
-- A team shaping product work reaches every shaping step through one `intent` skill. It
-  picks their route and loads only the step they need.
+- A team shaping product work starts from one `intent` skill. Its route mode picks the
+  short, longer, or supervised route and names the first step. `intent` runs the short
+  route's steps itself; the longer-route steps stay separate skills, because folding them
+  into modes lowered how often they load (RFC-0107 § Errata).
 - A component repo runs its whole intake lifecycle through `work-intake`: acquire, record
   an intent, create and continue a brief, and refresh.
 - A value-stream meta-repo hands each component its share of a feature as a component
@@ -22,8 +24,8 @@ component repos without a hand copy.
 
 ## Success metrics (optional)
 
-- `product-engineering` lists 3 skills: `intent`, `discovery-loop`, and
-  `align-value-stream`. Today it lists 15 skills that use 9,373 description characters.
+- `intent` replaces `frame-intent`, `de-risk-intent`, and `decompose-intent`, and the
+  nine longer-route and supervised shaping skills keep their own names.
 - In Core, `work-intake` replaces `intake-intent`, `author-delivery-brief`,
   `author-brief`, and `receive-brief`.
 - Activation and mode accuracy for the new skills meet the threshold in
@@ -39,29 +41,23 @@ component repos without a hand copy.
 
 - **The `intent` skill.**
   - Route mode is read-only. It picks the short, longer, or supervised route from
-    observable facts in the request, names the first mode, and asks one question when the
+    observable facts in the request, names the first step, and asks one question when the
     facts conflict.
-  - Each verb mode replaces one or two of today's skills:
-    - `frame` replaces `frame-intent`.
-    - `situate` replaces `frame-situation`.
-    - `find` replaces `identify-opportunities`.
-    - `diverge` replaces `diverge-solutions` and `explore-options`.
-    - `de-risk` replaces `de-risk-intent` and `plan-validation`.
-    - `bet` replaces `place-bet`.
-    - `map` replaces `map-capabilities`.
-    - `decompose` replaces `decompose-intent`, including tracker projection.
-    - `ground` replaces `frame-domain`.
-    - `canvas` replaces `lean-canvas`.
+  - Three verb modes replace today's short-route skills: `frame` replaces `frame-intent`,
+    `de-risk` replaces `de-risk-intent`, and `decompose` replaces `decompose-intent`,
+    including tracker projection.
   - Each mode's procedure lives in its own reference file. The mode table stays in the
     skill body.
-  - The eval files of the retired skills that have them merge into `intent`, and each
-    query gains a mode assertion.
+  - The three retired skills' eval files merge into `intent`, and each positive query
+    names its mode.
+  - The longer-route and supervised shaping skills stay separate: `frame-situation`,
+    `identify-opportunities`, `diverge-solutions`, `explore-options`, `plan-validation`,
+    `place-bet`, `map-capabilities`, `frame-domain`, and `lean-canvas`.
   - `discovery-loop` and `align-value-stream` keep their own evals, updated for their
     changed descriptions. `ux-writing`'s evals move with it.
-  - New should-trigger and should-not-trigger queries cover `situate`, `find`, `diverge`
-    at initiative altitude, `bet`, `map`, and `canvas`.
 - **`discovery-loop`.**
-  - Its gates call `intent` modes.
+  - Its gates call `intent` modes for framing, de-risking, and decomposing, and the
+    separate shaping skills for divergence, domain grounding, and validation planning.
   - Its description is trimmed and names the `work-intake` handoff.
   - Four stale statements are fixed:
     - the claim that it hands off to `work-loop`;
@@ -170,9 +166,10 @@ component repos without a hand copy.
 
 ## Assumptions / Risks
 
-- **A broad description under-triggers.** The selection probe forced a choice and was
-  tuned on its own queries. A held-out activation run may show `intent` triggering less
-  often than the narrow skills. If so, split the weakest modes back out.
+- **A broad description under-triggers.** This held for the longer route: folding its
+  nine skills into modes lowered activation by 12 to 14 points while routing stayed
+  correct, so those skills stay separate (RFC-0107 § Errata). The same risk applies to
+  any later fold, including `work-intake`'s modes, so measure activation before building.
 - **The harness may not cover every host.** Activation can be measured only where an eval
   runner exists. RFC-0107's Experiment section sets which hosts are required, and
   [`multi-adapter-eval-runner`](multi-adapter-eval-runner.md) is the Codex path.
@@ -201,7 +198,7 @@ component repos without a hand copy.
 | Spec | Status |
 | --- | --- |
 | `intent-short-route` | Shipped |
-| `intent-longer-and-supervised-verbs` | Draft |
+| `intent-longer-and-supervised-verbs` | Archived |
 | `ux-writing-to-experience-design` | Draft |
 | `component-slice-contract` | Draft |
 | `value-stream-acquire-and-refresh` | Draft |

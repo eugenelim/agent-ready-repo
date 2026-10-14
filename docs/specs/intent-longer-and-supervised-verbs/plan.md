@@ -1,331 +1,418 @@
 # Plan: intent-longer-and-supervised-verbs
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
-- **Repository anchors:** <task-relevant architecture/convention source;
-  one or two analogous production implementations; corresponding tests or
-  construction path; named uncertainty/deviation — or `none — non-structural`>
+- **Status:** Approved
+- **Repository anchors:**
+  - The slice 1 fold: `docs/specs/intent-short-route/` (spec, plan, and `notes/`), and
+    the `intent` skill it built, for the mode table, one procedure per mode, the
+    `Stage:` and `## Next` shape, the evidence note, and the activation driver.
+  - `packs/product-engineering/tests/pack/test_intent_skill_structure.py`, which pins
+    that shape and is extended here.
+  - `packages/agentbundle/agentbundle/commands/pack_evals.py`, the activation runner.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
 > baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
 > only lifecycle bookkeeping is permitted, and execution observations belong in
-> `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
-> equivalent). A genuine artifact error follows the controlled-amendment path.
->
-> **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
-> completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
-> and `Risks` are working material that an implementer corrects in place only
-> before approval: approval hashes the whole plan. After approval, grounding for
-> a seam recorded as `no stub (implementation-discovered)` goes to the
-> verification ledger; a settled design decision that execution falsified is a
-> plan error that follows the controlled-amendment procedure. Treating them as
-> contract is how a review spends a round on prose no gate consumes — the
-> measured share is over half the plan's lines. `Grounding` stays *recorded*,
-> because a per-task resolution that nobody wrote is not grounding; what it stops
-> being is a claim a reviewer holds the plan to.
-
-<!-- Existing plans without this field remain valid. Treat its absence as a
-named assurance gap during structural review, not a universal lint failure. -->
-
-<!-- **Durable-plan fill.** This template is the implementation and verification
-strategy for a durable delivery slice. Fill Approach, Constraints, Risks,
-Design, Tasks, and Changelog to the depth the durable work requires. Its sibling
-spec is the durable behavior contract. Eligible direct-light work does not
-create this artifact. -->
+> `notes/verification-ledger.md`. A genuine artifact error follows the
+> controlled-amendment path.
 
 ## Approach
 
-<!--
-A paragraph describing the strategy. What's the shape of the change? What's
-the order of operations? What's the riskiest part?
+The order is the slice 1 order: measure first, build beside the old skills, switch, then
+delete only after the evidence passes.
 
-A reader should finish this section knowing roughly what files will move and
-what the testing story is, without yet seeing the detailed task list.
--->
+1. Build `initiative` beside the sources, moving the longer-route modes out of `intent`;
+   `intent` keeps `ground` and `de-risk`'s validation-plan section. Trim `discovery-loop`.
+   Every candidate description is then final.
+2. Hash those descriptions, write a fresh held-out set, and record the pre-fold activation
+   baseline on it while the nine sources exist. The pre-fold probe of 2026-10-11 stands.
+3. Split the evals, then retarget Core, the package, other packs, tools, tests, guides,
+   and docs.
+4. Prove routing and activation in a world where the sources are gone.
+5. Accept ADR-0145, then write the erratum and the brief edit, delete the sources, bump
+   versions, record the release, and self-host.
+
+The riskiest part is still activation. ADR-0145 splits the modes so each description has
+room for the nouns users type; whether that recovers the narrow skills' trigger rate is
+what the activation run decides.
 
 ## Constraints
 
-<!--
-What ADRs, RFCs, or other commitments shape this implementation? Cite them.
-This is what keeps the plan from contradicting prior decisions.
--->
+- RFC-0107 D1, D2, and D6, ADR-0140, and ADR-0145: route mode stays stateless and lives
+  only in `intent`, `discovery-loop` stays separate and calls modes of both `intent` and
+  `initiative`, and retired names get no alias. ADR-0145 stays `Proposed` until the T8
+  evidence passes.
+- ADR-0111 D8, as its Errata entry reads: the `de-risk` mode never dispatches
+  `adversarial-reviewer`. The validation-plan section inherits that rule.
+- `packs/AGENTS.md`: shipped pack content cites no internal governance record, every
+  non-cosmetic pack change bumps the pack, and a pack update also updates its eval
+  harness.
+- `tools/lint-pack-test-boundary.py`: pack tests read nothing above their pack, and
+  build paths from literal segments.
+- Commits touching `packages/agentbundle` carry an `Engine-Change-RFC:` trailer.
 
 ## Construction tests
 
-Most construction tests live under **Tasks** below (per-task `Tests:`
-subsections). This top-level section is only for cross-cutting tests that
-span tasks.
+**Integration tests:**
+- `test_intent_skill_structure.py`, `test_intent_triad_execution_wiring.py`,
+  `test_architect_optional_offers.py`, and `test_de_risk_intent_reviewer_boundary.py`;
+- `tools/test_workspace_status.py`;
+- `tests/roster/test_skill_census.py`, `tests/roster/test_rfc0099_activation_coverage.py`,
+  and `tools/test_live_demo_guide.py`.
 
-<!--
-Construction tests guide implementation. They sit in two layers:
-
-1. **Per-task tests** (the majority) live under each Task below, in the
-   `Tests:` subsection. That's where unit, edge-case, and property tests
-   for a single task go.
-2. **Cross-cutting tests** (this section) live here, listed once: integration
-   tests that span tasks, end-to-end smoke tests, and any manual verification
-   steps.
-
-Designed up front, before EXECUTE. Revisable if a test over-specifies an
-internal detail the plan later changes. The contract itself lives in
-`spec.md` (Acceptance Criteria + Testing Strategy); construction tests
-that verify it live here.
-
-**Integration tests:** <list, or "none beyond per-task tests">
-**Manual verification:** <list, or "none">
--->
+**Manual verification:** AC-0010.
 
 ## Durable-output map
 
-<!--
-This section maps each task to the spec's Durable Outputs table so closeout can
-verify planned output, implementation evidence, and closeout evidence without
-copying requirements into a second record.
-
-For each output, name:
-
-- planned output
-- implementing task(s)
-- implementation evidence
-- closeout evidence
-- unresolved destination or freshness blocker, if any
-
-If the plan's Design (LLD) contains a non-inferable design fact, map it to its
-semantic owner here. Mechanically evident details may stay with code, types,
-docstrings, and tests; one-off construction order may remain delivery residue.
--->
-
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| <semantic role / destination> | <Tn> | <test, build, guide, contract, or review artifact> | <what close-work verifies> |
+| User promise: guides and graphic | T7 | Edited guides; regenerated SVG | AC-0016, AC-0018, AC-0034 |
+| Product truth: pack and site pages | T7 | Edited pages | AC-0016 |
+| Architecture: `lifecycle-flow.md` | T7 | Edited flow | AC-0016 |
+| Decision rationale: ADR-0145, RFC-0107 erratum, brief | T9 | The accepted ADR, the erratum, and the edited brief | AC-0044, AC-0046, AC-0047 |
+| Release history: changelogs | T9 | Entries for each released artifact | AC-0030 to AC-0033 |
 
 ## Design (LLD)
 
-The low-level design — the *how*, below the Approach and above the per-task
-steps. **Optional and shape-pruned:** scaffold only the sub-sections the spec's
-`Shape:` selects, and delete the rest. A one-file change keeps this section thin
-or empty; a heavyweight feature fills most of it. The spec stays the contract —
-**no acceptance criterion lives here**; each sub-section instead **traces to the
-AC(s) it satisfies and the `contracts/` it implements**, so the design is always
-anchored to something verifiable.
-
-Stack-neutral by construction: these are the *kinds* of design decision every
-build makes, never a framework. Name your actual stack *inside* each sub-section
-from the repository's mapped architecture and convention sources. If none are
-usable, use manifests/build files and, for structural work, one or two analogous
-production implementations with their tests or construction path; elicit any
-unresolved load-bearing choice. The headings themselves stay universal.
-
-<!-- Shape → sub-sections (a guide, not a gate):
-  ui          → decomposition, state & control flow, behavior & rules, quality attributes
-  service     → interfaces & contracts, data & schema, failure & resilience, quality attributes
-  data        → data & schema, interfaces & contracts
-  integration → dependencies & integration, interfaces & contracts, failure & resilience
-  mixed/unsure→ scaffold all, then prune.
-Delete every sub-heading the shape doesn't select. -->
-
 ### Design decisions
-<!-- optional — the load-bearing choices and the alternatives rejected, one line
-of why each. Traces to: <AC(s) this satisfies> · <contracts/… it implements>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
-### Data & schema
-<!-- optional — entities, fields, types, ownership, migrations, retention.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature migrates existing data, name backfill checkpointing,
-restartability, and cutover validation. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+Owned by: T1, T2, T3, T7, T8, T9
 
-### Interfaces & contracts
-<!-- optional — the surfaces this feature exposes or consumes (REST API, event
-interface, BFF, RPC). Point at the `contracts/<type>/` file each implements.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature crosses a boundary, name a test seam for each
-crossed boundary. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
-
-### Component / module decomposition
-<!-- optional — the parts and their responsibilities; what's new vs. reused; for
-UI, the component tree. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
-
-### State & control flow
-<!-- optional — state model and transitions; sequencing across components; for
-UI, screen states and navigation. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When state changes concurrently, name concurrency, consistency,
-locking, atomicity, and transaction boundaries. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+- **Two skills.** ADR-0145 decides the split. `intent` holds route, `frame`, `de-risk`,
+  `decompose`, and `ground`. `initiative` holds `situate`, `find`, `diverge`, `bet`,
+  `map`, and `canvas`, with no route mode. Each mode's procedure body is
+  `references/<mode>.md` of its skill. The source assets and examples move flat into the
+  skill holding their mode, and `map`'s two example folders keep their subfolders, giving
+  the file sets AC-0011 lists. The longer-route modes cite no shared `intent` reference
+  file, so `initiative` needs no copy of one.
+- **Cross-skill names.** A mode reference names its own skill's modes and the other
+  skill's modes with their skill prefix (`intent de-risk`, `initiative bet`), so an
+  offer always names an invocable target.
+- **Two-procedure modes.** `diverge.md` opens with one entry rule: a scored initiative or
+  capability opportunity runs the options procedure, which writes `solution-options.md`;
+  a framed intent that wants candidate product shapes runs the shapes procedure, which
+  writes discovery slots. `de-risk.md` keeps its single-bet procedure and gains a
+  validation-plan section, entered when a converged set of assumptions needs a validation
+  plan and instrument scaffolds. Neither section adds a dispatch.
+- **Save paths stay as the sources had them.** `canvas` writes
+  `docs/product/initiatives/<slug>.md`, `ground` writes under
+  `docs/discovery/<initiative>/`, and the slot-writing procedures write no file.
+- **Shape directives.** `tools/add-rendering-directives.py` maps each skill to its output
+  shapes and manages only `SKILL.md`. Each moved body drops its managed block.
+  - T7 adds an `intent` entry (narrative, key-value, tree: `frame-domain`'s narrative
+    and key-value, `plan-validation`'s key-value, and the key-value, narrative, and tree
+    lines slice 1 left in `frame.md`, `de-risk.md`, and `decompose.md`) and an
+    `initiative` entry (table, narrative, key-value: the union of the other seven
+    sources'), so the measured `SKILL.md` files are the ones that ship.
+  - T9 removes the nine source entries, together with the deletion. Removing an entry
+    earlier marks its source stale.
+  - The tool has no path filter, and `--write` rewrites every drifted skill. On
+    2026-10-11 `--check` already reported five unrelated skills as drifted:
+    `agent-skill-engineering`'s `author-or-update-agent-skill` and
+    `review-or-optimize-agent-skill`, Core's `explain-diff`, `experience-design`'s
+    `information-architecture`, and `governance-extras`' `navigate-decisions`. T4 to T6
+    are committed before T7 runs `--write`. Just before `--write`, T7 lists the paths
+    `--check` reports other than `intent/SKILL.md` and `initiative/SKILL.md`. If that
+    list is not exactly those five `SKILL.md` files, T7 stops and asks the owner.
+    Otherwise, after `--write`, it restores exactly those five paths with
+    `git checkout --`.
+- **Tool authority.** No source declared `allowed-tools` or boundaries. `ground`'s
+  research goes through an optional `desk-research` call, so neither skill needs a new
+  boundary.
+- **The descriptions.** `intent` names its four verbs, says route mode applies only when
+  the user asks which way to shape, and names four exclusions: `intake-intent`,
+  `new-spec`, `discovery-loop`, and `initiative`. `initiative` names its six verbs with
+  the concrete artifact each produces, and excludes `intent` and `discovery-loop`. Changes
+  after the probe has run follow the Ask-first rule.
+- **The `discovery-loop` description.** At most 600 characters. It keeps its five trigger
+  phrases, names the `work-intake` hand-off, and sends a standalone discovery artifact to
+  `intent ground` or `initiative diverge`.
+- **Probe cases.** The 24 cases in `notes/probe-cases.json` stay fixed. Their pre-fold
+  run of 2026-10-11 is the recorded baseline; the pre-fold descriptions are unchanged
+  since. T2 updates each case's expected post-fold selection to AC-0024's table.
+- **The held-out activation set.** The AC-0029 set, all new queries, written in T1 and
+  never shown to the probe. It replaces the 2026-10-11 set, which informed two description
+  revisions. A repeated pre-fold baseline on 2026-10-12 gave the same 0.856 positive
+  rate, with an aggregate standard error of about 0.019, so the 3-point bound is about
+  1.5 standard errors.
+- **Where the activation runs happen.** As in the first attempts:
+  - Each world is projected pack by pack (`product-engineering`, `core`, `architect`)
+    into fresh OS temporary directories outside every repository, then merged.
+  - A scratch driver outside the repository calls `run_eval` with `project_root` set to
+    that projection and a detector that wraps `ClaudeCodeDetector` and adds
+    `--setting-sources project,local`, logging each run's fired skills.
+  - The pre-fold world is a disposable detached worktree of the base commit. Each
+    source's query file holds its owned positives, `intent`'s holds the `frame`,
+    `de-risk`, and `decompose` positives, and one file also holds the 12 negatives.
+  - A negative's false-trigger rate counts runs where `intent`, `initiative`, or any
+    source fired.
+  - The post-fold world is a second disposable worktree after T7, with the sources
+    deleted, `[pack.evals].skills` updated, self-host run, and each skill's query file
+    holding the held-out positives of its modes; `intent`'s also holds the negatives.
+  - Both worlds also run `discovery-loop`'s query file as it stood before this change.
+  - Queries run in parallel jobs, each in its own copy of the projection. Nothing from
+    either worktree is committed.
 
 ### Behavior & rules
-<!-- optional — the business and validation rules and the decisions they drive.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
-### Failure, edge cases & resilience
-<!-- optional — what can go wrong and the response: retries, fallbacks, timeouts,
-partial failure, idempotency, degraded modes. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When external failures are possible, name stable error classes,
-retryability, and external failure mapping. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+Owned by: T2
 
-### Quality attributes (NFRs)
-<!-- optional — how the design meets each NFR-with-a-bar from the spec's
-Acceptance Criteria (performance, accessibility, security posture, operability).
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature needs operational visibility, name a concrete
-observability surface. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+- **Route mode.** The longer route's signal stays "the problem itself is unclear, or the
+  bet is large". Its first step becomes `initiative situate`.
+- **Lifecycle map.** `intent` owns the full map. The longer route lists the five
+  `initiative` modes and `intent de-risk` in order, then the hand-off. The supervised
+  route lists the modes `discovery-loop` calls at each gate. `initiative canvas` sits
+  under a short "Off the routes" note. `initiative/SKILL.md` repeats only the longer
+  route, and a pack test holds the two lists equal.
+- **Next offers.** Offers are phrased as questions, and no mode starts another. When the
+  conversation shows no route, `de-risk` asks which route applies. `situate`'s offer
+  follows its own entry-point rule: an unknown problem leads to `find`, known problems
+  with unknown options lead to `diverge`, and known options needing a committed bet lead
+  to `bet`.
+- **Replies.** Each mode's `Stage:` line ends "Name this stage in the first line of every
+  reply this mode gives." The 2026-10-12 walks showed standalone replies skipping the
+  stage without it.
+- **Readiness notes.** A note that fires when a now-folded skill is absent is removed.
+  A note about a skill outside the two, such as `author-delivery-brief`, stays.
 
 ### Dependencies & integration
-<!-- optional — external systems, services, and libraries this design leans on,
-and the coupling between them. (Reuse `Depends on:` / `Touches:` on the tasks
-below for *execution* ordering; this sub-section is for *design*-level coupling.)
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
-> **Rollout & deployment** — the tenth design dimension — is **not** a
-> sub-heading here. It is realized by [`## Rollout`](#rollout) below (infra,
-> external-system integration, deployment sequencing). Cross-link it from the
-> relevant sub-sections; never duplicate it.
+Owned by: T4, T5, T6, T7, T9
+
+Callers come from a case-sensitive search for the nine names, taken on 2026-10-11 over
+187 tracked files. They cluster here:
+
+- **product-engineering:**
+  - `discovery-loop` (skill, references, assets) and both discovery agents;
+  - `intent` references that name a source or a longer-route mode;
+  - `align-value-stream`'s evals and layout reference;
+  - two `pack.toml` integrations and `[pack.evals].skills`;
+  - `README.md`, `JOURNEY.md`, `DESIGN.md`, and the pack tests.
+- **Core:**
+  - the `strategy` row in `_SHAPING_TYPE_TO_SKILL`, in `workspace_status_engine.py` and
+    `workspace-status/SKILL.md`;
+  - `work-loop/SKILL.md`'s shaping-item guard;
+  - `new-spec/references/spec-and-plan-contract.md`.
+- **Package:** the `_data` engine mirror and `workspace_mcp.py`.
+- **Other packs:**
+  - `desk-research/SKILL.md`;
+  - `product-strategy`'s `run-okr-cascade` skill, evals, and routing reference, plus its
+    pack docs;
+  - `experience-design`'s `creative-direction/references/grounding.md`.
+- **Tools and roster:**
+  - `render-lifecycle-graphics.py` and `add-rendering-directives.py`;
+  - the `RETIRED_SHAPING_SKILLS` constants in `test_intent_skill_structure.py` and
+    `test_intent_triad_execution_wiring.py`, which gain the nine names in T9, together
+    with the deletion, because one test asserts every listed name is absent. The constants
+    in `tools/test_live_demo_guide.py` and `tests/roster/test_rfc0099_activation_coverage.py`
+    pin frozen records and stay unchanged;
+  - `test_architect_optional_offers.py`, whose body reads move to the mode references;
+  - the skill census fixture.
+- **Docs:**
+  - the guide pages and three site pages;
+  - `lifecycle-flow.md`, three journey records, `workspace-toml-deps.md`, and
+    `docs/product/initiatives/_template.md`, which `canvas` builds from;
+  - a `workspace.toml` comment that cites line numbers in the retired skills;
+  - two Draft specs: `guide-invocation-outcome-coverage` and
+    `how-to-sample-output-coverage`.
+- **Decision records:** ADR-0145's status and `docs/adr/README.md`, RFC-0107 § Errata,
+  and the brief's Outcome, success metric, Scope mode map, eval lines, and
+  `discovery-loop` line.
 
 ## Tasks
 
-The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
-**Phrase each task as a verifiable goal, not a procedure.** The task name
-*is* the success criterion: *"Add validation"* → *"All invalid-input tests
-pass"*; *"Refactor X"* → *"Tests for X green before and after; public
-surface unchanged"*. Tests drive implementation, not the other way around, so
-`Tests:` leads every task. Use red-green-refactor with separate commits when
-the change is non-trivial.
+### T1 — Fresh held-out set and pre-fold activation baseline
 
-**`Approach:` is conditional.** Write one when the task carries a decision a
-reader cannot infer from `Tests:` and `Done when:` — an *ordering* decision
-(step B must follow step A for a reason the tests do not show) or a *seam*
-decision (which module, which existing helper, which boundary). Omit it when
-those two fields already say what to build and how it is observed: an
-`Approach:` that restates them is a second home for the same instruction, and
-no completion gate reads it. The field order is unchanged where it appears —
-`Tests:`, then `Approach:`, then `Done when:`.
-
-**Every task must declare `Depends on:` explicitly** — list prior task IDs
-or `none`. Don't omit the field; "obvious from order" is the failure mode
-that hides serial-by-default thinking. `none` is a valid and common answer.
-
-Planning is sufficient when the plan supplies an observable contract, owner,
-boundaries, ordering, discovery predicates where a seam is not grounded,
-required outcomes, and verification modes adequate to begin safely. It need
-not settle a helper name, symbol, fixture-internal detail, or complete edge-case
-matrix before implementation. Such questions are build-time guidance unless
-their absence makes the plan unable to start or verify the contract.
-
-Keep observable behavior in `spec.md`. Use an exact path or symbol here only
-when repository evidence grounds it. For an implementation-discovered callable
-seam, record `no stub (implementation-discovered)` and its discovery predicate,
-constraint, required outcome, and verification mode; do not invent a helper,
-fixture, module, path, or symbol.
-
-**`Depends on:` grammar** (so the supervisor-mode scheduler —
-`loop-cohort schedule` — can read it). The field is a comma-separated list of:
-local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
-`spec:<name>/TN` for a dependency on another spec's task (e.g.
-`spec:auth-tokens/T7`). Parenthetical prose after the IDs is
-ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
-*spec-sequencing*, not intra-plan waves, and are excluded from this plan's
-DAG. The scheduler **fails on a dependency cycle** and **warns on a
-forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first). A `Depends on:` entry that
-names no task in the plan is refused: the run exits non-zero, every offending
-task→dep pair is named, and nothing is persisted.
-
-**Optional `Touches:` grammar** (read by `loop-cohort schedule`).
-A task *may* add a `**Touches:**` line listing the file globs it expects to
-touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
-trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
-`predicted-disjoint: yes|no|unknown` **before** dispatch — a cheap
-*serialize-only* screen. It **never greenlights** parallel: a predicted overlap
-serializes early, but `yes`/`unknown` still require the authoritative post-write
-`git merge-tree` check to actually parallelize (under-declaration is unsafe).
-The field is **optional** — omit it freely; a task with no `Touches:` makes its
-wave `unknown`, never an error.
-
-<!--
-Order matters — list tasks in the order they should be done. Mark
-dependencies inline. Format each task so a contributor (human or agent)
-could pick it up and complete it without follow-up questions:
-
-### T1: <task name>
-
-**Depends on:** <none | comma-separated prior task IDs>
-
+**Depends on:** T2, T4
+**Mode:** activation
+**Touches:** `docs/specs/intent-longer-and-supervised-verbs/notes/`
 **Tests:**
-- <test 1 — behaviour, edge case, or property; reference the Acceptance
-  Criterion from spec.md this step verifies, if any>
-- <test 2>
-<!-- For an already-grounded callable seam or coherent TDD task family, include
-     one compilable red contract-surface assertion (`stub: true`). It need not
-     encode the finished edge-case matrix. -->
+  - The ledger records the hash of each candidate description this change edits
+    (`intent` and `initiative` from T2, `discovery-loop` from T4) before the fresh
+    held-out set is written. The set shares no query with the 2026-10-11 set, any eval
+    file, or the probe cases, and no held-out query or five-word run from one appears in
+    a candidate description (AC-0029).
+  - Its pre-fold run, plus `discovery-loop`'s pre-change query file, is recorded with
+    zero errored runs and the host's listed skills (AC-0029).
+**Done when:** the ledger holds the pre-fold result.
 
-**Approach:** <omit this field unless the task carries an ordering or seam
-decision the two fields around it do not show>
-- <the decision, and why this way>
+### T2 — Build `initiative` beside the sources
 
-**Done when:** <name a concrete observable — specific test green, gate
-  passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
-  an execution-evidence destination; use the verification ledger. Not "looks
-  good" or "feature works".>
+**Depends on:** none
+**Mode:** goal-based
+**Touches:** `packs/product-engineering/.apm/skills/intent/**`,
+`packs/product-engineering/.apm/skills/initiative/**`, the pack tests,
+`notes/probe-cases.json`, `packs/agent-skill-engineering/tests/fixtures/skill-census.json`
+**Tests:**
+  - `test_intent_skill_structure.py` and a new `initiative` structure test cover AC-0001,
+    AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0011,
+    AC-0039, AC-0041, AC-0043, AC-0042 over the files T2 writes (each skill's `SKILL.md`,
+    `references/`, `assets/`, and `examples/`), and AC-0036's no-marker half. The longer-route
+    check reads `initiative/references/situate.md`.
+  - `test_de_risk_intent_reviewer_boundary.py` passes (AC-0012).
+  - `test_skill_census.py` passes, with `initiative` added to the census fixture.
+  - The modules that read the nine sources still pass while the sources exist.
+**Done when:** these tests pass and catalogue lint is clean.
 
-### T2: <task name>
+### T3 — Split the evals
 
-...
--->
+**Depends on:** T2
+**Mode:** goal-based
+**Touches:** `intent/evals/**`, `initiative/evals/**`, `notes/verification-ledger.md`
+**Tests:**
+  - An owner, polarity, mode-key, and duplicate check over each skill's query file
+    (AC-0021, AC-0045), including the cross-owned carried queries the ledger lists.
+  - AC-0042 over both skills' `evals/` folders.
+  - The per-mode positive counts and the cross-skill and other negatives (AC-0022).
+  - The `frame-domain` `evals.json` carry-or-drop listing, and
+    `test_architect_optional_offers.py` reading its eval ids from `intent/evals/`
+    (AC-0023).
+**Done when:** these tests pass.
 
+### T4 — `discovery-loop`, `discovery-lead`, and the discovery guide
+
+**Depends on:** T2
+**Mode:** goal-based
+**Touches:** `discovery-loop/**` (including its evals), `agents/discovery-lead.md`,
+`agents/discovery-reliability-reviewer.md`, `guides/product-engineering/how-to/run-a-discovery.md`,
+`tests/roster/test_discovery_handoff_wording.py`, `notes/verification-ledger.md`
+**Tests:**
+  - `test_intent_triad_execution_wiring.py`, extended for AC-0013, AC-0014, AC-0038,
+    AC-0040's query presence, and AC-0015 over the two pack files.
+  - `tests/roster/test_discovery_handoff_wording.py` applies the AC-0015 pattern to
+    `run-a-discovery.md`, with the fixed cases the criterion names.
+  - The ledger lists the owner of each AC-0040 query.
+  - AC-0042 over the `discovery-loop` files T4 writes, its description included, so the
+    description is final before T1 hashes it.
+**Done when:** these tests pass.
+
+### T5 — Core and package callers
+
+**Depends on:** T2
+**Mode:** TDD for the `strategy` mapping; goal-based otherwise
+**Touches:** the Core files and package mirror named in Design,
+`tests/roster/test_workspace_status_progressive_disclosure.py`, `tools/test_workspace_status.py`,
+`guides/core/explanation/two-room-model.md`, `guides/core/tutorials/your-first-workspace.md`,
+`docs/product/workspace-toml-deps.md`, `notes/verification-ledger.md`
+**Tests:**
+  - `tools/test_workspace_status.py` expects `initiative` for `strategy` (AC-0017).
+  - The `BACKEND_DIGESTS` pin for `workspace_status_engine.py` and the work-loop contract
+    hash are re-pinned, each with a ledger entry.
+  - The AC-0048 surfaces name `initiative` as the `strategy` destination.
+**Done when:** these pass.
+
+### T6 — Other packs and integrations
+
+**Depends on:** T2
+**Mode:** goal-based
+**Touches:** `desk-research`, `product-strategy`, `experience-design`, and
+`product-engineering/pack.toml`'s integrations
+**Tests:**
+  - The AC-0020 integration values, and catalogue lint.
+  - The `product-strategy` and `experience-design` lines AC-0049's search finds name
+    `initiative` or an `initiative` mode.
+**Done when:** these pass.
+
+### T7 — Tools, tests, guides, site, and docs
+
+**Depends on:** T3, T4, T5, T6
+**Mode:** goal-based
+**Touches:** tools and their tests, `test_architect_optional_offers.py`, `guides/**`,
+`web/src/content/**`, the pack docs, `docs/architecture/lifecycle-flow.md`,
+`docs/product/journeys/`, `docs/product/workspace-toml-deps.md`,
+`docs/product/initiatives/_template.md`, `workspace.toml`, the two Draft specs,
+`packs/product-engineering/.apm/skills/intent/SKILL.md`, and
+`packs/product-engineering/.apm/skills/initiative/SKILL.md`
+**Tests:**
+  - The AC-0016 search, excluding the nine source directories, `[pack.evals].skills`,
+    the census fixture, and the nine map entries in `tools/add-rendering-directives.py`,
+    all of which T9 clears.
+  - The AC-0018 guide check.
+  - The AC-0042 search over the AC-0016 surfaces, recorded in the ledger. The pack tests
+    from T2 and T3 cover the two skill folders.
+  - The AC-0049 search, with every hit and its disposition recorded in the ledger,
+    including the `workspace.toml` comment and `route-it-to-work.md`.
+  - The AC-0034 regeneration check.
+  - The `intent` and `initiative` map entries and the two `SKILL.md` rewrites (AC-0036).
+    Each path `--check` listed before `--write`, other than those two, shows no diff
+    against the branch's merge base with `origin/main`.
+**Done when:** these tests pass.
+
+### T8 — Post-fold probe, activation, and walks
+
+**Depends on:** T1, T3, T7
+**Mode:** bounded routing-classification evidence; activation; manual QA
+**Touches:** `notes/`
+**Tests:**
+  - One scored post-fold attempt: the AC-0024 cases, three runs each, on one
+    byte-identical candidate set (AC-0026), passing AC-0025, with the AC-0028 caveat.
+  - The shipped descriptions match that attempt's candidates byte for byte (AC-0027).
+  - The attempt's candidate descriptions match hashes the ledger recorded before the
+    held-out set was written, or, for a revised description, before that attempt; each
+    revised description passes the five-word-run check (AC-0029).
+  - One post-fold activation run on those descriptions, against every AC-0029 bound.
+  - A new scored attempt only after a recorded failure, an owner revise choice, and a
+    changed candidate description.
+  - The source-to-mode diff at a recorded base commit, with each hunk attributed to an
+    exempt edit (AC-0037's first half).
+  - The AC-0010 walks, headless with `--permission-mode acceptEdits --allowed-tools
+    "Skill Read Write Edit Agent Glob Grep"`, with an owner, non-goals, and a save path
+    supplied so the walk reaches each mode's end. The ledger records those grants.
+**Done when:** every check passes. Any failure stops the slice here, before T9.
+
+### T9 — Delete sources, bump, record, self-host, and observe
+
+**Depends on:** T8
+**Mode:** goal-based
+**Touches:** the nine source directories, `pack.toml` and `plugin.json` files, the
+`packages/agentbundle` version files, `docs/product/changelog.md`,
+`packages/agentbundle/CHANGELOG.md`,
+`packs/agent-skill-engineering/tests/fixtures/skill-census.json`, the two pack-test
+`RETIRED_SHAPING_SKILLS` constants, `tools/add-rendering-directives.py`,
+`docs/adr/0145-shaping-entry-points-intent-and-initiative.md`, `docs/adr/README.md`,
+`docs/rfc/0107-verb-mode-shaping-and-intake-with-slice-handover.md`,
+`docs/product/briefs/verb-mode-skills-and-slice-handover.md`, and the projections
+**Tests:**
+  - First: eugenelim's sign-off sets ADR-0145 to `Accepted`, recorded in the ledger, and
+    `python3 .claude/skills/new-adr/scripts/index-records.py docs/adr` regenerates the
+    ADR index, and its `--check` run reports no change (AC-0047). Then the RFC-0107
+    erratum (AC-0044), the brief edit (AC-0046), and the deletions, each with its own
+    dated ledger entry in that order.
+  - AC-0016 directory absence and the full search again, the AC-0042 and AC-0049
+    searches again, and AC-0019 membership.
+  - `test_skill_census.py` passes with the nine entries removed.
+  - AC-0030 versions.
+  - The changelog entries for AC-0031, AC-0032, and AC-0033.
+  - An install-then-upgrade observation of a removed skill directory, recorded in the
+    ledger, for AC-0031.
+  - AC-0035 lint and verify after self-host.
+  - The nine names added to the two pack-test `RETIRED_SHAPING_SKILLS` constants, and
+    the pack suite passing.
+  - The nine source map entries are removed, and the AC-0036 `--check` reading holds.
+    The unrelated paths T7 listed still show no diff against the branch's merge base
+    with `origin/main`.
+  - Last, after `git fetch origin main`: the AC-0037 base comparison over the nine
+    source directories, recorded with the fetched commit.
+**Done when:** these tests pass.
 
 ## Rollout
 
-<!--
-How this ships — the tenth design dimension, realized here rather than as a
-`## Design (LLD)` sub-heading (cross-linked from there, never duplicated). Cover
-the dimensions that apply; a pure-logic change with none of them says so in one
-line.
-
-- **Delivery:** behind a flag? big bang? gradual / canary? Reversible — what is
-  the rollback, and what's irreversible (a data migration, a published event)?
-- **Infrastructure:** new or changed infra this needs (compute, storage, queues,
-  network, secrets, IAM) and how it's provisioned.
-- **External-system integration:** third-party or sibling-service dependencies
-  that must be live, migrated, or version-matched before this can ship.
-- **Deployment sequencing:** the order steps must ship in when one depends on
-  another — schema migration before the code that reads it, consumer before
-  producer, dark-launch before cutover. This is the dimension with no other home.
--->
+- **Delivery:** big bang. eugenelim publishes `product-engineering` 2.0.0 and the patch
+  releases of every other edited pack and `agentbundle` on the same day.
+- **Reversibility:** revert the PR and republish the previous versions. Adopters who
+  already deleted stale directories reinstall `product-engineering` 1.0.0.
 
 ## Risks
 
-<!--
-What could go wrong during implementation (vs. risks of the design itself,
-which belong in the spec)? Things like: "this migration is online and could
-slow the database", "this changes a behavior X teams depend on".
--->
+- The activation runs are long, several hundred runs per world. A host usage limit mid-run
+  produces errored runs, which are re-run before scoring.
+- Runs share one projection per world and some write files into it. This affects both
+  worlds alike and is recorded, not corrected.
 
 ## Changelog
 
-<!--
-Approvals, and nothing else. Drafting history does not belong here: while the
-plan is `Drafting` its current text is the only version anyone acts on, so a
-dated account of how it got there is the draft narration `spec.md`'s
-present-tense rule already refuses, one document over. After approval this
-section is pinned like the rest of the plan, and an execution observation goes
-to the verification ledger, not to a new changelog entry.
-
-**Each approval is an entry.** The two forms are given at the end of this
-note — one per gate, a real date, the approver's own handle. Both live here
-because the plan carries the only dated history in the spec directory. Without them nothing in the artifacts says when
-the contract froze or on whose authority, so a later reader cannot tell which
-claims were in it at approval and which arrived afterwards. `work-loop`'s
-G-plan sequence owns *when* each is written and why the order matters; this
-template owns only the form.
-
-- YYYY-MM-DD: spec approved by <handle>
-- YYYY-MM-DD: plan approved by <handle>
--->
+- 2026-10-11: spec approved by eugenelim
+- 2026-10-11: plan approved by eugenelim
+- 2026-10-13: spec approved by eugenelim (two-skill re-fold amendment)
+- 2026-10-13: plan approved by eugenelim (two-skill re-fold amendment)
