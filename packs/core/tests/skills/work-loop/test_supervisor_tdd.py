@@ -172,26 +172,29 @@ def test_a_stub_failing_with_an_undeclared_exit_is_not_red(tmp_path: Path) -> No
 
 def test_a_spent_red_proof_budget_runs_no_further_stub(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    tests = ("- **VI-1:** both stubs.\n\n" + sup.stub_fence(indent="  ") + "\n\n"
+    # The first stub outlasts a one-second budget shared by both stubs, so the
+    # second must never start: a per-stub budget would launch it.
+    slow = sup.stub_fence(body="import time\ntime.sleep(10)\n", indent="  ")
+    tests = ("- **VI-1:** both stubs.\n\n" + slow + "\n\n"
              + sup.stub_fence(path="test_calc_two.py", body=SECOND_STUB, indent="  "))
     repo, controller = _stepper(tmp_path, _calc_plan(tests))
     policy = h.admission.load_policy()
     monkeypatch.setattr(h.admission, "load_policy",
-                        lambda: {**policy, "red_proof_budget_seconds": 0})
+                        lambda: {**policy, "red_proof_budget_seconds": 1})
     tdd = h.cli._supervisor("_supervisor_tdd.py")
-    launched: list[list[str]] = []
+    launched: list[str] = []
 
     class _Recording:
         TimeoutExpired = subprocess.TimeoutExpired
 
         @staticmethod
         def run(argv: list[str], **kwargs: Any) -> Any:
-            launched.append(argv)
+            launched.append(argv[-1])
             return subprocess.run(argv, **kwargs)
 
     monkeypatch.setattr(tdd, "subprocess", _Recording)
     _, payload = h.run_cli(repo, "next", SPEC)
     code, refused = controller.report(controller.work(payload["request"]))
     assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
-    assert "test_calc.py exited None" in refused["refusal"]["detail"]
-    assert not any("test_calc.py" in " ".join(argv) for argv in launched), launched
+    assert "test_calc_two.py exited None" in refused["refusal"]["detail"]
+    assert launched == ["test_calc.py"], launched
