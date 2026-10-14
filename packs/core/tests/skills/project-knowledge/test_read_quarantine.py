@@ -571,10 +571,10 @@ def test_locator_validation_rejects_every_unsafe_shape(store) -> None:
         "docs/knowledge/a\u0085b",
         "docs/knowledge/a b",
         "docs/knowledge/a b",
-    "docs/knowledge/a\u202eb""docs/knowledge/a\u200bb"0b",
+        "docs/knowledge/a\x00b",
+        "docs/knowledge/a\u202eb",
+        "docs/knowledge/a\u200bb",
         "docs/knowledge/a\ufeffb",
-        "docs/knowledge/a​b",
-        "docs/knowledge/a﻿b",
         "docs/knowledge/a\ud800b",
         "docs/knowledge/../secret",
         "docs/other/file.json",
