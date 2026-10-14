@@ -2837,8 +2837,10 @@ def test_vi_4001_part_across_width_and_theme(opener: Any, exports: dict[str, pat
     assert right <= width + 0.5
 
 
-# 2000 to 2240 CSS px put the part's result just above the wide breakpoint, where tracks are tightest.
-@pytest.mark.parametrize("width", [320, 1280, 1680, 2000, 2080, 2160, 2240, 2560])
+# 2000 to 2240 CSS px keep the part's result between the 40rem line breakpoint and the 51rem problem-row
+# breakpoint, so problem rows stack; 2440 and 2480 put it just above 51rem, where the problem-row columns
+# are tightest; 2560 is the widest matrix width.
+@pytest.mark.parametrize("width", [320, 1280, 1680, 2000, 2080, 2160, 2240, 2440, 2480, 2560])
 @pytest.mark.parametrize("corpus", ["dependency_long", "dependency"])
 def test_vi_4001_long_source_titles_keep_values_readable(
     opener: Any, exports: dict[str, pathlib.Path], width: int, corpus: str,
