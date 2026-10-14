@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-CHANGE",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-09-27T10:36:09Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202609-9ced7a7c96e019a75ffd12160966b89cc278998e1e5f4ac0e7ca30601047b583",
+      "mutation_id": "28bf4889569c61e68aeef01e0415d1322ef2f7f07a07517d7d9f4c25ec047515",
+      "observed_at": "2026-09-27T10:36:09Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/product-engineering",
+      "semantic_gate": "spec-approved",
+      "source": {
+        "path": "docs/specs/frame-intent-experience-handoff/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 8574,
+      "kind": "sha256-bytes-v1",
+      "sha256": "a59d5678eca6c4aeda754d7104e854da2fea4644caed09c9bb28325c4d665021"
+    },
+    "path": "docs/specs/frame-intent-experience-handoff/spec.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/product-engineering",
+    "docs/specs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 15326,
+        "kind": "sha256-bytes-v1",
+        "sha256": "3d60520ae9662dec8ad15e5b7355a4d3d10d0f043b8af343dd8952a453be6ccb"
+      },
+      "path": "docs/specs/frame-intent-experience-handoff/plan.md"
+    }
+  ],
+  "synthesis": {
+    "body": "A prompt skill a person invokes by name has no test that can observe it being invoked. Two duties therefore have to be written into the spec contract rather than left to the implementer's judgement at the end of the loop. First, release duty. The packaged skill's version lives in more than one file: for the Product Engineering pack, `pack.toml` and `.claude-plugin/plugin.json` must carry the same new patch version, and the eval harness has to gain the cases for the new behaviour. Stating that as an acceptance criterion (AC-0010 in docs/specs/frame-intent-experience-handoff/spec.md) is what makes the version skew and the missing eval case a test failure instead of a release-day surprise. Second, evaluation duty. Where no automated assertion can reach -- the shipped skill actually exposing the new optional block on a real request -- the spec names manual QA as the strategy and the criterion carries three things: a qualifying request that should trigger the behaviour, the result that counts as a pass, and a durable locator for the recorded run. Without the locator the approval is a claim nobody can re-check; the next reviewer either repeats the whole exercise or waves it through. The shape generalises: when a criterion's only evidence is a human looking at output, write the request, the expected observation, and where the observation is kept into the criterion before approving the spec.",
+    "kind": "pattern"
+  },
+  "title": "A user-invoked skill's release and manual-QA duties belong in the spec contract",
+  "topic_key": "a-user-invoked-skills-release-and-manual-qa-duties-belong-in-the-spec-contract"
+}
