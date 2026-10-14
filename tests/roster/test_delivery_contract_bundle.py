@@ -685,7 +685,8 @@ _ECMA_PORTABLE_ESCAPE = r"\\(?:u[0-9a-fA-F]{4}|[.\\/\-\[\](){}+*?|^$])"
 def test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax() -> None:
     """JSON Schema 2020-12 reads `pattern` as ECMA 262; Python `re` must read it alike.
 
-    Allowed: BMP `\\uXXXX`, the exact `[\\s\\S]` any-character idiom, escaped punctuation,
+    Allowed: BMP `\\uXXXX`, the exact `[\\s\\S]` any-character idiom, escaped punctuation
+    (`\\-` only inside a class),
     `(?:`, `(?=`, `(?!`. Refused: `\\d`, `\\D`, `\\w`, `\\W` and a bare `\\s` or `\\S` (the two
     engines read them differently), `\\U`, `\\A`, `\\Z`, `\\z`, named groups, atomic or
     possessive forms.
@@ -700,6 +701,8 @@ def test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax() -> Non
         for group in re.finditer(r"\(\?(.?)", stripped):
             assert group.group(1) in (":", "=", "!"), (where, "non-portable group", pattern)
         no_classes = re.sub(r"\[(?:\\.|[^\]\\])*\]", "C", pattern)
+        # ECMA `u` mode allows `\-` only inside a character class.
+        assert "\\-" not in no_classes, (where, "bare escaped hyphen", pattern)
         assert re.search(r"(?<!\\)[*+?}]\+", no_classes) is None, (where, "possessive", pattern)
     assert not [w for w, p in patterns if "\\U" in p or "(?P" in p]
 

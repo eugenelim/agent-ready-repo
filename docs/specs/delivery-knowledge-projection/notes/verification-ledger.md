@@ -347,8 +347,9 @@ failure. Self-host was rerun after the last edit.
 
 ## Review round 3 fixes
 
-Each sustained finding of review round 3 maps to one change and one proof. No
-version moved and no commit was made. The spec and plan are untouched. Where a
+Each sustained finding of review round 3 maps to one change and one proof. These
+fixes are in commit db07f3f8b. No version moved, and the spec and plan are
+untouched. Where a
 round 2 row above claimed both-mode behavior or equal reading, it is corrected in
 place; the rows below state what holds now.
 
@@ -358,3 +359,22 @@ place; the rows below state what holds now.
 | ADV Concern 2: without the `u` flag the surrogate range refuses every astral character, undeclared and untested | The `text` description in `knowledge-observation.v1` now says the pattern assumes ECMA-262 `u`-flag semantics and that a validator without `u` refuses every astral character, emoji included. The `_knowledge_projection.py` comment now says the syntax compiles in both modes but behavior is defined under `u`. This replaces the round 2 both-mode behavior claim. | The Node check adds `ok \u{1F600} done` and `\u{20000}`: accepted under `u`, refused without it (run under Node here, not skipped). |
 | QE Concern 1: the portability guard admitted `\d \D \w \W \s \S`, which Python and ECMA read differently | `_ECMA_PORTABLE_ESCAPE` drops `dDwW` and the bare `sS`; `\s`/`\S` pass only inside the exact `[\s\S]` idiom. The docstring states this. The guard checks syntax only; the proof cell of the round 2 row no longer claims equal reading. | Mutation: temporarily changed `\d{64}` into the observation id pattern; `test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax` failed, then the schema was restored (zero diff). |
 | SEC Nit 1: `candidate-mode.md` claimed all default-ignorable characters are refused | The sentence now names a fixed list (soft hyphen, combining grapheme joiner, Hangul fillers, Khmer inherent vowels, Mongolian selectors, variation selectors, other BMP ranges the check names) and no longer says "the other default-ignorable characters". The seed README already states only the per-candidate omission, so it needed no change. | Wording check. |
+
+### Gates
+
+- `make lint-ruff lint-mypy`: pass. `tools/test-lint-pack-test-boundary.py`: 158 cases ok.
+- Work-loop, project-knowledge, and close-work pack suites plus the delivery roster
+  suites: 4217 passed, 6 skipped, 1 failed in 62s. The failure is the known
+  `test_loop_engine.py::...[deep-nesting]`. The Node ECMA check ran. Self-host was
+  rerun after the last edit.
+
+## Review round 4 fixes
+
+Security came back clean. Each other sustained finding of review round 4 maps to
+one change and one proof. No version moved, and the spec and plan are untouched.
+
+| Finding | Change | Proof |
+| --- | --- | --- |
+| QE Nit 1: the portability guard admitted a bare `\-`, which ECMA-262 rejects outside a class under `u` | `test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax` now refuses `\-` outside a character class and still allows it inside one. | Mutation: a bare `\-` added to the observation id pattern turned the test red with no Node involved, then the schema was restored (zero diff). |
+| ADV Nit 1 and QE Nit 2: the round 3 header said no commit was made and the section had no gate receipt | The round 3 header names commit db07f3f8b, and a round 3 Gates receipt records the post-fix run. | Wording check against `git log`. |
+
