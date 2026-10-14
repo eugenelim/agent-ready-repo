@@ -105,7 +105,7 @@ Implemented by the `implementer` subagent at `eaa20e66d`, uncommitted in the wor
 
 ### Screenshots
 
-- Retaken at `7e4a76c38`, after the experience-review and polish fixes (one ruled unit per line with the state under each name; line hairlines in the shared rule colour; every end keeps a 3px gutter, shown in the accent colour on the picked intent, whose link also carries `aria-current`). Same script and procedure as above: `opportunity:work-item-promotion-routing` (3 lines) picked with Both and All, a fresh context per width (height 900) and theme, the Dependencies part scrolled into view. The real-export comparison was re-run with the fix and all three holders still match.
+- Retaken at `6210b86e3`, after the experience-review, polish and code-review layout fixes (one ruled unit per line with the state under each name; line hairlines in the shared rule colour; every end keeps a 3px gutter, shown in the accent colour on the picked intent, whose link also carries `aria-current`). Same script and procedure as above: `opportunity:work-item-promotion-routing` (3 lines) picked with Both and All, a fresh context per width (height 900) and theme, the Dependencies part scrolled into view. The real-export comparison was re-run with the fix and all three holders still match.
 
 | Width | Theme | File | SHA-256 |
 | --- | --- | --- | --- |
@@ -133,20 +133,21 @@ Implemented by the `implementer` subagent at `eaa20e66d`, uncommitted in the wor
 
 ### Final-commit browser record (VI-5004)
 
-- Last code-bearing commit: `7013131ae`. Asset SHA-256: `view.js` `266f8f4330774ea06ec52d90eead065f90bc5ecb9d985e55a90bb7cdcf0d1227`; `view.css` `13ce089e60f32f0d2716bac0b0d054e6fcbeb65b61f509f7fe07187e6fe24283`; `view-base.css` `169980e3c1d48d43ca118dba6e2fc0860bb71c91b4ce45c8b5344ddb6d7fc0ff`.
-- `view_browser_checks.py`: 125 passed, 0 skipped in 41 s. `test_export_html.py`: 9 passed, 0 skipped. The contrast checks (AC-0010) cover the part's muted lead and sort lines in both themes.
-- Scale re-check at `7013131ae` after the layout fix: 1 copy 677,752 bytes, startup 10 ms, search 15 ms, heap 5 MiB; 50 copies 24,748,318 bytes, startup 111 ms, search 49 ms, heap 50 MiB; every threshold met.
+- Last code-bearing commit: `6210b86e3` (later commits change tests and this ledger only). Asset SHA-256: `view.js` `edc2005807a5d59f6380e3d740483ee2d5789efc6f99f5fced885a95504fe699`; `view.css` `4a234856b57ab6eb76e26aa7cb04f4ac92d962205246d60482ddf6be24a9eeea`; `view-base.css` `b58201d0c8befddebc2f4b95f1c4142251b0f48d01c9dd33d01765f28727bbe1`.
+- `view_browser_checks.py`: 145 passed, 0 skipped in 41 s (at `a0e53400f`, the same assets). `test_export_html.py`: 9 passed, 0 skipped. The contrast checks (AC-0010) cover the part's muted lead and sort lines in both themes.
+- The AC-0026 real-export comparison and both screenshot sets were re-run at `6210b86e3`: all three `Depends on:` holders match the query.
+- Scale re-run at `6210b86e3` (same command as § Scale): every threshold met at every size.
 
-## Code review round 1 repairs
-
-- Rebased on `origin/main` at `3216c5b40`, which had released Core 3.1.4; this release moved to 3.1.5 (§ Release above).
-- Deviation from T3/T4 `Touches`: the second experience-review fix added four border-colour rules to `view_assets/view-base.css` (`.dep-line` joins `.part` and `.key-list .fact` on `--c-rule`; `.dep-waiting, .dep-prereq` on `--c-bg`; `.dep-self` on `--c-accent`). The plan forbids colour in `view.css`, and the base file's own rule is that a layout file sets a border's width and style while its colour is chosen there; `tools/check_view_base_parity.py` passes (one copy).
-- VI-1001 cases added to the dependency fixture and its hand-written manifest: an empty segment, a `..` segment, a leading `/`, a URL scheme, `featre:a/b`, a `docs/specs/` path, a typed value with a malformed slug, a tombstone with no reissue (`quebec-old`), and `intent:ghost` written twice by `india` (one diagnostic). New tests: removing or tombstoning an intent between the two reads refuses with `unsafe_input`; live brief and spec targets, typed and path, are `outside_scope`; JSON and text byte limits admit at exactly the observed size and refuse one byte under it. Dropping the empty-segment guard now fails 1 test. `test_dependencies.py`: 43 passed.
-- The skill's `outside_scope` sentence now names typed `brief:`/`spec:` values and brief/spec paths only, and says other non-intent values such as ADR references are unparseable. The guide counts `export` as the eighth command.
+| Copies | `outstanding` available | Default rows | File bytes | Startup ms | Search ms | Heap MiB | Meets every threshold |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | yes | 31 | 680,758 | 10 | 9 | 5 | yes |
+| 10 | no (`resource_limit`, limit `files`) | 0 | 5,020,970 | 29 | 37 | 14 | yes |
+| 25 | no (`resource_limit`, limit `files`) | 0 | 12,420,115 | 64 | 48 | 28 | yes |
+| 50 | no (`resource_limit`, limit `files`) | 0 | 24,752,019 | 100 | 43 | 47 | yes |
 
 ### Visual polish review
 
-- Asked for after the contract-fit passes: a finish review over the real-export set and a fixture-state set, taken at `7e4a76c38` with the throwaway `/tmp/s8/polish.py` (outside the repository) from an export of the dependency fixture: `golf-faults` (`intent:golf`, Both, 1 step: 2 lines and 19 problem rows), `india-cycle` (`intent:india`, Both, All: a 3-intent cycle and two faults), `rootb-empty` (`capability:root-b`, empty state, keyboard focus on "Steps"), at 320 and 2560 CSS px in light and dark, height 1100.
+- Asked for after the contract-fit passes: a finish review over the real-export set and a fixture-state set, taken (latest at `6210b86e3`) with the throwaway `/tmp/s8/polish.py` (outside the repository) from an export of the dependency fixture: `golf-faults` (`intent:golf`, Both, 1 step: 2 lines and 19 problem rows), `india-cycle` (`intent:india`, Both, All: a 3-intent cycle and two faults), `rootb-empty` (`capability:root-b`, empty state, keyboard focus on "Steps"), at 320 and 2560 CSS px in light and dark, height 1100.
 - Pass 1: no Blocker; Majors — problem rows had no shared columns at wide widths, and narrow problem rows broke unpredictably with values split mid-token; Minors — no break between lines and problems, a large gap before "waits for" for short names, a double hairline at the part's end, two left edges, an uneven name-to-mark gap, cycle members running together; Nits — a one-word orphan in the lead, and the "What is broken" part's different fault layout. All but the last were repaired: a subgrid for problem rows when the part is at least 40rem wide (tracks: mark, state, source 12–16rem, value at least 12rem, note; the columns apply from a 51rem part width, where those tracks fit), one stacked status / source / value / note anatomy with a break opportunity after `/`, `\` and `:` when narrow, a rule and gap above the problem list, shared fit-content | auto | 1fr tracks for lines, the gutter hung into the panel padding by a relative offset (so it never narrows the name's track), a fixed link line height, wider gaps between cycle members, and `text-wrap: pretty` on the lead.
 - Pass 2: no Blocker, no Major. Repaired: a waiting name that wrapped because the hung gutter shrank its track; problem rows with no status reading as part of the row above (every problem row is now ruled off); the note column drifting from short values. Deferred, not acted on: a long value can still break at a hyphen inside a file name (`FEAT-0001-` / `alpha.md`), and the "What is broken" part keeps its own fault layout.
 
@@ -154,15 +155,15 @@ Implemented by the `implementer` subagent at `eaa20e66d`, uncommitted in the wor
 | --- | --- |
 | `screens/states/golf-faults-320-light.png` | `6592762d2cce61fc10089a36b5cb1a5b4e6a96c858398d7bef3b6c4461cd469d` |
 | `screens/states/golf-faults-320-dark.png` | `dc0f8760da3557d09135c1335865c0c0f09006eb0971556f1bde31c7bce96c71` |
-| `screens/states/golf-faults-2560-light.png` | `3b592cc4a72f751e50238978a5ed396a32f9685331cd7022f8dccb97748190f0` |
-| `screens/states/golf-faults-2560-dark.png` | `712a03e4bb06d531d4263acf527cd665d5b0ca579c8374c4da2cc9f87ad75235` |
+| `screens/states/golf-faults-2560-light.png` | `9982f2f031eea8accb1abff9d64e0012c8b1c3ca1ae12ebafa45cb26005f4556` |
+| `screens/states/golf-faults-2560-dark.png` | `45ffe03daf02abd5c9ed1a28f5676238fabdee70c27e7a22fb3b823cbfcad106` |
 | `screens/states/india-cycle-320-light.png` | `35fab182b6f716e8da3985061e27cc30e2514280caf67710e9846537586ae260` |
 | `screens/states/india-cycle-320-dark.png` | `1152e5b2ae27c23232d331b455074b20a9939459ae6af1348ab4e568db14cf47` |
-| `screens/states/india-cycle-2560-light.png` | `276365252f38ec7854512244b01bdcc60f9cca35191a61d88c08febab100065b` |
-| `screens/states/india-cycle-2560-dark.png` | `a5c8ec7b5a656b0a463f9a841d723d2ec2bef02b7e9edabcde000df348bbe926` |
+| `screens/states/india-cycle-2560-light.png` | `9efd51891770167c8a1193f55eed6bc5de5892908c2f35c01be22827889b9979` |
+| `screens/states/india-cycle-2560-dark.png` | `b2da9fe3a86f2fd35cc010672e39dbddb8980403d56298b88e63161e1b902e3a` |
 | `screens/states/rootb-empty-320-light.png` | `94bce2536912871144c03f2cfcebaa62a27472d0e0dc8e1ec74ef2106422987b` |
 | `screens/states/rootb-empty-320-dark.png` | `dea2a0bb6af16093ebf637a869a8e714c28313585f6fa4a142a7070a7bbfc433` |
-| `screens/states/rootb-empty-2560-light.png` | `bcacdd576dcedcc976390292a7c55e08121e6796f3d446b3b6fbde21e4ef69a9` |
-| `screens/states/rootb-empty-2560-dark.png` | `2da71f600079a9e635b5e807429938235d49538c1cf0fb4d663040b639f350a3` |
+| `screens/states/rootb-empty-2560-light.png` | `6a34c08bc3ac0902666f2800fc9ebbf41922c8da0a50bb43d2e83b7a31d69011` |
+| `screens/states/rootb-empty-2560-dark.png` | `341394e34429e5e1d3e73ad1a91de1b51fc9a443ccadcc20443f011cf45a4e5c` |
 - Code review round 2 found that a long source title squeezed the wide value column to 0 px (one character per line, the detail scrolling sideways). The tracks above fix it: the source wraps inside its 16rem cap and the value keeps at least 12rem. New browser check `test_vi_4001_long_source_titles_keep_values_readable` retitles two sources with a 63-character title and asserts, at 320, 1280, 1680 and 2560, no sideways scroll of the page or the detail zone and no value taller than three lines; it failed at 2560 before the fix.
 - Code review round 3 found the round-2 fix moved the squeeze into the source column at part widths just above 40rem (33 px for the source; its state mark ran 18 px into the value). The problem grid now has its own 51rem container query and a 12–16rem source track. The long-title check now runs over `dependency_long` and the plain `dependency` export at 320, 1280, 1680, 2000, 2080, 2160, 2240 and 2560 CSS px, and also asserts that no child of a source cell extends past it or into the value beside it and that a source stays within six lines; with the round-2 tracks it fails 4 of its 16 cases.
