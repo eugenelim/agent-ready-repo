@@ -48,8 +48,9 @@ follows the normal pending, distill, and promote lifecycle.
 - A valid page can still hold a candidate that fails the text or path privacy
   checks, or holds a refused character, or repeats a source. The refused
   characters are line terminators, controls (C0 and C1), bidi controls,
-  zero-width characters, the other default-ignorable characters (soft hyphen,
-  combining grapheme joiner, Hangul fillers, variation selectors), tag
+  zero-width characters, a fixed list of default-ignorable characters (soft hyphen,
+  combining grapheme joiner, Hangul fillers, Khmer inherent vowels, Mongolian
+  selectors, variation selectors, and the other BMP ranges the check names), tag
   characters (U+E0000-U+E0FFF), and surrogates. That candidate is omitted and the frame shows
   `<omitted ordinal="N" entry="E" reason="CODE"/>` with a code from
   `privacy`, `unsafe_character`, `duplicate`, or `oversized`, and no candidate

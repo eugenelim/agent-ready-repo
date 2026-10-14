@@ -67,9 +67,10 @@ _MAX_RULE_REF_CHARS: Final[int] = 120
 _MAX_PATH_CHARS: Final[int] = 240
 _MAX_IDENTIFIER_CHARS: Final[int] = 128
 
-# Every pattern below uses only syntax valid in Python `re` and in ECMA 262, with
-# and without the `u` flag: BMP `\uXXXX` escapes and lookahead.  `_END` is end of
-# string in both; `$` would admit a trailing LF in Python.
+# Every pattern below uses only syntax that compiles in Python `re` and in ECMA 262,
+# with and without the `u` flag: BMP `\uXXXX` escapes and lookahead.  Behaviour is
+# defined under `u` (code points); without it the surrogate range refuses every astral
+# character.  `_END` is end of string in both; `$` would admit a trailing LF in Python.
 _END: Final[str] = r"(?![\s\S])"
 # The BMP part of the refused text characters; the schema text pattern is exactly this.
 _BAD_TEXT_CHARS: Final[str] = (

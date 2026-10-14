@@ -675,21 +675,27 @@ def _all_patterns() -> list[tuple[str, str]]:
     return found
 
 
-_ECMA_PORTABLE_ESCAPE = r"\\(?:u[0-9a-fA-F]{4}|[sSdDwW.\\/\-\[\](){}+*?|^$])"
+# `\d`, `\D`, `\w`, `\W` are Unicode classes in Python `re` and ASCII-only in ECMA-262, and a
+# bare `\s` covers different sets, so none is admitted. `[\s\S]` (any character) is the one
+# exact idiom both engines read alike; it is replaced before the escape scan.
+_ECMA_ANY_CHARACTER = r"[\s\S]"
+_ECMA_PORTABLE_ESCAPE = r"\\(?:u[0-9a-fA-F]{4}|[.\\/\-\[\](){}+*?|^$])"
 
 
 def test_every_schema_pattern_uses_only_ecma_and_python_portable_syntax() -> None:
     """JSON Schema 2020-12 reads `pattern` as ECMA 262; Python `re` must read it alike.
 
-    Allowed: BMP `\\uXXXX`, class shorthands, escaped punctuation, `(?:`, `(?=`, `(?!`.
-    Refused: `\\U`, `\\A`, `\\Z`, `\\z`, named groups, atomic or possessive forms.
+    Allowed: BMP `\\uXXXX`, the exact `[\\s\\S]` any-character idiom, escaped punctuation,
+    `(?:`, `(?=`, `(?!`. Refused: `\\d`, `\\D`, `\\w`, `\\W` and a bare `\\s` or `\\S` (the two
+    engines read them differently), `\\U`, `\\A`, `\\Z`, `\\z`, named groups, atomic or
+    possessive forms.
     """
     import re
 
     patterns = _all_patterns()
     assert len(patterns) >= 10
     for where, pattern in patterns:
-        stripped = re.sub(_ECMA_PORTABLE_ESCAPE, "E", pattern)
+        stripped = re.sub(_ECMA_PORTABLE_ESCAPE, "E", pattern.replace(_ECMA_ANY_CHARACTER, "A"))
         assert "\\" not in stripped, (where, "escape outside the portable set", pattern)
         for group in re.finditer(r"\(\?(.?)", stripped):
             assert group.group(1) in (":", "=", "!"), (where, "non-portable group", pattern)
@@ -711,13 +717,21 @@ for (const flags of ['', 'u']) {
   const re = new RegExp(input.text, flags);
   for (const s of input.accept) out.text.push([flags, 'accept', s, re.test(s)]);
   for (const s of input.refuse) out.text.push([flags, 'refuse', s, re.test(s)]);
+  // Astral text: the pattern is defined under `u` (code points); without `u` the
+  // surrogate range in the class refuses every astral character.
+  for (const s of input.astral) out.text.push([flags, flags === 'u' ? 'accept' : 'refuse', s, re.test(s)]);
 }
 process.stdout.write(JSON.stringify(out));
 """
 
 
 def test_every_schema_pattern_compiles_and_behaves_under_an_ecma_engine() -> None:
-    """Compile each pattern with and without the `u` flag in Node and test the text pattern."""
+    """Compile each pattern with and without `u` in Node and test the text pattern.
+
+    The BMP samples behave the same in both modes. The pattern's behaviour is defined under
+    `u`: there an astral character such as an emoji is accepted, while without `u` the
+    surrogate range in the class refuses every astral character.
+    """
     import shutil
     import subprocess
 
@@ -731,8 +745,15 @@ def test_every_schema_pattern_compiles_and_behaves_under_an_ecma_engine() -> Non
         "a\u17b4b", "a\u180eb", "a\u200bb", "a\u2028b", "a\u202eb", "a\u2060b", "a\u3164b",
         "a\ud800b", "a\ufe0fb", "a\ufeffb", "a\uffa0b", "a\ufff9b", "a\n",
     ]
+    astral = ["ok \U0001f600 done", "\U00020000"]
     payload = json.dumps(
-        {"patterns": _all_patterns(), "text": text_pattern, "accept": accept, "refuse": refuse}
+        {
+            "patterns": _all_patterns(),
+            "text": text_pattern,
+            "accept": accept,
+            "refuse": refuse,
+            "astral": astral,
+        }
     )
     result = subprocess.run(
         [node, "-e", _ECMA_NODE_SCRIPT], input=payload, capture_output=True, text=True, timeout=60, check=False
@@ -748,7 +769,7 @@ def test_every_schema_pattern_compiles_and_behaves_under_an_ecma_engine() -> Non
         if matched != (kind == "accept")
     ]
     assert not wrong, wrong
-    assert len(out["text"]) == 2 * (len(accept) + len(refuse))
+    assert len(out["text"]) == 2 * (len(accept) + len(refuse) + len(astral))
 
 
 def test_free_text_fields_are_typed_as_untrusted_data() -> None:
@@ -1044,6 +1065,12 @@ def _corpus() -> list[tuple[str, dict]]:
     return cases
 
 
+def _observation_at(page: dict, path: str) -> dict:
+    """Return the entry observation a corpus path (`...entries/N/observation/...`) lies in."""
+    entries = path.split("entries/", 1)[1].split("/", 1)[0]
+    return page["entries"][int(entries)]["observation"]
+
+
 def _consumer_accepts(module, page: object) -> bool:  # noqa: ANN001
     try:
         raw = json.dumps(page, ensure_ascii=True).encode("ascii")
@@ -1059,7 +1086,7 @@ def test_the_candidate_validator_agrees_with_jsonschema_on_every_corpus_page() -
     cases = _corpus()
     assert len(cases) > 500
     disagreements = []
-    stricter = []
+    accepted_tags: list[str] = []
     rejected = 0
     for label, page in cases:
         schema_ok = not list(validator.iter_errors(page))
@@ -1067,20 +1094,24 @@ def test_the_candidate_validator_agrees_with_jsonschema_on_every_corpus_page() -
         rejected += not schema_ok
         if label.startswith("tag-"):
             # The one documented asymmetry: a JSON Schema pattern cannot express the
-            # astral tag range portably, so the validator refuses it by an explicit
-            # check and is stricter than `jsonschema` on free text.
-            assert not consumer_ok, label
-            if schema_ok:
-                stricter.append(label)
+            # astral tag range portably, so `jsonschema` accepts a tag character in
+            # free text. The validator accepts the page too and omits that candidate
+            # per candidate (`unsafe_character`); a path field still refuses the page.
+            _, path = label.split(":", 1)
+            if "/observation/" in path and path.endswith("/value"):
+                assert schema_ok and consumer_ok, label
+                assert module.candidate_omission_reason(_observation_at(page, path)) == "unsafe_character", label
+                accepted_tags.append(label)
+            else:
+                assert schema_ok == consumer_ok, label
         elif schema_ok != consumer_ok:
             disagreements.append((label, schema_ok, consumer_ok))
     assert not disagreements, disagreements[:10]
     text_fields = ("rule_ref", "observed", "reachable_path", "actual_failure")
-    for label in stricter:
+    for label in accepted_tags:
         _, path = label.split(":", 1)
-        assert "/observation/" in path and path.split("/")[-2:][0] in text_fields, label
-        assert path.endswith("/value"), label
-    assert stricter, "the tag-character asymmetry must be exercised on free text"
+        assert path.split("/")[-2] in text_fields, label
+    assert accepted_tags, "the tag-character case must be exercised on free text"
     assert rejected > 400, "the corpus must exercise many refusals, not only acceptances"
     assert _consumer_accepts(module, cases[0][1]) and not list(validator.iter_errors(cases[0][1]))
 

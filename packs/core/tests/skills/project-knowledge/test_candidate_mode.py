@@ -445,10 +445,15 @@ _UNSAFE = {
     "variation-selector": "\ufe00",
     "variation-selector-last": "\ufe0f",
     "halfwidth-hangul-filler": "\uffa0",
+}
+# Astral tag characters: no schema pattern names them, so a free-text field holding one
+# is a valid page whose candidate is omitted, while a path field still refuses the page.
+_TAGS = {
     "tag-first": "\U000e0000",
     "tag-latin-a": "\U000e0041",
     "tag-last": "\U000e0fff",
 }
+_UNSAFE_AND_TAGS = {**_UNSAFE, **_TAGS}
 
 
 @pytest.mark.parametrize("name", sorted(_UNSAFE))
@@ -463,17 +468,32 @@ def test_an_unsafe_character_in_any_free_text_field_refuses_the_page_with_no_out
         pk.render_candidates(page_bytes(page))
 
 
-@pytest.mark.parametrize("name", sorted(_UNSAFE))
+@pytest.mark.parametrize("name", sorted(_TAGS))
+@pytest.mark.parametrize("field", _FIELDS)
+def test_a_tag_character_in_a_free_text_field_omits_only_its_candidate(
+    pk, field: str, name: str
+) -> None:
+    page = cs.sample_page(cs.fact_entry(0), cs.fact_entry(1))
+    page["entries"][0]["observation"][field]["value"] = f"before{_TAGS[name]}after"
+
+    rendered = pk.render_candidates(page_bytes(page))
+
+    assert '<omitted ordinal="0" entry="0" reason="unsafe_character"/>' in rendered
+    assert rendered.count("<candidate ") == 1
+    assert _TAGS[name] not in rendered and "before" not in rendered
+
+
+@pytest.mark.parametrize("name", sorted(_UNSAFE_AND_TAGS))
 def test_an_unsafe_character_in_a_path_field_refuses_the_page(pk, name: str) -> None:
     for edit in (
-        _set((*_OBS, "scope_paths"), [f"a{_UNSAFE[name]}b"]),
-        _set(("entries", 0, "source", "spec_path"), f"docs/specs/a{_UNSAFE[name]}b"),
+        _set((*_OBS, "scope_paths"), [f"a{_UNSAFE_AND_TAGS[name]}b"]),
+        _set(("entries", 0, "source", "spec_path"), f"docs/specs/a{_UNSAFE_AND_TAGS[name]}b"),
     ):
         with pytest.raises(ValueError):
             pk.render_candidates(_raw_with(edit))
 
 
-@pytest.mark.parametrize("name", sorted(_UNSAFE))
+@pytest.mark.parametrize("name", sorted(_UNSAFE_AND_TAGS))
 def test_the_per_candidate_character_check_omits_a_field_the_schema_check_missed(pk, name: str) -> None:
     """Defence in depth: the candidate check does not rely on the page check's pattern."""
     for path in (
@@ -489,7 +509,7 @@ def test_the_per_candidate_character_check_omits_a_field_the_schema_check_missed
         node: Any = observation
         for key in path[:-1]:
             node = node[key]
-        node[path[-1]] = f"x{_UNSAFE[name]}y"
+        node[path[-1]] = f"x{_UNSAFE_AND_TAGS[name]}y"
         assert pk.candidate_omission_reason(observation) == "unsafe_character", (name, path)
     assert pk.candidate_omission_reason(cs.sample_observation(0)) is None
 

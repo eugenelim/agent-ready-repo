@@ -1637,8 +1637,9 @@ _FEED_BAD_TEXT_CHARACTERS = (
     r"\ufff9-\ufffb"
 )
 # The tag characters U+E0000-U+E0FFF are astral, which a JSON Schema pattern cannot
-# name portably, so `FEED_PATTERNS["text"]` (the schema text) omits them and the
-# explicit `_CANDIDATE_UNSAFE_CHARACTERS` check below refuses them.
+# name portably, so `FEED_PATTERNS["text"]` (the schema text) omits them. A valid
+# page holding one is not refused whole: the per-candidate
+# `_CANDIDATE_UNSAFE_CHARACTERS` check omits that candidate as `unsafe_character`.
 _FEED_TAG_CHARACTERS = r"\U000E0000-\U000E0FFF"
 _FEED_PATH_SEGMENT = (
     r"(?!\.{1,2}(?:/|" + _FEED_END + r"))[A-Za-z0-9._@+~-]*[A-Za-z0-9_@+~-]"
@@ -1737,8 +1738,6 @@ def _feed_string(value: Any, pattern: str, *, minimum: int = 1, maximum: int) ->
     if not isinstance(value, str) or not minimum <= len(value) <= maximum:
         _feed_fail()
     if _FEED_RE[pattern].search(value) is None:
-        _feed_fail()
-    if pattern == "text" and _CANDIDATE_UNSAFE_CHARACTERS.search(value):
         _feed_fail()
     return value
 
