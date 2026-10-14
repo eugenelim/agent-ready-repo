@@ -243,8 +243,10 @@ below was gathered on the shipped text.
   added "write an interview guide". That made "Design the research study for customer
   interviews", a query the skill should not take, fire it in 3 of 3 runs. Removing the
   phrase brought it back to 0 of 3. The eval file's negatives caught this; the probe has
-  no such case and did not. Six of the nine skills have no eval file, so nothing would
-  catch the same slip in them. Downgraded: one observed case.
+  no such case and did not. The other six skills now carry eval files too
+  (`product-engineering` 1.0.5), each with eight near-miss queries owned by its nearest
+  neighbour, so the same slip in any of them would show up in a run. Downgraded: one
+  observed case.
 
 ### What listing cost really is
 
@@ -434,10 +436,13 @@ Let D2 = the rate with the nine removed minus the mean of the two runs today.
   Would be closed by: Experiment 0.
 - **Known-unknown:** whether shipped C raised or lowered activation on paraphrased
   requests. Would be closed by: Experiment 1.
-- **Known-unknown:** how the six skills with no eval file behave after C:
-  `frame-situation`, `identify-opportunities`, `diverge-solutions`, `place-bet`,
-  `map-capabilities`, and `lean-canvas`. Would be closed by: an eval file for each,
-  including negatives owned by its nearest neighbour.
+- **Known-unknown:** how `frame-situation`, `identify-opportunities`,
+  `diverge-solutions`, `place-bet`, `map-capabilities`, and `lean-canvas` score on their
+  new eval files. The files ship in 1.0.5 but have not been run. Would be closed by:
+  running only those six skills' files, 96 queries at three runs each (288 sessions).
+  `agentbundle pack evals run --pack product-engineering` has no per-skill filter and
+  runs all 13 files, 254 queries or 762 sessions, so a six-skill run needs a scratch
+  copy of the pack with `[pack.evals].skills` narrowed to the six.
 - **Known-unknown:** activation on Codex, Cursor, Copilot, and Gemini CLI. Every rate
   here is Claude Code only. Would be closed by: a headless run of the same held-out set
   on each host, which needs a detector per host in `pack_evals`.
