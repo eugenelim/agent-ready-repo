@@ -75,6 +75,7 @@ _MAX_TEXT_BYTES = 4 * 1024 * 1024
 _AUTHORITY_RE = re.compile(r"(?P<role>[a-z][a-z-]{0,62})(?::[0-9a-f]{12,64})?")
 _SPEC_STATUSES = ("Approved", "Implementing")
 _PLAN_STATUSES = ("Approved", "Executing")
+SCHEMA_VERSION = 1
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -112,7 +113,7 @@ def check_authority_ref(value: object, role: str) -> bool:
 def load_policy() -> dict[str, Any]:
     """Read the skill's supervisor policy data."""
     data = json.loads(_POLICY_PATH.read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or data.get("schema_version") != 1:
+    if not isinstance(data, dict) or data.get("schema_version") != SCHEMA_VERSION:
         raise Refusal("invalid-policy", "skill maintainer", "supervisor-policy.json is malformed")
     return data
 
@@ -215,7 +216,7 @@ class Workspace:
         """
         es = sibling("_evidence_store.py")
         head = self.evidence_bytes()
-        sink = self.local.audit_sink()
+        sink = self.local.security_sink()
         issuer, grant = self.grant(["evidence"])
         with tempfile.TemporaryDirectory(prefix="work-supervisor-evidence-") as scratch:
             log = Path(scratch).resolve() / "evidence.jsonl"
@@ -358,7 +359,7 @@ def start(
             terminal_intent=intent,
             writer_grant=grant,
             issuer=issuer,
-            audit_sink=ws.local.audit_sink(),
+            audit_sink=ws.local.security_sink(),
             store=pi.ImportStore(),
             approval_identity=authority_ref,
             approval_role=roles["start_authority_ref"],
