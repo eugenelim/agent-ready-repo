@@ -41,8 +41,11 @@ journal = cli._supervisor("_supervisor_journal.py")
 projector = cli._supervisor("_supervisor_projector.py")
 
 
-class Crash(Exception):
-    """Raised at a kill point to simulate the supervisor process dying."""
+class Crash(BaseException):
+    """Raised at a kill point to simulate the supervisor process dying.
+
+    A BaseException, so no handler written for real faults can absorb a kill.
+    """
 
 
 def git(repo: Path, *args: str) -> str:

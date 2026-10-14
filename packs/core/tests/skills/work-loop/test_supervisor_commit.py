@@ -108,6 +108,20 @@ def test_a_malformed_record_is_one_json_refusal(tmp_path: Path) -> None:
     assert code == 1 and payload["refusal"]["code"] == "malformed-record"
 
 
+def test_an_internal_fault_is_not_blamed_on_the_records(tmp_path: Path,
+                                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, _ws, _run = _started(tmp_path)
+
+    def broken(_ws: Any) -> dict[str, Any]:
+        return {}["missing"]
+
+    monkeypatch.setattr(h.loop, "next_request", broken)
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 1
+    assert payload["refusal"]["code"] == "internal-error"
+    assert "test_supervisor_commit.py:" in payload["refusal"]["detail"]
+
+
 def test_status_check_prints_its_view(tmp_path: Path) -> None:
     repo, _ws, _run = _started(tmp_path)
     code, payload = h.run_cli(repo, "status", SPEC, "--check")
