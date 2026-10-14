@@ -1,0 +1,328 @@
+{
+  "_comment": "Hand-written expectations for the dependency fixture; edges as from/to with [value, form, position] basis values.",
+  "edges": [
+    {
+      "from": "intent:alpha",
+      "to": "intent:bravo",
+      "values": [
+        [
+          "intent:bravo",
+          "typed",
+          0
+        ],
+        [
+          "docs/product/intents/FEAT-0002-bravo.md",
+          "path",
+          1
+        ]
+      ]
+    },
+    {
+      "from": "intent:bravo",
+      "to": "intent:charlie",
+      "values": [
+        [
+          "intent:charlie",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:charlie",
+      "to": "capability:root-b",
+      "values": [
+        [
+          "capability:root-b",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:charlie",
+      "to": "opportunity:romeo",
+      "values": [
+        [
+          "opportunity:romeo",
+          "typed",
+          2
+        ]
+      ]
+    },
+    {
+      "from": "intent:charlie",
+      "to": "outcome:quebec",
+      "values": [
+        [
+          "outcome:quebec",
+          "typed",
+          1
+        ]
+      ]
+    },
+    {
+      "from": "intent:delta",
+      "to": "intent:echo",
+      "values": [
+        [
+          "intent:echo",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:delta",
+      "to": "intent:foxtrot",
+      "values": [
+        [
+          "intent:foxtrot",
+          "typed",
+          1
+        ]
+      ]
+    },
+    {
+      "from": "intent:echo",
+      "to": "intent:golf",
+      "values": [
+        [
+          "intent:golf",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:foxtrot",
+      "to": "intent:golf",
+      "values": [
+        [
+          "intent:golf",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:hotel",
+      "to": "intent:hotel",
+      "values": [
+        [
+          "intent:hotel",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:india",
+      "to": "intent:juliet",
+      "values": [
+        [
+          "intent:juliet",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:juliet",
+      "to": "intent:kilo",
+      "values": [
+        [
+          "intent:kilo",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:kilo",
+      "to": "intent:india",
+      "values": [
+        [
+          "intent:india",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:mike",
+      "to": "intent:november",
+      "values": [
+        [
+          "intent:november",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:november",
+      "to": "intent:mike",
+      "values": [
+        [
+          "intent:mike",
+          "typed",
+          0
+        ]
+      ]
+    },
+    {
+      "from": "intent:november",
+      "to": "intent:oscar",
+      "values": [
+        [
+          "intent:oscar",
+          "typed",
+          1
+        ]
+      ]
+    },
+    {
+      "from": "intent:oscar",
+      "to": "intent:november",
+      "values": [
+        [
+          "intent:november",
+          "typed",
+          0
+        ]
+      ]
+    }
+  ],
+  "pointer_diagnostics": [
+    {
+      "from": "intent:alpha",
+      "value": "spec:some-spec",
+      "form": "typed",
+      "position": 3,
+      "state": "outside_scope"
+    },
+    {
+      "from": "intent:delta",
+      "value": "feature:typo",
+      "form": "unrecognized",
+      "position": 2,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:echo",
+      "value": "intent:papa-tomb",
+      "form": "typed",
+      "position": 1,
+      "state": "retired_target",
+      "reissued_as": "intent:alpha"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs/product/intents/./FEAT-0001-alpha.md",
+      "form": "path",
+      "position": 0,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs/product/intents/missing.md",
+      "form": "path",
+      "position": 1,
+      "state": "dangling"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs/product/briefs/b.md",
+      "form": "path",
+      "position": 2,
+      "state": "outside_scope"
+    },
+    {
+      "from": "intent:golf",
+      "value": "C:/x",
+      "form": "path",
+      "position": 3,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "alpha",
+      "form": "bare_slug",
+      "position": 4,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "adr:0001",
+      "form": "unrecognized",
+      "position": 5,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "brief:some-brief",
+      "form": "typed",
+      "position": 6,
+      "state": "outside_scope"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs/product/intents/FEAT-0099-papa-tomb.md",
+      "form": "path",
+      "position": 7,
+      "state": "retired_target",
+      "reissued_as": "intent:alpha"
+    },
+    {
+      "from": "intent:golf",
+      "value": "capability:quebec",
+      "form": "typed",
+      "position": 8,
+      "state": "kind_mismatch"
+    },
+    {
+      "from": "intent:golf",
+      "value": "[alpha](FEAT-0001-alpha.md)",
+      "form": "markdown_link",
+      "position": 9,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:golf",
+      "value": "docs\\product\\intents\\x.md",
+      "form": "unrecognized",
+      "position": 10,
+      "state": "unparseable"
+    },
+    {
+      "from": "intent:india",
+      "value": "intent:ghost",
+      "form": "typed",
+      "position": 1,
+      "state": "dangling"
+    },
+    {
+      "from": "intent:india",
+      "value": "capability:alpha",
+      "form": "typed",
+      "position": 2,
+      "state": "kind_mismatch"
+    }
+  ],
+  "cycles": [
+    [
+      "intent:hotel"
+    ],
+    [
+      "intent:india",
+      "intent:juliet",
+      "intent:kilo"
+    ],
+    [
+      "intent:mike",
+      "intent:november",
+      "intent:oscar"
+    ]
+  ]
+}
