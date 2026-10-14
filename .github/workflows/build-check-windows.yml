@@ -121,20 +121,32 @@ jobs:
         # job termination on timeout.
         run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety_windows.py -q -rs --durations=10
 
-      - name: pytest safe-process POSIX suite on Windows (evidence only)
-        # Not a gate: this suite was written for POSIX hosts. Its Windows
-        # result is recorded as evidence for the Job Object launch path.
+
+  diag-evidence-windows:  # DIAGNOSTIC (temporary): find the hanging POSIX-suite test on Windows
+    name: diag evidence (windows)
+    runs-on: windows-latest
+    timeout-minutes: 7
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - "TestSpecValidation or TestAuditSinkUnavailable or TestAuditEventOrder or TestSuccessfulLaunch or TestExecutableIdentity"
+          - "TestWorkingDirectory or TestEnvironmentIsolation or TestStdinModes or TestProcessTreeTimeout or TestBoundedOutput"
+          - "TestOutputRedaction or TestOutputEncoding or TestSecurityInvariants or TestStdinBound or TestPostAllowDenialEvents"
+          - "TestExecIdentityMechanism or TestBoundedPostKillDrain or TestProcessSpecTypeValidation or TestNulByteDenial or TestProcessGroupCleanup"
+          - "TestSpecIdentifierFields or TestGroupKillBeforeReap or TestRedactionOverlap or TestRedactionAtTheCapAndAtScale or TestRedactionMatchesTheBoundaryEncoding"
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -q -e ./packages/credbroker -e packages/agentbundle/ pytest -r tools/requirements.txt
+      - name: evidence group
         continue-on-error: true
-        timeout-minutes: 8  # DIAGNOSTIC (temporary): keep the log when a test hangs
-        run: |
-          $args = '-X faulthandler -c "import faulthandler, sys, pytest; faulthandler.dump_traceback_later(240, exit=True); sys.exit(pytest.main([''packs/core/tests/skills/work-loop/test_process_safety.py'', ''-v'', ''-rs'', ''-p'', ''no:cacheprovider'', ''-o'', ''faulthandler_timeout=40'']))"'
-          $p = Start-Process python -ArgumentList $args -NoNewWindow -PassThru -RedirectStandardOutput diag-out.txt -RedirectStandardError diag-err.txt
-          $done = $p.WaitForExit(300000)
-          Write-Output "DIAG exited=$done"
-          if (-not $done) { Stop-Process -Id $p.Id -Force }
-          Get-Content diag-out.txt
-          Get-Content diag-err.txt
-          Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId, Name, CommandLine | Format-Table -AutoSize -Wrap | Out-String -Width 400
+        run: python -X faulthandler -c "import faulthandler, sys, pytest; faulthandler.dump_traceback_later(150, exit=True); sys.exit(pytest.main(['packs/core/tests/skills/work-loop/test_process_safety.py', '-v', '-rs', '-p', 'no:cacheprovider', '-o', 'faulthandler_timeout=30', '-k', '${{ matrix.group }}']))"
 
   credbroker-tests-windows:
     name: pytest credbroker (windows)
