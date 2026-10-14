@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "implementation_retry_cap": 5,
+  "effect_dispatch_cap": 3,
+  "stub_timeout_seconds": 600,
+  "authority_roles": {
+    "start_authority_ref": "owner",
+    "start_review_authority_ref": "plan-reviewer",
+    "resolve_effect_authority_ref": "effect-authority",
+    "risk_decision": "risk-owner"
+  },
+  "review_policy": {
+    "policy_id": "work-supervisor-default",
+    "policy_version": "1",
+    "review_policy_fingerprint": "work-supervisor-default-review-policy-v1",
+    "selector": "work-supervisor-default",
+    "roles": [{"role": "adversarial-reviewer", "kind": "mandatory"}],
+    "waivers": []
+  }
+}
