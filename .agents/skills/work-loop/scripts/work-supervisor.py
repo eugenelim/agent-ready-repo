@@ -13,9 +13,11 @@ Usage, from the repository root:
         --decision effect-confirmed|do-not-retry|retry-authorized \\
         --authority-ref effect-authority[:<hex>]
 
-Every verb prints one JSON object. Exit codes: 0 success, 1 refusal, 2 usage
-error; ``status --check`` exits 3 when the implementation retry cap is reached
-on a non-terminal run, which takes precedence over 1.
+Every verb prints one JSON object. A refusal, including a Git or run-lock
+failure, prints ``{"refusal": {"code", "owner", "detail"}}``. Exit codes: 0
+success, 1 refusal, 2 usage error; ``status --check`` exits 3 when the
+implementation retry cap is reached on a non-terminal run, which takes
+precedence over 1.
 
 Standard library only; it loads only its sibling scripts. Python 3.11+.
 """
@@ -109,11 +111,12 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _repo_root() -> Path:
+def _repo_root(cwd: Path | None) -> Path:
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     try:
         out = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
+            cwd=str(cwd) if cwd is not None else None,
             capture_output=True,
             text=True,
             check=False,
@@ -166,11 +169,11 @@ def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Run one verb; the in-process test seam."""
+def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
+    """Run one verb from *cwd* (default: the process directory); the test seam."""
     try:
         args = _parser().parse_args(argv)
-        root = _repo_root()
+        root = _repo_root(cwd)
         spec_rel = _spec_rel(root, args.spec_dir)
         result_data = _read_result(args.result) if args.verb == "report" else None
     except UsageError as exc:
@@ -178,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE
     admission = _supervisor("_supervisor_admission.py")
     loop = _supervisor("_supervisor_loop.py")
+    commit = _supervisor("_supervisor_commit.py")
+    statelock = commit.sibling("_statelock.py")
     workspace = admission.Workspace(root, spec_rel)
     try:
         if args.verb == "start":
@@ -215,8 +220,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return EXIT_OK
         view = loop.status(workspace)
-        if args.json or not args.check:
-            _emit(view)
+        _emit(view)
         if not args.check or view["terminal"]:
             return EXIT_OK
         if view["retry_count"] >= int(workspace.policy["implementation_retry_cap"]):
@@ -224,6 +228,29 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_REFUSED if view.get("refusal") else EXIT_OK
     except admission.Refusal as exc:
         _emit({"refusal": exc.as_dict()})
+        return EXIT_REFUSED
+    except commit.SupervisorGitError as exc:
+        _emit({"refusal": {"code": exc.code, "owner": "controller", "detail": str(exc)}})
+        return EXIT_REFUSED
+    except statelock.StateLockError as exc:
+        # Includes a lock held past its stale window and then lost mid-step.
+        _emit({
+            "refusal": {
+                "code": "run-locked",
+                "owner": "controller",
+                "detail": f"{type(exc).__name__}: {exc}",
+            }
+        })
+        return EXIT_REFUSED
+    except (KeyError, TypeError, ValueError) as exc:
+        # A committed record that does not have the shape this supervisor writes.
+        _emit({
+            "refusal": {
+                "code": "malformed-record",
+                "owner": "controller",
+                "detail": f"{type(exc).__name__}: {exc}",
+            }
+        })
         return EXIT_REFUSED
 
 

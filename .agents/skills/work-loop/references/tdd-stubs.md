@@ -51,7 +51,9 @@ that count as red:
 - `red-exit` lists the exit codes that count as red, comma-separated, default `1`.
   Any other exit, a timeout, or a collection or setup error is not red.
 - The payload is the fenced lines with the fence's own indentation removed, plus
-  one terminal newline. The file at `path` must equal those bytes.
+  one terminal newline. The file at `path` must equal those bytes. A blank line
+  before the closing fence is refused, and a plan carrying `stub` fences uses LF
+  line endings.
 
 A task may carry several `stub` fences; each must be red. A task whose stubs
 already pass needs a replan to a `no stub` disposition, not a weaker stub.

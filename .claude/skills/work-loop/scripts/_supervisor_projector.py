@@ -526,6 +526,12 @@ def _parse_stubs(tests_lines: list[str]) -> list[dict]:
             raise ProjectionRefused(
                 "invalid-stub-fence", "plan author", "stub fence is not closed"
             )
+        if payload and not payload[-1].strip():
+            raise ProjectionRefused(
+                "invalid-stub-fence",
+                "plan author",
+                "a blank line before the closing fence is extra stub content; remove it",
+            )
         data = "\n".join(payload) + "\n"
         if len(data.encode("utf-8")) > _MAX_STUB_BYTES:
             raise ProjectionRefused(
@@ -615,6 +621,14 @@ def project_plan(plan_text: str) -> PlanProjection:
 
         tests_lines = next((v for k, v in fields.items() if k.casefold() == "tests"), [])
         stubs = _parse_stubs(tests_lines)
+        if stubs and "\r" in plan_text:
+            # Stub bytes keep the plan's line endings, and a supervisor-written
+            # stub file is LF-only, so a CRLF plan cannot carry an exact stub.
+            raise ProjectionRefused(
+                "invalid-stub-fence",
+                "plan author",
+                "a plan with stub fences must use LF line endings",
+            )
         effects = _effect_names(field("Effects"))
         local, _cross = parse_depends_on(field("Depends on"), local_ids)
         depends = [identity_of[p] for p in positions if p in local and p != section.task_id]
