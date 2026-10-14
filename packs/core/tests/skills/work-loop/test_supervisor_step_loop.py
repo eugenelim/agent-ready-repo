@@ -162,6 +162,8 @@ def test_content_edit_re_requests_the_task_and_keeps_history(tmp_path: Path) -> 
 
 
 FIRST_ROW_REPLANS: dict[str, Callable[[], str]] = {
+    "local-method": lambda: sup.plan(sup.TASKS["calc"](), sup.TASKS["push"](approach="by hand"),
+                                     sup.TASKS["plain"](approach="from a template")),
     "delete": lambda: sup.plan(sup.TASKS["calc"](), sup.TASKS["push"]()),
     "replace": lambda: sup.plan(sup.TASKS["calc"](), sup.TASKS["push"](),
                                 sup.task("T3", "Something else entirely", mode="goal-based",
