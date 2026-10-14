@@ -330,6 +330,7 @@ def test_text_output_identifies_an_isolated_start_and_escapes_controls(tmp_path:
 def test_live_brief_and_spec_targets_are_outside_scope_too(tmp_path: pathlib.Path) -> None:
     """A typed or path pointer to a brief or spec that exists is still ``outside_scope`` (AC-0002, AC-0003)."""
     root = _copy(tmp_path)
+    (root / "docs" / "product" / "briefs").mkdir(parents=True, exist_ok=True)
     (root / "docs" / "product" / "briefs" / "some-brief.md").write_text(
         "# Brief: Some brief\n\n- **Slug:** `some-brief`\n- **Status:** Draft\n"
         "- **Parent intent:** capability:root-a\n\n## Outcome\n\nPlaceholder.\n", encoding="utf-8")
