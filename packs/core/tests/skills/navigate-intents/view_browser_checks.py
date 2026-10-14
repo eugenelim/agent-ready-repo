@@ -13,6 +13,8 @@ fixture.  Every export is written under ``tmp_path``.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -2689,3 +2691,208 @@ def test_vi_3002_edge_lines_wrap_their_names_at_320_px(opener: Any, exports: dic
     assert lines.count() == 3
     for box in lines.evaluate_all("els => els.map(e => e.getBoundingClientRect().right - document.documentElement.clientWidth)"):
         assert box <= 0.5
+
+
+# ---------------------------------------------------------------------------
+# Keyboard, width, theme and inert content for the "Dependencies" part
+# ---------------------------------------------------------------------------
+
+
+def _back_to(page: Page, node: str) -> None:
+    """Browser back until the fragment names *node* again."""
+    for _ in range(8):
+        page.go_back()
+        page.wait_for_timeout(50)
+        if _fragment(page).get("node") == node:
+            return
+    raise AssertionError(f"browser back never returned to {node}")
+
+
+def _open_part_by_keyboard(item: Opened, node: str) -> Page:
+    """Pick *node* from the browse list with the keyboard alone."""
+    page = item.page
+    page.evaluate("document.body.focus()")
+    _tab_to(page, "e.dataset.q === 'browse'")
+    page.keyboard.press("Enter")
+    _tab_to(page, "e.id === 'search'")
+    page.keyboard.type(node.split(":")[1])
+    page.wait_for_selector(f"#list a.row-link[data-node='{node}']")
+    _tab_to(page, f"e.matches('#list a.row-link') && e.dataset.node === '{node}'")
+    page.keyboard.press("Enter")
+    page.wait_for_selector("#detail-body #dep-dir")
+    return page
+
+
+def test_vi_4001_keyboard_alone_drives_the_part(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["dependency"])
+    page = _open_part_by_keyboard(item, "intent:alpha")
+    _tab_to(page, "e.id === 'dep-dir'")
+    page.keyboard.type("b")  # type-ahead picks "Both" without opening the native popup
+    page.wait_for_function("() => document.getElementById('dep-dir').value === 'both'")
+    page.wait_for_function("() => document.activeElement.id === 'dep-dir'")
+    _tab_to(page, "e.id === 'dep-steps'")
+    page.keyboard.type("a")
+    page.wait_for_function("() => document.getElementById('dep-steps').value === 'all'")
+    page.wait_for_function("() => document.activeElement.id === 'dep-steps'")
+    assert _fragment(page).get("dir") == "both" and _fragment(page).get("steps") == "all"
+    expect = _DepModel(payload_of(exports["dependency"])).expect("intent:alpha", "both", _depth(payload_of(exports["dependency"]), "all"))
+    assert _page_part(page)["lines"] == expect["lines"]
+    chosen = _fragment(page)
+
+    def follow(selector: str) -> str:
+        """Tab to the first matching link that is not the current intent and press Enter on it."""
+        target = page.evaluate(
+            f"""() => {{ const a = [...document.querySelectorAll('#detail-body {selector}')]
+              .find(x => x.dataset.node !== 'intent:alpha'); return a ? a.dataset.node : null; }}"""
+        )
+        assert target, selector
+        _tab_to(page, f"e.matches('#detail-body {selector}') && e.dataset.node === '{target}'")
+        page.keyboard.press("Enter")
+        _wait_focus_id(page, "detail-heading")
+        assert _fragment(page)["node"] == target
+        return str(target)
+
+    prerequisite = follow("section.part .dep-prereq a[data-node]")
+    assert prerequisite != "intent:alpha"
+    _back_to(page, "intent:alpha")
+    assert _fragment(page) == chosen
+    assert page.locator("#dep-dir").input_value() == "both" and page.locator("#dep-steps").input_value() == "all"
+    dependent = follow("section.part .dep-waiting a[data-node]")
+    assert dependent != "intent:alpha"
+    _back_to(page, "intent:alpha")
+    assert _fragment(page) == chosen
+    assert page.locator("#dep-dir").input_value() == "both" and page.locator("#dep-steps").input_value() == "all"
+    assert _page_part(page)["lines"] == expect["lines"]
+    # No trap: Tab leaves the part forwards and Shift+Tab leaves it backwards.
+    page.evaluate("document.getElementById('dep-dir').focus()")
+    inside = "document.activeElement.closest('section.part') && document.activeElement.closest('section.part').querySelector('#dep-dir')"
+    left = False
+    for _ in range(80):
+        page.keyboard.press("Tab")
+        if not page.evaluate(f"!!({inside})"):
+            left = True
+            break
+    assert left
+    page.evaluate("document.getElementById('dep-dir').focus()")
+    left = False
+    for _ in range(80):
+        page.keyboard.press("Shift+Tab")
+        if not page.evaluate(f"!!({inside})"):
+            left = True
+            break
+    assert left
+    assert page.evaluate("document.activeElement !== document.body")
+
+
+_CYCLE_NODE = "intent:india"
+
+
+def _cycle_state(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> Page:
+    item = opener(exports["dependency"], width=width, height=700, scheme=scheme)
+    page = _dep_pick(item, _CYCLE_NODE, "both", "all")
+    assert page.locator("#detail-body .dep-diag .dep-members").count() >= 1  # the part shows a cycle
+    _open_record(page)
+    page.locator("#key summary").click() if page.locator("#key summary").is_visible() else None
+    return page
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_vi_4001_part_across_width_and_theme(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    page = _cycle_state(opener, exports, width, scheme)
+    scroll, client = _no_overflow(page)
+    assert scroll <= client, (width, scroll, client)
+    stops = _sweep(page)
+    assert len(stops) > 10
+    for stop in stops:
+        assert stop["hit"] and stop["visible"], stop
+        assert stop["outlineStyle"] == "solid" and stop["outlineWidth"] >= 2, stop
+        assert _ratio(_rgb(stop["outlineColor"]), _rgb(stop["bg"])) >= 3, stop
+    small = page.evaluate(
+        """() => Array.from(document.querySelectorAll('a[href], button, input, select, summary'))
+          .map(e => [e, e.getBoundingClientRect()])
+          .filter(([e, r]) => r.width > 0 && !e.classList.contains('skip') && (r.width < 24 || r.height < 24))
+          .map(([e, r]) => e.outerHTML.slice(0, 80) + ' ' + r.width + 'x' + r.height)"""
+    )
+    assert small == []
+    low = [r for r in _contrast_report(page) if r[1] < 4.5]
+    assert not low, low[:5]
+    # The part's own controls and lines are inside the viewport width.
+    right = page.evaluate(
+        "Math.max(...[...document.querySelectorAll('#detail-body section.part *')].map(e => e.getBoundingClientRect().right))"
+    )
+    assert right <= width + 0.5
+
+
+_BANNED_TAGS = {"img", "svg", "iframe", "object", "embed", "link", "style", "base", "form", "math", "video", "audio", "canvas", "template", "textarea", "frame"}
+
+
+def test_vi_4002_hostile_values_stay_inert(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    path = exports["hostile"]
+    payload = payload_of(path)
+    item = opener(path)
+    page = item.page
+    values = {d["value"] for d in payload["dependencies"]["diagnostics"] if "value" in d}
+    for record in payload["records"].values():
+        for key in ("related_written_here", "related_written_elsewhere"):
+            values |= {e["value"] for e in record[key] if "value" in e}
+        if record.get("parent_edge"):
+            values.add(record["parent_edge"]["value"])
+    escaped = {nav._escape_display(v) for v in values}
+    assert len(values) >= 8 and any("waits for" in v for v in values)
+    shown = ""
+    seen_values: set[str] = set()
+    for node in payload["nodes"]:
+        for direction in _DIRS:
+            page = _dep_pick(item, node["id"], direction, "all")
+            if node["type"] == "intent":
+                _open_record(page)
+            shown += "".join(page.evaluate(_TEXT_NODES))
+            # Every dependency value (the part and the record groups) shows only inside its own code element.
+            stray = page.evaluate(
+                """escaped => { const out = []; const hit = [];
+                  for (const root of document.querySelectorAll('#detail-body section.part, #detail-body section.group')) {
+                    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+                    while (w.nextNode()) { const n = w.currentNode; const t = n.textContent.trim();
+                      if (escaped.includes(t)) { hit.push(t); if (!n.parentElement.closest('code')) out.push(t); } } }
+                  return { out, hit }; }""",
+                sorted(escaped),
+            )
+            assert stray["out"] == [], stray
+            seen_values |= set(stray["hit"])
+            # Marks and labels never carry a value.
+            marks = {t for g, w, _ in _marks(page, "body") for t in (g, w)}
+            assert not marks & escaped, marks & escaped
+            for cls, closed in (("label-state", _STATES), ("label-trust", _TRUST), ("label-form", _FORMS), ("label-group", _GROUPS)):
+                assert set(page.eval_on_selector_all(f"#detail-body .{cls}", "e => e.map(x => x.textContent)")) <= set(closed)
+            tags = set(page.evaluate("[...document.querySelectorAll('body *')].map(e => e.tagName.toLowerCase())"))
+            assert not tags & _BANNED_TAGS, tags & _BANNED_TAGS
+            assert page.locator("script").count() == 2  # the data block and the view script, as exported
+            bad_attrs = page.evaluate(
+                """needles => { const out = [];
+                  for (const e of document.querySelectorAll('body *')) for (const a of e.attributes) {
+                    const inPage = a.name === 'href' && a.value.startsWith('#');
+                    if (a.name.startsWith('on') || a.name === 'style' || a.name === 'srcdoc') out.push(a.name);
+                    else if (e.tagName === 'OPTION') continue;  // the shared filter controls set their own values
+                    else if (!inPage && needles.some(n => a.value.includes(n))) out.push(a.name + '=' + a.value);
+                  } return out; }""",
+                sorted({v for v in values if re.search(r"[<>]|alert\(|javascript:", v)} | {"alert(1)", "javascript:", "onerror", "<img", "<svg", "</script"}),
+            )
+            assert bad_attrs == [], bad_attrs
+            for href in page.eval_on_selector_all("a[href]", "els => els.map(e => e.getAttribute('href'))"):
+                assert href.startswith("#") or href.startswith("https://github.com/"), href
+    assert _unsafe_present(shown) == []
+    assert any("waits for" in v for v in seen_values) and any(v.startswith("<img") for v in seen_values)
+    assert set(item.requests) == {item.url}, item.requests
+    assert page.evaluate("window.__csp") == [] and item.errors == []
+    html = path.read_text(encoding="utf-8")
+    meta = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html)
+    script = (_SCRIPTS / "view_assets" / "view.js").read_text(encoding="utf-8")
+    style = (_SCRIPTS / "view_assets" / "view-base.css").read_text(encoding="utf-8") + "\n" + (_SCRIPTS / "view_assets" / "view.css").read_text(encoding="utf-8")
+
+    def digest(text: str) -> str:
+        return base64.b64encode(hashlib.sha256(text.encode("utf-8")).digest()).decode("ascii")
+
+    assert meta is not None and meta.group(1) == (
+        f"default-src 'none'; script-src 'sha256-{digest(script)}'; style-src 'sha256-{digest(style)}'; "
+        "img-src 'none'; base-uri 'none'; form-action 'none'"
+    )

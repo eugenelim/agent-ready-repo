@@ -33,3 +33,7 @@ Three headers, all legacy paths with a trailing preamble comment: 3 accepted, 0 
 
 - Implemented by the `implementer` subagent. Browser suite 115 passed, 0 skipped in 39 s (91 inherited checks, some amended as the spec states, plus 24 new). Collected suites 907 passed, 4 skipped (by design) in 26 s.
 - Design calls inside the spec's latitude: the sort-key line shows only when edge lines exist; an `outside_scope` entry also names its source intent; a self-dependency's "What is broken" entry reads "It names itself."; changing "Show" or "Steps" refills only the part's result, so the control keeps focus; "Show"/"Steps" persist across picks.
+
+## T4: keyboard, width, theme and inert content
+
+- Implemented by the `implementer` subagent; no layout or script change was needed. Browser suite 125 passed, 0 skipped (adds the keyboard path, the 8-cell width and theme matrix over `intent:india` with Both and All, and the hostile-inertness walk). Collected suites include the new CSP/banned-API and symlinked-intent refusal tests.
