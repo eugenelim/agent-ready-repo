@@ -1,10 +1,11 @@
 name: catalogue-tooling-ci-gates
 
-# Ten gates (A split into A-tests / A-packs by spec/ci-gate-parallelization AC7 —
+# Eleven gates (A split into A-tests / A-packs by spec/ci-gate-parallelization AC7, plus A-supervisor —
 # the two suites were serial in one job, and Gate A set the all-green critical path
 # once build-check.yml's longest job dropped to ~the SAST leg):
 #   A-tests: agentbundle-tests       — full pytest on Ubuntu 3.11/3.12; curated portable subset on Windows 3.11
 #   A-packs: pack-hook-tests         — repo/pack hook suites; Ubuntu 3.12 only (AC8) + curated Windows 3.11 subset
+#   A-supervisor: supervisor-integration — git-backed execution-supervisor suites (WORK_SUPERVISOR_INTEGRATION=1); Ubuntu 3.12
 #   B: external-catalogue-smoke      — portable engine outside this repo
 #   C: enterprise-agentbundle-distribution — enterprise distribution + credential scan
 #   D: catalogue-artifact-smoke      — real catalogue packaging round-trip
