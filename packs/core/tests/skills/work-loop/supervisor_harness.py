@@ -10,15 +10,31 @@ assessment refutes. Kill points crash the supervisor by raising.
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import io
 import json
 import os
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
-import supervisor_support as sup
+
+def _helper(name: str) -> ModuleType:
+    """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
+    alias = f"core_work_loop_{name}"
+    if alias not in sys.modules:
+        path = Path(__file__).resolve().parent / f"{name}.py"
+        spec = importlib.util.spec_from_file_location(alias, path)
+        assert spec is not None and spec.loader is not None
+        sys.modules[alias] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sys.modules[alias])
+    return sys.modules[alias]
+
+
+sup = _helper("supervisor_support")
 
 SPEC_DIR = "docs/specs/calc"
 FIXED_TIME = "2026-10-13T00:00:00Z"

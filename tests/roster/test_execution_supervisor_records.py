@@ -10,9 +10,11 @@ repository projects. Roster-owned because it reads `contracts/` and
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import pytest
@@ -22,8 +24,21 @@ from referencing.jsonschema import DRAFT202012
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HARNESS_DIR = REPO_ROOT / "packs" / "core" / "tests" / "skills" / "work-loop"
-sys.path.insert(0, str(HARNESS_DIR))
-import supervisor_harness as h  # noqa: E402
+
+
+def _helper(name: str) -> ModuleType:
+    """Load a shared supervisor test helper by path under a pack- and skill-qualified name."""
+    alias = f"core_work_loop_{name}"
+    if alias not in sys.modules:
+        path = HARNESS_DIR / f"{name}.py"
+        spec = importlib.util.spec_from_file_location(alias, path)
+        assert spec is not None and spec.loader is not None
+        sys.modules[alias] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sys.modules[alias])
+    return sys.modules[alias]
+
+
+h = _helper("supervisor_harness")
 
 _DELIVERY = REPO_ROOT / "contracts" / "delivery"
 _EVENT_SCHEMA = REPO_ROOT / "contracts" / "jsonschema" / "loop-run-event.schema.json"
