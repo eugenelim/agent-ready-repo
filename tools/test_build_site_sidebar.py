@@ -297,7 +297,7 @@ def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
 # The four approved strings, frozen by the brief's decision 7.
 APPROVED_TITLES = {
     "guides/frontend-engineering/how-to/page-screen-contract.md":
-        "Write a page or screen contract",
+        "Build a page or component",
     "guides/frontend-engineering/how-to/run-an-audit.md":
         "Run a frontend audit",
     "guides/frontend-engineering/tutorials/scaffold-a-component.md":
@@ -314,7 +314,7 @@ CONTROL_TITLES = {
     "guides/frontend-engineering/reference/frontend-engineering.md":
         "Frontend Engineering Pack",
     "guides/governance-extras/how-to/new-adr.md":
-        "How to record a decision with an ADR",
+        "Record a decision",
 }
 # guide-title-clarity AC5 (and AC6 for the de-baselined subset): every
 # retitled page's sidebar ITEM label, keyed slug -> source path so the

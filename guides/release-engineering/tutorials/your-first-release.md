@@ -44,7 +44,7 @@ agentbundle install --pack core
 agentbundle install --pack release-engineering
 ```
 
-You'll also need a configured ephemeral deploy target. For this tutorial, we'll assume one is already wired. If yours isn't, see [run a release](../how-to/run-a-release.md#configuring-an-ephemeral-deploy-target).
+You'll also need a configured ephemeral deploy target. For this tutorial, we'll assume one is already wired. If yours isn't, see [run a release](../how-to/run-a-release.md#wire-your-deploy-target).
 
 ---
 
