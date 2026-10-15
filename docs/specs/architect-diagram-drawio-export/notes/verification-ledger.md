@@ -51,3 +51,9 @@ proved necessary: AC-0003's edge rule must allow a floating endpoint in CLI
 output, and the plan's old-CLI upgrade offer is replaced by a manual-upgrade
 link plus the fallback, because the allowlisted install commands do not
 upgrade an existing copy.
+
+## Skeleton endpoint check can fail (T7, 2026-10-15)
+
+Replacing the `require_endpoints` branch in `check_model` with `if False:` made
+`test_skeleton_edge_without_source_rejected` fail (1 failed, 18 passed);
+restoring it made the suite pass (19 passed).
