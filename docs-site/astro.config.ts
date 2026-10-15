@@ -233,7 +233,6 @@ export default defineConfig({
               items: [
                 { label: 'Catalogue CI contract', slug: 'guides/_shared/reference/catalogue-ci-contract' },
                 { label: 'Artifactory distribution', slug: 'guides/_shared/reference/artifactory-catalogue-distribution' },
-                { label: 'Enterprise rollout playbook', slug: 'guides/_shared/reference/enterprise-rollout-playbook' },
                 { label: 'Ledger and guard', slug: 'guides/catalogue-curation/reference/ledger-and-guard' },
               ],
             },
