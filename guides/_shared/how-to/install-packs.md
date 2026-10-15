@@ -93,8 +93,6 @@ claude plugin install desk-research@agent-ready-repo
 
 Installing `core` at repo scope ends with a `Next:` line. It asks you to run `adapt-to-project`, a read-only check of how ready the repository is.
 
-Local scope deliberately omits seeds. No marker, layout section, or chained `adapt`. Plugin and APM installs print no `Next:` line, so run `adapt-to-project` yourself.
-
-A lifecycle hook may repeat that nudge. It is never the only path: the installer guarantees the projected files, the state for the scope you chose, and the printed line. It does not guarantee hook execution or context injection. A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` can run the marker writer.
+Plugin and APM installs print no `Next:` line, so run `adapt-to-project` yourself. [What each route leaves behind](../reference/agentbundle.md#install-details) covers seeds, markers, and hooks.
 
 Next, [configure agentbundle](configure-agentbundle.md) to save your agent. The [command reference](../reference/agentbundle.md#install-details) covers profiles, Codex and Kiro detection, and preview output in full.

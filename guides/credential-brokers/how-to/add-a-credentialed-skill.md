@@ -8,7 +8,7 @@ kind: how-to
 
 # Add credentials to a skill
 
-Your skill can call an authenticated service while the credential stays out of the AI loop: never in the repository, never in the agent's context. A script in your skill resolves it with `credbroker`, inside its own process.
+Pick a broker, declare the credential in your skill's `SKILL.md`, and resolve it in a script with `credbroker`.
 
 ## The credentialed-skill contract
 

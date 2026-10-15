@@ -45,16 +45,22 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Questions
 
-**How do I check my setup?** Run `python '<skill-dir>/scripts/estate_preflight.py' --check`. `<skill-dir>` is the installed `code-intelligence` skill folder, such as `.claude/skills/code-intelligence` at repo scope. Exit 0 is ready, 2 means the binary is missing, 3 means no index, and 4 means the binary is older than the 0.29 floor.
+**How do I check my setup?** Ask your agent to check the code-intelligence setup; the details are under [Setup check](#setup-check) below.
 
 **What if there is no index?** The agent falls back to ordinary repository search and labels it as search. A list of callers from `grep` is not a blast radius.
 
 **Does it change my code?** No. It reads. Commands that change the graph, such as `index` and `annotate`, always ask first.
 
-**Why does an empty answer from the MCP server not mean my code is empty?** With `--readonly`, a store path that does not exist is served as an empty in-memory store. Check `--db`, `WICKED_ESTATE_DB`, or `WICKED_MEMORY_DB` first. By default the pack uses the CLI, not MCP.
-
-**Must another provider match Wicked Estate?** No. [The composition example](.apm/skills/code-intelligence/references/composition-example.md) is illustrative, not a contract. Other providers may expose fewer, different, or new capabilities and need not emulate Wicked Estate. The current investigation patterns may change.
-
 ## Details
 
 Scope: repo (default), user · Version: 0.1.9 · Source: [packs/code-intelligence](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/code-intelligence)
+
+## Setup check
+
+Run `python '<skill-dir>/scripts/estate_preflight.py' --check`. `<skill-dir>` is the installed `code-intelligence` skill folder, such as `.claude/skills/code-intelligence` at repo scope. Exit 0 is ready, 2 means the binary is missing, 3 means no index, and 4 means the binary is older than the 0.29 floor.
+
+## More detail
+
+**Why does an empty answer from the MCP server not mean my code is empty?** With `--readonly`, a store path that does not exist is served as an empty in-memory store. Check `--db`, `WICKED_ESTATE_DB`, or `WICKED_MEMORY_DB` first. By default the pack uses the CLI, not MCP.
+
+**Must another provider match Wicked Estate?** No. [The composition example](.apm/skills/code-intelligence/references/composition-example.md) is illustrative, not a contract. Other providers may expose fewer, different, or new capabilities and need not emulate Wicked Estate. The current investigation patterns may change.

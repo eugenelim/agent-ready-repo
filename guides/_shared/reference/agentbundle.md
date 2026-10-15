@@ -90,6 +90,8 @@ agentbundle upgrade <catalogue-uri> --pack core --dry-run
 
 **Uninstall.** `agentbundle uninstall --pack <name>` removes the files the pack owns. Files you edited and files outside the pack's paths stay.
 
+**After the install.** Installing `core` at repo scope ends with a `Next:` line asking you to run `adapt-to-project`. Repo scope writes seeds when the pack declares them, writes `.adapt-install-marker.toml`, and chains `agentbundle adapt`. Local scope deliberately omits seeds. No marker, layout section, or chained `adapt`. Plugin and APM installs print no `Next:` line. A lifecycle hook may repeat that nudge. It is never the only path: the installer guarantees the projected files, the state for the scope you chose, and the printed line. It does not guarantee hook execution or context injection. A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` can run the marker writer.
+
 **Other routes.** APM and Claude plugin installs follow their own update verbs (`apm update <pack>`, `/plugin update <pack>@<catalogue>`) and print no `Next:` line; run `agentbundle init-state` once so `agentbundle` has a baseline. Catalogue maintainers can emit the APM and plugin dist trees with `agentbundle install --pack <name> --scope repo --emit-install-routes .`; the plugin tree is written only for packs whose `allowed-scopes` admits `user`, and the flag cannot be combined with `--adapter`.
 
 ## Configure the default adapter

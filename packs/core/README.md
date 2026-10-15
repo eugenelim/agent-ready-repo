@@ -1,6 +1,6 @@
 # Core
 
-Your agent can turn a request into an approved spec, build it under supervision, run your gates, and hand you a reviewed diff.
+Your agent can turn a request into an approved spec, build it under supervision, run your tests and checks, and hand you a reviewed diff.
 
 ## Install
 
@@ -14,7 +14,7 @@ agentbundle install --pack core
 ## What your agent can do
 
 - Route a request into the right artifact, register it in `workspace.toml`, and show what is ready, blocked, and done with `workspace-status`.
-- Write a spec and plan, then run `work-loop`: build, gates, and review, with your approval.
+- Write a spec and plan, then run `work-loop`: build, checks, and review, with your approval.
 - Fix a bug from root cause, and explain a diff.
 - Close finished work, checking that lasting context reached its owners first.
 
@@ -26,7 +26,7 @@ agentbundle install --pack core
 - **`intake-intent`** — Admits a minimum intent.
 - **`author-delivery-brief`** — Writes a coordination brief (`author-brief`, `receive-brief` are old aliases).
 - **`new-spec`** — Writes a spec and plan.
-- **`work-loop`** — Plans, builds, gates, and reviews.
+- **`work-loop`** — Plans, builds, runs your checks, and reviews.
 - **`bug-fix`** — Fixes a bug from root cause.
 - **`close-work`** — Verifies lasting context, then previews a disposition.
 - **`project-knowledge`** — Captures and queries reviewed lessons.
@@ -37,6 +37,20 @@ agentbundle install --pack core
 - **`operational-safety`**, **`security-checklists`** — Reviewer modules.
 
 Subagents: `implementer`, `adversarial-reviewer`, `quality-engineer`, `security-reviewer`, `shaping-reviewer`, `finding-adjudicator`.
+
+## Works with
+
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. [Product Engineering](../product-engineering/README.md) hands shaped work in. [Governance Extras](../governance-extras/README.md) and [Release Engineering](../release-engineering/README.md) build on it. [GitHub](../github/README.md) hands records to `work-intake`. Guides: [Run the build loop](../../guides/core/how-to/start-the-work.md) and [Close work](../../guides/core/how-to/close-and-disposition-work.md).
+
+## Questions
+
+**Does it merge for me?** No. It opens the PR and you merge.
+
+**Does closing work delete anything?** Not on its own. A deletion needs a separate authority fact and your fresh confirmation. The cooling records live outside workspace.toml.
+
+## Details
+
+Scope: repo (default) · Version: 3.1.6 · Source: [packs/core](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/core)
 
 ## Repository grounding
 
@@ -60,17 +74,3 @@ Next:     Ask your agent to run adapt-to-project for a read-only readiness check
 APM's HookIntegrator deploys hook bundles to Claude Code, Copilot, Cursor, Gemini, Codex, Antigravity, Windsurf, and Kiro. OpenCode remains unsupported.
 
 See [Install routes](../../guides/_shared/how-to/install-packs.md).
-
-## Works with
-
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. [Product Engineering](../product-engineering/README.md) hands shaped work in. [Governance Extras](../governance-extras/README.md) and [Release Engineering](../release-engineering/README.md) build on it. [GitHub](../github/README.md) hands records to `work-intake`. Guides: [Run the build loop](../../guides/core/how-to/start-the-work.md) and [Close work](../../guides/core/how-to/close-and-disposition-work.md).
-
-## Questions
-
-**Does it merge for me?** No. It opens the PR and you merge.
-
-**Does closing work delete anything?** Not on its own. A deletion needs a separate authority fact and your fresh confirmation. The cooling records live outside workspace.toml.
-
-## Details
-
-Scope: repo (default) · Version: 3.1.6 · Source: [packs/core](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/core)

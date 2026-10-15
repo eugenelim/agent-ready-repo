@@ -83,8 +83,11 @@ SITES: list[tuple[str, list[str], list[str]]] = [
     # either is green.
     ("guides/_shared/how-to/install-packs.md",
      _NO_REPO_ONLY_OFFER, ["**The plugin route is user-scope only.**",
-                           "carries only packs whose `allowed-scopes` admits `user`",
-                           "derived into each **published** pack's"]),
+                           "carries only packs whose `allowed-scopes` admits `user`"]),
+    # The marker-writer paragraph moved to the command reference's install
+    # details when the install page was cut to its job (spec/docs-job-pages).
+    ("guides/_shared/reference/agentbundle.md",
+     _NO_REPO_ONLY_OFFER, ["derived into each **published** pack's"]),
     ("guides/_shared/explanation/pack-catalogue.md",
      _NO_REPO_ONLY_OFFER, ["install-packs.md"]),
     ("guides/core/how-to/adapt-to-project.md",

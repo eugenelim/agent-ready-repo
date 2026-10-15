@@ -12,7 +12,7 @@ aliases:
 
 # Research a question
 
-Ask your agent a question in plain words, and each step below writes one file named after your topic.
+Ask your agent a question in plain words, and each section below writes one file named after your topic.
 
 ## Scope the question
 
