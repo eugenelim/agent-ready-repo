@@ -487,6 +487,7 @@ main h1,
   color: var(--rail-ink);
   font-weight: 600;
   text-align: start;
+  white-space: nowrap;
 }
 
 .sl-markdown-content td {

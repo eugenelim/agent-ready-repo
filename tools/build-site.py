@@ -437,6 +437,7 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
             "display_name": display_name,
             "version": p.get("version", ""),
             "scope": p.get("install", {}).get("default-scope", "repo"),
+            "allowed_scopes": list(p.get("install", {}).get("allowed-scopes", [])),
             "description": p.get("description", ""),
             "group": None,
         }
@@ -1375,28 +1376,35 @@ def mirror_dir(src: Path, dst: Path, rewriter=None, dry_run: bool = False) -> in
     return count
 
 
+PACKS_PAGE_SOURCE = REPO_ROOT / "docs-site" / "src" / "packs-page.md"
+
+
 def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) -> None:
-    header = (
-        '---\ntitle: "Pack Catalogue"\n'
-        f'description: "{len(packs)} curated packs for the AI operating model."\n'
-        "---\n\n"
-        # No body H1 — Starlight renders `title:` as the page heading.
-        f"{len(packs)} curated packs — each distilled from the best practices of its discipline\n"
-        "through practitioner research and RFC-and-ADR governance.\n\n"
-        "Install any pack in one command:\n\n"
-        "```bash\n"
-        "agentbundle install --pack <name>               # repo scope (default)\n"
-        "agentbundle install --pack <name> --scope user  # user scope\n"
-        "```\n\n"
-        "| Pack | Scope | Description |\n"
-        "|---|---|---|\n"
-    )
-    lines = [header]
+    """Write the Packs page: the hand-written explanation, then one table per
+    site.toml group with each pack's default scope and Claude plugin route."""
+    intro = PACKS_PAGE_SOURCE.read_text(encoding="utf-8").strip()
+    lines = [
+        '---\ntitle: "Packs"\n'
+        'description: "What a pack installs, repo scope or user scope, '
+        'and every pack in the catalogue."\n'
+        "---\n\n",
+        intro,
+        "\n\n## Every pack\n",
+    ]
+    groups: dict[str, list[dict]] = {}
     for p in packs:
+        groups.setdefault(p["group"] or "Other", []).append(p)
+    for label, members in groups.items():
         lines.append(
-            f"| [**{p['display_name']}**]({p['slug']}/) |"
-            f" `{p['scope']}` | {p['description']} |\n"
+            f"\n### {label}\n\n"
+            "| Pack | What it does | Default scope | Claude plugin |\n|---|---|---|---|\n"
         )
+        for p in members:
+            plugin = "yes" if "user" in p.get("allowed_scopes", []) else "no"
+            lines.append(
+                f"| [{p['display_name']}]({p['slug']}/) | {p['description']} |"
+                f" {p['scope']} | {plugin} |\n"
+            )
 
     content = "".join(lines)
     index_md = out_dir / "index.md"

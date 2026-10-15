@@ -39,7 +39,7 @@ packs = ["experience-design", "product-documentation", "converters"]
 
 [[groups]]
 label = "Catalogue operations"
-packs = ["catalogue-curation", "credential-brokers"]
+packs = ["catalogue-curation", "credential-brokers", "agent-skill-engineering"]
 
 # ---------------------------------------------------------------------------
 # Guide sidebar groups.

@@ -865,6 +865,10 @@ def _generator_fixture(tmp_path):
     (tmp_path / "docs" / "product" / "changelog.md").write_text(
         "# Changelog\n\n## [Unreleased]\n", encoding="utf-8"
     )
+    # The Packs page's hand-written half; the generator appends the pack tables.
+    (tmp_path / "docs-site" / "src" / "packs-page.md").write_text(
+        "A pack is a set of agent workflows.\n", encoding="utf-8"
+    )
     return tmp_path
 
 
