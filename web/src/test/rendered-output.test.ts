@@ -418,8 +418,10 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
   it('AC7: the docs home is the Intro with both install routes', () => {
     const d = doc(DOCS_HOME);
     expect(d.querySelector('h1#_top')?.textContent?.trim()).toBe('Intro');
-    const tabs = [...d.querySelectorAll('starlight-tabs [role="tab"]')].map((t) => t.textContent?.trim());
-    expect(tabs).toEqual(['agentbundle', 'Claude plugin']);
+    for (const group of d.querySelectorAll('starlight-tabs')) {
+      const tabs = [...group.querySelectorAll('[role="tab"]')].map((t) => t.textContent?.trim());
+      expect(tabs).toEqual(['agentbundle', 'Claude plugin']);
+    }
     const code = [...d.querySelectorAll('main pre')].map((pre) => pre.textContent ?? '').join('\n');
     expect(code).toContain('agentbundle install --pack core');
     expect(code).toContain('claude plugin install');

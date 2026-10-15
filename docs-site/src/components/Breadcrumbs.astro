@@ -52,7 +52,11 @@ const trail =
     ? []
     : [
         { label: 'Docs', href: siteTitleHref },
-        ...(findCurrentTrail(sidebar) ?? [{ label: currentTitle }]),
+        // The sidebar's top level is the tab set, so a Docs-tab trail would
+        // repeat the root crumb; drop that one ancestor.
+        ...(findCurrentTrail(sidebar) ?? [{ label: currentTitle }]).filter(
+          (item, index) => !(index === 0 && item.label === 'Docs')
+        ),
       ];
 ---
 

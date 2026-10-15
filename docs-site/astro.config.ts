@@ -95,6 +95,9 @@ export default defineConfig({
         // Dark code blocks on both themes — the docs design language keeps
         // code dark-on-light (see docs/specs/docs-site-design-refresh).
         themes: ['github-dark'],
+        // Shell blocks as plain code frames: no window-dot title bar (the
+        // Rail line direction sets ornament to none).
+        defaultProps: { frame: 'code' },
         styleOverrides: {
           borderRadius: '10px',
           borderColor: 'transparent',

@@ -117,7 +117,6 @@ body {
 :focus-visible {
   outline: 2px solid var(--rail-ink);
   outline-offset: 3px;
-  border-radius: 4px;
 }
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
@@ -144,7 +143,7 @@ header.header {
   min-width: 0;
 }
 
-.rail-header__title { min-width: 0; overflow: clip; padding: 0.25rem; margin: -0.25rem; }
+.rail-header__title { min-width: 0; overflow: clip; padding: 0.375rem; margin: -0.375rem; }
 
 .site-title,
 .site-title span {
@@ -249,8 +248,9 @@ site-search kbd {
 .rail-nav__top:hover { color: var(--rail-ink); background: var(--rail-subtle); }
 
 .rail-nav__top[aria-current='page'] {
+  border-radius: 0 6px 6px 0;
+  box-shadow: inset 2px 0 0 var(--rail-ink);
   color: var(--rail-ink);
-  background: var(--rail-subtle);
   font-weight: 600;
 }
 
@@ -272,6 +272,10 @@ site-search kbd {
 }
 
 .rail-group__label::-webkit-details-marker { display: none; }
+
+.rail-group__label { border-radius: 6px; }
+.rail-group__label:hover { background: var(--rail-subtle); }
+.rail-group__label:hover .rail-group__caret { color: var(--rail-ink); }
 
 .rail-group__caret {
   width: 0.875rem;
@@ -596,6 +600,7 @@ starlight-toc a[aria-current='true'] {
   .rail-line a,
   .rail-line a::before,
   .rail-group__caret,
+  .rail-group__label,
   .sl-link-card,
   .sl-prev-next__link,
   site-search > button,
@@ -633,9 +638,6 @@ starlight-toc a[aria-current='true'] {
 .content-panel:first-of-type { padding-bottom: 0.5rem; }
 .content-panel + .content-panel { padding-top: 1.5rem; }
 
-.rail-line a[aria-current='page'],
-.rail-nav__top[aria-current='page'] { background: none; }
-.rail-nav__top[aria-current='page'] { background: var(--rail-subtle); }
 
 mobile-starlight-toc nav { border-bottom-color: var(--rail-rule) !important; background: var(--rail-ground); }
 mobile-starlight-toc summary .toggle {
@@ -698,4 +700,12 @@ button.sl-menu-button:not(:focus-visible) { outline-width: 0; }
     height: calc(100vh - var(--sl-nav-height));
     padding-top: 1rem !important;
   }
+}
+
+/* Phone menu button: flat, like the rest of the bar. */
+button.sl-menu-button {
+  border: 1px solid var(--rail-rule-strong) !important;
+  background: var(--rail-ground) !important;
+  box-shadow: none !important;
+  color: var(--rail-ink) !important;
 }
