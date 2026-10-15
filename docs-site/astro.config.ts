@@ -155,7 +155,7 @@ export default defineConfig({
             {
               label: 'Build it',
               items: [
-                { label: 'Build a change', slug: 'guides/core/how-to/start-the-work' },
+                { label: 'Run the build loop', slug: 'guides/core/how-to/start-the-work' },
                 { label: 'Fix a bug', slug: 'guides/core/how-to/bug-fix' },
                 { label: 'Review a pull request', slug: 'guides/core/how-to/review-someone-elses-pr' },
                 { label: 'Build a page or component', slug: 'guides/frontend-engineering/how-to/page-screen-contract' },
