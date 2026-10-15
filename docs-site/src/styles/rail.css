@@ -381,6 +381,14 @@ main h1,
   color: var(--rail-ink);
 }
 
+.page-deck {
+  max-width: 38rem !important;
+  margin-top: 0.5rem;
+  color: var(--rail-muted) !important;
+  font-size: 1.125rem !important;
+  line-height: 1.55 !important;
+}
+
 .content-panel + .content-panel { border-top: none !important; }
 
 .content-panel { padding-block: 1.75rem; }
@@ -706,3 +714,30 @@ button.sl-menu-button {
 @media (forced-colors: active) {
   .rail-nav__top[aria-current='page'] { border-inline-start: 2px solid CanvasText; }
 }
+
+/* Packs a page needs, as pills under the title. Neutral: stage colour stays
+   on the line and the chip. */
+.rail-uses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rail-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--rail-rule-strong);
+  border-radius: 999px;
+  background: var(--rail-subtle);
+  color: var(--rail-text);
+  font-family: var(--doc-font-mono);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.rail-pill:hover { border-color: var(--rail-muted); color: var(--rail-ink); }

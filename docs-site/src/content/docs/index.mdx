@@ -1,6 +1,5 @@
 ---
 title: Intro
-description: Install the toolkit and make your first request.
 ---
 
 import { Tabs, TabItem, CardGrid, LinkCard } from '@astrojs/starlight/components';
@@ -13,10 +12,11 @@ The workflows ship as packs. A pack is a set of skills and subagents your agent 
 
 <Tabs syncKey="install">
   <TabItem label="agentbundle">
-    Install the CLI, then add the `core` pack to your repository:
+    Install the CLI, then add the `core` pack from inside your repository:
 
     ```bash
     python -m pip install agentbundle
+    cd path/to/your-repo
     agentbundle install --pack core
     ```
 

@@ -641,6 +641,12 @@ def _strip_guide_metadata(text: str) -> str:
     # source is the body's own declaration, so the heading, the sidebar number
     # and the page text can never disagree. Non-steps carry neither field and
     # keep the default heading.
+    # The packs a page needs render as pills above its title. A page that
+    # declares none falls back to the pack that owns it.
+    if data.get("pack") and not data.get("uses") and not str(data["pack"]).startswith("_"):
+        data = dict(data)
+        data["uses"] = [data["pack"]]
+
     position = _STEP_OF.search(body)
     if position:
         data = dict(data)

@@ -18,10 +18,11 @@ Install a pack and your agent picks up its skills in the next session. You need 
 
 ## Install a pack
 
-See what the catalogue offers, then install a pack into the current repository:
+See what the catalogue offers, then install a pack from inside your repository:
 
 ```bash
 agentbundle list-packs
+cd path/to/your-repo
 agentbundle install --pack core
 ```
 

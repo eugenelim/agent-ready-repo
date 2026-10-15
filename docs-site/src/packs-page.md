@@ -13,9 +13,10 @@ They are plain files you can read and edit. `agentbundle` installs and upgrades 
 
 ## Install for the team
 
-Install a pack into the repository when the whole team should work the same way:
+Install a pack into the repository when the whole team should work the same way. Run it from the repository's folder:
 
 ```bash
+cd path/to/your-repo
 agentbundle install --pack core
 ```
 
