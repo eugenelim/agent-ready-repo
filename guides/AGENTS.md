@@ -21,13 +21,19 @@ the same change. The nav-ineligible set is pinned by its inventory test.
 - Prefer in-tree link targets: links out of `guides/` render as GitHub blob URLs
   and send readers off-site.
 
-## The guidebook step contract
+## Job pages
 
-A guidebook step is a guide page carrying `order:` frontmatter inside a pack's
-guidebook, and every step must carry every obligation the contract enumerates.
-The contract is [`docs/guides/guidebook-step-contract.md`](../docs/guides/guidebook-step-contract.md)
-and `tools/lint-guidebook-steps.py` enforces it, reading its identifiers and
-label forms out of that file.
+A page the docs sidebar lists is a job page. The CLI tab pages are the model.
+
+- Open with one sentence on what the reader can do. No subtitle, no history.
+- Each section: a lead-in sentence ending in a colon, one command or prompt,
+  then one sentence on what happens. Put choices and decisions in prose.
+- Say which packs the job needs and how to install them; never assume `core`.
+- Explain a file or term where the reader first acts on it, in plain words.
+- Flags, environment variables, edge cases, and errors go to a reference page.
+- No callouts; a table only to compare options. About 150–400 words.
+- No "Step N" in headings: verb-phrase H2s in reading order, H3 for sub-parts.
+- Name no agent host outside the supported agents (no Conductor, Orca, etc.).
 
 ## Essential commands
 
@@ -35,7 +41,6 @@ label forms out of that file.
 python3 tools/validate_guides.py
 python3 tools/check-guide-index.py
 python3 tools/lint-guide-titles.py
-python3 tools/lint-guidebook-steps.py guides/<pack>
 python3 tools/build-site.py
 ```
 

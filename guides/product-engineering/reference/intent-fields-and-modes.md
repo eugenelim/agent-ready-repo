@@ -11,6 +11,49 @@ kind: reference
 **Diátaxis: reference.** The fields, modes, and mappings of the `product-engineering` pack, for look-up. For the why, see the explanation *The intent tree*; for the walk-through, the how-to *Shape a feature intent*.
 :::
 
+## The intent file
+
+`intent frame` writes each intent from this template. The agent replaces every `<…>`, and the file continues in the same shape.
+
+<!-- rung: packs/product-engineering/.apm/skills/intent/assets/intent-template.md -->
+
+```markdown
+- **Slug:** `<slug>` <!-- kebab-case; matches the filename -->
+- **Level:** `<product-vision | product-strategy | capability | feature>` <!-- the altitude this intent sits at; an open recognized set, not a closed enum — name an intervening altitude if your org has one -->
+- **Owner:** `<who is accountable for this outcome>` <!-- required: a person or a role, declared rather than inferred from git history -->
+- **Status:** `<Draft | Accepted | Fulfilled | Withdrawn | Cancelled | Superseded>` <!-- required; one bare word. Withdrawn and Cancelled are peers of Fulfilled, not flavours of it — a rollup that counts them as delivered is the failure this vocabulary prevents -->
+- **Superseded by:** <!-- required when Status is Superseded, and refused otherwise; the Slug of the live intent that replaced this bet -->
+- **Kind:** `<outcome | opportunity>` <!-- optional, additive: the discovery-traceability chain rung this intent occupies on the opportunity-solution tree (outcome = the North Star / chain root; opportunity = a need in the OST). The structural-orphan lint reads this bold-body field to place the intent on the chain. Distinct from Level: (the altitude) — a `Level: capability` intent is placed by Level instead, and a feature intent maps downstream to a brief/spec. Omit it when not running the discovery-traceability chain; an intent still carries both an Outcome and an Opportunity section regardless. -->
+- **Scale:** `<app | business-unit>` <!-- resolved at intake by intent frame -->
+- **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
+- **Parent intent:** `<kind>:<slug>` <!-- optional: the higher-level intent this was decomposed from, e.g. `capability:<slug>` or `intent:<slug>`; omit at the top of the tree -->
+- **Outcome co-owner:** <!-- optional: another intent that shares this outcome, as a typed pointer such as `intent:<slug>`; omit when this intent owns the outcome alone -->
+- **Related intents:** <!-- optional: other intents this one sits beside, as comma-separated typed pointers such as `intent:<slug>` or `capability:<slug>`; write it on one side only, because the navigator shows it from both ends. It is never a parent or a dependency; omit when there is none -->
+- **De-risked:** <!-- optional: the ISO 8601 date the riskiest assumption was tested, or the literal `no`. Absent means nobody recorded it; `no` means someone decided against de-risking -->
+- **Shaping-reviewed:** <!-- optional: the ISO 8601 date a cold reviewer read this, or the literal `no` -->
+- **Decomposed:** <!-- optional: the literal `no`, or an ISO 8601 date followed by exactly one of children | brief | spec | direct-light | closed-empty. `closed-empty` means decomposition is deliberately complete with no child work; `direct-light` requires each item under ## Decomposition to state its requested outcome -->
+
+## Outcome
+
+<!-- LOAD-BEARING. What changes, and how you'll know. Name a *steerable input
+metric* you can directly move, the *lagging outcome* it should drive, and a
+*guardrail* that must not get worse. A qualitative-but-falsifiable outcome is
+fine in 0-to-1 — name the signal you'd accept as proof. -->
+
+- **Input (steerable):** <the metric you can move directly>
+- **Outcome (lagging):** <the result it should drive>
+- **Guardrail:** <what must not get worse>
+```
+
+*The agent replaces every `<…>`. This is the template the skill writes from; the artifact continues in the same shape.*
+
+## Run `frame-domain` — what the domain actually is
+
+**You type:**
+<!-- rung: packs/product-engineering/.apm/skills/frame-domain/SKILL.md -->
+
+```
+
 ## Intent fields
 
 The `intent` template (shipped with the `intent` skill at

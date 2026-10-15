@@ -498,7 +498,7 @@ async function expectDocsChromeIsWellPlaced(
   expect(measured.topBars, `${where}: one top bar`).toBe(1);
   expect(measured.tabNavs, `${where}: one tab landmark`).toBe(1);
   expect(measured.tabLabels, `${where}: tab order`).toEqual([
-    'Docs', 'CLI', 'Author', 'Catalogue System',
+    'Docs', 'CLI', 'Packs', 'Author', 'Catalogue System',
   ]);
   expect(measured.currentTabs, `${where}: exactly one current tab`).toBe(1);
   expect(measured.tabsDisplayed, `${where}: tabs show in the bar from 800px`).toBe(ctx.width >= 800);

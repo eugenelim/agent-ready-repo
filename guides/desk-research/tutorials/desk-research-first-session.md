@@ -20,7 +20,7 @@ This is a tutorial — it leads. For the dry catalogue of every flag and field, 
 - `agentbundle` on `$PATH` (the [Install agentbundle](../../_shared/how-to/install-agentbundle.md#install-from-a-clone) guide walks the one-time setup).
 - A project directory you can `cd` into — any project. The pack is user-scope, so it works from any repo you open.
 
-## Step 1 — install at user scope
+## Install at user scope
 
 ```bash
 agentbundle install --pack desk-research --scope user
@@ -47,7 +47,7 @@ and two retrieval subagents under `~/.claude/agents/`:
 ~/.claude/agents/source-extractor.md
 ```
 
-## Step 2 — quick mode (default)
+## Quick mode (default)
 
 Quick mode is the default. Casual phrasings stay quick — `look up`, `find out`, `quick check`. Try it.
 
@@ -69,7 +69,7 @@ Check your working directory — `ls`. There's **no artifact** — nothing match
 
 Quick mode is capped at five fetches across `WebFetch` and `WebSearch`. If a question would need more, the skill aborts and tells you to escalate.
 
-## Step 3 — standard mode
+## Standard mode
 
 Standard mode produces a citable artifact. The trigger is an explicit signal — `with citations`, `evidence-grounded`, `comprehensively`.
 
@@ -106,7 +106,7 @@ When done, you'll see `evidence-grading-survey.md` in your working directory —
 
 Every finding ends with a confidence tag from the closed set — `[high]` / `[moderate]` / `[low]` / `[uncertain]`. Downgrade factors are named explicitly. That's the standard-mode signature: an artifact with cited, rated findings.
 
-## Step 4 — applied mode
+## Applied mode
 
 Applied mode is for prior-art and best-practice surveys across practitioner grey literature (blogs, conference talks, vendor case studies, community threads) — the kind of research where standard mode's `no peer review` downgrade factor would otherwise mis-rate every finding to `[low]` because the domain has no peer-reviewed alternative by construction. The trigger is one of four phrase-shaped cues: `applied patterns for`, `best practice for`, `prior art on`, `grey literature`.
 
@@ -137,7 +137,7 @@ That's the applied-mode signature. Two structural differences from standard mode
 
 When in doubt about which mode to reach for — academic standard or practitioner applied — the heuristic is the source taxonomy you're expecting. Peer-reviewed papers and primary specs → standard. Practitioner blogs, conference talks, case studies → applied.
 
-## Step 5 — deep mode
+## Deep mode
 
 Deep mode is standard plus an adversarial review pass. The trigger is `go deep`, `exhaustively`, `extensive`.
 
@@ -183,7 +183,7 @@ similarity search at scale.
 
 That's the deep-mode signature: two artifacts, the second arguing against the first.
 
-## Step 6 — see the signatures
+## See the signatures
 
 The four modes leave four distinct on-disk signatures:
 

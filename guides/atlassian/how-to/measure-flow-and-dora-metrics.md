@@ -1,136 +1,65 @@
 ---
-title: Measure flow and DORA metrics
-summary: Produce scoped delivery-flow and DORA measurements from tracker history, with cohort comparison when requested.
+title: "Measure delivery"
+summary: "Get cycle time, lead time, throughput, and other delivery measures from your Jira history, and compare two periods."
 pack: atlassian
 kind: how-to
+uses: [atlassian, credential-brokers]
 ---
 
-# Measure flow and DORA metrics
+# Measure delivery
 
-**Mode: tracker-authoritative.** This guide assumes Jira holds the team's real
-backlog and delivery history. If `docs/product/` is canonical and Jira is only
-for reporting, use [repo-first projection](../README.md#which-mode-are-you-in)
-instead.
+Check that your agent can reach Jira, then ask for the numbers your team cares about. The agent only reads, so your tickets never change.
 
-**Use this when:** You need cycle time, lead time, throughput, WIP, or other Flow Framework / DORA metrics for a Jira project, program, or portfolio — or an AI-adoption comparison report pairing two runs.
-**Prerequisites:** Jira credentials verified (`python scripts/jira.py check`); for Align scope, the `jira-align` skill installed and authenticated.
-**Result:** JSON metrics output for the scope and window, optionally paired into a Markdown adoption comparison report via `ai-adoption-report`.
+## Check Jira access
 
-Ask for the measurement in team language:
+Confirm your credentials work before you ask for numbers:
+
+```text
+Run the Jira access check and tell me whether my credentials work.
+```
+
+The agent runs the `jira` skill's check script. If it fails, set up your credentials first with the `credential-setup` skill, because the metrics tool never reads them itself.
+
+## Measure a project
+
+Ask in team language:
 
 ```text
 What's our cycle time this quarter for PROJ?
 ```
 
-Compute cycle time, lead time, throughput, WIP, and the rest of the Flow Framework / DORA set over a Jira scope with [`flow-metrics`](../../../packs/atlassian/.apm/skills/flow-metrics/), then pair two runs into a comparison report with [`ai-adoption-report`](../../../packs/atlassian/.apm/skills/ai-adoption-report/).
+The agent runs the `flow-metrics` skill and returns cycle time, lead time, throughput, work in progress, and the rest of the Flow Framework and DORA set as JSON for the last 90 days. Name a different window, or a filter such as "only issues labelled ai-assisted", to narrow it.
 
-`flow-metrics` is read-only. It reads through the `jira` skill, joins `jira-align` for program and portfolio scope, and never transitions, comments, or mutates Jira.
+## Split out a group
 
-:::tip
-**Delivery lead?** The [Report AI adoption as a delivery lead](report-ai-adoption-as-a-delivery-lead.md) guide covers the full journey — credential setup, labeling convention, team and program rollup, and shareable report formats. This page covers the CLI in depth.
-:::
+To see how one group of work compares with the rest, name the group:
 
-## Before you start
-
-`flow-metrics` composes the `jira` skill, so verify Jira first:
-
-```bash
-python scripts/jira.py check
+```text
+Compare issues labelled ai-assisted against everything else in PROJ this quarter.
 ```
 
-Exit 0 means proceed. Exit 2 means run `credential-setup` yourself — `flow-metrics` never reads credentials directly; it lets the `jira` skill load its own. For program or portfolio scope, the `jira-align` skill must also be installed and authenticated.
+The agent adds a breakdown with the group on one side and the rest on the other.
 
-The metrics CLI ships as a `flow-metrics` shim on PATH. From a clone of the pack, put the package on PYTHONPATH and use `python -m flow_metrics` instead.
+## Roll up a program
 
-## Measure one project
+For a program or portfolio, give its ID instead of a project:
 
-```bash
-flow-metrics --project PROJ
+```text
+Measure delivery for Jira Align program 42 from February to April.
 ```
 
-JSON to stdout over the default 90-day window (`--to` today, `--from` today minus 90 days). The shipped default state config maps the common "To Do" / "In Progress" / "Done" / "Won't Do" workflow out of the box.
+The agent joins the program's issues through `jira-align`, which must be installed and signed in.
 
-Set an explicit window and AND-in extra JQL:
+## Compare two periods
 
-```bash
-flow-metrics \
-  --project PROJ \
-  --from 2026-02-01 --to 2026-04-30 \
-  --jql 'labels = ai-assisted AND component = checkout'
+Ask for each period, then for the comparison:
+
+```text
+Measure PROJ for Q1 2024 and Q4 2025, then write a report comparing them.
 ```
 
-Both window bounds are inclusive of the named day. Your `--jql` expression is parenthesised verbatim and ANDed onto the scope query.
+The agent runs `flow-metrics` for each window and pairs the results with `ai-adoption-report` into a Markdown report and a JSON file. Both periods must cover the same scope, and the earlier one must end before the later one starts.
 
-## Pick a subset of metrics
+Results are cached under `.context/flow-metrics/cache/`, so ask for a fresh run when your Jira data has changed. To measure the build loop itself, [export loop telemetry](../../core/how-to/export-loop-telemetry.md) from `core`.
 
-The default emits all ten. Narrow with `--metrics`:
-
-```bash
-flow-metrics --project PROJ --metrics throughput,cycle_time,defect_ratio
-```
-
-The ten names are `cycle_time`, `lead_time`, `throughput`, `wip`, `flow_load`, `rework_rate`, `flow_time`, `flow_efficiency`, `flow_distribution`, `defect_ratio`. Unrequested metrics are omitted from `aggregates`, not emitted as `null`.
-
-## Split a cohort within one window
-
-Mark issues matching a JQL as the cohort; everything else is the control:
-
-```bash
-flow-metrics \
-  --project PROJ \
-  --cohort-jql 'labels = ai-assisted'
-```
-
-The output gains a `cohort_breakdown` block with `cohort` and `control` sides. A cohort that matches zero issues produces `throughput: 0` and `null` percentiles, and exits 0.
-
-## Roll up a program or portfolio
-
-Exactly one of `--project`, `--program-id`, `--portfolio-id` is required. Align scope triggers a join through `jira-align`:
-
-```bash
-flow-metrics \
-  --program-id 42 \
-  --align-join-field "Program ID" \
-  --from 2026-02-01 --to 2026-04-30
-```
-
-`--align-join-field` is required for Align scope unless the state config provides it — the skill won't guess it.
-
-## Compare two runs into a report
-
-Run `flow-metrics` for each window you want to compare, writing each to its own file, then pair them:
-
-```bash
-flow-metrics --project PROJ --from 2024-01-01 --to 2024-03-31 \
-  --format json --output PROJ-2024Q1.json
-flow-metrics --project PROJ --from 2025-10-01 --to 2025-12-31 \
-  --format json --output PROJ-2025Q4.json
-
-ai-adoption-report baseline \
-  --baseline PROJ-2024Q1.json \
-  --current PROJ-2025Q4.json \
-  --output report.md
-```
-
-`baseline` mode requires both inputs share `meta.scope`, and the baseline window must end on or before the current window starts. `ai-adoption-report` writes the Markdown report plus a JSON sidecar by default; pass `--format markdown` or `--format json` for one or the other.
-
-The skill has two more modes:
-
-- **`cohort`** — render the within-window split a single `--cohort-jql` run already computed: `ai-adoption-report cohort --input run.json --output report.md`.
-- **`program`** — roll up many scopes for one window: `ai-adoption-report program --inputs outputs/ --window 2025-10-01..2025-12-31 --output q4.md`.
-
-## Pitfalls
-
-- **`--per-issue` requires `--output`** — JSONL must go to a file. A per-issue dump is the documented input for `ai-adoption-report`; downstream consumers must filter on `delivered_in_window: true` before computing delivery-based metrics.
-- **An unmapped raw status exits 2 at startup** naming the offending status. Map it in a `--state-config` file.
-- **`ai-adoption-report` paths are literal** — no tilde or env-var expansion, and absolute paths outside the working directory exit 2.
-- **Cache staleness** — results cache at `.context/flow-metrics/cache/`. Pass `--no-cache` when the underlying Jira data has changed.
-
-For the full flag surface of both skills, see the [`atlassian` skills reference](../atlassian-skills.md).
-
-## What you have now
-
-You have read-only Jira flow measurements as JSON for the scope and window you
-named. If you compared runs, you also have the Markdown report and optional JSON
-sidecar at the paths you selected. Jira is unchanged; review the provenance and
-notes before using the numbers in a decision or adoption report.
+Next, [report AI adoption as a delivery lead](report-ai-adoption-as-a-delivery-lead.md). [The `atlassian` skills reference](../atlassian-skills.md) lists every flag.

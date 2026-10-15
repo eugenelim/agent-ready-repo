@@ -1,29 +1,54 @@
-# converters
+# Converters
 
-Say "convert this PDF to Markdown" or "turn this Markdown into a branded Word doc" — and the agent handles it. `converters` moves content between every format your team touches: PDF, Office, HTML, EPUB, email, images, and Mermaid diagrams → Markdown, and Markdown back out to styled HTML, Word, PowerPoint, and Excel.
-
-The `file-to-markdown` skill runs a no-ML **Tier-0** floor (pure-Python parsers for PDF, Office, HTML, EPUB, CSV, ODF, `.eml`) before reaching for Docling. Every output carries a versioned frontmatter contract — provenance and a quality/confidence signal — so downstream tools know what they received.
-
-The Markdown → Office skills (`markdown-to-docx`, `markdown-to-pptx`, `markdown-to-xlsx`) fill your existing branded templates. Each detects its render library (`docxtpl` / `python-pptx` / `openpyxl`) at runtime and stops with the exact `pip install` line if it's absent.
-
-## Skills
-
-- `file-to-markdown` — PDF, Office, HTML, EPUB, CSV, ODF, `.eml`, images → Markdown
-- `markdown-to-html` — Markdown → styled HTML
-- `markdown-to-docx` — Markdown → branded Word document
-- `markdown-to-pptx` — Markdown → branded PowerPoint deck
-- `markdown-to-xlsx` — Markdown → branded Excel workbook
-- `msg-to-markdown` — Outlook `.msg` → Markdown
-- `mermaid-renderer` — render Mermaid diagrams
+Your agent can turn documents, email, and diagrams into Markdown, and turn Markdown into branded Word, PowerPoint, Excel, and styled HTML.
 
 ## Install
 
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
+
+```bash
+agentbundle install --pack converters
 ```
-agentbundle install --pack converters --scope user <catalogue>
+
+In Claude Code you can install it as a plugin instead:
+
+```bash
+claude plugin install converters@agent-ready-repo
 ```
 
-`converters` is user-scope by default — format conversion is a portable utility, not a project concern.
+## What your agent can do
 
----
+- Read a PDF, Office file, HTML page, EPUB, spreadsheet, or image and hand back Markdown your agent can use as context.
+- Convert an Outlook or `.eml` email to Markdown with its headers and an attachments table.
+- Fill your branded Word, PowerPoint, or Excel template from a Markdown file.
+- Turn Markdown into a shareable, styled HTML page, or an offline proof page for review.
+- Render Mermaid diagrams in a Markdown file as images.
 
-→ **Go deeper:** [`guides/converters/`](../../guides/converters/)
+## Skills
+
+- **`file-to-markdown`** — Converts documents and images to Markdown, with provenance and a quality signal in the output.
+- **`msg-to-markdown`** — Converts Outlook `.msg` and `.eml` email to Markdown, keeping headers, body, and attachments.
+- **`markdown-to-docx`** — Fills a branded Word template from a Markdown file.
+- **`markdown-to-pptx`** — Fills a branded PowerPoint template from a Markdown file.
+- **`markdown-to-xlsx`** — Fills a branded Excel template from a Markdown file.
+- **`markdown-to-html`** — Makes a self-contained, styled HTML page with navigation, highlighted code, and diagrams.
+- **`render-proof`** — Renders a Markdown draft as an offline HTML proof for human review.
+- **`mermaid-renderer`** — Replaces each Mermaid block in a Markdown file with a rendered PNG or SVG.
+
+## Works with
+
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Architect](../architect/README.md) draws Mermaid diagrams that `mermaid-renderer` can turn into images. Guides: [Convert documents to Markdown](../../guides/converters/how-to/convert-documents-to-markdown.md), [Publish Markdown to Office](../../guides/converters/how-to/publish-markdown-to-office.md), and [Convert Markdown to HTML and email](../../guides/converters/how-to/convert-markdown-to-html-and-email.md).
+
+## Questions
+
+**Do I need machine-learning tools installed?** Not for common documents. `file-to-markdown` reads PDF, Office, HTML, EPUB, CSV, and email with plain parsers. Only `.xls` files and images need more.
+
+**Does it need my own templates?** The Word, PowerPoint, and Excel skills fill templates your designer prepared. They do not invent a layout.
+
+**What if a library is missing?** Each Office skill checks at run time and stops with the exact `pip install` line to run.
+
+**How does it read an image?** It tiles the image, reads each tile with the model's vision, and merges the tiles by script.
+
+## Details
+
+Scope: user (default), repo · Version: 0.9.8 · Source: [packs/converters](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/converters)

@@ -211,7 +211,7 @@ site-search kbd {
 @media (min-width: 50rem) {
   .rail-header .rail-tabs { display: flex; gap: 0.125rem; }
   .rail-header__icons { display: flex; align-items: center; gap: 0.25rem; }
-  site-search > button { min-width: 15rem; justify-content: space-between; }
+  site-search > button { justify-content: space-between; }
 }
 
 /* ── Sidebar: the stage line ─────────────────────────────────────────────── */
@@ -383,6 +383,7 @@ main h1,
 
 .page-deck {
   max-width: 38rem !important;
+  margin-top: 0.5rem;
   color: var(--rail-muted) !important;
   font-size: 1.125rem !important;
   line-height: 1.55 !important;
@@ -712,4 +713,41 @@ button.sl-menu-button {
 /* Forced colours drop box-shadow, so the current-item bar becomes a border. */
 @media (forced-colors: active) {
   .rail-nav__top[aria-current='page'] { border-inline-start: 2px solid CanvasText; }
+}
+
+/* Packs a page needs, as pills under the title. Neutral: stage colour stays
+   on the line and the chip. */
+.rail-uses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rail-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--rail-rule-strong);
+  border-radius: 999px;
+  background: var(--rail-subtle);
+  color: var(--rail-text);
+  font-family: var(--doc-font-mono);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.rail-pill:hover { border-color: var(--rail-muted); color: var(--rail-ink); }
+
+/* The search box widens only once the tabs and title have room. */
+@media (min-width: 72rem) {
+  site-search > button { min-width: 15rem; }
+}
+
+@media (min-width: 50rem) and (max-width: 71.999rem) {
+  .rail-header__left { gap: 1rem; }
+  .rail-tabs__link { padding-inline: 0.5rem; }
 }

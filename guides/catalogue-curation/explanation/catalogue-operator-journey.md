@@ -50,7 +50,7 @@ After landing, run `agentbundle pack evals run --pack <name>` to verify the new 
 **Primary touchpoints:** `assimilate-primitive`.
 
 **Where to go next:** [Your first assimilation](../tutorials/first-assimilation.md) walks the full single-primitive skill flow end to end.
-For subagent-specific concerns, see [Your first subagent](../tutorials/your-first-subagent.md).
+For subagent-specific concerns, see [Assimilate an external subagent](../tutorials/assimilate-a-subagent.md).
 
 ---
 

@@ -1,88 +1,45 @@
-# catalogue-curation
+# Catalogue Curation
 
-Grow and maintain an agent-skill catalogue — bring in new skills, compile
-pack-owned knowledge, survey external repos, propose new packs, and produce
-redistributable derivatives.
+Your agent can grow and maintain a skill catalogue for you: bring in outside skills, survey other repositories, propose new packs, and compile pack knowledge.
 
----
+## Install
 
-## Start here
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. This pack is for catalogue maintainers. Install it from inside your catalogue repository:
 
-| Skill | The catalogue job it serves |
-| --- | --- |
-| **`propose-catalogue-pack`** | Stand up a **new pack** — justify it's additive and fits the catalogue's charter, scaffold the shell, and emit an RFC (or reject it). |
-| **`assimilate-primitive`** | Bring **one** external skill / subagent / hook (or a small bundle) in from a local path or URL — safely, then **reshaped to our craft** (activation, progressive disclosure, anti-pattern steering), or rejected. |
-| **`assimilate-repo`** | Survey a **whole external repo/catalogue** into a reviewable RFC of per-candidate verdicts, resumable across sessions and worktrees via a ledger. |
-| **`compile-okf`** | Compile a pack's declared **OKF knowledge bundles** into deterministic portable Skills, or check that committed generated output is current. |
-
-```text
-I found a well-crafted research skill in an external repo.
-Can we bring it into our catalogue?
+```bash
+cd path/to/your-catalogue
+agentbundle install --pack catalogue-curation
 ```
 
-```text
-I want to stand up a new pack for our data-engineering team.
-```
+## What your agent can do
 
-The pack identifies the job (assimilate, propose, survey, compile, or export)
-and runs the appropriate gates. Change workflows present a preview when their
-contract requires one; `compile-okf` ownership-preflights its output and writes
-only the selected pack's managed files. All changes are local — nothing is
-published remotely. An RFC is emitted wherever the work requires one.
+- Bring one outside skill, subagent, or hook into your catalogue from a local path or URL, reshaped to your catalogue's conventions or rejected with a reason.
+- Survey a whole outside repository and write a reviewable RFC with a verdict for each candidate.
+- Check whether a new pack is additive, scaffold its shell, and write an RFC for human review.
+- Compile a pack's declared knowledge bundles into portable reference skills, and check that the committed output is current.
+- Pick up a survey where it stopped, across sessions and worktrees.
 
----
+## Skills
 
-## Common jobs
+- **`assimilate-primitive`** — Brings in one outside skill, subagent, hook, or command, or a small bundle, and shows a preview before it lands.
+- **`assimilate-repo`** — Surveys a whole repository or catalogue and writes per-candidate verdicts to a resumable ledger.
+- **`propose-catalogue-pack`** — Tests whether a new pack is additive, scaffolds it, and writes the RFC, or rejects the idea.
+- **`compile-okf`** — Compiles declared OKF knowledge bundles into router and procedure skills, or checks they are current.
 
-**Bring an external skill or agent into the catalogue**
-Describe the source (a local path or public URL) and the skill you want to assimilate.
-Returns an activation review, a collision check against existing skills, a craft-shaping proposal (activation description, progressive disclosure, anti-pattern steering), and a diff preview. You review and approve each step. Result: skill lands in the correct pack directory, shaped to your catalogue's craft, with a gate-passing record.
+## Works with
 
-```text
-assimilate-primitive
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. It installs at repo scope only and needs no other pack. Pair it with [Agent Skill Engineering](../agent-skill-engineering/README.md) to write skills, and [Governance Extras](../governance-extras/README.md) for the RFCs it produces. Guides: [Import and curate skills](../../guides/catalogue-curation/how-to/survey-a-repo.md) and [Author and compile an OKF bundle](../../guides/catalogue-curation/how-to/author-an-okf-bundle.md).
 
-  Source: https://github.com/example-org/research-skills/tree/main/deep-research
-  ● Activation check: description routes correctly — no collision
-  ● Craft gap: missing progressive-disclosure depth
-  ● Proposed reshape: [preview shown]
+## Questions
 
-  Approve and land? ›
-```
+**Does it publish anything?** No. Every change is local, and a preview comes first where the workflow needs one.
 
-**Survey a whole external repo for candidates**
-Say `assimilate-repo` and point to a repo path or URL.
-Returns a per-candidate verdict (in / out / reshape / defer) written to a resumable ledger file. You review the ledger; each approved candidate can then be assimilated individually. Nothing is changed in your repo during the survey step.
+**Can it change the install engine or the credential brokers?** No. A path gate blocks those trees unless a human writes an RFC for it.
 
-**Propose a new pack**
-Say `propose-catalogue-pack` and describe the new pack's purpose.
-Tests whether the pack is additive (doesn't duplicate an existing pack) and fits the catalogue's charter, then scaffolds a pack shell and emits an RFC for human review. No RFC means no new pack.
+**Does ingested code skip your checks?** No. It runs the repository's own lints and scans before it lands. Known anti-patterns are reshaped or rejected.
 
-**Create a self-hosted catalogue**
-Run `agentbundle catalogue init --preset self-hosted` to scaffold a new catalogue from the managed template. No fork required.
+**Is it for adopters?** No. It is for the people who decide what lands in a catalogue. To start a catalogue, run `agentbundle catalogue init --preset self-hosted`.
 
-**Compile pack-owned reference knowledge**
-Declare a reference-only OKF 0.2 bundle in the owning pack, then ask
-`compile-okf` to compile and check that pack. It produces a portable router
-Skill, compiler-owned indexes, and a manifest without executing or fetching the
-knowledge. Follow [Author and compile an OKF bundle](../../guides/catalogue-curation/how-to/author-an-okf-bundle.md)
-for the source layout, commands, recovery path, and discovery check.
+## Details
 
----
-
-## Guardrails
-
-- **Never** mutates the `agentbundle` engine or `credential-brokers` through any skill — a path-gate blocks protected-tree changes absent a deliberate, human-authored RFC.
-- **Ingested code runs the repo's own gates** (lints + CodeQL/Snyk) before it lands, and known anti-patterns (a script that triggers a skill/agent, a misused agent, a flooding "skill") are steered to our shape or rejected — never laundered in.
-- **No base or runtime AgentBundle dependency** — `compile-okf` uses the
-  catalogue tooling Python requirements, including `pyyaml>=6.0`, only when a
-  maintainer runs the authoring compiler.
-
----
-
-## Who this is for
-
-`catalogue-curation` is for **catalogue maintainers** — the people who own the shape of the catalogue and decide what lands in it. It is not for ordinary adopters who want to install and use skills.
-
-For internal procedures and how-tos, see [`docs/guides/`](../../docs/guides/) (maintainer documentation, not published as adopter-first content).
-
-Repo-scope, opt-in; not in any default profile. For derived or enterprise catalogues, use `agentbundle catalogue init --preset self-hosted` instead.
+Scope: repo (default) · Version: 0.4.7 · Source: [packs/catalogue-curation](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/catalogue-curation)

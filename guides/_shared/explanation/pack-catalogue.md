@@ -76,6 +76,6 @@ For sensitive integrations, the [`credential-brokers` guide](../../credential-br
 
 - [Choose work by outcome or role](../../).
 - [Install packs for your agent](../how-to/install-packs.md).
-- [Preview an install or upgrade](../how-to/install-packs.md#preview-before-you-install).
+- [Preview an install or upgrade](../how-to/install-packs.md#preview-first).
 - [See the operating model](the-operating-model.md): how work flows from idea to production.
 - [Create a catalogue](../how-to/create-a-catalogue.md).

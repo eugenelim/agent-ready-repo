@@ -40,6 +40,9 @@ def test_ac41_conventions_credentialed_section_names_brokers():
     # Locate the Credentialed skills section.
     start = contract.find("## The credentialed-skill contract")
     assert start > 0, "the how-to is missing § The credentialed-skill contract"
+    # The reader picks a broker before the example uses one (spec/docs-job-pages).
+    declare = contract.find("## Declare the credential")
+    assert declare == -1 or start < declare, "broker choice must come before the example"
     end = contract.find("\n## ", start + 1)
     section = contract[start:end] if end > 0 else contract[start:]
     assert "metadata.auth" in section

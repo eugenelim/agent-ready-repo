@@ -8,7 +8,7 @@ kind: reference
 # `agentbundle` — reference
 
 :::note
-The three operations a fresh PyPI user actually performs, plus the built-in help surface. For the full subcommand catalogue, run `agentbundle --help`.
+The three operations a fresh PyPI user actually performs, plus the built-in help. For the full subcommand catalogue, run `agentbundle --help`.
 :::
 
 ## Install `agentbundle`
@@ -37,7 +37,7 @@ Common flags:
 
 | Flag                       | Effect                                                                                  |
 | -------------------------- | --------------------------------------------------------------------------------------- |
-| `--scope {repo,user}`      | Target install scope; default `repo`.                                                   |
+| `--scope {repo,user}`      | Target install scope; default is the pack's `default-scope`.                            |
 | `--adapter <name>`         | Override the resolved adapter per-invocation (e.g. `claude-code`, `codex`, `kiro`).     |
 | `--output <dir>`           | Output root; default depends on scope.                                                  |
 | `--dry-run`                | Preview the per-file plan (action + tier + target path) to stdout and exit 0 without writing anything. Refused with `--force`. See [Preview before applying](#preview-before-applying). |
@@ -76,7 +76,23 @@ agentbundle install <catalogue-uri> --pack core --dry-run
 agentbundle upgrade <catalogue-uri> --pack core --dry-run
 ```
 
-`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. See the [preview how-to](../how-to/install-packs.md#preview-before-you-install) for how to read the plan.
+`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. A preview lists projected files, not governance seeds such as `AGENTS.md`; a real install still creates them. It exits 0 even with companions; `agentbundle diff` is the verb that gates on drift.
+
+## Install details
+
+**Profiles.** `agentbundle list-profiles` shows them; `agentbundle install --profile <name>` installs one. `--profile` cannot be combined with `--pack` or `--scope` (the profile sets its scope). A pack already installed at the other scope blocks the profile. Every pack's preconditions are checked before anything is written; a failure mid-batch is not rolled back, so run the command again to resume. There is no `upgrade --profile` or `uninstall --profile`.
+
+**User scope on Codex and Kiro.** For Codex, `agentbundle` looks for `~/.codex/` or `~/.agents/skills/` and writes skills to `~/.agents/skills/`. For Kiro, it looks for `~/.kiro/` (run any Kiro command once to create it) and writes to `~/.kiro/skills/`. With several agent folders present it takes the first match in the pack's `allowed-adapters` order. User-scope state is `~/.agentbundle/state.toml`; credentials go to `~/.agentbundle/credentials.env`. Codex's own `~/.codex/plugins/` route keeps separate state, so use one route per pack.
+
+**Changing adapter.** An upgrade keeps the adapter recorded at install. To change it, `agentbundle uninstall --pack <name> --scope <scope>`, then install again with `--adapter`. `--adapter` must be in the pack's `allowed-adapters`; `kiro` is a deprecated alias for `kiro-ide`.
+
+**Selective upgrade.** `agentbundle upgrade --pack <name> --skill <skill-name>` moves one skill and leaves the rest at the installed version; `--agent`, `--hook`, `--seed <path>`, and `--command` work the same way. The next whole-pack upgrade reports the mixed state. When a pack is installed for more than one adapter at a scope, pass `--adapter`.
+
+**Uninstall.** `agentbundle uninstall --pack <name>` removes the files the pack owns. Files you edited and files outside the pack's paths stay.
+
+**After the install.** Installing `core` at repo scope ends with a `Next:` line asking you to run `adapt-to-project`. Repo scope writes seeds when the pack declares them, writes `.adapt-install-marker.toml`, and chains `agentbundle adapt`. Local scope deliberately omits seeds. No marker, layout section, or chained `adapt`. Plugin and APM installs print no `Next:` line. A lifecycle hook may repeat that nudge. It is never the only path: the installer guarantees the projected files, the state for the scope you chose, and the printed line. It does not guarantee hook execution or context injection. A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` can run the marker writer.
+
+**Other routes.** APM and Claude plugin installs follow their own update verbs (`apm update <pack>`, `/plugin update <pack>@<catalogue>`) and print no `Next:` line; run `agentbundle init-state` once so `agentbundle` has a baseline. Catalogue maintainers can emit the APM and plugin dist trees with `agentbundle install --pack <name> --scope repo --emit-install-routes .`; the plugin tree is written only for packs whose `allowed-scopes` admits `user`, and the flag cannot be combined with `--adapter`.
 
 ## Configure the default adapter
 
@@ -85,7 +101,8 @@ Once installed, `agentbundle` resolves the target adapter on every install via a
 1. The `--adapter` flag, if passed.
 2. The state-hint from a prior install of the same pack (so an upgrade stays on the adapter it was originally installed under).
 3. The user-config file, if you've set one.
-4. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/`, or `~/.kiro/` populated, the matching adapter is picked. This is the auto-detection layer for users who never ran `agentbundle config set` and don't pass `--adapter`.
+   Then your organization's packaged default, `[organization].preferred_adapter`, when one is set.
+4. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/` (or `~/.agents/skills/`), or `~/.kiro/` populated, the first match in the pack's `allowed-adapters` order is picked. `~/.kiro/` cannot tell Kiro IDE from Kiro CLI, and Cursor and Gemini CLI have no probe. At repo scope there is no probe: without a flag, state, or config the install targets `claude-code` when the pack allows it, otherwise the pack's first allowed adapter.
 5. The built-in default (`scope.DEFAULT_ADAPTER`, currently `claude-code`).
 
 `agentbundle config` reads and writes layer 3. Four actions:
@@ -99,7 +116,7 @@ agentbundle config unset <key>            # remove (deletes file if empty)
 
 The registered keys are `adapter` and `source`. `source` overrides every
 organization default, so use it only when a user needs a different catalogue.
-Future keys would be added by the framework; the command surface stays the
+Future keys would be added by the framework; the commands stay the
 same.
 
 ### Example
@@ -275,7 +292,7 @@ Verification stays strict: hostname checking and full chain validation apply on
 every attempt, the fallback only ever *adds* trust anchors, and no flag or
 variable disables verification. One caveat worth stating plainly: macOS lets an
 administrator mark a certificate *Never Trust*, and the fallback does not read
-those markings, so such a certificate is still used as an anchor. It is bounded
+those markings, so such a certificate is still used as an anchor. It is limited
 to a keychain only an administrator can write.
 
 ### Why the fallback is macOS-only

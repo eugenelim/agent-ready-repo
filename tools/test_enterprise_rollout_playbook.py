@@ -8,8 +8,8 @@ GUIDE = (
     REPO_ROOT
     / "guides"
     / "_shared"
-    / "how-to"
-    / "roll-out-agent-ready-repo-across-an-enterprise.md"
+    / "reference"
+    / "enterprise-rollout-playbook.md"
 )
 
 # STUB: AC1-AC10 — these assertions define the red contract before the guide exists.
@@ -38,10 +38,10 @@ def test_frontmatter_and_outcome_first_opening() -> None:
     _require_all(
         frontmatter,
         (
-            'title: "Roll out agent-ready-repo across an enterprise"',
+            'title: "Enterprise rollout playbook"',
             "summary:",
             "pack: _shared",
-            "kind: how-to",
+            "kind: reference",
         ),
         "frontmatter",
     )
@@ -257,10 +257,10 @@ def test_mid_market_gap_and_distribution_boundary() -> None:
     assert re.search(r"\]\(\.\./\.\./core/how-to/run-a-live-demo\.md\)", text), (
         "missing exact Markdown link to the live-demo guide"
     )
-    assert re.search(r"\]\(configure-catalogue-enterprise-distribution\.md\)", text), (
+    assert re.search(r"\]\(\.\./how-to/configure-catalogue-enterprise-distribution\.md\)", text), (
         "missing exact Markdown link to the technical enterprise-distribution guide"
     )
-    assert re.search(r"\]\(build-an-org-stack-pack\.md\)", text), (
+    assert re.search(r"\]\(\.\./how-to/build-an-org-stack-pack\.md\)", text), (
         "missing exact Markdown link to the org-stack implementation guide"
     )
     forbidden_procedure_markers = (

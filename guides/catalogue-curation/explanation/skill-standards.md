@@ -18,7 +18,7 @@ Read this page before starting either path.
 2. **Choose your path:**
    - Writing a new skill → [Your first skill](../tutorials/your-first-skill.md)
    - Assimilating a skill from outside → [Your first assimilation](../tutorials/first-assimilation.md)
-   - Assimilating a subagent from outside → [Your first subagent](../tutorials/your-first-subagent.md)
+   - Assimilating a subagent from outside → [Assimilate an external subagent](../tutorials/assimilate-a-subagent.md)
 3. **After the tutorial, reach for the deep references:**
    - [agentskills.io specification — applied reference](../../_shared/reference/agentskills-io-standard.md) — complete frontmatter, directory layout, enforcement details
    - [The convergence model](the-convergence-model.md) — the three convergence layers in full, and the no-merge-back principle

@@ -86,7 +86,7 @@ required — and if the repository declares a stricter rule of its own, that rul
 **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's get input on X" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Lead with `use the new-rfc skill to …` whenever you want the discipline to trigger reliably.
 :::
 
-## Step 1 — Choose the artifact before starting an RFC
+## Choose the artifact before starting an RFC
 
 Ask `new-rfc` to decide the route before it resolves an RFC number, chooses a
 target, creates a directory or index, or drafts text. For example:
@@ -116,7 +116,7 @@ trust-model, and stable-compatibility changes also take that route. The skill
 reports the selected route once, then stops; it does not create an RFC merely to
 record the route.
 
-## Step 2 — Invoke `new-rfc` for a warranted RFC
+## Invoke `new-rfc` for a warranted RFC
 
 Two worked invocations from genuinely different RFC shapes:
 
@@ -134,7 +134,7 @@ to 7 based on six months of stasis-detection data
 
 Natural phrasings (`propose a change to …`, `let's get input on …`, `draft an RFC for …`) match the skill's description and often trigger it. The explicit form is the reliable one.
 
-## Step 3 — Shape the proposal (the skill offers, doesn't force)
+## Shape the proposal (the skill offers, doesn't force)
 
 Before any research, the skill gets the frame straight — and how hard it leans depends on how well-formed your ask already is:
 
@@ -143,7 +143,7 @@ Before any research, the skill gets the frame straight — and how hard it leans
 
 The skill also **picks the RFC's `Decision weight`** here — `light`, `standard`, or `heavy` — by reading `work-loop`'s risk triggers: a reversal of a frozen ADR/RFC, a governance/charter/security boundary, or a one-way door makes it `heavy`; a reversible, narrow change makes it `light`; everything else is `standard` (the default). The weight now changes what the RFC is actually *obliged* to do, not just how long it is (see Step 6). It's an offer, not a gate: a half-formed ask is normal input, not something to be rejected.
 
-## Step 4 — Watch the research + de-risk phase
+## Watch the research + de-risk phase
 
 After the artifact checkpoint selects an RFC, the skill resolves where it will
 live (the repository root and `docs/rfc/`, or a non-default location your
@@ -170,7 +170,7 @@ Read the recommendations carefully. For each:
 **Do not approve the block in bulk.** A vague "looks good" doesn't count as sign-off on the highest-stakes recommendation. Name the recommendation you're accepting, especially when the skill flagged one as load-bearing.
 :::
 
-## Step 5 — Drafting resumes, answer-first
+## Drafting resumes, answer-first
 
 Once you sign off, the skill previews the target — the identifier (`RFC-NNNN`), the status (`Draft`), the target path, and the index path — then, on your go-ahead, creates the file and drafts the body, leading with the decision, then cascading detail:
 
@@ -188,7 +188,7 @@ The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft`, the `Dec
 
 Once the file and the RFC index are written, the skill hands back a short **completion receipt**: the identifier (`RFC-NNNN`), the file path, the index path, the current status (`Draft`, or `Open` once you circulate), the files changed, the owner (the named Approver), and the next step — circulate for review (→ `Open`), then Approver sign-off (→ `Accepted`).
 
-## Step 6 — The pre-handoff gate
+## The pre-handoff gate
 
 Before the RFC moves to `Open`, the skill runs a self-review gate so you aren't the one catching obvious misses. Each check is *run, not asserted*. What the gate obliges depends on the `Decision weight`: a `light` RFC gets the completeness checklist and **one** adversarial pass, not an iterative one, and no automatic fresh-reader readability review; `standard` adds the full argument, proportionate research, decision-by-decision backing, and adversarial review re-run until clean; `heavy` adds applicable reversal, compatibility or trust-model analysis, a security review when a security boundary or trust model is involved, and validation planning where the uncertainty is empirical. Two checks apply at **every** weight, scoped to whatever the proposal actually claims: citation integrity and verify-before-you-assert. The checks:
 
@@ -200,7 +200,7 @@ Before the RFC moves to `Open`, the skill runs a self-review gate so you aren't 
 
 What you get back at handoff is a short, reviewer-friendly **readiness summary** — the skill's `REVIEW READINESS` checklist (decision clear, citations checked, adversarial pass clean, fresh-reader review, and the rest) — not a compliance dump, and the heavy **proof** (citation-fetch detail, the adversarial-review transcript) stays *linked*, not pasted into the RFC. The summary is a chat handoff, never a section in the RFC itself. (The skill owns the exact item list, so this guide doesn't re-enumerate it.)
 
-## Step 7 — Move through the lifecycle
+## Move through the lifecycle
 
 The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn`. You move the status manually as the discussion progresses:
 
@@ -220,7 +220,7 @@ python3 "$SKILL/scripts/index-records.py" docs/rfc
 The index is derived from the records themselves, so it cannot drift from them.
 Run the same command with `--check` to find out whether it would change.
 
-## Step 8 — After acceptance
+## After acceptance
 
 An accepted RFC is rarely the last artifact. It points at concrete follow-on work, which lives in `docs/specs/<feature>/`, `docs/adr/`, or the artifact that owns the convention:
 

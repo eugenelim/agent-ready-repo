@@ -124,7 +124,6 @@ export default defineConfig({
           items: [
             { label: 'Intro', slug: 'index' },
             { label: 'Operating model', slug: 'guides/_shared/explanation/the-operating-model' },
-            { label: 'Packs', slug: 'packs' },
             {
               label: 'Set up a repository',
               items: [
@@ -139,47 +138,35 @@ export default defineConfig({
                 { label: 'Understand the code', slug: 'guides/code-intelligence/how-to/investigate-a-codebase' },
                 { label: 'Analyse the market', slug: 'guides/product-strategy/how-to/run-a-market-and-competitive-analysis' },
                 { label: 'Set direction and goals', slug: 'guides/product-strategy/how-to/set-the-direction' },
-                { label: 'Find opportunities', slug: 'guides/product-engineering/how-to/find-the-opportunities' },
               ],
             },
             {
               label: 'Shape it',
               items: [
-                { label: 'Frame an idea', slug: 'guides/product-engineering/how-to/frame-the-intent' },
-                { label: 'Test the bet', slug: 'guides/product-engineering/how-to/commit-and-de-risk' },
+                { label: 'Shape an idea', slug: 'guides/product-engineering/how-to/frame-the-intent' },
                 { label: 'Design the architecture', slug: 'guides/architect/how-to/shape-an-architecture-concept' },
-                { label: 'Design the experience', slug: 'guides/experience-design/how-to/establish-design-intent' },
-                { label: 'Write the contract', slug: 'guides/core/how-to/write-the-contract' },
-                { label: 'Hand off to build', slug: 'guides/product-engineering/how-to/hand-it-to-build' },
+                { label: 'Design the experience', slug: 'guides/experience-design/how-to/map-the-customer-journey' },
+                { label: 'Design an API contract', slug: 'guides/contracts/how-to/generate-an-api-contract' },
               ],
             },
             {
               label: 'Build it',
               items: [
-                { label: 'Build a change', slug: 'guides/core/how-to/start-the-work' },
+                { label: 'Run the build loop', slug: 'guides/core/how-to/start-the-work' },
                 { label: 'Fix a bug', slug: 'guides/core/how-to/bug-fix' },
                 { label: 'Review a pull request', slug: 'guides/core/how-to/review-someone-elses-pr' },
                 { label: 'Build a page or component', slug: 'guides/frontend-engineering/how-to/page-screen-contract' },
                 { label: 'Record a decision', slug: 'guides/governance-extras/how-to/new-adr' },
                 { label: 'Write the docs', slug: 'guides/product-documentation/how-to/write-a-guide' },
-                { label: 'Close out the work', slug: 'guides/core/how-to/close-it-out' },
               ],
             },
             {
               label: 'Ship it',
               items: [
                 { label: 'Release a change', slug: 'guides/release-engineering/how-to/run-a-release' },
-                { label: 'Change infrastructure', slug: 'guides/iac-terraform/explanation/infrastructure-in-the-release-loop' },
+                { label: 'Change infrastructure', slug: 'guides/iac-terraform/how-to/change-infrastructure' },
                 { label: 'Measure delivery', slug: 'guides/atlassian/how-to/measure-flow-and-dora-metrics' },
               ],
-            },
-            {
-              label: 'Pack listing',
-              collapsed: true,
-              items: (sidebarConfig as any[])
-                .flatMap((group) => group.items ?? [])
-                .filter((item) => typeof item.slug === 'string' && item.slug.startsWith('packs/'))
-                .sort((a, b) => a.label.localeCompare(b.label)),
             },
           ],
         },
@@ -201,6 +188,16 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Packs',
+          items: [
+            { label: 'About packs', slug: 'packs' },
+            ...(sidebarConfig as any[])
+              .flatMap((group) => group.items ?? [])
+              .filter((item) => typeof item.slug === 'string' && item.slug.startsWith('packs/'))
+              .sort((a, b) => a.label.localeCompare(b.label)),
+          ],
+        },
+        {
           label: 'Author',
           items: [
             { label: 'Author a skill', slug: 'guides/_shared/how-to/author-a-skill' },
@@ -213,9 +210,11 @@ export default defineConfig({
               label: 'Reference',
               items: [
                 { label: 'Pack config API', slug: 'guides/_shared/reference/pack-config-api' },
+                { label: 'Skill authoring standards', slug: 'guides/_shared/reference/skill-authoring-standards' },
                 { label: 'Skill script conventions', slug: 'guides/_shared/reference/skill-script-conventions' },
                 { label: 'Skill UX patterns', slug: 'guides/_shared/reference/skill-ux-patterns' },
-                { label: 'Authoring standards', slug: 'guides/_shared/reference/catalogue-authoring-standards' },
+                { label: 'Catalogue authoring standards', slug: 'guides/_shared/reference/catalogue-authoring-standards' },
+                { label: 'Credentialed skill walkthrough', slug: 'guides/credential-brokers/reference/credentialed-skill-walkthrough' },
               ],
             },
           ],
@@ -233,6 +232,7 @@ export default defineConfig({
               label: 'Reference',
               items: [
                 { label: 'Catalogue CI contract', slug: 'guides/_shared/reference/catalogue-ci-contract' },
+                { label: 'Artifactory distribution', slug: 'guides/_shared/reference/artifactory-catalogue-distribution' },
                 { label: 'Ledger and guard', slug: 'guides/catalogue-curation/reference/ledger-and-guard' },
               ],
             },

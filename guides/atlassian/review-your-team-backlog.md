@@ -23,7 +23,7 @@ By the end of this tutorial, you will have followed a complete Atlas team workfl
 
 ## Stage 1 — See the work
 
-### Step 1: Request the whole team backlog
+### Request the whole team backlog
 
 Say exactly this, or something close:
 
@@ -44,7 +44,7 @@ Recommend five items for the team to discuss next.
 Do not change Jira.
 :::
 
-### Step 2: Respond to the scope clarification (if it appears)
+### Respond to the scope clarification (if it appears)
 
 The agent may ask one compact question when the team scope is ambiguous:
 
@@ -59,7 +59,7 @@ Which should I use?
 
 Pick the one that matches your team's setup. If neither applies, say so — the agent will ask for a JQL filter or project list instead.
 
-### Step 3: Read the scope and completeness header
+### Read the scope and completeness header
 
 Before any grouped sections, the agent shows you what it searched and whether the result is complete.
 
@@ -76,7 +76,7 @@ Before any grouped sections, the agent shows you what it searched and whether th
 
 **Checkpoint:** If the numbers look wrong — too few issues, wrong projects — stop here. Tell the agent what the correct scope should be before reading the grouped sections. Asking for corrections now is cheaper than reviewing the wrong backlog.
 
-### Step 4: Read the grouped result
+### Read the grouped result
 
 After the scope header, the agent groups the 184 issues:
 
@@ -88,7 +88,7 @@ After the scope header, the agent groups the 184 issues:
 | In progress | 11 | Currently being worked on |
 | Other open work | 122 | Open but not in the categories above |
 
-### Step 5: Review the recommended candidates
+### Review the recommended candidates
 
 The agent recommends five items for the team to discuss next:
 
@@ -104,7 +104,7 @@ The agent recommends five items for the team to discuss next:
 
 ## Stage 2 — Improve weak stories
 
-### Step 6: Request story improvements
+### Request story improvements
 
 :::tip[YOU SAY]
 Take the items that need story work.
@@ -119,7 +119,7 @@ Apply our story-readiness bar and show me:
 Draft only. Do not update Jira.
 :::
 
-### Step 7: Understand the draft output
+### Understand the draft output
 
 For each of the 26 items, the agent produces a structured analysis. Here is the output for APP-206:
 
@@ -147,7 +147,7 @@ When a user attempts to reset their password and their account is SSO-enabled:
 **Jira was not changed by this run.**
 :::
 
-### Step 8: Work through the unresolved questions
+### Work through the unresolved questions
 
 Some issues have questions only the product owner can answer. APP-206 has one. You have two options:
 
@@ -172,7 +172,7 @@ Some issues have questions only the product owner can answer. APP-206 has one. Y
 **Jira was not changed by this run.**
 :::
 
-### Step 9: Select which drafts to approve
+### Select which drafts to approve
 
 Review the drafts for APP-206, APP-219, and API-104. Decide which ones you want written to Jira.
 
@@ -182,7 +182,7 @@ Review the drafts for APP-206, APP-219, and API-104. Decide which ones you want 
 
 ## Stage 3 — Apply approved changes
 
-### Step 10: Request the exact writes
+### Request the exact writes
 
 This is the first step that will change Jira.
 
@@ -194,7 +194,7 @@ Leave every other issue unchanged.
 Do not change status, assignee, priority, sprint, or labels.
 :::
 
-### Step 11: Review the write preview
+### Review the write preview
 
 Before anything is written, the agent shows you the exact payload:
 
@@ -218,11 +218,11 @@ Type **confirm** to write these changes, or **cancel** to stop.
 
 **Checkpoint:** Read the proposed values for each field. If any proposed value is wrong, say "cancel" and tell the agent what to change. Confirming is permanent.
 
-### Step 12: Confirm the writes
+### Confirm the writes
 
 Type `confirm` to proceed.
 
-### Step 13: Handle the partial failure
+### Handle the partial failure
 
 APP-219 fails because your token has reporter-only access. APP-206 and API-104 succeed.
 
@@ -244,7 +244,7 @@ This is a normal outcome. Two of three writes succeeded. The third has a clear r
 
 ## Stage 4 — Share the result
 
-### Step 14: Request the stand-up summary
+### Request the stand-up summary
 
 :::tip[YOU SAY]
 Give me a stand-up summary for the Atlas team.
@@ -256,7 +256,7 @@ Then prepare a concise weekly version suitable for the Atlas Confluence space.
 Do not publish until I approve it.
 :::
 
-### Step 15: Read the stand-up summary
+### Read the stand-up summary
 
 The agent produces a read-only summary from the backlog data you reviewed:
 
@@ -274,7 +274,7 @@ The agent produces a read-only summary from the backlog data you reviewed:
 *Jira was not changed by this run.*
 :::
 
-### Step 16: Review the Confluence draft
+### Review the Confluence draft
 
 The agent also produces a Confluence-ready draft:
 
@@ -292,7 +292,7 @@ Next: sprint planning should prioritize API-104 and APP-312.
 
 **Checkpoint:** This is read-only and unpublished. Review the draft. If you want to adjust the tone, scope, or emphasis, tell the agent. Only say "publish" when the content is exactly right.
 
-### Step 17: Stop before publishing
+### Stop before publishing
 
 For this tutorial, stop here. Publishing to Confluence is a separate approved action.
 

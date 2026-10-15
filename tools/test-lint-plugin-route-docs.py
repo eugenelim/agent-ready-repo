@@ -66,6 +66,7 @@ def main() -> int:
         ".github/workflows/publish-claude-plugins.yml",
         "README.md",
         "guides/_shared/how-to/install-packs.md",
+        "guides/_shared/reference/agentbundle.md",
         "guides/_shared/explanation/pack-catalogue.md",
         "guides/core/how-to/adapt-to-project.md",
         "packs/core/.apm/hook-wiring/session-start.toml",
@@ -79,8 +80,8 @@ def main() -> int:
     # Two files carry two entries each (separate claims in the same file), so
     # the entry count is not the path count. Pin it too: collapsing two entries
     # into one silently drops a claim.
-    _check("the entry count is unchanged", len(lint.SITES) == 8,
-           f"{len(lint.SITES)} entries, expected 8")
+    _check("the entry count is unchanged", len(lint.SITES) == 9,
+           f"{len(lint.SITES)} entries, expected 9")
 
     # `REPO_ONLY` cannot be derived at import time (SITES is built before
     # `--root` exists), so its sync with reality is asserted here instead. A

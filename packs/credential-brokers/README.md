@@ -1,55 +1,49 @@
-# credential-brokers
+# Credential Brokers
 
-User-scope credential brokering so credentialed skills never touch a repo's
-files for secrets. This is the pack the other credentialed packs (`atlassian`,
-`figma`) depend on.
-
-## What's inside
-
-- `credbroker` — a pip-installable Python library that `auth: creds` skills
-  resolve credentials through, imported in-process (env var → OS keychain →
-  `0600` dotfile floor).
-- `sso-broker` — a subprocess at `~/.agentbundle/bin/` for `auth: sso-cookie`
-  skills. Its companion loader, `credentials_shim`, still ships as internal
-  plumbing for this rail.
-- `credential-setup` — one LLM-cooperative skill that walks a user through
-  storing credentials.
+Your agent can use skills that call signed-in services while your tokens stay out of the repository and out of the chat.
 
 ## Install
 
-`credential-brokers` is **user-scope by default** — credentials belong to the
-user, not the project. The broker is written to `~/.agentbundle/bin/` behind
-the `.agentbundle/` user-prefix fence.
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
-```
-agentbundle install --pack credential-brokers --scope user <catalogue>
+```bash
+agentbundle install --pack credential-brokers
 ```
 
-## Set up credentials
+In Claude Code you can install it as a plugin instead:
 
-After installing a credentialed pack, tell your agent **"set up credentials"**.
-That triggers the interactive `credential-setup` skill, which prompts you for
-each key the skill needs and stores it at the highest-available tier — your OS
-keychain on macOS/Windows, or a `0600` dotfile (`~/.agentbundle/credentials.env`)
-on Linux.
-
-```
-You: set up credentials
-Agent: (runs credential-setup; prompts you for each token interactively)
+```bash
+claude plugin install credential-brokers@agent-ready-repo
 ```
 
-Two rules the broker enforces, by design: **secrets never go on the command
-line** (the setup script refuses `--token` / `--pat` / `--password` flags), and
-the agent **never runs the setup for you** — it's interactive and user-invoked,
-so the token is entered by you and never echoed back into the transcript.
+## What your agent can do
 
-## Usage
+- Run credentialed skills, such as Jira or Figma, with tokens it never sees.
+- Walk you through storing each key a skill needs, one prompt at a time.
+- Keep each secret in your OS keychain, or in a private file on Linux.
+- Reuse a corporate SSO session for skills that sign in through a browser.
+- Let you add or rotate a key at any time.
 
-You don't invoke the broker directly — credentialed skills (e.g. `jira`,
-`figma`) resolve their token through it automatically once `credential-setup`
-has stored it. Re-run **"set up credentials"** any time you need to add or
-rotate a key.
+## Skills
 
----
+- **`credential-setup`** — An interactive setup that prompts you for each key a credentialed skill declares and stores it in the safest place available. You start it yourself.
 
-→ **Go deeper:** the [`credential-brokers` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/credential-brokers/).
+You also get two helpers that skills call, not you: `credbroker`, a Python library that resolves credentials in-process, and `sso-broker`, which handles SSO cookie sessions.
+
+## Works with
+
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Atlassian](../atlassian/README.md), [Figma](../figma/README.md), and [Linear](../linear/README.md) require it for their tokens. To build your own credentialed skill, see [Add credentials to a skill](../../guides/credential-brokers/how-to/add-a-credentialed-skill.md).
+
+## Questions
+
+**How do I store a token?** Install a credentialed pack, then say "set up credentials". The skill prompts you, and you type each value.
+
+**Does the agent ever see my token?** No. Setup runs for you, not the agent, and the value is not echoed into the transcript. The setup script refuses `--token`, `--pat`, and `--password` flags, so a secret never goes on the command line.
+
+**Where is it stored?** The OS keychain on macOS and Windows. On Linux it is a `0600` file at `~/.agentbundle/credentials.env`. Skills also accept an environment variable first.
+
+**Do I call the broker myself?** No. A credentialed skill resolves its token through it once setup has stored it.
+
+## Details
+
+Scope: user (default), repo · Version: 0.3.4 · Source: [packs/credential-brokers](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/credential-brokers)

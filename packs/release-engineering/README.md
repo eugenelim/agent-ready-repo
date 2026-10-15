@@ -1,117 +1,45 @@
-# release-engineering
+# Release Engineering
 
-Deploy the integrated whole to an ephemeral environment, run end-to-end tests, converge, and surface a release-readiness record for the human prod-ship gate (G5).
-
----
-
-## Start here
-
-After `work-loop` reaches G4 — build done, component ready — hand it to `release-lead`:
-
-```text
-Run the release loop on the integrated whole — deploy to an ephemeral env,
-run e2e, and iterate until it converges, then surface the prod ship for me to ratify.
-```
-
-The agent deploys, runs e2e, observes telemetry, feeds findings back to the inner loop without a human relay, redeploys, and iterates until the deployed whole converges. It then stops and presents a **release-readiness record** — a structured go/no-go recommendation — for you to ratify (G5). **The prod ship is always yours.**
-
----
-
-The **SRE/ops outer loop** — deployed end-to-end validation above `work-loop`'s
-inner build loop. This pack completes the **company OS**: product (discovery, the
-`product-engineering` pack) → engineering (build, `work-loop`) → **SRE/ops
-(release, this pack)**.
-
-`work-loop` is the **inner loop** (local build + verification). `release-loop` is
-the **outer loop**: it deploys the integrated whole to an **ephemeral
-environment**, runs e2e, observes telemetry, feeds deployed findings back to the
-inner loop (no human relay), redeploys, and **iterates until the deployed whole
-converges** — then stops at the **human consent gate** for the prod ship (G5),
-which it surfaces as a **release-readiness record** to ratify, not a bare
-go/no-go.
-
-| Primitive | What it does |
-| --- | --- |
-| `release-lead` (agent) | The SRE/ops outer-loop supervisor — a *peer* of `work-loop`'s supervisor and `discovery-lead`, **not** a `work-loop` mode. Holds the loop state, drives deploy → e2e → converge on ephemeral envs, talks to the human only at the irreversible exits. |
-| `release-loop` (skill) | The deployed e2e-validation loop doctrine: the minimum-regret autonomy carve, convergence-by-policy, the inner↔outer feedback seam, the outer round cap + cost budget, and the deploy security/integrity controls. |
+Your agent can test your built change in a temporary deployed environment, fix what it finds, and hand you a release-readiness record for the production decision.
 
 ## Install
 
-Repo scope, into the **build repo** — the same repo `work-loop` ran in (where the
-deploy-ready component lives and `core` is repo-installed):
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository where your agent built the change:
 
 ```bash
-agentbundle install --pack release-engineering <catalogue> --scope repo
+cd path/to/your-repo
+agentbundle install --pack release-engineering
 ```
 
-The pack **hard-depends on `core`** and reuses its `operational-safety` modules +
-`quality-engineer` + `security-reviewer`. It **detect-and-degrades** on
-cloud/platform/contract packs: when a platform pack is present it consumes the
-adopter's deploy / smoke / teardown artifacts; when absent it **names the
-artifacts it would otherwise use and surfaces the gap** (the "offer to scaffold"
-path), never failing silently.
+## What your agent can do
 
-## Why repo scope (and not user scope)
+- Deploy the integrated whole to an ephemeral environment and run end-to-end tests.
+- Watch telemetry, feed deployed findings back to the build loop without you relaying them, and redeploy until the result is stable.
+- Stop and present a release-readiness record, a structured go or no-go recommendation, for you to approve.
+- Write a Service Level Objective document, with an error budget policy, for a service.
+- Name the deploy, smoke, and teardown artifacts it needs and offer to scaffold them when your repository has none.
 
-The repo-scope install is **architecturally load-bearing**. `release-lead` reuses
-`core`'s repo-scope `quality-engineer` / `security-reviewer` / `operational-safety`
-— sound only because it runs **downstream, in the build repo** where `core` is
-installed at the same scope. This is the deliberate **scope-inverse** of the
-user-scope `discovery-lead`, which ships its *own* reviewers because it runs
-*upstream* in non-repo document workspaces that cannot assume a `core` install.
-*Scope follows where the work happens* — the company-OS scope boundary falls at
-the G3 handoff where shaping becomes a concrete repo.
+## Skills
 
-## The minimum-regret carve
+- **`release-loop`** — Drives deployed end-to-end validation, with a round cap, a cost budget, and security controls on the deploy.
+- **`define-slo`** — Writes an OpenSLO YAML file at `slos/<service>.yaml` that the release loop reads for error-budget status.
 
-Autonomy is carved by **minimum-regret** — reversible ⇒ autonomous; irreversible
-⇒ human:
+Subagent: **`release-lead`** runs the release loop. It works beside the build loop's supervisor and is not a mode of it.
 
-- **Autonomous (reversible) zone** — the inner loop; the outer loop **on ephemeral
-  environments** (deploy / e2e / observe / iterate / teardown); canary in
-  non-prod tiers with metric-gated auto-rollback. "Reversible" is conditioned on
-  env isolation: ephemeral envs hold no real data, cannot reach prod, and are
-  isolated from each other.
-- **Human (irreversible) zone** — first real users or data; data migrations; spend
-  over a pre-agreed threshold; security / auth-boundary changes; anything
-  irreversible beyond MTTR; and the prod ship (G5).
+## Works with
 
-The **reversibility primitives** — ephemeral environments + feature flags +
-auto-rollback — are what turn deploy from a one-way door into a two-way door,
-which is what lets the outer loop run autonomously up to the human line.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Install [Core](../core/README.md) first and run it after `work-loop` reports the build done. [IaC (Terraform)](../iac-terraform/README.md) covers the infrastructure change. See [Release a change](../../guides/release-engineering/how-to/run-a-release.md) and [Measure delivery](../../guides/atlassian/how-to/measure-flow-and-dora-metrics.md).
 
-## What's NOT in this pack
+## Questions
 
-- **No runtime engine, daemon, orchestrator, cost-gate, or canary-analyzer** — the
-  loop is content + doctrine. It *offers to scaffold* an
-  adopter's deploy / smoke / teardown artifacts; it does not ship them.
-- **No new reviewer agent** — the operational lens is a *mode* of the reused
-  `quality-engineer`; security reuses `security-reviewer`.
-- **No fork of the discovery sidecar schema** — it consumes the produced `_state/`
-  instances by convention (the schema definition is carried in
-  `product-engineering`'s `discovery-loop` skill).
-- **The fidelity-ladder / local-infra-equivalents skills** — those are the
-  *inner-loop* obligation, a separate concern.
-- **The harness** — omnigent supplies ephemeral envs, the human-in-the-loop
-  option-card pause, and cost policies; the loop is expressed harness-neutrally.
+**Does it ship to production?** No. The production ship is always yours. The agent stops at the release-readiness record.
 
-## Where these methods come from
+**What does it do on its own?** Reversible work: the build loop, and deploy, test, observe, iterate, and tear down on ephemeral environments. Real users or data, data migrations, spend over an agreed limit, and security changes wait for you.
 
-Framework names are the procedure; the following is provenance only — where `release-loop`'s external references come from.
+**Does it ship my deploy pipeline?** No. It has no runtime engine and no canary analyzer. It uses the deploy, smoke, and teardown artifacts you have, or names the ones it is missing.
 
-- **DORA health signal** — the current metric set, per DORA's own site: deployment frequency, lead time for changes, change failure rate, failed deployment recovery time (renamed from MTTR in 2023), and deployment rework rate (added in the 2024 Accelerate State of DevOps Report).
-- **Error-budget halt policy** — the exhausted-budget halt-releases behaviour follows Google's error-budget policy.
-- **Decision-log audit trail** — the append-only, per-row attestation, tamper-evidence, and trusted-timestamp discipline follows the DORA / compliance-trail convention.
-- **Feature-flag provider API** — OpenFeature is a CNCF incubating project.
+**Why repo scope only?** It runs in the repository where the build happened and reuses Core's reviewers there.
 
-## Usage
+## Details
 
-Hand the deploy-ready whole to `release-lead` after `work-loop` reaches G4
-("build done"):
-
-> Run the release loop on the integrated whole — deploy to an ephemeral env, run
-> e2e, and iterate until it converges, then surface the prod ship for me to ratify.
-
-`release-lead` drives the cycle from the `release-loop` skill, which carries the
-full doctrine — the minimum-regret carve, convergence-by-policy, the inner↔outer
-feedback seam, and the deploy security/integrity controls.
+Scope: repo (default) · Version: 0.1.11 · Source: [packs/release-engineering](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/release-engineering)

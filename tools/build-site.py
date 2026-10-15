@@ -641,6 +641,12 @@ def _strip_guide_metadata(text: str) -> str:
     # source is the body's own declaration, so the heading, the sidebar number
     # and the page text can never disagree. Non-steps carry neither field and
     # keep the default heading.
+    # The packs a page needs render as pills above its title. A page that
+    # declares none falls back to the pack that owns it.
+    if data.get("pack") and not data.get("uses") and not str(data["pack"]).startswith("_"):
+        data = dict(data)
+        data["uses"] = [data["pack"]]
+
     position = _STEP_OF.search(body)
     if position:
         data = dict(data)
@@ -1380,33 +1386,18 @@ PACKS_PAGE_SOURCE = REPO_ROOT / "docs-site" / "src" / "packs-page.md"
 
 
 def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) -> None:
-    """Write the Packs page: the hand-written explanation, then one table per
-    site.toml group with each pack's default scope and Claude plugin route."""
-    intro = PACKS_PAGE_SOURCE.read_text(encoding="utf-8").strip()
-    lines = [
-        '---\ntitle: "Packs"\n'
-        'description: "What a pack installs, repo scope or user scope, '
-        'and every pack in the catalogue."\n'
-        "---\n\n",
-        intro,
-        "\n\n## Every pack\n",
-    ]
-    groups: dict[str, list[dict]] = {}
-    for p in packs:
-        groups.setdefault(p["group"] or "Other", []).append(p)
-    for label, members in groups.items():
-        lines.append(
-            f"\n### {label}\n\n"
-            "| Pack | What it does | Scope | Claude plugin |\n|---|---|---|---|\n"
-        )
-        for p in members:
-            plugin = "yes" if "user" in p.get("allowed_scopes", []) else "no"
-            lines.append(
-                f"| [{p['display_name']}]({p['slug']}/) | {p['description']} |"
-                f" {p['scope']} | {plugin} |\n"
-            )
-
-    content = "".join(lines)
+    """Write the Packs page from its hand-written source. It explains packs and
+    lists none: the sidebar's Pack listing is generated, so a second list here
+    would only drift."""
+    del packs  # the listing lives in the sidebar
+    content = (
+        '---\ntitle: "About packs"\n'
+        'description: "What a pack installs, and when to install it '
+        'for the team or for yourself."\n'
+        "---\n\n"
+        + PACKS_PAGE_SOURCE.read_text(encoding="utf-8").strip()
+        + "\n"
+    )
     index_md = out_dir / "index.md"
     if dry_run:
         print(f"  gen   docs-site/src/content/docs/packs/index.md ({len(content)} bytes)")

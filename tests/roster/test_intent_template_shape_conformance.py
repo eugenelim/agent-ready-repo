@@ -200,6 +200,9 @@ def test_the_unresolved_template_asset_is_not_corpus_input() -> None:
 
 
 GUIDES_HOW_TO = ROOT / "guides" / "product-engineering" / "how-to"
+# The mirror lives on the intent reference page since the how-to guides were
+# merged into one job page (spec/docs-job-pages).
+GUIDES_REFERENCE = ROOT / "guides" / "product-engineering" / "reference"
 TEMPLATE_RUNG = (
     "<!-- rung: packs/product-engineering/.apm/skills/intent/assets/"
     "intent-template.md -->"
@@ -210,7 +213,7 @@ RELATED_LINE = re.compile(r"^- \*\*Related intents:\*\* (<!--.*-->)$")
 def _template_mirror_blocks() -> list[tuple[str, str]]:
     """Return (guide name, fenced body) for each block under the template rung."""
     blocks: list[tuple[str, str]] = []
-    for guide in sorted(GUIDES_HOW_TO.glob("*.md")):
+    for guide in sorted([*GUIDES_HOW_TO.glob("*.md"), *GUIDES_REFERENCE.glob("*.md")]):
         lines = guide.read_text(encoding="utf-8").splitlines()
         for index, line in enumerate(lines):
             if line.strip() != TEMPLATE_RUNG:
@@ -232,7 +235,7 @@ def _template_mirror_blocks() -> list[tuple[str, str]]:
 def test_the_template_and_its_mirrors_list_related_intents_after_outcome_co_owner() -> None:
     """The optional `Related intents` line follows `Outcome co-owner`, comment-only."""
     mirrors = _template_mirror_blocks()
-    assert len(mirrors) >= 2, mirrors
+    assert len(mirrors) >= 1, mirrors
     sources = [("template", TEMPLATE.read_text(encoding="utf-8")), *mirrors]
     for name, text in sources:
         lines = text.splitlines()

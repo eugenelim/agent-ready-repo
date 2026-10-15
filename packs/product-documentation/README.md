@@ -1,68 +1,48 @@
 # Product Documentation
 
-Documentation for any software product — a library, CLI, HTTP API, app, service, framework, plugin, or agent-context pack — that matches what actually ships. Ask for a README, a quickstart, release notes, or an audit, and your agent writes or checks it against the real code.
-
-**Who it is for:** maintainers and contributors who write the docs that people who install, call, or run their product read.
-
-**Not for:** feature specs, design decisions, UI microcopy alone, docstrings alone, or internal maintainer runbooks.
-
-**Runs in:** the agents `agentbundle` installs into, including Claude Code, Codex, Cursor, GitHub Copilot, and Gemini CLI — see [install routes](../../guides/_shared/how-to/install-packs.md).
-
-**Need help?** See the [guide index](../../guides/product-documentation/README.md) or [open an issue](https://github.com/eugenelim/agent-ready-repo/issues). To contribute, read [CONTRIBUTING](../../CONTRIBUTING.md). Licensed under [Apache-2.0](../../LICENSE-APACHE) or [MIT](../../LICENSE-MIT).
-
-## Try it
-
-Paste one of these into your agent:
-
-```
-Audit this project's docs and tell me which stages of the reader journey are missing
-```
-
-```
-Write a quickstart for this CLI
-```
-
-```
-Write release notes for v2.1
-```
-
-```
-Fix this README so a newcomer can run something in the first minute
-```
-
-You do not need to name a mode.
-
-## What you get back
-
-- **An audit:** a journey gap report with one row per reader stage — discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute — each marked covered, partial, missing, or not applicable, with the file that proves it.
-- **A page:** a README, quickstart, how-to, reference, explanation, troubleshooting page, changelog, migration guide, or contributing guide, written around the reader's task.
-- **A check:** a list of verified claims, unverified claims, and claims that contradict current behavior.
-
-## What the skill reads and changes
-
-It reads your repository first: the code, manifests, schemas, `--help` output, and existing docs. That tells it which surface you ship and which reference pages that surface needs. Audits and checks change nothing unless you also ask for fixes. When you ask for a page, it writes one by default and reports the kind and destination it chose. It places the page where your repository already keeps docs of that kind, asks once when the location is unclear, and never edits generated output. Whether the page is right for your readers stays your decision.
+Your agent can write, improve, and audit the docs your users read, checked against what your code actually does.
 
 ## Install
 
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository you document:
+
 ```bash
+cd path/to/your-repo
 agentbundle install --pack product-documentation
 ```
 
-Scope options: `--scope repo` (default) or `--scope user` (available across all repos).
+It also installs at user scope, which covers every repository:
 
-## Next steps
+```bash
+agentbundle install --pack product-documentation --scope user
+```
 
-- Document your own repository step by step: [Getting started](../../guides/product-documentation/getting-started.md)
-- Improve and audit a doc set: [How to author product docs](../../guides/product-documentation/how-to/author-product-docs.md)
-- Document one shipped feature: [How to write a guide](../../guides/product-documentation/how-to/write-a-guide.md)
-- Why each page has one job: [About the Diátaxis framework](../../guides/product-documentation/explanation/the-diataxis-framework.md)
+## What your agent can do
 
-All guides live in [guides/product-documentation/](../../guides/product-documentation/). Version, scope, and dependencies are in [`pack.toml`](pack.toml).
+- Audit your docs and report which stage of the reader journey is covered, partial, or missing, with the file that proves it.
+- Write a README, quickstart, how-to, reference page, troubleshooting page, release notes, migration guide, or contributing guide around the reader's task.
+- Check a page's claims and list the verified, unverified, and contradicted ones.
+- Fix a README so a newcomer can run something in the first minute.
+- Write the README for an agent-context pack, led by starter prompts in the user's language.
 
-## Using this with a pack
+## Skills
 
-When the repository you document is itself an agent-context pack, ask "Write the README for this pack." The README then leads with starter prompts in the user's language and a preview of what comes back, not a list of skill names.
+- **`author-product-docs`** — Creates, revises, retrofits, audits, or verifies user-facing docs for any software product. You do not need to name a mode.
 
-## Replaces
+## Works with
 
-This pack supersedes `user-guide-diataxis`. The `user-guide-diataxis@0.3.0` compatibility pack installs `product-documentation` as a dependency. If you have `user-guide-diataxis` installed, you already have this pack.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. It replaces [User Guide (Diátaxis)](../user-guide-diataxis/README.md). See [Write the docs](../../guides/product-documentation/README.md), [Author product docs](../../guides/product-documentation/how-to/author-product-docs.md), and [Getting started](../../guides/product-documentation/getting-started.md).
+
+## Questions
+
+**Does it change my files during an audit?** No. Audits and checks change nothing unless you also ask for fixes.
+
+**Where does it put a new page?** Where your repository already keeps docs of that kind. It asks once when the place is unclear, and it never edits generated output.
+
+**Does it read my code?** Yes, first: code, manifests, schemas, `--help` output, and existing docs. That tells it what you ship and which reference pages you need.
+
+**What is it not for?** Feature specs, design decisions, UI microcopy alone, docstrings alone, or internal runbooks.
+
+## Details
+
+Scope: repo (default), user · Version: 0.1.2 · Source: [packs/product-documentation](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-documentation)

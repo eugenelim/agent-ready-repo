@@ -1,50 +1,43 @@
 ---
-title: Survey a repo for what to adopt
-summary: Inventory an external repository, classify every candidate, and produce a resumable adoption RFC.
+title: "Import and curate skills"
+summary: "Adopt good skills from other repositories without adopting their risks."
 pack: catalogue-curation
+uses: [catalogue-curation]
 kind: how-to
 ---
 
-# Survey a repo for what to adopt
+# Import and curate skills
 
-**Use this when:** You want to evaluate an entire external repo or catalogue for skills to adopt, not just a single known unit.
-**Prerequisites:** The `catalogue-curation` pack installed; an HTTPS or git URL for the source repo.
-**Result:** A reviewable RFC capturing inventory verdicts (assimilate / reject / needs-new-pack) for every candidate, resumable if the session is interrupted.
+Point your agent at a skill in another repository, and you review what it fetched before anything lands.
 
-When you want to evaluate a *whole* external repo or catalogue — not one known
-unit — reach for `assimilate-repo`. It inventories every candidate, gives each a
-verdict, and emits a reviewable RFC, resumably.
+## Import one skill
 
-## Run it
+Point your agent at the skill's source:
 
-> Survey `https://github.com/some-org/their-catalogue` for skills we can adopt.
+```text
+Assimilate the skill at https://github.com/some-org/their-repo (the summarize-thread skill) into our catalogue.
+```
 
-`assimilate-repo` fetches the source (same scheme allowlist as single-unit
-ingest), then works candidate by candidate, appending each to a ledger under
-`~/.agentbundle/catalogue-curation/<run-id>/`. Each candidate gets a verdict:
-**assimilate** (names a destination pack), **reject** (with a terse reason), or
-**needs-new-pack**.
+The `assimilate-primitive` skill fetches it over `https` or `git` only, refusing `file:` URLs and private addresses before it reads anything.
 
-## It survives interruption
+## Review and land it
 
-The run-id is deterministic for a given source, so if the session ends, the
-harness changes, or you run it from a second git worktree, a re-run picks up
-where it left off — already-decided candidates are skipped. You don't restart.
+The agent shows you the fetched body exactly as it arrived, so read it as untrusted instructions. It then shapes the skill to your conventions, and after you approve it writes the skill into the destination pack. Rebuild and confirm the pack lists the skill:
 
-## The output is an RFC, not a silent commit
+```bash
+make build-self && agentbundle show <pack>
+```
 
-When it finishes it writes an RFC capturing the inventory + verdicts, for you to
-review. If some candidates are tagged `needs-new-pack`, the skill *offers* to
-hand off to the `propose-catalogue-pack` skill — it describes what needs a pack
-and lets you decide. It never spawns that itself.
+[Your first assimilation](../tutorials/first-assimilation.md) walks through every guardrail and the full definition of done.
 
-## Re-syncing later
+## Survey a whole repository
 
-Point it at the same source again after upstream changes and it runs
-incrementally: unchanged candidates are skipped, changed and new ones
-re-surface. The git commit log is your record of what synced when; the prior
-RFC records the delta (an amendment while it's open, an erratum once frozen, or
-a fresh RFC if the delta is genuinely new decisions).
+To judge an entire outside repository or catalogue instead of one skill, ask for a survey:
 
-For the ledger's shape and confidentiality contract, see
-[The ledger and the engine guard](../reference/ledger-and-guard.md).
+```text
+Survey https://github.com/some-org/their-catalogue for skills we can adopt.
+```
+
+The `assimilate-repo` skill gives each candidate a verdict of assimilate, reject, or needs-new-pack, and writes a reviewable RFC. A re-run after an interruption, or after the source changes, skips candidates it already decided.
+
+Next, read [the ledger and the engine guard](../reference/ledger-and-guard.md) to see how progress is stored and protected.
