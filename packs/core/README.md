@@ -28,7 +28,7 @@ agentbundle install --pack core
 - **`new-spec`** — Writes a spec and plan.
 - **`work-loop`** — Plans, builds, runs your checks, and reviews.
 - **`bug-fix`** — Fixes a bug from root cause.
-- **`close-work`** — Verifies lasting context, then previews a disposition.
+- **`close-work`** — Verifies lasting context, previews a disposition, and can offer to reconcile an implemented future-state design into current architecture.
 - **`project-knowledge`** — Captures and queries reviewed lessons.
 - **`adapt-to-project`** — Adapts your agent guidance.
 - **`init-project`** — Turns an idea into a new repository.

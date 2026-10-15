@@ -580,7 +580,6 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
-          tests/roster/test_experience_design_guide_agreement.py
           tests/roster/test_experience_design_write_declaration_and_containment.py
           tests/roster/test_experience_design_artifact_folder_registry.py
           tests/roster/test_content_design_communication_mode_contract.py

@@ -27,7 +27,7 @@ The agent drafts the record with the alternatives you weighed, shows you the fil
 Once the people who own the call agree, ask for the status to change:
 
 ```text
-Mark ADR-0042 as Accepted.
+Mark ADR <number> as Accepted.
 ```
 
 The agent updates the status from Proposed to Accepted.
