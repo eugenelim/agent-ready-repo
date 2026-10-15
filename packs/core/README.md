@@ -281,7 +281,7 @@ protocol, and adaptation marker can each affect whether a nudge appears.
 
 APM's HookIntegrator currently deploys hook bundles to Claude Code, Copilot,
 Cursor, Gemini, Codex, Antigravity, Windsurf, and Kiro. OpenCode remains
-unsupported. See [Install routes](../../guides/_shared/how-to/install-packs.md)
+unsupported. See [Install routes](../../guides/_shared/explanation/install-routes.md)
 for the route and scope differences.
 
 ---
