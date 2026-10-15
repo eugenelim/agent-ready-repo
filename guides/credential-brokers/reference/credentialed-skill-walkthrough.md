@@ -7,9 +7,9 @@ kind: reference
 
 # Credentialed skill walkthrough
 
-**Use this when:** your skill calls an external authenticated service (API token, vendor CLI, or corporate SSO) and the credential must never pass through the model.
-**Prerequisites:** target service's auth shape identified, namespace name chosen, and the `credential-brokers` pack installed if you're using the `creds` or `sso-cookie` broker.
-**Result:** a scaffolded, lint-passing credentialed skill directory with the correct broker wired, a `### Security rules (non-negotiable)` block in `SKILL.md`, and banded exit-code handling in `scripts/cli.py`.
+This walkthrough is for when your skill calls an external authenticated service (API token, vendor CLI, or corporate SSO) and the credential must never pass through the model.
+You need: target service's auth shape identified, namespace name chosen, and the `credential-brokers` pack installed if you're using the `creds` or `sso-cookie` broker.
+You end with: a scaffolded, lint-passing credentialed skill directory with the correct broker wired, a `### Security rules (non-negotiable)` block in `SKILL.md`, and banded exit-code handling in `scripts/cli.py`.
 
 This is a one-page walk-through for authoring a credentialed primitive — a skill that calls an authenticated external API on behalf of the user. The architecture rule is *skills don't hold credentials*; a Python CLI under the skill's `scripts/` directory owns the secret on disk and constructs the API call inside its own process. The LLM never sees the token as a tool argument.
 
@@ -27,7 +27,7 @@ You need:
 - A namespace name — a short kebab/snake-case identifier (`jira`, `github`, `acme_corp`). For static tokens this becomes the env-var prefix and the keychain account label.
 - The `credential-brokers` user-scope pack installed (`agentbundle install --pack credential-brokers --scope user`), if you're using the `creds` or `sso-cookie` broker.
 
-## Step 1 — Pick a broker
+## Pick a broker
 
 `metadata.auth` names the broker that resolves the credential. Four ids, picked once per skill:
 
@@ -38,14 +38,14 @@ You need:
 
 The rest of this guide picks `creds` as the worked example because it's the most common case. The verbatim per-broker `### Security rules (non-negotiable)` block you embed in your `SKILL.md` is given inline in [Step 7](#step-7--embed-the-security-rules-block-in-skillmd), one per broker; copy the one matching your choice.
 
-## Step 2 — Pick a primitive class (orthogonal to broker)
+## Pick a primitive class (orthogonal to broker)
 
 - **`credentialed-cli`** — your primitive is a Python CLI invoked from the skill body via `subprocess.run([sys.executable, "scripts/cli.py", ...])`. The argv ban applies (no `--token` / `--api-token` / `--bearer` / `--pat` / `--password` flags) regardless of broker.
 - **`mcp-server`** — your primitive is a long-lived MCP server the user wires into their MCP host configuration. Header-naming flags (`--bearer-header`, `--auth-header`, `--header-prefix`) are allowed; the storage convention does not apply because the server holds no on-disk credential state.
 
 The rest of this guide assumes **`credentialed-cli`** (the common case).
 
-## Step 3 — Scaffold the skill directory
+## Scaffold the skill directory
 
 ```
 your-skill-name/
@@ -58,7 +58,7 @@ your-skill-name/
 
 Place this under your pack's `.apm/skills/` directory (e.g. `packs/<your-pack>/.apm/skills/your-skill-name/`).
 
-## Step 4 — Declare the frontmatter
+## Declare the frontmatter
 
 The frontmatter shape varies by broker. For `auth: creds`:
 
@@ -79,7 +79,7 @@ For `auth: env`: same shape, `auth: env`. For `auth: sso-cookie`: `auth: sso-coo
 
 `agentbundle catalogue verify --root .` refuses unknown `auth:` values; `metadata.credentialed: true` requires `metadata.auth`.
 
-## Step 5 — Declare the schema (`auth: creds` and `auth: env` only)
+## Declare the schema (`auth: creds` and `auth: env` only)
 
 The schema lives at `<skill-dir>/references/creds-schema.toml`:
 
@@ -100,7 +100,7 @@ secret = false
 
 `secret = true` keys are prompted via `getpass.getpass` (no echo); `secret = false` keys are prompted via `input()`. `auth: cli` and `auth: sso-cookie` skip this step entirely.
 
-## Step 6 — Import the broker in `scripts/cli.py`
+## Import the broker in `scripts/cli.py`
 
 For **`auth: creds`** — declare `credbroker` in your skill's `requirements.txt` (Step 9) and import it directly:
 
@@ -183,7 +183,7 @@ Keeping the spawn inside `credbroker` is not tidiness. The wall-clock bound, the
 
 **Exit codes you must distinguish.** `refresh` returns `4` when the profile was never registered — route the operator to a first capture — and `5` when a person has to sign in. Both are exit-2 territory for your CLI, but they carry different remediations. Everything else the engine returns is an internal failure, not "your session expired": treat only the *typed* session-unavailable signal as recoverable, or a slow keychain will trigger a browser recapture while the stored session is perfectly valid.
 
-## Step 7 — Embed the Security-rules block in `SKILL.md`
+## Embed the Security-rules block in `SKILL.md`
 
 Every credentialed skill carries a `### Security rules (non-negotiable)` block in its `SKILL.md` body. Copy the block matching your broker *verbatim* — the lint (`tools/lint-credentialed-skills.sh`) pins the heading and the broker-specific phrases, so a skill missing either ships as a lint finding. Substitute the placeholders (`<namespace>`, `<KEY>`, `<NAMESPACE>_<KEY>`, `<vendor-cli>`, `<sso-profile>`) for your service; leave the rest byte-for-byte.
 
@@ -255,7 +255,7 @@ Every credentialed skill carries a `### Security rules (non-negotiable)` block i
   any setup helper for them.
 ```
 
-## Step 8 — Write the operational body: bootstrap and failure handling
+## Write the operational body: bootstrap and failure handling
 
 Step 7 gives the agent the *prohibitions*. The agent also needs the *operations*: how to get the skill working on first run, and what to do when a call fails. Embed the two sections below in your `SKILL.md` body. Unlike the Security-rules block, these are **recommended, not lint-pinned** — keep the shape, adapt the wording to your service.
 
@@ -274,7 +274,7 @@ Install dependencies (idempotent — safe to re-run), then check auth:
   *When a request fails*.
 - Any other non-zero → read the stderr message. `ModuleNotFoundError:
   credbroker` means the resolver isn't installed — run `python -m pip
-  install -r requirements.txt` (or `pip install credbroker`). Surface it;
+  install -r requirements.txt` (or `pip install credbroker`). Report it;
   don't patch around it.
 
 ### When a request fails
@@ -292,12 +292,12 @@ between skills. Act on the cause:
   credential with the missing scope and re-run setup — don't create a second
   credential. `cli`: the vendor's re-auth with scopes
   (`gh auth login --scopes …`). `sso-cookie`: usually a missing entitlement
-  on the SSO account — surface it; re-running `get-cookies` won't fix it.
+  on the SSO account — report it; re-running `get-cookies` won't fix it.
   Don't retry blindly.
 - **Environment problem** — a keychain/Tier-2 hard-fail, or `credbroker`
   not installed (`ModuleNotFoundError: credbroker`). Run `python -m pip
-  install -r requirements.txt`; surface it.
-- **Upstream 5xx or rate limit.** Surface the message; don't loop.
+  install -r requirements.txt`; report it.
+- **Upstream 5xx or rate limit.** Report the message; don't loop.
 ```
 
 "The setup action" resolves per broker — the same one you document in the credential step (Step 10):
@@ -311,7 +311,7 @@ between skills. Act on the cause:
 The agent installs deps unattended (no secret) but never types the token. This is the credentialed-skill form of "self-bootstrapping": the non-secret setup is automatic; the secret stays a user gesture.
 :::
 
-## Step 9 — Declare the `credbroker` dependency (`auth: creds` only)
+## Declare the `credbroker` dependency (`auth: creds` only)
 
 Add `credbroker` to your skill's `requirements.txt` (beside `httpx` if you use it), then install:
 
@@ -378,7 +378,7 @@ The base wheel has no third-party dependency, so its local-`.whl` install is the
 
 Either way pip lands the package in site-packages, so the resolver imports exactly as the worked example above — no code change. Public PyPI is wired into the same workflow behind a **gated, tag-triggered** OIDC job; **`credbroker 0.1.0` was published to PyPI on 2026-06-10**, so `pip install credbroker` now resolves from public PyPI as well. The internal-index and local-wheel paths above remain available and need no PyPI.
 
-## Step 10 — Set up the credential
+## Set up the credential
 
 Once everything is in place, populate the credential for your namespace:
 
@@ -397,7 +397,7 @@ Once everything is in place, populate the credential for your namespace:
 
 Registration opens a headed Chromium window and saves the cookie jar to the OS keychain (or a 0600 file on Linux). After that, `refresh` re-establishes an expired session headlessly, so a `check`-style verb can self-heal without a human — see the `sso-cookie` broker section of [`docs/architecture/credentials.md`](../../../docs/architecture/credentials.md#the-sso-cookie-broker).
 
-## Step 11 — Run the lint
+## Run the lint
 
 ```bash
 agentbundle catalogue verify --root .     # frontmatter schema
@@ -512,7 +512,7 @@ on top (`auth: creds` requires a credential-resolver import in
 `from .credentials_shim …`; `auth: env` requires each declared `<NAMESPACE>_<KEY>` to
 be read at least once; `auth: sso-cookie` requires either a credbroker SSO import
 (`from credbroker import load_sso_cookies`) or subprocess-invocation of the
-canonical `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` path; `auth:
+standard `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` path; `auth:
 cli` falls through to broker-agnostic checks only).
 
 ### Three storage tiers
@@ -557,10 +557,10 @@ Five anti-patterns rejected by name:
   prints the resolved token to stdout enables capture from a skill
   body. The `credential-setup` skill writes; a consumer's `check`
   verb reads (resolves and returns 0/non-0 only); no skill or shim
-  surface returns the cleartext token to a caller other than the
+  path returns the cleartext token to a caller other than the
   in-process credentialed primitive that owns the API call.
 - **Per-skill dotfiles** — the contract mandates one well-known per-user
-  file; per-skill files multiply the wipe-on-rotation surface.
+  file; per-skill files multiply the wipe-on-rotation scope.
 - **`SSL_VERIFY=false` defaults** — `--insecure` is opt-in only and
   must emit a stderr warning.
 - **Vendored copies of third-party API skills** — pin upstream and

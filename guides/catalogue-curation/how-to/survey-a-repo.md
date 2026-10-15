@@ -2,6 +2,7 @@
 title: "Import and curate skills"
 summary: "Adopt good skills from other repositories without adopting their risks."
 pack: catalogue-curation
+uses: [catalogue-curation]
 kind: how-to
 ---
 

@@ -8,7 +8,7 @@ kind: reference
 # `agentbundle` — reference
 
 :::note
-The three operations a fresh PyPI user actually performs, plus the built-in help surface. For the full subcommand catalogue, run `agentbundle --help`.
+The three operations a fresh PyPI user actually performs, plus the built-in help. For the full subcommand catalogue, run `agentbundle --help`.
 :::
 
 ## Install `agentbundle`
@@ -114,7 +114,7 @@ agentbundle config unset <key>            # remove (deletes file if empty)
 
 The registered keys are `adapter` and `source`. `source` overrides every
 organization default, so use it only when a user needs a different catalogue.
-Future keys would be added by the framework; the command surface stays the
+Future keys would be added by the framework; the commands stay the
 same.
 
 ### Example
@@ -290,7 +290,7 @@ Verification stays strict: hostname checking and full chain validation apply on
 every attempt, the fallback only ever *adds* trust anchors, and no flag or
 variable disables verification. One caveat worth stating plainly: macOS lets an
 administrator mark a certificate *Never Trust*, and the fallback does not read
-those markings, so such a certificate is still used as an anchor. It is bounded
+those markings, so such a certificate is still used as an anchor. It is limited
 to a keychain only an administrator can write.
 
 ### Why the fallback is macOS-only

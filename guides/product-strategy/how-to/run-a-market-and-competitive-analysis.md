@@ -2,6 +2,7 @@
 title: Analyse the market
 summary: Run a SWOT, Porter's Five Forces, PESTLE, or BCG analysis and get a written document for each.
 pack: product-strategy
+uses: [product-strategy]
 kind: how-to
 ---
 

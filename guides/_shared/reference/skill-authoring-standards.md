@@ -110,7 +110,7 @@ The renderer shells out to `@mermaid-js/mermaid-cli`. Install once:
 npm install -g @mermaid-js/mermaid-cli
 ```
 
-### Step 1 — Verify `mmdc` is available
+### Verify `mmdc` is available
 
 ```bash
 python scripts/render_mermaid.py --check

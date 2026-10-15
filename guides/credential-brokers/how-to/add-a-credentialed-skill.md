@@ -2,6 +2,7 @@
 title: "Add credentials to a skill"
 summary: "Keep credentials out of the AI loop: never in the repo, never in the agent's context. credbroker resolves them in-process."
 pack: credential-brokers
+uses: [credential-brokers]
 kind: how-to
 ---
 

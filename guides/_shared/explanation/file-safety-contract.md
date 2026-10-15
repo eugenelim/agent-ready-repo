@@ -66,7 +66,7 @@ A session-time auto-copy of seeds out of the plugin cache would cross the "the c
 
 ## Why this exists
 
-The simplest alternative would have been: overwrite Tier-1 files on install, ask the adopter to put `AGENTS.md` and `docs/CHARTER.md` into `.gitignore` if they want to edit, and let `git diff` handle the rest. We rejected that because the files the catalogue ships are *deliberately* the ones adopters need to edit — `AGENTS.md` is the project's agent context; `docs/CHARTER.md` is the project's own mission statement. Asking an adopter to gitignore those is asking them not to use the catalogue's most load-bearing seeds.
+The simplest alternative would have been: overwrite Tier-1 files on install, ask the adopter to put `AGENTS.md` and `docs/CHARTER.md` into `.gitignore` if they want to edit, and let `git diff` handle the rest. We rejected that because the files the catalogue ships are *deliberately* the ones adopters need to edit — `AGENTS.md` is the project's agent context; `docs/CHARTER.md` is the project's own mission statement. Asking an adopter to gitignore those is asking them not to use the catalogue's most important seeds.
 
 Tier-2 + companions are the design that lets the catalogue ship opinionated seeds *and* respect adopter edits — both, not either-or. The cost is a slightly more involved merge step (the `adapt-to-project` skill), which is worth it because the alternative (silent overwrite) destroys trust on the first upgrade.
 
