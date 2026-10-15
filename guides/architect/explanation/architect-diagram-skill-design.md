@@ -34,11 +34,19 @@ Mermaid is specifically the right choice here because:
 - **No install for the reader.** Every venue listed above renders Mermaid
   in the browser. The reader sees a diagram, not a code block.
 
+Mermaid is the authored, version-controlled source. draw.io is an optional
+export derived from it, for people who want to edit the diagram visually. When
+draw.io 31.7.0 or later is installed, the skill uses draw.io's own converter,
+so the layout is draw.io's. When you decline an install, or your version is
+too old, the skill copies the diagram onto a simple grid. Either way, it never
+draws a different diagram there.
+
 The trade-off is that Mermaid's layout engine is not as powerful as
 dedicated tools like PlantUML, Structurizr, or draw.io. It cannot guarantee
 that a complex graph will lay out elegantly. This is a deliberate trade:
 portability and text-as-source are more valuable for the typical use case
-than pixel-perfect layout.
+than pixel-perfect layout. The skill never authors PlantUML or Structurizr,
+and draw.io is only an export of the saved Mermaid.
 
 ## Direction defaults and the Sugiyama framework
 

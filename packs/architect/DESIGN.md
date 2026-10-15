@@ -177,7 +177,7 @@ These principles are load-bearing. The skills assume them and cannot bypass them
 
 5. **Mode detection inside each skill.** Each skill reads the user's input and routes to the right mode. The user does not flag intent. If two modes plausibly fit, the skill asks once.
 
-6. **Mermaid only for diagrams.** No PlantUML, Structurizr, or Figma integration. Mermaid renders in chat, artifacts, GitHub, Confluence, Azure DevOps Wiki, and GitLab — consistent-renderer wins over notation richness.
+6. **Every diagram is authored in Mermaid.** `architect-diagram` may, on request, export the saved Mermaid to a draw.io file derived from it. No skill authors PlantUML, Structurizr, or Figma. Mermaid renders in chat, artifacts, GitHub, Confluence, Azure DevOps Wiki, and GitLab — consistent-renderer wins over notation richness.
 
 7. **Progressive disclosure.** Entry skills keep the conversation spine and
    route detail to templates, rubrics, and hierarchical reference indexes.
@@ -308,7 +308,7 @@ second architecture authority beside the system that actually runs.
 
 4. **Mode detection is internal.** Users describe what they want; skills route. If the user names a notation but the intent disagrees, the skill offers the right notation rather than following the user's label.
 
-5. **Mermaid only.** No skill in this pack emits PlantUML, Structurizr, Figma export syntax, or any other diagramming format.
+5. **Mermaid is the only authored diagram format.** `architect-diagram` may, on request, export the saved Mermaid to a draw.io file derived from it. No skill in this pack authors PlantUML, Structurizr, or Figma syntax.
 
 6. **Profiler output is evidence, never judgment.** The optional helper is
    standard-library-only, resolves and confines an explicit root, refuses
@@ -365,9 +365,9 @@ The cold-context constraint is what makes the review adversarial in a meaningful
 
 **Alternative considered:** run the review inline in the same thread with access to the authoring session's chain of thought, so it can review the design and the decision trail. Rejected because a reviewer that knows what was intended will systematically read gaps charitably. The value of the review comes from genuine ignorance of intent.
 
-### Why Mermaid only, not PlantUML or Structurizr — from day one
+### Why Mermaid is the source, not PlantUML or Structurizr — from day one
 
-Mermaid renders consistently in chat, GitHub, Confluence, Azure DevOps Wiki, and GitLab — the environments where architecture artifacts actually live. PlantUML requires a server or local Java dependency; Structurizr requires a specific tool and licensing. The consistent-rendering constraint wins over notation richness. Users who need PlantUML or Structurizr have a toolchain reason; they don't need this pack.
+Mermaid renders consistently in chat, GitHub, Confluence, Azure DevOps Wiki, and GitLab — the environments where architecture artifacts actually live. PlantUML requires a server or local Java dependency; Structurizr requires a specific tool and licensing. The consistent-rendering constraint wins over notation richness. Users who need PlantUML or Structurizr have a toolchain reason; they don't need this pack. A draw.io file is the one derived export: it is made on request from the saved Mermaid, never authored separately.
 
 **Alternative considered:** support PlantUML as a second notation with a flag. Rejected because adding a second notation doubles the reference surface (syntax, rubric, export guidance) for a feature most users don't need, and the primary benefit (richer notation) does not outweigh the rendering consistency loss.
 

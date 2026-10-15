@@ -8,6 +8,8 @@
   {"query": "Show me a flowchart of the CI pipeline", "should_trigger": true},
   {"query": "Diagram the data flow from ingestion to the dashboard", "should_trigger": true},
   {"query": "Draw the bounded contexts for our checkout domain", "should_trigger": true},
+  {"query": "Draw our order service as a draw.io file", "should_trigger": true},
+  {"query": "Export this sequence diagram to .drawio so I can edit it in draw.io", "should_trigger": true},
 
   {"query": "How should we design the payment flow?", "should_trigger": false},
   {"query": "What's the right architecture for the order system?", "should_trigger": false},
@@ -17,5 +19,6 @@
   {"query": "Build me a comparison table of the message-queue options", "should_trigger": false},
   {"query": "Generate an OpenAPI spec for the payments API", "should_trigger": false},
   {"query": "Render this Figma frame to PNG", "should_trigger": false},
-  {"query": "Create a slide deck explaining the architecture", "should_trigger": false}
+  {"query": "Create a slide deck explaining the architecture", "should_trigger": false},
+  {"query": "Open my existing billing.drawio and change the box colours", "should_trigger": false}
 ]
