@@ -211,9 +211,11 @@ export default defineConfig({
               label: 'Reference',
               items: [
                 { label: 'Pack config API', slug: 'guides/_shared/reference/pack-config-api' },
+                { label: 'Skill authoring standards', slug: 'guides/_shared/reference/skill-authoring-standards' },
                 { label: 'Skill script conventions', slug: 'guides/_shared/reference/skill-script-conventions' },
                 { label: 'Skill UX patterns', slug: 'guides/_shared/reference/skill-ux-patterns' },
-                { label: 'Authoring standards', slug: 'guides/_shared/reference/catalogue-authoring-standards' },
+                { label: 'Catalogue authoring standards', slug: 'guides/_shared/reference/catalogue-authoring-standards' },
+                { label: 'Credentialed skill walkthrough', slug: 'guides/credential-brokers/reference/credentialed-skill-walkthrough' },
               ],
             },
           ],
@@ -231,6 +233,8 @@ export default defineConfig({
               label: 'Reference',
               items: [
                 { label: 'Catalogue CI contract', slug: 'guides/_shared/reference/catalogue-ci-contract' },
+                { label: 'Artifactory distribution', slug: 'guides/_shared/reference/artifactory-catalogue-distribution' },
+                { label: 'Enterprise rollout playbook', slug: 'guides/_shared/reference/enterprise-rollout-playbook' },
                 { label: 'Ledger and guard', slug: 'guides/catalogue-curation/reference/ledger-and-guard' },
               ],
             },
