@@ -37,15 +37,12 @@ How-tos drift when the product changes underneath them. Make doc updates part of
 
 - [`author-a-skill.md`](author-a-skill.md) — frontmatter, body structure, naming, directory layout, dependency tiers, and eval authoring for skills in any pack.
 - [`build-an-org-stack-pack.md`](build-an-org-stack-pack.md) — scaffold and populate a pack for an org's own tools and conventions.
-- [`configure-adapter.md`](configure-adapter.md) — set up or change the active adapter for a pack.
+- [`configure-agentbundle.md`](configure-agentbundle.md) — set a default adapter, choose the catalogue source, and read the environment variables and sign-in providers.
 - [`design-a-profile.md`](design-a-profile.md) — four design tests for a profile, worked examples from the three shipped profiles, and how to propose a new one via RFC.
-- [`install-a-profile.md`](install-a-profile.md) — install a named profile in one command.
-- [`install-agentbundle-from-clone.md`](install-agentbundle-from-clone.md) — install from a local clone instead of the registry.
-- [`install-user-scope-pack-into-codex.md`](install-user-scope-pack-into-codex.md) — user-scope pack install on the Codex adapter.
-- [`install-user-scope-pack-into-kiro.md`](install-user-scope-pack-into-kiro.md) — user-scope pack install on the Kiro adapter.
-- [`preview-install-or-upgrade.md`](preview-install-or-upgrade.md) — dry-run an install or upgrade before committing.
+- [`install-agentbundle.md`](install-agentbundle.md) — install the CLI from pip, a clone, or APM, and fix TLS and proxy problems.
+- [`install-packs.md`](install-packs.md) — install packs, profiles, and the whole lifecycle for your agent, and preview with `--dry-run`.
 - [`roll-out-agent-ready-repo-across-an-enterprise.md`](roll-out-agent-ready-repo-across-an-enterprise.md) — lead a bounded pilot through a measured team wave and into an organization-wide operating model.
 - [`run-a-full-inception.md`](run-a-full-inception.md) — run the inception sequence on a new repo.
-- [`upgrade-packs.md`](upgrade-packs.md) — upgrade one or all installed packs to the latest version.
+- [`upgrade-packs.md`](upgrade-packs.md) — upgrade installed packs and merge the `.upstream` copies of files you edited.
 - [`choose-a-tracker-integration.md`](choose-a-tracker-integration.md) — pick the right brief-intake skill for your tracker (GitHub, Linear, Jira, Jira Align, or none).
 - [`use-work-intake.md`](use-work-intake.md) — start, remember, inspect, or refresh work through the shared front door.

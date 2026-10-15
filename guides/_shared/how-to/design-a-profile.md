@@ -130,4 +130,4 @@ The profile only needs to list the top-level packs the persona explicitly wants 
 
 ## See also
 
-[Install a profile](./install-a-profile.md) — the user-facing install flow.
+[Install a profile](./install-packs.md#install-a-profile) — the user-facing install flow.

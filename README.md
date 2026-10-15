@@ -38,7 +38,7 @@ Implement <small, testable feature> with the work-loop.
 
 The loop keeps fixing until the checks and review are clean. If it repeats the same failure, crosses a boundary, or reaches an irreversible decision, it stops and surfaces the choice instead of self-certifying. [See how `core` compares with prompt-and-approve coding, Spec Kit, and Kiro](guides/core/explanation/core-pack.md).
 
-Using Claude? You can also [add this catalogue as a plugin marketplace](https://eugenelim.github.io/agent-ready-repo/docs/getting-started/install/#route-2-claude-plugins) and install any user-scope pack directly. Repo-scoped packs such as `core` install with `agentbundle` so the whole team shares the same loop.
+Using Claude? You can also [add this catalogue as a plugin marketplace](https://eugenelim.github.io/agent-ready-repo/docs/guides/_shared/how-to/install-packs/#install-as-a-claude-plugin) and install any user-scope pack directly. Repo-scoped packs such as `core` install with `agentbundle` so the whole team shares the same loop.
 
 ## Own the system
 
@@ -55,7 +55,7 @@ agentbundle catalogue verify --root my-catalogue
 
 ## Go deeper
 
-- **Use the catalogue:** [technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) · [install routes](guides/_shared/explanation/install-routes.md) · [adapter support](guides/_shared/reference/adapter-support.md) · [`agentbundle` reference](guides/_shared/reference/agentbundle.md)
+- **Use the catalogue:** [technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) · [install packs](guides/_shared/how-to/install-packs.md) · [adapter support](guides/_shared/reference/adapter-support.md) · [`agentbundle` reference](guides/_shared/reference/agentbundle.md)
 - **Understand the operating model:** [how work flows from idea to production](guides/_shared/explanation/the-operating-model.md) · [file safety](guides/_shared/explanation/file-safety-contract.md)
 - **Inspect the implementation:** [architecture](docs/architecture/) · [machine contracts](contracts/) · [security model](docs/architecture/security.md)
 - **Contribute:** [contribution lanes and gates](CONTRIBUTING.md) · [pack authoring](packs/) · [repository conventions](AGENTS.md)

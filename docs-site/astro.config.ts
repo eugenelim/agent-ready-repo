@@ -41,6 +41,7 @@ export default defineConfig({
   // Old URLs of the operating-model guide: its Get Started copy, folded into the
   // guide, and its slug before the rename. Both keep working.
   redirects: {
+    '/getting-started/install/': '/agent-ready-repo/docs/guides/_shared/how-to/install-agentbundle/',
     '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
     '/guides/_shared/explanation/the-three-loops/':
       '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
@@ -185,11 +186,18 @@ export default defineConfig({
         {
           label: 'CLI',
           items: [
-            { label: 'Install agentbundle', slug: 'getting-started/install' },
-            { label: 'Install packs for your agent', slug: 'guides/_shared/how-to/configure-adapter' },
-            { label: 'Configure agentbundle', slug: 'guides/_shared/how-to/preview-install-or-upgrade' },
+            { label: 'Install agentbundle', slug: 'guides/_shared/how-to/install-agentbundle' },
+            { label: 'Install packs for your agent', slug: 'guides/_shared/how-to/install-packs' },
+            { label: 'Configure agentbundle', slug: 'guides/_shared/how-to/configure-agentbundle' },
             { label: 'Upgrade packs', slug: 'guides/_shared/how-to/upgrade-packs' },
-            { label: 'Command reference', slug: 'guides/_shared/reference/agentbundle' },
+            {
+              label: 'Reference',
+              items: [
+                { label: 'Command reference', slug: 'guides/_shared/reference/agentbundle' },
+                { label: 'Adapter support', slug: 'guides/_shared/reference/adapter-support' },
+                { label: 'File safety', slug: 'guides/_shared/explanation/file-safety-contract' },
+              ],
+            },
           ],
         },
         {

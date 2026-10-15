@@ -34,7 +34,7 @@ def test_adapt_guide_rejects_stale_scope_command() -> None:
 def test_install_route_docs_disclose_local_scope_omissions() -> None:
     """Local installs are not documented as receiving seeds or a marker."""
     body = _collapsed(
-        REPOSITORY_ROOT / "guides/_shared/explanation/install-routes.md"
+        REPOSITORY_ROOT / "guides/_shared/how-to/install-packs.md"
     )
 
     assert "Local scope deliberately omits seeds" in body
@@ -60,7 +60,7 @@ def test_install_route_docs_disclose_local_scope_omissions() -> None:
 def test_install_route_docs_make_no_universal_marker_claim() -> None:
     """Only the direct repo route writes a marker; no page may generalise it."""
     for rel in (
-        "guides/_shared/explanation/install-routes.md",
+        "guides/_shared/how-to/install-packs.md",
         "guides/core/how-to/adapt-to-project.md",
         "docs/architecture/agentbundle.md",
     ):

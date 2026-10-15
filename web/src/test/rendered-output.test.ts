@@ -443,7 +443,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     }));
   const page = (slug: string) => join(DOCS_ROOT, slug, 'index.html');
   const AUTHOR_PAGE = page('guides/_shared/how-to/author-a-skill');
-  const CLI_PAGE = page('getting-started/install');
+  const CLI_PAGE = page('guides/_shared/how-to/install-agentbundle');
   const UNLISTED_PAGE = page('guides/core/explanation/token-economy');
 
   // spec/docs-site-rail-shell AC1.
@@ -807,7 +807,7 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     const expected = JSON.parse(readFileSync(DOCS_SHARED_CHROME_PROJECTION, 'utf8'));
     const base = '/agent-ready-repo';
     const home = doc(DOCS_HOME);
-    const nested = doc(join(DOCS_ROOT, 'getting-started/install/index.html'));
+    const nested = doc(join(DOCS_ROOT, 'guides/_shared/how-to/install-agentbundle/index.html'));
     const labels = (links: HTMLAnchorElement[]) => links.map((link) =>
       link.textContent?.replace(/\s+/g, ' ').trim().replace(/ ↗ external$/, '')
     );

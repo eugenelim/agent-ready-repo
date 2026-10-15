@@ -9,7 +9,7 @@ status: stable
 
 In about 20 minutes you will find out which pages your project's docs are missing, write the most important one, and check it against your code.
 
-With [`agentbundle`](../_shared/explanation/install-routes.md) installed, add the pack:
+With [`agentbundle`](../_shared/how-to/install-packs.md) installed, add the pack:
 
 ```bash
 agentbundle install --pack product-documentation
@@ -27,7 +27,7 @@ You should see the agent start reading your repository. The audit changes no fil
 
 - A repository with something users run or call: a library, CLI, HTTP API, app, service, framework, plugin, or agent-context pack.
 - An agent that supports installed packs, such as Claude Code.
-- `agentbundle`, the installer. See [install routes](../_shared/explanation/install-routes.md).
+- `agentbundle`, the installer. See [install routes](../_shared/how-to/install-packs.md).
 
 ## Step 1: Let the skill find out what you ship
 

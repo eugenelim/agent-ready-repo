@@ -402,7 +402,7 @@ test.describe('guidebook step layout', () => {
       page,
     }) => {
       await page.setViewportSize(viewport);
-      await page.goto(withDocsBase('/getting-started/install/'));
+      await page.goto(withDocsBase('/guides/_shared/how-to/install-agentbundle/'));
       const rail = await page.evaluate(
         () => !!document.querySelector('.right-sidebar'),
       );
@@ -415,7 +415,7 @@ test.describe('guidebook step layout', () => {
       expect(
         titleTop!,
         `the title must be near the top of the page, not below a screen of ` +
-          `nothing (${viewport.width}x${viewport.height}, /getting-started/install/)`,
+          `nothing (${viewport.width}x${viewport.height}, /guides/_shared/how-to/install-agentbundle/)`,
       ).toBeLessThanOrEqual(400);
     });
   }

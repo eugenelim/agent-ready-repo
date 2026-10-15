@@ -23,7 +23,7 @@ an ordinary pack composed entirely of primitives that already exist, distributed
 from a fork of this catalogue that your organization owns outright.
 
 It assumes you already know how packs and profiles install (see
-[install a profile](install-a-profile.md)) and have authored a skill before
+[install a profile](install-packs.md#install-a-profile)) and have authored a skill before
 (see [author a skill](author-a-skill.md)). Nothing here adds new machinery —
 you are composing seeds, framework-library skills, a profile, and the
 editable-install path that already ship.
@@ -46,7 +46,7 @@ You need:
 - **A fork of this catalogue that your organization owns.** The org-stack model
   is a *detached* fork: your teams install from your clone, with no runtime or
   package dependency on the upstream catalogue. The
-  [editable-install route](install-agentbundle-from-clone.md) is how that clone
+  [editable-install route](install-agentbundle.md#install-from-a-clone) is how that clone
   becomes the install source.
 - **Your real stack written down somewhere** — the runtimes and platforms you
   deploy to, the load-bearing framework and library choices, where your
@@ -202,7 +202,7 @@ You need:
      resolution layers still work — only the upstream fallback is gone.
    - **Use the editable install.** Each team clones your fork and runs
      `python -m pip install -e packages/agentbundle/` once (see
-     [install from a clone](install-agentbundle-from-clone.md)). After that,
+     [install from a clone](install-agentbundle.md#install-from-a-clone)). After that,
      `agentbundle` resolves the catalogue source to *their clone of your fork*,
      so the install command needs no catalogue argument:
 
@@ -258,9 +258,9 @@ Real rollouts branch. Cover the cases you're likely to hit:
 
 ## See also
 
-- [How to install a curated set of packs in one command](install-a-profile.md) —
+- [How to install a curated set of packs in one command](install-packs.md#install-a-profile) —
   the profile install your teams run.
-- [How to install `agentbundle` from a clone](install-agentbundle-from-clone.md) —
+- [How to install `agentbundle` from a clone](install-agentbundle.md#install-from-a-clone) —
   the editable-install path your detached fork distributes through.
 - [How to author a skill](author-a-skill.md) — for the framework-library skills
   in step 3.
