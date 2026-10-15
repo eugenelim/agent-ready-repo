@@ -1,6 +1,6 @@
 ---
 title: Frontend Engineering guides
-summary: Find the create, retrofit, audit, verification, contract, and evidence workflows used to deliver a frontend surface.
+summary: Build web pages and components, then audit and verify them before they ship.
 pack: frontend-engineering
 kind: explanation
 ---

@@ -1,6 +1,6 @@
 ---
 title: "`desk-research` — guides"
-summary: Choose the appropriate episodic depth or sustained-project workflow for an evidence-grounded research question.
+summary: Research a question with sources you can check, from a quick look-up to a multi-week project.
 pack: desk-research
 kind: explanation
 ---

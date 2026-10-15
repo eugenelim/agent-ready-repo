@@ -1,6 +1,6 @@
 ---
 title: "`github` — guides"
-summary: Understand the fixed-host, read-only intake workflow that turns selected repository work into canonical local work.
+summary: Bring GitHub issues and milestones into your repository as planned work, read-only.
 pack: github
 kind: explanation
 ---

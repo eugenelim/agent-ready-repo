@@ -1,6 +1,6 @@
 ---
 title: "`core` — guides"
-summary: Start durable work through one intake route, then carry approved work through planning, execution, verification, independent review, and merge.
+summary: Build features, fixes, and upgrades with a spec, real checks, independent review, and a merge you decide.
 pack: core
 kind: explanation
 ---
