@@ -30,7 +30,7 @@ Add one `[[allow]]` entry for `CVE-2026-59951`, package `mcp`, `fixed_in = "1.30
 
 ### Reachability finding (verified 2026-10-15)
 
-- In Semgrep 1.175.0, the only importers of `FastMCP` and the Streamable HTTP transport are `semgrep/mcp/server.py` and `semgrep/commands/mcp.py`. The HTTP server is built only by `setup_mcp_server`, reached only from the `semgrep mcp` subcommand with `--transport streamable-http`.
+- In Semgrep 1.175.0, the only importers of `FastMCP` and the Streamable HTTP transport are `semgrep/mcp/server.py` and `semgrep/commands/mcp.py`. `setup_mcp_server` builds the `FastMCP` object for any `semgrep mcp` run, and the Streamable HTTP endpoint is served only under `semgrep mcp --transport streamable-http`. The `semgrep mcp` subcommand is its only caller.
 - `make sast` runs `tools/run-semgrep-gate.py --config p/python --config p/security-audit --config tools/semgrep/ --strict --error --quiet --metrics off …`, which executes `["semgrep", <those arguments>, --json-output=…]`. It never invokes `semgrep mcp` and starts no server, so the vulnerable session manager is never constructed.
 - Nothing else in this repository imports `mcp`.
 

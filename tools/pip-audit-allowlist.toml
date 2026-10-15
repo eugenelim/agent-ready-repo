@@ -3,9 +3,10 @@
 # Read by `tools/run-pip-audit-gate.py`. An advisory listed here is reported on
 # every run but does not block the gate.
 #
-# THIS FILE SHOULD NORMALLY BE EMPTY. It is not, and as of 2026-09-30 it is not
-# empty for TWO different reasons — do not read the first one as covering every
-# entry.
+# THIS FILE SHOULD NORMALLY BE EMPTY. As of 2026-10-15 its one entry is the
+# mcp advisory below (ADR-0146): Semgrep pins mcp==1.29.0 exactly, below the fix,
+# and that entry carries its own reachability premise. The PyJWT history that
+# follows explains the earlier entries and the pyjwt half of the bound.
 #
 # Twelve entries exist because Semgrep declares `pyjwt[crypto]~=2.13.0`, which
 # excludes the PyJWT releases that fix them. Nothing in this repository can
