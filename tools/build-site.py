@@ -1397,7 +1397,7 @@ def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) ->
     for label, members in groups.items():
         lines.append(
             f"\n### {label}\n\n"
-            "| Pack | What it does | Default scope | Claude plugin |\n|---|---|---|---|\n"
+            "| Pack | What it does | Scope | Claude plugin |\n|---|---|---|---|\n"
         )
         for p in members:
             plugin = "yes" if "user" in p.get("allowed_scopes", []) else "no"

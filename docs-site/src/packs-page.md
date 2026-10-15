@@ -19,7 +19,7 @@ Use repo scope for how the team works. Everyone who clones the repository gets t
 agentbundle install --pack core
 ```
 
-`core`, `governance-extras`, `iac-terraform`, `monorepo-extras`, `release-engineering`, and `catalogue-curation` install only at repo scope.
+Some packs, including `core`, install only at repo scope. In the tables below they show "no" under Claude plugin.
 
 ## User scope
 
@@ -31,7 +31,7 @@ Use user scope for your own tools, such as research, architecture, or document c
 agentbundle install --pack desk-research --scope user
 ```
 
-Each pack has a default scope. The tables below show it, and `--scope` overrides it where the pack allows both.
+Each pack has a default scope, shown in the tables below. `--scope` overrides it where the pack allows both.
 
 ## Claude plugins
 
@@ -60,4 +60,4 @@ agentbundle install --profile inception
 
 ## Upgrade
 
-`agentbundle upgrade --pack <name>` brings a pack to the latest version. If you edited an installed file, your version stays and the new one lands beside it as `<name>.upstream` for you to merge.
+`agentbundle upgrade --pack <name>` brings a pack to the latest version. If you edited an installed file, your version stays and the new one lands beside it as `<name>.upstream.<ext>` (for example `SKILL.upstream.md`) for you to merge.
