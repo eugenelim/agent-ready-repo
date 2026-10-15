@@ -52,7 +52,7 @@ Owned by: T2, T3
 - **No overwrite without a yes.** The skill checks whether `<stem>.drawio` exists and asks before replacing it. It does not pass `-k`, because `-k` makes the CLI write an unsurfaced `<stem>-1.drawio`. Traces to: AC-0002.
 - **Install allowlist is package managers only** — the three commands AC-0007 pins. Each verifies the package itself (cask SHA-256, winget manifest hash, signed snap). Without the matching package manager, the skill links the official release page `https://github.com/jgraph/drawio-desktop/releases` for the user to install by hand and runs nothing. The reference carries the allowlist in one `text install-allowlist` block. Traces to: AC-0007.
 - **Boundary declaration:** `metadata.boundaries` gains `network_egress`, because an approved install reaches a package registry through the shell. No `network_fetch`: the skill fetches nothing itself. Traces to: AC-0007.
-- **Minimum CLI version 31.7.0**, the first release with command-line Mermaid import. An older CLI gets the same allowlisted command as an upgrade offer, under the same consent rule.
+- **Minimum CLI version 31.7.0**, the first release with command-line Mermaid import. The allowlisted install commands do not upgrade an existing copy, so an older CLI gets its version reported, the official release page for a manual upgrade, and the fallback; the skill runs nothing.
 - **Chat-only mode** has no file to convert: the skill gives the Insert › Mermaid steps or offers to save first. **repository-handoff** lists the `.drawio` as one more needed write and stops with zero effects. Traces to: AC-0002.
 - **Security review:** the spec-stage `security-reviewer` pass covers the install and execution flow; the diff-stage pass runs at REVIEW.
 - **Rejected:** depending on jgraph's `drawio` skill or `@drawio/mcp` (Never-do rule); a Python converter (needs a JavaScript layout engine, a new dependency); direct `.deb`/`.rpm`/`.dmg` downloads (would need agent-run checksum checks); PNG/SVG export (out of scope).
@@ -135,9 +135,20 @@ Owned by: T2
 
 **Done when:** `tools/validate_guides.py`, `tools/check-guide-index.py`, and `tools/lint-guide-titles.py` exit 0.
 
-### T6: Release surfaces read 0.15.18 and the catalogue verifies
+### T7: The old-CLI path, the fallback edge rule, and the guide match the shipped behavior
 
 **Depends on:** T1, T2, T3, T4, T5
+**Touches:** packs/architect/.apm/skills/architect-diagram/references/drawio-export.md, packs/architect/tests/skills/architect-diagram/test_drawio_fixtures.py, guides/architect/how-to/diagram-a-system.md, guides/architect/explanation/architect-diagram-skill-design.md
+
+**Tests:**
+- `test_skeleton_edge_without_source_rejected` reds when the skeleton check stops demanding both endpoints; the AC-0003 fixture cases stay green with the CLI's floating sequence endpoints.
+- no stub (goal-based): the reference's old-CLI paragraph offers no allowlisted command; the how-to's draw.io section names the version minimum, install consent and failure, link-line removal, the failed-check block, and handoff mode.
+
+**Done when:** `test_drawio_fixtures.py` passes in full and `tools/validate_guides.py` exits 0.
+
+### T6: Release surfaces read 0.15.18 and the catalogue verifies
+
+**Depends on:** T1, T2, T3, T4, T5, T7
 **Touches:** packs/architect/pack.toml, packs/architect/.claude-plugin/plugin.json, .claude-plugin/marketplace.json, docs/product/changelog.d/*
 
 **Tests:**
@@ -158,3 +169,5 @@ Ships with the next catalogue release; no flag, no infrastructure, no migration.
 
 - 2026-10-15: spec approved by eugenelim
 - 2026-10-15: plan approved by eugenelim
+- 2026-10-15: amended spec approved by eugenelim
+- 2026-10-15: amended plan approved by eugenelim
