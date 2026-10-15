@@ -1,6 +1,6 @@
 ---
 name: frame-domain
-description: Use when grounding a product in the real-world activity it serves and bounding its MVP before any screen, service, or architecture is drawn — at the G1.5 Domain & MVP point of the discovery loop, or standalone. Triggers on "frame the domain", "how is this activity really done", "ground this before we design", "what's in/out of the MVP", "draw the scope boundary", "is this scope creep". Produces two typed artifacts from one research-grounded pass — Domain Framing (real-world-activity grounding + best practice + naive-failure modes, plus a brownfield current-system half) and Scope Boundary (the MVP out-of-scope register). Do NOT use to shape the intent behind the work (use `intent frame`), to test whether a bet holds (use `intent de-risk`), or to break an intent down (use `intent decompose`).
+description: Use to frame the domain — how the real-world activity is actually done, its best practice, and how naive versions fail — and to draw the MVP scope boundary before design starts. Triggers on "how is this really done", "what's in the MVP", "is this scope creep". Not for shaping the intent (use `intent frame`).
 ---
 
 # Skill: frame-domain
@@ -25,7 +25,7 @@ downstream lifecycles:
 
 The skill **wraps** existing skills (`desk-research` applied mode,
 `decision-archaeology`) and **shapes** their output into the typed artifacts; it
-does not re-implement retrieval. It is **prompt-only** (Charter Principle 3):
+does not re-implement retrieval. It is **prompt-only**:
 there is no engine, script, or filename generator — the agent following this body
 writes the artifacts and their paths.
 
@@ -69,7 +69,7 @@ Before framing, confirm:
    thing only: Domain Framing's current-system half (below).
 
 This skill is **invokable standalone** with **no hard dependency on the
-coordinator / discovery-loop** (which is unbuilt). It produces on demand; the
+coordinator / discovery-loop**. It produces on demand; the
 non-skippable "cannot proceed without it" gate property is the coordinator's to
 own, not this skill's.
 

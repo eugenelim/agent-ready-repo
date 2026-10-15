@@ -1,0 +1,19 @@
+[
+  {"query": "Compare solution options for reducing failed payments, with trade-offs and a recommendation", "should_trigger": true},
+  {"query": "We've scored the onboarding opportunity. Lay out the solution options we could pursue", "should_trigger": true},
+  {"query": "Give me a side-by-side of approaches to cut support wait times, each with pros and cons", "should_trigger": true},
+  {"query": "What are the comparable ways to solve duplicate customer records across our systems?", "should_trigger": true},
+  {"query": "Produce solution options for the self-serve reporting initiative", "should_trigger": true},
+  {"query": "List the options for fixing our slow month-end close and recommend one", "should_trigger": true},
+  {"query": "What different ways could we tackle slow approval cycles across the business? Compare them with trade-offs", "should_trigger": true},
+  {"query": "Turn this opportunity assessment into candidate solutions we can compare", "should_trigger": true},
+
+  {"query": "Sketch wildly different product shapes for a pet-care app. Don't converge yet", "should_trigger": false},
+  {"query": "Pick between the two options and record our appetite", "should_trigger": false},
+  {"query": "Score the unmet jobs behind failed payments", "should_trigger": false},
+  {"query": "Decide between Postgres and DynamoDB for the event store", "should_trigger": false},
+  {"query": "Break the chosen approach into specs", "should_trigger": false},
+  {"query": "Play devil's advocate on this recommendation", "should_trigger": false},
+  {"query": "What's the riskiest assumption in the configurable-workflow option? Test it", "should_trigger": false},
+  {"query": "Draw a 2x2 of these options by effort and impact", "should_trigger": false}
+]

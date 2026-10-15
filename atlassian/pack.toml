@@ -1,6 +1,6 @@
 [pack]
 name = "atlassian"
-version = "0.10.1"
+version = "0.10.2"
 description = "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back."
 readme = "README.md"
 display_name = "Atlassian"
@@ -52,7 +52,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 
 # Pack activation evals:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
-# evals/eval_queries.json and is measured by tools/run-pack-evals.py.
+# evals/eval_queries.json and is measured by `agentbundle pack evals run`.
 # Activation is observed at the Skill-router level before the skill body runs,
 # so the credentialed CLI / backend login is irrelevant to whether the skill
 # fires — no Atlassian credentials are needed to measure these (Tier-A only;

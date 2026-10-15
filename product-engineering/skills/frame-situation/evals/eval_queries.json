@@ -1,0 +1,19 @@
+[
+  {"query": "Our trial-to-paid conversion dropped 6 points after the pricing change. What kind of signal is this?", "should_trigger": true},
+  {"query": "A competitor just launched a free analytics tier. Is this an opportunity or a threat for us?", "should_trigger": true},
+  {"query": "Support tickets about exporting data have tripled this year. Where should we start?", "should_trigger": true},
+  {"query": "Frame this situation: our largest segment keeps asking for an on-prem version", "should_trigger": true},
+  {"query": "We missed our activation OKR two quarters running. Classify the gap before we pick any work", "should_trigger": true},
+  {"query": "Engineering says our search index won't scale past next year. What do we do with that signal?", "should_trigger": true},
+  {"query": "Three enterprise customers churned this month citing billing gaps. What kind of signal is that, and where do we start?", "should_trigger": true},
+  {"query": "A data-residency regulation lands next spring. Which shaping step should we enter first?", "should_trigger": true},
+
+  {"query": "Frame the intent for adding CSV export to the reports page", "should_trigger": false},
+  {"query": "What's the riskiest assumption behind the on-prem bet? Test whether it holds", "should_trigger": false},
+  {"query": "Map the jobs our admins are trying to get done and score them", "should_trigger": false},
+  {"query": "Ground the scheduling product in how clinics really book appointments", "should_trigger": false},
+  {"query": "Break this shaped intent into specs", "should_trigger": false},
+  {"query": "Take this raw idea for a team retro tool through discovery to a decision brief", "should_trigger": false},
+  {"query": "Fix the bug where the churn dashboard double-counts accounts", "should_trigger": false},
+  {"query": "Our deploys keep failing on Fridays. Find the root cause", "should_trigger": false}
+]

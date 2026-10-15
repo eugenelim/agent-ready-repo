@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.15.16"
+version = "0.15.17"
 description = "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence."
 readme = "README.md"
 display_name = "Architect"
@@ -41,7 +41,7 @@ section    = "architecture"
 output_dir = "docs/architecture"
 
 # Pack activation evals: each user-facing workflow ships evals/eval_queries.json
-# and is measured by tools/run-pack-evals.py. The generated
+# and is measured by `agentbundle pack evals run`. The generated
 # architecture-lenses-reference router is intentionally excluded because it is
 # selected by the workflows rather than by user-prompt activation.
 [pack.evals]

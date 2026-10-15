@@ -1,6 +1,6 @@
 [pack]
 name = "figma"
-version = "0.3.3"
+version = "0.3.4"
 description = "Paste a Figma share URL and the agent can read the file. It pulls nodes, variables, and version history, renders frames as images, leaves comments, and turns a FigJam connector graph into Mermaid."
 readme = "README.md"
 display_name = "Figma"
@@ -31,7 +31,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 
 # Pack activation evals:
 # the Tier-A activation-eval coverage allowlist. The skill ships
-# evals/eval_queries.json and is measured by tools/run-pack-evals.py.
+# evals/eval_queries.json and is measured by `agentbundle pack evals run`.
 # Activation is observed at the Skill-router level before the skill body
 # runs, so no Figma credentials are needed to measure it.
 [pack.evals]

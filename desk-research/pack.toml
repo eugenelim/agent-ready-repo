@@ -1,6 +1,6 @@
 [pack]
 name = "desk-research"
-version = "1.1.9"
+version = "1.1.10"
 description = "Ask a question, get an answer with citations you can check. It runs from a two-minute lookup to a multi-week investigation with its own folder, and argues against its own findings before handing them over."
 readme = "README.md"
 display_name = "Desk Research"
@@ -34,7 +34,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 
 # Pack activation evals: the Tier-A activation-eval coverage allowlist —
 # each listed skill ships evals/eval_queries.json and is measured by
-# tools/run-pack-evals.py. These are the prompt-triggered skills with a distinct
+# `agentbundle pack evals run`. These are the prompt-triggered skills with a distinct
 # cold-prompt activation surface: the seven scoping / synthesis / decision-support
 # skills, research-project-start as the lifecycle entry point, and
 # research-project-status as the project-mode cold-start orient surface.

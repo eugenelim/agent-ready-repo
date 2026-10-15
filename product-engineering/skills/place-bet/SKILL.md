@@ -1,6 +1,6 @@
 ---
 name: place-bet
-description: Step 5 of the PE six-step shaping sequence — the bet-commitment gate. Reads a diverge-solutions artifact if present (offers to run it first if absent); accepts options from any source; folds in validation-notes when available; emits bet.md with the full betting table anchoring map-capabilities. Do NOT use to generate options (use diverge-solutions or explore-options) or validate assumptions (use intent de-risk).
+description: Use to make the call between solution options and record the bet in bet.md — the choice, why, confidence, appetite (the time it is worth), risks accepted, and what would reverse it. Triggers on "pick an option", "commit to a direction", "place the bet". To generate options first use `diverge-solutions`.
 ---
 
 # Skill: place-bet

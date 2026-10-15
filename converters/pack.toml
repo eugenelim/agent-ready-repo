@@ -1,6 +1,6 @@
 [pack]
 name = "converters"
-version = "0.9.7"
+version = "0.9.8"
 description = "Say \"convert this PDF to Markdown\" or \"turn this into a branded deck\" and it happens. Documents, images, and Outlook email go in; Markdown, HTML, Word, PowerPoint, and Excel come out."
 readme = "README.md"
 display_name = "Converters"
@@ -21,7 +21,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 
 # Pack activation evals: the Tier-A activation-eval
 # coverage allowlist (each listed skill ships evals/eval_queries.json, measured
-# by tools/run-pack-evals.py). `msg-to-markdown` is excluded — it ships no
+# by `agentbundle pack evals run`). `msg-to-markdown` is excluded — it ships no
 # evals/ at all (the converters evals.json carry-over gate hard-errors if
 # msg-to-markdown/evals exists), so it stays without an eval_queries.json too.
 [pack.evals]
