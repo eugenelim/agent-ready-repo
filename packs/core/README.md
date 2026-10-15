@@ -63,7 +63,7 @@ See [Install routes](../../guides/_shared/how-to/install-packs.md).
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. [Product Engineering](../product-engineering/README.md) hands shaped work in. [Governance Extras](../governance-extras/README.md) and [Release Engineering](../release-engineering/README.md) build on it. [GitHub](../github/README.md) hands records to `work-intake`. Guides: [Build a change](../../guides/core/README.md) and [Close work](../../guides/core/how-to/close-and-disposition-work.md).
+Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. [Product Engineering](../product-engineering/README.md) hands shaped work in. [Governance Extras](../governance-extras/README.md) and [Release Engineering](../release-engineering/README.md) build on it. [GitHub](../github/README.md) hands records to `work-intake`. Guides: [Run the build loop](../../guides/core/how-to/start-the-work.md) and [Close work](../../guides/core/how-to/close-and-disposition-work.md).
 
 ## Questions
 

@@ -1,15 +1,13 @@
 ---
-title: "The file-safety contract"
-summary: "Understand how pack installs and upgrades preserve adopter edits through the catalogue's three-tier file-safety model."
+title: "File safety"
+summary: "Know which installed files you can edit, and what an install or upgrade does with each."
 pack: _shared
 kind: explanation
 ---
 
-# The file-safety contract
+# File safety
 
-When you install a pack from this catalogue, the install verb writes files into your repo — `AGENTS.md`, `docs/CHARTER.md`, skill directories, hooks. If you've already edited any of those files (or the upgrade you're running has new content for them), what happens?
-
-The short answer: **your edits are never silently overwritten**. This page explains the long answer — what mechanism makes the guarantee hold, how it differs by install route, and where the contract is authoritative.
+An install or upgrade never silently overwrites a file you edited. Files fall into three tiers, and each tier gets its own treatment, described below by install route.
 
 ## The three tiers
 

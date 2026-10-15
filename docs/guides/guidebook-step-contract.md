@@ -1,5 +1,7 @@
 # The guidebook step contract
 
+> **Retired 2026-10-15** by [`docs-job-pages`](../specs/docs-job-pages/spec.md): no guide is a guidebook step any more, and `tools/lint-guidebook-steps.py` is removed. Kept as the record of the former contract.
+
 Normative. `tools/lint-guidebook-steps.py` reads its obligation identifiers,
 label forms, judgement kinds and prohibited vocabulary **out of this file** and
 copies none of them, so editing a table here changes what the lint enforces.

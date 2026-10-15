@@ -98,9 +98,10 @@ WEB_PACKAGE_JSON = "web/package.json"
 # What `test:e2e:gate` must BE. An explicit allowlist of read-only specs: the two
 # excluded specs write PNGs into tracked `docs/specs/**` paths, and a glob or an
 # exclusion flag would let a newly added writing spec join required CI silently.
-# `guidebook-walk.spec.ts` is read-only -- it navigates built pages and measures
-# geometry -- so it joins the allowlist by the deliberate edit the pin exists to
-# require, rather than by a glob.
+# `docs-rail.spec.ts` is read-only -- it navigates built pages and measures the
+# docs page frame -- so it joins the allowlist by the deliberate edit the pin
+# exists to require, rather than by a glob. It replaced `guidebook-walk.spec.ts`
+# when the guidebooks became job pages (spec/docs-job-pages).
 # `press-state.spec.ts` joins on the same terms (2026-09-23): it navigates built
 # pages and reads computed styles under :hover and :active, writing nothing. It
 # is here because nothing else can see a press -- axe scans the resting DOM and
@@ -108,7 +109,7 @@ WEB_PACKAGE_JSON = "web/package.json"
 # the only check for the press state never guarded a pull request.
 EXPECTED_GATE_SCRIPT = (
     "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts "
-    "guidebook-walk.spec.ts press-state.spec.ts"
+    "docs-rail.spec.ts press-state.spec.ts"
 )
 
 

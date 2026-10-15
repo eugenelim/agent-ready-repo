@@ -17,7 +17,7 @@ Every page a reader reaches from the docs sidebar meets one standard (`guides/AG
 
 ## What Changes
 
-- **Docs tab.** Set up a repository: Start a project, Connect your tracker. Decide what to build: Research a question, Understand the code, Analyse the market, Set direction and goals. Shape it: Shape an idea, Design the architecture, Design the experience, Design an API contract. Build it: Build a change, Fix a bug, Review a pull request, Build a page or component, Record a decision, Write the docs. Ship it: Release a change, Change infrastructure, Measure delivery. The four product-engineering, five experience-design, three product-strategy, four desk-research, and four core guidebook steps merge into their job pages; merged pages leave an `aliases:` redirect.
+- **Docs tab.** Set up a repository: Start a project, Connect your tracker. Decide what to build: Research a question, Understand the code, Analyse the market, Set direction and goals. Shape it: Shape an idea, Design the architecture, Design the experience, Design an API contract. Build it: Run the build loop, Fix a bug, Review a pull request, Build a page or component, Record a decision, Write the docs. Ship it: Release a change, Change infrastructure, Measure delivery. The four product-engineering, five experience-design, three product-strategy, four desk-research, and four core guidebook steps merge into their job pages; merged pages leave an `aliases:` redirect.
 - **Operating model.** Title "Operating model"; one storyline from the four stages to where you decide.
 - **Author and Catalogue System tabs.** Each page rewritten to the standard.
 - **Pack pages.** Each `packs/<pack>/README.md` follows the template: name, one sentence, install, what your agent can do, skills, works with, questions, details. The H1 is the pack's `display_name`.
@@ -57,7 +57,7 @@ Every page a reader reaches from the docs sidebar meets one standard (`guides/AG
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Sidebar pages meet the standard.** Every page the four tabs list opens with a sentence on what the reader can do, has no "Use this when", "Prerequisites:", or "Result:" header block, and is 500 words or fewer, except reference pages.
+- [ ] **AC1 — Sidebar pages meet the standard.** Every page the four tabs list opens with a sentence on what the reader can do, has no "Use this when", "Prerequisites:", or "Result:" header block, and is 500 words or fewer, except reference and explanation pages.
 - [ ] **AC2 — No mid-walk entry.** No sidebar link opens a page that shows a "Step N of M" position with N greater than 1.
 - [ ] **AC3 — Pack pills.** Every sidebar page that needs a pack shows it as a pill linking to the pack's page.
 - [ ] **AC4 — Pack template.** Every pack page has the sections Install, What your agent can do, Skills, Works with, Questions, and Details, and its H1 equals its `display_name`.

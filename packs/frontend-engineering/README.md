@@ -47,9 +47,9 @@ Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini C
 
 **Will it commit my changes?** No. It shows the diff first, and nothing is written until you approve.
 
-**Does it send my code anywhere?** No. Audits and checks run locally. It makes no remote reads or writes.
+**Does it send my code anywhere?** Audits and checks run locally. In verify mode it captures the rendered page and sends the screenshots and route to the visual judge you configure; if that judge is a remote service, those captures leave your environment.
 
-**How do I undo a change?** Revert the commit. The evidence manifest records what changed and why.
+**How do I undo a change?** Restore the files from version control. The evidence manifest records what changed and why.
 
 **Does it need Experience Design?** No, but it is recommended. Without it you lose the genre routing by kind of screen.
 

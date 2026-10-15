@@ -10,6 +10,15 @@ kind: how-to
 
 Your skill can call an authenticated service while the credential stays out of the AI loop: never in the repository, never in the agent's context. A script in your skill resolves it with `credbroker`, inside its own process.
 
+## The credentialed-skill contract
+
+`metadata.auth` names how the credential reaches your script. Pick one of four brokers:
+
+- `env` — a plain environment variable, for CI runners and containers.
+- `cli` — a vendor command that is already signed in, such as `gh` or `aws`.
+- `creds` — a static token you store once, read from your OS keychain. The example above uses it.
+- `sso-cookie` — a browser session for a corporate single sign-on.
+
 ## Declare the credential
 
 Name the broker and the keys in your skill's `SKILL.md` frontmatter:
@@ -23,15 +32,6 @@ metadata:
 ```
 
 The skill declares the key names only. The values never appear in the repository.
-
-## The credentialed-skill contract
-
-`metadata.auth` names how the credential reaches your script. Pick one of four brokers:
-
-- `env` — a plain environment variable, for CI runners and containers.
-- `cli` — a vendor command that is already signed in, such as `gh` or `aws`.
-- `creds` — a static token you store once, read from your OS keychain. The example above uses it.
-- `sso-cookie` — a browser session for a corporate single sign-on.
 
 ## Resolve it in your script
 
