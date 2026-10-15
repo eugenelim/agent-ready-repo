@@ -4,7 +4,7 @@ Your agent can grow and maintain a skill catalogue for you: bring in outside ski
 
 ## Install
 
-This pack is for catalogue maintainers. Install it from inside your catalogue repository:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. This pack is for catalogue maintainers. Install it from inside your catalogue repository:
 
 ```bash
 cd path/to/your-catalogue

@@ -4,7 +4,7 @@ Your agent can turn a plain-language infrastructure request into reviewed Terraf
 
 ## Install
 
-Install it from inside the repository where your infrastructure code lives:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository where your infrastructure code lives:
 
 ```bash
 cd path/to/your-repo

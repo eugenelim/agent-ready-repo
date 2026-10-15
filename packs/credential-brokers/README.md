@@ -4,7 +4,7 @@ Your agent can use skills that call signed-in services while your tokens stay ou
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack credential-brokers

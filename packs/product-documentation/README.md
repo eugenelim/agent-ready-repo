@@ -4,7 +4,7 @@ Your agent can write, improve, and audit the docs your users read, checked again
 
 ## Install
 
-Install it from inside the repository you document:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository you document:
 
 ```bash
 cd path/to/your-repo

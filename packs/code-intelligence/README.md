@@ -4,7 +4,7 @@ Your agent can answer what is true about your code, such as what calls this and 
 
 ## Install
 
-Install it from inside the repository you want to query:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository you want to query:
 
 ```bash
 cd path/to/your-repo

@@ -4,7 +4,7 @@ This pack is deprecated. Install [Product Documentation](../product-documentatio
 
 ## Install
 
-Install the replacement from inside your repository:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install the replacement from inside your repository:
 
 ```bash
 cd path/to/your-repo

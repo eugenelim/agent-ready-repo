@@ -4,7 +4,7 @@ Your agent can take a raw product idea to a build-ready decision brief, then han
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack product-engineering

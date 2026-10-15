@@ -28,7 +28,7 @@ Some packs help at any stage: `code-intelligence` to learn what the code does, `
 
 ## Decide what to build
 
-You find out what is true, then choose what to bet on. `desk-research` answers questions with sources and a confidence rating for each finding. `product-strategy` turns the picture into a direction, such as a SWOT, an OKR cascade, or a press release written before the product. See [Research a question](../../desk-research/how-to/run-the-research.md) and [Set direction and goals](../../product-strategy/how-to/set-the-direction.md).
+You find out what is true, then choose what to bet on. `desk-research` answers questions with sources and a confidence rating for each finding. `product-strategy` turns the picture into a direction, such as a SWOT (strengths, weaknesses, opportunities, threats), goals cascaded to teams, or a press release written before the product exists. See [Research a question](../../desk-research/how-to/run-the-research.md) and [Set direction and goals](../../product-strategy/how-to/set-the-direction.md).
 
 ## Shape it
 
@@ -44,11 +44,11 @@ See [Shape an idea](../../product-engineering/how-to/frame-the-intent.md).
 
 The `core` pack's work loop builds the piece: features, fixes, refactors, migrations, and upgrades. Small, low-risk work runs straight from your request. Riskier work gets a written spec and plan, which you approve before any code is written.
 
-Lint, type checks, and tests are real gates: the agent cannot report success while one fails. A shaping review checks the spec before code starts, and three reviewers then read every change cold: an adversarial reviewer for drift between spec and code, a security reviewer, and a quality reviewer. The merge is always yours. See [Run the build loop](../../core/how-to/start-the-work.md).
+Lint, type checks, and tests must pass: the agent cannot report success while one fails. A shaping review checks the spec before code starts, and three reviewers then read every change cold: an adversarial reviewer for drift between spec and code, a security reviewer, and a quality reviewer. The merge is always yours. See [Run the build loop](../../core/how-to/start-the-work.md).
 
 ## Ship it
 
-The `release-engineering` pack deploys the merged work to a throwaway environment, runs end-to-end tests, and watches telemetry until it meets its service levels. A failure goes back to the build loop as a task. It never touches production: you read the release-readiness record and decide whether to ship. See [Release a change](../../release-engineering/how-to/run-a-release.md).
+The `release-engineering` pack deploys the merged work to a throwaway environment, runs end-to-end tests, and watches its live metrics until it meets the targets you set. A failure goes back to the build loop as a task. It never touches production: you read a short report on how ready it is and decide whether to ship. See [Release a change](../../release-engineering/how-to/run-a-release.md).
 
 ## Where the agent waits for you
 
@@ -60,12 +60,12 @@ The more permanent the action, the more the agent waits:
 | Needs a call | A blocker, or the release loop reaching its stop point | Stops and shows you where things stand |
 | Can't be undone | Committing to build, merging, shipping to production | Waits for your yes |
 
-When an agent stops, it may print a short code:
+When an agent stops for a decision, it labels the decision point with a short code:
 
-| Code | You decide |
+| Decision point | You decide |
 | --- | --- |
 | G0 | Is the problem real, and worth a bet? |
-| G1.5 | What is in the first version? |
+| G1.5 | What is in the first version? Shown only on the supervised route. |
 | G2 | Is the brief good enough to build from? |
 | G3 | Is it ready for the build loop? |
 | G4 | Is the merged change ready for release testing? |

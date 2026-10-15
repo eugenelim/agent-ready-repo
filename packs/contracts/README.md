@@ -4,7 +4,7 @@ Your agent can write the API or event contract first, checked against a house st
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack contracts

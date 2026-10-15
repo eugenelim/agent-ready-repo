@@ -4,7 +4,7 @@ Your agent can start repository work from a GitHub Issue or Milestone, then refr
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack github

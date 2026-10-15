@@ -4,7 +4,7 @@ Your agent can research a question from sources it cites, grade how sure it is, 
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack desk-research

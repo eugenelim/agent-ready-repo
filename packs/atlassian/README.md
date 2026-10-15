@@ -4,7 +4,7 @@ Your agent can run Jira and Confluence from a conversation: see what your team c
 
 ## Install
 
-Install the credentials pack first, then this one, once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install the credentials pack first, then this one, once for your user account:
 
 ```bash
 agentbundle install --pack credential-brokers

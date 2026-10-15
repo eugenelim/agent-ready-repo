@@ -4,7 +4,7 @@ Your agent can test your built change in a temporary deployed environment, fix w
 
 ## Install
 
-Install it from inside the repository where your agent built the change:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository where your agent built the change:
 
 ```bash
 cd path/to/your-repo

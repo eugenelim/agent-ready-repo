@@ -4,7 +4,7 @@ Your agent can start repository work from a Linear Issue or Project, then refres
 
 ## Install
 
-Install the credentials pack first, then this one, once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install the credentials pack first, then this one, once for your user account:
 
 ```bash
 agentbundle install --pack credential-brokers

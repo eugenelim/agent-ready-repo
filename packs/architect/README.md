@@ -4,7 +4,7 @@ Your agent can assess the architecture you have, design the one you need, draw i
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack architect

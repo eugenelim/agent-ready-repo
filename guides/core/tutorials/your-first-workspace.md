@@ -27,7 +27,7 @@ You need:
 
 - A repo with `workspace.toml` at the root.
 - The `core` pack installed. If you haven't installed it yet, see [How to start working on a project](../how-to/start-a-project.md) for the install step.
-- A fresh agent session (restart your Claude Code or Conductor session if you've been working on something else — a fresh context gives you a complete orientation).
+- A fresh agent session (restart your agent session if you've been working on something else — a fresh context gives you a complete orientation).
 
 ## Step 1 — Orient: run `workspace-status`
 

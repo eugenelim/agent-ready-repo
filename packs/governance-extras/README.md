@@ -4,7 +4,7 @@ Your agent can write the RFC for a proposed change, record the ADR for a decisio
 
 ## Install
 
-Install it from inside the repository, alongside Core:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository, alongside Core:
 
 ```bash
 cd path/to/your-repo

@@ -4,7 +4,7 @@ Your agent can design an experience from the user's outcome to the finished scre
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack experience-design

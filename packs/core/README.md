@@ -4,7 +4,7 @@ Your agent can turn a request into an approved spec, build it under supervision,
 
 ## Install
 
-Install it from inside your repository:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside your repository:
 
 ```bash
 cd path/to/your-repo

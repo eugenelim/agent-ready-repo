@@ -4,7 +4,7 @@ Your agent can frame, write, review, and tune portable agent skills (`SKILL.md` 
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack agent-skill-engineering

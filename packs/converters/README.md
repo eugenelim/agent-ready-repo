@@ -4,7 +4,7 @@ Your agent can turn documents, email, and diagrams into Markdown, and turn Markd
 
 ## Install
 
-Install it once for your user account:
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
 agentbundle install --pack converters
