@@ -1,7 +1,7 @@
 # Plan: architect-diagram-drawio-export
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval harness, test rules); analogous change: `docs/specs/architect-diagram-product-types/` (added references, fixtures, evals to the same skill); existing suite `packs/architect/tests/skills/architect-diagram/test_fixtures.py`. Deviation: the new suite needs no external binary, unlike the `mmdc` suite.
 
 > **Plan contract:** this is the implementation strategy. It may change
