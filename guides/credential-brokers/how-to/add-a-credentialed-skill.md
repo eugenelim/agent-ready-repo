@@ -24,6 +24,15 @@ metadata:
 
 The skill declares the key names only. The values never appear in the repository.
 
+## The credentialed-skill contract
+
+`metadata.auth` names how the credential reaches your script. Pick one of four brokers:
+
+- `env` — a plain environment variable, for CI runners and containers.
+- `cli` — a vendor command that is already signed in, such as `gh` or `aws`.
+- `creds` — a static token you store once, read from your OS keychain. The example above uses it.
+- `sso-cookie` — a browser session for a corporate single sign-on.
+
 ## Resolve it in your script
 
 Call `credbroker` from the skill's `scripts/` code, not from the agent:
