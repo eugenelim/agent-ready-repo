@@ -32,9 +32,9 @@ Four steps, in order. Each shows what to type, what the agent replies, what it
 writes and where it lands.
 
 1. [Start the work](how-to/start-the-work.md)
-2. [Write the contract](how-to/write-the-contract.md)
-3. [Run the loop](how-to/run-the-loop.md)
-4. [Close it out](how-to/close-it-out.md)
+2. [Write the contract](how-to/start-the-work.md)
+3. [Run the loop](how-to/start-the-work.md)
+4. [Close it out](how-to/start-the-work.md)
 
 **The walk covers the main thread, not every skill.** The pack ships eighteen;
 these four steps run ten. The other eight are supported and simply not on the

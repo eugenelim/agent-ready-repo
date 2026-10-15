@@ -36,4 +36,4 @@ The `event-contract` skill writes an AsyncAPI document in `contracts/asyncapi/`,
 
 If you only consume an API or an event, point to the owner's contract and write none, because a contract you author for someone else's API drifts from the real one. If the event's contract already sits in `contracts/asyncapi/`, reference it. If its producer is outside your repository, note the type you depend on and write nothing.
 
-Next, [write a spec](../../core/how-to/write-the-contract.md) that the build follows and tests against this contract.
+Next, [write a spec](../../core/how-to/start-the-work.md) that the build follows and tests against this contract.

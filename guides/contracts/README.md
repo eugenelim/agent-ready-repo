@@ -23,7 +23,7 @@ already approved. [See the whole flow](../_shared/explanation/the-operating-mode
 Task-oriented recipes for a problem you already have.
 
 - [Generate an API contract](how-to/generate-an-api-contract.md) — run `api-contract` over requirements, user stories, or a domain model to get a validated OpenAPI 3.1 spec.
-- [Author an event contract](how-to/author-an-event-contract.md) — run `event-contract` for a stream you produce, with the produce-vs-consume check up front.
+- [Author an event contract](how-to/generate-an-api-contract.md) — run `event-contract` for a stream you produce, with the produce-vs-consume check up front.
 
 ## Reference
 

@@ -31,7 +31,7 @@ claude plugin install contracts@agent-ready-repo
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Architect](../architect/README.md) reads an existing contract as a boundary before it proposes a backend. [Core](../core/README.md) grounds code against a contract through `contract-acquisition` when the build loop does not hold it. See [Design an API contract](../../guides/contracts/how-to/generate-an-api-contract.md) and [Author an event contract](../../guides/contracts/how-to/author-an-event-contract.md).
+Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Architect](../architect/README.md) reads an existing contract as a boundary before it proposes a backend. [Core](../core/README.md) grounds code against a contract through `contract-acquisition` when the build loop does not hold it. See [Design an API contract](../../guides/contracts/how-to/generate-an-api-contract.md) and [Author an event contract](../../guides/contracts/how-to/generate-an-api-contract.md).
 
 ## Questions
 

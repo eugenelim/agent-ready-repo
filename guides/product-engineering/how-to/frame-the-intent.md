@@ -80,4 +80,4 @@ Decompose this intent into deliverable slices, each traceable back to the parent
 
 The agent records the slices on the intent. One shippable feature goes on as a single contract, and a larger outcome gets a coordinating brief at `docs/product/briefs/<slug>.md`.
 
-Next, [write the contract](../../core/how-to/write-the-contract.md) for each slice.
+Next, [write the contract](../../core/how-to/start-the-work.md) for each slice.

@@ -46,10 +46,10 @@ where you push back and the agent adjusts, where you decide, and an excerpt of
 what you actually get.
 
 1. [Map the customer journey](how-to/map-the-customer-journey.md) — what the user is trying to achieve, and the moments the current experience breaks.
-2. [Derive the screen flow](how-to/derive-the-screen-flow.md) — what each surface has to communicate, then the screens, transitions, error routes, and the set of states each screen owes.
+2. [Derive the screen flow](how-to/map-the-customer-journey.md) — what each surface has to communicate, then the screens, transitions, error routes, and the set of states each screen owes.
 3. [Establish design intent](how-to/establish-design-intent.md) — the arbitration rules the journey's pains imply, the named visual direction, and the token roles that follow from that direction.
-4. [Design each screen](how-to/design-each-screen.md) — structure suited to the screen's job, then behaviour for every state it can be in.
-5. [Review independently](how-to/review-independently.md) — your own critique first, then a reviewer that reads the set cold.
+4. [Design each screen](how-to/map-the-customer-journey.md) — structure suited to the screen's job, then behaviour for every state it can be in.
+5. [Review independently](how-to/map-the-customer-journey.md) — your own critique first, then a reviewer that reads the set cold.
 
 The walk is a spine with branches, not a conveyor belt. [The spine and its
 branches](#the-spine-and-its-branches) says which parts nothing downstream can
@@ -215,7 +215,7 @@ consumer takes a different part of what you produced.
 | The state matrix inside each brief | `product-engineering`'s `ux-writing` writes a UI string per screen × state, keyed to that matrix. It is the one copy boundary that crosses packs. |
 | The brand register | `ux-writing` loads it as the voice those strings are written in. |
 | The service blueprint's backstage column | Point `architect`'s design work at it before anyone proposes a backend: it names the frontstage obligations the backend has to meet. |
-| The reviewed design set as a whole | `core`'s build loop specs against it — each screen brief becomes acceptance criteria rather than being restated. Continue at [write the contract](../core/how-to/write-the-contract.md). |
+| The reviewed design set as a whole | `core`'s build loop specs against it — each screen brief becomes acceptance criteria rather than being restated. Continue at [write the contract](../core/how-to/start-the-work.md). |
 
 **The handoff moves the work, not the authority.** Nothing downstream is
 approved by finishing here, and this pack's three gates stay yours.

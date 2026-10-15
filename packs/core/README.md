@@ -59,7 +59,7 @@ Next:     Ask your agent to run adapt-to-project for a read-only readiness check
 
 APM's HookIntegrator deploys hook bundles to Claude Code, Copilot, Cursor, Gemini, Codex, Antigravity, Windsurf, and Kiro. OpenCode remains unsupported.
 
-See [Install routes](../../guides/_shared/explanation/install-routes.md).
+See [Install routes](../../guides/_shared/how-to/install-packs.md).
 
 ## Works with
 

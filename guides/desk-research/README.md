@@ -27,10 +27,10 @@ unverified claim. [See the whole flow](../_shared/explanation/the-operating-mode
 Four steps. The first three are one session; the fourth is for a question that
 outlasts one.
 
-1. [Scope the question](how-to/scope-the-question.md)
+1. [Scope the question](how-to/run-the-research.md)
 2. [Run the research](how-to/run-the-research.md)
-3. [Challenge the result](how-to/challenge-the-result.md)
-4. [Run it as a project](how-to/run-it-as-a-project.md)
+3. [Challenge the result](how-to/run-the-research.md)
+4. [Run it as a project](how-to/run-the-research.md)
 
 **The walk covers the main thread.** `decision-archaeology` is the pack's
 twelfth skill and is not on it: it reconstructs why a past decision was made,

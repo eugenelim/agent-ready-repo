@@ -80,4 +80,4 @@ Review this design set against its user task, principles, quality floor, genre r
 
 The agent lists findings by severity and writes nothing to disk. For a cold read in a fresh context, run `experience-reviewer` on a screen brief such as `docs/design/screens/onboarding-flow.md`.
 
-Next, [write the contract](../../core/how-to/write-the-contract.md) for the reviewed design.
+Next, [write the contract](../../core/how-to/start-the-work.md) for the reviewed design.

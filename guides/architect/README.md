@@ -36,9 +36,9 @@ lays out the timeline stage by stage, and names which skill offers each step.
   evidence coverage, hotspots, findings, and an action plan.
 - [Shape an architecture concept](how-to/shape-an-architecture-concept.md) when
   the current-state evidence is clear and you need a future-state choice.
-- [Diagram a system](how-to/diagram-a-system.md) when the picture is the main
+- [Diagram a system](how-to/shape-an-architecture-concept.md) when the picture is the main
   outcome.
-- [Review an architecture artifact](how-to/review-an-architecture-artifact.md)
+- [Review an architecture artifact](how-to/shape-an-architecture-concept.md)
   when you already have an assessment, design doc, diagram, RFC, or ADR.
 - [Establish a reference architecture](how-to/establish-reference-architecture.md)
   when the repository needs a normative golden path for future work.

@@ -50,9 +50,9 @@ one turn where you push back and it adjusts, where you decide, and an excerpt
 of what you get.
 
 1. [Frame the intent](how-to/frame-the-intent.md) — the problem becomes a written outcome with an owner and a slug, before anyone proposes a solution.
-2. [Find the opportunities](how-to/find-the-opportunities.md) — where the value actually is, then approaches that differ in kind, tested against real constraints.
-3. [Commit and de-risk](how-to/commit-and-de-risk.md) — commit to the one you chose, say what would prove it wrong, and rank what could make it wrong.
-4. [Hand it to build](how-to/hand-it-to-build.md) — slice it so each piece ships something a customer would notice, and hand those slices to delivery.
+2. [Find the opportunities](how-to/frame-the-intent.md) — where the value actually is, then approaches that differ in kind, tested against real constraints.
+3. [Commit and de-risk](how-to/frame-the-intent.md) — commit to the one you chose, say what would prove it wrong, and rank what could make it wrong.
+4. [Hand it to build](how-to/frame-the-intent.md) — slice it so each piece ships something a customer would notice, and hand those slices to delivery.
 
 **The walk runs the whole pack.** Its four step maps name all thirteen skills
 this pack ships, so nothing is waiting off to one side. `intent` gets one row
@@ -140,7 +140,7 @@ the work.
 **The handoff moves the work, not the authority.** It approves nothing and
 skips no gate: `core` stops at its own next approval before any code is
 written, and this pack's four gates stay yours. The walk's last step continues
-into [write the contract](../core/how-to/write-the-contract.md) in the `core`
+into [write the contract](../core/how-to/start-the-work.md) in the `core`
 guidebook.
 
 ## Tutorials
