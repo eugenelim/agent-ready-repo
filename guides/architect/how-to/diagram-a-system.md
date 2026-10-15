@@ -1,6 +1,6 @@
 ---
 title: Diagram a system
-summary: Produce a self-checked Mermaid diagram in the notation appropriate to a system, flow, state model, data model, or deployment.
+summary: Produce a self-checked Mermaid diagram in the notation appropriate to a system, flow, state model, data model, or deployment, with an optional draw.io file.
 pack: architect
 kind: how-to
 ---
@@ -14,7 +14,7 @@ current-state view.
 
 **Use this when:** You know what you want drawn and need a Mermaid diagram of a system, flow, state machine, data model, or deployment topology.
 **Prerequisites:** The `architect` pack installed; optionally a resolved `current-architecture` golden path for document-mode diagrams grounded in your stack.
-**Result:** A self-checked Mermaid diagram in the right notation, with an offer to save it to the repo.
+**Result:** A self-checked Mermaid diagram in the right notation, with an offer to save it to the repo and an optional draw.io file.
 
 :::note
 Get a Mermaid diagram of a system, flow, state, data model, or deployment topology out of the `architect-diagram` skill. Assumes you know what you want drawn; if you're still framing the problem, that's a design conversation — reach for [`architect-design`](../../../packs/architect/.apm/skills/architect-design) instead.
@@ -117,6 +117,28 @@ without a repository write; your confirmation may correct its evidence but
 cannot substitute for Core's confined result. Standalone personal use requires
 an exact confined root/file. Saving is always an offer, never automatic, and
 non-architecture diagrams are not forced into architecture roles.
+
+## Get a draw.io file
+
+Ask for draw.io or a `.drawio` file when you want to keep editing the diagram
+visually. The skill never makes one unless you ask.
+
+- **Mermaid stays the source.** The skill saves the Mermaid file first, and the
+  `.drawio` file lands beside it. The `.drawio` is converted from the saved
+  Mermaid, so the two describe the same diagram.
+- **Installed draw.io.** If the draw.io desktop CLI is on your machine, the skill
+  uses it to convert the file.
+- **Not installed.** The skill offers one package-manager install command for your
+  system (`brew`, `winget`, or `snap`) and runs it only after you say yes.
+- **You decline the install.** The agent writes the `.drawio` itself from the
+  saved Mermaid. The layout is hand-placed, and Arrange › Layout in draw.io
+  tidies it. You also get the Insert › Mermaid steps, which lay the diagram out
+  automatically.
+- **Checked first.** Every `.drawio` file is checked for structure and link
+  safety before you see it.
+- **Chat only.** With no file to convert, you get the Insert › Mermaid steps:
+  in draw.io, choose Arrange › Insert › Advanced › Mermaid, paste the diagram,
+  and insert it.
 
 ## When not to reach for it
 
