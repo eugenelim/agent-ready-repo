@@ -33,7 +33,7 @@ agentbundle install --pack core
 - **`adapt-to-project`** — Adapts your agent guidance.
 - **`init-project`** — Turns an idea into a new repository.
 - **`explain-diff`**, **`contract-acquisition`** — Explain a diff; read a platform's contract first.
-- **`repository-grounding`**, **`repository-exploration`** — Below.
+- **`repository-grounding`**, **`repository-exploration`** — Ground claims in the repository and gather evidence about it; see [Repository grounding](#repository-grounding) and [Repository exploration](#repository-exploration).
 - **`operational-safety`**, **`security-checklists`** — Reviewer modules.
 
 Subagents: `implementer`, `adversarial-reviewer`, `quality-engineer`, `security-reviewer`, `shaping-reviewer`, `finding-adjudicator`.

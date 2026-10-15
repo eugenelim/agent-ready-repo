@@ -45,7 +45,7 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Questions
 
-**How do I check my setup?** Ask your agent to check the code-intelligence setup; the details are under [Setup check](#setup-check) below.
+**How do I check my setup?** Ask your agent to check the code-intelligence setup. It reports whether the binary, the index, and the version are ready; see [Setup check](#setup-check).
 
 **What if there is no index?** The agent falls back to ordinary repository search and labels it as search. A list of callers from `grep` is not a blast radius.
 

@@ -12,11 +12,11 @@ Pick a broker, declare the credential in your skill's `SKILL.md`, and resolve it
 
 ## The credentialed-skill contract
 
-`metadata.auth` names how the credential reaches your script. Pick one of four brokers:
+The `metadata.auth` field in your skill's `SKILL.md` names how the credential reaches your script. Pick one of four brokers:
 
 - `env` — a plain environment variable, for CI runners and containers.
 - `cli` — a vendor command that is already signed in, such as `gh` or `aws`.
-- `creds` — a static token you store once, read from your OS keychain. The example above uses it.
+- `creds` — a static token you store once, read from your OS keychain. The example below uses it.
 - `sso-cookie` — a browser session for a corporate single sign-on.
 
 ## Declare the credential
