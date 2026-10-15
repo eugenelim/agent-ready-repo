@@ -37,7 +37,7 @@ Common flags:
 
 | Flag                       | Effect                                                                                  |
 | -------------------------- | --------------------------------------------------------------------------------------- |
-| `--scope {repo,user}`      | Target install scope; default `repo`.                                                   |
+| `--scope {repo,user}`      | Target install scope; default is the pack's `default-scope`.                            |
 | `--adapter <name>`         | Override the resolved adapter per-invocation (e.g. `claude-code`, `codex`, `kiro`).     |
 | `--output <dir>`           | Output root; default depends on scope.                                                  |
 | `--dry-run`                | Preview the per-file plan (action + tier + target path) to stdout and exit 0 without writing anything. Refused with `--force`. See [Preview before applying](#preview-before-applying). |
@@ -76,7 +76,21 @@ agentbundle install <catalogue-uri> --pack core --dry-run
 agentbundle upgrade <catalogue-uri> --pack core --dry-run
 ```
 
-`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. See the [preview how-to](../how-to/install-packs.md#preview-before-you-install) for how to read the plan.
+`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. A preview lists projected files, not governance seeds such as `AGENTS.md`; a real install still creates them. It exits 0 even with companions; `agentbundle diff` is the verb that gates on drift.
+
+## Install details
+
+**Profiles.** `agentbundle list-profiles` shows them; `agentbundle install --profile <name>` installs one. `--profile` cannot be combined with `--pack` or `--scope` (the profile sets its scope). A pack already installed at the other scope blocks the profile. Every pack's preconditions are checked before anything is written; a failure mid-batch is not rolled back, so run the command again to resume. There is no `upgrade --profile` or `uninstall --profile`.
+
+**User scope on Codex and Kiro.** For Codex, `agentbundle` looks for `~/.codex/` or `~/.agents/skills/` and writes skills to `~/.agents/skills/`. For Kiro, it looks for `~/.kiro/` (run any Kiro command once to create it) and writes to `~/.kiro/skills/`. With several agent folders present it takes the first match in the pack's `allowed-adapters` order. User-scope state is `~/.agentbundle/state.toml`; credentials go to `~/.agentbundle/credentials.env`. Codex's own `~/.codex/plugins/` route keeps separate state, so use one route per pack.
+
+**Changing adapter.** An upgrade keeps the adapter recorded at install. To change it, `agentbundle uninstall --pack <name> --scope <scope>`, then install again with `--adapter`. `--adapter` must be in the pack's `allowed-adapters`; `kiro` is a deprecated alias for `kiro-ide`.
+
+**Selective upgrade.** `agentbundle upgrade --pack <name> --skill <skill-name>` moves one skill and leaves the rest at the installed version; `--agent`, `--hook`, `--seed <path>`, and `--command` work the same way. The next whole-pack upgrade reports the mixed state. When a pack is installed for more than one adapter at a scope, pass `--adapter`.
+
+**Uninstall.** `agentbundle uninstall --pack <name>` removes the files the pack owns. Files you edited and files outside the pack's paths stay.
+
+**Other routes.** APM and Claude plugin installs follow their own update verbs (`apm update <pack>`, `/plugin update <pack>@<catalogue>`) and print no `Next:` line; run `agentbundle init-state` once so `agentbundle` has a baseline. Catalogue maintainers can emit the APM and plugin dist trees with `agentbundle install --pack <name> --scope repo --emit-install-routes .`; the plugin tree is written only for packs whose `allowed-scopes` admits `user`, and the flag cannot be combined with `--adapter`.
 
 ## Configure the default adapter
 

@@ -381,13 +381,6 @@ main h1,
   color: var(--rail-ink);
 }
 
-.page-deck {
-  max-width: 38rem !important;
-  color: var(--rail-muted) !important;
-  font-size: 1.125rem !important;
-  line-height: 1.55 !important;
-}
-
 .content-panel + .content-panel { border-top: none !important; }
 
 .content-panel { padding-block: 1.75rem; }

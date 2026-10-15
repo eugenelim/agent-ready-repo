@@ -1,63 +1,57 @@
-A pack is a set of agent workflows you install together. Each pack does one kind of work, such as research, architecture, or the build loop.
+A pack is a set of agent workflows you install together. Each pack does one kind of work, such as research, architecture design, or building and reviewing a change.
 
 ## What a pack installs
 
-- **Skills.** Workflows your agent picks up from what you ask for.
-- **Subagents.** Specialists the agent hands a bounded task, such as an independent reviewer.
-- **Hooks and commands.** Automatic checks and explicit entry points, where your agent supports them.
-- **Seeds and settings.** Starter files and defaults a pack needs in the repository.
+A pack can add four kinds of files to your agent:
 
-Everything lands as plain files you can read. `agentbundle` installs and upgrades them; it does not run your agent.
+- **Skills** — workflows your agent starts when your request matches them.
+- **Subagents** — specialists the agent hands one task, such as an independent review.
+- **Hooks and commands** — automatic checks and named entry points, where your agent supports them.
+- **Seeds** — starter files a pack needs in the repository.
 
-## Repo scope
+They are plain files you can read and edit. `agentbundle` installs and upgrades them; it does not run your agent.
 
-A repo-scope install writes into the repository, for example `.claude/skills/`. You commit those files with the code.
+## Install for the team
 
-Use repo scope for how the team works. Everyone who clones the repository gets the same skills, hooks, and checks, at the same version. A change to them goes through review like any other change.
+Install a pack into the repository when the whole team should work the same way:
 
 ```bash
 agentbundle install --pack core
 ```
 
-Some packs, including `core`, install only at repo scope. In the tables below they show "no" under Claude plugin.
+The files are committed with the code, so everyone who clones the repository gets the same skills, hooks, and checks at the same version. Changing them goes through review like any other change. Some packs, such as `core`, install only this way.
 
-## User scope
+## Install for yourself
 
-A user-scope install writes into your home folder, for example `~/.claude/skills/`. It follows you into every repository and nobody else sees it.
-
-Use user scope for your own tools, such as research, architecture, or document conversion.
+Install a pack into your home folder when it is your own tool:
 
 ```bash
 agentbundle install --pack desk-research --scope user
 ```
 
-Each pack has a default scope, shown in the tables below. `--scope` overrides it where the pack allows both.
+It follows you into every repository, and nobody else sees it. Each pack sets a default scope; `--scope` chooses the other one where the pack allows it.
 
-## Claude plugins
+## Install as a Claude plugin
 
-In Claude Code you can install user-scope packs from the plugin marketplace instead of with `agentbundle`:
+In Claude Code, packs you install for yourself are also available as plugins:
 
 ```bash
 claude plugin marketplace add eugenelim/agent-ready-repo
-claude plugin install architect@agent-ready-repo
+claude plugin install desk-research@agent-ready-repo
 ```
 
-Repo-scope-only packs are not in the marketplace. Install those with `agentbundle`, so the team shares one version.
+Packs that install only into the repository are not plugins.
 
-## Profiles
+## Install a set of packs
 
-A profile installs a set of packs in one command:
-
-| Profile | Scope | Packs |
-|---|---|---|
-| `inception` | user | desk-research, product-engineering, architect |
-| `solution-architect` | user | architect, desk-research, contracts |
-| `full-ceremony` | repo | core, governance-extras, product-documentation, monorepo-extras |
+A profile installs several packs in one command:
 
 ```bash
 agentbundle install --profile inception
 ```
 
-## Upgrade
+`agentbundle list-profiles` shows the sets and what each one installs.
 
-`agentbundle upgrade --pack <name>` brings a pack to the latest version. If you edited an installed file, your version stays and the new one lands beside it as `<name>.upstream.<ext>` (for example `SKILL.upstream.md`) for you to merge.
+## Find a pack
+
+Every pack has its own page under Pack listing in the sidebar. [Install packs for your agent](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/) covers agents, previews, and upgrades.

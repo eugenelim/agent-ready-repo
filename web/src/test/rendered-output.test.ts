@@ -278,9 +278,9 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       }
       const d = doc(page);
       const meta = d.querySelector('meta[name="description"]')?.getAttribute('content')?.trim();
-      const deck = d.querySelector('.page-deck')?.textContent?.trim();
       if (meta !== summary) missing.push(`${srcRel}: meta description is "${meta}"`);
-      else if (deck !== summary) missing.push(`${srcRel}: deck is "${deck}"`);
+      // spec/docs-job-pages: the summary is meta and search text, never a visible deck.
+      else if (d.querySelector('.page-deck')) missing.push(`${srcRel}: renders a visible deck`);
     }
     expect(missing, `summary did not reach the page:\n${missing.join('\n')}`).toEqual([]);
   }, SCAN_TIMEOUT_MS);

@@ -21,6 +21,19 @@ the same change. The nav-ineligible set is pinned by its inventory test.
 - Prefer in-tree link targets: links out of `guides/` render as GitHub blob URLs
   and send readers off-site.
 
+## Job pages
+
+A page the docs sidebar lists is a job page. The CLI tab pages are the model.
+
+- Open with one sentence on what the reader can do. No subtitle, no history.
+- Each section: a lead-in sentence ending in a colon, one command or prompt,
+  then one sentence on what happens. Put choices and decisions in prose.
+- Say which packs the job needs and how to install them; never assume `core`.
+- Explain a file or term where the reader first acts on it, in plain words.
+- Flags, environment variables, edge cases, and errors go to a reference page.
+- No callouts; a table only to compare options. About 150–400 words.
+- Name no agent host outside the supported agents (no Conductor, Orca, etc.).
+
 ## The guidebook step contract
 
 A guidebook step is a guide page carrying `order:` frontmatter inside a pack's

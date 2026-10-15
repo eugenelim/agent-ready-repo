@@ -1,19 +1,14 @@
 ---
-// Override of Starlight's PageTitle: renders the page heading plus, when the
-// entry declares one, its `description` as a deck (standfirst) beneath.
-//
-// Starlight feeds `description` to <meta name="description"> but never renders
-// it in the body, so the one-line summary a guide author writes is invisible to
-// the reader. `tools/build-site.py` maps the guides' `summary:` field onto
-// `description`, so one authored line now does three jobs: meta, search
-// snippet, and this deck.
+// Override of Starlight's PageTitle: the stage chip (or breadcrumb) and the
+// page heading. `description` stays meta and search text only; a visible deck
+// under every title repeated the title in other words.
 //
 // The id is Starlight's PAGE_TITLE_ID ('_top') — its skip-link and its
 // on-this-page overview entry both target it, so it must stay on the <h1>.
 import Breadcrumbs from './Breadcrumbs.astro';
 import { currentStage, type Entry } from './rail';
 
-const { title, description } = Astro.locals.starlightRoute.entry.data;
+const { title } = Astro.locals.starlightRoute.entry.data;
 const stage = currentStage(Astro.locals.starlightRoute.sidebar as Entry[]);
 ---
 
@@ -28,7 +23,6 @@ const stage = currentStage(Astro.locals.starlightRoute.sidebar as Entry[]);
   )
 }
 <h1 id="_top">{title}</h1>
-{description && <p class="page-deck">{description}</p>}
 
 <style>
   h1 {
@@ -39,13 +33,4 @@ const stage = currentStage(Astro.locals.starlightRoute.sidebar as Entry[]);
     color: var(--sl-color-white);
   }
 
-  .page-deck {
-    margin-top: 0.5rem;
-    margin-bottom: 0;
-    max-width: 50ch;
-    font-size: var(--sl-text-lg);
-    line-height: 1.5;
-    color: var(--sl-color-gray-3);
-    text-wrap: pretty;
-  }
 </style>
