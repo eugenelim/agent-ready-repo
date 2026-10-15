@@ -125,20 +125,34 @@ visually. The skill never makes one unless you ask.
 
 - **Mermaid stays the source.** The skill saves the Mermaid file first, and the
   `.drawio` file lands beside it. The `.drawio` is converted from the saved
-  Mermaid, so the two describe the same diagram.
-- **Installed draw.io.** If the draw.io desktop CLI is on your machine, the skill
-  uses it to convert the file.
-- **Not installed.** The skill offers one package-manager install command for your
-  system (`brew`, `winget`, or `snap`) and runs it only after you say yes.
-- **You decline the install.** The agent writes the `.drawio` itself from the
+  Mermaid, so the two describe the same diagram. If a `.drawio` file is already
+  there, the skill asks before replacing it.
+- **draw.io installed.** The skill converts the file with the draw.io desktop
+  app's command-line tool. It needs version 31.7.0 or newer. With an older
+  version, the skill tells you the version, links the download page so you can
+  upgrade, and offers the fallback below.
+- **draw.io not installed.** The skill shows one package-manager install
+  command for your system (`brew`, `winget`, or `snap`) and runs it only after
+  you see the command and say yes. The `snap` command needs administrator
+  rights. If your system has none of these package managers, the skill links
+  the download page and runs nothing. If the install fails, the skill reports
+  it and does not retry.
+- **You decline the install.** The skill writes the `.drawio` itself from the
   saved Mermaid. The layout is hand-placed, and Arrange › Layout in draw.io
   tidies it. You also get the Insert › Mermaid steps, which lay the diagram out
   automatically.
+- **Links stay out.** Mermaid `click` and `href` lines are left out of a diagram
+  meant for draw.io. If your saved Mermaid has them, the skill asks you to
+  remove them first.
 - **Checked first.** Every `.drawio` file is checked for structure and link
-  safety before you see it.
+  safety before you see it. If a check fails, the skill tells you and does not
+  hand over the file.
 - **Chat only.** With no file to convert, you get the Insert › Mermaid steps:
   in draw.io, choose Arrange › Insert › Advanced › Mermaid, paste the diagram,
   and insert it.
+- **Repository handoff.** When the skill hands the save to your repository
+  setup instead of writing, it lists the `.drawio` as one more file to write and
+  writes nothing itself.
 
 ## When not to reach for it
 

@@ -62,8 +62,13 @@ def _cells(model: ET.Element) -> list[tuple[ET.Element, ET.Element | None]]:
     return out
 
 
-def check_model(model: ET.Element) -> list[str]:
-    """Return problems found in one ``mxGraphModel``: ids, vertices, edges."""
+def check_model(model: ET.Element, *, require_endpoints: bool = False) -> list[str]:
+    """Return problems found in one ``mxGraphModel``: ids, vertices, edges.
+
+    CLI sequence output legitimately floats one end of a message edge, so an
+    absent endpoint fails only when ``require_endpoints`` is set (the fallback
+    skeleton); a present endpoint must always name an existing cell.
+    """
     problems: list[str] = []
     cells = _cells(model)
     ids = [c.get("id") for c, _ in cells]
@@ -78,7 +83,9 @@ def check_model(model: ET.Element) -> list[str]:
             continue
         for end in ("source", "target"):
             ref = inner.get(end)
-            if ref is not None and ref not in id_set:
+            if ref is None and require_endpoints:
+                problems.append(f"edge has no {end}")
+            elif ref is not None and ref not in id_set:
                 problems.append(f"edge {end} {ref!r} names no cell")
     return problems
 
@@ -102,10 +109,13 @@ def check_link_safety(tree_root: ET.Element) -> list[str]:
     return problems
 
 
-def check_drawio_text(text: str, sibling: Path | None = None) -> list[str]:
+def check_drawio_text(
+    text: str, sibling: Path | None = None, *, require_endpoints: bool = False
+) -> list[str]:
     """Run every structural and link-safety check; return all problems.
 
-    Pass ``sibling`` (the expected ``.mmd`` path) to include the sibling check.
+    Pass ``sibling`` (the expected ``.mmd`` path) to include the sibling check,
+    and ``require_endpoints`` to demand both ends on every edge.
     """
     problems: list[str] = []
     if sibling is not None and not sibling.is_file():
@@ -124,7 +134,7 @@ def check_drawio_text(text: str, sibling: Path | None = None) -> list[str]:
         if model is None:
             problems.append("diagram has no inline mxGraphModel (compressed?)")
         else:
-            problems.extend(check_model(model))
+            problems.extend(check_model(model, require_endpoints=require_endpoints))
     problems.extend(check_link_safety(root))
     return problems
 
@@ -157,7 +167,7 @@ def test_fixture_is_valid(fixture: Path) -> None:
 def test_reference_skeleton_is_valid() -> None:
     blocks = _fenced(REFERENCE.read_text(encoding="utf-8"), "xml")
     assert len(blocks) == 1, f"expected exactly one xml block, found {len(blocks)}"
-    assert not check_drawio_text(blocks[0])
+    assert not check_drawio_text(blocks[0], require_endpoints=True)
     root = ET.fromstring(blocks[0])
     html_cells = [
         el.get("style")
@@ -284,3 +294,12 @@ def test_mutation_rejected(name: str, tmp_path: Path) -> None:
 @pytest.mark.parametrize("text", ["Metadata: store", "a < b", "x <and y"])
 def test_control_label_passes(text: str, tmp_path: Path) -> None:
     assert _mutated(_label(text), tmp_path) == []
+
+
+def test_skeleton_edge_without_source_rejected() -> None:
+    block = _fenced(REFERENCE.read_text(encoding="utf-8"), "xml")[0]
+    root = ET.fromstring(block)
+    edge = next(el for el in root.iter("mxCell") if el.get("edge") == "1")
+    del edge.attrib["source"]
+    problems = check_drawio_text(ET.tostring(root, encoding="unicode"), require_endpoints=True)
+    assert "edge has no source" in problems

@@ -25,8 +25,10 @@ Check in this order and use the first hit:
    `%LOCALAPPDATA%\Programs\draw.io\draw.io.exe`.
 
 Confirm with `<cli> --version`. The minimum is 31.7.0, the first release that
-imports Mermaid from the command line. An older version gets an upgrade offer
-under the install rule below.
+imports Mermaid from the command line. An older version cannot convert, and the
+install commands below do not upgrade it. Report the version, link
+https://github.com/jgraph/drawio-desktop/releases for a manual upgrade, run
+nothing, and offer the fallback at the end of this page.
 
 - On a headless Linux host, prefix the command with `xvfb-run -a`.
 - Snap builds cannot read `/tmp`. Keep the save directory under the user's
@@ -88,8 +90,9 @@ fallback wrote it:
 - Every node label and every sequence participant label in the saved `.mmd`
   equals some cell `value` or `label`. Unescape XML and normalise whitespace on
   both sides first. Edge labels and subgraph titles are not compared.
-- Fallback only: no cell style sets `html=1`. CLI output carries it
-  legitimately.
+- Fallback only: no cell style sets `html=1`, and every edge has both a
+  `source` and a `target`. CLI output legitimately carries `html=1` and can
+  leave one end of a sequence message floating.
 
 A failed check blocks. Report it and do not present the file as done.
 
