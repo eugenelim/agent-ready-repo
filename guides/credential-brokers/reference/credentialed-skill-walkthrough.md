@@ -36,7 +36,7 @@ You need:
 - **`creds`** — static token resolved via the three-tier model (env → OS keychain → 0600 dotfile floor). Resolution comes from the `credbroker` library (`pip install credbroker`), imported in-process — declare it in your skill's `requirements.txt` (Step 9). Pick this for static API tokens / PATs.
 - **`sso-cookie`** — session cookie acquired via a browser SSO flow. Your skill imports `credbroker` and calls `load_sso_cookies` / `refresh_sso_session`; the library subprocess-invokes the `sso-broker.py` engine on your behalf. Pick this for corporate-SSO endpoints (e.g. enterprise Jira / Confluence behind Okta or AzureAD).
 
-The rest of this guide picks `creds` as the worked example because it's the most common case. The verbatim per-broker `### Security rules (non-negotiable)` block you embed in your `SKILL.md` is given inline in [Step 7](#step-7--embed-the-security-rules-block-in-skillmd), one per broker; copy the one matching your choice.
+The rest of this guide picks `creds` as the worked example because it's the most common case. The verbatim per-broker `### Security rules (non-negotiable)` block you embed in your `SKILL.md` is given inline in [Step 7](#embed-the-security-rules-block-in-skillmd), one per broker; copy the one matching your choice.
 
 ## Pick a primitive class (orthogonal to broker)
 
