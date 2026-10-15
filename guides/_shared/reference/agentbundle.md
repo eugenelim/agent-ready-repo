@@ -99,7 +99,8 @@ Once installed, `agentbundle` resolves the target adapter on every install via a
 1. The `--adapter` flag, if passed.
 2. The state-hint from a prior install of the same pack (so an upgrade stays on the adapter it was originally installed under).
 3. The user-config file, if you've set one.
-4. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/`, or `~/.kiro/` populated, the matching adapter is picked. This is the auto-detection layer for users who never ran `agentbundle config set` and don't pass `--adapter`.
+   Then your organization's packaged default, `[organization].preferred_adapter`, when one is set.
+4. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/` (or `~/.agents/skills/`), or `~/.kiro/` populated, the first match in the pack's `allowed-adapters` order is picked. `~/.kiro/` cannot tell Kiro IDE from Kiro CLI, and Cursor and Gemini CLI have no probe. At repo scope there is no probe: without a flag, state, or config the install targets `claude-code` when the pack allows it, otherwise the pack's first allowed adapter.
 5. The built-in default (`scope.DEFAULT_ADAPTER`, currently `claude-code`).
 
 `agentbundle config` reads and writes layer 3. Four actions:

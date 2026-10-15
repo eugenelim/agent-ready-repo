@@ -50,11 +50,13 @@ Repo scope is shared with your team and versioned with the code. User scope foll
 
 ## Pick your agent
 
-`agentbundle` detects your agent. To choose one yourself:
+In a repository, `agentbundle` installs for Claude Code unless you name another agent:
 
 ```bash
 agentbundle install --pack core --adapter codex
 ```
+
+For a user-scope install it looks in your home folder for `~/.claude/`, `~/.codex/`, or `~/.kiro/` and picks the first match. Cursor and Gemini CLI are never detected, so name them with `--adapter`, or [save a default](configure-agentbundle.md#set-your-agent) once.
 
 The adapters are `claude-code`, `codex`, `cursor`, `copilot`, `gemini`, `kiro-ide`, and `kiro-cli`. [Adapter support](../reference/adapter-support.md) shows what each one receives.
 
