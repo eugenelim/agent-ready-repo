@@ -19,7 +19,7 @@ agentbundle upgrade --pack core
 
 `list-installed` shows each installed pack, its version, and whether an upgrade is available. `<catalogue>` is the URI you installed from, such as `git+https://github.com/<owner>/<catalogue>` or a local path.
 
-`upgrade` takes no version. The target is whatever the catalogue declares. To move to a past version, point `<catalogue>` at that git ref.
+`upgrade` takes no version. The target is whatever the catalogue declares.
 
 Move one primitive and leave the rest of the pack at its installed version:
 
@@ -67,10 +67,11 @@ Merge the companions one file at a time. Ask your agent to run the `adapt-to-pro
 
 Files outside the pack's projected paths are never touched. The [file-safety contract](../explanation/file-safety-contract.md) defines the three tiers.
 
-To roll back, uninstall and reinstall at the earlier version. Downgrade is not supported.
+`upgrade` does not go back a version. To roll back, uninstall, then install from the earlier version's git ref:
 
 ```bash
 agentbundle uninstall --pack <pack>
+agentbundle install --pack <pack> git+https://github.com/<owner>/<catalogue>@<ref>
 ```
 
 Your edited files and files outside the pack's paths survive an uninstall. Only the files the pack owns are removed.

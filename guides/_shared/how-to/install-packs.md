@@ -34,25 +34,11 @@ agentbundle list-installed
 
 The command hashes every projected file into `.agentbundle-state.toml`, so later upgrades are exact. See [After the install](#after-the-install) for the next step.
 
-## After the install
-
-Installing `core` at repo or local scope ends with this line:
-
-```text
-Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
-```
-
-What each scope leaves behind:
-
-- Repo scope writes seeds when the pack declares them, writes `.adapt-install-marker.toml`, and chains `agentbundle adapt`.
-- Local scope deliberately omits seeds. No marker, layout section, or chained `adapt`.
-- Plugin and APM installs print nothing, so invoke `adapt-to-project` directly.
-
-A lifecycle hook may repeat that nudge. It is never the only path. Whether a hook runs is the runtime's decision, so the installer guarantees the projected files, the state for the scope you chose, and the printed line. It does not guarantee hook execution or context injection.
-
 ## Choose a scope
 
-`--scope repo` is the default. It writes into the current repository, so the whole team shares the pack and it is versioned with the code.
+Each pack has a default scope. `--scope` overrides it where the pack allows both.
+
+`--scope repo` writes into the current repository, so the whole team shares the pack and it is versioned with the code.
 
 `--scope user` writes into your home directory, so the pack follows you across every repository.
 
@@ -114,13 +100,17 @@ installed: atlassian @ user via kiro
 
 With several IDE homes present, the command takes the first match in the pack's `allowed-adapters` order. Pass `--adapter` to choose.
 
-Upgrade reuses the adapter recorded in state. Adding a second IDE later does not move the pack. To change adapter, uninstall and reinstall:
+Upgrade reuses the adapter recorded in state, so adding a second IDE later does not move the pack:
 
 ```bash
 agentbundle upgrade --pack figma <catalogue>
+```
+
+To change adapter, uninstall and install again with `--adapter`:
+
+```bash
 agentbundle uninstall --pack figma --scope user
-agentbundle upgrade --pack atlassian <catalogue>
-agentbundle uninstall --pack atlassian --scope user
+agentbundle install --pack figma --scope user --adapter kiro-ide <catalogue>
 ```
 
 ## Install a profile
@@ -191,7 +181,7 @@ dry-run: 20 file(s) — 19 overwrite, 1 companion. Nothing written.
 
 ## Install as a Claude plugin
 
-Claude Code installs packs as plugins, with auto-update. `core` is repo-scoped, so it never uses this route. A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` can run the marker writer for the others.
+Claude Code can install user-scope packs as plugins, with auto-update.
 
 ```bash
 claude plugin marketplace add <owner>/<catalogue>
@@ -208,7 +198,7 @@ claude plugin install desk-research@agent-ready-repo
 
 Inside a Claude Code session, the same steps are `/plugin marketplace add <owner>/<catalogue>` and `/plugin install <pack>@<catalogue>`. Update with `/plugin update <pack>@<catalogue>`. The Claude apps use **Customize › Plugins › Personal plugins › "+"** instead. Register the marketplace in each place you work.
 
-**The plugin route is user-scope only.** A plugin lives in your global cache, so the marketplace carries only packs whose `allowed-scopes` admits `user`. Repo-scoped packs install with `agentbundle`: `core`, `governance-extras`, `iac-terraform`, `monorepo-extras`, `release-engineering`, `user-guide-diataxis`.
+**The plugin route is user-scope only.** A plugin lives in your global cache, so the marketplace carries only packs whose `allowed-scopes` admits `user`. The [Packs page](/agent-ready-repo/docs/packs/) shows which packs those are; the rest, including `core`, install with `agentbundle`.
 
 Plugin and APM installs print no `Next:` line. Invoke `adapt-to-project` yourself, and run `agentbundle init-state` once so upgrades have a baseline.
 
@@ -221,3 +211,19 @@ Catalogue maintainers can emit the plugin and APM dist trees at repo scope. This
 ```bash
 agentbundle install --pack architect --scope repo --emit-install-routes .
 ```
+
+## After the install
+
+Installing `core` at repo or local scope ends with this line:
+
+```text
+Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
+```
+
+What each scope leaves behind:
+
+- Repo scope writes seeds when the pack declares them, writes `.adapt-install-marker.toml`, and chains `agentbundle adapt`.
+- Local scope deliberately omits seeds. No marker, layout section, or chained `adapt`.
+- Plugin and APM installs print nothing, so invoke `adapt-to-project` directly.
+
+A lifecycle hook may repeat that nudge. It is never the only path. Whether a hook runs is the runtime's decision, so the installer guarantees the projected files, the state for the scope you chose, and the printed line. It does not guarantee hook execution or context injection.
