@@ -1,30 +1,38 @@
-# monorepo-extras
+# Monorepo Extras
 
-Monorepo scaffolding on top of `core`. Adds the `new-package` skill and the
-`packages/` layout it scaffolds into.
-
-## What's inside
-
-- `new-package` skill.
-- `packages/` seed README and a `packages/_example/` template.
+Your agent can scaffold a new package in your monorepo's `packages/` directory from a template.
 
 ## Install
 
-`monorepo-extras` is **repo-scope** — `new-package` scaffolds in `packages/`,
-which is meaningless without a monorepo. It **requires `core`** (`^3.0`);
-install `core` first or alongside.
+Install it from inside the monorepo, alongside Core:
 
+```bash
+cd path/to/your-repo
+agentbundle install --pack monorepo-extras
 ```
-agentbundle install --pack monorepo-extras <catalogue>
-```
 
-## Usage
+## What your agent can do
 
-Ask your agent, for example:
+- Scaffold a new package, such as `billing`, in `packages/`.
+- Start it from the example template in `packages/_example/`.
+- Add the `packages/` layout and a README that explains it.
 
-- "Scaffold a new package called `billing`."
-- "Add a new package `notifications` from the example template."
+## Skills
 
----
+- **`new-package`** — Scaffolds a package in `packages/`. It does not create new top-level directories (those need an RFC) or apps (those go in `apps/`).
 
-→ **Go deeper:** the [`monorepo-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/monorepo-extras/).
+## Works with
+
+Works with Claude Code. It requires [Core](../core/README.md) (`^3.0`), so install Core first or alongside. See [Scaffold a new package](../../guides/monorepo-extras/how-to/scaffold-a-new-package.md).
+
+## Questions
+
+**Can it add a new top-level directory?** No. A new top-level directory needs an RFC.
+
+**Can it add an app?** No. Apps go in `apps/`, and this skill scaffolds packages only.
+
+**Does it work without a monorepo?** It is not useful there. `new-package` scaffolds into `packages/`, so the pack installs at repo scope only.
+
+## Details
+
+Scope: repo (default) · Version: 0.1.10 · Source: [packs/monorepo-extras](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/monorepo-extras)

@@ -1,130 +1,61 @@
-# experience-design
+# Experience Design
 
-Walkable design method from outcome to realization — journey, screens, aesthetic, craft, review.
+Your agent can design an experience from the user's outcome to the finished screen: journey, flow, look and feel, copy, and review.
 
----
+## Install
 
-## Start here
+Install it once for your user account:
 
-Type `journey-mapping` first — describe the user, the outcome, and where the current experience breaks down.
-
-```text
-journey-mapping
-
-  journey  docs/design/journeys/onboarding.md
-
-  Stage 1  Aware          finds product, expectations vague
-  Stage 2  First-session  blank state, no direction, high drop-off
-  Stage 3  Value          first export, relief, converts
+```bash
+agentbundle install --pack experience-design
 ```
 
-On any session return, type `experience-status` to see where the thread is.
+In Claude Code you can install it as a plugin instead:
 
-```text
-experience-status
-
-Design thread — docs/design
-
-Journey maps (journeys/): 1 found
-  onboarding.md — Onboarding
-
-Screen flows (screens/): 0 found
-
-Steel-thread check:
-  Journey map:   ✓ exists
-  Screen flow:   ✗ missing — run user-flow
-  Briefs:        ✗ missing — run user-flow
-
-What to run next: user-flow
+```bash
+claude plugin install experience-design@agent-ready-repo
 ```
 
----
+## What your agent can do
 
-## Entry points
+- Map what a customer goes through, with stages, pains, and opportunities.
+- Turn an approved journey into screens, transitions, failure paths, and a brief for each screen.
+- Pick a visual direction for a page or screen that should feel a certain way, and resolve it into a design system.
+- Plan what goes where on a screen, and how each component responds to actions.
+- Set the message and tone of the copy before the words are written.
+- Critique a finished screen, flow, or mockup against a quality floor.
 
-| Say this | What happens |
-|----------|--------------|
-| `experience-status` | Orient — where the design thread is, what's next |
-| `journey-mapping` | Map the user's outcome: stages, emotions, pains, opportunities |
-| `content-design` | The copy layer in three modes: surface intent, per-surface copy goals, and the brand-level register |
-| `user-flow` | Build the screen inventory — transitions and per-screen state briefs |
-| `creative-direction` | Anchor the aesthetic — grounded in persona and precedent |
-| `design-system` | Resolve the design system — the relationships and the values — from the direction and the product's existing system |
-| `information-architecture` | Structure a screen — hierarchy, reading flow, wayfinding, with genre routing when known |
-| `interaction-design` | Design the behavioral layer — states, feedback, animation |
-| `design-review` | Authoring-time critique — quality floor + coherence |
-| `experience-reviewer` | Independent cold review — forked context, read-only |
+## Skills
 
-For known surface types, `information-architecture` selects the matching genre method before designing hierarchy.
+- **`journey-mapping`** — Maps a customer journey from one meaningful outcome to the next.
+- **`user-flow`** — Turns a journey into a screen sequence with a brief for each screen.
+- **`creative-direction`** — Names a shared visual direction for a product.
+- **`design-system`** — Decides typography, color, spacing, shape, depth, and motion for a build to follow.
+- **`information-architecture`** — Lays out hierarchy and reading order for a screen or flow.
+- **`interaction-design`** — Specifies how a screen or component responds, validates, and recovers.
+- **`content-design`** — Sets message, narrative, and tone for copy.
+- **`design-principles`** — Writes 3 to 5 named design rules, each with an arbitration test.
+- **`service-blueprint`** — Shows the people and systems behind each journey step.
+- **`process-mapping`** — Maps how an internal operation works today or should work.
+- **`design-review`** — Critiques a rendered screen with severity-rated findings.
+- **`experience-status`** — Shows which design artifacts exist and what to run next. Read-only.
 
----
+Subagent: **`experience-reviewer`** gives an independent, read-only review in a fresh context.
 
-## How a thread runs
+## Works with
 
-```text
-journey-mapping [paste the user's outcome and context]
+Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. [Product Strategy](../product-strategy/README.md) can supply a UX and content strategy that the journey and content skills read. [Frontend Engineering](../frontend-engineering/README.md) builds from the design handoff. See [Design the experience](../../guides/experience-design/README.md).
 
-  journey  docs/design/journeys/onboarding.md
+## Questions
 
-  Stage 1  Aware          finds product, expectations vague
-  Stage 2  First-session  blank state, no direction, high drop-off
-  Stage 3  Value          first export, relief, converts
-```
+**Where do I start?** Describe the user, the outcome, and where the experience breaks down, then ask for a journey map. Run `experience-status` any time to see where you are.
 
-```text
-user-flow [link to docs/design/journeys/onboarding.md]
+**Does it need a strategy first?** No. If a UX or content strategy file exists, it uses it. If not, it carries on.
 
-  screens  docs/design/screens/onboarding-flow.md
+**Does it produce code?** No. It produces design documents. Building comes from the screen briefs.
 
-  /onboarding/welcome  →  /onboarding/connect  →  /onboarding/done
-  States per screen: loading · empty · error · success · content · partial · disabled
-```
+**Does it grade its own work?** The `experience-reviewer` subagent reviews in a fresh context, so the design's author is not the reviewer.
 
-```text
-experience-reviewer [link to docs/design/screens/onboarding-flow.md]
+## Details
 
-  Blocker  Welcome screen: empty state not designed
-  Concern  Connect screen: error text has no recovery action
-  Nit      "Get started" → "Connect your first account" (five-second scan)
-```
-
-The reviewer runs forked — no authoring context. You act on its findings, then merge.
-
----
-
-## What the pack ships
-
-**Connective thread** — from outcome to screen inventory:
-`journey-mapping` → `content-design` (surface intent, then the brand register and per-surface copy goals as needed) → `user-flow` → `service-blueprint` / `process-mapping`
-
-**Craft sequence** — from structure to behavior:
-`design-principles` → `creative-direction` → `design-system` → `information-architecture` (route by genre when known) → `interaction-design`
-
-**Review** — quality floor, aesthetic fit, cross-brief coherence:
-`design-review` (authoring-time) → `experience-reviewer` (independent cold review)
-
-Every skill ships portable **method**, not your stack: no UI-framework code, no values tables, no fixed token set, no pixel comps. The pack carries no value of its own; a `design-system` run resolves your product's values into your artifact.
-
----
-
-## Where these methods come from
-
-Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
-
-- **`journey-mapping`** — draws on Nielsen Norman Group's journey-mapping model (the canonical definition and the five components), Jeff Patton's user-story mapping (stages map roughly to Patton's user activities), and Teresa Torres's opportunity-solution tree (the journey's pains and opportunities feed the tree). See `references/journey-mapping.md` for the full grounding and links. Step 6's peak/dip/end marking follows Daniel Kahneman's peak-end rule: the overall judgment of an experience is disproportionately shaped by its most intense moment (positive or negative) and its end, not its average.
-- **`design-principles`** — steps 1–4 of the procedure map to NNGroup's 4-step design-principles model; step 5 (writing the principles doc) is this pack's own addition, not part of that model.
-- **`process-mapping`** — the method borrows vocabulary from APQC's Process Classification Framework (PCF) and BPMN 2.0 (OMG / ISO 19510); the source stays authoritative, and the skill's anti-pattern forbids reprinting PCF tables or BPMN element XML.
-- **`service-blueprint`** — informed by Nielsen Norman Group's service-blueprinting model; this pack's five-row layout is its own, and in NN/g's model the line of visibility is a divider rather than a row. See [NN/g: Service Blueprints](https://www.nngroup.com/articles/service-blueprints-definition/).
-
----
-
-## Cross-pack
-
-**Upstream — `product-strategy`:** When `ux-strategy.md` and `content-strategy.md` exist, `journey-mapping` and `content-design` read them as strategic anchors. Absent means the skills degrade gracefully.
-
-**Downstream — `product-engineering`:** Pass `user-flow`'s per-screen state matrix to `ux-writing` to write copy keyed to every screen × state cell.
-
----
-
-→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, method architecture, invariants, and decision log.  
-→ **Go deeper:** the [`experience-design` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/experience-design/).
+Scope: user (default), repo · Version: 4.1.6 · Source: [packs/experience-design](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/experience-design)

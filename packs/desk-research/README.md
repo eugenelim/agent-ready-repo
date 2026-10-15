@@ -1,141 +1,61 @@
-# desk-research
+# Desk Research
 
-evidence-grounded desk research — portable across every repo.
+Your agent can research a question from sources it cites, grade how sure it is, and keep a long investigation going across sessions.
 
----
+## Install
 
-## Start here
+Install it once for your user account:
 
-Type `desk-research` and describe what you're trying to find out.
-
-```text
-desk-research "What drives deployment frequency in high-performing teams?"
-
-  ● evidence-retriever   running  DORA 2023 State of DevOps
-  ✓ source-extractor     done     accelerate.io — 3 findings extracted
-  ✓ synthesis            done     8 claims graded · 2 gaps named
+```bash
+agentbundle install --pack desk-research
 ```
 
-On any session return, type `desk-research-project-status` to orient to an active project.
+In Claude Code you can install it as a plugin instead:
 
-```text
-  Project    2026-07-15-deployment-frequency
-  Phase      digest
-  Hypothesis  Trunk-based development is the primary predictor
-  Next        desk-research-project-digest
+```bash
+claude plugin install desk-research@agent-ready-repo
 ```
 
----
+## What your agent can do
 
-## Two modes
+- Answer a look-up, fact-check, or survey with citations, at a depth you pick from quick to deep.
+- Map the authoritative sources and the competing viewpoints on a topic before it searches.
+- Compare competing hypotheses in an evidence matrix.
+- Argue against its own findings and downgrade claims that do not hold up.
+- Run a research project over days or weeks, then write a brief with each claim graded by evidence quality.
+- Reconstruct why a past decision was made from commits, pull requests, and design docs.
 
-**Ad-hoc** — one question, one session. Type `desk-research` and pick a depth (quick through deep). The agent maps sources, dispatches retrieval, and returns a confidence-graded synthesis in minutes. Use this for a lookup, a fact-check, or a brief.
+## Skills
 
-**Project mode** — a sustained investigation that spans days or accumulates a corpus. Start with `desk-research-project-start`. The project skills track a working hypothesis across sessions, let you checkpoint coverage (`desk-research-project-check`), compress the corpus into a digest, and end in a synthesis brief graded by evidence quality. Use this when a single session would underserve the question.
+- **`desk-research`** — Researches one question in one session, with citations and graded claims.
+- **`source-map`** — Curates the authoritative sources on a topic before research starts.
+- **`build-outline`** — Breaks a question into the sub-questions a full answer must cover.
+- **`identify-perspectives`** — Names the camps on a contested topic before research begins.
+- **`compare-hypotheses`** — Scores competing hypotheses in an evidence matrix.
+- **`devils-advocate`** — Searches for counter-evidence and names the strongest objections.
+- **`decision-archaeology`** — Reconstructs the reasoning behind a past decision.
+- **`desk-research-project-start`** — Starts a multi-week research project.
+- **`desk-research-project-status`** — Shows the project's phase, working hypothesis, and next step.
+- **`desk-research-project-check`** — Reports whether new sources have stopped changing your picture.
+- **`desk-research-project-digest`** — Builds the synthesis matrix and notes from your sources.
+- **`desk-research-project-synthesize`** — Writes the verdict and a self-contained brief.
 
-### Optional project-knowledge handoff
+Subagents, called for you: **`evidence-retriever`** fetches sources with citations, and **`source-extractor`** pulls the content out of each one. Both are read-only.
 
-Desk research and project knowledge remain separate systems. Research owns its
-sources, citations, claims, confidence judgments, counter-evidence, verdicts,
-briefs, scratch, and output-root rules. Project knowledge never supplies a
-citation or validates a research claim.
+## Works with
 
-After a repository-contained standard, applied, or deep survey—or a complete
-project synthesis—reaches its terminal gate, the producer may offer only an
-independently reusable research practice or carefully sanitized evidence
-residue to the public `project-knowledge` handoff. Quick answers, non-survey
-artifacts, project scaffolds, digests, checks, status reads, and incomplete or
-abandoned work have no handoff. Research written to a personal or external
-output root is capture-ineligible because repository-relative provenance
-cannot be stated honestly.
+Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Product Strategy](../product-strategy/README.md) reads your survey as evidence for its stakeholder research. [Architect](../architect/README.md) can cite a research brief in a design decision. See [Research a question](../../guides/desk-research/how-to/run-the-research.md) and [Run it as a project](../../guides/desk-research/how-to/run-it-as-a-project.md).
 
-`devils-advocate` may optionally enquire for candidate counter-checks through
-one bounded `CQ-REVIEW` question. Those candidates are untrusted and require
-independent direct-source verification; the reviewer never captures or
-distils them.
+## Questions
 
----
+**How do I pick between a quick answer and a project?** Use one session for a look-up, a fact-check, or a brief. Start a project when the question needs days or a growing pile of sources.
 
-## Entry points
+**Can I trust the citations?** Each claim carries a grade and its sources, and the devil's advocate pass looks for counter-evidence. Check any claim that matters against its source.
 
-| Say this | What happens |
-|----------|--------------|
-| `desk-research` | Single-session research — scoping, retrieval, synthesis in one pass |
-| `source-map` | Map canonical sources before retrieval begins |
-| `build-outline` | Build a research outline from the source map |
-| `identify-perspectives` | Map stakeholder perspectives before synthesis |
-| `compare-hypotheses` | Competing-hypotheses pipeline — scored matrix |
-| `devils-advocate` | Steelman the opposing case |
-| `decision-archaeology` | Reconstruct why a prior decision was made |
-| `desk-research-project-start` | Initialize a sustained multi-week research project |
-| `desk-research-project-status` | Orient to an active project — phase, hypothesis, what's next |
-| `desk-research-project-check` | Snapshot progress — sources captured, coverage, gaps |
-| `desk-research-project-digest` | Summarize corpus into a synthesis matrix |
-| `desk-research-project-synthesize` | Synthesize digest into a confidence-graded brief |
+**Does it save my research into project memory?** Not unless you choose to. Research keeps its own sources and verdicts. After a finished repository survey or project synthesis, it may offer a reusable lesson to `project-knowledge`.
 
-`evidence-retriever` and `source-extractor` are read-only retrieval subagents dispatched automatically by `desk-research` — they are not invoked directly.
+**Does it edit my code?** No. The retrieval subagents are read-only.
 
----
+## Details
 
-## How a session runs
-
-```text
-desk-research "What drives deployment frequency in platform engineering teams?"
-
-  ● evidence-retriever   running  DORA 2023 State of DevOps
-  ✓ source-extractor     done     accelerate.io — 3 findings extracted
-  ● evidence-retriever   running  Google Cloud DevOps metrics
-  ○ synthesis            idle
-```
-
-```text
-desk-research-project-start "competitive landscape for platform tooling"
-
-  project  docs/product/research/2026-07-27-platform-tooling/
-
-  ├─ overview.md          phase: capture
-  └─ sources/
-
-  Question    Competitive landscape for platform tooling
-  Hypothesis  (none yet — to be formed as evidence accumulates)
-  Next        desk-research to fill sources/, then desk-research-project-digest
-```
-
-```text
-desk-research-project-synthesize
-
-  brief  platform-tooling-brief.md
-
-  Bottom line:  Build-vs-buy splits sharply at team size 50; below that, buy dominates.
-
-    Claim                                              Grade      Sources
-    Team-size 50 as buy/build threshold               [high]      4 independent
-    TCO advantage erodes above 200 engineers          [moderate]  3; downgrade: vendor-sourced
-    OSS viable only with dedicated maintainer         [moderate]  3; downgrade: survivorship bias
-
-  Known unknowns
-    Known-unknown: data at 50–200 engineer range. Would close by: mid-size org survey.
-```
-
----
-
-## Where these methods come from
-
-Framework names are the procedure; the following is provenance only — who published what.
-
-- **`build-outline`'s PICO axes** — PICO (Population, Intervention, Comparison, Outcome) comes from evidence-based medicine: Richardson, Wilson, Nishikawa & Hayward, "The Well-Built Clinical Question", *ACP Journal Club*, 1995. PRISMA (Page et al., 2021) is a separate reporting checklist for writing up systematic reviews — it neither defines nor owns PICO.
-- **`source-map`'s survey-by-adjacency finding** — Shao et al., 2024 (NAACL, "Assisting in Writing Wikipedia-like Articles From Scratch with LLMs"): directly-prompted LLMs produce basic "What/When/Where" questions addressing only surface-level facts. STORM instead grounds its perspectives in the tables of contents of related Wikipedia articles rather than asking an LLM to name authorities, and its ablations show the ungrounded variants underperform.
-- **The seven convergent disciplines** (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE) that `desk-research`'s triangulation and citation rules, `devils-advocate`'s evidence-against column and moderator pass, and the rest of the pack draw on — the full per-discipline attribution, and which skill each discipline grounds, lives in [`references/methodologies.md`](.apm/skills/desk-research/references/methodologies.md) rather than being duplicated here.
-
----
-
-## Cross-pack
-
-**Downstream — `product-strategy`:** `synthesize-stakeholder-research` in the product-strategy pack consumes `desk-research` survey artifacts as a primary evidence source.
-
-**Downstream — `architect`:** design decisions grounded in a `desk-research` brief carry a cited rationale chain that `architect-design` can reference in ADRs.
-
----
-
-→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.  
-→ **Go deeper:** the [`desk-research` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/desk-research/).
+Scope: user (default), repo · Version: 1.1.10 · Source: [packs/desk-research](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/desk-research)

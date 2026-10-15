@@ -1,84 +1,53 @@
-# architect
+# Architect
 
-Understand the architecture you have before deciding what to change. Start with:
-
-> Assess architecture and provide an action plan.
-
-The agent first frames the decision, maps the implemented system, and shows an
-evidence ledger and attention heat map. You correct the map before it drills
-down, then redirect or accept the proposed hotspots. A standard run finishes
-with evidence-backed findings, strengths, unknowns, and dependency-aware action
-waves. Inspection is read-only by default; private knowledge, executable checks,
-and file writes require separate approval.
-
-```text
-Assessment target   billing platform
-Intent              hardening / risk reduction
-Mode                standard
-Current state       API + workers + ledger + payment provider
-Evidence coverage   source ✓ tests ✓ CI ✓ operations partial
-
-Map checkpoint — correct a boundary, or say “continue”.
-```
-
-## Start with the outcome you need
-
-| Say this | What you get |
-| --- | --- |
-| “Assess architecture and provide an action plan.” | A standard current-state assessment, bounded investigations, and traced action waves |
-| “Give me a quick architecture survey; stop before drill-down.” | A correctable map, evidence coverage, attention heat, and recommended investigations |
-| “Do a deep launch-readiness assessment; ask before runtime access.” | A standard assessment extended with separately authorized operational or experimental evidence |
-| “How should we design the replacement?” | A Stage-0 concept, then a model-first design doc from the template matching its scope, and convergence through `architect-design` |
-| “Draw the current deployment topology.” | A self-checked Mermaid diagram through `architect-diagram`, with an optional editable draw.io file |
-| “Review this assessment report.” | An evidence-and-methodology critique through `architect-review` or the cold-context reviewer |
-
-A design starts from your reference architecture, the golden path of stack,
-patterns, and constraints. When none is reachable, `architect-design` says so
-in the concept and offers Core's `adapt-to-project` or `init-project` to
-establish one when they are installed. A saved design is future-state. After
-the change ships, Core's `close-work` can reconcile it into your current
-architecture.
-
-The generated `architecture-lenses-reference` skill is an internal knowledge
-router. You do not invoke it directly; assessment, design, and review load only
-the concepts their current question needs.
-
-## What the assessment reads and changes
-
-The default pass may read documentation, source, tests, manifests, CI/CD,
-deployment and infrastructure definitions, schemas, configuration, operations
-files, and current local Git history. Its optional profiler executes no
-repository code, excludes protected path classes before evidence creation,
-shares finite entry/byte/path/time budgets across every phase, and emits
-signals, not an architecture score.
-
-It does not run builds, tests, migrations, deploys, network calls, private
-enterprise queries, or experiments without asking. Saving is also optional.
-Current-state architecture, future designs, and decision records have distinct
-semantic destinations. In a compatible repository the pack consumes Core's
-`semantic-surface-resolution.v1`; without Core it returns a zero-write portable
-handoff whose evidence the user may correct before a capable workflow resolves
-it. Chat-only and explicit
-personal-workspace saves remain available when the user-scope pack is used on
-its own.
+Your agent can assess the architecture you have, design the one you need, draw it, and review it.
 
 ## Install
 
+Install it once for your user account:
+
 ```bash
-agentbundle install --pack architect --scope user <catalogue>
+agentbundle install --pack architect
 ```
 
-Adapters: `claude-code`, `codex`, `copilot`, `kiro-ide`, `kiro-cli`, `cursor`,
-and `gemini`. Default scope: user.
+In Claude Code you can install it as a plugin instead:
 
-## Go deeper
+```bash
+claude plugin install architect@agent-ready-repo
+```
 
-- [Assess a repository](../../guides/architect/how-to/assess-a-repository.md)
-- [Architecture assessment reference](../../guides/architect/reference/architecture-assessment.md)
-- [Your first architecture session](../../guides/architect/tutorials/architect-first-session.md)
-- [Shape an architecture concept](../../guides/architect/how-to/shape-an-architecture-concept.md)
-- [Diagram a system](../../guides/architect/how-to/diagram-a-system.md)
-- [Review an architecture artifact](../../guides/architect/how-to/review-an-architecture-artifact.md)
-- [Establish a reference architecture](../../guides/architect/how-to/establish-reference-architecture.md)
+## What your agent can do
 
-Maintainers: [design and invariants](DESIGN.md).
+- Assess a repository: map the system, show where its evidence is thin, drill into hotspots, and propose action waves in dependency order.
+- Design a system, subsystem, or change from a one-page concept, with the rationale beside each model.
+- Draw Mermaid diagrams for flows, sequences, deployments, data models, and roadmaps, with an optional editable draw.io file.
+- Review an assessment, design doc, diagram, RFC, or ADR and return a verdict with findings ranked by severity.
+- Check a design against well-architected lenses, including cloud and agentic workloads.
+
+## Skills
+
+- **`architect-assess`** — Maps the implemented system, shows evidence coverage and attention hotspots, and proposes action waves. Read-only by default.
+- **`architect-design`** — Shapes a concept first, then writes a design doc matched to the scope of the change.
+- **`architect-diagram`** — Draws a Mermaid diagram chosen from what you ask for, and checks it before it shows you.
+- **`architect-review`** — Critiques an architecture artifact and gives a verdict with severity-tagged findings.
+- **`architecture-lenses-reference`** — An internal knowledge router for the others. You never invoke it yourself.
+
+Subagent: **`design-reviewer`** is a read-only reviewer that works in a fresh context, so it does not grade its own work.
+
+## Works with
+
+Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. Add [Core](../core/README.md) to save a design where your repository keeps its architecture records, and to reconcile it after the change ships. Your reference architecture guides each design. [Product Engineering](../product-engineering/README.md) offers it at some shaping steps when both are installed. Guides that use this pack: [Design the architecture](../../guides/architect/README.md) and [Assess a repository](../../guides/architect/how-to/assess-a-repository.md).
+
+## Questions
+
+**Does an assessment change my repository?** No. It reads documents, source, tests, CI, and local Git history. Saving a file is optional, and you approve it.
+
+**Does it run my build, tests, or deploys?** No, not without asking. Runtime access and experiments need separate approval.
+
+**What if I have no reference architecture?** The design says so in its concept. It offers Core's `adapt-to-project` or `init-project` to set one up when Core is installed.
+
+**Can it work without Core?** Yes. Without Core it returns the result in chat or saves to a personal workspace you choose.
+
+## Details
+
+Scope: user (default), repo · Version: 0.15.18 · Source: [packs/architect](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/architect)

@@ -1,78 +1,48 @@
-# contracts
+# Contracts
 
-API-first design — OpenAPI 3.1 and AsyncAPI contracts before implementation.
+Your agent can write the API or event contract first, checked against a house standard, so code and clients follow it.
 
----
+## Install
 
-## Start here
+Install it once for your user account:
 
-Type `api-contract` and describe the API surface — resources, actions, and the consumers who will call it.
-
-```text
-api-contract [orders service: create, get, cancel]
-
-  Endpoint              Method   Schema
-  /orders               POST     OrderCreate → OrderResponse
-  /orders/{order_id}    GET      → OrderResponse
-  /orders/{order_id}    DELETE   → (204 No Content)
-
-  Error responses: 400, 404, 409, 500 (Problem schema)
+```bash
+agentbundle install --pack contracts
 ```
 
-On any session return, continue with `api-contract [path to existing spec]` to review or extend — no separate orient needed.
+In Claude Code you can install it as a plugin instead:
 
----
-
-## Entry points
-
-| Say this | What happens |
-|----------|-------------|
-| `api-contract` | Author or review an OpenAPI 3.1 contract — endpoints, schemas, error codes, consumer-perspective check |
-| `event-contract` | Author or review an AsyncAPI 2.x event contract — channels, message shapes, producer/consumer boundary |
-
----
-
-## How a session runs
-
-```text
-api-contract [orders service: create, get, cancel]
-
-  Endpoint              Method   Schema
-  /orders               POST     OrderCreate → OrderResponse
-  /orders/{order_id}    GET      → OrderResponse
-  /orders/{order_id}    DELETE   → (204 No Content)
-
-  Error responses: 400, 404, 409, 500 (Problem schema)
-  House standard: Zalando (default)
-
-  Consumer-perspective check
-
-  ● All endpoints secured (Bearer token)
-  ● Error shapes consistent (Problem schema)
-  ⚠ POST /orders: missing 409 Conflict for duplicate order_id
-
-  Contract review ›
+```bash
+claude plugin install contracts@agent-ready-repo
 ```
 
-```text
-event-contract [order.placed event]
+## What your agent can do
 
-  Channel                     Message           Category
-  orders/order.placed.v1      OrderPlacedV1     business-event
+- Write an OpenAPI 3.1 contract from requirements, user stories, or a domain model.
+- Write an AsyncAPI contract for an event stream you own, with a standard message envelope.
+- Apply a house standard as hard rules. Zalando is the default, and you can swap it.
+- Check the contract from the consumer's side: security, error shapes, and missing cases.
+- Review or extend a contract you already have.
 
-  Envelope: CloudEvents (structured mode)
-  Payload:  order_id · customer_id · items[] · total_amount
-```
+## Skills
 
----
+- **`api-contract`** — Writes or reviews an OpenAPI 3.1 contract, validated and ready for code generation, tests, mocks, and SDKs.
+- **`event-contract`** — Writes or reviews an AsyncAPI event contract. Use it when your feature produces or owns the event, not when it only consumes it.
 
-## Cross-pack
+## Works with
 
-**Upstream — `architect`:** Contracts inform architecture. When an OpenAPI or AsyncAPI contract exists, `architect-design` reads it as a boundary specification before proposing a backend shape.
+Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Architect](../architect/README.md) reads an existing contract as a boundary before it proposes a backend. [Core](../core/README.md) grounds code against a contract through `contract-acquisition` when the build loop does not hold it. See [Design an API contract](../../guides/contracts/how-to/generate-an-api-contract.md) and [Author an event contract](../../guides/contracts/how-to/author-an-event-contract.md).
 
-**Downstream — `core`:** Contracts feed the build loop via `contract-acquisition`. When `work-loop` codes against a contract it does not hold, `contract-acquisition` grounds the implementation against the contract before code is written.
+## Questions
 
----
+**Does it write the implementation?** No. It writes the contract. Code, tests, mocks, and SDKs follow from it.
 
-→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.  
-→ **Go deeper:** the [`contracts` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/contracts/).
+**Can I use my own standard?** Yes. The API standard and the event envelope are both swappable. The defaults are Zalando and CloudEvents.
+
+**Will it write a contract for an event I only consume?** No. Author an event contract only when your feature produces or owns the event.
+
+**Do I have to start from scratch?** No. Give it the path to an existing spec and it reviews or extends it.
+
+## Details
+
+Scope: user (default), repo · Version: 0.3.8 · Source: [packs/contracts](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/contracts)
