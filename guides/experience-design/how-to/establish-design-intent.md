@@ -3,13 +3,9 @@ title: Establish design intent
 summary: Derive durable principles, an aesthetic direction, and a resolved design system before screen craft begins.
 pack: experience-design
 kind: how-to
-order: 3
 ---
 
 # Establish design intent
-
-**Step 3 of 5 — Establish design intent**
-<!-- rung: JOURNEY stage 3 -->
 
 **What changes:** Journey evidence becomes decision rules, a grounded aesthetic direction, and a resolved design system that constrain screen work.
 <!-- rung: JOURNEY stage 3 -->
@@ -448,7 +444,7 @@ open, that one says why and who closes them.
 
 Stage 3 of five, and the pack's second human gate. Nothing below this point should be re-litigating the direction.
 
-**Next:** [Design each screen](design-each-screen.md).
+**Next:** [Design each screen](map-the-customer-journey.md#design-each-screen).
 <!-- rung: authored -->
 
 **Go deeper:** [the `experience-design` skill reference](../reference/experience-design.md) — every skill this step runs, with its inputs, outputs and write boundary.

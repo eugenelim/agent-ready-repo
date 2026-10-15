@@ -34,6 +34,14 @@ Each mode still writes its own artifact, at its own path. Folding the three regi
 | per-surface acquisition copy goals | `<output_dir>/copy/<surface-slug>.md` |
 | brand-level register | `<output_dir>/copy/brand-register.md` |
 
+Only the first mode is required in the design thread. The others run when you need them:
+
+| Skill | Needs | What it produces | Needed? |
+| --- | --- | --- | --- |
+| `content-design` | The surface and its audience | A content brief: what the surface says, to whom, in what form. | Required |
+| `content-design` (brand-level register) | Voice-of-customer evidence, if you have it | The cross-surface voice all per-surface copy decisions reference. | Optional |
+| `content-design` (per-surface copy goals) | The content brief; the brand register if it exists | Ranked copy goals and arbitration rules for one marketing surface. | Optional |
+
 ## Onboarding tri-point
 
 Onboarding tasks split three ways by sub-task — two of them inside one skill:

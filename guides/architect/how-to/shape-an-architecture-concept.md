@@ -1,126 +1,66 @@
 ---
-title: Shape an architecture concept
-summary: Agree a bounded Stage 0 concept, alternatives, provider, constraints, and key tradeoff before committing to a full design document.
+title: "Design the architecture"
+summary: "Agree an architecture on half a page, then draw it and get it reviewed."
 pack: architect
 kind: how-to
+uses: [architect]
+aliases:
+  - guides/architect/how-to/diagram-a-system
+  - guides/architect/how-to/review-an-architecture-artifact
 ---
 
-# Shape an architecture concept
+# Design the architecture
 
-Use this after you understand the current constraints and need a future-state
-choice. If the repository itself is still unclear, start with “Assess
-architecture and provide an action plan,” then bring the accepted current-state
-map and findings here.
+Settle a technical choice before you commit to a full design document, then draw the result and get an independent critique of it.
 
-**Use this when:** You have a product feature or strategy and a real technical choice to make, and you want the architecture shape agreed cheaply before committing to a full design doc.
-**Prerequisites:** The `architect` pack installed; a clear product bet or feature brief; optionally a `reference.md` golden path.
-**Result:** An adequate prior design reused when it resolves the question; otherwise
-an agreed ≤½-page concept naming the problem, constraints, candidate shapes,
-provider, and key tradeoff, with a full design doc only when needed.
+## Frame the choice
 
-:::note
-Get a ≤½-page architecture concept agreed before you commit to a full design
-doc. Assumes you know roughly what you're building; if the product bet itself is
-still unsettled, shape that first with
-[`product-engineering`](../../product-engineering/). Check for an adequate prior
-design first — when one already resolves the question, you need no new artifact
-at all.
-:::
+To check whether an earlier design already answers your question, ask:
 
-You have a product to build — a strategy, a brief, or a clear feature — and a
-real technical choice to make. First, `architect-design` looks for an adequate
-prior design or existing capability. Reuse it when it answers the question. If
-no real choice remains, stop without creating a new artifact. Otherwise, the
-skill shapes a **Stage-0 concept**: the elevator-pitch version of the
-architecture that gets the shape agreed cheaply, while changing it still costs
-a sentence.
-
-## 1. Check for reuse, then frame the problem
-
-Ask `architect-design` to check the prior design or capability before creating
-anything:
-
-```
-Use architect-design to decide whether our existing design for account
-notifications answers this new delivery-channel question before creating a new
-architecture artifact.
+```text
+Use architect-design to decide whether our existing design for account notifications answers this new delivery-channel question before creating a new architecture artifact.
 ```
 
-If the existing design resolves the question, reuse it and stop. If a real
-choice remains, the skill asks only what's genuinely missing — what you're
-building, who's affected, why now, what counts as success — three to five
-questions at most. Anything you've already said, it skips; anything you can't
-answer becomes an open question rather than a blocker.
+If it does, the agent reuses it and stops. Otherwise it asks three to five questions about what you are building, who it affects, why now, and what success looks like.
 
-The skill **steers off your `reference.md`** and is **knowledge-surface aware**. If your repo has a [`reference.md` golden path](establish-reference-architecture.md), the concept measures against it, so establish that first if you haven't. When an internal knowledge surface is reachable, `architect-design` consults it before proposing and names what it drew from.
+## Compare options
 
-## 2. Agree the concept before the doc
+To get the shape agreed while changing it still costs a sentence, ask:
 
-The concept is a ≤½-page artifact (`architect-design/assets/concept.md`), and the skill **waits for you to agree the shape** before going further. It carries the shaping essentials and deliberately none of the full design doc's models:
-
-- **Problem & context** — the user-visible problem and why now, in two or three sentences.
-- **Constraints** — the hard edges: deadline, budget, team shape, regulatory, existing-system shape. At least one should be non-obvious.
-- **Candidate shapes (1–2)** — one line each; a second only when there's a real second option.
-- **Provider / provider-class** — AWS, Azure, GCP, a primitives provider, local-first, or none. One *by-construction* line on which quality attributes managed services meet versus what you'd build yourself.
-- **Top 2–3 quality attributes** — ranked by business-importance × architectural-risk, each with a one-line reason it ranks where it does.
-- **Key tradeoff / open decision** — the one or two calls the full doc will turn on.
-
-This is *shaping* — context, constraints, and the choice — not a stripped-down proposal. If the concept collapses into "here's the answer", you've skipped the shaping it exists to do.
-
-Ground any load-bearing platform claim. For every managed service on a critical path, `architect-design` grounds its *binding* contract — non-configurable limits, scaling floors, cold-start behaviour, network and identity needs — in an authoritative source, and lowers the confidence on anything it couldn't ground. A limit recalled wrong is the miss that surfaces two days into the build, not at review.
-
-## 3. Stop at Stage 0, or continue only for unresolved trade-offs
-
-Once you agree the concept, it is a valid final artifact. Save it or keep it in
-chat, then stop if it resolves the decision. A full design doc is needed only
-when unresolved trade-offs still require it. In that case, `architect-design`
-resolves the architectural scope — a whole application or system, one
-subsystem, or a change to an existing architecture — and drafts from the
-model-first template that matches it, leading with the structural, runtime,
-contract, data, deployment, and quality models and following each with its
-rationale. It then converges the doc against review, auto-resolving mechanical
-findings and surfacing judgment calls as explicit decisions.
-
-When the doc captures discrete decisions — a technology choice, a structural commitment, an interface contract — `architect-design` ends by flagging them as ADR-worthy. Capture them with your ADR skill.
-
-## Register the artifact
-
-After the architecture artifact exists, register it in `workspace.toml` so a
-downstream brief or spec can name it as a hard dependency:
-
-```toml
-{ path = "docs/product/design/payment-routing.md", kind = "design", source = { mode = "repo-origin" }, summary = "How payment routing splits across the two providers", needs = [] },
+```text
+Draft the architecture concept for account notifications.
 ```
 
-Then add the artifact to the downstream work's `needs` array. That work remains
-blocked until the design artifact lands:
+The agent writes a concept of half a page: the problem, your constraints, one or two candidate shapes, the cloud provider, the top quality attributes, and the key trade-off. It waits for you to agree before going further.
 
-```toml
-needs = [
-  { type = "local", kind = "design", path = "docs/product/design/payment-routing.md" },
-]
+## Write the design
+
+If the concept settles the decision, stop there. If trade-offs are still open, ask:
+
+```text
+Write the full design document for the agreed concept.
 ```
 
-## Verify
+The agent drafts the document for the scope you chose, then flags any decision worth recording as an ADR (an architecture decision record).
 
-You have a usable architecture concept when:
+## Draw it
 
-- It fits on half a page and names the problem, the constraints, the candidate shapes, the provider, and the top quality attributes.
-- Every quality attribute names why it ranks where it does.
-- The key tradeoff is a genuine decision, not a foregone conclusion dressed as one.
-- Someone who wasn't in the room could say what's being built and what's still open.
+To see the design as a picture, ask:
 
-## What you have now
+```text
+Draw the notification service as a C4 container diagram.
+```
 
-You have either an adequate prior design or an agreed Stage-0 concept that
-names the decision and its key trade-off. Register the resulting design before
-downstream work declares it as a required dependency.
+The `architect-diagram` skill picks the notation from your words, checks the Mermaid diagram against its rubric, and offers to save it. Add "as a draw.io file" to also get an editable `.drawio` file.
 
-## See also
+## Get it reviewed
 
-- [Assess a repository and turn evidence into action](assess-a-repository.md) — establish current-state evidence before proposing the future.
-- [Establish your repo's reference architecture](establish-reference-architecture.md) — the golden path the concept measures against.
-- [Diagram a system](diagram-a-system.md) — when the concept needs a picture to reason about.
-- [Review an architecture artifact](review-an-architecture-artifact.md) — get a severity-tagged critique of the concept or the design doc.
-- [Shape a product strategy](../../product-engineering/how-to/shape-a-product-strategy.md) — the product path the concept builds toward.
-- [Shaping a new engagement](../../_shared/explanation/shaping-a-new-engagement.md) — how the architecture concept relates to the product vision and strategy.
+To find what is wrong with a diagram or design document, paste it or give its path and ask:
+
+```text
+Review this architecture design for our payments-routing service.
+```
+
+The `architect-review` skill answers with a verdict (SHIP IT, SHIP WITH CHANGES, MAJOR REWRITE, or WRONG ARTIFACT) and findings ordered by severity, each with a suggested fix.
+
+Next, [design the API contract](../../contracts/how-to/generate-an-api-contract.md) the architecture exposes.
