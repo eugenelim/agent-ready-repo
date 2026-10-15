@@ -1,7 +1,7 @@
 # Plan: docs-cli-tab
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `guides/AGENTS.md`; `contracts/guide.schema.json`
   (frontmatter, `aliases`); `tools/build-site.py` alias redirect stubs.
 

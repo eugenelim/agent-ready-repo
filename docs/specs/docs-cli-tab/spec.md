@@ -1,6 +1,6 @@
 # Spec: docs-cli-tab
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md), [`docs/design/direction/docs-site.md`](../../design/direction/docs-site.md)
@@ -62,16 +62,16 @@ old URL still reaches the page that absorbed it.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Four task pages.** The CLI tab sidebar lists Install agentbundle,
+- [x] **AC1 — Four task pages.** The CLI tab sidebar lists Install agentbundle,
   Install packs for your agent, Configure agentbundle, Upgrade packs, then a
   Reference group with Command reference, Adapter support, and File safety, and
   each page builds.
-- [ ] **AC2 — Old URLs resolve.** For each of the nine merged pages, the built
+- [x] **AC2 — Old URLs resolve.** For each of the nine merged pages, the built
   site serves a page at its old URL that redirects to the page that absorbed it.
-- [ ] **AC3 — Nothing lost.** Every `agentbundle` and `claude plugin` command
+- [x] **AC3 — Nothing lost.** Every `agentbundle` and `claude plugin` command
   that appears in the nine merged pages appears in one of the four pages or the
   Command reference.
-- [ ] **AC4 — Links clean.** `make site-link-check` reports no broken links.
-- [ ] **AC5 — Plain prose.** None of the four pages uses "surface", "canonical",
+- [x] **AC4 — Links clean.** `make site-link-check` reports no broken links.
+- [x] **AC5 — Plain prose.** None of the four pages uses "surface", "canonical",
   "converge", "bounded", "durable", "load-bearing", "genuinely", "first-class",
   "seamless", "robust", or "leverage" outside a code span.
