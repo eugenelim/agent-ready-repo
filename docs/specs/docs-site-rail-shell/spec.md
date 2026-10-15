@@ -1,6 +1,6 @@
 # Spec: docs-site-rail-shell
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/design/direction/docs-site.md`](../../design/direction/docs-site.md), [`docs/design/journeys/team-orientation-future-state.md`](../../design/journeys/team-orientation-future-state.md) Stage 4
@@ -97,43 +97,43 @@ pagination instead of the tab-scoped one.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — One top bar.** Given any docs page, the page has exactly one
+- [x] **AC1 — One top bar.** Given any docs page, the page has exactly one
   `nav[aria-label="Documentation sections"]` inside the header with links
   labelled Docs, CLI, Author, Catalogue System in that order, exactly one
   carrying `aria-current="true"`; the header holds the search control, a GitHub
   link, and the theme toggle; no page contains `nav[aria-label="Product orientation"]`
   or `nav[aria-label="Product navigation"]`.
-- [ ] **AC2 — Theme toggle.** Given a docs page in light theme, when the reader
+- [x] **AC2 — Theme toggle.** Given a docs page in light theme, when the reader
   activates the theme toggle, `html[data-theme]` becomes `dark`,
   `localStorage['starlight-theme']` is `dark`, the button's accessible name
   becomes "Switch to light theme", and a reload keeps the dark theme. The phone
   menu carries the same control.
-- [ ] **AC3 — Sidebar holds the current tab.** Given a page listed in a tab, its
+- [x] **AC3 — Sidebar holds the current tab.** Given a page listed in a tab, its
   rendered sidebar links are exactly that tab's links in config order, and the
   page's own link carries `aria-current="page"`. A page listed in no tab
   renders the Docs tab. On a 390 px viewport the open menu shows the four tab
   links.
-- [ ] **AC4 — Docs tab structure.** The Docs tab renders Intro, Operating model,
+- [x] **AC4 — Docs tab structure.** The Docs tab renders Intro, Operating model,
   Packs, then groups with `data-stage` `setup`, `decide`, `shape`, `build`,
   `ship` in that order, then a collapsed Pack listing group whose links are
   every `packs/<slug>/` page in label order.
-- [ ] **AC5 — Stage chip.** Given a page in a stage group, the title block shows
+- [x] **AC5 — Stage chip.** Given a page in a stage group, the title block shows
   one `.rail-chip` whose text is the stage name and whose `data-stage` matches
   the group, and no breadcrumb. Every other titled non-home page shows one
   breadcrumb and no chip.
-- [ ] **AC6 — Pagination stays in the tab.** For every page listed in a tab,
+- [x] **AC6 — Pagination stays in the tab.** For every page listed in a tab,
   `a[rel="prev"]` and `a[rel="next"]` point at its neighbours in that tab's
   link order, and are absent at the tab's ends. A page listed in no tab has no
   pagination links.
-- [ ] **AC7 — Intro.** The docs home has the title "Intro", an Install section
+- [x] **AC7 — Intro.** The docs home has the title "Intro", an Install section
   with tabs labelled `agentbundle` and `Claude plugin` that show
   `agentbundle install --pack core` and `claude plugin install`, a "Make your
   first request" section, and link cards to the Operating model and Packs. It
   has no `.docs-hub__primary` or `.docs-hub__supporting` element.
-- [ ] **AC8 — Contrast.** `tools/check-docs-contrast.py` exits 0 and its output
+- [x] **AC8 — Contrast.** `tools/check-docs-contrast.py` exits 0 and its output
   includes every Rail line text pair — ink, text, muted, and the five stage
   hues — on ground and subtle in both themes.
-- [ ] **AC9 — Quality floor.** The browser gate passes: zero serious or critical
+- [x] **AC9 — Quality floor.** The browser gate passes: zero serious or critical
   axe findings on the gated docs pages in both themes, no horizontal overflow
   at 375 px, keyboard focus visible on the tabs, toggle, and sidebar links.
 

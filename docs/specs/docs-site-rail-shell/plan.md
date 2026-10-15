@@ -1,7 +1,7 @@
 # Plan: docs-site-rail-shell
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs-site/AGENTS.md` (build order, traps);
   `docs-site/src/components/PageTitle.astro` and `TableOfContents.astro` (the
   existing Starlight override pattern); tests in
