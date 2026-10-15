@@ -1,6 +1,6 @@
 # Spec: docs-job-pages
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md), [`docs/design/direction/docs-site.md`](../../design/direction/docs-site.md), `guides/AGENTS.md` § Job pages
@@ -57,9 +57,9 @@ Every page a reader reaches from the docs sidebar meets one standard (`guides/AG
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Sidebar pages meet the standard.** Every page the four tabs list opens with a sentence on what the reader can do, has no "Use this when", "Prerequisites:", or "Result:" header block, and is 500 words or fewer, except reference and explanation pages.
-- [ ] **AC2 — No mid-walk entry.** No sidebar link opens a page that shows a "Step N of M" position with N greater than 1.
-- [ ] **AC3 — Pack pills.** Every sidebar page that needs a pack shows it as a pill linking to the pack's page.
-- [ ] **AC4 — Pack template.** Every pack page has the sections Install, What your agent can do, Skills, Works with, Questions, and Details, and its H1 equals its `display_name`.
-- [ ] **AC5 — Old URLs resolve.** Every merged page's URL redirects to the page that absorbed it, and `make site-link-check` is clean.
-- [ ] **AC6 — Plain prose.** No sidebar page uses "surface", "canonical", "converge", "bounded", "durable", "load-bearing", "genuinely", "first-class", "seamless", "robust", "leverage", "Pillar", or "Conductor" outside a code span.
+- [x] **AC1 — Sidebar pages meet the standard.** Every page the four tabs list opens with a sentence on what the reader can do, has no "Use this when", "Prerequisites:", or "Result:" header block, and is 500 words or fewer, except reference and explanation pages.
+- [x] **AC2 — No mid-walk entry.** No sidebar link opens a page that shows a "Step N of M" position with N greater than 1.
+- [x] **AC3 — Pack pills.** Every sidebar page that needs a pack shows it as a pill linking to the pack's page.
+- [x] **AC4 — Pack template.** Every pack page has the sections Install, What your agent can do, Skills, Works with, Questions, and Details, and its H1 equals its `display_name`.
+- [x] **AC5 — Old URLs resolve.** Every merged page's URL redirects to the page that absorbed it, and `make site-link-check` is clean.
+- [x] **AC6 — Plain prose.** No sidebar page uses "surface", "canonical", "converge", "bounded", "durable", "load-bearing", "genuinely", "first-class", "seamless", "robust", "leverage", "Pillar", or "Conductor" outside a code span.

@@ -1,7 +1,7 @@
 # Plan: docs-job-pages
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `guides/AGENTS.md` § Job pages; exemplars
   `guides/_shared/how-to/{install-agentbundle,install-packs,configure-agentbundle,upgrade-packs}.md`,
   `guides/product-strategy/how-to/run-a-market-and-competitive-analysis.md`,
