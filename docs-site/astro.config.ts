@@ -138,18 +138,15 @@ export default defineConfig({
                 { label: 'Understand the code', slug: 'guides/code-intelligence/how-to/investigate-a-codebase' },
                 { label: 'Analyse the market', slug: 'guides/product-strategy/how-to/run-a-market-and-competitive-analysis' },
                 { label: 'Set direction and goals', slug: 'guides/product-strategy/how-to/set-the-direction' },
-                { label: 'Find opportunities', slug: 'guides/product-engineering/how-to/find-the-opportunities' },
               ],
             },
             {
               label: 'Shape it',
               items: [
-                { label: 'Frame an idea', slug: 'guides/product-engineering/how-to/frame-the-intent' },
-                { label: 'Test the bet', slug: 'guides/product-engineering/how-to/commit-and-de-risk' },
+                { label: 'Shape an idea', slug: 'guides/product-engineering/how-to/frame-the-intent' },
                 { label: 'Design the architecture', slug: 'guides/architect/how-to/shape-an-architecture-concept' },
-                { label: 'Design the experience', slug: 'guides/experience-design/how-to/establish-design-intent' },
-                { label: 'Write the contract', slug: 'guides/core/how-to/write-the-contract' },
-                { label: 'Hand off to build', slug: 'guides/product-engineering/how-to/hand-it-to-build' },
+                { label: 'Design the experience', slug: 'guides/experience-design/how-to/map-the-customer-journey' },
+                { label: 'Design an API contract', slug: 'guides/contracts/how-to/generate-an-api-contract' },
               ],
             },
             {
