@@ -91,5 +91,6 @@ const entries = active?.entries ?? [];
     if (box.bottom > window.innerHeight) current.scrollIntoView({ block: 'center' });
   };
   reveal();
+  // The pane is a popover on phones; its own `toggle` fires when the menu opens.
   pane?.addEventListener('toggle', reveal);
 </script>

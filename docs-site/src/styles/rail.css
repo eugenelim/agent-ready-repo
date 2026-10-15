@@ -638,7 +638,6 @@ starlight-toc a[aria-current='true'] {
 .content-panel:first-of-type { padding-bottom: 0.5rem; }
 .content-panel + .content-panel { padding-top: 1.5rem; }
 
-
 mobile-starlight-toc nav { border-bottom-color: var(--rail-rule) !important; background: var(--rail-ground); }
 mobile-starlight-toc summary .toggle {
   border: 1px solid var(--rail-rule-strong) !important;
@@ -708,4 +707,9 @@ button.sl-menu-button {
   background: var(--rail-ground) !important;
   box-shadow: none !important;
   color: var(--rail-ink) !important;
+}
+
+/* Forced colours drop box-shadow, so the current-item bar becomes a border. */
+@media (forced-colors: active) {
+  .rail-nav__top[aria-current='page'] { border-inline-start: 2px solid CanvasText; }
 }
