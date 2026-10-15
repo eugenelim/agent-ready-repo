@@ -197,6 +197,24 @@ made portable.
 complete the adopt path from the index alone? If not, the champion is still the
 dependency.
 
+## Amendment 2026-10-15 — Stage 4 navigation follows the operating model
+
+**Status: ratified at `approve-journey`, 2026-10-15, by the owner.** Stage 4's
+approved "sidebar re-grouped by job rather than by pack" is now concrete, and two
+additions came with it, so it was re-gated rather than folded in silently.
+
+- **Tabs.** One top bar carries four tabs — Docs, CLI, Author, Catalogue System.
+  Pack authoring and catalogue operation leave the adopter's path.
+- **Job groups are the operating-model stages.** The Docs sidebar groups jobs
+  under Set up a repository, Decide what to build, Shape it, Build it, and Ship
+  it, and each page names its stage above the title.
+- **Start here is the Intro.** The docs home installs the toolkit and makes a
+  first request; it no longer routes by task cards.
+
+The route-migration table owed for the job regrouping lands with the guide merges
+that move URLs (`docs/specs/docs-site-rail-shell` changes no guide URL). Stage 4's
+actions, emotions, and validation hook are unchanged.
+
 ## Stage 5: Make it the default `[assumption-based]`
 
 **Surface:** documentation, and the route back out to the internal case.

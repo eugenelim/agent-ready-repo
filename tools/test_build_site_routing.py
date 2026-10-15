@@ -719,7 +719,8 @@ _MARKETING_CHROME_SOURCES = (
     "web/src/lib/shared-chrome.ts",
 )
 _DOCS_CHROME_SOURCES = (
-    "docs-site/src/components/PageFrame.astro",
+    "docs-site/src/components/Header.astro",
+    "docs-site/src/components/Sidebar.astro",
     "docs-site/src/components/Footer.astro",
     "docs-site/src/components/shared-chrome.ts",
 )
@@ -819,7 +820,7 @@ def test_each_renderer_reads_its_own_projected_input():
     for relative, own, other in (
         ("web/src/components/layout/SiteFooter.astro",
          "lib/shared-chrome.generated.json", "docs-site"),
-        ("docs-site/src/components/PageFrame.astro",
+        ("docs-site/src/components/Footer.astro",
          "shared-chrome.generated.json", "web/src"),
     ):
         text = (_REPO_ROOT / relative).read_text(encoding="utf-8")

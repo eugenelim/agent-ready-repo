@@ -136,13 +136,6 @@ test.describe('guidebook step layout', () => {
         // longer fills, which reads as a blank screen above the article, or the
         // one signal it still shows goes missing.
         //
-        // A third exists and is NOT asserted here: the ToC control itself is
-        // occluded by the site header at these widths. Real, out of this
-        // change's scope, and measured once in `--docs-header-height`'s
-        // comment in `docs-site/src/styles/starlight.css` -- read it there
-        // rather than trusting a second copy here. A fix for it was written in
-        // this change and withdrawn, which is why the case is absent rather
-        // than never considered.
         if (!railIsFixed) {
           // `.guidebook-position` is the whole of what a reader mid-guidebook
           // gets at this width -- the desktop walk panel is not rendered. Assert

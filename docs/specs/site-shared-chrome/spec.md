@@ -1,5 +1,7 @@
 # Spec: Site shared chrome
 
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): docs pages no longer render the product orientation band or the phone Product disclosure, and the docs top bar, sidebar, and theme control are docs-local overrides. Footer destinations are unchanged.
+
 - **Status:** Shipped (§ Approved content and behavior's How it works
   destination was retargeted `/#three-loops` → `/#the-model` on 2026-09-18,
   when PR #1372 deleted the `ThreeLoops` component and with it the

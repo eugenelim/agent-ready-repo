@@ -53,12 +53,15 @@ npm run build --prefix docs-site
   JSON and a server that never returns. A *live* orphan blocks the next start on *any* port, and deleting the record
   frees nothing; stop it: `npm exec --prefix docs-site -- astro dev stop --root docs-site`. `--root` is load-bearing —
   astro resolves the project from the working directory, not `--prefix`; omit `--root` and the command falsely reports nothing running.
-- After a Starlight upgrade, re-verify integration contracts against the vendored
-  components. 0.42 swapped `<starlight-menu-button>` and its `aria-expanded` for
-  the native popover API, silently breaking `PageFrame.astro`'s CSS reveal and
-  every selector keyed to the old markup. That pane is `popover="manual"`, not
-  `auto`, because an auto popover light-dismisses on the Product summary, which
-  `site-shared-chrome` forbids; manual costs UA Escape, restored in that component.
+- The sidebar config's top level is the top-bar tab set. `src/components/rail.ts`
+  derives tabs, stage groups (by group label), the stage chip, and tab-scoped
+  pagination (`src/routeData.ts`) from that one array; renaming a stage group
+  label drops its line colour and chip.
+- `src/styles/rail.css` loads after `starlight.css` and re-points its tokens.
+  `tools/check-docs-contrast.py` reads both, so add a new text colour to its
+  `PAIRS` in the same change.
+- After a Starlight upgrade, re-verify the `Header`, `Sidebar`, and
+  `ThemeSelect` overrides against the vendored components.
 - Starlight's `print:hidden` does **not** suppress an element whose own component
   `<style>` sets `display`, and it fails silently: both compile unlayered at
   `(0,1,0)` — Astro's `:where()` adds no specificity — and the print sheet links

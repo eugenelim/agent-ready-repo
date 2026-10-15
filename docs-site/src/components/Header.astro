@@ -1,0 +1,38 @@
+---
+// One top bar: site title and tabs on the left; search, GitHub, and theme on
+// the right. Tabs are the sidebar config's top-level groups (see rail.ts).
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import { currentTab, firstHref, tabs, type Entry } from './rail';
+
+const sidebar = Astro.locals.starlightRoute.sidebar as Entry[];
+const active = currentTab(sidebar);
+---
+
+<div class="rail-header">
+  <div class="rail-header__left">
+    <div class="rail-header__title"><SiteTitle /></div>
+    <nav class="rail-tabs" aria-label="Documentation sections">
+      {
+        tabs(sidebar).map((tab) => (
+          <a
+            class="rail-tabs__link"
+            href={firstHref(tab)}
+            aria-current={tab === active ? 'true' : undefined}
+          >
+            {tab.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+  <div class="rail-header__right print:hidden">
+    <Search />
+    <div class="rail-header__icons">
+      <SocialIcons />
+      <ThemeSelect />
+    </div>
+  </div>
+</div>
