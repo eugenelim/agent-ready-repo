@@ -9,66 +9,57 @@ kind: explanation
 
 **New here?** [See the operating model](_shared/explanation/the-operating-model.md): four stages, the packs in each, and where you decide.
 
-**Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) — from installing the catalogue to a merged change a human approved, in about ten hours.
+**Start here:** [the install-to-ship walkthrough](#the-install-to-ship-walkthrough) takes you from installing the catalogue to a merged change you approved, in about ten hours.
 
-Everything below is either a way into that route, a wider alternative to one of its steps, or guidance you reach for along the way.
+## Find your job by stage
 
-## Find where your work is
+Work moves through four stages, and most work skips one or two. Find your stage, then open the job page.
 
-Every piece of work moves through the same four stages, though most of it skips
-one or two. Find the stage you're in and start there.
+**Set up a repository**
 
-1. **Decide what to build.** You have a question or an opportunity, and you need
-   evidence and a strategic call before anyone commits. Start with the first two
-   steps of [P2b](#p2b--take-the-wider-route-through-the-four-disciplines--4-hours).
-2. **Shape it.** You know the outcome you want and need a bet you can build.
-   Start with [P2](#p2--shape-what-to-build--3-hours), about three hours.
-3. **Build it.** You have a spec, or a piece of work clear enough to write one.
-   Start with [P3](#p3--build-it--2-hours), about two hours.
-4. **Ship it.** You have a merged change that needs to reach production safely.
-   Start with [P5](#p5--ship-and-report--2-hours), about two hours.
+- [Start a project](core/how-to/start-a-project.md) gets a repository ready for your agent.
+- [Connect your tracker](_shared/how-to/choose-a-tracker-integration.md) brings Jira, Linear, or GitHub work in.
 
-Each stage ends when you make the call: commit to an outcome, hand the work to
-the build loop, merge, and approve the production ship. To see every pack in
-that flow, read [the handoff chain](_shared/explanation/the-operating-model.md#the-four-stages).
+**Decide what to build**
 
-## Walk a pack
+- [Research a question](desk-research/how-to/run-the-research.md) gives you an evidence-graded answer.
+- [Understand the code](code-intelligence/how-to/investigate-a-codebase.md) shows what a codebase does and what a change would break.
+- [Analyse the market](product-strategy/how-to/run-a-market-and-competitive-analysis.md) produces a written analysis.
+- [Set direction and goals](product-strategy/how-to/set-the-direction.md) turns market knowledge into goals engineers can pick up.
 
-Five packs carry a **guidebook**: a numbered walk through that pack's journey,
-one step per stage. Each step shows what you type, what the agent replies, a
-turn where you push back, where you decide, and an excerpt of the artifact you
-get — so you can tell whether what came back is right.
+**Shape it**
 
-| Guidebook | Walk it when | Steps |
-| --- | --- | --: |
-| [`core`](core/README.md) | You have work to do and want the loop that governs it | 4 |
-| [`product-strategy`](product-strategy/README.md) | You are setting direction upstream of any initiative | 3 |
-| [`product-engineering`](product-engineering/README.md) | You have a problem and need a framed, evidenced bet | 4 |
-| [`experience-design`](experience-design/README.md) | You have an outcome and need designed, reviewed screens | 5 |
-| [`desk-research`](desk-research/README.md) | You need an answer grounded in evidence, not recall | 4 |
+- [Shape an idea](product-engineering/how-to/frame-the-intent.md) turns a rough idea into a plan ready to build.
+- [Design the architecture](architect/how-to/shape-an-architecture-concept.md) agrees a design on half a page.
+- [Design the experience](experience-design/how-to/map-the-customer-journey.md) goes from a customer's goal to reviewed screens.
+- [Design an API contract](contracts/how-to/generate-an-api-contract.md) gives you a checked contract.
 
-They hand to each other, and each hand-off says so at both ends: strategy
-queues gaps that discovery frames, discovery hands slices that the build loop
-specs, and design hands a reviewed set that the build loop specs against. Start
-wherever your work actually is — the guidebooks are a network, not a queue.
+**Build it**
+
+- [Run the build loop](core/how-to/start-the-work.md) takes a change from a request to merged work.
+- [Fix a bug](core/how-to/bug-fix.md) finds the cause and fixes it with the smallest change.
+- [Review a pull request](core/how-to/review-someone-elses-pr.md) gets an independent review.
+- [Build a page or component](frontend-engineering/how-to/page-screen-contract.md) checks accessibility, states, and layout.
+- [Record a decision](governance-extras/how-to/new-adr.md) writes down why.
+- [Write the docs](product-documentation/how-to/write-a-guide.md) documents a shipped feature.
+
+**Ship it**
+
+- [Release a change](release-engineering/how-to/run-a-release.md) deploys, checks, and ships on your approval.
+- [Change infrastructure](iac-terraform/how-to/change-infrastructure.md) turns a request into reviewed Terraform or OpenTofu.
+- [Measure delivery](atlassian/how-to/measure-flow-and-dora-metrics.md) reports cycle time and throughput from Jira.
 
 ## The install-to-ship walkthrough
 
-This route is an ordered set of guides from installation to a governed,
-reported release. Each stage names what you must already have, roughly what it
-costs, and which stage comes next. Start at the front door and work down. The
-branch section below it, and the two tables further down, are alternate ways in
-once you know the shape.
+This route is an ordered set of guides from installation to a governed, reported release. Each stage names what you need first, roughly what it costs, and which stage comes next.
 
 ### P1 · Adopt the catalogue — ~1 hour
 
 **Prerequisite:** none. **For:** anyone, first session. **Stage:** before any of them.
 
-Installation starts by choosing the route that fits your repository.
-
 1. [Install packs for your agent](_shared/how-to/install-packs.md)
 2. [Install the whole lifecycle](_shared/how-to/install-packs.md#install-a-profile)
-3. [Adapt an existing repo](core/how-to/adapt-to-project.md) — or [start a new project](core/how-to/start-a-project.md)
+3. [Adapt an existing repo](core/how-to/adapt-to-project.md), or [start a new project](core/how-to/start-a-project.md)
 4. [Orient at session start](core/how-to/orient-at-session-start.md)
 
 **First value:** `workspace status` answers what to work on next.
@@ -80,67 +71,36 @@ Next: [P2 · Shape what to build](#p2--shape-what-to-build--3-hours).
 
 **Prerequisite:** P1. **For:** product manager, product engineer, strategist. **Stage:** Shape it.
 
-The **light path** is the default: frame an intent, test its riskiest
-assumption, break it down. Reach past it to the **robust path** — situation,
-opportunities, options, bet, capability map — only when the problem itself is
-unclear or the bet is large enough to need a recorded rationale. [The intent
-tree](product-engineering/explanation/the-intent-tree.md) explains the choice.
-Use this shaping route to turn that intent into Core intake, with an
-architecture concept when the work needs one.
+Start the shaping with the light path: frame an intent, test its riskiest assumption, and break it down. Take the wider path only when the problem is unclear or the bet is large. [The intent tree](product-engineering/explanation/the-intent-tree.md) explains the choice.
 
 1. [Gather evidence](desk-research/) when the answer is not already known
-2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) — `intent frame`
-3. De-risk it — `intent de-risk`
-4. [Shape the architecture concept](architect/how-to/shape-an-architecture-concept.md)
-   against it when the work changes how the system is built. `intent frame`
-   offers `architect-design` while framing, and you can take it any time
-   before you break the work down
-5. Break it down — `intent decompose`
+2. [Shape a feature intent](product-engineering/how-to/shape-a-feature-intent.md) with `intent frame`
+3. De-risk it with `intent de-risk`
+4. [Shape the architecture concept](architect/how-to/shape-an-architecture-concept.md) when the work changes how the system is built
+5. Break it down with `intent decompose`
 6. [Hand the intent to the build loop](product-engineering/how-to/hand-an-intent-to-build.md)
 
-The spec the build loop writes follows your [reference architecture](architect/how-to/establish-reference-architecture.md)
-when you have one. [Where architecture comes in](_shared/explanation/the-operating-model.md#where-architecture-comes-in)
-shows which architecture document helps at each point.
-
-On the robust path, [frame the situation](product-engineering/how-to/frame-a-situation.md)
-first, then [identify opportunities](product-engineering/how-to/identify-opportunities.md),
-[generate options](product-engineering/how-to/generate-solution-options.md), and
-[place a bet](product-engineering/how-to/place-a-bet.md), then map the
-capabilities with `map-capabilities`, before step 4.
+On the wider path, [frame the situation](product-engineering/how-to/frame-a-situation.md) first. Then [identify opportunities](product-engineering/how-to/identify-opportunities.md), [generate options](product-engineering/how-to/generate-solution-options.md), and [place a bet](product-engineering/how-to/place-a-bet.md). Map the capabilities before you shape the architecture concept.
 
 **First value:** one written intent naming an outcome and the bet behind it.
-**Ends at:** Core intake, which selects the route from the content — a spec, a
-delivery brief, or a minimum repository intent.
+**Ends at:** Core intake, which picks the route from the content: a spec, a delivery brief, or a minimum repository intent.
 
-**Wider alternative:** [P2b · the four product disciplines](#p2b--take-the-wider-route-through-the-four-disciplines--4-hours)
-adds strategy and design to this step — about four hours instead of three.
-
-Next: [P3 · Build it](#p3--build-it--2-hours).
+Next: [P3 · Build it](#p3--build-it--2-hours). For a wider alternative, see [P2b · the four product disciplines](#p2b--take-the-wider-route-through-the-four-disciplines--4-hours).
 
 ### P2b · Take the wider route through the four disciplines — ~4 hours
 
 **Prerequisite:** P1. **For:** product manager, researcher, designer, product engineer. **Stage:** Decide what to build, then Shape it.
 
-**An alternative to P2, not a step after it.** The two differ by *which
-disciplines the work needs*, not by how clear the problem is — P2's robust path
-already handles an unclear problem.
+This is an alternative to P2, not something you do after it. Take P2 when you change something that exists and need a framed, evidenced bet. Take P2b when the work also needs a strategic choice and a designed surface, such as a new product area or a user-facing flow.
 
-Take **P2** when the work is a change to something that exists: you need a
-framed, evidenced bet and nothing else before build. Take **P2b** when the work
-needs a strategic choice and a designed surface as well — a new product area, a
-user-facing flow, anything where "what should we build" and "how should it feel"
-are still open questions rather than settled ones. P2b follows the order the
-packs themselves declare, so each step hands a named artifact to the next.
-
-1. [Find out what is true](desk-research/) — hands Product Strategy graded evidence, with a confidence level per finding
-2. [Decide what to build](product-strategy/) — hands Experience Design a committed strategy artifact naming the outcome and the bet behind it
-3. [Design how it should feel](experience-design/) — hands Product Engineering a per-screen state matrix, one cell per screen and state
-4. [Shape the bet and build it](product-engineering/) — you end with a shaped bet, and a change you approved before it merged
+1. [Find out what is true](desk-research/) hands Product Strategy graded evidence.
+2. [Decide what to build](product-strategy/) hands Experience Design a committed strategy.
+3. [Design how it should feel](experience-design/) hands Product Engineering a per-screen state matrix.
+4. [Shape the bet and build it](product-engineering/) ends with a shaped bet and a change you approved.
 
 You can stop after any step and still hold the artifact it produced.
 
-**First value:** graded evidence on the question you actually have, before
-anyone commits to an answer.
+**First value:** graded evidence on your question, before anyone commits to an answer.
 **Ends at:** a shaped bet whose evidence, strategy, and design you can point to.
 
 Next: [P3 · Build it](#p3--build-it--2-hours).
@@ -161,14 +121,13 @@ Next: [P4 · Decide together](#p4--decide-together--15-hours).
 
 ### P4 · Decide together — ~1.5 hours
 
-**Prerequisite:** P1. **For:** tech lead, architect. **Stage:** any. Decisions get written down wherever they're made.
+**Prerequisite:** P1. **For:** tech lead, architect. **Stage:** any. Decisions get written down wherever they are made.
 
-1. [The governance index](governance-extras/how-to/governance-index.md) — which of RFC, ADR, or spec you need
+1. [The governance index](governance-extras/how-to/governance-index.md) shows whether you need an RFC, an ADR, or a spec.
 2. [Propose an RFC](governance-extras/how-to/new-rfc.md)
 3. [Record an ADR](governance-extras/how-to/new-adr.md)
 
-P4 draws on P2's artifacts: an intent, a decision brief, a research survey, or
-an architecture concept is what an RFC or ADR is written *from*.
+An RFC or ADR is written from the artifacts of P2: an intent, a decision brief, a research survey, or an architecture concept.
 
 **First value:** a circulated proposal with its alternatives written down.
 **Ends at:** an accepted decision that outlives the people who made it.
@@ -183,7 +142,7 @@ This release and reporting stage takes the build through its human ship gate.
 
 1. [The release loop](release-engineering/explanation/the-release-loop.md)
 2. [Run a release](release-engineering/how-to/run-a-release.md)
-3. [Project slices out to a tracker](_shared/how-to/project-slices-to-a-tracker.md) — or [intake from one](_shared/how-to/choose-a-tracker-integration.md)
+3. [Project slices out to a tracker](_shared/how-to/project-slices-to-a-tracker.md), or [intake from one](_shared/how-to/choose-a-tracker-integration.md)
 4. [Measure flow and DORA metrics](atlassian/how-to/measure-flow-and-dora-metrics.md)
 
 **First value:** a deployed artifact validated in an environment like production.
@@ -205,43 +164,47 @@ This release and reporting stage takes the build through its human ship gate.
 
 ## Choose by outcome
 
-| I need to… | Start with | Continue with |
-| --- | --- | --- |
-| **Decide what to build** | [`desk-research`](desk-research/) for evidence first | [`product-strategy`](product-strategy/) for the strategic choice, then [`product-engineering`](product-engineering/) to shape a build-ready bet |
-| **Design the product and system** | [`experience-design`](experience-design/) for journeys and surfaces | [`architect`](architect/), [`contracts`](contracts/), and [`frontend-engineering`](frontend-engineering/) for the system, interfaces, and implementation |
-| **Build and review software** | [`core`](core/) to route work into a durable artifact and supervised loop | [`code-intelligence`](code-intelligence/) to find out what is true before changing it, [`governance-extras`](governance-extras/) for durable decisions, and [`monorepo-extras`](monorepo-extras/) for package scaffolding |
-| **Provision and release safely** | [`iac-terraform`](iac-terraform/) for reviewable infrastructure plans | [`release-engineering`](release-engineering/) for deployed validation and the human production gate, supervised by [`core`](core/) |
-| **Work with team systems and evidence** | [`atlassian`](atlassian/), [`github`](github/), [`linear`](linear/), or [`figma`](figma/) | [`converters`](converters/) for source material and [`credential-brokers`](credential-brokers/) for credential-safe access |
-| **Document what ships** | [`product-documentation`](product-documentation/) | [`converters`](converters/) and the guide for the pack whose behavior you are documenting |
-| **Build and govern a catalogue** | [`catalogue-curation`](catalogue-curation/) | [`governance-extras`](governance-extras/), [`product-documentation`](product-documentation/), and the [catalogue authoring standards](_shared/reference/catalogue-authoring-standards.md) |
+- **Decide what to build:** [`desk-research`](desk-research/), then [`product-strategy`](product-strategy/), then [`product-engineering`](product-engineering/).
+- **Design the product and system:** [`experience-design`](experience-design/), [`architect`](architect/), [`contracts`](contracts/), and [`frontend-engineering`](frontend-engineering/).
+- **Build and review software:** [`core`](core/), with [`code-intelligence`](code-intelligence/), [`governance-extras`](governance-extras/), and [`monorepo-extras`](monorepo-extras/).
+- **Provision and release safely:** [`iac-terraform`](iac-terraform/), then [`release-engineering`](release-engineering/).
+- **Work with team systems and evidence:** [`atlassian`](atlassian/), [`github`](github/), [`linear`](linear/), [`figma`](figma/), [`converters`](converters/), and [`credential-brokers`](credential-brokers/).
+- **Document what ships:** [`product-documentation`](product-documentation/).
+- **Build and govern a catalogue:** [`catalogue-curation`](catalogue-curation/), with the [catalogue authoring standards](_shared/reference/catalogue-authoring-standards.md).
 
-The [`core`](core/) build loop is the catalogue's flagship and its strongest standalone product: a spec-driven implementation loop with mechanical gates, cold independent review, a mechanical iteration cap, and a human merge decision. Start there when you want the most rigorous coding-agent workflow; the rest of the catalogue applies the same supervised-work principle to other jobs.
+## Every pack
 
-## Choose by role
+Each pack has its own guide home with a short list of its job pages.
 
-- **Product manager or strategist:** [gather evidence](desk-research/), [decide what to build](product-strategy/), then [shape the bet](product-engineering/).
-- **Platform, infrastructure, or SRE team:** [design the system](architect/), [author its contracts](contracts/), [plan infrastructure](iac-terraform/), and [validate the release](release-engineering/).
-- **Software engineer:** start with the [`core` work loop](core/), then add the design, contract, frontend, infrastructure, or governance pack your change needs.
-- **Designer or UX practitioner:** start with [`experience-design`](experience-design/) and connect the result to [`product-engineering`](product-engineering/) or [`frontend-engineering`](frontend-engineering/).
-- **Researcher or analyst:** start with [`desk-research`](desk-research/) and add the relevant team-system or conversion pack.
-- **AI enablement or catalogue owner:** start with [the pack catalogue](_shared/explanation/pack-catalogue.md), then use [`catalogue-curation`](catalogue-curation/) to evolve your organization-owned collection.
+- [`architect`](architect/): design a system and draw it.
+- [`atlassian`](atlassian/): work with Jira and Confluence, and measure delivery.
+- [`catalogue-curation`](catalogue-curation/): write, import, and govern catalogue skills.
+- [`code-intelligence`](code-intelligence/): query an indexed code graph.
+- [`contracts`](contracts/): write API and event contracts.
+- [`converters`](converters/): convert documents and publish Markdown.
+- [`core`](core/): take work from a request to a merged change.
+- [`credential-brokers`](credential-brokers/): keep secrets out of your agent's context.
+- [`desk-research`](desk-research/): get an evidence-graded answer.
+- [`experience-design`](experience-design/): design reviewed screens.
+- [`figma`](figma/): read a Figma file.
+- [`frontend-engineering`](frontend-engineering/): build and check a page or component.
+- [`github`](github/): bring GitHub work into the repository.
+- [`governance-extras`](governance-extras/): record decisions and proposals.
+- [`iac-terraform`](iac-terraform/): change infrastructure with review.
+- [`linear`](linear/): bring Linear work into the repository.
+- [`monorepo-extras`](monorepo-extras/): scaffold a new package.
+- [`product-documentation`](product-documentation/): write and check product docs.
+- [`product-engineering`](product-engineering/): shape a bet and hand it to delivery.
+- [`product-strategy`](product-strategy/): analyse the market and set direction.
+- [`release-engineering`](release-engineering/): deploy, verify, and ship.
 
 ## Guidance for every pack
 
-Pack directories contain task guidance for that pack. [`_shared/`](_shared/) contains cross-catalogue guidance that applies regardless of which packs you install:
+[`_shared/`](_shared/) holds the guides that apply whichever packs you install.
 
-- [Start, remember, inspect, or refresh repository work](_shared/how-to/use-work-intake.md), then use the [routing and lifecycle reference](_shared/reference/work-intake-routing-and-lifecycle.md) when you need the exact boundary.
+- [Install agentbundle](_shared/how-to/install-agentbundle.md), [install packs](_shared/how-to/install-packs.md), [configure it](_shared/how-to/configure-agentbundle.md), and [upgrade packs](_shared/how-to/upgrade-packs.md).
+- [Check adapter support](_shared/reference/adapter-support.md) for your agent tool.
+- [Start, remember, inspect, or refresh repository work](_shared/how-to/use-work-intake.md), with the [routing and lifecycle reference](_shared/reference/work-intake-routing-and-lifecycle.md).
+- [Understand packs, profiles, and catalogues](_shared/explanation/pack-catalogue.md), then [apply the authoring standards](_shared/reference/catalogue-authoring-standards.md).
 
-- [See the operating model](_shared/explanation/the-operating-model.md): how work flows from idea to production.
-- [Understand packs, profiles, adapters, composition, and catalogue ownership](_shared/explanation/pack-catalogue.md).
-- [Install packs for your agent](_shared/how-to/install-packs.md) and [check adapter support](_shared/reference/adapter-support.md).
-- [Install a curated profile](_shared/how-to/install-packs.md#install-a-profile), [preview a change](_shared/how-to/install-packs.md#preview-first), or [upgrade safely](_shared/how-to/upgrade-packs.md).
-- [Create your own catalogue](_shared/how-to/create-a-catalogue.md) and [apply its portable authoring standards](_shared/reference/catalogue-authoring-standards.md).
-
-Claude users can [add this catalogue as a plugin marketplace](_shared/how-to/install-packs.md#install-as-a-claude-plugin) and install user-scope packs directly. Repo-scoped packs such as `core` still install with `agentbundle` so their workflow belongs to the project and team.
-
-The public documentation site generates the complete pack and guide navigation from this tree. [Browse the complete generated pack reference](https://eugenelim.github.io/agent-ready-repo/docs/packs/); this page stays a route map rather than duplicating that inventory by hand.
-
-## Writing a guide
-
-Use the [`author-product-docs`](product-documentation/how-to/author-product-docs.md) workflow. It selects the right page contract and destination; the [catalogue authoring standards](_shared/reference/catalogue-authoring-standards.md) define the portable rules.
+To write a guide, use the [`author-product-docs`](product-documentation/how-to/author-product-docs.md) workflow.

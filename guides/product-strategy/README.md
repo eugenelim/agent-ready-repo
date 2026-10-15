@@ -7,43 +7,17 @@ kind: explanation
 
 # `product-strategy` — guides
 
-The strategy seat **upstream** of product engineering and experience design:
-turn a market situation into committed artifacts, cascade company objectives
-into the shaping queue, and set the experience and content direction before
-anyone opens a wireframe. Nine skills across three pillars — market and
-competitive, UX strategy, content strategy — each writing to
-`docs/product/shaping/`.
+These guides help you study the market and set a direction and goals that engineers can pick up.
 
-New here? Start with the [tutorial](tutorials/run-your-first-swot.md) — your
-first committed strategy artifact from one skill — then reach for the how-tos as
-the jobs come up.
+## Start here
 
-```text
-Run a SWOT for our payments product.
-```
+- [Analyse the market](how-to/run-a-market-and-competitive-analysis.md) — Run a SWOT, Five Forces, PESTLE, or BCG analysis and get a written document for each.
+- [Set direction and goals](how-to/set-the-direction.md) — Go from what you know about the market to a written direction and team goals.
 
-## Where this fits
+## More
 
-This pack is the *Decide what to build* stage. You arrive with a market
-situation or a set of company objectives. You leave with a committed strategy
-artifact in `docs/product/shaping/`. Product Engineering frames the gaps it
-queues as intents, and Experience Design takes its experience and content
-direction from it. [See the whole flow](../_shared/explanation/the-operating-model.md#the-four-stages).
-
-## Tutorials
-- [Run your first SWOT](tutorials/run-your-first-swot.md) — produce one committed strategy artifact end to end.
-
-## How-to
-- [Run a market and competitive analysis](how-to/run-a-market-and-competitive-analysis.md) — build the market picture with the four Pillar-1 analysis frameworks.
-- [Cascade OKRs into the shaping queue](how-to/cascade-okrs-into-the-shaping-queue.md) — turn company objectives into build-ready shaping-queue work.
-- [Set UX and content strategy](how-to/set-ux-and-content-strategy.md) — fix the experience and content direction before design begins.
-
-## Reference
-- [Frameworks and artifacts](reference/frameworks-and-artifacts.md) — every skill, its framework, and the file it writes.
-
-## Explanation
-- [Why strategy is its own seat](explanation/why-strategy-is-its-own-seat.md) — the three pillars, and why this pack sits upstream of the build packs.
-
----
-
-Installing and upgrading live in [`../_shared/`](../_shared/).
+- [Run your first SWOT](tutorials/run-your-first-swot.md) — Produce a grounded four-quadrant position from a guided analysis.
+- [Set UX and content strategy](how-to/set-ux-and-content-strategy.md) — Commit the experience vision and content rules before design starts.
+- [Cascade OKRs into the shaping queue](how-to/cascade-okrs-into-the-shaping-queue.md) — Turn objective gaps into ranked entries for shaping.
+- [Why strategy is its own seat](explanation/why-strategy-is-its-own-seat.md) — Why strategy sits upstream of individual initiatives.
+- [Reference: frameworks and artifacts](reference/frameworks-and-artifacts.md) — Each strategy skill, its framework, output, and output location.

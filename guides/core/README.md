@@ -7,96 +7,58 @@ kind: explanation
 
 # `core` — guides
 
-`core` is the flagship pack: one front door for durable work intake, then a loop your agent can't cut corners in. Describe the work in ordinary language; `work-intake` routes it to the right artifact and lifecycle state. Approved specs continue through hard gates and cold review.
+These guides help you take work from a request to a merged change, with your approval at each gate.
 
-```text
-Start work on adding export retention controls for workspace owners.
-```
+## Start here
 
-New here? [Why loop engineering](explanation/core-pack.md#why-loop-engineering) is the *why* — the leverage has moved off the prompt and onto the loop. [The `core` pack as a system](explanation/core-pack.md) is the full map. Then build something with [plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md).
+- [Start a project](how-to/start-a-project.md) — Get a repository ready and find the first work.
+- [Run the build loop](how-to/start-the-work.md) — Take a change from request to merge.
+- [Fix a bug](how-to/bug-fix.md) — Find the cause and fix it with the smallest change.
+- [Review a pull request](how-to/review-someone-elses-pr.md) — Get an independent review of a branch.
 
-## Where this fits
+## More
 
-This pack is the *Build it* stage. Work reaches it from anywhere: a committed
-bet from Product Engineering, a reviewed design set, a bug report, or a
-sentence you type. `work-intake` sends each one down the right route. The plan
-`new-spec` writes follows your `reference.md` and any architecture docs your
-`AGENTS.md` lists. You leave
-with a merged change you approved. If your team uses `release-engineering`, the
-merge is where release testing begins, and `close-work` wraps up the work once
-it's done. [See the whole flow](../_shared/explanation/the-operating-model.md#the-four-stages).
+### Tutorials
 
-## Walk the guidebook
+- [Your first workspace session](tutorials/your-first-workspace.md)
+- [Start a new project](tutorials/start-a-new-project.md)
 
-Four steps, in order. Each shows what to type, what the agent replies, what it
-writes and where it lands.
+### How-to guides
 
-1. [Start the work](how-to/start-the-work.md)
-2. [Write the contract](how-to/start-the-work.md)
-3. [Run the loop](how-to/start-the-work.md)
-4. [Close it out](how-to/start-the-work.md)
+- [Orient at session start](how-to/orient-at-session-start.md)
+- [Start a software change](how-to/start-or-remember-work.md)
+- [Plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md)
+- [Close work](how-to/close-and-disposition-work.md)
+- [Adapt a pack to your project](how-to/adapt-to-project.md)
+- [Record your foundation](how-to/record-your-foundation-during-inception.md)
+- [Intake an external brief](how-to/intake-an-external-brief.md)
+- [Continue a delivery brief](how-to/receive-a-product-brief-and-decompose-it-into-specs.md)
+- [Navigate intents](how-to/navigate-intents.md)
+- [Distill project knowledge](how-to/distill-captured-project-knowledge.md)
+- [Move from capture-work](how-to/capture-work.md)
+- [Recover a migration](how-to/migrate-capture-work.md)
+- [Export loop telemetry](how-to/export-loop-telemetry.md)
+- [Run a headless session](how-to/run-headless-session.md)
+- [Run a live demo](how-to/run-a-live-demo.md)
 
-**The walk covers the main thread, not every skill.** The pack ships eighteen;
-these four steps run ten. The other eight are supported and simply not on the
-path a first walk takes:
+### Explanation
 
-| Skill | When you reach for it |
-| --- | --- |
-| `init-project` | Standing up a repository from nothing, before any of this applies |
-| `author-delivery-brief`, `receive-brief` | Work arriving as a brief from outside this repository |
-| `work-intake` (remember) | Recording something to start later, rather than starting it now |
-| `contract-acquisition` | Establishing a contract this repository does not yet own |
-| `operational-safety`, `security-checklists`, `security-checklists-reference` | A change crossing a security or operational boundary — the reviewers read these; you rarely run them |
+- [The core pack as a system](explanation/core-pack.md)
+- [Why work begins with an artifact](explanation/why-work-begins-with-an-artifact.md)
+- [Why a brief layer](explanation/why-a-brief-layer.md)
+- [Why the plan owns the design](explanation/why-the-plan-owns-the-lld.md)
+- [The two-room model](explanation/two-room-model.md)
+- [Foundation versus map](explanation/foundation-vs-map.md)
+- [The walking skeleton](explanation/walking-skeleton-vs-throwaway.md)
+- [The token economy](explanation/token-economy.md)
+- [Role journeys](explanation/role-journeys.md)
+- [The Digital Experience Contract](explanation/digital-experience-contract.md)
 
-`work-intake` routes to whichever your request needs, which is why the walk
-starts there rather than asking you to choose.
+### Reference
 
-## Tutorials
-
-Learning-oriented, start-to-finish.
-
-- [From idea to a walking skeleton](tutorials/start-a-new-project.md) — stand up a new project the structured way, end to end.
-
-## How-to
-
-Task-oriented recipes for a problem you already have.
-
-- [Navigate intents, briefs, and specs](how-to/navigate-intents.md) — query the intent graph for outstanding work, hierarchy, and parent tracing, or export it as an offline HTML view.
-- [Plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md) — the loop itself, applied to a feature or change.
-- [Start a software change](how-to/start-or-remember-work.md) — route an ordinary change into the shortest safe path to implementation.
-- [Fix a bug](how-to/bug-fix.md) — the diagnose-then-fix path, with a regression test as the receipt.
-- [Adapt a freshly-installed pack to your project](how-to/adapt-to-project.md) — tailor the defaults to your repo after install.
-- [Review a branch or PR you didn't write](how-to/review-someone-elses-pr.md) — point the reviewers at anyone's diff.
-- [Close work without losing lasting context](how-to/close-and-disposition-work.md) — verify durable context, settle coordination, and choose a safe disposition.
-- [Intake an external brief into a product brief](how-to/intake-an-external-brief.md) — turn unstructured external input (email, message, issue) into a DoR-ready product brief.
-- [Receive a product brief and decompose it into specs](how-to/receive-a-product-brief-and-decompose-it-into-specs.md) — turn a multi-feature handoff into shippable specs.
-- [Run a 30-minute live workflow demo](how-to/run-a-live-demo.md) — show technical, enterprise, or non-technical teams the canonical Core and Product Engineering handoffs on their own repository.
-- [Decide and record your foundation during inception](how-to/record-your-foundation-during-inception.md) — the ADR + `reference.md` you write before the first feature.
-- [Move from capture-work to work-intake](how-to/capture-work.md) — rewrite former legacy entries in canonical form by hand.
-- [Recover or roll back a migration operation](how-to/migrate-capture-work.md) — recover an interrupted apply or roll back an operation already in a migration ledger.
-
-## Reference
-
-Information-oriented, dry and complete.
-
-- [Spec `Shape:` and the plan's `## Design (LLD)`](reference/spec-shape-and-lld.md) — the fields, what they mean, and how the stack is derived.
-- [Product brief fields](reference/product-brief-fields.md) — the brief field list and the linkage it stamps on derived specs.
-- [Work-intake routing and lifecycle](reference/work-intake-routing-and-lifecycle.md) — exact routes, states, processors, and mutation boundaries.
-- [workspace.toml schema reference](reference/workspace-toml-schema.md) — target entries, former legacy forms, findings, migration policy, and ledger state.
-
-## Explanation
-
-Understanding-oriented — the *why* behind the design.
-
-- [The `core` pack as a system](explanation/core-pack.md) — how the parts compose, and how it compares to vibe-coding, Spec Kit, and Kiro's spec mode.
-- [The token economy of the loop](explanation/token-economy.md) — what the loop wastes, what it spends on purpose, and why the cold reviewer earns its cost.
-- [Why the plan owns the LLD](explanation/why-the-plan-owns-the-lld.md) — where the low-level design lives and why it isn't in the spec.
-- [About the walking skeleton](explanation/walking-skeleton-vs-throwaway.md) — the thinnest end-to-end slice, and when to throw code away instead.
-- [About foundation vs. map](explanation/foundation-vs-map.md) — the two things you record at inception and why they're different.
-- [Why a brief layer](explanation/why-a-brief-layer.md) — why a brief sits above the spec when work spans many features.
-- [Why work begins with an artifact](explanation/why-work-begins-with-an-artifact.md) — how source, durable meaning, lifecycle, and execution remain separate.
-- [Role journeys](explanation/role-journeys.md) — how PMs, engineers, and agents use the system at their operating altitude.
-
----
-
-Cross-cutting guides — installing the catalogue, upgrading packs, the adapter support matrix — live in [`../_shared/`](../_shared/).
+- [Work-intake routing and lifecycle](reference/work-intake-routing-and-lifecycle.md)
+- [workspace.toml schema](reference/workspace-toml-schema.md)
+- [Product brief fields](reference/product-brief-fields.md)
+- [Project knowledge topics](reference/project-knowledge-topics.md)
+- [Spec shape and plan design](reference/spec-shape-and-lld.md)
+- [Phase-scoped policy families](reference/phase-scoped-policy-delivery.md)

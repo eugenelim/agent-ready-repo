@@ -7,55 +7,19 @@ kind: explanation
 
 # `desk-research` — guides
 
-Evidence-grounded research, with the depth dialed to the question. `/desk-research` runs anything from a quick look-up to a deep investigation, grading its confidence as it goes. Around it sit the pipeline skills — `build-outline`, `source-map`, `identify-perspectives`, `compare-hypotheses`, `devils-advocate`, `decision-archaeology` — and two retrieval subagents that do the fetching.
+These guides help you get an evidence-graded answer to a question, in one session or over many.
 
-The pack has two axes. **Depth** (above) is episodic — one-shot questions. **Lifecycle** is *project mode*: four `research-project-*` skills for a sustained, multi-week investigation that accumulates a corpus and ends in a brief you can hand to a decision. [Episodic vs project research](explanation/episodic-vs-project-research.md) explains when to reach for which.
+## Start here
 
-New here? Walk [your first research session](tutorials/desk-research-first-session.md), then reach for [the pipelines](how-to/research-pipelines.md) when one question needs several skills working together. For a sustained investigation, walk [your first research project](tutorials/your-first-research-project.md).
+- [Research a question](how-to/run-the-research.md) — Turn a question into an evidence-graded answer, with the strongest objections written down.
+- [Hand an intent to build](../product-engineering/how-to/hand-an-intent-to-build.md) — Move shaped work into the build loop.
 
-## Where this fits
+## More
 
-This pack opens the *Decide what to build* stage, and it comes back whenever a
-later decision rests on a fact nobody has checked. You arrive with a question
-that memory can't answer. You leave with a survey that grades each finding by
-how far you can trust it. Product Strategy reads that survey before it makes a
-call, and Product Engineering reaches for it when an intent leans on an
-unverified claim. [See the whole flow](../_shared/explanation/the-operating-model.md#the-four-stages).
-
-## Walk the guidebook
-
-Four steps. The first three are one session; the fourth is for a question that
-outlasts one.
-
-1. [Scope the question](how-to/run-the-research.md)
-2. [Run the research](how-to/run-the-research.md)
-3. [Challenge the result](how-to/run-the-research.md)
-4. [Run it as a project](how-to/run-the-research.md)
-
-**The walk covers the main thread.** `decision-archaeology` is the pack's
-twelfth skill and is not on it: it reconstructs why a past decision was made,
-which is a different job from answering a research question.
-
-## Tutorials
-
-- [Your first research session](tutorials/desk-research-first-session.md) — install the pack and run `/desk-research` across all four depth modes.
-- [Your first research project](tutorials/your-first-research-project.md) — run the project lifecycle end to end: start, capture, digest, synthesize a brief.
-
-## How-to
-
-- [Run the research pipelines](how-to/research-pipelines.md) — the survey, decision, and archaeology recipes, and what each one produces.
-- [Run a research project and feed it into an RFC](how-to/run-a-research-project-into-an-rfc.md) — drive the lifecycle, then promote the brief into an RFC's `NNNN-notes/` companion and *Evidence & prior art*.
-- [Hand an intent to build](../product-engineering/how-to/hand-an-intent-to-build.md) — move shaped work into the build loop.
-
-## Reference
-
-- [Desk Research pack reference](reference/desk-research-pack.md) — every skill (episodic and project), the two retrieval subagents, the depth modes, the project folder layout and `agentbundle-layout.toml`'s `[research]` table, and the GRADE confidence schema.
-
-## Explanation
-
-- [Research methodology — the why behind the pack](explanation/research-methodology.md) — why depth is selectable, why sourcing comes before answering, and where confidence grades come from.
-- [Episodic vs project research — the two axes](explanation/episodic-vs-project-research.md) — depth vs lifecycle, the digest middle layer, and when a question deserves a project.
-
----
-
-Installing, upgrading, and the adapter support matrix live in [`../_shared/`](../_shared/).
+- [Your first research session](tutorials/desk-research-first-session.md) — Compare research output at each depth in a first session.
+- [Your first research project](tutorials/your-first-research-project.md) — Build a source corpus and finish with a cited, graded brief.
+- [How to run the research pipelines](how-to/research-pipelines.md) — Run the survey, competing-hypotheses, or decision-history pipeline.
+- [Run a research project and feed it into an RFC](how-to/run-a-research-project-into-an-rfc.md) — Carry a multi-session project into a graded synthesis and an RFC.
+- [Episodic vs project research — the two axes](explanation/episodic-vs-project-research.md) — When a question needs one session and when it needs a project.
+- [Research methodology — the why behind the pack](explanation/research-methodology.md) — The thinking behind the pack's sources, depth, and confidence grades.
+- [Desk Research pack — reference](reference/desk-research-pack.md) — Every research skill and subagent, with inputs and outputs.

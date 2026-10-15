@@ -7,26 +7,15 @@ kind: explanation
 
 # `governance-extras` — guides
 
-A written trail for the decisions a long-lived repo accumulates. Three skills, three artifacts: `new-rfc` proposes a change whose direction is still open, `new-adr` records a decision once it's made, and `navigate-decisions` queries and explores what is open, accepted, superseded, or in lineage. The pack also ships the `docs/rfc/` and `docs/adr/` shapes those skills write into.
+These guides help you record decisions and propose cross-cutting changes so the next person can find out why.
 
-```text
-Propose a change to the release approval policy.
-```
+## Start here
 
-New here? [Propose a change with an RFC](how-to/new-rfc.md) when something is still open; [record it with an ADR](how-to/new-adr.md) once it's settled; [navigate decisions](how-to/new-adr.md) to query or explore what exists.
+- [Record a decision](how-to/new-adr.md) — Write down a decision, or propose one for debate.
 
-## Tutorials
+## More
 
-- [Your first governance session](tutorials/governance-extras-first-session.md) — install the pack, record one ADR with the preview-confirm gate, and commit it in about fifteen minutes.
-
-## How-to
-
-- [Propose a cross-cutting change (RFC)](how-to/new-rfc.md) — open a proposal for input before a decision is locked in.
-- [Record a decision (ADR)](how-to/new-adr.md) — capture what was decided, the context, and the alternatives weighed.
-- [Navigate ADR and RFC decisions](how-to/new-adr.md) — query lifecycle, trace lineage, export an offline HTML explorer, and hand off to canonical sources.
-- [Set up a governance index](how-to/governance-index.md) — build a domain → ADR manifest so an agent loads 2–3 files instead of the whole ADR tree.
-- [Define an extension contract](how-to/extension-contract.md) — document a plugin or customisation hook so adopters know what is stable.
-
----
-
-Installing and upgrading live in [`../_shared/`](../_shared/).
+- [How to propose a cross-cutting change (RFC)](how-to/new-rfc.md) — Write and progress a researched RFC for a change that needs consensus.
+- [How to set up a governance index](how-to/governance-index.md) — Map domains to the decision records and standards contributors need.
+- [How to define an extension contract](how-to/extension-contract.md) — Document an extension hook's shape, guarantees, and owner.
+- [Your first governance session](tutorials/governance-extras-first-session.md) — Install the pack and record one reviewed decision.

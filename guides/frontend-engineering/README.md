@@ -7,41 +7,18 @@ kind: explanation
 
 # Frontend Engineering guides
 
-Need the shortest path? Say: "Build this dashboard screen from the brief and produce the frontend evidence for release review." Start at the [pack overview](/packs/frontend-engineering/), then open the [frontend engineering journey](/journeys/frontend-engineering/) to see how create, retrofit, audit, and verify work from mode choice through evidence and independent review.
+These guides help you build, audit, and check a web page or component before it ships.
 
-Use this index when you have found the `frontend-engineering` pack and need the next documentation path by task, not by skill name.
+## Start here
 
-## Choose your path
+- [Build a page or component](how-to/page-screen-contract.md) — Build a web page or component that is checked for accessibility, states, and layout before it ships.
 
-| Current task | Open this | Result |
-|---|---|---|
-| Confirm what the pack is for | [Pack overview](/packs/frontend-engineering/) | The four jobs, expected outputs, install command, and route into this guide tree |
-| See the end-to-end workflow before starting | [Frontend engineering journey](/journeys/frontend-engineering/) | Mode choice, contract approval, implementation or audit path, gates, evidence manifest, and frontend review in order |
-| Honour design work your team already produced | [Read the design handoff](how-to/read-the-design-handoff.md) | What the pre-flight reads from your design directory, what it ignores, what each skip and refusal means, and the limits of every control |
-| Decide how much contract a surface owes before writing it | [Choose how much contract a surface owes](how-to/choose-the-depth.md) | A `risk-tier` for the surface, the fields and states that tier owes, and the four allowances you can take |
-| Decide whether a new or changed surface needs a contract | [Build a page or component](how-to/page-screen-contract.md) | A full 12-field contract, proportional subset, or explicit no-contract decision |
-| Set or verify performance policy | [Performance targets](reference/performance-targets.md) | Fixed CWV targets, prioritized asset-budget categories, and project-specific numeric-ceiling decisions |
-| Audit an existing page or component without writing code | [Run a frontend audit](how-to/run-an-audit.md) | A findings report and baseline evidence manifest for the existing surface |
-| Check whether a surface that passed its gates actually looks right | [Inspect the rendered page](how-to/inspect-the-rendered-page.md) | Observations in the evidence manifest, a result state a skip cannot disguise, and a way to measure your own false-positive rate |
-| Learn the workflow from a small worked example | [Scaffold a component from a screen brief](tutorials/scaffold-a-component.md) | A gate-passing component and completed evidence manifest |
-| Look up every skill and the reviewer boundary | [Frontend Engineering Pack reference](reference/frontend-engineering.md) | The nine installed skills, their triggers, near misses, and the `frontend-reviewer` scope |
+## More
 
-## What this pack holds you to
-
-The shared frontend quality floor is state coverage, a WCAG 2.2 AA target (see the [pack reference](reference/frontend-engineering.md) for what is verified today versus the stated gap), token discipline, and an evidence manifest for completed create, retrofit, or verify work.
-
-The pack does not claim to replace security or reliability review. Frontend review routes auth, secrets, user input, reliability, and broader product-design concerns to the appropriate reviewer or owner.
-
-## Install with the design pack
-
-Install the frontend pack first:
-
-```bash
-agentbundle install --pack frontend-engineering --scope user
-```
-
-For full genre routing in the pre-flight, also install `experience-design`:
-
-```bash
-agentbundle install --pack experience-design --scope user
-```
+- [Scaffold a component from a screen brief](tutorials/scaffold-a-component.md) — Work from a screen brief to a finished component, state by state.
+- [Run a frontend audit](how-to/run-an-audit.md) — Run the full audit on an existing page and read the output.
+- [Choose how much contract a page owes](how-to/choose-the-depth.md) — Pick the risk tier that sets how much contract a surface owes.
+- [Read the design handoff](how-to/read-the-design-handoff.md) — What the pre-flight reads from your design directory, and what each skip or refusal means.
+- [Inspect the rendered page](how-to/inspect-the-rendered-page.md) — Take, record, and judge captures of the rendered page.
+- [Frontend Engineering Pack](reference/frontend-engineering.md) — All nine skills and the frontend-reviewer agent.
+- [Performance Targets](reference/performance-targets.md) — The Core Web Vitals targets and how to set asset budgets.

@@ -1,59 +1,31 @@
 # Reference
 
-:::note
-*Information-oriented.* The authoritative description of interfaces, commands, configuration, and data shapes. Dry, complete, accurate. Read by people who already know what they're looking for.
-:::
+Look-up pages for commands, formats, and standards.
 
-## Pages
+## Command and adapters
 
-- [`catalogue-authoring-standards.md`](catalogue-authoring-standards.md) — routing table for every catalogue authoring standard: pack and skill schemas, profile format, lint and verify commands, CI contract, packaging.
-- [`agentbundle.md`](agentbundle.md) — install the CLI, install a pack, configure the default adapter, source-resolution chain, environment variables.
-- [`agentskills-io-standard.md`](agentskills-io-standard.md) — the agentskills.io specification applied: frontmatter keys, description rules, directory layout, independent installation, and OWASP AST01–AST10 mapping.
-- [`adapter-support.md`](adapter-support.md) — the per-tool support matrix: which primitives each agent tool receives (skill / subagent / command / hook) and the runtime caveats, sourced from the adapter contract.
-- [`tracker-vocabulary.md`](tracker-vocabulary.md) — how brief and spec levels map to GitHub, Linear, Jira, and Jira Align objects; brief-intake skill routing table.
-- [`work-intake-routing-and-lifecycle.md`](work-intake-routing-and-lifecycle.md) — exact content routes, authority modes, dispatch rules, refresh lifecycle, and migration boundary.
-- [`product-brief-fields.md`](../../core/reference/product-brief-fields.md) — the product-brief field list and the linkage fields it stamps on derived specs.
-- [`research-pack.md`](../../desk-research/reference/desk-research-pack.md) — every primitive in the `research` pack (skills, retrieval subagents).
-- [`spec-shape-and-lld.md`](../../core/reference/spec-shape-and-lld.md) — the spec `Shape:` field, the plan's `## Design (LLD)` categories, and stack-derivation.
-- [`reference-architecture.md`](../../architect/reference/reference-architecture.md) — the `docs/architecture/reference.md` arc42 sections and the stack-pack contract.
+- [`agentbundle` — reference](agentbundle.md) — Install, inspect, preview, and configure behavior of the command.
+- [Adapter support matrix](adapter-support.md) — What each agent tool receives, and where it falls short.
+- [Work-intake routing and lifecycle reference](work-intake-routing-and-lifecycle.md) — Intake routes, authority modes, and refresh results.
+- [Tracker intake vocabulary](tracker-vocabulary.md) — How tracker objects map to repository artifacts.
 
-## Writing reference
+## Authoring
 
-Reference is the easiest kind of docs to write *badly* (just dump everything) and the hardest to write *well*. The bar:
+- [Pack Config and Operation Log API](pack-config-api.md) — Python APIs for pack directories, config, and the operation log.
+- [Pack JOURNEY.md format](pack-journey-format.md) — Fields, stage labels, and route rules of a pack JOURNEY.md.
+- [Profile design tests](profile-design-tests.md) — The four tests a profile must pass.
+- [Org-stack pack walkthrough](org-stack-pack-walkthrough.md) — Every file, field, and pitfall of an org-stack pack.
+- [Skill authoring standards](skill-authoring-standards.md) — Frontmatter, body, naming, layout, and evaluation rules for skills.
+- [Skill script conventions](skill-script-conventions.md) — Flags, usage notes, and setup conventions for helper scripts.
+- [Skill UX patterns](skill-ux-patterns.md) — Alignment, truncation, confirmation, and progress patterns.
+- [Output rendering](output-rendering.md) — The output shapes a skill can declare.
+- [agentskills.io specification — applied reference](agentskills-io-standard.md) — The external skill specification, applied here.
 
-- **Authoritative.** If reference and code disagree, that's a P0 bug. Reference is the contract; the code must match.
-- **Complete.** Every option, parameter, return value, error code is documented. Omission is the most common reference failure.
-- **Consistently structured.** Every entry of the same kind has the same shape. Predictability is everything in reference — readers scan, they don't read.
-- **Boring.** No personality, no editorializing, no "you might want to use this when…" That's explanation. Reference says *what*.
+## Catalogues
 
-## What goes in reference
-
-- API endpoints, parameters, response shapes, status codes.
-- Configuration options: name, type, default, valid values, what it does.
-- CLI commands and flags.
-- Error codes and messages.
-- Data schemas.
-- Glossary terms (definitions only — explanations live in `../explanation/`).
-
-## What does NOT go in reference
-
-- Tutorials (step-by-step learning).
-- How-tos (task recipes).
-- Why something is the way it is — that's explanation.
-- Best-practice opinions — explanation.
-
-## Auto-generation
-
-Reference is the prime candidate for being generated from code:
-
-- API specs from OpenAPI/GraphQL schemas.
-- Config docs from typed config schemas.
-- CLI docs from `--help` output.
-
-When a section is auto-generated, mark it clearly at the top of the file ("This file is generated from `<source>`. Do not edit by hand.") so the next person doesn't waste time editing it.
-
-## Maintenance
-
-For hand-written reference: review on every release, and at minimum quarterly. The discipline is "code change → reference update in same PR" — enforced by CI checking that public-interface changes touched `guides/reference/`.
-
-For generated reference: check the generator runs in CI on every change. If the generator is broken, the reference is wrong, full stop.
+- [Catalogue authoring standards](catalogue-authoring-standards.md) — Where each catalogue authoring standard lives.
+- [Catalogue format](catalogue-format.md) — Directory, marker, and schema contract of a catalogue.
+- [Catalogue CI contract](catalogue-ci-contract.md) — Validation, packaging, and publication steps for catalogue CI.
+- [Artifactory catalogue distribution](artifactory-catalogue-distribution.md) — Provision repositories and set reader sign-in on Artifactory.
+- [Self-hosted catalogue init and sync](self-hosted-catalogue-init.md) — Flags and modes for deriving and syncing a catalogue.
+- [Enterprise rollout playbook](enterprise-rollout-playbook.md) — A pilot, a team wave, and an organization-wide model.

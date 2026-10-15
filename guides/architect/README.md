@@ -7,63 +7,18 @@ kind: explanation
 
 # `architect` — guides
 
-Get an evidence-backed view of the architecture before deciding whether to
-harden, optimize, scale, modernize, replace, or retain it. You can begin without
-knowing a skill name:
-
-```text
-Assess architecture and provide an action plan.
-```
-
-The first result is a current-state model you can correct, not a verdict. After
-you accept the map, the agent shows attention hotspots and asks where to drill
-down. Inspection is read-only by default. You approve private enterprise
-retrieval, executable checks, runtime evidence, experiments, and file writes.
-
-## Where this fits
-
-This pack keeps the architecture that shaping and building read: a
-current-state map set up once per repository, and designs for the whole
-system, a subsystem, or a change. It works at every stage, from assessing the
-area a bet touches to designing against the capabilities while you shape the
-work. Some shaping skills offer its steps when it's installed.
-[Where architecture comes in](../_shared/explanation/the-operating-model.md#where-architecture-comes-in)
-lays out the timeline stage by stage, and names which skill offers each step.
-
-## Choose your task
-
-- [Assess a repository](how-to/assess-a-repository.md) when you need a map,
-  evidence coverage, hotspots, findings, and an action plan.
-- [Shape an architecture concept](how-to/shape-an-architecture-concept.md) when
-  the current-state evidence is clear and you need a future-state choice.
-- [Diagram a system](how-to/shape-an-architecture-concept.md) when the picture is the main
-  outcome.
-- [Review an architecture artifact](how-to/shape-an-architecture-concept.md)
-  when you already have an assessment, design doc, diagram, RFC, or ADR.
-- [Establish a reference architecture](how-to/establish-reference-architecture.md)
-  when the repository needs a normative golden path for future work.
+These guides help you design a system, draw it, and check it against the code you have.
 
 ## Start here
 
-- [Your first architecture session](tutorials/architect-first-session.md) — run
-  a bounded survey and finish with a corrected current-state map, evidence
-  ledger, attention heat map, and selected next investigation.
-- [Create and use your `reference.md`](tutorials/create-your-reference-architecture.md)
-  — separately capture one real engineering standard and use it to steer design.
-- [Hand an intent to build](../product-engineering/how-to/hand-an-intent-to-build.md)
-  — move shaped work into the build loop.
+- [Design the architecture](how-to/shape-an-architecture-concept.md) — Agree an architecture on half a page, then draw it and get it reviewed.
 
-## Look up behavior
+## More
 
-- [Architecture assessment reference](reference/architecture-assessment.md) —
-  modes, evidence surfaces, reads, permission gates, output, confidence, and
-  limits.
-- [`reference.md` sections and stack-pack contract](reference/reference-architecture.md)
-  — the normative repository foundation and delivery rules.
-
-## Understand the choices
-
-- [Why the diagram workflow works this way](explanation/architect-diagram-skill-design.md)
-  — notation, layout, encoding, grounding, and portability.
-
-Installing and upgrading live in [`../_shared/`](../_shared/).
+- [Your first architecture session](tutorials/architect-first-session.md) — Survey an existing repository without changing it, then pick the first thing to look at.
+- [Create and use your `reference.md`](tutorials/create-your-reference-architecture.md) — Commit one real architecture standard and use it to steer a design choice.
+- [Assess a repository and turn evidence into action](how-to/assess-a-repository.md) — Build a model of what exists and turn the evidence into an action.
+- [Establish your repo's reference architecture](how-to/establish-reference-architecture.md) — Write down the architecture decisions you have settled so later designs follow them.
+- [Why the architect-diagram skill works the way it does](explanation/architect-diagram-skill-design.md) — Why the diagram skill draws what it draws.
+- [Architecture assessment reference](reference/architecture-assessment.md) — Assessment modes, evidence, output fields, and limits.
+- [`reference.md` sections and the stack-pack contract](reference/reference-architecture.md) — The sections a reference architecture needs, and how a stack pack plugs in.
