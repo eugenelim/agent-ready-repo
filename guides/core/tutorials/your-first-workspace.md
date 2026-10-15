@@ -29,7 +29,7 @@ You need:
 - The `core` pack installed. If you haven't installed it yet, see [How to start working on a project](../how-to/start-a-project.md) for the install step.
 - A fresh agent session (restart your agent session if you've been working on something else — a fresh context gives you a complete orientation).
 
-## Step 1 — Orient: run `workspace-status`
+## Orient: run `workspace-status`
 
 Start every session by invoking `workspace-status`:
 
@@ -80,7 +80,7 @@ Start workspace-core, the first ready build item for the current milestone.
 If your output uses different slugs, that is expected — the section structure is what matters.
 :::
 
-## Step 2 — Pick a spec and read it briefly
+## Pick a spec and read it briefly
 
 You'll build `workspace-core` — the first ready item. It also unblocks `workspace-status-phase2` when it ships.
 
@@ -97,7 +97,7 @@ Confirm:
 
 Understanding the goal before the loop starts saves time if review finds scope creep.
 
-## Step 3 — Invoke `work-loop`
+## Invoke `work-loop`
 
 Start the loop:
 
@@ -116,7 +116,7 @@ The skill reads `spec.md` and `plan.md`, orients to the task wave, and enters PL
 
 Let the loop run. After each wave, it runs gates (lint, typecheck, tests). When all gates pass, it routes to adversarial review.
 
-## Step 4 — Mid-session: notice a separable follow-on
+## Mid-session: notice a separable follow-on
 
 While `work-loop` is executing, review finds an improvement that does not
 belong in the accepted outcome:
@@ -130,7 +130,7 @@ were still required, the spec would remain `Implementing`. Because it is
 separable, capture it as its own artifact instead of leaving an open acceptance
 criterion behind.
 
-## Step 5 — Capture the follow-on
+## Capture the follow-on
 
 Invoke `work-intake` without stopping the loop:
 
@@ -160,13 +160,13 @@ processor is dispatched.
 
 For more on how intake routes items, see [Start a software change](../how-to/start-or-remember-work.md).
 
-## Step 6 — Let `work-loop` finish
+## Let `work-loop` finish
 
 Return to the loop. It completes its remaining tasks, runs gates, and routes to adversarial review. Review findings come back as Blockers / Concerns / Nits; the loop fixes and re-reviews until the reviewer reports `Clean — ready to commit.`
 
 **You should see:** `Clean — ready to commit.` from the adversarial reviewer, followed by commit and PR instructions.
 
-## Step 7 — Ship and close the session
+## Ship and close the session
 
 Follow the loop's commit and PR instructions. When the PR merges:
 

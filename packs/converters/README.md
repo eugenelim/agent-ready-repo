@@ -37,7 +37,7 @@ claude plugin install converters@agent-ready-repo
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Architect](../architect/README.md) draws Mermaid diagrams that `mermaid-renderer` can turn into images. Guides: [Convert documents to Markdown](../../guides/converters/how-to/convert-documents-to-markdown.md), [Publish Markdown to Office](../../guides/converters/how-to/publish-markdown-to-office.md), and [Convert Markdown to HTML and email](../../guides/converters/how-to/convert-markdown-to-html-and-email.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Architect](../architect/README.md) draws Mermaid diagrams that `mermaid-renderer` can turn into images. Guides: [Convert documents to Markdown](../../guides/converters/how-to/convert-documents-to-markdown.md), [Publish Markdown to Office](../../guides/converters/how-to/publish-markdown-to-office.md), and [Convert Markdown to HTML and email](../../guides/converters/how-to/convert-markdown-to-html-and-email.md).
 
 ## Questions
 

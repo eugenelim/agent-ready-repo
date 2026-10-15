@@ -45,7 +45,7 @@ Subagents: **`discovery-lead`** supervises the loop. **`discovery-reliability-re
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Product Strategy](../product-strategy/README.md) supplies goals and opportunity assessments as anchors. [Core](../core/README.md) takes each result as a delivery contract or brief, and Core is optional. [Experience Design](../experience-design/README.md) passes its screen states to `ux-writing`. When the `architect` pack is installed, `frame-domain` and `intent de-risk` offer `architect-assess`, and `intent frame`, `intent decompose`, and `map-capabilities` offer `architect-design`. Without it, they say nothing about it. Guides: [Shape an idea](../../guides/product-engineering/how-to/frame-the-intent.md) and [Run a discovery](../../guides/product-engineering/how-to/run-a-discovery.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Product Strategy](../product-strategy/README.md) supplies goals and opportunity assessments as anchors. [Core](../core/README.md) takes each result as a delivery contract or brief, and Core is optional. [Experience Design](../experience-design/README.md) passes its screen states to `ux-writing`. When the `architect` pack is installed, `frame-domain` and `intent de-risk` offer `architect-assess`, and `intent frame`, `intent decompose`, and `map-capabilities` offer `architect-design`. Without it, they say nothing about it. Guides: [Shape an idea](../../guides/product-engineering/how-to/frame-the-intent.md) and [Run a discovery](../../guides/product-engineering/how-to/run-a-discovery.md).
 
 ## Questions
 

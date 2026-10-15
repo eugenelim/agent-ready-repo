@@ -41,7 +41,7 @@ claude plugin install code-intelligence@agent-ready-repo
 
 ## Works with
 
-The pack declares Claude Code as its agent. [Core](../core/README.md) is optional: when both are installed, Core's exploration skill can use this pack for code-graph evidence. See [Understand the code](../../guides/code-intelligence/README.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Install [Core](../core/README.md) too, which is optional: when both are installed, Core's exploration skill can use this pack for code-graph evidence. See [Understand the code](../../guides/code-intelligence/README.md).
 
 ## Questions
 

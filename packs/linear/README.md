@@ -35,7 +35,7 @@ Then say "set up credentials" and type a Linear personal API key when prompted. 
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. It requires [Credential Brokers](../credential-brokers/README.md) for your key and hands its records to `work-intake` in [Core](../core/README.md). Other trackers: [GitHub](../github/README.md) and [Atlassian](../atlassian/README.md). See [Connect your tracker](../../guides/linear/how-to/linear-brief-intake-and-sync.md) and [Use work intake](../../guides/_shared/how-to/use-work-intake.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Install [Credential Brokers](../credential-brokers/README.md) first for your key. It hands its records to `work-intake` in [Core](../core/README.md). Other trackers: [GitHub](../github/README.md) and [Atlassian](../atlassian/README.md). See [Connect your tracker](../../guides/linear/how-to/linear-brief-intake-and-sync.md) and [Use work intake](../../guides/_shared/how-to/use-work-intake.md).
 
 ## Questions
 

@@ -8,7 +8,7 @@ kind: how-to
 
 # Connect your tracker
 
-Point your agent at an issue or milestone in your tracker, and it turns the content into repository work. Intake only reads from the tracker.
+Install the pack for your tracker, then name an issue, and your agent reads it. Intake never writes to the tracker.
 
 ## Pick your tracker
 
@@ -43,4 +43,4 @@ Decompose this intent and show me the tracker projection for its slices.
 
 Pick one direction per body of work, because edits made in both places are never reconciled for you. [Project slices to a tracker](project-slices-to-a-tracker.md) covers this direction.
 
-Next, [find your first piece of work](../../core/how-to/start-a-project.md#find-your-first-piece-of-work). Tracker details: [Jira](../../atlassian/work-with-jira.md), [Linear](../../linear/how-to/linear-brief-intake-and-sync.md), [GitHub](../../github/how-to/intake-a-github-milestone-as-a-brief.md).
+Next, [find your first piece of work](../../core/how-to/start-a-project.md#find-your-first-piece-of-work).

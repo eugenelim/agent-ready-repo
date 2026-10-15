@@ -62,12 +62,6 @@ APM copies the pack only. To upgrade it later with `agentbundle`, run `agentbund
 
 ## Behind a corporate network
 
-If installs fail with `CERTIFICATE_VERIFY_FAILED`, point `agentbundle` at your company's certificate bundle:
-
-```bash
-AGENTBUNDLE_CA_BUNDLE=/path/to/corp-ca.pem agentbundle install --pack core
-```
-
-The [command reference](../reference/agentbundle.md#corporate-networks) covers proxies, WSL, and macOS trust.
+If installs fail with a certificate error, the [command reference](../reference/agentbundle.md#corporate-networks) covers certificate bundles, proxies, WSL, and macOS trust.
 
 Next, [install packs for your agent](install-packs.md).

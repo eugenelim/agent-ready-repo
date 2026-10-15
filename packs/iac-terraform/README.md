@@ -28,7 +28,7 @@ You also need [Core](../core/README.md), [Governance Extras](../governance-extra
 
 ## Works with
 
-Works with Claude Code. It requires [Core](../core/README.md) and [Governance Extras](../governance-extras/README.md). AWS, GCP, and Databricks are validated. Azure and other providers are marked experimental. See [Change infrastructure](../../guides/iac-terraform/README.md) and [Release Engineering](../release-engineering/README.md) for shipping the change.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Install [Core](../core/README.md) and [Governance Extras](../governance-extras/README.md) first. AWS, GCP, and Databricks are validated. Azure and other providers are marked experimental. See [Change infrastructure](../../guides/iac-terraform/README.md) and [Release Engineering](../release-engineering/README.md) for shipping the change.
 
 ## Questions
 

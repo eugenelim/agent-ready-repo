@@ -28,7 +28,7 @@ Subagent: **`release-lead`** runs the release loop. It works beside the build lo
 
 ## Works with
 
-Works with Claude Code, Kiro IDE, Codex, Copilot, Cursor, and Gemini CLI. It requires [Core](../core/README.md), after `work-loop` reports the build done. [IaC (Terraform)](../iac-terraform/README.md) covers the infrastructure change. See [Release a change](../../guides/release-engineering/how-to/run-a-release.md) and [Measure delivery](../../guides/atlassian/how-to/measure-flow-and-dora-metrics.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Install [Core](../core/README.md) first and run it after `work-loop` reports the build done. [IaC (Terraform)](../iac-terraform/README.md) covers the infrastructure change. See [Release a change](../../guides/release-engineering/how-to/run-a-release.md) and [Measure delivery](../../guides/atlassian/how-to/measure-flow-and-dora-metrics.md).
 
 ## Questions
 

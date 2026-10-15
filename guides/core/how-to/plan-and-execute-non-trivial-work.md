@@ -42,7 +42,7 @@ If you're unsure whether the change is trivial, default to the loop. The cost of
 **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's spec this out" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Use the name-the-skill form below whenever you want the discipline, including on edge cases where description matching wouldn't pick it up.
 :::
 
-## Step 1 — Run `new-spec` (when no spec exists)
+## Run `new-spec` (when no spec exists)
 
 The skill writes `docs/specs/<feature>/spec.md` and `plan.md`, and gates body content on assumption sign-off.
 
@@ -107,7 +107,7 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 
 If you want to stop here (pure planning, no build yet), this is the natural exit point. The spec and plan are durable; come back to `work-loop` whenever you're ready.
 
-## Step 2 — Run `work-loop`
+## Run `work-loop`
 
 With a spec in place, invoke the loop by name. Same two domains carried through:
 

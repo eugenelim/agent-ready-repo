@@ -26,7 +26,7 @@ For the exact shape of a topic and how scopes are matched, see [Project knowledg
 - The `core` pack installed in the target repo.
 - A clean working tree. Distillation writes topic files and rebuilds the topic map; you want those changes reviewable on their own.
 
-## Step 1 — Drain the pending observations
+## Drain the pending observations
 
 A maintainer draining everything asks for the repo-wide scope:
 
@@ -39,7 +39,7 @@ echo '{"selection_mode":"direct-maintainer-pending","scope":"."}' \
 
 The receipt reports `counts.pending`. Read each observation's `lesson` before deciding anything: the disposition is a semantic judgement, and nothing downstream re-checks it.
 
-## Step 2 — Give each observation one disposition
+## Give each observation one disposition
 
 Every observation gets exactly one terminal disposition. Choose by asking where the lesson's home is:
 
@@ -57,13 +57,13 @@ Correct wrong knowledge here, not somewhere else. If an observation contradicts 
 
 A lesson with a canonical home is routed, not promoted. Promoting it puts the same fact in two places with nothing reconciling them, and the copy in the knowledge store is the one nobody updates.
 
-## Step 3 — Correct a topic that is wrong
+## Correct a topic that is wrong
 
 Do not hand-edit a topic file. Direct edits bypass the writer lock and the field validation, and leave the topic map stale.
 
 Correct a topic by capturing the corrected lesson and promoting it over the existing one, with `expected_topic_digest` set to that topic's current digest. The digest is a precondition: if anything changed the topic since you read it, the write is refused rather than silently overwriting. Set it to `null` only when creating a topic that does not exist yet.
 
-## Step 4 — Retire what a doc or a check now enforces
+## Retire what a doc or a check now enforces
 
 This is the step that makes the store worth keeping, and it is the one most often skipped.
 
@@ -81,7 +81,7 @@ coverage_verified:  true
 
 A store where nothing is ever retired is a store that only grows. If no topic has been retired, that is a signal the promotion step is not happening — not that every lesson is still live.
 
-## Step 5 — Review the diff and commit
+## Review the diff and commit
 
 Distillation writes topic files, rebuilds the topic map, and appends disposition events to the observation journals. Journals are append-only: draining adds a disposition event and removes nothing, so the journals grow with every pass.
 

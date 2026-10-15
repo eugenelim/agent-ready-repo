@@ -39,7 +39,7 @@ claude plugin install product-strategy@agent-ready-repo
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. [Desk Research](../desk-research/README.md) briefs feed `synthesize-stakeholder-research`. [Product Engineering](../product-engineering/README.md) picks up the strategy gaps from `run-okr-cascade`. [Experience Design](../experience-design/README.md) reads the UX and content strategy. See [Analyse the market](../../guides/product-strategy/how-to/run-a-market-and-competitive-analysis.md) and [Set direction and goals](../../guides/product-strategy/how-to/set-the-direction.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. [Desk Research](../desk-research/README.md) briefs feed `synthesize-stakeholder-research`. [Product Engineering](../product-engineering/README.md) picks up the strategy gaps from `run-okr-cascade`. [Experience Design](../experience-design/README.md) reads the UX and content strategy. See [Analyse the market](../../guides/product-strategy/how-to/run-a-market-and-competitive-analysis.md) and [Set direction and goals](../../guides/product-strategy/how-to/set-the-direction.md).
 
 ## Questions
 

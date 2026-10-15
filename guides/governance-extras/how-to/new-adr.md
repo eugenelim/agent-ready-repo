@@ -10,15 +10,11 @@ aliases:
 
 # Record a decision
 
-Ask your agent to record an architectural decision as an ADR (architecture decision record), a short note that says what you chose and why. The agent also drafts proposals and finds past decisions.
-
-## Pick the record
-
-Use an ADR for a decision already made, such as a database or a branching rule, where you weighed at least one alternative. For an idea still under debate, write an RFC (request for comments) instead. An accepted RFC then leads to one or more ADRs.
+Name a decision you made, and your agent records it as an ADR (architecture decision record): a short note that says what you chose and why.
 
 ## Write an ADR
 
-Name the skill and the decision:
+Use an ADR for a decision already made, such as a database or a branching rule, where you weighed at least one alternative. For an idea still under debate, write an RFC (request for comments) instead. To write the ADR, name the skill and the decision:
 
 ```text
 Use the new-adr skill to write an ADR for choosing PostgreSQL for the order service.
@@ -38,9 +34,7 @@ The agent updates the status from Proposed to Accepted.
 
 ## What an ADR records
 
-An ADR keeps a decision and the reasons behind it, so its prose is immutable once accepted. Only the status, the supersession fields, and an errata section can change. To reverse a decision, write a new ADR that supersedes the old one; the old record stays and points to its replacement. A contested reversal should go through [an RFC first](new-rfc.md#the-rfc-lifecycle). The records sit in the repository's [frozen and living layers](../../../docs/README.md#the-three-lifecycle-classes).
-
-The `adr/README.md` index is generated from the records themselves, so it cannot disagree with them. Regenerate it rather than editing a row.
+An accepted ADR is immutable, so to reverse a decision, write a new ADR that supersedes it; a contested reversal should go through [an RFC first](new-rfc.md#the-rfc-lifecycle). The `adr/README.md` index is generated from the records, so regenerate it rather than editing a row. The records sit in the repository's [frozen and living layers](../../../docs/README.md#the-three-lifecycle-classes).
 
 ## Propose a change
 

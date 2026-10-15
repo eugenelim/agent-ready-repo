@@ -117,3 +117,11 @@ When you ratify G5, the harness appends a ratification record to the release-rea
 This record is harness-attested: the agent cannot write or alter it. It serves as the audit trail for the prod-ship decision.
 
 If you decline at G5, the ephemeral environment is torn down. The release-readiness record and the G5 ratification record (with your decline reason) are retained. The artifact can re-enter the release loop when you're ready.
+
+## Wire your deploy target
+
+The release loop needs a way to create and tear down the temporary environment. If it cannot find one, it tells you what it looked for. Ask it which deploy target it needs and what is missing. It names the missing deploy, test, or teardown step for your platform, such as a Kubernetes namespace, a cloud preview environment, or a Docker Compose file.
+
+## When the loop runs out of rounds
+
+If the loop runs out of rounds or budget before the checks hold, the agent reports what failed and the likely fix. Fix the build and re-enter the loop, loosen a policy that is too strict for a known flaky test, or decide not to ship this version.

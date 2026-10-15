@@ -9,7 +9,7 @@ uses: [frontend-engineering]
 
 # Build a page or component
 
-Describe a page or component to your agent, and it builds the HTML, CSS, and JavaScript, then checks the result and records the evidence.
+Start by asking your agent how much planning the page or component needs.
 
 ## Pick how much to plan
 

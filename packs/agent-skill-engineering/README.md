@@ -32,7 +32,7 @@ claude plugin install agent-skill-engineering@agent-ready-repo
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. Pair it with [Catalogue Curation](../catalogue-curation/README.md) if you maintain a catalogue of skills. To write one skill by hand, see [Author a skill](../../guides/_shared/how-to/author-a-skill.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Pair it with [Catalogue Curation](../catalogue-curation/README.md) if you maintain a catalogue of skills. To write one skill by hand, see [Author a skill](../../guides/_shared/how-to/author-a-skill.md).
 
 ## Questions
 

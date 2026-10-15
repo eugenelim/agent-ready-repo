@@ -8,7 +8,7 @@ uses: [iac-terraform, core, governance-extras]
 
 # Change infrastructure
 
-Describe the infrastructure you need, and your agent writes Terraform or OpenTofu for it and stops at a reviewed plan. You run the apply, so nothing changes in your cloud until you say so.
+Tell your agent what infrastructure you need, and it stops at a plan for you to read.
 
 ## Describe what you need
 
@@ -38,11 +38,7 @@ The agent writes the `.tf` files, runs `terraform fmt`, `terraform validate`, a 
 Show me the plan and anything it will destroy.
 ```
 
-The agent summarises each change and flags anything that deletes data or cannot be undone. A clean plan shows a change will apply, not that the result works. [What the preview cannot tell you](../explanation/what-the-preview-cannot-tell-you.md) covers the gaps.
-
-## Apply it
-
-You run `terraform apply` yourself, or your pipeline does. The agent never applies, never reads secrets, and never touches state files. Treat deleting a resource or migrating data as a decision for a person every time.
+The agent summarises each change and flags anything that deletes data or cannot be undone. A clean plan shows a change will apply, not that the result works. [What the preview cannot tell you](../explanation/what-the-preview-cannot-tell-you.md) covers the gaps. You run `terraform apply` yourself, or your pipeline does. The agent never applies, never reads secrets, and never touches state files.
 
 ## Check for drift
 

@@ -8,7 +8,7 @@ uses: [core]
 
 # Review a pull request
 
-Point your agent at any branch or pull request, and it returns findings you can hand back to the author. The reviewers do not care who wrote the diff.
+Name a branch or pull request someone else wrote, and your agent returns findings you can hand back to the author.
 
 ## Ask for the review
 
@@ -42,8 +42,6 @@ The reviewer then checks the diff against that spec.
 
 ## Read the findings
 
-The agent returns findings tagged Blockers, Concerns, and Nits. This is a one-off review, so it writes no loop state and starts no build; hand the findings to the author to repair.
-
-`shaping-reviewer` checks a draft intent, brief, or spec before building starts. It is separate from the adversarial, security, and quality code-review lenses, which own different concerns and do not repeat each other's findings, and it does not review pull request diffs.
+The agent returns findings tagged Blockers, Concerns, and Nits. This is a one-off review, so it writes no loop state and starts no build; hand the findings to the author to repair. The `shaping-reviewer` checks draft intents, briefs, and specs before building starts, so it does not review these diffs the way the adversarial, security, and quality reviewers do.
 
 Next, [fix a bug](bug-fix.md) the review found, or [release the change](../../release-engineering/how-to/run-a-release.md).

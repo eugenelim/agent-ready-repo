@@ -31,7 +31,7 @@ agentbundle install --pack product-documentation --scope user
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, Copilot, and Gemini CLI. It replaces [User Guide (Diátaxis)](../user-guide-diataxis/README.md). See [Write the docs](../../guides/product-documentation/README.md), [Author product docs](../../guides/product-documentation/how-to/author-product-docs.md), and [Getting started](../../guides/product-documentation/getting-started.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. It replaces [User Guide (Diátaxis)](../user-guide-diataxis/README.md). See [Write the docs](../../guides/product-documentation/README.md), [Author product docs](../../guides/product-documentation/how-to/author-product-docs.md), and [Getting started](../../guides/product-documentation/getting-started.md).
 
 ## Questions
 

@@ -10,7 +10,7 @@ aliases:
 
 # Design an API contract
 
-A contract is a machine-readable description of what your API accepts and returns. Describe the API in plain words, and your agent writes the contract, which tools can turn into code, mocks, and SDKs.
+Describe your API in plain words, and your agent writes a contract: a machine-readable description of what it accepts and returns.
 
 ## Write the API contract
 

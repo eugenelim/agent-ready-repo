@@ -21,7 +21,7 @@ The design vocabulary throughout is the **session arc**: the five stages every s
 
 The arc is the skeleton your skills hang on. Not every pack covers every stage; the decision tree in Step 1 tells you which stages apply.
 
-## Step 1 — Characterize your workflow type
+## Characterize your workflow type
 
 Walk this decision tree to identify your pack's type:
 
@@ -49,7 +49,7 @@ tracking phases, a growing project, or cumulative state?
 
 **Output from this step:** your pack type. Write it down before moving to Step 2.
 
-## Step 2 — Map the arc for your pack
+## Map the arc for your pack
 
 For each arc stage, answer the guiding question. Your answers define which skills your pack needs and which it can safely skip.
 
@@ -70,7 +70,7 @@ Name the artifact type and file shape another pack might read. A sustained-deriv
 
 **Output from this step:** an arc map — one row per stage, naming the skill (or "none") and the artifact (or "none").
 
-## Step 3 — Name your skills
+## Name your skills
 
 Skill activation is description-driven — users invoke skills by natural language, not exact names. But names appear in the catalogue and in `SKILL.md` frontmatter, and a consistent verb vocabulary lets users predict what to type.
 
@@ -90,7 +90,7 @@ For the full taxonomy table and naming rules, see [Skill authoring standards](..
 
 **Output from this step:** a name for each skill in your arc map.
 
-## Step 4 — Decide your vault-path shape
+## Decide your vault-path shape
 
 If your pack maintains a persistent project directory (sustained-project or sustained-derived), design the vault-path now. Skip this step if your pack is episodic (standalone output per invocation, no shared project state across sessions) or stateless.
 
@@ -109,7 +109,7 @@ The `journey-mapping` skill is the canonical example: it writes customer-journey
 
 **Output from this step:** a directory layout diagram for your pack's output.
 
-## Step 5 — Register with workspace-status
+## Register with workspace-status
 
 If your pack has a `*-status` skill, register it so that `workspace-status` can route to it when a user cold-starts a session.
 

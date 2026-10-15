@@ -12,7 +12,7 @@ aliases:
 
 # Design the experience
 
-Work from what a customer is trying to do to a set of screens whose behavior is written down. Files land in your design folder, and the agent tells you the exact paths.
+Start with what a customer is trying to do, and the agent writes each file into your design folder and tells you the path.
 
 ## Map the journey
 
@@ -42,7 +42,7 @@ To get the screens and the routes between them, ask:
 Turn the journey into screens, transitions, failure routes, and one brief per screen.
 ```
 
-The agent writes `screens/<slug>-flow.md` and one short brief per screen in `screens/<slug>/`.
+The agent writes `screens/<slug>-flow.md` and one short brief per screen in `screens/<slug>/`. You approve the journey and the screen list before design continues.
 
 ## Set the design direction
 
@@ -52,7 +52,7 @@ To turn the pains into rules and a look, ask for principles first:
 Turn these journey pains and peak moments into three to five design principles.
 ```
 
-The agent writes `principles/<slug>.md`. Ask `creative-direction` for `direction/<slug>.md`, and `design-system` for `tokens/<slug>.md` when your product has no system that covers the work. [Establish design intent](establish-design-intent.md) shows each prompt and when the design system is required.
+The agent writes `principles/<slug>.md`. Ask `creative-direction` for `direction/<slug>.md`, and `design-system` for `tokens/<slug>.md` when your product has no system that covers the work. You approve the aesthetic direction before screens are designed. [Establish design intent](establish-design-intent.md) shows each prompt and when the design system is required.
 
 ## Design each screen
 
@@ -62,7 +62,11 @@ To lay out a screen around its main task, ask:
 Organize this screen around its primary task, content rank, recovery paths, and wayfinding.
 ```
 
-The agent writes `screens/<slug>-ia.md`. Then add the behavior:
+The agent writes `screens/<slug>-ia.md`.
+
+## Add the behavior
+
+To fill in how a screen responds, ask:
 
 ```text
 Design the behavior for <screen>, including feedback, validation, recovery, and motion.
@@ -78,6 +82,6 @@ To check your own work first, ask:
 Review this design set against its user task, principles, quality floor, genre rubric, and grounded aesthetic direction.
 ```
 
-The agent lists findings by severity and writes nothing to disk. For a cold read in a fresh context, run `experience-reviewer` on a screen brief such as `docs/design/screens/onboarding-flow.md`.
+The agent lists findings by severity and writes nothing to disk. You review the designs and decide which findings to fix. For a cold read in a fresh context, run `experience-reviewer` on a screen brief such as `docs/design/screens/onboarding-flow.md`.
 
 Next, [write the contract](../../core/how-to/start-the-work.md) for the reviewed design.

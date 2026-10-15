@@ -36,7 +36,7 @@ template.
   external and needs its own approved adapter or an already-acquired portable
   handoff; this local-file recipe does not probe or mutate it.
 
-## Step 1 — Copy the template
+## Copy the template
 
 ```bash
 cp .claude/skills/new-adr/../../../seeds/governance/manifest.example.yaml \
@@ -48,7 +48,7 @@ Or ask the agent: "Bootstrap a governance index from my existing ADRs."
 The `generate-iac` skill will also offer to bootstrap the index on first use
 if none exists.
 
-## Step 2 — Fill in your ADR numbers
+## Fill in your ADR numbers
 
 Replace each `ADR-NNNN` placeholder with the actual ADR number that covers
 that domain. Use the `new-adr` skill to create any missing ADRs (see
@@ -58,7 +58,7 @@ For IaC-specific domains (`state`, `layout`, `iam`, `tagging`, `networking`,
 `pipeline_auth`, `remediation`), the `new-adr` infra mode gives you the right
 framing question for each.
 
-## Step 3 — Add standard references
+## Add standard references
 
 The `standards:` field lists paths relative to your repo root. These are the
 canonical standards documents that apply to the domain. For IaC work, the
@@ -74,7 +74,7 @@ domains:
     standards: [docs/standards/tagging.md]
 ```
 
-## Step 4 — Commit the index
+## Commit the index
 
 Use the index convention established for the resolved decision-record
 destination. If none exists, explicitly confirm the offered catalogue fallback

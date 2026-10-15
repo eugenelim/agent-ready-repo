@@ -7,7 +7,7 @@ kind: how-to
 
 # Set enterprise defaults
 
-Point every install at your organization's catalogue with no per-machine setup, by shipping defaults inside your own `agentbundle` wheel (the installable Python package). The defaults hold no secrets, and a source a person sets for themselves overrides them.
+Add your catalogue's location to `catalogue.toml`, and installs from your own `agentbundle` build use it by default.
 
 ## Record the coordinates
 
@@ -36,7 +36,7 @@ The generated file holds only the same non-secret coordinates. Run it again with
 
 ## Ship them in your wheel
 
-Commit `install-defaults.toml` beside `catalogue.toml`, then build and publish your organization wheel. An installed copy builds its source from your coordinates:
+Commit `install-defaults.toml` beside `catalogue.toml`, then build and publish your organization wheel, the installable Python package. An installed copy builds its source from your coordinates:
 
 ```text
 catalogue+<base-url>/<repository>/catalogues/<bundle>/channels/<channel>.json

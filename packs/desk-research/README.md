@@ -44,7 +44,7 @@ Subagents, called for you: **`evidence-retriever`** fetches sources with citatio
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Product Strategy](../product-strategy/README.md) reads your survey as evidence for its stakeholder research. [Architect](../architect/README.md) can cite a research brief in a design decision. See [Research a question](../../guides/desk-research/how-to/run-the-research.md) and [Run it as a project](../../guides/desk-research/how-to/run-the-research.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Product Strategy](../product-strategy/README.md) reads your survey as evidence for its stakeholder research. [Architect](../architect/README.md) can cite a research brief in a design decision. See [Research a question](../../guides/desk-research/how-to/run-the-research.md), which also covers research projects.
 
 ## Questions
 

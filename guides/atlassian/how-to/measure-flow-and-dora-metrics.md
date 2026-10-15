@@ -3,22 +3,22 @@ title: "Measure delivery"
 summary: "Get cycle time, lead time, throughput, and other delivery measures from your Jira history, and compare two periods."
 pack: atlassian
 kind: how-to
-uses: [atlassian]
+uses: [atlassian, credential-brokers]
 ---
 
 # Measure delivery
 
-Ask your agent for the delivery numbers your team cares about, and it reads Jira and returns them as data. It only reads, so your tickets are never changed. This page is for teams whose real backlog lives in Jira.
+Check that your agent can reach Jira, then ask for the numbers your team cares about. The agent only reads, so your tickets never change.
 
 ## Check Jira access
 
 Confirm your credentials work before you ask for numbers:
 
-```bash
-python scripts/jira.py check
+```text
+Run the Jira access check and tell me whether my credentials work.
 ```
 
-Exit code 0 means go ahead. Exit code 2 means set up your credentials first with the `credential-setup` skill, because the metrics tool never reads them itself.
+The agent runs the `jira` skill's check script. If it fails, set up your credentials first with the `credential-setup` skill, because the metrics tool never reads them itself.
 
 ## Measure a project
 

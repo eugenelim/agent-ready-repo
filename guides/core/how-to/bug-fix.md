@@ -8,7 +8,7 @@ uses: [core]
 
 # Fix a bug
 
-Ask your agent to fix a bug and it reproduces the problem, finds the cause, and fixes only that. It names the `bug-fix` skill so the routine fires every time.
+Give your agent the bug report, and it reproduces the problem before it changes any code. Naming the `bug-fix` skill makes the routine fire every time.
 
 ## Reproduce it
 
@@ -53,7 +53,5 @@ The agent changes only what the named bug needs. It refuses to hide the symptom 
 ## Ship it
 
 Run your lint, type, and test commands, then open the pull request, as the [development workflow](../../../AGENTS.md#development-workflow) describes. The agent writes the commit as `fix(<scope>): <subject>`, with the root cause in its body, following the [coding conventions](../../../AGENTS.md#coding-conventions). For a fix that touches several files, ask it to run the [build loop](start-the-work.md) so independent reviewers read the diff; [why the loop works this way](../explanation/core-pack.md#why-the-loop).
-
-When users, security, or data are at risk right now, the agent may contain the damage first, after asking you to confirm the action. It then returns to the same sequence, and the test still ships with the fix.
 
 Next, [review the pull request](review-someone-elses-pr.md).

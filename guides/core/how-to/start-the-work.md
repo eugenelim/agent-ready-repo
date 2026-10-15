@@ -12,7 +12,7 @@ aliases:
 
 # Run the build loop
 
-Ask your agent to build a change and it works through four stages: route the request, write down what done means, build and check it, then close it out. The same loop handles features, fixes, refactors, migrations, and upgrades.
+Describe the change you want, and your agent takes it through four stages, one section each below.
 
 ## Route the request
 
@@ -52,6 +52,6 @@ When the change is merged, ask for the record:
 Close this work out.
 ```
 
-The agent runs `close-work`, writes `docs/lifecycle/<slug>.md` with what shipped, what did not and why, and updates the workspace. Anything you want to keep, ask for it with `project-knowledge`.
+The agent runs `close-work`, writes `docs/lifecycle/<slug>.md` with what shipped, what did not and why, and updates the workspace. To keep a lesson for later sessions, ask for `project-knowledge`, which saves what this work taught the project into the repository.
 
 Next, [release the change](../../release-engineering/how-to/run-a-release.md).

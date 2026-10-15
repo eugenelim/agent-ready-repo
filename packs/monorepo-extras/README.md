@@ -23,7 +23,7 @@ agentbundle install --pack monorepo-extras
 
 ## Works with
 
-Works with Claude Code. It requires [Core](../core/README.md) (`^3.0`), so install Core first or alongside. See [Scaffold a new package](../../guides/monorepo-extras/how-to/scaffold-a-new-package.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Install [Core](../core/README.md) (`^3.0`) first or alongside. See [Scaffold a new package](../../guides/monorepo-extras/how-to/scaffold-a-new-package.md).
 
 ## Questions
 

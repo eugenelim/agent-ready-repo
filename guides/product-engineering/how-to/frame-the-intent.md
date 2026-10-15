@@ -12,7 +12,7 @@ aliases:
 
 # Shape an idea
 
-Take a problem from a first sentence to a plan you can hand to a build, with your agent writing each step down. Say each prompt in the same agent session.
+Say each prompt in the same agent session, starting with the problem in one sentence.
 
 ## Write down the outcome
 
@@ -22,7 +22,7 @@ An intent is a short file that states the outcome you want and why. To write one
 Frame this as a product intent: our onboarding drops half of new accounts before they connect a data source.
 ```
 
-The agent writes `intents/<slug>.md` in your product folder, and the `<slug>` follows the work from here on. If the outcome reads like a solution, say so and the agent moves the solution aside.
+The agent writes `intents/<slug>.md` in your product folder, and the `<slug>` follows the work from here on. You approve the intent before the agent explores options.
 
 ## Find the opportunities
 
@@ -42,13 +42,17 @@ To get options that differ in kind, ask:
 Diverge on this opportunity — give me approaches that differ in kind, not in detail.
 ```
 
-The agent writes `shaping/<slug>/solution-options.md`. Then test the options against your limits:
+The agent writes `shaping/<slug>/solution-options.md`.
+
+## Test the options
+
+To test the options against your limits, ask:
 
 ```text
 Explore these candidates against our real constraints and tell me which survive.
 ```
 
-The agent examines each candidate and reports which ones hold up.
+The agent examines each candidate and reports which ones hold up. You select the candidate to pursue.
 
 ## Commit to a bet
 
@@ -58,7 +62,7 @@ To choose one option and record why, ask:
 Place the bet on this candidate — what are we committing to, and what would tell us we were wrong?
 ```
 
-The agent writes `shaping/<slug>/bet.md` with the choice, its reasoning, and what would prove it wrong.
+The agent writes `shaping/<slug>/bet.md` with the choice, its reasoning, and what would prove it wrong. You approve the decision brief before anything is built.
 
 ## Test the riskiest assumption
 
@@ -78,6 +82,6 @@ To split the intent into slices a build can take one at a time, ask:
 Decompose this intent into deliverable slices, each traceable back to the parent.
 ```
 
-The agent records the slices on the intent. One shippable feature goes on as a single contract, and a larger outcome gets a coordinating brief at `docs/product/briefs/<slug>.md`.
+The agent records the slices on the intent. One shippable feature goes on as a single contract, and a larger outcome gets a coordinating brief at `docs/product/briefs/<slug>.md`. You commit to build when you are ready.
 
 Next, [write the contract](../../core/how-to/start-the-work.md) for each slice.

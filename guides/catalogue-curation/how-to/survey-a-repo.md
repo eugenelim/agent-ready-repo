@@ -8,7 +8,7 @@ kind: how-to
 
 # Import and curate skills
 
-Adopt good skills from other repositories without adopting their risks, one skill at a time or a whole repository at once. Your agent does the work, and you review what it fetched and approve what lands.
+Point your agent at a skill in another repository, and you review what it fetched before anything lands.
 
 ## Import one skill
 

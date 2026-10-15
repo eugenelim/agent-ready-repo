@@ -7,7 +7,7 @@ kind: how-to
 
 # Design a profile
 
-Let one kind of person, such as a solution architect, install exactly the packs they use together in one command, by defining a profile.
+Write a profile file that lists the packs one role uses together, such as a solution architect.
 
 ## Write the manifest
 

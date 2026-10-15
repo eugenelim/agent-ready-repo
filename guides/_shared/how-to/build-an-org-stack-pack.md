@@ -7,11 +7,11 @@ kind: how-to
 
 # Build a pack
 
-Give every team your organization's architecture, conventions, and framework knowledge in one install command, by packaging them as a pack in a catalogue your organization owns. For a single repository you do not need a pack: keep its sources where they are and let `adapt-to-project` route them from `AGENTS.md`.
+Package your organization's standards as a pack in a catalogue you own, so every team installs them in one command.
 
 ## Create the pack
 
-Add a folder under `packs/` with a manifest, seeds, and skills:
+For a single repository you do not need a pack: keep its sources where they are and let `adapt-to-project` route them from `AGENTS.md`. For many repositories, add a folder under `packs/` with a manifest, seeds (files an install writes into a repository), and skills:
 
 ```text
 packs/acme-stack/
@@ -24,13 +24,13 @@ In `pack.toml`, set `default-scope = "repo"` and require your copy of `core`. Le
 
 ## Add your standards
 
-Seeds are files an install writes into a repository. Put your standards at the paths teams already use, and ask your agent to draft them:
+Put your standards at the paths teams already use, and ask your agent to draft them:
 
 ```text
 Help me package our backend standards as an organization-owned stack pack. Preserve the files we already use, and route backend-only commands from the backend subtree.
 ```
 
-Repository-wide guidance goes in a delta-only `seeds/AGENTS.md`, meaning it links your sources instead of copying the core scaffold. If an install keeps it as `AGENTS.upstream.md`, `adapt-to-project` proposes a selective merge and never uses raw concatenation. Guidance for one subtree goes in a delta-only scoped `AGENTS.md` there. For each internal framework, add a skill under `.apm/skills/` so agents read its real contract; see [Author a skill](author-a-skill.md).
+Repository-wide guidance goes in a `seeds/AGENTS.md` that is delta-only, meaning it links your sources instead of copying the core scaffold. If an install keeps it as `AGENTS.upstream.md`, `adapt-to-project` proposes a selective merge and never uses raw concatenation. Guidance for one subtree goes in a scoped `AGENTS.md` there, also delta-only. For each internal framework, add a skill under `.apm/skills/` so agents read its real contract; see [Author a skill](author-a-skill.md).
 
 ## Add a profile
 

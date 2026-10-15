@@ -9,7 +9,7 @@ uses: [product-documentation]
 
 # Write the docs
 
-Ask your agent to write a page for a feature that already ships, or to audit your docs for gaps. It reads your code first, so the page matches what the product does.
+Name a feature that already ships and the reader it is for, and your agent drafts the page from your code.
 
 ## Write one page
 

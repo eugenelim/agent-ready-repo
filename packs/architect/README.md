@@ -36,7 +36,7 @@ Subagent: **`design-reviewer`** is a read-only reviewer that works in a fresh co
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. Add [Core](../core/README.md) to save a design where your repository keeps its architecture records, and to reconcile it after the change ships. Your reference architecture guides each design. [Product Engineering](../product-engineering/README.md) offers it at some shaping steps when both are installed. Guides that use this pack: [Design the architecture](../../guides/architect/README.md) and [Assess a repository](../../guides/architect/how-to/assess-a-repository.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Add [Core](../core/README.md) to save a design where your repository keeps its architecture records, and to reconcile it after the change ships. Your reference architecture guides each design. [Product Engineering](../product-engineering/README.md) offers it at some shaping steps when both are installed. Guides that use this pack: [Design the architecture](../../guides/architect/README.md) and [Assess a repository](../../guides/architect/how-to/assess-a-repository.md).
 
 ## Questions
 

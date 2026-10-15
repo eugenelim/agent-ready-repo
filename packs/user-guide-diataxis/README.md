@@ -22,7 +22,7 @@ agentbundle install --pack product-documentation
 
 ## Works with
 
-Works with Claude Code. Version 0.3.0 installs [Product Documentation](../product-documentation/README.md) as a dependency, so if you have this pack you already have the new one. See [Write the docs](../../guides/product-documentation/README.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Version 0.3.0 installs [Product Documentation](../product-documentation/README.md) as a dependency, so if you have this pack you already have the new one. See [Write the docs](../../guides/product-documentation/README.md).
 
 ## Questions
 

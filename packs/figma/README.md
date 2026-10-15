@@ -33,7 +33,7 @@ Then create a Figma personal access token, say "set up credentials" in your agen
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. It requires [Credential Brokers](../credential-brokers/README.md) for your token. [Frontend Engineering](../frontend-engineering/README.md) can read a design handoff when you build the screens. See [Inspect a Figma file](../../guides/figma/how-to/inspect-a-figma-file.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Install [Credential Brokers](../credential-brokers/README.md) first for your token. [Frontend Engineering](../frontend-engineering/README.md) can read a design handoff when you build the screens. See [Inspect a Figma file](../../guides/figma/how-to/inspect-a-figma-file.md).
 
 ## Questions
 

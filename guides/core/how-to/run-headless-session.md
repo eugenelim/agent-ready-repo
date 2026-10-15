@@ -21,7 +21,7 @@ A control harness drives Claude Code sessions programmatically — no human watc
 - An ACP-capable control harness — Claude Code via the `claude-agent-acp` bridge or native Agent SDK
 - `workspace.toml` with at least one initiative in the target repo (see [orient at session start](orient-at-session-start.md))
 
-## Step 1 — Enable headless permissions
+## Enable headless permissions
 
 Claude Code requires explicit permission for each MCP tool before a headless session can use it. Without this, sessions hang waiting for interactive approval.
 
@@ -46,7 +46,7 @@ Add the six `workspace-mcp` tool strings to `permissions.allow` in `.claude/sett
 Automated permission projection is an open item — hand-edit `.claude/settings.json` or include the block in your repo's seed files until it ships.
 :::
 
-## Step 2 — Discover the work queue
+## Discover the work queue
 
 Open a short-lived discovery session with no environment variables. Send a prompt asking the agent to call `workspace_status()`, then read the `ready[]` and `shaping[]` arrays to choose what to dispatch.
 
@@ -91,7 +91,7 @@ The `workspace_status()` response:
 
 Skip items where `unmet_needs` is non-empty (blocked) or `available` is `false` (required pack not installed — run `agentbundle install --pack <required_pack>` first). Close the discovery session.
 
-## Step 3 — Dispatch the item
+## Dispatch the item
 
 The env var you set depends on the item's `type`. One env var selects the session mode.
 
@@ -177,7 +177,7 @@ from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 **Trusted checkouts only:** The spawn args above use the projected adapter path (`.claude/skills/…`). This requires `agentbundle install --pack core` to have run in the checkout. Untrusted-repo / isolated-mode support (`python -I`) is deferred to Stage 2.
 :::
 
-## Step 4 — Monitor progress
+## Monitor progress
 
 Gates surface as incoming `elicitation/create` requests from workspace-mcp to the harness (Step 5) — not through a harness-callable poll. When the work-loop reaches a gate, the agent calls `elicit()`, which blocks the current turn and sends an `elicitation/create` JSON-RPC request containing the gate question. The turn does not complete until the harness responds, so there is no "response from the agent" to poll after.
 
@@ -202,7 +202,7 @@ Key fields in the `workspace_status()` response:
 **Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Gate detection does not require polling — gates arrive as `elicitation/create` requests (Step 5). For independent FSM state reconciliation (e.g., after a session restart), open a separate session with `WORKSPACE_MCP_SPEC_PATH` set and call `workspace_status()` from there.
 :::
 
-## Step 5 — Respond to gates
+## Respond to gates
 
 When `gate_pending` is true, the work-loop is paused waiting for a human decision. The `DEFAULT_SESSION_INSTRUCTION` directs the agent to call `elicit(gate_question)` at gate states. This means **gate responses require ACP elicitation**, not `session/prompt`.
 

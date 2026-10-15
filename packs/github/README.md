@@ -32,7 +32,7 @@ You also need the [`gh` CLI](https://cli.github.com), signed in for any reposito
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. It hands its records to `work-intake` in [Core](../core/README.md), so install Core in your repository. Other trackers: [Linear](../linear/README.md) and [Atlassian](../atlassian/README.md). See [Connect your tracker](../../guides/github/how-to/intake-a-github-milestone-as-a-brief.md) and [Use work intake](../../guides/_shared/how-to/use-work-intake.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. It hands its records to `work-intake` in [Core](../core/README.md), so install Core in your repository. Other trackers: [Linear](../linear/README.md) and [Atlassian](../atlassian/README.md). See [Connect your tracker](../../guides/github/how-to/intake-a-github-milestone-as-a-brief.md) and [Use work intake](../../guides/_shared/how-to/use-work-intake.md).
 
 ## Questions
 

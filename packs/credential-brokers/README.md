@@ -32,7 +32,7 @@ You also get two helpers that skills call, not you: `credbroker`, a Python libra
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Cursor, and Gemini CLI. [Atlassian](../atlassian/README.md), [Figma](../figma/README.md), and [Linear](../linear/README.md) require it for their tokens. To build your own credentialed skill, see [Add credentials to a skill](../../guides/credential-brokers/how-to/add-a-credentialed-skill.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Atlassian](../atlassian/README.md), [Figma](../figma/README.md), and [Linear](../linear/README.md) require it for their tokens. To build your own credentialed skill, see [Add credentials to a skill](../../guides/credential-brokers/how-to/add-a-credentialed-skill.md).
 
 ## Questions
 

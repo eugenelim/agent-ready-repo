@@ -36,7 +36,7 @@ has no gate history, also load `fe-status` first to understand what's known.)
 
 ---
 
-## Step 1. State matrix audit
+## State matrix audit
 
 Compare the surface against all 18 states in the state matrix. For each
 applicable state, mark: **Covered** / **Absent** / **Broken**.
@@ -59,7 +59,7 @@ reduced-motion states.
 
 ---
 
-## Step 2. Accessibility audit
+## Accessibility audit
 
 Run the automated tools, then the two named manual checks.
 
@@ -116,7 +116,7 @@ WCAG 2.2 manual checks above.
 
 ---
 
-## Step 3. CWV measurement
+## CWV measurement
 
 Measure LCP, INP, and CLS at p75 (mobile and desktop separately where
 field data exists).
@@ -141,7 +141,7 @@ is out-of-budget, load `fe-performance` for a structured diagnosis.
 
 ---
 
-## Step 4. CSS token compliance check
+## CSS token compliance check
 
 ```bash
 grep -E "#[0-9a-fA-F]{3,6}|rgba?\(|hsl\(|[0-9]+px" <file.css>
@@ -155,7 +155,7 @@ magic spacing pixels.
 
 ---
 
-## Step 5. Brownfield inspection
+## Brownfield inspection
 
 Walk the six-item brownfield checklist from `frontend-engineering` retrofit
 mode:
@@ -171,7 +171,7 @@ mode:
 
 ---
 
-## Step 5b. Inspect the rendered page
+## Inspect the rendered page
 
 A surface can pass every step above while a banner covers the heading, a price
 runs out of its card, or the only button sits half off-screen. This step looks at
@@ -185,7 +185,7 @@ into the screenshots field.
 
 ---
 
-## Step 6. Write the audit report
+## Write the audit report
 
 Return findings as a prioritised list with severity:
 
@@ -200,7 +200,7 @@ brownfield), with one concrete recommendation.
 
 ---
 
-## Step 7. Record the baseline evidence manifest
+## Record the baseline evidence manifest
 
 After the audit, record what was tested — even if findings exist. The manifest
 is a factual record, not a certificate of completion.

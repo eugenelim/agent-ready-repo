@@ -8,7 +8,7 @@ kind: how-to
 
 # Start a project
 
-Start a new project from an idea, or bring an existing repository in, then find the first thing to build.
+Tell your agent whether you are starting from an idea or from an existing repository.
 
 ## Start from an idea
 

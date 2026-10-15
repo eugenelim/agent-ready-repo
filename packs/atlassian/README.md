@@ -47,7 +47,7 @@ Then say "set up credentials" and give an API token, or use [SSO sign-in](../../
 
 ## Works with
 
-Works with Claude Code, Kiro IDE, Codex, Copilot, Cursor, and Gemini CLI. It requires [Credential Brokers](../credential-brokers/README.md) for your token and hands intake to `work-intake` in [Core](../core/README.md). Other trackers: [GitHub](../github/README.md) and [Linear](../linear/README.md). Guides: [Connect your tracker](../../guides/atlassian/README.md), [Review your team backlog](../../guides/atlassian/review-your-team-backlog.md), and [Work with Jira](../../guides/atlassian/work-with-jira.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Install [Credential Brokers](../credential-brokers/README.md) first for your token. It hands intake to `work-intake` in [Core](../core/README.md). Other trackers: [GitHub](../github/README.md) and [Linear](../linear/README.md). Guides: [Connect your tracker](../../guides/atlassian/README.md), [Review your team backlog](../../guides/atlassian/review-your-team-backlog.md), and [Work with Jira](../../guides/atlassian/work-with-jira.md).
 
 ## Questions
 

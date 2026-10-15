@@ -11,7 +11,7 @@ aliases:
 
 # Design the architecture
 
-Settle a technical choice before you commit to a full design document, then draw the result and get an independent critique of it.
+Name the technical choice you face, and your agent checks whether an existing design already answers it.
 
 ## Frame the choice
 

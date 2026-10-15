@@ -44,7 +44,7 @@ Subagent: **`experience-reviewer`** gives an independent, read-only review in a 
 
 ## Works with
 
-Works with Claude Code, Codex, Copilot, Kiro IDE, Kiro CLI, Cursor, and Gemini CLI. [Product Strategy](../product-strategy/README.md) can supply a UX and content strategy that the journey and content skills read. [Frontend Engineering](../frontend-engineering/README.md) builds from the design handoff. See [Design the experience](../../guides/experience-design/README.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. [Product Strategy](../product-strategy/README.md) can supply a UX and content strategy that the journey and content skills read. [Frontend Engineering](../frontend-engineering/README.md) builds from the design handoff. See [Design the experience](../../guides/experience-design/README.md).
 
 ## Questions
 

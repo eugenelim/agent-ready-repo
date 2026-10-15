@@ -8,11 +8,11 @@ status: stable
 
 # How a catalogue works
 
-Publish your own packs and profiles for your agents to install from, by creating a catalogue: a folder with a `catalogue.toml` at its root, a `packs/` folder of packs, and a `profiles/` folder of named pack lists. You need [`agentbundle`](install-agentbundle.md) installed.
+Create a catalogue with one command, then add your own packs to it.
 
 ## Create the catalogue
 
-Scaffold the folder in one command:
+A catalogue is a folder with a `catalogue.toml` at its root, a `packs/` folder of packs, and a `profiles/` folder of named pack lists. With [`agentbundle`](install-agentbundle.md) installed, scaffold it:
 
 ```bash
 agentbundle catalogue init my-catalogue --name my-catalogue

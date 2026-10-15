@@ -7,7 +7,7 @@ kind: how-to
 
 # Author a skill
 
-Teach your agent a task you repeat, as a skill it loads only when a request matches. Add one after you have done the same multi-step task three times, never speculatively.
+Write a skill after you have done the same multi-step task three times, never speculatively.
 
 ## Create the skill
 

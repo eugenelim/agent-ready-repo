@@ -7,7 +7,7 @@ kind: how-to
 
 # Host on Artifactory
 
-Let your organization install from a catalogue you host on JFrog Artifactory, with one identity that publishes and a different one that reads.
+Create two Artifactory repositories and two identities: one publishes the catalogue and a different one reads it.
 
 ## Create the repositories
 

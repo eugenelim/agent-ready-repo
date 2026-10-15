@@ -7,7 +7,7 @@ kind: how-to
 
 # Write a pack journey
 
-Show readers how to move through your pack, stage by stage, with a `JOURNEY.md` file that lives in the pack and is published as its journey page. Add one when the pack has at least two stages with distinct human decisions.
+Add a `JOURNEY.md` file to your pack, and it is published as the pack's journey page. Add one when the pack has at least two stages with distinct human decisions.
 
 ## Describe each stage
 

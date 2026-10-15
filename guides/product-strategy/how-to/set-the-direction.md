@@ -2,7 +2,7 @@
 title: Set direction and goals
 summary: Go from what you know about the market to a written direction and team goals your engineers can pick up.
 pack: product-strategy
-uses: [product-strategy]
+uses: [product-strategy, core]
 kind: how-to
 aliases:
   - guides/product-strategy/how-to/read-the-situation
@@ -11,7 +11,7 @@ aliases:
 
 # Set direction and goals
 
-Ask your agent to write down where the product is heading and what each team should aim for. Every file lands in `docs/product/shaping/`.
+Start with the research you already have, and each request below writes one file in `docs/product/shaping/`.
 
 ## Read the situation
 
@@ -41,6 +41,6 @@ To turn the approved direction into team goals and queued work, ask:
 Cascade our company OKRs to team level, identify the gaps, and route them to the shaping queue.
 ```
 
-The agent writes `okr-cascade.md` and adds each gap to `workspace.toml`, the file where the repository tracks planned work. Read those entries before you approve, because a vague gap becomes a queued item someone else must interpret. For UX and content, ask for `define-ux-strategy` and `define-content-strategy`.
+The agent writes `okr-cascade.md` and adds each gap to `workspace.toml`, the file where the repository tracks planned work, so `core` must be installed. Read those entries before you approve, because a vague gap becomes a queued item someone else must interpret. For UX and content, ask for `define-ux-strategy` and `define-content-strategy`.
 
 Next, [shape a feature](../../product-engineering/how-to/shape-a-feature-intent.md) from one of the queued gaps.
