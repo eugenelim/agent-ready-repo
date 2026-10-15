@@ -8,6 +8,7 @@ Look-up pages for commands, formats, and standards.
 - [Adapter support matrix](adapter-support.md) — What each agent tool receives, and where it falls short.
 - [Work-intake routing and lifecycle reference](work-intake-routing-and-lifecycle.md) — Intake routes, authority modes, and refresh results.
 - [Tracker intake vocabulary](tracker-vocabulary.md) — How tracker objects map to repository artifacts.
+- [Reference architecture](../../architect/reference/reference-architecture.md) — The file that names your stack, building blocks, and standards.
 
 ## Authoring
 
