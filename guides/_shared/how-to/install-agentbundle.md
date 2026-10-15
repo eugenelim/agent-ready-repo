@@ -28,6 +28,16 @@ agentbundle --help
 
 Use the same Python your agent runs, because some skills import `agentbundle` from their scripts.
 
+## Ask your agent
+
+Your agent can do the install for you:
+
+```text
+Install agentbundle in a virtual environment for this repository and check that it runs.
+```
+
+It creates the environment, installs the package, and runs `agentbundle --help`.
+
 ## Install from a clone
 
 Use a clone when you work on packs or cannot reach PyPI:

@@ -28,6 +28,16 @@ agentbundle install --pack core
 
 Start a new agent session so it loads the new skills.
 
+## Ask your agent
+
+Your agent can run the install for you:
+
+```text
+Use agentbundle to install the core pack into this repository.
+```
+
+It runs the command and tells you to start a new session.
+
 ## Choose a scope
 
 Install a personal tool into your home folder instead of the repository:

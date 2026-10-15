@@ -27,6 +27,16 @@ agentbundle upgrade --pack core
 
 Add `--dry-run` to see which files would change first.
 
+## Ask your agent
+
+Your agent can run the upgrade and the merge in one go:
+
+```text
+Upgrade my installed packs with agentbundle and walk me through any upstream files.
+```
+
+It upgrades each pack, then offers to merge any file you had edited.
+
 ## Keep your edits
 
 When you have edited an installed file, the upgrade leaves it alone. The new version lands beside it as `<name>.upstream.<ext>`, for example `SKILL.upstream.md`.
