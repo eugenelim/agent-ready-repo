@@ -57,3 +57,22 @@ upgrade an existing copy.
 Replacing the `require_endpoints` branch in `check_model` with `if False:` made
 `test_skeleton_edge_without_source_rejected` fail (1 failed, 18 passed);
 restoring it made the suite pass (19 passed).
+
+## Live activation run (T6, 2026-10-15)
+
+Command: `agentbundle pack evals run --pack architect` (headless, Claude Code,
+3 runs per query, 228 runs in all). Per-query results for architect-diagram:
+21/21 queries passed; the runner flags 4 harness errors across the skill.
+
+| Query | Expected | Trigger rate | Result |
+| --- | --- | ---: | --- |
+| q00–q04, q06–q08 (existing diagram asks) | trigger | 1.00 | pass |
+| q05 "Sketch the deployment topology across our AWS accounts" | trigger | 0.67 (1 errored run) | pass |
+| q09 "Draw our order service as a draw.io file" | trigger | 1.00 | pass |
+| q10 "Export this sequence diagram to .drawio so I can edit it in draw.io" | trigger | 0.67 | pass |
+| q11–q19 (existing non-diagram asks) | no trigger | 0.00 | pass |
+| q20 "Open my existing billing.drawio and change the box colours" | no trigger | 0.00 (2 errored runs) | pass |
+
+Other skills in the same run, whose descriptions this change does not touch:
+architect-assess 15/16, architect-design 19/20, architect-review 13/19. None
+of their misses records architect-diagram firing in their place.
