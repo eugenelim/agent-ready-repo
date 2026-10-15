@@ -75,7 +75,7 @@
 # The vehicle's bound. An entry naming a package outside this list is a tool
 # error. Widening it is therefore a visible edit, reviewed on its own terms —
 # this repository has no CODEOWNERS file, so this is the available control.
-allowed_packages = ["pyjwt"]
+allowed_packages = ["pyjwt", "mcp"]
 
 # The reachability premise every entry below relies on, stated once so each
 # `reason` can say which part of it carries that advisory. Two distributions in
@@ -90,3 +90,25 @@ allowed_packages = ["pyjwt"]
 # authentication against an OAuth token endpoint. `make sast` invokes
 # `run-semgrep-gate.py` with `--config` flags and source paths; it starts no MCP
 # server and performs no OAuth client authentication, so neither site executes.
+
+# mcp is in the bound since 2026-10-15 (ADR-0146): Semgrep declares
+# `mcp==1.29.0` exactly, so no pin here can reach the fix.
+[[allow]]
+id       = "CVE-2026-59951"
+package  = "mcp"
+fixed_in = "1.30.0"
+reason   = """
+Resource exhaustion in the Streamable HTTP transport: a stateful server never
+reclaims session state, so a client that can reach the endpoint grows server
+memory without bound. Only servers on that transport are affected.
+In Semgrep 1.175.0 the transport is constructed only by `setup_mcp_server`, from
+the `semgrep mcp --transport streamable-http` subcommand. `make sast` runs
+`run-semgrep-gate.py` with `--config` flags and source paths; it never invokes
+`semgrep mcp` and starts no server, and nothing else here imports `mcp`.
+Verified 2026-10-15; the finding and call paths are recorded in ADR-0146.
+"""
+unblocked_when = """
+A Semgrep release permits mcp>=1.30.0 (or 2.2.0), and tools/requirements-sast.txt
+allows that release. pip-audit then stops reporting this id and the gate exits 2
+naming this entry for removal.
+"""
