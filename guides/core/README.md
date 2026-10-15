@@ -24,7 +24,7 @@ sentence you type. `work-intake` sends each one down the right route. The plan
 `AGENTS.md` lists. You leave
 with a merged change you approved. If your team uses `release-engineering`, the
 merge is where release testing begins, and `close-work` wraps up the work once
-it's done. [See the whole flow](../_shared/explanation/the-operating-model.md#the-handoff-chain).
+it's done. [See the whole flow](../_shared/explanation/the-operating-model.md#the-four-stages).
 
 ## Walk the guidebook
 

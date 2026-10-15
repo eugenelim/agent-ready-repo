@@ -30,7 +30,7 @@ one or two. Find the stage you're in and start there.
 
 Each stage ends when you make the call: commit to an outcome, hand the work to
 the build loop, merge, and approve the production ship. To see every pack in
-that flow, read [the handoff chain](_shared/explanation/the-operating-model.md#the-handoff-chain).
+that flow, read [the handoff chain](_shared/explanation/the-operating-model.md#the-four-stages).
 
 ## Walk a pack
 
