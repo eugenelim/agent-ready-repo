@@ -403,7 +403,7 @@ def test_approved_titles_match_their_body_h1():
 def test_reviewed_control_titles_are_unchanged():
     """The three titles the same decision reviewed and chose to KEEP.
 
-    Four of these carry no baseline entry, so nothing else in the suite would
+    Two of these carry no baseline entry, so nothing else in the suite would
     notice them being reworded alongside a future title sweep.
     """
     actual = {rel: _frontmatter_title(rel) for rel in CONTROL_TITLES}

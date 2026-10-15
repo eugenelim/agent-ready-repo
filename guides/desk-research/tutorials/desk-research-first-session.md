@@ -17,7 +17,7 @@ This is a tutorial — it leads. For the dry catalogue of every flag and field, 
 
 ## Prerequisites
 
-- `agentbundle` on `$PATH` (the [install-agentbundle-from-clone](../../_shared/how-to/install-agentbundle.md#install-from-a-clone) guide walks the one-time setup).
+- `agentbundle` on `$PATH` (the [Install agentbundle](../../_shared/how-to/install-agentbundle.md#install-from-a-clone) guide walks the one-time setup).
 - A project directory you can `cd` into — any project. The pack is user-scope, so it works from any repo you open.
 
 ## Step 1 — install at user scope

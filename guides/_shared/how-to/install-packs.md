@@ -149,7 +149,7 @@ agentbundle install --profile full-ceremony .
 agentbundle install --profile inception
 ```
 
-In a fresh agent session, run `adapt-to-project` for a read-only readiness check. For a new repository, use `init-project` instead. Then install the packs your team uses from neither profile:
+In a fresh agent session, run `adapt-to-project` for a read-only readiness check. For a new repository, use `init-project` instead. Then install the packs your team uses from neither profile. The [Packs page](/agent-ready-repo/docs/packs/) lists every pack with what it does and its default scope. For example:
 
 ```bash
 agentbundle install --pack release-engineering .
@@ -181,7 +181,7 @@ dry-run: 20 file(s) — 19 overwrite, 1 companion. Nothing written.
 
 ## Install as a Claude plugin
 
-Claude Code can install user-scope packs as plugins, with auto-update.
+Claude Code can install user-scope packs as plugins, with auto-update. A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` can run the marker writer.
 
 ```bash
 claude plugin marketplace add <owner>/<catalogue>
@@ -198,7 +198,7 @@ claude plugin install desk-research@agent-ready-repo
 
 Inside a Claude Code session, the same steps are `/plugin marketplace add <owner>/<catalogue>` and `/plugin install <pack>@<catalogue>`. Update with `/plugin update <pack>@<catalogue>`. The Claude apps use **Customize › Plugins › Personal plugins › "+"** instead. Register the marketplace in each place you work.
 
-**The plugin route is user-scope only.** A plugin lives in your global cache, so the marketplace carries only packs whose `allowed-scopes` admits `user`. The [Packs page](/agent-ready-repo/docs/packs/) shows which packs those are; the rest, including `core`, install with `agentbundle`.
+**The plugin route is user-scope only.** A plugin lives in your global cache, so the marketplace carries only packs whose `allowed-scopes` admits `user`. Repo-scoped packs install with `agentbundle`: `core`, `governance-extras`, `iac-terraform`, `monorepo-extras`, `release-engineering`, `user-guide-diataxis`.
 
 Plugin and APM installs print no `Next:` line. Invoke `adapt-to-project` yourself, and run `agentbundle init-state` once so upgrades have a baseline.
 
@@ -206,7 +206,7 @@ Plugin and APM installs print no `Next:` line. Invoke `adapt-to-project` yoursel
 Added the marketplace before 2026-08? Run `claude plugin marketplace update <catalogue>` and reinstall your packs. Older entries installed but delivered nothing. Check with `claude plugin details <pack>@<catalogue>`, for example `claude plugin details <pack>@agent-ready-repo`; `claude plugin marketplace update agent-ready-repo` refreshes this catalogue. A healthy pack reports a non-zero skill count.
 :::
 
-Catalogue maintainers can emit the plugin and APM dist trees at repo scope. This flag cannot be used with `--adapter`:
+Catalogue maintainers can emit the APM and Claude plugin dist trees at repo scope. The plugin tree (`claude-plugins/<pack>/`) is written only for packs whose `allowed-scopes` admits `user`, so a repo-only pack such as `core` gets `apm/<pack>/` alone. This flag cannot be used with `--adapter`:
 
 ```bash
 agentbundle install --pack architect --scope repo --emit-install-routes .

@@ -82,8 +82,9 @@ SITES: list[tuple[str, list[str], list[str]]] = [
     # separate claims, and pinning one string that lives in both means deleting
     # either is green.
     ("guides/_shared/how-to/install-packs.md",
-     [], ["**The plugin route is user-scope only.**",
-          "derived into each **published** pack's"]),
+     _NO_REPO_ONLY_OFFER, ["**The plugin route is user-scope only.**",
+                           "carries only packs whose `allowed-scopes` admits `user`",
+                           "derived into each **published** pack's"]),
     ("guides/_shared/explanation/pack-catalogue.md",
      _NO_REPO_ONLY_OFFER, ["install-packs.md"]),
     ("guides/core/how-to/adapt-to-project.md",

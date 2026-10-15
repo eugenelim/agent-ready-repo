@@ -64,7 +64,7 @@ make zipapp
 ./dist/agentbundle.pyz install --pack core . --output /path/to/your/project
 ```
 
-The archive runs the CLI but does not put `agentbundle` on `sys.path`. Credentialed skills fail with `ModuleNotFoundError` on a host that has only the archive.
+The archive runs the CLI but does not put `agentbundle` on `sys.path`. Credentialed skills fail with `ModuleNotFoundError` on a host that has only the archive. For credentialed skills without PyPI, follow [Add a credentialed skill](../../credential-brokers/how-to/add-a-credentialed-skill.md).
 
 ## Install with APM
 

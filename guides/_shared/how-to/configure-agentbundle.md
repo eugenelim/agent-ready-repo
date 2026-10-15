@@ -33,8 +33,9 @@ An install picks its adapter in this order. The first match wins.
 1. The `--adapter` flag.
 2. The adapter recorded by an earlier install of the same pack.
 3. Your config file.
-4. At user scope only, the IDE folder found on disk: `~/.claude/`, `~/.codex/`, or `~/.kiro/`.
-5. The default, `claude-code`.
+4. Your organization's default, `[organization].preferred_adapter`, when the packaged defaults set one.
+5. At user scope only, the IDE folder found on disk: `~/.claude/`, `~/.codex/`, or `~/.kiro/`.
+6. `claude-code` if the pack allows it, otherwise the first adapter in the pack's `allowed-adapters`.
 
 ### File location
 
