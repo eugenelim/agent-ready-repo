@@ -1,5 +1,7 @@
 # Spec: docs-wayfinding-cluster
 
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): the docs home task hub is replaced by the Intro, pagination follows the current tab, and stage pages show a stage chip instead of a breadcrumb.
+
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
