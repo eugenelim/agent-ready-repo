@@ -135,7 +135,6 @@ test.describe('guidebook step layout', () => {
         // Two ways a reader loses their place here: the rail holds height it no
         // longer fills, which reads as a blank screen above the article, or the
         // one signal it still shows goes missing.
-        //
         if (!railIsFixed) {
           // `.guidebook-position` is the whole of what a reader mid-guidebook
           // gets at this width -- the desktop walk panel is not rendered. Assert

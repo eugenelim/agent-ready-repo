@@ -47,6 +47,15 @@ Guide content, guide URLs, the guide merge into job pages, the Packs, CLI and
 Catalogue System page content, the pack-page template, and the Changelog page
 are outside this spec. Sidebar entries link to today's guide pages.
 
+About 190 guide pages that the old pack-grouped sidebar listed are in no tab.
+Each still builds at its URL, shows the Docs tab with nothing current, and has
+no previous or next link. Readers reach them through search, the guides index
+at `/docs/guides/`, each pack page's guide links, and in-body links, until the
+guide-merge follow-ons fold them into job pages.
+
+A page that sets `prev` or `next` in its frontmatter keeps Starlight's
+pagination instead of the tab-scoped one.
+
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |

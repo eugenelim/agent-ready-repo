@@ -358,7 +358,13 @@ test.describe('docs search and theme controls are keyboard-operable', () => {
         page.locator('html'),
         `${label(ctx)}: the toggle did not switch to dark`
       ).toHaveAttribute('data-theme', 'dark');
-      await expect(toggle).toHaveAttribute('aria-label', 'Switch to light theme');
+      // Every instance (top bar and phone menu) names the next theme, not just
+      // the one pressed.
+      for (const name of await page.locator('button.rail-theme').evaluateAll((els) =>
+        els.map((el) => el.getAttribute('aria-label'))
+      )) {
+        expect(name, `${label(ctx)}: a theme toggle kept a stale name`).toBe('Switch to light theme');
+      }
       expect(await page.evaluate(() => localStorage.getItem('starlight-theme'))).toBe('dark');
       // A fresh tab, because this page's init script re-seeds `light` on every load.
       const fresh = await page.context().newPage();

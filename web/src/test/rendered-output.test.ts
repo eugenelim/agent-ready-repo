@@ -546,7 +546,10 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       const ordered = sidebarLinks(doc(sample)).map((l) => l.href);
       for (const [index, href] of ordered.entries()) {
         const built = builtDocsPage(href);
-        if (!built || !existsSync(built)) continue;
+        if (!built || !existsSync(built)) {
+          failures.push(`${href}: listed in a tab but no built page`);
+          continue;
+        }
         const frag = mainFragment(built);
         const prev = frag.querySelector('a[rel="prev"]')?.getAttribute('href');
         const next = frag.querySelector('a[rel="next"]')?.getAttribute('href');
