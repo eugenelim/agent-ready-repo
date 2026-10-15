@@ -32,6 +32,7 @@ A page the docs sidebar lists is a job page. The CLI tab pages are the model.
 - Explain a file or term where the reader first acts on it, in plain words.
 - Flags, environment variables, edge cases, and errors go to a reference page.
 - No callouts; a table only to compare options. About 150–400 words.
+- No "Step N" in headings: verb-phrase H2s in reading order, H3 for sub-parts.
 - Name no agent host outside the supported agents (no Conductor, Orca, etc.).
 
 ## The guidebook step contract
