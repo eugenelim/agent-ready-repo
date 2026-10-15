@@ -1391,7 +1391,7 @@ def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) ->
     would only drift."""
     del packs  # the listing lives in the sidebar
     content = (
-        '---\ntitle: "Packs"\n'
+        '---\ntitle: "About packs"\n'
         'description: "What a pack installs, and when to install it '
         'for the team or for yourself."\n'
         "---\n\n"

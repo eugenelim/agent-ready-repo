@@ -454,7 +454,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       expect(tabNavs.length, path).toBe(1);
       const tabs = [...tabNavs[0].querySelectorAll('a')];
       expect(tabs.map((a) => a.textContent?.trim()), path).toEqual([
-        'Docs', 'CLI', 'Author', 'Catalogue System',
+        'Docs', 'CLI', 'Packs', 'Author', 'Catalogue System',
       ]);
       expect(tabs.filter((a) => a.getAttribute('aria-current') === 'true').length, path).toBe(1);
       expect(d.querySelectorAll('header site-search').length, path).toBe(1);
@@ -498,27 +498,29 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     // The phone menu repeats the tabs.
     expect(
       [...doc(NESTED_GUIDE).querySelectorAll('nav.sidebar .rail-tabs--menu a')].map((a) => a.textContent?.trim())
-    ).toEqual(['Docs', 'CLI', 'Author', 'Catalogue System']);
+    ).toEqual(['Docs', 'CLI', 'Packs', 'Author', 'Catalogue System']);
   });
 
   // spec/docs-site-rail-shell AC4.
-  it('AC4: the Docs tab runs Intro, Operating model, Packs, five stages, then Pack listing', () => {
+  it('AC4: the Docs tab runs Intro, Operating model, then the five stages', () => {
     const d = doc(NESTED_GUIDE);
     const top = [...d.querySelectorAll('nav.sidebar .rail-nav > li > a')].map((a) => a.textContent?.trim());
-    expect(top).toEqual(['Intro', 'Operating model', 'Packs']);
+    expect(top).toEqual(['Intro', 'Operating model']);
     const groups = [...d.querySelectorAll<HTMLElement>('nav.sidebar .rail-nav > li.rail-group')];
-    expect(groups.map((g) => g.dataset.stage ?? g.querySelector('summary')?.textContent?.trim())).toEqual([
-      'setup', 'decide', 'shape', 'build', 'ship', 'Pack listing',
-    ]);
-    const listing = groups.at(-1)!;
-    expect(listing.querySelector('details')?.hasAttribute('open')).toBe(false);
-    const listed = [...listing.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-    const labels = [...listing.querySelectorAll('a')].map((a) => a.textContent?.trim() ?? '');
+    expect(groups.map((g) => g.dataset.stage)).toEqual(['setup', 'decide', 'shape', 'build', 'ship']);
+  });
+
+  it('AC4: the Packs tab opens with About packs, then every pack in label order', () => {
+    const d = doc(join(DOCS_ROOT, 'packs', 'index.html'));
+    const links = [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar .rail-nav a')];
+    expect(links[0]?.textContent?.trim()).toBe('About packs');
+    const packLinks = links.slice(1);
+    const labels = packLinks.map((a) => a.textContent?.trim() ?? '');
     expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)));
     const packPages = readdirSync(join(DOCS_ROOT, 'packs'), { withFileTypes: true })
       .filter((e) => e.isDirectory() && existsSync(join(DOCS_ROOT, 'packs', e.name, 'index.html')))
       .map((e) => `${DOCS_BASE_PATH}packs/${e.name}/`);
-    expect(new Set(listed)).toEqual(new Set(packPages));
+    expect(new Set(packLinks.map((a) => a.getAttribute('href')))).toEqual(new Set(packPages));
   });
 
   // spec/docs-site-rail-shell AC5.

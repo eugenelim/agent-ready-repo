@@ -124,7 +124,6 @@ export default defineConfig({
           items: [
             { label: 'Intro', slug: 'index' },
             { label: 'Operating model', slug: 'guides/_shared/explanation/the-operating-model' },
-            { label: 'Packs', slug: 'packs' },
             {
               label: 'Set up a repository',
               items: [
@@ -173,14 +172,6 @@ export default defineConfig({
                 { label: 'Measure delivery', slug: 'guides/atlassian/how-to/measure-flow-and-dora-metrics' },
               ],
             },
-            {
-              label: 'Pack listing',
-              collapsed: true,
-              items: (sidebarConfig as any[])
-                .flatMap((group) => group.items ?? [])
-                .filter((item) => typeof item.slug === 'string' && item.slug.startsWith('packs/'))
-                .sort((a, b) => a.label.localeCompare(b.label)),
-            },
           ],
         },
         {
@@ -198,6 +189,16 @@ export default defineConfig({
                 { label: 'File safety', slug: 'guides/_shared/explanation/file-safety-contract' },
               ],
             },
+          ],
+        },
+        {
+          label: 'Packs',
+          items: [
+            { label: 'About packs', slug: 'packs' },
+            ...(sidebarConfig as any[])
+              .flatMap((group) => group.items ?? [])
+              .filter((item) => typeof item.slug === 'string' && item.slug.startsWith('packs/'))
+              .sort((a, b) => a.label.localeCompare(b.label)),
           ],
         },
         {

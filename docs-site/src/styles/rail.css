@@ -211,7 +211,7 @@ site-search kbd {
 @media (min-width: 50rem) {
   .rail-header .rail-tabs { display: flex; gap: 0.125rem; }
   .rail-header__icons { display: flex; align-items: center; gap: 0.25rem; }
-  site-search > button { min-width: 15rem; justify-content: space-between; }
+  site-search > button { justify-content: space-between; }
 }
 
 /* ── Sidebar: the stage line ─────────────────────────────────────────────── */
@@ -741,3 +741,13 @@ button.sl-menu-button {
 }
 
 .rail-pill:hover { border-color: var(--rail-muted); color: var(--rail-ink); }
+
+/* The search box widens only once the tabs and title have room. */
+@media (min-width: 72rem) {
+  site-search > button { min-width: 15rem; }
+}
+
+@media (min-width: 50rem) and (max-width: 71.999rem) {
+  .rail-header__left { gap: 1rem; }
+  .rail-tabs__link { padding-inline: 0.5rem; }
+}
