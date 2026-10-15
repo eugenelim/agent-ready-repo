@@ -1,76 +1,91 @@
 ---
-title: "How to upgrade an installed pack"
-summary: "Upgrade a catalogue pack while preserving local edits as reviewable upstream companion files."
+title: "Upgrade packs"
+summary: "Move an installed pack to a newer version, preview the change, and merge the upstream copies of files you edited."
 pack: _shared
 kind: how-to
 ---
 
-# How to upgrade an installed pack
+# Upgrade packs
 
-**Use this when:** You want to move an installed pack to a newer version — whether a whole pack, a single primitive, or resolving companion files left by a previous upgrade.
-**Prerequisites:** A pack already installed from the catalogue and the `agentbundle` CLI on your PATH; see [Prerequisites](#prerequisites).
-**Result:** The pack upgraded to the newer version with any local edits preserved as `.upstream.<ext>` companion files for selective merging.
+Move an installed pack to a newer version and keep your own edits. You need a pack installed from the catalogue and the `agentbundle` command.
 
-Move an installed pack to a newer version, with the conflict handling you expect when your local edits and the upstream pack have both moved on.
+## Upgrade a pack
 
-## Prerequisites
+```bash
+agentbundle list-installed
+agentbundle upgrade --pack <name> <catalogue>
+agentbundle upgrade --pack core
+```
 
-- A pack already installed from this catalogue via one of the three routes (Claude Code plugin marketplace, APM, or the `agentbundle` CLI).
-- For the catalogue-native flow: the `agentbundle` CLI on your PATH.
-- For catalogue-level safety on APM and Claude-plugin installs: a one-time `agentbundle init-state` run after the original install.
+`list-installed` shows each installed pack, its version, and whether an upgrade is available. `<catalogue>` is the URI you installed from, such as `git+https://github.com/<owner>/<catalogue>` or a local path.
 
-## Pick the right granularity
+`upgrade` takes no version. The target is whatever the catalogue declares.
 
-Three granularities are available, in order of increasing specificity.
-
-### Whole pack (default)
-
-Pick the verb that matches how you originally installed.
-
-- **APM:** `apm update <pack>`.
-- **Claude Code plugins:** `/plugin update <pack>@<catalogue>`.
-- **`agentbundle` CLI:**
-
-  ```bash
-  agentbundle upgrade --pack <name> <catalogue>
-  ```
-
-`upgrade` takes **no version** — the target is whatever the catalogue you point at declares. To move to a specific past version, point `<catalogue>` at that git ref.
-
-The first two use the host tool's native verbs and follow that tool's conflict-resolution rules, not the catalogue's. The `agentbundle upgrade` verb is the only route that drops `*.upstream.<ext>` companions next to any Tier-2 file whose content has diverged since install — letting you walk the merges later via the `adapt-to-project` skill (see *One file at a time* below). Before it writes, it tells you how many of your edited files it will preserve as companions.
-
-`<catalogue>` is the same URI you installed from, e.g. `git+https://github.com/<owner>/<catalogue>` or a local checkout path.
-
-:::tip
-**Check first.** `agentbundle list-installed` shows every installed pack with its version and whether an upgrade is available — run it before upgrading to see what's outstanding (see the [CLI reference](../reference/agentbundle.md#see-whats-installed)).
-:::
-
-:::note
-**Multiple adapters.** If a pack is installed for more than one adapter at the scope, `upgrade` upgrades one adapter per run and asks you to `--adapter` which; the message lists each adapter with its version. Re-running against the version you already have is reported as `re-applied … (already current)`, not a version change.
-:::
-
-:::caution
-**Pitfall — `install --pack` is not the upgrade verb.** `agentbundle install --pack` refuses an in-place re-install. Use `upgrade --pack` to change an installed pack's version.
-:::
-
-### One primitive at a time
-
-Add a primitive filter to the same `upgrade` verb:
+Move one primitive and leave the rest of the pack at its installed version:
 
 ```bash
 agentbundle upgrade --pack <name> --skill <skill-name> <catalogue>
 ```
 
-`--agent`, `--hook`, `--seed <path>`, and `--command` work the same way. Only the named primitive moves; the rest of the pack stays at the previously-installed version. The CLI records the resulting mixed-version state in `.agentbundle-state.toml`; the next whole-pack upgrade flags it.
+`--agent`, `--hook`, `--seed <path>`, and `--command` work the same way. The mixed-version state goes in `.agentbundle-state.toml`, and the next whole-pack upgrade flags it.
 
-### One file at a time
+If the pack is installed for more than one adapter at the scope, pass `--adapter`. The refusal lists each adapter with its version.
 
-Re-invoke the `adapt-to-project` skill. It walks any `*.upstream.<ext>` companions still on disk one by one, with per-file accept / edit / skip / decline. This is the merge UI for the companions a previous `agentbundle upgrade` (or first-install collision) left behind.
+For packs installed with APM or as Claude plugins, use the tool's own verb:
 
-## Downgrades
+```bash
+apm update <pack>
+```
 
-Not supported in v0.1. To roll back: `agentbundle uninstall --pack <pack>` and reinstall at the prior version. Tier-2 (your edited copies) and Tier-3 (files outside the pack's projected paths) survive the uninstall by design — only the upstream-managed Tier-1 files are removed.
+In Claude Code, run `/plugin update <pack>@<catalogue>`. These follow that tool's conflict rules, not the file-safety contract. Run `agentbundle init-state` once after the original install so `agentbundle` has a baseline for those packs.
 
-## Related
+:::caution
+`agentbundle install --pack` refuses an in-place re-install. Use `upgrade --pack` to change a version.
+:::
 
-- [How to adapt a freshly-installed pack](../../core/how-to/adapt-to-project.md) — the skill that walks `*.upstream.<ext>` companions.
+## Preview an upgrade
+
+```bash
+agentbundle upgrade <catalogue-uri> --pack core --dry-run
+agentbundle upgrade <catalogue-uri> --pack core --skill work-loop --dry-run
+```
+
+The preview writes nothing. It lists each file as `overwrite` or `companion`. See [Preview before you install](install-packs.md#preview-before-you-install) for how to read it.
+
+## What upgrade reports
+
+Before it writes, `upgrade` tells you how many of your edited files it will keep as companions. Then it reports one of:
+
+- A real change: `upgraded: <pack> @ <scope> <from> -> <to>`.
+- No version change: `re-applied: <pack> @ <scope> <version> (already current)`. It names the count of edited files kept as companions when there were edits.
+
+## When you edited an installed file
+
+If you changed a file since install, `upgrade` never overwrites it. It writes the new upstream version next to yours as `<name>.upstream.<ext>`. For example, `SKILL.md` gets `SKILL.upstream.md`.
+
+Merge the companions one file at a time. Ask your agent to run the `adapt-to-project` skill. For each companion it offers accept, edit, skip, or decline. See [Adapt a freshly installed pack](../../core/how-to/adapt-to-project.md).
+
+Files outside the pack's projected paths are never touched. The [file-safety contract](../explanation/file-safety-contract.md) defines the three tiers.
+
+`upgrade` does not go back a version. To roll back, uninstall, then install from the earlier version's git ref:
+
+```bash
+agentbundle uninstall --pack <pack>
+agentbundle install --pack <pack> git+https://github.com/<owner>/<catalogue>@<ref>
+```
+
+Your edited files and files outside the pack's paths survive an uninstall. Only the files the pack owns are removed.
+
+## Upgrade agentbundle itself
+
+Upgrade the command with the tool you installed it with:
+
+```bash
+python -m pip install --upgrade agentbundle
+```
+
+For an editable install from a clone, pull the clone. The CLI and the pack content both update with no reinstall.
+
+```bash
+git pull
+```

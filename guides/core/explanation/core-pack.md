@@ -191,7 +191,7 @@ For everything else — features, multi-file bug fixes, refactors, migrations, s
 ## Where to read next
 
 - [The pack catalogue](../../_shared/explanation/pack-catalogue.md) — why `core` is the load-bearing pack and how the other packs compose against it.
-- [Install routes](../../_shared/explanation/install-routes.md) — the four ways to install `core` and the install→adapt chain that closes on first session.
+- [Install routes](../../_shared/how-to/install-packs.md) — the four ways to install `core` and the install→adapt chain that closes on first session.
 - [`core-pack.md` § Why the loop](../../core/explanation/core-pack.md#why-the-loop) — the contributor-side rationale, deeper than this page.
 - [The token economy of the loop](token-economy.md) — what the loop wastes, what it spends on purpose, and why the cold reviewer is worth its cost.
 - [The `work-loop` skill itself](../../../packs/core/.apm/skills/work-loop/SKILL.md) — the authoritative procedure. Loaded by the agent when a non-trivial task starts.

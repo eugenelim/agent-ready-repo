@@ -21,7 +21,7 @@ This is a tutorial — it leads. For the full `new-adr` procedure, see [How to r
 
 ## What you need before starting
 
-- `agentbundle` on your PATH. The [install agentbundle](../../_shared/how-to/install-agentbundle-from-clone.md) guide covers the one-time setup.
+- `agentbundle` on your PATH. The [install agentbundle](../../_shared/how-to/install-agentbundle.md#install-from-a-clone) guide covers the one-time setup.
 - A repo you can work in. This tutorial deliberately accepts `docs/adr/` when
   Core offers the catalogue fallback; if your repository declares a custom
   decision-record location, use that location instead.

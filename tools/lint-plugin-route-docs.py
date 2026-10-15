@@ -74,22 +74,19 @@ SITES: list[tuple[str, list[str], list[str]]] = [
     # The live count must be listed or the guard only catches counts nobody
     # would write today; `test-lint-plugin-route-docs.py` derives the real pack
     # count and reddens when a new pack makes this list stale.
-    ("docs-site/src/content/docs/getting-started/install.md",
+    ("guides/_shared/how-to/install-packs.md",
      _NO_REPO_ONLY_OFFER + ["all 20 packs", "all 21 packs", "all 22 packs",
                             "all 23 packs", "for all packs"],
      ["Repo-scoped packs"] + [f"`{p}`" for p in REPO_ONLY if p != "catalogue-curation"]),
     # Two entries: the route-table row and the marker-writer paragraph are
     # separate claims, and pinning one string that lives in both means deleting
     # either is green.
-    ("guides/_shared/explanation/install-routes.md",
-     _NO_REPO_ONLY_OFFER,
-     ["**Carries only packs whose `allowed-scopes` admits `user`**"]),
-    ("guides/_shared/explanation/install-routes.md",
-     [], ["The plugin route is user-scope only",
-          "derived into each **published** pack's"]
-        + [f"`{p}`" for p in REPO_ONLY if p != "catalogue-curation"]),
+    ("guides/_shared/how-to/install-packs.md",
+     _NO_REPO_ONLY_OFFER, ["**The plugin route is user-scope only.**",
+                           "carries only packs whose `allowed-scopes` admits `user`",
+                           "derived into each **published** pack's"]),
     ("guides/_shared/explanation/pack-catalogue.md",
-     _NO_REPO_ONLY_OFFER, ["install-routes.md"]),
+     _NO_REPO_ONLY_OFFER, ["install-packs.md"]),
     ("guides/core/how-to/adapt-to-project.md",
      _NO_REPO_ONLY_OFFER, ["repo-scoped"]),
     (".github/workflows/publish-claude-plugins.yml",

@@ -23,6 +23,6 @@ test('marks docs root as page and nested docs as location without fragment state
   const docs = { id: 'docs', label: 'Docs', target: '/docs/', kind: 'internal' } as const;
   const fragment = { id: 'how-it-works', label: 'How it works', target: '/#the-model', kind: 'internal' } as const;
   assert.equal(docsChromeCurrent(docs, '/docs/'), 'page');
-  assert.equal(docsChromeCurrent(docs, '/docs/getting-started/install/'), 'location');
+  assert.equal(docsChromeCurrent(docs, '/docs/guides/_shared/how-to/install-agentbundle/'), 'location');
   assert.equal(docsChromeCurrent(fragment, '/'), undefined);
 });

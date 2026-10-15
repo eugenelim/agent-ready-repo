@@ -66,7 +66,7 @@ _APPROVED_SHARED_CHROME_DESTINATIONS = {
     "packs": ("Packs", "/packs/", "internal"),
     "journeys": ("Journeys", "/journeys/", "internal"),
     "get-started": ("Get started", "/docs/getting-started/", "internal"),
-    "install": ("Install", "/docs/getting-started/install/", "internal"),
+    "install": ("Install", "/docs/guides/_shared/how-to/install-agentbundle/", "internal"),
     "three-loops": ("The operating model", "/docs/guides/_shared/explanation/the-operating-model/", "internal"),
     "all-docs": ("All docs", "/docs/", "internal"),
     "changelog": ("Changelog", "/docs/changelog/", "internal"),

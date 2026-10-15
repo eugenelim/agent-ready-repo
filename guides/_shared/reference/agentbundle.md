@@ -21,7 +21,7 @@ When the wheel is hosted in an internal PyPI repository, Pip, uv, Poetry, or
 the selected package client owns authentication. Its `.netrc`, keyring, or
 login state is not reused when AgentBundle later reads a protected catalogue.
 
-To install from a clone instead — for repo contributors or for users on an offline / corporate network — see [`../how-to/install-agentbundle-from-clone.md`](../how-to/install-agentbundle-from-clone.md).
+To install from a clone instead — for repo contributors or for users on an offline / corporate network — see [`../how-to/install-agentbundle.md#install-from-a-clone`](../how-to/install-agentbundle.md#install-from-a-clone).
 
 After install, every subcommand is reachable via `agentbundle <verb>` or `python -m agentbundle <verb>`. `agentbundle --help` lists the full set.
 
@@ -76,7 +76,7 @@ agentbundle install <catalogue-uri> --pack core --dry-run
 agentbundle upgrade <catalogue-uri> --pack core --dry-run
 ```
 
-`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. See the [preview how-to](../how-to/preview-install-or-upgrade.md) for how to read the plan.
+`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. See the [preview how-to](../how-to/install-packs.md#preview-before-you-install) for how to read the plan.
 
 ## Configure the default adapter
 

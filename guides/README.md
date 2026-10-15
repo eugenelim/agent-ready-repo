@@ -66,8 +66,8 @@ once you know the shape.
 
 Installation starts by choosing the route that fits your repository.
 
-1. [Choose an install route](_shared/explanation/install-routes.md)
-2. [Install the whole lifecycle](_shared/how-to/install-the-whole-lifecycle.md)
+1. [Install packs for your agent](_shared/how-to/install-packs.md)
+2. [Install the whole lifecycle](_shared/how-to/install-packs.md#install-the-whole-lifecycle)
 3. [Adapt an existing repo](core/how-to/adapt-to-project.md) — or [start a new project](core/how-to/start-a-project.md)
 4. [Orient at session start](core/how-to/orient-at-session-start.md)
 
@@ -234,11 +234,11 @@ Pack directories contain task guidance for that pack. [`_shared/`](_shared/) con
 
 - [See the operating model](_shared/explanation/the-operating-model.md): how work flows from idea to production.
 - [Understand packs, profiles, adapters, composition, and catalogue ownership](_shared/explanation/pack-catalogue.md).
-- [Choose an install route](_shared/explanation/install-routes.md) and [check adapter support](_shared/reference/adapter-support.md).
-- [Install a curated profile](_shared/how-to/install-a-profile.md), [preview a change](_shared/how-to/preview-install-or-upgrade.md), or [upgrade safely](_shared/how-to/upgrade-packs.md).
+- [Install packs for your agent](_shared/how-to/install-packs.md) and [check adapter support](_shared/reference/adapter-support.md).
+- [Install a curated profile](_shared/how-to/install-packs.md#install-a-profile), [preview a change](_shared/how-to/install-packs.md#preview-before-you-install), or [upgrade safely](_shared/how-to/upgrade-packs.md).
 - [Create your own catalogue](_shared/how-to/create-a-catalogue.md) and [apply its portable authoring standards](_shared/reference/catalogue-authoring-standards.md).
 
-Claude users can [add this catalogue as a plugin marketplace](_shared/explanation/install-routes.md) and install user-scope packs directly. Repo-scoped packs such as `core` still install with `agentbundle` so their workflow belongs to the project and team.
+Claude users can [add this catalogue as a plugin marketplace](_shared/how-to/install-packs.md#install-as-a-claude-plugin) and install user-scope packs directly. Repo-scoped packs such as `core` still install with `agentbundle` so their workflow belongs to the project and team.
 
 The public documentation site generates the complete pack and guide navigation from this tree. [Browse the complete generated pack reference](https://eugenelim.github.io/agent-ready-repo/docs/packs/); this page stays a route map rather than duplicating that inventory by hand.
 

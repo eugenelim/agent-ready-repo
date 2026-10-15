@@ -288,9 +288,9 @@ def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
 # taking the right-hand side verbatim, so requoting a title without changing a
 # character of it is not a failure. Wording is the subject; quoting is not.
 #
-# Without these, reverting any approved title, any of the five controls, the two
+# Without these, reverting any approved title, any of the three controls, the two
 # baseline deletions, or any of the three pack-index link labels fails nothing in
-# the suite: four of the five controls have no `guide-nav-baseline.toml` entry, so
+# the suite: two of the three controls have no `guide-nav-baseline.toml` entry, so
 # the pair guard does not reach them, and nothing else in the repo compares
 # Markdown link text against anything.
 
@@ -305,14 +305,10 @@ APPROVED_TITLES = {
     "guides/iac-terraform/README.md":
         "Terraform and OpenTofu guides",
 }
-# The five reviewed titles the same decision holds UNCHANGED.
+# The three reviewed titles the same decision holds UNCHANGED.
 # Read from the tree, not from memory: an earlier draft of this dict guessed the
 # wording and the test caught it.
 CONTROL_TITLES = {
-    "guides/_shared/how-to/install-user-scope-pack-into-codex.md":
-        "How to install a user-scope pack into Codex",
-    "guides/_shared/how-to/install-user-scope-pack-into-kiro.md":
-        "How to install a user-scope pack into Kiro",
     "guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md":
         "Authenticate Jira and Confluence with an SSO web session",
     "guides/frontend-engineering/reference/frontend-engineering.md":
@@ -405,9 +401,9 @@ def test_approved_titles_match_their_body_h1():
 
 
 def test_reviewed_control_titles_are_unchanged():
-    """The five titles the same decision reviewed and chose to KEEP.
+    """The three titles the same decision reviewed and chose to KEEP.
 
-    Four of these carry no baseline entry, so nothing else in the suite would
+    Two of these carry no baseline entry, so nothing else in the suite would
     notice them being reworded alongside a future title sweep.
     """
     actual = {rel: _frontmatter_title(rel) for rel in CONTROL_TITLES}
