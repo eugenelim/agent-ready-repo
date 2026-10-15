@@ -85,8 +85,8 @@ const entries = active?.entries ?? [];
   const pane = document.getElementById('starlight__sidebar');
   const current = pane?.querySelector<HTMLElement>('.rail-nav [aria-current="page"]');
   const reveal = () => {
-    const scroller = pane?.querySelector<HTMLElement>('.sidebar-content') ?? pane;
-    if (!current || !scroller || scroller.scrollTop > 0) return;
+    // The pane itself scrolls (Starlight's page frame), not its content box.
+    if (!current || !pane || pane.scrollTop > 0) return;
     const box = current.getBoundingClientRect();
     if (box.bottom > window.innerHeight) current.scrollIntoView({ block: 'center' });
   };
