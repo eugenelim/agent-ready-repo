@@ -91,4 +91,4 @@ Before the skill is fully landed, verify:
 The [full definition-of-done table](../explanation/skill-standards.md#the-definition-of-done--both-paths) in the standards file covers both assimilation and writing paths side by side.
 
 Next: survey a whole repo at once — see [Survey a repo](../how-to/survey-a-repo.md).
-Or bring in a subagent — see [Your first subagent](./your-first-subagent.md).
+Or bring in a subagent — see [Assimilate an external subagent](./assimilate-a-subagent.md).

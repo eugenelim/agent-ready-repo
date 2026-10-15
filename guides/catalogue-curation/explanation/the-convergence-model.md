@@ -150,4 +150,4 @@ One source is authoritative; derivatives are derived, not collaborative branches
 [agentskills.io specification — applied reference](../../_shared/reference/agentskills-io-standard.md) ·
 [Catalogue operator journey](catalogue-operator-journey.md) ·
 [Your first assimilation](../tutorials/first-assimilation.md) ·
-[Your first subagent](../tutorials/your-first-subagent.md)
+[Assimilate an external subagent](../tutorials/assimilate-a-subagent.md)

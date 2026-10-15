@@ -8,9 +8,7 @@ slug: guides/_reference/catalogue-format
 
 # Catalogue format
 
-:::note
-Version: 1 (the `schema = 1` field in `catalogue.toml`).
-:::
+`catalogue.toml` tells `agentbundle` what a catalogue (a folder of packs and profiles) contains and where it is published. This page lists its markers, files, and checks for version 1, the `schema = 1` field in `catalogue.toml`.
 
 ## Required markers
 
@@ -57,7 +55,7 @@ path = "okf/delivery-practices"
 "router-skill" = "delivery-practices-reference"
 ```
 
-The declaration and `packs/<pack>/okf/<bundle>/` tree are canonical source,
+The declaration and `packs/<pack>/okf/<bundle>/` tree are the source of truth,
 including the bundle-root `index.md`, which is hand-authored and must carry
 `okf_version` and `license`. `compile-okf` owns the generated `index.md` files
 beneath `.apm/skills/<router>/references/okf/`, the portable Skills beneath the
@@ -89,3 +87,24 @@ post-build artifact checks, and self-host drift detection.
 For CI pipeline patterns using `verify`, `lint`, and `package` — including
 publication ordering, exit codes, and JSON output shapes — see the
 [Catalogue CI contract](catalogue-ci-contract.md).
+
+## Scaffold options
+
+`agentbundle catalogue init <dir>` takes these metadata flags. A fresh scaffold writes `catalogue.toml`, `.claude-plugin/marketplace.json`, `packs/` and `profiles/` with an `_example` entry each, and the CI contract and authoring standards under `guides/_shared/reference/`. It never overwrites an existing file, so a second run reports each file as `SKIP (already-present)`.
+
+| Flag | Default |
+|------|---------|
+| `--name NAME` | Derived from the directory name; letters, digits, hyphens, and underscores, starting with a letter or digit |
+| `--display-name NAME` | Title-cased from `--name` |
+| `--description TEXT` | Generated from `--name` |
+| `--owner-name NAME` | Same as `--display-name` |
+| `--preferred-adapter ADAPTER` | From `install-defaults.toml`, or `claude-code` |
+| `--dry-run` | Off; lists the files it would create without writing |
+
+## Troubleshooting
+
+**Init reports `CONFLICT` for one or more files.** The target already holds those files with different content. Remove or rename the conflicting file and run init again, or use a new directory.
+
+**`--name` fails validation.** Catalogue names must match `[A-Za-z0-9][A-Za-z0-9_\-]*`, so avoid spaces, dots, and slashes.
+
+**`agentbundle catalogue verify` reports `CAT-V-016 install-defaults drift`.** Run `agentbundle catalogue sync-defaults --write --root <dir>` to regenerate the defaults file from `catalogue.toml`.

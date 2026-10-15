@@ -86,7 +86,7 @@ Use the five-verb taxonomy to pick the right name:
 
 **Banned as skill names:** `arrive`, `orient`, `onboard`, `return`, `onboarding` — these are UX-stage labels, not user-facing commands. Using them as skill names causes activation collisions with the arc vocabulary users already know.
 
-For the full taxonomy table and naming rules, see [How to author a skill](../how-to/author-a-skill.md#naming-your-skill).
+For the full taxonomy table and naming rules, see [Skill authoring standards](../reference/skill-authoring-standards.md#naming-your-skill).
 
 **Output from this step:** a name for each skill in your arc map.
 
