@@ -35,21 +35,12 @@ A page the docs sidebar lists is a job page. The CLI tab pages are the model.
 - No "Step N" in headings: verb-phrase H2s in reading order, H3 for sub-parts.
 - Name no agent host outside the supported agents (no Conductor, Orca, etc.).
 
-## The guidebook step contract
-
-A guidebook step is a guide page carrying `order:` frontmatter inside a pack's
-guidebook, and every step must carry every obligation the contract enumerates.
-The contract is [`docs/guides/guidebook-step-contract.md`](../docs/guides/guidebook-step-contract.md)
-and `tools/lint-guidebook-steps.py` enforces it, reading its identifiers and
-label forms out of that file.
-
 ## Essential commands
 
 ```bash
 python3 tools/validate_guides.py
 python3 tools/check-guide-index.py
 python3 tools/lint-guide-titles.py
-python3 tools/lint-guidebook-steps.py guides/<pack>
 python3 tools/build-site.py
 ```
 

@@ -55,26 +55,18 @@ def _guidebooks_group() -> dict | None:
     return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")[1]
 
 
-def test_guidebooks_anchor_points_at_step_one_of_a_real_walk():
-    """The anchor exists to make a walk reachable, so it must reach one.
-
-    A reader on a pack page could not find the guidebook at all: the guides
-    tree is one group of two hundred entries nested among the packs, and the
-    pack page's only guides link left the site for GitHub. An anchor that
-    pointed at a page which is not a step, or at a walk of one, would restate
-    that failure rather than fix it.
-    """
-    anchor = _guidebooks_group()
-    assert anchor is not None and anchor["items"], "no guidebook is anchored"
-    steps = {
-        r["slug"]: r
+def test_no_guidebook_walk_remains():
+    """spec/docs-job-pages AC2: each pack guidebook became one job page whose
+    steps are sections, so no page carries a "Step N of M" position and the
+    sidebar can never open a walk part-way through."""
+    steps = [
+        r["slug"]
         for r in build_site.build_guide_inventory(REPO_ROOT / "guides")
         if r.get("step") is not None
-    }
-    for item in anchor["items"]:
-        record = steps.get(item["slug"])
-        assert record is not None, f"{item['slug']} is not a guidebook step"
-        assert record["step"] == 1, f"{item['slug']} is step {record['step']}, not the first"
+    ]
+    assert steps == [], f"guidebook step pages remain: {steps}"
+    anchor = _guidebooks_group()
+    assert anchor is None or not anchor["items"], anchor
 
 
 # ---------------------------------------------------------------------------

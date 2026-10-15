@@ -158,14 +158,13 @@ export default defineConfig({
                 { label: 'Build a page or component', slug: 'guides/frontend-engineering/how-to/page-screen-contract' },
                 { label: 'Record a decision', slug: 'guides/governance-extras/how-to/new-adr' },
                 { label: 'Write the docs', slug: 'guides/product-documentation/how-to/write-a-guide' },
-                { label: 'Close out the work', slug: 'guides/core/how-to/close-it-out' },
               ],
             },
             {
               label: 'Ship it',
               items: [
                 { label: 'Release a change', slug: 'guides/release-engineering/how-to/run-a-release' },
-                { label: 'Change infrastructure', slug: 'guides/iac-terraform/explanation/infrastructure-in-the-release-loop' },
+                { label: 'Change infrastructure', slug: 'guides/iac-terraform/how-to/change-infrastructure' },
                 { label: 'Measure delivery', slug: 'guides/atlassian/how-to/measure-flow-and-dora-metrics' },
               ],
             },

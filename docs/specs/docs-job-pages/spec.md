@@ -21,6 +21,7 @@ Every page a reader reaches from the docs sidebar meets one standard (`guides/AG
 - **Operating model.** Title "Operating model"; one storyline from the four stages to where you decide.
 - **Author and Catalogue System tabs.** Each page rewritten to the standard.
 - **Pack pages.** Each `packs/<pack>/README.md` follows the template: name, one sentence, install, what your agent can do, skills, works with, questions, details. The H1 is the pack's `display_name`.
+- **Guidebook machinery retired.** The `guidebook-walk` CI job, `tools/check-guidebook-walk.py` and its self-test, `tests/roster/test_experience_design_guide_agreement.py` (it checked step pages that no longer exist), and `web/src/test/e2e/guidebook-walk.spec.ts` go; `web/src/test/e2e/docs-rail.spec.ts` keeps its page-frame checks on a job page.
 - **Page furniture.** A `uses:` frontmatter list renders as pack pills under the title; the grey line under the title is the page's outcome in one sentence, and the Intro has none.
 
 ## Durable Outputs

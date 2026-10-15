@@ -3,7 +3,7 @@ title: "Change infrastructure"
 summary: "Turn a plain-language infrastructure request into reviewed Terraform or OpenTofu, and keep your environment in sync with it."
 pack: iac-terraform
 kind: how-to
-uses: [iac-terraform]
+uses: [iac-terraform, core, governance-extras]
 ---
 
 # Change infrastructure

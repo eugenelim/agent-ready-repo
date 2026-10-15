@@ -1580,8 +1580,7 @@ jobs:
       - name: Set up Node (gate-css-tokens)
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
-          # 24 matches web/package.json engines; docs.yml's guidebook-walk job
-          # pins the same major from the same action SHA.
+          # 24 matches web/package.json engines.
           node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
