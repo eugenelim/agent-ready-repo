@@ -141,10 +141,11 @@ def check_drawio_text(
 
 def _fixtures() -> list[Path]:
     """Return the shipped ``.drawio`` fixtures, failing loudly if one is absent."""
-    missing = [n for n in REQUIRED_FIXTURES if not (TESTDATA / f"{n}.drawio").is_file()]
+    found = sorted(TESTDATA.glob("*.drawio"))
+    missing = sorted(set(REQUIRED_FIXTURES) - {f.stem for f in found})
     if missing:
         raise SystemExit(f"missing draw.io fixtures: {missing}")
-    return sorted(TESTDATA.glob("*.drawio"))
+    return found
 
 
 FIXTURES = _fixtures()
