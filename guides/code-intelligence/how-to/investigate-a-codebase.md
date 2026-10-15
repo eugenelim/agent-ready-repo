@@ -1,107 +1,45 @@
 ---
-title: Investigate a codebase
-summary: Pick the right investigation pattern for the question — understand an entity, analyze change impact, investigate behavior, analyze architecture, or assemble task context — and know when to stop.
+title: Understand the code
+summary: Get evidence-backed answers about what a codebase does, what depends on it, and what a change would break.
 pack: code-intelligence
+uses: [code-intelligence]
 kind: how-to
 ---
 
-# Investigate a codebase
+# Understand the code
 
-**Use this when:** you have a question about what is true in a codebase and want
-the agent to gather evidence deliberately rather than wander the graph.
+Ask your agent a question about your code and it answers from an index of the repository's symbols and their relationships, then reads the source to check.
 
-**Before you start:** the repository must be indexed. See
-[Your first session](../tutorials/first-session.md).
+## Build the index
 
-## Choose the pattern from the question
+To index the repository with `wicked-estate`, the tool the pack queries, run:
 
-You do not need to name the pattern — the skill selects it — but knowing which
-one is running tells you what to expect back.
+```bash
+wicked-estate index .
+```
 
-| You ask | Pattern | It ends when |
-| --- | --- | --- |
-| "What is X and how does it work?" | Understand an entity | The agent can state X's job, inputs, and callers |
-| "What breaks if I change X?" | Analyze change impact | Direct and transitive impact are separated and the important paths read |
-| "Why does X do Y?" | Investigate behavior | Evidence explains it, or the unexplained link is named |
-| "How is this organised?" | Analyze architecture | Structure is described and interpretation labelled as such |
-| "What do I need to read for X?" | Assemble task context | The bundle is bounded and every item has a reason |
+This writes `.wicked-estate/graph.db` and leaves your code untouched. [Your first session](../tutorials/first-session.md) covers installing the tool.
 
-## The habit underneath all five
+## Ask your question
 
-1. **Resolve before reading.** Names are not unique. Two matches is a finding,
-   not an inconvenience — expect to be asked which you meant.
-2. **Read source before concluding.** A graph edge says a call exists; only the
-   source says what it does.
-3. **Expand one hop at a time.** Pulling a large subgraph and reasoning over
-   unread code produces confident wrong answers.
-4. **Stop when the question is answered**, not when the graph is exhausted.
+Ask in plain words, and the skill picks the right pattern:
 
-## Ask for the limits when they matter
+```text
+What breaks if I change the signature of parse_config?
+```
 
-The index reports its own incompleteness and a good answer passes that on. If
-you get a bare list, ask:
+The agent lists direct and indirect callers separately and reads the important ones in source. Other questions work the same way: "What is X and how does it work?", "Why does X do Y?", "How is this organised?", and "What do I need to read for X?".
 
-> How complete is that?
+## Check how complete it is
 
-Five things should come back: unresolved references, whether output was
-split across pages (`next_cursor`), whether the depth horizon was reached (`depth_horizon_reached`),
-whether the node cap was hit (`node_cap_reached`), and which revision the index
-describes. When `depth_horizon_reached` is true, use `blast-radius <name> --depth N`
-(max 24) to look further. A true `node_cap_reached` means the walk hit its node
-budget; no flag raises it. When `next_cursor` is not `null`, more rows are on later
-pages: pass it back with `--cursor` until it is `null`, and start again from the
-first page if a cursor is refused.
+If you get a bare list, ask:
 
-## When architecture is the question
+```text
+How complete is that?
+```
 
-Watch for the answer separating two things:
+The agent reports unresolved references, whether results were cut off, and which revision the index describes. When the index is missing, the agent says it fell back to text search and does not call that a blast radius.
 
-> **Observed:** cluster 3 holds 41 symbols across `billing/` and `invoicing/`.
->
-> **Interpretation:** those two directories are probably one domain split by
-> folder rather than responsibility.
+The agent reports what is true in the code and makes no recommendation. The [capability reference](../reference/capability-surface.md) lists every query it can run.
 
-The first is what the graph reported. The second may be wrong. An answer that
-merges them is doing something you cannot check.
-
-## When the index is absent
-
-The skill falls back to ordinary repository search and must say so. What it
-must never do is present that fallback as a blast radius, lineage, or
-provenance — those are properties of an index, and text search does not have
-them. If you see those words without an index, something has gone wrong.
-
-## A worked example
-
-The example lives at `references/composition-example.md` inside the installed
-`code-intelligence` skill. Reading it shows how to apply the investigation
-patterns to a specific question, follow the evidence discipline end-to-end, and
-fall back gracefully when the index is absent or stale.
-
-It walks one question — before changing the signature of `parse_config`, which
-call sites must change, and which could not be established? — through two paths.
-
-The **provider-fit path** shows the preflight check, a freshness check,
-resolving the symbol, the direct-dependents query, source verification of the
-load-bearing call sites, and the stopping point.
-
-The **fallback path** shows what to do when the binary is absent, the index has
-not been built, the binary is older than the supported floor, or the index is
-stale for the file being changed. It labels text search and source reading as a
-different evidence class from an indexed call graph and names what they cannot
-establish.
-
-The example is illustrative, not a contract. Other providers may expose fewer,
-different, or new capabilities and need not emulate Wicked Estate. The current
-investigation patterns may change.
-
-## What this will not give you
-
-- **A deletion list.** `dead-code` returns symbols with no edges, which on one
-  real repository was 65% of all nodes — reflection and framework registration
-  look identical to genuinely dead code.
-- **A ranked-dependents list from a single call on the CLI.** Use the
-  seed-then-filter composition: `rank --seeds <dependent ids> --limit 200 --json`,
-  then keep only rows in your set.
-- **A recommendation.** The pack reports what is true. What to do about it
-  belongs to whichever workflow asked.
+Next, [shape a feature](../../product-engineering/how-to/shape-a-feature-intent.md) with what you learned.
