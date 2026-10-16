@@ -65,8 +65,8 @@ def main() -> int:
     expected_paths = {
         ".github/workflows/publish-claude-plugins.yml",
         "README.md",
-        "docs-site/src/content/docs/getting-started/install.md",
-        "guides/_shared/explanation/install-routes.md",
+        "guides/_shared/how-to/install-packs.md",
+        "guides/_shared/reference/agentbundle.md",
         "guides/_shared/explanation/pack-catalogue.md",
         "guides/core/how-to/adapt-to-project.md",
         "packs/core/.apm/hook-wiring/session-start.toml",
@@ -115,7 +115,7 @@ def main() -> int:
         1 for d in (repo_root / "packs").iterdir()
         if d.is_dir() and not d.name.startswith("_") and (d / "pack.toml").exists()
     )
-    install_forbidden = by_path["docs-site/src/content/docs/getting-started/install.md"]
+    install_forbidden = by_path["guides/_shared/how-to/install-packs.md"]
     _check("the install doc forbids a whole-catalogue claim at the live pack count",
            f"all {pack_count} packs" in install_forbidden,
            f"{pack_count} packs on disk, but 'all {pack_count} packs' is not "

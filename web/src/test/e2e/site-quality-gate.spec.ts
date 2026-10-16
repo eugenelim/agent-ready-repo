@@ -331,54 +331,49 @@ test.describe('docs search and theme controls are keyboard-operable', () => {
       ).toBeVisible();
       await page.keyboard.press('Escape');
 
-      // Theme control. WHERE it lives depends on the width, and testing the wrong
-      // place asserted a path the design does not have: at 1440 it sits in the
-      // Starlight header; at phone widths it is inside the collapsed Docs menu
-      // (`sidebar-pane`, display:none until opened), so a keyboard user must open
-      // that menu first. Measured, not assumed — the first version of this case
-      // failed at 360 for exactly this reason.
+      // Theme toggle (spec/docs-site-rail-shell AC2). At 1440 it sits in the top
+      // bar; at phone widths it is in the menu footer, so a keyboard user opens
+      // the menu first.
       await gotoSettled(page, withDocsBase('/'), ctx);
       const menuButton = page.locator('button.sl-menu-button').first();
       if (await menuButton.isVisible()) {
         await tabToAndAssertFocus(page, 'button.sl-menu-button', ctx, 30);
         await page.keyboard.press('Enter');
-        // Asserted on the OBSERVABLE state, not on an expansion attribute. Starlight
-        // 0.42 drives this menu through the popover API, so there is no DOM
-        // `aria-expanded` to read at all — the invoker's expanded state lives only in
-        // the accessibility tree. The thing a keyboard user needs is that the control
-        // becomes reachable, which is what this asserts.
       }
-      const select = page.locator('starlight-theme-select select').locator('visible=true').first();
+      const toggle = page.locator('button.rail-theme').locator('visible=true').first();
       await expect(
-        select,
-        `${label(ctx)}: no visible theme control` +
+        toggle,
+        `${label(ctx)}: no visible theme toggle` +
           ((await menuButton.isVisible()) ? ' after opening the Docs menu with Enter' : '')
       ).toBeVisible();
-      // AC6 names three properties — keyboard reachable, operable, visibly focused.
-      // `select.focus()` + `selectOption` proved the second and neither of the
-      // others. Reached by keyboard with its focus ring asserted, the way the
-      // search button beside it already was.
-      //
-      // Budget derived, not fixed: Starlight emits two theme selects — a header
-      // one and a sidebar one, each hidden at the other's breakpoint. At mobile
-      // widths the visible instance is the 312th tab stop, behind every sidebar
-      // nav link. A fixed budget is not unsound — too small fails loudly — but it
-      // encodes the sidebar's current length, so it needs raising every time a
-      // guide is added, and nothing connects the number to the cause.
-      await tabToAndAssertFocus(page, 'starlight-theme-select select', ctx, 'derive');
-      // The walk filters for visibility, but `select` above is the specific
-      // instance this case asserted visible; pin that they are the same element so
-      // a future Starlight that hides one with `opacity` (still focusable) cannot
-      // satisfy the walk with a control the user cannot see.
+      // Budget derived: at phone widths the toggle sits after every sidebar link.
+      await tabToAndAssertFocus(page, 'button.rail-theme', ctx, 'derive');
       expect(
-        await select.evaluate((el) => el === document.activeElement),
-        `${label(ctx)}: Tab reached a theme select, but not the visible one`
+        await toggle.evaluate((el) => el === document.activeElement),
+        `${label(ctx)}: Tab reached a theme toggle, but not the visible one`
       ).toBe(true);
-      await select.selectOption('dark');
+      await expect(toggle).toHaveAttribute('aria-label', 'Switch to dark theme');
+      await page.keyboard.press('Enter');
       await expect(
         page.locator('html'),
-        `${label(ctx)}: selecting dark did not change the theme`
+        `${label(ctx)}: the toggle did not switch to dark`
       ).toHaveAttribute('data-theme', 'dark');
+      // Every instance (top bar and phone menu) names the next theme, not just
+      // the one pressed.
+      for (const name of await page.locator('button.rail-theme').evaluateAll((els) =>
+        els.map((el) => el.getAttribute('aria-label'))
+      )) {
+        expect(name, `${label(ctx)}: a theme toggle kept a stale name`).toBe('Switch to light theme');
+      }
+      expect(await page.evaluate(() => localStorage.getItem('starlight-theme'))).toBe('dark');
+      // A fresh tab, because this page's init script re-seeds `light` on every load.
+      const fresh = await page.context().newPage();
+      await fresh.goto(page.url());
+      await expect(fresh.locator('html'), `${label(ctx)}: the choice persists`).toHaveAttribute(
+        'data-theme',
+        'dark'
+      );
+      await fresh.close();
     });
   }
 });
@@ -413,75 +408,27 @@ test.describe('docs routes at every approved width in both themes', () => {
 });
 
 /**
- * spec/site-shared-chrome AC8 and AC12 — the docs chrome is keyboard-operable
- * with a visible focus indicator, at every approved width and theme.
- *
- * Split out because the matrix above asserted overflow, axe, fragments and
- * skip-order but never operated a control, so a Product disclosure that could
- * only be opened with a pointer, or a focus ring that never rendered, would
- * have passed every case the criteria cite.
+ * spec/docs-site-rail-shell AC9 — the docs chrome is keyboard-operable with a
+ * visible focus indicator, at every approved width and theme. The matrix above
+ * asserts overflow, axe, fragments and skip-order but never operates a control.
  */
 async function expectDocsChromeIsKeyboardOperable(
   page: Page,
   ctx: { route: string; width: number; theme?: string }
 ): Promise<void> {
   const where = `${label(ctx)}: docs chrome keyboard`;
-  const band = page.locator('nav[aria-label="Product orientation"] a').first();
-  const productSummary = page.locator('nav[aria-label="Product navigation"] summary');
+  const tabLink = page.locator('header nav[aria-label="Documentation sections"] a').first();
 
   // Which affordance each breakpoint owes is DECIDED here, not discovered from the
-  // page. Guarding every block behind `isVisible()` meant a regression that hid
-  // the phone disclosure turned this helper into a no-op that still reported
-  // green — a skip is not a pass. 50rem is the docs breakpoint: the band is
-  // desktop-only, the Product disclosure phone-only.
+  // page: a guard behind `isVisible()` turns a hidden control into a silent pass.
+  // 50rem is the docs breakpoint: the top-bar tabs are desktop-only, and phones
+  // reach the same tabs inside the menu.
   const isPhone = ctx.width < 800;
-  const bandVisible = await band.isVisible();
-  const productVisible = await productSummary.isVisible();
-  expect(bandVisible, `${where}: the desktop band must render iff wide`).toBe(!isPhone);
-  expect(productVisible, `${where}: the phone Product disclosure must render iff narrow`).toBe(
-    isPhone
-  );
-
-  if (bandVisible) {
-    // Reached by Tab, not by a programmatic focus() — `tabindex="-1"` would still
-    // accept .focus() and every assertion after it, proving nothing about
-    // keyboard reachability.
-    await tabToAndAssertFocus(page, 'nav[aria-label="Product orientation"] a', ctx, 'derive');
+  expect(await tabLink.isVisible(), `${where}: the top-bar tabs render iff wide`).toBe(!isPhone);
+  if (!isPhone) {
+    // Reached by Tab, not by focus(): `tabindex="-1"` would still accept focus().
+    await tabToAndAssertFocus(page, 'header nav[aria-label="Documentation sections"] a', ctx, 'derive');
     await expectVisibleFocusIndicator(page, ctx);
-  }
-
-  if (productVisible) {
-    await tabToAndAssertFocus(page, 'nav[aria-label="Product navigation"] summary', ctx, 'derive');
-    await expect(productSummary, `${where}: Product trigger takes focus`).toBeFocused();
-    await expectVisibleFocusIndicator(page, ctx);
-
-    const isOpen = () =>
-      page
-        .locator('nav[aria-label="Product navigation"] details')
-        .evaluate((el: HTMLDetailsElement) => el.open);
-
-    // A <summary> opens on Enter and on Space. Both are asserted because a
-    // custom trigger that intercepted one of them would still look operable.
-    expect(await isOpen(), `${where}: starts closed`).toBe(false);
-    await page.keyboard.press('Enter');
-    expect(await isOpen(), `${where}: Enter opens the Product disclosure`).toBe(true);
-
-    // Focus stays on the trigger, and the disclosed links come next in tab order.
-    await expect(productSummary, `${where}: focus stays on the trigger`).toBeFocused();
-    await page.keyboard.press('Tab');
-    const focusedInPanel = await page.evaluate(() => {
-      const panel = document.querySelector('nav[aria-label="Product navigation"]');
-      return !!panel && !!document.activeElement && panel.contains(document.activeElement);
-    });
-    expect(focusedInPanel, `${where}: disclosed links follow the trigger in tab order`).toBe(true);
-    await expectVisibleFocusIndicator(page, ctx);
-
-    await productSummary.focus();
-    await page.keyboard.press('Enter');
-    expect(await isOpen(), `${where}: Enter closes it again`).toBe(false);
-    await page.keyboard.press('Space');
-    expect(await isOpen(), `${where}: Space also operates the trigger`).toBe(true);
-    await page.keyboard.press('Enter');
   }
 
   // The Docs menu trigger is Starlight's and must remain keyboard-operable too.
@@ -511,123 +458,61 @@ async function expectDocsChromeIsKeyboardOperable(
 }
 
 /**
- * spec/site-shared-chrome AC5, AC6, AC9.
- *
- * The occlusion clause exists because a real defect shipped past every other
- * gate. Starlight's own PageFrame pads `.main-frame` for BOTH its fixed header
- * and the fixed mobile table of contents. The docs product band makes that
- * header sticky — in flow, so the header half of that padding is no longer
- * needed — and dropping the whole declaration put the first 48px of content
- * behind the ToC bar at 360, 375, 390 and 414 in both themes. Nothing caught
- * it: the build passed, every unit test passed, and `--sl-mobile-toc-height`
- * is 0rem at 1440, so the widest case looked correct.
+ * spec/docs-site-rail-shell AC1, plus spec/site-shared-chrome AC7 (external
+ * link text) and the content-occlusion check: content must start below the
+ * fixed mobile table of contents at every width.
  */
 async function expectDocsChromeIsWellPlaced(
   page: Page,
   ctx: { route: string; width: number; theme?: string }
 ): Promise<void> {
   const measured = await page.evaluate(() => {
-    const band = document.querySelector('nav[aria-label="Product orientation"]');
     const frameHeader = document.querySelector('header.header');
-    const main = document.querySelector('.main-frame');
+    const tabs = document.querySelector('header nav[aria-label="Documentation sections"]');
     const tocNav = document.querySelector('mobile-starlight-toc nav');
     const content = document.querySelector('main');
     return {
-      bandPresent: !!band,
-      bandDisplayed: band ? getComputedStyle(band).display !== 'none' : false,
-      // The band must not be independently pinned; the sticky wrapper is the
-      // header, and the band scrolls out of it.
-      bandPosition: band ? getComputedStyle(band).position : null,
       headerPosition: frameHeader ? getComputedStyle(frameHeader).position : null,
-      nativeHeaders: document.querySelectorAll('header.header > div.header').length,
+      topBars: document.querySelectorAll('header.header .rail-header').length,
+      tabNavs: document.querySelectorAll('header nav[aria-label="Documentation sections"]').length,
+      tabLabels: tabs ? [...tabs.querySelectorAll('a')].map((a) => a.textContent?.trim()) : [],
+      tabsDisplayed: tabs ? getComputedStyle(tabs).display !== 'none' : false,
+      currentTabs: tabs ? tabs.querySelectorAll('[aria-current="true"]').length : 0,
       menuButtons: document.querySelectorAll(
         'button.sl-menu-button[popovertarget="starlight__sidebar"]'
       ).length,
-      sidebars: document.querySelectorAll('#starlight__sidebar[popover]').length,
-      productNavs: document.querySelectorAll('nav[aria-label="Product navigation"]').length,
-      // A direct link as the trigger is explicitly forbidden.
-      productTriggerIsLink: !!document.querySelector(
-        'nav[aria-label="Product navigation"] summary a'
-      ),
+      // Starlight drops the pane's `popover` attribute at desktop widths, so
+      // count the pane itself.
+      sidebars: document.querySelectorAll('#starlight__sidebar').length,
+      productChrome: document.querySelectorAll(
+        'nav[aria-label="Product orientation"], nav[aria-label="Product navigation"]'
+      ).length,
       contentTop: content ? content.getBoundingClientRect().top : null,
       tocBottom: tocNav ? tocNav.getBoundingClientRect().bottom : null,
     };
   });
 
+  // spec/docs-site-rail-shell AC1: one top bar with the four tabs, pinned while
+  // the page scrolls, and no product strip.
   const where = `${label(ctx)}: docs chrome`;
-  // AC5 says the band sits ABOVE the Starlight header. Querying each separately
-  // proves both exist, not that one precedes the other, so assert the relation:
-  // DOM order, and — when the band is displayed — geometry too.
-  const ordering = await page.evaluate(() => {
-    const band = document.querySelector('nav[aria-label="Product orientation"]');
-    const starlightHeader = document.querySelector('header.header > div.header');
-    if (!band || !starlightHeader) return null;
-    const relation = band.compareDocumentPosition(starlightHeader);
-    return {
-      bandPrecedesHeader: Boolean(relation & Node.DOCUMENT_POSITION_FOLLOWING),
-      bandTop: band.getBoundingClientRect().top,
-      headerTop: starlightHeader.getBoundingClientRect().top,
-      bandDisplayed: getComputedStyle(band).display !== 'none',
-    };
-  });
-  expect(ordering, `${where}: band and Starlight header must both be present`).not.toBeNull();
-  expect(
-    ordering!.bandPrecedesHeader,
-    `${where}: the band must precede the Starlight header in DOM order`
-  ).toBe(true);
-  if (ordering!.bandDisplayed) {
-    expect(
-      ordering!.bandTop,
-      `${where}: the band must render above the Starlight header`
-    ).toBeLessThan(ordering!.headerTop);
-  }
-  expect(measured.nativeHeaders, `${where}: Starlight header must stay singular`).toBe(1);
+  expect(measured.topBars, `${where}: one top bar`).toBe(1);
+  expect(measured.tabNavs, `${where}: one tab landmark`).toBe(1);
+  expect(measured.tabLabels, `${where}: tab order`).toEqual([
+    'Docs', 'CLI', 'Packs', 'Author', 'Catalogue System',
+  ]);
+  expect(measured.currentTabs, `${where}: exactly one current tab`).toBe(1);
+  expect(measured.tabsDisplayed, `${where}: tabs show in the bar from 800px`).toBe(ctx.width >= 800);
   expect(measured.menuButtons, `${where}: Docs menu trigger must stay singular`).toBe(1);
   expect(measured.sidebars, `${where}: Starlight sidebar must stay singular`).toBe(1);
-  expect(measured.headerPosition, `${where}: Starlight header must stay sticky`).toBe('sticky');
-  expect(measured.bandPresent, `${where}: the product band must be emitted`).toBe(true);
-  // Rejecting `fixed` alone is not the contract: `sticky` would also keep the
-  // band pinned, which is exactly what "scrolls away" forbids. Reject both, then
-  // prove the behaviour by scrolling — the band must leave the viewport while the
-  // Starlight header stays put.
-  expect(
-    measured.bandPosition,
-    `${where}: the band must scroll away, so it must not be pinned itself`
-  ).not.toBe('fixed');
-  expect(
-    measured.bandPosition,
-    `${where}: the band must scroll away, so it must not be sticky either`
-  ).not.toBe('sticky');
-
-  if (ordering!.bandDisplayed) {
-    const scrolled = await page.evaluate(async () => {
-      const band = document.querySelector('nav[aria-label="Product orientation"]')!;
-      const starlightHeader = document.querySelector('header.header > div.header')!;
-      window.scrollTo(0, 600);
-      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-      const bandRect = band.getBoundingClientRect();
-      const headerRect = starlightHeader.getBoundingClientRect();
-      window.scrollTo(0, 0);
-      return {
-        scrollY: window.scrollY,
-        bandBottom: bandRect.bottom,
-        headerTop: headerRect.top,
-        headerBottom: headerRect.bottom,
-      };
-    });
-    expect(
-      scrolled.bandBottom,
-      `${where}: the band must scroll out of the viewport, not stay pinned`
-    ).toBeLessThanOrEqual(0);
-    expect(
-      scrolled.headerBottom,
-      `${where}: the Starlight header must stay pinned while the band scrolls away`
-    ).toBeGreaterThan(0);
-  }
-  expect(measured.productTriggerIsLink, `${where}: the Product trigger must not be a link`).toBe(
-    false
-  );
-  expect(measured.productNavs, `${where}: Product navigation landmark must be singular`).toBe(1);
+  expect(measured.productChrome, `${where}: no product strip or Product disclosure`).toBe(0);
+  const headerTopAfterScroll = await page.evaluate(async () => {
+    window.scrollTo(0, 600);
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    const top = document.querySelector('header.header')!.getBoundingClientRect().top;
+    window.scrollTo(0, 0);
+    return top;
+  });
+  expect(headerTopAfterScroll, `${where}: the top bar stays pinned while scrolling`).toBe(0);
 
   // AC7's "visually hidden" half, which a DOM-only test cannot see: the word
   // "external" must stay in the accessible name while being invisible on screen.
@@ -702,89 +587,13 @@ async function expectDocsChromeIsWellPlaced(
   }
 }
 
-test.describe('docs Product and Docs disclosures stay independent', () => {
-  // spec/site-shared-chrome AC6. The static emitted-output checks can prove the
-  // landmark, the item order, and that the trigger is not a link — but the
-  // requirement is behavioural: "Opening or closing it does not open, close,
-  // rename, or replace Starlight's Docs menu." Only driving both controls proves
-  // that. Phone widths only: the Product disclosure is display:none from 50rem.
+test.describe('docs menu keyboard behaviour', () => {
   const PHONE_WIDTHS = WIDTHS.filter((width) => width < 800);
 
   for (const width of PHONE_WIDTHS) {
-    test(`/docs/ Product and Docs disclosures @${width}`, async ({ page }) => {
-      const ctx = { route: '/', width };
-      await page.setViewportSize({ width, height: 900 });
-      await gotoSettled(page, withDocsBase('/'), ctx);
-
-      const productDetails = page.locator('nav[aria-label="Product navigation"] details');
-      const docsMenuButton = page.locator(
-        'button.sl-menu-button[popovertarget="starlight__sidebar"]'
-      );
-      // Read expansion off the PANE's popover state. Starlight 0.42 replaced the
-      // `<starlight-menu-button>` custom element and its `aria-expanded` bookkeeping
-      // with the native popover API, so the open/closed state now lives on the pane
-      // and there is no expansion attribute anywhere in the DOM to read.
-      const docsPane = page.locator('#starlight__sidebar');
-      const productOpen = () => productDetails.evaluate((el: HTMLDetailsElement) => el.open);
-      const docsOpen = () => docsPane.evaluate((el) => el.matches(':popover-open'));
-      const triggerText = () =>
-        page.locator('nav[aria-label="Product navigation"] summary').innerText();
-      // Not just the state: the requirement is that the Docs MENU does not open, so
-      // assert what the user can see as well. Read `display`, NOT `visibility` — a
-      // closed popover is `display: none` and its computed `visibility` stays
-      // `visible`, so the old visibility predicate would report every closed menu as
-      // shown and invert this test's meaning.
-      const docsSidebarShown = () =>
-        page
-          .locator('#starlight__sidebar')
-          .evaluate((el) => getComputedStyle(el).display !== 'none');
-
-      await expect(productDetails).toHaveCount(1);
-      await expect(docsMenuButton).toHaveCount(1);
-      const restingTrigger = await triggerText();
-      expect(await productOpen(), `${label(ctx)}: Product starts closed`).toBe(false);
-      expect(await docsOpen(), `${label(ctx)}: Docs starts closed`).toBe(false);
-      expect(await docsSidebarShown(), `${label(ctx)}: Docs sidebar starts hidden`).toBe(false);
-
-      // Opening Product must not open, or rename, the Docs menu.
-      await productDetails.locator('summary').click();
-      expect(await productOpen(), `${label(ctx)}: Product opened`).toBe(true);
-      expect(await docsOpen(), `${label(ctx)}: opening Product must not open Docs`).toBe(false);
-      expect(
-        await docsSidebarShown(),
-        `${label(ctx)}: opening Product must not reveal the Docs sidebar`
-      ).toBe(false);
-
-      // Opening Docs must not close Product, and must not replace its trigger.
-      await docsMenuButton.click();
-      expect(await docsOpen(), `${label(ctx)}: Docs opened`).toBe(true);
-      expect(await productOpen(), `${label(ctx)}: opening Docs must not close Product`).toBe(true);
-      expect(await triggerText(), `${label(ctx)}: Docs must not rename the Product trigger`).toBe(
-        restingTrigger
-      );
-      // Both open at once: neither control replaced the other.
-      await expect(productDetails).toHaveCount(1);
-      await expect(docsMenuButton).toHaveCount(1);
-
-      // Closing Product must leave Docs open.
-      await productDetails.locator('summary').click();
-      expect(await productOpen(), `${label(ctx)}: Product closed`).toBe(false);
-      expect(await docsOpen(), `${label(ctx)}: closing Product must not close Docs`).toBe(true);
-
-      // Closing Docs must leave Product closed — and still present.
-      await docsMenuButton.click();
-      expect(await docsOpen(), `${label(ctx)}: Docs closed`).toBe(false);
-      expect(await productOpen(), `${label(ctx)}: closing Docs must not open Product`).toBe(false);
-    });
-
     test(`/docs/ Escape closes the Docs menu and returns focus @${width}`, async ({ page }) => {
-      // The pane is `popover="manual"` so that closing the Product disclosure cannot
-      // light-dismiss it (spec/site-shared-chrome's isolated-disclosure-state rule).
-      // A manual popover gets NO Escape handling from the user agent, so docs-site's
-      // PageFrame override restores it — that handler is docs-local code, and without
-      // this case nothing exercises it. Starlight 0.41 closed on Escape and returned
-      // focus to the trigger; both halves are asserted, because a close that strands
-      // focus inside an inert pane is its own defect.
+      // Starlight's own page frame owns this menu. Both halves are asserted,
+      // because a close that strands focus inside an inert pane is its own defect.
       const ctx = { route: '/', width };
       await page.setViewportSize({ width, height: 900 });
       await gotoSettled(page, withDocsBase('/'), ctx);

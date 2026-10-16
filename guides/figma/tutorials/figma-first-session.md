@@ -25,7 +25,7 @@ You need five things in place:
 - The figma pack's Python dependencies installed once: open a terminal and run `python -m pip install credbroker httpx`. If you see a "missing dependency" error later, this is the fix.
 - A Figma file URL you want to explore. Copy it from your browser address bar — it looks like `https://www.figma.com/design/<key>/<name>` or `/file/...`.
 
-## Step 1 — Generate your Figma token
+## Generate your Figma token
 
 The figma skill reads your files through a Personal Access Token (PAT). This token lives in a local credential file on your machine — you never type it into the agent chat.
 
@@ -33,7 +33,7 @@ To generate one: open Figma in your browser, go to **Settings → Security → P
 
 Keep the copied value ready for the next step. Do not paste the token into the agent chat at any point — it goes into a terminal prompt, not a chat message.
 
-## Step 2 — Store your token
+## Store your token
 
 Ask Claude Code to set up your Figma credentials:
 
@@ -49,7 +49,7 @@ python3 scripts/setup.py figma
 
 from the `credential-setup` skill directory (usually `~/.claude/skills/credential-setup/`).
 
-## Step 3 — Verify your connection
+## Verify your connection
 
 Once the token is stored, ask the agent to confirm the connection is working:
 
@@ -61,7 +61,7 @@ The agent verifies your credentials and confirms your account. You should see so
 
 If instead you see an authentication error, go to [If something goes wrong](#if-something-goes-wrong).
 
-## Step 4 — Read your file's structure
+## Read your file's structure
 
 Now for the first real task. Tell the agent what file to read by including your URL:
 

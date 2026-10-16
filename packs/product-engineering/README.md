@@ -1,140 +1,62 @@
-# product-engineering
+# Product Engineering
 
-From raw idea to build-ready decision brief.
+Your agent can take a raw product idea to a build-ready decision brief, then hand each piece to your build loop.
 
----
+## Install
 
-## Start here
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
-Type `intent frame` and describe a product problem — any altitude, any level of clarity.
-
-```text
-intent frame
-
-  Level    feature
-  Problem  New users don't understand the product's value in the first session.
-  User     First-time user arriving after sign-up with no prior context.
-  Outcome  Activation rate rises; first-session drop-off decreases.
+```bash
+agentbundle install --pack product-engineering
 ```
 
-On any session return, type `discovery-loop [initiative-name]` to resume where you left off.
+In Claude Code you can install it as a plugin instead:
 
-```text
-discovery-loop self-serve-onboarding
-
-  Initiative  self-serve-onboarding
-
-  Slot               Status
-  intent             ratified
-  explore-options    done — 4 candidates
-  domain-framing     done
-  assumption-test    in progress ← current
-  decision-brief     pending G2
-
-  Proceed to assumption-test? ›
+```bash
+claude plugin install product-engineering@agent-ready-repo
 ```
 
----
+## What your agent can do
 
-## Entry points
+- Frame a rough idea as an intent: the problem, who has it, the outcome, and the opportunity behind it.
+- Sort a market shift, metric drop, or recurring user pain before anyone shapes work.
+- Find and rank the unmet jobs behind a problem, and plan how to validate the riskiest assumptions.
+- Lay out solution options with trade-offs, then record the bet with its reasons and what would reverse it.
+- Map the capabilities a bet needs and decide build, buy, partner, or adopt for each.
+- Break an intent into delivery briefs and specs, and write UI copy for each screen state.
 
-| Say this | What happens |
-|----------|-------------|
-| `discovery-loop` | Start or resume a supervised end-to-end discovery |
-| `intent frame` | Frame a product problem at any altitude |
-| `intent de-risk` | Surface the riskiest assumption and design a prototype approach |
-| `intent decompose` | Break the intent into delivery briefs and specs |
-| `ux-writing` | Characterize the product voice and write per-state UI copy |
-| `lean-canvas` | Elicit an initiative brief through an adapted Lean Canvas |
-| `diverge-solutions` | Generate structured comparable solution options |
-| `place-bet` | Commit to a direction with a structured betting table |
-| `map-capabilities` | Translate a committed bet into a Capability Map |
+## Skills
 
----
+- **`discovery-loop`** — Runs a supervised discovery from idea to decision brief, and resumes where you left off.
+- **`intent`** — Frames, de-risks, and decomposes product work in three modes.
+- **`frame-situation`** — Classifies a signal and rates capability maturity on a Wardley map.
+- **`frame-domain`** — Frames how the activity is really done and draws the MVP boundary.
+- **`identify-opportunities`** — Ranks unmet jobs by importance and satisfaction.
+- **`plan-validation`** — Plans what would confirm or kill each assumption, with an interview or test guide.
+- **`explore-options`** — Sketches several distinct product shapes before you pick one.
+- **`diverge-solutions`** — Compares solution options for an initiative, with a recommendation.
+- **`lean-canvas`** — Fills a lean canvas and writes a one-page initiative brief.
+- **`place-bet`** — Records the choice, confidence, appetite, accepted risks, and reversal conditions.
+- **`map-capabilities`** — Lists needed capabilities and a build order.
+- **`ux-writing`** — Writes the product voice and per-state UI copy.
+- **`align-value-stream`** — Sets up a coordinating repo for work that spans many components.
 
-## How a session runs
+Subagents: **`discovery-lead`** supervises the loop. **`discovery-reliability-reviewer`** and **`discovery-threat-reviewer`** review discovery artifacts read-only.
 
-```text
-intent frame [describe your product problem]
+## Works with
 
-  Level    feature
-  Problem  New users don't understand the product's value in the first session.
-  User     First-time user arriving after sign-up with no prior context.
-  Outcome  Activation rate rises; first-session drop-off decreases.
-```
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Product Strategy](../product-strategy/README.md) supplies goals and opportunity assessments as anchors. [Core](../core/README.md) takes each result as a delivery contract or brief, and Core is optional. [Experience Design](../experience-design/README.md) passes its screen states to `ux-writing`. When the `architect` pack is installed, `frame-domain` and `intent de-risk` offer `architect-assess`, and `intent frame`, `intent decompose`, and `map-capabilities` offer `architect-design`. Without it, they say nothing about it. Guides: [Shape an idea](../../guides/product-engineering/how-to/frame-the-intent.md) and [Run a discovery](../../guides/product-engineering/how-to/run-a-discovery.md).
 
-```text
-intent de-risk
+## Questions
 
-  Assumption   Users who finish the wizard go on to activate the core feature.
-  Kill cond.   < 4 of 6 target users reach core-feature first-use in prototype.
-  Approach     validate-first — predeclare the line, then run prototype sessions.
-  Hook         Conduct 6 moderated prototype sessions with target user profile.
-```
+**Where do I start?** Type `intent frame` and describe a product problem at any level of clarity. To resume, type `discovery-loop` with the initiative name.
 
-```text
-intent decompose
+**Does it write specs?** It decomposes an intent into briefs and specs, and after you confirm, hands each independently shippable piece to Core. Core's approval path still applies.
 
-  onboarding-activation
-  ├─ onboarding/step-1-welcome      (app — spec ready to draft)
-  ├─ onboarding/step-2-connect      (app — spec ready to draft)
-  └─ onboarding/step-3-first-action (app — spec ready to draft)
-```
+**Where are the files saved?** In `docs/product/` and `docs/discovery/` by default. Both are configurable in `agentbundle-layout.toml`.
 
-After you confirm the handoff, the agent sends each independently shippable leaf
-to Core intake as a delivery contract. It sends a coordinating delivery brief
-only when the result spans multiple specs or repositories. If the current Core
-invocation advertises the handoff capability, the bounded context is
-machine-readable; otherwise you receive the same portable rendered handoff.
+**Does it need Product Strategy first?** No. Without strategy files, the skills carry on.
 
----
+## Details
 
-## Where artifacts land
-
-```text
-docs/
-├── product/
-│   ├── intents/          ← intent frame, intent de-risk, intent decompose
-│   │   └── <slug>.md
-│   ├── rollups/          ← align-value-stream (business-unit scale)
-│   │   └── <slug>.md
-│   └── voice/            ← ux-writing
-│       └── <slug>.md
-└── discovery/            ← discovery-loop (sidecar + initiative tree)
-    └── <initiative-slug>/
-        └── _state/
-```
-
-The base paths are configurable — `[product] output_dir` and `[discovery] output_dir` in your repo's `agentbundle-layout.toml`. Defaults to `docs/product/` and `docs/discovery/`.
-
----
-
-## Where these methods come from
-
-Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
-
-- **`explore-options`** — the Double Diamond and Design Sprint methodologies treat forced divergence as non-optional; this skill is the discovery loop's forcing function for that divergence step.
-
----
-
-## Cross-pack
-
-**Upstream — `product-strategy`:** OKR gaps and opportunity assessments from `product-strategy` feed `frame-situation` and `intent frame` as strategic anchors. Absent means both skills degrade gracefully.
-
-**Downstream — `core`:** One independently shippable result from
-`intent decompose` becomes a delivery contract; a multi-spec or
-cross-repository result becomes a delivery brief. A compatible Core invocation
-admits the bounded handoff through `work-intake`, then preserves the existing
-`new-spec` or `author-delivery-brief continue` approval path. Core is optional.
-When Core is present, `intent frame` can also request its independent
-`shaping-reviewer` for a cold intent check; a fresh context or an independent
-human is the fallback, and Product Engineering retains lifecycle authority.
-
-**Optional — `architect`:** When the `architect` pack is installed, `frame-domain` and `intent de-risk` offer `architect-assess` for a current-state model, and `intent frame`, `intent decompose`, and `map-capabilities` offer `architect-design` at the scope the work needs. Without it, they say nothing about it.
-
-**Downstream — `experience-design`:** The per-screen state matrix from `user-flow` feeds `ux-writing`. Pass it to write per-state copy for every screen × state cell.
-
----
-
-→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.  
-→ **Go deeper:** the [`product-engineering` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/product-engineering/).
+Scope: user (default), repo · Version: 1.0.5 · Source: [packs/product-engineering](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-engineering)

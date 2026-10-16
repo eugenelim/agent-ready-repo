@@ -41,8 +41,8 @@ agentbundle install --profile inception <catalogue>
 You don't have to use all of it. Inception is a spine with optional stages in
 front of it. You reach for a stage only when you're carrying the uncertainty it
 removes — the profile just means the pack is already there when you do. For the
-install routes themselves see [Install routes](../explanation/install-routes.md),
-or [Install a curated set of packs](install-a-profile.md).
+install routes themselves see [Install routes](../how-to/install-packs.md),
+or [Install a curated set of packs](install-packs.md#install-a-profile).
 
 ## The spine
 
@@ -147,5 +147,5 @@ The upstream stages earn their place only against real uncertainty.
   — when you start from someone else's multi-feature brief.
 - [Run a capability across a value stream](../../product-engineering/how-to/run-a-capability-across-a-value-stream.md)
   — inception at business-unit scale, across many component repos.
-- [Install a curated set of packs](install-a-profile.md) — take the upstream
+- [Install a curated set of packs](install-packs.md#install-a-profile) — take the upstream
   packs in one command.

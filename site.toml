@@ -39,7 +39,7 @@ packs = ["experience-design", "product-documentation", "converters"]
 
 [[groups]]
 label = "Catalogue operations"
-packs = ["catalogue-curation", "credential-brokers"]
+packs = ["catalogue-curation", "credential-brokers", "agent-skill-engineering"]
 
 # ---------------------------------------------------------------------------
 # Guide sidebar groups.
@@ -243,7 +243,7 @@ group = "docs"
 [[shared_chrome.destinations]]
 id = "install"
 label = "Install"
-target = "/docs/getting-started/install/"
+target = "/docs/guides/_shared/how-to/install-agentbundle/"
 kind = "internal"
 group = "docs"
 

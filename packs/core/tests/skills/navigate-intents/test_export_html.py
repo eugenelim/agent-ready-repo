@@ -257,3 +257,36 @@ def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
     # Colour roles and type weight belong to the shared base, not to the layout.
     assert "var(--c-" not in css
     assert not re.search(r"font-weight|(?<![\w-])font\s*:", css)
+
+
+def test_hostile_export_keeps_the_csp_string_and_the_script_stays_clean(hostile_html: str, mixed_html: str) -> None:
+    """The dependency work leaves the policy unchanged and view.js free of banned APIs."""
+    for html in (hostile_html, mixed_html):
+        shape = _parse(html)
+        _tag, attrs = shape.head_children[0]
+        (script,) = [t for t in shape.texts["script"] if t.strip() and "function" in t]
+        (style,) = shape.texts["style"]
+        assert attrs["content"] == (
+            f"default-src 'none'; script-src 'sha256-{_digest(script)}'; "
+            f"style-src 'sha256-{_digest(style)}'; img-src 'none'; base-uri 'none'; "
+            "form-action 'none'"
+        )
+    code = _strip_comments((_ASSETS / "view.js").read_text(encoding="utf-8"))
+    for token in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(", "Function(", "srcdoc", "javascript:", "fetch(", "XMLHttpRequest", "WebSocket", "sendBeacon", "import("):
+        assert token not in code, token
+
+
+def test_a_symlinked_intent_file_is_refused_by_the_query_and_the_export(tmp_path: pathlib.Path) -> None:
+    corpus = tmp_path / "dependency"
+    shutil.copytree(_FIXTURES / "dependency", corpus)
+    intents = corpus / "docs" / "product" / "intents"
+    (intents / "FEAT-0099-link.md").symlink_to(intents / "FEAT-0001-alpha.md")
+    result, code = nav.run_query(
+        corpus, ["query", "--operation", "dependencies", "--id", "intent:alpha", "--direction", "both", "--depth", "2"]
+    )
+    assert code != 0 and result["error"]["code"] == "unsafe_input", result
+    out = tmp_path / "out"
+    out.mkdir()
+    result, code = nav.run_export(corpus, str(out), "view.html", None)
+    assert code != 0 and result["error"]["code"] == "unsafe_input", result
+    assert not (out / "view.html").exists()

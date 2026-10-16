@@ -73,12 +73,12 @@ def _section(markdown: str, heading: str) -> str:
 
 
 def _readme_verify_bullet(readme_markdown: str) -> str:
-    """The README's `Verify a surface before shipping` job, bolded heading to blank line."""
-    marker = "**Verify a surface before shipping**"
-    assert marker in readme_markdown, "the README no longer describes verify mode"
-    body = readme_markdown.split(marker, 1)[1]
-    end = body.find("\n\n")
-    return body[:end] if end != -1 else body
+    """The README's verify capability: the `- Verify ...` bullet under `What your agent can do`."""
+    body = _section(readme_markdown, "## What your agent can do")
+    for line in body.splitlines():
+        if line.startswith("- Verify a page"):
+            return line
+    raise AssertionError("the README no longer describes verify mode")
 
 
 def gates_phase_gates(skill_markdown: str) -> list[tuple[int, str]]:
@@ -179,69 +179,21 @@ def test_the_readme_verify_promise_does_not_deny_the_manifest_write(
         )
 
 
-# ── 2. the worked example carries no unexecuted measurement ─────────────────
+# ── 2. the README carries no unexecuted measurement ─────────────────
 
 
-def test_the_worked_example_shows_no_fabricated_metric_values(readme: str) -> None:
-    """The example run reported three CWV numbers no run produced.
+def test_the_readme_shows_no_fabricated_metric_values(readme: str) -> None:
+    """The README once showed a worked run with three CWV numbers no run produced.
 
-    Scoped to the fenced `How it works` transcript, which is the only place the
-    README speaks in the voice of a completed run. A number in prose elsewhere is
-    a claim about the pack, not a claim about a run that happened.
+    The README now carries no transcript; the guard stays so a metric value
+    cannot be reintroduced as if a run had measured it.
     """
-    transcript = _section(readme, "## How it works")
+    transcript = readme
     for metric in ("LCP", "CLS", "INP"):
         assert not re.search(rf"\b{metric}\b\s*[:=]?\s*[\d.]", transcript), (
             f"the worked example reports a {metric} value, but the gate sequence "
             "measures none"
         )
-
-
-# ── 3. the worked example's genre route agrees with the routing table ───────
-
-
-def genre_routing_table(skill_markdown: str) -> list[tuple[str, str]]:
-    """`(surface type, skill)` for every row of the § 1b routing table."""
-    section = _section(skill_markdown, "### 1b. Genre routing (T2 — requires experience-design pack)")
-    rows = []
-    for line in section.splitlines():
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) != 2 or cells[1].startswith("---") or cells[1] == "Load":
-            continue
-        skill_name = cells[1].strip("`")
-        if skill_name:
-            rows.append((cells[0], skill_name))
-    assert rows, "the genre routing table has no rows"
-    return rows
-
-
-def test_the_example_genre_route_is_the_one_the_table_names(
-    readme: str, skill: str
-) -> None:
-    """A notification panel is a component interaction, so the table decides.
-
-    The expectation is read from the table row covering interactions, never
-    written here: rename the skill in the table and this test follows it, delete
-    the row and this test reds.
-    """
-    interaction_rows = [
-        skill_name
-        for surface, skill_name in genre_routing_table(skill)
-        if "interaction" in surface.lower()
-    ]
-    assert len(interaction_rows) == 1, (
-        f"expected exactly one routing row for interaction surfaces, got "
-        f"{interaction_rows}"
-    )
-    expected = interaction_rows[0]
-
-    transcript = _section(readme, "## How it works")
-    match = re.search(r"Genre route:\s*([a-z0-9-]+)", transcript)
-    assert match, "the worked example no longer shows a genre route"
-    assert match.group(1) == expected, (
-        f"the notification-panel example routes to {match.group(1)!r}, but the "
-        f"routing table sends a component interaction to {expected!r}"
-    )
 
 
 # ── 4. the state matrix instructs without citing an invented source ─────────
@@ -398,82 +350,3 @@ def test_gate_five_still_ships_no_baseline(skill: str) -> None:
         "Gate 5 no longer states that it ships no baseline and compares against "
         "no stored image — the README guard above rests on this sentence"
     )
-
-
-# ── 7. the README offers every route its own example takes ──────────────────
-#
-# Correcting the example's route to `interaction-design` exposed a second
-# contradiction rather than creating one: the create-mode job above it offered a
-# closed three-item list that never included it, so the README named a route it
-# did not offer. Both halves are read from the artifacts — the offered set from
-# the README's own route list, the legitimate set from the skill's § 1b table —
-# so neither can drift alone. Neither half states a route name here.
-
-
-def readme_offered_genre_skills(readme_markdown: str) -> set[str]:
-    """The genre skills the README's create-mode job offers as routes.
-
-    Read from the em-dash-delimited route list inside the job's parenthetical,
-    and matched on **any** backticked identifier rather than on a `-design`
-    suffix. The suffix was the first shape of this reader and it was wrong:
-    `design-system` is a routable genre skill (`SKILL.md` § 1b) that
-    does not carry it, so a README offering that route was invisible here — the
-    example guard would have red on a correct README and the routability guard
-    would have passed over an unroutable name.
-
-    Scoping to the list segment rather than the whole sentence is what lets the
-    pattern stay general: the co-install pack is named outside the segment, so
-    it needs no subtracting, and a name moved into the segment reds the
-    routability guard instead of being silently excused. A job whose
-    parenthetical loses that structure reds here rather than returning a
-    narrower set.
-
-    The span is the whole middle of the `pick …` parenthetical, taken by
-    splitting it on em dashes and requiring exactly three parts. Both looser
-    readings were wrong and each failed in the opposite direction: a greedy match
-    over the job body widened the span across "if `experience-design` is
-    co-installed" and swallowed the pack name, and a non-greedy match inside the
-    parenthetical shortened it to a prefix when a second dash pair appeared,
-    silently excusing every route after it. Splitting reds on either, because
-    either changes the part count.
-    """
-    job = readme_markdown.split("**Create a new surface from a design handoff**", 1)
-    assert len(job) == 2, "the README no longer describes the create-mode job"
-    body = job[1].split("\n\n", 1)[0]
-    parenthetical = re.search(r"\(pick ([^()]*)\)", body, re.DOTALL)
-    assert parenthetical, (
-        "the create-mode job no longer offers its routes in a `(pick …)` "
-        "parenthetical, so the offered routes cannot be located"
-    )
-    parts = parenthetical.group(1).split("—")
-    assert len(parts) == 3, (
-        f"the create-mode job's `(pick …)` parenthetical splits into "
-        f"{len(parts)} em-dash-delimited parts, not 3, so its route list can no "
-        "longer be told from the prose around it"
-    )
-    offered = set(re.findall(r"`([a-z][a-z0-9-]+)`", parts[1]))
-    assert offered, "the create-mode job offers no genre skill"
-    return offered
-
-
-def test_the_readme_offers_the_route_its_own_example_takes(readme: str) -> None:
-    offered = readme_offered_genre_skills(readme)
-    transcript = _section(readme, "## How it works")
-    match = re.search(r"Genre route:\s*([a-z0-9-]+)", transcript)
-    assert match, "the worked example no longer shows a genre route"
-    assert match.group(1) in offered, (
-        f"the example routes to {match.group(1)!r}, which the README's own route "
-        f"list does not offer: {sorted(offered)}"
-    )
-
-
-def test_every_route_the_readme_offers_is_one_the_skill_routes_to(
-    readme: str, skill: str
-) -> None:
-    """The README may not invent a genre skill the routing table does not name."""
-    routable = {skill_name for _, skill_name in genre_routing_table(skill)}
-    for offered in readme_offered_genre_skills(readme):
-        assert offered in routable, (
-            f"the README offers {offered!r} as a genre route, but the skill's "
-            f"routing table does not name it"
-        )

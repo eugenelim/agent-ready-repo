@@ -1,110 +1,67 @@
 ---
-title: Start with the work in front of you
-description: Choose whether to shape an idea or build a known change, then follow the route that fits.
-hero:
-  tagline: Shape an idea or build a known change. The final decision stays human.
-  actions:
-    - text: Choose a task
-      link: '#what-are-you-trying-to-do'
-      icon: right-arrow
-      variant: primary
-    - text: Set up first
-      link: /agent-ready-repo/docs/getting-started/
-      icon: right-arrow
-      variant: minimal
+title: Intro
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Tabs, TabItem, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-## What are you trying to do?
+agent-ready-repo is an open source toolkit for AI-assisted software delivery. Your agent plans, builds, and tests a change, then stops for your review before it merges.
 
-Choose by what you know now—not by a pack or skill name.
+The workflows ship as packs. A pack is a set of skills and subagents your agent loads. Packs work in Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot, and Kiro.
 
-<div class="docs-hub__primary" aria-label="Primary work routes">
-  <div class="docs-hub__route docs-hub__route--shape">
-    <p class="docs-hub__category">Shape</p>
-    <LinkCard
-      title="Shape an idea"
-      href="/agent-ready-repo/docs/guides/product-engineering/how-to/shape-a-feature-intent/"
-      description="Turn an open product question into a buildable slice."
-    />
-  </div>
-  <div class="docs-hub__route docs-hub__route--build">
-    <p class="docs-hub__category">Build</p>
-    <LinkCard
-      title="Build a known change"
-      href="/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/"
-      description="Start the shortest safe delivery route for a known change."
-    />
-  </div>
-</div>
+## Install
 
-<div class="docs-hub__supporting" aria-label="Supporting task routes">
-  <section class="docs-hub__group docs-hub__route--shape">
-    <h3>Shape</h3>
-    <p>Use these when the decision is still being made.</p>
-    <CardGrid>
-      <LinkCard
-        title="Make an architecture decision"
-        href="/agent-ready-repo/docs/guides/architect/how-to/shape-an-architecture-concept/"
-        description="Compare the real choices and agree on the architecture before committing to a full design."
-      />
-    </CardGrid>
-  </section>
-  <section class="docs-hub__group docs-hub__route--investigate">
-    <h3>Investigate</h3>
-    <p>Use these when you need evidence before you act.</p>
-    <CardGrid>
-      <LinkCard
-        title="Fix or investigate a bug"
-        href="/agent-ready-repo/docs/guides/core/how-to/bug-fix/"
-        description="Reproduce the problem, find the root cause, and land a minimum fix with a regression test."
-      />
-      <LinkCard
-        title="Understand a repository"
-        href="/agent-ready-repo/docs/guides/architect/how-to/assess-a-repository/"
-        description="Map how the repository works from code and docs, then turn the important findings into an action plan."
-      />
-      <LinkCard
-        title="Research a question"
-        href="/agent-ready-repo/docs/guides/desk-research/how-to/run-the-research/"
-        description="Get an answer that shows its evidence, confidence, and unknowns. Try: “Research this at applied depth.”"
-      />
-    </CardGrid>
-  </section>
-  <section class="docs-hub__group docs-hub__route--operate">
-    <h3>Operate</h3>
-    <p>Use these when the work needs to fit a repository or release process.</p>
-    <CardGrid>
-      <LinkCard
-        title="Prepare and run a release"
-        href="/agent-ready-repo/docs/guides/release-engineering/how-to/run-a-release/"
-        description="Check a change in a production-like environment, review the evidence, and keep the production decision human."
-      />
-      <LinkCard
-        title="Adapt the agent setup to your project"
-        href="/agent-ready-repo/docs/guides/core/how-to/adapt-to-project/"
-        description="Learn the repository's real conventions, then tailor the agent setup without overwriting them."
-      />
-    </CardGrid>
-  </section>
-</div>
+<Tabs syncKey="install">
+  <TabItem label="agentbundle">
+    Install the CLI, then add the `core` pack from inside your repository:
 
-Not sure which route fits? If you can name the change, [build a known change](/agent-ready-repo/docs/guides/core/how-to/start-or-remember-work/). If the product direction is still open, [shape an idea](/agent-ready-repo/docs/guides/product-engineering/how-to/shape-a-feature-intent/).
+    ```bash
+    python -m pip install agentbundle
+    cd path/to/your-repo
+    agentbundle install --pack core
+    ```
 
-## New to Agent Ready Repo?
+    This installs for Claude Code. For another agent, add `--adapter codex`, `cursor`, `copilot`, `gemini`, `kiro-ide`, or `kiro-cli`. Add `--dry-run` to see every file before it is written.
+  </TabItem>
+  <TabItem label="Claude plugin">
+    Add the marketplace once, then install a pack:
 
-Every piece of work moves through four stages, and each one ends on a decision you make. [See the operating model](/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/) to find which stage your work is in, which packs help there, and where you decide.
+    ```bash
+    claude plugin marketplace add eugenelim/agent-ready-repo
+    claude plugin install desk-research@agent-ready-repo
+    ```
 
-![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship it to production. Below them, architecture by stage: before any work, once per repository, architect-assess maps what exists and adapt-to-project or init-project writes reference.md, which every plan follows. Then you assess the area the work touches in Decide, design and revise the capabilities in Shape, and close-work offers to fold the design into the current-state map after the merge in Build. Ship it usually has none.](/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model-overview.svg)
+    The marketplace carries packs you install for yourself. `core` and the other packs a whole team shares install with `agentbundle`.
+  </TabItem>
+</Tabs>
 
-When you're ready: [Install and configure your first workflow](/agent-ready-repo/docs/getting-started/). Start with a real task whose result you can check, and return here when you are ready to choose another route.
+## Make your first request
 
-## Go deeper
+Open your agent in the repository and ask for something you can check:
 
-- [Follow the install-to-ship walkthrough](/agent-ready-repo/docs/guides/#the-install-to-ship-walkthrough) for one ordered route from setup to a human-approved release.
-- [Browse guides and learning paths](/agent-ready-repo/docs/guides/) when you want tutorials, how-to guides, explanations, or reference material.
-- [Browse the pack and skill reference](/agent-ready-repo/docs/packs/) when you already know which capability you need.
-- [Use the `agentbundle` CLI reference](/agent-ready-repo/docs/guides/_shared/reference/agentbundle/) for exact commands and flags.
-- [Understand how packs, profiles, adapters, and catalogues fit together](/agent-ready-repo/docs/guides/_shared/explanation/pack-catalogue/).
-- [Build or govern your own catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/) when you need to extend the system for an organization.
+<Tabs syncKey="install">
+  <TabItem label="agentbundle">
+    ```text
+    Fix the failing date parser test and show me the diff.
+    ```
+
+    The `core` pack plans the change, writes it, runs your tests, and sends the diff to an independent review. It stops before the merge. That decision is yours.
+  </TabItem>
+  <TabItem label="Claude plugin">
+    ```text
+    Research how other teams version their public APIs, with citations.
+    ```
+
+    The `desk-research` pack answers with sources you can open, a confidence rating for each finding, and the gaps it could not close.
+  </TabItem>
+</Tabs>
+
+To see every stage end to end, [follow the install-to-ship walkthrough](/agent-ready-repo/docs/guides/#the-install-to-ship-walkthrough).
+
+## Next
+
+<CardGrid>
+  <LinkCard title="Operating model" href="/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/" description="The four stages of work, and where you decide." />
+  <LinkCard title="Packs" href="/agent-ready-repo/docs/packs/" description="What a pack installs, and repo scope or user scope." />
+  <LinkCard title="Run the build loop" href="/agent-ready-repo/docs/guides/core/how-to/start-the-work/" description="Build a feature, fix, or upgrade, from request to merge." />
+  <LinkCard title="More install options" href="/agent-ready-repo/docs/guides/_shared/how-to/install-packs/" description="Other agents, scopes, profiles, and upgrades." />
+</CardGrid>

@@ -1,15 +1,13 @@
 ---
-title: "The file-safety contract"
-summary: "Understand how pack installs and upgrades preserve adopter edits through the catalogue's three-tier file-safety model."
+title: "File safety"
+summary: "Know which installed files you can edit, and what an install or upgrade does with each."
 pack: _shared
 kind: explanation
 ---
 
-# The file-safety contract
+# File safety
 
-When you install a pack from this catalogue, the install verb writes files into your repo — `AGENTS.md`, `docs/CHARTER.md`, skill directories, hooks. If you've already edited any of those files (or the upgrade you're running has new content for them), what happens?
-
-The short answer: **your edits are never silently overwritten**. This page explains the long answer — what mechanism makes the guarantee hold, how it differs by install route, and where the contract is authoritative.
+An install or upgrade never silently overwrites a file you edited. Files fall into three tiers, and each tier gets its own treatment, described below by install route.
 
 ## The three tiers
 
@@ -66,7 +64,7 @@ A session-time auto-copy of seeds out of the plugin cache would cross the "the c
 
 ## Why this exists
 
-The simplest alternative would have been: overwrite Tier-1 files on install, ask the adopter to put `AGENTS.md` and `docs/CHARTER.md` into `.gitignore` if they want to edit, and let `git diff` handle the rest. We rejected that because the files the catalogue ships are *deliberately* the ones adopters need to edit — `AGENTS.md` is the project's agent context; `docs/CHARTER.md` is the project's own mission statement. Asking an adopter to gitignore those is asking them not to use the catalogue's most load-bearing seeds.
+The simplest alternative would have been: overwrite Tier-1 files on install, ask the adopter to put `AGENTS.md` and `docs/CHARTER.md` into `.gitignore` if they want to edit, and let `git diff` handle the rest. We rejected that because the files the catalogue ships are *deliberately* the ones adopters need to edit — `AGENTS.md` is the project's agent context; `docs/CHARTER.md` is the project's own mission statement. Asking an adopter to gitignore those is asking them not to use the catalogue's most important seeds.
 
 Tier-2 + companions are the design that lets the catalogue ship opinionated seeds *and* respect adopter edits — both, not either-or. The cost is a slightly more involved merge step (the `adapt-to-project` skill), which is worth it because the alternative (silent overwrite) destroys trust on the first upgrade.
 

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Check WCAG 2.x contrast for the docs-site palette.
 
-Reads docs-site/src/styles/starlight.css, resolves the --doc-* and
+Reads docs-site/src/styles/starlight.css and then rail.css (later
+declarations win, as in the browser), resolves the --doc-*, --rail-* and
 --ds-state-* custom properties per theme (declarations inside a
-[data-theme='light'] block override the dark defaults), and fails if any
-text/ground pair used by the docs-site-design-refresh spec (AC5/AC6)
-measures below 4.5:1. Pure stdlib; run from the repo root:
+[data-theme='light'] block override the dark defaults; a block whose selector
+list names both themes applies to both), and fails if any text/ground pair
+measures below 4.5:1 (spec/docs-site-rail-shell AC8). Pure stdlib; run from
+the repo root:
 
     python3 tools/check-docs-contrast.py
 """
@@ -16,7 +18,10 @@ import re
 import sys
 from pathlib import Path
 
-CSS_PATH = Path("docs-site/src/styles/starlight.css")
+CSS_PATHS = (
+    Path("docs-site/src/styles/starlight.css"),
+    Path("docs-site/src/styles/rail.css"),
+)
 
 # (foreground var, background var) — every pair is real text on a real
 # ground; decorative fills (tints, rules, borders) are deliberately absent.
@@ -38,6 +43,16 @@ PAIRS = [
     ("--ds-state-warn-fg", "--ds-state-warn-bg"),
     ("--ds-state-info-fg", "--ds-state-info-bg"),
     ("--ds-state-neutral-fg", "--ds-state-neutral-bg"),
+    # Rail line: ink, body, and muted text, and each stage hue (the stage chip
+    # prints the stage name in it), on the page ground and the subtle surface.
+    *(
+        (fg, bg)
+        for fg in (
+            "--rail-ink", "--rail-text", "--rail-muted",
+            "--rail-setup", "--rail-decide", "--rail-shape", "--rail-build", "--rail-ship",
+        )
+        for bg in ("--rail-ground", "--rail-subtle")
+    ),
 ]
 
 FLOOR = 4.5
@@ -79,9 +94,12 @@ def theme_tables(css: str) -> dict[str, dict[str, str]]:
     dark: dict[str, str] = {}
     light: dict[str, str] = {}
     for selector, body in split_blocks(css):
-        target = light if "data-theme='light'" in selector else dark
+        parts = [part for part in selector.split(",") if part.strip()]
+        lit = ["data-theme='light'" in part for part in parts]
+        targets = ([dark] if not all(lit) else []) + ([light] if any(lit) else [])
         for name, value in DECL_RE.findall(body):
-            target[name] = value.strip()
+            for target in targets:
+                target[name] = value.strip()
     return {"dark": dark, "light": {**dark, **light}}
 
 
@@ -128,12 +146,12 @@ def ratio(fg: str, bg: str) -> float:
 
 def main() -> int:
     try:
-        css = CSS_PATH.read_text(encoding="utf-8")
+        css = "\n".join(path.read_text(encoding="utf-8") for path in CSS_PATHS)
     except (OSError, UnicodeDecodeError) as exc:
         # A missing or unreadable sheet is a gate failure, not a crash: this runs as
         # a required CI step, and a traceback there reads as tooling breakage rather
         # than the contract violation it is.
-        print(f"error  cannot read or decode {CSS_PATH}: {exc}")
+        print(f"error  cannot read or decode the docs stylesheets: {exc}")
         print("\ncheck-docs-contrast: palette unreadable")
         return 1
     tables = theme_tables(css)

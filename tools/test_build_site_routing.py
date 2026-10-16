@@ -66,7 +66,7 @@ _APPROVED_SHARED_CHROME_DESTINATIONS = {
     "packs": ("Packs", "/packs/", "internal"),
     "journeys": ("Journeys", "/journeys/", "internal"),
     "get-started": ("Get started", "/docs/getting-started/", "internal"),
-    "install": ("Install", "/docs/getting-started/install/", "internal"),
+    "install": ("Install", "/docs/guides/_shared/how-to/install-agentbundle/", "internal"),
     "three-loops": ("The operating model", "/docs/guides/_shared/explanation/the-operating-model/", "internal"),
     "all-docs": ("All docs", "/docs/", "internal"),
     "changelog": ("Changelog", "/docs/changelog/", "internal"),
@@ -719,7 +719,8 @@ _MARKETING_CHROME_SOURCES = (
     "web/src/lib/shared-chrome.ts",
 )
 _DOCS_CHROME_SOURCES = (
-    "docs-site/src/components/PageFrame.astro",
+    "docs-site/src/components/Header.astro",
+    "docs-site/src/components/Sidebar.astro",
     "docs-site/src/components/Footer.astro",
     "docs-site/src/components/shared-chrome.ts",
 )
@@ -819,7 +820,7 @@ def test_each_renderer_reads_its_own_projected_input():
     for relative, own, other in (
         ("web/src/components/layout/SiteFooter.astro",
          "lib/shared-chrome.generated.json", "docs-site"),
-        ("docs-site/src/components/PageFrame.astro",
+        ("docs-site/src/components/Footer.astro",
          "shared-chrome.generated.json", "web/src"),
     ):
         text = (_REPO_ROOT / relative).read_text(encoding="utf-8")
@@ -863,6 +864,10 @@ def _generator_fixture(tmp_path):
     # tests assert the design-token contract.
     (tmp_path / "docs" / "product" / "changelog.md").write_text(
         "# Changelog\n\n## [Unreleased]\n", encoding="utf-8"
+    )
+    # The Packs page's hand-written half; the generator appends the pack tables.
+    (tmp_path / "docs-site" / "src" / "packs-page.md").write_text(
+        "A pack is a set of agent workflows.\n", encoding="utf-8"
     )
     return tmp_path
 

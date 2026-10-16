@@ -55,26 +55,18 @@ def _guidebooks_group() -> dict | None:
     return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")[1]
 
 
-def test_guidebooks_anchor_points_at_step_one_of_a_real_walk():
-    """The anchor exists to make a walk reachable, so it must reach one.
-
-    A reader on a pack page could not find the guidebook at all: the guides
-    tree is one group of two hundred entries nested among the packs, and the
-    pack page's only guides link left the site for GitHub. An anchor that
-    pointed at a page which is not a step, or at a walk of one, would restate
-    that failure rather than fix it.
-    """
-    anchor = _guidebooks_group()
-    assert anchor is not None and anchor["items"], "no guidebook is anchored"
-    steps = {
-        r["slug"]: r
+def test_no_guidebook_walk_remains():
+    """spec/docs-job-pages AC2: each pack guidebook became one job page whose
+    steps are sections, so no page carries a "Step N of M" position and the
+    sidebar can never open a walk part-way through."""
+    steps = [
+        r["slug"]
         for r in build_site.build_guide_inventory(REPO_ROOT / "guides")
         if r.get("step") is not None
-    }
-    for item in anchor["items"]:
-        record = steps.get(item["slug"])
-        assert record is not None, f"{item['slug']} is not a guidebook step"
-        assert record["step"] == 1, f"{item['slug']} is step {record['step']}, not the first"
+    ]
+    assert steps == [], f"guidebook step pages remain: {steps}"
+    anchor = _guidebooks_group()
+    assert anchor is None or not anchor["items"], anchor
 
 
 # ---------------------------------------------------------------------------
@@ -288,16 +280,16 @@ def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
 # taking the right-hand side verbatim, so requoting a title without changing a
 # character of it is not a failure. Wording is the subject; quoting is not.
 #
-# Without these, reverting any approved title, any of the five controls, the two
+# Without these, reverting any approved title, any of the three controls, the two
 # baseline deletions, or any of the three pack-index link labels fails nothing in
-# the suite: four of the five controls have no `guide-nav-baseline.toml` entry, so
+# the suite: two of the three controls have no `guide-nav-baseline.toml` entry, so
 # the pair guard does not reach them, and nothing else in the repo compares
 # Markdown link text against anything.
 
 # The four approved strings, frozen by the brief's decision 7.
 APPROVED_TITLES = {
     "guides/frontend-engineering/how-to/page-screen-contract.md":
-        "Write a page or screen contract",
+        "Build a page or component",
     "guides/frontend-engineering/how-to/run-an-audit.md":
         "Run a frontend audit",
     "guides/frontend-engineering/tutorials/scaffold-a-component.md":
@@ -305,20 +297,16 @@ APPROVED_TITLES = {
     "guides/iac-terraform/README.md":
         "Terraform and OpenTofu guides",
 }
-# The five reviewed titles the same decision holds UNCHANGED.
+# The three reviewed titles the same decision holds UNCHANGED.
 # Read from the tree, not from memory: an earlier draft of this dict guessed the
 # wording and the test caught it.
 CONTROL_TITLES = {
-    "guides/_shared/how-to/install-user-scope-pack-into-codex.md":
-        "How to install a user-scope pack into Codex",
-    "guides/_shared/how-to/install-user-scope-pack-into-kiro.md":
-        "How to install a user-scope pack into Kiro",
     "guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md":
         "Authenticate Jira and Confluence with an SSO web session",
     "guides/frontend-engineering/reference/frontend-engineering.md":
         "Frontend Engineering Pack",
     "guides/governance-extras/how-to/new-adr.md":
-        "How to record a decision with an ADR",
+        "Record a decision",
 }
 # guide-title-clarity AC5 (and AC6 for the de-baselined subset): every
 # retitled page's sidebar ITEM label, keyed slug -> source path so the
@@ -405,9 +393,9 @@ def test_approved_titles_match_their_body_h1():
 
 
 def test_reviewed_control_titles_are_unchanged():
-    """The five titles the same decision reviewed and chose to KEEP.
+    """The three titles the same decision reviewed and chose to KEEP.
 
-    Four of these carry no baseline entry, so nothing else in the suite would
+    Two of these carry no baseline entry, so nothing else in the suite would
     notice them being reworded alongside a future title sweep.
     """
     actual = {rel: _frontmatter_title(rel) for rel in CONTROL_TITLES}

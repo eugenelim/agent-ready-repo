@@ -69,7 +69,7 @@ and `version`; `[pack.adapter-contract]` with `version`.
 marketplace browser, a catalogue listing, or CLI output. It is not read by the model.
 
 That makes it a different artifact from a skill's or agent's `description`, which the
-model reads to decide whether to **activate** the primitive. Length is load-bearing
+model reads to decide whether to **activate** the primitive. Length matters
 there and shortening it degrades activation; per-target caps in
 `contracts/target-vocab.toml` govern it. Do not carry habits from one to the other.
 
@@ -126,7 +126,7 @@ review against the shape and the table above.
 A pack README serves adopters, not contributors. It states the pack's intent and the
 user journey it serves — not a skill inventory. See the `_example` pack for a template.
 
-- [packs/_example/README.md](../../../packs/_example/README.md) — canonical example.
+- [packs/_example/README.md](../../../packs/_example/README.md) — the model example.
 
 ---
 
@@ -224,7 +224,7 @@ archive supports downstream verification, auditing, security review, and
 testing an extracted release.
 
 Catalogue inclusion does not imply runtime installation. Installers and
-projection adapters treat `.apm/` and `seeds/` as the projected surfaces, so
+projection adapters treat `.apm/` and `seeds/` as the projected folders, so
 nothing outside those two — `tests/` included — reaches an installed
 environment.
 
@@ -441,18 +441,18 @@ environment, smoke-test it there, and confirm the projection contains no
 Every skill is a Markdown file with YAML frontmatter. Required frontmatter keys:
 `title`, `description` (≤ 1024 characters), `kind`.
 
-- `guides/_shared/how-to/author-a-skill.md` — frontmatter key list, body structure,
-  naming rules, progressive-disclosure pattern, three-tier dependency policy, and eval
-  coverage. (Available in the full guide library; not bundled in this scaffold.)
+- `guides/_shared/reference/skill-authoring-standards.md` — frontmatter key list, body
+  structure, naming rules, progressive-disclosure pattern, three-tier dependency policy,
+  and eval coverage. (Available in the full guide library; not bundled in this scaffold.)
 
 ---
 
 ## 6. Skill body and progressive disclosure
 
 Long skills use progressive disclosure: a brief required-reading summary at the top,
-with detail sections the agent loads on demand. This keeps context usage bounded.
+with detail sections the agent loads on demand. This keeps context usage small.
 
-See `guides/_shared/how-to/author-a-skill.md` for the full pattern.
+See `guides/_shared/reference/skill-authoring-standards.md` for the full pattern.
 
 ---
 

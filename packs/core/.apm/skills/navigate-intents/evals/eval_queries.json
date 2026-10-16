@@ -186,5 +186,37 @@
   {
     "query": "Generate a self-contained HTML browser for our decision records",
     "should_trigger": false
+  },
+  {
+    "query": "Which intents does FEAT-0008 depend on?",
+    "should_trigger": true
+  },
+  {
+    "query": "What depends on this intent?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show the dependency graph for this capability's intents",
+    "should_trigger": true
+  },
+  {
+    "query": "Trace prerequisites for intent:x",
+    "should_trigger": true
+  },
+  {
+    "query": "Block starting work on an intent until its prerequisites have shipped",
+    "should_trigger": false
+  },
+  {
+    "query": "Reorder the work queue so dependencies come first",
+    "should_trigger": false
+  },
+  {
+    "query": "Migrate the needs in our workspace queue into Depends on headers on the intents",
+    "should_trigger": false
+  },
+  {
+    "query": "Edit the Depends on header of this intent to add a prerequisite",
+    "should_trigger": false
   }
 ]

@@ -1,52 +1,54 @@
 ---
-title: "How to write a guide"
-summary: "Document one shipped feature as a tutorial, how-to, reference, or explanation, written for a single reader and checked against the product."
+title: "Write the docs"
+summary: "Document a shipped feature as a page that matches your code, or find the gaps in a whole doc set."
 pack: product-documentation
 kind: how-to
 status: stable
+uses: [product-documentation]
 ---
 
-**Use this when:** a feature already ships and you need one page that documents it.
-**Prerequisites:** `product-documentation` pack installed.
-**Result:** one page of the right kind, in the place your repository keeps docs of that kind, with a first runnable action in its first 120 words and links to the pages before and after it.
+# Write the docs
 
-Ask your agent:
+Name a feature that already ships and the reader it is for, and your agent drafts the page from your code.
 
-> Write a how-to guide for rotating an API token, for a developer who already installed our CLI.
+## Write one page
 
-Swap in your own feature and reader. The `author-product-docs` skill reads the code first, then drafts.
+Name the feature and the reader:
 
-## Before you start
+```text
+Write a how-to guide for rotating an API token, for a developer who already installed our CLI.
+```
 
-You need:
+The agent runs the `author-product-docs` skill, reads the code, and drafts the page. A real reader matters: "someone might want this" gives it nothing to aim at.
 
-- **A real reader.** "Someone might want to know X" is not a reader. "A developer who installed the CLI and needs to rotate a token" is.
-- **Behavior that already ships.** Guides document the current product. A proposal belongs in a spec or an RFC.
+## Check the kind
 
-## Steps
+The agent picks a tutorial, how-to, reference, or explanation from what the reader is doing, not from the topic. It reports the kind and where the page landed, so read that line and ask for a different kind if it is wrong. A reader who wants a guaranteed result on rails needs a tutorial. A reader with a named problem needs a how-to.
 
-1. **Send the request.** Name the feature and, if you know it, the kind: "write a how-to", "write a quickstart", "document the `export` command". The skill infers create mode.
-2. **Let it find the surface.** From the repository it works out whether the feature belongs to a library, CLI, API, app, service, framework, plugin, or agent-context pack, and which source is canonical for it — the parser definitions for a CLI command, the contract file for an endpoint.
-3. **Check the kind.** The skill picks the kind from the reader's posture, not the topic. On rails and wanting a guaranteed result is a tutorial. A named problem is a how-to. Scanning for a fact is reference. Wanting to know why is explanation. Check the page kind and destination it reports, and redirect it if either is wrong.
-4. **Read the draft against the contract.** The page opens with the reader's goal and a first runnable action: a request, a command, or a code sample. It says what the product reads and what it may change, shows the expected result, names what remains the reader's decision, and ends with the likely next step.
-5. **Check where it landed.** The skill writes where your repository already keeps docs of that kind and audience. If it could not tell, it asked once. The report lists the files it changed and the sources it read.
-6. **Check the links.** Each link points to a file that exists. A missing sibling shows as a TODO comment instead of a broken link.
+## Read the draft
 
-## Variations
+The page opens with what the reader can do and a first command, request, or code sample they can run. Ask for what it left out:
 
-- **Two readers or two postures.** That is two pages. Pick the first and note the second as a follow-up.
-- **The page already exists.** Say "revise this guide to lead with what the reader can accomplish". The skill reads the page first and treats the request as a revision.
-- **Several pages need to connect.** Ask for a retrofit, or start with an audit. See [How to author product docs](author-product-docs.md).
+```text
+Which claims in this page could you not check against the code?
+```
 
-## Common pitfalls
+The agent lists any claim it marked unverified. Run the examples yourself before you publish.
 
-- **Picking the kind by topic.** "Authentication" is a topic. Learning it, configuring it, and understanding it are different pages.
-- **Writing opinion into reference.** Reference says what. Recommendations belong in an explanation.
-- **Creating empty category directories.** A page kind is a contract, not a folder.
-- **Pasting commands that were never run.** The skill labels a claim it could not check as unverified. Run the example yourself before you publish it.
+## Revise or audit
 
-## See also
+For a page that already exists, ask for a revision:
 
-- [About the Diátaxis framework](../explanation/the-diataxis-framework.md) — the four kinds and the link-out discipline.
-- [How to author product docs](author-product-docs.md) — audit a doc set and fix the biggest gaps.
-- [Getting started](../getting-started.md) — a first walk-through on your own repository.
+```text
+Revise this guide to lead with what the reader can accomplish.
+```
+
+The agent reads the page, then improves it in place. To see what is missing across the whole project, ask for an audit instead:
+
+```text
+Audit this project's docs and tell me which stages of the reader journey are missing.
+```
+
+The agent changes nothing and reports each stage as covered, partial, or missing. [Author product docs](author-product-docs.md) walks through the audit and the fixes that follow. For why the four kinds differ, read [About the Diátaxis framework](../explanation/the-diataxis-framework.md).
+
+Next, [release the change](../../release-engineering/how-to/run-a-release.md).

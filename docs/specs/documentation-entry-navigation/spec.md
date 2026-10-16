@@ -1,5 +1,7 @@
 # Spec: documentation-entry-navigation
 
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): the docs home is the Intro page.
+
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

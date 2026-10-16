@@ -41,6 +41,7 @@ export default defineConfig({
   // Old URLs of the operating-model guide: its Get Started copy, folded into the
   // guide, and its slug before the rename. Both keep working.
   redirects: {
+    '/getting-started/install/': '/agent-ready-repo/docs/guides/_shared/how-to/install-agentbundle/',
     '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
     '/guides/_shared/explanation/the-three-loops/':
       '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
@@ -89,38 +90,154 @@ export default defineConfig({
         '@fontsource/jetbrains-mono/600.css',
         '@fontsource/jetbrains-mono/700.css',
         './src/styles/starlight.css',
+        './src/styles/rail.css',
       ],
       expressiveCode: {
         // Dark code blocks on both themes — the docs design language keeps
         // code dark-on-light (see docs/specs/docs-site-design-refresh).
         themes: ['github-dark'],
+        // Shell blocks as plain code frames: no window-dot title bar (the
+        // Rail line direction sets ornament to none).
+        defaultProps: { frame: 'code' },
         styleOverrides: {
           borderRadius: '10px',
           borderColor: 'transparent',
         },
       },
+      routeMiddleware: './src/routeData.ts',
       components: {
         Footer: './src/components/Footer.astro',
-        PageFrame: './src/components/PageFrame.astro',
+        Header: './src/components/Header.astro',
+        Sidebar: './src/components/Sidebar.astro',
         PageTitle: './src/components/PageTitle.astro',
         TableOfContents: './src/components/TableOfContents.astro',
+        ThemeSelect: './src/components/ThemeToggle.astro',
         MobileTableOfContents: './src/components/MobileTableOfContents.astro',
       },
       // Mermaid is bundled (exact pin) and lazily imported in
       // Footer.astro's client script — no runtime CDN calls.
+      // Top level = the top-bar tabs (Header.astro); Docs groups named for an
+      // operating-model stage draw that stage's line (rail.ts).
       sidebar: [
-        { label: 'Home', slug: 'index' },
         {
-          label: 'Get Started',
+          label: 'Docs',
           items: [
-            { label: 'Getting Started', slug: 'getting-started' },
-            { label: 'The Operating Model', slug: 'guides/_shared/explanation/the-operating-model' },
-            { label: 'Install', slug: 'getting-started/install' },
+            { label: 'Intro', slug: 'index' },
+            { label: 'Operating model', slug: 'guides/_shared/explanation/the-operating-model' },
+            {
+              label: 'Set up a repository',
+              items: [
+                { label: 'Start a project', slug: 'guides/core/how-to/start-a-project' },
+                { label: 'Connect your tracker', slug: 'guides/_shared/how-to/choose-a-tracker-integration' },
+              ],
+            },
+            {
+              label: 'Decide what to build',
+              items: [
+                { label: 'Research a question', slug: 'guides/desk-research/how-to/run-the-research' },
+                { label: 'Understand the code', slug: 'guides/code-intelligence/how-to/investigate-a-codebase' },
+                { label: 'Analyse the market', slug: 'guides/product-strategy/how-to/run-a-market-and-competitive-analysis' },
+                { label: 'Set direction and goals', slug: 'guides/product-strategy/how-to/set-the-direction' },
+              ],
+            },
+            {
+              label: 'Shape it',
+              items: [
+                { label: 'Shape an idea', slug: 'guides/product-engineering/how-to/frame-the-intent' },
+                { label: 'Design the architecture', slug: 'guides/architect/how-to/shape-an-architecture-concept' },
+                { label: 'Design the experience', slug: 'guides/experience-design/how-to/map-the-customer-journey' },
+                { label: 'Design an API contract', slug: 'guides/contracts/how-to/generate-an-api-contract' },
+              ],
+            },
+            {
+              label: 'Build it',
+              items: [
+                { label: 'Run the build loop', slug: 'guides/core/how-to/start-the-work' },
+                { label: 'Fix a bug', slug: 'guides/core/how-to/bug-fix' },
+                { label: 'Review a pull request', slug: 'guides/core/how-to/review-someone-elses-pr' },
+                { label: 'Build a page or component', slug: 'guides/frontend-engineering/how-to/page-screen-contract' },
+                { label: 'Record a decision', slug: 'guides/governance-extras/how-to/new-adr' },
+                { label: 'Write the docs', slug: 'guides/product-documentation/how-to/write-a-guide' },
+              ],
+            },
+            {
+              label: 'Ship it',
+              items: [
+                { label: 'Release a change', slug: 'guides/release-engineering/how-to/run-a-release' },
+                { label: 'Change infrastructure', slug: 'guides/iac-terraform/how-to/change-infrastructure' },
+                { label: 'Measure delivery', slug: 'guides/atlassian/how-to/measure-flow-and-dora-metrics' },
+              ],
+            },
           ],
         },
-        ...(sidebarConfig as any[]),
-        { label: 'Changelog', slug: 'changelog' },
-        { label: 'Contributing', slug: 'contributing' },
+        {
+          label: 'CLI',
+          items: [
+            { label: 'Install agentbundle', slug: 'guides/_shared/how-to/install-agentbundle' },
+            { label: 'Install packs for your agent', slug: 'guides/_shared/how-to/install-packs' },
+            { label: 'Configure agentbundle', slug: 'guides/_shared/how-to/configure-agentbundle' },
+            { label: 'Upgrade packs', slug: 'guides/_shared/how-to/upgrade-packs' },
+            {
+              label: 'Reference',
+              items: [
+                { label: 'Command reference', slug: 'guides/_shared/reference/agentbundle' },
+                { label: 'Adapter support', slug: 'guides/_shared/reference/adapter-support' },
+                { label: 'File safety', slug: 'guides/_shared/explanation/file-safety-contract' },
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Packs',
+          items: [
+            { label: 'About packs', slug: 'packs' },
+            ...(sidebarConfig as any[])
+              .flatMap((group) => group.items ?? [])
+              .filter((item) => typeof item.slug === 'string' && item.slug.startsWith('packs/'))
+              .sort((a, b) => a.label.localeCompare(b.label)),
+          ],
+        },
+        {
+          label: 'Author',
+          items: [
+            { label: 'Author a skill', slug: 'guides/_shared/how-to/author-a-skill' },
+            { label: 'Author a subagent', slug: 'guides/catalogue-curation/tutorials/your-first-subagent' },
+            { label: 'Build a pack', slug: 'guides/_shared/how-to/build-an-org-stack-pack' },
+            { label: 'Design a profile', slug: 'guides/_shared/how-to/design-a-profile' },
+            { label: 'Write a pack journey', slug: 'guides/_shared/how-to/pack-journey-authoring' },
+            { label: 'Add credentials to a skill', slug: 'guides/credential-brokers/how-to/add-a-credentialed-skill' },
+            {
+              label: 'Reference',
+              items: [
+                { label: 'Pack config API', slug: 'guides/_shared/reference/pack-config-api' },
+                { label: 'Skill authoring standards', slug: 'guides/_shared/reference/skill-authoring-standards' },
+                { label: 'Skill script conventions', slug: 'guides/_shared/reference/skill-script-conventions' },
+                { label: 'Skill UX patterns', slug: 'guides/_shared/reference/skill-ux-patterns' },
+                { label: 'Catalogue authoring standards', slug: 'guides/_shared/reference/catalogue-authoring-standards' },
+                { label: 'Credentialed skill walkthrough', slug: 'guides/credential-brokers/reference/credentialed-skill-walkthrough' },
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Catalogue System',
+          items: [
+            { label: 'How a catalogue works', slug: 'guides/_shared/how-to/create-a-catalogue' },
+            { label: 'Configure catalogue.toml', slug: 'guides/_reference/catalogue-format' },
+            { label: 'Set enterprise defaults', slug: 'guides/_shared/how-to/configure-catalogue-enterprise-distribution' },
+            { label: 'Host on Artifactory', slug: 'guides/_shared/how-to/create-a-self-hosted-catalogue' },
+            { label: 'Roll out across an enterprise', slug: 'guides/_shared/how-to/roll-out-agent-ready-repo-across-an-enterprise' },
+            { label: 'Import and curate skills', slug: 'guides/catalogue-curation/how-to/survey-a-repo' },
+            {
+              label: 'Reference',
+              items: [
+                { label: 'Catalogue CI contract', slug: 'guides/_shared/reference/catalogue-ci-contract' },
+                { label: 'Artifactory distribution', slug: 'guides/_shared/reference/artifactory-catalogue-distribution' },
+                { label: 'Ledger and guard', slug: 'guides/catalogue-curation/reference/ledger-and-guard' },
+              ],
+            },
+          ],
+        },
       ],
     }),
   ],

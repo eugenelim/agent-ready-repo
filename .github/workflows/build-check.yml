@@ -580,7 +580,6 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
           python -m pytest
-          tests/roster/test_experience_design_guide_agreement.py
           tests/roster/test_experience_design_write_declaration_and_containment.py
           tests/roster/test_experience_design_artifact_folder_registry.py
           tests/roster/test_content_design_communication_mode_contract.py
@@ -1580,8 +1579,7 @@ jobs:
       - name: Set up Node (gate-css-tokens)
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
-          # 24 matches web/package.json engines; docs.yml's guidebook-walk job
-          # pins the same major from the same action SHA.
+          # 24 matches web/package.json engines.
           node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json

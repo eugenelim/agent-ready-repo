@@ -326,4 +326,4 @@ Structured Markdown with a header table (From/To/CC/Date), the body, and attachm
 
 ---
 
-For task recipes, see the [how-to guides](../README.md#how-to). Installing and upgrading the pack live in [`../../_shared/`](../../_shared/).
+For task recipes, see the [how-to guides](../README.md). Installing and upgrading the pack live in [`../../_shared/`](../../_shared/).

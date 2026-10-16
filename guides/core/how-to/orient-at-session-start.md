@@ -26,7 +26,7 @@ For *why* the shaping and build queues are separated, see [The two-room model](.
 - The `core` pack installed in the target repo.
 - A terminal or agent session open in the repo root.
 
-## Step 1 — Run `workspace-status`
+## Run `workspace-status`
 
 Invoke the `workspace-status` skill at the start of every session:
 
@@ -38,7 +38,7 @@ The skill reads `workspace.toml` and produces an orientation output. If `workspa
 
 **You should see:** a block with the active initiative name, current milestone, and the state of both the shape room and the build room.
 
-## Step 2 — Read the initiative and milestone
+## Read the initiative and milestone
 
 At the top of the output, confirm:
 
@@ -47,13 +47,13 @@ At the top of the output, confirm:
 
 This is the strategic context for the session. If you are about to work on a spec, confirm it belongs to this initiative before picking it up.
 
-## Step 3 — Read the active-context signals
+## Read the active-context signals
 
 The output includes an **Active context** block listing any `signal`-type entries in the shape room. Signals are ongoing monitoring items — they have no discrete end state and don't require action, but they set the context for what you build.
 
 Read them if present; no action is required.
 
-## Step 4 — Read the ready-to-start and blocked sections
+## Read the ready-to-start and blocked sections
 
 The output lists build-room items by readiness:
 
@@ -74,7 +74,7 @@ status projection has no explicit configured-processor fact; use `work-intake`
 to resolve the exact profile before acquisition or mutation. Status never shows
 the complete ownership map, approver identity, decisions, or receipts.
 
-## Step 5 — Read the shaping queue
+## Read the shaping queue
 
 If the output includes a shaping section, read it:
 
@@ -83,7 +83,7 @@ If the output includes a shaping section, read it:
 
 If your session goal is shaping work, pick an active shaping item and run the suggested skill.
 
-## Step 6 — Pick your next action
+## Pick your next action
 
 You now have enough context to start. The common cases:
 

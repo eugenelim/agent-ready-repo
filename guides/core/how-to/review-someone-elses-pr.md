@@ -1,43 +1,47 @@
 ---
-title: "Review a branch or PR you didn't write"
-summary: Run an independent, severity-ranked review of another author’s change and return actionable findings.
+title: "Review a pull request"
+summary: "Get an independent, severity-ranked review of a branch or pull request someone else wrote."
 pack: core
 kind: how-to
+uses: [core]
 ---
 
-# Review a branch or PR you didn't write
+# Review a pull request
 
-**Use this when:** You need to run an adversarial (and specialist) review on a branch or PR you did not write.
-**Prerequisites:** The `core` pack installed and your agent able to reach the branch or PR (local branch, GitHub PR via `gh`, or a GitLab MR).
-**Result:** Severity-tagged review findings (Blockers / Concerns / Nits) ready to hand back to the author.
+Name a branch or pull request someone else wrote, and your agent returns findings you can hand back to the author.
 
-The reviewer subagents don't care who wrote the diff. The work loop points them at your own working tree, but you can point them at anyone's.
+## Ask for the review
+
+Name the branch:
 
 ```text
 Use the work-loop to review branch feature/payment-refund.
 ```
 
-Prompt your agent:
+The agent reads the diff and runs `adversarial-reviewer`, adding `security-reviewer` and `quality-engineer` when the change warrants them.
 
-> Use the work-loop to review branch `<their-branch>`.
+## Review a hosted change
 
-Name whatever your agent can reach. A local branch always works; if the agent has the tooling (`gh`, `glab`, an MCP server), point it straight at a hosted change instead — "review GitHub PR #123", "review this GitLab MR".
+If your agent has `gh`, `glab`, or an MCP server for your host, name the pull request instead:
 
-It resolves the diff and runs `adversarial-reviewer` (plus `security-reviewer` / `quality-engineer` if the diff warrants) — the same REVIEW step described in [Plan and execute non-trivial work](plan-and-execute-non-trivial-work.md).
+```text
+Use the work-loop to review GitHub PR #123.
+```
 
-`shaping-reviewer` checks a draft intent, brief, or spec before construction; it is separate from the adversarial, security, and quality code-review lenses — which own disjoint concerns and do not restate each other's findings — and is not a PR-diff reviewer.
+A local branch always works. For a GitLab merge request, say "review this GitLab MR".
 
-Two things worth saying out loud:
+## Check against a spec
 
-- **No spec? Say so.** An in-flight branch usually has no spec, so the reviewer falls back to the spec-less self-review lens. If the branch *does* carry a `docs/specs/<feature>/spec.md`, name it — the reviewer then checks the diff against the spec instead.
-- **It's a throwaway review.** You want the findings, not a loop run. Don't expect `state.json` or the loop's iteration cap; read the severity-tagged output and hand it to the author.
+A branch in progress usually has no spec, so the reviewer judges the diff on its own. If the branch carries a spec, a short document that says what done means, name it:
 
-## What you have now
+```text
+Review this branch against docs/specs/payment-refund/spec.md.
+```
 
-You have severity-ranked findings for the author, evaluated against the named
-spec when one exists. Hand the findings back for repair; this review does not
-start or advance an implementation loop.
+The reviewer then checks the diff against that spec.
 
-## See also
+## Read the findings
 
-- [The core pack](../explanation/core-pack.md) — *why* the reviewers read the diff cold, and what each lens covers.
+The agent returns findings tagged Blockers, Concerns, and Nits. This is a one-off review, so it writes no loop state and starts no build; hand the findings to the author to repair. The `shaping-reviewer` checks draft intents, briefs, and specs before building starts, so it does not review these diffs the way the adversarial, security, and quality reviewers do.
+
+Next, [fix a bug](bug-fix.md) the review found, or [release the change](../../release-engineering/how-to/run-a-release.md).

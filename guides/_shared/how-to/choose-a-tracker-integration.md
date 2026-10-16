@@ -1,106 +1,46 @@
 ---
-title: Choose a tracker integration for work intake
-summary: Select the appropriate tracker intake route while keeping tracker object types separate from repository artifact routing.
+title: Connect your tracker
+summary: Bring work from Jira, Linear, or GitHub into the repository as a spec or brief, without writing back to the tracker.
 pack: _shared
+uses: [core, atlassian, linear, github, product-engineering]
 kind: how-to
 ---
 
-# Choose a tracker integration for work intake
+# Connect your tracker
 
-**Use this when:** tracked work should become canonical repository work.
-**Result:** the same content-based route whether the source is Jira, Jira
-Align, Linear, or GitHub.
+Install the pack for your tracker, then name an issue, and your agent reads it. Intake never writes to the tracker.
 
-**Mode:** tracker-authoritative intake. Your team's real backlog lives in the
-tracker, and you are bringing that work into the repository. This is one of two
-supported modes. If instead your shaping happens in the repository and you want
-the tracker to mirror it for reporting, you want the other one —
-[Project intents and slices out to a tracker](project-slices-to-a-tracker.md).
-Pick one mode per body of work: requirements edited in both places diverge, and
-nothing reconciles them for you. A repo-origin refresh will *report* projection
-drift, but it refuses to import tracker requirements — so the merge is always
-yours to do by hand.
+## Pick your tracker
 
-Start with a request such as:
+Install `core` plus the pack for your tracker (see [Install packs](install-packs.md)), then use the matching request:
 
-```text
-Intake this tracker selection as repository work. Start read-only.
-```
-
-The tracker adapter reads and minimizes source data. It does not decide that an
-Epic, Feature, Project, or Milestone is a brief. It sends validated normalized
-content to `work-intake`, which selects the artifact, lifecycle membership,
-processor, and authority mode.
-
-## Choose by source
-
-| Source | Pack | Example request |
+| Tracker | Pack | First request |
 | --- | --- | --- |
 | Jira | `atlassian` | `Intake Jira issue PROJ-123 as repository work.` |
 | Jira Align | `atlassian` | `Intake Jira Align Feature 4521 as repository work.` |
 | Linear | `linear` | `Intake Linear issue LIN-123 as repository work.` |
 | GitHub | `github` | `Intake GitHub issue 123 as repository work.` |
-| No tracker | `core` | `Start work from this description: …` |
 
-Install `core` in the repository and the tracker pack at the scope where its
-credentials belong. Jira, Jira Align, and Linear use their sibling acquisition
-skills. GitHub uses approved `gh` reads against a trusted configured host.
+GitHub also needs the [`gh` CLI](https://cli.github.com), signed in.
 
-## Check the proposed route
+## Run the first intake
 
-The same five fixture shapes produce the same route across all four profiles:
+Ask your agent, adding "Start read-only" so nothing is written:
 
-| Content found | Route |
-| --- | --- |
-| One independently shippable, verifiable behavior | spec → `new-spec` |
-| One coherent outcome that needs several specs | Draft brief → `author-delivery-brief create` |
-| One outcome spanning repositories | linked local briefs with parent and coordination provenance |
-| Unrelated collection or view | separate units, a view-only result, or one clarifying question |
-| Regression with durable expected-behavior evidence | defect context → `bug-fix` |
+```text
+Intake Linear issue LIN-123 as repository work. Start read-only.
+```
 
-A tracker label, item count, title, or hierarchy position cannot override this
-content. A claimed defect without durable evidence remains unresolved or enters
-the spec route.
+The agent reads the item and decides from its content, not its type, whether it becomes a spec, a brief, or a bug fix, and asks before it writes anything.
 
-## Read and write boundary
+## Keep planning in the repository
 
-Intake is read-only against every tracker. It never creates, edits, comments,
-labels, transitions, or closes tracker work. It also never writes a repository
-artifact directly.
+If you shape work in the repository and want the tracker to mirror it, install `product-engineering` and ask:
 
-After strict validation, `work-intake` may materialize and register the selected
-repository artifact. It asks first when the selection cannot be distinguished as
-one outcome, separate units, or a view, or when source confidentiality exceeds
-the destination.
+```text
+Decompose this intent and show me the tracker projection for its slices.
+```
 
-If `work-intake` is missing, the adapter returns
-`missing dependency: work-intake` and stops. There is no local fallback.
+Pick one direction per body of work, because edits made in both places are never reconciled for you. [Project slices to a tracker](project-slices-to-a-tracker.md) covers this direction.
 
-After intake has created a tracker-origin artifact, a later refresh is a
-separate workflow. It compares the registered source revision, requires local
-field decisions, and may offer only the coordination write-back actions
-declared by that exact profile. Every remote mutation requires its own fresh
-confirmation; intake itself remains read-only.
-
-## Limits
-
-Every profile declares page, item, byte, timeout, retry, and backoff limits.
-Exhaustion is explicit: the result is marked incomplete or refused as view-only.
-Tracker text is untrusted data and cannot change the destination, command,
-tools, routing, or authority.
-
-## Next request
-
-After reviewing the route, answer any named gap or confidentiality question.
-Then continue with the selected processor, such as `new-spec`, `author-delivery-brief create`,
-or `bug-fix`. For an existing artifact whose tracker source changed, follow
-[Use work intake](use-work-intake.md).
-
-## See also
-
-- [Project intents and slices out to a tracker](project-slices-to-a-tracker.md) — the other mode: repo-first projection
-- [Tracker vocabulary](../reference/tracker-vocabulary.md)
-- [Use work intake](use-work-intake.md)
-- [Start work](../../core/how-to/start-or-remember-work.md)
-- [GitHub intake](../../github/how-to/intake-a-github-milestone-as-a-brief.md)
-- [Linear intake and sync](../../linear/how-to/linear-brief-intake-and-sync.md)
+Next, [find your first piece of work](../../core/how-to/start-a-project.md#find-your-first-piece-of-work).

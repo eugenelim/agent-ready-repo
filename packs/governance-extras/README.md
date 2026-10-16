@@ -1,115 +1,45 @@
-# governance-extras
+# Governance Extras
 
-decisions committed, proposals structured, conventions tracked.
+Your agent can write the RFC for a proposed change, record the ADR for a decision, and look up what your repository has already decided.
 
----
+## Install
 
-## Start here
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository, alongside Core:
 
-Type `new-rfc` and describe the change you want to propose.
-
-```text
-new-rfc [adopt trunk-based development]
-
-  identifier   RFC-0043
-  title        Trunk-based development over feature branches
-  status       Draft
-  target       docs/rfc/0043-trunk-based-development.md
-
-  Proposer     Reduces integration latency; CI catches regressions fast
-  Objector     Long-lived branches give teams isolation; trunk conflicts are costly
-
-Approve? ›
+```bash
+cd path/to/your-repo
+agentbundle install --pack governance-extras
 ```
 
-On any session return, type `navigate-decisions` or ask "show me the RFC landscape" to see where proposals stand.
+## What your agent can do
 
-```text
-navigate-decisions summary
+- Draft an RFC for a cross-cutting change, with the case for it and the strongest case against it.
+- Fold a research brief or design doc into the RFC as its factual grounding.
+- Record an ADR: the decision, the alternatives rejected, and the consequences. It links back to the RFC that led to it.
+- Look up ADRs and RFCs by lifecycle state, supersession lineage, and references.
+- Export the decision record as an offline HTML view.
+- Amend an accepted RFC with a short signed correction, without reopening it.
 
-  ADRs: 134  RFCs: 104
-  Accepted: 234  Superseded: 2  Draft: 1
-  Unresolved references: 0
-  RFC candidates: 8 entries  Roadmap intents: 4 entries
-```
+## Skills
 
----
+- **`new-rfc`** — Proposes a change as a structured RFC and previews it before writing.
+- **`new-adr`** — Records a decision as an ADR in the repository's decision-record location.
+- **`navigate-decisions`** — Reads the ADR and RFC corpus: landscape, lineage, references, and detail.
 
-## RFCs and ADRs
+## Works with
 
-**RFC (Request for Comments)** — a structured proposal for any cross-cutting change: a new convention, an architectural direction, a team process. An RFC is not a decision; it's the case for a decision. It carries a proposer perspective (why this is worth doing) and a genuine objector perspective (the strongest case against it). You can seed `new-rfc` with context — pass a desk-research brief, an architect design doc, or any prior analysis and the skill folds them in as the factual grounding instead of inventing the case from scratch. Accepted RFCs can be amended with a signed cover note (erratum) — a compact correction that does not reopen the full RFC cycle.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Install [Core](../core/README.md) first, because `new-adr` asks Core where your repository keeps decision records. [Desk Research](../desk-research/README.md) and [Architect](../architect/README.md) can feed an RFC. See [Record a decision](../../guides/governance-extras/how-to/new-adr.md) and [Write an RFC](../../guides/governance-extras/how-to/new-rfc.md).
 
-`navigate-decisions` reads the full `docs/adr/` and `docs/rfc/` corpus: landscape by lifecycle state, checked supersession lineage, contextual references, exact record detail, and guidance context. Results are recorded decisions and candidate context, not the complete policy applicable to an action.
+## Questions
 
-**ADR (Architecture Decision Record)** — the record of a decision already made. It captures the decision, the alternatives that were considered and why they were rejected, and the consequences. ADRs are immutable once merged; when a decision is reversed, the original ADR is superseded, not deleted. `new-adr` resolves the repository's portable `decision-record` destination before choosing an ordinal or index, so adopter policy and established custom/external locations win; `docs/adr/` is only the catalogue fallback. Its existing critique, preview, and confirmation method then runs inside that destination. If an RFC preceded the decision, the ADR links back to it.
+**Is an RFC a decision?** No. It is the case for one. The ADR records the decision once it is made.
 
-When core's `project-knowledge` skill is installed, `new-rfc` may capture reusable supporting practice only after every mandatory check is clean and the RFC file and index entry have been written. `new-adr` may do the same only when the decision-maker actually changes the ADR from Proposed to Accepted. Drafts, previews, abandoned work, and normative proposal or decision content are never captured. Missing project knowledge is a named skip with no fallback file; any distillation is limited to receipts returned by that same authoring gate.
+**Can an ADR be edited later?** An ADR is not edited once merged. When a decision is reversed, the old ADR is superseded, not deleted.
 
----
+**Where does it save an ADR?** In your repository's own decision-record location if it has one. `docs/adr/` is only the fallback.
 
-## Entry points
+**Does it write to project memory?** Only when Core's `project-knowledge` is installed, and only after the RFC is written or an ADR is accepted. Drafts and previews are never captured.
 
-| Say this               | What happens                                            |
-|------------------------|---------------------------------------------------------|
-| `navigate-decisions`   | Orient — ADR and RFC landscape, lifecycle, and lineage  |
-| `new-rfc`              | Propose a cross-cutting change through a structured RFC |
-| `new-adr`              | Record an architectural decision with critique tracks   |
+## Details
 
----
-
-## How a session runs
-
-```text
-navigate-decisions summary
-
-  ADRs: 134  RFCs: 104
-  Accepted: 234  Superseded: 2  Draft: 1
-  RFC candidates: 8 entries
-```
-
-```text
-new-rfc [adopt trunk-based development]
-
-  identifier   RFC-0043
-  title        Trunk-based development over feature branches
-  status       Draft
-  target       docs/rfc/0043-trunk-based-development.md
-
-  Proposer     Reduces integration latency; CI catches regressions fast
-  Objector     Long-lived branches give teams isolation; trunk conflicts are costly
-
-Approve? ›
-```
-
-```text
-new-adr [primary store: Postgres over DynamoDB]
-
-  identifier   ADR-0027
-  title        Primary store: Postgres over DynamoDB
-  status       Proposed
-  target       docs/adr/0027-primary-store-postgres.md
-
-  Decision     Use Postgres as the primary relational store
-  Tradeoff     Operational overhead vs. DynamoDB's managed scaling
-
-Approve? ›
-```
-
-The agent previews each draft before writing. Approve — RFC first, then ADR.
-
----
-
-## Cross-pack
-
-**Requires — `core`:** governance-extras layers on top of core. `new-adr` consumes Core's `semantic-surface-resolution.v1` for repository decision-record destinations; RFC behavior remains independently governed. Install `core` first or alongside. If an older/incompatible Core cannot provide the contract, ADR authoring stops for destination confirmation or returns a portable handoff instead of simulating resolution.
-
-**Optional handoff — `project-knowledge`:** At the `rfc-handoff-ready` and `adr-accepted` gates, the producer can submit the public typed captured-observation request through core's progressive skill. The authoring skill owns transient scratch and timing; it never accesses private journals, persists scratch automatically, or creates alternate storage.
-
-**Downstream — `work-loop`:** When an RFC is accepted, a `work-loop` run implements it. The RFC's follow-on artifacts (specs, convention edits) become queue entries in `workspace.toml`.
-
-**Downstream — `architect`:** ADRs record why the architecture is the way it is. Architect consumes the resolved `decision-record` surface as settled-decision context; it does not assume `docs/adr/` or re-debate what the ADRs already closed.
-
----
-
-→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.  
-→ **Go deeper:** the [`governance-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/governance-extras/).
+Scope: repo (default) · Version: 1.0.2 · Source: [packs/governance-extras](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/governance-extras)

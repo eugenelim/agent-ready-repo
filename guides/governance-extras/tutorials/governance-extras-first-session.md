@@ -21,13 +21,13 @@ This is a tutorial — it leads. For the full `new-adr` procedure, see [How to r
 
 ## What you need before starting
 
-- `agentbundle` on your PATH. The [install agentbundle](../../_shared/how-to/install-agentbundle-from-clone.md) guide covers the one-time setup.
+- `agentbundle` on your PATH. The [install agentbundle](../../_shared/how-to/install-agentbundle.md#install-from-a-clone) guide covers the one-time setup.
 - A repo you can work in. This tutorial deliberately accepts `docs/adr/` when
   Core offers the catalogue fallback; if your repository declares a custom
   decision-record location, use that location instead.
 - The `core` pack installed at repo scope. `governance-extras` depends on it; the installer will tell you if it's missing.
 
-## Step 1 — Install governance-extras at repo scope
+## Install governance-extras at repo scope
 
 Open your agent (Claude Code or equivalent) in the repo you'll work in, then run:
 
@@ -41,7 +41,7 @@ You should see a confirmation that three skills installed. A seeded
 `docs/adr/README.md` is only a fallback candidate; it does not override adopter
 policy or an established custom decision-record destination.
 
-## Step 2 — Verify the install
+## Verify the install
 
 In your agent, ask:
 
@@ -53,7 +53,7 @@ You should see a summary of admitted ADRs and RFCs with lifecycle counts. If `do
 
 If this step fails, see [Recovery](#recovery) below.
 
-## Step 3 — Paste the starter prompt
+## Paste the starter prompt
 
 Copy this prompt exactly and paste it into your agent:
 
@@ -65,7 +65,7 @@ The `new-adr` skill activates. It checks the three preconditions for a valid ADR
 
 You should see the skill acknowledge the request and begin framing the decision.
 
-## Step 4 — Read the decision frame
+## Read the decision frame
 
 The skill may offer a short decision frame before drafting: the decision restated in one sentence, the problem it resolves, the alternatives considered (YAML, JSON, INI/dotenv), and the driver that made TOML the right choice.
 
@@ -78,7 +78,7 @@ You should see something like:
 
 If the frame doesn't match your intent, correct it now. You can say "the driver should say..." or "we also considered XML." The skill reworks the frame before drafting anything.
 
-## Step 5 — Preview the ADR content
+## Preview the ADR content
 
 The skill presents the full ADR draft before writing anything. You'll see the title, the `Context` section with constraints, the `Decision` section with a single declarative sentence, `Consequences` with honest tradeoffs, and `Alternatives` with rejection reasons.
 
@@ -86,7 +86,7 @@ The skill presents the full ADR draft before writing anything. You'll see the ti
 
 You should see a complete, structured ADR in your conversation before any file is written to disk.
 
-## Step 6 — See the target path
+## See the target path
 
 Before selecting the ordinal, the skill resolves `decision-record`. For this
 tutorial, confirm the offered `docs/adr/` fallback; a custom repository location
@@ -96,7 +96,7 @@ would win. The skill then names the file it will create before it creates it:
 
 **This is the target path preview.** You know exactly which file will be created and where it will land. If the path is wrong — you wanted a different directory, or the numbering is off — say so now.
 
-## Step 7 — Confirm or stop
+## Confirm or stop
 
 You have three options at this point:
 
@@ -118,7 +118,7 @@ Nothing is written. The draft exists only in the conversation history. You can s
 
 The skill updates the draft and shows it to you again. Confirm when you're satisfied.
 
-## Step 8 — Verify the result
+## Verify the result
 
 After confirming, open the file and check the index:
 

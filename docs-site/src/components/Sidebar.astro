@@ -1,0 +1,96 @@
+---
+// Shows only the current tab's entries. On phones the tabs repeat at the top
+// of the menu, because the top bar hides them below the desktop breakpoint.
+import MobileMenuFooter from 'virtual:starlight/components/MobileMenuFooter';
+import SidebarPersister from '@astrojs/starlight/components/SidebarPersister.astro';
+import { currentTab, firstHref, hasCurrent, STAGES, tabs, type Entry } from './rail';
+
+const sidebar = Astro.locals.starlightRoute.sidebar as Entry[];
+const active = currentTab(sidebar);
+const entries = active?.entries ?? [];
+---
+
+<nav class="rail-tabs rail-tabs--menu md:sl-hidden" aria-label="Documentation sections">
+  {
+    tabs(sidebar).map((tab) => (
+      <a class="rail-tabs__link" href={firstHref(tab)} aria-current={tab === active ? 'true' : undefined}>
+        {tab.label}
+      </a>
+    ))
+  }
+</nav>
+
+<SidebarPersister>
+<ul class="rail-nav">
+  {
+    entries.map((entry) =>
+      entry.type === 'link' ? (
+        <li>
+          <a class="rail-nav__top" href={entry.href} aria-current={entry.isCurrent ? 'page' : undefined}>
+            {entry.label}
+          </a>
+        </li>
+      ) : (
+        <li class="rail-group" data-stage={STAGES[entry.label]}>
+          <details open={hasCurrent(entry) || !entry.collapsed}>
+            <summary class="rail-group__label">
+              {STAGES[entry.label] && <span class="rail-dot" aria-hidden="true" />}
+              <span>{entry.label}</span>
+              <svg class="rail-group__caret" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" />
+              </svg>
+            </summary>
+            <ul class="rail-line">
+              {entry.entries.map((child) =>
+                child.type === 'link' ? (
+                  <li>
+                    <a href={child.href} aria-current={child.isCurrent ? 'page' : undefined}>
+                      {child.label}
+                    </a>
+                  </li>
+                ) : (
+                  <li class="rail-sub">
+                    <span class="rail-sub__label">{child.label}</span>
+                    <ul>
+                      {child.entries.map(
+                        (leaf) =>
+                          leaf.type === 'link' && (
+                            <li>
+                              <a href={leaf.href} aria-current={leaf.isCurrent ? 'page' : undefined}>
+                                {leaf.label}
+                              </a>
+                            </li>
+                          )
+                      )}
+                    </ul>
+                  </li>
+                )
+              )}
+            </ul>
+          </details>
+        </li>
+      )
+    )
+  }
+</ul>
+</SidebarPersister>
+
+<div class="md:sl-hidden">
+  <MobileMenuFooter />
+</div>
+
+<script>
+  // Bring the current page into view the first time a sidebar opens at the top,
+  // so a page deep in a long tab (Pack listing) still shows where you are.
+  const pane = document.getElementById('starlight__sidebar');
+  const current = pane?.querySelector<HTMLElement>('.rail-nav [aria-current="page"]');
+  const reveal = () => {
+    // The pane itself scrolls (Starlight's page frame), not its content box.
+    if (!current || !pane || pane.scrollTop > 0) return;
+    const box = current.getBoundingClientRect();
+    if (box.bottom > window.innerHeight) current.scrollIntoView({ block: 'center' });
+  };
+  reveal();
+  // The pane is a popover on phones; its own `toggle` fires when the menu opens.
+  pane?.addEventListener('toggle', reveal);
+</script>

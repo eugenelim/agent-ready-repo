@@ -31,7 +31,7 @@ first — then come back. This tutorial assumes you've decided you want a projec
   Python dependency manager should our team standardize on?"* — swap in your own
   if you like; the steps are identical.
 
-## Step 1 — start the project
+## Start the project
 
 In your Claude Code session, type:
 
@@ -64,7 +64,7 @@ the *decision*, never the whole corpus. You can point it elsewhere with the
 [reference](../reference/desk-research-pack.md) has the keys.
 :::
 
-## Step 2 — capture a few sources
+## Capture a few sources
 
 A project is only as good as its `sources/`. For this tutorial, drop three short
 notes by hand so the run stays quick. Create three files under `sources/`:
@@ -109,7 +109,7 @@ The `reliability` and `credibility` lines are optional provenance grades — how
 much the source has earned trust, and how well its specific claim is
 corroborated. You can skip them; they only add signal.
 
-## Step 3 — build the digest
+## Build the digest
 
 With sources in hand, type:
 
@@ -130,7 +130,7 @@ Open `memos.md`. This is where the reasoning lives — and where your
 working hypothesis forms. A note like *"speed and maturity pull in opposite
 directions; uv leads on speed, pip-tools on stability"* is exactly right.
 
-## Step 4 — check the stop signal
+## Check the stop signal
 
 Before you synthesize, ask whether you've gathered enough:
 
@@ -148,7 +148,7 @@ You should see a short report ending in a recommendation like *"looks
 saturated — move to synthesize"* or *"not yet — the cost dimension is still
 single-sourced."* For this tiny corpus, expect the former.
 
-## Step 5 — synthesize the brief
+## Synthesize the brief
 
 Now produce the output:
 
@@ -178,7 +178,7 @@ Open `python-dep-manager-brief.md`. Notice four things:
 That self-contained brief is the durable output of the whole project. The
 corpus stays in scratch; the brief is what travels.
 
-## Step 6 — see what you built
+## See what you built
 
 List the folder:
 

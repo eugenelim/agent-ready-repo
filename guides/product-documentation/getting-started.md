@@ -9,7 +9,7 @@ status: stable
 
 In about 20 minutes you will find out which pages your project's docs are missing, write the most important one, and check it against your code.
 
-With [`agentbundle`](../_shared/explanation/install-routes.md) installed, add the pack:
+With [`agentbundle`](../_shared/how-to/install-packs.md) installed, add the pack:
 
 ```bash
 agentbundle install --pack product-documentation
@@ -27,9 +27,9 @@ You should see the agent start reading your repository. The audit changes no fil
 
 - A repository with something users run or call: a library, CLI, HTTP API, app, service, framework, plugin, or agent-context pack.
 - An agent that supports installed packs, such as Claude Code.
-- `agentbundle`, the installer. See [install routes](../_shared/explanation/install-routes.md).
+- `agentbundle`, the installer. See [install routes](../_shared/how-to/install-packs.md).
 
-## Step 1: Let the skill find out what you ship
+## Let the skill find out what you ship
 
 The `author-product-docs` skill starts by working out what your product is. It looks for evidence: a package manifest and public API for a library, command parsers for a CLI, an OpenAPI or protobuf file for an API, a configuration schema for a service. A repository can ship more than one surface, and the skill documents each one a reader touches.
 
@@ -37,7 +37,7 @@ It then looks for where your repository keeps user-facing docs and maintainer do
 
 You should see the report name the surface it found. If the evidence fits none of the known surfaces, the skill says what it found and asks once.
 
-## Step 2: Read the journey gap report
+## Read the journey gap report
 
 The reply starts with a table of nine rows, one per stage a reader passes through:
 
@@ -57,7 +57,7 @@ Each row is `covered`, `partial`, `missing`, or `not applicable`, with the file 
 
 The next actions are ranked by where readers are lost first. A missing or failing first success comes before a missing explanation. The top-ranked row marked `missing` or `partial` is the page to write first.
 
-## Step 3: Write the first missing page
+## Write the first missing page
 
 Ask the skill to write the page for the top-ranked row. For example, when First success ranks first:
 
@@ -71,7 +71,7 @@ The skill reads the canonical sources for your surface before it writes. It then
 
 You decide whether the page matches what you want readers to do first.
 
-## Step 4: Check the page against your code
+## Check the page against your code
 
 Ask the skill to verify what it wrote:
 
@@ -83,7 +83,7 @@ You should get three lists: verified claims, unverified claims, and claims that 
 
 Fix any contradiction before you publish. A claim nothing checked stays labeled unverified.
 
-## Step 5: Audit again
+## Audit again
 
 Send the audit request from the top of this page again. The row you fixed should now read `covered`, with the new page as evidence. Work down the list one page at a time.
 

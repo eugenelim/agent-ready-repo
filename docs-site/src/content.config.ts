@@ -12,6 +12,8 @@ export const collections = {
       extend: z.object({
         step: z.number().int().positive().optional(),
         steps: z.number().int().positive().optional(),
+        // Packs the page needs; PageTitle renders them as pills.
+        uses: z.array(z.string()).optional(),
       }),
     }),
   }),

@@ -44,7 +44,7 @@ Adapter support is also declared rather than assumed. The [adapter support refer
 
 A profile promotes a useful pack combination into one installable unit. It adds no primitives of its own and does not hide the packs it contains. Preflight validates the entire single-scope set before the first write, then installs it in dependency order.
 
-Use [`agentbundle list-profiles`](../reference/agentbundle.md) to see the current sets and [install a profile](../how-to/install-a-profile.md) when one matches your role or project. Upgrade and removal continue to operate on individual packs.
+Use [`agentbundle list-profiles`](../reference/agentbundle.md) to see the current sets and [install a profile](../how-to/install-packs.md#install-a-profile) when one matches your role or project. Upgrade and removal continue to operate on individual packs.
 
 ## Composition stays visible
 
@@ -75,7 +75,7 @@ For sensitive integrations, the [`credential-brokers` guide](../../credential-br
 ## Where to go next
 
 - [Choose work by outcome or role](../../).
-- [Compare install routes](install-routes.md).
-- [Preview an install or upgrade](../how-to/preview-install-or-upgrade.md).
+- [Install packs for your agent](../how-to/install-packs.md).
+- [Preview an install or upgrade](../how-to/install-packs.md#preview-first).
 - [See the operating model](the-operating-model.md): how work flows from idea to production.
 - [Create a catalogue](../how-to/create-a-catalogue.md).

@@ -54,7 +54,7 @@ _DATA_BLOCK = re.compile(
 )
 _KEYS = [
     "schema", "scope", "provenance", "summary", "records", "outstanding",
-    "nodes", "edges", "source_links",
+    "nodes", "edges", "source_links", "dependencies",
 ]
 
 # Corpora on which a whole-operation failure applies: no payload exists.
@@ -508,3 +508,119 @@ def test_build_html_escapes_line_separators_and_markup() -> None:
     assert not any(ch in block for ch in "<>&\u2028\u2029")
     assert all(esc in block for esc in ("\\u2028", "\\u2029", "\\u003c", "\\u003e", "\\u0026"))
     assert json.loads(block) == payload
+
+
+# ---------------------------------------------------------------------------
+# Dependencies member
+# ---------------------------------------------------------------------------
+
+# SHA-256 of each pre-existing payload member's canonical JSON, recorded by running the
+# navigator as committed before the dependencies member existed over a copy of each
+# fixture (generated_at excluded). Canonical form: json.dumps(value, sort_keys=True,
+# separators=(",", ":"), ensure_ascii=False).
+_GOLDEN = {
+    "mixed": {
+        "schema": "a7358164ceb4876f507dea10e2dcfce650962d9d05a4dfe9705400b6279ce4b3",
+        "scope": "1470350dec7071fced53d4628441c14660cc01b051a7ef97f72dbe88e3dc0cc7",
+        "provenance": "87f7e7c39ceb126bc81b1f1fe65b9fdad6332ff15e0f3a8a5b5509c35f5a0256",
+        "summary": "fbe60056ad39814d81ff99dc5213b66c8a6a882d07bea2efa14005d9f586a2f6",
+        "records": "0ec3064fdd08bedf8890a11544ac75299eee7baa88aef009008038270abc8825",
+        "outstanding": "3ef153aa16953aa14d8489922ed642441c94a83fba027368e073b44306ac11c0",
+        "nodes": "d1672ff6f62443d4dd08bf3fdc8315201b3ffead73f0c181c80228ce39fb0fe1",
+        "edges": "e03387e40ac999e95e664e44e33e20a15bff9d36daa5f2820e92e9cf782f3c9e",
+        "source_links": "265fabef77066b94ff830e89f4b13ed3af669c56bc20cbec071fd613b71adaab"
+    },
+    "dependency": {
+        "schema": "a7358164ceb4876f507dea10e2dcfce650962d9d05a4dfe9705400b6279ce4b3",
+        "scope": "1470350dec7071fced53d4628441c14660cc01b051a7ef97f72dbe88e3dc0cc7",
+        "provenance": "6d3d63d002ce89dbb03a4bb1a92ada84898f6d2ae1c338e949ef5afbfffdf49a",
+        "summary": "9f2b452e8a719273c577754f5d3a7249b606d0332e1bf867e19ab478c5f6affc",
+        "records": "e58ba90b7ffddbdc2efc854f3b1964e305d31e3f58be6d9013bba7db59d17181",
+        "outstanding": "89646595935a5e0d8d1e0a4482b079e7f550192c08a41d01a35be9f455ace9c7",
+        "nodes": "4e677bde1279b5bd012aa557112f57dcb560d1e0d77736bbf4abf7a5e6ad110b",
+        "edges": "66378f8ab857fb875cfbcb4964e4d97c7f4e671df017b25aa72c86406a690cb9",
+        "source_links": "026194806312e92a5b8bbea67bd1349206e1d3e10c2088bca11805c422d95274"
+    }
+}
+_DEP = _FIXTURES / "dependency"
+_DEP_MANIFEST = json.loads((_DEP / "expected-dependencies.json").read_text(encoding="utf-8"))
+
+
+def _expected_edge(m: dict[str, Any]) -> dict[str, Any]:
+    """The full edge record a manifest edge stands for."""
+    return {
+        "from": m["from"], "to": m["to"], "field": "Depends on", "trust_class": "pointer_unchecked",
+        "basis": {"field": "Depends on", "values": [
+            {"value": v, "form": f, "position": p} for v, f, p in m["values"]
+        ]},
+    }
+
+
+def _expected_diag(m: dict[str, Any]) -> dict[str, Any]:
+    """The full pointer-diagnostic record a manifest entry stands for."""
+    diag = {"from": m["from"], "field": "Depends on", "value": m["value"], "form": m["form"],
+            "position": m["position"], "state": m["state"], "trust_class": "pointer_unchecked"}
+    if "reissued_as" in m:
+        diag["reissued_as"] = m["reissued_as"]
+    return diag
+
+
+def _digest(value: Any) -> str:
+    """SHA-256 of the canonical JSON of *value*."""
+    import hashlib
+
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def test_dependencies_member_holds_the_whole_corpus_records_in_record_order(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    payload, _ = _exported(capsys, _DEP, tmp_path / "out")
+    dependencies = payload["dependencies"]
+    assert list(dependencies) == ["edges", "diagnostics"]
+    assert dependencies["edges"] == [_expected_edge(m) for m in _DEP_MANIFEST["edges"]]
+    pointer = [d for d in dependencies["diagnostics"] if "from" in d]
+    cycles = [d for d in dependencies["diagnostics"] if "from" not in d]
+    assert pointer == [_expected_diag(m) for m in _DEP_MANIFEST["pointer_diagnostics"]]
+    assert [c["members"] for c in cycles] == _DEP_MANIFEST["cycles"]
+    # Record order: pointer diagnostics first, then cycles.
+    assert dependencies["diagnostics"] == pointer + cycles
+
+
+def test_dependencies_member_with_from_holds_exactly_the_linked_set(
+    tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    whole, _ = _exported(capsys, _DEP, tmp_path / "whole")
+    scoped, _ = _exported(capsys, _DEP, tmp_path / "scoped", "--from", "capability:root-a")
+    linked = {
+        "capability:root-a", "intent:alpha", "intent:bravo", "intent:charlie", "intent:india",
+        "intent:juliet", "intent:kilo", "capability:root-b", "outcome:quebec", "opportunity:romeo",
+    }
+    pairs = {(e["from"], e["to"]) for e in scoped["dependencies"]["edges"]}
+    assert pairs == {
+        (e["from"], e["to"]) for e in whole["dependencies"]["edges"]
+        if e["from"] in linked and e["to"] in linked
+    }
+    assert ("intent:juliet", "intent:kilo") in pairs
+    assert ("intent:delta", "intent:echo") not in pairs
+    members = [d["members"] for d in scoped["dependencies"]["diagnostics"] if "members" in d]
+    assert ["intent:india", "intent:juliet", "intent:kilo"] in members
+    assert all("intent:hotel" not in m for m in members)
+    assert len(scoped["dependencies"]["edges"]) < len(whole["dependencies"]["edges"])
+    assert len(scoped["dependencies"]["diagnostics"]) < len(whole["dependencies"]["diagnostics"])
+    # Surviving records keep the whole corpus's relative order.
+    for key in ("edges", "diagnostics"):
+        kept = [r for r in whole["dependencies"][key] if r in scoped["dependencies"][key]]
+        assert kept == scoped["dependencies"][key]
+
+
+@pytest.mark.parametrize("corpus", ["mixed", "dependency"])
+def test_other_members_equal_the_golden_recorded_before_dependencies(
+    corpus: str, tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / corpus
+    shutil.copytree(_FIXTURES / corpus, root)
+    payload, _ = _exported(capsys, root, tmp_path / "out")
+    payload["provenance"].pop("generated_at")
+    assert {k: _digest(v) for k, v in payload.items() if k != "dependencies"} == _GOLDEN[corpus]

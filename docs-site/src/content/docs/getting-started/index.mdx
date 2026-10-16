@@ -6,7 +6,13 @@ description: Install a supervised agent workflow matched to the work you need to
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import PromptBlock from '../../../components/primitives/PromptBlock.astro';
 
-New here? First see [the operating model](/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/): the four stages, the packs in each, and where you decide. Then start with a real task whose result you can verify. Most software teams should start with `core`: it is the catalogue's flagship build system, not merely a sample. Product, design, infrastructure, research, and catalogue work remain first-class starting points alongside it.
+## Intro
+
+agent-ready-repo is an open source toolkit for AI-assisted software delivery. It gives teams reusable workflows for building software with human oversight. It contains agent skills and subagents that are installable as packs or plugins for popular harnesses such as Claude Code, Codex, Gemini, Cursor, GitHub Copilot, Kiro IDE and Kiro CLI.
+
+[The Operating Model](/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/) covers how software teams use each pack across the lifecycle stages of building software. 
+
+The `core` pack is the flagship agentic loop and build system. Product, design, infrastructure and research packs provide first-class capabilities required to build quality working software.
 
 ## What a pack installs
 
@@ -27,7 +33,7 @@ python -m pip install agentbundle
 
 Before any real install, add `--dry-run` to preview the rendered files and any preserved companions.
 
-Claude users can also [add this catalogue as a plugin marketplace](/agent-ready-repo/docs/getting-started/install/#route-2-claude-plugins) for user-scope packs. `core` and other repo-scoped packs install with `agentbundle` so the workflow is shared and versioned with the project.
+Claude users can also [add this catalogue as a plugin marketplace](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/#install-as-a-claude-plugin) for user-scope packs. `core` and other repo-scoped packs install with `agentbundle` so the workflow is shared and versioned with the project.
 
 ## Step 2: choose your starting work
 
@@ -100,6 +106,6 @@ The first-value artifact should be something you can judge in minutes: a decisio
 - [Follow the install-to-ship walkthrough](/agent-ready-repo/docs/guides/#the-install-to-ship-walkthrough).
 - [Choose work by outcome and role](/agent-ready-repo/docs/).
 - [Browse every pack](/agent-ready-repo/docs/packs/).
-- [Compare install routes](/agent-ready-repo/docs/guides/_shared/explanation/install-routes/).
+- [Install packs for your agent](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/).
 - [Check adapter support](/agent-ready-repo/docs/guides/_shared/reference/adapter-support/).
-- [Install a profile](/agent-ready-repo/docs/guides/_shared/how-to/install-a-profile/).
+- [Install a profile](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/#install-a-profile).

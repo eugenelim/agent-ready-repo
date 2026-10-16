@@ -38,5 +38,5 @@ The `event-contract` skill takes this one axis further. Its standard has **two**
 ## Where to read next
 
 - [Generate an API contract](../how-to/generate-an-api-contract.md) — run `api-contract` against requirements or user stories.
-- [Author an event contract](../how-to/author-an-event-contract.md) — run `event-contract` for a stream you produce.
+- [Author an event contract](../how-to/generate-an-api-contract.md) — run `event-contract` for a stream you produce.
 - [The contract skills](../reference/contract-skills.md) — the exact inputs, outputs, and standard mechanism for both.

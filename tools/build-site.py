@@ -437,6 +437,7 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
             "display_name": display_name,
             "version": p.get("version", ""),
             "scope": p.get("install", {}).get("default-scope", "repo"),
+            "allowed_scopes": list(p.get("install", {}).get("allowed-scopes", [])),
             "description": p.get("description", ""),
             "group": None,
         }
@@ -640,6 +641,12 @@ def _strip_guide_metadata(text: str) -> str:
     # source is the body's own declaration, so the heading, the sidebar number
     # and the page text can never disagree. Non-steps carry neither field and
     # keep the default heading.
+    # The packs a page needs render as pills above its title. A page that
+    # declares none falls back to the pack that owns it.
+    if data.get("pack") and not data.get("uses") and not str(data["pack"]).startswith("_"):
+        data = dict(data)
+        data["uses"] = [data["pack"]]
+
     position = _STEP_OF.search(body)
     if position:
         data = dict(data)
@@ -1375,30 +1382,22 @@ def mirror_dir(src: Path, dst: Path, rewriter=None, dry_run: bool = False) -> in
     return count
 
 
-def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) -> None:
-    header = (
-        '---\ntitle: "Pack Catalogue"\n'
-        f'description: "{len(packs)} curated packs for the AI operating model."\n'
-        "---\n\n"
-        # No body H1 — Starlight renders `title:` as the page heading.
-        f"{len(packs)} curated packs — each distilled from the best practices of its discipline\n"
-        "through practitioner research and RFC-and-ADR governance.\n\n"
-        "Install any pack in one command:\n\n"
-        "```bash\n"
-        "agentbundle install --pack <name>               # repo scope (default)\n"
-        "agentbundle install --pack <name> --scope user  # user scope\n"
-        "```\n\n"
-        "| Pack | Scope | Description |\n"
-        "|---|---|---|\n"
-    )
-    lines = [header]
-    for p in packs:
-        lines.append(
-            f"| [**{p['display_name']}**]({p['slug']}/) |"
-            f" `{p['scope']}` | {p['description']} |\n"
-        )
+PACKS_PAGE_SOURCE = REPO_ROOT / "docs-site" / "src" / "packs-page.md"
 
-    content = "".join(lines)
+
+def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) -> None:
+    """Write the Packs page from its hand-written source. It explains packs and
+    lists none: the sidebar's Pack listing is generated, so a second list here
+    would only drift."""
+    del packs  # the listing lives in the sidebar
+    content = (
+        '---\ntitle: "About packs"\n'
+        'description: "What a pack installs, and when to install it '
+        'for the team or for yourself."\n'
+        "---\n\n"
+        + PACKS_PAGE_SOURCE.read_text(encoding="utf-8").strip()
+        + "\n"
+    )
     index_md = out_dir / "index.md"
     if dry_run:
         print(f"  gen   docs-site/src/content/docs/packs/index.md ({len(content)} bytes)")

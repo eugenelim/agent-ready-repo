@@ -38,7 +38,7 @@ You need:
   Then start a fresh agent session so it picks up the new skill.
 - A discovery shape to feed in — for this tutorial, a one-paragraph PRD is enough: *"Users paste a long URL and get back a short link they can share; links resolve fast and never expire. MVP: create a short link and resolve it."* (In real use this comes from the `desk-research` skill, an `intent` shaped by `intent frame` when the `product-engineering` pack is installed — an optional upstream source — or an `author-delivery-brief` brief; a written PRD works the same way.)
 
-## Step 1 — Start the flow and pass the trigger gate
+## Start the flow and pass the trigger gate
 
 Run the `init-project` skill and tell it your idea: *"Start a new project — a URL-shortener service."*
 
@@ -50,7 +50,7 @@ You should see the skill confirm there are real structural decisions and move on
 If you don't see this: if the skill decides to just scaffold and stop, it judged your idea a throwaway. For anything with a datastore and an API, say so explicitly — "this is a maintained service, not a script" — and it will continue.
 :::
 
-## Step 2 — Feed in discovery and pass the value gate
+## Feed in discovery and pass the value gate
 
 Paste your one-paragraph PRD when the skill asks for the discovery input. The skill **consumes** it — it does not go research the idea itself.
 
@@ -74,7 +74,7 @@ You should see a new file at `docs/product/briefs/url-shortener.md` capturing th
 If you don't see this: if the skill pauses and asks you to sharpen the idea, the value gate caught a gap — the PRD was too thin to state the value. Add the missing piece (who it's for, what outcome it serves) and continue. That pause is the gate working, not an error.
 :::
 
-## Step 3 — Record the foundation
+## Record the foundation
 
 The skill now helps you choose the stack and **record the rationale**. Decide the few load-bearing things (say: a small HTTP service, a key-value store for the code-to-URL mapping). It asks Core to resolve two independent semantic destinations before any directory, ordinal, index, or file is created:
 
@@ -86,7 +86,7 @@ gates. If the repo has no stronger location evidence, you can confirm the
 catalogue fallbacks. A mandatory-policy refusal, ambiguity, unsafe path, or
 unavailable external destination stops that artifact without a partial write.
 
-## Step 4 — Author the walking skeleton
+## Author the walking skeleton
 
 Now author the **walking skeleton**: the thinnest slice that wires the real components together end to end. For the shortener, that's *one request that creates a short code and stores it, and one that resolves a code back to the URL* — touching the real API and the real datastore, nothing mocked away.
 

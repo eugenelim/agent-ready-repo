@@ -1,76 +1,69 @@
 ---
-title: "How to upgrade an installed pack"
-summary: "Upgrade a catalogue pack while preserving local edits as reviewable upstream companion files."
+title: "Upgrade packs"
+summary: "Upgrade installed packs without losing your edits."
 pack: _shared
 kind: how-to
 ---
 
-# How to upgrade an installed pack
+# Upgrade packs
 
-**Use this when:** You want to move an installed pack to a newer version — whether a whole pack, a single primitive, or resolving companion files left by a previous upgrade.
-**Prerequisites:** A pack already installed from the catalogue and the `agentbundle` CLI on your PATH; see [Prerequisites](#prerequisites).
-**Result:** The pack upgraded to the newer version with any local edits preserved as `.upstream.<ext>` companion files for selective merging.
+Move a pack to its latest version. Files you edited stay yours.
 
-Move an installed pack to a newer version, with the conflict handling you expect when your local edits and the upstream pack have both moved on.
+## See what is out of date
 
-## Prerequisites
-
-- A pack already installed from this catalogue via one of the three routes (Claude Code plugin marketplace, APM, or the `agentbundle` CLI).
-- For the catalogue-native flow: the `agentbundle` CLI on your PATH.
-- For catalogue-level safety on APM and Claude-plugin installs: a one-time `agentbundle init-state` run after the original install.
-
-## Pick the right granularity
-
-Three granularities are available, in order of increasing specificity.
-
-### Whole pack (default)
-
-Pick the verb that matches how you originally installed.
-
-- **APM:** `apm update <pack>`.
-- **Claude Code plugins:** `/plugin update <pack>@<catalogue>`.
-- **`agentbundle` CLI:**
-
-  ```bash
-  agentbundle upgrade --pack <name> <catalogue>
-  ```
-
-`upgrade` takes **no version** — the target is whatever the catalogue you point at declares. To move to a specific past version, point `<catalogue>` at that git ref.
-
-The first two use the host tool's native verbs and follow that tool's conflict-resolution rules, not the catalogue's. The `agentbundle upgrade` verb is the only route that drops `*.upstream.<ext>` companions next to any Tier-2 file whose content has diverged since install — letting you walk the merges later via the `adapt-to-project` skill (see *One file at a time* below). Before it writes, it tells you how many of your edited files it will preserve as companions.
-
-`<catalogue>` is the same URI you installed from, e.g. `git+https://github.com/<owner>/<catalogue>` or a local checkout path.
-
-:::tip
-**Check first.** `agentbundle list-installed` shows every installed pack with its version and whether an upgrade is available — run it before upgrading to see what's outstanding (see the [CLI reference](../reference/agentbundle.md#see-whats-installed)).
-:::
-
-:::note
-**Multiple adapters.** If a pack is installed for more than one adapter at the scope, `upgrade` upgrades one adapter per run and asks you to `--adapter` which; the message lists each adapter with its version. Re-running against the version you already have is reported as `re-applied … (already current)`, not a version change.
-:::
-
-:::caution
-**Pitfall — `install --pack` is not the upgrade verb.** `agentbundle install --pack` refuses an in-place re-install. Use `upgrade --pack` to change an installed pack's version.
-:::
-
-### One primitive at a time
-
-Add a primitive filter to the same `upgrade` verb:
+List installed packs and whether an upgrade is available:
 
 ```bash
-agentbundle upgrade --pack <name> --skill <skill-name> <catalogue>
+agentbundle list-installed
 ```
 
-`--agent`, `--hook`, `--seed <path>`, and `--command` work the same way. Only the named primitive moves; the rest of the pack stays at the previously-installed version. The CLI records the resulting mixed-version state in `.agentbundle-state.toml`; the next whole-pack upgrade flags it.
+## Upgrade a pack
 
-### One file at a time
+Upgrade one pack:
 
-Re-invoke the `adapt-to-project` skill. It walks any `*.upstream.<ext>` companions still on disk one by one, with per-file accept / edit / skip / decline. This is the merge UI for the companions a previous `agentbundle upgrade` (or first-install collision) left behind.
+```bash
+agentbundle upgrade --pack core
+```
 
-## Downgrades
+Add `--dry-run` to see which files would change first.
 
-Not supported in v0.1. To roll back: `agentbundle uninstall --pack <pack>` and reinstall at the prior version. Tier-2 (your edited copies) and Tier-3 (files outside the pack's projected paths) survive the uninstall by design — only the upstream-managed Tier-1 files are removed.
+## Ask your agent
 
-## Related
+Your agent can run the upgrade and the merge in one go:
 
-- [How to adapt a freshly-installed pack](../../core/how-to/adapt-to-project.md) — the skill that walks `*.upstream.<ext>` companions.
+```text
+Upgrade my installed packs with agentbundle and walk me through any upstream files.
+```
+
+It upgrades each pack, then offers to merge any file you had edited.
+
+## Keep your edits
+
+When you have edited an installed file, the upgrade leaves it alone. The new version lands beside it as `<name>.upstream.<ext>`, for example `SKILL.upstream.md`.
+
+Ask your agent to merge them:
+
+```text
+Run adapt-to-project and walk me through the upstream files.
+```
+
+The agent offers to accept, edit, skip, or decline each one.
+
+## Roll back
+
+`upgrade` does not go back a version. To roll back, uninstall and install from the earlier version:
+
+```bash
+agentbundle uninstall --pack core
+agentbundle install --pack core git+https://github.com/<owner>/<catalogue>@<ref>
+```
+
+## Upgrade agentbundle
+
+Upgrade the command itself:
+
+```bash
+python -m pip install --upgrade agentbundle
+```
+
+In a clone, `git pull` upgrades it.

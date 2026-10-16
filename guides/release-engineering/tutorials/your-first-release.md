@@ -44,11 +44,11 @@ agentbundle install --pack core
 agentbundle install --pack release-engineering
 ```
 
-You'll also need a configured ephemeral deploy target. For this tutorial, we'll assume one is already wired. If yours isn't, see [run a release](../how-to/run-a-release.md#configuring-an-ephemeral-deploy-target).
+You'll also need a configured ephemeral deploy target. For this tutorial, we'll assume one is already wired. If yours isn't, see [run a release](../reference/release-readiness-record.md#wire-your-deploy-target).
 
 ---
 
-## Step 1: Trigger the release loop
+## Trigger the release loop
 
 With `release-lead` active, you start the release like this:
 
@@ -67,7 +67,7 @@ Once you confirm, the loop starts. You don't need to watch — it runs autonomou
 
 ---
 
-## Step 2: Round 1 — deploy and run e2e
+## Round 1 — deploy and run e2e
 
 In the first round, `release-lead`:
 
@@ -84,7 +84,7 @@ At the end of round 1, `release-lead` evaluates convergence conditions. In our s
 
 ---
 
-## Step 3: The feedback seam — no human relay needed
+## The feedback seam — no human relay needed
 
 This is where the inner↔outer feedback seam does its job.
 
@@ -98,7 +98,7 @@ This is where the inner↔outer feedback seam does its job.
 
 ---
 
-## Step 4: Round 2 — convergence
+## Round 2 — convergence
 
 Round 2 runs the same sequence. This time:
 
@@ -113,7 +113,7 @@ All convergence conditions met. **The loop stops.** `release-lead` surfaces the 
 
 ---
 
-## Step 5: Read the release-readiness record
+## Read the release-readiness record
 
 The release-readiness record looks like this (abbreviated):
 
@@ -151,7 +151,7 @@ See [the release-readiness record reference](../reference/release-readiness-reco
 
 ---
 
-## Step 6: Ratify at G5
+## Ratify at G5
 
 G5 is yours. The loop has done everything it can autonomously — the prod ship is an irreversible action that belongs to a human.
 

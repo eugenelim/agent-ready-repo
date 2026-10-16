@@ -33,7 +33,7 @@ You received this brief from your design collaborator:
 
 ---
 
-## Step 1. Load the skill and select the mode
+## Load the skill and select the mode
 
 Tell your agent:
 
@@ -45,7 +45,7 @@ The skill loads. You are now in the PLAN phase.
 
 ---
 
-## Step 2. Resolve visual authority (step 1 of the pre-flight)
+## Resolve visual authority (step 1 of the pre-flight)
 
 > Two sequences run here, and this tutorial keeps them apart by case.
 > **Step N** with a capital is a step of this tutorial. **step N** in lower case
@@ -86,7 +86,7 @@ a full shift; one reserved status colour; type sized for glances.
 
 ---
 
-## Step 3. Genre routing (step 1b — requires experience-design)
+## Genre routing (step 1b — requires experience-design)
 
 This is a product UI component, not a marketing, documentation, or analytical
 surface. None of the XD genre skills apply. Record:
@@ -103,7 +103,7 @@ XD genre routing: skipped (experience-design pack absent)
 
 ---
 
-## Step 4. Resolve token values (step 2 of the pre-flight)
+## Resolve token values (step 2 of the pre-flight)
 
 Values come from the highest source that supplies them. No taxonomy resolved in
 step 0 and there is no incumbent token system here, so this walkthrough reads
@@ -200,7 +200,7 @@ Record the token block and the resolved namespace in the spec.
 
 ---
 
-## Step 5. Enumerate the state matrix
+## Enumerate the state matrix
 
 From the brief, the notification card requires these states:
 
@@ -223,7 +223,7 @@ States that are applicable and must be tested:
 
 ---
 
-## Step 6. Fill the page/screen contract
+## Fill the page/screen contract
 
 ```
 target user: Warehouse dispatch staff, reading the console across a full shift
@@ -244,7 +244,7 @@ measurement event: notification_card_viewed, notification_card_clicked
 
 ---
 
-## Step 7. Write the HTML
+## Write the HTML
 
 With the pre-flight complete, write the HTML for all four states. The
 states can be toggled via a data attribute (`data-state="loading"` etc.)
@@ -301,7 +301,7 @@ as unverified rather than claimed.
 
 ---
 
-## Step 8. Write the CSS
+## Write the CSS
 
 Key rules from the token block and craft rules:
 
@@ -361,7 +361,7 @@ Key rules from the token block and craft rules:
 
 ---
 
-## Step 9. Render, observe, correct
+## Render, observe, correct
 
 Before the gates, look at what you built against the authority you inherited.
 This is the loop the skill runs during EXECUTE, and it is not the rendered-page
@@ -390,7 +390,7 @@ weight as the body, which fought "sized for glances". Dropping it to
 
 ---
 
-## Step 10. Run the GATES
+## Run the GATES
 
 After the HTML and CSS are written, run the five GATES in order:
 
@@ -442,7 +442,7 @@ filenames: [Inspect the rendered page](../how-to/inspect-the-rendered-page.md).
 
 ---
 
-## Step 11. Produce the evidence manifest
+## Produce the evidence manifest
 
 After gates pass, fill the evidence manifest:
 

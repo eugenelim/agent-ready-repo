@@ -1,5 +1,7 @@
 # Aesthetic direction: agent-ready-repo tech docs site (`docs-site/`)
 
+> **Superseded 2026-10-15** by [`docs/design/direction/docs-site.md`](../../design/direction/docs-site.md) (the Rail line). Kept as the record of the shipped refresh.
+
 Authored via the `creative-direction` skill for the docs-site design refresh.
 Grounded reference artifact: an external reference docs site supplied
 in-session (deliberately not named in-tree) — studied for its structural
