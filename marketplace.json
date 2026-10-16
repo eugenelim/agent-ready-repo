@@ -56,7 +56,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.15.17"
+      "version": "0.15.18"
     },
     {
       "author": {
@@ -91,7 +91,7 @@
       },
       "category": "code-intelligence",
       "description": "Find out what is actually true about your codebase before you change it. Index the repository once, then ask what calls this, what breaks if I change it, and which parts are load-bearing — answered from a resolved call graph that reports what it could not resolve, rather than a grep that quietly misses.",
-      "displayName": "Code intelligence",
+      "displayName": "Code Intelligence",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
         "code-graph",

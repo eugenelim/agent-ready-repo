@@ -1,161 +1,56 @@
-# product-strategy
+# Product Strategy
 
-Answer the committed strategic questions upstream of every product initiative.
+Your agent can answer the strategic questions that come before any product work: who to serve, which problem to commit to, and what would make you change course.
 
----
+## Install
 
-## Start here
-
-You don't need to know which method to use. Start with the question you're trying to answer.
-
-> "Who should we serve first?"  
-> "Which problem should we commit to?"  
-> "Why would users switch to this?"  
-> "How will they reach first value?"  
-> "What retained behavior would prove the strategy is working?"  
-> "What would cause us to change course?"
-
-Type the question, or describe the product concept — the pack selects the method.
-
-```text
-Who should we serve first — enterprise teams or individual practitioners?
-```
-
-```text
-write-prfaq
-
-  Headline:  [Company] ships workspace.toml — product engineers who
-             coordinate AI agent work across sessions.
-
-  Customer:  A solo engineer shipping a 3-person startup's backlog
-             with AI coding agents.
-  Problem:   Every session starts blind. The agent doesn't know
-             what was decided, what's blocked, or what ships next.
-  Solution:  workspace.toml — a version-controlled queue the agent
-             reads at session start. One grep, full context.
-
-  Approve the PRFAQ? ›
-```
-
-The result is a committed artifact in `docs/product/shaping/` — a PRFAQ, a situation picture, a portfolio position, a cascaded OKR set, or a strategic narrative. Not a slide. A record the next stage can act on.
-
----
-
-## Common jobs
-
-**Pressure-test a product concept before building it**
-Say `write-prfaq` and describe the product idea, problem, or elevator pitch.
-Returns a press-release-and-FAQ document that forces an honest answer to "who is this for, what's the headline, and what's the FAQ critique?" Approve the PRFAQ or revise it. Written to `docs/product/shaping/`.
-
-**Map the strategic situation before committing to an approach**
-Say `run-swot` (or `run-pestle-analysis`, `run-porters-five-forces`). Describe the scope — organization, market, or product.
-Returns a committed situation picture (quadrant map, five-force diagram, or PESTLE scan) as the foundation for the PRFAQ. Only reads information you provide; nothing is written until you approve.
-
-**Position a product portfolio**
-Say `run-bcg-matrix` and provide a list of initiatives with their relative market position.
-Returns a portfolio matrix placing each initiative in a quadrant — Stars, Cash Cows, Question Marks, Dogs — with a disposition recommendation per initiative. You decide whether to act on the recommendation.
-
-**Cascade strategy to the engineering queue**
-Say `run-okr-cascade` and provide company OKRs (as text, a doc, or described inline).
-Returns team-level OKRs and exposes the gaps — initiatives or KRs that no team owns. The gaps are written as `{type = "strategy"}` entries to `workspace.toml`, where `product-engineering`'s `frame-situation` picks them up.
-
-**Synthesize research into a strategic narrative**
-Say `synthesize-stakeholder-research` and attach one or more completed `desk-research-project-synthesize` briefs.
-Returns a committed strategic narrative organized by theme — direct evidence converted to a record the PRFAQ or initiative brief can cite.
-
----
-
-## How it works
-
-```text
-run-swot
-
-  Quadrant       Items
-  ─────────────  ──────────────────────────────────────────────────
-  Strengths      Developer-first positioning; fast iteration cycle
-  Weaknesses     Low brand awareness outside early-adopter segment
-  Opportunities  AI-native distribution; enterprise channel open
-  Threats        Funded competitor entering adjacent market
-
-  Approve the situation picture? ›
-```
-
-```text
-write-prfaq
-
-  ...
-
-  Approve the PRFAQ? ›
-```
-
-```text
-run-okr-cascade
-
-  Gap slug              KR                        Priority
-  ──────────────────    ──────────────────────    ──────────
-  retention-cohort      Retain 60% at week 4      High
-  activation-depth      3 features in 14 days     High
-  channel-enterprise    ARR from enterprise        Medium
-
-  3 gaps → workspace.toml  [ini-001.shaping_queue].backlog
-```
-
-The gaps appear in `workspace-status` for product engineers to pick up via `frame-situation`.
-
----
-
-## Installation and trust
-
-- **Scope:** user — installs portably across all your repos
-- **Reads:** information you provide in the conversation; prior strategy artifacts you reference
-- **Local writes:** approved artifacts to `docs/product/shaping/` inside your current repo
-- **Remote reads/writes:** none
-- **Approval:** every artifact is approved before being written; the pack proposes, you commit
-- **No growth or marketing execution tooling** — see `[backlog].open: growth-strategy-pack` for scope rationale
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
 
 ```bash
-agentbundle install --pack product-strategy --scope user
+agentbundle install --pack product-strategy
 ```
 
----
+In Claude Code you can install it as a plugin instead:
 
-## Skills included — under the hood
+```bash
+claude plugin install product-strategy@agent-ready-repo
+```
 
-| Skill | Method | When to reach for it |
-|-------|--------|----------------------|
-| `write-prfaq` | Amazon-style press release + FAQ | Pressure-testing a new product concept |
-| `run-swot` | SWOT synthesis (optionally from prior PESTLE / Porter's / BCG) | Situation picture before committing to direction |
-| `run-pestle-analysis` | PESTLE scan | Macro-environment scan for market entry or product line |
-| `run-porters-five-forces` | Porter's Five Forces | Competitive landscape map |
-| `run-bcg-matrix` | BCG Matrix | Portfolio positioning across multiple initiatives |
-| `run-okr-cascade` | OKR cascade | Cascading company OKRs to team level; exposing gaps |
-| `synthesize-stakeholder-research` | Research synthesis | Converting desk-research output into strategic narrative |
-| `define-ux-strategy` | Experience vision + goals/measures + plan | Upstream anchor for `journey-mapping` and `content-design` |
-| `define-content-strategy` | Purpose · Process · Structure · Governance (this pack's composite) | Governance layer for content above per-surface design |
+## What your agent can do
 
----
+- Pressure-test a product idea by writing the press release and FAQ before the product exists.
+- Map the situation with a SWOT, a PESTLE scan of the macro environment, or Porter's Five Forces.
+- Place each product or initiative in a portfolio matrix and recommend where to invest.
+- Cascade company OKRs to team level and show the gaps no team owns.
+- Turn stakeholder research into a strategic narrative organized by theme.
+- Set the UX and content strategy that design work follows.
 
-## Where these methods come from
+## Skills
 
-Framework names are the procedure; the following is provenance only — who published what, and where this pack's version differs.
+- **`write-prfaq`** — Writes the press release and FAQ that force an honest answer on who the product is for.
+- **`run-swot`** — Writes a situation picture of strengths, weaknesses, opportunities, and threats.
+- **`run-pestle-analysis`** — Scans the macro environment before you set strategy or enter a market.
+- **`run-porters-five-forces`** — Maps the competitive dynamics of an industry.
+- **`run-bcg-matrix`** — Places initiatives in a portfolio matrix with a recommendation for each.
+- **`run-okr-cascade`** — Cascades company OKRs to teams and exposes the gaps.
+- **`synthesize-stakeholder-research`** — Turns research briefs into a strategic narrative.
+- **`define-ux-strategy`** — Sets the experience direction before design begins.
+- **`define-content-strategy`** — Sets the content direction before content design begins.
 
-- **`define-ux-strategy`** — Jaime Levy's fourth tenet is named **frictionless UX** in the 2021 second edition of *UX Strategy*, and **killer UX design** in the 2015 first edition. This pack follows the 2021 second edition. See [UX Strategy, 2nd edition, ch. 2](https://www.oreilly.com/library/view/ux-strategy-2nd/9781492052425/ch02.xhtml).
-- **`define-content-strategy`** — the skill's Purpose + Process + Structure + Governance is this pack's own composite. It matches neither published content-strategy quad: Kristina Halvorson and Melissa Rach's 2012 quad is Substance / Structure / Workflow / Governance, and Brain Traffic's 2018 revision is Editorial Strategy / Experience Design / Content Structure / Process Design. See [Brain Traffic's new content strategy quad](https://www.braintraffic.com/blog/new-thinking-brain-traffics-content-strategy-quad).
-- **`write-prfaq`** — the PRFAQ (press release + FAQ) format is Amazon's internal product-development practice, documented in Colin Bryar and Bill Carr's *Working Backwards* (2021). See [Amazon's Working Backwards PR-FAQ](https://workingbackwards.com/resources/working-backwards-pr-faq/).
+## Works with
 
-The remaining six skills (`run-swot`, `run-pestle-analysis`, `run-porters-five-forces`, `run-bcg-matrix`, `run-okr-cascade`, `synthesize-stakeholder-research`) name their framework directly in the procedure — the name itself is the instruction, not a separable citation.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. [Desk Research](../desk-research/README.md) briefs feed `synthesize-stakeholder-research`. [Product Engineering](../product-engineering/README.md) picks up the strategy gaps from `run-okr-cascade`. [Experience Design](../experience-design/README.md) reads the UX and content strategy. See [Analyse the market](../../guides/product-strategy/how-to/run-a-market-and-competitive-analysis.md) and [Set direction and goals](../../guides/product-strategy/how-to/set-the-direction.md).
 
----
+## Questions
 
-## Cross-pack handoffs
+**Do I need to pick a method?** No. Ask the question, such as "Who should we serve first?", and the pack selects the method.
 
-**→ `product-engineering`:** `run-okr-cascade` writes `{type = "strategy"}` gap entries to `workspace.toml`. The PE pack's `frame-situation` reads them from the shaping queue.
+**Where do the results go?** Each result is a committed record in `docs/product/shaping/`, not a slide. Nothing is written until you approve it.
 
-**→ `experience-design`:** `define-ux-strategy` produces `ux-strategy.md` and `define-content-strategy` produces `content-strategy.md`. Both anchor `journey-mapping` and `content-design`.
+**Does it find market data on its own?** No. The situation tools use the information you provide. Pair it with Desk Research for sourced evidence.
 
----
+**Does it change my backlog?** `run-okr-cascade` writes the gaps it finds as strategy entries in `workspace.toml`, after you approve.
 
-## Go deeper
+## Details
 
-→ [Product Strategy guides](../../guides/product-strategy/)
-→ [JOURNEY.md](JOURNEY.md) — the three-artifact strategy workflow from situation → decision → queue
+Scope: user (default), repo · Version: 0.2.8 · Source: [packs/product-strategy](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-strategy)
