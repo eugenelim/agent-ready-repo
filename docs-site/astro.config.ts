@@ -5,7 +5,6 @@ import sidebarConfig from './src/sidebar-config.json';
 import { visit } from 'unist-util-visit';
 import { rehypeScrollableTables } from './src/plugins/rehype-scrollable-tables';
 import { rehypeChatTurns } from './src/plugins/rehype-chat-turns';
-import { rehypeStepPosition } from './src/plugins/rehype-step-position';
 
 // Remark plugin: transform ```mermaid blocks to a plain HTML placeholder
 // before Expressive Code processes them. EC never sees language-mermaid;
@@ -62,7 +61,7 @@ export default defineConfig({
   markdown: {
     processor: unified({
       remarkPlugins: [remarkMermaid],
-      rehypePlugins: [rehypeScrollableTables, rehypeChatTurns, rehypeStepPosition],
+      rehypePlugins: [rehypeScrollableTables, rehypeChatTurns],
     }),
   },
   integrations: [
@@ -110,9 +109,7 @@ export default defineConfig({
         Header: './src/components/Header.astro',
         Sidebar: './src/components/Sidebar.astro',
         PageTitle: './src/components/PageTitle.astro',
-        TableOfContents: './src/components/TableOfContents.astro',
         ThemeSelect: './src/components/ThemeToggle.astro',
-        MobileTableOfContents: './src/components/MobileTableOfContents.astro',
       },
       // Mermaid is bundled (exact pin) and lazily imported in
       // Footer.astro's client script — no runtime CDN calls.

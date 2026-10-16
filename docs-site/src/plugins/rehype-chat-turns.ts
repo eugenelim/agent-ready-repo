@@ -1,9 +1,9 @@
 import { visit } from 'unist-util-visit';
 
 /**
- * Tag each turn of a guidebook chat exchange with its speaker.
+ * Tag each turn of a guide's chat exchange with its speaker.
  *
- * A guidebook step shows what the reader types and what the agent replies. Both
+ * A job page shows what the reader types and what the agent replies. Both
  * are blockquotes, so before this they rendered as one undifferentiated slab
  * with the same left rule — a reader scanning the page could not see the turn
  * boundary, which is the only thing that makes the block a conversation rather
@@ -11,8 +11,8 @@ import { visit } from 'unist-util-visit';
  *
  * CSS cannot select on text, and the source has to stay plain Markdown because
  * `guides/` renders on GitHub as well as here. So the speaker is detected at
- * build time from the `**You:**` / `**Agent:**` lead the step contract already
- * requires, and becomes a class the stylesheet can reach.
+ * build time from the `**You:**` / `**Agent:**` lead each turn opens with, and
+ * becomes a class the stylesheet can reach.
  *
  * Marks the blockquote `chat-exchange` and each paragraph `chat-turn` plus
  * `chat-turn--you` or `chat-turn--agent`. A blockquote with no recognised lead
