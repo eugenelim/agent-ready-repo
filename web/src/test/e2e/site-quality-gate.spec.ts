@@ -707,3 +707,216 @@ test.describe('docs footer navigation is suppressed in print', () => {
     });
   }
 });
+
+/**
+ * The Apple key-cap branch of the docs search button.
+ *
+ * NOT part of AC1's 60-case matrix — a standalone case, like the print one above.
+ * The gate runs Chromium on Linux, so Starlight's inline script never takes its
+ * Apple branch on CI and half of the search button's rendered states was never
+ * measured. That is not hypothetical: a fix for the button's accessible name was
+ * authored and measured on macOS, passed there, and failed on the runner, because
+ * the two branches produce different visible text (`⌘` versus `Ctrl`) and axe's
+ * `label-content-name-mismatch` compares the name against exactly that text.
+ *
+ * `navigator.platform` is what Starlight tests, and it is deliberately what this
+ * overrides — spoofing the user agent would not reach that script, which uses the
+ * deprecated property precisely because the user agent gets spoofed. The override
+ * is installed with `addInitScript` so it is in place before any page script runs.
+ */
+test.describe('docs search button names itself correctly on Apple platforms', () => {
+  /** What Starlight's `/(Mac|iPhone|iPod|iPad)/i` test matches on a Mac. */
+  const APPLE_PLATFORM = 'MacIntel';
+
+  for (const route of DOCS_ROUTES) {
+    for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+      test(`${route} search button @${width} on ${APPLE_PLATFORM}`, async ({ page }, testInfo) => {
+        const ctx = { route, width, theme: 'light' } as const;
+        const errors = collectPageErrors(page);
+        await page.addInitScript((platform) => {
+          Object.defineProperty(navigator, 'platform', {
+            get: () => platform,
+            configurable: true,
+          });
+        }, APPLE_PLATFORM);
+        await page.addInitScript(() => localStorage.setItem('starlight-theme', 'light'));
+        await page.setViewportSize({ width, height: 900 });
+        await gotoSettled(page, withDocsBase(route), ctx);
+
+        const button = page.locator('button[data-open-modal]');
+        await expect(button, `${label(ctx)}: the search button must render`).toHaveCount(1);
+
+        // Guard the guard. Without this the override could silently fail to take —
+        // leaving the Linux branch on screen — and every assertion below would pass
+        // while measuring the branch the matrix already covers.
+        const caps = await button.locator('kbd kbd').allInnerTexts();
+        expect(caps, `${label(ctx)}: Starlight did not take its Apple branch`).toEqual(['⌘', 'K']);
+
+        // WCAG 2.5.3 Label in Name: the accessible name must contain the visible
+        // text. `Header.astro` spaces the button's parts and then names it after
+        // the result, so the name is exactly the visible text on both branches.
+        await expect(button, `${label(ctx)}: accessible name`).toHaveAttribute(
+          'aria-label',
+          'Search ⌘ K'
+        );
+
+        // The rule itself, through axe, rather than only the attribute it reads.
+        await expectNoSeriousAxeViolations(page, ctx, testInfo);
+        // `⌘` is not `Ctrl`: a branch that changes the caps changes the button's
+        // width, and this is the narrow width where that would push the bar over.
+        await expectNoHorizontalOverflow(page, ctx);
+        expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
+      });
+    }
+  }
+});
+
+/**
+ * A published mermaid fence actually renders in the browser.
+ *
+ * NOT part of AC1's 60-case matrix — its two docs routes carry no fence, so no
+ * CI check had ever drawn a diagram. `rendered-output.test.ts` asserts the emitted
+ * `.mermaid-diagram[data-mermaid]` placeholder, which proves the remark plugin ran
+ * and nothing after it; the client-side render in `Footer.astro` is a separate
+ * mechanism and the mermaid 12 bump is what made that distinction expensive. That
+ * bump changed two rendering defaults (layout and look) and arrived green, because
+ * a default that restyles every diagram is invisible to a test that reads source.
+ *
+ * Of those two defaults, this block guards ONE, and the distinction is worth
+ * stating because the block's name does not imply it. The SVG-shape assertions
+ * below cannot tell the engines apart: measured, a build pinned to `layout: 'elk'`
+ * satisfies every one of them unchanged, because both emit the same `g.node` and
+ * `g.edgePaths`. What separates them is that ELK is fetched, so the chunk-request
+ * assertion is what holds `layout: 'dagre'` — and what it establishes is that ELK
+ * was not requested, which is not the same as proving dagre drew the diagram.
+ *
+ * The `look: 'classic'` pin is NOT guarded, by measurement rather than oversight.
+ * Rebuilding this page with `look: 'neo'` and nothing else changed produced an
+ * identical DOM — same `svg` class, same node classes and shape elements, same
+ * `defs` filters — so there is nothing here to assert against. A `look` regression
+ * is visible to a reader and invisible to this gate; the pin in `Footer.astro` is
+ * the only thing holding it.
+ *
+ * Asserted in both themes: the render path re-runs per theme with a different
+ * mermaid theme and `themeVariables`, so a theme-specific failure is reachable.
+ */
+test.describe('a published mermaid diagram renders', () => {
+  /** The one published page carrying a fence; `docs-site/AGENTS.md` requires one exist. */
+  const MERMAID_ROUTE = '/guides/converters/how-to/render-mermaid-diagrams/';
+
+  /** Vite's name for mermaid's ELK chunk, before its content hash. */
+  const ELK_CHUNK = /^elk[-.]/i;
+
+  test('the ELK chunk pattern still matches an emitted file', () => {
+    // Guards the guard, and this one fails OPEN without it: the assertion in every
+    // case below is that NOTHING matched. A Vite or mermaid change that renames the
+    // chunk would satisfy that forever, and the layout pin could then be deleted
+    // with the gate still green. Reading the build makes a rename red here instead,
+    // where the message says what to do about it.
+    const astro = fileURLToPath(new URL('../../../../build/docs/_astro', import.meta.url));
+    const emitted = existsSync(astro) ? readdirSync(astro).filter((f) => ELK_CHUNK.test(f)) : [];
+    expect(
+      emitted.length,
+      `no file matching ${ELK_CHUNK} in build/docs/_astro — mermaid still depends ` +
+        `on elkjs, so this means the chunk was renamed. Update ELK_CHUNK to the new ` +
+        `name; until then the layout-pin assertion in this block proves nothing.`
+    ).toBeGreaterThan(0);
+  });
+
+  for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+    for (const theme of THEMES) {
+      test(`${MERMAID_ROUTE} @${width} ${theme}`, async ({ page }, testInfo) => {
+        const ctx = { route: MERMAID_ROUTE, width, theme };
+        const errors = collectPageErrors(page);
+        // `Footer.astro` reports both failure modes through `console.warn`, which
+        // `collectPageErrors` does not collect — a bundle that fails to load, and a
+        // diagram that fails to render. Collected here so neither can pass quietly.
+        const warnings: string[] = [];
+        page.on('console', (message) => {
+          if (message.type() === 'warning') warnings.push(message.text());
+        });
+        // mermaid 12 bundles ELK and emits it as its own lazy chunk — the largest
+        // thing in the docs build by some margin — fetched only when a diagram
+        // selects that layout. That it stays unfetched was a hand observation
+        // during the bump; asserted here it is durable.
+        //
+        // Matched on the chunk NAME, not a bare /elk/: Vite appends a content hash
+        // to every chunk, and a hash that happened to contain those three letters
+        // would red this case for no reason. `ELK_CHUNK` is the shared pattern, and
+        // the case above proves it still matches something the build emits.
+        const elkChunks: string[] = [];
+        page.on('request', (request) => {
+          const file = new URL(request.url()).pathname.split('/').pop() ?? '';
+          if (ELK_CHUNK.test(file)) elkChunks.push(file);
+        });
+
+        await page.addInitScript((value) => {
+          localStorage.setItem('starlight-theme', value);
+        }, theme);
+        await page.setViewportSize({ width, height: 900 });
+        await gotoSettled(page, withDocsBase(MERMAID_ROUTE), ctx);
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+
+        const placeholders = page.locator('.mermaid-diagram[data-mermaid]');
+        const count = await placeholders.count();
+        expect(
+          count,
+          `${label(ctx)}: no mermaid placeholder on this route — either the fence ` +
+            `moved, in which case point this case at its new home, or the remark ` +
+            `plugin stopped running, which is the defect it exists to catch`
+        ).toBeGreaterThan(0);
+
+        // The render is lazy (`import('mermaid')`), so wait for its output rather
+        // than reading the DOM the navigation settled on.
+        // Explicit, because the default expect timeout is 5s and this wait is the
+        // one place where that is not comfortable: the render needs a dynamic
+        // `import('mermaid')`, its chunk graph and a font-dependent layout, under
+        // `fullyParallel` on a 4-vCPU runner with `retries` unset. Well under the
+        // 30s case limit, so a genuine failure still reports as this assertion.
+        await expect(
+          placeholders.first().locator('svg'),
+          `${label(ctx)}: mermaid drew no SVG within 15s`
+        ).toBeVisible({ timeout: 15000 });
+
+        for (let i = 0; i < count; i += 1) {
+          const where = `${label(ctx)}: diagram ${i}`;
+          const drawn = await placeholders.nth(i).evaluate((el) => {
+            const svg = el.querySelector('svg');
+            const box = svg?.getBoundingClientRect();
+            return {
+              // The bundle-load failure path replaces the placeholder with a <pre>
+              // of the raw source. It is a legitimate fallback for a reader and a
+              // failure for this gate.
+              rawSourceFallback: el.querySelector('pre') !== null,
+              hasSvg: svg !== null,
+              width: box ? Math.round(box.width) : 0,
+              height: box ? Math.round(box.height) : 0,
+              nodes: svg ? svg.querySelectorAll('g.node').length : 0,
+              edges: svg ? svg.querySelectorAll('g.edgePaths path').length : 0,
+            };
+          });
+
+          expect(drawn.rawSourceFallback, `${where}: fell back to raw source`).toBe(false);
+          expect(drawn.hasSvg, `${where}: no SVG`).toBe(true);
+          // A zero-area SVG is what a layout engine that failed to run leaves behind.
+          expect(drawn.width, `${where}: SVG width ${drawn.width}px`).toBeGreaterThan(0);
+          expect(drawn.height, `${where}: SVG height ${drawn.height}px`).toBeGreaterThan(0);
+          // Graph content, not just a frame: a diagram with no nodes renders as an
+          // empty box that looks deliberate.
+          expect(drawn.nodes, `${where}: SVG carries no nodes`).toBeGreaterThan(0);
+          expect(drawn.edges, `${where}: SVG carries no edges`).toBeGreaterThan(0);
+        }
+
+        await expectNoHorizontalOverflow(page, ctx);
+        await expectNoSeriousAxeViolations(page, ctx, testInfo);
+        expect(warnings, `${label(ctx)}: mermaid console warnings`).toEqual([]);
+        expect(
+          elkChunks,
+          `${label(ctx)}: the ELK chunk was fetched — the layout pin in ` +
+            `docs-site/src/components/Footer.astro no longer holds`
+        ).toEqual([]);
+        expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
+      });
+    }
+  }
+});
