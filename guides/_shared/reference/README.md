@@ -2,6 +2,10 @@
 
 Look-up pages for commands, formats, and standards.
 
+## Operating model
+
+- [Detailed operating model](detailed-operating-model.md) — Every route, skill, and stop code across the four stages.
+
 ## Command and adapters
 
 - [`agentbundle` — reference](agentbundle.md) — Install, inspect, preview, and configure behavior of the command.

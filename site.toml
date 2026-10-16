@@ -7,7 +7,10 @@
 # Guides linked by hand from the Get Started sidebar group in
 # docs-site/astro.config.ts. Each is left out of its generated
 # [[guide_groups]] group, so it appears once in navigation.
-promoted_guides = ["guides/_shared/explanation/the-operating-model"]
+promoted_guides = [
+  "guides/_shared/explanation/the-operating-model",
+  "guides/_shared/reference/detailed-operating-model",
+]
 
 [[groups]]
 label = "Foundation"
