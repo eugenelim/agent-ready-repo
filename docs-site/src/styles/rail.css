@@ -622,8 +622,7 @@ starlight-toc a[aria-current='true'] {
 #starlight__on-this-page,
 #starlight__on-this-page--mobile,
 .sl-prev-next__direction,
-.sl-markdown-content .chat-turn > strong:first-child,
-.sl-markdown-content .step-position__count {
+.sl-markdown-content .chat-turn > strong:first-child {
   color: var(--rail-muted) !important;
   font-size: 0.8125rem !important;
   font-weight: 600 !important;
