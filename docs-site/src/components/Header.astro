@@ -34,29 +34,46 @@ const active = currentTab(sidebar);
       /* Starlight's search button shows its label and its ⌘/Ctrl+K hint, but
          names itself only "Search" through `aria-label`. Above the `md`
          breakpoint the <kbd> becomes visible, so the visible text reads
-         "Search ⌘K" while the accessible name stays "Search" — WCAG 2.5.3 Label
-         in Name. axe-core reports it as `label-content-name-mismatch` from
-         4.14.0 on, and the 1440 px cases in
+         "Search ⌘ K" while the accessible name stays "Search" — WCAG 2.5.3
+         Label in Name. axe-core reports it as `label-content-name-mismatch`
+         from 4.14.0 on, and the 1440 px cases in
          web/src/test/e2e/site-quality-gate.spec.ts caught it on that bump.
 
-         The name has to CONTAIN the visible text, so folding the keys into it
-         is the fix. Hiding the <kbd> with `aria-hidden` is not: axe reads
-         visually visible text, which `aria-hidden` does not affect — measured,
-         the rule still fired. Below `md` nothing is visible and the rule does
-         not apply, but the shortcut works at every width, so the name carries
-         it at every width too.
+         The name must CONTAIN the visible text, and axe builds that text by
+         concatenating the parts with no separator of its own. Starlight writes
+         no whitespace between the magnifier, the label and the key caps, so
+         axe reads "searchctrlk" and only a name spelt that way would match.
+         Rather than give screen readers "SearchCtrlK" to pronounce, put a real
+         space between the parts first — measured not to change the button's
+         width at 360, 375 or 1440 px — and then name the button after its own
+         visible text. The result is "Search Ctrl K", or "Search ⌘ K" on Apple.
 
-         Read after Starlight's own inline script, which swaps Ctrl for ⌘ on
-         Apple platforms; this element sits later in the document, so the keys
-         are already final here. */
+         Two approaches were measured and rejected. `aria-hidden` on the <kbd>
+         does nothing here: axe reads visually visible text, which `aria-hidden`
+         does not affect. Appending the keys without spacing them passed on
+         Apple and failed on Linux, which is how this reached CI once.
+
+         This runs after Starlight's own inline script, which swaps Ctrl for ⌘
+         on Apple platforms; that script sits earlier in the document, so the
+         key caps are already final here. */
     }
     <script is:inline>
       {
         const button = document.querySelector('button[data-open-modal]');
-        const label = button?.getAttribute('aria-label');
-        const keys = button?.querySelector('kbd')?.textContent;
-        if (button && label && keys) {
-          button.setAttribute('aria-label', `${label} ${keys.trim()}`);
+        if (button) {
+          const space = () => document.createTextNode(' ');
+          for (const parent of [button, ...button.querySelectorAll('kbd')]) {
+            const parts = [...parent.children];
+            if (parts.length > 1) {
+              parent.replaceChildren(
+                ...parts.flatMap((part, index) => (index ? [space(), part] : [part]))
+              );
+            }
+          }
+          const visible = button.textContent.replace(/\s+/g, ' ').trim();
+          if (visible) {
+            button.setAttribute('aria-label', visible);
+          }
         }
       }
     </script>
