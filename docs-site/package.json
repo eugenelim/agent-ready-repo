@@ -18,17 +18,16 @@
     "preastro": "python3 ../tools/build-site.py --renderer-inputs"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.3.1",
-    "@astrojs/starlight": "0.42.4",
+    "@astrojs/markdown-remark": "7.3.2",
+    "@astrojs/starlight": "0.42.6",
     "@fontsource-variable/inter": "5.3.0",
-    "@fontsource-variable/source-serif-4": "5.3.0",
+    "@fontsource-variable/source-serif-4": "5.3.1",
     "@fontsource/jetbrains-mono": "5.3.0",
-    "astro": "7.3.5",
+    "astro": "7.3.8",
     "mermaid": "11.17.2",
     "unist-util-visit": "5.1.0"
   },
   "allowScripts": {
-    "esbuild@0.28.1": true,
     "fsevents@2.3.3": true
   }
 }
