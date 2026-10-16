@@ -1,6 +1,8 @@
 # Spec: pack guidebook walkability
 
 > **Superseded 2026-10-15** by [`docs-job-pages`](../docs-job-pages/spec.md): each pack guidebook became one job page whose steps are sections, so no page carries a "Step N of M" position. The walk rail, its rendered sweep (`tools/check-guidebook-walk.py`), and the experience-design step-agreement test are retired with it.
+>
+> The build code that served guidebooks — step positions, sidebar numbering, the pack-page banner, the Guidebooks anchor, and the walk panel — was removed 2026-10-16.
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim

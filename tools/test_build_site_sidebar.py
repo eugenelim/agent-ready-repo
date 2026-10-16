@@ -47,26 +47,22 @@ def _pairs(node) -> list[tuple[str, str]]:
 
 
 def _guides_group() -> dict:
-    return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")[0]
+    return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")
 
 
-def _guidebooks_group() -> dict | None:
-    """The top-level anchor group -- one entry per pack that ships a walk."""
-    return build_site.build_guides_sidebar_group(REPO_ROOT, REPO_ROOT / "site.toml")[1]
+_STEP_DECLARATION = re.compile(r"^\*\*Step \d+ of \d+ — ", re.M)
 
 
 def test_no_guidebook_walk_remains():
     """spec/docs-job-pages AC2: each pack guidebook became one job page whose
-    steps are sections, so no page carries a "Step N of M" position and the
-    sidebar can never open a walk part-way through."""
+    steps are sections, so no guide page body declares a "Step N of M"
+    position."""
     steps = [
         r["slug"]
         for r in build_site.build_guide_inventory(REPO_ROOT / "guides")
-        if r.get("step") is not None
+        if _STEP_DECLARATION.search(r["source_path"].read_text(encoding="utf-8"))
     ]
     assert steps == [], f"guidebook step pages remain: {steps}"
-    anchor = _guidebooks_group()
-    assert anchor is None or not anchor["items"], anchor
 
 
 # ---------------------------------------------------------------------------

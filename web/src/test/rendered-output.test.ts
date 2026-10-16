@@ -875,8 +875,7 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     expect(overrides.length, 'docs component overrides were not parsed').toBeGreaterThan(0);
     expect(new Set(overrides), 'docs may override only the approved Starlight seams').toEqual(
       new Set([
-        'Footer', 'Header', 'PageTitle', 'Sidebar', 'TableOfContents',
-        'MobileTableOfContents', 'ThemeSelect',
+        'Footer', 'Header', 'PageTitle', 'Sidebar', 'ThemeSelect',
       ])
     );
 
