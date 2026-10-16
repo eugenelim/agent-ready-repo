@@ -124,6 +124,14 @@ const pathname = Astro.url.pathname.startsWith(docsBase)
         startOnLoad: false,
         securityLevel: 'strict',
         theme: dark ? 'dark' : 'neutral',
+        // mermaid 12 changed two rendering defaults: the layout engine became
+        // the bundled ELK instead of dagre, and the look became 'neo' instead
+        // of 'classic'. Both restyle every published diagram. Pinning them here
+        // keeps this bump a dependency bump; adopting the new defaults is a
+        // visual change to the whole site and belongs in its own reviewed
+        // change, where the before and after can be looked at.
+        layout: 'dagre',
+        look: 'classic',
         // The dark theme leaves edge-label backgrounds light; pin them to
         // the dark surface token so labels sit flush on the diagram ground.
         themeVariables: dark ? { edgeLabelBackground: '#111726' } : {},
