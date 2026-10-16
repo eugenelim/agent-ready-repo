@@ -113,8 +113,9 @@ pagination instead of the tab-scoped one.
   page's own link carries `aria-current="page"`. A page listed in no tab
   renders the Docs tab. On a 390 px viewport the open menu shows the four tab
   links.
-- [x] **AC4 — Docs tab structure.** The Docs tab renders Intro, Operating model,
-  Packs, then groups with `data-stage` `setup`, `decide`, `shape`, `build`,
+- [x] **AC4 — Docs tab structure.** The Docs tab renders Intro, an Operating
+  model group with no `data-stage` holding Overview and Detailed model, Packs,
+  then groups with `data-stage` `setup`, `decide`, `shape`, `build`,
   `ship` in that order, then a collapsed Pack listing group whose links are
   every `packs/<slug>/` page in label order.
 - [x] **AC5 — Stage chip.** Given a page in a stage group, the title block shows

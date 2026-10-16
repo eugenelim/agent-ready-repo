@@ -502,12 +502,18 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
   });
 
   // spec/docs-site-rail-shell AC4.
-  it('AC4: the Docs tab runs Intro, Operating model, then the five stages', () => {
+  it('AC4: the Docs tab runs Intro, the Operating model group, then the five stages', () => {
     const d = doc(NESTED_GUIDE);
     const top = [...d.querySelectorAll('nav.sidebar .rail-nav > li > a')].map((a) => a.textContent?.trim());
-    expect(top).toEqual(['Intro', 'Operating model']);
-    const groups = [...d.querySelectorAll<HTMLElement>('nav.sidebar .rail-nav > li.rail-group')];
-    expect(groups.map((g) => g.dataset.stage)).toEqual(['setup', 'decide', 'shape', 'build', 'ship']);
+    expect(top).toEqual(['Intro']);
+    const [model, ...stages] = [...d.querySelectorAll<HTMLElement>('nav.sidebar .rail-nav > li.rail-group')];
+    expect(model?.querySelector('.rail-group__label')?.textContent?.trim()).toBe('Operating model');
+    expect(model?.dataset.stage).toBeUndefined();
+    expect([...(model?.querySelectorAll('.rail-line a') ?? [])].map((a) => a.textContent?.trim())).toEqual([
+      'Overview',
+      'Detailed model',
+    ]);
+    expect(stages.map((g) => g.dataset.stage)).toEqual(['setup', 'decide', 'shape', 'build', 'ship']);
   });
 
   it('AC4: the Packs tab opens with About packs, then every pack in label order', () => {

@@ -11,7 +11,7 @@ Every piece of work moves through four stages: decide what to build, shape it, b
 
 [![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. Below them, architecture by stage: before any work, architect-assess maps what exists and adapt-to-project or init-project writes reference.md; then you assess the area in Decide, design in Shape, and close-work folds the design into the current-state map after the merge.](the-operating-model-overview.svg)](the-operating-model-overview.svg)
 
-[Open the full map](the-operating-model-full-map.svg) for every route, skill, and decision.
+[See the detailed operating model](../reference/detailed-operating-model.md) for every route, skill, and decision.
 
 ## The four stages
 

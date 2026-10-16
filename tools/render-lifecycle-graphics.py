@@ -9,7 +9,8 @@ Writes, next to ``guides/_shared/explanation/the-operating-model.md``:
   and decision.
 
 The step content mirrors ``docs/architecture/lifecycle-flow.md`` and the
-step-by-step list in the guide; change all three together. Run
+step-by-step list in ``guides/_shared/reference/detailed-operating-model.md``,
+which embeds the full map; change all three together. Run
 ``python3 tools/render-lifecycle-graphics.py`` after editing.
 """
 from __future__ import annotations

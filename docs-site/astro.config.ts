@@ -120,7 +120,13 @@ export default defineConfig({
           label: 'Docs',
           items: [
             { label: 'Intro', slug: 'index' },
-            { label: 'Operating model', slug: 'guides/_shared/explanation/the-operating-model' },
+            {
+              label: 'Operating model',
+              items: [
+                { label: 'Overview', slug: 'guides/_shared/explanation/the-operating-model' },
+                { label: 'Detailed model', slug: 'guides/_shared/reference/detailed-operating-model' },
+              ],
+            },
             {
               label: 'Set up a repository',
               items: [
