@@ -617,15 +617,15 @@ main h1 {
 }
 
 /* ---------------------------------------------------------------------------
- * Guidebook chat exchanges
+ * Chat exchanges
  *
- * A step shows what the reader types and what the agent replies. Both are
+ * A job page shows what the reader types and what the agent replies. Both are
  * blockquotes, so they rendered as one slab behind a single left rule and the
  * turn boundary -- the only thing making the block a conversation rather than a
  * quotation -- was invisible.
  *
  * `rehype-chat-turns` tags each paragraph with its speaker at build time, from
- * the `**You:**` / `**Agent:**` lead the step contract already requires. The
+ * the `**You:**` / `**Agent:**` lead each turn opens with. The
  * source stays plain Markdown because `guides/` also renders on GitHub, where
  * this degrades to an ordinary blockquote with bold speaker labels.
  *
@@ -681,9 +681,9 @@ main h1 {
 }
 
 /* ---------------------------------------------------------------------------
- * Guidebook code blocks wrap
+ * Guide code blocks wrap
  *
- * A guidebook's code blocks are not source: they are the prompt a reader types
+ * A job page's code blocks are not source: they are the prompt a reader types
  * and an excerpt of the artifact they get back. Unwrapped they scrolled
  * horizontally, and the longest prompt ran 1,775px past the edge of its own
  * block -- so the end of the sentence the reader is meant to copy verbatim was
