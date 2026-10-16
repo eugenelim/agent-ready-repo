@@ -30,6 +30,36 @@ const active = currentTab(sidebar);
   </div>
   <div class="rail-header__right print:hidden">
     <Search />
+    {
+      /* Starlight's search button shows its label and its ⌘/Ctrl+K hint, but
+         names itself only "Search" through `aria-label`. Above the `md`
+         breakpoint the <kbd> becomes visible, so the visible text reads
+         "Search ⌘K" while the accessible name stays "Search" — WCAG 2.5.3 Label
+         in Name. axe-core reports it as `label-content-name-mismatch` from
+         4.14.0 on, and the 1440 px cases in
+         web/src/test/e2e/site-quality-gate.spec.ts caught it on that bump.
+
+         The name has to CONTAIN the visible text, so folding the keys into it
+         is the fix. Hiding the <kbd> with `aria-hidden` is not: axe reads
+         visually visible text, which `aria-hidden` does not affect — measured,
+         the rule still fired. Below `md` nothing is visible and the rule does
+         not apply, but the shortcut works at every width, so the name carries
+         it at every width too.
+
+         Read after Starlight's own inline script, which swaps Ctrl for ⌘ on
+         Apple platforms; this element sits later in the document, so the keys
+         are already final here. */
+    }
+    <script is:inline>
+      {
+        const button = document.querySelector('button[data-open-modal]');
+        const label = button?.getAttribute('aria-label');
+        const keys = button?.querySelector('kbd')?.textContent;
+        if (button && label && keys) {
+          button.setAttribute('aria-label', `${label} ${keys.trim()}`);
+        }
+      }
+    </script>
     <div class="rail-header__icons">
       <SocialIcons />
       <ThemeSelect />
