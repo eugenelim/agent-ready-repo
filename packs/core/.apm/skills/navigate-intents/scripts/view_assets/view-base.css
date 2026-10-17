@@ -271,6 +271,20 @@ summary { cursor: pointer; }
   color: var(--c-subtle);
 }
 
+/* ---- Roadmap: a section per strategy, and a bar of 24 cells that repeats the counts beside it */
+.rm-head { border-bottom-color: var(--c-rule); }
+.rm-title { font: var(--t-section); text-transform: none; letter-spacing: 0; color: var(--c-text); }
+.rm-sub { border-left-color: var(--c-rule-strong); }
+.rm-cell { border-radius: 2px; }
+.rm-delivered { background: var(--c-ok); }
+.rm-inprogress { background: var(--c-active); }
+.rm-notstarted { background: var(--c-raised); box-shadow: inset 0 0 0 1px var(--c-rule-strong); }
+.rm-empty { background: var(--c-canvas); box-shadow: inset 0 0 0 1px var(--c-rule-strong); }
+.rm-pct { font: var(--t-meta); font-weight: 650; color: var(--c-text); font-variant-numeric: tabular-nums; }
+.rm-words, .rm-none, .rm-unknown { font: var(--t-meta); color: var(--c-subtle); }
+.rm-none, .rm-unknown { font-style: italic; }
+.rm-w + .rm-w { border-left-color: var(--c-rule-strong); }
+
 /* ---- State marks: a word and a glyph in a pill tinted by its state */
 .mark {
   font: var(--t-meta);

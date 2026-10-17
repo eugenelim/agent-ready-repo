@@ -245,6 +245,13 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
     found["hostile_incomplete"] = _export(
         _FIXTURES / "hostile", out, "hostile_incomplete.html", _delivery_provider=_incomplete
     )
+    found["roadmap_incomplete"] = _export(
+        _FIXTURES / "roadmap", out, "roadmap_incomplete.html", _delivery_provider=_incomplete
+    )
+    found["from_roadmap_cap"] = _export(_FIXTURES / "roadmap", out, "from_roadmap_cap.html", "capability:anchor-cap")
+    found["from_roadmap_strategy"] = _export(
+        _FIXTURES / "roadmap", out, "from_roadmap_strategy.html", "intent:atlas-direction"
+    )
     found["hostile_diag"] = _export(
         _FIXTURES / "hostile", out, "hostile_diag.html", _delivery_provider=_hostile_diagnostic
     )
@@ -851,7 +858,7 @@ def test_ac_0001_six_destinations_with_counts(opener: Any, exports: dict[str, pa
     assert page.locator("#list a.row-link").count() == 3
     assert _text(page, "#list-title") == "In a startable stage"
     assert _count_text(page) == "3 items" and _text(page, "#list-sort") == "By stage, then name"
-    for key in _ROW_QUESTIONS:
+    for key in [*_ROW_QUESTIONS, "roadmap"]:
         _choose(item, key)
         assert str(page.locator("#list a.row-link").count()) == counts[key], key
 
@@ -1029,10 +1036,13 @@ def test_ac_0050_meta_line_totals(opener: Any, exports: dict[str, pathlib.Path])
 
 
 def test_ac_0008_positive_empty_lines(opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path) -> None:
-    nothing = _rewrite(
-        exports["mixed"], tmp_path / "nothing.html", lambda p: {**p, "outstanding": {"placed": [], "no_parent": []}}
-    )
+    def no_work_no_capability(p: dict[str, Any]) -> dict[str, Any]:
+        records = {k: {**v, "level": "feature" if v.get("level") == "capability" else v.get("level")} for k, v in p["records"].items()}
+        return {**p, "records": records, "outstanding": {"placed": [], "no_parent": []}}
+
+    nothing = _rewrite(exports["mixed"], tmp_path / "nothing.html", no_work_no_capability)
     wanted = {
+        "roadmap": "No capability is recorded.",
         "next": "Nothing is in a startable stage.",
         "capabilities": "No capability has open work beneath it.",
         "noparent": "Every open item has a parent.",
@@ -3568,3 +3578,213 @@ def test_roadmap_tree_roots_take_the_first_loop_member_when_no_edge_is_refused(
     roots = _roadmap_expectations(payload)["roots"]
     assert "intent:loop-alpha" in roots and "intent:acorn-tail" not in roots
     assert len([r for r in roots if r.startswith("intent:loop-")]) == 1
+
+
+# ---------------------------------------------------------------------------
+# The roadmap question: the page against the payload reading
+# ---------------------------------------------------------------------------
+
+_READ_ROADMAP = """() => {
+  const prog = (p) => p === null ? null : {
+    words: Array.from(p.querySelectorAll('.rm-w')).map((e) => e.textContent),
+    pct: p.querySelector('.rm-pct') ? p.querySelector('.rm-pct').textContent : null,
+    cells: Array.from(p.querySelectorAll('.rm-cell')).map((c) => c.className.replace('rm-cell ', '')),
+    barHidden: p.querySelector('.rm-bar') ? p.querySelector('.rm-bar').getAttribute('aria-hidden') : null,
+    none: p.querySelector('.rm-none') ? p.querySelector('.rm-none').textContent : null,
+    unknown: p.querySelector('.rm-unknown') ? p.querySelector('.rm-unknown').textContent : null,
+  };
+  const row = (li) => {
+    const a = li.firstElementChild;
+    return {
+      id: a.dataset.node,
+      linkFirst: a.matches('a.row-link'),
+      name: a.querySelector('.c-name').textContent,
+      parts: Array.from(a.children).map((c) => c.className),
+      mark: a.querySelector('.c-state .mark-w').textContent,
+      progress: prog(a.querySelector(':scope > .rm-progress')),
+      children: Array.from(li.querySelectorAll(':scope > ul > li')).map(row),
+      subLists: li.querySelectorAll(':scope > ul').length,
+    };
+  };
+  return Array.from(document.querySelectorAll('#list > section.rm-section')).map((s) => ({
+    heading: s.querySelector('.rm-title').textContent,
+    progress: prog(s.querySelector('.rm-head > .rm-progress')),
+    rows: Array.from(s.querySelectorAll(':scope > ul > li')).map(row),
+  }));
+}"""
+_UNKNOWN_PROGRESS = "Progress unknown: delivery mapping incomplete."
+_CELL_CLASS = ("rm-delivered", "rm-inprogress", "rm-notstarted", "rm-empty")
+
+
+def _read_roadmap(item: Opened) -> list[dict[str, Any]]:
+    _choose(item, "roadmap")
+    item.page.wait_for_selector("#list section.rm-section")
+    return item.page.evaluate(_READ_ROADMAP)  # type: ignore[no-any-return]
+
+
+def _expected_progress(found: dict[str, Any], node: str) -> dict[str, Any]:
+    """What the page must show for *node*, worded by AC-0013 to AC-0017 and AC-0048."""
+    prog = found["progress"][node]
+    if prog["nothing_beneath"]:
+        return {"words": [], "pct": None, "cells": [], "none": "Nothing beneath yet", "unknown": None}
+    counts = prog["counts"]
+    words = [f"{counts['delivered']} delivered"]
+    words += [f"{counts[b]} {b}" for b in ("in progress", "not started", "stopped") if counts[b]]
+    cells = [c for cls, n in zip(_CELL_CLASS, prog["cells"], strict=True) for c in [cls] * n]
+    pct = None if prog["share"] is None else f"{prog['share']}%"
+    return {"words": words, "pct": pct, "cells": cells, "none": None, "unknown": None}
+
+
+def _shown_progress(prog: dict[str, Any] | None) -> dict[str, Any] | None:
+    if prog is None:
+        return None
+    return {k: prog[k] for k in ("words", "pct", "cells", "none", "unknown")}
+
+
+def _walk_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [r for row in rows for r in (row, *_walk_rows(row["children"]))]
+
+
+def _shape(rows: list[dict[str, Any]]) -> list[Any]:
+    return [[r["id"], _shape(r["children"])] for r in rows]
+
+
+def test_roadmap_sections_and_nesting(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    found = _roadmap_expectations(payload)
+    model = Model(payload)
+    item = opener(exports["roadmap"])
+    page = item.page
+    sections = _read_roadmap(item)
+    assert [s["heading"] for s in sections] == [s["heading"] for s in found["sections"]]
+    assert sections[-1]["heading"] == _NO_STRATEGY
+    for shown, want in zip(sections, found["sections"], strict=True):
+        assert _shape(shown["rows"]) == _expected_shape(want["capabilities"])
+    every = [r["id"] for s in sections for r in _walk_rows(s["rows"])]
+    caps = [i for i, r in model.records.items() if r["level"] == "capability"]
+    assert sorted(every) == sorted(caps) and len(every) == len(set(every))
+    for s in sections:
+        for r in _walk_rows(s["rows"]):
+            assert r["linkFirst"] and r["name"] == model.display(r["id"])
+            assert r["subLists"] == (1 if r["children"] else 0)
+    assert _text(page, "#list-sort") == "By strategy, then name"
+    # Picking a nested row shows its detail as other rows do.
+    nested = "capability:anchor-sub-cap"
+    page.locator(f'#list a.row-link[data-node="{nested}"]').click()
+    _wait_heading(page, model.display(nested))
+    assert page.locator(f'#list a.row-link[data-node="{nested}"][aria-current="true"]').count() == 1
+
+
+def _expected_shape(caps: list[dict[str, Any]]) -> list[Any]:
+    return [[c["id"], _expected_shape(c["children"])] for c in caps]
+
+
+def test_roadmap_progress_text(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    found = _roadmap_expectations(payload)
+    model = Model(payload)
+    sections = _read_roadmap(opener(exports["roadmap"]))
+    rows = {r["id"]: r for s in sections for r in _walk_rows(s["rows"])}
+    assert rows
+    for node, row in rows.items():
+        assert row["parts"] == ["c-name", "c-state", "rm-progress"], node
+        assert row["mark"] == model.word(node), node
+        assert _shown_progress(row["progress"]) == _expected_progress(found, node), node
+    # Three rows stated outright: a share, an all-stopped row and a row with nothing beneath.
+    assert rows["capability:birch-cap"]["progress"]["pct"] == "100%"
+    assert rows["capability:dune-cap"]["progress"]["words"] == ["0 delivered", "2 stopped"]
+    assert rows["capability:dune-cap"]["progress"]["pct"] is None
+    assert rows["capability:cinder-cap"]["progress"]["none"] == "Nothing beneath yet"
+    assert rows["capability:cinder-cap"]["progress"]["cells"] == []
+
+
+def test_roadmap_cells(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    found = _roadmap_expectations(payload_of(exports["roadmap"]))
+    sections = _read_roadmap(opener(exports["roadmap"]))
+    bars = 0
+    for node, row in {r["id"]: r for s in sections for r in _walk_rows(s["rows"])}.items():
+        prog = row["progress"]
+        if found["progress"][node]["nothing_beneath"]:
+            assert prog["cells"] == [] and prog["barHidden"] is None, node
+            continue
+        bars += 1
+        assert prog["barHidden"] == "true" and len(prog["cells"]) == _BAR_CELLS, node
+        assert tuple(prog["cells"].count(c) for c in _CELL_CLASS) == tuple(found["progress"][node]["cells"]), node
+    assert bars == sum(1 for p in found["progress"].values() if not p["nothing_beneath"]) - 2  # minus the two strategies
+
+
+def test_roadmap_strategy_headings(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    found = _roadmap_expectations(payload_of(exports["roadmap"]))
+    sections = _read_roadmap(opener(exports["roadmap"]))
+    assert [s["heading"] for s in sections] == ["Atlas direction", "Boreal direction", _NO_STRATEGY]
+    for shown, want in zip(sections[:2], found["sections"][:2], strict=True):
+        assert _shown_progress(shown["progress"]) == _expected_progress(found, want["strategy"])
+        assert shown["progress"]["pct"] is not None and shown["progress"]["barHidden"] == "true"
+    assert sections[0]["progress"]["pct"] == "33%" and sections[1]["progress"]["pct"] == "17%"
+    assert sections[2]["progress"] is None
+
+
+def test_roadmap_without_outstanding(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    whole = _roadmap_expectations(payload_of(exports["roadmap"]))
+    payload = payload_of(exports["roadmap_incomplete"])
+    assert payload["outstanding"]["available"] is False
+    item = opener(exports["roadmap_incomplete"])
+    sections = _read_roadmap(item)
+    assert [s["heading"] for s in sections] == [s["heading"] for s in whole["sections"]]
+    assert _shape([r for s in sections for r in s["rows"]]) == _expected_shape(
+        [c for s in whole["sections"] for c in s["capabilities"]]
+    )
+    for s in sections:
+        if s["heading"] != _NO_STRATEGY:
+            assert s["progress"]["unknown"] == _UNKNOWN_PROGRESS
+        for r in _walk_rows(s["rows"]):
+            assert _shown_progress(r["progress"]) == {
+                "words": [], "pct": None, "cells": [], "none": None, "unknown": _UNKNOWN_PROGRESS,
+            }, r["id"]
+    assert _rail_counts(item.page)["roadmap"] == str(_capability_total(payload))
+
+
+def test_roadmap_no_capability(opener: Any, tmp_path: pathlib.Path) -> None:
+    root = tmp_path / "no_capability"
+    shutil.copytree(_FIXTURES / "mixed", root)
+    for path in (root / "docs/product/intents").glob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace("- **Level:** capability", "- **Level:** feature"), encoding="utf-8")
+    export = _export(root, tmp_path / "out", "no_capability.html")
+    payload = payload_of(export)
+    assert payload["records"] and _capability_total(payload) == 0
+    item = opener(export)
+    _choose(item, "roadmap")
+    assert _text(item.page, "#list") == "No capability is recorded."
+    assert item.page.locator("#list a.row-link").count() == 0
+    assert _rail_counts(item.page)["roadmap"] == "0"
+
+
+@pytest.mark.parametrize("name", ["from_roadmap_cap", "from_roadmap_strategy"])
+def test_roadmap_scoped_export(opener: Any, exports: dict[str, pathlib.Path], name: str) -> None:
+    payload = payload_of(exports[name])
+    assert payload["scope"].get("from")
+    found = _roadmap_expectations(payload)
+    sections = _read_roadmap(opener(exports[name]))
+    assert [s["heading"] for s in sections] == [s["heading"] for s in found["sections"]]
+    assert [_shape(s["rows"]) for s in sections] == [_expected_shape(s["capabilities"]) for s in found["sections"]]
+    in_export = {i for i, r in payload["records"].items() if r["level"] == "capability"}
+    assert {r["id"] for s in sections for r in _walk_rows(s["rows"])} == in_export
+    for s, want in zip(sections, found["sections"], strict=True):
+        if want["strategy"]:
+            assert _shown_progress(s["progress"]) == _expected_progress(found, want["strategy"])
+        for r in _walk_rows(s["rows"]):
+            assert _shown_progress(r["progress"]) == _expected_progress(found, r["id"]), r["id"]
+    if name == "from_roadmap_cap":  # the strategy above the scope is outside the export
+        assert [s["heading"] for s in sections] == [_NO_STRATEGY]
+
+
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+def test_roadmap_cell_colours(opener: Any, exports: dict[str, pathlib.Path], scheme: str) -> None:
+    item = opener(exports["roadmap"], scheme=scheme)
+    _read_roadmap(item)
+    colours = item.page.evaluate(
+        """classes => classes.map((c) => getComputedStyle(document.querySelector('.rm-cell.' + c)).backgroundColor)""",
+        list(_CELL_CLASS),
+    )
+    assert len(colours) == 4 and len(set(colours)) == 4, (scheme, colours)

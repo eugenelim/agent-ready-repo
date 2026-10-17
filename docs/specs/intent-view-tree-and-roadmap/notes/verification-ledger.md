@@ -13,3 +13,8 @@
 
 - Implemented by an `implementer` subagent. The rail is four `aria-labelledby` lists under `h2.rail-group` headings (hidden below 90rem by a media rule copying `.visually-hidden`), built from a `RAIL_GROUPS` table. `view.css` gained a 66–89.99rem rule keeping six tabs on one line, which `test_ac_0032_mid_width_questions_row_above_list_beside_detail` required. `test_ac_0040_live_region_announces_list_title_and_count` now waits for the clicked link's `aria-current` before reading the live region — the cause the source-and-style review named for its flake.
 - Gates: full `view_browser_checks.py` 205 passed in 335s; navigate-intents suite without the browser file 519 passed, 4 skipped; `lint-pack-test-boundary.py` ok; `make lint-ruff lint-mypy` clean; self-host and `check_view_base_parity.py` ok.
+
+## T3
+
+- Implemented by an `implementer` subagent: `view_src/roadmap.js` (160 lines). Band separators are a `border-left` rather than a generated `·`, because Chromium put generated text into the row link's accessible name and `test_ac_0041_names_contain_visible_labels` failed on it. Red proofs: changing `birch-cap`'s hand-stated progress in the fixture README failed `test_roadmap_fixture_matches_hand_stated_bands`; removing `Shipped` from the view's delivered words failed `test_roadmap_progress_text` and `test_roadmap_cells` on `capability:anchor-cap` (1 delivered and 13% against the expected 3 and 30%). Both restored.
+- Gates: full `view_browser_checks.py` 215 passed in 298.6s; navigate-intents suite without the browser file 519 passed, 4 skipped; `lint-pack-test-boundary.py` ok; `make lint-ruff lint-mypy` clean; self-host and parity ok. A real export at 1680×1100 shows 3 sections and 22 capability rows in both themes.
