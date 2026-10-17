@@ -87,6 +87,7 @@
 
     var brokenSec = part('What is broken');
     var broken = brokenOf(id);
+    if (broken.length) { brokenSec.classList.add('has-broken'); }
     if (deliveryUnavailable()) { add(brokenSec, el('p', 'note', 'Delivery diagnostics were unavailable.')); }
     if (!broken.length) {
       add(brokenSec, el('p', 'empty', 'Nothing broken here.'));
@@ -105,7 +106,7 @@
           var line = add(li, el('div', 'edge-line'));
           add(line, el('span', 'field', 'Delivery diagnostic'));
           add(line, el('span', 'value', isStr(b.diag.code) ? b.diag.code : 'unknown'));
-          add(li, el('p', 'meaning', describe(b.diag)));
+          add(li, el('p', 'meaning diag-raw', describe(b.diag)));
         }
       });
     }

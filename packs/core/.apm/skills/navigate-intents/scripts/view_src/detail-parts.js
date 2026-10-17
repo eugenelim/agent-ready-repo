@@ -8,9 +8,10 @@
     var p = el('p', 'state-line');
     add(p, stateMark(id));
     var open = deliveryUnavailable() ? null : openCount(id);
-    text(p, ' \u00B7 ' + (own(TYPE_NAMES, typeOf(id)) || typeOf(id)) + ' \u00B7 ' +
+    text(p, ' ');
+    add(p, el('span', 'state-meta', (own(TYPE_NAMES, typeOf(id)) || typeOf(id)) + ' \u00B7 ' +
       (open === null ? 'open work unknown' : open + ' open beneath') + ' \u00B7 ' +
-      brokenOf(id).length + ' broken');
+      brokenOf(id).length + ' broken'));
     return p;
   }
 

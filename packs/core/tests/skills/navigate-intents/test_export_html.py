@@ -333,25 +333,319 @@ def test_escape_function_matches_the_text_output(mixed_html: str, tmp_path: path
     assert json.loads(done.stdout) == [nav._escape_display(p) for p in probes]
 
 
-def test_stylesheets_declare_no_motion_or_external_loads() -> None:
-    """Neither stylesheet may animate, load a url, or import another sheet."""
+_TOKEN_FILE = _PACK.parents[1] / "docs" / "design" / "tokens" / "skill-html-views.md"
+_DARK = "@media (prefers-color-scheme: dark)"
+_MOTION = "@media (prefers-reduced-motion: no-preference)"
+_Decl = tuple[tuple[str, ...], str, str, str]  # (at-rule chain, selector, property, value)
+
+
+def _squash(text: str) -> str:
+    """Collapse every run of whitespace to one space."""
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _walk_css(css: str) -> tuple[list[_Decl], list[tuple[tuple[str, ...], str]]]:
+    """Walk braces and return each declaration and each at-rule with its enclosing at-rule chain."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    stack: list[str] = []
+    decls: list[_Decl] = []
+    at_rules: list[tuple[tuple[str, ...], str]] = []
+    buf: list[str] = []
+    quote = ""
+    paren = 0
+
+    def flush() -> None:
+        text = _squash("".join(buf))
+        buf.clear()
+        if ":" in text:
+            prop, value = text.split(":", 1)
+            chain = tuple(b for b in stack if b.startswith("@"))
+            selector = next((b for b in reversed(stack) if not b.startswith("@")), "")
+            decls.append((chain, selector, prop.strip().lower(), value.strip()))
+
+    for ch in css:
+        if quote:
+            buf.append(ch)
+            quote = "" if ch == quote else quote
+        elif ch in "\"'":
+            buf.append(ch)
+            quote = ch
+        elif ch == "(":
+            paren += 1
+            buf.append(ch)
+        elif ch == ")":
+            paren -= 1
+            buf.append(ch)
+        elif ch == "{" and paren == 0:
+            prelude = _squash("".join(buf))
+            buf.clear()
+            if prelude.startswith("@"):
+                at_rules.append((tuple(b for b in stack if b.startswith("@")), prelude))
+            stack.append(prelude)
+        elif ch == "}" and paren == 0:
+            flush()
+            stack.pop()
+        elif ch == ";" and paren == 0:
+            flush()
+        else:
+            buf.append(ch)
+    return decls, at_rules
+
+
+def _both_sheets() -> list[_Decl]:
+    return _walk_css(_BASE_CSS)[0] + _walk_css(_LAYOUT_CSS)[0]
+
+
+def _token_tables() -> dict[str, dict[str, tuple[str, str]]]:
+    """Read each Role, Light, Dark row of the token file's Colour, Radius and Elevation tables."""
+    tables: dict[str, dict[str, tuple[str, str]]] = {}
+    section = ""
+    for line in _TOKEN_FILE.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            section = line[3:].strip()
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if section in ("Colour", "Radius", "Elevation") and len(cells) >= 3 and re.fullmatch(r"`--[\w-]+`", cells[0]):
+            tables.setdefault(section, {})[cells[0].strip("`")] = (cells[1].strip("`"), cells[2].strip("`"))
+    return tables
+
+
+def _root_values(css: str) -> tuple[dict[str, str], dict[str, str]]:
+    """Return the custom properties on :root, and those inside the dark-scheme block."""
+    light: dict[str, str] = {}
+    dark: dict[str, str] = {}
+    for chain, selector, prop, value in _walk_css(css)[0]:
+        if selector == ":root" and prop.startswith("--"):
+            if chain == ():
+                light[prop] = _squash(value)
+            elif chain == (_DARK,):
+                dark[prop] = _squash(value)
+    return light, dark
+
+
+def _token_misses(css: str, tables: dict[str, dict[str, tuple[str, str]]]) -> list[str]:
+    light, dark = _root_values(css)
+    misses = []
+    for section, roles in tables.items():
+        for role, (want_light, want_dark) in roles.items():
+            if light.get(role) != _squash(want_light):
+                misses.append(f"{section} {role}: light {light.get(role)!r} != {want_light!r}")
+            if want_dark and dark.get(role) != _squash(want_dark):
+                misses.append(f"{section} {role}: dark {dark.get(role)!r} != {want_dark!r}")
+    return misses
+
+
+def test_base_declares_token_tables() -> None:
+    """Every Colour, Radius and Elevation role of the token file is declared on :root and in the dark block."""
+    tables = _token_tables()
+    assert {k: len(v) for k, v in tables.items()} == {"Colour": 20, "Radius": 3, "Elevation": 2}
+    assert _token_misses(_BASE_CSS, tables) == []
+    # The check can fail: a sheet that drops a role or its dark value is reported.
+    assert _token_misses(":root { --c-bg: #ffffff; }", {"Colour": {"--c-bg": ("#ffffff", "#16181d")}})
+    assert _token_misses(":root { --c-bg: #fffffe; }", {"Colour": {"--c-bg": ("#ffffff", "")}})
+
+
+def test_stylesheets_declare_no_external_loads() -> None:
+    """Neither stylesheet may load a url or import another sheet."""
     for css in (_BASE_CSS, _LAYOUT_CSS):
-        for word in ("transition", "animation", "@keyframes", "url(", "@import"):
+        for word in ("url(", "@import"):
             assert word not in css
 
 
+_COLOUR_VALUE = re.compile(
+    r"#[0-9a-fA-F]{3,8}\b|(?<![\w-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark)\("
+    r"|(?<![\w-])(?:transparent|currentcolor|white|black|red|green|blue|gray|grey|orange|yellow|purple|pink|brown|silver|navy|teal|aqua|cyan|magenta)(?![\w-])"
+)
+
+
+def _layout_violations(css: str) -> list[str]:
+    """Name each declaration in a layout sheet that a layout sheet may not make."""
+    found = []
+    for _chain, _selector, prop, value in _walk_css(css)[0]:
+        if prop.startswith("--"):
+            found.append(f"custom property {prop}")
+        if _COLOUR_VALUE.search(value) or "var(--c-" in value:
+            found.append(f"colour in {prop}: {value}")
+        if prop in ("font", "font-family", "font-weight", "box-shadow") or re.match(r"(?:transition|animation)", prop):
+            found.append(f"{prop} is the base's")
+        if prop == "border-radius" and re.sub(r"var\(--r-\d\)|\b0\b|\s", "", value):
+            found.append(f"border-radius {value}")
+    return found
+
+
 def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
-    """The layout sheet arranges only: no colour literal, font family, or token declaration."""
-    css = re.sub(r"/\*.*?\*/", "", _LAYOUT_CSS, flags=re.DOTALL)
-    assert not re.search(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\b(?:hwb|lab|lch|oklab|oklch)\(", css)
-    assert not re.search(
-        r"(?<![\w-])(?:transparent|currentcolor|white|black|red|green|blue|gray|grey)(?![\w-])", css
+    """The layout sheet arranges only: no colour, font, shadow, radius literal, motion, or token declaration."""
+    assert _layout_violations(_LAYOUT_CSS) == []
+    # The check can fail on each kind of declaration it bans.
+    for bad in ("--x: 1px", "color: #fff", "background: rgb(0 0 0)", "border-color: red", "font-weight: 600",
+                "font-family: serif", "box-shadow: none", "border-radius: 4px", "transition: color 1s", "animation-name: a"):
+        assert _layout_violations(f".a {{ {bad}; }}"), bad
+    assert _layout_violations(".a { border-radius: var(--r-2); padding: var(--s-1); }") == []
+
+
+def test_walker_records_the_enclosing_at_rule_chain() -> None:
+    """The walker sees a declaration's whole chain, even through a keyframes block."""
+    css = (
+        ".a { transition: color 1s; }"
+        f"{_MOTION} {{ .b {{ transition: color 1s; }} @keyframes k {{ from {{ opacity: 0; }} }} }}"
     )
-    assert "font-family" not in css
-    assert not re.search(r"(?<![\w(])--(?:c|t)-[\w-]*\s*:", css)
-    # Colour roles and type weight belong to the shared base, not to the layout.
-    assert "var(--c-" not in css
-    assert not re.search(r"font-weight|(?<![\w-])font\s*:", css)
+    decls, at_rules = _walk_css(css)
+    assert [(chain, prop) for chain, _s, prop, _v in decls] == [
+        ((), "transition"),
+        ((_MOTION,), "transition"),
+        ((_MOTION, "@keyframes k"), "opacity"),
+    ]
+    assert at_rules == [((), _MOTION), ((_MOTION,), "@keyframes k")]
+
+
+def _is_motion_prop(prop: str) -> bool:
+    return bool(re.match(r"(?:transition|animation)(?:-|$)", prop))
+
+
+def _outside_motion_block(css: str) -> list[str]:
+    decls, at_rules = _walk_css(css)
+    loose = [f"{prop}: {value}" for chain, _s, prop, value in decls if _is_motion_prop(prop) and _MOTION not in chain]
+    loose += [prelude for chain, prelude in at_rules if prelude.startswith("@keyframes") and _MOTION not in chain]
+    return loose
+
+
+def test_motion_sits_behind_reduced_motion() -> None:
+    """Every transition, animation and keyframes rule is inside the no-preference reduced-motion block."""
+    assert any(_is_motion_prop(prop) for _c, _s, prop, _v in _both_sheets())
+    for css in (_BASE_CSS, _LAYOUT_CSS):
+        assert _outside_motion_block(css) == []
+    # The check can fail: a transition or keyframes outside the block is found.
+    assert _outside_motion_block(".a { transition: color 1s; }") == ["transition: color 1s"]
+    assert _outside_motion_block("@keyframes k { from { opacity: 0; } }") == ["@keyframes k"]
+    assert _outside_motion_block(f"{_MOTION} {{ .a {{ transition: color 1s; }} }}") == []
+
+
+_PAINT = {"background-color", "color", "border-color", "box-shadow", "opacity"}
+_TIME = re.compile(r"-?(?:\d+\.?\d*|\.\d+)(?:ms|s)")
+_EASING = {"ease", "ease-in", "ease-out", "ease-in-out", "linear", "step-start", "step-end", "allow-discrete", "normal"}
+
+
+def _split_top(value: str, sep: str) -> list[str]:
+    """Split on a separator that sits outside parentheses."""
+    parts, depth, cur = [], 0, ""
+    for ch in value:
+        depth += (ch == "(") - (ch == ")")
+        if ch == sep and depth == 0:
+            parts.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    return parts + [cur]
+
+
+def _transitioned_properties(decls: list[_Decl]) -> list[str]:
+    names: list[str] = []
+    for _chain, _selector, prop, value in decls:
+        if prop == "transition-property":
+            names += [n.strip() for n in value.split(",")]
+        elif prop == "transition":
+            for item in _split_top(value, ","):
+                tokens = [t for t in _split_top(item.strip(), " ") if t]
+                named = [t for t in tokens if not _TIME.fullmatch(t) and t not in _EASING and "(" not in t]
+                names.append(named[0] if named else "all")
+    return names
+
+
+def test_transitions_name_only_paint_properties() -> None:
+    """A transition names only background-color, color, border-color, box-shadow or opacity."""
+    names = _transitioned_properties(_both_sheets())
+    assert names
+    assert set(names) <= _PAINT, set(names) - _PAINT
+    # The check can fail: a shorthand with no property counts as all, and a layout property is refused.
+    assert _transitioned_properties(_walk_css(".a { transition: 120ms ease; }")[0]) == ["all"]
+    assert _transitioned_properties(_walk_css(".a { transition: width 1s, color 1s; }")[0]) == ["width", "color"]
+    assert _transitioned_properties(_walk_css(".a { transition-property: height; }")[0]) == ["height"]
+
+
+def _keyframe_problems(decls: list[_Decl]) -> list[str]:
+    found = []
+    for chain, _selector, prop, value in decls:
+        if not any(b.startswith("@keyframes") for b in chain):
+            continue
+        if prop not in ("opacity", "transform"):
+            found.append(f"{prop}: {value}")
+        elif prop == "transform":
+            rise = re.fullmatch(r"translateY\((-?(?:\d+\.?\d*|\.\d+))px\)", value)
+            if value != "none" and not (rise and abs(float(rise.group(1))) <= 4):
+                found.append(f"{prop}: {value}")
+    return found
+
+
+def test_keyframes_fade_and_rise_only() -> None:
+    """A keyframes rule sets only opacity and a transform of none or a rise of at most 4px."""
+    decls = _both_sheets()
+    assert any(b.startswith("@keyframes") for chain, *_ in decls for b in chain)
+    assert _keyframe_problems(decls) == []
+    # The check can fail on another property or a larger or different transform.
+    for bad in ("width: 1px", "transform: translateY(5px)", "transform: scale(2)", "transform: translateX(2px)"):
+        assert _keyframe_problems(_walk_css(f"@keyframes k {{ to {{ {bad}; }} }}")[0]), bad
+
+
+def _timing_problems(decls: list[_Decl]) -> list[str]:
+    found = []
+    for _chain, _selector, prop, value in decls:
+        if re.match(r"(?:scroll|view)-timeline|animation-timeline|scroll-behavior", prop):
+            found.append(prop)
+        if not _is_motion_prop(prop):
+            continue
+        if prop == "animation-iteration-count" and "infinite" in value or prop == "animation" and "infinite" in value.split():
+            found.append(f"{prop}: {value}")
+        if prop.startswith("animation") and re.search(r"(?<![\w-])(?:scroll|view)\(", value):
+            found.append(f"{prop}: {value}")
+        for amount in _TIME.findall(value):
+            ms = float(amount.rstrip("ms")) * (1 if amount.endswith("ms") else 1000)
+            if ms > 200:
+                found.append(f"{prop}: {amount}")
+    return found
+
+
+def test_motion_is_short_and_not_scroll_driven() -> None:
+    """Every duration and delay is at most 200ms; nothing repeats, scrolls smoothly or follows scroll."""
+    decls = _both_sheets()
+    assert any(_TIME.search(value) for _c, _s, prop, value in decls if _is_motion_prop(prop))
+    assert _timing_problems(decls) == []
+    # The check can fail on a long duration or delay, a repeat, and each scroll-driven property.
+    for bad in ("transition: color 0.3s", "animation: k 160ms ease 1s", "transition-delay: 250ms",
+                "animation: k 100ms infinite", "animation-iteration-count: infinite", "scroll-behavior: smooth",
+                "animation-timeline: scroll()", "view-timeline: --x", "animation: k 100ms linear view()"):
+        assert _timing_problems(_walk_css(f".a {{ {bad}; }}")[0]), bad
+    assert _timing_problems(_walk_css(".a { transition: color 0.2s, opacity 120ms; }")[0]) == []
+
+
+_MARKS = ("active", "approved", "draft", "done", "broken", "stale")
+
+
+def _mark_colours(css: str, colour: dict[str, str]) -> dict[str, str]:
+    """Resolve each state mark's background through a role table."""
+    resolved = {}
+    for _chain, selector, prop, value in _walk_css(css)[0]:
+        for sel in selector.split(","):
+            found = re.fullmatch(r'\.mark\[data-mark="(\w+)"\]', sel.strip())
+            if found and prop == "background":
+                role = re.fullmatch(r"var\((--[\w-]+)\)", value)
+                assert role, (selector, value)
+                resolved[found.group(1)] = colour[role.group(1)]
+    return resolved
+
+
+def test_state_mark_backgrounds_differ() -> None:
+    """The six state marks each declare a background, and the six resolve to six different colours per theme."""
+    colours = _token_tables()["Colour"]
+    for index, theme in enumerate(("light", "dark")):
+        resolved = _mark_colours(_BASE_CSS, {role: pair[index] for role, pair in colours.items()})
+        assert sorted(resolved) == sorted(_MARKS), theme
+        assert len(set(resolved.values())) == len(_MARKS), (theme, resolved)
+    # The check can fail: two marks that resolve to one colour are caught.
+    same = _mark_colours(
+        '.mark[data-mark="done"] { background: var(--c-a); } .mark[data-mark="draft"] { background: var(--c-b); }',
+        {"--c-a": "#eee", "--c-b": "#eee"},
+    )
+    assert len(set(same.values())) < len(same)
 
 
 def test_hostile_export_keeps_the_csp_string_and_the_script_stays_clean(hostile_html: str, mixed_html: str) -> None:

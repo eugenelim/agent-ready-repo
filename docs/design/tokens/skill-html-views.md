@@ -37,7 +37,6 @@ Neutral greys carry structure on a light canvas with white zones. One accent mar
 | `--c-rule-strong` | `#7d879b` | `#727b8f` | Control borders, tree guides, trail line |
 | `--c-accent` | `#225bd2` | `#84a9ff` | Links, focus ring, current selection |
 | `--c-accent-bg` | `#eef4ff` | `#1a2540` | Current row and current question fill |
-| `--c-accent-ring` | `rgba(34, 91, 210, 0.2)` | `rgba(132, 169, 255, 0.3)` | Focus halo on fields |
 | `--c-active` | `#6a35d4` | `#b9a4ff` | In-progress state word |
 | `--c-active-bg` | `#f3edfd` | `#241b3d` | In-progress tint |
 | `--c-ok` | `#04796d` | `#4fd1b0` | Approved, accepted or ready state word |
@@ -129,7 +128,7 @@ The rung is `approved-direction` (dense, compact, ruled), with a 4px base.
 ## Interaction floor
 
 - **Target size.** Every control and row link is at least 24 by 24 CSS px, the WCAG 2.2 AA minimum; most are `2rem` tall.
-- **Focus.** A `2px solid var(--c-accent)` outline with a `2px` offset, rounded by `--r-1`, on every focusable element. Text fields add a `--c-accent-ring` halo. The outline is never removed. Sticky regions keep `scroll-padding` equal to their height, so focus is never obscured.
+- **Focus.** A `2px solid var(--c-accent)` outline with a `2px` offset, rounded by `--r-1`, on every focusable element. The outline is never removed. Sticky regions keep `scroll-padding` equal to their height, so focus is never obscured.
 - **Keyboard.** No single-character shortcut.
 
 ## Motion
@@ -157,7 +156,7 @@ The rung is `approved-direction`: a rigid column grid, edge-aligned, filling the
 | 120rem and up (1920px+; the 2560px check) | Rail `16.5rem`, list `minmax(0, 1fr)`, detail `clamp(28rem, 30%, 40rem)`; a row's name cell is capped at `34rem` so the state stays near the name. |
 
 - There is no max-width; page padding is `--s-5`.
-- A row is a grid of `name minmax(10rem, 1fr)`, `state 8.5rem` and `context minmax(12rem, 1fr)` from 64rem. The name wraps within its own cell, so other cells never wrap under it.
+- A row is a grid of `name minmax(10rem, 1fr)`, `state 8.5rem` and `context minmax(12rem, 1fr)` from 66rem. The name wraps within its own cell, so other cells never wrap under it.
 
 **Document views** use a margin column, the text column and an optional contents column:
 

@@ -2253,6 +2253,8 @@ open = [
   # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
   # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
   { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
+  # view_browser_checks.py::test_ac_0040_live_region_announces_list_title_and_count is flaky: it failed 3 of 8 runs alone on base f07d39b53 and 3 of 8 on the intent-view-source-and-style change. It waits for a state already true before the click's render lands, so it can read the previous list's announcement. Fix the wait, not the view; see docs/specs/intent-view-source-and-style/notes/verification-ledger.md.
+  { slug = "pre-existing-intent-view-live-region-test-flake", source = "pre-flight/2026-10-17" },
 ]
 
 

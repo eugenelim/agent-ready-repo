@@ -430,6 +430,15 @@ def _rgb(css: str) -> tuple[float, float, float]:
     return float(nums[0]), float(nums[1]), float(nums[2])
 
 
+def _canvas_rgb(scheme: str) -> str:
+    """The page-canvas colour the token file gives for a theme, as the browser reports it."""
+    tokens = _PACK.parents[1] / "docs" / "design" / "tokens" / "skill-html-views.md"
+    row = re.search(r"^\| `--c-canvas` \| `#(\w{6})` \| `#(\w{6})` \|", tokens.read_text(encoding="utf-8"), re.MULTILINE)
+    assert row, "the token file has no --c-canvas row"
+    hex6 = row.group(2 if scheme == "dark" else 1)
+    return "rgb({}, {}, {})".format(*(int(hex6[i : i + 2], 16) for i in (0, 2, 4)))
+
+
 # ---------------------------------------------------------------------------
 # The payload model the checks compare the page against (the spec's Terms)
 # ---------------------------------------------------------------------------
@@ -1775,7 +1784,7 @@ def _contrast_report(page: Page) -> list[tuple[str, float]]:
 def test_ac_0036_text_contrast(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
     checked = 0
     for name, picked, page in _matrix_states(opener, exports, width, scheme):
-        expected = "rgb(18, 20, 24)" if scheme == "dark" else "rgb(251, 251, 250)"
+        expected = _canvas_rgb(scheme)
         assert page.evaluate("getComputedStyle(document.body).backgroundColor") == expected
         rows = _contrast_report(page)
         checked += len(rows)

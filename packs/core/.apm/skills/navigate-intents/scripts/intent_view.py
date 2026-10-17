@@ -107,7 +107,7 @@ _SHELL = """<!doctype html>
 <header class="page-header">
 <div class="title-row">
 <h1 class="page-title">Intent graph</h1>
-<div class="search"><label for="search">Search names and ids</label><input id="search" class="control" type="search" autocomplete="off"></div>
+<div class="search"><label for="search">Search names and ids</label><input id="search" class="control" type="search" autocomplete="off" placeholder="Search names and ids"></div>
 </div>
 <p id="meta" class="meta"></p>
 <div id="scope-banner" class="banner" hidden></div>
