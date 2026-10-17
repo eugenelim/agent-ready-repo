@@ -252,6 +252,9 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
     found["from_roadmap_strategy"] = _export(
         _FIXTURES / "roadmap", out, "from_roadmap_strategy.html", "intent:atlas-direction"
     )
+    found["from_roadmap_leaf"] = _export(
+        _FIXTURES / "roadmap", out, "from_roadmap_leaf.html", "intent:birch-feat"
+    )
     found["hostile_diag"] = _export(
         _FIXTURES / "hostile", out, "hostile_diag.html", _delivery_provider=_hostile_diagnostic
     )
@@ -380,6 +383,11 @@ def _expand_all(page: Page) -> None:
         """() => { let b;
           while ((b = document.querySelector('button.toggle[aria-expanded="false"]'))) b.click(); }"""
     )
+
+
+def _open_disclosures(page: Page) -> None:
+    """Open every section disclosure, so the rows inside are rendered on screen."""
+    page.evaluate("() => document.querySelectorAll('#list details.loose').forEach((d) => { d.open = true; })")
 
 
 def _live(page: Page, contains: str = "") -> str:
@@ -1173,6 +1181,7 @@ def test_ac_0012_browse_row_shows_refused_parent(opener: Any, exports: dict[str,
         assert refused
         _choose(item, "browse")
         _expand_all(item.page)
+        _open_disclosures(item.page)
         for node_id, state in refused.items():
             context = item.page.locator(f'#list a.row-link[data-node="{node_id}"] .c-context').inner_text()
             assert f"refused parent: {state}" in context, (node_id, context)
@@ -1503,16 +1512,20 @@ def test_ac_0023_search(opener: Any, exports: dict[str, pathlib.Path]) -> None:
 
 
 def _tree_ids(page: Page) -> dict[str, Any]:
+    """Every row inside each ``#list .tree`` after opening each disclosure: ids, per-section roots, children."""
+    _open_disclosures(page)
     return page.evaluate(  # type: ignore[no-any-return]
         """() => {
-          const all = Array.from(document.querySelectorAll('#list a.row-link')).map(a => a.dataset.node);
-          const roots = Array.from(document.querySelectorAll('#list > ul > li')).map(li => li.querySelector('a.row-link').dataset.node);
+          const all = Array.from(document.querySelectorAll('#list .tree a.row-link')).map(a => a.dataset.node);
+          const sections = Array.from(document.querySelectorAll('#list .tree')).map(
+            ul => Array.from(ul.children).map(li => li.querySelector('a.row-link').dataset.node));
+          const roots = sections.flat();
           const kids = {};
           for (const li of document.querySelectorAll('#list li.tree-row')) {
             const id = li.querySelector(':scope > a.row-link').dataset.node;
             kids[id] = Array.from(li.querySelectorAll(':scope > ul > li')).map(c => c.querySelector('a.row-link').dataset.node);
           }
-          return { all, roots, kids };
+          return { all, roots, sections, kids };
         }"""
     )
 
@@ -1531,7 +1544,8 @@ def test_ac_0024_browse_all_intents(opener: Any, exports: dict[str, pathlib.Path
     tree = _tree_ids(page)
     assert sorted(tree["all"]) == sorted(model.records) and len(tree["all"]) == len(set(tree["all"]))
     roots = [i for i, r in model.records.items() if _resolved_parent(r) not in model.records]
-    assert tree["roots"] == model.by_name(roots)
+    assert sorted(tree["roots"]) == sorted(roots)
+    assert all(section == model.by_name(section) for section in tree["sections"])
     for node_id, kids in tree["kids"].items():
         assert kids == model.by_name(i for i, r in model.records.items() if _resolved_parent(r) == node_id)
     for select, key, values in (
@@ -1550,7 +1564,7 @@ def test_ac_0024_browse_all_intents(opener: Any, exports: dict[str, pathlib.Path
     page.select_option("#filter-kind", "outcome")
     message = _text(page, "#list")
     assert 'level "feature"' in message and 'kind "outcome"' in message and 'status "Draft"' in message
-    assert page.locator("#list button").count() == 1
+    assert page.locator("#list .empty button").count() == 1
     page.get_by_role("button", name="Clear filters").click()
     assert all(page.locator(f"#filter-{k}").input_value() == "" for k in ("level", "kind", "status"))
     assert len(_ids(page)) == len(model.records)
@@ -1898,11 +1912,11 @@ def test_ac_0031_back_to_list_restores_scroll(opener: Any, exports: dict[str, pa
     page.locator('nav a[data-q="browse"]').click()
     _expand_all(page)
     page.wait_for_selector("#list a.row-link")
-    last = page.locator("#list a.row-link").last
+    last = page.locator("#list .tree").first.locator("a.row-link").last  # the first section's last row
     last.evaluate("e => e.scrollIntoView({ block: 'center' })")
     page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
     page.wait_for_function(  # programmatic scrolls animate: wait until the last row is on screen and still
-        "() => { const r = Array.from(document.querySelectorAll('#list a.row-link')).pop().getBoundingClientRect();"
+        "() => { const r = Array.from(document.querySelector('#list .tree').querySelectorAll('a.row-link')).pop().getBoundingClientRect();"
         " const ok = r.bottom <= innerHeight && window.__y === scrollY; window.__y = scrollY; return ok; }"
     )
     before = page.evaluate("scrollY")
@@ -2234,7 +2248,7 @@ def test_fix_filter_change_keeps_focus_and_clear_controls_leave_focus(opener: An
     item = opener(exports["related"])
     item.go(_frag(q="browse", level="feature", status="No-such-status"))
     item.page.get_by_role("button", name="Clear filters").click()
-    item.page.wait_for_function("() => document.querySelector('#list a.row-link, #list .tree') !== null")
+    item.page.wait_for_function("() => document.querySelector('#list .tree') !== null")
     assert item.page.evaluate("document.activeElement.id") == "list-title"
     # Clear search lands on the search field.
     item.page.locator("#search").fill("zzzz-nothing")
@@ -3788,3 +3802,516 @@ def test_roadmap_cell_colours(opener: Any, exports: dict[str, pathlib.Path], sch
         list(_CELL_CLASS),
     )
     assert len(colours) == 4 and len(set(colours)) == 4, (scheme, colours)
+
+
+# ---------------------------------------------------------------------------
+# Browse all intents: Show, Group, expand controls and the tree, against the payload reading
+# ---------------------------------------------------------------------------
+
+_LEVEL_WORDS = {"product-vision": "Vision", "product-strategy": "Strategy", "capability": "Capability", "feature": "Feature", "": "Unrecorded"}
+_UNKNOWN_OPEN = "Open and done are unknown: delivery mapping incomplete."
+
+
+def _browse_expectations(payload: dict[str, Any], show: str = "all", group: str = "hierarchy") -> dict[str, Any]:
+    """The Browse tree the spec's terms give for a Show and Group choice, read from the payload alone.
+
+    ``sections`` lists ``{"title", "disclosure", "rows"}``; a row is ``{"id", "name", "tag", "context",
+    "roll", "open", "refused", "children"}``, children being the shown rows beneath it. ``count`` is the
+    number of intents matching Show.
+    """
+    model = Model(payload)
+    available = model.available
+    if not available:
+        show = "all"
+
+    def matches(i: str) -> bool:
+        return show == "all" or (i in model.open) == (show == "open")
+
+    kids: dict[str, list[str]] = {}
+    if group == "hierarchy":
+        roots = _tree_roots(model)
+        claimed = set(roots)
+        todo = list(roots)
+        while todo:
+            at = todo.pop()
+            mine = model.by_name(c for c in model.records if _up(model, c) == at and c not in claimed)
+            claimed.update(mine)
+            todo += mine
+            kids[at] = mine
+        parents = [r for r in roots if payload["scope"].get("from") or kids[r]]
+        lists = (parents, [r for r in roots if r not in parents])
+        titles = ("Hierarchy roots", "No parent and nothing beneath")
+    else:
+        tops: list[str] = []
+        loose: list[str] = []
+        for i, record in model.records.items():
+            anchor = _nearest(model, i, "capability")
+            if anchor is not None:
+                kids.setdefault(anchor, []).append(i)
+            elif record["level"] == "capability":
+                tops.append(i)
+            else:
+                loose.append(i)
+        kids = {k: model.by_name(v) for k, v in kids.items()}
+        lists = (model.by_name(tops), model.by_name(loose))
+        titles = ("Top-level capabilities", "Not under a capability")
+
+    def beneath(i: str) -> list[str]:
+        return [x for k in kids.get(i, []) for x in (k, *beneath(k))]
+
+    def shown(i: str) -> bool:
+        return matches(i) or any(shown(k) for k in kids.get(i, []))
+
+    def row(i: str) -> dict[str, Any]:
+        below = beneath(i)
+        open_items = len(model.beneath(i))
+        state = (model.records[i].get("parent_edge") or {}).get("state")
+        return {
+            "id": i,
+            "name": model.display(i),
+            "tag": _LEVEL_WORDS.get(model.records[i]["level"], model.records[i]["level"]),
+            "context": not matches(i),
+            "roll": f"{sum(1 for x in below if x not in model.open)}/{len(below)} closed" if below and available else None,
+            "open": f"{open_items} open items" if open_items and available else None,
+            "refused": f"refused parent: {state}" if state else None,
+            "children": [row(k) for k in kids.get(i, []) if shown(k)],
+        }
+
+    sections = []
+    for index, (title, ids) in enumerate(zip(titles, lists, strict=True)):
+        rows = [row(i) for i in ids if shown(i)]
+        if rows:
+            sections.append({"title": title, "disclosure": index == 1, "rows": rows})
+    return {"sections": sections, "count": sum(1 for i in model.records if matches(i)), "show": show}
+
+
+_READ_TREE = """() => {
+  const row = (li) => {
+    const a = li.querySelector(':scope > a.row-link');
+    const ctx = a.querySelector('.c-context');
+    const text = (sel) => { const e = ctx.querySelector(sel); return e ? e.textContent : null; };
+    const tag = a.querySelector('.level-tag');
+    const toggle = li.querySelector(':scope > button.toggle');
+    return {
+      id: a.dataset.node,
+      name: a.querySelector('.c-name').textContent,
+      tag: tag ? tag.textContent : null,
+      tagAfterName: !!tag && tag.previousSibling.nodeValue === ' ' && tag.previousSibling.previousSibling === a.querySelector('.c-name'),
+      context: text('.ctx-tag') !== null,
+      ctxText: text('.ctx-tag'),
+      hidden: text('.visually-hidden'),
+      roll: text('.tree-roll'),
+      open: text('.tree-open'),
+      where: text('.tree-where'),
+      toggle: toggle ? toggle.getAttribute('aria-expanded') : null,
+      toggleName: toggle ? toggle.textContent : null,
+      children: Array.from(li.querySelectorAll(':scope > ul > li')).map(row),
+    };
+  };
+  const out = [];
+  for (const head of document.querySelectorAll('#list > h3.tree-head, #list > details.loose')) {
+    const disclosure = head.tagName === 'DETAILS';
+    const list = disclosure ? head.querySelector(':scope > ul.tree') : head.nextElementSibling;
+    out.push({
+      title: (disclosure ? head.querySelector(':scope > summary') : head).textContent,
+      disclosure,
+      open: disclosure ? head.open : null,
+      listClass: list.className,
+      rows: Array.from(list.children).map(row),
+    });
+  }
+  return out;
+}"""
+
+
+def _browse_route(show: str, group: str) -> dict[str, str]:
+    return {"show": "" if show == "all" else show, "group": "" if group == "hierarchy" else group}
+
+
+def _open_browse(item: Opened, show: str = "all", group: str = "hierarchy", *, expand: bool = True) -> list[dict[str, Any]]:
+    """Open Browse with a Show and Group choice, expand every subtree, open the disclosures and read the tree."""
+    _choose(item, "browse", **_browse_route(show, group))
+    item.page.wait_for_selector("#list .tree", state="attached")  # a lone disclosure is closed, so hidden
+    if expand:
+        item.page.get_by_role("button", name="Expand all").click()
+        _open_disclosures(item.page)
+    return item.page.evaluate(_READ_TREE)  # type: ignore[no-any-return]
+
+
+def _shown_row(row: dict[str, Any]) -> dict[str, Any]:
+    """The fields a page row and an expected row share, children included."""
+    keys = ("id", "name", "tag", "context", "roll", "open")
+    return {**{k: row[k] for k in keys}, "children": [_shown_row(c) for c in row["children"]]}
+
+
+def _flatten(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [r for row in rows for r in (row, *_flatten(row["children"]))]
+
+
+def _compare_tree(sections: list[dict[str, Any]], want: dict[str, Any]) -> None:
+    assert [(s["title"], s["disclosure"]) for s in sections] == [(s["title"], s["disclosure"]) for s in want["sections"]]
+    for got, exp in zip(sections, want["sections"], strict=True):
+        assert [_shown_row(r) for r in got["rows"]] == [_shown_row(r) for r in exp["rows"]], got["title"]
+        assert "tree" in got["listClass"].split()
+        refused = {r["id"]: r["refused"] for r in _flatten(exp["rows"])}
+        for r in _flatten(got["rows"]):
+            if refused[r["id"]]:
+                assert refused[r["id"]] in r["where"], r["id"]
+            else:
+                assert "refused parent" not in r["where"], r["id"]
+
+
+_BROWSE_CHOICES = [(show, group) for show in ("all", "open", "done") for group in ("hierarchy", "capability")]
+_BROWSE_IDS = [f"{show}-{group}" for show, group in _BROWSE_CHOICES]
+
+
+def _pressed(page: Page, group: str) -> list[str]:
+    return page.get_by_role("group", name=group).get_by_role("button", pressed=True).all_inner_texts()
+
+
+def test_browse_toolbar_and_defaults(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["roadmap"])
+    page = item.page
+    _choose(item, "browse")
+    page.wait_for_selector("#list .tree")
+    show, group = page.get_by_role("group", name="Show"), page.get_by_role("group", name="Group")
+    assert show.get_by_role("button").all_inner_texts() == ["All", "Open", "Done"]
+    assert group.get_by_role("button").all_inner_texts() == ["Full hierarchy", "By capability"]
+    assert _pressed(page, "Show") == ["All"] and _pressed(page, "Group") == ["Full hierarchy"]
+    for name in ("Show", "Group"):
+        values = page.get_by_role("group", name=name).get_by_role("button").evaluate_all(
+            "els => els.map(e => e.getAttribute('aria-pressed'))"
+        )
+        assert sorted(values) == ["false"] * (len(values) - 1) + ["true"]
+    bar = page.locator("#list > .tree-bar")
+    assert bar.get_by_role("button", name=re.compile(r"^(Expand|Collapse) all$")).all_inner_texts() == ["Expand all", "Collapse all"]
+    assert page.evaluate(
+        """() => !!(document.querySelector('#list > .tree-bar').compareDocumentPosition(
+          document.querySelector('#list .tree')) & Node.DOCUMENT_POSITION_FOLLOWING)"""
+    )
+    sizes = bar.locator("button").evaluate_all(
+        "els => els.map(e => { const r = e.getBoundingClientRect(); return [r.width, r.height]; })"
+    )
+    assert len(sizes) == 7 and all(w >= 24 and h >= 24 for w, h in sizes), sizes
+    for route, expected in (
+        ({"show": "open", "group": "capability"}, (["Open"], ["By capability"])),
+        ({"show": "done"}, (["Done"], ["Full hierarchy"])),
+        ({"show": "bogus", "group": "bogus"}, (["All"], ["Full hierarchy"])),
+    ):
+        _choose(item, "browse", **route)
+        assert (_pressed(page, "Show"), _pressed(page, "Group")) == expected, route
+
+
+def test_expand_and_collapse_all(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    for group in ("hierarchy", "capability"):
+        want = _browse_expectations(payload, "all", group)
+        parents = sum(1 for r in _flatten(want["sections"][0]["rows"]) if r["children"])
+        top = sum(1 for r in want["sections"][0]["rows"] if r["children"])
+        assert parents > top > 0
+        item = opener(exports["roadmap"])
+        page = item.page
+        _choose(item, "browse", **_browse_route("all", group))
+        page.wait_for_selector("#list .tree")
+        first = "document.querySelector('#list .tree')"
+        states = f"() => Array.from({first}.querySelectorAll('button.toggle')).map(b => b.getAttribute('aria-expanded'))"
+        disclosure = page.locator("#list details.loose")
+        assert page.evaluate(states) == ["false"] * top and not disclosure.evaluate("d => d.open")
+        page.get_by_role("button", name="Expand all").click()
+        assert page.evaluate(states) == ["true"] * parents
+        assert page.evaluate("document.activeElement.textContent") == "Expand all"
+        assert not disclosure.evaluate("d => d.open")  # a disclosure is left as it was
+        disclosure.locator("> summary").click()
+        page.get_by_role("button", name="Collapse all").click()
+        assert page.evaluate(states) == ["false"] * parents
+        assert page.evaluate("document.activeElement.textContent") == "Collapse all"
+        assert disclosure.evaluate("d => d.open")
+        assert page.evaluate(f"() => Array.from({first}.querySelectorAll('ul.subtree')).every(u => u.hidden)")
+        page.get_by_role("button", name="Expand all").click()
+        assert page.evaluate(states) == ["true"] * parents
+        assert disclosure.evaluate("d => d.open")
+        assert page.evaluate("() => document.querySelectorAll('#list details.loose button.toggle').length") == 0
+
+
+@pytest.mark.parametrize("group", ["hierarchy", "capability"])
+def test_tree_row_tag_and_counts(opener: Any, exports: dict[str, pathlib.Path], group: str) -> None:
+    payload = payload_of(exports["roadmap"])
+    item = opener(exports["roadmap"])
+    sections = _open_browse(item, "all", group)
+    want = _browse_expectations(payload, "all", group)
+    _compare_tree(sections, want)
+    rows = _flatten([r for s in sections for r in s["rows"]])
+    assert all(r["tag"] and r["tagAfterName"] for r in rows)
+    assert {r["tag"] for r in rows} >= {"Strategy", "Capability", "Feature"}
+    assert any(r["roll"] for r in rows) and any(r["open"] for r in rows)
+    # An open-items count reads the same in either grouping.
+    other = _browse_expectations(payload, "all", "capability" if group == "hierarchy" else "hierarchy")
+    here = {r["id"]: r["open"] for r in _flatten([r for s in want["sections"] for r in s["rows"]])}
+    there = {r["id"]: r["open"] for r in _flatten([r for s in other["sections"] for r in s["rows"]])}
+    assert here == there
+    # The link's accessible name holds the name and the tag.
+    item.page.get_by_role("button", name="Expand all").click()
+    ids = _ids(item.page)
+    for node_id, accessible in zip(ids, _row_ax_names(item.page), strict=True):
+        row = next(r for r in rows if r["id"] == node_id)
+        assert accessible is not None and _squash(row["name"] + row["tag"]) in _squash(accessible), node_id
+
+
+def test_tree_row_tag_texts_for_every_level(opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path) -> None:
+    levels = {"intent:orphan-feat": "", "intent:dangling-feat": "product-vision", "intent:anchor-feat-open": "initiative"}
+
+    def edit(p: dict[str, Any]) -> dict[str, Any]:
+        for node, level in levels.items():
+            p["records"][node]["level"] = level
+        return p
+
+    path = _rewrite(exports["roadmap"], tmp_path / "levels.html", edit)
+    payload = payload_of(path)
+    sections = _open_browse(opener(path))
+    _compare_tree(sections, _browse_expectations(payload))
+    tags = {r["id"]: r["tag"] for s in sections for r in _flatten(s["rows"])}
+    assert tags["intent:orphan-feat"] == "Unrecorded" and tags["intent:dangling-feat"] == "Vision"
+    assert tags["intent:anchor-feat-open"] == "initiative"
+    assert tags["intent:atlas-direction"] == "Strategy" and tags["capability:anchor-cap"] == "Capability"
+    assert tags["intent:birch-feat"] == "Feature"
+
+
+def test_full_hierarchy_sections(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    item = opener(exports["roadmap"])
+    _choose(item, "browse")
+    item.page.wait_for_selector("#list .tree")
+    assert item.page.evaluate(_READ_TREE)[1]["open"] is False  # the disclosure starts closed
+    sections = _open_browse(item)
+    want = _browse_expectations(payload)
+    _compare_tree(sections, want)
+    assert [(s["title"], s["disclosure"]) for s in sections] == [
+        ("Hierarchy roots", False),
+        ("No parent and nothing beneath", True),
+    ]
+    stated = dict(_readme_tables()["Tree roots"])
+    model = Model(payload)
+    assert [r["id"] for r in sections[0]["rows"]] == model.by_name(n for n, p in stated.items() if p == "root, intents beneath")
+    assert [r["id"] for r in sections[1]["rows"]] == model.by_name(n for n, p in stated.items() if p == "root, nothing beneath")
+    ids = _ids(item.page, "#list .tree a.row-link")
+    assert sorted(ids) == sorted(payload["records"]) and len(ids) == len(set(ids))
+
+
+def test_by_capability_sections(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    item = opener(exports["roadmap"])
+    sections = _open_browse(item, "all", "capability")
+    _compare_tree(sections, _browse_expectations(payload, "all", "capability"))
+    assert [(s["title"], s["disclosure"]) for s in sections] == [
+        ("Top-level capabilities", False),
+        ("Not under a capability", True),
+    ]
+    stated = {n for n, _, place in _readme_tables()["Records"] if place.startswith('section "')}
+    assert {r["id"] for r in sections[0]["rows"]} == stated
+    loose = {r["id"] for r in sections[1]["rows"]}
+    assert "intent:atlas-direction" in loose and "intent:boreal-direction" in loose  # strategies are listed there
+    assert all(not r["children"] for r in sections[1]["rows"]) and not any(r["id"].startswith("capability:") for r in sections[1]["rows"])
+    nested = {r["id"]: [c["id"] for c in r["children"]] for r in _flatten(sections[0]["rows"])}
+    assert "capability:anchor-sub-cap" in nested["capability:anchor-cap"]
+    assert "intent:anchor-sub-feat-a" in nested["capability:anchor-sub-cap"]
+    ids = _ids(item.page, "#list .tree a.row-link")
+    assert sorted(ids) == sorted(payload["records"]) and len(ids) == len(set(ids))
+
+
+@pytest.mark.parametrize(("show", "group"), [c for c in _BROWSE_CHOICES if c[0] != "all"], ids=[i for i in _BROWSE_IDS if not i.startswith("all")])
+def test_show_open_and_done_with_context_rows(opener: Any, exports: dict[str, pathlib.Path], show: str, group: str) -> None:
+    payload = payload_of(exports["roadmap"])
+    item = opener(exports["roadmap"])
+    page = item.page
+    sections = _open_browse(item, show, group, expand=False)
+    # Every subtree that holds a shown row is open on render, with no Expand all pressed.
+    toggles = [r["toggle"] for s in sections for r in _flatten(s["rows"]) if r["toggle"] is not None]
+    assert toggles and set(toggles) == {"true"}
+    _open_disclosures(page)
+    sections = page.evaluate(_READ_TREE)
+    want = _browse_expectations(payload, show, group)
+    _compare_tree(sections, want)
+    rows = _flatten([r for s in sections for r in s["rows"]])
+    model = Model(payload)
+    for r in rows:
+        assert (r["id"] in model.open) == (show == "open") or r["context"], r["id"]
+    names = dict(zip(_ids(page), _row_ax_names(page), strict=True))
+    for r in rows:
+        if r["context"]:
+            assert r["ctxText"] == "context" and r["hidden"] == "shown for context", r["id"]
+            assert "shown for context" in names[r["id"]]
+        else:
+            assert r["ctxText"] is None and r["hidden"] is None and "shown for context" not in names[r["id"]], r["id"]
+
+
+def test_context_rows_exist_where_a_choice_hides_a_parent(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    found = {
+        (show, group): any(r["context"] for r in _flatten([x for s in _browse_expectations(payload, show, group)["sections"] for x in s["rows"]]))
+        for show, group in _BROWSE_CHOICES
+    }
+    assert found[("open", "hierarchy")] and found[("done", "hierarchy")] and found[("open", "capability")]
+    assert not found[("all", "hierarchy")] and not found[("all", "capability")]
+
+
+def test_browse_count_and_announcements(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    item = opener(exports["roadmap"])
+    page = item.page
+    _choose(item, "browse")
+    page.wait_for_selector("#list .tree")
+    assert _count_text(page) == f"{len(payload['records'])} intents"
+    live = "document.getElementById('live').textContent = ''"
+    for label, show, group in (("Open", "open", "hierarchy"), ("Done", "done", "hierarchy"), ("By capability", "done", "capability"), ("All", "all", "capability"), ("Full hierarchy", "all", "hierarchy")):
+        page.evaluate(live)
+        page.get_by_role("button", name=label, exact=True).click()
+        count = _browse_expectations(payload, show, group)["count"]
+        announced = _live(page, "All intents, ")
+        assert announced == f"All intents, {count} {'intent' if count == 1 else 'intents'}", (label, announced)
+        assert _count_text(page) == f"{count} {'intent' if count == 1 else 'intents'}"
+    # A filter narrows the count together with Show.
+    model = Model(payload)
+    for show in ("all", "open", "done"):
+        _choose(item, "browse", level="capability", **_browse_route(show, "hierarchy"))
+        want = [i for i, r in model.records.items() if r["level"] == "capability" and (show == "all" or (i in model.open) == (show == "open"))]
+        assert _count_text(page) == f"{len(want)} intent{'' if len(want) == 1 else 's'}", show
+
+
+def test_browse_without_outstanding(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap_incomplete"])
+    assert payload["outstanding"]["available"] is False
+    item = opener(exports["roadmap_incomplete"])
+    page = item.page
+    for route in ({}, {"show": "open"}, {"show": "done", "group": "capability"}):
+        group = route.get("group", "")
+        _choose(item, "browse", **route)
+        page.wait_for_selector("#list .tree")
+        shown = page.get_by_role("group", name="Show")
+        assert shown.get_by_role("button", name="Open").is_disabled() and shown.get_by_role("button", name="Done").is_disabled()
+        assert shown.get_by_role("button", name="All").is_enabled()
+        assert _pressed(page, "Show") == ["All"]  # a show choice in the fragment reads as All
+        assert page.locator("#list .tree-note").inner_text() == _UNKNOWN_OPEN
+        assert page.locator("#list .tree-roll, #list .tree-open").count() == 0
+        body = _text(page, "#list")
+        assert "closed" not in body and "open items" not in body
+        page.get_by_role("button", name="Expand all").click()
+        _open_disclosures(page)
+        want = _browse_expectations(payload, "all", "capability" if group else "hierarchy")
+        _compare_tree(page.evaluate(_READ_TREE), want)
+        assert _count_text(page) == f"{len(payload['records'])} intents"
+
+
+def test_filters_flatten_and_intersect_show(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    model = Model(payload)
+    root = _FIXTURES / "roadmap"
+    status = payload["records"]["intent:anchor-feat-open"]["status"]
+    item = opener(exports["roadmap"])
+    page = item.page
+    for filters, selectors in (
+        ({"level": "capability"}, {"level": "capability"}),
+        ({"level": "feature"}, {"level": "feature"}),
+        ({"status": status}, {"exact_status": status}),
+        ({"level": "feature", "status": status}, {"level": "feature", "exact_status": status}),
+    ):
+        for show in ("all", "open", "done"):
+            for group in ("hierarchy", "capability"):
+                query = set(_search_ids(root, selectors))
+                want = model.by_name(i for i in query if show == "all" or (i in model.open) == (show == "open"))
+                assert want or show != "all"
+                _choose(item, "browse", **filters, **_browse_route(show, group))
+                if not want:
+                    page.wait_for_selector("#list .empty")
+                    continue
+                page.wait_for_selector("#list .row")
+                assert _ids(page) == want, (filters, show, group)
+                assert page.locator("#list .tree, #list details, #list h3.tree-head, #list .context-only, #list .ctx-tag").count() == 0
+                assert _count_text(page) == f"{len(want)} intent{'' if len(want) == 1 else 's'}"
+                if show == "all":
+                    assert set(_ids(page)) == query  # query parity for the filters alone
+    _choose(item, "browse", level="capability", show="open", group="capability")
+    assert page.get_by_role("group", name="Show").get_by_role("button", pressed=True).all_inner_texts() == ["Open"]
+    page.get_by_role("group", name="Show").get_by_role("button", name="All").click()
+    assert _ids(page) == model.by_name(i for i, r in model.records.items() if r["level"] == "capability")
+    _choose(item, "browse", level="feature", status="No-such-status")
+    page.get_by_role("button", name="Clear filters").click()
+    page.wait_for_selector("#list .tree")
+    assert len(_ids(page, "#list .tree a.row-link")) >= 1 and page.locator("#list .empty").count() == 0
+
+
+def test_show_and_group_in_fragment(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    item = opener(exports["roadmap"])
+    page = item.page
+    _choose(item, "browse")
+    page.wait_for_selector("#list .tree")
+    start = _history_length(page)
+    page.get_by_role("button", name="Open", exact=True).click()
+    assert _fragment(page).get("show") == "open"
+    assert page.evaluate("document.activeElement.dataset.ctl") == "show-open"
+    page.get_by_role("button", name="By capability").click()
+    assert _fragment(page).get("group") == "capability" and _fragment(page).get("show") == "open"
+    assert page.evaluate("document.activeElement.dataset.ctl") == "group-capability"
+    assert _history_length(page) == start
+    page.reload()
+    page.wait_for_selector("#list .tree")
+    assert _pressed(page, "Show") == ["Open"] and _pressed(page, "Group") == ["By capability"]
+    _compare_tree(page.evaluate(_READ_TREE), _browse_expectations(payload, "open", "capability"))
+    page.get_by_role("button", name="All", exact=True).click()
+    page.get_by_role("button", name="Full hierarchy").click()
+    assert "show" not in _fragment(page) and "group" not in _fragment(page)
+    assert _history_length(page) == start
+    # A picked row keeps both choices in its own link.
+    item.go(_frag(q="browse", show="done", group="capability"))
+    href = page.locator("#list a.row-link").first.get_attribute("href")
+    assert "show=done" in href and "group=capability" in href
+
+
+@pytest.mark.parametrize("name", ["from_roadmap_leaf", "from_roadmap_cap"])
+def test_browse_scoped_export(opener: Any, exports: dict[str, pathlib.Path], name: str) -> None:
+    payload = payload_of(exports[name])
+    scope = payload["scope"]["from"]
+    item = opener(exports[name])
+    sections = _open_browse(item, "all", "hierarchy")
+    _compare_tree(sections, _browse_expectations(payload, "all", "hierarchy"))
+    assert [s["title"] for s in sections] == ["Hierarchy roots"]
+    assert [r["id"] for r in sections[0]["rows"]] == [scope]
+    assert item.page.locator("#list details").count() == 0
+    assert "No parent and nothing beneath" not in _text(item.page, "#list")
+    ids = _ids(item.page, "#list .tree a.row-link")
+    assert sorted(ids) == sorted(payload["records"]) and len(ids) == len(set(ids))
+    by_cap = _open_browse(item, "all", "capability")
+    _compare_tree(by_cap, _browse_expectations(payload, "all", "capability"))
+    ids = _ids(item.page, "#list .tree a.row-link")
+    assert sorted(ids) == sorted(payload["records"]) and len(ids) == len(set(ids))
+    placed = {s["title"]: [r["id"] for r in s["rows"]] for s in by_cap}
+    if name == "from_roadmap_leaf":  # the capability above the scope is outside the export
+        assert placed == {"Not under a capability": [scope]}
+    else:
+        assert placed["Top-level capabilities"] == [scope]
+        assert "Not under a capability" not in placed
+
+
+def test_browse_parent_loop_roots_each_intent_once(opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path) -> None:
+    """A loop whose edges all resolve is rooted at its first member by name; a tail hangs beneath it."""
+
+    def edit(p: dict[str, Any]) -> dict[str, Any]:
+        alpha, gamma = p["records"]["intent:loop-alpha"], p["records"]["intent:loop-gamma"]
+        alpha["parent_edge"] = {**alpha["parent_edge"], "to": "intent:loop-gamma"}
+        del alpha["parent_edge"]["state"]
+        gamma["children"] = ["intent:loop-alpha"]
+        return p
+
+    path = _rewrite(exports["roadmap"], tmp_path / "loop.html", edit)
+    payload = payload_of(path)
+    item = opener(path)
+    sections = _open_browse(item)
+    _compare_tree(sections, _browse_expectations(payload))
+    tops = [r["id"] for s in sections for r in s["rows"]]
+    assert sorted(tops) == sorted(_roadmap_expectations(payload)["roots"])
+    assert "intent:loop-alpha" in tops and "intent:acorn-tail" not in tops
+    assert len([t for t in tops if t.startswith("intent:loop-")]) == 1
+    ids = _ids(item.page, "#list .tree a.row-link")
+    assert sorted(ids) == sorted(payload["records"]) and len(ids) == len(set(ids))
+    loop_root = next(r for s in sections for r in s["rows"] if r["id"] == "intent:loop-alpha")
+    assert "intent:acorn-tail" in {r["id"] for r in _flatten([loop_root])}

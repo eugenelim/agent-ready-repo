@@ -285,6 +285,23 @@ summary { cursor: pointer; }
 .rm-none, .rm-unknown { font-style: italic; }
 .rm-w + .rm-w { border-left-color: var(--c-rule-strong); }
 
+/* ---- Browse tree: Show and Group choices, section heads, level tags, counts and context rows */
+.seg-label { font: var(--t-meta); font-weight: 600; color: var(--c-muted); }
+.seg-btn { font: var(--t-meta); font-weight: 600; color: var(--c-muted); }
+.seg-btn[aria-pressed="true"] { background: var(--c-accent-bg); border-color: var(--c-accent); color: var(--c-accent); }
+.seg-btn:disabled { color: var(--c-subtle); cursor: default; background: var(--c-bg); }
+.tree-head { font: var(--t-section); text-transform: none; letter-spacing: 0; color: var(--c-text); }
+.loose > summary { border-radius: var(--r-2); }
+.loose > summary::before { content: "\25B8"; font-size: 1rem; line-height: 1; }
+.loose[open] > summary::before { content: "\25BE"; }
+.loose > summary:hover { background: var(--c-raised); }
+.level-tag, .ctx-tag { font: var(--t-label); color: var(--c-muted); border-color: var(--c-rule-strong); border-radius: var(--r-1); }
+.level-tag[data-level="product-vision"], .level-tag[data-level="product-strategy"] { color: var(--c-active); border-color: var(--c-active); }
+.level-tag[data-level="capability"] { color: var(--c-accent); border-color: var(--c-accent); }
+.tree-roll { font: var(--t-meta); color: var(--c-subtle); }
+.tree-open { font: var(--t-meta); font-weight: 600; color: var(--c-active); }
+.context-only > .row-link .c-name { font-weight: 450; color: var(--c-muted); }
+
 /* ---- State marks: a word and a glyph in a pill tinted by its state */
 .mark {
   font: var(--t-meta);

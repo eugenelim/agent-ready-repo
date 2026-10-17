@@ -92,7 +92,7 @@
     var next = parseRoute();
     var prev = current;
     current = next;
-    var listChanged = prev === null || ['q', 'search'].concat(FILTER_KEYS).some(function (k) {
+    var listChanged = prev === null || ['q', 'search', 'show', 'group'].concat(FILTER_KEYS).some(function (k) {
       return prev[k] !== next[k];
     });
     var nodeChanged = prev === null || prev.node !== next.node;
@@ -101,11 +101,16 @@
     // A filter select is rebuilt with the list; keep the reader on the one they were using.
     var held = document.activeElement;
     var heldFilter = held && held.closest && held.closest('#filters') ? held.id : '';
+    var heldChoice = held && held.closest && held.closest('#list') ? held.getAttribute('data-ctl') || '' : '';
     if (listChanged) {
       renderList(next, prev !== null);
       if (heldFilter !== '') {
         var again = byIdEl(heldFilter);
         if (again) { again.focus(); }
+      }
+      if (heldChoice !== '') {
+        var choice = dom.list.querySelector('[data-ctl="' + heldChoice + '"]');
+        if (choice) { choice.focus(); }
       }
     } else if (nodeChanged) {
       markSelected(next);

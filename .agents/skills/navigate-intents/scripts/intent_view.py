@@ -82,6 +82,7 @@ _SCRIPT_PARTS: tuple[str, ...] = (
     "small-parts.js",
     "rows.js",
     "list-bodies.js",
+    "browse.js",
     "roadmap.js",
     "detail.js",
     "dependencies.js",
