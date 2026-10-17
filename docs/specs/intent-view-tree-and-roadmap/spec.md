@@ -179,6 +179,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
 - eugenelim: `docs/product/briefs/intent-navigation-delivery.md` slice 13 — record owners: each record's `Owner:` header in the derivation, shown on rows, with an owner filter; it changes the derivation and query contract and is its own spec.
 - eugenelim: `docs/product/briefs/intent-navigation-delivery.md` slice 11a — the copyable next-step prompt.
+- eugenelim: `docs/specs/intent-view-tree-and-roadmap/notes/verification-ledger.md` § Experience review — trim the repeated type, level and parent from tree rows' context text, which needs an amendment to the session-start spec's criterion 0011 (owner-accepted deferral, 2026-10-17).
 
 ## Assumptions
 
