@@ -251,3 +251,7 @@ Each adoption is its own spec and its own pack version bump. A maintainer view c
   - The readiness bridge and the hand-over prompt are a second `navigate-intents` slice. It amends that spec's agent rule "Never let the export or view code read `workspace.toml`" to admit the piped projection, and it carries D3's and D4's acceptance criteria.
 - **FEAT-0034 dispatch specification**, listing the bridge in its consumer inventory and removing or re-pointing it in the release where `work-loop` stops dispatching from `workspace-status`.
 - **Not follow-on work here:** moving `work-loop` Step 0 and the session-start activation boundary to the view belongs to FEAT-0034, after parity.
+
+## Errata
+
+- 2026-10-16, signed by eugenelim as Approver: D1 rule 9's last sentence, "There is no motion.", is replaced with "Motion is limited to colour, border, shadow and opacity transitions and a fade of at most 4px, each at most 200ms, only under `prefers-reduced-motion: no-preference`, and never on scroll." Under reduced motion the page stays still, so WCAG 2.2 SC 2.3.3 holds, and no motion carries information. The same day the owner refined D2's direction, [`skill-html-views`](../design/direction/skill-html-views.md), to soft zones, tinted state pills and these fades after reviewing a prototype; its [token file](../design/tokens/skill-html-views.md) carries the values. The [`intent-view-source-and-style`](../specs/intent-view-source-and-style/spec.md) spec applies both to `navigate-intents`; every other rule is unchanged.

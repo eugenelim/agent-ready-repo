@@ -2444,6 +2444,8 @@ queue   = [
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
 ]
 active  = [
+  # Slice 12 of `intent-navigation-delivery`, approved 2026-10-16 and in implementation.
+  { path = "docs/specs/intent-view-source-and-style/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Author the intent view script as joined source parts and apply the owner-refined style: soft zones, tinted state pills, a clearer detail card and reduced-motion-aware fades", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must

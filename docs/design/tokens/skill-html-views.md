@@ -1,7 +1,7 @@
 ---
 type: design-system
 slug: skill-html-views
-date: 2026-10-12
+date: 2026-10-16
 route: originate
 governed_by:
   - docs/design/direction/skill-html-views.md
@@ -15,94 +15,149 @@ These are the values behind the shared style for the maintainer views that skill
 
 - **Route: originate.** There is no coherent source of visual truth across the four maintainer views. `navigate-intents` and `navigate-decisions` share a copied palette, `explain-diff` has no house style, and `render-proof` has its own distinct palette.
 - **Rungs.** Each domain records the rung that supplied it.
-  - `stated-constraint`: system fonts only, offline, no motion, WCAG 2.2 AA, and the 320/1280/1680/2560 checks.
-  - `approved-direction`: `docs/design/direction/skill-html-views.md`.
-  - `incumbent-system`: the light accent hue `#1d4ed8` from the two navigators, kept so existing users see the same link and selection colour.
+  - `stated-constraint`: fonts already on the reader's system only, offline, motion only as RFC-0108 rule 9 allows, WCAG 2.2 AA, and the 320/1280/1680/2560 checks.
+  - `approved-direction`: `docs/design/direction/skill-html-views.md`, as refined by the owner on 2026-10-16.
+  - `owner-approved-prototype`: the values below were measured on the prototype the owner approved on 2026-10-16, `docs/specs/intent-view-source-and-style/notes/prototype/approved-overlay.css`.
   - `derivation`: everything else.
 
 ## Colour
 
-Neutral greys carry structure; one accent marks selection, links and focus; one warning hue marks blocked, broken and stale. The rung is `approved-direction` (restrained chroma), plus `incumbent-system` for the light accent.
+Neutral greys carry structure on a light canvas with white zones. One accent marks links, focus and the current selection. A violet hue marks work in progress, so the accent never doubles as a state. Each other state has a text hue and a tint; a tint only ever sits behind its own state word. The rung is `owner-approved-prototype`.
 
 | Role | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `--c-bg` | `#fbfbfa` | `#121418` | Page |
-| `--c-raised` | `#f1f2f3` | `#1b1e24` | Hovered or current row, header band |
-| `--c-text` | `#1b1d21` | `#e6e8eb` | Body and headings |
-| `--c-muted` | `#575d68` | `#a4aab4` | Meta, context tags, sort keys |
-| `--c-rule` | `#d9dce0` | `#2b3038` | Row hairlines (decorative grouping) |
-| `--c-rule-strong` | `#8a909a` | `#6c7380` | Zone boundaries, input borders |
-| `--c-accent` | `#1d4ed8` | `#8ab4ff` | Links, current selection mark, focus ring |
-| `--c-accent-bg` | `#e8eefc` | `#1c2a45` | Selected row fill |
-| `--c-warn` | `#9a3f06` | `#f0a35e` | Blocked, broken, stale |
+| `--c-bg` | `#ffffff` | `#16181d` | Zones, controls, header band |
+| `--c-canvas` | `#f6f7f9` | `#0f1114` | Page behind the zones |
+| `--c-raised` | `#f0f2f5` | `#20242c` | Hovered row, next-step callout, draft tint |
+| `--c-detail-bg` | `#ffffff` | `#1b1e25` | Detail zone surface |
+| `--c-text` | `#1b1f29` | `#e7eaf0` | Body and headings |
+| `--c-muted` | `#4b5468` | `#b4bccc` | Secondary text, done and draft words |
+| `--c-subtle` | `#5b6682` | `#939db1` | Meta, context tags, section labels, placeholders |
+| `--c-rule` | `#e3e7ee` | `#262b35` | Row hairlines and zone outlines (decorative grouping) |
+| `--c-rule-strong` | `#7d879b` | `#727b8f` | Control borders, tree guides, trail line |
+| `--c-accent` | `#225bd2` | `#84a9ff` | Links, focus ring, current selection |
+| `--c-accent-bg` | `#eef4ff` | `#1a2540` | Current row and current question fill |
+| `--c-accent-ring` | `rgba(34, 91, 210, 0.2)` | `rgba(132, 169, 255, 0.3)` | Focus halo on fields |
+| `--c-active` | `#6a35d4` | `#b9a4ff` | In-progress state word |
+| `--c-active-bg` | `#f3edfd` | `#241b3d` | In-progress tint |
+| `--c-ok` | `#04796d` | `#4fd1b0` | Approved, accepted or ready state word |
+| `--c-ok-bg` | `#e9fbf6` | `#0f2a25` | Approved tint |
+| `--c-warn` | `#8a5d00` | `#f2bb55` | Stale state word, notices |
+| `--c-warn-bg` | `#fff6df` | `#2d2412` | Stale tint, notices |
+| `--c-bad` | `#b42318` | `#ff8a80` | Broken state word, broken-entry bar |
+| `--c-bad-bg` | `#fff1f0` | `#321719` | Broken tint, broken-entry callout |
+| `--c-done-bg` | `#eff1f5` | `#22262f` | Done tint |
 
 Computed contrast (WCAG 2.x relative luminance), all at or above AA:
 
 | Pair | Light | Dark | Needs |
 | --- | ---: | ---: | ---: |
-| text on bg | 16.30 | 15.02 | 4.5 |
-| text on accent-bg | 14.52 | 11.67 | 4.5 |
-| muted on bg | 6.40 | 7.89 | 4.5 |
-| muted on raised | 5.91 | 7.15 | 4.5 |
-| accent on bg | 6.47 | 8.83 | 4.5 |
-| accent on accent-bg | 5.77 | 6.86 | 4.5 |
-| warn on bg | 6.57 | 8.87 | 4.5 |
-| warn on accent-bg | 5.85 | 6.89 | 4.5 |
-| rule-strong on bg (non-text) | 3.10 | 3.86 | 3.0 |
-| focus ring (accent) on bg (non-text) | 6.47 | 8.83 | 3.0 |
+| text on bg | 16.48 | 14.74 | 4.5 |
+| text on canvas | 15.37 | 15.69 | 4.5 |
+| text on raised | 14.69 | 12.91 | 4.5 |
+| muted on bg | 7.59 | 9.31 | 4.5 |
+| muted on raised | 6.77 | 8.15 | 4.5 |
+| muted on done-bg | 6.71 | 7.94 | 4.5 |
+| subtle on bg | 5.73 | 6.51 | 4.5 |
+| subtle on canvas | 5.34 | 6.93 | 4.5 |
+| subtle on raised | 5.11 | 5.70 | 4.5 |
+| subtle on detail-bg | 5.73 | 6.11 | 4.5 |
+| accent on bg | 6.01 | 7.70 | 4.5 |
+| accent on canvas | 5.61 | 8.19 | 4.5 |
+| accent on accent-bg | 5.44 | 6.58 | 4.5 |
+| active on active-bg | 5.97 | 7.56 | 4.5 |
+| ok on ok-bg | 4.95 | 8.04 | 4.5 |
+| warn on warn-bg | 5.35 | 8.75 | 4.5 |
+| bad on bad-bg | 5.98 | 7.23 | 4.5 |
+| bad on detail-bg (non-text bar) | 6.57 | 7.31 | 3.0 |
+| rule-strong on bg (non-text) | 3.61 | 4.18 | 3.0 |
+| rule-strong on detail-bg (non-text) | 3.61 | 3.93 | 3.0 |
 
 Floor adaptations:
-- `--c-rule` is 1.33:1 in light and 1.39:1 in dark. It is only decorative grouping between rows that already carry their own text, so it is not used for any boundary a user must perceive. Zone and input boundaries use `--c-rule-strong`.
-- The accent and the warning hue have the same lightness (1.01:1 apart). They differ by hue, and state is always a word plus a glyph, so colour never carries meaning alone.
+- `--c-rule` outlines zones and divides rows that already carry their own text, so it marks no boundary a user must perceive. Control boundaries use `--c-rule-strong`.
+- State is always a word plus a glyph, so a tint never carries meaning alone.
 
 Theme selection follows the system `prefers-color-scheme`. A view may add a manual toggle that sets `data-theme` on the root; both paths read the same roles.
 
+## Radius
+
+The rung is `owner-approved-prototype` (soft, quiet corners).
+
+| Role | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `--r-1` | `6px` | | Chips, small tags, the current row |
+| `--r-2` | `8px` | | Controls, disclosures, callouts, rail links |
+| `--r-3` | `12px` | | Zones |
+
+State marks use a full pill (`999px`), which is a shape, not a role.
+
+## Elevation
+
+The rung is `owner-approved-prototype`. Only the list zone and the detail zone are raised; rows, rail links and controls stay flat.
+
+| Role | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `--e-1` | `0 1px 2px rgba(16, 24, 40, 0.05)` | `0 0 0 1px rgba(255, 255, 255, 0.02)` | List zone; detail zone with nothing picked |
+| `--e-2` | `0 1px 3px rgba(12, 13, 22, 0.06), 0 12px 32px -16px rgba(12, 13, 22, 0.16)` | `0 0 0 1px rgba(255, 255, 255, 0.04), 0 18px 40px -20px rgba(0, 0, 0, 0.8)` | Detail zone with an item picked |
+
 ## Type
 
-The rung is `stated-constraint` (system fonts) plus `approved-direction` (humanist sans, moderate four-level hierarchy).
+The rung is `stated-constraint` (fonts on the reader's system only; nothing is loaded) plus `owner-approved-prototype`.
 
-- `--font-ui`: `system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif`
-- `--font-mono`: `ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`. It is used only for ids, paths, commands and prompts.
+- `--font-ui`: `Inter, "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`. Inter is used only where the reader already has it installed.
+- `--font-mono`: `ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`. It is used only for ids, paths, commands, prompts and diagnostic text.
 - Counts use `font-variant-numeric: tabular-nums`.
-
-The ratio is 1.2 per level:
 
 | Level | Worklist density | Document density | Weight |
 | --- | --- | --- | --- |
-| `--t-title` | 1.375rem / 1.25 | 1.75rem / 1.2 | 650 |
-| `--t-section` | 1.125rem / 1.3 | 1.3125rem / 1.3 | 650 |
-| `--t-body` | 0.9375rem / 1.4 | 1.0625rem / 1.6 | 400 |
-| `--t-meta` | 0.8125rem / 1.4 | 0.875rem / 1.5 | 400 |
+| `--t-title` | 1.125rem / 1.3 | 1.75rem / 1.2 | 650 |
+| `--t-section` | 1rem / 1.35 | 1.3125rem / 1.3 | 650 |
+| `--t-body` | 0.875rem / 1.5 | 1.0625rem / 1.6 | 400 |
+| `--t-meta` | 0.78rem / 1.45 | 0.875rem / 1.5 | 400 |
+| `--t-label` | 0.7rem / 1.3, uppercase, 0.07em tracking | 0.75rem / 1.3, uppercase | 650 |
+
+`--t-label` names a section inside a zone; zone titles use `--t-title`.
 
 ## Space and rules
 
 The rung is `approved-direction` (dense, compact, ruled), with a 4px base.
 
 - `--s-1` to `--s-7`: `0.25rem`, `0.5rem`, `0.75rem`, `1rem`, `1.5rem`, `2rem` and `3rem`.
-- Inside a row, cells sit `--s-3` apart. Rows are `--s-2` apart vertically in worklist density and `--s-4` apart in document density. Groups are `--s-5` apart.
-- Rules are `1px solid`. Hairlines use `--c-rule`; zone boundaries and inputs use `--c-rule-strong`. The selected row adds a `3px` left bar in `--c-accent`.
-- Corners are square (`0`) everywhere. There are no shadows and no elevation; a sticky region is marked by a `--c-rule-strong` rule.
+- Inside a row, cells sit `--s-3` apart. Rows are `--s-2` apart vertically in worklist density and `--s-4` apart in document density. Groups are `--s-4` apart, and the zones sit `--s-4` apart on the canvas.
+- Rules are `1px solid`. Hairlines use `--c-rule`. The current row and current question add a `3px` inset bar in `--c-accent`; a broken entry adds a `3px` left bar in `--c-bad`; the next-step callout adds a `3px` left bar in `--c-rule-strong`.
 
 ## Interaction floor
 
-- **Target size.** Every control and row link is at least `2rem` (32px) tall and at least 24px wide, above the WCAG 2.2 AA 24px minimum.
-- **Focus.** A `2px solid var(--c-accent)` outline with a `2px` offset on every focusable element. It is never removed. Sticky regions keep `scroll-padding` equal to their height, so focus is never obscured.
-- **Motion.** None. There are no transitions, animations or smooth scrolling, so a reduced-motion variant is unnecessary.
+- **Target size.** Every control and row link is at least 24 by 24 CSS px, the WCAG 2.2 AA minimum; most are `2rem` tall.
+- **Focus.** A `2px solid var(--c-accent)` outline with a `2px` offset, rounded by `--r-1`, on every focusable element. Text fields add a `--c-accent-ring` halo. The outline is never removed. Sticky regions keep `scroll-padding` equal to their height, so focus is never obscured.
+- **Keyboard.** No single-character shortcut.
+
+## Motion
+
+The rung is `stated-constraint`: RFC-0108 rule 9 as corrected on 2026-10-16. Every rule below sits inside `@media (prefers-reduced-motion: no-preference)`; with reduced motion the page is still.
+
+| Role | Value | Use |
+| --- | --- | --- |
+| Paint transition | `120ms ease` on `background-color`, `color`, `border-color`, `box-shadow` | Rows, rail links, controls, disclosures |
+| Detail fade | `160ms ease-out`, opacity 0 to 1 with a `translateY(4px)` rise | Each child of the detail body as it renders |
+
+Nothing scrolls smoothly, nothing is tied to scroll, and nothing repeats.
 
 ## Layout
 
 The rung is `approved-direction`: a rigid column grid, edge-aligned, filling the width.
 
-**Worklist views** use the questions rail, the list and the detail zone:
+**Worklist views** use the questions rail, the list zone and the detail zone:
 
 | Width | Tracks |
 | --- | --- |
 | below 40rem (640px; the 320px check) | One column. Questions stack, then the list; the detail replaces the list when picked. |
 | 40rem to below 90rem (640–1439px; the 1280px check) | Questions as a tab row above two tracks: list `minmax(0, 3fr)`, detail `minmax(22rem, 2fr)`. |
-| 90rem and up (1440px+; the 1680px and 2560px checks) | Three tracks: rail `14rem`, list `minmax(0, 3fr)`, detail `minmax(26rem, 2fr)`. |
+| 90rem to below 120rem (1440–1919px; the 1680px check) | Three tracks: rail `16.5rem`, list `minmax(0, 1fr)`, detail `clamp(22rem, 30%, 32rem)`. |
+| 120rem and up (1920px+; the 2560px check) | Rail `16.5rem`, list `minmax(0, 1fr)`, detail `clamp(28rem, 30%, 40rem)`; a row's name cell is capped at `34rem` so the state stays near the name. |
 
 - There is no max-width; page padding is `--s-5`.
-- A row is a grid of `name minmax(0, 1fr)`, `state 8.5rem` and `context minmax(8rem, 16rem)`. The name wraps within its own cell, so other cells never wrap under it.
+- A row is a grid of `name minmax(10rem, 1fr)`, `state 8.5rem` and `context minmax(12rem, 1fr)` from 64rem. The name wraps within its own cell, so other cells never wrap under it.
 
 **Document views** use a margin column, the text column and an optional contents column:
 
@@ -114,25 +169,25 @@ The rung is `approved-direction`: a rigid column grid, edge-aligned, filling the
 
 ## State marks
 
-Each state is a word plus a glyph. Colour reinforces a mark but never carries it alone. The rung is `approved-direction` (rectilinear simple shapes) and `derivation`.
+Each state is a word plus a glyph inside a pill tinted by its state. Colour reinforces a mark but never carries it alone. The rung is `approved-direction` (simple shapes) and `owner-approved-prototype`.
 
-| State | Glyph | Word | Colour |
-| --- | --- | --- | --- |
-| active (in progress) | ● | Active | `--c-accent` |
-| ready (canonical ready) | ▶ | Ready | `--c-accent` |
-| approved | ◆ | Approved | `--c-text` |
-| draft | ◇ | Draft | `--c-muted` |
-| blocked | ■ | Blocked | `--c-warn` |
-| broken (refused or dangling pointer) | ✕ | Broken | `--c-warn` |
-| stale (snapshot or link may be newer) | △ | Stale | `--c-warn` |
-| done (terminal) | ✓ | Done | `--c-muted` |
+| State | Glyph | Word | Text | Tint |
+| --- | --- | --- | --- | --- |
+| active (in progress) | ● | Active | `--c-active` | `--c-active-bg` |
+| ready (canonical ready) | ▶ | Ready | `--c-ok` | `--c-ok-bg` |
+| approved | ◆ | Approved | `--c-ok` | `--c-ok-bg` |
+| draft | ◇ | Draft | `--c-muted` | `--c-raised` |
+| blocked | ■ | Blocked | `--c-bad` | `--c-bad-bg` |
+| broken (refused or dangling pointer) | ✕ | Broken | `--c-bad` | `--c-bad-bg` |
+| stale (snapshot or link may be newer) | △ | Stale | `--c-warn` | `--c-warn-bg` |
+| done (terminal) | ✓ | Done | `--c-muted` | `--c-done-bg` |
 
 The glyph is hidden from assistive tech, and the word is read. Each view maps its own status vocabulary onto these eight marks and shows its own status word where it differs, for example "◆ Accepted".
 
 ## What may adapt
 
 - **May adapt:** column counts and track sizes by width, the density variant by genre, and whether a view offers a manual theme toggle.
-- **May not adapt:** colour roles, the type ratio, square corners, the absence of shadows and motion, focus treatment, target floor, and the state-mark set.
+- **May not adapt:** colour, radius and elevation roles, the type scale, the motion rules, focus treatment, target floor, and the state-mark set.
 
 ## Unresolved
 
