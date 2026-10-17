@@ -82,7 +82,12 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .has-broken .meaning { margin: var(--s-1) 0 0; }
 .diag-raw { overflow-wrap: anywhere; hyphens: none; }
 .edge-line { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); align-items: baseline; padding: var(--s-1) 0; }
-.beneath-row { display: grid; grid-template-columns: minmax(0, 1fr) 8.5rem; gap: 0 var(--s-3); align-items: baseline; padding: var(--s-1) 0; border-bottom-width: 1px; border-bottom-style: solid; }
+.beneath-row { display: grid; grid-template-columns: minmax(0, 1fr) 7rem; gap: 0 var(--s-3); align-items: baseline; padding: var(--s-1) 0; border-bottom-width: 1px; border-bottom-style: solid; }
+/* A narrow detail zone stacks the state under the name, as list rows do below 66rem, so names are not squeezed. */
+.detail { container-type: inline-size; }
+@container (max-width: 28rem) {
+  .beneath-row { grid-template-columns: minmax(0, 1fr); gap: var(--s-1) 0; }
+}
 .beneath-row:last-child { border-bottom-width: 0; }
 .trail { display: flex; flex-direction: column; gap: 0; margin: 0 0 var(--s-2); padding: 0; list-style: none; overflow-wrap: anywhere; }
 .trail-label { margin: 0 0 var(--s-1); }
