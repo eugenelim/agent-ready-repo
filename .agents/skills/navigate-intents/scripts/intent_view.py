@@ -70,6 +70,26 @@ def data_block_json(payload: dict[str, Any]) -> str:
 
 
 _ASSET_DIR = Path(__file__).resolve().parent / "view_assets"
+_SOURCE_DIR = Path(__file__).resolve().parent / "view_src"
+# The script parts under ``view_src/``, in the order they are joined; this tuple owns the order.
+_SCRIPT_PARTS: tuple[str, ...] = (
+    "escape.js",
+    "labels.js",
+    "utilities.js",
+    "data.js",
+    "lists.js",
+    "routing.js",
+    "small-parts.js",
+    "rows.js",
+    "list-bodies.js",
+    "detail.js",
+    "dependencies.js",
+    "detail-parts.js",
+    "detail-render.js",
+    "chrome.js",
+)
+_SCRIPT_PROLOGUE = "'use strict';\n(function () {\n"
+_SCRIPT_EPILOGUE = "})();\n"
 _ASSET_LIMIT_BYTES = 1_048_576
 
 _SHELL = """<!doctype html>
@@ -87,7 +107,7 @@ _SHELL = """<!doctype html>
 <header class="page-header">
 <div class="title-row">
 <h1 class="page-title">Intent graph</h1>
-<div class="search"><label for="search">Search names and ids</label><input id="search" class="control" type="search" autocomplete="off"></div>
+<div class="search"><label for="search">Search names and ids</label><input id="search" class="control" type="search" autocomplete="off" placeholder="Search names and ids"></div>
 </div>
 <p id="meta" class="meta"></p>
 <div id="scope-banner" class="banner" hidden></div>
@@ -119,14 +139,14 @@ _SHELL = """<!doctype html>
 """  # noqa: E501
 
 
-def _read_asset(name: str) -> str:
-    """Read one view asset through the confined reader; LF line ends, as the parser sees them."""
+def _read_asset(name: str, root: Path = _ASSET_DIR) -> str:
+    """Read one file under *root* through the confined reader, with LF line ends."""
     safety = _file_safety()
     if safety is None:
         raise ViewRefusal("resolver_unavailable", "view assets are unavailable")
     try:
         raw = safety.read_confined_regular_file(
-            _ASSET_DIR, _ASSET_DIR / name, max_bytes=_ASSET_LIMIT_BYTES
+            root, root / name, max_bytes=_ASSET_LIMIT_BYTES
         )
         return raw.decode("utf-8").replace("\r\n", "\n")
     except (ValueError, OSError):
@@ -148,12 +168,13 @@ def build_html(payload: dict[str, Any]) -> str:
     """
     base = _read_asset("view-base.css")
     layout = _read_asset("view.css")
-    script = _read_asset("view.js")
+    parts = [(name, _read_asset(name, _SOURCE_DIR)) for name in _SCRIPT_PARTS]
+    script = _SCRIPT_PROLOGUE + "".join(body for _name, body in parts) + _SCRIPT_EPILOGUE
     style = base + "\n" + layout
     for name, body, closer in (
         ("view-base.css", base, "</style"),
         ("view.css", layout, "</style"),
-        ("view.js", script, "</script"),
+        *((name, body, "</script") for name, body in parts),
     ):
         if closer in body.lower() or "<!--" in body:
             raise ViewRefusal("resolver_unavailable", f"view asset cannot be inlined: {name}")
