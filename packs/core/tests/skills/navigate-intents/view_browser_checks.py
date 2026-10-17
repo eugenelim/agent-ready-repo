@@ -2939,7 +2939,10 @@ def test_vi_4002_hostile_values_stay_inert(opener: Any, exports: dict[str, pathl
     assert page.evaluate("window.__csp") == [] and item.errors == []
     html = path.read_text(encoding="utf-8")
     meta = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html)
-    script = (_SCRIPTS / "view_assets" / "view.js").read_text(encoding="utf-8")
+    builder = nav._load_view_mod()
+    script = builder._SCRIPT_PROLOGUE + "".join(
+        (_SCRIPTS / "view_src" / name).read_text(encoding="utf-8") for name in builder._SCRIPT_PARTS
+    ) + builder._SCRIPT_EPILOGUE
     style = (_SCRIPTS / "view_assets" / "view-base.css").read_text(encoding="utf-8") + "\n" + (_SCRIPTS / "view_assets" / "view.css").read_text(encoding="utf-8")
 
     def digest(text: str) -> str:

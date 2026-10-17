@@ -28,6 +28,7 @@ sys.dont_write_bytecode = True
 _PACK = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _ASSETS = _SCRIPTS / "view_assets"
+_PARTS_DIR = _SCRIPTS / "view_src"
 _FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
 _BASE_CSS = (_ASSETS / "view-base.css").read_text(encoding="utf-8")
 _LAYOUT_CSS = (_ASSETS / "view.css").read_text(encoding="utf-8")
@@ -45,6 +46,7 @@ def _load(path: pathlib.Path, module_name: str) -> Any:
 
 
 nav = _load(_SCRIPTS / "navigate_intents.py", "core_navigate_intents_export_html_nav")
+view = nav._load_view_mod()
 
 _DATA_BLOCK = re.compile(
     r'<script type="application/json" id="intent-data">(.*?)</script>', re.DOTALL
@@ -108,6 +110,12 @@ def _digest(content: str) -> str:
     return base64.b64encode(hashlib.sha256(content.encode("utf-8")).digest()).decode("ascii")
 
 
+def _joined(html: str) -> str:
+    """Return the page's one executable script, as the builder joined it."""
+    (script,) = [t for t in _parse(html).texts["script"] if t.strip() and "function" in t]
+    return script
+
+
 @pytest.fixture(scope="module")
 def mixed_html(tmp_path_factory: pytest.TempPathFactory) -> str:
     return _export(_FIXTURES / "mixed", tmp_path_factory.mktemp("mixed"))
@@ -130,7 +138,7 @@ def test_csp_is_first_head_child_and_pins_both_digests(mixed_html: str) -> None:
         "form-action 'none'"
     )
     assert shape.executable == 1 and shape.style_elements == 1
-    assert script == (_ASSETS / "view.js").read_text(encoding="utf-8")
+    assert script == _joined(mixed_html)
     assert style == _STYLE_TEXT
 
 
@@ -181,8 +189,15 @@ def _strip_comments(source: str) -> str:
     return re.sub(r"(?m)^\s*//.*$", "", source)
 
 
-def test_script_holds_no_forbidden_api() -> None:
-    code = _strip_comments((_ASSETS / "view.js").read_text(encoding="utf-8"))
+def _has_token(code: str, token: str) -> bool:
+    """Match *token* on identifier boundaries: no letter, digit, _ or $ touches an identifier end."""
+    before = r"(?<![A-Za-z0-9_$])" if re.match(r"[A-Za-z0-9_$]", token) else ""
+    after = r"(?![A-Za-z0-9_$])" if re.search(r"[A-Za-z0-9_$]$", token) else ""
+    return re.search(before + re.escape(token) + after, code) is not None
+
+
+def test_script_holds_no_forbidden_api(mixed_html: str) -> None:
+    code = _strip_comments(_joined(mixed_html))
     for token in (
         "innerHTML",
         "outerHTML",
@@ -192,19 +207,97 @@ def test_script_holds_no_forbidden_api() -> None:
         "Function(",
         "srcdoc",
         "javascript:",
+        "fetch(",
+        "XMLHttpRequest",
+        "WebSocket",
+        "sendBeacon",
+        "import(",
+        "require(",
+        ".style",
+        "cssText",
+        ".animate(",
+        "requestAnimationFrame",
+        "startViewTransition",
+        "scrollIntoView",
     ):
-        assert token not in code, token
+        assert not _has_token(code, token), token
     assert not re.search(r"set(Timeout|Interval)\(\s*['\"`]", code)
-    # No inline style writes: a property write, a cssText write, or a style attribute.
-    assert not re.search(r"\.style\b", code)
-    assert "cssText" not in code
     assert not re.search(r"setAttribute\(\s*['\"]style['\"]", code)
-    for char in code:
+
+
+def test_the_token_match_respects_identifier_boundaries() -> None:
+    assert _has_token("a.style.x", ".style") and not _has_token("a.styles", ".style")
+    assert _has_token("x = fetch(u)", "fetch(") and not _has_token("prefetch(u)", "fetch(")
+    assert _has_token("import(x)", "import(") and not _has_token("reimport(x)", "import(")
+
+
+def test_joined_script_is_printable_ascii(mixed_html: str) -> None:
+    for char in _joined(mixed_html):
         assert not (ord(char) > 0x7E or (ord(char) < 0x20 and char not in "\n\t")), hex(ord(char))
 
 
+def _part_text(name: str) -> str:
+    return (_PARTS_DIR / name).read_text(encoding="utf-8")
+
+
+def test_joined_script_is_prologue_parts_epilogue(mixed_html: str) -> None:
+    expected = (
+        "'use strict';\n(function () {\n"
+        + "".join(_part_text(name) for name in view._SCRIPT_PARTS)
+        + "})();\n"
+    )
+    assert _joined(mixed_html) == expected
+
+
+def test_script_digest_covers_the_joined_script(mixed_html: str) -> None:
+    shape = _parse(mixed_html)
+    _tag, attrs = shape.head_children[0]
+    script = _joined(mixed_html)
+    assert f"script-src 'sha256-{_digest(script)}';" in attrs["content"]
+
+
+def test_part_list_matches_view_src() -> None:
+    listed = list(view._SCRIPT_PARTS)
+    assert len(listed) == len(set(listed))
+    assert sorted(listed) == sorted(p.name for p in _PARTS_DIR.glob("*.js"))
+    for name in listed:
+        assert (_PARTS_DIR / name).is_file() and not (_PARTS_DIR / name).is_symlink(), name
+        assert _part_text(name).endswith("\n"), name
+
+
+def test_no_part_exceeds_400_lines() -> None:
+    for part in _PARTS_DIR.glob("*.js"):
+        assert part.read_bytes().count(b"\n") <= 400, part.name
+
+
+def _refused_export(tmp_path: pathlib.Path) -> None:
+    out = tmp_path / "out"
+    out.mkdir(parents=True, exist_ok=True)
+    result, code = nav.run_export(_FIXTURES / "mixed", str(out), "view.html", None)
+    assert code == 1, result
+    assert result["error"]["code"] == "resolver_unavailable"
+    assert list(out.iterdir()) == []
+
+
+def test_a_missing_or_unsafe_part_refuses_the_export(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    missing = tmp_path / "missing"
+    monkeypatch.setattr(view, "_SCRIPT_PARTS", (*view._SCRIPT_PARTS, "no-such-part.js"))
+    _refused_export(missing)
+    monkeypatch.undo()
+    for index, injected in enumerate(("</script>", "</SCRIPT >", "<!--")):
+        parts = tmp_path / f"parts{index}"
+        shutil.copytree(_PARTS_DIR, parts)
+        victim = parts / view._SCRIPT_PARTS[1]
+        victim.write_text(victim.read_text(encoding="utf-8") + f"// {injected}\n", encoding="utf-8")
+        monkeypatch.setattr(view, "_SOURCE_DIR", parts)
+        _refused_export(tmp_path / f"case{index}")
+        monkeypatch.undo()
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
-def test_escape_function_matches_the_text_output() -> None:
+def test_escape_function_matches_the_text_output(mixed_html: str, tmp_path: pathlib.Path) -> None:
     unsafe = sorted(nav._UNSAFE_CHARS)
     near = sorted(
         {chr(c + d) for c in map(ord, unsafe) for d in (-1, 1) if 0 <= c + d < 0x110000}
@@ -223,13 +316,15 @@ def test_escape_function_matches_the_text_output() -> None:
             "mix\u00ad\ufeff\U000e0001end",
         ]
     )
+    joined = tmp_path / "joined-view.js"
+    joined.write_text(_joined(mixed_html), encoding="utf-8")
     script = (
         "const m = require(process.argv[1]);"
         "const probes = JSON.parse(process.argv[2]);"
         "process.stdout.write(JSON.stringify(probes.map(m.escapeDisplay)));"
     )
     done = subprocess.run(
-        ["node", "-e", script, str(_ASSETS / "view.js"), json.dumps(probes)],
+        ["node", "-e", script, str(joined), json.dumps(probes)],
         capture_output=True,
         text=True,
         check=True,
@@ -260,7 +355,7 @@ def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
 
 
 def test_hostile_export_keeps_the_csp_string_and_the_script_stays_clean(hostile_html: str, mixed_html: str) -> None:
-    """The dependency work leaves the policy unchanged and view.js free of banned APIs."""
+    """The dependency work leaves the policy unchanged and the joined script free of banned APIs."""
     for html in (hostile_html, mixed_html):
         shape = _parse(html)
         _tag, attrs = shape.head_children[0]
@@ -271,7 +366,7 @@ def test_hostile_export_keeps_the_csp_string_and_the_script_stays_clean(hostile_
             f"style-src 'sha256-{_digest(style)}'; img-src 'none'; base-uri 'none'; "
             "form-action 'none'"
         )
-    code = _strip_comments((_ASSETS / "view.js").read_text(encoding="utf-8"))
+    code = _strip_comments(_joined(mixed_html))
     for token in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(", "Function(", "srcdoc", "javascript:", "fetch(", "XMLHttpRequest", "WebSocket", "sendBeacon", "import("):
         assert token not in code, token
 
