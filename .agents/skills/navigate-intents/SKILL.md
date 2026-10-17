@@ -223,11 +223,16 @@ the argument parser rejects the command before a query is formed.
 ``export`` writes one self-contained HTML file that shows the whole intent
 graph: every live intent, brief, and spec header fact, and every parent,
 pointer, delivery, related, and refused edge the query returns.  The page
-opens on four questions in a nav: "What can I work on next?" (open work in
-a startable stage, then accepted intents with nothing beneath them),
-"What is still open under a capability?", "What has no parent?", and "What is
-broken?".  "Browse all intents" shows the whole tree with level, kind, and
-status filters, and a header search covers intents, briefs, and specs.  Each
+opens on a nav grouped by job.  Work: "What can I work on next?" (open work
+in a startable stage, then accepted intents with nothing beneath them) and
+"What is broken?".  Progress: "How far along is each capability?" (each
+capability under its product strategy, with counts of the work beneath it
+delivered, in progress, not started and stopped, and no health judgement) and
+"What is still open under a capability?".  Tidy: "What has no parent?".
+Browse: "Browse all intents", a tree with Show (all, open, done, with parents
+kept as marked context rows), Group (full hierarchy or by capability), Expand
+all, Collapse all, and level, kind, and status filters.  A header search
+covers intents, briefs, and specs.  Each
 row leads with the human name, shows its state as a word plus a shape, and
 carries a context tag; a Key opens on demand.  Picking a row shows a detail
 panel with the state line, a Next step (which skill to use and why, in plain

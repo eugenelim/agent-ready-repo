@@ -422,3 +422,6 @@ summary { cursor: pointer; }
     outline-color: CanvasText;
   }
 }
+/* The subtree toggle's arrow reads at a glance; the 2rem button stays the target. */
+.toggle-g { font-size: 1rem; line-height: 1; color: var(--c-muted); }
+.toggle:hover .toggle-g { color: var(--c-text); }
