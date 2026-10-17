@@ -49,6 +49,14 @@
   --s-6: 2rem;
   --s-7: 3rem;
   --target: 2rem;
+  --name-w: clamp(10rem, calc(100cqw - 34rem), 34rem);
+  --rm-bar: 10rem;
+  --rm-share: 11rem;
+  --rm-prog: calc(var(--rm-bar) + var(--s-2) + var(--rm-share));
+  --rm-in: 0px;
+  --tr-in: 0px;
+  --rm-self: 0px;
+  --tr-self: 0px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -271,6 +279,13 @@ summary { cursor: pointer; }
   color: var(--c-subtle);
 }
 
+/* ---- Row tracks: a nested row's accumulated indent (--rm-in, --tr-in, declared on :root as 0) is handed back to
+   the name track, so every row's state and progress tracks start at one x. */
+.rm-row { --rm-self: calc(var(--rm-in) + var(--s-4) + 1px); }
+ul.rm-sub { --rm-in: var(--rm-self); }
+.tree-row { --tr-self: calc(var(--tr-in) + var(--s-5)); }
+.tree-row > .subtree { --tr-in: var(--tr-self); }
+
 /* ---- Roadmap: a section per strategy, and a bar of 24 cells that repeats the counts beside it */
 .rm-head { border-bottom-color: var(--c-rule); }
 .rm-title { font: var(--t-section); text-transform: none; letter-spacing: 0; color: var(--c-text); }
@@ -280,15 +295,20 @@ summary { cursor: pointer; }
 .rm-inprogress { background: var(--c-active); }
 .rm-notstarted { background: var(--c-raised); box-shadow: inset 0 0 0 1px var(--c-rule-strong); }
 .rm-empty { background: var(--c-canvas); box-shadow: inset 0 0 0 1px var(--c-rule-strong); }
+.rm-note, .rm-legend { font: var(--t-meta); }
 .rm-pct { font: var(--t-meta); font-weight: 650; color: var(--c-text); font-variant-numeric: tabular-nums; }
 .rm-words, .rm-none, .rm-unknown { font: var(--t-meta); color: var(--c-subtle); }
 .rm-none, .rm-unknown { font-style: italic; }
-.rm-w + .rm-w { border-left-color: var(--c-rule-strong); }
+
+/* A tab row marks where one group ends and the next begins. */
+.question-list ~ .question-list { border-left-color: var(--c-rule-strong); }
 
 /* ---- Browse tree: Show and Group choices, section heads, level tags, counts and context rows */
 .seg-label { font: var(--t-meta); font-weight: 600; color: var(--c-muted); }
 .seg-btn { font: var(--t-meta); font-weight: 600; color: var(--c-muted); }
-.seg-btn[aria-pressed="true"] { background: var(--c-accent-bg); border-color: var(--c-accent); color: var(--c-accent); }
+.seg-btn[aria-pressed="true"] { background: var(--c-accent-bg); border-color: var(--c-accent); color: var(--c-accent); font-weight: 650; }
+/* A pressed choice carries a mark as well as a colour; the empty alternative keeps it out of the accessible name. */
+.seg-btn[aria-pressed="true"]::before { content: "\2713" / ""; margin-right: 0.3rem; }
 .seg-btn:disabled { color: var(--c-subtle); cursor: default; background: var(--c-bg); }
 .tree-head { font: var(--t-section); text-transform: none; letter-spacing: 0; color: var(--c-text); }
 .loose > summary { border-radius: var(--r-2); }
@@ -299,7 +319,7 @@ summary { cursor: pointer; }
 .level-tag[data-level="product-vision"], .level-tag[data-level="product-strategy"] { color: var(--c-active); border-color: var(--c-active); }
 .level-tag[data-level="capability"] { color: var(--c-accent); border-color: var(--c-accent); }
 .tree-roll { font: var(--t-meta); color: var(--c-subtle); }
-.tree-open { font: var(--t-meta); font-weight: 600; color: var(--c-active); }
+.tree-open { font: var(--t-meta); font-weight: 600; color: var(--c-accent); }
 .context-only > .row-link .c-name { font-weight: 450; color: var(--c-muted); }
 
 /* ---- State marks: a word and a glyph in a pill tinted by its state */

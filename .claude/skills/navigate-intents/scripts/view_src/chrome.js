@@ -101,7 +101,7 @@
     // A filter select is rebuilt with the list; keep the reader on the one they were using.
     var held = document.activeElement;
     var heldFilter = held && held.closest && held.closest('#filters') ? held.id : '';
-    var heldChoice = held && held.closest && held.closest('#list') ? held.getAttribute('data-ctl') || '' : '';
+    var heldChoice = held && held.closest && held.closest('#list, #tools') ? held.getAttribute('data-ctl') || '' : '';
     if (listChanged) {
       renderList(next, prev !== null);
       if (heldFilter !== '') {
@@ -109,7 +109,7 @@
         if (again) { again.focus(); }
       }
       if (heldChoice !== '') {
-        var choice = dom.list.querySelector('[data-ctl="' + heldChoice + '"]');
+        var choice = document.querySelector('#tools [data-ctl="' + heldChoice + '"]');
         if (choice) { choice.focus(); }
       }
     } else if (nodeChanged) {
@@ -165,7 +165,7 @@
         search: byIdEl('search'), questions: byIdEl('question-list'), main: byIdEl('main'),
         listTitle: byIdEl('list-title'), listLead: byIdEl('list-lead'),
         listCount: byIdEl('list-count'), listSort: byIdEl('list-sort'),
-        filters: byIdEl('filters'), keyBody: byIdEl('key-body'), list: byIdEl('list'),
+        tools: byIdEl('tools'), filters: byIdEl('filters'), keyBody: byIdEl('key-body'), list: byIdEl('list'),
         detailHeading: byIdEl('detail-heading'), detailBody: byIdEl('detail-body'),
         skip: byIdEl('skip-details')
       };

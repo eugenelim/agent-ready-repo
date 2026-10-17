@@ -123,6 +123,7 @@ _SHELL = """<!doctype html>
 <h2 id="list-title" class="list-title focus-target" tabindex="-1"></h2>
 <p id="list-lead" class="lead"></p>
 <p class="meta"><span id="list-count"></span><span id="list-sort"></span></p>
+<div id="tools" class="tools"></div>
 <div id="filters" class="filters" hidden></div>
 <details id="key" class="key"><summary>Key</summary><div id="key-body"></div></details>
 </div>

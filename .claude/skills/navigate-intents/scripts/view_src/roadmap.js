@@ -7,6 +7,8 @@
   var BAND_LABELS = [['delivered', 'delivered'], ['active', 'in progress'],
     ['waiting', 'not started']];
   var NO_STRATEGY_HEADING = 'Not under a product strategy in this export';
+  var LEGEND = 'Counts items, not effort. Withdrawn and archived work is shown as stopped and not ' +
+    'counted in the share. As of ';
   var UNKNOWN_PROGRESS = 'Progress unknown: delivery mapping incomplete.';
 
   // A band reads the shipped open-item index and status word: an open item is in progress when its
@@ -96,7 +98,9 @@
     var p = progressOf(id);
     if (p.nothing) { add(box, el('span', 'rm-none', 'Nothing beneath yet')); return box; }
     add(box, barCells(p));
-    if (p.share !== null) { add(box, el('span', 'rm-pct', p.share + '%')); }
+    if (p.share !== null) {
+      add(box, el('span', 'rm-pct', p.share + '% delivered of ' + plural(p.current, ['item', 'items'])));
+    }
     var words = add(box, el('span', 'rm-words'));
     BAND_LABELS.forEach(function (pair) {
       var n = p.counts[pair[0]];
@@ -135,9 +139,16 @@
     return li;
   }
 
+  // The capabilities in a section, nested ones included.
+  function capabilitiesIn(ids, nested) {
+    return ids.reduce(function (n, id) { return n + 1 + capabilitiesIn(nested.get(id) || [], nested); }, 0);
+  }
+
   function bodyRoadmap() {
     var ids = capabilityRecordIds();
     if (!ids.length) { add(dom.list, emptyLine(question('roadmap').empty)); return 0; }
+    add(dom.list, el('p', 'note rm-legend', LEGEND + generatedText(data.provenance.generated_at)
+      .replace(/^at /, '') + '.'));
     var nested = new Map();
     var sections = new Map();
     ids.forEach(function (id) {
@@ -152,7 +163,15 @@
       var head = add(section, el('div', 'rm-head'));
       add(head, el('h3', 'group-head rm-title',
         strategy === '' ? NO_STRATEGY_HEADING : displayName(strategy)));
-      if (strategy !== '') { add(head, progressEl(strategy)); }
+      if (strategy !== '') {
+        add(head, progressEl(strategy));
+        // A strategy's counts include its capabilities and work placed straight under it.
+        if (!deliveryUnavailable() && !progressOf(strategy).nothing) {
+          var k = capabilitiesIn(sections.get(strategy), nested);
+          add(head, el('p', 'note rm-note', 'Includes the ' + (k === 1 ? '1 capability itself' :
+            k + ' capabilities themselves') + ' and any work placed directly under the strategy.'));
+        }
+      }
       var ul = add(section, el('ul', 'rows'));
       sections.get(strategy).sort(byName).forEach(function (c) { add(ul, capabilityRow(c, nested)); });
     });

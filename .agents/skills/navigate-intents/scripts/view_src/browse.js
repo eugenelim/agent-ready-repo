@@ -6,6 +6,7 @@
     capability: 'Capability', feature: 'Feature' };
   var SHOW_CHOICES = [['', 'All'], ['open', 'Open'], ['done', 'Done']];
   var GROUP_CHOICES = [['', 'Full hierarchy'], ['capability', 'By capability']];
+  var FILTER_HINT = 'Grouping and expanding are off while a filter is set.';
   var OPEN_UNKNOWN = 'Open and done are unknown: delivery mapping incomplete.';
 
   function levelWord(id) {
@@ -159,7 +160,17 @@
     return li;
   }
 
-  function choiceGroup(label, key, choices, pressed, disabled) {
+  // One-line summary the list header shows: it follows the Show and Group choices.
+  function browseSummary(route) {
+    var show = deliveryUnavailable() ? '' : route.show;
+    var prefix = show === 'open' ? 'Open work only. ' : (show === 'done' ? 'Done work only. ' : '');
+    var under = route.group === 'capability' ? 'its nearest capability' : 'its parent';
+    return { lead: prefix + 'Every intent in the export, under ' + under + '.',
+      sort: route.group === 'capability' ? 'Under each capability, by name' : 'Under each parent, by name' };
+  }
+
+  // A segment is one labelled group of buttons; isOff says which of its buttons are disabled.
+  function choiceGroup(label, key, choices, pressed, isOff) {
     var group = el('div', 'seg');
     group.setAttribute('role', 'group');
     var head = add(group, el('span', 'seg-label', label));
@@ -169,7 +180,7 @@
       var b = add(group, button('seg-btn', choice[1]));
       b.setAttribute('aria-pressed', choice[0] === pressed ? 'true' : 'false');
       b.setAttribute('data-ctl', key + '-' + (choice[0] || 'default'));
-      if (disabled && choice[0] !== '') { b.setAttribute('disabled', ''); }
+      if (isOff(choice[0])) { b.setAttribute('disabled', ''); }
       b.addEventListener('click', function () {
         var over = {};
         over[key] = choice[0];
@@ -180,21 +191,25 @@
   }
 
   // The first section's rows are the ones the expand controls act on; a section's disclosure is
-  // never opened or closed by them.
-  function browseBar(show, group, ctx) {
+  // never opened or closed by them. While a filter is set the list is flat, so grouping and
+  // expanding have nothing to act on.
+  function browseBar(show, group, ctx, filtered) {
     var bar = el('div', 'tree-bar');
-    add(bar, choiceGroup('Show', 'show', SHOW_CHOICES, show, deliveryUnavailable()));
-    add(bar, choiceGroup('Group', 'group', GROUP_CHOICES, group, false));
+    var unknown = deliveryUnavailable();
+    add(bar, choiceGroup('Show', 'show', SHOW_CHOICES, show, function (v) { return unknown && v !== ''; }));
+    add(bar, choiceGroup('Group', 'group', GROUP_CHOICES, group, function () { return filtered; }));
     var tools = add(bar, el('div', 'tree-actions'));
     [['Expand all', true], ['Collapse all', false]].forEach(function (pair) {
       var b = add(tools, button('seg-btn', pair[0]));
+      if (filtered) { b.setAttribute('disabled', ''); }
       b.addEventListener('click', function () {
         for (var i = 0; i < ctx.openers.length; i++) {
           if (ctx.openers[i].section === 0) { ctx.openers[i].set(pair[1], true); }
         }
       });
     });
-    if (deliveryUnavailable()) { add(bar, el('p', 'note tree-note', OPEN_UNKNOWN)); }
+    if (unknown) { add(bar, el('p', 'note tree-note', OPEN_UNKNOWN)); }
+    if (filtered) { add(bar, el('p', 'note tree-note', FILTER_HINT)); }
     return bar;
   }
 
@@ -210,7 +225,7 @@
     var keys = activeFilters(route, q);
     var ctx = { kids: null, match: match, shown: null, auto: show !== '', counts: !deliveryUnavailable(),
       openers: [], tally: new Map() };
-    add(dom.list, browseBar(show, group, ctx));
+    add(dom.tools, browseBar(show, group, ctx, keys.length > 0));
     var matching = recordIds.filter(function (id) { return passes(id, route) && match(id); });
     if (keys.length) {
       if (!matching.length) { add(dom.list, filteredEmpty(route, keys, show)); return 0; }

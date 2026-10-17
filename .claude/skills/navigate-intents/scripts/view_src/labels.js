@@ -88,7 +88,7 @@
       sort: 'By type, then name', empty: 'Every open item has a parent.', noun: ['item', 'items'],
       filters: ['type', 'level'] },
     { key: 'browse', name: 'Browse all intents', title: 'All intents',
-      lead: 'Every intent in the export, under its parent or its nearest capability.', sort: 'Under each parent, by name',
+      lead: 'Every intent in the export, under its parent.', sort: 'Under each parent, by name',
       empty: 'No intents were found.', noun: ['intent', 'intents'],
       filters: ['level', 'kind', 'status'] }
   ];

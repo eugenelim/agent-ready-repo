@@ -189,6 +189,7 @@
     var q = question(route.q);
     listGeneration += 1;
     clear(dom.list);
+    clear(dom.tools);
     clear(dom.filters);
     dom.filters.hidden = true;
     var count;
@@ -206,9 +207,10 @@
       add(box, el('p', 'note', 'The export reads docs/product/intents, docs/product/briefs and docs/specs.'));
       count = 0;
     } else {
+      var summary = q.key === 'browse' ? browseSummary(route) : q;
       dom.listTitle.textContent = q.title;
-      dom.listLead.textContent = q.lead;
-      dom.listSort.textContent = q.sort;
+      dom.listLead.textContent = summary.lead;
+      dom.listSort.textContent = summary.sort;
       count = BODIES[q.key](route);
     }
     shownCount = count;

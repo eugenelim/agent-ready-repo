@@ -3645,7 +3645,8 @@ def _expected_progress(found: dict[str, Any], node: str) -> dict[str, Any]:
     words = [f"{counts['delivered']} delivered"]
     words += [f"{counts[b]} {b}" for b in ("in progress", "not started", "stopped") if counts[b]]
     cells = [c for cls, n in zip(_CELL_CLASS, prog["cells"], strict=True) for c in [cls] * n]
-    pct = None if prog["share"] is None else f"{prog['share']}%"
+    current = counts["delivered"] + counts["in progress"] + counts["not started"]
+    pct = None if prog["share"] is None else f"{prog['share']}% delivered of {current} {'item' if current == 1 else 'items'}"
     return {"words": words, "pct": pct, "cells": cells, "none": None, "unknown": None}
 
 
@@ -3705,7 +3706,7 @@ def test_roadmap_progress_text(opener: Any, exports: dict[str, pathlib.Path]) ->
         assert row["mark"] == model.word(node), node
         assert _shown_progress(row["progress"]) == _expected_progress(found, node), node
     # Three rows stated outright: a share, an all-stopped row and a row with nothing beneath.
-    assert rows["capability:birch-cap"]["progress"]["pct"] == "100%"
+    assert rows["capability:birch-cap"]["progress"]["pct"] == "100% delivered of 1 item"
     assert rows["capability:dune-cap"]["progress"]["words"] == ["0 delivered", "2 stopped"]
     assert rows["capability:dune-cap"]["progress"]["pct"] is None
     assert rows["capability:cinder-cap"]["progress"]["none"] == "Nothing beneath yet"
@@ -3734,7 +3735,7 @@ def test_roadmap_strategy_headings(opener: Any, exports: dict[str, pathlib.Path]
     for shown, want in zip(sections[:2], found["sections"][:2], strict=True):
         assert _shown_progress(shown["progress"]) == _expected_progress(found, want["strategy"])
         assert shown["progress"]["pct"] is not None and shown["progress"]["barHidden"] == "true"
-    assert sections[0]["progress"]["pct"] == "33%" and sections[1]["progress"]["pct"] == "17%"
+    assert sections[0]["progress"]["pct"].startswith("33% delivered of ") and sections[1]["progress"]["pct"].startswith("17% delivered of ")
     assert sections[2]["progress"] is None
 
 
@@ -3983,10 +3984,10 @@ def test_browse_toolbar_and_defaults(opener: Any, exports: dict[str, pathlib.Pat
             "els => els.map(e => e.getAttribute('aria-pressed'))"
         )
         assert sorted(values) == ["false"] * (len(values) - 1) + ["true"]
-    bar = page.locator("#list > .tree-bar")
+    bar = page.locator("#tools > .tree-bar")
     assert bar.get_by_role("button", name=re.compile(r"^(Expand|Collapse) all$")).all_inner_texts() == ["Expand all", "Collapse all"]
     assert page.evaluate(
-        """() => !!(document.querySelector('#list > .tree-bar').compareDocumentPosition(
+        """() => !!(document.querySelector('#tools > .tree-bar').compareDocumentPosition(
           document.querySelector('#list .tree')) & Node.DOCUMENT_POSITION_FOLLOWING)"""
     )
     sizes = bar.locator("button").evaluate_all(
@@ -4000,6 +4001,58 @@ def test_browse_toolbar_and_defaults(opener: Any, exports: dict[str, pathlib.Pat
     ):
         _choose(item, "browse", **route)
         assert (_pressed(page, "Show"), _pressed(page, "Group")) == expected, route
+
+
+def test_browse_summary_follows_show_and_group(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["roadmap"])
+    page = item.page
+    for route, lead, sort in (
+        ({}, "Every intent in the export, under its parent.", "Under each parent, by name"),
+        ({"show": "open", "group": "capability"}, "Open work only. Every intent in the export, under its nearest capability.", "Under each capability, by name"),
+        ({"show": "done"}, "Done work only. Every intent in the export, under its parent.", "Under each parent, by name"),
+    ):
+        _choose(item, "browse", **route)
+        assert (_text(page, "#list-lead"), _text(page, "#list-sort")) == (lead, sort), route
+
+
+def test_browse_filter_turns_grouping_and_expanding_off(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["roadmap"])
+    page = item.page
+    _choose(item, "browse", group="capability", level="feature")
+    page.wait_for_selector("#tools .tree-bar")
+    states = page.eval_on_selector_all("#tools button", "els => els.map(e => [e.textContent, e.disabled])")
+    assert dict(states) == {"All": False, "Open": False, "Done": False, "Full hierarchy": True, "By capability": True, "Expand all": True, "Collapse all": True}
+    assert "Grouping and expanding are off while a filter is set." in _text(page, "#tools")
+    assert _pressed(page, "Group") == ["By capability"]
+
+
+def test_trailing_tracks_hold_one_x_at_every_depth(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["roadmap"], width=1680, height=1000)
+    page = item.page
+    _open_browse(item, "all", "hierarchy")
+    xs = page.evaluate(
+        """() => { const by = {};
+          document.querySelectorAll('#list .tree-row').forEach((li) => {
+            let d = 0; for (let e = li.parentElement; e; e = e.parentElement) { if (e.classList && e.classList.contains('subtree')) d++; }
+            const a = li.querySelector(':scope > a.row-link');
+            (by[d] = by[d] || new Set()).add(Math.round(a.querySelector('.c-state .mark').getBoundingClientRect().left) + '/' +
+              Math.round(a.querySelector('.c-context').getBoundingClientRect().left));
+          });
+          return Object.values(by).map((s) => Array.from(s)); }"""
+    )
+    assert len(xs) >= 2 and all(len(group) == 1 for group in xs) and len({group[0] for group in xs}) == 1, xs
+
+
+def test_roadmap_bars_and_counts_share_one_left_edge(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["roadmap"], width=1680, height=1000)
+    _read_roadmap(item)
+    lefts = item.page.evaluate(
+        """() => { const bars = new Set(), words = new Set();
+          document.querySelectorAll('#list .rm-bar').forEach((b) => bars.add(Math.round(b.getBoundingClientRect().left)));
+          document.querySelectorAll('#list .rm-words').forEach((b) => words.add(Math.round(b.getBoundingClientRect().left)));
+          return [Array.from(bars), Array.from(words)]; }"""
+    )
+    assert len(lefts[0]) == 1 and lefts[0] == lefts[1], lefts
 
 
 def test_expand_and_collapse_all(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -4190,7 +4243,7 @@ def test_browse_without_outstanding(opener: Any, exports: dict[str, pathlib.Path
         assert shown.get_by_role("button", name="Open").is_disabled() and shown.get_by_role("button", name="Done").is_disabled()
         assert shown.get_by_role("button", name="All").is_enabled()
         assert _pressed(page, "Show") == ["All"]  # a show choice in the fragment reads as All
-        assert page.locator("#list .tree-note").inner_text() == _UNKNOWN_OPEN
+        assert page.locator("#tools .tree-note").inner_text() == _UNKNOWN_OPEN
         assert page.locator("#list .tree-roll, #list .tree-open").count() == 0
         body = _text(page, "#list")
         assert "closed" not in body and "open items" not in body
