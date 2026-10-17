@@ -658,3 +658,13 @@ def test_a_symlinked_intent_file_is_refused_by_the_query_and_the_export(tmp_path
     result, code = nav.run_export(corpus, str(out), "view.html", None)
     assert code != 0 and result["error"]["code"] == "unsafe_input", result
     assert not (out / "view.html").exists()
+
+
+def test_view_source_names_no_health_words() -> None:
+    """The view's source and the roadmap fixture's records never state a health judgement."""
+    words = ("on track", "at risk", "off track")
+    files = [*_PARTS_DIR.glob("*.js"), *_FIXTURES.glob("roadmap/docs/**/*.md")]
+    assert any(f.name == "roadmap.js" for f in files) and any(f.name == "spec.md" for f in files)
+    for path in files:
+        text = path.read_text(encoding="utf-8").lower()
+        assert not [w for w in words if w in text], path.name

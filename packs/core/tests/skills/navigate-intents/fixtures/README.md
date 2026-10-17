@@ -42,6 +42,9 @@ fixtures/
 │                          coordinated-delivery relations
 ├── terminality/          AC-0058, AC-0059: a live artifact at every terminal status
 │                          word of every type, and a spec placed under a terminal intent
+├── roadmap/               export view: two product strategies, nested capabilities, a capability
+│                          under no strategy, every delivery band, a refused parent edge, and a
+│                          parent loop; its README states each record's band and placement by hand
 ├── hostile/               export view: header values carry script-closing text, markup,
 │                          a `javascript:` value, attribute-breaking quotes, a line separator
 │                          (the derivation reads lines with `splitlines`, so a separator ends

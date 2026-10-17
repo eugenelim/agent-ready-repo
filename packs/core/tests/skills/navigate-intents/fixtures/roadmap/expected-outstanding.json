@@ -1,0 +1,29 @@
+{
+  "outstanding": [
+    "brief:anchor-sub-brief",
+    "brief:fjord-brief",
+    "capability:anchor-cap",
+    "capability:anchor-sub-cap",
+    "capability:cinder-cap",
+    "capability:dune-cap",
+    "capability:ember-child-cap",
+    "capability:fjord-cap",
+    "capability:gale-cap",
+    "intent:acorn-tail",
+    "intent:anchor-feat-child",
+    "intent:anchor-feat-open",
+    "intent:anchor-sub-feat-b",
+    "intent:atlas-direction",
+    "intent:boreal-direction",
+    "intent:dangling-feat",
+    "intent:ember-child-feat",
+    "intent:gale-feat",
+    "intent:loop-alpha",
+    "intent:loop-beta",
+    "intent:loop-gamma",
+    "intent:orphan-feat",
+    "spec:anchor-sub-spec-three",
+    "spec:anchor-sub-spec-two",
+    "spec:fjord-spec"
+  ]
+}

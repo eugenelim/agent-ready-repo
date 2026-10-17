@@ -202,6 +202,7 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
         ("dependency", _FIXTURES / "dependency"),
         ("empty", _FIXTURES / "empty"),
         ("terminality", _FIXTURES / "terminality"),
+        ("roadmap", _FIXTURES / "roadmap"),
         ("coordinated", _FIXTURES / "coordinated_delivery"),
         ("cycle", neg / "cycle"),
         ("dangling", neg / "dangling"),
@@ -587,6 +588,159 @@ class Model:
         if self.available and node_id not in self.open:
             return "✓", word
         return "◇", word
+
+
+# ---------------------------------------------------------------------------
+# The roadmap question and the Browse tree, from the payload alone
+# ---------------------------------------------------------------------------
+
+_BANDS = ("delivered", "in progress", "not started", "stopped")
+_BAR_CELLS = 24
+_NO_STRATEGY = "Not under a product strategy in this export"
+
+
+def _band_of(model: Model, node_id: str) -> str:
+    """The delivery band of an intent, brief or spec, while ``outstanding`` is available."""
+    word = model.word(node_id)
+    if node_id in model.open:
+        return "in progress" if word in ("Implementing", "Executing") else "not started"
+    return "delivered" if word in ("Fulfilled", "Shipped") else "stopped"
+
+
+def _up(model: Model, node_id: str) -> str | None:
+    """The intent a record's resolved parent edge names, or None when absent, refused or outside."""
+    edge = (model.records.get(node_id) or {}).get("parent_edge")
+    if not edge or edge.get("state") or edge.get("to") not in model.records:
+        return None
+    return str(edge["to"])
+
+
+def _nearest(model: Model, node_id: str, level: str) -> str | None:
+    """The first intent of *level* met walking resolved parent edges upward from *node_id*."""
+    seen = {node_id}
+    at = _up(model, node_id)
+    while at is not None and at not in seen:
+        if model.records[at]["level"] == level:
+            return at
+        seen.add(at)
+        at = _up(model, at)
+    return None
+
+
+def _work_beneath(model: Model, node_id: str) -> set[str]:
+    """Every intent, brief and spec reached by children, briefs, specs and ``Brief:`` edges."""
+    specs_of: dict[str, list[str]] = {}
+    for edge in model.p["edges"]:
+        if edge["field"] == "Brief" and not edge.get("state") and "to" in edge:
+            specs_of.setdefault(edge["to"], []).append(edge["from"])
+    reached: set[str] = set()
+    todo = [node_id]
+    while todo:
+        at = todo.pop()
+        rec = model.records.get(at)
+        found = [*rec["children"], *rec["briefs"], *rec["specs"]] if rec else specs_of.get(at, [])
+        for nxt in found:
+            if nxt not in reached:
+                reached.add(nxt)
+                todo.append(nxt)
+    reached.discard(node_id)
+    return reached
+
+
+def _apportion(counts: tuple[int, int, int]) -> tuple[int, int, int]:
+    """Largest-remainder apportionment of the bar's cells; ties go to the earlier band."""
+    current = sum(counts)
+    cells = [_BAR_CELLS * n // current for n in counts]
+    order = sorted(range(3), key=lambda i: (-(_BAR_CELLS * counts[i] % current), i))
+    for i in order[: _BAR_CELLS - sum(cells)]:
+        cells[i] += 1
+    return cells[0], cells[1], cells[2]
+
+
+def _progress(model: Model, node_id: str) -> dict[str, Any]:
+    """Band counts over the work beneath, current work, delivered share and bar cells."""
+    beneath = _work_beneath(model, node_id)
+    counts = {b: sum(1 for i in beneath if _band_of(model, i) == b) for b in _BANDS}
+    current = counts["delivered"] + counts["in progress"] + counts["not started"]
+    share = (200 * counts["delivered"] + current) // (2 * current) if current else None
+    cells: tuple[int, ...] | None = None
+    if current:
+        cells = (*_apportion((counts["delivered"], counts["in progress"], counts["not started"])), 0)
+    elif beneath:
+        cells = (0, 0, 0, _BAR_CELLS)
+    return {"counts": counts, "current": current, "share": share, "cells": cells, "nothing_beneath": not beneath}
+
+
+def _tree_roots(model: Model) -> list[str]:
+    """The Full hierarchy roots: parentless, refused or outside-parent intents, then parent loops."""
+    scope = model.p["scope"].get("from")
+    if scope:
+        return [str(scope)]
+
+    def reach(starts: list[str], into: set[str]) -> None:
+        todo = list(starts)
+        while todo:
+            at = todo.pop()
+            if at not in into:
+                into.add(at)
+                todo += model.records[at]["children"]
+
+    roots = [i for i in model.records if _up(model, i) is None]
+    reached: set[str] = set()
+    reach(roots, reached)
+    for member in model.by_name(i for i in model.records if i not in reached):
+        path: list[str] = []
+        at: str | None = member
+        while at is not None and at not in path:
+            path.append(at)
+            at = _up(model, at)
+        on_loop = at is not None and member in path[path.index(at) :]
+        if on_loop and member not in reached:
+            roots.append(member)
+            reach([member], reached)
+    assert reached == set(model.records), "an intent is under no tree root"
+    return model.by_name(roots)
+
+
+def _roadmap_expectations(payload: dict[str, Any]) -> dict[str, Any]:
+    """The spec's roadmap and tree terms, read from a payload without any page code.
+
+    ``bands`` maps every node to its band (None while ``outstanding`` is unavailable); ``sections``
+    lists ``{"heading", "strategy", "capabilities"}`` in the order shown, each capability as
+    ``{"id", "children"}`` with nested capabilities under their nearest capability ancestor;
+    ``progress`` maps each capability and strategy to ``_progress``; ``roots`` are the tree roots.
+    """
+    model = Model(payload)
+    caps = [i for i, r in model.records.items() if r["level"] == "capability"]
+    strategies = [i for i, r in model.records.items() if r["level"] == "product-strategy"]
+    heads: dict[str | None, list[str]] = {}
+    nested: dict[str, list[str]] = {}
+    for cap in caps:
+        above = _nearest(model, cap, "capability")
+        if above is None:
+            heads.setdefault(_nearest(model, cap, "product-strategy"), []).append(cap)
+        else:
+            nested.setdefault(above, []).append(cap)
+
+    def entry(cap: str) -> dict[str, Any]:
+        return {"id": cap, "children": [entry(c) for c in model.by_name(nested.get(cap, []))]}
+
+    sections = [
+        {"heading": model.display(s), "strategy": s, "capabilities": [entry(c) for c in model.by_name(heads[s])]}
+        for s in model.by_name(i for i in heads if i is not None)
+    ]
+    if None in heads:
+        sections.append(
+            {"heading": _NO_STRATEGY, "strategy": None, "capabilities": [entry(c) for c in model.by_name(heads[None])]}
+        )
+    available = model.available
+    return {
+        "available": available,
+        "bands": {i: _band_of(model, i) if available else None for i in model.nodes},
+        "sections": sections,
+        "progress": {i: _progress(model, i) for i in [*caps, *strategies]} if available else {},
+        "roots": _tree_roots(model),
+    }
 
 
 def _marks(page: Page, selector: str) -> list[tuple[str, str, str | None]]:
@@ -3213,3 +3367,92 @@ def test_nothing_spills_out_of_a_zone(opener: Any, exports: dict[str, pathlib.Pa
                     page.locator(".back-link").first.click()  # back to the list for the next destination
                     page.wait_for_function("() => !document.getElementById('main').hasAttribute('data-picked')")
     assert picks >= 6, picks
+
+
+# ---------------------------------------------------------------------------
+# The roadmap fixture: hand-stated bands against the payload reading
+# ---------------------------------------------------------------------------
+
+
+def _readme_tables() -> dict[str, list[list[str]]]:
+    """The fixture README's tables as cell lists, keyed by the heading above each."""
+    (path,) = _FIXTURES.glob("roadmap/README.md")
+    found: dict[str, list[list[str]]] = {}
+    heading = ""
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            heading = line[3:].strip()
+        elif line.startswith("| ") and not line.startswith("| ---") and not line.startswith("| Node id"):
+            found.setdefault(heading, []).append([c.strip().strip("`") for c in line.strip("|").split("|")])
+    return found
+
+
+def _placements(found: dict[str, Any]) -> dict[str, str]:
+    """Each capability's and strategy's placement, worded as the README states it."""
+    out: dict[str, str] = {}
+
+    def walk(items: list[dict[str, Any]], above: str | None, heading: str) -> None:
+        for item in items:
+            out[item["id"]] = f"nested under {above}" if above else f'section "{heading}"'
+            walk(item["children"], item["id"], heading)
+
+    for section in found["sections"]:
+        if section["strategy"]:
+            out[section["strategy"]] = f'heads section "{section["heading"]}"'
+        walk(section["capabilities"], None, section["heading"])
+    return out
+
+
+def test_roadmap_fixture_matches_hand_stated_bands(exports: dict[str, pathlib.Path]) -> None:
+    payload = payload_of(exports["roadmap"])
+    found = _roadmap_expectations(payload)
+    tables = _readme_tables()
+
+    stated_bands = {n: band for n, band, _ in tables["Records"]}
+    assert len(stated_bands) == len(tables["Records"]) == len(payload["nodes"])
+    assert found["bands"] == stated_bands
+    assert set(stated_bands.values()) == set(_BANDS)
+
+    placements = _placements(found)
+    assert {n: place for n, _, place in tables["Records"] if place != "-"} == placements
+    assert [s["heading"] for s in found["sections"]] == [
+        "Atlas direction",
+        "Boreal direction",
+        _NO_STRATEGY,
+    ]
+
+    def stated(row: list[str]) -> tuple[Any, ...]:
+        cells = None if row[6] == "no bar" else tuple(int(c) for c in row[6].split("/"))
+        return (*map(int, row[1:5]), None if row[5] == "-" else int(row[5].rstrip("%")), cells)
+
+    def read(node: str) -> tuple[Any, ...]:
+        prog = found["progress"][node]
+        counts = prog["counts"]
+        cells = None if prog["nothing_beneath"] else prog["cells"]
+        return (*(counts[b] for b in _BANDS), prog["share"], cells)
+
+    assert {r[0] for r in tables["Progress"]} == set(found["progress"])
+    for row in tables["Progress"]:
+        assert read(row[0]) == stated(row), row[0]
+        assert found["progress"][row[0]]["nothing_beneath"] == (row[6] == "no bar")
+
+    model = Model(payload)
+    stated_roots = dict(tables["Tree roots"])
+    assert found["roots"] == model.by_name(stated_roots)
+    for node, place in stated_roots.items():
+        assert place == ("root, intents beneath" if model.records[node]["children"] else "root, nothing beneath")
+
+
+def test_roadmap_tree_roots_take_the_first_loop_member_when_no_edge_is_refused(
+    exports: dict[str, pathlib.Path],
+) -> None:
+    """A payload whose loop has no refused edge still roots each intent once, by name order."""
+    payload = payload_of(exports["roadmap"])
+    alpha = payload["records"]["intent:loop-alpha"]
+    gamma = payload["records"]["intent:loop-gamma"]
+    alpha["parent_edge"] = {**alpha["parent_edge"], "to": "intent:loop-gamma"}
+    del alpha["parent_edge"]["state"]
+    gamma["children"] = ["intent:loop-alpha"]
+    roots = _roadmap_expectations(payload)["roots"]
+    assert "intent:loop-alpha" in roots and "intent:acorn-tail" not in roots
+    assert len([r for r in roots if r.startswith("intent:loop-")]) == 1
