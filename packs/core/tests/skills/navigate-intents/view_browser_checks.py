@@ -297,12 +297,14 @@ class Opened:
         js: bool = True,
         theme: str | None = None,
         fragment: str = "",
+        reduced_motion: str | None = None,
     ) -> None:
         self.url = path.as_uri()
         self.context = browser.new_context(
             viewport={"width": width, "height": height},
             color_scheme=scheme,  # type: ignore[arg-type]
             java_script_enabled=js,
+            reduced_motion=reduced_motion,  # type: ignore[arg-type]
         )
         self.context.set_default_timeout(8000)
         self.page: Page = self.context.new_page()
@@ -2961,3 +2963,251 @@ def test_vi_4002_hostile_values_stay_inert(opener: Any, exports: dict[str, pathl
         f"default-src 'none'; script-src 'sha256-{digest(script)}'; style-src 'sha256-{digest(style)}'; "
         "img-src 'none'; base-uri 'none'; form-action 'none'"
     )
+
+
+# ---------------------------------------------------------------------------
+# Refined style: motion, elevation, edges and colour, read from computed style and geometry
+# ---------------------------------------------------------------------------
+
+# The colour an element sits on: its own background-color, or the nearest ancestor's with a non-zero alpha,
+# composited over the layers beneath it until one is opaque.
+_BACKDROP = """(el) => {
+  const parse = (c) => { const m = c.match(/[\\d.]+/g).map(Number); return m.length === 3 ? [...m, 1] : m; };
+  const layers = [];
+  for (let p = el; p; p = p.parentElement) {
+    const c = parse(getComputedStyle(p).backgroundColor);
+    if (c[3] > 0) { layers.push(c); if (c[3] >= 1) break; }
+  }
+  let out = [255, 255, 255];
+  for (const c of layers.reverse()) out = out.map((v, i) => c[i] * c[3] + v * (1 - c[3]));
+  return out;
+}"""
+
+
+def _over(css: str, backdrop: tuple[float, float, float]) -> tuple[float, float, float]:
+    """An ``rgb()`` or ``rgba()`` colour composited over an opaque backdrop."""
+    nums = [float(n) for n in re.findall(r"[\d.]+", css)]
+    alpha = nums[3] if len(nums) > 3 else 1.0
+    return tuple(c * alpha + b * (1 - alpha) for c, b in zip(nums[:3], backdrop, strict=True))  # type: ignore[return-value]
+
+
+def _backdrop(page: Page, selector: str, index: int = 0) -> tuple[float, float, float]:
+    found = page.locator(selector).nth(index).evaluate(_BACKDROP)
+    return float(found[0]), float(found[1]), float(found[2])
+
+
+def _inset_bars(page: Page, selector: str) -> list[list[tuple[float, str]]]:
+    """Per element, its inset shadows as (bar width, colour): the x offset plus the spread."""
+    raw = page.eval_on_selector_all(selector, "els => els.map(e => getComputedStyle(e).boxShadow)")
+    bars: list[list[tuple[float, str]]] = []
+    for shadow in raw:
+        found: list[tuple[float, str]] = []
+        for part in re.split(r",\s*(?![^(]*\))", shadow):
+            if "inset" not in part:
+                continue
+            colour = re.search(r"rgba?\([^)]*\)", part)
+            lengths = [float(n) for n in re.findall(r"(-?[\d.]+)px", part)]
+            assert colour and len(lengths) >= 2, part
+            spread = lengths[3] if len(lengths) > 3 else 0.0
+            found.append((lengths[0] + spread, colour.group(0)))
+        bars.append(found)
+    return bars
+
+
+def test_reduced_motion_is_still(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"], reduced_motion="reduce")
+    page = _pick(item, "intent:bravo-feat")
+    moving = page.evaluate(
+        """() => [...document.querySelectorAll('*')].flatMap((e) => {
+          const cs = getComputedStyle(e);
+          const bad = [];
+          for (const prop of ['transitionDuration', 'animationDuration']) {
+            if (cs[prop].split(',').some((d) => d.trim() !== '0s')) bad.push(prop + '=' + cs[prop]);
+          }
+          if (cs.animationName !== 'none') bad.push('animationName=' + cs.animationName);
+          return bad.length ? [e.tagName + '.' + e.className + ' ' + bad.join(' ')] : [];
+        })"""
+    )
+    assert moving == [], moving[:5]
+    assert page.evaluate("document.querySelectorAll('*').length") > 100  # the detail has rendered
+
+
+def test_rows_transition_when_motion_allowed(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"], reduced_motion="no-preference")
+    item.go(_frag(q="browse"))
+    item.page.wait_for_selector("#list a.row-link")
+    durations = item.page.eval_on_selector("#list a.row-link", "e => getComputedStyle(e).transitionDuration")
+    assert any(float(d.strip().removesuffix("s")) > 0 for d in durations.split(",")), durations
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_zones_are_raised(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    for name, picked, page in _matrix_states(opener, exports, width, scheme):
+        for zone in (".worklist", ".detail"):
+            radius, shadow = page.eval_on_selector(
+                zone, "e => { const cs = getComputedStyle(e); return [cs.borderTopLeftRadius, cs.boxShadow]; }"
+            )
+            assert radius not in ("0px", ""), (name, picked, zone, radius)
+            assert shadow != "none", (name, picked, zone)
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_rows_are_flat(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    seen = 0
+    for name, picked, page in _matrix_states(opener, exports, width, scheme):
+        shadows = page.eval_on_selector_all("a.row-link", "els => els.map(e => getComputedStyle(e).boxShadow)")
+        seen += len(shadows)
+        for shadow in shadows:
+            parts = [] if shadow == "none" else re.split(r",\s*(?![^(]*\))", shadow)
+            assert all("inset" in part for part in parts), (name, picked, shadow)
+    assert seen > 10
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_control_borders_clear_3_to_1(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    kinds: set[str] = set()
+    for name, picked, page in _matrix_states(opener, exports, width, scheme):
+        controls = page.evaluate(
+            """(src) => {
+              const backdrop = eval(src);
+              return [...document.querySelectorAll('#search, select, button')].flatMap((e) => {
+                const cs = getComputedStyle(e);
+                const side = ['Top', 'Right', 'Bottom', 'Left'].find((s) => parseFloat(cs['border' + s + 'Width']) > 0);
+                if (!side) return [];
+                return [{ tag: e.tagName.toLowerCase(), id: e.id, border: cs['border' + side + 'Color'], bg: backdrop(e) }];
+              });
+            }""",
+            _BACKDROP,
+        )
+        for control in controls:
+            bg = (float(control["bg"][0]), float(control["bg"][1]), float(control["bg"][2]))
+            ratio = _ratio(_over(control["border"], bg), bg)
+            kinds.update((control["id"], control["tag"]))
+            assert ratio >= 3, (name, picked, control, ratio)
+    assert {"search", "select"} <= kinds, kinds
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+def test_search_placeholder(opener: Any, exports: dict[str, pathlib.Path], scheme: str) -> None:
+    page = opener(exports["mixed"], scheme=scheme).page
+    field = page.locator("#search")
+    assert field.get_attribute("placeholder") == "Search names and ids"
+    assert page.get_by_role("searchbox", name="Search names and ids").count() == 1
+    colour, opacity = field.evaluate(
+        "e => { const cs = getComputedStyle(e, '::placeholder'); return [cs.color, cs.opacity]; }"
+    )
+    assert opacity == "1", opacity
+    bg = _backdrop(page, "#search")
+    assert _ratio(_over(colour, bg), bg) >= 4.5, (colour, bg)
+
+
+def test_state_line_reads_word_then_type(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"])
+    model = Model(payload_of(exports["mixed"]))
+    checked: set[str] = set()
+    for node_id in model.nodes:
+        page = _pick(item, node_id)
+        glyph, word, _hidden = _marks(page, ".state-line")[0]
+        full = page.locator(".state-line").evaluate("e => e.textContent")
+        line = " ".join(full.replace(glyph, "", 1).split())
+        found = re.fullmatch(rf"{re.escape(word)} (Intent|Brief|Spec)(?: .*)?", line)
+        assert found, (node_id, line)
+        assert not re.search(r"[·|/:,-]\s*" + found.group(1), line), line
+        checked.add(found.group(1))
+    assert checked == {"Intent", "Brief", "Spec"}, checked
+
+
+def _pick_first_broken(item: Opened) -> Page:
+    """Open the broken question and pick the first record it lists; it has broken entries to show."""
+    item.go(_frag(q="broken"))
+    item.page.wait_for_selector("#list a.row-link")
+    node = item.page.locator("#list a.row-link").first.get_attribute("data-node")
+    page = _pick(item, node or "", "broken")
+    assert page.locator(".has-broken > ul > li.edge").count() >= 1
+    return page
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+def test_broken_entries_are_tinted(opener: Any, exports: dict[str, pathlib.Path], scheme: str) -> None:
+    page = _pick_first_broken(opener(exports["hostile"], scheme=scheme))
+    zone = page.eval_on_selector(".detail", "e => getComputedStyle(e).backgroundColor")
+    tints = page.eval_on_selector_all(
+        ".has-broken > ul > li.edge", "els => els.map(e => getComputedStyle(e).backgroundColor)"
+    )
+    assert tints and all(t != zone for t in tints), (zone, tints)
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+def test_broken_entries_have_a_bar(opener: Any, exports: dict[str, pathlib.Path], scheme: str) -> None:
+    page = _pick_first_broken(opener(exports["hostile"], scheme=scheme))
+    zone = _backdrop(page, ".detail")
+    bars = page.eval_on_selector_all(
+        ".has-broken > ul > li.edge",
+        "els => els.map(e => { const cs = getComputedStyle(e); return [parseFloat(cs.borderLeftWidth), cs.borderLeftStyle, cs.borderLeftColor]; })",
+    )
+    assert bars
+    for width, style, colour in bars:
+        assert width >= 3 and style != "none", (width, style)
+        assert _ratio(_over(colour, zone), zone) >= 3, (colour, zone)
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+def test_current_question_has_a_bar(opener: Any, exports: dict[str, pathlib.Path], scheme: str) -> None:
+    page = opener(exports["mixed"], scheme=scheme).page
+    links = "nav a[data-q]"
+    bars = _inset_bars(page, links)
+    current = page.eval_on_selector_all(links, "els => els.map(e => e.getAttribute('aria-current') === 'page')")
+    assert current.count(True) == 1
+    for index, (is_current, found) in enumerate(zip(current, bars, strict=True)):
+        if not is_current:
+            assert found == [], (index, found)
+            continue
+        assert len(found) == 1 and found[0][0] >= 3, found
+        bg = _backdrop(page, links, index)
+        assert _ratio(_over(found[0][1], bg), bg) >= 3, (found, bg)
+
+
+_SPILL_WIDTHS = [320, 1280, 1440, 1500, 1680, 2560]
+_SPILL = """() => {
+  const out = [];
+  for (const zone of document.querySelectorAll('.worklist, .detail')) {
+    const z = zone.getBoundingClientRect();
+    if (!zone.getClientRects().length) continue;  // the zone is not shown in this state
+    for (const e of zone.querySelectorAll('*')) {
+      if (!e.getClientRects().length) continue;
+      const r = e.getBoundingClientRect();
+      if (r.left < z.left - 1 || r.right > z.right + 1) {
+        out.push(zone.className + ' > ' + e.tagName.toLowerCase() + '.' + e.className + ' ' + r.left + '..' + r.right + ' in ' + z.left + '..' + z.right);
+      }
+    }
+  }
+  return out;
+}"""
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+@pytest.mark.parametrize("width", _SPILL_WIDTHS)
+def test_nothing_spills_out_of_a_zone(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
+    picks = 0
+    for name in _MATRIX_EXPORTS:
+        page = opener(exports[name], width=width, height=700, scheme=scheme).page
+        for question in _QUESTIONS:
+            page.locator(f'nav a[data-q="{question}"]').click()
+            page.wait_for_selector(f'nav a[data-q="{question}"][aria-current="page"]')
+            states = ["list"]
+            if page.locator("#list a.row-link").count():
+                states.append("picked")
+            for state in states:
+                if state == "picked":
+                    page.locator("#list a.row-link").first.click()
+                    page.wait_for_function("() => document.getElementById('main').hasAttribute('data-picked')")
+                    page.wait_for_selector("#detail-body .state-line")
+                    picks += 1
+                spill = page.evaluate(_SPILL)
+                assert spill == [], (name, question, state, spill[:5])
+                scroll = page.evaluate("document.documentElement.scrollWidth")
+                assert scroll <= width, (name, question, state, scroll)
+                if state == "picked" and width < 640:
+                    page.locator(".back-link").first.click()  # back to the list for the next destination
+                    page.wait_for_function("() => !document.getElementById('main').hasAttribute('data-picked')")
+    assert picks >= 6, picks
