@@ -163,6 +163,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `intent-node-headings` | <auto> |
 | `intent-view-session-start` | <auto> |
 | `intent-view-source-and-style` | <auto> |
+| `intent-view-tree-and-roadmap` | <auto> |
 
 ## Governance references (optional)
 
