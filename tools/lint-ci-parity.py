@@ -597,6 +597,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         ),
     "pytest portable-catalogue-authentication packaging (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest skill HTML view token file agreement (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
@@ -1069,6 +1071,7 @@ _GATE_MAIN_CHECKS = (
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
+    "pytest skill HTML view token file agreement (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",

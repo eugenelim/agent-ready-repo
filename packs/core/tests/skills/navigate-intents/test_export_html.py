@@ -29,6 +29,7 @@ _PACK = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _ASSETS = _SCRIPTS / "view_assets"
 _PARTS_DIR = _SCRIPTS / "view_src"
+_PARTS = {p.name: p for p in _PARTS_DIR.glob("*.js")}
 _FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
 _BASE_CSS = (_ASSETS / "view-base.css").read_text(encoding="utf-8")
 _LAYOUT_CSS = (_ASSETS / "view.css").read_text(encoding="utf-8")
@@ -243,7 +244,7 @@ def test_joined_script_is_printable_ascii(mixed_html: str) -> None:
 
 
 def _part_text(name: str) -> str:
-    return (_PARTS_DIR / name).read_text(encoding="utf-8")
+    return _PARTS[name].read_text(encoding="utf-8")
 
 
 def test_joined_script_is_prologue_parts_epilogue(mixed_html: str) -> None:
@@ -265,9 +266,10 @@ def test_script_digest_covers_the_joined_script(mixed_html: str) -> None:
 def test_part_list_matches_view_src() -> None:
     listed = list(view._SCRIPT_PARTS)
     assert len(listed) == len(set(listed))
-    assert sorted(listed) == sorted(p.name for p in _PARTS_DIR.glob("*.js"))
+    assert sorted(listed) == sorted(_PARTS)
     for name in listed:
-        assert (_PARTS_DIR / name).is_file() and not (_PARTS_DIR / name).is_symlink(), name
+        assert name in _PARTS, name
+        assert _PARTS[name].is_file() and not _PARTS[name].is_symlink(), name
         assert _part_text(name).endswith("\n"), name
 
 
@@ -342,7 +344,6 @@ def test_escape_function_matches_the_text_output(mixed_html: str, tmp_path: path
     assert json.loads(done.stdout) == [nav._escape_display(p) for p in probes]
 
 
-_TOKEN_FILE = _PACK.parents[1] / "docs" / "design" / "tokens" / "skill-html-views.md"
 _DARK = "@media (prefers-color-scheme: dark)"
 _MOTION = "@media (prefers-reduced-motion: no-preference)"
 _Decl = tuple[tuple[str, ...], str, str, str]  # (at-rule chain, selector, property, value)
@@ -405,20 +406,6 @@ def _both_sheets() -> list[_Decl]:
     return _walk_css(_BASE_CSS)[0] + _walk_css(_LAYOUT_CSS)[0]
 
 
-def _token_tables() -> dict[str, dict[str, tuple[str, str]]]:
-    """Read each Role, Light, Dark row of the token file's Colour, Radius and Elevation tables."""
-    tables: dict[str, dict[str, tuple[str, str]]] = {}
-    section = ""
-    for line in _TOKEN_FILE.read_text(encoding="utf-8").splitlines():
-        if line.startswith("## "):
-            section = line[3:].strip()
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if section in ("Colour", "Radius", "Elevation") and len(cells) >= 3 and re.fullmatch(r"`--[\w-]+`", cells[0]):
-            tables.setdefault(section, {})[cells[0].strip("`")] = (cells[1].strip("`"), cells[2].strip("`"))
-    return tables
-
-
 def _root_values(css: str) -> tuple[dict[str, str], dict[str, str]]:
     """Return the custom properties on :root, and those inside the dark-scheme block."""
     light: dict[str, str] = {}
@@ -432,28 +419,6 @@ def _root_values(css: str) -> tuple[dict[str, str], dict[str, str]]:
     return light, dark
 
 
-def _token_misses(css: str, tables: dict[str, dict[str, tuple[str, str]]]) -> list[str]:
-    light, dark = _root_values(css)
-    misses = []
-    for section, roles in tables.items():
-        for role, (want_light, want_dark) in roles.items():
-            if light.get(role) != _squash(want_light):
-                misses.append(f"{section} {role}: light {light.get(role)!r} != {want_light!r}")
-            if want_dark and dark.get(role) != _squash(want_dark):
-                misses.append(f"{section} {role}: dark {dark.get(role)!r} != {want_dark!r}")
-    return misses
-
-
-def test_base_declares_token_tables() -> None:
-    """Every Colour, Radius and Elevation role of the token file is declared on :root and in the dark block."""
-    tables = _token_tables()
-    assert {k: len(v) for k, v in tables.items()} == {"Colour": 20, "Radius": 3, "Elevation": 2}
-    assert _token_misses(_BASE_CSS, tables) == []
-    # The check can fail: a sheet that drops a role or its dark value is reported.
-    assert _token_misses(":root { --c-bg: #ffffff; }", {"Colour": {"--c-bg": ("#ffffff", "#16181d")}})
-    assert _token_misses(":root { --c-bg: #fffffe; }", {"Colour": {"--c-bg": ("#ffffff", "")}})
-
-
 def _declared_properties(css: str) -> set[str]:
     light, dark = _root_values(css)
     return set(light) | set(dark)
@@ -463,13 +428,10 @@ def _unresolved_vars(declared: set[str], css: str) -> set[str]:
     return {name for name in re.findall(r"var\(\s*(--[\w-]+)", css) if name not in declared}
 
 
-def test_token_file_and_sheets_agree_both_ways() -> None:
-    """Every property view-base.css declares is named in the token file; every var() resolves to one it declares."""
+def test_every_var_resolves_to_a_declared_property() -> None:
+    """Every var() in either sheet resolves to a property view-base.css declares."""
     declared = _declared_properties(_BASE_CSS)
     assert declared
-    token_text = _TOKEN_FILE.read_text(encoding="utf-8")
-    undocumented = sorted(n for n in declared if not re.search(re.escape(n) + r"(?![\w-])", token_text))
-    assert undocumented == [], undocumented
     assert _unresolved_vars(declared, _BASE_CSS) == set()
     assert _unresolved_vars(declared, _LAYOUT_CSS) == set()
     # The check can fail: an unknown var() is reported.
@@ -663,37 +625,6 @@ def test_motion_is_short_and_not_scroll_driven() -> None:
                 "transition: color var(--t)", "animation-duration: VAR(--d)"):
         assert _timing_problems(_walk_css(f".a {{ {bad}; }}")[0]), bad
     assert _timing_problems(_walk_css(".a { transition: color 0.2s, opacity 120ms; }")[0]) == []
-
-
-_MARKS = ("active", "approved", "draft", "done", "broken", "stale")
-
-
-def _mark_colours(css: str, colour: dict[str, str]) -> dict[str, str]:
-    """Resolve each state mark's background through a role table."""
-    resolved = {}
-    for _chain, selector, prop, value in _walk_css(css)[0]:
-        for sel in selector.split(","):
-            found = re.fullmatch(r'\.mark\[data-mark="(\w+)"\]', sel.strip())
-            if found and prop == "background":
-                role = re.fullmatch(r"var\((--[\w-]+)\)", value)
-                assert role, (selector, value)
-                resolved[found.group(1)] = colour[role.group(1)]
-    return resolved
-
-
-def test_state_mark_backgrounds_differ() -> None:
-    """The six state marks each declare a background, and the six resolve to six different colours per theme."""
-    colours = _token_tables()["Colour"]
-    for index, theme in enumerate(("light", "dark")):
-        resolved = _mark_colours(_BASE_CSS, {role: pair[index] for role, pair in colours.items()})
-        assert sorted(resolved) == sorted(_MARKS), theme
-        assert len(set(resolved.values())) == len(_MARKS), (theme, resolved)
-    # The check can fail: two marks that resolve to one colour are caught.
-    same = _mark_colours(
-        '.mark[data-mark="done"] { background: var(--c-a); } .mark[data-mark="draft"] { background: var(--c-b); }',
-        {"--c-a": "#eee", "--c-b": "#eee"},
-    )
-    assert len(set(same.values())) < len(same)
 
 
 def test_hostile_export_keeps_the_csp_string_and_the_script_stays_clean(hostile_html: str, mixed_html: str) -> None:

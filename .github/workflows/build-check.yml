@@ -841,6 +841,14 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_portable_catalogue_authentication_packaging.py
 
+      # skill-html-view-tokens: the stylesheet-to-token-file checks read
+      # docs/design/tokens/, above the pack, so lint-pack-test-boundary forbids
+      # a pack home. Placed ABOVE the bulk tests/ step below, which also
+      # collects it, so a failure is attributed to this named step.
+      - name: pytest skill HTML view token file agreement (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_skill_html_view_tokens.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

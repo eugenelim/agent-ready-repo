@@ -433,11 +433,13 @@ def _rgb(css: str) -> tuple[float, float, float]:
 
 
 def _canvas_rgb(scheme: str) -> str:
-    """The page-canvas colour the token file gives for a theme, as the browser reports it."""
-    tokens = _PACK.parents[1] / "docs" / "design" / "tokens" / "skill-html-views.md"
-    row = re.search(r"^\| `--c-canvas` \| `#(\w{6})` \| `#(\w{6})` \|", tokens.read_text(encoding="utf-8"), re.MULTILINE)
-    assert row, "the token file has no --c-canvas row"
-    hex6 = row.group(2 if scheme == "dark" else 1)
+    """The page-canvas colour view-base.css gives for a theme, as the browser reports it."""
+    css = (_SCRIPTS / "view_assets" / "view-base.css").read_text(encoding="utf-8")
+    dark_at = css.index("@media (prefers-color-scheme: dark)")
+    block = css[dark_at:] if scheme == "dark" else css[:dark_at]
+    row = re.search(r"--c-canvas:\s*#(\w{6})\s*;", block)
+    assert row, f"view-base.css has no {scheme} --c-canvas declaration"
+    hex6 = row.group(1)
     return "rgb({}, {}, {})".format(*(int(hex6[i : i + 2], 16) for i in (0, 2, 4)))
 
 
@@ -2951,8 +2953,9 @@ def test_vi_4002_hostile_values_stay_inert(opener: Any, exports: dict[str, pathl
     html = path.read_text(encoding="utf-8")
     meta = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', html)
     builder = nav._load_view_mod()
+    parts = {p.name: p for p in (_SCRIPTS / "view_src").glob("*.js")}
     script = builder._SCRIPT_PROLOGUE + "".join(
-        (_SCRIPTS / "view_src" / name).read_text(encoding="utf-8") for name in builder._SCRIPT_PARTS
+        parts[name].read_text(encoding="utf-8") for name in builder._SCRIPT_PARTS
     ) + builder._SCRIPT_EPILOGUE
     style = (_SCRIPTS / "view_assets" / "view-base.css").read_text(encoding="utf-8") + "\n" + (_SCRIPTS / "view_assets" / "view.css").read_text(encoding="utf-8")
 
