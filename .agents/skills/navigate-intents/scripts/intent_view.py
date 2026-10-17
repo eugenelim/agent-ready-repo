@@ -153,6 +153,16 @@ def _read_asset(name: str, root: Path = _ASSET_DIR) -> str:
         raise ViewRefusal("resolver_unavailable", "view assets are unavailable") from None
 
 
+def _read_part(name: str) -> str:
+    """Read one script part, or refuse naming only its file name, never a path."""
+    try:
+        return _read_asset(name, _SOURCE_DIR)
+    except ViewRefusal:
+        raise ViewRefusal(
+            "resolver_unavailable", f"view script part is unavailable: view_src/{name}"
+        ) from None
+
+
 def _digest(content: str) -> str:
     """Return the CSP source expression for the SHA-256 of *content*'s UTF-8 bytes."""
     return "'sha256-" + base64.b64encode(hashlib.sha256(content.encode("utf-8")).digest()).decode(
@@ -168,7 +178,7 @@ def build_html(payload: dict[str, Any]) -> str:
     """
     base = _read_asset("view-base.css")
     layout = _read_asset("view.css")
-    parts = [(name, _read_asset(name, _SOURCE_DIR)) for name in _SCRIPT_PARTS]
+    parts = [(name, _read_part(name)) for name in _SCRIPT_PARTS]
     script = _SCRIPT_PROLOGUE + "".join(body for _name, body in parts) + _SCRIPT_EPILOGUE
     style = base + "\n" + layout
     for name, body, closer in (

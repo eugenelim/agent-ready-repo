@@ -359,3 +359,14 @@ summary { cursor: pointer; }
     to { opacity: 1; transform: none; }
   }
 }
+
+/* ---- Forced colors: the system palette drops backgrounds and shadows, so mark the selection with an outline. */
+@media (forced-colors: active) {
+  .row-link[aria-current="true"], .question-link[aria-current="page"] {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+  .row-link[aria-current="true"]:focus-visible, .question-link[aria-current="page"]:focus-visible {
+    outline-color: CanvasText;
+  }
+}

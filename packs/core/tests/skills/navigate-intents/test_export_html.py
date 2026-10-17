@@ -70,7 +70,9 @@ class _Shape(HTMLParser):
         self.texts: dict[str, list[str]] = {"script": [], "style": []}
         self._stack: list[str] = []
         self._current: str | None = None
+        self._executable = False
         self.executable = 0
+        self.executable_scripts: list[str] = []
         self.style_elements = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -82,11 +84,13 @@ class _Shape(HTMLParser):
             self._stack.append("head")
         if tag == "script" and mapping.get("type") != "application/json":
             self.executable += 1
+            self.executable_scripts.append("")
         if tag == "style":
             self.style_elements += 1
         if tag in ("script", "style"):
             self._current = tag
             self.texts[tag].append("")
+            self._executable = tag == "script" and mapping.get("type") != "application/json"
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "head" and self._stack:
@@ -97,6 +101,8 @@ class _Shape(HTMLParser):
     def handle_data(self, data: str) -> None:
         if self._current:
             self.texts[self._current][-1] += data
+            if self._current == "script" and self._executable:
+                self.executable_scripts[-1] += data
 
 
 def _parse(html: str) -> _Shape:
@@ -112,7 +118,7 @@ def _digest(content: str) -> str:
 
 def _joined(html: str) -> str:
     """Return the page's one executable script, as the builder joined it."""
-    (script,) = [t for t in _parse(html).texts["script"] if t.strip() and "function" in t]
+    (script,) = _parse(html).executable_scripts
     return script
 
 
@@ -270,13 +276,14 @@ def test_no_part_exceeds_400_lines() -> None:
         assert part.read_bytes().count(b"\n") <= 400, part.name
 
 
-def _refused_export(tmp_path: pathlib.Path) -> None:
+def _refused_export(tmp_path: pathlib.Path) -> str:
     out = tmp_path / "out"
     out.mkdir(parents=True, exist_ok=True)
     result, code = nav.run_export(_FIXTURES / "mixed", str(out), "view.html", None)
     assert code == 1, result
     assert result["error"]["code"] == "resolver_unavailable"
     assert list(out.iterdir()) == []
+    return str(result["error"]["message"])
 
 
 def test_a_missing_or_unsafe_part_refuses_the_export(
@@ -284,7 +291,9 @@ def test_a_missing_or_unsafe_part_refuses_the_export(
 ) -> None:
     missing = tmp_path / "missing"
     monkeypatch.setattr(view, "_SCRIPT_PARTS", (*view._SCRIPT_PARTS, "no-such-part.js"))
-    _refused_export(missing)
+    message = _refused_export(missing)
+    assert "no-such-part.js" in message
+    assert not re.search(r"(?:^|[\s'\"(])(?:/|[A-Za-z]:[\\/])\S", message), message
     monkeypatch.undo()
     for index, injected in enumerate(("</script>", "</SCRIPT >", "<!--")):
         parts = tmp_path / f"parts{index}"
@@ -445,6 +454,37 @@ def test_base_declares_token_tables() -> None:
     assert _token_misses(":root { --c-bg: #fffffe; }", {"Colour": {"--c-bg": ("#ffffff", "")}})
 
 
+def _declared_properties(css: str) -> set[str]:
+    light, dark = _root_values(css)
+    return set(light) | set(dark)
+
+
+def _unresolved_vars(declared: set[str], css: str) -> set[str]:
+    return {name for name in re.findall(r"var\(\s*(--[\w-]+)", css) if name not in declared}
+
+
+def test_token_file_and_sheets_agree_both_ways() -> None:
+    """Every property view-base.css declares is named in the token file; every var() resolves to one it declares."""
+    declared = _declared_properties(_BASE_CSS)
+    assert declared
+    token_text = _TOKEN_FILE.read_text(encoding="utf-8")
+    undocumented = sorted(n for n in declared if not re.search(re.escape(n) + r"(?![\w-])", token_text))
+    assert undocumented == [], undocumented
+    assert _unresolved_vars(declared, _BASE_CSS) == set()
+    assert _unresolved_vars(declared, _LAYOUT_CSS) == set()
+    # The check can fail: an unknown var() is reported.
+    assert _unresolved_vars(declared, ".a { color: var(--c-nope); }") == {"--c-nope"}
+
+
+def test_forced_colors_marks_the_current_selection() -> None:
+    """A forced-colors block gives the picked row and the current question an outline."""
+    forced = [(s, p, v) for chain, s, p, v in _walk_css(_BASE_CSS)[0] if chain == ("@media (forced-colors: active)",)]
+    assert forced
+    for needle in ('.row-link[aria-current="true"]', '.question-link[aria-current="page"]'):
+        assert any(needle in s and p == "outline" and "Highlight" in v for s, p, v in forced), needle
+    assert not [1 for chain, *_ in _walk_css(_LAYOUT_CSS)[0] if any("forced-colors" in b for b in chain)]
+
+
 def test_stylesheets_declare_no_external_loads() -> None:
     """Neither stylesheet may load a url or import another sheet."""
     for css in (_BASE_CSS, _LAYOUT_CSS):
@@ -521,7 +561,7 @@ def test_motion_sits_behind_reduced_motion() -> None:
 
 
 _PAINT = {"background-color", "color", "border-color", "box-shadow", "opacity"}
-_TIME = re.compile(r"-?(?:\d+\.?\d*|\.\d+)(?:ms|s)")
+_TIME = re.compile(r"-?(?:\d+\.?\d*|\.\d+)(?:ms|s)", re.IGNORECASE)
 _EASING = {"ease", "ease-in", "ease-out", "ease-in-out", "linear", "step-start", "step-end", "allow-discrete", "normal"}
 
 
@@ -595,24 +635,32 @@ def _timing_problems(decls: list[_Decl]) -> list[str]:
             continue
         if prop == "animation-iteration-count" and "infinite" in value or prop == "animation" and "infinite" in value.split():
             found.append(f"{prop}: {value}")
+        if "var(" in value.lower():
+            found.append(f"{prop}: {value}")
         if prop.startswith("animation") and re.search(r"(?<![\w-])(?:scroll|view)\(", value):
             found.append(f"{prop}: {value}")
         for amount in _TIME.findall(value):
-            ms = float(amount.rstrip("ms")) * (1 if amount.endswith("ms") else 1000)
+            unit = amount.lower()
+            ms = float(unit.rstrip("ms")) * (1 if unit.endswith("ms") else 1000)
             if ms > 200:
                 found.append(f"{prop}: {amount}")
     return found
 
 
 def test_motion_is_short_and_not_scroll_driven() -> None:
-    """Every duration and delay is at most 200ms; nothing repeats, scrolls smoothly or follows scroll."""
+    """Every duration and delay is at most 200ms; nothing repeats, scrolls smoothly or follows scroll.
+
+    The 200ms limit, and the 4px rise in the keyframes test, are fixed by the spec's criteria, not chosen here.
+    No motion value may use var(), so the limits cannot be dodged through a custom property.
+    """
     decls = _both_sheets()
     assert any(_TIME.search(value) for _c, _s, prop, value in decls if _is_motion_prop(prop))
     assert _timing_problems(decls) == []
     # The check can fail on a long duration or delay, a repeat, and each scroll-driven property.
     for bad in ("transition: color 0.3s", "animation: k 160ms ease 1s", "transition-delay: 250ms",
                 "animation: k 100ms infinite", "animation-iteration-count: infinite", "scroll-behavior: smooth",
-                "animation-timeline: scroll()", "view-timeline: --x", "animation: k 100ms linear view()"):
+                "animation-timeline: scroll()", "view-timeline: --x", "animation: k 100ms linear view()", "transition: color 0.3S", "animation-delay: 250MS",
+                "transition: color var(--t)", "animation-duration: VAR(--d)"):
         assert _timing_problems(_walk_css(f".a {{ {bad}; }}")[0]), bad
     assert _timing_problems(_walk_css(".a { transition: color 0.2s, opacity 120ms; }")[0]) == []
 

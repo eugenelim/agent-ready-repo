@@ -3130,10 +3130,9 @@ def _pick_first_broken(item: Opened) -> Page:
 @pytest.mark.parametrize("scheme", _SCHEMES)
 def test_broken_entries_are_tinted(opener: Any, exports: dict[str, pathlib.Path], scheme: str) -> None:
     page = _pick_first_broken(opener(exports["hostile"], scheme=scheme))
-    zone = page.eval_on_selector(".detail", "e => getComputedStyle(e).backgroundColor")
-    tints = page.eval_on_selector_all(
-        ".has-broken > ul > li.edge", "els => els.map(e => getComputedStyle(e).backgroundColor)"
-    )
+    zone = _backdrop(page, ".detail")
+    count = page.locator(".has-broken > ul > li.edge").count()
+    tints = [_backdrop(page, ".has-broken > ul > li.edge", i) for i in range(count)]
     assert tints and all(t != zone for t in tints), (zone, tints)
 
 

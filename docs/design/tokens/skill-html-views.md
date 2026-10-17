@@ -121,13 +121,13 @@ The rung is `stated-constraint` (fonts on the reader's system only; nothing is l
 
 The rung is `approved-direction` (dense, compact, ruled), with a 4px base.
 
-- `--s-1` to `--s-7`: `0.25rem`, `0.5rem`, `0.75rem`, `1rem`, `1.5rem`, `2rem` and `3rem`.
+- `--s-1`, `--s-2`, `--s-3`, `--s-4`, `--s-5`, `--s-6` and `--s-7`: `0.25rem`, `0.5rem`, `0.75rem`, `1rem`, `1.5rem`, `2rem` and `3rem`.
 - Inside a row, cells sit `--s-3` apart. Rows are `--s-2` apart vertically in worklist density and `--s-4` apart in document density. Groups are `--s-4` apart, and the zones sit `--s-4` apart on the canvas.
 - Rules are `1px solid`. Hairlines use `--c-rule`. The current row and current question add a `3px` inset bar in `--c-accent`; a broken entry adds a `3px` left bar in `--c-bad`; the next-step callout adds a `3px` left bar in `--c-rule-strong`.
 
 ## Interaction floor
 
-- **Target size.** Every control and row link is at least 24 by 24 CSS px, the WCAG 2.2 AA minimum; most are `2rem` tall.
+- **Target size.** Every control and row link is at least 24 by 24 CSS px, the WCAG 2.2 AA minimum; most are `--target` (`2rem`) tall.
 - **Focus.** A `2px solid var(--c-accent)` outline with a `2px` offset, rounded by `--r-1`, on every focusable element. The outline is never removed. Sticky regions keep `scroll-padding` equal to their height, so focus is never obscured.
 - **Keyboard.** No single-character shortcut.
 
