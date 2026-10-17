@@ -1,0 +1,378 @@
+--- base view.js (f07d39b53)
++++ prototype view.js
+@@ -124,6 +124,12 @@
+     { key: 'next', name: 'What can I work on next?', title: 'In a startable stage',
+       lead: 'Readiness not checked in this snapshot.', sort: 'By stage, then name',
+       empty: 'Nothing is in a startable stage.', noun: ['item', 'items'] },
++    { key: 'broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
++      lead: 'Pointers that did not resolve, parent or dependency loops made of resolved pointers, and problems the delivery resolver found.',
++      sort: 'By name', empty: 'Nothing is broken.', noun: ['entry', 'entries'] },
++    { key: 'roadmap', name: 'How far along is each capability?', title: 'Capability progress',
++      lead: 'All work beneath each capability, by delivery stage. Grouped under each product strategy.',
++      sort: 'By strategy, then name', empty: 'No capabilities were found.', noun: ['capability', 'capabilities'] },
+     { key: 'capabilities', name: 'What is still open under a capability?',
+       title: 'Capabilities with open work', lead: 'Pick a capability to see the open work beneath it.',
+       sort: 'By open count, then name', empty: 'No capability has open work beneath it.',
+@@ -132,9 +138,6 @@
+       lead: 'Open items whose parent pointer is absent or did not resolve.',
+       sort: 'By type, then name', empty: 'Every open item has a parent.', noun: ['item', 'items'],
+       filters: ['type', 'level'] },
+-    { key: 'broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
+-      lead: 'Pointers that did not resolve, parent or dependency loops made of resolved pointers, and problems the delivery resolver found.',
+-      sort: 'By name', empty: 'Nothing is broken.', noun: ['entry', 'entries'] },
+     { key: 'browse', name: 'Browse all intents', title: 'All intents',
+       lead: 'Every live intent under its parent.', sort: 'Under each parent, by name',
+       empty: 'No intents were found.', noun: ['intent', 'intents'],
+@@ -469,6 +472,7 @@
+     if (deliveryUnavailable()) { return null; }
+     if (key === 'next') { return startableIds().length; }
+     if (key === 'capabilities') { return capabilityIds().length; }
++    if (key === 'roadmap') { return recordIds.filter(function (x) { var r = rec(x); return r && r.level === 'capability'; }).length; }
+     return noParentIds().length;
+   }
+ 
+@@ -798,41 +802,79 @@
+     return roots.sort(byName);
+   }
+ 
+-  function treeRow(id, seen) {
++  function subtreeIntents(id, kidsFn) {
++    kidsFn = kidsFn || function (x) { return kidsOf.get(x) || []; };
++    var out = [], seen = new Set([id]), stack = kidsFn(id).slice();
++    while (stack.length) {
++      var k = stack.pop();
++      if (seen.has(k)) { continue; }
++      seen.add(k); out.push(k);
++      kidsFn(k).forEach(function (c) { stack.push(c); });
++    }
++    return out;
++  }
++  var LEVEL_WORDS = { 'product-vision': 'Vision', 'product-strategy': 'Strategy', capability: 'Capability',
++    feature: 'Feature' };
++  function treeContext(id, kidsFn) {
++    var box = el('span', 'tree-ctx');
++    var all = subtreeIntents(id, kidsFn);
++    if (all.length) {
++      var closed = all.filter(function (k) { return !isOpen(k); }).length;
++      var meter = add(box, el('progress', 'tree-meter'));
++      meter.setAttribute('max', String(all.length));
++      meter.setAttribute('value', String(closed));
++      meter.setAttribute('aria-label', closed + ' of ' + all.length + ' intents beneath are closed');
++      add(box, el('span', 'tree-roll', closed + '/' + all.length + ' closed'));
++    }
++    var open = openCount(id);
++    if (open) { add(box, el('span', 'tree-open', open + ' open')); }
++    return box;
++  }
++  function levelTag(id) {
++    var r = rec(id);
++    var lvl = r ? (r.level || 'unrecorded') : 'unrecorded';
++    var tag = el('span', 'level-tag', own(LEVEL_WORDS, lvl) || lvl);
++    tag.setAttribute('data-level', lvl);
++    return tag;
++  }
++  function treeRow(id, seen, depth, opts) {
+     var li = el('li', 'row tree-row');
+-    var kids = kidsOf.get(id) || [];
++    li.setAttribute('data-depth', String(Math.min(depth || 0, 6)));
++    var kids = opts.kids(id).filter(function (k) { return opts.visible(k); });
++    if (!opts.match(id)) { li.classList.add('context-only'); }
+     var sub = null;
+     var toggle = null;
+     if (kids.length) {
+       toggle = add(li, button('toggle'));
+       toggle.setAttribute('aria-expanded', 'false');
+-      var g = add(toggle, el('span', 'toggle-g', '\u25B8'));
++      var g = add(toggle, el('span', 'toggle-g', '›'));
+       g.setAttribute('aria-hidden', 'true');
+       add(toggle, el('span', 'visually-hidden', 'Show ' + kids.length + ' beneath ' + displayName(id)));
+     } else {
+       add(li, el('span', 'toggle-spacer')).setAttribute('aria-hidden', 'true');
+     }
+-    add(li, rowLink(id, stateMark(id), contextText(id)));
++    var link = add(li, rowLink(id, stateMark(id), treeContext(id, opts.kids)));
++    add(link.querySelector('.c-name'), levelTag(id));
+     if (toggle) {
+       var setOpen = function (open) {
+         if (open && sub === null) {
+           sub = el('ul', 'rows subtree');
+-          kids.forEach(function (kid) {
++          kids.slice().sort(byName).forEach(function (kid) {
+             if (seen.has(kid)) { return; }
+             seen.add(kid);
+-            add(sub, treeRow(kid, seen));
++            add(sub, treeRow(kid, seen, (depth || 0) + 1, opts));
+           });
+           li.appendChild(sub);
+         }
+         if (sub !== null) { sub.hidden = !open; }
+         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+-        toggle.firstChild.textContent = open ? '\u25BE' : '\u25B8';
+         if (open) { expanded.add(id); } else { expanded.delete(id); }
+       };
++      li.setOpen = setOpen;
+       toggle.addEventListener('click', function () {
+         setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+       });
+-      if (expanded.has(id)) { setOpen(true); }
++      if (expanded.has(id) || opts.autoOpen) { setOpen(true); }
+     }
+     return li;
+   }
+@@ -895,6 +937,8 @@
+     entries.forEach(function (entry) { add(ul, brokenRow(entry)); });
+     return entries.length;
+   }
++  var protoShow = 'all', protoGroup = 'hierarchy';
++  function current_route() { return current; }
+   function bodyBrowse(route) {
+     var q = question('browse');
+     buildFilters(q, route, recordIds);
+@@ -907,12 +951,84 @@
+       return ids.length;
+     }
+     var seen = new Set();
+-    var ul = add(dom.list, el('ul', 'rows tree'));
+-    treeRoots().forEach(function (id) {
+-      seen.add(id);
+-      add(ul, treeRow(id, seen));
+-    });
+-    return recordIds.length;
++    var levelOfId = function (x) { var r = rec(x); return r ? (r.level || '') : ''; };
++    var isCap = function (x) { return levelOfId(x) === 'capability'; };
++    var allKids = function (x) { return kidsOf.get(x) || []; };
++    // By capability: a capability's children are the capabilities and other intents whose
++    // nearest capability ancestor is it.
++    var capKids = new Map(), capRoots = [], noCap = [];
++    if (protoGroup === 'capability') {
++      recordIds.forEach(function (x) {
++        var up = resolvedParent(rec(x)), guard = new Set();
++        while (up && own(data.records, up) !== undefined && !isCap(up) && !guard.has(up)) { guard.add(up); up = resolvedParent(rec(up)); }
++        var anchor = up && own(data.records, up) !== undefined && isCap(up) ? up : null;
++        if (isCap(x) || anchor) {
++          if (anchor) { if (!capKids.has(anchor)) { capKids.set(anchor, []); } capKids.get(anchor).push(x); }
++          else { capRoots.push(x); }
++        } else if (!(kidsOf.get(x) || []).some(isCap)) { noCap.push(x); }
++      });
++    }
++    var kidsFn = protoGroup === 'capability' ? function (x) { return capKids.get(x) || []; } : allKids;
++    var match = function (x) {
++      if (protoShow === 'open') { return isOpen(x); }
++      if (protoShow === 'done') { return !isOpen(x); }
++      return true;
++    };
++    var visMemo = new Map();
++    var visible = function (x) {
++      if (visMemo.has(x)) { return visMemo.get(x); }
++      visMemo.set(x, false);
++      var v = match(x) || kidsFn(x).some(visible);
++      visMemo.set(x, v); return v;
++    };
++    var opts = { kids: kidsFn, match: match, visible: visible, autoOpen: protoShow !== 'all' };
++    var bar = add(dom.list, el('div', 'tree-bar'));
++    function seg(label, value, current, set) {
++      var g = add(bar, el('div', 'seg'));
++      g.setAttribute('role', 'group'); g.setAttribute('aria-label', label);
++      add(g, el('span', 'seg-label', label));
++      value.forEach(function (pair) {
++        var bt = add(g, button('seg-btn', pair[1]));
++        bt.setAttribute('aria-pressed', pair[0] === current ? 'true' : 'false');
++        bt.addEventListener('click', function () { set(pair[0]); renderList(current_route(), true); });
++      });
++    }
++    seg('Show', [['all', 'All'], ['open', 'Open'], ['done', 'Done']], protoShow, function (v) { protoShow = v; });
++    seg('Group', [['hierarchy', 'Full hierarchy'], ['capability', 'By capability']], protoGroup, function (v) { protoGroup = v; });
++    var tools = add(bar, el('div', 'seg'));
++    var ex = add(tools, button('seg-btn', 'Expand all'));
++    var co = add(tools, button('seg-btn', 'Collapse all'));
++    var ul;
++    var shown = 0;
++    function section(title, ids, collapsed) {
++      ids = ids.filter(visible).sort(byName);
++      if (!ids.length) { return null; }
++      var wrap = collapsed ? add(dom.list, el('details', 'loose')) : dom.list;
++      add(wrap, el(collapsed ? 'summary' : 'h3', 'group-head', title + ' · ' + ids.length));
++      var list = add(wrap, el('ul', 'rows tree'));
++      ids.forEach(function (x) { seen.add(x); add(list, treeRow(x, seen, 0, opts)); });
++      return list;
++    }
++    if (protoGroup === 'capability') {
++      ul = section('Top-level capabilities', capRoots, false);
++      section('Not under a capability', noCap, true);
++    } else {
++      var roots = treeRoots();
++      ul = section('Hierarchy roots', roots.filter(function (x) { return allKids(x).length; }), false);
++      section('No parent and nothing beneath', roots.filter(function (x) { return !allKids(x).length; }), true);
++    }
++    shown = recordIds.filter(match).length;
++    function walk(fn) {
++      var stack = ul ? Array.from(ul.children) : [];
++      while (stack.length) {
++        var li = stack.shift();
++        if (li.setOpen) { fn(li); var subUl = li.querySelector(':scope > ul'); if (subUl) { stack = stack.concat(Array.from(subUl.children)); } }
++      }
++    }
++    ex.addEventListener('click', function () { walk(function (li) { li.setOpen(true); }); });
++    co.addEventListener('click', function () { walk(function (li) { li.setOpen(false); }); });
++    return shown;
++
+   }
+   function bodySearch(route) {
+     var want = route.search.toLowerCase();
+@@ -939,7 +1055,118 @@
+     }
+     return searchEntries;
+   }
+-  var BODIES = { next: bodyNext, capabilities: bodyCapabilities, noparent: bodyNoParent,
++
++  // ---- roadmap prototype
++  var BAND_WORDS = {
++    spec: { Shipped: 'delivered', Implementing: 'progress', Archived: 'stopped' },
++    brief: { Shipped: 'delivered', Executing: 'progress', Withdrawn: 'stopped', Cancelled: 'stopped' },
++    intent: { Fulfilled: 'delivered', Withdrawn: 'stopped', Cancelled: 'stopped', Superseded: 'stopped' }
++  };
++  function bandOf(x) { return own(BAND_WORDS[typeOf(x)] || {}, statusWord(x)) || 'notstarted'; }
++  var briefSpecs = null;
++  function specsOfBrief(b) {
++    if (briefSpecs === null) {
++      briefSpecs = new Map();
++      arr(data.edges).forEach(function (e) {
++        if (isObj(e) && isStr(e.to) && isStr(e.from) && e.to.indexOf('brief:') === 0 && e.from.indexOf('spec:') === 0) {
++          if (!briefSpecs.has(e.to)) { briefSpecs.set(e.to, []); }
++          briefSpecs.get(e.to).push(e.from);
++        }
++      });
++    }
++    return briefSpecs.get(b) || [];
++  }
++  function workBeneath(id, stopAtCaps) {
++    var seen = new Set(), out = new Set(), stack = [id];
++    while (stack.length) {
++      var x = stack.pop();
++      if (seen.has(x)) { continue; }
++      seen.add(x);
++      var r = rec(x);
++      if (!r) { continue; }
++      if (x !== id) { out.add(x); }
++      arr(r.briefs).forEach(function (b) { if (nodes.has(b)) { out.add(b); specsOfBrief(b).forEach(function (sp) { out.add(sp); }); } });
++      arr(r.specs).forEach(function (sp) { if (nodes.has(sp)) { out.add(sp); } });
++      (kidsOf.get(x) || []).forEach(function (k) { stack.push(k); });
++    }
++    return Array.from(out);
++  }
++  var BAND_ORDER = [['delivered', 'delivered'], ['progress', 'in progress'], ['notstarted', 'not started']];
++  function progressBar(ids) {
++    var counts = { delivered: 0, progress: 0, notstarted: 0, stopped: 0 };
++    ids.forEach(function (x) { counts[bandOf(x)] += 1; });
++    var live = counts.delivered + counts.progress + counts.notstarted;
++    var box = el('span', 'rm-progress');
++    var bar = add(box, el('span', 'rm-bar'));
++    bar.setAttribute('aria-hidden', 'true');
++    var CELLS = 24, given = 0, cells = [];
++    BAND_ORDER.forEach(function (pair, i) {
++      var n = live ? (i === BAND_ORDER.length - 1 ? CELLS - given : Math.round(counts[pair[0]] * CELLS / live)) : 0;
++      n = Math.max(0, Math.min(n, CELLS - given)); given += n;
++      for (var k = 0; k < n; k++) { add(bar, el('span', 'rm-cell rm-' + pair[0])); }
++    });
++    if (!live) { for (var k2 = 0; k2 < CELLS; k2++) { add(bar, el('span', 'rm-cell rm-empty')); } }
++    var pct = live ? Math.round(counts.delivered * 100 / live) : 0;
++    add(box, el('span', 'rm-pct', live ? pct + '%' : '—'));
++    var words = add(box, el('span', 'rm-words'));
++    if (!live && !counts.stopped) { clear(box); add(box, el('span', 'rm-none', 'Nothing beneath yet')); return box; }
++    BAND_ORDER.forEach(function (pair) { if (counts[pair[0]] || pair[0] === 'delivered') { add(words, el('span', 'rm-w rm-w-' + pair[0], counts[pair[0]] + ' ' + pair[1])); } });
++    if (counts.stopped) { add(words, el('span', 'rm-w rm-w-stopped', counts.stopped + ' stopped')); }
++    return box;
++  }
++  function nearestUp(x, pred) {
++    var guard = new Set(), up = resolvedParent(rec(x));
++    while (up && rec(up) && !guard.has(up)) { if (pred(up)) { return up; } guard.add(up); up = resolvedParent(rec(up)); }
++    return null;
++  }
++  function bodyRoadmap() {
++    var isCap = function (x) { var r = rec(x); return r && r.level === 'capability'; };
++    var isStrat = function (x) { var r = rec(x); return r && r.level === 'product-strategy'; };
++    var caps = recordIds.filter(isCap);
++    var childCaps = new Map(), topCaps = [];
++    caps.forEach(function (c) {
++      var up = nearestUp(c, isCap);
++      if (up) { if (!childCaps.has(up)) { childCaps.set(up, []); } childCaps.get(up).push(c); } else { topCaps.push(c); }
++    });
++    var sections = new Map();
++    topCaps.forEach(function (c) {
++      var st = nearestUp(c, isStrat) || '';
++      if (!sections.has(st)) { sections.set(st, []); }
++      sections.get(st).push(c);
++    });
++    var keys = Array.from(sections.keys()).filter(function (k) { return k; }).sort(byName);
++    if (sections.has('')) { keys.push(''); }
++    function capRow(c, depth) {
++      var li = el('li', 'row rm-row');
++      li.setAttribute('data-depth', String(depth));
++      var a = add(li, el('a', 'row-link rm-link'));
++      a.setAttribute('href', hashFor({ node: c })); a.setAttribute('data-node', c);
++      var nm = add(a, el('span', 'c-name', displayName(c)));
++      add(a, el('span', 'c-state')).appendChild(stateMark(c));
++      add(a, progressBar(workBeneath(c)));
++      if (current !== null && current.node === c) { a.setAttribute('aria-current', 'true'); }
++      var kids = (childCaps.get(c) || []).slice().sort(byName);
++      if (kids.length) {
++        var sub = add(li, el('ul', 'rows rm-sub'));
++        kids.forEach(function (k) { add(sub, capRow(k, depth + 1)); });
++      }
++      return li;
++    }
++    keys.forEach(function (k) {
++      var sec = add(dom.list, el('section', 'rm-section'));
++      var head = add(sec, el('div', 'rm-head'));
++      if (k) {
++        add(head, el('h3', 'group-head rm-title', displayName(k)));
++        add(head, progressBar(workBeneath(k)));
++      } else {
++        add(head, el('h3', 'group-head rm-title', 'Not under a product strategy'));
++      }
++      var ul = add(sec, el('ul', 'rows'));
++      sections.get(k).slice().sort(byName).forEach(function (c) { add(ul, capRow(c, 0)); });
++    });
++    return caps.length;
++  }
++  var BODIES = { roadmap: bodyRoadmap, next: bodyNext, capabilities: bodyCapabilities, noparent: bodyNoParent,
+     broken: bodyBroken, browse: bodyBrowse };
+ 
+   function emptyCorpus() { return data.nodes.length === 0; }
+@@ -1215,7 +1442,8 @@
+     var p = el('p', 'state-line');
+     add(p, stateMark(id));
+     var open = deliveryUnavailable() ? null : openCount(id);
+-    text(p, ' \u00B7 ' + (own(TYPE_NAMES, typeOf(id)) || typeOf(id)) + ' \u00B7 ' +
++    var meta = add(p, el('span', 'state-meta'));
++    text(meta, (own(TYPE_NAMES, typeOf(id)) || typeOf(id)) + ' \u00B7 ' +
+       (open === null ? 'open work unknown' : open + ' open beneath') + ' \u00B7 ' +
+       brokenOf(id).length + ' broken');
+     return p;
+@@ -1443,6 +1671,7 @@
+ 
+     var brokenSec = part('What is broken');
+     var broken = brokenOf(id);
++    if (broken.length) { brokenSec.classList.add('has-broken'); }
+     if (deliveryUnavailable()) { add(brokenSec, el('p', 'note', 'Delivery diagnostics were unavailable.')); }
+     if (!broken.length) {
+       add(brokenSec, el('p', 'empty', 'Nothing broken here.'));
+@@ -1461,7 +1690,7 @@
+           var line = add(li, el('div', 'edge-line'));
+           add(line, el('span', 'field', 'Delivery diagnostic'));
+           add(line, el('span', 'value', isStr(b.diag.code) ? b.diag.code : 'unknown'));
+-          add(li, el('p', 'meaning', describe(b.diag)));
++          add(li, el('p', 'meaning diag-raw', describe(b.diag)));
+         }
+       });
+     }
+@@ -1541,7 +1770,9 @@
+   // The five links are built once, so a link that has focus keeps it across routes; a route only
+   // moves aria-current.  The counts come from the data, which never changes, so they are set here.
+   function buildNav() {
++    var GROUPS = { next: 'Work', roadmap: 'Progress', noparent: 'Tidy', browse: 'Browse' };
+     QUESTIONS.forEach(function (q) {
++      if (own(GROUPS, q.key)) { add(dom.questions, el('li', 'rail-group', GROUPS[q.key])).setAttribute('aria-hidden', 'true'); }
+       var li = add(dom.questions, el('li', 'question'));
+       var a = add(li, el('a', 'question-link'));
+       a.setAttribute('href', questionHash(q.key));
