@@ -81,3 +81,11 @@ Real export at `ee4374c4b` (after the review fixes below), reduced motion on, tr
 ## Owner approval (AC-0047)
 
 - 2026-10-17: eugenelim approved the rendered real export at `ee4374c4b` for planning and leadership reporting, and accepted the experience review's remaining Major 6 (repeated "Intent · <level> · under <parent>" context text on tree rows) as a follow-on rather than a change to this spec; see § Follow-ons.
+
+## Code review round 1 and the contract amendment
+
+- `frontend-reviewer`: `Clean — ready to commit.` with six Minors (a literal 2px cell radius, untokened sizes, no fallback for the ✓ alt-text content, a toggle name that reads "Show …" while expanded, synchronous Expand all on very large exports, no state captures); the radius and the ✓ fallback are taken in T7, the rest left as they are.
+- `quality-engineer`: Concern 1 (the Browse oracle mirrors `browse.js` and is pinned to no hand-stated value) and Concern 2 (`test_ac_0040`'s last step still waits on state that can be stale; the flake is not shown fixed) sustained; Nits 3 to 6 taken where cheap (x-alignment at 1280 and 1440, the done/capability context-row guard, the hard-coded `- 2` bar count). The backlog entry `pre-existing-intent-view-live-region-test-flake` stays open until 16 consecutive solo passes are recorded.
+- `adversarial-reviewer`: Concern 1 (Browse's sort key changes under "By capability" with no criterion), Concern 2 (a capability parent loop drops those capabilities from the roadmap and the by-capability tree, and the oracle mirrors the same walk), Concern 3 (the strategy-between-capabilities rule has no case) sustained; Concern 4 (closeout statuses) is closeout work.
+- Owner request, 2026-10-17 (eugenelim): use shorter terms for each rail link — chosen: "Next up", "Broken", "Capability progress", "Open by capability", "No parent", "All intents", with each list showing its full question above its title so the view still names the questions it answers.
+- These change the accepted criteria, so the contract is amended under the owner's authority above: AC-0001 names the short labels; new AC-0051 (the full question above each list title), AC-0052 (Browse's sort key and lead per Group and Show) and a capability-loop term; a new task T7 carries the work. Completed tasks T1 to T6 keep their evidence in the sections above.
