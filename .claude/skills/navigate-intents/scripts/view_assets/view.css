@@ -21,6 +21,7 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .mark { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.05rem 0.55rem 0.05rem 0.45rem; width: max-content; }
 .app { padding: var(--s-5); }
 .question-list { list-style: none; margin: 0; padding: 0; gap: var(--s-1); }
+.rail-group { margin: 0; }
 .question-link {
   display: flex;
   justify-content: space-between;
@@ -101,6 +102,7 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .zones:not([data-picked]) .detail { display: none; }
 @media (max-width: 89.99rem) { .detail { padding-left: var(--s-4); padding-right: var(--s-4); } }
 @media (min-width: 40rem) {
+  .rail { display: flex; flex-wrap: wrap; gap: var(--s-1); }
   .question-list { display: flex; flex-wrap: wrap; }
   .zones { grid-template-columns: minmax(0, 3fr) minmax(22rem, 2fr); }
   .zones[data-picked] .worklist, .zones:not([data-picked]) .detail { display: block; }
@@ -113,8 +115,16 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 @media (min-width: 66rem) {
   .row-link { grid-template-columns: minmax(10rem, 1fr) 8.5rem minmax(12rem, 1fr); }
 }
+/* Six tabs in four lists stay on one row from 66rem: the links shrink and wrap their names instead. */
+@media (min-width: 66rem) and (max-width: 89.99rem) {
+  .rail, .question-list { flex-wrap: nowrap; }
+  .rail { gap: var(--s-3); }
+  .question-list, .question { min-width: 0; }
+  .question-list { flex: 0 1 auto; }
+}
 @media (min-width: 90rem) {
   .app { display: grid; grid-template-columns: 16.5rem minmax(0, 1fr); gap: var(--s-4); }
+  .rail { display: block; }
   .question-list { display: block; }
   .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
   .q-count { min-width: 2.25rem; }

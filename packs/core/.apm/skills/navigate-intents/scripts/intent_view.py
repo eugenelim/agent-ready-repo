@@ -114,7 +114,7 @@ _SHELL = """<!doctype html>
 <div id="scope-banner" class="banner" hidden></div>
 </header>
 <div id="app" class="app" hidden>
-<nav id="questions-nav" class="questions" aria-label="Questions"><ul id="question-list" class="question-list"></ul></nav>
+<nav id="questions-nav" class="questions" aria-label="Questions"><div id="question-list" class="rail"></div></nav>
 <main id="main" class="zones">
 <section class="worklist" aria-labelledby="list-title">
 <div class="list-head">

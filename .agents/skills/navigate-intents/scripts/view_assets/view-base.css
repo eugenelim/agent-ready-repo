@@ -200,6 +200,27 @@ summary { cursor: pointer; }
   box-shadow: inset 3px 0 0 var(--c-accent);
 }
 .q-name { text-decoration: none; }
+.rail-group {
+  font: var(--t-label);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--c-subtle);
+  padding: var(--s-3) var(--s-3) var(--s-1);
+}
+.rail > .rail-group:first-child { padding-top: 0; }
+/* Below 90rem the rail is a row of tabs: the group labels stay readable to assistive technology only. */
+@media (max-width: 89.99rem) {
+  .rail-group {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    padding: 0;
+  }
+}
 .q-count { font: var(--t-meta); font-weight: 600; color: var(--c-subtle); border-radius: var(--r-1); }
 .question-link[aria-current="page"] .q-count { background: var(--c-accent); color: var(--c-bg); }
 

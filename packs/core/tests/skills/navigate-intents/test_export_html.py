@@ -485,6 +485,15 @@ def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
     assert _layout_violations(".a { border-radius: var(--r-2); padding: var(--s-1); }") == []
 
 
+def test_layout_sheet_holds_no_new_style() -> None:
+    """The rail-group label and the roadmap's rules put every colour and type choice in the base sheet."""
+    assert _layout_violations(_LAYOUT_CSS) == []
+    assert ".rail-group" in _BASE_CSS
+    layout_rail = [(s, p) for _c, s, p, _v in _walk_css(_LAYOUT_CSS)[0] if "rail-group" in s]
+    assert layout_rail
+    assert not [p for _s, p in layout_rail if p in ("color", "font", "text-transform", "letter-spacing")]
+
+
 def test_walker_records_the_enclosing_at_rule_chain() -> None:
     """The walker sees a declaration's whole chain, even through a keyframes block."""
     css = (

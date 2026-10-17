@@ -258,7 +258,7 @@
     return searchEntries;
   }
   var BODIES = { next: bodyNext, capabilities: bodyCapabilities, noparent: bodyNoParent,
-    broken: bodyBroken, browse: bodyBrowse };
+    broken: bodyBroken, browse: bodyBrowse, roadmap: bodyRoadmap };
 
   function emptyCorpus() { return data.nodes.length === 0; }
 

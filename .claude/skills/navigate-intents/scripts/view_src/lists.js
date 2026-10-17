@@ -28,6 +28,9 @@
       return (rec(id).level || '') === 'capability' && openCount(id) > 0;
     }).sort(function (a, b) { return (openCount(b) - openCount(a)) || byName(a, b); });
   }
+  function capabilityRecordIds() {
+    return recordIds.filter(function (id) { return (rec(id).level || '') === 'capability'; });
+  }
   function noParentIds() {
     if (deliveryUnavailable()) { return []; }
     return arr(data.outstanding.no_parent).filter(function (it) {
@@ -67,6 +70,7 @@
   function questionCount(key) {
     if (key === 'browse') { return recordIds.length; }
     if (key === 'broken') { return brokenEntries().length; }
+    if (key === 'roadmap') { return capabilityRecordIds().length; }
     if (deliveryUnavailable()) { return null; }
     if (key === 'next') { return startableIds().length; }
     if (key === 'capabilities') { return capabilityIds().length; }

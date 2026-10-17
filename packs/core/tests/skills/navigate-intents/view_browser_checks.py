@@ -60,7 +60,17 @@ _STATES = [
 ]
 _FORMS = ["typed", "path", "bare_slug", "markdown_link", "unrecognized"]
 _TRUST = ["delivery_contract", "pointer_checked", "pointer_unchecked"]
-_QUESTIONS = ["next", "capabilities", "noparent", "broken", "browse"]
+_QUESTIONS = ["next", "broken", "roadmap", "capabilities", "noparent", "browse"]
+# The questions that list rows from the outstanding map: each row is one link with three cells.
+_ROW_QUESTIONS = ["next", "capabilities", "noparent", "broken"]
+# The questions whose rail link shows a count.
+_COUNTED = ["next", "broken", "roadmap", "capabilities", "noparent"]
+_RAIL_GROUPS = [
+    ("Work", ["next", "broken"]),
+    ("Progress", ["roadmap", "capabilities"]),
+    ("Tidy", ["noparent"]),
+    ("Browse", ["browse"]),
+]
 _DATA_BLOCK = re.compile(
     r'(<script type="application/json" id="intent-data">)(.*?)(</script>)', re.DOTALL
 )
@@ -756,6 +766,18 @@ def _choose(item: Opened, question: str, **route: str) -> None:
     item.go(_frag(q=question, **route))
 
 
+def _rail_counts(page: Page) -> dict[str, str]:
+    """The visible count on each rail link, by its ``data-q`` key (Browse shows none)."""
+    return page.evaluate(  # type: ignore[no-any-return]
+        """() => Object.fromEntries(Array.from(document.querySelectorAll('nav a[data-q]')).filter(
+          (a) => a.querySelector('.q-count')).map((a) => [a.dataset.q, a.querySelector('.q-count').textContent]))"""
+    )
+
+
+def _capability_total(payload: dict[str, Any]) -> int:
+    return sum(1 for r in payload["records"].values() if r.get("level") == "capability")
+
+
 def _count_text(page: Page) -> str:
     return _text(page, "#list-count")
 
@@ -800,30 +822,107 @@ _MIXED_ROOT = _FIXTURES / "mixed"
 # ---------------------------------------------------------------------------
 
 
-def test_ac_0001_five_destinations_with_counts(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+def test_ac_0001_six_destinations_with_counts(opener: Any, exports: dict[str, pathlib.Path]) -> None:
     item = opener(exports["mixed"])
     page = item.page
     assert page.locator("nav").count() == 1
     links = page.locator("nav a")
     names = page.eval_on_selector_all("nav a .q-name", "els => els.map(e => e.textContent)")
-    assert links.count() == 5
+    assert links.count() == 6
     assert names == [
         "What can I work on next?",
+        "What is broken?",
+        "How far along is each capability?",
         "What is still open under a capability?",
         "What has no parent?",
-        "What is broken?",
         "Browse all intents",
     ]
-    counts = page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)")
-    assert counts == ["3", "2", "6", "0"]
-    assert links.nth(0).get_attribute("aria-current") == "page"
-    assert [links.nth(i).get_attribute("aria-current") for i in range(1, 5)] == [None] * 4
+    assert page.eval_on_selector_all("nav a", "els => els.map(e => e.dataset.q)") == _QUESTIONS
+    counts = _rail_counts(page)
+    assert counts == {
+        "next": "3",
+        "broken": "0",
+        "roadmap": str(_capability_total(payload_of(exports["mixed"]))),
+        "capabilities": "2",
+        "noparent": "6",
+    }
+    current = page.eval_on_selector_all("nav a", "els => els.map(e => [e.dataset.q, e.getAttribute('aria-current')])")
+    assert current == [[k, "page" if k == "next" else None] for k in _QUESTIONS]
     assert page.locator("#list a.row-link").count() == 3
     assert _text(page, "#list-title") == "In a startable stage"
     assert _count_text(page) == "3 items" and _text(page, "#list-sort") == "By stage, then name"
-    for key, shown in zip(_QUESTIONS[:4], counts, strict=True):
+    for key in _ROW_QUESTIONS:
         _choose(item, key)
-        assert str(page.locator("#list a.row-link").count()) == shown, key
+        assert str(page.locator("#list a.row-link").count()) == counts[key], key
+
+
+_RAIL_EXPORTS = ["roadmap", "hostile_incomplete", "empty"]
+
+
+@pytest.mark.parametrize("width", [1280, 1680])
+@pytest.mark.parametrize("name", _RAIL_EXPORTS)
+def test_rail_order_groups_and_counts(opener: Any, exports: dict[str, pathlib.Path], name: str, width: int) -> None:
+    item = opener(exports[name], width=width, height=900)
+    page = item.page
+    payload = payload_of(exports[name])
+    assert page.locator("nav").count() == 1
+    assert page.eval_on_selector_all("nav a", "els => els.map(e => e.dataset.q)") == _QUESTIONS
+    assert page.locator("nav").get_by_role("list").count() == len(_RAIL_GROUPS)
+    for label, keys in _RAIL_GROUPS:
+        group = page.locator("nav").get_by_role("list", name=label, exact=True)
+        assert group.count() == 1, label
+        assert group.locator("a[data-q]").evaluate_all("els => els.map(e => e.dataset.q)") == keys
+    counts = _rail_counts(page)
+    capabilities = str(_capability_total(payload))
+    if name == "empty":
+        assert counts == dict.fromkeys(_COUNTED, "0")
+    elif name == "hostile_incomplete":
+        assert [counts[k] for k in ("next", "capabilities", "noparent")] == ["unknown"] * 3
+        assert counts["roadmap"] == capabilities
+    else:
+        assert counts["roadmap"] == capabilities and int(capabilities) > 0
+        assert all(v.isdigit() for v in counts.values()), counts
+    # The count is visible text inside the link, after the question's name.
+    for key in _COUNTED:
+        assert _text(page, f'nav a[data-q="{key}"] .q-count') == counts[key]
+    assert page.locator('nav a[data-q="browse"] .q-count').count() == 0
+    assert page.locator('nav a[aria-current="page"]').evaluate_all("els => els.map(e => e.dataset.q)") == ["next"]
+    _choose(item, "roadmap")
+    assert _text(page, "#list-title") == "Capability progress"
+    assert _text(page, "#list-sort") == "By strategy, then name"
+    assert _count_text(page) == f"{capabilities} {'capability' if capabilities == '1' else 'capabilities'}"
+
+
+@pytest.mark.parametrize("width", [1280, 1439, 1440, 1680])
+def test_rail_group_labels_by_width(opener: Any, exports: dict[str, pathlib.Path], width: int) -> None:
+    page = opener(exports["roadmap"], width=width, height=900).page
+    boxes = page.eval_on_selector_all(
+        "nav .rail-group", "els => els.map(e => [e.textContent, e.getBoundingClientRect().width, e.getBoundingClientRect().height])"
+    )
+    assert [b[0] for b in boxes] == [label for label, _ in _RAIL_GROUPS]
+    for label, w, h in boxes:
+        if width >= 1440:
+            assert w > 20 and h > 8, (label, w, h)  # visible
+        else:
+            assert w <= 1 and h <= 1, (label, w, h)  # visually hidden
+    # The lists keep their accessible names at every width.
+    for label, keys in _RAIL_GROUPS:
+        group = page.locator("nav").get_by_role("list", name=label, exact=True)
+        assert group.count() == 1
+        assert group.locator("a[data-q]").evaluate_all("els => els.map(e => e.dataset.q)") == keys
+
+
+def test_list_header_shows_title_count_and_sort_for_every_question(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"])
+    page = item.page
+    for key in _QUESTIONS:
+        _choose(item, key)
+        title, count, sort = (_text(page, f"#list-{k}") for k in ("title", "count", "sort"))
+        assert title and count and sort, key
+        assert page.evaluate(
+            "() => { const h = document.querySelector('.list-head').getBoundingClientRect().bottom;"
+            " return h <= document.getElementById('list').getBoundingClientRect().top + 1; }"
+        ), key
 
 
 def test_ac_0002_startable_stage_list(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -911,6 +1010,7 @@ def test_ac_0007_sort_keys(opener: Any, exports: dict[str, pathlib.Path]) -> Non
         "capabilities": "By open count, then name",
         "noparent": "By type, then name",
         "broken": "By name",
+        "roadmap": "By strategy, then name",
         "browse": "Under each parent, by name",
     }
     for key, sort in keys.items():
@@ -970,7 +1070,7 @@ def test_ac_0009_row_is_one_link_with_three_cells(opener: Any, exports: dict[str
     item = opener(exports["mixed"])
     page = item.page
     model = Model(payload_of(exports["mixed"]))
-    for key in _QUESTIONS[:4]:
+    for key in _ROW_QUESTIONS:  # a roadmap row holds progress in place of a context cell
         _choose(item, key)
         shape = page.eval_on_selector_all(
             "#list a.row-link",
@@ -1460,7 +1560,7 @@ def test_ac_0025_scoped_export(opener: Any, exports: dict[str, pathlib.Path]) ->
         whole = _query(root_dir or _related_root(exports), "--operation", "summary")["summary"]
         assert str(sum(whole["intents_by_level"].values())) in page.inner_text("#meta")
         model = Model(payload)
-        for key in _QUESTIONS[:3]:
+        for key in [k for k in _ROW_QUESTIONS if k != "broken"]:
             _choose(item, key)
             shown = set(_ids(page))
             assert shown <= set(model.nodes), key
@@ -1538,9 +1638,11 @@ def test_ac_0042_unavailable_open_work(opener: Any, exports: dict[str, pathlib.P
     page = item.page
     payload = payload_of(exports["hostile_incomplete"])
     reason = payload["outstanding"]["reason"]
-    counts = page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)")
-    assert counts[:3] == ["unknown"] * 3 and counts[3] == str(len(Model(payload).broken()))
-    for key in _QUESTIONS[:3]:
+    counts = _rail_counts(page)
+    assert [counts[k] for k in ("next", "capabilities", "noparent")] == ["unknown"] * 3
+    assert counts["broken"] == str(len(Model(payload).broken()))
+    assert counts["roadmap"] == str(_capability_total(payload))
+    for key in ("next", "capabilities", "noparent"):
         _choose(item, key)
         text = _text(page, "#list")
         assert "Can't list open work: delivery mapping incomplete." in text and reason in text, key
@@ -1558,7 +1660,7 @@ def test_ac_0043_empty_corpus(opener: Any, exports: dict[str, pathlib.Path]) -> 
     item = opener(exports["empty"])
     page = item.page
     assert "No intents, briefs or specs found under this root." in _text(page, "#list")
-    assert page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)") == ["0"] * 4
+    assert _rail_counts(page) == dict.fromkeys(_COUNTED, "0")
     for key in _QUESTIONS:
         _choose(item, key)
         assert "No intents, briefs or specs found under this root." in _text(page, "#list")
@@ -1966,7 +2068,7 @@ def test_ac_0038_keyboard_alone_reaches_every_function(opener: Any, exports: dic
     item = opener(exports["related"])
     page = item.page
     page.evaluate("document.body.focus()")
-    for key in ("next", "capabilities", "noparent", "broken", "browse"):
+    for key in _QUESTIONS:
         _tab_to(page, f"e.dataset.q === '{key}'")
         page.keyboard.press("Enter")
         page.wait_for_function("k => document.querySelector('nav a[aria-current]').dataset.q === k", arg=key)
@@ -2018,17 +2120,22 @@ def test_ac_0040_live_region_announces_list_title_and_count(opener: Any, exports
     def announced() -> str:
         return " ".join(_text(page, "#live").split())
 
-    def expect_matches_list() -> None:
+    def expect_matches_list(key: str = "") -> None:
+        if key:  # the live text of the previous step still matches its list: wait for the route first
+            page.wait_for_selector(f'nav a[data-q="{key}"][aria-current="page"]')
         page.wait_for_function(
             """() => { const t = (id) => document.getElementById(id).textContent;
               return t('live') !== '' && t('live') === t('list-title') + ', ' + t('list-count'); }"""
         )
         assert announced().startswith(_text(page, "#list-title"))
 
+    page.locator('nav a[data-q="roadmap"]').click()
+    expect_matches_list("roadmap")
+    assert _text(page, "#live").startswith("Capability progress, ")
     page.locator('nav a[data-q="capabilities"]').click()
-    expect_matches_list()
+    expect_matches_list("capabilities")
     page.locator('nav a[data-q="browse"]').click()
-    expect_matches_list()
+    expect_matches_list("browse")
     page.locator("#search").click()
     page.keyboard.type("bravo")
     page.wait_for_function("() => document.getElementById('list-title').textContent.includes('bravo')")
@@ -2084,6 +2191,10 @@ def test_ac_0041_names_contain_visible_labels(opener: Any, exports: dict[str, pa
                       b.closest('li').querySelector('a.row-link .c-name').textContent])"""
         )
         assert toggles, name
+    roadmap = opener(exports["roadmap"])
+    roadmap.go(_frag(q="roadmap"))
+    for accessible, label in _accessible_names(roadmap.page):
+        assert accessible.strip() and _squash(label) in _squash(accessible), (accessible, label)
     page = opener(exports["mixed"]).page
     page.locator('nav a[data-q="browse"]').click()
     page.wait_for_selector("button.toggle")
@@ -2614,8 +2725,9 @@ def test_vi_3004_broken_rows_and_state_line(opener: Any, exports: dict[str, path
     if export_name == "dependency_incomplete":
         assert payload["outstanding"]["available"] is False
         assert "Delivery diagnostics were unavailable" in _text(page, "#list")
-        counts = page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)")
-        assert counts[:3] == ["unknown"] * 3 and counts[3] == str(len(expected))
+        counts = _rail_counts(page)
+        assert [counts[k] for k in ("next", "capabilities", "noparent")] == ["unknown"] * 3
+        assert counts["broken"] == str(len(expected))
     for node_id in model.nodes:
         page = _pick(item, node_id, "broken")
         held = [c for h, c in expected if h == node_id]
@@ -2677,8 +2789,8 @@ def test_vi_3004_holder_order_and_detail_rendering(opener: Any, exports: dict[st
 
 def test_vi_3004_mixed_counts_are_unchanged(opener: Any, exports: dict[str, pathlib.Path]) -> None:
     item = opener(exports["mixed"])
-    counts = item.page.eval_on_selector_all("nav a .q-count", "els => els.map(e => e.textContent)")
-    assert counts == ["3", "2", "6", "0"]
+    counts = _rail_counts(item.page)
+    assert [counts[k] for k in ("next", "capabilities", "noparent", "broken")] == ["3", "2", "6", "0"]
     assert payload_of(exports["mixed"])["dependencies"] == {"edges": [], "diagnostics": []}
 
 

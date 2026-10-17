@@ -29,19 +29,26 @@
     }
   }
 
-  // The five links are built once, so a link that has focus keeps it across routes; a route only
+  // The links are built once, so a link that has focus keeps it across routes; a route only
   // moves aria-current.  The counts come from the data, which never changes, so they are set here.
   function buildNav() {
-    QUESTIONS.forEach(function (q) {
-      var li = add(dom.questions, el('li', 'question'));
-      var a = add(li, el('a', 'question-link'));
-      a.setAttribute('href', questionHash(q.key));
-      a.setAttribute('data-q', q.key);
-      add(a, el('span', 'q-name', q.name));
-      if (q.key !== 'browse') {
-        var count = emptyCorpus() ? 0 : questionCount(q.key);
-        add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
-      }
+    RAIL_GROUPS.forEach(function (group) {
+      var head = add(dom.questions, el('h2', 'rail-group', group.label));
+      head.setAttribute('id', 'rail-' + group.key);
+      var ul = add(dom.questions, el('ul', 'question-list'));
+      ul.setAttribute('aria-labelledby', head.id);
+      group.questions.forEach(function (key) {
+        var q = question(key);
+        var li = add(ul, el('li', 'question'));
+        var a = add(li, el('a', 'question-link'));
+        a.setAttribute('href', questionHash(q.key));
+        a.setAttribute('data-q', q.key);
+        add(a, el('span', 'q-name', q.name));
+        if (q.key !== 'browse') {
+          var count = emptyCorpus() ? 0 : questionCount(q.key);
+          add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
+        }
+      });
     });
   }
   function markNav(route) {

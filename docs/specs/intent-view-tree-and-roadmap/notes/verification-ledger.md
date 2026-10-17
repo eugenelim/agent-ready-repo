@@ -8,3 +8,8 @@
 
 - Implemented by an `implementer` subagent. `fixtures/roadmap/` holds 36 records (25 intents, 4 briefs, 6 specs) with each record's band, placement, progress, cells and tree roots stated by hand in its README. `_roadmap_expectations` agrees with every hand-stated value (`test_roadmap_fixture_matches_hand_stated_bands`). The resolver refuses one edge of a parent loop, so the unreachable-loop branch of the Tree root rule is exercised by `test_roadmap_tree_roots_take_the_first_loop_member_when_no_edge_is_refused`, which edits the payload so no loop edge is refused. The fixture has no strategy between two capabilities; that rule is stated in the spec's terms only.
 - Gates: `test_export_html.py` 24 passed; `view_browser_checks.py -k roadmap` 2 passed; `lint-pack-test-boundary.py` ok; `make lint-ruff lint-mypy` clean; navigate-intents suite without the browser file 518 passed, 4 skipped in 191s.
+
+## T2
+
+- Implemented by an `implementer` subagent. The rail is four `aria-labelledby` lists under `h2.rail-group` headings (hidden below 90rem by a media rule copying `.visually-hidden`), built from a `RAIL_GROUPS` table. `view.css` gained a 66–89.99rem rule keeping six tabs on one line, which `test_ac_0032_mid_width_questions_row_above_list_beside_detail` required. `test_ac_0040_live_region_announces_list_title_and_count` now waits for the clicked link's `aria-current` before reading the live region — the cause the source-and-style review named for its flake.
+- Gates: full `view_browser_checks.py` 205 passed in 335s; navigate-intents suite without the browser file 519 passed, 4 skipped; `lint-pack-test-boundary.py` ok; `make lint-ruff lint-mypy` clean; self-host and `check_view_base_parity.py` ok.
