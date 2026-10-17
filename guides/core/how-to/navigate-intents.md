@@ -186,9 +186,9 @@ The page opens on four questions, each a link in the page's nav:
 
 The **Dependencies** part of a detail panel lists "A waits for B" lines for the picked intent. **Show** chooses prerequisites, dependents, or both, and **Steps** chooses how far to follow them. Problems are listed below the lines and in "What is broken?". The part says it does not decide whether work can start, and the Key explains its marks.
 
-Each row leads with the human name, shows its state as a word plus a shape (so colour is never the only cue), and carries a context tag. A **Key** opens on demand to explain the marks.
+Each row leads with the human name, shows its state as a word plus a shape inside a pale tinted label (so colour is never the only cue), and carries a context tag. A **Key** opens on demand to explain the marks.
 
-Selecting a row opens a detail panel: the state line; a **Next step** that names which skill to use and why, in plain words; what is open beneath the item; what is broken; where it sits in the graph; a **Dependencies** part; a link to its source file; and collapsed record details with the header facts, including two "Depends on" groups. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system.
+Selecting a row opens a detail panel: the state line; a **Next step** that names which skill to use and why, in plain words; what is open beneath the item; what is broken; where it sits in the graph; a **Dependencies** part; a link to its source file; and collapsed record details with the header facts, including two "Depends on" groups. A broken entry shows as a tinted callout with its diagnostic text in monospace. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system. Hover and selection fade briefly, and the detail fades in as it changes; if your system asks for reduced motion, the page does not move at all.
 
 The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
 

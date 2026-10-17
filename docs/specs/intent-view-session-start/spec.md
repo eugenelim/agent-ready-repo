@@ -5,6 +5,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108, ADR-0007, ADR-0074
+- **Amended in part by:** [intent-view-source-and-style](../intent-view-source-and-style/spec.md) — criterion 0027's first sentence, replaced by its AC-0009, and the motion half of 0027's second sentence, replaced by its AC-0011 to AC-0015 (the `url(` and `@import` half carries over); criterion 0028, narrowed by its AC-0010.
 - **Amends:** [intent-navigation-export](../intent-navigation-export/spec.md) — its view criteria 0035, 0037 to 0044, 0046 to 0053, 0056 to 0064, 0068 and 0069 to 0071, which this spec's criteria replace as the table at the end of § Acceptance Criteria states. Its other criteria carry over unchanged.
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

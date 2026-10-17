@@ -3,6 +3,7 @@ type: creative-direction
 slug: skill-html-views
 surface: responsive-web
 date: 2026-10-12
+refined: 2026-10-16
 status: selected
 visual_target: none
 ---
@@ -21,7 +22,7 @@ It is one family with two densities:
 - **worklist** density for navigators and explorers;
 - **document** density for long prose.
 
-The owner selected it on 2026-10-12 from three candidates, on the agent's advice.
+The owner selected it on 2026-10-12 from three candidates, on the agent's advice, and refined it on 2026-10-16 after reviewing a prototype: soft panels for the zones, tinted state pills, and short reduced-motion-aware fades. The approved prototype is `docs/specs/intent-view-source-and-style/notes/prototype/approved-overlay.css`.
 
 ## Named goals (ranked)
 
@@ -66,7 +67,7 @@ The owner selected it on 2026-10-12 from three candidates, on the agent's advice
   - *Precedent:* railway timetables (aligned columns and a fixed reading line), and the engineering logbook (one ruled line per entry).
   - *Standards:* WCAG 2.2 use of colour (state never by colour alone); Nielsen's recognition-over-recall heuristic.
   - *Platform conventions:* MDN responsive layout guidance for grids that reflow by width.
-- **Quiet surface.** It means hairline rules and spacing group content, with no boxes, shadows or fills. One accent is spent only on the current selection and links. It is violated by coloured pills on every row, shadows, or decorative headers.
+- **Quiet surface.** It means a light canvas holds two softly raised zones, the list and the detail, and inside them hairline rules and spacing group content. Rows, rail links and controls stay flat. One accent is spent only on links, focus and the current selection; state tints are pale and always sit behind a state word. It is violated by a shadow on every row, saturated status fills, gradients, or decorative headers.
   - *Persona:* the same maintainer, who opens these views many times a day.
   - *Precedent:* the ruled ledger page, where structure is lines and not frames.
   - *Standards:* WCAG 2.2 AA contrast in light and dark.
@@ -91,16 +92,16 @@ The owner selected it on 2026-10-12 from three candidates, on the agent's advice
 | Spatial density | see template | `[dense]` In worklist density, one record per line and many lines per screen. Document density relaxes to a comfortable reading rhythm. |
 | Whitespace distribution | see template | `[compact]` Tight within rows, with clear gaps only between groups. |
 | Hierarchy and scale contrast | see template | `[moderate]` A small step from the page title to the section to the row, so the list stays the dominant mass. |
-| Containment and boundary strength | see template | `[ruled]` Hairline rules divide rows and zones. There are no cards or panels with fills. |
+| Containment and boundary strength | see template | `[ruled]` `[soft-panel]` The list and the detail are each one soft panel on the canvas. Inside them, hairline rules divide rows; rows are never cards. |
 | Section and scroll rhythm | see template | `[continuous]` `[regular]` One continuous list or text, with an even cadence. |
 | Type voice | see template | `[sans-humanist]` The system UI sans, with tabular figures for counts. Monospace only for ids, paths and prompts. |
 | Type hierarchy | see template | `[moderate]` Four levels: title, section, body and meta. |
-| Chromatic intensity | see template | `[restrained]` Neutral greys plus one accent hue. Broken and stale states add one warning hue, always paired with a word and a shape. |
-| Form | see template | `[rectilinear]` Square corners. Shapes for state are simple glyphs. |
-| Material and depth | see template | `[flat]` No elevation. Sticky regions are marked by a rule, not a shadow. |
+| Chromatic intensity | see template | `[restrained]` Neutral greys plus one accent hue for links and selection. Each state has a pale tint and a text hue (violet in progress, green approved, red broken, amber stale), always paired with a word and a shape. |
+| Form | see template | `[soft-rectilinear]` Small radii: 6px for chips, 8px for controls and callouts, 12px for zones. State marks are pills holding simple glyphs. |
+| Material and depth | see template | `[low]` Two levels only: the zones carry one soft shadow, stronger on the detail once an item is picked; everything inside them is flat. |
 | Ornament and texture | see template | `[none]` |
 | Image treatment | see template | `[none]` |
-| Motion character | see template | `[still]` No motion of any kind. |
+| Motion character | see template | `[quiet]` Colour, border and shadow fades of 120ms on hover and selection, and a 160ms fade with a 4px rise as the detail renders, only when the reader's system allows motion. Nothing moves on scroll. |
 
 ## Signature device
 
@@ -116,8 +117,8 @@ The owner selected it on 2026-10-12 from three candidates, on the agent's advice
 
 | Axis or goal | What the comparator produced | What it became | Why |
 | --- | --- | --- | --- |
-| Containment | Cards with shadows per item | Hairline-ruled rows | Cards cut rows per screen and add chrome; "Scan, then act" and "Quiet surface" outrank familiarity. |
-| Chromatic intensity | Saturated red, amber and green status pills | One accent plus one warning hue; state as word and shape | Colour-coded pills on every row made the current view noisy, and colour alone fails WCAG use of colour. |
+| Containment | Cards with shadows per item | Two soft zones holding hairline-ruled rows | Cards per item cut rows per screen and add chrome; "Scan, then act" keeps rows dense, while the two panels give the page a calm frame. |
+| Chromatic intensity | Saturated red, amber and green status pills | Pale tints behind a word and a shape; one accent for links and selection | Saturated pills on every row are noisy and colour alone fails WCAG use of colour; pale tints let a state read at a glance while the word carries it. |
 | Grid grammar | Modular tile grid of summary counts | Column grid with questions in a rail | Counts are answers to questions, not tiles; a rail keeps them in view while the list works. |
 | Alignment | Centred, max-width page | Edge-aligned, width-filling | Centred caps left empty bands at 1680 and 2560px. |
 | Type voice | Geometric sans throughout | Humanist system sans; monospace only for ids and prompts | Ids moved out of the reading line; system fonts satisfy the offline constraint. |

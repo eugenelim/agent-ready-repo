@@ -5,7 +5,7 @@
 - **Owner:** eugenelim, Platform Core maintainer
 - **Status:** Executing
 - **Ready confirmed:** 2026-10-08 by the repository owner, after a clean independent delivery-brief shaping review of revision `481476b67b4971e4a8161c414f2980339bda90fb`. Review evidence: `.context/reviews/c701093f-3a4c-4acb-9c5b-ea9268ab7ea8/2-shaping-reviewer-raw.md`.
-- **Slices confirmed:** 2026-10-08 by the repository owner: slices 1 to 8, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change. Amended 2026-10-12 by the repository owner: slices 9, 10 and 11 added and slice 8 re-fitted, in the order 9, 10, 8, 11, after a clean independent delivery-brief shaping review of revision `bf268a0de309fc72`.
+- **Slices confirmed:** 2026-10-08 by the repository owner: slices 1 to 8, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change. Amended 2026-10-12 by the repository owner: slices 9, 10 and 11 added and slice 8 re-fitted, in the order 9, 10, 8, 11, after a clean independent delivery-brief shaping review of revision `bf268a0de309fc72`. Amended 2026-10-16 by the repository owner: slice 11 split into 11a (hand-over prompt) and 11b (readiness bridge), and slices 12 (source parts and refined style) and 13 (tree, roadmap and owners) added, in the order 12, 13, 11a, 11b.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0002-intent-graph-navigation.md`](../intents/FEAT-0002-intent-graph-navigation.md), re-decomposed to this brief by the owner on 2026-10-08.
 - **Parent intent:** intent:intent-graph-navigation
 
@@ -132,12 +132,19 @@ A maintainer or agent can see every outstanding intent, brief, and spec that exi
    - It ships the shared `view-base.css` and the byte-parity gate RFC-0108 D2 names, joined with the view's own layout rules into the one hashed style element. The gate is a deliberate exception to the one-component rule in Rabbit holes, as slice 7's resolver change is: it exists only to keep this stylesheet's copies identical.
    - It amends the shipped `intent-navigation-export` spec's view criteria, including AC-0035 (closed label set), AC-0037 to AC-0044 (summary, views, detail and legend) and AC-0056 to AC-0061 (keyboard, viewports and landmarks). Its confinement, inert-content, publication and no-network criteria carry over unchanged.
    - It needs slices 4 and 9, and goes before slice 8 is built.
-11. **`intent-view-readiness-handover` — readiness bridge and hand-over.**
-   - With `workspace-status` output piped to `export --readiness -`, "What can I work on next?" shows the canonical active, ready and blocked sets. It marks the item an argless `work-loop` starts, following `work-loop`'s own order. "Broken" marks each loaded record with its workspace finding `code`; a finding for a record the navigator did not load is dropped.
-   - The export treats the piped input as untrusted and follows RFC-0108 D3: a size cap, schema check, allowlisted projection and dropped locators. Bridge data only marks records the navigator loaded. Any failed check leaves readiness unchecked while the export still succeeds.
-   - A picked item shows a prompt from RFC-0108 D4's closed template set, with one path checked against its per-segment grammar. Copying is byte-identical to what is shown. A record that fails gets no prompt. Hostile fixtures cover both the input and the prompt.
-   - It amends the export spec's agent rule "Never let the export or view code read `workspace.toml`" to admit the piped projection. The navigator still never reads that file.
-   - It needs slices 8 and 10.
+11. **Slice 11 is split into 11a and 11b**, so the hand-over prompt does not wait for the readiness bridge.
+   - **11a. `intent-view-handover-prompt` — the copyable next-step prompt.** A picked item's "Next step" shows a copy block holding a prompt from RFC-0108 D4's closed template set, with one path checked against its per-segment grammar. A Copy control copies exactly the shown prompt; when copying fails, the prompt is selected for manual copy. A record that fails the grammar gets no prompt and a plain reason. A hostile fixture covers the prompt. It needs slice 12.
+   - **11b. `intent-view-readiness-handover` — the readiness bridge.** With `workspace-status` output piped to `export --readiness -`, "What can I work on next?" shows the canonical active, ready and blocked sets, and marks the item an argless `work-loop` starts, following `work-loop`'s own order. "Broken" marks each loaded record with its workspace finding `code`; a finding for a record the navigator did not load is dropped. The export treats the piped input as untrusted and follows RFC-0108 D3: a size cap, schema check, allowlisted projection and dropped locators. Bridge data only marks records the navigator loaded, and any failed check leaves readiness unchecked while the export still succeeds. It amends the export spec's agent rule "Never let the export or view code read `workspace.toml`" to admit the piped projection; the navigator still never reads that file. It needs slices 8, 10 and 11a.
+12. **`intent-view-source-and-style` — source parts and the refined style.**
+   - The view's script is authored as named source parts that the export joins into its one hashed script, with no library, framework or bundler.
+   - The shared style takes the owner's 2026-10-16 refinement: soft zones, tinted state pills, a clearer detail card, and short fades under RFC-0108's corrected rule 9.
+   - It needs slice 10, and goes before 13 and 11a.
+13. **Tree, roadmap and owners.**
+   - "Browse all intents" becomes an expandable tree with expand-all and collapse-all, Show (All, Open, Done) and Group (full hierarchy or by capability), with filtered-out ancestors shown dimmed as context.
+   - A sixth question, "How far along is each capability?", shows top-level capabilities with child capabilities nested and progress over all work beneath: delivered, in progress and not started, with withdrawn and archived apart. It shows no health judgement.
+   - The rail is grouped by job: Work, Progress, Tidy, Browse.
+   - Each record's `Owner:` header joins the derivation, with owner shown on rows and an owner filter; this changes the derivation and query contract and is shaped as its own spec within the slice.
+   - It needs slice 12.
 
 ## Spec map
 
@@ -155,6 +162,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `intent-dependency-graphs` | <auto> |
 | `intent-node-headings` | <auto> |
 | `intent-view-session-start` | <auto> |
+| `intent-view-source-and-style` | <auto> |
 
 ## Governance references (optional)
 
