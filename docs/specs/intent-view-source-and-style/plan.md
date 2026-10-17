@@ -1,7 +1,7 @@
 # Plan: Intent view source parts and refined style
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0108 D1 and D2 (the view standard and the shared stylesheet); `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py` `build_html` and `_read_asset`, which already join two stylesheets into one hashed element — the script join reuses that seam; `packs/core/tests/skills/navigate-intents/test_export_html.py` and `view_browser_checks.py` are the construction path. Deviation: `_read_asset` gains a confined-root parameter so `view_src/` reads stay under the same confinement helper; no new module.
 
 ## Approach

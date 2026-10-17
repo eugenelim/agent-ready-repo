@@ -1,6 +1,6 @@
 # Spec: Intent view source parts and refined style
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-16 by eugenelim, spec and plan, after spec-mode shaping (clean, round 3) and adversarial (clean, round 3) reviews.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -91,51 +91,51 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
 ### Source parts and the join
 
-- [ ] **AC-0001.** The joined script is exactly `'use strict';\n(function () {\n`, then the UTF-8 text of each file named in the builder's part list, in that order, with nothing between them, then `})();\n`.
-- [ ] **AC-0002.** The content-security policy's script digest is the base64 SHA-256 of the joined script's UTF-8 bytes.
-- [ ] **AC-0003.** Every `*.js` file under `view_src/` is named in the part list exactly once, every name in the part list is a regular file under `view_src/`, and every part file's text ends with a newline character.
-- [ ] **AC-0004.** Given a part list naming a missing file, or a part whose text contains `</script` (case-insensitively) or `<!--`, `export` exits 1 with `error.code` `resolver_unavailable` and writes no file.
-- [ ] **AC-0005.** No part file has more than 400 lines, counting newline characters.
-- [ ] **AC-0006.** The joined script, comments removed, contains none of the tokens the export spec's criterion 0032 lists, and none of `fetch(`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, `import(`, `require(`, `.style`, `cssText`, `.animate(`, `requestAnimationFrame`, `startViewTransition` or `scrollIntoView`, nor a `setAttribute` whose first argument is `'style'` or `"style"`.
-- [ ] **AC-0007.** Every character of the joined script is printable ASCII, a tab or a newline.
-- [ ] **AC-0008.** The export spec's criterion 0033 holds with the joined script, written to a file and loaded under `node` as a CommonJS module, as the view's escape function.
+- [x] **AC-0001.** The joined script is exactly `'use strict';\n(function () {\n`, then the UTF-8 text of each file named in the builder's part list, in that order, with nothing between them, then `})();\n`.
+- [x] **AC-0002.** The content-security policy's script digest is the base64 SHA-256 of the joined script's UTF-8 bytes.
+- [x] **AC-0003.** Every `*.js` file under `view_src/` is named in the part list exactly once, every name in the part list is a regular file under `view_src/`, and every part file's text ends with a newline character.
+- [x] **AC-0004.** Given a part list naming a missing file, or a part whose text contains `</script` (case-insensitively) or `<!--`, `export` exits 1 with `error.code` `resolver_unavailable` and writes no file.
+- [x] **AC-0005.** No part file has more than 400 lines, counting newline characters.
+- [x] **AC-0006.** The joined script, comments removed, contains none of the tokens the export spec's criterion 0032 lists, and none of `fetch(`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, `import(`, `require(`, `.style`, `cssText`, `.animate(`, `requestAnimationFrame`, `startViewTransition` or `scrollIntoView`, nor a `setAttribute` whose first argument is `'style'` or `"style"`.
+- [x] **AC-0007.** Every character of the joined script is printable ASCII, a tab or a newline.
+- [x] **AC-0008.** The export spec's criterion 0033 holds with the joined script, written to a file and loaded under `node` as a CommonJS module, as the view's escape function.
 
 ### Style values
 
-- [ ] **AC-0009.** `view-base.css` declares every role of the § Colour, § Radius and § Elevation tables in `docs/design/tokens/skill-html-views.md` with its light value on `:root` and, where the table gives one, its dark value inside `@media (prefers-color-scheme: dark)`.
-- [ ] **AC-0010.** `view.css` declares no colour literal (hex, `rgb(`, `hsl(`, any other CSS colour function, or a named colour), no `font-family`, `font-weight` or `font` shorthand, no `box-shadow`, no `border-radius` whose value is not a `var(--r-` reference, no `transition*` or `animation*` property, and no `--` custom property.
+- [x] **AC-0009.** `view-base.css` declares every role of the § Colour, § Radius and § Elevation tables in `docs/design/tokens/skill-html-views.md` with its light value on `:root` and, where the table gives one, its dark value inside `@media (prefers-color-scheme: dark)`.
+- [x] **AC-0010.** `view.css` declares no colour literal (hex, `rgb(`, `hsl(`, any other CSS colour function, or a named colour), no `font-family`, `font-weight` or `font` shorthand, no `box-shadow`, no `border-radius` whose value is not a `var(--r-` reference, no `transition*` or `animation*` property, and no `--` custom property.
 
 ### Motion
 
-- [ ] **AC-0011.** Every `transition`, `transition-*`, `animation` and `animation-*` declaration and every `@keyframes` rule in either stylesheet sits inside an `@media (prefers-reduced-motion: no-preference)` block.
-- [ ] **AC-0012.** Every property a `transition` or `transition-property` declaration names, where a `transition` shorthand that names no property counts as naming `all`, is one of `background-color`, `color`, `border-color`, `box-shadow` or `opacity`.
-- [ ] **AC-0013.** Every `@keyframes` rule sets only `opacity` and `transform`, and every `transform` value it sets is `none` or a single `translateY(<n>px)` with `|n|` at most 4.
-- [ ] **AC-0014.** Every duration and delay a `transition*` or `animation*` declaration states, read from the shorthand where one is used, is at most 200ms, no `animation-iteration-count` is `infinite`, and neither stylesheet declares `scroll-behavior`, `animation-timeline`, `scroll-timeline` or `view-timeline`.
-- [ ] **AC-0015.** With the browser's `prefers-reduced-motion` set to `reduce`, every element of the rendered page computes every `transition-duration` and `animation-duration` as `0s` and `animation-name` as `none`.
-- [ ] **AC-0016.** With `prefers-reduced-motion` set to `no-preference`, a list row computes a `transition-duration` greater than `0s`.
+- [x] **AC-0011.** Every `transition`, `transition-*`, `animation` and `animation-*` declaration and every `@keyframes` rule in either stylesheet sits inside an `@media (prefers-reduced-motion: no-preference)` block.
+- [x] **AC-0012.** Every property a `transition` or `transition-property` declaration names, where a `transition` shorthand that names no property counts as naming `all`, is one of `background-color`, `color`, `border-color`, `box-shadow` or `opacity`.
+- [x] **AC-0013.** Every `@keyframes` rule sets only `opacity` and `transform`, and every `transform` value it sets is `none` or a single `translateY(<n>px)` with `|n|` at most 4.
+- [x] **AC-0014.** Every duration and delay a `transition*` or `animation*` declaration states, read from the shorthand where one is used, is at most 200ms, no `animation-iteration-count` is `infinite`, and neither stylesheet declares `scroll-behavior`, `animation-timeline`, `scroll-timeline` or `view-timeline`.
+- [x] **AC-0015.** With the browser's `prefers-reduced-motion` set to `reduce`, every element of the rendered page computes every `transition-duration` and `animation-duration` as `0s` and `animation-name` as `none`.
+- [x] **AC-0016.** With `prefers-reduced-motion` set to `no-preference`, a list row computes a `transition-duration` greater than `0s`.
 
 ### Rendered style
 
-- [ ] **AC-0017.** Across the width and theme matrix, the list zone and the detail zone each compute a non-zero `border-radius` and a `box-shadow` other than `none`.
-- [ ] **AC-0018.** Across the width and theme matrix, every list row computes `box-shadow` as `none` or as inset shadows only.
-- [ ] **AC-0019.** In `view-base.css`, each of the six `data-mark` values `active`, `approved`, `draft`, `done`, `broken` and `stale` has a rule declaring a `background`, and with every `var()` resolved through the token file's § Colour table, the six resolved colours are pairwise different in the light theme and pairwise different in the dark theme.
-- [ ] **AC-0020.** Across the width and theme matrix, the border colour of the search field, of every `select`, and of every `button` whose computed border width is non-zero has a contrast ratio of at least 3:1 against its background.
-- [ ] **AC-0021.** Every test in `view_browser_checks.py` at the base commit passes against this change, with only two edits: the lines in `test_vi_4002_hostile_values_stay_inert` that read `view_assets/view.js` read the joined script instead, and the page-background literal in `test_ac_0036_text_contrast` reads the light and dark values of `--c-canvas` from the token file.
+- [x] **AC-0017.** Across the width and theme matrix, the list zone and the detail zone each compute a non-zero `border-radius` and a `box-shadow` other than `none`.
+- [x] **AC-0018.** Across the width and theme matrix, every list row computes `box-shadow` as `none` or as inset shadows only.
+- [x] **AC-0019.** In `view-base.css`, each of the six `data-mark` values `active`, `approved`, `draft`, `done`, `broken` and `stale` has a rule declaring a `background`, and with every `var()` resolved through the token file's § Colour table, the six resolved colours are pairwise different in the light theme and pairwise different in the dark theme.
+- [x] **AC-0020.** Across the width and theme matrix, the border colour of the search field, of every `select`, and of every `button` whose computed border width is non-zero has a contrast ratio of at least 3:1 against its background.
+- [x] **AC-0021.** Every test in `view_browser_checks.py` at the base commit passes against this change, with only two edits: the lines in `test_vi_4002_hostile_values_stay_inert` that read `view_assets/view.js` read the joined script instead, and the page-background literal in `test_ac_0036_text_contrast` reads the light and dark values of `--c-canvas` from the token file.
 
 ### Detail card and layout
 
-- [ ] **AC-0022.** The search field shows the placeholder "Search names and ids", whose computed colour has a contrast ratio of at least 4.5:1 against the field's background in each theme, and its accessible name is still "Search names and ids".
-- [ ] **AC-0023.** The detail state line's text content after its state mark's glyph, with whitespace collapsed and trimmed, is the state word, one space, then the type word ("Intent", "Brief" or "Spec"), then the rest of the line, with no separator before the type word.
-- [ ] **AC-0024.** Given a picked record with at least one broken entry, each entry in "What is broken" computes a background colour different from the detail zone's.
-- [ ] **AC-0025.** Given a picked record with at least one broken entry, each entry in "What is broken" shows a left border at least 3px wide whose colour has a contrast ratio of at least 3:1 against the detail zone's background.
-- [ ] **AC-0026.** The current question's link shows an inset bar at least 3px wide whose colour has a contrast ratio of at least 3:1 against the link's own background, and no other question link shows one.
-- [ ] **AC-0027.** At true viewport widths of 320, 1280, 1440, 1500, 1680 and 2560 CSS px, in both themes, for each of the five destinations with its first row picked, no element inside the list zone or the detail zone has a `getBoundingClientRect()` extending more than 1 CSS px past the left or right edge of its zone's `getBoundingClientRect()`, and the document's `scrollWidth` does not exceed the viewport width.
+- [x] **AC-0022.** The search field shows the placeholder "Search names and ids", whose computed colour has a contrast ratio of at least 4.5:1 against the field's background in each theme, and its accessible name is still "Search names and ids".
+- [x] **AC-0023.** The detail state line's text content after its state mark's glyph, with whitespace collapsed and trimmed, is the state word, one space, then the type word ("Intent", "Brief" or "Spec"), then the rest of the line, with no separator before the type word.
+- [x] **AC-0024.** Given a picked record with at least one broken entry, each entry in "What is broken" computes a background colour different from the detail zone's.
+- [x] **AC-0025.** Given a picked record with at least one broken entry, each entry in "What is broken" shows a left border at least 3px wide whose colour has a contrast ratio of at least 3:1 against the detail zone's background.
+- [x] **AC-0026.** The current question's link shows an inset bar at least 3px wide whose colour has a contrast ratio of at least 3:1 against the link's own background, and no other question link shows one.
+- [x] **AC-0027.** At true viewport widths of 320, 1280, 1440, 1500, 1680 and 2560 CSS px, in both themes, for each of the five destinations with its first row picked, no element inside the list zone or the detail zone has a `getBoundingClientRect()` extending more than 1 CSS px past the left or right edge of its zone's `getBoundingClientRect()`, and the document's `scrollWidth` does not exceed the viewport width.
 
 ### Measurement and review
 
-- [ ] **AC-0028.** An export over this repository at the final code commit, opened in headless Chromium, shows the same four question counts as an export at the base commit, and the ledger records both commands, file sizes and counts.
-- [ ] **AC-0029.** An `experience-reviewer` pass over the rendered real export against RFC-0108 D1 rules 1 to 10, as corrected, and the refined `skill-html-views` direction's ranked goals leaves no Major or Blocker finding after adjudication, recorded in the ledger.
-- [ ] **AC-0030.** The owner records in the ledger, with the date, that the rendered real export at the final code commit is approved as matching the prototype in `notes/prototype/approved-overlay.css`.
+- [x] **AC-0028.** An export over this repository at the final code commit, opened in headless Chromium, shows the same four question counts as an export at the base commit, and the ledger records both commands, file sizes and counts.
+- [x] **AC-0029.** An `experience-reviewer` pass over the rendered real export against RFC-0108 D1 rules 1 to 10, as corrected, and the refined `skill-html-views` direction's ranked goals leaves no Major or Blocker finding after adjudication, recorded in the ledger.
+- [x] **AC-0030.** The owner records in the ledger, with the date, that the rendered real export at the final code commit is approved as matching the prototype in `notes/prototype/approved-overlay.css`.
 
 ## Follow-ons
 
