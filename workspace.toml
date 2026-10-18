@@ -2444,8 +2444,6 @@ queue   = [
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
 ]
 active  = [
-  # Slice 13 of `intent-navigation-delivery` (tree, roadmap and grouped rail), approved 2026-10-17 and in implementation.
-  { path = "docs/specs/intent-view-tree-and-roadmap/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Group the intent view rail by job, add a capability progress question under each product strategy, and give Browse all intents Show, Group and expand controls", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
@@ -2464,6 +2462,8 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 13 of `intent-navigation-delivery` (tree, roadmap and grouped rail), shipped 2026-10-17 (core 3.1.8); moved from `active` when the spec was set Shipped.
+  { path = "docs/specs/intent-view-tree-and-roadmap/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Group the intent view rail by job, add a capability progress question under each product strategy, and give Browse all intents Show, Group and expand controls", needs = [] },
   # Slice 12 of `intent-navigation-delivery`, shipped 2026-10-17 (core 3.1.7); moved from `active` when the spec was set Shipped.
   { path = "docs/specs/intent-view-source-and-style/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Author the intent view script as joined source parts and apply the owner-refined style: soft zones, tinted state pills, a clearer detail card and reduced-motion-aware fades", needs = [] },
   # Slice 8 of `intent-navigation-delivery`, shipped 2026-10-14 (core 3.1.5); moved from `active` when the spec was set Shipped.

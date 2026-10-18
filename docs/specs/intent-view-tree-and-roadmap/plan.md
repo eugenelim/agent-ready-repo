@@ -1,7 +1,7 @@
 # Plan: Intent view tree, roadmap and grouped rail
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0108 D1; the `intent-view-source-and-style` part list in `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py` (a new part is one tuple entry); `view_src/list-bodies.js` `bodyBrowse` and `treeRow` (the shipped tree this extends); `view_src/labels.js` `QUESTIONS` and `view_src/chrome.js` `buildNav` (the rail); `packs/core/tests/skills/navigate-intents/view_browser_checks.py` and its fixture builders (the construction path). Deviation: none — no payload or derivation change.
 
 ## Approach

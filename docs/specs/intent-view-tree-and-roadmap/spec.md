@@ -1,6 +1,6 @@
 # Spec: Intent view tree, roadmap and grouped rail
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-17 by eugenelim, spec and plan, after spec-mode shaping (clean, round 5) and adversarial (clean, round 3) reviews; the 2026-10-17 contract amendment was approved by eugenelim the same day after shaping (clean, round 4) and adversarial (clean, round 3) reviews of its delta.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -104,82 +104,82 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
 ### The rail
 
-- [ ] **AC-0050.** Every question's list sits below a header that shows the list's title, its count and its sort key.
+- [x] **AC-0050.** Every question's list sits below a header that shows the list's title, its count and its sort key.
 
-- [ ] **AC-0001.** With no URL fragment, the `nav` landmark holds exactly six question links whose visible labels are, in this order: "Next up" (the question "What can I work on next?"), "Broken" ("What is broken?"), "Capability progress" ("How far along is each capability?"), "Open by capability" ("What is still open under a capability?"), "No parent" ("What has no parent?") and "All intents" ("Browse all intents"); the first is marked `aria-current="page"`. Criteria below name each question by its full question.
-- [ ] **AC-0051.** Each question's list header shows the full question, as worded in AC-0001, in a line above the list title.
-- [ ] **AC-0054.** Each rail link's computed accessible description is its full question, as worded in AC-0001, through `aria-describedby`.
-- [ ] **AC-0002.** The six links sit in four lists whose computed accessible names are "Work" (the first two links), "Progress" (the next two), "Tidy" (the fifth) and "Browse" (the sixth), each name coming from a visible group label through `aria-labelledby`.
-- [ ] **AC-0003.** At a true viewport width below 1440 CSS px the four group labels are visually hidden and the lists keep their accessible names; at 1440 CSS px and wider the labels are visible.
-- [ ] **AC-0004.** Every question link except "Browse all intents" shows as visible text a count: for "How far along is each capability?" the number of capabilities in the export, and for each other question the number of rows its list shows, as the session-start spec counts them. While `outstanding` is unavailable, "What can I work on next?", "What is still open under a capability?" and "What has no parent?" show "unknown"; in an empty corpus all five show 0.
+- [x] **AC-0001.** With no URL fragment, the `nav` landmark holds exactly six question links whose visible labels are, in this order: "Next up" (the question "What can I work on next?"), "Broken" ("What is broken?"), "Capability progress" ("How far along is each capability?"), "Open by capability" ("What is still open under a capability?"), "No parent" ("What has no parent?") and "All intents" ("Browse all intents"); the first is marked `aria-current="page"`. Criteria below name each question by its full question.
+- [x] **AC-0051.** Each question's list header shows the full question, as worded in AC-0001, in a line above the list title.
+- [x] **AC-0054.** Each rail link's computed accessible description is its full question, as worded in AC-0001, through `aria-describedby`.
+- [x] **AC-0002.** The six links sit in four lists whose computed accessible names are "Work" (the first two links), "Progress" (the next two), "Tidy" (the fifth) and "Browse" (the sixth), each name coming from a visible group label through `aria-labelledby`.
+- [x] **AC-0003.** At a true viewport width below 1440 CSS px the four group labels are visually hidden and the lists keep their accessible names; at 1440 CSS px and wider the labels are visible.
+- [x] **AC-0004.** Every question link except "Browse all intents" shows as visible text a count: for "How far along is each capability?" the number of capabilities in the export, and for each other question the number of rows its list shows, as the session-start spec counts them. While `outstanding` is unavailable, "What can I work on next?", "What is still open under a capability?" and "What has no parent?" show "unknown"; in an empty corpus all five show 0.
 
 ### The roadmap question
 
-- [ ] **AC-0005.** "How far along is each capability?" lists every capability in the export exactly once, whatever its status.
-- [ ] **AC-0006.** A capability with a nearest capability ancestor is listed in a nested list inside that ancestor's list item, after the ancestor's row link.
-- [ ] **AC-0007.** Every capability with no nearest capability ancestor is listed in exactly one section: the section of its nearest strategy, or, when it has none, the section "Not under a product strategy in this export".
-- [ ] **AC-0008.** Strategy sections are headed by the strategy's display name, ordered by name order, followed by the "Not under a product strategy in this export" section; a section is shown only when it holds a capability.
-- [ ] **AC-0009.** Within a section and within a nested list, capabilities are in name order.
-- [ ] **AC-0010.** The list header's sort key reads "By strategy, then name".
-- [ ] **AC-0011.** Given a corpus that holds intents but no capability, the list area reads "No capability is recorded."; given an empty corpus, it reads the session-start spec's empty-corpus line instead.
-- [ ] **AC-0012.** Each capability row is one link to that capability holding, in order, its display name, its state mark and its progress.
-- [ ] **AC-0013.** A row's progress shows "<n> delivered", then "<n> in progress" and "<n> not started" each only when non-zero, then "<n> stopped" only when non-zero, each n being that band's count over the capability's work beneath.
-- [ ] **AC-0014.** A row whose current work is non-empty shows its delivered share followed by "%".
-- [ ] **AC-0015.** A row whose current work is empty and whose work beneath holds stopped items shows "0 delivered" and "<n> stopped", no share, and a bar of 24 empty cells.
-- [ ] **AC-0016.** A row whose work beneath is empty shows "Nothing beneath yet" and no counts, share or bar.
-- [ ] **AC-0017.** A row's bar is hidden from assistive technology and holds exactly 24 cells.
-- [ ] **AC-0048.** A bar's delivered, in-progress and not-started cell counts are the largest-remainder apportionment of 24 over those three bands' counts — each band takes the integer part of `24 × count ÷ current`, and the cells still unassigned go one each to the bands with the largest `(24 × count) mod current`, ties going delivered, then in progress, then not started — so a non-zero band can take 0 cells.
-- [ ] **AC-0018.** Each strategy section's heading line shows that strategy's progress over its own work beneath, by AC-0013 to AC-0017 and AC-0048.
-- [ ] **AC-0019.** Given an export whose `outstanding` is unavailable, the roadmap question still lists every capability under its section, and each row and strategy heading shows "Progress unknown: delivery mapping incomplete." in place of counts, share and bar.
-- [ ] **AC-0020.** In each theme, the bar's delivered, in-progress, not-started and empty cells compute four pairwise-different background colours.
+- [x] **AC-0005.** "How far along is each capability?" lists every capability in the export exactly once, whatever its status.
+- [x] **AC-0006.** A capability with a nearest capability ancestor is listed in a nested list inside that ancestor's list item, after the ancestor's row link.
+- [x] **AC-0007.** Every capability with no nearest capability ancestor is listed in exactly one section: the section of its nearest strategy, or, when it has none, the section "Not under a product strategy in this export".
+- [x] **AC-0008.** Strategy sections are headed by the strategy's display name, ordered by name order, followed by the "Not under a product strategy in this export" section; a section is shown only when it holds a capability.
+- [x] **AC-0009.** Within a section and within a nested list, capabilities are in name order.
+- [x] **AC-0010.** The list header's sort key reads "By strategy, then name".
+- [x] **AC-0011.** Given a corpus that holds intents but no capability, the list area reads "No capability is recorded."; given an empty corpus, it reads the session-start spec's empty-corpus line instead.
+- [x] **AC-0012.** Each capability row is one link to that capability holding, in order, its display name, its state mark and its progress.
+- [x] **AC-0013.** A row's progress shows "<n> delivered", then "<n> in progress" and "<n> not started" each only when non-zero, then "<n> stopped" only when non-zero, each n being that band's count over the capability's work beneath.
+- [x] **AC-0014.** A row whose current work is non-empty shows its delivered share followed by "%".
+- [x] **AC-0015.** A row whose current work is empty and whose work beneath holds stopped items shows "0 delivered" and "<n> stopped", no share, and a bar of 24 empty cells.
+- [x] **AC-0016.** A row whose work beneath is empty shows "Nothing beneath yet" and no counts, share or bar.
+- [x] **AC-0017.** A row's bar is hidden from assistive technology and holds exactly 24 cells.
+- [x] **AC-0048.** A bar's delivered, in-progress and not-started cell counts are the largest-remainder apportionment of 24 over those three bands' counts — each band takes the integer part of `24 × count ÷ current`, and the cells still unassigned go one each to the bands with the largest `(24 × count) mod current`, ties going delivered, then in progress, then not started — so a non-zero band can take 0 cells.
+- [x] **AC-0018.** Each strategy section's heading line shows that strategy's progress over its own work beneath, by AC-0013 to AC-0017 and AC-0048.
+- [x] **AC-0019.** Given an export whose `outstanding` is unavailable, the roadmap question still lists every capability under its section, and each row and strategy heading shows "Progress unknown: delivery mapping incomplete." in place of counts, share and bar.
+- [x] **AC-0020.** In each theme, the bar's delivered, in-progress, not-started and empty cells compute four pairwise-different background colours.
 
 ### Browse all intents: controls
 
-- [ ] **AC-0021.** "Browse all intents" shows, above its list, a group labelled "Show" holding three buttons "All", "Open" and "Done", a group labelled "Group" holding two buttons "Full hierarchy" and "By capability", and two buttons "Expand all" and "Collapse all".
-- [ ] **AC-0022.** Within the Show group and within the Group group exactly one button has `aria-pressed="true"`; with no fragment those are "All" and "Full hierarchy".
-- [ ] **AC-0023.** "Expand all" opens every subtree in the list's first section, and "Collapse all" closes every one; neither opens or closes a section disclosure.
-- [ ] **AC-0024.** After "Expand all" or "Collapse all", focus stays on the button pressed.
+- [x] **AC-0021.** "Browse all intents" shows, above its list, a group labelled "Show" holding three buttons "All", "Open" and "Done", a group labelled "Group" holding two buttons "Full hierarchy" and "By capability", and two buttons "Expand all" and "Collapse all".
+- [x] **AC-0022.** Within the Show group and within the Group group exactly one button has `aria-pressed="true"`; with no fragment those are "All" and "Full hierarchy".
+- [x] **AC-0023.** "Expand all" opens every subtree in the list's first section, and "Collapse all" closes every one; neither opens or closes a section disclosure.
+- [x] **AC-0024.** After "Expand all" or "Collapse all", focus stays on the button pressed.
 
 ### Browse all intents: the tree
 
-- [ ] **AC-0025.** Each tree row's link holds the intent's display name followed by its level tag.
-- [ ] **AC-0026.** While `outstanding` is available, a tree row with intents beneath it in the current grouping shows "<c>/<t> closed", where t is the number of those intents and c the number of them that are not open items.
-- [ ] **AC-0027.** While `outstanding` is available, a tree row with at least one open item beneath it shows "<n> open items", n being the number of open items beneath it as the session-start spec counts them, the same in either grouping.
-- [ ] **AC-0028.** Every subtree toggle has `aria-expanded` matching its state and an accessible name containing the display name of the intent it toggles.
-- [ ] **AC-0029.** A tree row whose intent's parent edge carries a `state` shows "refused parent:" and that state label, as the session-start spec's criterion 0012 requires.
-- [ ] **AC-0030.** In a whole-corpus export with "Full hierarchy" and "All", the list holds a section "Hierarchy roots" listing, in name order, every tree root that has intents beneath it, then a closed disclosure "No parent and nothing beneath" listing every other tree root; with every subtree and the disclosure open, every intent in the export appears exactly once.
-- [ ] **AC-0031.** With "By capability" and "All", the list holds a section "Top-level capabilities" listing every capability with no nearest capability ancestor, each holding as children the intents whose nearest capability ancestor it is, then a closed disclosure "Not under a capability" listing every other intent that is neither a capability nor has a nearest capability ancestor; with everything open, every intent in the export appears exactly once.
+- [x] **AC-0025.** Each tree row's link holds the intent's display name followed by its level tag.
+- [x] **AC-0026.** While `outstanding` is available, a tree row with intents beneath it in the current grouping shows "<c>/<t> closed", where t is the number of those intents and c the number of them that are not open items.
+- [x] **AC-0027.** While `outstanding` is available, a tree row with at least one open item beneath it shows "<n> open items", n being the number of open items beneath it as the session-start spec counts them, the same in either grouping.
+- [x] **AC-0028.** Every subtree toggle has `aria-expanded` matching its state and an accessible name containing the display name of the intent it toggles.
+- [x] **AC-0029.** A tree row whose intent's parent edge carries a `state` shows "refused parent:" and that state label, as the session-start spec's criterion 0012 requires.
+- [x] **AC-0030.** In a whole-corpus export with "Full hierarchy" and "All", the list holds a section "Hierarchy roots" listing, in name order, every tree root that has intents beneath it, then a closed disclosure "No parent and nothing beneath" listing every other tree root; with every subtree and the disclosure open, every intent in the export appears exactly once.
+- [x] **AC-0031.** With "By capability" and "All", the list holds a section "Top-level capabilities" listing every capability with no nearest capability ancestor, each holding as children the intents whose nearest capability ancestor it is, then a closed disclosure "Not under a capability" listing every other intent that is neither a capability nor has a nearest capability ancestor; with everything open, every intent in the export appears exactly once.
 
 ### Browse all intents: Show
 
-- [ ] **AC-0032.** With "Open", a row is shown only when its intent is an open item or a row beneath it is shown.
-- [ ] **AC-0033.** With "Done", a row is shown only when its intent is not an open item or a row beneath it is shown.
-- [ ] **AC-0034.** Under "Open" or "Done", every context row shows the visible text "context" and its link's accessible name contains "shown for context", and no row whose intent matches the choice shows either.
-- [ ] **AC-0035.** Under "Open" or "Done", every subtree that holds a shown row is open on render.
-- [ ] **AC-0036.** The list header's count names the number of intents in the export matching the Show choice and every filter set, and the polite live region announces the list title and that count after each Show or Group change.
-- [ ] **AC-0037.** While `outstanding` is unavailable, the "Open" and "Done" buttons are disabled and a note reads "Open and done are unknown: delivery mapping incomplete.", and no row shows a "closed" or "open items" count.
-- [ ] **AC-0038.** While a level, kind or status filter is set, the list is flat, as the session-start spec's filtered list is: it lists, in name order, the intents matching both the filters and the Show choice, shows no context rows or sections, ignores the Group choice, and keeps the session-start spec's "Clear filters" control and its query parity for the filters alone.
-- [ ] **AC-0052.** With no filter set, "Browse all intents" shows the sort key "Under each parent, by name" with "Full hierarchy" and "Under each capability, by name" with "By capability"; with a filter set, it shows "By name".
-- [ ] **AC-0053.** "Browse all intents"'s lead reads "Every intent in the export, under its parent." with "Full hierarchy" and "Every intent in the export, under its nearest capability." with "By capability", prefixed by "Open work only. " when Show is "Open" and by "Done work only. " when Show is "Done"; while a filter is set, the lead reads "Intents matching the filters, by name.", with the same Show prefix.
-- [ ] **AC-0039.** The URL fragment holds the Show and Group choices as `show` and `group`; reloading restores them, and changing either adds no history entry.
+- [x] **AC-0032.** With "Open", a row is shown only when its intent is an open item or a row beneath it is shown.
+- [x] **AC-0033.** With "Done", a row is shown only when its intent is not an open item or a row beneath it is shown.
+- [x] **AC-0034.** Under "Open" or "Done", every context row shows the visible text "context" and its link's accessible name contains "shown for context", and no row whose intent matches the choice shows either.
+- [x] **AC-0035.** Under "Open" or "Done", every subtree that holds a shown row is open on render.
+- [x] **AC-0036.** The list header's count names the number of intents in the export matching the Show choice and every filter set, and the polite live region announces the list title and that count after each Show or Group change.
+- [x] **AC-0037.** While `outstanding` is unavailable, the "Open" and "Done" buttons are disabled and a note reads "Open and done are unknown: delivery mapping incomplete.", and no row shows a "closed" or "open items" count.
+- [x] **AC-0038.** While a level, kind or status filter is set, the list is flat, as the session-start spec's filtered list is: it lists, in name order, the intents matching both the filters and the Show choice, shows no context rows or sections, ignores the Group choice, and keeps the session-start spec's "Clear filters" control and its query parity for the filters alone.
+- [x] **AC-0052.** With no filter set, "Browse all intents" shows the sort key "Under each parent, by name" with "Full hierarchy" and "Under each capability, by name" with "By capability"; with a filter set, it shows "By name".
+- [x] **AC-0053.** "Browse all intents"'s lead reads "Every intent in the export, under its parent." with "Full hierarchy" and "Every intent in the export, under its nearest capability." with "By capability", prefixed by "Open work only. " when Show is "Open" and by "Done work only. " when Show is "Done"; while a filter is set, the lead reads "Intents matching the filters, by name.", with the same Show prefix.
+- [x] **AC-0039.** The URL fragment holds the Show and Group choices as `show` and `group`; reloading restores them, and changing either adds no history entry.
 
 ### Scoped export
 
-- [ ] **AC-0040.** Given an export with `--from` naming a capability, the roadmap question lists only the capabilities in the export, with sections and nesting computed only from intents in the export.
-- [ ] **AC-0041.** Given an export with `--from`, "Browse all intents" with "Full hierarchy" lists the scoped intent as the only entry of "Hierarchy roots", whether or not it has intents beneath it, and shows no "No parent and nothing beneath" disclosure.
-- [ ] **AC-0049.** Given an export with `--from`, "Browse all intents" with "By capability" computes nearest capability ancestors only from intents in the export, and every intent in the export appears exactly once with everything open.
+- [x] **AC-0040.** Given an export with `--from` naming a capability, the roadmap question lists only the capabilities in the export, with sections and nesting computed only from intents in the export.
+- [x] **AC-0041.** Given an export with `--from`, "Browse all intents" with "Full hierarchy" lists the scoped intent as the only entry of "Hierarchy roots", whether or not it has intents beneath it, and shows no "No parent and nothing beneath" disclosure.
+- [x] **AC-0049.** Given an export with `--from`, "Browse all intents" with "By capability" computes nearest capability ancestors only from intents in the export, and every intent in the export appears exactly once with everything open.
 
 ### Files and style
 
-- [ ] **AC-0042.** The builder's part list names `roadmap.js`, and every part still meets the source-and-style spec's criteria 0001 to 0008.
-- [ ] **AC-0043.** Every colour, radius, elevation and motion rule this spec adds sits in `view-base.css`, and `view.css` still meets the source-and-style spec's criterion 0010.
-- [ ] **AC-0044.** No file under `view_src/` contains "on track", "at risk" or "off track", compared case-insensitively, and the `roadmap` fixture's records contain none.
+- [x] **AC-0042.** The builder's part list names `roadmap.js`, and every part still meets the source-and-style spec's criteria 0001 to 0008.
+- [x] **AC-0043.** Every colour, radius, elevation and motion rule this spec adds sits in `view-base.css`, and `view.css` still meets the source-and-style spec's criterion 0010.
+- [x] **AC-0044.** No file under `view_src/` contains "on track", "at risk" or "off track", compared case-insensitively, and the `roadmap` fixture's records contain none.
 
 ### Measurement and review
 
-- [ ] **AC-0045.** An export over this repository at the final code commit, opened in headless Chromium, shows under "How far along is each capability?" the same sections, capabilities and band counts as the Python reading of that export's payload, and the ledger records each section with its capabilities' delivered shares.
-- [ ] **AC-0046.** An `experience-reviewer` pass over screenshots of the real export's roadmap question and Browse tree, at 320, 1280, 1680 and 2560 CSS px in light and dark, is recorded in the ledger with every Major or Blocker finding's disposition.
-- [ ] **AC-0047.** The owner records in the ledger, with the date, that the rendered real export is approved for planning and leadership reporting.
+- [x] **AC-0045.** An export over this repository at the final code commit, opened in headless Chromium, shows under "How far along is each capability?" the same sections, capabilities and band counts as the Python reading of that export's payload, and the ledger records each section with its capabilities' delivered shares.
+- [x] **AC-0046.** An `experience-reviewer` pass over screenshots of the real export's roadmap question and Browse tree, at 320, 1280, 1680 and 2560 CSS px in light and dark, is recorded in the ledger with every Major or Blocker finding's disposition.
+- [x] **AC-0047.** The owner records in the ledger, with the date, that the rendered real export is approved for planning and leadership reporting.
 
 ## Follow-ons
 
