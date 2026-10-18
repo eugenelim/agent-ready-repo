@@ -40,26 +40,26 @@
 
 ### Screenshots
 
-Real export at `ee4374c4b` (after the review fixes below), reduced motion on, true viewport sizes. `roadmap-*` shows "How far along is each capability?"; `browse-*` shows "Browse all intents" with Show = Open, Group = By capability, after Expand all.
+Real export at `441bd1cd1` (after T7), reduced motion on, true viewport sizes. `roadmap-*` shows "How far along is each capability?"; `browse-*` shows "Browse all intents" with Show = Open, Group = By capability, after Expand all.
 
 | File | SHA-256 |
 | --- | --- |
-| `notes/screens/browse-1280-dark.png` | `4801bb22e72d676f162cc9b4110317b978a358d83abbeff1a92b7b45f3ddb556` |
-| `notes/screens/browse-1280-light.png` | `bc014e12e76591e20e292e3df704b265b5a4a000d690972187f022ca2743368f` |
-| `notes/screens/browse-1680-dark.png` | `8c2cd0fb718e0584291d9cdf4c035c134a216cfe9222ee83b71891f8e974fa32` |
-| `notes/screens/browse-1680-light.png` | `7aecb150a8db63078828c22ed696f73763db6006ea55a2bdca7effc8eb78c5c9` |
-| `notes/screens/browse-2560-dark.png` | `060000f5b546db15f660e5ba08c4e40a3bc83d27dc152ea8c8d6a2be8cfa76cc` |
-| `notes/screens/browse-2560-light.png` | `e804b2c8b632615deafe946ad7936f5f8129da11148b494f49ead48012bbee67` |
-| `notes/screens/browse-320-dark.png` | `f5351a005f8a67b90050963645f220ff461a10fc547cfefef70bc19d56683b41` |
-| `notes/screens/browse-320-light.png` | `00f66d66cfd93274ceb67ca6c7525d54b38fefbee2b4ee46660b7b3d7bd32bff` |
-| `notes/screens/roadmap-1280-dark.png` | `3ec1843eeeebb6dc12c76b429c36ec1c0730fa1b0aac617b794fc9500c1cd86b` |
-| `notes/screens/roadmap-1280-light.png` | `0dcebfb8af7f204f579bcbcae3465d700815b43e9e75c93a4dfd0e49420fff24` |
-| `notes/screens/roadmap-1680-dark.png` | `fd230fa2fceeab1fd01f6c50b876d58b742f9ba64d22c1d70d6af23da0dcbf46` |
-| `notes/screens/roadmap-1680-light.png` | `f0b0ae7a6adc670540f0c1f13778f99117e1eb75928ad02c356363eb0786a187` |
-| `notes/screens/roadmap-2560-dark.png` | `ebf9e4db838823492236fe082734cec9ea1ce7dd95a3599bc03e72864f60afbe` |
-| `notes/screens/roadmap-2560-light.png` | `4bef430cbc00d6811c83868ece747d95594bb271aa644831a832108a62bc50e0` |
-| `notes/screens/roadmap-320-dark.png` | `bdff53ddce5e92d3f57500aec52a2f3a1b4333d83740a577393547cbb715a2e0` |
-| `notes/screens/roadmap-320-light.png` | `420ebf361f45e498f725c8cf15414278109bc51b90c0a1e432acbb07fb87b7ec` |
+| `notes/screens/browse-1280-dark.png` | `bbf426946096392e35c4253fdb4ade32868edff068ada78b4fa1c2f7909a5e19` |
+| `notes/screens/browse-1280-light.png` | `73d4c728c5b0929b4588cc4ad7ebe572f315a5ecf8d80cd0024218bd76c92787` |
+| `notes/screens/browse-1680-dark.png` | `b8cdf15283f024768d4273da994a5932608c9effa709e5cb1f5700e0b43d5216` |
+| `notes/screens/browse-1680-light.png` | `83fb055254494c5958e1357120a44dc2c84c7f249e3f7412f8ac3bd2ace11df6` |
+| `notes/screens/browse-2560-dark.png` | `956aa867d7a0ac0cf54892ccae1e2ea3ed78903a5257903dc430d2b2c784bf4f` |
+| `notes/screens/browse-2560-light.png` | `319d549eb6042f0faea8e82c636791100c6fd48b28850305d4de0778418afd11` |
+| `notes/screens/browse-320-dark.png` | `7ad31587bcc543a40507496028290dbf06ef3bd7db81e0f3e545410ab4f834a3` |
+| `notes/screens/browse-320-light.png` | `7bcf1a19d6f2c0de8b66d8e906c3a02342ee7ab4015fc2fe82a54470c148e852` |
+| `notes/screens/roadmap-1280-dark.png` | `8417fb1a6943da557c7a324d788c057a291018965e8ab1f97cc7226a5c8a8c75` |
+| `notes/screens/roadmap-1280-light.png` | `16e7fe96360468283e0d2b0b5e1d96b9e90554f74e29625d00e5e0de6bf8e3a2` |
+| `notes/screens/roadmap-1680-dark.png` | `4600cae0f6d9e3fc7e433551646ac71298f9004971f0f73df4edf33d9c3e3e8e` |
+| `notes/screens/roadmap-1680-light.png` | `c84ce3f6704a475cb728bd064f29d6a9ba27ae6dffabc940754590ad3751aed0` |
+| `notes/screens/roadmap-2560-dark.png` | `53064888e72f9067cc0e219389b8053c5add91dd40f4fdc84d8da360030ddaf4` |
+| `notes/screens/roadmap-2560-light.png` | `2d709ae6e7ded9732f2c33c470f752872e56f70b615f0171ca24aaa94aa2ad13` |
+| `notes/screens/roadmap-320-dark.png` | `4941906334344ef251d085f1d115919b6373a62780e01a3a2a01b30adc12eb49` |
+| `notes/screens/roadmap-320-light.png` | `6e8869f6f2e9bf38375553dc263f27f184d359eec11f04815bf48f5a6e16c884` |
 
 ### Experience review (AC-0046)
 
@@ -96,3 +96,8 @@ Real export at `ee4374c4b` (after the review fixes below), reduced motion on, tr
 - `test_ac_0040_live_region_announces_list_title_and_count`, with its last step now waiting for the filter to apply, passed 16 of 16 consecutive solo runs; the base commit `f07d39b53` failed 3 of 8. The `pre-existing-intent-view-live-region-test-flake` entry is removed from `workspace.toml`, which also retires the source-and-style spec's owner-accepted exception.
 - Bundled fixes (no criterion of their own): the live-region wait (16/16 solo passes); x-alignment checks at 1280 and 1440 at the deepest depth (parametrized tests green); `test_roadmap_cells` counts strategies (`len(strategies) >= 2` guard); the done/capability context-row guard; `.rm-cell` radius `var(--r-1)` (`test_roadmap_cells_use_a_radius_token`); the pressed ✓ plain `content` before the alt-text form (`test_pressed_choice_mark_has_a_plain_content_before_the_alt_text_form`); the tree row name-track floor 6rem → 5rem, which the 1440 x-alignment test required (545 vs 543 → pass).
 - Gates: full `view_browser_checks.py` 251 passed; navigate-intents suite without the browser file 521 passed, 4 skipped; self-host twice (second run no diff); catalogue lint `--deep` and verify ok; `check_view_base_parity.py`, `lint-pack-test-boundary.py`, `changelog.py validate`, `lint-spec-status.py` and the four guide linters exit 0; `make lint-ruff lint-mypy` clean.
+
+## T6 re-run after T7
+
+- AC-0045 at the final code commit `441bd1cd1`: export 705,479 bytes; sections equal to the oracle's, 22 capability rows, 0 mismatches.
+- The 16 screenshots in `notes/screens/` were re-taken at `441bd1cd1` (SHA-256 table above updated); they show the short rail labels and the question line above each list title.
