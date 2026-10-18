@@ -101,3 +101,11 @@ Real export at `441bd1cd1` (after T7), reduced motion on, true viewport sizes. `
 
 - AC-0045 at the final code commit `441bd1cd1`: export 705,479 bytes; sections equal to the oracle's, 22 capability rows, 0 mismatches.
 - The 16 screenshots in `notes/screens/` were re-taken at `441bd1cd1` (SHA-256 table above updated); they show the short rail labels and the question line above each list title.
+- Experience review round 3 (after T7): no new Major or Blocker; the only open Major is round 2's #6, the owner's recorded deferral. Minors recorded and left as they are: below 1440 the short labels carry no visible hint of their question until clicked (a hover hint would help); the question line is styled unlike other eyebrows; Browse's eyebrow "Browse all intents" is not a question and repeats the title; the roadmap restates its question in title and subtitle; the Browse lead "Open work only. Every intent …" still reads oddly and "Top-level capabilities" is inexact; 320 rail groups are subtle.
+- `frontend-reviewer` round 2: `Clean — ready to commit.` with two Minors (Browse's question line repeats its title; an empty question paragraph stays in the DOM during search), left as they are.
+- `quality-engineer` round 2: `Clean — ready to commit.` Concerns 1 and 2 closed; Nits left as they are: a comment in `test_ac_0024` naming `test_full_hierarchy_sections` as the cross-section order check, and `generatedText` string surgery in the roadmap legend.
+
+## Final approval after T7 (AC-0046, AC-0047)
+
+- AC-0046 after T7: the experience review's round 3 (above) covers the screenshots re-taken at `441bd1cd1` and found no new Major or Blocker; its one open Major is the owner's recorded deferral.
+- AC-0047 after T7: 2026-10-17, eugenelim approved the rendered real export at `9b8106758` (code identical to `441bd1cd1`) for planning and leadership reporting — the short rail labels, the question line above each list, and two layout changes made in T7: bar cells rounded with `var(--r-1)` (6px, was 2px) and the tree row's name-track floor at 5rem (was 6rem, which drifted 2px at 1440). Those two are therefore owner-accepted design changes rather than ride-alongs.
