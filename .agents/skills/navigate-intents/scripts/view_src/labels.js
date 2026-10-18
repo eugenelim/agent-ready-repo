@@ -68,29 +68,43 @@
   var TYPE_NAMES = { intent: 'Intent', brief: 'Brief', spec: 'Spec' };
   var TYPE_GROUPS = [['intent', 'Intents'], ['brief', 'Briefs'], ['spec', 'Specs']];
 
+  // Each question has a short label for the rail and its full question (`name`), which a list shows
+  // above its title and a rail link carries as its description.
   var QUESTIONS = [
-    { key: 'next', name: 'What can I work on next?', title: 'In a startable stage',
+    { key: 'next', label: 'Next up', name: 'What can I work on next?', title: 'In a startable stage',
       lead: 'Readiness not checked in this snapshot.', sort: 'By stage, then name',
       empty: 'Nothing is in a startable stage.', noun: ['item', 'items'] },
-    { key: 'capabilities', name: 'What is still open under a capability?',
+    { key: 'broken', label: 'Broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
+      lead: 'Pointers that did not resolve, parent or dependency loops made of resolved pointers, and problems the delivery resolver found.',
+      sort: 'By name', empty: 'Nothing is broken.', noun: ['entry', 'entries'] },
+    { key: 'roadmap', label: 'Capability progress', name: 'How far along is each capability?', title: 'Capability progress',
+      lead: 'All work beneath each capability, by delivery stage, grouped under each product strategy.',
+      sort: 'By strategy, then name', empty: 'No capability is recorded.',
+      noun: ['capability', 'capabilities'] },
+    { key: 'capabilities', label: 'Open by capability', name: 'What is still open under a capability?',
       title: 'Capabilities with open work', lead: 'Pick a capability to see the open work beneath it.',
       sort: 'By open count, then name', empty: 'No capability has open work beneath it.',
       noun: ['capability', 'capabilities'] },
-    { key: 'noparent', name: 'What has no parent?', title: 'Open with no parent',
+    { key: 'noparent', label: 'No parent', name: 'What has no parent?', title: 'Open with no parent',
       lead: 'Open items whose parent pointer is absent or did not resolve.',
       sort: 'By type, then name', empty: 'Every open item has a parent.', noun: ['item', 'items'],
       filters: ['type', 'level'] },
-    { key: 'broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
-      lead: 'Pointers that did not resolve, parent or dependency loops made of resolved pointers, and problems the delivery resolver found.',
-      sort: 'By name', empty: 'Nothing is broken.', noun: ['entry', 'entries'] },
-    { key: 'browse', name: 'Browse all intents', title: 'All intents',
-      lead: 'Every live intent under its parent.', sort: 'Under each parent, by name',
+    { key: 'browse', label: 'All intents', name: 'Browse all intents', title: 'All intents',
+      lead: 'Every intent in the export, under its parent.', sort: 'Under each parent, by name',
       empty: 'No intents were found.', noun: ['intent', 'intents'],
       filters: ['level', 'kind', 'status'] }
   ];
+  // The rail's lists: each is named by its visible label, through aria-labelledby.
+  var RAIL_GROUPS = [
+    { key: 'work', label: 'Work', questions: ['next', 'broken'] },
+    { key: 'progress', label: 'Progress', questions: ['roadmap', 'capabilities'] },
+    { key: 'tidy', label: 'Tidy', questions: ['noparent'] },
+    { key: 'browse', label: 'Browse', questions: ['browse'] }
+  ];
   var FILTER_LABELS = { type: ['Type', 'Any type'], level: ['Level', 'Any level'],
     kind: ['Kind', 'Any kind'], status: ['Status', 'Any status'] };
-  var ROUTE_KEYS = ['q', 'node', 'search', 'type', 'level', 'kind', 'status', 'dir', 'steps'];
+  var ROUTE_KEYS = ['q', 'node', 'search', 'type', 'level', 'kind', 'status', 'dir', 'steps', 'show',
+    'group'];
   // The "Dependencies" controls: the offered choices, with the default first.
   var DIR_CHOICES = [['prerequisites', 'What it waits for'], ['dependents', 'What waits for it'],
     ['both', 'Both']];

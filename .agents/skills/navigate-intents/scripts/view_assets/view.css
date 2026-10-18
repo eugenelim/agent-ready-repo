@@ -21,6 +21,7 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .mark { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.05rem 0.55rem 0.05rem 0.45rem; width: max-content; }
 .app { padding: var(--s-5); }
 .question-list { list-style: none; margin: 0; padding: 0; gap: var(--s-1); }
+.rail-group { margin: 0; }
 .question-link {
   display: flex;
   justify-content: space-between;
@@ -30,13 +31,15 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
   padding: var(--s-2) var(--s-3);
 }
 .q-name { text-wrap: balance; }
-.q-count { text-align: center; padding: 0.05rem 0.4rem; flex: none; }
+.q-count { text-align: center; padding: 0.05rem 0.4rem; flex: none; min-width: 2rem; }
+.question-list ~ .question-list { margin-top: var(--s-2); }
 .zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 .worklist, .detail { border-width: 1px; border-style: solid; }
 .worklist { padding: var(--s-4) var(--s-4) var(--s-2); }
 .list-head { padding: 0 0 var(--s-3); border-bottom-width: 1px; border-bottom-style: solid; }
 .list-head .meta span + span::before { content: " \00B7  "; }
 #list-lead { margin: var(--s-1) 0; }
+.list-question { margin: 0; }
 .filters { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-2); }
 .filters .field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; max-width: 100%; }
 .filters select { max-width: 100%; min-width: 0; }
@@ -55,12 +58,56 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .key-list dd, .facts dd { margin: 0; }
 .skip { display: none; }
 .row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--s-3); align-items: center; padding: var(--s-2) var(--s-3); }
-.c-name, .c-context { min-width: 0; overflow-wrap: break-word; }
+.c-name, .c-title, .c-context { min-width: 0; overflow-wrap: break-word; }
 .c-context .value { overflow-wrap: normal; white-space: nowrap; }
 .tree-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: start; }
+.tree-row > .row-link { grid-template-columns: minmax(0, 1fr); align-items: baseline; }
 .tree-row > .subtree { grid-column: 1 / -1; padding-left: var(--s-5); }
-.toggle { padding: 0; width: 2rem; border: 0; }
+/* The toggle's centre sits on the name's first line: a row's top padding plus half a line, less half the button. */
+.toggle { padding: 0; width: 2rem; border: 0; margin-top: 0.15rem; }
 .group-head { margin: var(--s-4) 0 var(--s-1); padding: 0 var(--s-3); }
+.tree-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin: var(--s-3) 0 var(--s-1); }
+.seg, .tree-actions { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-1); }
+.seg-btn { padding: 0 var(--s-2); white-space: nowrap; }
+/* A segment stays on one line while it fits; in a narrow list its label takes a line and whole buttons wrap. */
+@container (max-width: 20rem) {
+  .seg { flex-wrap: wrap; }
+  .seg-label { flex-basis: 100%; }
+}
+.seg-label { padding-right: var(--s-1); }
+.tree-note { flex-basis: 100%; margin: 0; }
+.loose > summary { display: flex; align-items: center; gap: var(--s-2); margin: var(--s-4) 0 var(--s-1); padding: 0 var(--s-3); min-height: 1.75rem; list-style: none; }
+.loose > summary::-webkit-details-marker { display: none; }
+.level-tag, .ctx-tag { display: inline-block; padding: 0 0.35rem; border-width: 1px; border-style: solid; line-height: 1.5; }
+.level-tag { margin-left: var(--s-1); }
+.tree-ctx { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); }
+/* Roadmap rows and strategy headings share three tracks (name, state, progress), so bars and counts
+   start at the same x at every depth: a nested row gives back the indent it takes from the name. */
+.worklist { container-type: inline-size; }
+.rm-section { margin-top: var(--s-4); }
+.rm-legend { margin: var(--s-3) 0 0; padding: 0 var(--s-3); }
+.rm-head { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: var(--s-2) var(--s-3); padding: 0 var(--s-3) var(--s-2); border-bottom-width: 1px; border-bottom-style: solid; }
+.rm-title { margin: 0; padding: 0; }
+.rm-note { grid-column: 1 / -1; margin: 0; }
+ul.rm-sub { margin-left: var(--s-4); border-left-width: 1px; border-left-style: solid; }
+.row-link.rm-link { grid-template-columns: minmax(0, 1fr); }
+.rm-progress { display: grid; grid-template-columns: minmax(0, var(--rm-bar)); grid-template-areas: "bar" "pct" "words"; align-items: start; justify-content: start; gap: var(--s-1) var(--s-2); min-width: 0; }
+.rm-bar { grid-area: bar; display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 2px; margin-top: 0.27rem; }
+.rm-cell { height: 0.6rem; }
+.rm-pct { grid-area: pct; }
+.rm-words { grid-area: words; display: flex; flex-wrap: wrap; gap: 0 var(--s-3); }
+.rm-none, .rm-unknown { grid-column: 1 / -1; }
+@container (min-width: 44rem) {
+  .rm-head { grid-template-columns: var(--name-w) 8.5rem var(--rm-prog); }
+  .rm-head > .rm-title { grid-column: 1; }
+  .rm-head > .rm-progress { grid-column: 3; }
+  .row-link.rm-link { grid-template-columns: max(6rem, calc(var(--name-w) - var(--rm-in))) 8.5rem var(--rm-prog); }
+  .rm-progress { grid-template-columns: var(--rm-bar) minmax(0, 1fr); grid-template-areas: "bar pct" "words words"; width: var(--rm-prog); }
+}
+/* A tree row needs less beside its name than a roadmap row, so it takes the three tracks sooner. */
+@container (min-width: 36rem) {
+  .tree-row > .row-link { grid-template-columns: max(5rem, calc(var(--name-w) - var(--tr-in))) 8.5rem minmax(0, 1fr); }
+}
 .detail { padding: var(--s-4) var(--s-5) var(--s-5); min-width: 0; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .detail-heading { overflow-wrap: anywhere; margin-bottom: var(--s-2); }
 .zones:not([data-picked]) #detail-body > .note { margin: var(--s-2) 0 0; }
@@ -101,7 +148,9 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .zones:not([data-picked]) .detail { display: none; }
 @media (max-width: 89.99rem) { .detail { padding-left: var(--s-4); padding-right: var(--s-4); } }
 @media (min-width: 40rem) {
+  .rail { display: flex; flex-wrap: wrap; gap: var(--s-1); }
   .question-list { display: flex; flex-wrap: wrap; }
+  .question-list ~ .question-list { margin-top: 0; }
   .zones { grid-template-columns: minmax(0, 3fr) minmax(22rem, 2fr); }
   .zones[data-picked] .worklist, .zones:not([data-picked]) .detail { display: block; }
   .skip { display: inline-block; }
@@ -109,12 +158,29 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
   .back-link { display: none; }
   .detail { position: sticky; top: var(--s-5); align-self: start; max-height: calc(100vh - 2 * var(--s-5)); overflow: auto; }
 }
+/* With no row picked the detail only holds a prompt, so the list takes the width. */
+@media (min-width: 40rem) and (max-width: 89.99rem) {
+  .zones:not([data-picked]) { grid-template-columns: minmax(0, 2.4fr) minmax(18rem, 1fr); }
+}
+/* Groups of tabs wrapping onto several rows are set apart by a wider gap; one row uses a hairline. */
+@media (min-width: 40rem) and (max-width: 65.99rem) {
+  .question-list ~ .question-list { margin-left: var(--s-3); }
+}
 /* The three-track row needs about 20rem beside its name plus the card's padding and a tree toggle, so the list track must be wide enough. */
 @media (min-width: 66rem) {
   .row-link { grid-template-columns: minmax(10rem, 1fr) 8.5rem minmax(12rem, 1fr); }
 }
+/* Six tabs in four lists stay on one row from 66rem: the links shrink and wrap their names instead. */
+@media (min-width: 66rem) and (max-width: 89.99rem) {
+  .rail, .question-list { flex-wrap: nowrap; }
+  .rail { gap: var(--s-3); }
+  .question-list, .question { min-width: 0; }
+  .question-list { flex: 0 1 auto; }
+  .question-list ~ .question-list { padding-left: var(--s-3); border-left-width: 1px; border-left-style: solid; }
+}
 @media (min-width: 90rem) {
   .app { display: grid; grid-template-columns: 16.5rem minmax(0, 1fr); gap: var(--s-4); }
+  .rail { display: block; }
   .question-list { display: block; }
   .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
   .q-count { min-width: 2.25rem; }

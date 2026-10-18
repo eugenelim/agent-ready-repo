@@ -82,6 +82,8 @@ _SCRIPT_PARTS: tuple[str, ...] = (
     "small-parts.js",
     "rows.js",
     "list-bodies.js",
+    "browse.js",
+    "roadmap.js",
     "detail.js",
     "dependencies.js",
     "detail-parts.js",
@@ -113,14 +115,16 @@ _SHELL = """<!doctype html>
 <div id="scope-banner" class="banner" hidden></div>
 </header>
 <div id="app" class="app" hidden>
-<nav id="questions-nav" class="questions" aria-label="Questions"><ul id="question-list" class="question-list"></ul></nav>
+<nav id="questions-nav" class="questions" aria-label="Questions"><div id="question-list" class="rail"></div></nav>
 <main id="main" class="zones">
 <section class="worklist" aria-labelledby="list-title">
 <div class="list-head">
 <button id="skip-details" class="skip" type="button">Skip to details</button>
+<p id="list-question" class="list-question"></p>
 <h2 id="list-title" class="list-title focus-target" tabindex="-1"></h2>
 <p id="list-lead" class="lead"></p>
 <p class="meta"><span id="list-count"></span><span id="list-sort"></span></p>
+<div id="tools" class="tools"></div>
 <div id="filters" class="filters" hidden></div>
 <details id="key" class="key"><summary>Key</summary><div id="key-body"></div></details>
 </div>

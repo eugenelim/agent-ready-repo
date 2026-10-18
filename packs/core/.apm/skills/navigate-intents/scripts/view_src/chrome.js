@@ -29,19 +29,30 @@
     }
   }
 
-  // The five links are built once, so a link that has focus keeps it across routes; a route only
+  // The links are built once, so a link that has focus keeps it across routes; a route only
   // moves aria-current.  The counts come from the data, which never changes, so they are set here.
   function buildNav() {
-    QUESTIONS.forEach(function (q) {
-      var li = add(dom.questions, el('li', 'question'));
-      var a = add(li, el('a', 'question-link'));
-      a.setAttribute('href', questionHash(q.key));
-      a.setAttribute('data-q', q.key);
-      add(a, el('span', 'q-name', q.name));
-      if (q.key !== 'browse') {
-        var count = emptyCorpus() ? 0 : questionCount(q.key);
-        add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
-      }
+    RAIL_GROUPS.forEach(function (group) {
+      var head = add(dom.questions, el('h2', 'rail-group', group.label));
+      head.setAttribute('id', 'rail-' + group.key);
+      var ul = add(dom.questions, el('ul', 'question-list'));
+      ul.setAttribute('aria-labelledby', head.id);
+      group.questions.forEach(function (key) {
+        var q = question(key);
+        var li = add(ul, el('li', 'question'));
+        var a = add(li, el('a', 'question-link'));
+        a.setAttribute('href', questionHash(q.key));
+        a.setAttribute('data-q', q.key);
+        add(a, el('span', 'q-name', q.label));
+        if (q.key !== 'browse') {
+          var count = emptyCorpus() ? 0 : questionCount(q.key);
+          add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
+        }
+        // The full question is the link's description; it sits beside the link so the name stays short.
+        var why = add(li, el('span', 'visually-hidden', q.name));
+        why.setAttribute('id', 'q-desc-' + q.key);
+        a.setAttribute('aria-describedby', why.id);
+      });
     });
   }
   function markNav(route) {
@@ -85,7 +96,7 @@
     var next = parseRoute();
     var prev = current;
     current = next;
-    var listChanged = prev === null || ['q', 'search'].concat(FILTER_KEYS).some(function (k) {
+    var listChanged = prev === null || ['q', 'search', 'show', 'group'].concat(FILTER_KEYS).some(function (k) {
       return prev[k] !== next[k];
     });
     var nodeChanged = prev === null || prev.node !== next.node;
@@ -94,11 +105,16 @@
     // A filter select is rebuilt with the list; keep the reader on the one they were using.
     var held = document.activeElement;
     var heldFilter = held && held.closest && held.closest('#filters') ? held.id : '';
+    var heldChoice = held && held.closest && held.closest('#list, #tools') ? held.getAttribute('data-ctl') || '' : '';
     if (listChanged) {
       renderList(next, prev !== null);
       if (heldFilter !== '') {
         var again = byIdEl(heldFilter);
         if (again) { again.focus(); }
+      }
+      if (heldChoice !== '') {
+        var choice = document.querySelector('#tools [data-ctl="' + heldChoice + '"]');
+        if (choice) { choice.focus(); }
       }
     } else if (nodeChanged) {
       markSelected(next);
@@ -151,9 +167,9 @@
       dom = {
         live: byIdEl('live'), meta: byIdEl('meta'), banner: byIdEl('scope-banner'),
         search: byIdEl('search'), questions: byIdEl('question-list'), main: byIdEl('main'),
-        listTitle: byIdEl('list-title'), listLead: byIdEl('list-lead'),
+        listQuestion: byIdEl('list-question'), listTitle: byIdEl('list-title'), listLead: byIdEl('list-lead'),
         listCount: byIdEl('list-count'), listSort: byIdEl('list-sort'),
-        filters: byIdEl('filters'), keyBody: byIdEl('key-body'), list: byIdEl('list'),
+        tools: byIdEl('tools'), filters: byIdEl('filters'), keyBody: byIdEl('key-body'), list: byIdEl('list'),
         detailHeading: byIdEl('detail-heading'), detailBody: byIdEl('detail-body'),
         skip: byIdEl('skip-details')
       };

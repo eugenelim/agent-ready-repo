@@ -2253,8 +2253,6 @@ open = [
   # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
   # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
   { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
-  # view_browser_checks.py::test_ac_0040_live_region_announces_list_title_and_count is flaky: it failed 3 of 8 runs alone on base f07d39b53 and 3 of 8 on the intent-view-source-and-style change. The cause is the test's wait: right after a click, `#live` and the list title can both still hold the previous question's values, so the wait passes on stale state and the following `startswith` check runs after the re-render. Make each wait name the destination it expects; the view is not at fault; see docs/specs/intent-view-source-and-style/notes/verification-ledger.md.
-  { slug = "pre-existing-intent-view-live-region-test-flake", source = "pre-flight/2026-10-17" },
 ]
 
 
@@ -2464,6 +2462,8 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 13 of `intent-navigation-delivery` (tree, roadmap and grouped rail), shipped 2026-10-17 (core 3.1.8); moved from `active` when the spec was set Shipped.
+  { path = "docs/specs/intent-view-tree-and-roadmap/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Group the intent view rail by job, add a capability progress question under each product strategy, and give Browse all intents Show, Group and expand controls", needs = [] },
   # Slice 12 of `intent-navigation-delivery`, shipped 2026-10-17 (core 3.1.7); moved from `active` when the spec was set Shipped.
   { path = "docs/specs/intent-view-source-and-style/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Author the intent view script as joined source parts and apply the owner-refined style: soft zones, tinted state pills, a clearer detail card and reduced-motion-aware fades", needs = [] },
   # Slice 8 of `intent-navigation-delivery`, shipped 2026-10-14 (core 3.1.5); moved from `active` when the spec was set Shipped.

@@ -485,6 +485,29 @@ def test_layout_stylesheet_defines_no_colour_font_or_token() -> None:
     assert _layout_violations(".a { border-radius: var(--r-2); padding: var(--s-1); }") == []
 
 
+def test_layout_sheet_holds_no_new_style() -> None:
+    """The rail-group label and the roadmap's rules put every colour and type choice in the base sheet."""
+    assert _layout_violations(_LAYOUT_CSS) == []
+    assert ".rail-group" in _BASE_CSS
+    layout_rail = [(s, p) for _c, s, p, _v in _walk_css(_LAYOUT_CSS)[0] if "rail-group" in s]
+    assert layout_rail
+    assert not [p for _s, p in layout_rail if p in ("color", "font", "text-transform", "letter-spacing")]
+
+
+def test_roadmap_cells_use_a_radius_token() -> None:
+    """The bar's cells round with a radius token, never a literal (AC-0043)."""
+    radii = [v for _c, s, p, v in _walk_css(_BASE_CSS)[0] if s == ".rm-cell" and p == "border-radius"]
+    assert radii
+    assert all(re.fullmatch(r"var\(--r-\d\)", v.strip()) for v in radii), radii
+
+
+def test_pressed_choice_mark_has_a_plain_content_before_the_alt_text_form() -> None:
+    """A browser that ignores the alt-text form still shows the mark: the plain declaration comes first."""
+    selector = '.seg-btn[aria-pressed="true"]::before'
+    contents = [v.strip() for _c, s, p, v in _walk_css(_BASE_CSS)[0] if s == selector and p == "content"]
+    assert contents == ['"\\2713"', '"\\2713" / ""'], contents
+
+
 def test_walker_records_the_enclosing_at_rule_chain() -> None:
     """The walker sees a declaration's whole chain, even through a keyframes block."""
     css = (
@@ -658,3 +681,13 @@ def test_a_symlinked_intent_file_is_refused_by_the_query_and_the_export(tmp_path
     result, code = nav.run_export(corpus, str(out), "view.html", None)
     assert code != 0 and result["error"]["code"] == "unsafe_input", result
     assert not (out / "view.html").exists()
+
+
+def test_view_source_names_no_health_words() -> None:
+    """The view's source and the roadmap fixture's records never state a health judgement."""
+    words = ("on track", "at risk", "off track")
+    files = [*_PARTS_DIR.glob("*.js"), *_FIXTURES.glob("roadmap/docs/**/*.md")]
+    assert any(f.name == "roadmap.js" for f in files) and any(f.name == "spec.md" for f in files)
+    for path in files:
+        text = path.read_text(encoding="utf-8").lower()
+        assert not [w for w in words if w in text], path.name

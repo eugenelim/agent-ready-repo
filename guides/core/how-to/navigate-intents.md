@@ -175,14 +175,20 @@ The command prints one JSON object. On success it carries `status: ok`, `path` (
 
 ### What the file contains
 
-The page opens on four questions, each a link in the page's nav:
+The page opens on six questions, each a link in the page's nav, grouped by the job you are doing. A link shows a short label; the question it answers is shown above that list's title, and a screen reader announces it as the link's description:
 
-- **What can I work on next?** Open work in a startable stage (Implementing spec, Approved spec, Executing brief, Ready brief), then Accepted intents with nothing beneath them. The page says that readiness is not checked in this snapshot, so an item can still be blocked for a reason the file does not show.
-- **What is still open under a capability?** The capabilities, each with its open count. Picking one shows the open work beneath it.
-- **What has no parent?** Open intents, briefs and specs with no resolved parent, grouped by type.
-- **What is broken?** Pointers that did not resolve, dependency problems, and delivery problems.
+- **Work.**
+  - **Next up** ("What can I work on next?"). Open work in a startable stage (Implementing spec, Approved spec, Executing brief, Ready brief), then Accepted intents with nothing beneath them. The page says that readiness is not checked in this snapshot, so an item can still be blocked for a reason the file does not show.
+  - **Broken** ("What is broken?"). Pointers that did not resolve, dependency problems, and delivery problems.
+- **Progress.**
+  - **Capability progress** ("How far along is each capability?"). Every capability under its product strategy, with a bar and counts of the work beneath it: delivered, in progress, not started, and stopped (withdrawn or archived work, kept apart). It shows only what the records say; it never claims a capability is on track or at risk. A capability that sits on a parent loop is listed once, with no capability above it.
+  - **Open by capability** ("What is still open under a capability?"). The capabilities, each with its open count. Picking one shows the open work beneath it.
+- **Tidy.**
+  - **No parent** ("What has no parent?"). Open intents, briefs and specs with no resolved parent, grouped by type.
+- **Browse.**
+  - **All intents** ("Browse all intents") shows every intent as a tree, sorted by name under each parent (or under each capability). **Show** narrows it to all, open or done work, keeping each match's parents visible as rows marked "context". **Group** switches between the full hierarchy and grouping under the nearest capability. **Expand all** and **Collapse all** open or close every branch. While a level, kind or status filter is set, the list is flat and sorted by name.
 
-**Browse all intents** shows the whole tree with level, kind, and status filters. A search box in the header covers intents, briefs, and specs.
+A search box in the header covers intents, briefs, and specs.
 
 The **Dependencies** part of a detail panel lists "A waits for B" lines for the picked intent. **Show** chooses prerequisites, dependents, or both, and **Steps** chooses how far to follow them. Problems are listed below the lines and in "What is broken?". The part says it does not decide whether work can start, and the Key explains its marks.
 

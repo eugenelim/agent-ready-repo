@@ -10,6 +10,8 @@
     route.q = question(route.q).key;
     // Only the non-default offered choices are kept; anything else reads as the default.
     route.dir = route.dir === 'dependents' || route.dir === 'both' ? route.dir : '';
+    route.show = route.show === 'open' || route.show === 'done' ? route.show : '';
+    route.group = route.group === 'capability' ? 'capability' : '';
     route.steps = route.steps === '2' || route.steps === '3' || route.steps === 'all' ? route.steps : '';
     return route;
   }

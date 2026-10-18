@@ -218,5 +218,9 @@
   {
     "query": "Edit the Depends on header of this intent to add a prerequisite",
     "should_trigger": false
+  },
+  {
+    "query": "Export an offline view showing how far along each capability is, so I can report progress to leadership",
+    "should_trigger": true
   }
 ]

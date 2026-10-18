@@ -61,9 +61,10 @@
     });
     return b;
   }
-  function filteredEmpty(route, keys) {
+  function filteredEmpty(route, keys, show) {
     var box = el('div', 'empty');
-    add(box, el('p', '', 'Nothing matches ' + describeFilters(route, keys) + '.'));
+    add(box, el('p', '', 'Nothing matches ' + describeFilters(route, keys) +
+      (show ? ' among ' + show + ' items' : '') + '.'));
     var over = {};
     FILTER_KEYS.forEach(function (k) { over[k] = ''; });
     add(box, clearControl('Clear filters', over, function () { return dom.listTitle; }));
@@ -94,65 +95,6 @@
         replaceRoute(over);
       });
     });
-  }
-
-  function treeRoots() {
-    var roots = recordIds.filter(function (id) {
-      var parent = resolvedParent(rec(id));
-      return parent === null || own(data.records, parent) === undefined;
-    });
-    // Intents left over by an unresolved loop still appear once, as extra roots.
-    var reach = new Set();
-    var stack = roots.slice();
-    while (stack.length) {
-      var id = stack.pop();
-      if (reach.has(id)) { continue; }
-      reach.add(id);
-      (kidsOf.get(id) || []).forEach(function (k) { stack.push(k); });
-    }
-    recordIds.forEach(function (id2) {
-      if (!reach.has(id2)) { roots.push(id2); reach.add(id2); }
-    });
-    return roots.sort(byName);
-  }
-
-  function treeRow(id, seen) {
-    var li = el('li', 'row tree-row');
-    var kids = kidsOf.get(id) || [];
-    var sub = null;
-    var toggle = null;
-    if (kids.length) {
-      toggle = add(li, button('toggle'));
-      toggle.setAttribute('aria-expanded', 'false');
-      var g = add(toggle, el('span', 'toggle-g', '\u25B8'));
-      g.setAttribute('aria-hidden', 'true');
-      add(toggle, el('span', 'visually-hidden', 'Show ' + kids.length + ' beneath ' + displayName(id)));
-    } else {
-      add(li, el('span', 'toggle-spacer')).setAttribute('aria-hidden', 'true');
-    }
-    add(li, rowLink(id, stateMark(id), contextText(id)));
-    if (toggle) {
-      var setOpen = function (open) {
-        if (open && sub === null) {
-          sub = el('ul', 'rows subtree');
-          kids.forEach(function (kid) {
-            if (seen.has(kid)) { return; }
-            seen.add(kid);
-            add(sub, treeRow(kid, seen));
-          });
-          li.appendChild(sub);
-        }
-        if (sub !== null) { sub.hidden = !open; }
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        toggle.firstChild.textContent = open ? '\u25BE' : '\u25B8';
-        if (open) { expanded.add(id); } else { expanded.delete(id); }
-      };
-      toggle.addEventListener('click', function () {
-        setOpen(toggle.getAttribute('aria-expanded') !== 'true');
-      });
-      if (expanded.has(id)) { setOpen(true); }
-    }
-    return li;
   }
 
   function brokenRow(entry) {
@@ -213,25 +155,6 @@
     entries.forEach(function (entry) { add(ul, brokenRow(entry)); });
     return entries.length;
   }
-  function bodyBrowse(route) {
-    var q = question('browse');
-    buildFilters(q, route, recordIds);
-    if (!recordIds.length) { add(dom.list, emptyLine(q.empty)); return 0; }
-    var keys = activeFilters(route, q);
-    if (keys.length) {
-      var ids = recordIds.filter(function (id) { return passes(id, route); }).sort(byName);
-      if (!ids.length) { add(dom.list, filteredEmpty(route, keys)); return 0; }
-      add(dom.list, rows(ids));
-      return ids.length;
-    }
-    var seen = new Set();
-    var ul = add(dom.list, el('ul', 'rows tree'));
-    treeRoots().forEach(function (id) {
-      seen.add(id);
-      add(ul, treeRow(id, seen));
-    });
-    return recordIds.length;
-  }
   function bodySearch(route) {
     var want = route.search.toLowerCase();
     var ids = searchIndex().filter(function (entry) {
@@ -258,7 +181,7 @@
     return searchEntries;
   }
   var BODIES = { next: bodyNext, capabilities: bodyCapabilities, noparent: bodyNoParent,
-    broken: bodyBroken, browse: bodyBrowse };
+    broken: bodyBroken, browse: bodyBrowse, roadmap: bodyRoadmap };
 
   function emptyCorpus() { return data.nodes.length === 0; }
 
@@ -266,15 +189,18 @@
     var q = question(route.q);
     listGeneration += 1;
     clear(dom.list);
+    clear(dom.tools);
     clear(dom.filters);
     dom.filters.hidden = true;
     var count;
     if (route.search !== '') {
+      dom.listQuestion.textContent = '';
       dom.listTitle.textContent = escapeDisplay('Search results for "' + route.search + '"');
       dom.listLead.textContent = 'Intents, briefs and specs whose name or id contains the search.';
       dom.listSort.textContent = 'By name';
       count = bodySearch(route);
     } else if (emptyCorpus()) {
+      dom.listQuestion.textContent = q.name;
       dom.listTitle.textContent = q.title;
       dom.listLead.textContent = q.key === 'next' ? q.lead : '';
       dom.listSort.textContent = q.sort;
@@ -283,9 +209,11 @@
       add(box, el('p', 'note', 'The export reads docs/product/intents, docs/product/briefs and docs/specs.'));
       count = 0;
     } else {
+      var summary = q.key === 'browse' ? browseSummary(route) : q;
+      dom.listQuestion.textContent = q.name;
       dom.listTitle.textContent = q.title;
-      dom.listLead.textContent = q.lead;
-      dom.listSort.textContent = q.sort;
+      dom.listLead.textContent = summary.lead;
+      dom.listSort.textContent = summary.sort;
       count = BODIES[q.key](route);
     }
     shownCount = count;
