@@ -113,9 +113,28 @@ Rail groups are lists labelled by visible headings, so assistive technology hear
 
 **Done when:** those checks pass.
 
+### T7: Short rail labels, Browse's sort key per grouping, capability loops, and review fixes
+
+**Depends on:** T1, T2, T3, T4, T5
+
+**Tests:**
+- Criteria: AC-0001, AC-0005, AC-0006, AC-0007, AC-0026, AC-0027, AC-0031, AC-0034, AC-0043, AC-0049, AC-0051, AC-0052, AC-0053, AC-0054.
+- T2's label assertions and its test `test_ac_0001_five_destinations_with_counts` (renamed `test_ac_0001_six_destinations_with_counts` during T2) move to the short labels here, since T2 is complete; `guides/core/how-to/navigate-intents.md`, `navigate-intents/SKILL.md` and the changelog fragment name the short labels and their questions, since T5 is complete; the session-start spec's `Amended in part by:` line names AC-0051 and AC-0054 against criterion 0001 and AC-0052 and AC-0053 against criterion 0007; self-host, `check_view_base_parity.py`, `lint-pack-test-boundary.py`, the guide linters and `lint-spec-status.py` are re-run.
+- `test_rail_links_describe_their_questions` checks AC-0054's accessible descriptions for all six links.
+- `test_rail_order_groups_and_counts` and `test_ac_0001_six_destinations_with_counts` read the short labels; `test_question_line_above_each_list_title` checks AC-0051 for all six questions; `test_ac_0041_names_contain_visible_labels` keeps passing on the short labels.
+- `test_browse_summary_follows_show_and_group` asserts AC-0052's sort keys, including "By name" under a filter, and AC-0053's exact lead strings.
+- A payload-edit capability loop (two capabilities naming each other, both edges resolved) shows each capability exactly once on the roadmap and in By capability; a payload-edit strategy between two capabilities nests the lower capability under the upper one; both expectations are stated by hand in `fixtures/roadmap/README.md` and fail against the current code before the fix.
+- The fixture README states by hand the "c/t closed", "n open items" and context-row flag for the anchor capability, its sub-capability, a withdrawn child and a feature under a strategy; the page and `_browse_expectations` are each asserted against those literals.
+- Hardening with no criterion of its own, listed in the PR's `Bundled fixes:` with its verification (review fixes): `test_ac_0040_live_region_announces_list_title_and_count`'s last step waits for the filter to apply (the selected option and the changed count) before comparing; 16 consecutive solo passes are recorded in the ledger before the `pre-existing-intent-view-live-region-test-flake` entry closes.
+- Hardening with no criterion of its own, also listed in `Bundled fixes:`: the x-alignment checks also run at 1280 and 1440 at the fixture's deepest depth; the done/capability context-row guard is asserted; `test_roadmap_cells` counts strategies instead of assuming 2.
+- `.rm-cell` uses a radius token (AC-0043's static test). Hardening with no criterion of its own, also listed in `Bundled fixes:`: the pressed-choice ✓ has a plain `content` fallback before the alt-text form (verified by a static test that both declarations are present in order).
+- The flake's closure is carried work: the `workspace.toml` entry closes only after the 16 recorded solo passes.
+
+**Done when:** those tests pass; the full `view_browser_checks.py` suite passes; and T5's checks pass again on T7's change — `agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`, a second self-host with no diff, `check_view_base_parity.py`, `lint-pack-test-boundary.py`, the guide linters, `lint-spec-status.py`, and a changelog fragment at the bumped version.
+
 ### T6: The real export is measured, captured and reviewed
 
-**Depends on:** T5
+**Depends on:** T5, T7
 
 **Tests:**
 - Criteria: AC-0045, AC-0046, AC-0047.
@@ -137,3 +156,5 @@ Ships as a normal core patch release; reverting the PR restores the shipped view
 
 - 2026-10-17: spec approved by eugenelim
 - 2026-10-17: plan approved by eugenelim
+- 2026-10-17: amended spec approved by eugenelim
+- 2026-10-17: amended plan approved by eugenelim

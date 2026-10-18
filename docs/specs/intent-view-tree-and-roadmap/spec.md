@@ -1,13 +1,13 @@
 # Spec: Intent view tree, roadmap and grouped rail
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-17 by eugenelim, spec and plan, after spec-mode shaping (clean, round 5) and adversarial (clean, round 3) reviews.
+- **Approved:** 2026-10-17 by eugenelim, spec and plan, after spec-mode shaping (clean, round 5) and adversarial (clean, round 3) reviews; the 2026-10-17 contract amendment was approved by eugenelim the same day after shaping (clean, round 4) and adversarial (clean, round 3) reviews of its delta.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0105, RFC-0108 (as corrected by its 2026-10-16 errata entry)
+- **Constrained by:** RFC-0105, RFC-0108 (as corrected by its 2026-10-16 and 2026-10-17 errata entries)
 - **Amends:** [intent-view-session-start](../intent-view-session-start/spec.md), by criterion:
   - 0001 (five destinations, their order, counts and list header) — replaced by AC-0001 to AC-0004 and AC-0050;
-  - 0007 (sort keys) and 0008 (empty lines) — extended by AC-0010 and AC-0011 for the new question;
+  - 0007 (sort keys) — extended by AC-0010 for the new question and by AC-0052 for Browse under each Group choice and under filters; 0008 (empty lines) — extended by AC-0011;
   - 0009 (a row is name, state and context cells) — narrowed: a roadmap row holds progress in place of a context cell (AC-0012);
   - 0024 (Browse all intents) — replaced by AC-0025 to AC-0039, which carry its query parity for filters and its "Clear filters" control;
   - 0025 (scoped export) — extended by AC-0040 and AC-0041 for the new question and Browse's sections;
@@ -39,6 +39,7 @@ A maintainer planning work, or reporting progress to leadership, opens the inten
 ## What Changes
 
 - The rail gains labelled groups and a sixth question, in a new order — `view_src/labels.js`, `view_src/chrome.js`.
+- The rail links show short labels; each list names its full question above its title, and each link carries its question as its accessible description — the view's reading of RFC-0108 rule 1 with short labels, recorded as the owner's Approver-signed RFC-0108 errata entry of 2026-10-17 — `view_src/labels.js`, `view_src/chrome.js`.
 - A roadmap body lists capabilities under their product strategies with progress — a new part `view_src/roadmap.js`, added to the builder's part list in `intent_view.py`.
 - "Browse all intents" gains Show, Group, Expand all and Collapse all controls, sections, context rows and a by-capability grouping — `view_src/list-bodies.js`, `view_src/rows.js`, `view_src/routing.js`.
 - Progress bars, the tree toolbar, rail groups and context rows get their style — `view_assets/view-base.css`, `view_assets/view.css`.
@@ -81,7 +82,7 @@ A maintainer planning work, or reporting progress to leadership, opens the inten
 ## Testing Strategy
 
 - **TDD (AC-0042, AC-0043, AC-0044):** the part list, the static stylesheet rules and the absence of health words from the view's source are properties of files, decided by collected pytest tests.
-- **Scripted browser check (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0048, AC-0049, AC-0050):** `view_browser_checks.py` drives exported fixture files in headless Chromium. Expected sections, bands, counts and cells come from a Python reading of the same export's payload that applies this spec's definitions, and the `roadmap` fixture's README states each record's band by hand, so a wrong definition shows as a disagreement with the hand-stated bands. Its full pass at the final code commit is recorded in the ledger.
+- **Scripted browser check (AC-0051, AC-0052, AC-0053, AC-0054, AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0048, AC-0049, AC-0050):** `view_browser_checks.py` drives exported fixture files in headless Chromium. Expected sections, bands, counts and cells come from a Python reading of the same export's payload that applies this spec's definitions, and the `roadmap` fixture's README states each record's band by hand, so a wrong definition shows as a disagreement with the hand-stated bands. Its full pass at the final code commit is recorded in the ledger.
 - **Goal-based check (AC-0045):** the real export over this repository is compared with the Python reading and recorded in the ledger.
 - **Visual / manual QA (AC-0046, AC-0047):** an `experience-reviewer` pass is advisory evidence; the owner's recorded approval is the gate.
 
@@ -96,6 +97,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - **Work beneath** a node: every intent, brief and spec reachable from it by following, from each intent reached, its record's `children`, `briefs` and `specs`, and from each brief reached, every spec with a resolved `Brief:` edge to it; the node itself is excluded and each reached node counts once.
 - **Current work:** the work beneath that is delivered, in progress or not started.
 - **Delivered share:** the delivered count divided by the current-work count, as a whole percentage rounded half up; undefined when current work is empty.
+- **Capability loop:** the capability members of a parent loop, as the Tree root term uses that phrase, whatever other intents the loop passes through; each such capability is treated as having no nearest capability ancestor, so every capability still appears exactly once. Every upward walk stops at a repeated node, as the session-start spec's ancestor list does. The derivation refuses one edge of each parent loop, marking it with the state `cycle` (`intent_graph.py`, `_find_refused_cycle_edges`), so this term guards an edited or hostile payload, and the cases that exercise it are payload edits.
 - **Nearest strategy** of a capability: the first intent in the export of level `product-strategy` met walking its resolved parent edges upward; **nearest capability ancestor** likewise for level `capability`. A strategy sitting between two capabilities therefore heads no section: the lower capability nests under the upper one.
 - **Tree root:** an intent in the export whose parent edge is absent, refused, or names an intent not in the export, plus, among intents not reachable from those by child edges, only members of a parent loop: each loop member in name order that no earlier root's subtree has reached. An unreachable intent that is not a loop member hangs beneath a loop and is placed in that loop's subtree. In a scoped export, the only tree root is the scoped intent.
 - **Context row:** a tree row shown only because a row beneath it is shown.
@@ -104,7 +106,9 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
 - [ ] **AC-0050.** Every question's list sits below a header that shows the list's title, its count and its sort key.
 
-- [ ] **AC-0001.** With no URL fragment, the `nav` landmark holds exactly six question links in this order: "What can I work on next?", "What is broken?", "How far along is each capability?", "What is still open under a capability?", "What has no parent?" and "Browse all intents"; the first is marked `aria-current="page"`.
+- [ ] **AC-0001.** With no URL fragment, the `nav` landmark holds exactly six question links whose visible labels are, in this order: "Next up" (the question "What can I work on next?"), "Broken" ("What is broken?"), "Capability progress" ("How far along is each capability?"), "Open by capability" ("What is still open under a capability?"), "No parent" ("What has no parent?") and "All intents" ("Browse all intents"); the first is marked `aria-current="page"`. Criteria below name each question by its full question.
+- [ ] **AC-0051.** Each question's list header shows the full question, as worded in AC-0001, in a line above the list title.
+- [ ] **AC-0054.** Each rail link's computed accessible description is its full question, as worded in AC-0001, through `aria-describedby`.
 - [ ] **AC-0002.** The six links sit in four lists whose computed accessible names are "Work" (the first two links), "Progress" (the next two), "Tidy" (the fifth) and "Browse" (the sixth), each name coming from a visible group label through `aria-labelledby`.
 - [ ] **AC-0003.** At a true viewport width below 1440 CSS px the four group labels are visually hidden and the lists keep their accessible names; at 1440 CSS px and wider the labels are visible.
 - [ ] **AC-0004.** Every question link except "Browse all intents" shows as visible text a count: for "How far along is each capability?" the number of capabilities in the export, and for each other question the number of rows its list shows, as the session-start spec counts them. While `outstanding` is unavailable, "What can I work on next?", "What is still open under a capability?" and "What has no parent?" show "unknown"; in an empty corpus all five show 0.
@@ -155,6 +159,8 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - [ ] **AC-0036.** The list header's count names the number of intents in the export matching the Show choice and every filter set, and the polite live region announces the list title and that count after each Show or Group change.
 - [ ] **AC-0037.** While `outstanding` is unavailable, the "Open" and "Done" buttons are disabled and a note reads "Open and done are unknown: delivery mapping incomplete.", and no row shows a "closed" or "open items" count.
 - [ ] **AC-0038.** While a level, kind or status filter is set, the list is flat, as the session-start spec's filtered list is: it lists, in name order, the intents matching both the filters and the Show choice, shows no context rows or sections, ignores the Group choice, and keeps the session-start spec's "Clear filters" control and its query parity for the filters alone.
+- [ ] **AC-0052.** With no filter set, "Browse all intents" shows the sort key "Under each parent, by name" with "Full hierarchy" and "Under each capability, by name" with "By capability"; with a filter set, it shows "By name".
+- [ ] **AC-0053.** "Browse all intents"'s lead reads "Every intent in the export, under its parent." with "Full hierarchy" and "Every intent in the export, under its nearest capability." with "By capability", prefixed by "Open work only. " when Show is "Open" and by "Done work only. " when Show is "Done"; while a filter is set, the lead reads "Intents matching the filters, by name.", with the same Show prefix.
 - [ ] **AC-0039.** The URL fragment holds the Show and Group choices as `show` and `group`; reloading restores them, and changing either adds no history entry.
 
 ### Scoped export
