@@ -158,6 +158,17 @@ The rung is `approved-direction`: a rigid column grid, edge-aligned, filling the
 - There is no max-width; page padding is `--s-5`.
 - A row is a grid of `name minmax(10rem, 1fr)`, `state 8.5rem` and `context minmax(12rem, 1fr)` from 66rem. The name wraps within its own cell, so other cells never wrap under it.
 
+**Track properties.** The worklist rows that align across nesting depths — the roadmap's capability rows and the Browse tree's rows — read these layout properties, declared in the shared base because the layout sheet declares none:
+
+| Property | Value | Use |
+| --- | --- | --- |
+| `--name-w` | `clamp(10rem, calc(100cqw - 34rem), 34rem)` | Width of the name track at depth 0 |
+| `--rm-bar` | `10rem` | Roadmap bar width |
+| `--rm-share` | `11rem` | Roadmap share column width |
+| `--rm-prog` | `--rm-bar` + `--s-2` + `--rm-share` | Roadmap progress track width |
+| `--rm-in`, `--rm-self` | `0px`, set per nesting depth | Indent a nested roadmap row gives back to its name track |
+| `--tr-in`, `--tr-self` | `0px`, set per nesting depth | Indent a nested tree row gives back to its name track |
+
 **Document views** use a margin column, the text column and an optional contents column:
 
 | Width | Tracks |

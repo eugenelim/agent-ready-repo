@@ -109,3 +109,7 @@ Real export at `441bd1cd1` (after T7), reduced motion on, true viewport sizes. `
 
 - AC-0046 after T7: the experience review's round 3 (above) covers the screenshots re-taken at `441bd1cd1` and found no new Major or Blocker; its one open Major is the owner's recorded deferral.
 - AC-0047 after T7: 2026-10-17, eugenelim approved the rendered real export at `9b8106758` (code identical to `441bd1cd1`) for planning and leadership reporting — the short rail labels, the question line above each list, and two layout changes made in T7: bar cells rounded with `var(--r-1)` (6px, was 2px) and the tree row's name-track floor at 5rem (was 6rem, which drifted 2px at 1440). Those two are therefore owner-accepted design changes rather than ride-alongs.
+
+## CI correction before merge
+
+- PR #1574 failed two checks. `tests/roster/test_skill_html_view_tokens.py::test_token_file_names_every_property_the_base_sheet_declares` found eight layout track properties in `view-base.css` (`--name-w`, `--rm-bar`, `--rm-in`, `--rm-prog`, `--rm-self`, `--rm-share`, `--tr-in`, `--tr-self`) that the token file did not name; the token file now lists them under "Track properties". The web build's `/now/` invariant refused the changelog highlight's "in progress"; it now reads "being built or not yet started". Local: the roster token test 3 passed; `tools/changelog.py validate` exit 0. The roster run's `maintenance.lock` `FileNotFoundError` came from an unrelated end-to-end test and is re-run.
