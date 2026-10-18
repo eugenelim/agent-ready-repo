@@ -110,8 +110,25 @@
     return box;
   }
 
-  // The first intent of a level met walking resolved parent edges upward, within the export.
+  // Whether an intent is a member of a parent loop: walking its resolved parent edges upward
+  // returns to it, through whatever other intents the loop passes.
+  function onParentLoop(id) {
+    var path = [];
+    var at = id;
+    while (at !== null && path.indexOf(at) === -1) {
+      path.push(at);
+      at = rec(at) === null ? null : resolvedParent(rec(at));
+    }
+    return at !== null && path.indexOf(id) >= path.indexOf(at);
+  }
+
+  // The first intent of a level met walking resolved parent edges upward, within the export. A
+  // capability on a parent loop has no nearest capability, so the loop's capabilities all stay
+  // top-level and each is listed once; every walk stops at a repeated node.
   function nearestUp(id, level) {
+    if (level === 'capability' && (rec(id).level || '') === 'capability' && onParentLoop(id)) {
+      return null;
+    }
     var seen = new Set([id]);
     var at = resolvedParent(rec(id));
     while (at !== null && rec(at) !== null && !seen.has(at)) {

@@ -68,26 +68,28 @@
   var TYPE_NAMES = { intent: 'Intent', brief: 'Brief', spec: 'Spec' };
   var TYPE_GROUPS = [['intent', 'Intents'], ['brief', 'Briefs'], ['spec', 'Specs']];
 
+  // Each question has a short label for the rail and its full question (`name`), which a list shows
+  // above its title and a rail link carries as its description.
   var QUESTIONS = [
-    { key: 'next', name: 'What can I work on next?', title: 'In a startable stage',
+    { key: 'next', label: 'Next up', name: 'What can I work on next?', title: 'In a startable stage',
       lead: 'Readiness not checked in this snapshot.', sort: 'By stage, then name',
       empty: 'Nothing is in a startable stage.', noun: ['item', 'items'] },
-    { key: 'broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
+    { key: 'broken', label: 'Broken', name: 'What is broken?', title: 'Broken pointers and delivery problems',
       lead: 'Pointers that did not resolve, parent or dependency loops made of resolved pointers, and problems the delivery resolver found.',
       sort: 'By name', empty: 'Nothing is broken.', noun: ['entry', 'entries'] },
-    { key: 'roadmap', name: 'How far along is each capability?', title: 'Capability progress',
+    { key: 'roadmap', label: 'Capability progress', name: 'How far along is each capability?', title: 'Capability progress',
       lead: 'All work beneath each capability, by delivery stage, grouped under each product strategy.',
       sort: 'By strategy, then name', empty: 'No capability is recorded.',
       noun: ['capability', 'capabilities'] },
-    { key: 'capabilities', name: 'What is still open under a capability?',
+    { key: 'capabilities', label: 'Open by capability', name: 'What is still open under a capability?',
       title: 'Capabilities with open work', lead: 'Pick a capability to see the open work beneath it.',
       sort: 'By open count, then name', empty: 'No capability has open work beneath it.',
       noun: ['capability', 'capabilities'] },
-    { key: 'noparent', name: 'What has no parent?', title: 'Open with no parent',
+    { key: 'noparent', label: 'No parent', name: 'What has no parent?', title: 'Open with no parent',
       lead: 'Open items whose parent pointer is absent or did not resolve.',
       sort: 'By type, then name', empty: 'Every open item has a parent.', noun: ['item', 'items'],
       filters: ['type', 'level'] },
-    { key: 'browse', name: 'Browse all intents', title: 'All intents',
+    { key: 'browse', label: 'All intents', name: 'Browse all intents', title: 'All intents',
       lead: 'Every intent in the export, under its parent.', sort: 'Under each parent, by name',
       empty: 'No intents were found.', noun: ['intent', 'intents'],
       filters: ['level', 'kind', 'status'] }

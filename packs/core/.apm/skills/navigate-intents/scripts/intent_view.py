@@ -120,6 +120,7 @@ _SHELL = """<!doctype html>
 <section class="worklist" aria-labelledby="list-title">
 <div class="list-head">
 <button id="skip-details" class="skip" type="button">Skip to details</button>
+<p id="list-question" class="list-question"></p>
 <h2 id="list-title" class="list-title focus-target" tabindex="-1"></h2>
 <p id="list-lead" class="lead"></p>
 <p class="meta"><span id="list-count"></span><span id="list-sort"></span></p>

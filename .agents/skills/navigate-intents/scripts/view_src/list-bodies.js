@@ -194,11 +194,13 @@
     dom.filters.hidden = true;
     var count;
     if (route.search !== '') {
+      dom.listQuestion.textContent = '';
       dom.listTitle.textContent = escapeDisplay('Search results for "' + route.search + '"');
       dom.listLead.textContent = 'Intents, briefs and specs whose name or id contains the search.';
       dom.listSort.textContent = 'By name';
       count = bodySearch(route);
     } else if (emptyCorpus()) {
+      dom.listQuestion.textContent = q.name;
       dom.listTitle.textContent = q.title;
       dom.listLead.textContent = q.key === 'next' ? q.lead : '';
       dom.listSort.textContent = q.sort;
@@ -208,6 +210,7 @@
       count = 0;
     } else {
       var summary = q.key === 'browse' ? browseSummary(route) : q;
+      dom.listQuestion.textContent = q.name;
       dom.listTitle.textContent = q.title;
       dom.listLead.textContent = summary.lead;
       dom.listSort.textContent = summary.sort;

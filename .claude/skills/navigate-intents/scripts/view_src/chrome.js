@@ -43,11 +43,15 @@
         var a = add(li, el('a', 'question-link'));
         a.setAttribute('href', questionHash(q.key));
         a.setAttribute('data-q', q.key);
-        add(a, el('span', 'q-name', q.name));
+        add(a, el('span', 'q-name', q.label));
         if (q.key !== 'browse') {
           var count = emptyCorpus() ? 0 : questionCount(q.key);
           add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
         }
+        // The full question is the link's description; it sits beside the link so the name stays short.
+        var why = add(li, el('span', 'visually-hidden', q.name));
+        why.setAttribute('id', 'q-desc-' + q.key);
+        a.setAttribute('aria-describedby', why.id);
       });
     });
   }
@@ -163,7 +167,7 @@
       dom = {
         live: byIdEl('live'), meta: byIdEl('meta'), banner: byIdEl('scope-banner'),
         search: byIdEl('search'), questions: byIdEl('question-list'), main: byIdEl('main'),
-        listTitle: byIdEl('list-title'), listLead: byIdEl('list-lead'),
+        listQuestion: byIdEl('list-question'), listTitle: byIdEl('list-title'), listLead: byIdEl('list-lead'),
         listCount: byIdEl('list-count'), listSort: byIdEl('list-sort'),
         tools: byIdEl('tools'), filters: byIdEl('filters'), keyBody: byIdEl('key-body'), list: byIdEl('list'),
         detailHeading: byIdEl('detail-heading'), detailBody: byIdEl('detail-body'),

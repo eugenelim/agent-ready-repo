@@ -249,6 +249,7 @@ summary { cursor: pointer; }
 .zones:not([data-picked]) #detail-body > .note { font: var(--t-title); color: var(--c-text); }
 .list-title, .detail-heading { font: var(--t-title); letter-spacing: -0.01em; }
 #list-lead { color: var(--c-muted); }
+.list-question { font: var(--t-meta); font-weight: 600; color: var(--c-muted); }
 .key > summary, .record > summary {
   font: var(--t-meta);
   font-weight: 600;
@@ -290,7 +291,7 @@ ul.rm-sub { --rm-in: var(--rm-self); }
 .rm-head { border-bottom-color: var(--c-rule); }
 .rm-title { font: var(--t-section); text-transform: none; letter-spacing: 0; color: var(--c-text); }
 .rm-sub { border-left-color: var(--c-rule-strong); }
-.rm-cell { border-radius: 2px; }
+.rm-cell { border-radius: var(--r-1); }
 .rm-delivered { background: var(--c-ok); }
 .rm-inprogress { background: var(--c-active); }
 .rm-notstarted { background: var(--c-raised); box-shadow: inset 0 0 0 1px var(--c-rule-strong); }
@@ -307,8 +308,9 @@ ul.rm-sub { --rm-in: var(--rm-self); }
 .seg-label { font: var(--t-meta); font-weight: 600; color: var(--c-muted); }
 .seg-btn { font: var(--t-meta); font-weight: 600; color: var(--c-muted); }
 .seg-btn[aria-pressed="true"] { background: var(--c-accent-bg); border-color: var(--c-accent); color: var(--c-accent); font-weight: 650; }
-/* A pressed choice carries a mark as well as a colour; the empty alternative keeps it out of the accessible name. */
-.seg-btn[aria-pressed="true"]::before { content: "\2713" / ""; margin-right: 0.3rem; }
+/* A pressed choice carries a mark as well as a colour. The plain declaration is for a browser that
+   ignores the alt-text form below it; that form keeps the mark out of the accessible name. */
+.seg-btn[aria-pressed="true"]::before { content: "\2713"; content: "\2713" / ""; margin-right: 0.3rem; }
 .seg-btn:disabled { color: var(--c-subtle); cursor: default; background: var(--c-bg); }
 .tree-head { font: var(--t-section); text-transform: none; letter-spacing: 0; color: var(--c-text); }
 .loose > summary { border-radius: var(--r-2); }

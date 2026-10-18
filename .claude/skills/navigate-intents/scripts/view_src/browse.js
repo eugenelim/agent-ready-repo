@@ -34,18 +34,9 @@
         (kidsOf.get(at) || []).forEach(function (k) { stack.push(k); });
       }
     }
-    function onLoop(id) {
-      var path = [];
-      var at = id;
-      while (at !== null && path.indexOf(at) === -1) {
-        path.push(at);
-        at = resolvedParent(rec(at));
-      }
-      return at !== null && path.indexOf(id) >= path.indexOf(at);
-    }
     reachFrom(roots);
     recordIds.slice().sort(byName).forEach(function (id) {
-      if (!reach.has(id) && onLoop(id)) { roots.push(id); reachFrom([id]); }
+      if (!reach.has(id) && onParentLoop(id)) { roots.push(id); reachFrom([id]); }
     });
     return roots.sort(byName);
   }
@@ -160,13 +151,18 @@
     return li;
   }
 
-  // One-line summary the list header shows: it follows the Show and Group choices.
+  // One-line summary the list header shows: it follows the Show and Group choices, and a filter
+  // flattens the list into one sorted by name.
   function browseSummary(route) {
     var show = deliveryUnavailable() ? '' : route.show;
     var prefix = show === 'open' ? 'Open work only. ' : (show === 'done' ? 'Done work only. ' : '');
-    var under = route.group === 'capability' ? 'its nearest capability' : 'its parent';
-    return { lead: prefix + 'Every intent in the export, under ' + under + '.',
-      sort: route.group === 'capability' ? 'Under each capability, by name' : 'Under each parent, by name' };
+    if (activeFilters(route, question('browse')).length) {
+      return { lead: prefix + 'Intents matching the filters, by name.', sort: 'By name' };
+    }
+    var byCapability = route.group === 'capability';
+    return { lead: prefix + 'Every intent in the export, under ' +
+      (byCapability ? 'its nearest capability' : 'its parent') + '.',
+      sort: byCapability ? 'Under each capability, by name' : 'Under each parent, by name' };
   }
 
   // A segment is one labelled group of buttons; isOff says which of its buttons are disabled.

@@ -39,6 +39,7 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .list-head { padding: 0 0 var(--s-3); border-bottom-width: 1px; border-bottom-style: solid; }
 .list-head .meta span + span::before { content: " \00B7  "; }
 #list-lead { margin: var(--s-1) 0; }
+.list-question { margin: 0; }
 .filters { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-2); }
 .filters .field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; max-width: 100%; }
 .filters select { max-width: 100%; min-width: 0; }
@@ -105,7 +106,7 @@ ul.rm-sub { margin-left: var(--s-4); border-left-width: 1px; border-left-style: 
 }
 /* A tree row needs less beside its name than a roadmap row, so it takes the three tracks sooner. */
 @container (min-width: 36rem) {
-  .tree-row > .row-link { grid-template-columns: max(6rem, calc(var(--name-w) - var(--tr-in))) 8.5rem minmax(0, 1fr); }
+  .tree-row > .row-link { grid-template-columns: max(5rem, calc(var(--name-w) - var(--tr-in))) 8.5rem minmax(0, 1fr); }
 }
 .detail { padding: var(--s-4) var(--s-5) var(--s-5); min-width: 0; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .detail-heading { overflow-wrap: anywhere; margin-bottom: var(--s-2); }

@@ -65,6 +65,15 @@ _QUESTIONS = ["next", "broken", "roadmap", "capabilities", "noparent", "browse"]
 _ROW_QUESTIONS = ["next", "capabilities", "noparent", "broken"]
 # The questions whose rail link shows a count.
 _COUNTED = ["next", "broken", "roadmap", "capabilities", "noparent"]
+# Each rail link's short label and the full question it describes and each list shows above its title.
+_LABELS = {
+    "next": ("Next up", "What can I work on next?"),
+    "broken": ("Broken", "What is broken?"),
+    "roadmap": ("Capability progress", "How far along is each capability?"),
+    "capabilities": ("Open by capability", "What is still open under a capability?"),
+    "noparent": ("No parent", "What has no parent?"),
+    "browse": ("All intents", "Browse all intents"),
+}
 _RAIL_GROUPS = [
     ("Work", ["next", "broken"]),
     ("Progress", ["roadmap", "capabilities"]),
@@ -640,8 +649,23 @@ def _up(model: Model, node_id: str) -> str | None:
     return str(edge["to"])
 
 
+def _on_loop(model: Model, node_id: str) -> bool:
+    """Whether walking resolved parent edges upward from *node_id* returns to it, through any intents."""
+    path: list[str] = []
+    at: str | None = node_id
+    while at is not None and at not in path:
+        path.append(at)
+        at = _up(model, at)
+    return at is not None and path.index(node_id) >= path.index(at)
+
+
 def _nearest(model: Model, node_id: str, level: str) -> str | None:
-    """The first intent of *level* met walking resolved parent edges upward from *node_id*."""
+    """The first intent of *level* met walking resolved parent edges upward from *node_id*.
+
+    A capability on a parent loop has no nearest capability ancestor (the spec's Capability loop term).
+    """
+    if level == "capability" and model.records[node_id]["level"] == "capability" and _on_loop(model, node_id):
+        return None
     seen = {node_id}
     at = _up(model, node_id)
     while at is not None and at not in seen:
@@ -714,13 +738,7 @@ def _tree_roots(model: Model) -> list[str]:
     reached: set[str] = set()
     reach(roots, reached)
     for member in model.by_name(i for i in model.records if i not in reached):
-        path: list[str] = []
-        at: str | None = member
-        while at is not None and at not in path:
-            path.append(at)
-            at = _up(model, at)
-        on_loop = at is not None and member in path[path.index(at) :]
-        if on_loop and member not in reached:
+        if member not in reached and _on_loop(model, member):
             roots.append(member)
             reach([member], reached)
     assert reached == set(model.records), "an intent is under no tree root"
@@ -844,13 +862,13 @@ def test_ac_0001_six_destinations_with_counts(opener: Any, exports: dict[str, pa
     links = page.locator("nav a")
     names = page.eval_on_selector_all("nav a .q-name", "els => els.map(e => e.textContent)")
     assert links.count() == 6
-    assert names == [
-        "What can I work on next?",
-        "What is broken?",
-        "How far along is each capability?",
-        "What is still open under a capability?",
-        "What has no parent?",
-        "Browse all intents",
+    assert names == [_LABELS[k][0] for k in _QUESTIONS] == [
+        "Next up",
+        "Broken",
+        "Capability progress",
+        "Open by capability",
+        "No parent",
+        "All intents",
     ]
     assert page.eval_on_selector_all("nav a", "els => els.map(e => e.dataset.q)") == _QUESTIONS
     counts = _rail_counts(page)
@@ -902,6 +920,7 @@ def test_rail_order_groups_and_counts(opener: Any, exports: dict[str, pathlib.Pa
         assert _text(page, f'nav a[data-q="{key}"] .q-count') == counts[key]
     assert page.locator('nav a[data-q="browse"] .q-count').count() == 0
     assert page.locator('nav a[aria-current="page"]').evaluate_all("els => els.map(e => e.dataset.q)") == ["next"]
+    assert page.eval_on_selector_all("nav a .q-name", "els => els.map(e => e.textContent)") == [_LABELS[k][0] for k in _QUESTIONS]
     _choose(item, "roadmap")
     assert _text(page, "#list-title") == "Capability progress"
     assert _text(page, "#list-sort") == "By strategy, then name"
@@ -938,6 +957,61 @@ def test_list_header_shows_title_count_and_sort_for_every_question(opener: Any, 
             "() => { const h = document.querySelector('.list-head').getBoundingClientRect().bottom;"
             " return h <= document.getElementById('list').getBoundingClientRect().top + 1; }"
         ), key
+
+
+def _link_descriptions(page: Page) -> dict[str, str | None]:
+    """Each rail link's computed accessible description, by its ``data-q`` key."""
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("DOM.enable")
+    cdp.send("Accessibility.enable")
+    doc = cdp.send("DOM.getDocument", {"depth": 0})
+    found: dict[str, str | None] = {}
+    for key in _QUESTIONS:
+        node = cdp.send("DOM.querySelector", {"nodeId": doc["root"]["nodeId"], "selector": f'nav a[data-q="{key}"]'})
+        tree = cdp.send("Accessibility.getPartialAXTree", {"nodeId": node["nodeId"], "fetchRelatives": False})
+        live = [n for n in tree["nodes"] if not n.get("ignored")]
+        found[key] = live[0].get("description", {}).get("value") if live else None
+    cdp.detach()
+    return found
+
+
+@pytest.mark.parametrize("name", ["roadmap", "empty"])
+def test_rail_links_describe_their_questions(opener: Any, exports: dict[str, pathlib.Path], name: str) -> None:
+    """AC-0054: each link's accessible description is its full question, through aria-describedby."""
+    page = opener(exports[name]).page
+    assert _link_descriptions(page) == {k: _LABELS[k][1] for k in _QUESTIONS}
+    # The description comes from aria-describedby, and the ids are unique across the page.
+    refs = page.eval_on_selector_all("nav a[data-q]", "els => els.map(e => e.getAttribute('aria-describedby'))")
+    assert len(refs) == 6 and len(set(refs)) == 6 and all(refs)
+    ids = page.eval_on_selector_all("[id]", "els => els.map(e => e.id)")
+    assert len(ids) == len(set(ids))
+    for ref, key in zip(refs, _QUESTIONS, strict=True):
+        assert page.evaluate("i => document.getElementById(i).textContent", ref) == _LABELS[key][1]
+    # The short label stays the link's name: the full question is not part of it.
+    names = dict(page.eval_on_selector_all("nav a[data-q]", "els => els.map(e => [e.dataset.q, e.textContent])"))
+    assert all(_LABELS[k][1] not in names[k] for k in _QUESTIONS)
+
+
+def test_question_line_above_each_list_title(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    """AC-0051: each list header shows the full question in a line above the list title."""
+    for name in ("roadmap", "empty"):
+        item = opener(exports[name])
+        page = item.page
+        for key in _QUESTIONS:
+            _choose(item, key)
+            page.wait_for_function("k => document.querySelector('nav a[aria-current]').dataset.q === k", arg=key)
+            assert _text(page, "#list-question") == _LABELS[key][1], (name, key)
+            above = page.evaluate(
+                """() => { const q = document.getElementById('list-question').getBoundingClientRect();
+                  const t = document.getElementById('list-title').getBoundingClientRect();
+                  return q.bottom <= t.top + 1 && q.height > 0; }"""
+            )
+            assert above, (name, key)
+    # A search shows results rather than a question, so the line is empty.
+    item = opener(exports["roadmap"])
+    item.page.locator("#search").fill("anchor")
+    item.page.wait_for_function("() => document.getElementById('list-title').textContent.includes('anchor')")
+    assert _text(item.page, "#list-question") == ""
 
 
 def test_ac_0002_startable_stage_list(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -2166,7 +2240,16 @@ def test_ac_0040_live_region_announces_list_title_and_count(opener: Any, exports
     expect_matches_list()
     page.locator("#search").fill("")
     page.locator('nav a[data-q="browse"]').click()
+    expect_matches_list("browse")
+    before = _text(page, "#list-count")
     page.select_option("#filter-level", "feature")
+    # The live text of the step before still matches its list, so wait for the filter to apply:
+    # the rebuilt select holds the chosen option and the count has changed.
+    page.wait_for_function(
+        """b => document.getElementById('filter-level').value === 'feature'
+          && document.getElementById('list-count').textContent !== b""",
+        arg=before,
+    )
     expect_matches_list()
 
 
@@ -3714,7 +3797,8 @@ def test_roadmap_progress_text(opener: Any, exports: dict[str, pathlib.Path]) ->
 
 
 def test_roadmap_cells(opener: Any, exports: dict[str, pathlib.Path]) -> None:
-    found = _roadmap_expectations(payload_of(exports["roadmap"]))
+    payload = payload_of(exports["roadmap"])
+    found = _roadmap_expectations(payload)
     sections = _read_roadmap(opener(exports["roadmap"]))
     bars = 0
     for node, row in {r["id"]: r for s in sections for r in _walk_rows(s["rows"])}.items():
@@ -3725,7 +3809,12 @@ def test_roadmap_cells(opener: Any, exports: dict[str, pathlib.Path]) -> None:
         bars += 1
         assert prog["barHidden"] == "true" and len(prog["cells"]) == _BAR_CELLS, node
         assert tuple(prog["cells"].count(c) for c in _CELL_CLASS) == tuple(found["progress"][node]["cells"]), node
-    assert bars == sum(1 for p in found["progress"].values() if not p["nothing_beneath"]) - 2  # minus the two strategies
+    # Every capability with something beneath shows a bar; the strategies' own bars are not counted here.
+    strategies = [i for i, r in payload["records"].items() if r["level"] == "product-strategy"]
+    assert len(strategies) >= 2
+    assert bars == sum(1 for p in found["progress"].values() if not p["nothing_beneath"]) - sum(
+        1 for s in strategies if not found["progress"][s]["nothing_beneath"]
+    )
 
 
 def test_roadmap_strategy_headings(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -4004,15 +4093,25 @@ def test_browse_toolbar_and_defaults(opener: Any, exports: dict[str, pathlib.Pat
 
 
 def test_browse_summary_follows_show_and_group(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    """AC-0052 and AC-0053: the sort key and lead for each Group, each Show and a filter."""
     item = opener(exports["roadmap"])
     page = item.page
-    for route, lead, sort in (
-        ({}, "Every intent in the export, under its parent.", "Under each parent, by name"),
-        ({"show": "open", "group": "capability"}, "Open work only. Every intent in the export, under its nearest capability.", "Under each capability, by name"),
-        ({"show": "done"}, "Done work only. Every intent in the export, under its parent.", "Under each parent, by name"),
-    ):
-        _choose(item, "browse", **route)
-        assert (_text(page, "#list-lead"), _text(page, "#list-sort")) == (lead, sort), route
+    parent = ("Every intent in the export, under its parent.", "Under each parent, by name")
+    nearest = ("Every intent in the export, under its nearest capability.", "Under each capability, by name")
+    filtered = ("Intents matching the filters, by name.", "By name")
+    for show, prefix in (("", ""), ("open", "Open work only. "), ("done", "Done work only. ")):
+        for group, (lead, sort) in (("", parent), ("capability", nearest)):
+            _choose(item, "browse", show=show, group=group)
+            assert (_text(page, "#list-lead"), _text(page, "#list-sort")) == (prefix + lead, sort), (show, group)
+        for group in ("", "capability"):
+            for flt in ({"level": "feature"}, {"kind": "no-such-kind"}, {"status": "Draft", "level": "capability"}):
+                _choose(item, "browse", show=show, group=group, **flt)
+                lead, sort = filtered
+                assert (_text(page, "#list-lead"), _text(page, "#list-sort")) == (prefix + lead, sort), (show, group, flt)
+    # Clearing the filters returns to the grouping's own key.
+    _choose(item, "browse", group="capability", level="feature")
+    _choose(item, "browse", group="capability")
+    assert (_text(page, "#list-lead"), _text(page, "#list-sort")) == nearest
 
 
 def test_browse_filter_turns_grouping_and_expanding_off(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -4026,10 +4125,19 @@ def test_browse_filter_turns_grouping_and_expanding_off(opener: Any, exports: di
     assert _pressed(page, "Group") == ["By capability"]
 
 
-def test_trailing_tracks_hold_one_x_at_every_depth(opener: Any, exports: dict[str, pathlib.Path]) -> None:
-    item = opener(exports["roadmap"], width=1680, height=1000)
+def _nest_depth(rows: list[dict[str, Any]]) -> int:
+    """The number of subtree levels beneath the top rows: 0 when none has a child."""
+    return max((1 + _nest_depth(r["children"]) if r["children"] else 0 for r in rows), default=0)
+
+
+@pytest.mark.parametrize("width", [1280, 1440, 1680])
+def test_trailing_tracks_hold_one_x_at_every_depth(opener: Any, exports: dict[str, pathlib.Path], width: int) -> None:
+    item = opener(exports["roadmap"], width=width, height=1000)
     page = item.page
     _open_browse(item, "all", "hierarchy")
+    sections = _browse_expectations(payload_of(exports["roadmap"]))["sections"]
+    deepest = max(_nest_depth(s["rows"]) for s in sections)
+    assert deepest >= 3
     xs = page.evaluate(
         """() => { const by = {};
           document.querySelectorAll('#list .tree-row').forEach((li) => {
@@ -4040,12 +4148,15 @@ def test_trailing_tracks_hold_one_x_at_every_depth(opener: Any, exports: dict[st
           });
           return Object.values(by).map((s) => Array.from(s)); }"""
     )
-    assert len(xs) >= 2 and all(len(group) == 1 for group in xs) and len({group[0] for group in xs}) == 1, xs
+    assert len(xs) == deepest + 1 and all(len(group) == 1 for group in xs) and len({group[0] for group in xs}) == 1, xs
 
 
-def test_roadmap_bars_and_counts_share_one_left_edge(opener: Any, exports: dict[str, pathlib.Path]) -> None:
-    item = opener(exports["roadmap"], width=1680, height=1000)
-    _read_roadmap(item)
+@pytest.mark.parametrize("width", [1280, 1440, 1680])
+def test_roadmap_bars_and_counts_share_one_left_edge(opener: Any, exports: dict[str, pathlib.Path], width: int) -> None:
+    item = opener(exports["roadmap"], width=width, height=1000)
+    sections = _read_roadmap(item)
+    # The deepest nesting in the fixture is on the page, so the edge is held across every depth.
+    assert max(_nest_depth(s["rows"]) for s in sections) >= 1
     lefts = item.page.evaluate(
         """() => { const bars = new Set(), words = new Set();
           document.querySelectorAll('#list .rm-bar').forEach((b) => bars.add(Math.round(b.getBoundingClientRect().left)));
@@ -4186,6 +4297,8 @@ def test_show_open_and_done_with_context_rows(opener: Any, exports: dict[str, pa
     _compare_tree(sections, want)
     rows = _flatten([r for s in sections for r in s["rows"]])
     model = Model(payload)
+    # Guard: each choice must show a context row, or the checks below that read them would be vacuous.
+    assert any(r["context"] for r in rows), (show, group)
     for r in rows:
         assert (r["id"] in model.open) == (show == "open") or r["context"], r["id"]
     names = dict(zip(_ids(page), _row_ax_names(page), strict=True))
@@ -4203,7 +4316,8 @@ def test_context_rows_exist_where_a_choice_hides_a_parent(opener: Any, exports: 
         (show, group): any(r["context"] for r in _flatten([x for s in _browse_expectations(payload, show, group)["sections"] for x in s["rows"]]))
         for show, group in _BROWSE_CHOICES
     }
-    assert found[("open", "hierarchy")] and found[("done", "hierarchy")] and found[("open", "capability")]
+    assert found[("open", "hierarchy")] and found[("done", "hierarchy")]
+    assert found[("open", "capability")] and found[("done", "capability")]
     assert not found[("all", "hierarchy")] and not found[("all", "capability")]
 
 
@@ -4368,3 +4482,185 @@ def test_browse_parent_loop_roots_each_intent_once(opener: Any, exports: dict[st
     assert sorted(ids) == sorted(payload["records"]) and len(ids) == len(set(ids))
     loop_root = next(r for s in sections for r in s["rows"] if r["id"] == "intent:loop-alpha")
     assert "intent:acorn-tail" in {r["id"] for r in _flatten([loop_root])}
+
+
+# ---------------------------------------------------------------------------
+# Review round 3: capability loops, a strategy between capabilities, Browse values stated by hand
+# ---------------------------------------------------------------------------
+
+
+def _reparent(payload: dict[str, Any], child: str, parent: str) -> None:
+    """Give *child* a resolved parent edge to *parent*, keeping ``children`` and ``edges`` consistent."""
+    record = payload["records"][child]
+    old = (record.get("parent_edge") or {}).get("to")
+    if old in payload["records"] and child in payload["records"][old]["children"]:
+        payload["records"][old]["children"].remove(child)
+    payload["records"][parent]["children"].append(child)
+    edge = {
+        "from": child,
+        "field": "Parent intent",
+        "form": "typed",
+        "trust_class": "pointer_unchecked",
+        "value": parent,
+        "to": parent,
+    }
+    record["parent_edge"] = edge
+    payload["edges"] = [e for e in payload["edges"] if not (e["from"] == child and e["field"] == "Parent intent")]
+    payload["edges"].append(edge)
+
+
+def _edited(exports: dict[str, pathlib.Path], tmp_path: pathlib.Path, name: str, *edges: tuple[str, str]) -> pathlib.Path:
+    """The roadmap export with each (child, parent) edge written into its payload."""
+
+    def edit(payload: dict[str, Any]) -> dict[str, Any]:
+        for child, parent in edges:
+            _reparent(payload, child, parent)
+        return payload
+
+    return _rewrite(exports["roadmap"], tmp_path / f"{name}.html", edit)
+
+
+def _roadmap_placements(sections: list[dict[str, Any]]) -> dict[str, str]:
+    """Each capability's placement on the page, worded as the README states it."""
+    out: dict[str, str] = {}
+
+    def walk(rows: list[dict[str, Any]], above: str | None, heading: str) -> None:
+        for row in rows:
+            out[row["id"]] = f"nested under {above}" if above else f'section "{heading}"'
+            walk(row["children"], row["id"], heading)
+
+    for section in sections:
+        walk(section["rows"], None, section["heading"])
+    return out
+
+
+def _capability_placements(sections: list[dict[str, Any]]) -> dict[str, str]:
+    """Each Browse row's placement under By capability, worded as the README states it."""
+    out: dict[str, str] = {}
+
+    def walk(rows: list[dict[str, Any]], above: str | None, title: str) -> None:
+        for row in rows:
+            if above:
+                out[row["id"]] = f"under {above}"
+            else:
+                out[row["id"]] = "top-level capability" if title == "Top-level capabilities" else "not under a capability"
+            walk(row["children"], row["id"], title)
+
+    for section in sections:
+        walk(section["rows"], None, section["title"])
+    return out
+
+
+_LOOP_CASES = {
+    "Capability loop, direct": (("capability:cinder-cap", "capability:dune-cap"), ("capability:dune-cap", "capability:cinder-cap")),
+    "Capability loop through an intent": (
+        ("capability:cinder-cap", "intent:birch-feat"),
+        ("capability:birch-cap", "capability:cinder-cap"),
+    ),
+}
+
+
+@pytest.mark.parametrize("case", list(_LOOP_CASES))
+def test_capability_loop_lists_each_capability_once(
+    opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path, case: str
+) -> None:
+    """Capabilities on a parent loop have no nearest capability ancestor, so each is shown once, top-level."""
+    path = _edited(exports, tmp_path, "capability_loop", *_LOOP_CASES[case])
+    payload = payload_of(path)
+    stated = {n: (road, cap) for n, road, cap in _readme_tables()[case]}
+    found = _roadmap_expectations(payload)
+    assert {n: stated[n][0] for n in stated if stated[n][0] != "-"} == {
+        n: p for n, p in _placements(found).items() if n in stated
+    }
+    item = opener(path)
+    sections = _read_roadmap(item)
+    shown = [r["id"] for s in sections for r in _walk_rows(s["rows"])]
+    caps = [i for i, r in payload["records"].items() if r["level"] == "capability"]
+    assert sorted(shown) == sorted(caps) and len(shown) == len(set(shown))
+    page_roadmap = _roadmap_placements(sections)
+    assert {n: page_roadmap[n] for n in stated if stated[n][0] != "-"} == {n: s[0] for n, s in stated.items() if s[0] != "-"}
+    by_cap = _open_browse(item, "all", "capability")
+    ids = _ids(item.page, "#list .tree a.row-link")
+    assert sorted(ids) == sorted(payload["records"]) and len(ids) == len(set(ids))
+    page_cap = _capability_placements(by_cap)
+    expected_cap = _capability_placements(_browse_expectations(payload, "all", "capability")["sections"])
+    assert {n: page_cap[n] for n in stated} == {n: s[1] for n, s in stated.items()} == {n: expected_cap[n] for n in stated}
+
+
+_STRATEGY_BETWEEN = "Strategy between two capabilities"
+
+
+def test_strategy_between_two_capabilities_nests_the_lower_under_the_upper(
+    opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    """A strategy sitting between two capabilities heads no section; the lower capability nests under the upper."""
+    path = _edited(exports, tmp_path, "strategy_between", ("intent:atlas-direction", "capability:gale-cap"))
+    payload = payload_of(path)
+    stated = dict(_readme_tables()[_STRATEGY_BETWEEN])
+    found = _roadmap_expectations(payload)
+    oracle = _placements(found)
+    assert {n: p for n, p in stated.items() if p != "heads no section"} == {n: oracle[n] for n in stated if stated[n] != "heads no section"}
+    assert [n for n, p in stated.items() if p == "heads no section"] == ["intent:atlas-direction"]
+    assert "intent:atlas-direction" not in oracle
+    sections = _read_roadmap(opener(path))
+    assert [s["heading"] for s in sections] == ["Boreal direction", _NO_STRATEGY]
+    page = _roadmap_placements(sections)
+    shown_caps = {n: p for n, p in stated.items() if n.startswith("capability:")}
+    assert {n: page[n] for n in shown_caps} == shown_caps
+    assert _shape(sections[1]["rows"]) == _expected_shape(found["sections"][1]["capabilities"])
+    shown = [r["id"] for s in sections for r in _walk_rows(s["rows"])]
+    caps = [i for i, r in payload["records"].items() if r["level"] == "capability"]
+    assert sorted(shown) == sorted(caps)
+
+
+def _stated_browse(heading: str) -> dict[str, tuple[str, str, str, str]]:
+    return {n: (roll, open_, ctx_open, ctx_done) for n, roll, open_, ctx_open, ctx_done in _readme_tables()[heading]}
+
+
+def _flag(rows: dict[str, dict[str, Any]], node: str) -> str:
+    """The README's context flag: ``hidden`` when the row is not shown, else ``yes`` or ``no``."""
+    if node not in rows:
+        return "hidden"
+    return "yes" if rows[node]["context"] else "no"
+
+
+def _check_stated_browse(
+    opener: Any, path: pathlib.Path, stated: dict[str, tuple[str, str, str, str]], group: str
+) -> None:
+    payload = payload_of(path)
+    item = opener(path)
+    for show in ("all", "open", "done"):
+        page_rows = {r["id"]: r for s in _open_browse(item, show, group) for r in _flatten(s["rows"])}
+        oracle_rows = {
+            r["id"]: r for s in _browse_expectations(payload, show, group)["sections"] for r in _flatten(s["rows"])
+        }
+        for node, (roll, open_, ctx_open, ctx_done) in stated.items():
+            for source, rows in (("page", page_rows), ("payload reading", oracle_rows)):
+                label = (source, show, group, node)
+                if show == "all":
+                    assert (rows[node]["roll"] or "-", rows[node]["open"] or "-", rows[node]["context"]) == (roll, open_, False), label
+                else:
+                    assert _flag(rows, node) == (ctx_open if show == "open" else ctx_done), label
+
+
+@pytest.mark.parametrize("group", ["hierarchy", "capability"])
+def test_browse_values_match_the_hand_stated_readme(opener: Any, exports: dict[str, pathlib.Path], group: str) -> None:
+    """c/t closed, n open items and the context flag for the anchor capability, its sub-capability and a withdrawn child."""
+    stated = _stated_browse("Browse values")
+    assert set(stated) == {"capability:anchor-cap", "capability:anchor-sub-cap", "intent:anchor-feat-withdrawn"}
+    _check_stated_browse(opener, exports["roadmap"], stated, group)
+
+
+def test_browse_values_for_a_feature_under_a_strategy(opener: Any, tmp_path: pathlib.Path) -> None:
+    """The fixture holds no feature directly under a strategy, so a corpus copy names one."""
+    root = tmp_path / "feature_under_strategy"
+    shutil.copytree(_FIXTURES / "roadmap", root)
+    orphan = root / "docs/product/intents/FEAT-0021-orphan-feat.md"
+    text = orphan.read_text(encoding="utf-8")
+    edited = re.sub(r"(- \*\*Parent intent:\*\*) none.*\n", r"\1 intent:boreal-direction\n", text)
+    assert edited != text
+    orphan.write_text(edited, encoding="utf-8")
+    path = _export(root, tmp_path / "out", "feature_under_strategy.html")
+    stated = _stated_browse("Browse values, a feature under a strategy")
+    assert set(stated) == {"intent:orphan-feat", "intent:boreal-direction"}
+    _check_stated_browse(opener, path, stated, "hierarchy")

@@ -89,3 +89,91 @@ bar as delivered/in progress/not started/empty.
 | `capability:gale-cap` | root, intents beneath |
 | `intent:loop-alpha` | root, intents beneath |
 | `intent:orphan-feat` | root, nothing beneath |
+
+## Browse values
+
+Browse values for the unedited fixture, in either grouping. "Closed" is the
+"<c>/<t> closed" text: t counts the intents beneath the row, c those that are
+not open items. "Open items" is the "<n> open items" text, counting open
+intents, briefs and specs beneath the row. A dash means the row shows no such
+text. The context flags read: `no` the row matches the Show choice, `yes` it is
+shown only because a row beneath it is, `hidden` it is not shown.
+
+`capability:anchor-cap` has six intents beneath it (`anchor-sub-cap`, its two
+features, `anchor-feat-open`, its child and `anchor-feat-withdrawn`), of which
+`anchor-sub-feat-a` and `anchor-feat-withdrawn` are closed. It has seven open
+items: `anchor-sub-cap`, `anchor-sub-feat-b`, `anchor-sub-brief`, two specs,
+`anchor-feat-open` and its child. `capability:anchor-sub-cap` has two intents
+beneath it, one closed, and four open items: one feature, the brief and two
+specs. `intent:anchor-feat-withdrawn` has nothing beneath it.
+
+| Node id | Closed | Open items | Context under Open | Context under Done |
+| --- | --- | --- | --- | --- |
+| `capability:anchor-cap` | 2/6 closed | 7 open items | no | yes |
+| `capability:anchor-sub-cap` | 1/2 closed | 4 open items | no | yes |
+| `intent:anchor-feat-withdrawn` | - | - | hidden | no |
+
+## Browse values, a feature under a strategy
+
+No feature sits directly under a strategy in the fixture, so a test copies the
+corpus and gives `intent:orphan-feat` the parent `intent:boreal-direction`.
+`intent:boreal-direction` then has five intents beneath it (`ember-cap`,
+`ember-child-cap`, `ember-child-feat`, `fjord-cap` and `orphan-feat`), of which
+only `ember-cap` is closed, and six open items. The feature has nothing beneath
+it and is open, so Done hides it, while the strategy stays as context because
+`ember-cap` is done.
+
+| Node id | Closed | Open items | Context under Open | Context under Done |
+| --- | --- | --- | --- | --- |
+| `intent:orphan-feat` | - | - | no | hidden |
+| `intent:boreal-direction` | 1/5 closed | 6 open items | no | yes |
+
+## Capability loop, direct
+
+A payload edit makes `capability:cinder-cap` and `capability:dune-cap` name each
+other as parent, both edges resolved. Each is a capability on a parent loop, so
+neither has a nearest capability ancestor. Their walks upward reach no strategy,
+so each heads no strategy section and is listed top-level in "Not under a
+product strategy in this export", once. In By capability each is a top-level
+capability, and `intent:dune-feat-cancelled` sits under `capability:dune-cap`.
+
+| Node id | Roadmap placement | By capability placement |
+| --- | --- | --- |
+| `capability:cinder-cap` | section "Not under a product strategy in this export" | top-level capability |
+| `capability:dune-cap` | section "Not under a product strategy in this export" | top-level capability |
+| `intent:dune-feat-cancelled` | - | under capability:dune-cap |
+
+## Capability loop through an intent
+
+A payload edit gives `capability:cinder-cap` the parent `intent:birch-feat` and
+`capability:birch-cap` the parent `capability:cinder-cap`. With
+`intent:birch-feat` already under `capability:birch-cap`, the loop passes through
+that feature. Both capabilities are on the loop, so both are top-level and
+listed once; the feature, which is not a capability, sits under the capability
+it names as parent in By capability.
+
+| Node id | Roadmap placement | By capability placement |
+| --- | --- | --- |
+| `capability:cinder-cap` | section "Not under a product strategy in this export" | top-level capability |
+| `capability:birch-cap` | section "Not under a product strategy in this export" | top-level capability |
+| `intent:birch-feat` | - | under capability:birch-cap |
+
+## Strategy between two capabilities
+
+A payload edit gives `intent:atlas-direction` the parent `capability:gale-cap`.
+The capabilities that named the strategy as parent now have a capability above
+it, so they nest under `capability:gale-cap` and the strategy heads no section.
+`capability:anchor-sub-cap` stays under `capability:anchor-cap`. The Boreal
+section is unchanged.
+
+| Node id | Roadmap placement |
+| --- | --- |
+| `intent:atlas-direction` | heads no section |
+| `capability:gale-cap` | section "Not under a product strategy in this export" |
+| `capability:anchor-cap` | nested under capability:gale-cap |
+| `capability:birch-cap` | nested under capability:gale-cap |
+| `capability:cinder-cap` | nested under capability:gale-cap |
+| `capability:dune-cap` | nested under capability:gale-cap |
+| `capability:anchor-sub-cap` | nested under capability:anchor-cap |
+| `intent:boreal-direction` | heads section "Boreal direction" |
+| `capability:ember-cap` | section "Boreal direction" |

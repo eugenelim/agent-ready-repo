@@ -494,6 +494,20 @@ def test_layout_sheet_holds_no_new_style() -> None:
     assert not [p for _s, p in layout_rail if p in ("color", "font", "text-transform", "letter-spacing")]
 
 
+def test_roadmap_cells_use_a_radius_token() -> None:
+    """The bar's cells round with a radius token, never a literal (AC-0043)."""
+    radii = [v for _c, s, p, v in _walk_css(_BASE_CSS)[0] if s == ".rm-cell" and p == "border-radius"]
+    assert radii
+    assert all(re.fullmatch(r"var\(--r-\d\)", v.strip()) for v in radii), radii
+
+
+def test_pressed_choice_mark_has_a_plain_content_before_the_alt_text_form() -> None:
+    """A browser that ignores the alt-text form still shows the mark: the plain declaration comes first."""
+    selector = '.seg-btn[aria-pressed="true"]::before'
+    contents = [v.strip() for _c, s, p, v in _walk_css(_BASE_CSS)[0] if s == selector and p == "content"]
+    assert contents == ['"\\2713"', '"\\2713" / ""'], contents
+
+
 def test_walker_records_the_enclosing_at_rule_chain() -> None:
     """The walker sees a declaration's whole chain, even through a keyframes block."""
     css = (

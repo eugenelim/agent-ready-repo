@@ -223,15 +223,20 @@ the argument parser rejects the command before a query is formed.
 ``export`` writes one self-contained HTML file that shows the whole intent
 graph: every live intent, brief, and spec header fact, and every parent,
 pointer, delivery, related, and refused edge the query returns.  The page
-opens on a nav grouped by job.  Work: "What can I work on next?" (open work
-in a startable stage, then accepted intents with nothing beneath them) and
-"What is broken?".  Progress: "How far along is each capability?" (each
-capability under its product strategy, with counts of the work beneath it
-delivered, in progress, not started and stopped, and no health judgement) and
-"What is still open under a capability?".  Tidy: "What has no parent?".
-Browse: "Browse all intents", a tree with Show (all, open, done, with parents
-kept as marked context rows), Group (full hierarchy or by capability), Expand
-all, Collapse all, and level, kind, and status filters.  A header search
+opens on a nav grouped by job.  Each link shows a short label; its full
+question appears above that list's title and is the link's accessible
+description.  Work: "Next up" ("What can I work on next?": open work in a
+startable stage, then accepted intents with nothing beneath them) and "Broken"
+("What is broken?").  Progress: "Capability progress" ("How far along is each
+capability?": each capability under its product strategy, with counts of the
+work beneath it delivered, in progress, not started and stopped, and no health
+judgement) and "Open by capability" ("What is still open under a
+capability?").  Tidy: "No parent" ("What has no parent?").  Browse: "All
+intents" ("Browse all intents"), a tree sorted by name under each parent or
+capability, with Show (all, open, done, with parents kept as marked context
+rows), Group (full hierarchy or by capability), Expand all, Collapse all, and
+level, kind, and status filters; a filter makes the list flat, sorted by name.
+A header search
 covers intents, briefs, and specs.  Each
 row leads with the human name, shows its state as a word plus a shape, and
 carries a context tag; a Key opens on demand.  Picking a row shows a detail

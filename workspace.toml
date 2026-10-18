@@ -2253,8 +2253,6 @@ open = [
   # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
   # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
   { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
-  # view_browser_checks.py::test_ac_0040_live_region_announces_list_title_and_count is flaky: it failed 3 of 8 runs alone on base f07d39b53 and 3 of 8 on the intent-view-source-and-style change. The cause is the test's wait: right after a click, `#live` and the list title can both still hold the previous question's values, so the wait passes on stale state and the following `startswith` check runs after the re-render. Make each wait name the destination it expects; the view is not at fault; see docs/specs/intent-view-source-and-style/notes/verification-ledger.md.
-  { slug = "pre-existing-intent-view-live-region-test-flake", source = "pre-flight/2026-10-17" },
 ]
 
 
