@@ -202,7 +202,7 @@ When the Next step points to a skill that can start the work, the panel shows a 
 
 If your browser refuses the clipboard, the page selects the prompt and says "Copy didn't work here. Press Ctrl+C or ⌘C to copy the selected prompt." Press those keys to copy it by hand.
 
-If a file's path is too long or uses characters a prompt cannot carry safely, the panel shows "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. Start the skill yourself from Open the file." and no prompt. Some items carry no prompt at all: a finished item, an item whose work is already split into items beneath it, or a snapshot whose delivery mapping was incomplete.
+If a file's path is too long or uses characters a prompt cannot carry safely, the panel shows "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. Start the skill yourself from Open the file." and no prompt. Some items carry no prompt at all: a finished item, an accepted intent that still has open work waiting beneath it (pick that work instead), or a snapshot whose delivery mapping was incomplete.
 
 The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
 
