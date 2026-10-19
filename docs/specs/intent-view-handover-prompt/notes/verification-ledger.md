@@ -223,4 +223,12 @@ The adjudicated round-1 experience review leaves 1 Minor and no Major or Blocker
 
 ## CI dispatches
 
-`TEST_CORPUS_RESULT`
+Dispatched on 2026-10-19 at commit `480a46c25`, whose code tree is the final code: `git diff 480a46c25 HEAD -- packs/core .claude .agents` prints nothing.
+
+| Workflow | Run id | Result |
+| --- | --- | --- |
+| `test-corpus.yml` (`make test`, 4 shards; holds the collected AC-0008 and AC-0009 tests) | 39287153607 | success |
+| `test-roster.yml` | 39287157793 | success |
+| `pack-javascript.yml` | 39287162011 | success |
+
+An earlier dispatch at `b4bae7330` (runs 39284589634 and 39284593272) failed one test, `test_pack_delivery_contract_is_complete_and_version_increased`. That test requires core's version to be exactly the next patch above the default branch's 3.1.8. Commit `1fae79643` moved core from 3.1.10 to 3.1.9, and the runs above pass.
