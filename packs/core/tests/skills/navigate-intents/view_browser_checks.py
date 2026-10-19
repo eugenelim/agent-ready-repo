@@ -328,9 +328,13 @@ class Opened:
         theme: str | None = None,
         fragment: str = "",
         reduced_motion: str | None = None,
+        clipboard: bool = False,
+        no_clipboard_api: bool = False,
     ) -> None:
         self.url = path.as_uri()
+        grant: dict[str, Any] = {"permissions": ["clipboard-read", "clipboard-write"]} if clipboard else {}
         self.context = browser.new_context(
+            **grant,
             viewport={"width": width, "height": height},
             color_scheme=scheme,  # type: ignore[arg-type]
             java_script_enabled=js,
@@ -345,6 +349,8 @@ class Opened:
         self.page.on("console", lambda m: self.console.append(m.text))
         self.page.on("pageerror", lambda e: self.errors.append(str(e)))
         self.page.add_init_script(_INIT)
+        if no_clipboard_api:
+            self.page.add_init_script("delete Navigator.prototype.clipboard;")
         self.page.goto(self.url + fragment)
         if theme:
             self.page.evaluate(
@@ -5034,9 +5040,10 @@ def test_handover_ac_0015_a_200_character_path_stays_inside_the_detail_zone(
     assert page.evaluate("document.documentElement.scrollWidth") <= width
 
 
+@pytest.mark.parametrize("refused", [False, True], ids=["fresh", "after-refused-copy"])
 @pytest.mark.parametrize(("width", "scheme"), _PROMPT_MATRIX, ids=_PROMPT_MATRIX_ID)
 def test_handover_ac_0016_session_start_access_criteria_hold_with_a_prompt_picked(
-    opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str
+    opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str, refused: bool
 ) -> None:
     checked = 0
     for name in _MATRIX_EXPORTS:
@@ -5046,6 +5053,9 @@ def test_handover_ac_0016_session_start_access_criteria_hold_with_a_prompt_picke
         _busy(item, payload, name, picked=True, node=node)
         page = item.page
         assert page.locator("#detail-body code.prompt").count() == 1, (name, node)
+        if refused:  # the default context withholds the clipboard permission, so the copy is refused
+            page.locator("#detail-body .prompt-block > button").click()
+            page.wait_for_selector("#detail-body .copy-status", state="visible")
         stops = _sweep(page)  # session-start AC-0034 and AC-0037
         assert len(stops) > 10, (name, len(stops))
         for stop in stops:
@@ -5061,3 +5071,147 @@ def test_handover_ac_0016_session_start_access_criteria_hold_with_a_prompt_picke
         for accessible, label in _accessible_names(page):  # AC-0041
             assert accessible.strip() and _squash(label) in _squash(accessible), (name, accessible, label)
     assert checked > 100
+
+
+# Copying the prompt: intent-view-handover-prompt AC-0010 .. AC-0014, AC-0017, AC-0018
+
+_COPY_BUTTON = "#detail-body .prompt-block > button"
+_COPY_STATUS = "#detail-body .prompt-block > p.copy-status"
+_COPY_REFUSED_LINE = "Copy didn't work here. Press Ctrl+C or \u2318C to copy the selected prompt."
+_SELECTED = "() => String(window.getSelection())"
+
+
+def _clipboard_text(page: Page) -> str:
+    return page.evaluate("navigator.clipboard.readText()")  # type: ignore[no-any-return]
+
+
+def _prompt_pick(item: Opened, exports: dict[str, pathlib.Path]) -> Page:
+    page = _pick(item, "spec:bravo-spec", "browse")
+    assert page.locator(_COPY_BUTTON).count() == 1
+    return page
+
+
+def test_handover_ac_0010_and_0011_click_enter_and_space_each_copy_the_prompt(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["mixed"], clipboard=True)
+    for trigger in ("click", "Enter", "Space"):
+        item.go(_frag(q="browse"))  # leave, so each trigger meets a fresh button
+        page = _prompt_pick(item, exports)
+        want = page.locator("#detail-body code.prompt").text_content()
+        assert want
+        page.evaluate("navigator.clipboard.writeText('stale')")
+        page.evaluate("document.getElementById('live').textContent = ''")
+        button = page.locator(_COPY_BUTTON)
+        if trigger == "click":
+            button.click()
+        else:
+            button.focus()
+            page.keyboard.press("Enter" if trigger == "Enter" else " ")
+        page.wait_for_function("() => document.querySelector('#detail-body .prompt-block > button').textContent === 'Copied'")
+        assert _clipboard_text(page) == want, trigger  # AC-0010
+        assert _live(page, "Prompt copied") == "Prompt copied", trigger  # AC-0011
+        assert page.locator(_COPY_STATUS).is_hidden()
+    assert item.errors == []
+
+
+def test_handover_ac_0012_a_fresh_detail_resets_the_button(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"], clipboard=True)
+    model = Model(payload_of(exports["mixed"]))
+    other = next(i for i in _prompt_ids(model) if i != "spec:bravo-spec")
+
+    def copied() -> Page:
+        page = _prompt_pick(item, exports)
+        page.locator(_COPY_BUTTON).click()
+        page.wait_for_function("() => document.querySelector('#detail-body .prompt-block > button').textContent === 'Copied'")
+        return page
+
+    def shown_labels(page: Page) -> list[str]:
+        return page.eval_on_selector_all(".copy-prompt", "els => els.map(b => b.textContent)")  # type: ignore[no-any-return]
+
+    page = copied()
+    _pick(item, other, "browse")  # another record with a prompt
+    assert shown_labels(page) == ["Copy prompt"]
+    page = copied()
+    _choose(item, "broken", node="spec:bravo-spec")  # a question
+    assert set(shown_labels(page)) <= {"Copy prompt"}
+    page = copied()
+    page.fill("#search", "bravo")  # a search
+    page.wait_for_function("() => location.hash.includes('search=')")
+    assert set(shown_labels(page)) <= {"Copy prompt"}
+    page = copied()
+    item.go(_frag(q="browse", node="spec:bravo-spec", type="spec"))  # a filter
+    assert set(shown_labels(page)) <= {"Copy prompt"}
+    assert page.locator("button", has_text="Copied").count() == 0
+
+
+@pytest.mark.parametrize("mode", ["refused", "absent"])
+def test_handover_ac_0013_a_refused_copy_selects_the_prompt(
+    opener: Any, exports: dict[str, pathlib.Path], mode: str
+) -> None:
+    item = opener(exports["mixed"], no_clipboard_api=(mode == "absent"))
+    page = _prompt_pick(item, exports)
+    want = page.locator("#detail-body code.prompt").text_content()
+    assert page.locator(_COPY_STATUS).is_hidden()
+    page.locator(_COPY_BUTTON).click()
+    page.wait_for_function("() => !document.querySelector('#detail-body .copy-status').hidden")
+    assert page.evaluate(_SELECTED) == want
+    assert page.locator(_COPY_STATUS).text_content() == _COPY_REFUSED_LINE
+    assert _live(page, "Copy didn't work") == _COPY_REFUSED_LINE
+    assert page.locator(_COPY_BUTTON).text_content() == "Copy prompt"
+    assert item.errors == []
+
+
+def test_handover_ac_0014_copy_makes_no_request_and_no_policy_violation(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    for clip in (True, False):
+        item = opener(exports["mixed"], clipboard=clip)
+        page = _prompt_pick(item, exports)
+        page.locator(_COPY_BUTTON).click()
+        page.wait_for_function(
+            "() => document.querySelector('#detail-body .prompt-block > button').textContent === 'Copied'"
+            " || !document.querySelector('#detail-body .copy-status').hidden"
+        )
+        assert set(item.requests) == {item.url}, item.requests
+        assert page.evaluate("window.__csp") == []
+        assert not [m for m in item.console if "Content Security Policy" in m or "Refused" in m]
+        assert item.errors == []
+
+
+@pytest.mark.parametrize("clip", [True, False], ids=["granted", "refused"])
+def test_handover_ac_0017_keyboard_only_reaches_and_activates_copy_and_keeps_focus(
+    opener: Any, exports: dict[str, pathlib.Path], clip: bool
+) -> None:
+    item = opener(exports["mixed"], clipboard=clip)
+    page = _prompt_pick(item, exports)
+    page.evaluate("document.getElementById('detail-heading').focus()")
+    for _ in range(30):
+        page.keyboard.press("Tab")
+        if page.evaluate("document.activeElement.classList.contains('copy-prompt')"):
+            break
+    else:
+        pytest.fail("Tab never reached Copy prompt")
+    page.keyboard.press("Enter")
+    page.wait_for_function(
+        "() => document.activeElement.textContent === 'Copied' || !document.querySelector('#detail-body .copy-status').hidden"
+    )
+    assert page.evaluate("document.activeElement.classList.contains('copy-prompt')")
+    assert page.locator(_COPY_BUTTON).text_content() == ("Copied" if clip else "Copy prompt")
+
+
+def test_handover_ac_0018_reduced_motion_keeps_the_prompt_block_still(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["mixed"], reduced_motion="reduce")
+    page = _prompt_pick(item, exports)
+    page.locator(_COPY_BUTTON).click()  # also covers the refused state, with its status line shown
+    bad = page.evaluate(
+        """() => [...document.querySelectorAll('.prompt-block, .prompt-block *')].flatMap((e) => {
+          const cs = getComputedStyle(e);
+          return ['transitionDuration', 'animationDuration']
+            .filter((p) => cs[p].split(',').some((d) => d.trim() !== '0s')).map((p) => e.tagName + ' ' + p + '=' + cs[p]);
+        })"""
+    )
+    assert bad == [], bad
+    assert page.locator(".prompt-block *").count() >= 3
