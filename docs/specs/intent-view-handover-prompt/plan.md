@@ -6,7 +6,7 @@
 
 ## Approach
 
-Four tasks in one review unit. The prompt builder comes first, as a pure function, because the path rule is the security control and a collected test can decide it on every CI run. The detail zone then renders the prompt block from it. Copying and its failure path come next. Their oracle is real Chromium clipboard behaviour, chosen by granting or withholding the permission. Docs, the version and the measurements close the unit. The riskiest part is the hostile-path coverage: the derivation already skips hostile file names, so the view's own check is exercised through payload edits (AC-0004, AC-0008) as well as on disk (AC-0007).
+Four tasks in one review unit. The prompt builder comes first, as a pure function, because the path rule is the security control and a collected test under `node` decides it without a browser. The detail zone then renders the prompt block from it. Copying and its failure path come next. Their oracle is real Chromium clipboard behaviour, chosen by granting or withholding the permission. Docs, the version and the measurements close the unit. The riskiest part is the hostile-path coverage: the derivation already skips hostile file names, so the view's own check is exercised through payload edits (AC-0004, AC-0008) as well as on disk (AC-0007).
 
 ## Constraints
 
@@ -59,7 +59,7 @@ Traces to: AC-0014, AC-0015, AC-0016, AC-0018.
 
 Owned by: T2, T3
 
-The prompt block is a wrapping flex row: the `code` element takes the remaining width with `min-width: 0`, and the button keeps its own width and wraps below when the row is too narrow. That adds no breakpoint. AC-0015's matrix still samples both sides of the detail zone's shipped 28rem container query and of the page's 40rem, 66rem and 90rem media queries. AC-0015's 200-character path, reached by a payload edit because a loaded record's path tops out at 121 characters, wraps anywhere through the shipped `code` rule's `overflow-wrap: anywhere`. The `code` element uses the monospace token, a raised background and a rule-coloured border in `view-base.css`; `view.css` carries only the flex layout and spacing. The status line uses the shipped meta text style. Any transition on the button reuses the shipped motion block under `prefers-reduced-motion: no-preference`.
+The prompt block is a wrapping flex row: the `code` element takes the remaining width with `min-width: 0`, and the button keeps its own width and wraps below when the row is too narrow. That adds no breakpoint. AC-0015's matrix still samples both sides of the detail zone's shipped 28rem container query and of the page's 40rem, 66rem and 90rem media queries. AC-0015's 200-character path, reached by a payload edit because no shipped fixture holds one, wraps anywhere through the shipped `code` rule's `overflow-wrap: anywhere`. The `code` element uses the monospace token, a raised background and a rule-coloured border in `view-base.css`; `view.css` carries only the flex layout and spacing. The status line uses the shipped meta text style. Any transition on the button reuses the shipped motion block under `prefers-reduced-motion: no-preference`.
 
 ### Failure, edge cases & resilience
 
@@ -77,7 +77,7 @@ A refused path shows the fixed reason sentence and never a partial prompt. A cop
 
 **Tests:**
 - Criteria: AC-0008, AC-0009.
-- `test_handover_prompt_matches_the_safe_path_rule` in `test_export_html.py` loads the joined script under `node`, as `test_escape_function_matches_the_text_output` does, and calls `handoverPrompt` over AC-0008's probe set for each type and each prompt rule. Its oracle is a Python `_safe_path(type, path)` written in the test from the spec's term, not from the view's source. It also checks each returned prompt against a template table written in the test from AC-0001, and that rules 1, 2 and 8 return nothing. This is the CI-run construction guard for AC-0008, AC-0001 and AC-0005; the rendered outcome is decided in T2.
+- `test_handover_prompt_matches_the_safe_path_rule` in `test_export_html.py` loads the joined script under `node`, as `test_escape_function_matches_the_text_output` does, and calls `handoverPrompt` over AC-0008's probe set for each type and each prompt rule. Its oracle is a Python `_safe_path(type, path)` written in the test from the spec's term, not from the view's source. It also checks each returned prompt against a template table written in the test from AC-0001, and that rules 1, 2 and 8 return nothing. It is the browser-free construction guard for AC-0008, AC-0001 and AC-0005, run in `make test`; the rendered outcome is decided in T2.
 - `test_view_script_has_no_launch_api` scans the joined script, comments removed, with the identifier-boundary matcher `test_the_token_match_respects_identifier_boundaries` already covers.
 - The node test skips when `node` is absent, as the shipped escape test does. GitHub's Ubuntu runners provide it.
 
@@ -90,7 +90,7 @@ A refused path shows the fixed reason sentence and never a partial prompt. A cop
 **Tests:**
 - Criteria: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0015, AC-0016.
 - `_next_step` in `view_browser_checks.py` reads only the `p.next-step` sentence; `test_ac_0015_next_step_sentences` keeps every sentence assertion. The "no `code`, button or link" assertion moves to rules 1, 2 and 8 in a new AC-0005 test.
-- AC-0001 and AC-0006 read rule 4 from the `roadmap` export's `spec:anchor-sub-spec-two` and rule 9 from the `india_parent` export.
+- AC-0001 and AC-0006 read rule 4 from the `roadmap` export's `spec:anchor-sub-spec-two` and rule 9 from the India-parent corpus, built by the shipped `_india_parent_corpus`.
 - `_long_path_corpus` copies `mixed` and adds an `Implementing` spec directory named `long-` plus 115 `a` characters (AC-0003).
 - `_with_paths(export, {node_id: path})` uses `_rewrite` to set record paths in `nodes` and in every payload place the view reads a node's path from. AC-0004 assigns the 16 hostile probes round-robin over `mixed`'s records with a prompt rule, writing as many exports as that takes. AC-0008 writes one export per probe string, with a spec, a brief and an intent each carrying it. AC-0015 sets `spec:bravo-spec`'s 200-character two-segment path.
 - `_hostile_names_corpus` copies `hostile` and writes, under `tmp_path`, an intent file, a brief file and a spec directory per hostile probe, creating each parent directory first (AC-0007).
@@ -117,6 +117,7 @@ A refused path shows the fixed reason sentence and never a partial prompt. A cop
 **Tests:**
 - Criteria: AC-0019, AC-0020, AC-0021.
 - `view_bench.py --source . --counts 1 10 25 50` at the final code commit; the ledger records its table.
+- A `test-corpus.yml` dispatch at the final code commit passes; the ledger records its run id (Testing Strategy, AC-0008 and AC-0009).
 - The real export is opened by a ledger-recorded script that picks one record per rule present, copies with the permission granted, and records each prompt.
 - Screenshots of the four states at 320 and 2560 in light and dark go to `notes/screens/` with SHA-256 values in the ledger, and feed the `experience-reviewer` pass and a separate visual-polish pass.
 - Goal checks: `tools/lint-guide-titles.py`, `tools/validate_guides.py`, `tools/lint-guides-no-repo-only-refs.py`; `FORCE=1 make build-self` twice with no second diff; `tools/changelog.py` validation of the new fragment; the `packs/AGENTS.local.md` citation grep over `packs/`.
