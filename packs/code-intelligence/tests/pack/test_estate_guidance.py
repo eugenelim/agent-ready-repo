@@ -4,13 +4,14 @@ Tests cover:
 
 - Pin scanner over the shipped surface and its planted samples. Every
   ``cargo install wicked-estate(-mcp)?`` occurrence must carry the correct
-  0.29.2 pin and ``--locked``.
+  0.30.0 pin and ``--locked``.
 - Retired-claim scanner over the shipped surface and its planted
   samples. Patterns map to the gaps.md groups, the 0.21 MCP-only CLI,
   rank-without-seeds, source-selectors, staleness, and stale-version groups,
   the 0.26 lineage, blast-radius depth, closed-gap, provenance,
-  value-lineage, annotation, dispatch-count, and stale-version groups, and the
-  0.29 paging, lineage-depth, removed-hop, and stale-version groups.
+  value-lineage, annotation, dispatch-count, and stale-version groups, the
+  0.29 paging, lineage-depth, removed-hop, and stale-version groups, and the
+  0.30 stale-version group.
 - The pin scanner's ``REQUIRED_PIN`` must match the preflight's ``PINNED_VERSION``.
 - Teaching tests: positional lineage, traverse, rules commands, rank --seeds,
   per-row depth, compiler provenance, value-lineage reach, the command-error
@@ -70,7 +71,7 @@ _CARGO_INSTALL_RE: re.Pattern[str] = re.compile(
 
 #: The exact version every install command must pin. A test ties it to the
 #: preflight's ``PINNED_VERSION``, so the scanner and the preflight cannot drift.
-REQUIRED_PIN = "0.29.2"
+REQUIRED_PIN = "0.30.0"
 
 #: Each `cargo install` occurrence must continue with exactly this form: the
 #: package name, then ``--version <REQUIRED_PIN> --locked``.
@@ -141,6 +142,11 @@ def _scan_pin(path: Path) -> list[str]:
 #:   lineage depth     — the default is 24
 #:   removed hops      — local object properties leave value lineage
 #:   stale version     — 0.26 through 0.28 bare version reference
+#:
+#: Groups (0.30 release):
+#:   stale version     — 0.29 bare version reference. 0.30 is behaviour-identical
+#:                       on the documented surface, so the superseded floor/pin is
+#:                       the only retired claim this release adds.
 _RETIRED_PATTERNS: tuple[re.Pattern[str], ...] = (
     # path absent — gaps.md §Paths
     re.compile(r"\bno path query\b"),
@@ -266,6 +272,11 @@ _RETIRED_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\blocal object properties\b"),
     # stale version — 0.26 through 0.28 bare version reference (0.29 group)
     re.compile(r"\b0\.2[6-8](?:\.\d)?(?![\d,])"),
+    # stale version — 0.29 bare version reference (0.30 group). 0.30 is
+    # behaviour-identical on the documented surface (it changes only the
+    # memory-plane semantics this pack does not document), so the superseded
+    # floor and pin are the only retired claim this release adds.
+    re.compile(r"\b0\.29(?:\.\d)?(?![\d,])"),
 )
 
 
@@ -323,7 +334,7 @@ def _scan_retired(path: Path) -> list[str]:
 
 # ── Planted samples ───────────────────────────────────────────────────────────
 
-#: Stale sentences taken from the pre-0.18, pre-0.21, pre-0.26 and pre-0.29 pack and guides,
+#: Stale sentences taken from the pre-0.18, pre-0.21, pre-0.26, pre-0.29 and pre-0.30 pack and guides,
 #: at least one per pattern, so a pattern that stops matching is caught.
 _RETIRED_STALE_SAMPLE: tuple[str, ...] = (
     # path absent — gaps.md §Paths
@@ -471,6 +482,9 @@ _RETIRED_STALE_SAMPLE: tuple[str, ...] = (
     "| 4 | Version below the floor | Report it; the documented verbs were verified against 0.26. |",
     "Version: 0.26.0",
     "Verified against Wicked Estate 0.28.0.",
+    # stale version — pre-0.30 pack and guides
+    "4 means the binary is older than the 0.29 floor this pack was verified against.",
+    "Every row names a command or tool that exists in Wicked Estate 0.29 and says",
 )
 
 #: Current sentences that must not match the retired-claim scanner.
@@ -495,7 +509,7 @@ _RETIRED_CURRENT_SAMPLE: tuple[str, ...] = (
     "`traverse --json` returns `{nodes, edges, depths, truncated, searched_depth, depth_horizon_reached, node_cap_reached}`.",
     "Output is capped at 25,000 characters per reply.",
     "`lineage` walks to depth 24 by default.",
-    "Install with `wicked-estate --version 0.29.2 --locked`; the floor is 0.29.",
+    "Install with `wicked-estate --version 0.30.0 --locked`; the floor is 0.30.",
 )
 
 #: Stale cargo install lines that must be rejected by the pin scanner.
@@ -506,12 +520,13 @@ _PIN_STALE_SAMPLES: tuple[str, ...] = (
     "cargo install wicked-estate --version 0.18.0 --locked",
     "cargo install wicked-estate --version 0.21.0 --locked",
     "cargo install wicked-estate --version 0.26.0 --locked",
+    "cargo install wicked-estate --version 0.29.2 --locked",
 )
 
 #: Correct cargo install lines that must be accepted by the pin scanner.
 _PIN_CURRENT_SAMPLES: tuple[str, ...] = (
-    "cargo install wicked-estate --version 0.29.2 --locked",
-    "cargo install wicked-estate-mcp --version 0.29.2 --locked",
+    "cargo install wicked-estate --version 0.30.0 --locked",
+    "cargo install wicked-estate-mcp --version 0.30.0 --locked",
 )
 
 
@@ -566,7 +581,7 @@ def main(paths: list[str], scanner: str = "pin") -> int:
         paths: Paths to scan.  Each may be a file or a directory; directories
             are walked recursively.
         scanner: ``"pin"`` checks every ``cargo install wicked-estate(-mcp)?``
-            occurrence for ``--version 0.29.2 --locked``.  ``"retired"`` checks
+            occurrence for ``--version 0.30.0 --locked``.  ``"retired"`` checks
             for prose claims that prior releases rendered stale.
     """
     text_files = _collect_text_files(paths)
@@ -597,7 +612,7 @@ def main(paths: list[str], scanner: str = "pin") -> int:
 
 
 def test_pin_scanner_shipped_surface_is_clean() -> None:
-    """Every cargo install occurrence in the shipped surface carries the correct 0.29.2 pin."""
+    """Every cargo install occurrence in the shipped surface carries the correct 0.30.0 pin."""
     result = main(
         [str(p) for p in _SHIPPED_SURFACE],
         scanner="pin",
@@ -620,7 +635,7 @@ def test_required_pin_equals_preflight_pinned_version() -> None:
 
 
 def test_pin_scanner_planted_samples(tmp_path: Path) -> None:
-    """Pin scanner rejects stale install lines and accepts the correct 0.29.2 pin."""
+    """Pin scanner rejects stale install lines and accepts the correct 0.30.0 pin."""
     stale_file = tmp_path / "stale_pins.md"
     stale_file.write_text("\n".join(_PIN_STALE_SAMPLES) + "\n", encoding="utf-8")
     assert _scan_pin(stale_file), (
@@ -635,7 +650,7 @@ def test_pin_scanner_planted_samples(tmp_path: Path) -> None:
     current_file = tmp_path / "current_pins.md"
     current_file.write_text("\n".join(_PIN_CURRENT_SAMPLES) + "\n", encoding="utf-8")
     assert not _scan_pin(current_file), (
-        "pin scanner must accept correct 0.29.2 pin samples"
+        "pin scanner must accept correct 0.30.0 pin samples"
     )
 
     for sample in _PIN_CURRENT_SAMPLES:
@@ -663,7 +678,7 @@ def test_retired_claim_scanner_shipped_surface_is_clean() -> None:
 def test_retired_claim_planted_samples(tmp_path: Path) -> None:
     """Retired-claim scanner matches every stale sentence and no current sentence.
 
-    Stale sentences come from the pre-0.18, pre-0.21, pre-0.26 and pre-0.29 pack and guides, at
+    Stale sentences come from the pre-0.18, pre-0.21, pre-0.26, pre-0.29 and pre-0.30 pack and guides, at
     least one per pattern.  Current sentences must not trigger any pattern; in
     particular, a 0.16.7 provenance note must not match the bare-0.16 version
     pattern, and 0.21-era sentences about MCP-only memory/knowledge domains or
@@ -998,7 +1013,7 @@ def test_eval_blast_radius_confidence_claim_absent() -> None:
 
     assert not offenders, (
         "evals.json says the CLI blast radius lacks confidence;\n"
-        "in 0.29.2, blast-radius --json carries a confidence summary:\n"
+        "in 0.30.0, blast-radius --json carries a confidence summary:\n"
         + "\n".join(offenders)
     )
 

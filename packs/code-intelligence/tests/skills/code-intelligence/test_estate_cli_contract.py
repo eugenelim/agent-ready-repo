@@ -8,7 +8,7 @@ and reading what actually comes back.
 It is skipped when `wicked-estate` is absent, so it self-declares as unrun
 rather than passing vacuously. To run it:
 
-    cargo install wicked-estate --version 0.29.2 --locked
+    cargo install wicked-estate --version 0.30.0 --locked
     pytest packs/code-intelligence/tests/skills/code-intelligence/
 
 The index is built once per session into a temp directory from a purpose-built
@@ -64,7 +64,7 @@ BINARY = shutil.which("wicked-estate")
 
 pytestmark = pytest.mark.skipif(
     BINARY is None,
-    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.29.2 --locked`",
+    reason="wicked-estate not installed; run `cargo install wicked-estate --version 0.30.0 --locked`",
 )
 
 
@@ -362,12 +362,12 @@ def test_undocumented_but_dispatched_verbs_are_accepted(graph: Path) -> None:
 
 
 def test_version_flag_prints_one_line_on_stdout() -> None:
-    """`--version` exits 0 and prints exactly `wicked-estate 0.29.2` plus a newline."""
+    """`--version` exits 0 and prints exactly `wicked-estate 0.30.0` plus a newline."""
     completed = subprocess.run(
         [BINARY, "--version"], capture_output=True, text=True, check=False, timeout=60
     )
     assert completed.returncode == 0
-    assert completed.stdout == "wicked-estate 0.29.2\n"
+    assert completed.stdout == "wicked-estate 0.30.0\n"
 
 
 def test_stats_reports_counts(graph: Path) -> None:
@@ -504,7 +504,7 @@ def test_signatures_only_requires_json(graph: Path, known_symbol: dict) -> None:
     assert with_body["nodes"][0]["source"]
 
 
-# ── 0.29.2: lineage ───────────────────────────────────────────────────────────
+# ── 0.30.0: lineage ───────────────────────────────────────────────────────────
 
 ENTRY_ID = "ts-python . . . caller/entry()."
 
