@@ -1,6 +1,7 @@
 # Spec: Intent view hand-over prompt
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-19 by eugenelim, spec and plan, after spec-mode shaping (clean, round 3), adversarial (clean, round 3) and security spec-stage (clean after adjudication, round 2) reviews.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0108 (D1 rules 1 to 10 as corrected by its errata entries, and D4), RFC-0105 (D4, through RFC-0108 D4's exception), ADR-0007, ADR-0074

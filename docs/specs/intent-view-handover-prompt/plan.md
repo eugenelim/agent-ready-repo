@@ -1,7 +1,7 @@
 # Plan: Intent view hand-over prompt
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0108 D4; `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py` `_SCRIPT_PARTS` (a new part is one tuple entry); `view_src/detail.js` `nextStep` and `view_src/detail-render.js` `renderDetail` (the Next step part this extends); `view_src/escape.js` (the CommonJS export that `test_escape_function_matches_the_text_output` loads under `node`); `packs/core/tests/skills/navigate-intents/view_browser_checks.py` `test_ac_0015_next_step_sentences`, `_next_step` and `_rewrite` (the construction path). Deviation: the CommonJS export moves from the end of `escape.js` to the end of `handover.js`, so the node test reaches the prompt builder.
 
 ## Approach
@@ -135,4 +135,5 @@ Ships in the next `core` patch release. Nothing migrates: the payload, query and
 
 ## Changelog
 
-- 2026-10-19: drafted.
+- 2026-10-19: spec approved by eugenelim
+- 2026-10-19: plan approved by eugenelim

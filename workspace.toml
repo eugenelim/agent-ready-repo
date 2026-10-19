@@ -2265,6 +2265,8 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
+  # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), approved 2026-10-19 and building; moves to `shipped` when the spec is set Shipped.
+  { path = "docs/specs/intent-view-handover-prompt/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show a fixed-template, grammar-checked next-step prompt with a Copy control in the intent view's detail zone, selecting it for manual copy when the clipboard refuses", needs = [] },
 ]
 shipped = [
   {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},
@@ -2444,8 +2446,6 @@ queue   = [
   # Slices 5 and 7, approved together on 2026-10-08, each target the default branch.
   { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
-  # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), drafted 2026-10-19; moves to `active` when its build starts.
-  { path = "docs/specs/intent-view-handover-prompt/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show a fixed-template, grammar-checked next-step prompt with a Copy control in the intent view's detail zone, selecting it for manual copy when the clipboard refuses", needs = [] },
 ]
 active  = [
 ]
