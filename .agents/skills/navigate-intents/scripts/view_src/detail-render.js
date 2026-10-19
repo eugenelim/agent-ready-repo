@@ -41,6 +41,32 @@
     return '';
   }
 
+  var COPY_REFUSED = "Copy didn't work here. Press Ctrl+C or \u2318C to copy the selected prompt.";
+  // Copy the prompt; when the clipboard refuses or is missing, select it so the reader can copy by hand.
+  function copyPrompt(btn, block, prompt) {
+    function refused() {
+      if (!btn.isConnected) { return; }
+      var range = document.createRange();
+      range.selectNodeContents(block.querySelector('code.prompt'));
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      var status = block.querySelector('.copy-status');
+      status.textContent = COPY_REFUSED;
+      status.hidden = false;
+      dom.live.textContent = COPY_REFUSED;
+    }
+    var clip = navigator.clipboard;
+    if (!clip || typeof clip.writeText !== 'function') { refused(); return; }
+    var wrote;
+    try { wrote = clip.writeText(prompt); } catch (e) { refused(); return; }
+    Promise.resolve(wrote).then(function () {
+      if (!btn.isConnected) { return; }
+      btn.textContent = 'Copied';
+      dom.live.textContent = 'Prompt copied';
+    }, refused);
+  }
+
   function renderDetail(route) {
     clear(dom.detailBody);
     dom.depBody = null;
@@ -63,7 +89,19 @@
     back.addEventListener('click', function () { backToList(id); });
     add(dom.detailBody, stateLine(id));
 
-    add(part('Next step'), el('p', 'next-step', nextStep(id)));
+    var stepSec = part('Next step');
+    add(stepSec, el('p', 'next-step', nextStep(id)));
+    var hand = handoverPrompt(typeOf(id), nextStepRule(id), nodes.get(id).path);
+    if (hand && hand.prompt !== undefined) {
+      var block = add(stepSec, el('div', 'prompt-block'));
+      add(block, el('code', 'prompt', hand.prompt));
+      var copyBtn = add(block, button('action copy-prompt', 'Copy prompt'));
+      var status = add(block, el('p', 'copy-status'));
+      status.hidden = true;
+      copyBtn.addEventListener('click', function () { copyPrompt(copyBtn, block, hand.prompt); });
+    } else if (hand) {
+      add(stepSec, el('p', 'prompt-refused', "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. Start the skill yourself from Open the file."));
+    }
 
     var openSec = part('Open beneath');
     var under = deliveryUnavailable() ? null : (beneath.get(id) || []);

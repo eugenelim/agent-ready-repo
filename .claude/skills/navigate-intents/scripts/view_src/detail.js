@@ -1,27 +1,41 @@
   // ---------------------------------------------------------------- detail
-  function nextStep(id) {
-    if (deliveryUnavailable()) {
-      return 'No next step shown: delivery mapping was incomplete, so this snapshot cannot tell what is open.';
-    }
+  // The ten next-step rules, in the session-start order; one table holds every sentence.
+  var NEXT_STEP_SENTENCES = [
+    '',
+    'No next step shown: delivery mapping was incomplete, so this snapshot cannot tell what is open.',
+    null,
+    'Continue building it with the work-loop skill. It is already being built.',
+    'Build it with the work-loop skill. It is approved, and work-loop checks readiness before it starts.',
+    'Finish the spec with the new-spec skill. It needs approval before it is built.',
+    'Work on it with the author-delivery-brief skill in continue mode. Briefs are delivered through their slices.',
+    'Decompose it with the intent skill. It is accepted but has nothing beneath it yet.',
+    'Pick an item from Open beneath. Its work is already decomposed.',
+    'Close it with the close-work skill if its outcome is met. Everything beneath it is finished.',
+    'Keep shaping it with the intent skill. It is not accepted yet.'
+  ];
+
+  // The first session-start rule (1 to 10) that matches the record.
+  function nextStepRule(id) {
+    if (deliveryUnavailable()) { return 1; }
+    if (!isOpen(id)) { return 2; }
     var type = typeOf(id);
     var word = statusWord(id);
-    if (!isOpen(id)) { return 'Nothing to do. It is ' + (word !== '' ? word : 'not open') + '.'; }
-    if (type === 'spec') {
-      if (word === 'Implementing') { return 'Continue building it with the work-loop skill. It is already being built.'; }
-      if (word === 'Approved') { return 'Build it with the work-loop skill. It is approved, and work-loop checks readiness before it starts.'; }
-      return 'Finish the spec with the new-spec skill. It needs approval before it is built.';
-    }
-    if (type === 'brief') {
-      return 'Work on it with the author-delivery-brief skill in continue mode. Briefs are delivered through their slices.';
-    }
+    if (type === 'spec') { return word === 'Implementing' ? 3 : (word === 'Approved' ? 4 : 5); }
+    if (type === 'brief') { return 6; }
     if (word === 'Accepted') {
-      if (hasNothingBeneath(id)) {
-        return 'Decompose it with the intent skill. It is accepted but has nothing beneath it yet.';
-      }
-      return openCount(id) > 0 ? 'Pick an item from Open beneath. Its work is already decomposed.' :
-        'Close it with the close-work skill if its outcome is met. Everything beneath it is finished.';
+      if (hasNothingBeneath(id)) { return 7; }
+      return openCount(id) > 0 ? 8 : 9;
     }
-    return 'Keep shaping it with the intent skill. It is not accepted yet.';
+    return 10;
+  }
+
+  function nextStep(id) {
+    var rule = nextStepRule(id);
+    if (rule === 2) {
+      var word = statusWord(id);
+      return 'Nothing to do. It is ' + (word !== '' ? word : 'not open') + '.';
+    }
+    return NEXT_STEP_SENTENCES[rule];
   }
 
   function brokenOf(id) {

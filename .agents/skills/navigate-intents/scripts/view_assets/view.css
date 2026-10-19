@@ -125,6 +125,11 @@ ul.rm-sub { margin-left: var(--s-4); border-left-width: 1px; border-left-style: 
 .record .facts { border-bottom-width: 1px; border-bottom-style: solid; padding-bottom: var(--s-3); margin-bottom: var(--s-2); }
 .part .empty { margin: 0; }
 .next-step { border-left-width: 3px; border-left-style: solid; padding: var(--s-3) var(--s-4); margin: 0; }
+.prompt-block { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: flex-start; margin-top: var(--s-2); }
+code.prompt { flex: 1 1 16rem; min-width: 0; padding: var(--s-2) var(--s-3); border-width: 1px; border-style: solid; }
+.prompt-block > button { flex: 0 0 auto; }
+.copy-status { flex-basis: 100%; margin: 0; }
+.prompt-refused { margin: var(--s-2) 0 0; }
 .has-broken > ul > li.edge { border-left-width: 3px; border-left-style: solid; padding: var(--s-2) var(--s-3); margin-bottom: var(--s-2); }
 .has-broken .meaning { margin: var(--s-1) 0 0; }
 .diag-raw { overflow-wrap: anywhere; hyphens: none; }

@@ -194,7 +194,15 @@ The **Dependencies** part of a detail panel lists "A waits for B" lines for the 
 
 Each row leads with the human name, shows its state as a word plus a shape inside a pale tinted label (so colour is never the only cue), and carries a context tag. A **Key** opens on demand to explain the marks.
 
-Selecting a row opens a detail panel: the state line; a **Next step** that names which skill to use and why, in plain words; what is open beneath the item; what is broken; where it sits in the graph; a **Dependencies** part; a link to its source file; and collapsed record details with the header facts, including two "Depends on" groups. A broken entry shows as a tinted callout with its diagnostic text in monospace. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system. Hover and selection fade briefly, and the detail fades in as it changes; if your system asks for reduced motion, the page does not move at all.
+Selecting a row opens a detail panel: the state line; a **Next step** that says in plain words what to do and why, with a ready-to-paste prompt where a skill can start the work (see [The hand-over prompt](#the-hand-over-prompt)); what is open beneath the item; what is broken; where it sits in the graph; a **Dependencies** part; a link to its source file; and collapsed record details with the header facts, including two "Depends on" groups. A broken entry shows as a tinted callout with its diagnostic text in monospace. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system. Hover and selection fade briefly, and the detail fades in as it changes; if your system asks for reduced motion, the page does not move at all.
+
+#### The hand-over prompt
+
+When the Next step points to a skill that can start the work, the panel shows a prompt block under the sentence. It is one fixed sentence that names the skill and holds only the item's file path, in backticks. Nothing written inside the record is added to it. The block has a **Copy prompt** button. Pressing it copies the prompt and the button reads "Copied" for a moment. Paste the prompt into your agent to start the skill on that file. The page never launches anything itself.
+
+If your browser refuses the clipboard, the page selects the prompt and says "Copy didn't work here. Press Ctrl+C or ⌘C to copy the selected prompt." Press those keys to copy it by hand.
+
+If a file's path is too long or uses characters a prompt cannot carry safely, the panel shows "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. Start the skill yourself from Open the file." and no prompt. Some Next steps, such as a wait or a finished item, carry no prompt at all.
 
 The file holds exactly the facts `query` returns over the same corpus: the summary, each intent's record, outstanding work, and every node and edge. It does not hold artifact bodies, your absolute repository path, or any part of the Git remote beyond host, owner, and repository name.
 

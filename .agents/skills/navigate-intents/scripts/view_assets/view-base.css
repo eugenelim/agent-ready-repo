@@ -360,6 +360,13 @@ ul.rm-sub { --rm-in: var(--rm-self); }
   border-radius: 0 var(--r-2) var(--r-2) 0;
   color: var(--c-text);
 }
+code.prompt {
+  font-family: var(--font-mono);
+  background: var(--c-raised);
+  border-color: var(--c-rule);
+  border-radius: var(--r-1);
+}
+.copy-status { font: var(--t-meta); color: var(--c-muted); }
 .has-broken > ul > li.edge {
   background: var(--c-bad-bg);
   border-left-color: var(--c-bad);
