@@ -59,7 +59,12 @@ Code head `4d7142d8c` (rebased on `main` at `071067bab`, Core 3.1.9). Commits af
 
 ## Review
 
-Seven post-gates rounds ran. Rounds 1 and 2 ran before the engine entered review; rounds 3 to 7 ran in `CODE-REVIEW`, using 4 of 5 review retries. In round 7, `adversarial-reviewer` and `quality-engineer` returned clean, and `security-reviewer` was clean after its `Not checked` footer was adjudicated. One Nit stays deferred: effect results check protected paths before checking that the result matches the current request, so a stale effect result over a dirty spec directory gets `protected-path-changed` instead of `not-current-attempt`. Nothing is written in either case.
+Nine post-gates rounds ran. Rounds 1 and 2 ran before the engine entered review. Rounds 3 to 9 ran in `CODE-REVIEW` and used all 5 review retries; round 9 needed no retry. Rounds 8 and 9 reviewed the plan-grammar move. In round 9, `adversarial-reviewer` returned clean and `security-reviewer` was clean after adjudication. Its report of an unbounded `Depends on:` range was refuted: the range expansion is unchanged from `main`, and `plan.md` is trusted input that attempt-security AC-0002 and AC-0003 protect. One round-8 security adjudication broke the strict format and could not be classified. The fresh round-9 pass replaced it.
+
+Two Nits stay deferred:
+
+- **Effect-result refusal order.** Effect results check protected paths before checking that the result matches the current request. So a stale effect result over a dirty spec directory gets `protected-path-changed` instead of `not-current-attempt`. Nothing is written in either case.
+- **`TaskSection` field types.** `TaskSection` in `_loop_guards.py` is an untyped `collections.namedtuple`. A typed `typing.NamedTuple` would need a `typing` import, which `test_loop_guards.py::test_module_has_no_cli_or_spawn_capability` forbids in that module.
 
 ## Environment note
 
