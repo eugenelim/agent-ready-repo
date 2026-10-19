@@ -1,6 +1,6 @@
 # Verification ledger: intent-view-handover-prompt
 
-Every test and measurement result above § Review dispositions ran against code commit `ee06ef520afe4f2262604260af3219800522435e`, or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it apart from core's version field. That field moved from 3.1.10 to 3.1.9 in `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`, because a roster test requires exactly the next patch above the default branch's 3.1.8; no recorded result reads it. Every other later commit changes documentation only: this ledger, `notes/screens/` (in `c6abc01b3`), one sentence of `guides/core/how-to/navigate-intents.md` (in `2d5b0b864`) and the changelog fragment's version and anchor. `git log --stat ee06ef520..HEAD` lists each commit, and `git diff ee06ef520 HEAD -- packs/core .claude .agents` shows only the two version lines. Run on 2026-10-19.
+Every test and measurement result above § Review dispositions ran against code commit `ee06ef520afe4f2262604260af3219800522435e`, or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it apart from core's version field. That field moved from 3.1.10 to 3.1.9 in `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` (commit `1fae79643`), because a roster test requires exactly the next patch above the default branch's 3.1.8; no recorded result reads it. Every other commit after `ee06ef520` changes only documentation and coordination files: this ledger, `notes/screens/`, one guide sentence, the changelog fragment, the spec's and plan's status lines and checked criteria, and the `workspace.toml` entry. This list is a summary; `git log --stat ee06ef520..HEAD` is the complete record, and `git diff ee06ef520 HEAD -- packs/core .claude .agents` shows only the two version lines. Run on 2026-10-19.
 
 ## Scripted browser suite (all of `view_browser_checks.py`)
 
@@ -186,15 +186,16 @@ The table gives each review round's result and the commit it reviewed. A report 
 | 2 | `c6abc01b3` | identical to `ee06ef520` |
 | 3 | `2d5b0b864` | identical to `ee06ef520` |
 | 4 | `b4bae7330` | identical to `ee06ef520` |
-| 5 | the commit adding this table | identical to `ee06ef520` apart from core's version field |
+| 5 | `1b060b93d` | identical to `ee06ef520` apart from core's version field |
+| 6 | the commit adding this row | identical to `ee06ef520` apart from core's version field |
 
 | Reviewer | Round 1 | Round 2 | Rounds 3 to 5 |
 | --- | --- | --- | --- |
-| `adversarial-reviewer` | adjudicated: 1 Blocker, 1 Concern, 4 Nits; 2 refuted | adjudicated: 1 Concern, 1 Nit | round 3 adjudicated: 1 Concern; round 4 adjudicated: 1 Blocker, 2 Concerns, 1 Nit (all on this ledger); round 5 below |
-| `security-reviewer` | clean with a footer; adjudicated clean | clean with a footer; adjudicated clean | not re-run: documentation-only deltas |
+| `adversarial-reviewer` | adjudicated: 1 Blocker, 1 Concern, 4 Nits; 2 refuted | adjudicated: 1 Concern, 1 Nit | round 3 adjudicated: 1 Concern; round 4 adjudicated: 1 Blocker, 2 Concerns, 1 Nit; round 5 adjudicated: 1 Blocker (AC-0021 screen coverage), 2 Nits — all on this ledger and repaired; round 6 reviews the repair |
+| `security-reviewer` | clean with a footer; adjudicated clean | clean with a footer; adjudicated clean | not re-run: later commits change documentation, coordination files and core's version field only, and cross no security boundary |
 | `quality-engineer` | adjudicated: 1 Blocker; 5 refuted | clean, not adjudicated | not re-run |
-| `experience-reviewer` (AC-0021 gate) | adjudicated: 1 Minor; 5 refuted | 1 Nit only, not adjudicated; deferred by the author | not re-run |
-| Visual-polish pass (general-purpose) | adjudicated: clean; 7 refuted | not re-run | not re-run |
+| `experience-reviewer` (AC-0021 gate) | adjudicated: 1 Minor; 5 refuted (opened all 16 screens at `4ddd94863`) | 1 Nit only, not adjudicated; deferred by the author (opened 9 of 16 screens) | round 3 at `1b060b93d` opened all 16 screens and confirmed every hash against this ledger: no Blocker or Major raised; its adjudication was not complete when the owner directed the merge |
+| Visual-polish pass (general-purpose) | adjudicated: clean; 7 refuted (opened all 16 screens at `4ddd94863`) | round 2 at `1b060b93d` opened all 16 screens: no Blocker or Major raised (1 Minor, the notice type-size point already deferred, and 1 Nit on a 3px inset); its adjudication was not complete when the owner directed the merge | — |
 | `frontend-reviewer` stand-in (general-purpose; the role is not installed) | adjudicated: 1 Concern, 1 Nit; 1 refuted | clean, not adjudicated | not re-run |
 
 What the sustained findings changed:
