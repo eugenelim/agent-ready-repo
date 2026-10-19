@@ -71,6 +71,9 @@ seam (every skill declares its inputs and what consumes it):
   names goals grounded in that register; the message and narrative structure mode
   structures what each surface needs to say. One skill, one mode chosen per run,
   three artifacts.
+- **`ux-writing`** — the words on each screen: it sets the product's UI voice
+  once, then writes one string per screen and state from the `user-flow` state
+  matrix, in the voice of the brand register.
 - **`design-review`** — the authoring-time critique (design-principles
   integration chain + genre-specific rubrics + heuristics + taste mode) you run
   as you go.

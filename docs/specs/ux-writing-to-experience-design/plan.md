@@ -1,331 +1,217 @@
 # Plan: ux-writing-to-experience-design
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
-- **Repository anchors:** <task-relevant architecture/convention source;
-  one or two analogous production implementations; corresponding tests or
-  construction path; named uncertainty/deviation — or `none — non-structural`>
+- **Status:** Done
+- **Repository anchors:**
+  - `docs/specs/intent-short-route/` and its `notes/verification-ledger.md` § "T9
+    install-then-update observation", for the delete-bump-record order and the
+    scratch-repo upgrade walk.
+  - `packs/AGENTS.md` § Version bump rule and § Self-hosting projection.
+  - `docs/product/AGENTS.md`, for changelog fragments.
+  - Non-structural: no new module, boundary, or dependency.
 
 > **Plan contract:** this is the implementation strategy. It may change
 > substantively only while its Status is `Drafting`, before approval records its
 > baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
 > only lifecycle bookkeeping is permitted, and execution observations belong in
-> `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
-> equivalent). A genuine artifact error follows the controlled-amendment path.
->
-> **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
-> completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
-> and `Risks` are working material that an implementer corrects in place only
-> before approval: approval hashes the whole plan. After approval, grounding for
-> a seam recorded as `no stub (implementation-discovered)` goes to the
-> verification ledger; a settled design decision that execution falsified is a
-> plan error that follows the controlled-amendment procedure. Treating them as
-> contract is how a review spends a round on prose no gate consumes — the
-> measured share is over half the plan's lines. `Grounding` stays *recorded*,
-> because a per-task resolution that nobody wrote is not grounding; what it stops
-> being is a claim a reviewer holds the plan to.
-
-<!-- Existing plans without this field remain valid. Treat its absence as a
-named assurance gap during structural review, not a universal lint failure. -->
-
-<!-- **Durable-plan fill.** This template is the implementation and verification
-strategy for a durable delivery slice. Fill Approach, Constraints, Risks,
-Design, Tasks, and Changelog to the depth the durable work requires. Its sibling
-spec is the durable behavior contract. Eligible direct-light work does not
-create this artifact. -->
+> `notes/verification-ledger.md`. A genuine artifact error follows the
+> controlled-amendment path.
 
 ## Approach
 
-<!--
-A paragraph describing the strategy. What's the shape of the change? What's
-the order of operations? What's the riskiest part?
-
-A reader should finish this section knowing roughly what files will move and
-what the testing story is, without yet seeing the detailed task list.
--->
+One pull request in five tasks: move the skill, retarget pack callers, retarget
+guides, record and project, then observe the upgrade. The move is mechanical, so
+the review shape is WIDE. Its proof is the rename similarity (AC-0004), one
+`git grep` (AC-0009), fixed-file checks (AC-0010, AC-0018), and the existing site,
+journey, census, link, and catalogue checks.
+The riskiest part is the adopter upgrade, so it is observed last, against the
+finished catalogue.
 
 ## Constraints
 
-<!--
-What ADRs, RFCs, or other commitments shape this implementation? Cite them.
-This is what keeps the plan from contradicting prior decisions.
--->
+- RFC-0107 D6: the old place hard-retires with no alias, every operative reference
+  moves first, frozen records stay as written, and release notes map the old name
+  to its new home.
+- RFC-0107 § Errata (2026-10-13): the nine longer-route skills keep their names.
+  Nothing here touches them beyond removing a `ux-writing` mention.
+- `packs/AGENTS.md`: major bump for a removal, minor bump for a new primitive.
+- product-strategy changes only its non-projected `DESIGN.md` and takes no bump
+  (owner ruling, eugenelim, 2026-10-14).
+- No shipped pack text cites RFCs, ADRs, or specs.
 
 ## Construction tests
 
-Most construction tests live under **Tasks** below (per-task `Tests:`
-subsections). This top-level section is only for cross-cutting tests that
-span tasks.
+Cross-cutting checks run once, in T4, after self-host:
 
-<!--
-Construction tests guide implementation. They sit in two layers:
-
-1. **Per-task tests** (the majority) live under each Task below, in the
-   `Tests:` subsection. That's where unit, edge-case, and property tests
-   for a single task go.
-2. **Cross-cutting tests** (this section) live here, listed once: integration
-   tests that span tasks, end-to-end smoke tests, and any manual verification
-   steps.
-
-Designed up front, before EXECUTE. Revisable if a test over-specifies an
-internal detail the plan later changes. The contract itself lives in
-`spec.md` (Acceptance Criteria + Testing Strategy); construction tests
-that verify it live here.
-
-**Integration tests:** <list, or "none beyond per-task tests">
-**Manual verification:** <list, or "none">
--->
+- `agentbundle catalogue lint --root . --deep` and `agentbundle catalogue verify --root .`.
+- `python3 tools/lint-site-scope-parity.py`, `python3 tools/lint-pack-journeys.py`,
+  `python3 tools/lint-journey-contract.py`, and `python3 tools/lint-web-journey-parity.py`.
+- The census suite under `packs/agent-skill-engineering/tests/`.
+- `make lint-ruff lint-mypy`.
 
 ## Durable-output map
 
-<!--
-This section maps each task to the spec's Durable Outputs table so closeout can
-verify planned output, implementation evidence, and closeout evidence without
-copying requirements into a second record.
-
-For each output, name:
-
-- planned output
-- implementing task(s)
-- implementation evidence
-- closeout evidence
-- unresolved destination or freshness blocker, if any
-
-If the plan's Design (LLD) contains a non-inferable design fact, map it to its
-semantic owner here. Mechanically evident details may stay with code, types,
-docstrings, and tests; one-off construction order may remain delivery residue.
--->
-
-| Durable output | Tasks | Implementation evidence | Closeout evidence |
-| --- | --- | --- | --- |
-| <semantic role / destination> | <Tn> | <test, build, guide, contract, or review artifact> | <what close-work verifies> |
+| Spec durable output | Task |
+| --- | --- |
+| User promise (guides) | T3 |
+| Current product truth (pack pages, site) | T2 |
+| Interface compatibility (versions) | T1 |
+| Release history (fragments) | T4 |
+| Operations (upgrade observation) | T5 |
 
 ## Design (LLD)
 
-The low-level design — the *how*, below the Approach and above the per-task
-steps. **Optional and shape-pruned:** scaffold only the sub-sections the spec's
-`Shape:` selects, and delete the rest. A one-file change keeps this section thin
-or empty; a heavyweight feature fills most of it. The spec stays the contract —
-**no acceptance criterion lives here**; each sub-section instead **traces to the
-AC(s) it satisfies and the `contracts/` it implements**, so the design is always
-anchored to something verifiable.
-
-Stack-neutral by construction: these are the *kinds* of design decision every
-build makes, never a framework. Name your actual stack *inside* each sub-section
-from the repository's mapped architecture and convention sources. If none are
-usable, use manifests/build files and, for structural work, one or two analogous
-production implementations with their tests or construction path; elicit any
-unresolved load-bearing choice. The headings themselves stay universal.
-
-<!-- Shape → sub-sections (a guide, not a gate):
-  ui          → decomposition, state & control flow, behavior & rules, quality attributes
-  service     → interfaces & contracts, data & schema, failure & resilience, quality attributes
-  data        → data & schema, interfaces & contracts
-  integration → dependencies & integration, interfaces & contracts, failure & resilience
-  mixed/unsure→ scaffold all, then prune.
-Delete every sub-heading the shape doesn't select. -->
-
 ### Design decisions
-<!-- optional — the load-bearing choices and the alternatives rejected, one line
-of why each. Traces to: <AC(s) this satisfies> · <contracts/… it implements>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
-### Data & schema
-<!-- optional — entities, fields, types, ownership, migrations, retention.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature migrates existing data, name backfill checkpointing,
-restartability, and cutover validation. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+Owned by: T1, T2, T3, T5
 
-### Interfaces & contracts
-<!-- optional — the surfaces this feature exposes or consumes (REST API, event
-interface, BFF, RPC). Point at the `contracts/<type>/` file each implements.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature crosses a boundary, name a test seam for each
-crossed boundary. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
-
-### Component / module decomposition
-<!-- optional — the parts and their responsibilities; what's new vs. reused; for
-UI, the component tree. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
-
-### State & control flow
-<!-- optional — state model and transitions; sequencing across components; for
-UI, screen states and navigation. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When state changes concurrently, name concurrency, consistency,
-locking, atomicity, and transaction boundaries. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+- **The skill moves whole.** Only the `SKILL.md` body changes. The description stays
+  byte-identical, so no activation run is owed (spec § Testing Strategy).
+- **Voice charts stay at `docs/product/voice/<slug>.md`.** Adopters with existing
+  charts keep them, and the skill keeps finding them.
+- **Body wording.** The opening paragraph stops describing product-engineering's
+  frame, de-risk, and decompose loop. References to `user-flow`, `quality-floor`, and
+  `content-design` say "this pack" or name the skill alone. Routing to `intent frame`
+  and `author-product-docs` stays, because both still name skills.
+- **Adopter step.** After upgrading, every product-engineering adopter uninstalls
+  and reinstalls product-engineering at the same scope. With both packs, the two
+  upgrades run in either order. Without experience-design, the adopter installs it
+  after the step to keep `ux-writing`. This rests on the spike in
+  `notes/verification-ledger.md` (2026-10-14). `upgrade` keeps product-engineering's
+  claim on `ux-writing`, and only the uninstall drops it. Installing
+  experience-design before the step is refused. Deleting the folder by hand leaves
+  the stale claim, so the notes do not offer it.
+- **Journeys.** product-engineering's `JOURNEY.md` drops its `ux-writing` stage.
+  experience-design's `JOURNEY.md` gains one after "Design each screen". The site
+  journeys come from `tools/build-site.py --journeys-only`.
+- **Rationale.** product-engineering's `DESIGN.md` loses § 5 "The ux-writing content
+  layer" and § "Why ux-writing lives in product-engineering". Its `README.md`
+  keeps one line naming the `docs/product/voice/` folder, written by
+  experience-design's `ux-writing`. experience-design's `DESIGN.md` states why the
+  skill lives beside `user-flow` and `content-design`, with no internal citations.
+- **experience-design's artifact rules.** `DESIGN.md` § "Where artifacts live" and the
+  `[pack.layout.repo]` comment in `pack.toml` say every artifact-writing skill writes
+  under `[design] output_dir` and ships `references/agentbundle-layout.md`. Both
+  name `ux-writing` as the one exception: it writes `docs/product/voice/<slug>.md`
+  and only reads `[design]`.
+- **Census.** The `ux-writing` row changes `pack` and moves to the
+  experience-design block. `population_size` stays 132.
 
 ### Behavior & rules
-<!-- optional — the business and validation rules and the decisions they drive.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
-### Failure, edge cases & resilience
-<!-- optional — what can go wrong and the response: retries, fallbacks, timeouts,
-partial failure, idempotency, degraded modes. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When external failures are possible, name stable error classes,
-retryability, and external failure mapping. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+Owned by: T2, T3, T4
 
-### Quality attributes (NFRs)
-<!-- optional — how the design meets each NFR-with-a-bar from the spec's
-Acceptance Criteria (performance, accessibility, security posture, operability).
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature needs operational visibility, name a concrete
-observability surface. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
-
-### Dependencies & integration
-<!-- optional — external systems, services, and libraries this design leans on,
-and the coupling between them. (Reuse `Depends on:` / `Touches:` on the tasks
-below for *execution* ordering; this sub-section is for *design*-level coupling.)
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
-
-> **Rollout & deployment** — the tenth design dimension — is **not** a
-> sub-heading here. It is realized by [`## Rollout`](#rollout) below (infra,
-> external-system integration, deployment sequencing). Cross-link it from the
-> relevant sub-sections; never duplicate it.
+- Operative surfaces are `packs/`, `guides/`, `web/src/`, `tools/`, and
+  `docs/architecture/`. `docs/architecture/lifecycle-flow.md` already places
+  `ux-writing` under Experience and needs no edit.
+- Not operative, left as written: `docs/adr/`, `docs/rfc/`, `docs/specs/` other than
+  this one, `docs/product/{findings,research,intents}/`, `docs/design/`, and the
+  backlog comment in `workspace.toml`.
 
 ## Tasks
 
-The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
-**Phrase each task as a verifiable goal, not a procedure.** The task name
-*is* the success criterion: *"Add validation"* → *"All invalid-input tests
-pass"*; *"Refactor X"* → *"Tests for X green before and after; public
-surface unchanged"*. Tests drive implementation, not the other way around, so
-`Tests:` leads every task. Use red-green-refactor with separate commits when
-the change is non-trivial.
+### T1: ux-writing lives in experience-design, and both manifests agree
 
-**`Approach:` is conditional.** Write one when the task carries a decision a
-reader cannot infer from `Tests:` and `Done when:` — an *ordering* decision
-(step B must follow step A for a reason the tests do not show) or a *seam*
-decision (which module, which existing helper, which boundary). Omit it when
-those two fields already say what to build and how it is observed: an
-`Approach:` that restates them is a second home for the same instruction, and
-no completion gate reads it. The field order is unchanged where it appears —
-`Tests:`, then `Approach:`, then `Done when:`.
+**Depends on:** none
+**Touches:** packs/product-engineering/.apm/skills/ux-writing/**, packs/experience-design/.apm/skills/ux-writing/**, packs/*/pack.toml, packs/*/.claude-plugin/plugin.json, packs/agent-skill-engineering/tests/fixtures/skill-census.json
 
-**Every task must declare `Depends on:` explicitly** — list prior task IDs
-or `none`. Don't omit the field; "obvious from order" is the failure mode
-that hides serial-by-default thinking. `none` is a valid and common answer.
+**Tests:** no stub (goal-based).
+- AC-0001, AC-0002: `git ls-files` under both skill paths.
+- AC-0003: compare the frontmatter of `git show 3216c5b40:packs/product-engineering/.apm/skills/ux-writing/SKILL.md` with the moved file.
+- AC-0004: `git diff --find-renames=100% --name-status 3216c5b40 -- packs/` shows `R100` for the seven non-`SKILL.md` files.
+- AC-0005: `tr -s '[:space:]' ' '` on the moved `SKILL.md`, then `grep -F` each
+  string. At `3216c5b40` this fails on `frames, de-risks, and decomposes`, which is
+  wrapped across lines 8-9.
+- AC-0006: `grep` on the moved `SKILL.md`.
+- AC-0007, AC-0008: parse both `pack.toml` files and both `plugin.json` files.
+- AC-0011: the census suite.
 
-Planning is sufficient when the plan supplies an observable contract, owner,
-boundaries, ordering, discovery predicates where a seam is not grounded,
-required outcomes, and verification modes adequate to begin safely. It need
-not settle a helper name, symbol, fixture-internal detail, or complete edge-case
-matrix before implementation. Such questions are build-time guidance unless
-their absence makes the plan unable to start or verify the contract.
+**Done when:** the T1 checks pass.
 
-Keep observable behavior in `spec.md`. Use an exact path or symbol here only
-when repository evidence grounds it. For an implementation-discovered callable
-seam, record `no stub (implementation-discovered)` and its discovery predicate,
-constraint, required outcome, and verification mode; do not invent a helper,
-fixture, module, path, or symbol.
+### T2: no pack surface places ux-writing in product-engineering
 
-**`Depends on:` grammar** (so the supervisor-mode scheduler —
-`loop-cohort schedule` — can read it). The field is a comma-separated list of:
-local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
-`spec:<name>/TN` for a dependency on another spec's task (e.g.
-`spec:auth-tokens/T7`). Parenthetical prose after the IDs is
-ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
-*spec-sequencing*, not intra-plan waves, and are excluded from this plan's
-DAG. The scheduler **fails on a dependency cycle** and **warns on a
-forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first). A `Depends on:` entry that
-names no task in the plan is refused: the run exits non-zero, every offending
-task→dep pair is named, and nothing is persisted.
+**Depends on:** T1
+**Touches:** packs/experience-design/**, packs/product-engineering/**, packs/product-strategy/DESIGN.md, web/src/content/**, tools/add-rendering-directives.py
 
-**Optional `Touches:` grammar** (read by `loop-cohort schedule`).
-A task *may* add a `**Touches:**` line listing the file globs it expects to
-touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
-trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
-`predicted-disjoint: yes|no|unknown` **before** dispatch — a cheap
-*serialize-only* screen. It **never greenlights** parallel: a predicted overlap
-serializes early, but `yes`/`unknown` still require the authoritative post-write
-`git merge-tree` check to actually parallelize (under-declaration is unsafe).
-The field is **optional** — omit it freely; a task with no `Touches:` makes its
-wave `unknown`, never an error.
+**Tests:** no stub (goal-based).
+- AC-0009 with `git grep -h ux-writing -- packs web/src tools | grep -i 'product.engineering'`.
+  `-h` drops the file path, so only line content is matched.
+- AC-0010, AC-0017: `git grep -n ux-writing` on the named files, then the three
+  lints after `tools/build-site.py --journeys-only`.
+- AC-0018 for its `packs/` and `web/src/` members.
+- product-engineering's `align-value-stream` eval and both `agentbundle-layout.md`
+  references drop the `ux-writing` reader sentence, which AC-0009 catches.
 
-<!--
-Order matters — list tasks in the order they should be done. Mark
-dependencies inline. Format each task so a contributor (human or agent)
-could pick it up and complete it without follow-up questions:
+**Done when:** the T2 checks pass.
 
-### T1: <task name>
+### T3: the guides send adopters to experience-design for ux-writing
 
-**Depends on:** <none | comma-separated prior task IDs>
+**Depends on:** T1
+**Touches:** guides/experience-design/**, guides/product-engineering/**
 
-**Tests:**
-- <test 1 — behaviour, edge case, or property; reference the Acceptance
-  Criterion from spec.md this step verifies, if any>
-- <test 2>
-<!-- For an already-grounded callable seam or coherent TDD task family, include
-     one compilable red contract-surface assertion (`stub: true`). It need not
-     encode the finished edge-case matrix. -->
+**Tests:** no stub (goal-based).
+- AC-0012: `git mv` the how-to, then search `guides/` and `web/src/` for the old path.
+- AC-0019: read the moved page's frontmatter and its `install` lines.
+- AC-0020: `make bootstrap-sites`, then `make site-link-check`, which builds
+  `build/` and `build/docs/` and audits them. The page's relative links to `shape-a-feature-intent.md` and
+  `../reference/intent-fields-and-modes.md` become `../../product-engineering/...`.
+- AC-0009 (`git grep -h`) over `guides/`, including the `<!-- rung: -->` comments in
+  `hand-it-to-build.md`, which point at the new skill path.
+- AC-0018 for its `guides/` members.
+- `guides/product-engineering/README.md` line 57 names the walk as twelve
+  skills from this pack plus experience-design's `ux-writing`, on lines that never
+  also name product-engineering (AC-0009), with no `thirteen` (AC-0018).
+- `tools/validate_guides.py`, `tools/check-guide-index.py`, `tools/lint-guidebook-steps.py`,
+  and `tools/lint-guides-no-repo-only-refs.py` pass. `tools/check-guidebook-walk.py`
+  passes against the `build/docs` output that `make site-link-check` builds.
 
-**Approach:** <omit this field unless the task carries an ordering or seam
-decision the two fields around it do not show>
-- <the decision, and why this way>
+**Done when:** the T3 checks pass.
 
-**Done when:** <name a concrete observable — specific test green, gate
-  passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
-  an execution-evidence destination; use the verification ledger. Not "looks
-  good" or "feature works".>
+### T4: the catalogue is projected, valid, and released
 
-### T2: <task name>
+**Depends on:** T2, T3
+**Touches:** .claude/**, .agents/**, docs/product/changelog.d/**, docs/product/briefs/verb-mode-skills-and-slice-handover.md
 
-...
--->
+**Tests:** no stub (goal-based).
+- AC-0013, AC-0014: two fragments from `tools/changelog.py new`, then the fragment
+  validator.
+- AC-0016: self-host, then the cross-pack construction tests above.
+- AC-0009 (`git grep -h`) over all five operative surfaces, once, on the final tree.
 
+**Done when:** the T4 checks pass, and the brief's Spec map row matches this spec's
+status.
+
+### T5: the adopter step is observed against this change
+
+**Depends on:** T4
+
+**Tests:** no stub (manual QA).
+- AC-0015: three scratch git repositories, `claude-code` adapter, repo scope, an
+  isolated `AGENTBUNDLE_USER_ROOT`, the `3216c5b40` catalogue installed first, and
+  the HEAD catalogue as the upgrade source. Record each command's last line, the
+  `.agentbundle-state.toml` rows for `.claude/skills/ux-writing/SKILL.md`, and a
+  `cmp` of the installed file against the experience-design source.
+
+**Done when:** the ledger entry exists. If a run ends differently, stop: the
+AC-0013 step is wrong, and the spec needs an amendment.
 
 ## Rollout
 
-<!--
-How this ships — the tenth design dimension, realized here rather than as a
-`## Design (LLD)` sub-heading (cross-linked from there, never duplicated). Cover
-the dimensions that apply; a pure-logic change with none of them says so in one
-line.
-
-- **Delivery:** behind a flag? big bang? gradual / canary? Reversible — what is
-  the rollback, and what's irreversible (a data migration, a published event)?
-- **Infrastructure:** new or changed infra this needs (compute, storage, queues,
-  network, secrets, IAM) and how it's provisioned.
-- **External-system integration:** third-party or sibling-service dependencies
-  that must be live, migrated, or version-matched before this can ship.
-- **Deployment sequencing:** the order steps must ship in when one depends on
-  another — schema migration before the code that reads it, consumer before
-  producer, dark-launch before cutover. This is the dimension with no other home.
--->
+- **Delivery:** one PR. It is reversible by revert until the packs are released.
+- **Deployment sequencing:** product-engineering 2.0.0 and experience-design 4.2.0
+  release together in Wave A. The adopter step holds in either order.
 
 ## Risks
 
-<!--
-What could go wrong during implementation (vs. risks of the design itself,
-which belong in the spec)? Things like: "this migration is online and could
-slow the database", "this changes a behavior X teams depend on".
--->
+- A surface that names the old home without naming product-engineering on the
+  same line slips past AC-0009. T2 and T3 read every hit of `git grep -n ux-writing`
+  on the operative surfaces, not only the AC-0009 hits.
+- The census or journey generator orders rows. Run the generator rather than
+  hand-placing rows.
 
 ## Changelog
 
-<!--
-Approvals, and nothing else. Drafting history does not belong here: while the
-plan is `Drafting` its current text is the only version anyone acts on, so a
-dated account of how it got there is the draft narration `spec.md`'s
-present-tense rule already refuses, one document over. After approval this
-section is pinned like the rest of the plan, and an execution observation goes
-to the verification ledger, not to a new changelog entry.
-
-**Each approval is an entry.** The two forms are given at the end of this
-note — one per gate, a real date, the approver's own handle. Both live here
-because the plan carries the only dated history in the spec directory. Without them nothing in the artifacts says when
-the contract froze or on whose authority, so a later reader cannot tell which
-claims were in it at approval and which arrived afterwards. `work-loop`'s
-G-plan sequence owns *when* each is written and why the order matters; this
-template owns only the form.
-
-- YYYY-MM-DD: spec approved by <handle>
-- YYYY-MM-DD: plan approved by <handle>
--->
+- 2026-10-14: spec approved by eugenelim
+- 2026-10-14: plan approved by eugenelim
+- 2026-10-19: spec amendment (AC-0010 wording) approved by eugenelim
+- 2026-10-19: plan amendment (Rationale wording) approved by eugenelim

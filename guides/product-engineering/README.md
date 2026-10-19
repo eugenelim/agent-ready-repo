@@ -35,7 +35,6 @@ These guides help you turn a product problem into a bet you approved, then hand 
 - [How to create a Lean Canvas for an initiative](how-to/create-a-lean-canvas.md)
 - [How to run a discovery end-to-end](how-to/run-a-discovery.md)
 - [How to run a capability across a value stream (many component repos)](how-to/run-a-capability-across-a-value-stream.md)
-- [How to write a product's voice and microcopy](how-to/write-product-microcopy.md)
 
 ### Explanation
 

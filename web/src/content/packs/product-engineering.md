@@ -6,7 +6,6 @@ tagline: "Raw idea → build-ready decision brief."
 skills:
   - intent
   - align-value-stream
-  - ux-writing
   - frame-domain
   - discovery-loop
   - explore-options
@@ -16,4 +15,4 @@ docsUrl: /docs/guides/product-engineering/
 journeyUrl: /journeys/product-engineering/
 ---
 
-Product Engineering installs upstream of the build loop. The `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief: diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks. `intent frame`, `intent de-risk`, and `intent decompose` run as habits over a recursive intent hierarchy. `ux-writing` adds the content layer.
+Product Engineering installs upstream of the build loop. The `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief: diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks. `intent frame`, `intent de-risk`, and `intent decompose` run as habits over a recursive intent hierarchy.

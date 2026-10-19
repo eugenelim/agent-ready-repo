@@ -16,7 +16,7 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 
 - **Growth strategy.** AARRR funnels, product-led growth, PMF testing, and cohort retention loops are deferred to a follow-on `growth` pack. Growth is downstream of strategy, not coextensive with it.
 - **Primary research production.** This pack consumes desk-research project outputs via `synthesize-stakeholder-research`; it does not produce interview guides, discussion scripts, or survey templates. Research production belongs in the `desk-research` pack.
-- **Per-surface content design.** `define-content-strategy` covers the organizational and governance layer above content (Purpose + Process + Structure + Governance). Per-screen copy intent belongs in the `experience-design` pack's `content-design` skill; per-state string writing belongs in the `product-engineering` pack's `ux-writing` skill.
+- **Per-surface content design.** `define-content-strategy` covers the organizational and governance layer above content (Purpose + Process + Structure + Governance). Per-screen copy intent belongs in the `experience-design` pack's `content-design` skill; per-state string writing belongs in the `experience-design` pack's `ux-writing` skill.
 - **Analytics and CRO tooling.** Measurement frameworks, A/B testing sequencing, and conversion rate optimization belong downstream of the strategy this pack sets.
 
 ---

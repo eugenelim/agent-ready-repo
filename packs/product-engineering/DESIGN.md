@@ -6,7 +6,7 @@ Living design reference for the product-engineering pack. Records the philosophy
 
 ## TL;DR
 
-`product-engineering` is the upstream shaping seat. Every product idea gets one path — frame → de-risk → decompose — over a single recursive artifact (the `intent`) that spans every altitude from product-vision to feature. `discovery-loop` is the supervised peer of `work-loop`: it diverges across candidate shapes, drives a lens roster to convergence, pauses at four human consent gates, emits a connected hypothesis with validation hooks, and hands the brief to the delivery loop at G3. The whole capability is content, not runtime — a `discovery-lead` agent definition, this skill, and a carried sidecar schema, executed by the harness an adopter already runs. `ux-writing` is the content layer: it writes the words users read in the UI, keyed to the per-screen state matrix produced by `experience-design`.
+`product-engineering` is the upstream shaping seat. Every product idea gets one path — frame → de-risk → decompose — over a single recursive artifact (the `intent`) that spans every altitude from product-vision to feature. `discovery-loop` is the supervised peer of `work-loop`: it diverges across candidate shapes, drives a lens roster to convergence, pauses at four human consent gates, emits a connected hypothesis with validation hooks, and hands the brief to the delivery loop at G3. The whole capability is content, not runtime — a `discovery-lead` agent definition, this skill, and a carried sidecar schema, executed by the harness an adopter already runs.
 
 ---
 
@@ -121,27 +121,7 @@ A plain versioned file is readable by any tool, diff-able in review, and require
 
 ---
 
-## 5. The ux-writing content layer
-
-### What it covers
-
-`ux-writing` writes the words users read in the UI: error messages, empty states, button labels, form labels. It is a method, not a word bank — voice characterization along a few axes (humor, formality, respect, enthusiasm), per-state formulas (blame-free + actionable), and a content checklist before copy ships.
-
-### The design-seat pairing
-
-`ux-writing` is the content layer of the design seat:
-
-- **`experience-design`'s `user-flow`** produces the per-screen state matrix (one row per screen × state). Pass that matrix to `ux-writing` and it writes copy keyed to every cell — one string per screen/state combination.
-- **`experience-design`'s `content-design`, in its brand-level register mode,** sets the brand register: ranked copy goals and arbitration rules. `ux-writing` receives the voice direction and applies it per state.
-- **Without a screen flow**, `ux-writing` is still fully useful: it detects absent and names states inline. The pairing is additive, not required.
-
-### Scope boundary
-
-`ux-writing` covers product UI copy: error states, empty states, button labels, loading messages. Marketing and acquisition copy (hero headlines, above-fold narrative, taglines, onboarding copy voice), the brand-level copy register, and onboarding narrative arc and structure all belong to `experience-design`'s `content-design` — to its per-surface acquisition copy goals, brand-level register, and message and narrative structure modes respectively. Documentation prose belongs to `author-product-docs` if installed. The boundary is the surface type: UI state copy lives here; everything else does not.
-
----
-
-## 6. Cross-pack dependencies
+## 5. Cross-pack dependencies
 
 ### Upstream: product-strategy
 
@@ -164,11 +144,11 @@ provenance, not transport.
 
 ### Downstream: experience-design
 
-The per-screen state matrix from `experience-design`'s `user-flow` is the hand-off artifact `ux-writing` consumes. Each cell in the matrix (screen × state) maps to a copy string. The two packs are designed to meet at this interface. When discovery includes UX lens work, `experience-design` skills run inside the convergence loop as optional lens participants; when they are absent, the discovery floor degrades gracefully to product-only discovery.
+When discovery includes UX lens work, `experience-design` skills run inside the convergence loop as optional lens participants; when they are absent, the discovery floor degrades gracefully to product-only discovery.
 
 ---
 
-## 7. Safety invariants
+## 6. Safety invariants
 
 These constraints must never be violated by any skill in this pack or any skill that extends it.
 
@@ -186,7 +166,7 @@ These constraints must never be violated by any skill in this pack or any skill 
 
 ---
 
-## 8. Design decisions and rationale log
+## 7. Design decisions and rationale log
 
 ### Why Level is an open recognized set
 
@@ -212,8 +192,3 @@ The discovery loop's coordination is a file write plus a plain-text convention, 
 
 **Alternative considered:** two gates mirroring `work-loop` — one before divergence (approve the framing), one before handoff (approve the brief). Rejected because a single mid-loop consent point means either the diverge step runs without framing approval (high waste on bad framings) or the convergence step runs without candidate confirmation (converges on a candidate the human would have redirected at G1.5). The asymmetry in cost — cheap gate vs. expensive loop iteration — strongly favors more gates, not fewer.
 
-### Why ux-writing lives in product-engineering, not experience-design (from v1)
-
-`ux-writing` writes the words users read in the product UI. It is a product-engineering skill because the decision of what to say in an error or empty state is a product-content decision, not a design-methods decision. `experience-design` sets the surface intent (what the screen is trying to accomplish) and derives the state matrix (what states exist per screen); `ux-writing` writes the copy for each state. The two packs meet at the state matrix interface. Placing `ux-writing` in `experience-design` would create a pack that conflates method (how to structure screens) with content (what words go in them) — and would make the content layer unavailable to teams that want to write copy without running the full design sequence.
-
-**Alternative considered:** place `ux-writing` in `experience-design` as a terminal craft step, after `interaction-design`. Rejected because: (a) product teams write copy without running a full design thread — the content layer should be independently usable; (b) the design seat's method principle is "derive, never prescribe" with no values tables — `ux-writing`'s copy output is content, not method, and doesn't fit that principle; (c) the product-engineering pack already owns the product-content layer (`intent decompose` produces feature intents; `ux-writing` writes the words those features render).

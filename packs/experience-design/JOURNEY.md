@@ -54,6 +54,9 @@ skills:
   - name: design-review
     description: "Reviews an existing screen design against the quality floor — handle-all-states, accessibility, reduced-motion — before the independent review."
     humanTouches: 0
+  - name: ux-writing
+    description: "Characterizes the product voice and writes blame-free, actionable per-state UI copy keyed to the screen flow's state matrix."
+    humanTouches: 1
   - name: experience-status
     description: "Orients to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next."
     humanTouches: 0
@@ -120,6 +123,7 @@ relatedJourneys:
 | `design-system` | Resolve the system's relationships and values from the direction and the incumbent system | Conditional |
 | `information-architecture` | Decide what goes where on each screen and how users stay oriented | Required |
 | `interaction-design` | Design states, feedback, and animation per screen | Required |
+| `ux-writing` | Characterize the product voice and write per-state UI copy keyed to the state matrix | Optional |
 | `experience-reviewer` | Independent cold review — forked context, read-only. A reviewer agent the design thread dispatches, described here rather than run like the skills above | Required |
 
 ---
@@ -253,7 +257,26 @@ interaction-design [/onboarding/welcome]
 
 ---
 
-### 5. Review independently
+### 5. Write the screen copy
+
+Type `ux-writing` to characterize the product's voice and write the per-state strings for each screen, keyed to the state matrix `user-flow` produced. It loads the brand register from `content-design` when one exists.
+
+```text
+ux-writing
+
+  voice    docs/product/voice/onboarding.md
+
+  Connect screen / error   "We couldn't reach your account. Check the address and try again."
+  Connect screen / empty   "No accounts yet. Connect your first one to get started."
+```
+
+- **You decide:** read the voice and the strings now — a stiff or blaming error message is cheaper to fix before review than after.
+- **Output:** a voice chart and one string per screen × state cell, blame-free and actionable.
+- **State:** draft
+
+---
+
+### 6. Review independently
 
 Ask for an independent review of the finished design set. The `experience-reviewer` agent is dispatched to do it — a reviewer role rather than a skill you type. It reads your design artifacts cold, with no authoring context, and returns findings across handle-all-states, accessibility, aesthetic fit, and cross-screen coherence.
 

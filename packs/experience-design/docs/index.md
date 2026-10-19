@@ -1,6 +1,6 @@
 # Experience Design
 
-> A user-scope pack of 12 skills and a forked-context experience-reviewer subagent for the full design thread — from journey mapping to per-screen craft — grounded in published standards, never pixel comps.
+> A user-scope pack of 13 skills and a forked-context experience-reviewer subagent for the full design thread — from journey mapping to per-screen craft — grounded in published standards, never pixel comps.
 
 ## Why this pack exists
 
@@ -8,11 +8,11 @@ Product teams designing screens without structured UX tooling default to the hap
 
 ## What it is
 
-**Skills (12) in two families:**
+**Skills (13) in two families:**
 
 *Connective skills* walk the thread from outcome to surface: `journey-mapping` (map customer journey stages, actions, emotions, pains, and opportunities), `content-design` (the copy layer in three modes: decide what a surface says and for whom before wireframes, name per-surface copy goals for a marketing or acquisition surface, or set the brand-level copy register every per-surface goal references), `user-flow` (sequence screens and transitions with error flows and per-screen briefs), `service-blueprint` (map backing services across frontstage, backstage, and support rows), `process-mapping` (map internal operations as swimlane flows — as-is/to-be, SIPOC, pain register), `design-principles` (derive 3–5 named principles from journey insights to resolve design disputes).
 
-*Craft skills* design and critique each screen: `creative-direction` (turn a vague mood into ranked emotional and brand goals), `design-system` (resolve an aesthetic direction and the product's existing system into a buildable design system), `information-architecture` (organize a screen — hierarchy, reading flow, wayfinding, with genre routing when known), `interaction-design` (design the behavioral layer — states, validation, transitions, micro-interactions), `design-review` (severity-rated heuristic, accessibility, and aesthetic critique of an existing screen). Plus `experience-status` for read-only orientation to the current design thread.
+*Craft skills* design and critique each screen: `creative-direction` (turn a vague mood into ranked emotional and brand goals), `design-system` (resolve an aesthetic direction and the product's existing system into a buildable design system), `information-architecture` (organize a screen — hierarchy, reading flow, wayfinding, with genre routing when known), `interaction-design` (design the behavioral layer — states, validation, transitions, micro-interactions), `design-review` (severity-rated heuristic, accessibility, and aesthetic critique of an existing screen), `ux-writing` (characterize the product's UI voice and write error, empty-state, button, and label copy, one string per screen and state). Plus `experience-status` for read-only orientation to the current design thread.
 
 **Subagents (1):** `experience-reviewer` — forked-context, design-time critique subagent. It receives only the artifact (journey map, screen flow, aesthetic direction, or generated screen), never the authoring chain of thought.
 

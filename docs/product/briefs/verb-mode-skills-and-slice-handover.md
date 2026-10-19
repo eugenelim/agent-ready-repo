@@ -199,7 +199,7 @@ component repos without a hand copy.
 | --- | --- |
 | `intent-short-route` | Shipped |
 | `intent-longer-and-supervised-verbs` | Archived |
-| `ux-writing-to-experience-design` | Draft |
+| `ux-writing-to-experience-design` | Shipped |
 | `component-slice-contract` | Draft |
 | `value-stream-acquire-and-refresh` | Draft |
 | `value-stream-status-collection` | Draft |

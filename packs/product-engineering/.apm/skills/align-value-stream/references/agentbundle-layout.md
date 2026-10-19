@@ -75,6 +75,4 @@ stays pinned (a deliberate non-goal of this layout config).
 Eight skill bodies, not two: `intent` (intents), `align-value-stream`
 (rollups), `frame-situation`, `identify-opportunities`, `diverge-solutions`,
 `place-bet`, `map-capabilities` (all under `shaping/`), and `lean-canvas`, which
-reads the section to scan but writes a pinned path. `ux-writing` additionally
-reads **`[design]`**, not `[product]` — a cross-pack read this pack owns no
-section for.
+reads the section to scan but writes a pinned path.
