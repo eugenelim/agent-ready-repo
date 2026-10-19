@@ -1,7 +1,7 @@
 # Plan: Execution supervisor core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)
   governs.
   - **Design:** [`work-loop-execution-supervisor.md`](../../architecture/work-loop-execution-supervisor.md),

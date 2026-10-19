@@ -10,7 +10,7 @@ GitHub Actions `windows-latest`, Python 3.11.9, job `AgentBundle compatibility (
 
 ### What the Job Object suite verified
 
-`packs/core/tests/skills/work-loop/test_process_safety_windows.py` gates the Windows job. It passed (12 passed, about 29 s) on the branch head after the fixes below. Each test pins one behaviour:
+`packs/core/tests/skills/work-loop/test_process_safety_windows.py` gates the Windows job. It passed (13 passed, 28 s) on code head `8dfc62782` (run 39258450641), after the fixes below. Each test pins one behaviour:
 
 - **Kill-on-close, no breakaway (AC-0021).** The child reads its own job's limits: `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` is set, and neither `BREAKAWAY_OK` nor `SILENT_BREAKAWAY_OK` is.
 - **Suspended start, assign, then resume.** A forced assignment failure ends the suspended process and refuses with `denied-job-object`, so no code runs outside the job.
@@ -22,12 +22,12 @@ GitHub Actions `windows-latest`, Python 3.11.9, job `AgentBundle compatibility (
 ### Behaviour found and fixed during the probe
 
 - **Output past one pipe buffer.** An anonymous pipe holds about 4 KB. The first reader stopped reading at the output cap, so a child that wrote 5,000 bytes blocked on its write, and the launch was refused as a flood. The reader now keeps draining and discarding past the cap for the POSIX settle window (0.2 s). Only a tree still running when that window closes is refused. A 1 MiB write that then exits now returns a truncated success.
-- **A flood after the leader exits.** The post-exit wait on the pipes fixed its timeout when it started, so a descendant that flooded after the leader exited held the launch until its deadline. The wait now runs in 50 ms slices, so the settle window applies. A test pins the refusal inside 10 s against a 20 s launch timeout.
+- **A flood after the leader exits.** The post-exit wait on the pipes fixed its timeout when it started, so a descendant that flooded after the leader exited held the launch until its deadline. The wait now runs in 50 ms slices over a fresh snapshot of the live readers, so the settle window applies and a reader finishing mid-check ends the wait cleanly. A test pins the refusal inside 10 s against a 20 s launch timeout.
 - **Hashing the pinned executable** reads it in binary mode, so the identity digest matches the file on disk.
 
 ### The POSIX suite on Windows (evidence only)
 
-`test_process_safety.py` runs on Windows as a non-gating step, bounded to 5 minutes. On the branch head it gave 3 failed, 86 passed, 21 skipped in 4.4 s.
+`test_process_safety.py` runs on Windows as a non-gating step, bounded to 5 minutes. On code head `8dfc62782` it gave 3 failed, 86 passed, 21 skipped in 4.5 s.
 
 - **Skips (21):** tests that need `os.killpg`, `mkfifo`, `/proc/self/fd`, `/bin/sh`, `waitid`, or POSIX-only environment bytes.
 - **Failures (3), all POSIX expectations, not Windows defects:**

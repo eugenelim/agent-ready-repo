@@ -32,7 +32,28 @@ These change no accepted criterion. The first one contradicts the sealed plan's 
 
 ## Construction tests
 
-Results are under "Final gates".
+Every acceptance criterion maps to at least one plan test ID (VI-4010 to VI-4062, VI-4901, VI-4902), and each ID is present in `packs/core/tests/skills/work-loop/` or `tests/roster/`. Their results are under "Final gates".
+
+## Final gates
+
+Code head `8dfc62782` (rebased on `main` at `cf919e2b3`, Core 3.1.9). Commits after it change only `docs/specs/`.
+
+- **Local, Python 3.11:** `make lint-ruff lint-mypy` clean; `tools/lint-pack-test-boundary.py` passes; `tools/changelog.py validate` passes. The full work-loop suite plus `tests/roster/test_execution_supervisor_records.py`, with `WORK_SUPERVISOR_INTEGRATION=1`: 3341 passed, 20 skipped, 1024 s.
+- **PR checks on `8dfc62782`:** all 38 pass, one skipped by its path filter.
+  - `Gate A-supervisor` (run 39258450742): 265 passed, 253 s.
+  - `Gate A-packs` (Ubuntu) job: 7 min 39 s against its 10-minute limit.
+  - Windows (run 39258450641): the Job Object suite gave 13 passed, 28 s. The evidence-only POSIX suite gave 3 failed, 86 passed, 21 skipped, 4.5 s; the attempt-security ledger explains the three failures.
+- **Dispatch-only suites on `8dfc62782`:** `test-roster.yml` (run 39261754362) succeeded, 2147 passed, 7 skipped. `test-corpus.yml` (run 39261766561) succeeded on every shard.
+- **Mutation checks for review repairs.** Each test below failed with its repair removed and passed with it in place:
+  - the shared red-proof budget, against a per-stub budget;
+  - the `gates-failed` route;
+  - the `terminal_tree` finish key, against matching by HEAD after a pruned rebase;
+  - the AC-0031 refusal of an effect result over a changed spec directory;
+  - the advisory event-log guard, for an over-bound log and for an unwritable log.
+
+## Review
+
+Seven post-gates rounds ran. Rounds 1 and 2 ran before the engine entered review; rounds 3 to 7 ran in `CODE-REVIEW`, using 4 of 5 review retries. In round 7, `adversarial-reviewer` and `quality-engineer` returned clean, and `security-reviewer` was clean after its `Not checked` footer was adjudicated. One Nit stays deferred: effect results check protected paths before checking that the result matches the current request, so a stale effect result over a dirty spec directory gets `protected-path-changed` instead of `not-current-attempt`. Nothing is written in either case.
 
 ## Environment note
 
