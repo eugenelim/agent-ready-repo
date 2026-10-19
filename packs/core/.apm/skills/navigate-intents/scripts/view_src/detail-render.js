@@ -63,7 +63,18 @@
     back.addEventListener('click', function () { backToList(id); });
     add(dom.detailBody, stateLine(id));
 
-    add(part('Next step'), el('p', 'next-step', nextStep(id)));
+    var stepSec = part('Next step');
+    add(stepSec, el('p', 'next-step', nextStep(id)));
+    var hand = handoverPrompt(typeOf(id), nextStepRule(id), nodes.get(id).path);
+    if (hand && hand.prompt !== undefined) {
+      var block = add(stepSec, el('div', 'prompt-block'));
+      add(block, el('code', 'prompt', hand.prompt));
+      add(block, button('action copy-prompt', 'Copy prompt'));
+      var status = add(block, el('p', 'copy-status'));
+      status.hidden = true;
+    } else if (hand) {
+      add(stepSec, el('p', 'prompt-refused', "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. Start the skill yourself from Open the file."));
+    }
 
     var openSec = part('Open beneath');
     var under = deliveryUnavailable() ? null : (beneath.get(id) || []);
