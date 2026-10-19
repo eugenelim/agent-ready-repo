@@ -1,6 +1,6 @@
 # Verification ledger: intent-view-handover-prompt
 
-Every result below ran against code commit `ee06ef520afe4f2262604260af3219800522435e` or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it. Later commits change documentation only: `c6abc01b3` changes this ledger and `notes/screens/`; `2d5b0b864` changes this ledger and one sentence of `guides/core/how-to/navigate-intents.md`; the commit adding this sentence changes only this ledger. `git diff --stat ee06ef520 HEAD -- packs/core .claude .agents` prints nothing at each of them. Run on 2026-10-19.
+Every result below ran against code commit `ee06ef520afe4f2262604260af3219800522435e` or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it. Every later commit on this branch changes documentation only — this ledger, `notes/screens/` (in `c6abc01b3`) and one sentence of `guides/core/how-to/navigate-intents.md` (in `2d5b0b864`) — and `git log --stat ee06ef520..HEAD` lists each one. `git diff --stat ee06ef520 HEAD -- packs/core .claude .agents` prints nothing. Run on 2026-10-19.
 
 ## Scripted browser suite (all of `view_browser_checks.py`)
 
@@ -178,4 +178,25 @@ for png in sorted(out.glob("*.png")):
 
 ## Review dispositions
 
-The `experience-reviewer` pass, the separate visual-polish pass and the `test-corpus.yml` dispatch are run by the controller; their dispositions and run id are added below when they land.
+Each reviewer's report was adjudicated by `finding-adjudicator`; only sustained findings were acted on. Counts are after adjudication.
+
+| Reviewer | Round 1 | Round 2 | Round 3 |
+| --- | --- | --- | --- |
+| `adversarial-reviewer` | 1 Blocker, 1 Concern, 4 Nits (2 refuted) | 1 Concern, 1 Nit | 1 Concern |
+| `security-reviewer` | clean | clean | not re-run (docs-only delta) |
+| `quality-engineer` | 1 Blocker (5 refuted) | clean | not re-run |
+| `experience-reviewer` (AC-0021 gate) | 1 Minor (5 refuted) | 1 Nit, deferred | not re-run |
+| Visual-polish pass (general-purpose) | clean (7 refuted) | not re-run | not re-run |
+| `frontend-reviewer` stand-in (general-purpose; the role is not installed) | 1 Concern, 1 Nit (1 refuted) | clean | not re-run |
+
+What the sustained findings changed:
+- The AC-0008 probes now hit exactly 100 and 101 characters in a segment, and exactly 200 and 201 characters in a path, with a literal outcome each. The collected test went red when `PATH_SEGMENT` was widened to `{0,100}` and when the path-length check was removed.
+- A refused copy resets the button to "Copy prompt", and a successful copy hides the failure line. The live region is cleared and rewritten on the next tick, so a repeated outcome is announced again.
+- The refusal and copy-failure lines use the view's `notice` treatment.
+- The AC-0015 check compares all four edges.
+- The guide's "Copied" and no-prompt sentences match the code and the next-step rules.
+- This ledger names the commit or code-identical tree behind every result, and records the open intermittent failure above.
+
+AC-0021: the experience review leaves no Major or Blocker after adjudication. Its one deferred Nit is that the copy-failure notice keeps the smaller muted meta text while the refusal notice uses body text. That is kept on purpose: the copy line is a short status tied to its button, while the refusal line replaces the prompt.
+
+The `test-corpus.yml` dispatch at the final pushed commit is recorded in the pull request.
