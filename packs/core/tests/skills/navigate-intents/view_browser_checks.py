@@ -4847,6 +4847,36 @@ def _hostile_names_corpus(tmp: pathlib.Path) -> pathlib.Path:
     return root
 
 
+def _boundary_probes(record_type: str) -> list[tuple[str, bool]]:
+    """The four limit probes for a type, each with its literal outcome (True: a prompt shows).
+
+    A last segment of exactly 100 characters (101 refused), then a multi-segment path of exactly
+    200 characters (201 refused) whose every segment is at most 100, so length alone decides.
+    """
+    prefix = _PROMPT_PREFIX[record_type]
+    if record_type == "spec":  # the spec.md segment is fixed, so the long segment is the directory
+        def one(n: int) -> str:
+            return f"{prefix}{'a' * n}/spec.md"
+
+        def two(total: int) -> str:
+            rest = total - len(prefix) - len("/spec.md") - 1  # two directory names and a slash
+            return f"{prefix}{'a' * (rest // 2)}/{'a' * (rest - rest // 2)}/spec.md"
+    else:
+        def one(n: int) -> str:
+            return f"{prefix}{'a' * (n - 3)}.md"
+
+        def two(total: int) -> str:
+            rest = total - len(prefix) - len(".md") - 1  # a directory name, a slash and a file stem
+            return f"{prefix}{'a' * (rest // 2)}/{'a' * (rest - rest // 2)}.md"
+
+    probes = [(one(100), True), (one(101), False), (two(200), True), (two(201), False)]
+    assert [len(p) for p, _ in probes][2:] == [200, 201]
+    for path, _ in probes:
+        assert max(len(seg) for seg in path.split("/")) <= 101
+    assert [len(path.split("/")[-2 if record_type == "spec" else -1]) for path, _ in probes[:2]] == [100, 101]
+    return probes
+
+
 def _probe_paths() -> dict[str, list[str]]:
     """AC-0008's probe set, per record type; every type's list has the same length."""
     by_type: dict[str, list[str]] = {}
@@ -4854,10 +4884,7 @@ def _probe_paths() -> dict[str, list[str]]:
         safe = f"{prefix}thing/spec.md"
         paths = [
             safe,
-            f"{prefix}{'a' * 100}.md",
-            f"{prefix}{'a' * 101}.md",
-            prefix + "a" * (200 - len(prefix) - 3) + ".md",
-            prefix + "a" * (201 - len(prefix) - 3) + ".md",
+            *[path for path, _ in _boundary_probes(record_type)],
             safe[:-3],
             f"{prefix}x//spec.md",
             f"{prefix}./spec.md",
@@ -5007,14 +5034,21 @@ def test_handover_ac_0008_prompt_block_exactly_when_the_path_is_safe(
     count = len(probes["spec"])
     assert {len(v) for v in probes.values()} == {count}
     outcomes: set[tuple[str, str]] = set()
+    literal = 0
     for index in range(count):
         paths = {chosen[t]: probes[t][index] for t in _PROMPT_PREFIX}
         export = _with_paths(exports["mixed"], tmp_path / f"probe-{index}.html", paths)
         rewritten = Model(payload_of(export))
         item = opener(export)
         for record_type, node_id in chosen.items():
-            outcomes.add((record_type, _check_step(item, rewritten, node_id)))
+            outcome = _check_step(item, rewritten, node_id)
+            outcomes.add((record_type, outcome))
+            boundary = dict(_boundary_probes(record_type))
+            if probes[record_type][index] in boundary:  # the four limit probes: literal outcomes
+                assert outcome == ("prompt" if boundary[probes[record_type][index]] else "refused"), (record_type, index)
+                literal += 1
         item.close()
+    assert literal == 4 * len(_PROMPT_PREFIX)
     assert outcomes == {(t, o) for t in _PROMPT_PREFIX for o in ("prompt", "refused")}
 
 
@@ -5033,10 +5067,12 @@ def test_handover_ac_0015_a_200_character_path_stays_inside_the_detail_zone(
     model = Model(payload_of(export))
     assert _check_step(item, model, "spec:bravo-spec") == "prompt"
     page = item.page
+    page.locator(".prompt-block").scroll_into_view_if_needed()  # the zone may scroll inside itself
     code, button, zone = _rect(page, "code.prompt"), _rect(page, ".prompt-block > button"), _rect(page, ".detail")
     assert not _overlaps(code, button), (code, button)
     for box in (code, button):
         assert box["left"] >= zone["left"] - 1 and box["right"] <= zone["right"] + 1, (box, zone)
+        assert box["top"] >= zone["top"] - 1 and box["bottom"] <= zone["bottom"] + 1, (box, zone)
     assert page.evaluate("document.documentElement.scrollWidth") <= width
 
 
@@ -5159,6 +5195,33 @@ def test_handover_ac_0013_a_refused_copy_selects_the_prompt(
     assert page.locator(_COPY_STATUS).text_content() == _COPY_REFUSED_LINE
     assert _live(page, "Copy didn't work") == _COPY_REFUSED_LINE
     assert page.locator(_COPY_BUTTON).text_content() == "Copy prompt"
+    assert item.errors == []
+
+
+@pytest.mark.parametrize("order", [(True, False), (False, True)], ids=["granted-then-refused", "refused-then-granted"])
+def test_handover_each_copy_outcome_clears_the_other(
+    opener: Any, exports: dict[str, pathlib.Path], order: tuple[bool, bool]
+) -> None:
+    item = opener(exports["mixed"], clipboard=True)
+    page = _prompt_pick(item, exports)
+    page.evaluate(
+        """() => {
+          const real = navigator.clipboard.writeText.bind(navigator.clipboard);
+          navigator.clipboard.writeText = (t) => (window.__refuseCopy ? Promise.reject(new Error('refused')) : real(t));
+        }"""
+    )
+    for grant in order:
+        page.evaluate("refuse => { window.__refuseCopy = refuse; }", not grant)
+        page.locator(_COPY_BUTTON).click()
+        if grant:
+            page.wait_for_function(f"() => document.querySelector('{_COPY_BUTTON}').textContent === 'Copied'")
+            assert page.locator(_COPY_STATUS).is_hidden()
+            assert _live(page, "Prompt copied") == "Prompt copied"
+        else:
+            page.wait_for_function("() => !document.querySelector('#detail-body .copy-status').hidden")
+            assert page.locator(_COPY_BUTTON).text_content() == "Copy prompt"
+            assert page.locator(_COPY_STATUS).text_content() == _COPY_REFUSED_LINE
+            assert _live(page, "Copy didn't work") == _COPY_REFUSED_LINE
     assert item.errors == []
 
 

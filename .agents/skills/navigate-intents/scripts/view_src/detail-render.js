@@ -42,8 +42,18 @@
   }
 
   var COPY_REFUSED = "Copy didn't work here. Press Ctrl+C or \u2318C to copy the selected prompt.";
+  // Say the copy outcome in the live region: clear it first so a repeated message is announced again.
+  function announce(btn, message) {
+    dom.live.textContent = '';
+    setTimeout(function () {
+      if (btn.isConnected) { dom.live.textContent = message; }
+    }, 0);
+  }
+
   // Copy the prompt; when the clipboard refuses or is missing, select it so the reader can copy by hand.
+  // Each outcome clears the other's mark.
   function copyPrompt(btn, block, prompt) {
+    var status = block.querySelector('.copy-status');
     function refused() {
       if (!btn.isConnected) { return; }
       var range = document.createRange();
@@ -51,10 +61,10 @@
       var sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      var status = block.querySelector('.copy-status');
+      btn.textContent = 'Copy prompt';
       status.textContent = COPY_REFUSED;
       status.hidden = false;
-      dom.live.textContent = COPY_REFUSED;
+      announce(btn, COPY_REFUSED);
     }
     var clip = navigator.clipboard;
     if (!clip || typeof clip.writeText !== 'function') { refused(); return; }
@@ -63,7 +73,8 @@
     Promise.resolve(wrote).then(function () {
       if (!btn.isConnected) { return; }
       btn.textContent = 'Copied';
-      dom.live.textContent = 'Prompt copied';
+      status.hidden = true;
+      announce(btn, 'Prompt copied');
     }, refused);
   }
 
@@ -96,11 +107,11 @@
       var block = add(stepSec, el('div', 'prompt-block'));
       add(block, el('code', 'prompt', hand.prompt));
       var copyBtn = add(block, button('action copy-prompt', 'Copy prompt'));
-      var status = add(block, el('p', 'copy-status'));
+      var status = add(block, el('p', 'copy-status notice'));
       status.hidden = true;
       copyBtn.addEventListener('click', function () { copyPrompt(copyBtn, block, hand.prompt); });
     } else if (hand) {
-      add(stepSec, el('p', 'prompt-refused', "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. Start the skill yourself from Open the file."));
+      add(stepSec, el('p', 'prompt-refused notice', "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. Start the skill yourself from Open the file."));
     }
 
     var openSec = part('Open beneath');

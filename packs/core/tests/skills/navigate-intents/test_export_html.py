@@ -374,6 +374,36 @@ def _safe_path(record_type: str, path: Any) -> bool:
     return all(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}", seg) for seg in path.split("/"))
 
 
+def _boundary_probes(record_type: str) -> list[tuple[str, bool]]:
+    """The four limit probes for a type, each with its literal outcome (True: a prompt shows).
+
+    A last segment of exactly 100 characters (101 refused), then a multi-segment path of exactly
+    200 characters (201 refused) whose every segment is at most 100, so length alone decides.
+    """
+    prefix = _PROMPT_PREFIX[record_type]
+    if record_type == "spec":  # the spec.md segment is fixed, so the long segment is the directory
+        def one(n: int) -> str:
+            return f"{prefix}{'a' * n}/spec.md"
+
+        def two(total: int) -> str:
+            rest = total - len(prefix) - len("/spec.md") - 1  # two directory names and a slash
+            return f"{prefix}{'a' * (rest // 2)}/{'a' * (rest - rest // 2)}/spec.md"
+    else:
+        def one(n: int) -> str:
+            return f"{prefix}{'a' * (n - 3)}.md"
+
+        def two(total: int) -> str:
+            rest = total - len(prefix) - len(".md") - 1  # a directory name, a slash and a file stem
+            return f"{prefix}{'a' * (rest // 2)}/{'a' * (rest - rest // 2)}.md"
+
+    probes = [(one(100), True), (one(101), False), (two(200), True), (two(201), False)]
+    assert [len(p) for p, _ in probes][2:] == [200, 201]
+    for path, _ in probes:
+        assert max(len(seg) for seg in path.split("/")) <= 101
+    assert [len(path.split("/")[-2 if record_type == "spec" else -1]) for path, _ in probes[:2]] == [100, 101]
+    return probes
+
+
 def _probe_paths() -> dict[str, list[str]]:
     """AC-0008's probe set, per record type."""
     by_type: dict[str, list[str]] = {}
@@ -381,10 +411,7 @@ def _probe_paths() -> dict[str, list[str]]:
         safe = f"{prefix}thing/spec.md"
         paths = [
             safe,
-            f"{prefix}{'a' * 100}.md",
-            f"{prefix}{'a' * 101}.md",
-            prefix + "a" * (200 - len(prefix) - 3) + ".md",
-            prefix + "a" * (201 - len(prefix) - 3) + ".md",
+            *[path for path, _ in _boundary_probes(record_type)],
             safe[:-3],
             f"{prefix}x//spec.md",
             f"{prefix}./spec.md",
@@ -441,6 +468,13 @@ def test_handover_prompt_matches_the_safe_path_rule(mixed_html: str, tmp_path: p
             assert got == {"refused": True}, label
             assert not (isinstance(got, dict) and "prompt" in got), label
     assert any(r not in (None, {"refused": True}) for r in results)
+    literal = {(t, p): ok for t in _PROMPT_PREFIX for p, ok in _boundary_probes(t)}
+    seen = 0
+    for (record_type, rule, path), got in zip(cases, results, strict=True):
+        if rule in _PROMPT_TEMPLATES and isinstance(path, str) and (record_type, path) in literal:
+            assert (got != {"refused": True}) is literal[(record_type, path)], (record_type, len(path))
+            seen += 1
+    assert seen == 4 * 3 * len(_PROMPT_TEMPLATES)
 
 
 def _uses_location_beyond_hash(code: str) -> bool:
