@@ -3,8 +3,11 @@
 Pure functions over spec and plan text. Nothing here writes, and nothing reads
 a file except through the reader the caller passes in.
 
-Task sections and `Depends on:` lines are read through the plan grammar in
-`_loop_guards.py`, the same grammar the loop engine schedules from.
+Task sections are found, and a `Depends on:` value is parsed, through the plan
+grammar in `_loop_guards.py`, which the loop engine also uses. The `Depends on:`
+line itself is found here, with the bullet-tolerant, case-insensitive field
+reader every task field uses; the engine reads only an unbulleted, exact-case
+line, so the two can differ on a bulleted plan.
 
 Task projection turns `### Tn: Title` sections into task-contract records. A
 task's identity is its title without the number, and its revision digests the

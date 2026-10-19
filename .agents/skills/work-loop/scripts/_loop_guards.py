@@ -61,7 +61,7 @@ import re
 import stat
 import sys
 from collections import namedtuple
-from collections.abc import Mapping
+from collections.abc import Container, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -1939,10 +1939,12 @@ def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> Guar
 
 
 # ── plan grammar ──────────────────────────────────────────────────────────
-# The loop engine schedules from these and the execution supervisor projects
-# tasks from them, so both read one plan the same way. They sit above the
-# completeness marker, so a truncated file still refuses to load, and stay out of
-# `__all__`, which pins the guard surface.
+# The loop engine and the execution supervisor's projector share the task-section
+# walk and the `Depends on:` value parse. Only the engine uses
+# `section_depends_field`; the projector finds that line with its own field reader.
+# These names sit above the completeness marker, so the loaders that check the
+# marker refuse a file truncated before them, and they stay out of `__all__`,
+# which pins the guard surface.
 
 # Accepts both '## T<n>' (level-2) and '### T<n>' (level-3) headings for
 # backward compatibility with existing plans that predate the Phase-1 spec.
@@ -1976,7 +1978,9 @@ def local_dep_ids(field: str) -> set[str]:
     return ids
 
 
-def parse_depends_on(field: str, local_task_ids):
+def parse_depends_on(
+    field: str, local_task_ids: Container[str]
+) -> tuple[set[str], list[tuple[str, str]]]:
     """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
     head = field.split("(")[0]
     cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
