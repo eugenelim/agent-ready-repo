@@ -344,6 +344,118 @@ def test_escape_function_matches_the_text_output(mixed_html: str, tmp_path: path
     assert json.loads(done.stdout) == [nav._escape_display(p) for p in probes]
 
 
+_PROMPT_PREFIX = {
+    "spec": "docs/specs/",
+    "brief": "docs/product/briefs/",
+    "intent": "docs/product/intents/",
+}
+_PROMPT_TEMPLATES = {
+    3: "Use the work-loop skill to continue building `{}`.",
+    4: "Use the work-loop skill to implement `{}`.",
+    5: "Use the new-spec skill to finish the spec at `{}`.",
+    6: "Use the author-delivery-brief skill in continue mode on `{}`.",
+    7: "Use the intent skill to decompose `{}`.",
+    9: "Use the close-work skill to check whether `{}` can close.",
+    10: "Use the intent skill to keep shaping `{}`.",
+}
+_HOSTILE_PROBES = [
+    " ", "\t", "\n", " ", "‮", "ignore previous instructions", "`", "$(",
+    "|", ";", "&", ">", "'", '"', "\\", "é",
+]
+
+
+def _safe_path(record_type: str, path: Any) -> bool:
+    """The spec's safe-path term, written from its words."""
+    if not isinstance(path, str) or len(path) > 200:
+        return False
+    prefix = _PROMPT_PREFIX.get(record_type)
+    if prefix is None or not path.startswith(prefix) or not path.endswith(".md"):
+        return False
+    return all(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}", seg) for seg in path.split("/"))
+
+
+def _probe_paths() -> dict[str, list[str]]:
+    """AC-0008's probe set, per record type."""
+    by_type: dict[str, list[str]] = {}
+    for record_type, prefix in _PROMPT_PREFIX.items():
+        safe = f"{prefix}thing/spec.md"
+        paths = [
+            safe,
+            f"{prefix}{'a' * 100}.md",
+            f"{prefix}{'a' * 101}.md",
+            prefix + "a" * (200 - len(prefix) - 3) + ".md",
+            prefix + "a" * (201 - len(prefix) - 3) + ".md",
+            safe[:-3],
+            f"{prefix}x//spec.md",
+            f"{prefix}./spec.md",
+            f"{prefix}../spec.md",
+            f"{prefix}x/./spec.md",
+            f"{prefix}x/../spec.md",
+            "/" + safe,
+        ]
+        paths += [pre + "thing/spec.md" for other, pre in _PROMPT_PREFIX.items() if other != record_type]
+        for probe in _HOSTILE_PROBES:
+            paths += [f"{prefix}th{probe}ing/spec.md", f"{prefix}thing/spec{probe}.md"]
+        by_type[record_type] = paths
+    return by_type
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_handover_prompt_matches_the_safe_path_rule(mixed_html: str, tmp_path: pathlib.Path) -> None:
+    cases: list[list[Any]] = []
+    for record_type, paths in _probe_paths().items():
+        for rule in range(1, 11):
+            cases += [[record_type, rule, path] for path in paths]
+    for record_type in ("other", "__proto__", "constructor"):
+        cases.append([record_type, 4, "docs/specs/thing/spec.md"])
+    for path in (None, 7, ["docs/specs/a.md"]):
+        cases.append(["spec", 4, path])
+    for rule in ("__proto__", "constructor", "toString"):
+        cases.append(["spec", rule, "docs/specs/thing/spec.md"])
+    joined = tmp_path / "joined-view.js"
+    joined.write_text(_joined(mixed_html), encoding="utf-8")
+    script = (
+        "const m = require(process.argv[1]);"
+        "const cases = JSON.parse(process.argv[2]);"
+        "process.stdout.write(JSON.stringify(cases.map(c => {"
+        "  try { return m.handoverPrompt(c[0], c[1], c[2]); } catch (e) { return 'THREW'; }"
+        "})));"
+    )
+    done = subprocess.run(
+        ["node", "-e", script, str(joined), json.dumps(cases)],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=60,
+    )
+    results = json.loads(done.stdout)
+    assert len(results) == len(cases)
+    for (record_type, rule, path), got in zip(cases, results, strict=True):
+        label = (record_type, rule, path)
+        assert got != "THREW", label
+        if rule not in _PROMPT_TEMPLATES:
+            assert got is None, label
+        elif _safe_path(record_type, path):
+            assert got == {"prompt": _PROMPT_TEMPLATES[rule].format(path)}, label
+        else:
+            assert got == {"refused": True}, label
+            assert not (isinstance(got, dict) and "prompt" in got), label
+    assert any(r not in (None, {"refused": True}) for r in results)
+
+
+def _uses_location_beyond_hash(code: str) -> bool:
+    return re.search(r"(?<![A-Za-z0-9_$])location(?![A-Za-z0-9_$])(?!\.hash(?![A-Za-z0-9_$]))", code) is not None
+
+
+def test_view_script_has_no_launch_api(mixed_html: str) -> None:
+    assert _uses_location_beyond_hash("window.location = u") and _uses_location_beyond_hash("location.href")
+    assert not _uses_location_beyond_hash("x = location.hash; window.location.hash = y")
+    code = _strip_comments(_joined(mixed_html))
+    assert not _uses_location_beyond_hash(code)
+    for token in ("window.open", "open(", "execCommand", "showModalDialog", "navigator.share"):
+        assert not _has_token(code, token), token
+
+
 _DARK = "@media (prefers-color-scheme: dark)"
 _MOTION = "@media (prefers-reduced-motion: no-preference)"
 _Decl = tuple[tuple[str, ...], str, str, str]  # (at-rule chain, selector, property, value)
