@@ -1,12 +1,12 @@
 # Verification ledger: intent-view-handover-prompt
 
-Every result below ran against code commit `ee06ef520afe4f2262604260af3219800522435e` (the last commit that changes `packs/core`, `.claude/`, `.agents/` or the guide; the later ledger commit changes only this file and the screenshots). Run on 2026-10-19.
+Every result below ran against code commit `ee06ef520afe4f2262604260af3219800522435e` or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it. Later commits change documentation only: `c6abc01b3` changes this ledger and `notes/screens/`; `2d5b0b864` changes this ledger and one sentence of `guides/core/how-to/navigate-intents.md`; the commit adding this sentence changes only this ledger. `git diff --stat ee06ef520 HEAD -- packs/core .claude .agents` prints nothing at each of them. Run on 2026-10-19.
 
 ## Scripted browser suite (all of `view_browser_checks.py`)
 
 Command: `uv run --no-project -q --with pytest --with playwright --with pyyaml python -m pytest packs/core/tests/skills/navigate-intents/view_browser_checks.py -q -rs`
 
-Result: 322 passed, 0 skipped, 158.73 s (0:02:38). Open intermittent failures, recorded rather than explained: two earlier full runs of the same tree each failed. One failure was a `#key summary` click timeout in the shared `_busy` helper, which the shipped access-matrix tests also use. The other was this feature's own wait for the `.copy-status` line in the refused-copy case of `test_handover_ac_0016_session_start_access_criteria_hold_with_a_prompt_picked`, where the line stayed hidden. The cause is not established; a re-render of the detail zone landing after the click, or machine load, are the open candidates. Since then: three runs of the 71 prompt, copy and handover tests (`-k "handover or prompt or copy"`) passed 71 of 71 each (47, 46 and 46 s), and a further full run passed 322 of 322 with none skipped in 154 s.
+Result: 322 passed, 0 skipped, 158.73 s (0:02:38). Open intermittent failures, recorded rather than explained: two earlier full runs of the same tree each failed. One failure was a `#key summary` click timeout in the shared `_busy` helper, which the shipped access-matrix tests also use. The other was this feature's own wait for the `.copy-status` line in the refused-copy case of `test_handover_ac_0016_session_start_access_criteria_hold_with_a_prompt_picked`, where the line stayed hidden. The cause is not established; a re-render of the detail zone landing after the click, or machine load, are the open candidates. Since then, at `c6abc01b3` (code-identical to `ee06ef520`): three runs of the 71 prompt, copy and handover tests (`-k "handover or prompt or copy"`) passed 71 of 71 each (47, 46 and 46 s), and a further full run passed 322 of 322 with none skipped in 154 s.
 
 Collected suites (`packs/core/tests/skills/navigate-intents/` and `packs/core/tests/pack/`): 939 passed, 4 skipped, 27.14 s. The browser file is not collected by that glob.
 
