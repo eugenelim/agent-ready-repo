@@ -1,14 +1,14 @@
 # Verification ledger: intent-view-handover-prompt
 
-Every result below ran against code commit `4139ef24161c6ff24e73bdea0741a0e65bbcfca7` (the last code-affecting commit; it adds docs, the version bump and the self-hosted copies on top of the T1 to T3 code commits `b09b8f206`, `f13466155`, `d8d3d0b7f`). Run on 2026-10-19.
+Every result below ran against code commit `ee06ef520afe4f2262604260af3219800522435e` (the last commit that changes `packs/core`, `.claude/`, `.agents/` or the guide; the later ledger commit changes only this file and the screenshots). Run on 2026-10-19.
 
 ## Scripted browser suite (all of `view_browser_checks.py`)
 
 Command: `uv run --no-project -q --with pytest --with playwright --with pyyaml python -m pytest packs/core/tests/skills/navigate-intents/view_browser_checks.py -q -rs`
 
-Result: 320 passed, 0 skipped, 150.91 s (0:02:30).
+Result: 322 passed, 0 skipped, 158.73 s (0:02:38). Earlier full runs of the same tree showed one or two timeouts in unrelated tests (`#key summary` click, a `.copy-status` wait) that did not recur in the next full run or in three targeted re-runs of the refused-copy contrast checks.
 
-Collected suites (`packs/core/tests/skills/navigate-intents/` and `packs/core/tests/pack/`): 939 passed, 4 skipped, 29.75 s. The browser file is not collected by that glob.
+Collected suites (`packs/core/tests/skills/navigate-intents/` and `packs/core/tests/pack/`): 939 passed, 4 skipped, 27.14 s. The browser file is not collected by that glob.
 
 ## AC-0019: scale bench
 
@@ -16,18 +16,18 @@ Command: `uv run --no-project -q --with playwright python packs/core/tests/skill
 
 | copies | outstanding available | default rows | file bytes | startup ms | search ms | heap MiB | meets all |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | yes | 31 | 730,692 | 11 | 13 | 5 | yes |
-| 10 | no (resource_limit, limit files) | 0 | 5,101,174 | 35 | 41 | 12 | yes |
-| 25 | no (resource_limit, limit files) | 0 | 12,552,249 | 72 | 46 | 27 | yes |
-| 50 | no (resource_limit, limit files) | 0 | 24,970,703 | 114 | 48 | 56 | yes |
+| 1 | yes | 31 | 730,539 | 10 | 12 | 5 | yes |
+| 10 | no (resource_limit, limit files) | 0 | 5,101,578 | 32 | 36 | 10 | yes |
+| 25 | no (resource_limit, limit files) | 0 | 12,552,683 | 66 | 44 | 23 | yes |
+| 50 | no (resource_limit, limit files) | 0 | 24,971,187 | 100 | 44 | 55 | yes |
 
 Pass: `meets_all` is true at every count, under the bench's own thresholds.
 
 ## AC-0020: real export of this repository
 
-Command: `python3 packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py export --root <repo> --destination <tmp dir outside the repo> --name repo.html`, then a throwaway Playwright script kept outside the repository. It opens the file in headless Chromium with clipboard read and write granted, picks one record per prompt rule by browse route, clicks "Copy prompt", waits for the button to read "Copied", reads the clipboard, and asserts it equals the spec's template with that record's payload path.
+Command: `python3 packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py export --root <repo> --destination <tmp dir outside the repo> --name repo.html`, then the script below (kept outside the repository; run `uv run --no-project -q --with playwright python real_export_copy_check.py <repo root> <empty dir outside the repo>`). It opens the file in headless Chromium with clipboard read and write granted, picks one record per prompt rule by browse route, clicks "Copy prompt", waits for the button to read "Copied", reads the clipboard, and asserts it equals the spec's template with that record's payload path.
 
-Export: `status: ok`, 711,023 bytes.
+Export: `status: ok`, 710,890 bytes.
 
 | Rule | Record | Copied prompt (equals template + payload path) |
 | --- | --- | --- |
@@ -39,11 +39,68 @@ Export: `status: ok`, 711,023 bytes.
 | 9 | `intent:intent-delivery-traceability` | Use the close-work skill to check whether `docs/product/intents/FEAT-0003-intent-delivery-traceability.md` can close. |
 | 10 | `capability:workspace-coordination-reorganization` | Use the intent skill to keep shaping `docs/product/intents/CAP-0003-workspace-coordination-reorganization.md`. |
 
+Script source:
+
+```python
+"""Usage: python real_export_copy_check.py <repo root> <dest dir outside the repo>
+
+Exports the repository, then for one record per prompt rule picks it by browse route,
+clicks "Copy prompt", reads the clipboard and asserts it equals the spec's template.
+"""
+import json, pathlib, re, subprocess, sys
+from playwright.sync_api import sync_playwright
+
+root, dest = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
+script = root / "packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py"
+done = subprocess.run(
+    [sys.executable, str(script), "export", "--root", str(root), "--destination", str(dest), "--name", "repo.html"],
+    capture_output=True, text=True, check=True,
+)
+print(done.stdout.strip()[:200])
+html = (dest / "repo.html")
+payload = json.loads(re.search(r'<script type="application/json"[^>]*>(.*?)</script>', html.read_text(), re.S).group(1))
+TEMPLATES = {
+    3: "Use the work-loop skill to continue building `{}`.",
+    4: "Use the work-loop skill to implement `{}`.",
+    5: "Use the new-spec skill to finish the spec at `{}`.",
+    6: "Use the author-delivery-brief skill in continue mode on `{}`.",
+    7: "Use the intent skill to decompose `{}`.",
+    9: "Use the close-work skill to check whether `{}` can close.",
+    10: "Use the intent skill to keep shaping `{}`.",
+}
+with sync_playwright() as pw:
+    browser = pw.chromium.launch()
+    ctx = browser.new_context(permissions=["clipboard-read", "clipboard-write"], viewport={"width": 1280, "height": 900})
+    page = ctx.new_page()
+    page.goto(html.as_uri())
+    seen: dict[int, tuple[str, str]] = {}
+    for node in payload["nodes"]:
+        page.evaluate("f => { location.hash = f; }", "q=browse&node=" + node["id"])
+        page.wait_for_function("() => document.querySelector('#detail-body .state-line') !== null")
+        if page.locator("#detail-body code.prompt").count() != 1:
+            continue
+        shown = page.locator("#detail-body code.prompt").text_content()
+        for rule, template in TEMPLATES.items():
+            if rule not in seen and shown == template.format(node["path"]):
+                page.locator("#detail-body .prompt-block > button").click()
+                page.wait_for_function("() => document.querySelector('#detail-body .prompt-block > button').textContent === 'Copied'")
+                got = page.evaluate("navigator.clipboard.readText()")
+                assert got == shown == template.format(node["path"]), (node["id"], got)
+                seen[rule] = (node["id"], got)
+        if len(seen) == len(TEMPLATES):
+            break
+    browser.close()
+for rule in sorted(seen):
+    print(rule, *seen[rule])
+assert set(seen) == set(TEMPLATES), sorted(set(TEMPLATES) - set(seen))
+print("all", len(seen), "rules passed")
+```
+
 Rules the corpus did not hold: none; all seven prompt rules were present and all seven assertions passed.
 
 ## AC-0021 input: screenshots
 
-Sixteen PNGs in `screens/`, named `<state>-<width>-<theme>.png`. Each is a true Playwright viewport (width 320 at height 900, or width 2560 at height 1400; not a cropped window) with the detail zone's "Next step" scrolled into view. A throwaway script outside the repository produced them over exports of the `mixed` fixture, the long-path corpus, and a data-block rewrite of `mixed`.
+Sixteen PNGs in `screens/`, named `<state>-<width>-<theme>.png`. Each is a true Playwright viewport (width 320 at height 900, or width 2560 at height 1400; not a cropped window) with the detail zone's "Next step" scrolled into view. The script below (run `uv run --no-project -q --with playwright --with pytest --with pyyaml python screenshots.py <repo root> <out dir>`) produced them over exports of the `mixed` fixture, the long-path corpus, and a data-block rewrite of `mixed`.
 
 - `prompt-shown`: `mixed`, `spec:bravo-spec` picked.
 - `path-refused`: the long-path corpus (mixed plus an Implementing spec in `long-` followed by 115 `a`), that spec picked.
@@ -52,22 +109,72 @@ Sixteen PNGs in `screens/`, named `<state>-<width>-<theme>.png`. Each is a true 
 
 | SHA-256 | File |
 | --- | --- |
-| `404c9821a8fb51bd0e3611d8cc85419314244cb9d37c1ada52ee7a4f9e4504b5` | `screens/copy-refused-2560-dark.png` |
-| `340d665e1de40f4fd8e9d56d2af2b006021e4f6610479805cb1d640fdc3c4a8d` | `screens/copy-refused-2560-light.png` |
-| `b4d277b503469994f1011d4192f871acfe486441fe59a9105d3beff46fdaf1fd` | `screens/copy-refused-320-dark.png` |
-| `0e1854a02f4ff9e1d643d2615e41b1225d007f390dc2bd0aa8440b3f4308aa01` | `screens/copy-refused-320-light.png` |
-| `0bd9aade06eec2c07bc3d87794835acbfd6c2f7839567a211e37a61763c33a37` | `screens/hostile-path-2560-dark.png` |
-| `6be1d24ac438e27bb06c63403dca4f6e0bcc1205b393852c2dde9da8deb3b26b` | `screens/hostile-path-2560-light.png` |
-| `6e5a311768937daf59fc25cbd0f21e809da69c2cb22cf0d01177a60acf5059f9` | `screens/hostile-path-320-dark.png` |
-| `111819f2ca4f0a5587b8be032226937bf865b81210b84c01de6d5534c86127ee` | `screens/hostile-path-320-light.png` |
-| `c87783e112311f53343d51cf14c636c0867f5aa0426a73a99f0b480a6ff4ef98` | `screens/path-refused-2560-dark.png` |
-| `1865b39d6a263f0400d1311983d2465eda487f65b697713e8ea13a39cf243ac9` | `screens/path-refused-2560-light.png` |
-| `a8ddbb9ebe407ed36b5b58e950b97be5aefe5983f8abc03b806dc84e728ac92f` | `screens/path-refused-320-dark.png` |
-| `e0b4d63d8c5ad6738e48089638318f0d6fa4a011743b415dd98c025b202775a9` | `screens/path-refused-320-light.png` |
-| `b610138f6f8bb0c9455fc4cf576b8bdb4763cbb62c2ad9f5026255e9b5cf4117` | `screens/prompt-shown-2560-dark.png` |
-| `6ea2c223293aabcaf8ac85e24dd2a9e115b39a7bd721f11f5a243bc831d9d685` | `screens/prompt-shown-2560-light.png` |
-| `c3cb60646e8a2fdad0e8089441df955306ae8b4cda5b91e2133a6ddf267522e5` | `screens/prompt-shown-320-dark.png` |
-| `6bc553aa632a82ea903fba829f8c5e76c58893ac15ac68144542999d688c8db2` | `screens/prompt-shown-320-light.png` |
+| `014a8ae7d917276829584462f6462f17567d31b828e0dc0eff433921f1acc829` | `screens/copy-refused-2560-dark.png` |
+| `8a1f38a48e32b9857089fd113b6cf0f78b881af6d61c6ad4316ffd33e24ec1ec` | `screens/copy-refused-2560-light.png` |
+| `bed0f944e82e768f56b61ec106bc22632f37e1e8d01f781a9dc61da4a514ad56` | `screens/copy-refused-320-dark.png` |
+| `4177b7c4f41fb0777a4d7ab172b337a4a1f771a3d975b17b781c6638ce6d3ab4` | `screens/copy-refused-320-light.png` |
+| `5136e5b8f8b1517f50db99a2d1efb332db800d79d31b0b4fa5b935d5d1f52f61` | `screens/hostile-path-2560-dark.png` |
+| `9ad1367467bc0d2f24cd537236d2c6166997461fc59329af6abb30807240e267` | `screens/hostile-path-2560-light.png` |
+| `e2fee25a015ebd952d0592626b2a5c5f1a06e75ada9a2bdfaf5ad41d961a6fe3` | `screens/hostile-path-320-dark.png` |
+| `ecddaf94b05af5748cb7ef6a518399612efa9e6044442251ef2d4f9ba0c8cbcf` | `screens/hostile-path-320-light.png` |
+| `ff9e7e092ac25637531be3180e2ed9580dc5bd156bc163fb5163d792b4d4c78a` | `screens/path-refused-2560-dark.png` |
+| `b9a99bfa2275249f58f615489b915ee3f06104bb32bf63264602958656330a2a` | `screens/path-refused-2560-light.png` |
+| `626c45842f8186da6a9307566e7073a4dc92483b7fc0eaff7fab8996be45c71d` | `screens/path-refused-320-dark.png` |
+| `9cc800a6164ee230f1ad832eba76087ece9ccc5b4bee6bc336d564fed1cf43cf` | `screens/path-refused-320-light.png` |
+| `c10daa6928e00d2d73f3496a48b8d4faa1e5ed86f43458539d4a6cf62866c0a8` | `screens/prompt-shown-2560-dark.png` |
+| `f86b8bcf708fd3d51b9c3147447ca821df953a37cda2906903d6a08233abf5fd` | `screens/prompt-shown-2560-light.png` |
+| `8e5db32723d6f32857effbe0aee3c8e9b0faaf9817758a1aadb7c940987c104e` | `screens/prompt-shown-320-dark.png` |
+| `638a3b469c9301db9c208ddfdb76acdb78f518fe9774620270e44f0e16d72fc9` | `screens/prompt-shown-320-light.png` |
+
+Screenshot script source:
+
+```python
+"""Usage: python screenshots.py <repo root> <out dir>
+
+Takes the sixteen AC-0021 screenshots, reusing the browser suite's own corpus helpers.
+"""
+import hashlib, importlib.util, pathlib, sys, tempfile
+from playwright.sync_api import sync_playwright
+
+root, out = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
+tests = root / "packs/core/tests/skills/navigate-intents"
+sys.path.insert(0, str(tests))
+spec = importlib.util.spec_from_file_location("vbc_screens", tests / "view_browser_checks.py")
+vbc = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(vbc)
+out.mkdir(parents=True, exist_ok=True)
+tmp = pathlib.Path(tempfile.mkdtemp())
+mixed = vbc._export(vbc._FIXTURES / "mixed", tmp / "o", "mixed.html")
+long_root = vbc._long_path_corpus(tmp)
+long_export = vbc._export(long_root, tmp / "o", "long.html")
+long_node = next(n["id"] for n in vbc.payload_of(long_export)["nodes"] if "long-" + "a" * 115 in (n.get("path") or ""))
+hostile = vbc._with_paths(mixed, tmp / "hostile.html", {"spec:bravo-spec": "docs/specs/brav`o-spec/spec.md"})
+STATES = {
+    "prompt-shown": (mixed, "spec:bravo-spec", False),
+    "path-refused": (long_export, long_node, False),
+    "hostile-path": (hostile, "spec:bravo-spec", False),
+    "copy-refused": (mixed, "spec:bravo-spec", True),
+}
+SIZES = {320: 900, 2560: 1400}
+with sync_playwright() as pw:
+    browser = pw.chromium.launch()
+    for state, (export, node, click) in STATES.items():
+        for width, height in SIZES.items():
+            for theme in ("light", "dark"):
+                ctx = browser.new_context(viewport={"width": width, "height": height}, color_scheme=theme)
+                page = ctx.new_page()
+                page.goto(export.as_uri() + "#q=browse&node=" + node.replace(":", "%3A"))
+                page.wait_for_function("() => document.querySelector('#detail-body .state-line') !== null")
+                if click:
+                    page.locator("#detail-body .prompt-block > button").click()
+                    page.wait_for_selector("#detail-body .copy-status", state="visible")
+                page.locator("#detail-body .next-step").scroll_into_view_if_needed()
+                page.screenshot(path=str(out / f"{state}-{width}-{theme}.png"))
+                ctx.close()
+    browser.close()
+for png in sorted(out.glob("*.png")):
+    print(hashlib.sha256(png.read_bytes()).hexdigest(), png.name)
+```
 
 ## Review dispositions
 
