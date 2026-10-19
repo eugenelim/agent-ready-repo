@@ -37,20 +37,25 @@ Every acceptance criterion maps to at least one plan test ID (VI-4010 to VI-4062
 
 ## Final gates
 
-Code head `8dfc62782` (rebased on `main` at `cf919e2b3`, Core 3.1.9). Commits after it change only `docs/specs/`.
+Code head `4d7142d8c` (rebased on `main` at `071067bab`, Core 3.1.9). Commits after it change only `docs/specs/`.
 
-- **Local, Python 3.11:** `make lint-ruff lint-mypy` clean; `tools/lint-pack-test-boundary.py` passes; `tools/changelog.py validate` passes. The full work-loop suite plus `tests/roster/test_execution_supervisor_records.py`, with `WORK_SUPERVISOR_INTEGRATION=1`: 3341 passed, 20 skipped, 1024 s.
-- **PR checks on `8dfc62782`:** all 38 pass, one skipped by its path filter.
-  - `Gate A-supervisor` (run 39258450742): 265 passed, 253 s.
-  - `Gate A-packs` (Ubuntu) job: 7 min 39 s against its 10-minute limit.
-  - Windows (run 39258450641): the Job Object suite gave 13 passed, 28 s. The evidence-only POSIX suite gave 3 failed, 86 passed, 21 skipped, 4.5 s; the attempt-security ledger explains the three failures.
-- **Dispatch-only suites on `8dfc62782`:** `test-roster.yml` (run 39261754362) succeeded, 2147 passed, 7 skipped. `test-corpus.yml` (run 39261766561) succeeded on every shard.
+- **Local, Python 3.11:** `make lint-ruff lint-mypy` clean. `tools/lint-pack-test-boundary.py` passes. `tools/changelog.py validate` passes.
+  - Full work-loop suite plus `tests/roster/test_execution_supervisor_records.py`, with `WORK_SUPERVISOR_INTEGRATION=1`: 3341 passed, 20 skipped, 1071 s.
+  - `tests/roster`: 2147 passed, 7 skipped.
+  - The three parser-pinning tests under the AC-0029 waiver passed: `test_detect_unknown_deps_has_exactly_one_call_site`, the rewritten `test_boundary_walk_has_exactly_one_owner`, and both cases of `test_a_lock_holding_verb_refuses_an_unloadable_parser_without_writing`.
+- **PR checks on `4d7142d8c`:** all pass, one skipped by its path filter.
+  - `Gate A-supervisor` (run 39279070392): 265 passed, 249 s.
+  - `Gate A-packs` (Ubuntu) job: 7 min 26 s against its 10-minute limit.
+  - `Gate B`'s first attempt ran every step to success, then the runner marked the job cancelled. It was rerun.
+  - Windows (run 39279070391): the Job Object suite gave 13 passed, 27 s. The evidence-only POSIX suite gave 3 failed, 86 passed, 21 skipped, 3.3 s; the attempt-security ledger explains the three failures.
+- **Dispatch-only suites on `4d7142d8c`:** `test-roster.yml` (run 39282368544) succeeded, 2147 passed, 7 skipped. `test-corpus.yml` (run 39282379253) succeeded on every shard.
 - **Mutation checks for review repairs.** Each test below failed with its repair removed and passed with it in place:
   - the shared red-proof budget, against a per-stub budget;
   - the `gates-failed` route;
   - the `terminal_tree` finish key, against matching by HEAD after a pruned rebase;
   - the AC-0031 refusal of an effect result over a changed spec directory;
   - the advisory event-log guard, for an over-bound log and for an unwritable log.
+  - the single plan-grammar owner, against a second heading walk added to `loop-cohort.py` or to `_supervisor_projector.py`.
 
 ## Review
 

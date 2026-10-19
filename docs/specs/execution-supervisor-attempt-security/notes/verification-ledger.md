@@ -10,7 +10,7 @@ GitHub Actions `windows-latest`, Python 3.11.9, job `AgentBundle compatibility (
 
 ### What the Job Object suite verified
 
-`packs/core/tests/skills/work-loop/test_process_safety_windows.py` gates the Windows job. It passed (13 passed, 28 s) on code head `8dfc62782` (run 39258450641), after the fixes below. Each test pins one behaviour:
+`packs/core/tests/skills/work-loop/test_process_safety_windows.py` gates the Windows job. It passed (13 passed, 27 s) on code head `4d7142d8c` (run 39279070391), after the fixes below. Each test pins one behaviour:
 
 - **Kill-on-close, no breakaway (AC-0021).** The child reads its own job's limits: `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` is set, and neither `BREAKAWAY_OK` nor `SILENT_BREAKAWAY_OK` is.
 - **Suspended start, assign, then resume.** A forced assignment failure ends the suspended process and refuses with `denied-job-object`, so no code runs outside the job.
@@ -27,7 +27,7 @@ GitHub Actions `windows-latest`, Python 3.11.9, job `AgentBundle compatibility (
 
 ### The POSIX suite on Windows (evidence only)
 
-`test_process_safety.py` runs on Windows as a non-gating step, bounded to 5 minutes. On code head `8dfc62782` it gave 3 failed, 86 passed, 21 skipped in 4.5 s.
+`test_process_safety.py` runs on Windows as a non-gating step, bounded to 5 minutes. On code head `4d7142d8c` it gave 3 failed, 86 passed, 21 skipped in 3.3 s.
 
 - **Skips (21):** tests that need `os.killpg`, `mkfifo`, `/proc/self/fd`, `/bin/sh`, `waitid`, or POSIX-only environment bytes.
 - **Failures (3), all POSIX expectations, not Windows defects:**
@@ -36,6 +36,6 @@ GitHub Actions `windows-latest`, Python 3.11.9, job `AgentBundle compatibility (
 
 ### Why the Windows job used to hang
 
-Before the fixes, the evidence step never finished: the job ran to its limit, was cancelled, and its log was lost. Step limits did not end it either. Splitting the suite across one job per test isolated `TestRedactionAtTheCapAndAtScale::test_redaction_cost_stays_linear`. That test launches no process. Its parameters hold 1–2 MiB byte strings, and pytest built each test ID from them, giving IDs of 1–2 million characters. pytest copies the current test ID into the `PYTEST_CURRENT_TEST` environment variable, and Windows caps a variable at 32,767 characters. Naming each case by its label fixed it; the evidence step now takes 4.4 s. That edit touches a suite AC-0025 says passes unchanged; its inputs and assertions are identical, and the owner accepted it against AC-0025 on 2026-10-14.
+Before the fixes, the evidence step never finished: the job ran to its limit, was cancelled, and its log was lost. Step limits did not end it either. Splitting the suite across one job per test isolated `TestRedactionAtTheCapAndAtScale::test_redaction_cost_stays_linear`. That test launches no process. Its parameters hold 1–2 MiB byte strings, and pytest built each test ID from them, giving IDs of 1–2 million characters. pytest copies the current test ID into the `PYTEST_CURRENT_TEST` environment variable, and Windows caps a variable at 32,767 characters. Naming each case by its label fixed it; the evidence step now takes about 4 s. That edit touches a suite AC-0025 says passes unchanged; its inputs and assertions are identical, and the owner accepted it against AC-0025 on 2026-10-14.
 
 What happened between the oversized ID and the lost runner was not observed, because no log survived. The likeliest account is that the error output carried the multi-megabyte IDs and the Actions runner stalled processing them. That part is inference.
