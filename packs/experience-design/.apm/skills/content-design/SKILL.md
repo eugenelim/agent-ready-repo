@@ -47,7 +47,7 @@ Pick exactly one, from the request alone. This rubric is decidable without loadi
 0. **First, is this any of these modes' work at all?** If the ask belongs to one
    of these, stop here and name it — do not continue to step 1:
    - Writing a product UI string or state microcopy (an error, an empty state,
-     a button or form label) → `ux-writing`, in the `product-engineering` pack.
+     a button or form label) → `ux-writing`, in this pack.
    - Visual mood, aesthetic direction, colour or type feel → `creative-direction`.
    - What goes where on a screen, in what order → `information-architecture`.
    - Organization-level content governance → `define-content-strategy`.
@@ -182,7 +182,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 7. **Hold the plain-language floor.** Verify the direction against three checks before closing: no jargon the reader did not bring to this surface, no idioms that do not translate across the likely reader population, and no assumptions about who the reader is (identity, background, level of familiarity). If a named goal pulls against the floor, record it as an open question — the floor is not a trade-off. Load `references/plain-language-floor.md`. If the content brief declared `communication_mode: product-copy`, run the anti-AI-smell scan from `references/editorial-quality-gates.md` against the completed direction.
 
-8. **Hand off.** Name `ux-writing` (in the `product-engineering` pack) as the downstream skill for per-screen UI copy states. The message and narrative structure mode's content brief is upstream structural context — if one was provided, confirm the copy goals are consistent with its section jobs and narrative arc. If a brand register exists, confirm the per-surface goals are consistent with it; surface any tension as an open question rather than silently overriding the brand register.
+8. **Hand off.** Name `ux-writing` as the downstream skill for per-screen UI copy states. The message and narrative structure mode's content brief is upstream structural context — if one was provided, confirm the copy goals are consistent with its section jobs and narrative arc. If a brand register exists, confirm the per-surface goals are consistent with it; surface any tension as an open question rather than silently overriding the brand register.
 
 ## Mode: brand-level register
 
@@ -219,7 +219,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 7. **Hold the plain-language floor.** Verify the direction against three checks before closing: no jargon the reader did not bring to this register, no idioms that do not translate across the likely reader population, and no assumptions about who the reader is (identity, background, level of familiarity). If a named goal pulls against the floor, record it as an open question — the floor is not a trade-off. Load `references/plain-language-floor.md` for the governing standards and the three specific checks.
 
-8. **Hand off.** Name `ux-writing` (in the `product-engineering` pack) as the downstream skill for product UI copy states. Name the per-surface acquisition copy goals mode as the next step for per-surface positioning — the register this mode produces is the upstream referent those goals check against. Note: experience-reviewer scope extension to include brand-register documents as a reviewable artifact type is deferred to a follow-on spec.
+8. **Hand off.** Name `ux-writing` as the downstream skill for product UI copy states. Name the per-surface acquisition copy goals mode as the next step for per-surface positioning — the register this mode produces is the upstream referent those goals check against. Note: experience-reviewer scope extension to include brand-register documents as a reviewable artifact type is deferred to a follow-on spec.
 
 ## Anti-patterns to refuse, in every copy mode
 

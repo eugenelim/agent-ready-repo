@@ -21,7 +21,7 @@ this skill is standalone-useful without an upstream artifact) and the backing
 services (from `service-blueprint`, or named textually when it is absent).
 **Consumed by:** `creative-direction` / `design-system` /
 `information-architecture` / `interaction-design` (each enriches a
-per-screen brief), `product-engineering`'s `ux-writing` (writes copy per
+per-screen brief), `ux-writing` (writes copy per
 screen × state, keyed to the state matrix), the `experience-reviewer` agent
 (reviews the flow + briefs), and — through the optional handover — a generative
 design tool (realization).

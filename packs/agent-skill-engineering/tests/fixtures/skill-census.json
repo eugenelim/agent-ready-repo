@@ -750,6 +750,14 @@
       "exception": null
     },
     {
+      "pack": "experience-design",
+      "skill": "ux-writing",
+      "families": [
+        "artifact-template-producer"
+      ],
+      "exception": null
+    },
+    {
       "pack": "figma",
       "skill": "figma",
       "families": [
@@ -1028,14 +1036,6 @@
     {
       "pack": "product-engineering",
       "skill": "plan-validation",
-      "families": [
-        "artifact-template-producer"
-      ],
-      "exception": null
-    },
-    {
-      "pack": "product-engineering",
-      "skill": "ux-writing",
       "families": [
         "artifact-template-producer"
       ],

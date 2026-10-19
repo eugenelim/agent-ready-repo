@@ -1,14 +1,13 @@
 # Spec: ux-writing-to-experience-design
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0107
+- **Constrained by:** RFC-0107 (D6 and § Errata)
 - **Brief:** brief:verb-mode-skills-and-slice-handover
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
-- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / `references/spec-and-plan-contract.md` § Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
-- **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
-<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
+- **Discovery:** none
+- **Contract:** none
+- **Shape:** mixed
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -22,303 +21,180 @@
 > gates the text it cites. Marking the tiers is the spec's job; honouring them
 > when a finding is adjudicated is the reviewing surface's.
 
-<!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Outcome, What Changes, Agent
-Rules, Testing Strategy, and Acceptance Criteria to the depth the durable work
-requires, and Assumptions only where something is unresolved. The sibling plan carries the implementation and verification strategy.
-Eligible direct-light work does not create this artifact. -->
 
-<!-- **Present tense, as-built.** Write every body section below as if the
-feature already exists and always worked this way — no "will be", no
-"previously X, now Y", no deprecation timelines, no version-stamped history.
-The body describes the current contract; decision history lives in ADRs and the
-release changelog. `plan.md` holds to the same rule: its `## Changelog` records
-approvals, not how the approach evolved. -->
 
 ## Outcome
 
-<!--
-Two sentences, no more. The first names who this is for and what they get; the
-second says what success looks like for them. Frame from their perspective,
-not the implementer's, and leave implementation detail to `plan.md`. The cap is
-the point: an outcome that needs a third sentence is usually carrying a delta,
-which belongs in the section below, or a mechanism, which belongs in the plan.
--->
+A team using the design seat gets `ux-writing` from the `experience-design` pack,
+beside the `user-flow` state matrix and the `content-design` brand register it
+reads, under the same skill name and the same description. After the upgrade step the release notes give, an adopter of
+product-engineering ends with no `ux-writing` claimed by that pack, and one who
+also has experience-design ends with exactly one `ux-writing`, owned by it.
 
 ## What Changes
 
-<!--
-The delta, as bullets, for a human landing on this spec cold. It sits here —
-above every contract section — because a reader's first question is what moves,
-and a paragraph of Outcome does not answer it scannably.
-
-One bullet per change, each naming the thing that moves and where it lives. No
-rationale, no mechanism, no restating the Outcome in list form: a reader who
-stops after this section should know the shape of the change and nothing they
-would have to unlearn.
-
-- <what moves> — <where it lives>
--->
+- `ux-writing`, with its references, asset, and evals — from
+  `packs/product-engineering/.apm/skills/` to `packs/experience-design/.apm/skills/`.
+- The skill body's pack wording — it describes `user-flow`, `quality-floor`, and
+  `content-design` as same-pack skills. Its description, procedure, voice-chart path
+  (`docs/product/voice/<slug>.md`), and `[design]` layout lookup stay as they are.
+- `[pack.evals].skills` — `ux-writing` leaves product-engineering's list and joins
+  experience-design's.
+- Versions — product-engineering 2.0.0 and experience-design 4.2.0, in `pack.toml`
+  and `.claude-plugin/plugin.json`.
+- Pack pages — product-engineering's README, JOURNEY, DESIGN, and site page drop
+  the skill. Experience-design's README, JOURNEY (a stage after "Design each
+  screen"), DESIGN (its "why it lives here" rationale), and site page add it.
+- Callers that name its old home or call it cross-pack — experience-design's `content-design`,
+  `user-flow`, and `design-review` skill files. Also product-engineering's two
+  `agentbundle-layout.md` references and its `align-value-stream` eval,
+  product-strategy's DESIGN, and the guides of both packs.
+- The how-to `write-product-microcopy.md` — from `guides/product-engineering/how-to/`
+  to `guides/experience-design/how-to/`.
+- The skill census fixture — its `ux-writing` row names `experience-design`.
+- Release notes — a product-engineering 2.0.0 fragment and an experience-design
+  4.2.0 fragment under `docs/product/changelog.d/`.
 
 ## Durable Outputs
 
-<!--
-Plan the lasting records this delivery must create or update before the spec is
-approved. This is repository-specific, not a fixed checklist. Consider user
-promise, current product truth, current architecture, decision rationale,
-interface compatibility, operations, maintainer procedure, release history, and
-reusable learning. Include only applicable roles.
-
-For each row, name:
-
-- Semantic role
-- Applicability
-- Destination
-- Owner
-- Expected evidence
-- Closeout condition
-
-If no durable output is applicable, write `none` with an explicit rationale.
-If a destination is ambiguous or absent, record the still-required decision as
-the closeout blocker; do not guess or create a placeholder. Read each applicable
-existing human-readable surface as a whole and name any refresh work before
-approval. For user-facing behavior, draft the established user-documentation
-surface before implementation approval.
--->
-
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+| User promise | Guides tell adopters which pack gives them `ux-writing` | `guides/experience-design/`, `guides/product-engineering/README.md` | eugenelim | Moved and edited guides | AC-0009, AC-0012, AC-0018, AC-0019, AC-0020 pass |
+| Current product truth | Pack pages state each pack's skill roster | `packs/{product-engineering,experience-design}/{README,JOURNEY,DESIGN}.md`, `web/src/content/packs/` | eugenelim | Edited pages, regenerated journeys | AC-0010, AC-0017, AC-0018 pass |
+| Interface compatibility | Removing a skill from a published pack breaks adopters who name the pack | Pack versions | eugenelim | `pack.toml` and `plugin.json` versions | AC-0007 passes |
+| Release history | Adopters need the upgrade step | `docs/product/changelog.d/` | eugenelim | Two fragments | AC-0013, AC-0014 pass |
+| Operations | The upgrade step is only as good as its observation | `notes/verification-ledger.md` | eugenelim | Recorded install-then-upgrade runs | AC-0015 passes |
+| Decision rationale | Covered upstream | RFC-0107 D6 | — | none owed | none — the RFC already records the move |
 
 ## Agent Rules
 
-The three-tier guard that keeps an implementing agent inside the lines.
-*Always do* applies without asking; *Ask first* requires human sign-off
-before proceeding; *Never do* is a hard rule, even under time pressure.
-
 ### Always do
 
-<!-- Defaults the agent applies without asking. -->
-
--
--
--
+- Move the skill directory with `git mv`, so history follows each file.
+- Retarget references only on the operative surfaces: `packs/`, `guides/`,
+  `web/src/`, `tools/`, and `docs/architecture/`. Frozen records stay as written:
+  ADRs, RFCs, other specs, findings, research, and `docs/design/`.
+- Outside the operative surfaces, write only the changelog fragments under
+  `docs/product/changelog.d/`, the self-host projections, the brief's status and
+  Spec map row, and this spec's own folder.
+- Write each changelog entry with `tools/changelog.py new` and edit the created
+  fragment, never `changelog.md`.
+- Run `agentbundle catalogue self-host --root . --write` after the last `.apm/`
+  edit, and edit no adapter projection or generated journey by hand.
 
 ### Ask first
 
-<!-- Changes that need human sign-off before proceeding. -->
-
--
--
--
+- Changing the `ux-writing` name or description. A change owes an activation run.
+- Changing where the skill writes the voice chart, or how it resolves `[design]`.
+- Changing `agentbundle`'s upgrade or ownership behaviour.
 
 ### Never do
 
-<!-- Hard rules. No exceptions, no clever workarounds. -->
-
--
--
--
+- Leave a copy, alias, or stub of `ux-writing` in product-engineering.
+- Add a dependency, a module, a pack, or a top-level directory.
+- Cite this repository's governance records (RFCs, ADRs, specs, criteria) in
+  shipped content under `packs/`.
 
 ## Testing Strategy
 
-Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
-
-- **TDD** — for logic with a compressible invariant.
-- **Goal-based check** — a one-liner verifies the outcome (a build
-  command, a `grep`, a typecheck).
-- **Visual / manual QA** — a recorded gesture and an observable
-  outcome, for UX flows.
-
-A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
-*surface*: a goal-based or manual-QA behavior may be verified by an
-**integration** test (two components together) or an **end-to-end (E2E)**
-test (the whole journey, as the user drives it) rather than a unit test —
-name that surface when a behavior only proves out across a boundary or a
-full flow.
-
-<!--
-e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
-flow: manual QA, exercised by an E2E test. Cross-service order placement:
-goal-based, exercised by an integration test." If you can't pick a mode for
-a behavior, the behavior is too vague — sharpen it before moving on.
--->
+- **Location, bytes, and manifests (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008): goal-based.** A file
+  listing, `git diff --find-renames`, and a `pack.toml` parse each decide one
+  criterion.
+- **Caller retargeting (AC-0009, AC-0010, AC-0011, AC-0012, AC-0017, AC-0018, AC-0019, AC-0020): goal-based.**
+  `git grep` over tracked files (it includes the hidden `.apm/` directories), the
+  existing site-parity, journey, and census checks, and the rendered-site link
+  check.
+- **Release notes (AC-0013, AC-0014): goal-based.** A read of the two fragments for
+  their named sections and text, plus the changelog fragment validator.
+- **Upgrade path (AC-0015): manual QA.** The step only counts if a real
+  `agentbundle` run against the real change shows it. Three starting states are
+  walked in scratch repositories, and the state file and installed bytes are
+  recorded.
+- **Catalogue integrity (AC-0016): goal-based.** `catalogue lint --deep` and
+  `catalogue verify` after self-host.
+- **No activation run.** Activation reads only the listed name and description,
+  and both are byte-identical (AC-0003). For an adopter with both packs the listing
+  is unchanged. For an adopter with one pack, the listing gains or loses one whole
+  entry, and no other skill's text moves.
 
 ## Acceptance Criteria
 
-<!--
-The verifiable goals that close this spec. Each item should be checkable
-without subjective judgement — a reviewer can read it and know whether it
-holds. Notation: `- [ ]` open, `- [x]` met (see the `new-spec` skill's
-`references/spec-and-plan-contract.md` § Spec metadata contract). A newly Shipped spec has no open Acceptance Criteria.
+- [x] **AC-0001.** `packs/experience-design/.apm/skills/ux-writing/` holds exactly
+  `SKILL.md`, `assets/voice-chart-template.md`, `evals/eval_queries.json`,
+  `evals/evals.json`, and `references/{content-checklist,human-craft-check,microcopy-formulas,voice-axes}.md`.
+- [x] **AC-0002.** `packs/product-engineering/.apm/skills/ux-writing/` does not exist.
+- [x] **AC-0003.** The `name` and `description` frontmatter values of the moved
+  `SKILL.md` are byte-identical to those at `3216c5b40`.
+- [x] **AC-0004.** Each moved file other than `SKILL.md` is byte-identical to its
+  source at `3216c5b40` (a 100% rename in `git diff --find-renames=100%`).
+- [x] **AC-0005.** With every run of whitespace folded to one space, the moved
+  `SKILL.md` contains none of `product-engineering`,
+  `frames, de-risks, and decomposes`, `` `experience-design` pack ``,
+  `(experience-design pack)`, or `` `experience-design`'s ``.
+- [x] **AC-0006.** The moved `SKILL.md` still contains `docs/product/voice/<slug>.md`
+  and `` `[design] output_dir` ``.
+- [x] **AC-0007.** `version` is `2.0.0` in product-engineering's `pack.toml` and
+  `.claude-plugin/plugin.json`, and `4.2.0` in experience-design's.
+- [x] **AC-0008.** `[pack.evals].skills` contains `ux-writing` for experience-design
+  and not for product-engineering, and every skill either list names has a directory
+  with `evals/eval_queries.json`.
+- [x] **AC-0009.** No tracked line under `packs/`, `guides/`, `web/src/`, `tools/`,
+  or `docs/architecture/` contains both `ux-writing` and a case-insensitive match of
+  `product.engineering`.
+- [x] **AC-0010.** In product-engineering's `README.md`, `JOURNEY.md`, `DESIGN.md`,
+  and `pack.toml`, and in `web/src/content/packs/product-engineering.md`, the only
+  line containing `ux-writing` is the `README.md` line naming the `docs/product/voice/`
+  folder.
+- [x] **AC-0017.** experience-design's `README.md`, `JOURNEY.md`, and
+  `web/src/content/packs/experience-design.md` each list `ux-writing` as a skill,
+  and `tools/lint-site-scope-parity.py`, `tools/lint-pack-journeys.py`, and
+  `tools/lint-web-journey-parity.py` exit 0.
+- [x] **AC-0018.** None of these strings is present in its file:
+  `cross-pack` in `packs/experience-design/.apm/skills/design-review/references/quality-floor.md`,
+  `different pack` in `guides/experience-design/how-to/copy-boundary.md`,
+  `cross-pack boundary`, `skill in another pack`, and `crosses packs` in
+  `packs/experience-design/DESIGN.md`, `crosses packs` in
+  `guides/experience-design/README.md`, `thirteen` in
+  `packs/product-engineering/pack.toml` and `guides/product-engineering/README.md`,
+  and `thirteenth` in `web/src/content/packs/experience-design.md`.
+- [x] **AC-0011.** The skill census fixture's `ux-writing` row names
+  `experience-design`, and the census suite passes.
+- [x] **AC-0012.** `guides/experience-design/how-to/write-product-microcopy.md`
+  exists, `guides/product-engineering/how-to/write-product-microcopy.md` does not,
+  and no file under `guides/` or `web/src/` links to the old path.
+- [x] **AC-0019.** The moved how-to's frontmatter has `pack: experience-design`, and
+  each of its lines that tells the reader to install a pack names
+  `experience-design` and no other pack.
+- [x] **AC-0020.** After `make bootstrap-sites`, `make site-link-check` exits 0, so
+  no link on the rendered site, including the moved how-to's page, is broken.
+- [x] **AC-0013.** The product-engineering 2.0.0 fragment has a `## Removed` section
+  naming `ux-writing` and `experience-design`. It tells every adopter, after
+  upgrading, to run `agentbundle uninstall --pack product-engineering` and then
+  `agentbundle install --pack product-engineering` at the same scope. It tells an
+  adopter with both packs that the two upgrades may run in either order, and one
+  without experience-design to install it after that step to keep `ux-writing`.
+- [x] **AC-0014.** The experience-design 4.2.0 fragment has an `## Added` section
+  naming `ux-writing`. It tells a product-engineering adopter without
+  experience-design to run the AC-0013 step before
+  `agentbundle install --pack experience-design`, and an adopter with both packs
+  that the two upgrades may run in either order. Both fragments pass
+  `tools/changelog.py`'s fragment validation.
+- [x] **AC-0015.** The verification ledger records three runs of the AC-0013 step
+  against this change, in scratch repositories installed from `3216c5b40`:
+  - both packs, product-engineering upgraded first;
+  - both packs, experience-design upgraded first;
+  - product-engineering alone, then experience-design installed after the step.
 
-This section owns criterion *shape*. Before writing criteria, work the six
-failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
-in order — they cover the failures shape rules cannot see, starting with a
-criterion that belongs to a different artifact. Two of those classes defer
-criterion shape back to this section; the rest defer elsewhere or own their own
-rules, and that reference states which.
-
-Two recurring sources of criteria, so they don't slip into the plan as
-mere design detail:
-
-- An **output-channel constraint** (e.g., "no sensitive data on stdout")
-  must enumerate *every* channel the consuming context makes user-visible
-  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
-  same constraint to each one explicitly — a constraint named on one
-  channel only is silently violated if the caller also sees another.
-
-- A **UI state** is an acceptance criterion: phrase it as
-  *state / trigger / outcome* — "given <state>, when <trigger>, the user
-  sees <outcome>" (e.g. "given an empty cart, when the page loads, the
-  user sees the empty-state illustration and a 'browse' link"). The
-  per-screen design itself lives in the plan's `## Design (LLD)`; the
-  observable state belongs here.
-- A **non-functional requirement with a pass/fail bar** is an acceptance
-  criterion: it must name a threshold a test or audit can check —
-  "meets WCAG 2.2 AA", "p99 latency under 200ms at 1k rps", "zero criticals
-  in the dependency scan". An NFR with no bar ("should be fast") is not a
-  criterion; give it a number or move it to the plan.
-
-- A criterion that needs "and" to join two **different predicates** is two
-  criteria: a conjunction is where a coverage check silently passes while half
-  the criterion is unimplemented. A criterion is more than one when its parts
-  have separate failure modes with separate remedies. Where the parts read as one
-  constraint over a set, rewrite the criterion as a single predicate with a
-  member substituted in; it stays one criterion only if that predicate is
-  checkable as written at every member rather than expanding into a different
-  check per member. The worked examples below fix where this boundary falls;
-  where the cue and an example conflict, the examples govern.
-
-  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
-    order, and `--dry-run` prints that manifest without writing a file." Two
-    different predicates; no single sentence covers both. The base case where the
-    conjunction cue and the split test agree.
-  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
-    output surfaced to the agent." One predicate substituted at each member of an
-    enumerated set, checkable as written at every member.
-  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
-    bytes, the execute byte, the u64be content length, then the content bytes."
-    One comparison value expressed in parts — the split test never engages,
-    because there is one failure and one remedy.
-  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
-    the exit code." "X is correct" is not checkable as written: it expands into a
-    different check per member. This is the anti-licence against reframing a
-    bundle as one constraint over a domain, and without it E2's shape is available
-    to any author.
-  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
-    Different failure modes (interception, script access) but one substitutable
-    predicate and one remedy. Shows that separate failure modes alone do not
-    split when the predicate survives substitution.
-
-- A universal claim enumerates its closed set or names the mechanism that makes
-  coverage exhaustive: without one, a reviewer cannot tell which members the
-  claim covers or whether an omitted member is a defect.
-
-- A new claim becomes a new checklist item, never a lettered or semicolon
-  graft: a graft hides a separately reviewable outcome inside an existing
-  criterion and makes its completion ambiguous.
-
-- For every numeric limit a criterion states, record the input that makes the
-  limit fire first and the enforcement mechanism that makes that ordering true;
-  a limit missing **either** fact is not yet a criterion. Where one quantity has
-  two limits, either order them so each is reachable for some input, or declare
-  one non-binding on that route and name the limit that fires instead.
-
-- A criterion stating a limit names the reference point it is measured from.
-  Choose an origin that gives the same input the same measurement however the
-  subject is organised; an unstated origin is not yet a criterion. A criterion
-  requiring a limit states its value and never asks an implementer to supply one:
-  a value invented to satisfy an unspecified requirement is worse than an absent
-  limit, because it reads as a decision that was made.
-
-- Make every claim earn its place by making a wrong implementation detectable.
-  Delete rationale, history, reassurance, restated context, and a figure that
-  merely explains where a threshold came from when it does not help establish the
-  outcome. Keep any claim that is the only written form of a comparison value,
-  such as a byte layout, exact key order, literal token, collection floor, or
-  stated bar. Ask: "could a wrong implementation now pass this?"
-
-- A criterion names an observable outcome. Naming a function's parameters, a
-  helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Outcome guidance and `SKILL.md`'s design-doc anti-pattern for
-  the document-level distinction.
-
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-
-Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
-is still required, keep the spec `Implementing` and resume it. If a separable
-item no longer belongs in the final accepted contract, pause for a reviewed
-spec/plan amendment, remove it from this checklist, and record it under
-`Follow-ons` with its owner and stable artifact or external evidence reference.
-Historical frozen specs may still contain older `(deferred: <slug>)` markers;
-do not copy that pattern into new shipped work.
--->
-
-<!--
-Optional story trace: when this spec was derived from a product brief that
-carries user stories (Shape B; see author-delivery-brief continue), append `Satisfies: US-n`
-to each acceptance criterion that satisfies that story, so coverage is
-story-granular:
-
-- [x] <observable outcome>. Satisfies: US-2
-
-The marker is optional — omit it for a no-stories brief (Shape A) or a spec
-authored directly.
--->
+  Each run ends with exactly one state row claiming
+  `.claude/skills/ux-writing/SKILL.md`, at experience-design 4.2.0, and the
+  installed file equals the experience-design source.
+- [x] **AC-0016.** After self-host, `agentbundle catalogue lint --root . --deep` and
+  `agentbundle catalogue verify --root .` exit 0.
 
 ## Follow-ons
 
-<!--
-Separately scoped work that does not belong to the final accepted AC set. Each
-entry needs an owner and a stable work-intake artifact or external evidence
-reference. Do not use this section to hide unfinished accepted intent.
-
-- <owner>: <stable artifact or external ref> — <one-sentence scope>
--->
+none
 
 ## Assumptions
 
-<!--
-What is still unresolved, and nothing else. Each item is a question the
-contract rests on that nobody has answered yet — so a reader sees the open
-questions instead of scrolling a list of facts that are already settled.
-
-A fact you settled is not an assumption, and how you checked it is not
-recorded here: that was the assumption checkpoint's evidence (`new-spec`
-SKILL.md step 3), and its job ended when the fact entered the contract. Route
-each settled fact by what it does. A fact that bounds what this delivery does
-goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
-into the plan's `## Design (LLD)` or `## Constraints`. There is no third
-destination, and nothing is left behind here as a receipt.
-
-Unresolved comes in two shapes, and both belong here.
-
-An **open question** — something that could still be answered:
-`- <category>: <open question> — <what it would change> (settled by: <who or
-what can answer it>)`
-
-A **named gap** — something that will not be answered on this delivery, such
-as a dependency that is absent or a corpus that is unreachable:
-`- <category>: <what is missing> — <what is therefore ungrounded>`
-
-Write `none` when nothing is unresolved. An empty section and an unexamined
-one read the same.
-
-- Technical: <open question> — <what it would change> (settled by: <…>)
-- Product: <what is missing> — <what is therefore ungrounded>
-
-When an item is settled later, route the fact to its destination above and
-delete the line. An item still here at approval is a known gap in the
-contract, recorded on purpose.
-
-A settled fact that later turns out wrong is a different event, and it does
-not come back here. Fix it where it lives — the spec body, or the plan's
-design — in the same PR that finds it, and say in that PR what changed. The
-correction belongs in the artifact the fact was doing work in, not in a note
-about the checkpoint that filed it.
--->
+none

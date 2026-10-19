@@ -57,9 +57,6 @@ skills:
   - name: plan-validation
     description: "Validates a plan against the discovery sidecar — checks that the build plan addresses the grounded hypothesis."
     humanTouches: 0
-  - name: ux-writing
-    description: "Characterizes a product's voice and writes blame-free, actionable UI copy."
-    humanTouches: 1
   - name: align-value-stream
     description: "Coordinates a multi-component product intent across a business-unit value stream."
     humanTouches: 1
@@ -148,7 +145,6 @@ goodOutputDescription: |-
 | `intent frame` | Frame a product problem at any altitude |
 | `intent de-risk` | Surface the riskiest assumption and design a prototype approach |
 | `intent decompose` | Break the converged intent into delivery briefs and specs |
-| `ux-writing` | Characterize the product voice and write per-state UI copy |
 
 ---
 

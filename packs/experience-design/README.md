@@ -34,6 +34,7 @@ claude plugin install experience-design@agent-ready-repo
 - **`information-architecture`** — Lays out hierarchy and reading order for a screen or flow.
 - **`interaction-design`** — Specifies how a screen or component responds, validates, and recovers.
 - **`content-design`** — Sets message, narrative, and tone for copy.
+- **`ux-writing`** — Writes the product voice and the UI copy for each screen state.
 - **`design-principles`** — Writes 3 to 5 named design rules, each with an arbitration test.
 - **`service-blueprint`** — Shows the people and systems behind each journey step.
 - **`process-mapping`** — Maps how an internal operation works today or should work.

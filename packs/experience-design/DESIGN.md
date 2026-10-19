@@ -16,7 +16,7 @@ Things a reasonable reader might expect this pack to provide. It doesn't, by des
 
 - **No stack specifics.** No UI-framework code, no styling-language syntax, no animation library, no fixed spacing/timing/color/motion-curve tables, no token values, no pixel comps. The pack itself carries no value — nothing here would arrive the same way for two unrelated products. A `design-system` run resolves the values *your* approved direction, existing system and platform give it authority to fix, and writes them into your artifact.
 - **No product strategy.** The pack assumes an agreed user and outcome. Framing, opportunity sizing, and UX strategy are upstream (`product-strategy` pack). When that input is absent, `journey-mapping` degrades gracefully but the output is weaker.
-- **No UI copy strings.** Per-state UI copy (button labels, error messages, empty states) is the `ux-writing` skill's domain in `product-engineering`. This pack sets content intent and copy direction; `ux-writing` writes the actual strings keyed to the state matrix.
+- **No per-state UI strings from the direction skills.** `content-design` sets content intent and copy direction and writes no button labels, error messages, or empty states. Only `ux-writing` writes those, keyed to the state matrix.
 - **No code review.** `experience-reviewer` reviews design artifacts only — journeys, screen flows, briefs, aesthetic directions. It never reviews code diffs (use core's `adversarial-reviewer`) or architecture docs (use architect's `design-reviewer`).
 - **No persistent runtime.** No hook, engine, validator daemon, or state machine. This pack is habits, not infrastructure. `design-review` is an authoring-time interactive skill; `experience-reviewer` is a one-shot forked subagent.
 
@@ -151,12 +151,12 @@ The connective skills map the flow from a user's outcome to a set of screens rea
 
 `journey-mapping` and `user-flow` carry a platform/surface axis — responsive-web, iOS, Android, cross-platform. This affects what the method asks at each stage (iOS has HIG interaction patterns; cross-platform requires explicit divergence documentation). Skills that consume per-screen briefs inherit the platform context from the brief.
 
-### Choosing a copy mode, and the one cross-pack boundary
+### Choosing a copy mode, and where UI copy lives
 
-The copy layer is **one skill in three modes**, plus one skill in another pack.
-There is no longer a choice between copy skills to get wrong; there is a mode
-selection the skill makes from the request, and a pack boundary that still
-matters.
+The copy layer is **one skill in three modes**, plus `ux-writing` for per-state
+UI strings. `content-design` selects its mode from the request; the boundary
+that matters is surface type: UI state copy goes to `ux-writing`, everything
+else to `content-design`.
 
 - **`content-design`, brand-level register mode** sets the brand register: named,
   ranked copy goals grounded in persona and precedent, with arbitration rules.
@@ -169,11 +169,12 @@ matters.
 - **`content-design`, per-surface acquisition copy goals mode** names copy goals
   for one marketing or acquisition surface. Takes the content brief and the brand
   register (optional) as upstream referents. Writes `copy/<surface-slug>.md`.
-- **`ux-writing`** (product-engineering pack) writes the actual per-state UI
-  strings. It consumes the state matrix from `user-flow` and loads the brand
-  register by fixed path as voice input. **This is the boundary that remains
-  real**, because it crosses packs: UI state copy lives there, everything else
-  here.
+- **`ux-writing`** writes the actual per-state UI strings. It consumes the
+  state matrix from `user-flow` and loads the brand register by fixed path as
+  voice input. It also characterizes the product voice along a few axes
+  (humor, formality, respect, enthusiasm), applies per-state formulas
+  (blame-free, actionable), and runs a content checklist before copy ships.
+  Without a screen flow it still works: it names the states inline.
 
 The ordering inside the skill is unchanged by the fold. Running the message and
 narrative structure mode before the per-surface mode is correct. Running the
@@ -296,7 +297,13 @@ Each skill writes under a subdirectory of `output_dir`:
 | `direction/` | creative-direction |
 | `tokens/` | design-system |
 
+`ux-writing` is the one exception. It writes `docs/product/voice/<slug>.md` and only reads `[design]` (for the brand register and the state matrix). Its voice chart is a product-level record, so it does not live under `output_dir`.
+
 The path is elicited once per repo, written to `agentbundle-layout.toml`, and reused by every subsequent skill. `experience-status` reads from this directory to orient.
+
+### Why ux-writing lives here
+
+The state matrix `user-flow` derives is the input `ux-writing` needs, and the brand register `content-design` sets is its voice input. Keeping the three together lets a design thread run from outcome to per-state strings without leaving the pack. `ux-writing` is still usable alone: without a screen flow it names states inline, so teams that only want UI copy lose nothing.
 
 ### Why user-scope by default
 
@@ -316,10 +323,6 @@ The `product-strategy` pack is the strategic anchor this pack builds on. Before 
 - `content-strategy.md` (Purpose + Process + Structure + Governance — the product-strategy pack's own composite, informed by the content-strategy quad but not identical to either published version) — read by `content-design` for organizational governance intent.
 
 Both inputs are optional; the skills degrade gracefully when absent. With them, the design thread has explicit strategic grounding; without them, it must infer intent from the stated user and outcome.
-
-### Downstream: product-engineering
-
-The per-screen state matrix produced by `user-flow` is the hand-off artifact `ux-writing` (product-engineering pack) consumes. Each cell in the matrix (screen × state) maps to a copy string. The two packs are designed to meet at this interface.
 
 ### Downstream: architect / contracts
 

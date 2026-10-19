@@ -191,7 +191,6 @@ SKILLS: dict[str, list[str]] = {
     "new-package":                  ["tree"],
     "identify-opportunities":       ["table", "key-value"],
     "diverge-solutions":            ["table", "narrative", "key-value"],
-    "ux-writing":                   ["table", "narrative", "key-value"],
     "frame-domain":                 ["narrative", "key-value"],
     "lean-canvas":                  ["table", "key-value"],
     "align-value-stream":           ["table", "key-value"],
@@ -226,6 +225,7 @@ SKILLS: dict[str, list[str]] = {
     "content-design":               ["table", "key-value", "narrative"],
     "design-system":                ["narrative"],
     "creative-direction":           ["key-value", "narrative"],
+    "ux-writing":                   ["table", "narrative", "key-value"],
     # contracts
     "event-contract":               ["table"],
     "api-contract":                 ["table"],
