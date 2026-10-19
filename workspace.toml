@@ -2265,8 +2265,6 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
-  # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), approved 2026-10-19 and building; moves to `shipped` when the spec is set Shipped.
-  { path = "docs/specs/intent-view-handover-prompt/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show a fixed-template, grammar-checked next-step prompt with a Copy control in the intent view's detail zone, selecting it for manual copy when the clipboard refuses", needs = [] },
 ]
 shipped = [
   {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},
@@ -2448,6 +2446,8 @@ queue   = [
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
 ]
 active  = [
+  # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), approved 2026-10-19 and building; moves to `shipped` when the spec is set Shipped.
+  { path = "docs/specs/intent-view-handover-prompt/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show a fixed-template, grammar-checked next-step prompt with a Copy control in the intent view's detail zone, selecting it for manual copy when the clipboard refuses", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
