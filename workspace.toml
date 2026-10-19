@@ -235,10 +235,11 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  # Implementing since 2026-10-13: Slice 4a, the dark execution supervisor core.
-  {path = "docs/specs/execution-supervisor-core/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Dark skill-shipped supervisor: admission, task projection and replanning, TDD guard, sequential dispatch, recovery, effects, and derived readiness", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-authority-and-evidence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/structured-review-boundary/spec.md"}]},
 ]
 shipped = [
+  # Shipped 2026-10-19 as Core 3.1.9: Slice 4a, the dark execution supervisor
+  # core, beside the unchanged loop engine. Evidence is in notes/verification-ledger.md.
+  {path = "docs/specs/execution-supervisor-core/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Dark skill-shipped supervisor: admission, task projection and replanning, TDD guard, sequential dispatch, recovery, effects, and derived readiness", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-authority-and-evidence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/structured-review-boundary/spec.md"}]},
   # Shipped 2026-10-12 (run d1063609): per-update changelog fragments, with
   # released records in append-only monthly bundles under ADR-0143. Evidence
   # is in notes/verification-ledger.md.
