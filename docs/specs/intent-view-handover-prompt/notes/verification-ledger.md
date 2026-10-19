@@ -1,6 +1,6 @@
 # Verification ledger: intent-view-handover-prompt
 
-Every result below ran against code commit `ee06ef520afe4f2262604260af3219800522435e` or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it. Every later commit on this branch changes documentation only — this ledger, `notes/screens/` (in `c6abc01b3`) and one sentence of `guides/core/how-to/navigate-intents.md` (in `2d5b0b864`) — and `git log --stat ee06ef520..HEAD` lists each one. `git diff --stat ee06ef520 HEAD -- packs/core .claude .agents` prints nothing. Run on 2026-10-19.
+Every test and measurement result above § Review dispositions ran against code commit `ee06ef520afe4f2262604260af3219800522435e`, or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it apart from core's version field. That field moved from 3.1.10 to 3.1.9 in `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`, because a roster test requires exactly the next patch above the default branch's 3.1.8; no recorded result reads it. Every other later commit changes documentation only: this ledger, `notes/screens/` (in `c6abc01b3`), one sentence of `guides/core/how-to/navigate-intents.md` (in `2d5b0b864`) and the changelog fragment's version and anchor. `git log --stat ee06ef520..HEAD` lists each commit, and `git diff ee06ef520 HEAD -- packs/core .claude .agents` shows only the two version lines. Run on 2026-10-19.
 
 ## Scripted browser suite (all of `view_browser_checks.py`)
 
@@ -178,25 +178,49 @@ for png in sorted(out.glob("*.png")):
 
 ## Review dispositions
 
-Each reviewer's report was adjudicated by `finding-adjudicator`; only sustained findings were acted on. Counts are after adjudication.
+The table gives each review round's result and the commit it reviewed. A report with findings, or with a `## Not checked` footer, was adjudicated by `finding-adjudicator`, and its counts are after adjudication. A footer-free clean report, and a report holding only Nits that this change did not act on, skipped adjudication under the work-loop review gateway; such a Nit is deferred by the author, not by an adjudicator.
 
-| Reviewer | Round 1 | Round 2 | Round 3 |
+| Round | Commit reviewed | Code tree |
+| --- | --- | --- |
+| 1 | `4ddd94863` | `5289d7454` (before the repair) |
+| 2 | `c6abc01b3` | identical to `ee06ef520` |
+| 3 | `2d5b0b864` | identical to `ee06ef520` |
+| 4 | `b4bae7330` | identical to `ee06ef520` |
+| 5 | the commit adding this table | identical to `ee06ef520` apart from core's version field |
+
+| Reviewer | Round 1 | Round 2 | Rounds 3 to 5 |
 | --- | --- | --- | --- |
-| `adversarial-reviewer` | 1 Blocker, 1 Concern, 4 Nits (2 refuted) | 1 Concern, 1 Nit | 1 Concern |
-| `security-reviewer` | clean | clean | not re-run (docs-only delta) |
-| `quality-engineer` | 1 Blocker (5 refuted) | clean | not re-run |
-| `experience-reviewer` (AC-0021 gate) | 1 Minor (5 refuted) | 1 Nit, deferred | not re-run |
-| Visual-polish pass (general-purpose) | clean (7 refuted) | not re-run | not re-run |
-| `frontend-reviewer` stand-in (general-purpose; the role is not installed) | 1 Concern, 1 Nit (1 refuted) | clean | not re-run |
+| `adversarial-reviewer` | adjudicated: 1 Blocker, 1 Concern, 4 Nits; 2 refuted | adjudicated: 1 Concern, 1 Nit | round 3 adjudicated: 1 Concern; round 4 adjudicated: 1 Blocker, 2 Concerns, 1 Nit (all on this ledger); round 5 below |
+| `security-reviewer` | clean with a footer; adjudicated clean | clean with a footer; adjudicated clean | not re-run: documentation-only deltas |
+| `quality-engineer` | adjudicated: 1 Blocker; 5 refuted | clean, not adjudicated | not re-run |
+| `experience-reviewer` (AC-0021 gate) | adjudicated: 1 Minor; 5 refuted | 1 Nit only, not adjudicated; deferred by the author | not re-run |
+| Visual-polish pass (general-purpose) | adjudicated: clean; 7 refuted | not re-run | not re-run |
+| `frontend-reviewer` stand-in (general-purpose; the role is not installed) | adjudicated: 1 Concern, 1 Nit; 1 refuted | clean, not adjudicated | not re-run |
 
 What the sustained findings changed:
-- The AC-0008 probes now hit exactly 100 and 101 characters in a segment, and exactly 200 and 201 characters in a path, with a literal outcome each. The collected test went red when `PATH_SEGMENT` was widened to `{0,100}` and when the path-length check was removed.
+- The AC-0008 probes hit exactly 100 and 101 characters in a segment, and exactly 200 and 201 characters in a path, with a literal outcome each.
 - A refused copy resets the button to "Copy prompt", and a successful copy hides the failure line. The live region is cleared and rewritten on the next tick, so a repeated outcome is announced again.
 - The refusal and copy-failure lines use the view's `notice` treatment.
 - The AC-0015 check compares all four edges.
 - The guide's "Copied" and no-prompt sentences match the code and the next-step rules.
-- This ledger names the commit or code-identical tree behind every result, and records the open intermittent failure above.
+- This ledger states the commit behind each result and records the open intermittent failure above.
 
-AC-0021: the experience review leaves no Major or Blocker after adjudication. Its one deferred Nit is that the copy-failure notice keeps the smaller muted meta text while the refusal notice uses body text. That is kept on purpose: the copy line is a short status tied to its button, while the refusal line replaces the prompt.
+## Mutation check of the path rule
 
-The `test-corpus.yml` dispatch at the final pushed commit is recorded in the pull request.
+Base: commit `b4bae7330`, whose code tree is identical to `ee06ef520`. Each mutation edited `packs/core/.apm/skills/navigate-intents/scripts/view_src/handover.js` in the working tree only, and the file was restored before the next step.
+
+Command: `PYTHONPATH=packages/agentbundle:packages/credbroker uv run --no-project -q --with pytest --with pyyaml --with-requirements tools/requirements.txt python -m pytest packs/core/tests/skills/navigate-intents/test_export_html.py::test_handover_prompt_matches_the_safe_path_rule -q`
+
+| Mutation | Result |
+| --- | --- |
+| `PATH_SEGMENT` widened from `{0,99}` to `{0,100}` | 1 failed |
+| ` \|\| path.length > PATH_MAX_LENGTH` removed from the length check | 1 failed |
+| File restored | 1 passed |
+
+## AC-0021
+
+The adjudicated round-1 experience review leaves 1 Minor and no Major or Blocker. That Minor was repaired. The round-2 experience review, over the repaired screens, holds 1 Nit and no Major or Blocker. The author defers that Nit: the copy-failure notice keeps the smaller muted meta text while the refusal notice uses body text, because the copy line is a short status tied to its button and the refusal line replaces the prompt.
+
+## CI dispatches
+
+`TEST_CORPUS_RESULT`
