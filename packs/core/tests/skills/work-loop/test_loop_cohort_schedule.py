@@ -1651,11 +1651,12 @@ def test_boundary_walk_has_exactly_one_owner():
     The registered defect was four functions each re-deriving which task owns a
     `Depends on:` line. Consolidation alone does not stay consolidated — the
     next caller that needs section boundaries can quietly add a fifth walk, and
-    every behavioural test would still pass. The grammar lives in the guard
-    layer, which both the loop engine and the execution supervisor's projector
-    load, so this reads all three shipped sources and refuses a second
-    `finditer` on the heading grammar, or a second `Depends on:` lookup,
-    anywhere among them.
+    every behavioural test would still pass. The walk lives in the guard layer,
+    which both the loop engine and the execution supervisor's projector load, so
+    this reads all three shipped sources and refuses a second `finditer` on the
+    heading grammar, or a second `DEPENDS_LINE_RE` lookup, anywhere among them.
+    The projector's own bullet-tolerant field reader is a different lookup and
+    is not covered here.
     """
     sources = {path.name: path.read_text(encoding="utf-8")
                for path in (LC_PATH, GUARDS_PATH, PROJECTOR_PATH)}
