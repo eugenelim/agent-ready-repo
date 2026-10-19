@@ -26,6 +26,8 @@ import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 LC_PATH = PACK_ROOT / ".apm/skills/work-loop/scripts/loop-cohort.py"
+GUARDS_PATH = PACK_ROOT / ".apm/skills/work-loop/scripts/_loop_guards.py"
+PROJECTOR_PATH = PACK_ROOT / ".apm/skills/work-loop/scripts/_supervisor_projector.py"
 
 
 def _load():
@@ -1649,32 +1651,33 @@ def test_boundary_walk_has_exactly_one_owner():
     The registered defect was four functions each re-deriving which task owns a
     `Depends on:` line. Consolidation alone does not stay consolidated — the
     next caller that needs section boundaries can quietly add a fifth walk, and
-    every behavioural test would still pass. This reads the shipped source and
-    refuses a second `finditer` on the heading grammar.
+    every behavioural test would still pass. The grammar lives in the guard
+    layer, which both the loop engine and the execution supervisor's projector
+    load, so this reads all three shipped sources and refuses a second
+    `finditer` on the heading grammar, or a second `Depends on:` lookup,
+    anywhere among them.
     """
-    source = LC_PATH.read_text(encoding="utf-8")
-    walk_lines = [
-        line.strip()
-        for line in source.splitlines()
-        if "TASK_HEADING_RE.finditer" in line
-    ]
-    assert len(walk_lines) == 1, (
+    sources = {path.name: path.read_text(encoding="utf-8")
+               for path in (LC_PATH, GUARDS_PATH, PROJECTOR_PATH)}
+
+    def lines_with(needle: str) -> list[tuple[str, str]]:
+        return [(name, line.strip()) for name, source in sources.items()
+                for line in source.splitlines() if needle in line]
+
+    walk_lines = lines_with("TASK_HEADING_RE.finditer")
+    assert [name for name, _ in walk_lines] == ["_loop_guards.py"], (
         "TASK_HEADING_RE.finditer must appear exactly once, inside "
-        f"walk_task_sections; found {len(walk_lines)}: {walk_lines}"
+        f"walk_task_sections in _loop_guards.py; found {walk_lines}"
     )
-    owner = source.split("def walk_task_sections")[1].split("\ndef ")[0]
+    owner = sources["_loop_guards.py"].split("def walk_task_sections")[1].split("\ndef ")[0]
     assert "TASK_HEADING_RE.finditer" in owner, (
         "the single heading walk moved out of walk_task_sections"
     )
     # The `Depends on:` field lookup is single-homed for the same reason.
-    depends_lines = [
-        line.strip()
-        for line in source.splitlines()
-        if "DEPENDS_LINE_RE.search" in line
-    ]
-    assert len(depends_lines) == 1, (
+    depends_lines = lines_with("DEPENDS_LINE_RE.search")
+    assert [name for name, _ in depends_lines] == ["_loop_guards.py"], (
         "DEPENDS_LINE_RE.search must appear exactly once, inside "
-        f"section_depends_field; found {len(depends_lines)}: {depends_lines}"
+        f"section_depends_field in _loop_guards.py; found {depends_lines}"
     )
 
 
