@@ -5,31 +5,25 @@ description: Use when shaping the actual words a user reads in a product's UI �
 
 # Skill: ux-writing
 
-Shape product intent into the **words a user reads** in the UI. The pack frames,
-de-risks, and decomposes intent into shippable features; this skill writes the
-copy those features render. The method is three moves: **characterize the voice**
+Shape product intent into the **words a user reads** in the UI. This skill is the
+content layer of the design seat: it writes the words the screens render. The method is three moves: **characterize the voice**
 along a few axes, **write each UI state** from a blame-free, actionable formula,
 and **run a content checklist** before the copy ships. It is a method, not a word
 bank — framework-agnostic, and it never mandates a schema. The voice axes are in
 `references/voice-axes.md`, the per-state formulas in
 `references/microcopy-formulas.md`, the checklist in `references/content-checklist.md`.
 
-When a **per-screen state matrix** from `experience-design`'s `user-flow` is
+When a **per-screen state matrix** from `user-flow` is
 present, this skill writes copy **per screen × state** — one copy entry per
 screen/state cell in the matrix — and keys every string to the matrix row. The
-state *set* those cells enumerate is the `experience-design` pack's shared
+state *set* those cells enumerate is the shared
 **`quality-floor`** (empty / loading / error / success / partial / disabled, plus
 `permission/denied` when gated); defer to it by-name for which states a screen
 owes copy, rather than inventing a state list. When the matrix is absent the
 skill is still fully useful: it writes copy for the states you name directly
 (detect-and-degrade; no screen flow required).
 
-> **Design-seat pairing.** This skill is the content layer of the design seat;
-> the design methods and screen-flow artifacts live in the `experience-design` pack. See
-> the `experience-design` pack's `user-flow` skill for the per-screen state matrix
-> this skill can consume.
-
-> **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use the `experience-design` pack's `content-design` skill in its per-surface acquisition copy goals mode; `ux-writing` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design` (experience-design pack); onboarding copy voice and register → `content-design`'s per-surface acquisition copy goals mode (experience-design pack); onboarding UI-state strings (loading, error, empty) → `ux-writing` (this skill).
+> **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use this pack's `content-design` skill in its per-surface acquisition copy goals mode; `ux-writing` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design`; onboarding copy voice and register → `content-design`'s per-surface acquisition copy goals mode; onboarding UI-state strings (loading, error, empty) → `ux-writing` (this skill).
 
 ## Output rendering
 
@@ -84,8 +78,8 @@ Before writing, confirm:
      not "Submit" / "OK").
    - **Label** — concise, scannable, front-loaded keyword; one term per concept.
 
-   **When a per-screen state matrix is present** (produced by `user-flow`
-   in the `experience-design` pack): write copy **per screen × state**. For each screen
+   **When a per-screen state matrix is present** (produced by `user-flow`):
+   write copy **per screen × state**. For each screen
    in the matrix, write one copy entry per applicable state (empty / loading /
    error / success / partial / disabled / permission-denied), applying the
    formula above. Key each entry to its matrix cell — screen name + state name —

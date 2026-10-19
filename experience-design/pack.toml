@@ -1,6 +1,6 @@
 [pack]
 name = "experience-design"
-version = "4.1.6"
+version = "4.2.0"
 description = "Start from what the customer is trying to do and end at a screen someone could build. Journey, copy, flows, visual craft — and a reviewer that asks about the empty state and the focus ring you forgot."
 readme = "README.md"
 display_name = "Experience Design"
@@ -34,7 +34,8 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 # No `[pack.layout.user]` default — output is per-repo, with no sensible
 # absolute user-scope base.
 # Each artifact-writing skill ships a references/agentbundle-layout.md documenting
-# the adopter-owned `[design]` table.
+# the adopter-owned `[design]` table. `ux-writing` is the exception: it writes
+# `docs/product/voice/<slug>.md` and only reads `[design]`.
 [pack.layout.repo]
 section    = "design"
 output_dir = "docs/design"
@@ -51,7 +52,7 @@ output_dir = "docs/design"
 # skill, so it is not listed here (its eval surface is its review-list output
 # contract + manual-QA dispatch).
 [pack.evals]
-skills = ["creative-direction", "content-design", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design", "experience-status", "design-principles"]
+skills = ["creative-direction", "content-design", "design-review", "design-system", "information-architecture", "journey-mapping", "service-blueprint", "user-flow", "process-mapping", "interaction-design", "experience-status", "design-principles", "ux-writing"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

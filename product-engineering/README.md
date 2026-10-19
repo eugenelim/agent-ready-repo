@@ -38,14 +38,13 @@ claude plugin install product-engineering@agent-ready-repo
 - **`lean-canvas`** — Fills a lean canvas and writes a one-page initiative brief.
 - **`place-bet`** — Records the choice, confidence, appetite, accepted risks, and reversal conditions.
 - **`map-capabilities`** — Lists needed capabilities and a build order.
-- **`ux-writing`** — Writes the product voice and per-state UI copy.
 - **`align-value-stream`** — Sets up a coordinating repo for work that spans many components.
 
 Subagents: **`discovery-lead`** supervises the loop. **`discovery-reliability-reviewer`** and **`discovery-threat-reviewer`** review discovery artifacts read-only.
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Product Strategy](../product-strategy/README.md) supplies goals and opportunity assessments as anchors. [Core](../core/README.md) takes each result as a delivery contract or brief, and Core is optional. [Experience Design](../experience-design/README.md) passes its screen states to `ux-writing`. When the `architect` pack is installed, `frame-domain` and `intent de-risk` offer `architect-assess`, and `intent frame`, `intent decompose`, and `map-capabilities` offer `architect-design`. Without it, they say nothing about it. Guides: [Shape an idea](../../guides/product-engineering/how-to/frame-the-intent.md) and [Run a discovery](../../guides/product-engineering/how-to/run-a-discovery.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. [Product Strategy](../product-strategy/README.md) supplies goals and opportunity assessments as anchors. [Core](../core/README.md) takes each result as a delivery contract or brief, and Core is optional. [Experience Design](../experience-design/README.md) owns the screen flows and their UI copy. When the `architect` pack is installed, `frame-domain` and `intent de-risk` offer `architect-assess`, and `intent frame`, `intent decompose`, and `map-capabilities` offer `architect-design`. Without it, they say nothing about it. Guides: [Shape an idea](../../guides/product-engineering/how-to/frame-the-intent.md) and [Run a discovery](../../guides/product-engineering/how-to/run-a-discovery.md).
 
 ## Questions
 
@@ -53,7 +52,7 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE.
 
 **Does it write specs?** It decomposes an intent into briefs and specs, and after you confirm, hands each independently shippable piece to Core. Core's approval path still applies.
 
-**Where are the files saved?** In `docs/product/` and `docs/discovery/` by default. Both are configurable in `agentbundle-layout.toml`.
+**Where are the files saved?** In `docs/product/` and `docs/discovery/` by default. Both are configurable in `agentbundle-layout.toml`. The `docs/product/voice/` folder holds voice charts, which Experience Design's `ux-writing` writes.
 
 **Does it need Product Strategy first?** No. Without strategy files, the skills carry on.
 

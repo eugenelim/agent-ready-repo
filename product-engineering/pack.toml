@@ -1,6 +1,6 @@
 [pack]
 name = "product-engineering"
-version = "1.0.5"
+version = "2.0.0"
 description = "The messy part, before there is anything to build. Name the outcome, find the assumption that would sink it, and test that one first. What survives gets cut into specs a delivery loop can pick up."
 readme = "README.md"
 display_name = "Product Engineering"
@@ -37,10 +37,10 @@ output_dir = "docs/product"
 
 # Pack activation evals:
 # the Tier-A activation-eval coverage allowlist. Each listed skill ships
-# evals/eval_queries.json and is measured by `agentbundle pack evals run`. All
-# thirteen skills are user-prompt-triggered, so none are excluded.
+# evals/eval_queries.json and is measured by `agentbundle pack evals run`.
+# Every listed skill is user-prompt-triggered, so none are excluded.
 [pack.evals]
-skills = ["intent", "align-value-stream", "frame-domain", "discovery-loop", "explore-options", "plan-validation", "ux-writing", "frame-situation", "identify-opportunities", "diverge-solutions", "place-bet", "map-capabilities", "lean-canvas"]
+skills = ["intent", "align-value-stream", "frame-domain", "discovery-loop", "explore-options", "plan-validation", "frame-situation", "identify-opportunities", "diverge-solutions", "place-bet", "map-capabilities", "lean-canvas"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
