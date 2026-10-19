@@ -3,9 +3,8 @@
 Pure functions over spec and plan text. Nothing here writes, and nothing reads
 a file except through the reader the caller passes in.
 
-The plan grammar section walks task sections and reads `Depends on:` the way
-`loop-cohort.py` does, so both read one plan the same way while that script
-remains.
+Task sections and `Depends on:` lines are read through the plan grammar in
+`_loop_guards.py`, the same grammar the loop engine schedules from.
 
 Task projection turns `### Tn: Title` sections into task-contract records. A
 task's identity is its title without the number, and its revision digests the
@@ -34,7 +33,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 __all__ = [
     "CHANGE_OWNERS",
@@ -49,71 +48,9 @@ __all__ = [
     "plan_status",
     "terminal_intent",
     "task_contract",
-    "walk_task_sections",
-    "parse_depends_on",
 ]
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
-
-# ── Plan grammar ─────────────────────────────────────────────────────────────
-# Task headings may be level 2 or level 3 (`## T<n>` or `### T<n>`).
-TASK_HEADING_RE = re.compile(r"^#{2,3}\s+(T\d+[a-z]?)\b", re.MULTILINE)
-_RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")
-_TASK_ID_RE = re.compile(r"T\d+[a-z]?")
-_CROSS_MARKER_RE = re.compile(r"spec:([A-Za-z0-9._-]+)/(T\d+[a-z]?)")
-_CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?)")
-
-
-def _local_dep_ids(field: str) -> set[str]:
-    """Local task IDs a `Depends on:` field names ahead of its first `(`.
-
-    Trailing parenthetical prose is commentary, not declaration.
-    """
-    head = field.split("(")[0]
-    cleaned = _CROSS_MARKER_RE.sub("", head)
-    cleaned = _CROSS_LEGACY_RE.sub("", cleaned)
-    if not cleaned.strip() or re.fullmatch(r"\s*none\s*", cleaned, re.IGNORECASE):
-        return set()
-    ids: set[str] = set()
-    for lo, hi in _RANGE_RE.findall(cleaned):
-        ids.update(f"T{i}" for i in range(int(lo[1:]), int(hi[1:]) + 1))
-    ids.update(_TASK_ID_RE.findall(cleaned))
-    return ids
-
-
-def parse_depends_on(field: str, local_task_ids):
-    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
-    head = field.split("(")[0]
-    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
-    return {t for t in _local_dep_ids(field) if t in local_task_ids}, cross
-
-
-class _TaskSection(NamedTuple):
-    """One plan task's boundaries, as offsets into the plan text.
-
-    `start` opens the heading; `body_start` is just past it; `end` is where the
-    next task heading begins, or the end of the text for the final task.
-    """
-
-    task_id: str
-    start: int
-    body_start: int
-    end: int
-
-
-def walk_task_sections(text: str) -> list[_TaskSection]:
-    """Return each task section's boundaries, in plan order."""
-    matches = list(TASK_HEADING_RE.finditer(text))
-    return [
-        _TaskSection(
-            task_id=m.group(1),
-            start=m.start(),
-            body_start=m.end(),
-            end=matches[i + 1].start() if i + 1 < len(matches) else len(text),
-        )
-        for i, m in enumerate(matches)
-    ]
-
 
 # ── Supervisor projection ────────────────────────────────────────────────────
 
@@ -576,10 +513,11 @@ def project_plan(plan_text: str) -> PlanProjection:
     lines, a malformed stub fence, and an unsafe stub path.
     """
     text = plan_text.replace("\r\n", "\n").replace("\r", "\n")
-    sections = walk_task_sections(text)
+    grammar = _sibling("_loop_guards.py")
+    sections = grammar.walk_task_sections(text)
     positions = [s.task_id for s in sections]
     local_ids = set(positions)
-    raw: list[tuple[_TaskSection, str, dict[str, list[str]]]] = []
+    raw: list[tuple[Any, str, dict[str, list[str]]]] = []
     outside: list[str] = text[: sections[0].start].split("\n") if sections else text.split("\n")
     for section in sections:
         heading, _, body = text[section.start : section.end].partition("\n")
@@ -630,7 +568,7 @@ def project_plan(plan_text: str) -> PlanProjection:
                 "a plan with stub fences must use LF line endings",
             )
         effects = _effect_names(field("Effects"))
-        local, _cross = parse_depends_on(field("Depends on"), local_ids)
+        local, _cross = grammar.parse_depends_on(field("Depends on"), local_ids)
         depends = [identity_of[p] for p in positions if p in local and p != section.task_id]
         pinned = {
             "title": title,
