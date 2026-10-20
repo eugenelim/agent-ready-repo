@@ -39,3 +39,15 @@ GitHub Actions `windows-latest`, Python 3.11.9, job `AgentBundle compatibility (
 Before the fixes, the evidence step never finished: the job ran to its limit, was cancelled, and its log was lost. Step limits did not end it either. Splitting the suite across one job per test isolated `TestRedactionAtTheCapAndAtScale::test_redaction_cost_stays_linear`. That test launches no process. Its parameters hold 1–2 MiB byte strings, and pytest built each test ID from them, giving IDs of 1–2 million characters. pytest copies the current test ID into the `PYTEST_CURRENT_TEST` environment variable, and Windows caps a variable at 32,767 characters. Naming each case by its label fixed it; the evidence step now takes about 4 s. That edit touches a suite AC-0025 says passes unchanged; its inputs and assertions are identical, and the owner accepted it against AC-0025 on 2026-10-14.
 
 What happened between the oversized ID and the lost runner was not observed, because no log survived. The likeliest account is that the error output carried the multi-megabyte IDs and the Actions runner stalled processing them. That part is inference.
+
+### Owner decision: Windows executable names (2026-10-20)
+
+The T1 security review found two Windows executable forms the launcher accepts: a name carrying an NTFS stream suffix (`tool.cmd::$DATA`), which the batch-file refusal does not recognise, and a UNC or device path (`\\server\share\x.exe`, `\\?\…`, `\\.\…`), which widens the check-to-launch window. The owner (eugenelim) chose to refuse both on Windows with `denied-launch-failed`: any `:` other than a drive-letter colon, and any path starting with `\\`. This makes the launcher stricter and accepts no new risk, so no Windows-host proof of how `CreateProcessW` handles stream names is needed.
+
+## T2: Owner decisions on the Git helper review (2026-10-20)
+
+The owner (eugenelim) settled the three open T2 review findings:
+
+1. **Security events.** Only a check that cannot be verified writes a `security-event.v1` line with its refusal: an unreadable `.git` entry or `commondir`, unreadable config, or `git` unavailable. Verified refusals (`unsupported-git-config`, a control-state mismatch) refuse with their stable code only, as AC-0009 states.
+2. **Run id at the store boundary.** The supervisor store path code validates the run id against `run-[0-9a-f]{16}` itself, so no `build_commit` caller can skip the check. The run id is read from committed `delivery/approvals.jsonl` without a pattern check.
+3. **User config location.** The Launch grants `git` row was falsified: without `XDG_CONFIG_HOME`, and on Windows `USERPROFILE`, `HOMEDRIVE`, and `HOMEPATH`, an out-of-helper config read cannot see a global filter or commit identity kept there, so AC-0009 misses it. The owner directs a controlled amendment that grants those variables to the out-of-helper config read only; the hardened helper's own environment is unchanged.

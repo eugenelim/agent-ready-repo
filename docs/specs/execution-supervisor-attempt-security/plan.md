@@ -166,7 +166,8 @@ Owned by: T1, T2, T3, T4.
       `*.command`, in repository or worktree config;
     - a global `filter.lfs.*` with a `.gitattributes` `filter=lfs` line.
 
-    The same global filter with no attribute that uses it does not refuse.
+    The same global filter with no attribute that uses it does not refuse, and
+    a global filter defined under `XDG_CONFIG_HOME` refuses the same way.
   - **VI-5011 (AC-0010, AC-0011):** marker files are planted for a hook,
     fsmonitor, a filter, textconv, an external diff, SSH signing, and an
     include. None of them runs during a change-set read, a stage, a commit, or
@@ -263,5 +264,7 @@ Owned by: T1, T2, T3, T4.
 
 <!-- Approvals only. -->
 
+- 2026-10-20: spec approved by eugenelim
+- 2026-10-20: plan approved by eugenelim
 - 2026-10-20: spec approved by eugenelim
 - 2026-10-20: plan approved by eugenelim

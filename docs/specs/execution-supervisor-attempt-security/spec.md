@@ -159,7 +159,7 @@ that leaves open.
 | --- | --- | --- | --- |
 | `red-proof` | Execution root minus trusted files and the Git directory | Not granted | `PATH`, `HOME`, `LANG`, `TMPDIR`; on Windows also `SYSTEMROOT`, `TEMP`, `TMP`, `PATHEXT`, `COMSPEC` |
 | `scratch` | The temporary worktree | Not granted | As `red-proof` |
-| `git` | The pinned Git and common directories, the execution root, and a scratch worktree's own Git directory | Not granted | As `red-proof`, plus `GIT_CONFIG_NOSYSTEM`, `GIT_CONFIG_GLOBAL`, and `GIT_INDEX_FILE` |
+| `git` | The pinned Git and common directories, the execution root, and a scratch worktree's own Git directory | Not granted | As `red-proof`, plus `GIT_CONFIG_NOSYSTEM`, `GIT_CONFIG_GLOBAL`, and `GIT_INDEX_FILE`; an out-of-helper config read also gets `XDG_CONFIG_HOME`, and on Windows `USERPROFILE`, `HOMEDRIVE`, and `HOMEPATH` |
 
 Without Slice 1 verified containment, write roots and network denial are
 recorded, not enforced; AC-0013 detects trusted-file writes after the run.
