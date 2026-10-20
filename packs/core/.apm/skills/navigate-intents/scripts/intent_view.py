@@ -74,6 +74,7 @@ _SOURCE_DIR = Path(__file__).resolve().parent / "view_src"
 # The script parts under ``view_src/``, in the order they are joined; this tuple owns the order.
 _SCRIPT_PARTS: tuple[str, ...] = (
     "escape.js",
+    "handover.js",
     "labels.js",
     "utilities.js",
     "data.js",

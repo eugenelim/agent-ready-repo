@@ -328,9 +328,13 @@ class Opened:
         theme: str | None = None,
         fragment: str = "",
         reduced_motion: str | None = None,
+        clipboard: bool = False,
+        no_clipboard_api: bool = False,
     ) -> None:
         self.url = path.as_uri()
+        grant: dict[str, Any] = {"permissions": ["clipboard-read", "clipboard-write"]} if clipboard else {}
         self.context = browser.new_context(
+            **grant,
             viewport={"width": width, "height": height},
             color_scheme=scheme,  # type: ignore[arg-type]
             java_script_enabled=js,
@@ -345,6 +349,8 @@ class Opened:
         self.page.on("console", lambda m: self.console.append(m.text))
         self.page.on("pageerror", lambda e: self.errors.append(str(e)))
         self.page.add_init_script(_INIT)
+        if no_clipboard_api:
+            self.page.add_init_script("delete Navigator.prototype.clipboard;")
         self.page.goto(self.url + fragment)
         if theme:
             self.page.evaluate(
@@ -1330,9 +1336,8 @@ _NEXT = {
 
 def _next_step(page: Page) -> Any:
     section = _detail_part(page, "Next step")
-    assert section.locator("p").count() == 1
-    assert section.locator("code, button, a, input").count() == 0
-    return section.locator("p").inner_text()
+    assert section.locator("p.next-step").count() == 1
+    return section.locator("p.next-step").inner_text()
 
 
 def test_ac_0015_next_step_sentences(opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path) -> None:
@@ -1366,6 +1371,20 @@ def test_ac_0015_next_step_sentences(opener: Any, exports: dict[str, pathlib.Pat
     assert model.word("intent:india-none") == "Accepted" and model.lists_children("intent:india-none")
     assert not model.beneath("intent:india-none")
     assert _next_step(_pick(parented, "intent:india-none", "browse")) == _NEXT[9]
+
+
+def test_handover_ac_0005_rules_without_a_prompt_show_none(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    for name, node, question, rule in (
+        ("incomplete", "intent:golf-new", "next", 1),
+        ("mixed", "capability:hotel-done", "browse", 2),
+        ("mixed", "spec:golf-new", "browse", 2),
+        ("mixed", "capability:alpha-cap", "noparent", 8),
+    ):
+        assert _rule_of(Model(payload_of(exports[name])), node) == rule
+        page = _pick(opener(exports[name]), node, question)
+        shown = _detail_part(page, "Next step").evaluate(_STEP_READ)
+        assert shown["codes"] == [] and shown["buttons"] == [] and shown["links"] == 0, (node, shown)
+        assert shown["blocks"] == 0 and shown["refused"] == [], (node, shown)
 
 
 def test_ac_0016_open_beneath(opener: Any, exports: dict[str, pathlib.Path]) -> None:
@@ -2066,10 +2085,10 @@ def _sweep(page: Page, limit: int = 400) -> list[dict[str, Any]]:
     return stops
 
 
-def _busy(item: Opened, payload: dict[str, Any], name: str, *, picked: bool) -> None:
+def _busy(item: Opened, payload: dict[str, Any], name: str, *, picked: bool, node: str = "") -> None:
     """Browse list fully expanded; optionally with a detail open, the Key and Record details open."""
     page = item.page
-    node = "intent:bravo-feat" if name == "mixed" else payload["nodes"][0]["id"]
+    node = node or ("intent:bravo-feat" if name == "mixed" else payload["nodes"][0]["id"])
     item.go(_frag(q="browse"))
     page.wait_for_selector("#list a.row-link")
     _expand_all(page)
@@ -2098,15 +2117,16 @@ def test_ac_0034_focus_is_never_hidden(opener: Any, exports: dict[str, pathlib.P
             assert stop["hit"] and stop["visible"], (name, picked, stop)
 
 
+_SMALL_TARGETS = """() => Array.from(document.querySelectorAll('a[href], button, input, select, summary'))
+  .map(e => [e, e.getBoundingClientRect()])
+  .filter(([e, r]) => r.width > 0 && !e.classList.contains('skip') && (r.width < 24 || r.height < 24))
+  .map(([e, r]) => e.outerHTML.slice(0, 80) + ' ' + r.width + 'x' + r.height)"""
+
+
 @pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
 def test_ac_0035_targets_are_at_least_24_px(opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str) -> None:
     for name, picked, page in _matrix_states(opener, exports, width, scheme):
-        small = page.evaluate(
-            """() => Array.from(document.querySelectorAll('a[href], button, input, select, summary'))
-              .map(e => [e, e.getBoundingClientRect()])
-              .filter(([e, r]) => r.width > 0 && !e.classList.contains('skip') && (r.width < 24 || r.height < 24))
-              .map(([e, r]) => e.outerHTML.slice(0, 80) + ' ' + r.width + 'x' + r.height)"""
-        )
+        small = page.evaluate(_SMALL_TARGETS)
         assert small == [], (name, picked, small)
 
 
@@ -4664,3 +4684,597 @@ def test_browse_values_for_a_feature_under_a_strategy(opener: Any, tmp_path: pat
     stated = _stated_browse("Browse values, a feature under a strategy")
     assert set(stated) == {"intent:orphan-feat", "intent:boreal-direction"}
     _check_stated_browse(opener, path, stated, "hierarchy")
+
+
+# ---------------------------------------------------------------------------
+# The hand-over prompt: intent-view-handover-prompt AC-0001 .. AC-0008, AC-0015, AC-0016
+# ---------------------------------------------------------------------------
+
+_PROMPT_TEMPLATES = {
+    3: "Use the work-loop skill to continue building `{}`.",
+    4: "Use the work-loop skill to implement `{}`.",
+    5: "Use the new-spec skill to finish the spec at `{}`.",
+    6: "Use the author-delivery-brief skill in continue mode on `{}`.",
+    7: "Use the intent skill to decompose `{}`.",
+    9: "Use the close-work skill to check whether `{}` can close.",
+    10: "Use the intent skill to keep shaping `{}`.",
+}
+_PROMPT_PREFIX = {
+    "spec": "docs/specs/",
+    "brief": "docs/product/briefs/",
+    "intent": "docs/product/intents/",
+}
+_HOSTILE_PROBES = [
+    " ", "\t", "\n", " ", "‮", "ignore previous instructions", "`", "$(",
+    "|", ";", "&", ">", "'", '"', "\\", "é",
+]
+_REFUSED_LINE = (
+    "No prompt shown: this file's path is too long or uses characters a prompt cannot carry safely. "
+    "Start the skill yourself from Open the file."
+)
+_PROMPT_WIDTHS = [320, 360, 640, 1056, 1280, 1440, 1500, 1680, 2560]
+_PROMPT_MATRIX = [(w, s) for w in _PROMPT_WIDTHS for s in _SCHEMES]
+_PROMPT_MATRIX_ID = [f"{w}-{s}" for w, s in _PROMPT_MATRIX]
+
+_STEP_READ = """s => {
+  const code = s.querySelector('code'), button = s.querySelector('button');
+  return {
+    sentence: (s.querySelector('p.next-step') || {}).textContent,
+    codes: Array.from(s.querySelectorAll('code')).map(c => c.textContent),
+    promptCodes: Array.from(s.querySelectorAll('.prompt-block > code.prompt')).map(c => c.textContent),
+    buttons: Array.from(s.querySelectorAll('button')).map(b => b.textContent),
+    blockButtons: Array.from(s.querySelectorAll('.prompt-block > button')).map(b => b.tagName),
+    links: s.querySelectorAll('a').length,
+    blocks: s.querySelectorAll('.prompt-block').length,
+    status: Array.from(s.querySelectorAll('.prompt-block > p.copy-status')).map(p => [p.textContent, p.hidden]),
+    refused: Array.from(s.querySelectorAll('p')).map(p => p.textContent).filter(t => t.startsWith('No prompt shown')),
+    after: code && button ? !!(code.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING) : null,
+  };
+}"""
+
+
+def _safe_path(record_type: str, path: Any) -> bool:
+    """The spec's safe-path term, written from its words."""
+    if not isinstance(path, str) or len(path) > 200:
+        return False
+    prefix = _PROMPT_PREFIX.get(record_type)
+    if prefix is None or not path.startswith(prefix) or not path.endswith(".md"):
+        return False
+    return all(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}", seg) for seg in path.split("/"))
+
+
+def _rule_of(model: Model, node_id: str) -> int:
+    """The session-start spec's next-step rule (1 to 10) of a record, from the payload alone."""
+    if not model.available:
+        return 1
+    if node_id not in model.open:
+        return 2
+    record_type = model.nodes[node_id]["type"]
+    word = model.word(node_id)
+    if record_type == "spec":
+        return 3 if word == "Implementing" else (4 if word == "Approved" else 5)
+    if record_type == "brief":
+        return 6
+    if word == "Accepted":
+        if not model.lists_children(node_id):
+            return 7
+        return 8 if model.beneath(node_id) else 9
+    return 10
+
+
+def _step_ids(model: Model) -> list[str]:
+    """Every spec, every brief and every intent that has a record."""
+    return [i for i, n in model.nodes.items() if n["type"] != "intent" or i in model.records]
+
+
+def _prompt_ids(model: Model) -> list[str]:
+    return [i for i in _step_ids(model) if _rule_of(model, i) in _PROMPT_TEMPLATES]
+
+
+def _check_step(item: Opened, model: Model, node_id: str) -> str:
+    """Pick the record, assert "Next step" against the Python reading, and return what it showed."""
+    page = _pick(item, node_id, "browse")
+    shown = _detail_part(page, "Next step").evaluate(_STEP_READ)
+    rule = _rule_of(model, node_id)
+    record_type = model.nodes[node_id]["type"]
+    path = model.nodes[node_id].get("path")
+    label = (node_id, rule, path)
+    if rule not in _PROMPT_TEMPLATES:
+        assert shown["codes"] == [] and shown["buttons"] == [] and shown["links"] == 0, (label, shown)
+        assert shown["blocks"] == 0 and shown["refused"] == [], (label, shown)
+        return "none"
+    if _safe_path(record_type, path):
+        assert shown["promptCodes"] == [_PROMPT_TEMPLATES[rule].format(path)], (label, shown)
+        assert shown["codes"] == shown["promptCodes"] and shown["blocks"] == 1, (label, shown)
+        assert shown["buttons"] == ["Copy prompt"] and shown["blockButtons"] == ["BUTTON"], (label, shown)
+        assert shown["after"] is True and shown["refused"] == [], (label, shown)
+        assert shown["status"] == [["", True]], (label, shown)
+        return "prompt"
+    assert shown["refused"] == [_REFUSED_LINE], (label, shown)
+    assert shown["codes"] == [] and shown["buttons"] == [] and shown["blocks"] == 0, (label, shown)
+    return "refused"
+
+
+def _with_paths(src: pathlib.Path, dst: pathlib.Path, paths: dict[str, str]) -> pathlib.Path:
+    """A copy of an export whose nodes carry the given paths (the only place the view reads one)."""
+
+    def edit(payload: dict[str, Any]) -> dict[str, Any]:
+        for node in payload["nodes"]:
+            if node["id"] in paths:
+                node["path"] = paths[node["id"]]
+        return payload
+
+    return _rewrite(src, dst, edit)
+
+
+def _long_path_corpus(tmp: pathlib.Path) -> pathlib.Path:
+    """The mixed corpus plus an Implementing spec in a directory named ``long-`` and 115 ``a``."""
+    root = tmp / "long_path"
+    shutil.copytree(_FIXTURES / "mixed", root)
+    spec = root / "docs/specs" / ("long-" + "a" * 115)
+    spec.mkdir(parents=True)
+    (spec / "spec.md").write_text(
+        "# Spec: Long path\n\n- **Status:** Implementing\n- **Brief:** brief:bravo-delivery\n"
+        "- **Discovery:** intent:bravo-feat\n- **Owner:** placeholder-owner\n\n## Outcome\n\nPlaceholder.\n",
+        encoding="utf-8",
+    )
+    return root
+
+
+def _hostile_names_corpus(tmp: pathlib.Path) -> pathlib.Path:
+    """The hostile corpus plus, per probe, an intent file, a brief file and a spec directory named with it."""
+    root = tmp / "hostile_names"
+    shutil.copytree(_FIXTURES / "hostile", root)
+    for number, probe in enumerate(_HOSTILE_PROBES, start=10):
+        name = f"x{probe}y"
+        (root / f"docs/product/intents/FEAT-{number:04d}-{name}.md").write_text(
+            f"# Feature: Named {number}\n\n- **Slug:** `named-{number}`\n- **Status:** Draft\n"
+            "- **Level:** feature\n- **Owner:** placeholder-owner\n- **Parent intent:** none\n\n## Outcome\n\nPlaceholder.\n",
+            encoding="utf-8",
+        )
+        (root / f"docs/product/briefs/{name}.md").write_text(
+            f"# Brief: Named {number}\n\n- **Slug:** `named-brief-{number}`\n- **Received:** 2026-01-01\n"
+            "- **Owner:** placeholder-owner\n- **Status:** Draft\n- **Parent intent:** none\n\n## Outcome\n\nPlaceholder.\n",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs/specs" / name
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text(
+            f"# Spec: Named {number}\n\n- **Status:** Draft\n- **Brief:** none\n- **Discovery:** none\n"
+            "- **Owner:** placeholder-owner\n\n## Outcome\n\nPlaceholder.\n",
+            encoding="utf-8",
+        )
+    return root
+
+
+def _boundary_probes(record_type: str) -> list[tuple[str, bool]]:
+    """The four limit probes for a type, each with its literal outcome (True: a prompt shows).
+
+    A last segment of exactly 100 characters (101 refused), then a multi-segment path of exactly
+    200 characters (201 refused) whose every segment is at most 100, so length alone decides.
+    """
+    prefix = _PROMPT_PREFIX[record_type]
+    if record_type == "spec":  # the spec.md segment is fixed, so the long segment is the directory
+        def one(n: int) -> str:
+            return f"{prefix}{'a' * n}/spec.md"
+
+        def two(total: int) -> str:
+            rest = total - len(prefix) - len("/spec.md") - 1  # two directory names and a slash
+            return f"{prefix}{'a' * (rest // 2)}/{'a' * (rest - rest // 2)}/spec.md"
+    else:
+        def one(n: int) -> str:
+            return f"{prefix}{'a' * (n - 3)}.md"
+
+        def two(total: int) -> str:
+            rest = total - len(prefix) - len(".md") - 1  # a directory name, a slash and a file stem
+            return f"{prefix}{'a' * (rest // 2)}/{'a' * (rest - rest // 2)}.md"
+
+    probes = [(one(100), True), (one(101), False), (two(200), True), (two(201), False)]
+    assert [len(p) for p, _ in probes][2:] == [200, 201]
+    for path, _ in probes:
+        assert max(len(seg) for seg in path.split("/")) <= 101
+    assert [len(path.split("/")[-2 if record_type == "spec" else -1]) for path, _ in probes[:2]] == [100, 101]
+    return probes
+
+
+def _probe_paths() -> dict[str, list[str]]:
+    """AC-0008's probe set, per record type; every type's list has the same length."""
+    by_type: dict[str, list[str]] = {}
+    for record_type, prefix in _PROMPT_PREFIX.items():
+        safe = f"{prefix}thing/spec.md"
+        paths = [
+            safe,
+            *[path for path, _ in _boundary_probes(record_type)],
+            safe[:-3],
+            f"{prefix}x//spec.md",
+            f"{prefix}./spec.md",
+            f"{prefix}../spec.md",
+            "/" + safe,
+        ]
+        paths += [pre + "thing/spec.md" for other, pre in _PROMPT_PREFIX.items() if other != record_type]
+        for probe in _HOSTILE_PROBES:
+            paths += [f"{prefix}th{probe}ing/spec.md", f"{prefix}thing/spec{probe}.md"]
+        by_type[record_type] = paths
+    return by_type
+
+
+def _probe_path(record_type: str, probe: str) -> str:
+    """A path that would be safe for the type but for the probe inside one segment."""
+    prefix = _PROMPT_PREFIX[record_type]
+    return f"{prefix}x{probe}y/spec.md" if record_type == "spec" else f"{prefix}x{probe}y.md"
+
+
+@pytest.fixture(scope="module")
+def prompt_exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
+    tmp = tmp_path_factory.mktemp("prompt")
+    out = tmp / "out"
+    found: dict[str, Any] = {}
+    found["long_path"] = _export(_long_path_corpus(tmp), out, "long_path.html")
+    found["hostile_names"] = _export(_hostile_names_corpus(tmp), out, "hostile_names.html")
+    return found
+
+
+def _first_prompt_ids(model: Model) -> dict[str, str]:
+    """One record per type that has a prompt rule."""
+    found: dict[str, str] = {}
+    for node_id in _prompt_ids(model):
+        found.setdefault(model.nodes[node_id]["type"], node_id)
+    return found
+
+
+def test_handover_ac_0001_and_0002_each_template_and_the_button_order(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    cases = (
+        ("mixed", "spec:bravo-spec", 3, "Use the work-loop skill to continue building `docs/specs/bravo-spec/spec.md`."),
+        ("roadmap", "spec:anchor-sub-spec-two", 4, "Use the work-loop skill to implement `docs/specs/anchor-sub-spec-two/spec.md`."),
+        ("mixed", "spec:charlie-spec", 5, "Use the new-spec skill to finish the spec at `docs/specs/charlie-spec/spec.md`."),
+        ("mixed", "brief:bravo-delivery", 6, "Use the author-delivery-brief skill in continue mode on `docs/product/briefs/bravo-delivery.md`."),
+        ("mixed", "intent:india-none", 7, "Use the intent skill to decompose `docs/product/intents/FEAT-0005-india-none.md`."),
+        ("india_parent", "intent:india-none", 9, "Use the close-work skill to check whether `docs/product/intents/FEAT-0005-india-none.md` can close."),
+        ("mixed", "intent:golf-new", 10, "Use the intent skill to keep shaping `docs/product/intents/FEAT-0004-golf-new.md`."),
+    )
+    for name, node, rule, want in cases:
+        model = Model(payload_of(exports[name]))
+        assert _rule_of(model, node) == rule, (name, node)
+        page = _pick(opener(exports[name]), node, "browse")
+        section = _detail_part(page, "Next step")
+        shown = section.evaluate(_STEP_READ)
+        assert shown["promptCodes"] == [want], (node, shown)  # AC-0001
+        assert shown["codes"] == [want] and shown["blocks"] == 1, (node, shown)
+        assert shown["buttons"] == ["Copy prompt"] and shown["blockButtons"] == ["BUTTON"], (node, shown)  # AC-0002
+        assert shown["after"] is True, (node, shown)
+        assert section.locator("code.prompt").text_content() == want
+        assert section.locator("p.next-step + .prompt-block").count() == 1
+
+
+def test_handover_ac_0003_a_path_that_is_too_long_shows_the_reason(
+    opener: Any, prompt_exports: dict[str, Any]
+) -> None:
+    export = prompt_exports["long_path"]
+    model = Model(payload_of(export))
+    long_ids = [n["id"] for n in model.nodes.values() if n["path"].startswith("docs/specs/long-")]
+    assert len(long_ids) == 1
+    assert _rule_of(model, long_ids[0]) == 3
+    assert len(model.nodes[long_ids[0]]["path"]) > 100
+    item = opener(export)
+    assert _check_step(item, model, long_ids[0]) == "refused"
+    page = item.page
+    assert _detail_part(page, "Next step").locator("code, button, .prompt-block").count() == 0
+    assert _check_step(item, model, "spec:bravo-spec") == "prompt"
+
+
+def test_handover_ac_0004_each_hostile_probe_in_a_record_path_is_refused(
+    opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    model = Model(payload_of(exports["mixed"]))
+    targets = _prompt_ids(model)
+    assert targets
+    exports_made = (len(_HOSTILE_PROBES) + len(targets) - 1) // len(targets)
+    seen: set[str] = set()
+    for number in range(exports_made):
+        paths: dict[str, str] = {}
+        for slot, node_id in enumerate(targets):
+            index = number * len(targets) + slot
+            if index < len(_HOSTILE_PROBES):
+                probe = _HOSTILE_PROBES[index]
+                paths[node_id] = _probe_path(model.nodes[node_id]["type"], probe)
+                seen.add(probe)
+        export = _with_paths(exports["mixed"], tmp_path / f"probed-{number}.html", paths)
+        rewritten = Model(payload_of(export))
+        item = opener(export)
+        for node_id in paths:
+            assert _check_step(item, rewritten, node_id) == "refused", (node_id, paths[node_id])
+        for node_id in targets:
+            if node_id not in paths:
+                assert _check_step(item, rewritten, node_id) == "prompt", node_id
+    assert seen == set(_HOSTILE_PROBES)
+
+
+def test_handover_ac_0006_every_prompt_record_shows_its_template(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    rules: set[int] = set()
+    for name in ("mixed", "india_parent", "roadmap"):
+        model = Model(payload_of(exports[name]))
+        item = opener(exports[name])
+        for node_id in _step_ids(model):
+            if _check_step(item, model, node_id) == "prompt":
+                rules.add(_rule_of(model, node_id))
+    assert rules == set(_PROMPT_TEMPLATES)
+
+
+def test_handover_ac_0007_hostile_file_names_never_reach_a_node_path(
+    opener: Any, exports: dict[str, pathlib.Path], prompt_exports: dict[str, Any]
+) -> None:
+    export = prompt_exports["hostile_names"]
+    payload = payload_of(export)
+    for node in payload["nodes"]:
+        for probe in _HOSTILE_PROBES:
+            assert probe not in node["path"], (node["id"], probe)
+    original = Model(payload_of(exports["hostile"]))
+    model = Model(payload)
+    item = opener(export)
+    expected = [i for i in _prompt_ids(original) if _safe_path(original.nodes[i]["type"], original.nodes[i]["path"])]
+    assert expected
+    for node_id in expected:
+        assert node_id in model.nodes
+        assert _check_step(item, model, node_id) == "prompt", node_id
+    for node_id in _prompt_ids(model):
+        assert _check_step(item, model, node_id) in ("prompt", "refused")
+
+
+def test_handover_ac_0008_prompt_block_exactly_when_the_path_is_safe(
+    opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    model = Model(payload_of(exports["mixed"]))
+    chosen = _first_prompt_ids(model)
+    assert set(chosen) == set(_PROMPT_PREFIX)
+    probes = _probe_paths()
+    count = len(probes["spec"])
+    assert {len(v) for v in probes.values()} == {count}
+    outcomes: set[tuple[str, str]] = set()
+    literal = 0
+    for index in range(count):
+        paths = {chosen[t]: probes[t][index] for t in _PROMPT_PREFIX}
+        export = _with_paths(exports["mixed"], tmp_path / f"probe-{index}.html", paths)
+        rewritten = Model(payload_of(export))
+        item = opener(export)
+        for record_type, node_id in chosen.items():
+            outcome = _check_step(item, rewritten, node_id)
+            outcomes.add((record_type, outcome))
+            boundary = dict(_boundary_probes(record_type))
+            if probes[record_type][index] in boundary:  # the four limit probes: literal outcomes
+                assert outcome == ("prompt" if boundary[probes[record_type][index]] else "refused"), (record_type, index)
+                literal += 1
+        item.close()
+    assert literal == 4 * len(_PROMPT_PREFIX)
+    assert outcomes == {(t, o) for t in _PROMPT_PREFIX for o in ("prompt", "refused")}
+
+
+def _overlaps(a: dict[str, float], b: dict[str, float]) -> bool:
+    return a["left"] < b["right"] and b["left"] < a["right"] and a["top"] < b["bottom"] and b["top"] < a["bottom"]
+
+
+@pytest.mark.parametrize(("width", "scheme"), _PROMPT_MATRIX, ids=_PROMPT_MATRIX_ID)
+def test_handover_ac_0015_a_200_character_path_stays_inside_the_detail_zone(
+    opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path, width: int, scheme: str
+) -> None:
+    path = "docs/specs/" + "a" * 100 + "/" + "b" * 80 + "/spec.md"
+    assert len(path) == 200 and _safe_path("spec", path)
+    export = _with_paths(exports["mixed"], tmp_path / "wide-path.html", {"spec:bravo-spec": path})
+    item = opener(export, width=width, height=700, scheme=scheme)
+    model = Model(payload_of(export))
+    assert _check_step(item, model, "spec:bravo-spec") == "prompt"
+    page = item.page
+    page.locator(".prompt-block").scroll_into_view_if_needed()  # the zone may scroll inside itself
+    code, button, zone = _rect(page, "code.prompt"), _rect(page, ".prompt-block > button"), _rect(page, ".detail")
+    assert not _overlaps(code, button), (code, button)
+    for box in (code, button):
+        assert box["left"] >= zone["left"] - 1 and box["right"] <= zone["right"] + 1, (box, zone)
+        assert box["top"] >= zone["top"] - 1 and box["bottom"] <= zone["bottom"] + 1, (box, zone)
+    assert page.evaluate("document.documentElement.scrollWidth") <= width
+
+
+@pytest.mark.parametrize("refused", [False, True], ids=["fresh", "after-refused-copy"])
+@pytest.mark.parametrize(("width", "scheme"), _PROMPT_MATRIX, ids=_PROMPT_MATRIX_ID)
+def test_handover_ac_0016_session_start_access_criteria_hold_with_a_prompt_picked(
+    opener: Any, exports: dict[str, pathlib.Path], width: int, scheme: str, refused: bool
+) -> None:
+    checked = 0
+    for name in _MATRIX_EXPORTS:
+        payload = payload_of(exports[name])
+        node = _prompt_ids(Model(payload))[0]
+        item = opener(exports[name], width=width, height=700, scheme=scheme)
+        _busy(item, payload, name, picked=True, node=node)
+        page = item.page
+        assert page.locator("#detail-body code.prompt").count() == 1, (name, node)
+        if refused:  # the default context withholds the clipboard permission, so the copy is refused
+            page.locator("#detail-body .prompt-block > button").click()
+            page.wait_for_selector("#detail-body .copy-status", state="visible")
+        stops = _sweep(page)  # session-start AC-0034 and AC-0037
+        assert len(stops) > 10, (name, len(stops))
+        for stop in stops:
+            assert stop["hit"] and stop["visible"], (name, stop)
+            assert stop["outlineStyle"] == "solid" and stop["outlineWidth"] >= 2, (name, stop)
+            assert _ratio(_rgb(stop["outlineColor"]), _rgb(stop["bg"])) >= 3, (name, stop)
+        assert "Copy prompt" in [s["text"] for s in stops], name
+        assert page.evaluate(_SMALL_TARGETS) == [], name  # AC-0035
+        assert page.evaluate("getComputedStyle(document.body).backgroundColor") == _canvas_rgb(scheme)
+        rows = _contrast_report(page)  # AC-0036
+        checked += len(rows)
+        assert not [r for r in rows if r[1] < 4.5], (name, [r for r in rows if r[1] < 4.5][:5])
+        for accessible, label in _accessible_names(page):  # AC-0041
+            assert accessible.strip() and _squash(label) in _squash(accessible), (name, accessible, label)
+    assert checked > 100
+
+
+# Copying the prompt: intent-view-handover-prompt AC-0010 .. AC-0014, AC-0017, AC-0018
+
+_COPY_BUTTON = "#detail-body .prompt-block > button"
+_COPY_STATUS = "#detail-body .prompt-block > p.copy-status"
+_COPY_REFUSED_LINE = "Copy didn't work here. Press Ctrl+C or \u2318C to copy the selected prompt."
+_SELECTED = "() => String(window.getSelection())"
+
+
+def _clipboard_text(page: Page) -> str:
+    return page.evaluate("navigator.clipboard.readText()")  # type: ignore[no-any-return]
+
+
+def _prompt_pick(item: Opened, exports: dict[str, pathlib.Path]) -> Page:
+    page = _pick(item, "spec:bravo-spec", "browse")
+    assert page.locator(_COPY_BUTTON).count() == 1
+    return page
+
+
+def test_handover_ac_0010_and_0011_click_enter_and_space_each_copy_the_prompt(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["mixed"], clipboard=True)
+    for trigger in ("click", "Enter", "Space"):
+        item.go(_frag(q="browse"))  # leave, so each trigger meets a fresh button
+        page = _prompt_pick(item, exports)
+        want = page.locator("#detail-body code.prompt").text_content()
+        assert want
+        page.evaluate("navigator.clipboard.writeText('stale')")
+        page.evaluate("document.getElementById('live').textContent = ''")
+        button = page.locator(_COPY_BUTTON)
+        if trigger == "click":
+            button.click()
+        else:
+            button.focus()
+            page.keyboard.press("Enter" if trigger == "Enter" else " ")
+        page.wait_for_function("() => document.querySelector('#detail-body .prompt-block > button').textContent === 'Copied'")
+        assert _clipboard_text(page) == want, trigger  # AC-0010
+        assert _live(page, "Prompt copied") == "Prompt copied", trigger  # AC-0011
+        assert page.locator(_COPY_STATUS).is_hidden()
+    assert item.errors == []
+
+
+def test_handover_ac_0012_a_fresh_detail_resets_the_button(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["mixed"], clipboard=True)
+    model = Model(payload_of(exports["mixed"]))
+    other = next(i for i in _prompt_ids(model) if i != "spec:bravo-spec")
+
+    def copied() -> Page:
+        page = _prompt_pick(item, exports)
+        page.locator(_COPY_BUTTON).click()
+        page.wait_for_function("() => document.querySelector('#detail-body .prompt-block > button').textContent === 'Copied'")
+        return page
+
+    def shown_labels(page: Page) -> list[str]:
+        return page.eval_on_selector_all(".copy-prompt", "els => els.map(b => b.textContent)")  # type: ignore[no-any-return]
+
+    page = copied()
+    _pick(item, other, "browse")  # another record with a prompt
+    assert shown_labels(page) == ["Copy prompt"]
+    page = copied()
+    _choose(item, "broken", node="spec:bravo-spec")  # a question
+    assert set(shown_labels(page)) <= {"Copy prompt"}
+    page = copied()
+    page.fill("#search", "bravo")  # a search
+    page.wait_for_function("() => location.hash.includes('search=')")
+    assert set(shown_labels(page)) <= {"Copy prompt"}
+    page = copied()
+    item.go(_frag(q="browse", node="spec:bravo-spec", type="spec"))  # a filter
+    assert set(shown_labels(page)) <= {"Copy prompt"}
+    assert page.locator("button", has_text="Copied").count() == 0
+
+
+@pytest.mark.parametrize("mode", ["refused", "absent"])
+def test_handover_ac_0013_a_refused_copy_selects_the_prompt(
+    opener: Any, exports: dict[str, pathlib.Path], mode: str
+) -> None:
+    item = opener(exports["mixed"], no_clipboard_api=(mode == "absent"))
+    page = _prompt_pick(item, exports)
+    want = page.locator("#detail-body code.prompt").text_content()
+    assert page.locator(_COPY_STATUS).is_hidden()
+    page.locator(_COPY_BUTTON).click()
+    page.wait_for_function("() => !document.querySelector('#detail-body .copy-status').hidden")
+    assert page.evaluate(_SELECTED) == want
+    assert page.locator(_COPY_STATUS).text_content() == _COPY_REFUSED_LINE
+    assert _live(page, "Copy didn't work") == _COPY_REFUSED_LINE
+    assert page.locator(_COPY_BUTTON).text_content() == "Copy prompt"
+    assert item.errors == []
+
+
+@pytest.mark.parametrize("order", [(True, False), (False, True)], ids=["granted-then-refused", "refused-then-granted"])
+def test_handover_each_copy_outcome_clears_the_other(
+    opener: Any, exports: dict[str, pathlib.Path], order: tuple[bool, bool]
+) -> None:
+    item = opener(exports["mixed"], clipboard=True)
+    page = _prompt_pick(item, exports)
+    page.evaluate(
+        """() => {
+          const real = navigator.clipboard.writeText.bind(navigator.clipboard);
+          navigator.clipboard.writeText = (t) => (window.__refuseCopy ? Promise.reject(new Error('refused')) : real(t));
+        }"""
+    )
+    for grant in order:
+        page.evaluate("refuse => { window.__refuseCopy = refuse; }", not grant)
+        page.locator(_COPY_BUTTON).click()
+        if grant:
+            page.wait_for_function(f"() => document.querySelector('{_COPY_BUTTON}').textContent === 'Copied'")
+            assert page.locator(_COPY_STATUS).is_hidden()
+            assert _live(page, "Prompt copied") == "Prompt copied"
+        else:
+            page.wait_for_function("() => !document.querySelector('#detail-body .copy-status').hidden")
+            assert page.locator(_COPY_BUTTON).text_content() == "Copy prompt"
+            assert page.locator(_COPY_STATUS).text_content() == _COPY_REFUSED_LINE
+            assert _live(page, "Copy didn't work") == _COPY_REFUSED_LINE
+    assert item.errors == []
+
+
+def test_handover_ac_0014_copy_makes_no_request_and_no_policy_violation(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    for clip in (True, False):
+        item = opener(exports["mixed"], clipboard=clip)
+        page = _prompt_pick(item, exports)
+        page.locator(_COPY_BUTTON).click()
+        page.wait_for_function(
+            "() => document.querySelector('#detail-body .prompt-block > button').textContent === 'Copied'"
+            " || !document.querySelector('#detail-body .copy-status').hidden"
+        )
+        assert set(item.requests) == {item.url}, item.requests
+        assert page.evaluate("window.__csp") == []
+        assert not [m for m in item.console if "Content Security Policy" in m or "Refused" in m]
+        assert item.errors == []
+
+
+@pytest.mark.parametrize("clip", [True, False], ids=["granted", "refused"])
+def test_handover_ac_0017_keyboard_only_reaches_and_activates_copy_and_keeps_focus(
+    opener: Any, exports: dict[str, pathlib.Path], clip: bool
+) -> None:
+    item = opener(exports["mixed"], clipboard=clip)
+    page = _prompt_pick(item, exports)
+    page.evaluate("document.getElementById('detail-heading').focus()")
+    for _ in range(30):
+        page.keyboard.press("Tab")
+        if page.evaluate("document.activeElement.classList.contains('copy-prompt')"):
+            break
+    else:
+        pytest.fail("Tab never reached Copy prompt")
+    page.keyboard.press("Enter")
+    page.wait_for_function(
+        "() => document.activeElement.textContent === 'Copied' || !document.querySelector('#detail-body .copy-status').hidden"
+    )
+    assert page.evaluate("document.activeElement.classList.contains('copy-prompt')")
+    assert page.locator(_COPY_BUTTON).text_content() == ("Copied" if clip else "Copy prompt")
+
+
+def test_handover_ac_0018_reduced_motion_keeps_the_prompt_block_still(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["mixed"], reduced_motion="reduce")
+    page = _prompt_pick(item, exports)
+    page.locator(_COPY_BUTTON).click()  # also covers the refused state, with its status line shown
+    bad = page.evaluate(
+        """() => [...document.querySelectorAll('.prompt-block, .prompt-block *')].flatMap((e) => {
+          const cs = getComputedStyle(e);
+          return ['transitionDuration', 'animationDuration']
+            .filter((p) => cs[p].split(',').some((d) => d.trim() !== '0s')).map((p) => e.tagName + ' ' + p + '=' + cs[p]);
+        })"""
+    )
+    assert bad == [], bad
+    assert page.locator(".prompt-block *").count() >= 3

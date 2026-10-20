@@ -5,6 +5,7 @@
 - **Owner:** Platform Core maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 D3; RFC-0105 D1–D5; RFC-0103 D2; RFC-0108 D1; ADR-0074
+- **Amended in part by:** [intent-view-handover-prompt](../intent-view-handover-prompt/spec.md) — the Never-do "Show readiness or a copyable prompt…", narrowed for the prompt only, as that spec's `Amends:` line states.
 - **Amends:** [intent-navigation](../intent-navigation/spec.md) criteria 0003 and 0013; [intent-navigation-export](../intent-navigation-export/spec.md) criterion 0001; [intent-view-session-start](../intent-view-session-start/spec.md) its broken-entry term and criteria 0006, 0013, 0014, 0017, 0019, 0022, 0030, 0038 and 0042. § *Amended predecessor criteria* states each change. The shipped specs are historical records and are not edited; this spec is where the amendments live.
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

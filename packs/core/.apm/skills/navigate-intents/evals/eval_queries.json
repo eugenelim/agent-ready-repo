@@ -222,5 +222,9 @@
   {
     "query": "Export an offline view showing how far along each capability is, so I can report progress to leadership",
     "should_trigger": true
+  },
+  {
+    "query": "Export an offline view of the intents with a copyable prompt I can paste to hand a picked item to the right skill",
+    "should_trigger": true
   }
 ]

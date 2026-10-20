@@ -42,9 +42,3 @@
     }
     return out;
   }
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { escapeDisplay: escapeDisplay };
-  }
-  if (typeof document === 'undefined') { return; }
-

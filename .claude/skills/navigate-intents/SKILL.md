@@ -240,8 +240,8 @@ A header search
 covers intents, briefs, and specs.  Each
 row leads with the human name, shows its state as a word plus a shape, and
 carries a context tag; a Key opens on demand.  Picking a row shows a detail
-panel with the state line, a Next step (which skill to use and why, in plain
-words), what is open beneath it, what is broken, where it sits, a Dependencies part, a link to the
+panel with the state line, a Next step (what to do and why, in plain
+words, with a ready-to-paste prompt where a skill can start the work), what is open beneath it, what is broken, where it sits, a Dependencies part, a link to the
 source file, and collapsed record details.  The Dependencies part shows what the intent
 waits for and what waits for it as "A waits for B" lines, with Show
 (prerequisites, dependents, or both) and Steps controls and any problems listed
@@ -271,6 +271,13 @@ object carries ``path`` (the file's absolute path), ``bytes``, and ``scope``;
 tell the user the path.  An ``error`` object carries ``error.code``,
 ``error.message``, ``error.limits``, and ``error.observed``.  Exit codes: 0 on
 ``ok``, 1 on ``error``, 2 when the argument parser rejects the command.
+
+The prompt is one fixed sentence that names the skill and holds only the
+item's file path in backticks; nothing written in a record is added.  A
+"Copy prompt" button copies it.  If the browser refuses the clipboard, the page
+selects the prompt and says to press Ctrl+C or Cmd+C.  If the path is too long
+or uses characters a prompt cannot carry safely, the page says so and shows no
+prompt.  Some next steps carry no prompt.  The page never launches anything.
 
 The file holds exactly the facts ``query`` returns over the same corpus
 (summary, each intent's record, outstanding work, nodes, edges, dependency
