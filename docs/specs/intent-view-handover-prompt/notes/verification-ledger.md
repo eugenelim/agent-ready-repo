@@ -194,8 +194,8 @@ The table gives each review round's result and the commit it reviewed. A report 
 | `adversarial-reviewer` | adjudicated: 1 Blocker, 1 Concern, 4 Nits; 2 refuted | adjudicated: 1 Concern, 1 Nit | round 3 adjudicated: 1 Concern; round 4 adjudicated: 1 Blocker, 2 Concerns, 1 Nit; round 5 adjudicated: 1 Blocker (AC-0021 screen coverage), 2 Nits — all on this ledger and repaired; round 6 reviews the repair |
 | `security-reviewer` | clean with a footer; adjudicated clean | clean with a footer; adjudicated clean | not re-run: later commits change documentation, coordination files and core's version field only, and cross no security boundary |
 | `quality-engineer` | adjudicated: 1 Blocker; 5 refuted | clean, not adjudicated | not re-run |
-| `experience-reviewer` (AC-0021 gate) | adjudicated: 1 Minor; 5 refuted (opened all 16 screens at `4ddd94863`) | 1 Nit only, not adjudicated; deferred by the author (opened 9 of 16 screens) | round 3 at `1b060b93d` opened all 16 screens and confirmed every hash against this ledger: no Blocker or Major raised; its adjudication was not complete when the owner directed the merge |
-| Visual-polish pass (general-purpose) | adjudicated: clean; 7 refuted (opened all 16 screens at `4ddd94863`) | round 2 at `1b060b93d` opened all 16 screens: no Blocker or Major raised (1 Minor, the notice type-size point already deferred, and 1 Nit on a 3px inset); its adjudication was not complete when the owner directed the merge | — |
+| `experience-reviewer` (AC-0021 gate) | adjudicated: 1 Minor; 5 refuted (opened all 16 screens at `4ddd94863`) | 1 Nit only, not adjudicated; deferred by the author (opened 9 of 16 screens) | round 3 at `1b060b93d` opened all 16 screens and confirmed every hash against this ledger: adjudicated clean; its 2 Minors and 2 Nits refuted (AC-0003 fixes the refusal wording; the hostile-path display is a synthetic payload rewrite) |
+| Visual-polish pass (general-purpose) | adjudicated: clean; 7 refuted (opened all 16 screens at `4ddd94863`) | round 2 at `1b060b93d` opened all 16 screens: adjudicated clean; its 2 Minors (the notice type size, kept on purpose) and 1 Nit (a 3px inset) refuted as preferences | — |
 | `frontend-reviewer` stand-in (general-purpose; the role is not installed) | adjudicated: 1 Concern, 1 Nit; 1 refuted | clean, not adjudicated | not re-run |
 
 What the sustained findings changed:
@@ -220,7 +220,7 @@ Command: `PYTHONPATH=packages/agentbundle:packages/credbroker uv run --no-projec
 
 ## AC-0021
 
-The adjudicated round-1 experience review leaves 1 Minor and no Major or Blocker. That Minor was repaired. The round-2 experience review, over the repaired screens, holds 1 Nit and no Major or Blocker. The author defers that Nit: the copy-failure notice keeps the smaller muted meta text while the refusal notice uses body text, because the copy line is a short status tied to its button and the refusal line replaces the prompt.
+The adjudicated round-1 experience review leaves 1 Minor and no Major or Blocker. That Minor was repaired. The round-2 experience review opened 9 of the 16 repaired screens and holds 1 Nit and no Major or Blocker; the round-3 review opened all 16, confirmed their hashes, and is clean after adjudication. The author defers that Nit: the copy-failure notice keeps the smaller muted meta text while the refusal notice uses body text, because the copy line is a short status tied to its button and the refusal line replaces the prompt.
 
 ## CI dispatches
 
