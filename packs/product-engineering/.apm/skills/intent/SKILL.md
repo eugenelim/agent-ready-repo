@@ -59,6 +59,11 @@ another skill.
      `de-risk`. It is advisory.
 2. `de-risk` (intent mode): test the riskiest assumption and reach a survive or
    kill verdict.
+   - Then, before `decompose`: `architect-design` (separate skill) is offered to
+     design the architecture when it is in your available-skills roster, as
+     § Architecture before the cut says. The user may decline it. If it is not in
+     the roster, continue with this skill's own behaviour and say nothing about
+     it: no mention, no note, and no error.
 3. `decompose` (intent mode): break the bet into the next level down.
 4. Hand-off to build through `work-intake` (separate skill).
    - Review: after the hand-off, the owning skill runs its own review gates. It
@@ -78,6 +83,31 @@ another skill.
 1. `discovery-loop` (separate skill) runs a whole-product idea through its own
    gates. It calls `intent frame` at G0, `intent de-risk` and `intent decompose`
    at G1, and `intent decompose` at G3. While it runs, its gate order wins.
+
+### Architecture before the cut
+
+On the short route, the architecture is designed after `de-risk` and before
+`decompose`. Check your available-skills roster for `architect-design`. When it
+is there, offer it before the cut unless a design already covers the intent or
+the user declined it for this intent. The offer is a default the user may
+decline; never start it yourself. If it is not in the roster, continue with this
+skill's own behaviour and say nothing about it: no mention, no note, and no
+error.
+
+Pick the scope from the intent's level:
+
+| Level | Scope |
+| --- | --- |
+| `product-vision` or `product-strategy` | `application/system` |
+| `capability` | `subsystem` when the system it belongs to already runs; otherwise `application/system` |
+| `feature` | `architecture change` |
+
+A design covers an intent when it is a resolved `architecture-design` artifact
+made for that intent or for one of its ancestors, and it names the system or
+subsystem the intent changes. When the user declines `architect-design` for an
+intent, do not offer it again for that intent in this conversation. Choosing
+another offered option counts as declining it; declining the frame mode's
+system-shape offer does not.
 
 ## Route mode
 
