@@ -1,7 +1,7 @@
 # Plan: Architecture before the cut on the intent short route
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval
   harness); `docs/specs/architect-shaping-reach/plan.md` § Behavior & rules (the
   roster-check offer and silent clause this extends);
