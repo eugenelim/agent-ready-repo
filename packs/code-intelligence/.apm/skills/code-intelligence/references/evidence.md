@@ -26,7 +26,7 @@ equally trustworthy:
   and never call edges, so importing a SCIP index does not add a call edge.
   Compiler evidence, such as Angular input and output bindings, reaches the graph
   through `evidence`, a write verb this skill does not run (source-read from the
-  0.29.2 sources).
+  0.30.0 sources).
 - An **import-map or scoped** edge comes from resolving a name within a known
   module structure. Usually right.
 - A **name-matched** edge comes from a symbol name matching across files. It is
@@ -281,7 +281,7 @@ carries:
 Additional fields (`constructs`, `flow_rules`, `flow_support`, etc.) may appear;
 the list is not exhaustive. The Python fixture produces no value flow, so these
 fields and the new hop kinds cannot be observed on the standard test index —
-they are source-read from the 0.29.2 sources, so label them as such when you
+they are source-read from the 0.30.0 sources, so label them as such when you
 quote them. Any `--relation` other than `flows_to` exits 1.
 
 ---
@@ -297,7 +297,7 @@ wicked-estate annotations --symbol '<symbol_id>' --json
 
 Each annotation carries `key`, `value`, `type`, `confidence`, `provenance`,
 `author`, `ts`, `advisory`, `source_type`, `extraction_method`, and
-`last_verified` (executed on 0.29.2).
+`last_verified` (executed on 0.30.0).
 
 One shape trap, verified against the binary: **the `<name>` form returns an
 array**, one `{symbol, annotations[]}` entry per name match. Only the

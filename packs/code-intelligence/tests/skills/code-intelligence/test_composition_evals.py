@@ -340,7 +340,7 @@ def test_composition_fixtures_retain_only_synthetic_evidence() -> None:
 
 
 def test_blast_radius_fixtures_carry_the_paging_keys() -> None:
-    """Every blast-radius JSON fixture carries `next_cursor` and `page`, as a 0.29 reply does."""
+    """Every blast-radius JSON fixture carries `next_cursor` and `page`, as a 0.30 reply does."""
     fixtures = sorted(EVALS_FILES_DIR.glob("*blast-radius*.json"))
     assert fixtures, "no blast-radius fixtures found under evals/files/"
     for fixture in fixtures:

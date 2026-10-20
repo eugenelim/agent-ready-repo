@@ -24,6 +24,7 @@ SILENT = (
 )
 # The files that carry an architect offer: two skills, and three `intent` modes.
 OFFER_FILES = {
+    "intent": INTENT / "SKILL.md",
     "frame-domain": SKILLS / "frame-domain" / "SKILL.md",
     "intent frame": FRAME_MODE,
     "intent de-risk": DE_RISK_MODE,
@@ -142,14 +143,115 @@ def test_decompose_and_map_capabilities_offers() -> None:
         "subsystem boundaries",
         "Boundaries inform dependencies; the cut stays by shippability, never by component.",
         "`architect-design`",
-        "`subsystem` or `application/system` scope",
+        "## Design before you cut",
         "carry its locator in the delivery contract's design context",
         "delivery brief's design artifacts",
     ):
         assert phrase in text
+    assert "`subsystem` or `application/system` scope" not in text
     assert "5. **Rank the children" in text and "6. **Project onto a tracker" in text
     mapping = _skill(SKILLS / "map-capabilities")
     assert "`architect-design`" in mapping and "`application/system` scope for the Build capabilities" in mapping
+
+
+def _section_of(text: str, heading: str, level: str = "##") -> str:
+    """Return a Markdown section's raw body, bounded by the next heading of its level."""
+    match = re.search(
+        rf"^{re.escape(level)} {re.escape(heading)}\n(?P<body>.*?)(?=^{re.escape(level)} |\Z)",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    assert match, f"missing section {heading!r}"
+    return match.group("body")
+
+
+def _intent_skill() -> str:
+    """Return the intent SKILL.md source, unflattened."""
+    return (INTENT / "SKILL.md").read_text(encoding="utf-8")
+
+
+def test_skill_architecture_subsection_states_the_rules() -> None:
+    life = _section_of(_intent_skill(), "The intent lifecycle")
+    sub = _flat(_section_of(life, "Architecture before the cut", "###"))
+    assert life.index("### Supervised route") < life.index("### Architecture before the cut")
+    for phrase in (
+        "Check your available-skills roster for `architect-design`",
+        "offer it before the cut",
+        "never start it yourself",
+        SILENT,
+        "`product-vision` or `product-strategy` | `application/system`",
+        "`capability` | `subsystem` when the system it belongs to already runs; otherwise `application/system`",
+        "`feature` | `architecture change`",
+        "A design covers an intent when it is a resolved `architecture-design` artifact made for that intent or for one of its ancestors, and it names the system or subsystem the intent changes.",
+        "When the user declines `architect-design` for an intent, do not offer it again for that intent in this conversation. Choosing another offered option counts as declining it; declining the frame mode's system-shape offer does not.",
+    ):
+        assert phrase in sub, phrase
+
+
+def test_short_route_names_the_architecture_stage_between_de_risk_and_decompose() -> None:
+    short = _section_of(_intent_skill(), "Short route", "###")
+    flat = _flat(short)
+    order = [
+        flat.index("2. `de-risk`"),
+        flat.index("Then, before `decompose`: `architect-design` (separate skill) is offered"),
+        flat.index("3. `decompose`"),
+    ]
+    assert order == sorted(order)
+    [para] = [p for p in _paragraphs(short) if "Then, before `decompose`" in p]
+    assert "available-skills roster" in para and SILENT in para
+
+
+def test_de_risk_survive_bullet_offers_architect_design_on_the_short_route() -> None:
+    nxt = _section_of(DE_RISK_MODE.read_text(encoding="utf-8"), "Next")
+    [bullet] = [b for b in re.split(r"^- ", nxt, flags=re.MULTILINE) if b.startswith("**Survive.**")]
+    flat = _flat(bullet)
+    for phrase in (
+        "Offer the next stage for each route, each labelled with its route:",
+        "`intent decompose` (short route)",
+        "`place-bet` (longer route)",
+        "Recommend the one for the route the conversation shows, unless the next paragraph applies.",
+        "When the conversation shows no route, recommend neither and ask which route applies.",
+        "On the short route, check your available-skills roster for `architect-design`",
+        "When you offer it, recommend `architect-design` instead of `intent decompose`.",
+        "§ Architecture before the cut",
+        SILENT,
+    ):
+        assert phrase in flat, phrase
+    [para] = [p for p in _paragraphs(bullet) if "On the short route, check" in p]
+    assert SILENT in para
+    assert flat.index("ask which route applies") < flat.index("On the short route, check")
+
+
+def test_decompose_design_before_you_cut_section() -> None:
+    text = DECOMPOSE_MODE.read_text(encoding="utf-8")
+    assert text.index("## When to invoke") < text.index("## Design before you cut") < text.index("## Procedure")
+    sec = _flat(_section_of(text, "Design before you cut"))
+    for phrase in (
+        "When `discovery-loop` or its `discovery-lead` agent called this mode, skip this section",
+        "check your available-skills roster for `architect-design`",
+        "pause before cutting",
+        "§ Architecture before the cut",
+        SILENT,
+        "When the user declines, cut as usual.",
+        "When the design changes the intent's capabilities, do not cut yet: for a `capability` or higher intent, recommend the longer route at `map-capabilities`; for a `feature`, recommend `intent frame` for its parent capability. Also offer to cut.",
+    ):
+        assert phrase in sec, phrase
+
+
+def test_decompose_step_one_has_no_architect_offer() -> None:
+    text = _flat(DECOMPOSE_MODE.read_text(encoding="utf-8"))
+    step = text.split("1. **Decompose one level.**", 1)[1].split("2. **Record", 1)[0]
+    assert "subsystem boundaries" in step
+    assert "Boundaries inform dependencies; the cut stays by shippability, never by component." in step
+    assert "architect-design" not in step and "architect-assess" not in step
+
+
+def test_mutation_dropping_the_clause_from_skill_is_reported() -> None:
+    text = _intent_skill()
+    paragraphs = _paragraphs(text)
+    index = next(i for i, p in enumerate(paragraphs) if _is_offer(p) and "Then, before `decompose`" in p)
+    paragraphs[index] = paragraphs[index].replace(SILENT, "")
+    assert _offer_problems("intent", "\n\n".join(paragraphs))
 
 
 def test_every_offer_carries_the_silent_clause() -> None:
@@ -211,7 +313,37 @@ def test_eval_ids_and_silent_assertions() -> None:
                 assert any("Does not mention" in a for a in cases[case_id]["assertions"])
 
 
+NEW_EVAL_ASSERTIONS = {
+    "de-risk-survive-architect-first": ("de-risk", "Recommends architect-design instead of intent decompose"),
+    "decompose-architect-first": ("decompose", "Pauses before cutting and offers architect-design"),
+    "decompose-declined-at-de-risk": ("decompose", "Cuts without offering architect-design again"),
+    "decompose-design-already-covers": ("decompose", "Cuts without offering architect-design"),
+    "decompose-design-changes-capabilities": ("decompose", "Recommends the longer route at map-capabilities"),
+    "decompose-feature-design-changes-capabilities": ("decompose", "Recommends intent frame for the parent capability"),
+    "de-risk-survive-no-route-architect-installed": ("de-risk", "Recommends neither route and asks which route applies"),
+    "de-risk-chose-decompose-then-decompose": ("decompose", "Cuts without offering architect-design again"),
+    "de-risk-survive-architect-absent": ("de-risk", "Does not mention architect, its skills, or their absence"),
+}
+
+
+def test_architecture_first_eval_cases() -> None:
+    cases = _eval_cases(INTENT)
+    for case_id, (mode, assertion) in NEW_EVAL_ASSERTIONS.items():
+        assert case_id in cases, case_id
+        case = cases[case_id]
+        assert case["mode"] == mode
+        assert assertion in case["assertions"], case_id
+        assert case["prompt"] and case["expected_output"]
+        assert "roster" in case["prompt"], case_id
+    for case_id in ("decompose-1", "capability-negotiated-handoff"):
+        assert "The architect skills are not in the available-skills roster." in cases[case_id]["prompt"]
+
+
 def test_readme_states_the_optional_behaviour() -> None:
     readme = _flat((PACK_ROOT / "README.md").read_text(encoding="utf-8"))
     assert "When the `architect` pack is installed" in readme
     assert "Without it, they say nothing about it." in readme
+    assert (
+        "`intent de-risk` and `intent decompose` offer `architect-design` before the work is cut"
+        in readme
+    )

@@ -57,7 +57,7 @@ consume this skill without any of them knowing about the others.
 Queries run against a graph built by the `wicked-estate` CLI. Install once:
 
 ```bash
-cargo install wicked-estate --version 0.29.2 --locked
+cargo install wicked-estate --version 0.30.0 --locked
 ```
 
 ### Step 1 — check the binary and the index before any real work
@@ -74,7 +74,7 @@ python '<skill-dir>/scripts/estate_preflight.py' --check
 | 0 | Binary and index both present | Proceed. Preflight checks only that `graph.db` exists, so confirm with `wicked-estate stats --json`: a `no graph at <db>` refusal or a `nodes` count of 0 means the index is empty, so handle it like exit 3. |
 | 2 | Binary absent | Give the user the install command above. Offer `--install --yes` only if they ask; it compiles from source and takes minutes. Do not install silently. |
 | 3 | No index | Ask before running `wicked-estate index .` — it writes `.wicked-estate/graph.db`. |
-| 4 | Version below the floor | Report it; the documented verbs were verified against 0.29. |
+| 4 | Version below the floor | Report it; the documented verbs were verified against 0.30. |
 
 On exit 2, 3, or 4 you may still answer using your own repository tools, but you
 must say so — see [Degrading without the graph](#degrading-without-the-graph).
