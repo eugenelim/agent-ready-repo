@@ -234,4 +234,4 @@ Dispatched on 2026-10-19 at commit `480a46c25`, whose code tree is the final cod
 
 An earlier dispatch at `b4bae7330` (runs 39284589634 and 39284593272) failed one test, `test_pack_delivery_contract_is_complete_and_version_increased`. That test requires core's version to be exactly the next patch above the default branch's 3.1.8. Commit `1fae79643` moved core from 3.1.10 to 3.1.9, and the runs above pass.
 
-After the default branch (with #1557, core 3.1.9) was merged in on 2026-10-20, the pull request's own checks ran again on the merged head; the dispatched workflows above are not re-run for that merge.
+After the default branch (with #1557, core 3.1.9) was merged in on 2026-10-20, core moved to 3.1.10, and at merged head `ada3342ed` the re-dispatched `test-corpus.yml` (run 39433753076) and `test-roster.yml` (run 39433758086) both succeeded, as did the pull request's own checks.
