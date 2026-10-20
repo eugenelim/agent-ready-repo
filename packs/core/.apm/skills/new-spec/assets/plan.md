@@ -249,6 +249,16 @@ serializes early, but `yes`/`unknown` still require the authoritative post-write
 The field is **optional** — omit it freely; a task with no `Touches:` makes its
 wave `unknown`, never an error.
 
+**Optional `Effects:` grammar.** A task *may* add an `**Effects:**` line naming
+the external effects it performs once its change lands — a comma-separated list
+of names such as `push, publish-release`, or `none`. A name is lowercase letters,
+digits, `.`, `_`, and `-`, and is unique across every `Effects:` line in the plan.
+An effect is an operation outside the repository whose repetition would do harm;
+it is recorded before it runs and is never repeated automatically. An
+`**Effects:**` line in the plan's header, outside every task, names effects that
+run once when the whole plan is done. Renaming a task keeps its effects; renaming
+an effect makes a new one.
+
 <!--
 Order matters — list tasks in the order they should be done. Mark
 dependencies inline. Format each task so a contributor (human or agent)
@@ -269,6 +279,8 @@ could pick it up and complete it without follow-up questions:
 **Approach:** <omit this field unless the task carries an ordering or seam
 decision the two fields around it do not show>
 - <the decision, and why this way>
+
+**Effects:** <optional: none | comma-separated effect names, unique in the plan>
 
 **Done when:** <name a concrete observable — specific test green, gate
   passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as

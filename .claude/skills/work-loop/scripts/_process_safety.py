@@ -53,10 +53,11 @@ import signal
 import stat
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Callable, Final
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -187,12 +188,6 @@ _MAX_EXECUTABLE_BYTES: Final[int] = 256 * 1024 * 1024
 
 # ── Platform capability ───────────────────────────────────────────────────────
 
-# True when the host can terminate the full process group on timeout.
-# Launch is refused with "denied-unsupported-tree-kill" when False.
-TREE_KILL_SUPPORTED: Final[bool] = (
-    hasattr(os, "killpg") and hasattr(signal, "SIGKILL")
-)
-
 # True when /proc/self/fd is available for fd-based exec.
 # On Linux, Popen executes the verified descriptor directly via
 # executable="/proc/self/fd/<n>" + pass_fds=(n,), so the kernel runs the inode
@@ -202,6 +197,371 @@ TREE_KILL_SUPPORTED: Final[bool] = (
 _USE_PROC_FD: Final[bool] = (
     sys.platform.startswith("linux") and Path("/proc/self/fd").is_dir()
 )
+
+# ── Windows: a breakaway-denied Job Object ───────────────────────────────────
+#
+# On Windows the launch is created suspended, assigned to a Job Object whose
+# only limit is kill-on-close (no breakaway is allowed), and only then resumed,
+# so neither the child nor anything it starts can run outside the job. Only the
+# three standard-stream handles are inheritable into it. A timeout terminates
+# the whole job; the job handle closing ends anything left.
+
+_IS_WINDOWS: Final[bool] = os.name == "nt"
+_WINDOWS_SCRIPT_SUFFIXES: Final[frozenset[str]] = frozenset({".bat", ".cmd"})
+
+
+def _is_windows_script(executable: str) -> bool:
+    """True when Windows would start *executable* through a command interpreter.
+
+    Win32 drops trailing dots and spaces from a file name, so ``tool.cmd.`` and
+    ``tool.cmd `` name the same batch file and are judged by the name Windows uses.
+    """
+    name = PureWindowsPath(executable).name.rstrip(" .")
+    return PureWindowsPath(name).suffix.lower() in _WINDOWS_SCRIPT_SUFFIXES
+
+
+_CREATE_SUSPENDED: Final[int] = 0x00000004
+_CREATE_UNICODE_ENVIRONMENT: Final[int] = 0x00000400
+_CREATE_NEW_PROCESS_GROUP: Final[int] = 0x00000200
+_EXTENDED_STARTUPINFO_PRESENT: Final[int] = 0x00080000
+_CREATE_NO_WINDOW: Final[int] = 0x08000000
+_STARTF_USESTDHANDLES: Final[int] = 0x00000100
+_HANDLE_FLAG_INHERIT: Final[int] = 0x00000001
+_PROC_THREAD_ATTRIBUTE_HANDLE_LIST: Final[int] = 0x00020002
+_JOB_OBJECT_EXTENDED_LIMIT_INFORMATION: Final[int] = 9
+_JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: Final[int] = 0x00002000
+_WAIT_TIMEOUT: Final[int] = 0x00000102
+_RESUME_FAILED: Final[int] = 0xFFFFFFFF
+
+# Test seam: a callable run in place of AssignProcessToJobObject's result check,
+# returning False to simulate an assignment failure. None in production.
+_JOB_ASSIGN_FAULT: Callable[[], bool] | None = None
+
+
+def _windows_api() -> object | None:
+    """Bind the kernel32 calls the job launcher needs, or None off Windows."""
+    if not _IS_WINDOWS:
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+    except ImportError:  # pragma: no cover - a Windows Python always has ctypes
+        return None
+
+    class _SecurityAttributes(ctypes.Structure):
+        _fields_ = [("nLength", wintypes.DWORD), ("lpSecurityDescriptor", wintypes.LPVOID),
+                    ("bInheritHandle", wintypes.BOOL)]
+
+    class _StartupInfo(ctypes.Structure):
+        _fields_ = [("cb", wintypes.DWORD), ("lpReserved", wintypes.LPWSTR),
+                    ("lpDesktop", wintypes.LPWSTR), ("lpTitle", wintypes.LPWSTR),
+                    ("dwX", wintypes.DWORD), ("dwY", wintypes.DWORD),
+                    ("dwXSize", wintypes.DWORD), ("dwYSize", wintypes.DWORD),
+                    ("dwXCountChars", wintypes.DWORD), ("dwYCountChars", wintypes.DWORD),
+                    ("dwFillAttribute", wintypes.DWORD), ("dwFlags", wintypes.DWORD),
+                    ("wShowWindow", wintypes.WORD), ("cbReserved2", wintypes.WORD),
+                    ("lpReserved2", ctypes.c_void_p), ("hStdInput", wintypes.HANDLE),
+                    ("hStdOutput", wintypes.HANDLE), ("hStdError", wintypes.HANDLE)]
+
+    class _StartupInfoEx(ctypes.Structure):
+        _fields_ = [("StartupInfo", _StartupInfo), ("lpAttributeList", ctypes.c_void_p)]
+
+    class _ProcessInformation(ctypes.Structure):
+        _fields_ = [("hProcess", wintypes.HANDLE), ("hThread", wintypes.HANDLE),
+                    ("dwProcessId", wintypes.DWORD), ("dwThreadId", wintypes.DWORD)]
+
+    class _BasicLimit(ctypes.Structure):
+        _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64),
+                    ("PerJobUserTimeLimit", ctypes.c_int64), ("LimitFlags", wintypes.DWORD),
+                    ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t),
+                    ("ActiveProcessLimit", wintypes.DWORD), ("Affinity", ctypes.c_size_t),
+                    ("PriorityClass", wintypes.DWORD), ("SchedulingClass", wintypes.DWORD)]
+
+    class _IoCounters(ctypes.Structure):
+        _fields_ = [(name, ctypes.c_uint64) for name in (
+            "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+            "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
+
+    class _ExtendedLimit(ctypes.Structure):
+        _fields_ = [("BasicLimitInformation", _BasicLimit), ("IoInfo", _IoCounters),
+                    ("ProcessMemoryLimit", ctypes.c_size_t), ("JobMemoryLimit", ctypes.c_size_t),
+                    ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                    ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    handle_p = ctypes.POINTER(wintypes.HANDLE)
+    signatures = {
+        "CreatePipe": (wintypes.BOOL, [handle_p, handle_p, ctypes.c_void_p, wintypes.DWORD]),
+        "SetHandleInformation": (wintypes.BOOL, [wintypes.HANDLE, wintypes.DWORD, wintypes.DWORD]),
+        "InitializeProcThreadAttributeList": (
+            wintypes.BOOL, [ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD,
+                            ctypes.POINTER(ctypes.c_size_t)]),
+        "UpdateProcThreadAttribute": (
+            wintypes.BOOL, [ctypes.c_void_p, wintypes.DWORD, ctypes.c_size_t, ctypes.c_void_p,
+                            ctypes.c_size_t, ctypes.c_void_p, ctypes.c_void_p]),
+        "DeleteProcThreadAttributeList": (None, [ctypes.c_void_p]),
+        "CreateJobObjectW": (wintypes.HANDLE, [ctypes.c_void_p, wintypes.LPCWSTR]),
+        "SetInformationJobObject": (
+            wintypes.BOOL, [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]),
+        "AssignProcessToJobObject": (wintypes.BOOL, [wintypes.HANDLE, wintypes.HANDLE]),
+        "CreateProcessW": (
+            wintypes.BOOL, [wintypes.LPCWSTR, ctypes.c_wchar_p, ctypes.c_void_p, ctypes.c_void_p,
+                            wintypes.BOOL, wintypes.DWORD, ctypes.c_void_p, wintypes.LPCWSTR,
+                            ctypes.POINTER(_StartupInfoEx),
+                            ctypes.POINTER(_ProcessInformation)]),
+        "ResumeThread": (wintypes.DWORD, [wintypes.HANDLE]),
+        "TerminateJobObject": (wintypes.BOOL, [wintypes.HANDLE, wintypes.UINT]),
+        "TerminateProcess": (wintypes.BOOL, [wintypes.HANDLE, wintypes.UINT]),
+        "WaitForSingleObject": (wintypes.DWORD, [wintypes.HANDLE, wintypes.DWORD]),
+        "GetExitCodeProcess": (wintypes.BOOL, [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]),
+        "CloseHandle": (wintypes.BOOL, [wintypes.HANDLE]),
+    }
+    for name, (restype, argtypes) in signatures.items():
+        function = getattr(k32, name)
+        function.restype = restype
+        function.argtypes = argtypes
+
+    class _Api:
+        ctypes_module = ctypes
+        wintypes_module = wintypes
+        kernel32 = k32
+        SecurityAttributes = _SecurityAttributes
+        StartupInfoEx = _StartupInfoEx
+        ProcessInformation = _ProcessInformation
+        ExtendedLimit = _ExtendedLimit
+
+    return _Api
+
+
+_WIN = _windows_api()
+
+
+def _run_in_job(
+    argv_list: list[str],
+    exec_path: str,
+    env: dict[str, str],
+    cwd: str,
+    stdin_input: bytes | None,
+    timeout_s: int,
+    hard_cap: int,
+    deny: Callable[[], None],
+) -> tuple[bytes, bytes, bool, bool, int]:
+    """Run one launch inside a breakaway-denied Job Object on Windows.
+
+    Returns ``(stdout, stderr, overflowed, settled, exit_code)``; raises
+    ``ProcessDenied`` after calling *deny* on any refusal. Every refusal after
+    the process exists terminates the job first.
+    """
+    import msvcrt
+
+    api = _WIN
+    assert api is not None
+    ctypes = api.ctypes_module  # type: ignore[attr-defined]
+    wintypes = api.wintypes_module  # type: ignore[attr-defined]
+    k32 = api.kernel32  # type: ignore[attr-defined]
+    handles: list[int] = []
+    handle_lock = threading.Lock()
+
+    def close(handle: object) -> None:
+        if handle:
+            k32.CloseHandle(handle)
+
+    def refuse(code: str, message: str) -> ProcessDenied:
+        deny()
+        return ProcessDenied(code, message)
+
+    job = k32.CreateJobObjectW(None, None)
+    if not job:
+        raise refuse("denied-job-object", "the Job Object could not be created")
+    limit = api.ExtendedLimit()  # type: ignore[attr-defined]
+    # Kill-on-close is the only limit: JOB_OBJECT_LIMIT_BREAKAWAY_OK and
+    # JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK stay clear, so no process may leave.
+    limit.BasicLimitInformation.LimitFlags = _JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    if not k32.SetInformationJobObject(job, _JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                                       ctypes.byref(limit), ctypes.sizeof(limit)):
+        close(job)
+        raise refuse("denied-job-object", "the Job Object could not be configured")
+
+    inherit = api.SecurityAttributes()  # type: ignore[attr-defined]
+    inherit.nLength = ctypes.sizeof(inherit)
+    inherit.bInheritHandle = True
+
+    def pipe() -> tuple[int, int]:
+        read, write = wintypes.HANDLE(), wintypes.HANDLE()
+        if not k32.CreatePipe(ctypes.byref(read), ctypes.byref(write), ctypes.byref(inherit), 0):
+            raise OSError(ctypes.get_last_error(), "CreatePipe failed")
+        handles.extend([read.value, write.value])
+        return read.value, write.value
+
+    attributes = None
+    process_info = api.ProcessInformation()  # type: ignore[attr-defined]
+    try:
+        try:
+            in_read, in_write = pipe()
+            out_read, out_write = pipe()
+            err_read, err_write = pipe()
+            for parent_side in (in_write, out_read, err_read):
+                if not k32.SetHandleInformation(parent_side, _HANDLE_FLAG_INHERIT, 0):
+                    raise OSError(ctypes.get_last_error(), "SetHandleInformation failed")
+            child_handles = (wintypes.HANDLE * 3)(in_read, out_write, err_write)
+            size = ctypes.c_size_t(0)
+            k32.InitializeProcThreadAttributeList(None, 1, 0, ctypes.byref(size))
+            attributes = ctypes.create_string_buffer(size.value)
+            if not k32.InitializeProcThreadAttributeList(attributes, 1, 0, ctypes.byref(size)):
+                attributes = None
+                raise OSError(ctypes.get_last_error(), "InitializeProcThreadAttributeList failed")
+            if not k32.UpdateProcThreadAttribute(
+                    attributes, 0, _PROC_THREAD_ATTRIBUTE_HANDLE_LIST, child_handles,
+                    ctypes.sizeof(child_handles), None, None):
+                raise OSError(ctypes.get_last_error(), "UpdateProcThreadAttribute failed")
+            startup = api.StartupInfoEx()  # type: ignore[attr-defined]
+            startup.StartupInfo.cb = ctypes.sizeof(startup)
+            startup.StartupInfo.dwFlags = _STARTF_USESTDHANDLES
+            startup.StartupInfo.hStdInput = in_read
+            startup.StartupInfo.hStdOutput = out_write
+            startup.StartupInfo.hStdError = err_write
+            startup.lpAttributeList = ctypes.cast(attributes, ctypes.c_void_p)
+            ordered = sorted(env.items(), key=lambda kv: kv[0].upper())
+            block = "".join(f"{k}={v}\0" for k, v in ordered)
+            environment = ctypes.create_unicode_buffer(block + "\0")
+            command_line = ctypes.create_unicode_buffer(subprocess.list2cmdline(argv_list))
+            flags = (_CREATE_SUSPENDED | _CREATE_NEW_PROCESS_GROUP | _EXTENDED_STARTUPINFO_PRESENT
+                     | _CREATE_UNICODE_ENVIRONMENT | _CREATE_NO_WINDOW)
+            if not k32.CreateProcessW(exec_path, command_line, None, None, True, flags,
+                                      environment, cwd, ctypes.byref(startup),
+                                      ctypes.byref(process_info)):
+                raise OSError(ctypes.get_last_error(), "CreateProcessW failed")
+        except OSError as exc:
+            raise refuse("denied-launch-failed", f"process launch failed: {exc}") from exc
+
+        assigned = bool(k32.AssignProcessToJobObject(job, process_info.hProcess))
+        if _JOB_ASSIGN_FAULT is not None:
+            assigned = assigned and _JOB_ASSIGN_FAULT()
+        if not assigned:
+            k32.TerminateProcess(process_info.hProcess, 1)
+            k32.WaitForSingleObject(process_info.hProcess, 5000)
+            raise refuse("denied-job-object",
+                         "the process could not be assigned to its Job Object; it was ended")
+        if k32.ResumeThread(process_info.hThread) == _RESUME_FAILED:
+            k32.TerminateJobObject(job, 1)
+            raise refuse("denied-launch-failed", "the suspended process could not be resumed")
+
+        # The child holds its ends now; close ours so EOF arrives when it exits.
+        for child_side in (in_read, out_write, err_write):
+            close(child_side)
+            handles.remove(child_side)
+
+        captured = {1: bytearray(), 2: bytearray()}
+        overflow = threading.Event()
+        lock = threading.Lock()
+        deadline = time.monotonic() + timeout_s
+        # Once output passes the cap, the tree has _CAP_SETTLE_S to finish, as on POSIX.
+        settle_by: list[float] = []
+
+        def adopt(handle: int, mode: str) -> object | None:
+            """Hand a pipe handle to a file object, or None if cleanup already closed it."""
+            with handle_lock:
+                if handle not in handles:
+                    return None
+                fd = msvcrt.open_osfhandle(handle, os.O_RDONLY if mode == "rb" else 0)
+                handles.remove(handle)
+            return os.fdopen(fd, mode, buffering=0)
+
+        def reader(handle: int, stream: int) -> None:
+            source = adopt(handle, "rb")
+            if source is None:
+                return
+            with source:  # type: ignore[attr-defined]
+                while True:
+                    try:
+                        chunk = source.read(65536)
+                    except OSError:
+                        return
+                    if not chunk:
+                        return
+                    with lock:
+                        if overflow.is_set():
+                            continue  # past the cap: drain and discard while settling
+                        room = hard_cap + 1 - len(captured[1]) - len(captured[2])
+                        captured[stream] += chunk[:max(room, 0)]
+                        if len(captured[1]) + len(captured[2]) > hard_cap:
+                            settle_by.append(time.monotonic() + _CAP_SETTLE_S)
+                            overflow.set()
+
+        def writer(handle: int) -> None:
+            sink = adopt(handle, "wb")
+            if sink is None:
+                return
+            with sink, contextlib.suppress(OSError):  # type: ignore[attr-defined]
+                if stdin_input:
+                    sink.write(stdin_input)  # type: ignore[attr-defined]
+
+        threads = [threading.Thread(target=reader, args=(out_read, 1), daemon=True),
+                   threading.Thread(target=reader, args=(err_read, 2), daemon=True),
+                   threading.Thread(target=writer, args=(in_write,), daemon=True)]
+        for thread in threads:
+            thread.start()
+
+        def remaining_ms() -> int:
+            return max(0, int((min([deadline, *settle_by]) - time.monotonic()) * 1000))
+
+        # The tree has settled once the leader has exited and both output pipes
+        # reached EOF, within the deadline (or the settle window after a cap breach).
+        leader_done = False
+        while True:
+            waited = k32.WaitForSingleObject(process_info.hProcess, min(remaining_ms(), 50))
+            if waited != _WAIT_TIMEOUT:
+                leader_done = True
+                break
+            if remaining_ms() == 0:
+                break
+        # Join in short slices so a cap breach after the leader exits narrows the wait.
+        while leader_done and remaining_ms():
+            alive = [t for t in threads[:2] if t.is_alive()]
+            if not alive:
+                break
+            alive[0].join(min(remaining_ms(), 50) / 1000)
+        if not leader_done or any(thread.is_alive() for thread in threads[:2]):
+            k32.TerminateJobObject(job, 1)
+            for thread in threads:
+                thread.join(_DRAIN_TIMEOUT_S)
+            if overflow.is_set():
+                raise refuse("denied-output-cap-exceeded",
+                             f"process output exceeded the hard cap ({hard_cap} bytes) while "
+                             "still running; all children killed, no output returned")
+            raise refuse("denied-timeout",
+                         f"process tree timeout exceeded ({timeout_s}s); "
+                         "all children killed, no output returned")
+        # The leader is done: end anything left in the job, as the group kill does.
+        k32.TerminateJobObject(job, 1)
+        for thread in threads:
+            thread.join(_DRAIN_TIMEOUT_S)
+        code = wintypes.DWORD(0)
+        k32.GetExitCodeProcess(process_info.hProcess, ctypes.byref(code))
+        with lock:
+            out, err = bytes(captured[1]), bytes(captured[2])
+        return out, err, overflow.is_set(), True, int(code.value)
+    finally:
+        if process_info.hProcess:
+            k32.TerminateJobObject(job, 1)
+        with handle_lock:
+            for handle in list(handles):
+                close(handle)
+            handles.clear()
+        close(process_info.hThread)
+        close(process_info.hProcess)
+        if attributes is not None:
+            k32.DeleteProcThreadAttributeList(attributes)
+        close(job)
+
+
+# True when the host can terminate the full process tree on timeout: the
+# process group on POSIX, the Job Object on Windows.
+# Launch is refused with "denied-unsupported-tree-kill" when False.
+TREE_KILL_SUPPORTED: Final[bool] = (
+    hasattr(os, "killpg") and hasattr(signal, "SIGKILL")
+) or _WIN is not None
 
 # ── Exception ────────────────────────────────────────────────────────────────
 
@@ -407,7 +767,11 @@ def _open_and_verify_executable(path: str) -> tuple[str, int, int, int]:
         OSError: when the file cannot be opened, is not a regular file, or
                  exceeds _MAX_EXECUTABLE_BYTES.
     """
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    # O_BINARY matters on Windows only: a text-mode read would hash other bytes.
+    flags = (
+        os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        | getattr(os, "O_BINARY", 0)
+    )
     src_fd = os.open(path, flags)
     try:
         info = os.fstat(src_fd)
@@ -1006,6 +1370,16 @@ def _launch_safe_process_unguarded(
             "launch refused to avoid orphan children",
         )
 
+    # Windows starts a batch file through cmd.exe, which reinterprets the
+    # command line; only native images may be launched there.
+    if _IS_WINDOWS and _is_windows_script(spec_dict["executable"]):
+        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+        raise ProcessDenied(
+            "denied-non-native-executable",
+            "a batch or command script would run through a command interpreter; "
+            "launch a native executable instead",
+        )
+
     # Pin executable identity: open without following links (O_NOFOLLOW),
     # refuse non-regular files (fstat S_ISREG), enforce the 256 MiB size
     # ceiling, and hash the content from the open descriptor.  The exec
@@ -1224,100 +1598,109 @@ def _launch_safe_process_unguarded(
                 _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
 
         try:
-            try:
-                proc = subprocess.Popen(
-                    argv_list,
-                    executable=_exec_path,
-                    env=env,
-                    cwd=cwd_str,
-                    stdin=stdin_fd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    start_new_session=True,
-                    close_fds=True,
-                    pass_fds=_pass_fds,
+            if _IS_WINDOWS:
+                raw_stdout, raw_stderr, overflowed, _settled, _exit_code = _run_in_job(
+                    argv_list, _exec_path, env, cwd_str, stdin_input,
+                    spec_dict["process_tree_timeout_s"], hard_cap, _deny,
                 )
-            except OSError as exc:
-                _deny()
-                raise ProcessDenied(
-                    "denied-launch-failed",
-                    f"process launch failed: {exc}",
-                ) from exc
-            except Exception:
-                # Any non-OSError (e.g. ValueError from an unexpected field type)
-                # must also store a denial event and surface as ProcessDenied
-                # without leaking exception text.
-                _deny()
-                raise ProcessDenied(
-                    "denied-launch-failed",
-                    "process launch failed",
-                ) from None
-            finally:
-                # Close the verified descriptor now that the child has started
-                # (or Popen failed).  The kernel keeps the binary mapped in the
-                # child's address space independently of this fd.
-                if exec_fd >= 0:
-                    with contextlib.suppress(OSError):
-                        os.close(exec_fd)
-                    exec_fd = -1
+            else:
+                try:
+                    proc = subprocess.Popen(
+                        argv_list,
+                        executable=_exec_path,
+                        env=env,
+                        cwd=cwd_str,
+                        stdin=stdin_fd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        start_new_session=True,
+                        close_fds=True,
+                        pass_fds=_pass_fds,
+                    )
+                except OSError as exc:
+                    _deny()
+                    raise ProcessDenied(
+                        "denied-launch-failed",
+                        f"process launch failed: {exc}",
+                    ) from exc
+                except Exception:
+                    # Any non-OSError (e.g. ValueError from an unexpected field type)
+                    # must also store a denial event and surface as ProcessDenied
+                    # without leaking exception text.
+                    _deny()
+                    raise ProcessDenied(
+                        "denied-launch-failed",
+                        "process launch failed",
+                    ) from None
+                finally:
+                    # Close the verified descriptor now that the child has started
+                    # (or Popen failed).  The kernel keeps the binary mapped in the
+                    # child's address space independently of this fd.
+                    if exec_fd >= 0:
+                        with contextlib.suppress(OSError):
+                            os.close(exec_fd)
+                        exec_fd = -1
 
-            # Read output incrementally with the hard cap; write stdin concurrently.
-            timeout_s: int = spec_dict["process_tree_timeout_s"]
-            try:
-                raw_stdout, raw_stderr, overflowed, settled = _communicate_bounded(
-                    proc, stdin_input, timeout_s, hard_cap
-                )
-            except subprocess.TimeoutExpired:
-                _end_group()
-                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
-                _deny()
-                raise ProcessDenied(
-                    "denied-timeout",
-                    f"process tree timeout exceeded ({timeout_s}s); "
-                    "all children killed, no output returned",
-                ) from None
-            except OSError as exc:
-                _end_group()
-                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
-                _deny()
-                raise ProcessDenied(
-                    "denied-launch-failed",
-                    f"process I/O error: {exc}",
-                ) from exc
-            except Exception:
-                # Any non-OSError from _communicate_bounded must also kill the tree,
-                # store a denial event, and surface as ProcessDenied without leaking
-                # exception text.
-                _end_group()
-                _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
-                _deny()
-                raise ProcessDenied(
-                    "denied-launch-failed",
-                    "process I/O error",
-                ) from None
+                # Read output incrementally with the hard cap; write stdin concurrently.
+                timeout_s: int = spec_dict["process_tree_timeout_s"]
+                try:
+                    raw_stdout, raw_stderr, overflowed, settled = _communicate_bounded(
+                        proc, stdin_input, timeout_s, hard_cap
+                    )
+                except subprocess.TimeoutExpired:
+                    _end_group()
+                    _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                    _deny()
+                    raise ProcessDenied(
+                        "denied-timeout",
+                        f"process tree timeout exceeded ({timeout_s}s); "
+                        "all children killed, no output returned",
+                    ) from None
+                except OSError as exc:
+                    _end_group()
+                    _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                    _deny()
+                    raise ProcessDenied(
+                        "denied-launch-failed",
+                        f"process I/O error: {exc}",
+                    ) from exc
+                except Exception:
+                    # Any non-OSError from _communicate_bounded must also kill the tree,
+                    # store a denial event, and surface as ProcessDenied without leaking
+                    # exception text.
+                    _end_group()
+                    _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                    _deny()
+                    raise ProcessDenied(
+                        "denied-launch-failed",
+                        "process I/O error",
+                    ) from None
 
-            # Output cap breach: a capped capture is a truncated success only when
-            # the whole tree settled (every pipe closed, leader exited) within the
-            # settle window; anything still holding a pipe is a flood and refuses.
-            if overflowed and not settled:
+                # Output cap breach: a capped capture is a truncated success only when
+                # the whole tree settled (every pipe closed, leader exited) within the
+                # settle window; anything still holding a pipe is a flood and refuses.
+                if overflowed and not settled:
+                    _end_group()
+                    _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                    _deny()
+                    raise ProcessDenied(
+                        "denied-output-cap-exceeded",
+                        f"process output exceeded the hard cap ({hard_cap} bytes) while "
+                        "still running; all children killed, no output returned",
+                    )
+
+                # Signal the process group so no child that stayed in it survives,
+                # before any further work, so every refusal or return after launch has
+                # ended the group.  With
+                # os.waitid and WNOWAIT the leader is still unreaped here, so its ID
+                # cannot have been reused; without them exit detection just reaped it (an
+                # accepted residual risk).  A child that left the group is not reached.
+                # start_new_session=True makes the group ID equal proc.pid.  Then reap
+                # the leader for its exit code.
                 _end_group()
                 _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
-                _deny()
-                raise ProcessDenied(
-                    "denied-output-cap-exceeded",
-                    f"process output exceeded the hard cap ({hard_cap} bytes) while "
-                    "still running; all children killed, no output returned",
-                )
 
-            # Signal the process group so no child that stayed in it survives, before
-            # any further work, so every refusal or return after launch has ended the group.  With
-            # os.waitid and WNOWAIT the leader is still unreaped here, so its ID
-            # cannot have been reused; without them exit detection just reaped it (an
-            # accepted residual risk).  A child that left the group is not reached.
-            # start_new_session=True makes the group ID equal proc.pid.  Then reap
-            # the leader for its exit code.
-            _end_group()
-            _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
+                _exit_code = proc.returncode
 
             # Redact the full captured stream, emitting only raw bytes before the
             # bound.  A capture stopped by the hard cap may end inside a value, so
@@ -1344,7 +1727,7 @@ def _launch_safe_process_unguarded(
                 truncated = True
 
             _result = ProcessResult(
-                exit_code=proc.returncode,
+                exit_code=_exit_code,
                 stdout_redacted=stdout_red,
                 stderr_redacted=stderr_red,
                 output_was_truncated=truncated,

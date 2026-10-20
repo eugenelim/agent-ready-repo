@@ -61,6 +61,11 @@ _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "finding-disposition.v1.schema.json",
     "delivery-fact-feed.v1.schema.json",
     "knowledge-observation.v1.schema.json",
+    "task-contract.v1.schema.json",
+    "execution-request.v1.schema.json",
+    "execution-result.v1.schema.json",
+    "mechanical-journal.v1.schema.json",
+    "effect-resolution.v1.schema.json",
 })
 
 
@@ -1214,3 +1219,140 @@ def test_the_observation_byte_bound_is_a_consumer_rule_the_schema_cannot_state()
     observation["scope_paths"] = [f"packs/core/example/{'z' * 200}/{i}.py" for i in range(10)]
     assert not list(_validator(_FEED).iter_errors(page))
     assert not _consumer_accepts(module, page)
+
+
+# ── Execution supervisor core contracts ──────────────────────────────────────
+# One valid and one invalid fixture per supervisor schema, and one request per
+# request kind. Emitted-record parity for the shipped supervisor lives in
+# test_execution_supervisor_records.py, which validates every record a run writes.
+
+_SUPERVISOR_SPEC = "docs/specs/execution-supervisor-core/"
+_HEX = "0" * 64
+_REQUEST_KINDS = (
+    "implement-task", "write-stub", "run-gates", "review-role", "assess-finding",
+    "external-effect", "effect-query", "regenerate", "human-decision",
+)
+
+
+def _task_contract() -> dict:
+    return {
+        "schema_version": 1,
+        "task_id": "calculator-answers",
+        "title": "Calculator answers",
+        "position": "T1",
+        "revision": _HEX,
+        "depends_on": [],
+        "touches": ["calc.py"],
+        "done_when": "the calculator test passes",
+        "effects": [],
+        "verification_mode": "TDD",
+        "stubs": [{"path": "test_calc.py", "run": "python -m pytest {path}",
+                   "red_exit": [1], "digest": _HEX}],
+        "stub_digest": _HEX,
+        "no_stub": False,
+    }
+
+
+def _request(kind: str) -> dict:
+    base = {"schema_version": 1, "request_id": f"{kind}:1", "run_id": "run-1",
+            "spec": "docs/specs/example", "kind": kind, "stage": "implementing"}
+    task = {"task_id": "calculator-answers", "title": "Calculator answers", "revision": _HEX}
+    effect = {"operation_key": "run-1:push", "name": "push", "scope": "task", "dispatch": 1}
+    extra = {
+        "implement-task": {"task": task, "attempt": 1},
+        "write-stub": {"task": task, "stubs": _task_contract()["stubs"]},
+        "run-gates": {"stage": "gating", "acceptance_fingerprint": "fp", "criteria": ["AC-0001"]},
+        "review-role": {"stage": "reviewing", "role": "adversarial-reviewer",
+                        "review_subject_fingerprint": "subject-1",
+                        "review_subject": _review_subject()},
+        "assess-finding": {"stage": "reviewing", "role": "adversarial-reviewer",
+                           "review_subject_fingerprint": "subject-1",
+                           "report_id": "report-1", "finding_id": "finding-1"},
+        "external-effect": {"effect": effect},
+        "effect-query": {"effect": effect},
+        "regenerate": {"stage": "gating"},
+        "human-decision": {"stage": "awaiting-human", "reason": "retry-cap",
+                           "question": "The retry cap is reached. How should the run continue?"},
+    }[kind]
+    return {**base, **extra}
+
+
+def _result() -> dict:
+    return {"schema_version": 1, "request_id": "implement-task:1", "run_id": "run-1",
+            "kind": "implement-task", "gate": {"passed": True}}
+
+
+def _journal_line() -> dict:
+    return {"schema_version": 1, "run_id": "run-1", "at": "2026-10-13T00:00:00Z",
+            "head": "a" * 40, "stage": "implementing", "kind": "implement-task",
+            "request_id": "impl:calculator-answers:" + _HEX + ":1"}
+
+
+def _effect_resolution() -> dict:
+    return {"schema_version": 1, "entry": "decision", "operation_key": "run-1:push",
+            "run_id": "run-1", "effect": "push", "scope": "task", "task_id": "release",
+            "resolution_id": "resolution-1", "decision": "retry-authorized",
+            "authority_ref": "effect-authority:0123456789ab", "at": "2026-10-13T00:00:00Z"}
+
+
+_SUPERVISOR_VALID = {
+    "task-contract.v1.schema.json": _task_contract,
+    "execution-request.v1.schema.json": lambda: _request("implement-task"),
+    "execution-result.v1.schema.json": _result,
+    "mechanical-journal.v1.schema.json": _journal_line,
+    "effect-resolution.v1.schema.json": _effect_resolution,
+}
+
+
+def _drop(field: str):  # noqa: ANN202 - fixture mutator factory
+    def mutate(record: dict) -> dict:
+        record.pop(field)
+        return record
+    return mutate
+
+
+def _set(path: tuple[str, ...], value: object):  # noqa: ANN202 - fixture mutator factory
+    def mutate(record: dict) -> dict:
+        target = record
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        return record
+    return mutate
+
+
+_SUPERVISOR_INVALID = {
+    "task-contract.v1.schema.json": _set(("position",), "Task one"),
+    "execution-request.v1.schema.json": _drop("attempt"),
+    "execution-result.v1.schema.json": _drop("gate"),
+    "mechanical-journal.v1.schema.json": _set(("kind",), "lease"),
+    "effect-resolution.v1.schema.json": _set(("authority_ref",), "owner:0123456789ab"),
+}
+
+
+def test_supervisor_schemas_point_at_the_core_spec() -> None:
+    for name in _SUPERVISOR_VALID:
+        assert _SUPERVISOR_SPEC in _load_schema(name)["x-spec"], name
+
+
+@pytest.mark.parametrize("name", sorted(_SUPERVISOR_VALID))
+def test_supervisor_schema_accepts_its_valid_fixture(name: str) -> None:
+    errors = list(_validator(name).iter_errors(_SUPERVISOR_VALID[name]()))
+    assert not errors, f"valid {name} rejected: {errors}"
+
+
+@pytest.mark.parametrize("name", sorted(_SUPERVISOR_INVALID))
+def test_supervisor_schema_rejects_its_invalid_fixture(name: str) -> None:
+    record = _SUPERVISOR_INVALID[name](_SUPERVISOR_VALID[name]())
+    assert list(_validator(name).iter_errors(record)), f"invalid {name} accepted"
+
+
+@pytest.mark.parametrize("kind", _REQUEST_KINDS)
+def test_one_request_per_request_kind_validates(kind: str) -> None:
+    errors = list(_validator("execution-request.v1.schema.json").iter_errors(_request(kind)))
+    assert not errors, f"{kind} request rejected: {errors}"
+
+
+def test_request_kinds_are_exactly_the_closed_set() -> None:
+    enum = _load_schema("execution-request.v1.schema.json")["properties"]["kind"]["enum"]
+    assert tuple(enum) == _REQUEST_KINDS

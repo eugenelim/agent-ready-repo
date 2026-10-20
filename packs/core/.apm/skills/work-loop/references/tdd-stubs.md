@@ -30,6 +30,34 @@ delimiter, with their line endings preserved and exactly one terminal newline.
 A blank payload line immediately before the closing fence is extra code, not
 the file-ending newline. Reject it instead of relying on Markdown rendering.
 
+A stub written for mechanical red proof uses a `stub` fence inside the task's
+`Tests:` subsection, with the path, the command that runs it, and the exit codes
+that count as red:
+
+````markdown
+- **Tests:**
+  - **VI-1:** the order handler returns 201 with an id.
+
+    ```stub path=tests/test_orders.py run="python -m pytest -q {path}" red-exit=1
+    from orders.api import create_order
+    ...
+    ```
+````
+
+- `path` is repository-relative, with no `.` or `..` segment, drive, or backslash.
+- `run` is split into arguments like a shell would, but runs without one; `{path}`
+  expands to the stub path. It runs from the root of a scratch copy of the
+  committed tree, with the stub files added.
+- `red-exit` lists the exit codes that count as red, comma-separated, default `1`.
+  Any other exit, a timeout, or a collection or setup error is not red.
+- The payload is the fenced lines with the fence's own indentation removed, plus
+  one terminal newline. The file at `path` must equal those bytes. A blank line
+  before the closing fence is refused, and a plan carrying `stub` fences uses LF
+  line endings.
+
+A task may carry several `stub` fences; each must be red. A task whose stubs
+already pass needs a replan to a `no stub` disposition, not a weaker stub.
+
 This is one owner — the loop — progressing across its own phases, not a second
 test-design tool with a handoff.
 

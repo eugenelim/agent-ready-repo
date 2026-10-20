@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/task-contract.v1.schema.json",
+  "title": "task-contract.v1",
+  "description": "One task projected from the approved plan's task grammar. Identity is the task title without its number; the revision digests the title and the pinned fields (Tests: with stub fences, Touches:, Done when:, Effects:), so renumbering, reordering, and working-field edits leave it unchanged. Grants no authority: the reviewed envelope and terminal intent admit execution.",
+  "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
+  "x-spec": [
+    "docs/specs/execution-supervisor-core/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "title",
+    "position",
+    "revision",
+    "depends_on",
+    "touches",
+    "done_when",
+    "effects",
+    "verification_mode",
+    "stubs",
+    "stub_digest",
+    "no_stub"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "position": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 16,
+      "pattern": "^T[0-9]+[a-z]?(?![\\s\\S])",
+      "description": "The task's current heading number; working material, not identity."
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "depends_on": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "description": "Task identities this task depends on."
+    },
+    "touches": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      }
+    },
+    "done_when": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "effects": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[a-z0-9][a-z0-9._-]*(?![\\s\\S])"
+      },
+      "description": "External effects this task declares; names are unique across the plan."
+    },
+    "verification_mode": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "stubs": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "run",
+          "red_exit",
+          "digest"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Repository-relative POSIX path."
+          },
+          "run": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Command the supervisor runs to observe the stub; {path} expands to the stub path."
+          },
+          "red_exit": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "description": "Exit codes that count as red. Any other exit is not red."
+          },
+          "digest": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          }
+        }
+      }
+    },
+    "stub_digest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Digest over the task's stub fences; null when it declares none."
+    },
+    "no_stub": {
+      "type": "boolean",
+      "description": "True when the task records a no-stub disposition, so no red proof is required."
+    }
+  }
+}

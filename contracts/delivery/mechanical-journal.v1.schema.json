@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/mechanical-journal.v1.schema.json",
+  "title": "mechanical-journal.v1",
+  "description": "One advisory line of the supervisor's local journal. The journal is a deletable cache: no decision reads it, and every fact it mirrors re-derives from supervisor commits and delivery records.",
+  "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
+  "x-spec": [
+    "docs/specs/execution-supervisor-core/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "at",
+    "head",
+    "stage",
+    "kind",
+    "request_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "head": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "admitted",
+        "implementing",
+        "gating",
+        "reviewing",
+        "awaiting-human",
+        "terminal"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "implement-task",
+        "write-stub",
+        "run-gates",
+        "review-role",
+        "assess-finding",
+        "external-effect",
+        "effect-query",
+        "regenerate",
+        "human-decision",
+        "refusal",
+        "terminal"
+      ]
+    },
+    "request_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

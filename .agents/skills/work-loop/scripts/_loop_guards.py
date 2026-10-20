@@ -60,7 +60,8 @@ import os
 import re
 import stat
 import sys
-from collections.abc import Mapping
+from collections import namedtuple
+from collections.abc import Container, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -1935,6 +1936,95 @@ def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> Guar
         message=f"OK — Status: {expect} at {target}",
         data={"path": str(target), "status": token},
     )
+
+
+# ── plan grammar ──────────────────────────────────────────────────────────
+# The loop engine and the execution supervisor's projector share the task-section
+# walk and the `Depends on:` value parse. Only the engine uses
+# `section_depends_field`; the projector finds that line with its own field reader.
+# These names sit above the completeness marker, so the loaders that check the
+# marker refuse a file truncated before them, and they stay out of `__all__`,
+# which pins the guard surface.
+
+# Accepts both '## T<n>' (level-2) and '### T<n>' (level-3) headings for
+# backward compatibility with existing plans that predate the Phase-1 spec.
+TASK_HEADING_RE = re.compile(r"^#{2,3}\s+(T\d+[a-z]?)\b", re.MULTILINE)
+DEPENDS_LINE_RE = re.compile(r"^\*\*Depends on:\*\*\s*(.+)$", re.MULTILINE)
+_RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")
+TASK_ID_RE = re.compile(r"T\d+[a-z]?")
+_CROSS_MARKER_RE = re.compile(r"spec:([A-Za-z0-9._-]+)/(T\d+[a-z]?)")
+_CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?)")
+
+
+def local_dep_ids(field: str) -> set[str]:
+    """Local task IDs a `Depends on:` field names ahead of its first `(`.
+
+    Trailing parenthetical prose is authored commentary, not declaration, so the
+    field is truncated there. An ID written after that `(` is therefore not a
+    declared dependency for any caller: it is neither scheduled as an edge nor
+    reported as unknown. That is deliberate — widening it would change what
+    counts as a dependency for every caller of this helper, not just the
+    unknown-dependency check.
+    """
+    head = field.split("(")[0]
+    cleaned = _CROSS_MARKER_RE.sub("", head)
+    cleaned = _CROSS_LEGACY_RE.sub("", cleaned)
+    if not cleaned.strip() or re.fullmatch(r"\s*none\s*", cleaned, re.IGNORECASE):
+        return set()
+    ids: set[str] = set()
+    for lo, hi in _RANGE_RE.findall(cleaned):
+        ids.update(f"T{i}" for i in range(int(lo[1:]), int(hi[1:]) + 1))
+    ids.update(TASK_ID_RE.findall(cleaned))
+    return ids
+
+
+def parse_depends_on(
+    field: str, local_task_ids: Container[str]
+) -> tuple[set[str], list[tuple[str, str]]]:
+    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
+    head = field.split("(")[0]
+    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
+    return {t for t in local_dep_ids(field) if t in local_task_ids}, cross
+
+
+# One plan task's boundaries, as offsets into the plan text: `start` opens the
+# heading, `body_start` is just past it, and `end` is where the next task heading
+# begins, or the end of the text for the final task.
+TaskSection = namedtuple("TaskSection", ["task_id", "start", "body_start", "end"])
+
+
+def walk_task_sections(text: str) -> list[TaskSection]:
+    """Sole owner of the plan's task-section boundaries.
+
+    Every caller that needs to know which task owns a line resolves it here.
+    That is the point of the function rather than a convenience: the
+    unknown-dependency refusal in `detect_unknown_deps` must attribute a
+    `Depends on:` line to exactly the task `parse_plan` attributes it to. Were
+    the two to walk the boundaries separately and ever disagree, `schedule`
+    would refuse a plan it would otherwise have scheduled, or accept one whose
+    edges it then reads differently. Sharing the walk makes that agreement
+    structural instead of a coincidence maintained by hand.
+    """
+    matches = list(TASK_HEADING_RE.finditer(text))
+    return [
+        TaskSection(
+            task_id=m.group(1),
+            start=m.start(),
+            body_start=m.end(),
+            end=matches[i + 1].start() if i + 1 < len(matches) else len(text),
+        )
+        for i, m in enumerate(matches)
+    ]
+
+
+def section_depends_field(text: str, section: TaskSection) -> str | None:
+    """The raw `Depends on:` field value a task declares, or None.
+
+    Single-homed for the same reason as the walk above: the refusal and the
+    graph must read the same field text for the same task.
+    """
+    dm = DEPENDS_LINE_RE.search(text[section.body_start:section.end])
+    return dm.group(1) if dm else None
 
 
 # Last statement in the file, on purpose. A module truncated at a clean statement
