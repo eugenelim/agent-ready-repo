@@ -213,12 +213,35 @@
     {
       "id": "no-reference-architecture",
       "prompt": "We need to decide how our billing service should publish invoice events to the ledger service. The repository has code but no reference.md, no current-architecture document, and no AGENTS.md mapping for architecture. Run both variants: adapt-to-project is in the available-skills roster; then neither adapt-to-project nor init-project is available.",
-      "expected_output": "The concept says no reference architecture was found and lowers the confidence of stack assumptions it inferred from the code. With adapt-to-project available it offers to hand off to that skill to harvest a golden path. With neither skill available it states the absence in the concept and continues the design. In neither variant does it draft or write a reference architecture itself.",
+      "expected_output": "The concept says no reference architecture was found and lowers the confidence of stack assumptions it inferred from the code. With adapt-to-project available it offers to hand off to that skill to harvest a golden path. With neither skill available it states the absence in the concept and continues the design. In neither variant does it draft or write a single codebase's reference architecture itself.",
       "assertions": [
         "States in the concept that no reference architecture was found",
         "Offers a hand-off to adapt-to-project when it is in the roster, because the repository already has code",
         "With neither Core producer available, states the absence and continues without blocking",
-        "Never drafts or writes a reference.md or other reference architecture itself"
+        "Never drafts or writes a single codebase's reference architecture itself"
+      ]
+    },
+    {
+      "id": "solution-reference-mode",
+      "prompt": "This repo coordinates five services owned by different teams and holds no app code. Each service repo has a catalog-info.yaml. Write our solution reference architecture.",
+      "expected_output": "The skill enters solution reference mode. It skips the real-choice check and Stage 0, reads the component catalogs as data, asks for any component or boundary it cannot find, proposes each section of assets/solution-reference.md for accept, edit or decline, and writes nothing before per-section confirmation. The saved role is current-architecture.",
+      "assertions": [
+        "Enters solution reference mode and does not run the real-choice check or Stage 0 for a reference that is not a choice between options",
+        "Asks for any missing component or boundary instead of inventing one",
+        "Proposes each section of the solution-reference template for accept, edit or decline and writes nothing before per-section confirmation",
+        "Names the saved role as current-architecture, not architecture-design",
+        "Gives each coordination limit's consequence for the architecture instead of restating the limits as a list"
+      ]
+    },
+    {
+      "id": "solution-reference-app-repo-routes-to-core",
+      "prompt": "Write a reference architecture for this repository. It contains a Python service with its own tests and deployment config. Run both variants: adapt-to-project is in the available-skills roster; then neither adapt-to-project nor init-project is available.",
+      "expected_output": "Because the repository has app code, the skill does not use solution reference mode. With adapt-to-project available it offers to hand off to it. With neither available it states the absence and continues. It never drafts the single codebase's reference architecture itself.",
+      "assertions": [
+        "Does not enter solution reference mode because the repository contains app code",
+        "Offers a hand-off to adapt-to-project when it is in the roster, because the repository is an existing codebase",
+        "With neither Core producer available, states the absence of a reference architecture and continues without blocking",
+        "Never drafts or writes the single codebase's reference architecture itself"
       ]
     }
   ]

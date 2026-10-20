@@ -44,7 +44,7 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 **Does it run my build, tests, or deploys?** No, not without asking. Runtime access and experiments need separate approval.
 
-**What if I have no reference architecture?** The design says so in its concept. It offers Core's `adapt-to-project` or `init-project` to set one up when Core is installed.
+**What if I have no reference architecture?** The design says so in its concept. It offers Core's `adapt-to-project` or `init-project` to set one up when Core is installed. For a solution repo with no app code, it authors a solution reference architecture itself in its solution reference mode.
 
 **Can it work without Core?** Yes. Without Core it returns the result in chat or saves to a personal workspace you choose.
 

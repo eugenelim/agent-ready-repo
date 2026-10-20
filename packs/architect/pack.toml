@@ -110,5 +110,5 @@ role      = "Establish a missing reference architecture"
 consumers = ["skill:architect-design"]
 providers = ["skill:adapt-to-project", "skill:init-project"]
 when      = "architect-design finds no reachable reference architecture and adapt-to-project (an existing codebase) or init-project (a new project) is in the available-skills roster."
-purpose   = "Hand the creation of the golden path to the Core producer that owns harvesting, destination resolution, and confirmation; architect-design never drafts it."
+purpose   = "Hand the creation of the golden path to the Core producer that owns harvesting, destination resolution, and confirmation; architect-design never drafts a single codebase's golden path."
 fallback  = "If neither skill is available, architect-design states the absence of a reference architecture in the concept and continues."

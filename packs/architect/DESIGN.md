@@ -146,7 +146,7 @@ If no golden-path artifact exists, `architect-design` offers to establish one
 by handing off to Core's `adapt-to-project` (an existing codebase) or
 `init-project` (a new project) when either is installed. Those skills own
 harvesting, destination resolution, and confirmation; `architect-design` never
-drafts the artifact itself. When neither is available, it states the absence
+drafts a single codebase's artifact itself. A coordinating repo with no app code is the exception: solution reference mode authors its solution reference architecture from the federated catalog, contract homes, and decisions, using `assets/solution-reference.md` and saving it as `current-architecture`. When neither is available, it states the absence
 in the concept and continues. A design grounded against a known stack produces
 far tighter proposals than design against an implicit assumption of what the
 stack probably is.
