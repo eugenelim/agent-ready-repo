@@ -2467,7 +2467,7 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
-  # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), shipped 2026-10-19 (core 3.1.9); moved from `active` when the spec was set Shipped.
+  # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), shipped 2026-10-19 (core 3.1.10); moved from `active` when the spec was set Shipped.
   { path = "docs/specs/intent-view-handover-prompt/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show a fixed-template, grammar-checked next-step prompt with a Copy control in the intent view's detail zone, selecting it for manual copy when the clipboard refuses", needs = [] },
   # Slice 13 of `intent-navigation-delivery` (tree, roadmap and grouped rail), shipped 2026-10-17 (core 3.1.8); moved from `active` when the spec was set Shipped.
   { path = "docs/specs/intent-view-tree-and-roadmap/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Group the intent view rail by job, add a capability progress question under each product strategy, and give Browse all intents Show, Group and expand controls", needs = [] },

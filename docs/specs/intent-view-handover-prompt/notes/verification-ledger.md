@@ -1,6 +1,6 @@
 # Verification ledger: intent-view-handover-prompt
 
-Every test and measurement result above § Review dispositions ran against code commit `ee06ef520afe4f2262604260af3219800522435e`, or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it apart from core's version field. That field moved from 3.1.10 to 3.1.9 in `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` (commit `1fae79643`), because a roster test requires exactly the next patch above the default branch's 3.1.8; no recorded result reads it. Every other commit after `ee06ef520` changes only documentation and coordination files: this ledger, `notes/screens/`, one guide sentence, the changelog fragment, the spec's and plan's status lines and checked criteria, and the `workspace.toml` entry. This list is a summary; `git log --stat ee06ef520..HEAD` is the complete record, and `git diff ee06ef520 HEAD -- packs/core .claude .agents` shows only the two version lines. Run on 2026-10-19.
+Every test and measurement result above § Review dispositions ran against code commit `ee06ef520afe4f2262604260af3219800522435e`, or a tree whose `packs/core/`, `.claude/` and `.agents/` content is identical to it apart from core's version field and changes the default branch merged in. Core's version is 3.1.10. A roster test requires exactly the next patch above the default branch's version: it was 3.1.8 at build time, then #1557 took 3.1.9 and was merged in, so this change moved from 3.1.10 to 3.1.9 (`1fae79643`) and back to 3.1.10. No recorded result reads that field. Every other commit after `ee06ef520` on this branch's own line changes only documentation and coordination files: this ledger, `notes/screens/`, one guide sentence, the changelog fragment, the spec's and plan's status lines and checked criteria, and the `workspace.toml` entry. This list is a summary; `git log --first-parent --stat ee06ef520..HEAD` is the complete record of this change's commits. Run on 2026-10-19.
 
 ## Scripted browser suite (all of `view_browser_checks.py`)
 
@@ -187,7 +187,7 @@ The table gives each review round's result and the commit it reviewed. A report 
 | 3 | `2d5b0b864` | identical to `ee06ef520` |
 | 4 | `b4bae7330` | identical to `ee06ef520` |
 | 5 | `1b060b93d` | identical to `ee06ef520` apart from core's version field |
-| 6 | the commit adding this row | identical to `ee06ef520` apart from core's version field |
+| 6 | `1b7ae179c` | identical to `ee06ef520` apart from core's version field |
 
 | Reviewer | Round 1 | Round 2 | Rounds 3 to 5 |
 | --- | --- | --- | --- |
@@ -233,3 +233,5 @@ Dispatched on 2026-10-19 at commit `480a46c25`, whose code tree is the final cod
 | `pack-javascript.yml` | 39287162011 | success |
 
 An earlier dispatch at `b4bae7330` (runs 39284589634 and 39284593272) failed one test, `test_pack_delivery_contract_is_complete_and_version_increased`. That test requires core's version to be exactly the next patch above the default branch's 3.1.8. Commit `1fae79643` moved core from 3.1.10 to 3.1.9, and the runs above pass.
+
+After the default branch (with #1557, core 3.1.9) was merged in on 2026-10-20, the pull request's own checks ran again on the merged head; the dispatched workflows above are not re-run for that merge.
