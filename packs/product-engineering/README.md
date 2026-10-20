@@ -37,8 +37,8 @@ claude plugin install product-engineering@agent-ready-repo
 - **`diverge-solutions`** — Compares solution options for an initiative, with a recommendation.
 - **`lean-canvas`** — Fills a lean canvas and writes a one-page initiative brief.
 - **`place-bet`** — Records the choice, confidence, appetite, accepted risks, and reversal conditions.
-- **`map-capabilities`** — Lists needed capabilities and a build order.
-- **`align-value-stream`** — Sets up a coordinating repo for work that spans many components.
+- **`map-capabilities`** — Lists needed capabilities and a build order. On the longer route, `intent decompose` takes the capability map next.
+- **`align-value-stream`** — Sets up a coordinating repo for work that spans many components. It adds a hard-limits README section and offers `architect-design` to write the solution reference architecture.
 
 Subagents: **`discovery-lead`** supervises the loop. **`discovery-reliability-reviewer`** and **`discovery-threat-reviewer`** review discovery artifacts read-only.
 

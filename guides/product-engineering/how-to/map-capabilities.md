@@ -25,13 +25,16 @@ Map our capabilities for a self-service export-retention service for workspace o
 
 ## When to run `map-capabilities`
 
-Run `map-capabilities` after `place-bet` and before `lean-canvas` / `author-delivery-brief create`.
-It is step 6 — the terminal step — of the PE six-step shaping sequence:
+Run `map-capabilities` after `place-bet`.
+It is step 6 of the PE six-step shaping sequence:
 
 ```
 frame-situation → identify-opportunities → diverge-solutions
   → validate → place-bet → map-capabilities
 ```
+
+The longer route then continues: its next step is `intent decompose`, which takes
+`capability-map.md` as input and turns each Build capability into a child intent.
 
 This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
 
@@ -42,8 +45,8 @@ If you do not yet have a bet, run `place-bet` first.
 **Not the right skill if:**
 
 - You are working on a single feature or screen → use `intent frame`.
-- You want to author the initiative brief → use `lean-canvas` or `author-delivery-brief create`
-  (run those after this skill, not instead of it).
+- You want to author the initiative brief → use `lean-canvas` for the one-page initiative brief or
+  `author-delivery-brief` for the delivery brief (neither replaces this skill).
 
 ---
 

@@ -15,7 +15,7 @@ kind: how-to
 Put a `reference.md` golden path at the adopter-owned `current-architecture` destination. `docs/architecture/reference.md` is the catalogue fallback, not a universal path. Assumes you know what the artifact is for; if not, read [Foundation vs. map](../../core/explanation/foundation-vs-map.md) first.
 :::
 
-You have a working codebase with real architecture decisions, and you want them written down as a foundation that new work conforms to. There are three routes in, depending on where your repo is.
+You have a working codebase with real architecture decisions, and you want them written down as a foundation that new work conforms to. There are four routes in, depending on where your repo is.
 
 ```text
 How should we establish a reference architecture for our existing payments platform?
@@ -79,6 +79,16 @@ When you're standing up a brand-new repo from an idea, the `init-project` skill 
    for that step on its own.
 
 For the whole greenfield flow end to end — idea through walking skeleton — follow [From idea to a walking skeleton](../../core/tutorials/start-a-new-project.md).
+
+## Route 4 — A solution repo with no app code
+
+When the repo only coordinates other repos (a value-stream or solution repo), there is no codebase to harvest. Use `architect-design` in its solution reference mode. `align-value-stream` offers it when the `architect` pack is installed, and you can ask for it directly:
+
+```text
+Write a solution reference architecture for this coordinating repo.
+```
+
+The agent reads the federated catalog, contract homes, decisions, and links to each component repo's `reference.md`. It asks for any component or boundary it cannot find rather than inventing one. It proposes each section for you to accept, edit, or decline, and writes nothing until you confirm.
 
 ## Register the artifact
 

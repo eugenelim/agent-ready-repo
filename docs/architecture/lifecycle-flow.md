@@ -36,7 +36,7 @@ flowchart TB
         G2 --> S5["intent decompose: buildable pieces"]
         S5 --> G3{{"G3: you commit to build"}}
         SR["Short route: intent frame, which may offer one architect-design pass, intent de-risk, intent decompose"]
-        LR["Longer route: frame-situation, identify-opportunities, diverge-solutions, intent de-risk, place-bet, map-capabilities"]
+        LR["Longer route: frame-situation, identify-opportunities, diverge-solutions, intent de-risk, place-bet, map-capabilities, then intent decompose on the capability map"]
         LA["Optional: architect-design at system scope, offered by map-capabilities once the build order is set"]
         LS["Optional: architect-design for subsystems that earn a doc, then architect-review"]
     end

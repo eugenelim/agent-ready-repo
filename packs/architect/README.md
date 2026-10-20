@@ -22,12 +22,14 @@ claude plugin install architect@agent-ready-repo
 - Design a system, subsystem, or change from a one-page concept, with the rationale beside each model.
 - Draw Mermaid diagrams for flows, sequences, deployments, data models, and roadmaps, with an optional editable draw.io file.
 - Review an assessment, design doc, diagram, RFC, or ADR and return a verdict with findings ranked by severity.
+- Write a solution reference architecture for a coordinating repo with no app code.
+- Turn a design into a physical architecture and bill of materials (BOM) covering cloud services, container images, open-source libraries, hardware, network connections, and licences, with a delta BOM for a change.
 - Check a design against well-architected lenses, including cloud and agentic workloads.
 
 ## Skills
 
 - **`architect-assess`** — Maps the implemented system, shows evidence coverage and attention hotspots, and proposes action waves. Read-only by default.
-- **`architect-design`** — Shapes a concept first, then writes a design doc matched to the scope of the change.
+- **`architect-design`** — Shapes a concept first, then writes a design doc matched to the scope of the change. Also writes a solution reference architecture and, on request, a physical architecture and BOM.
 - **`architect-diagram`** — Draws a Mermaid diagram chosen from what you ask for, and checks it before it shows you.
 - **`architect-review`** — Critiques an architecture artifact and gives a verdict with severity-tagged findings.
 - **`architecture-lenses-reference`** — An internal knowledge router for the others. You never invoke it yourself.
@@ -45,6 +47,8 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 **Does it run my build, tests, or deploys?** No, not without asking. Runtime access and experiments need separate approval.
 
 **What if I have no reference architecture?** The design says so in its concept. It offers Core's `adapt-to-project` or `init-project` to set one up when Core is installed. For a solution repo with no app code, it authors a solution reference architecture itself in its solution reference mode.
+
+**Does the BOM include prices?** Each line is `priced` with its source, date, and region, `unpriced` when no grounded price exists, or `no direct cost`. Unpriced lines are counted and left out of the total.
 
 **Can it work without Core?** Yes. Without Core it returns the result in chat or saves to a personal workspace you choose.
 
