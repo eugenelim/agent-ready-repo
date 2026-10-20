@@ -264,7 +264,7 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         _pytest_step(
             "test-graph-pointer-authoring",
-            "packs", "core", "tests", "skills", "work-loop", "test_graph_pointer_authoring.py",
+            "tests", "roster", "test_graph_pointer_authoring.py",
         ),
         _script_step(
             "lint-graph-pointers",

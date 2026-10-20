@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[5]
+ROOT = Path(__file__).resolve().parents[2]
 
 SEARCH_ROOTS = ("packs/core", "packs/product-engineering", "docs/guides", "guides")
 EXCLUDED_DIRS = frozenset(

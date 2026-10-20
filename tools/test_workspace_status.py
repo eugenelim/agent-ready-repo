@@ -1658,8 +1658,15 @@ _WORK_LOOP_CONTRACT_HASH = (
 # `Status: Shipped`, workspace-status still owns workspace.toml
 # queue/active/shipped. The status vocabulary, the deferral-anchor
 # requirement, and the doc-drift bullet's listed invariants are all untouched.
+# Re-pinned 2026-10-20 for the graph-pointer check: "Artifacts consistent"
+# gains a bullet that runs `lint-graph-pointers.py` against the change's base.
+# Reviewed as the pin requires, and the engine needs no edit: the bullet runs a
+# read-only lint, writes no spec.md field, and mutates no workspace.toml array.
+# The engine states its own boundary at workspace_status_engine.py:4988 ("Its
+# finish checklist only sets spec.md Status: Shipped"), and ownership is
+# unchanged.
 _WORK_LOOP_FINISH_HASH = (
-    "b7f2d6b13e179a1e0b2c9899c192530f7f513bb6ff94a058bf4a2c131cce6f4f"
+    "90d06f1caa06c3e151db49cc24ec9b01cd3ffb62ec6fa3dbcce097c175cd31dd"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

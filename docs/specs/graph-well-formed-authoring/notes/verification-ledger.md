@@ -57,3 +57,15 @@ All reviews ran on `03e1a9701`, and every finding was refuted by an independent 
 ## Slice PR CI
 
 Run identifiers are added after the PR opens.
+
+## T4: Repository-level checks pass on the slice PR
+
+- **Trigger:** PR #1582's first CI pass. `docs` run 39481284344 failed `lint-pack-test-boundary.py` on the T2 pins. `test-corpus` run 39481298710 and `build-check` run 39481284362 failed the work-loop finish-checklist hash anchor, and `build-check` stopped there before the pointer steps ran. `test-roster` run 39481305228 and the other 5 PR workflows passed.
+- **VI-4001:** the pins moved to `tests/roster/test_graph_pointer_authoring.py` with the same assertions, re-anchored at the repository root. The roster step is in `build-check.yml`, the `STEP_DISPOSITION` and `_GATE_MAIN_CHECKS` entries are in `lint-ci-parity.py`, and the gate-chain step points at the new path.
+  - `lint-pack-test-boundary.py` and its self-test: pass.
+  - `lint-ci-parity.py`: both rosters ok.
+  - `ruff check .`: clean.
+  - `tools/test_build_gate_chain.py`: 40 passed in 54 s.
+- **VI-4002:** the hash is now `90d06f1c…`, with a review comment citing `workspace_status_engine.py:4988`. The engine is unchanged. The moved suite and `tools/test_workspace_status.py` together: 109 passed in 5 s.
+- **VI-4003:** a local `make build-check` ran every chain step through to SAST, and all of them passed, including `lint-graph-pointers` with 0 violations. SAST exited 2 on two Semgrep rule timeouts, in `loop-cohort.py` and `arxiv-retriever.py`. Neither file is in this diff, and the 1-minute load average was 246.8 on 10 CPUs. Re-run alone with the Makefile's arguments, both exit 0. CI delegates SAST to `ci-security`, which passed (run 39481284028).
+- **T3 re-verification:** `catalogue verify` ok. The projected check on an untyped `Brief:` exits 1. The repository has 0 violations. Core is at 3.1.11 in both files.

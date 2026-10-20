@@ -1,6 +1,6 @@
 # Plan: Graph well-formed authoring
 
-- **Status:** Done
+- **Status:** Executing
 - **Spec:** [`spec.md`](spec.md)
 - **Constrained by:** RFC-0103; ADR-0007; ADR-0074; ADR-0142 D10
 - **Repository anchors:** `ARCHITECTURE.md` owns pack-source boundaries; work-loop's `scripts/lint-spec-status.py` is the portable-linter precedent; `tools/repo/build_gate_chain.py` owns repository CI invocation; the grammar migration's surface inventory owns writer discovery.
@@ -21,6 +21,7 @@
 | Shared check and construction suite | T1 |
 | Writer gaps, template and example meaning, field guide and build-loop guide | T2 |
 | Portable invocation, repository gate, versions, release entry, projections, ledger | T3 |
+| Repository-level home for the authoring pins, and the CI anchors the finish step changes | T4 |
 
 ## Design (LLD)
 
@@ -99,6 +100,21 @@ For the build-loop guide, `guides/core/how-to/start-the-work.md`: “Before comp
 
 **Done when:** T3 integration and release checks pass, including the version pair for every changed pack, with evidence in the ledger.
 
+### T4: Repository-level checks pass on the slice PR
+
+**Depends on:** T1, T2, T3
+
+**Verification mode:** goal-based check
+
+**Tests:**
+- **VI-4001.** The T2 authoring pins read `guides/` and `packs/product-engineering/`, which a pack test may not read. Move them to `tests/roster/test_graph_pointer_authoring.py`, anchored at the repository root. Repoint the gate-chain step and its construction test. Add the roster file's named `build-check.yml` step above the bulk roster step, with its `STEP_DISPOSITION` entry. `tools/lint-pack-test-boundary.py`, `tools/test-lint-pack-test-boundary.py`, `tools/lint-ci-parity.py`, and the moved suite pass (AC-0009, AC-0010).
+- **VI-4002.** The work-loop finish-checklist anchor in `tools/test_workspace_status.py` changes only its hash constant. The new finish bullet runs a lint and changes no `workspace.toml` ownership, so `workspace_status_engine.py` is unchanged. The anchor case passes (AC-0010).
+- **VI-4003.** A local `make build-check` passes, so no gate after a first failure is left unrun.
+
+**Approach:** Move without changing assertions. Where a CI or roster registration rule applies, follow `tests/AGENTS.md` and `tools/AGENTS.md`.
+
+**Done when:** VI-4001 to VI-4003 pass, and the slice PR's `docs`, `build-check`, and dispatched `test-corpus` runs pass on the amended head.
+
 ## Slice verification
 
 Run the required local lint gate and the affected targeted suites once before final review. Dispatch the full gates once on the slice PR, and record their run identifiers and results in the ledger. Do not run `make ci` as a push precheck. This slice-level evidence is separate from each task's own completion tests.
@@ -123,3 +139,6 @@ The check ships in a Core patch release and the slice PR merges straight to the 
 - 2026-10-20: drift amendment, at the owner's request to recheck the contract against current `main`. ADR-0142 D10, accepted 2026-10-11, lets a brief's `Parent intent:` carry a repository qualifier whose syntax is not yet fixed. The spec and plan now cite it, record the assumption and its kill condition, and name the follow-on owner. No criterion, boundary, task, or test changed. T1 is in progress and has no completed evidence.
 - 2026-10-20: spec re-approved by the repository owner with the ADR-0142 D10 drift amendment; round-5 adversarial review adjudicated clean.
 - 2026-10-20: plan re-approved by the repository owner with the ADR-0142 D10 drift amendment.
+- 2026-10-20: amendment after the slice PR's first CI run. The `docs` run 39481284344 refused the T2 authoring pins, because a pack test may not read outside its pack. `test-corpus` run 39481298710 and `build-check` run 39481284362 failed the work-loop finish-checklist hash anchor. T4 moves the pins to the roster tree, registers their CI step, and refreshes the anchor. No criterion, boundary, or completed task changed. T3 is reopened only for re-verification.
+- 2026-10-20: spec re-approved by the repository owner with the T4 amendment; round-6 adversarial review adjudicated clean.
+- 2026-10-20: plan re-approved by the repository owner with the T4 amendment.
