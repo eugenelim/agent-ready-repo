@@ -1,6 +1,6 @@
 # Spec: Execution supervisor attempt security
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144
@@ -71,8 +71,8 @@ that leaves open.
 
 ### Never do
 
-- Run a supervisor `git` command outside the hardened helper, except the
-  commit-identity read the plan names.
+- Run a supervisor `git` command outside the hardened helper, except an
+  out-of-helper config read.
 - Fall back to a single-process kill on Windows.
 - Add a dependency outside the Python standard library.
 
@@ -102,8 +102,14 @@ that leaves open.
   from.
 - **Supervisor store.** `<pinned Git directory>/agentbundle-supervisor/<run id>/`,
   outside the worktree and outside every cache core calls deletable. It holds
-  each issuance's manifest, each refusal record, and the ids of the commits the
-  supervisor made.
+  the pinned digests, each issuance's manifest, each refusal record, and the ids
+  of the commits the supervisor made.
+- **Pinned digests.** The sha256 digests of the installed supervisor modules,
+  `supervisor-policy.json`, and `review-rules.json`. They are held only in the
+  supervisor store, recorded once by the controller-run admitted `start`, and
+  replaced only by the AC-0016 re-pin. When no pin record exists for the run,
+  that `start` computes them from the installed bytes, without importing a
+  sibling, and records them; it is the only entry point that may do so.
 - **Git control state.** The resolved Git directory and common directory pinned
   at admission; the worktree's `.git` gitfile; `commondir`; `refs/replace/`;
   `info/`; `objects/info/alternates`; `hooks/`; every repository and worktree
@@ -120,6 +126,12 @@ that leaves open.
   `security-events.jsonl`, and `.loop-run/` — are not covered.
 - **Open attempt.** An issuance of a worker request that has not been reported,
   refused, or superseded.
+- **Out-of-helper config read.** A `git config` read that runs no configured
+  code, passes the pinned `--git-dir`, runs with the `git` row's environment
+  from the Launch grants table, and serves exactly one of two purposes: the
+  admission read of the effective config for the carried settings and for the
+  filter definitions AC-0009 checks, or the once-per-run commit-identity read
+  of `user.name` and `user.email`. No other `git` call qualifies.
 - **Code-running Git setting.** Any configured key whose value Git runs as a
   program or command, including `filter.*.clean`, `filter.*.smudge`,
   `filter.*.process`, `diff.*.textconv`, `diff.*.command`, `diff.external`,
@@ -198,12 +210,14 @@ Git hardening
   setting, when repository or worktree config sets a code-running Git setting,
   or when global or system config defines a filter that any attributes file Git
   reads for the worktree uses.
-- [ ] **AC-0010.** Every supervisor `git` invocation other than the
-  commit-identity read runs through one helper that ignores system and global
-  config apart from carried line-ending and `core.excludesFile` settings, turns
+- [ ] **AC-0010.** Every supervisor `git` invocation other than an
+  out-of-helper config read runs through one helper that ignores system and
+  global config apart from carried line-ending and `core.excludesFile` settings,
+  turns
   off commit and tag signing, disables hooks, fsmonitor, external diff,
   textconv, and replace refs, and first verifies Git control state by direct
-  file reads.
+  file reads: against the open attempt's manifest when one exists, and
+  otherwise against the Git and common directories pinned at admission.
 - [ ] **AC-0011.** A planted hook, fsmonitor command, filter driver, textconv
   driver, external diff, signing command, or config include runs nothing during
   any supervisor `git` call.
@@ -219,9 +233,11 @@ Launched code, pinning, and trust
   commit, and a difference refuses the result.
 - [ ] **AC-0014.** Every supervisor entry point compares the installed supervisor
   modules, `supervisor-policy.json`, and `review-rules.json` with the pinned
-  digests before importing any sibling — or, while a `regenerate` request is
-  open, with digests computed from the pack source's bytes at `HEAD` without
-  importing it — and refuses with `supervisor-changed` on a mismatch.
+  digests read from the supervisor store before importing any sibling (the
+  admitted `start` that records them, per the definition, excepted) — or, while
+  a `regenerate` request is open, with digests computed from the pack source's
+  bytes at `HEAD` without importing it — and refuses with `supervisor-changed`
+  on a mismatch.
 - [ ] **AC-0015.** A bytecode file placed beside a pinned module is never
   executed.
 - [ ] **AC-0016.** When `HEAD` holds the Core pack's work-loop source, review

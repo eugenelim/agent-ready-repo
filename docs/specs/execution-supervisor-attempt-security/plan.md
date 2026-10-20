@@ -1,7 +1,7 @@
 # Plan: Execution supervisor attempt security
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0144 D11 sets the trust boundary.
   - **Slice 1 primitives** in `work-loop/scripts/`:
     - `_process_safety.py`: POSIX `killpg` tree-kill, and refusal when that is
@@ -78,11 +78,18 @@ and needs a security-reviewer pass.
     - `--no-ext-diff` and `--no-textconv` where they apply.
   - **Carried settings:** `core.autocrlf`, `core.eol`, and `core.excludesFile`,
     read once at admission from the effective config, are carried with `-c`.
-  - **Commit identity:** read once per run by plain
-    `git config --get user.name` and `user.email`. These reads run no
-    configured code, and they are the only calls made outside the helper.
-  - **Before each call:** the helper checks Git control state against the
-    manifest by direct file reads.
+  - **Out-of-helper config reads.** The spec's definition bounds these; they
+    are the only `git` calls made outside the helper:
+    - at admission, `git config --show-scope --get-regexp` over the effective
+      config, for the carried settings and for the `filter.<name>.*`
+      definitions the admission check looks for in every scope;
+    - once per run, `git config --get user.name` and `user.email` for the
+      commit identity.
+  - **Before each call:** the helper checks Git control state by direct file
+    reads. With an open attempt it compares against that attempt's manifest
+    (built in T3). Otherwise it checks that the gitfile and `commondir` still
+    resolve to the Git and common directories pinned at admission (built in
+    T2).
 - **Admission check.** For each `filter=<name>` attribute in any attributes
   file Git reads for the worktree (nested `.gitattributes` and `info/attributes`
   included),
@@ -95,9 +102,9 @@ and needs a security-reviewer pass.
   in the supervisor store's list of commits the supervisor made; trailers alone
   never count.
 - **Supervisor store.** `<pinned Git directory>/agentbundle-supervisor/<run id>/`
-  holds manifests, refusal records, and made-commit ids. Residue derives only
-  from its refusal records, so deleting core's caches neither clears residue
-  nor loses a manifest.
+  holds the pinned digests, manifests, refusal records, and made-commit ids.
+  Residue derives only from its refusal records, so deleting core's caches
+  neither clears residue nor loses a manifest or a pin.
 - **Bytecode.** Each entry point sets `sys.dont_write_bytecode = True` and
   points `sys.pycache_prefix` at a per-process temporary directory before
   loading any sibling.
@@ -107,6 +114,10 @@ and needs a security-reviewer pass.
   skill's. While the request is open, entry points accept either the pinned
   digests or the source digests. It admits the result only on a match, then
   re-pins.
+- **First pin.** The admitted `start` that finds no pin record for its run
+  computes the pinned digests from the installed bytes before loading any
+  sibling and writes them to the supervisor store. Every other entry point, and
+  any later `start` for the run, compares against that record (T4).
 - **Windows Job Object.** The process is created by `CreateProcessW` with
   `CREATE_SUSPENDED | CREATE_NEW_PROCESS_GROUP | EXTENDED_STARTUPINFO_PRESENT`.
   A `STARTUPINFOEX` attribute list carries `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`,
@@ -170,7 +181,7 @@ Owned by: T1, T2, T3, T4.
 
 - **Depends on:** T2
 - **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0026, AC-0027; TDD.
-- **Touches:** new `_supervisor_attempt.py`; `_supervisor_loop.py` (manifest at attempt issue, open-attempt check, `report` checks); Core manifests and changelog
+- **Touches:** new `_supervisor_attempt.py`; `_supervisor_loop.py` (manifest at attempt issue, open-attempt check, `report` checks); `_supervisor_git.py` (helper pre-check against an open attempt's manifest); Core manifests and changelog
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-5020 (AC-0001):** each of these worker changes is refused at `report`:
@@ -200,14 +211,17 @@ Owned by: T1, T2, T3, T4.
 
 - **Depends on:** T3, spec:execution-supervisor-core/T5, spec:execution-supervisor-core/T6, spec:execution-supervisor-review-gate/T2
 - **Spec behavior:** AC-0013, AC-0014, AC-0015, AC-0016, AC-0017; TDD.
-- **Touches:** `_supervisor_attempt.py`; `_supervisor_loop.py`; `_supervisor_tdd.py`; `work-supervisor.py` (entry-point pin check); Core manifests and changelog
+- **Touches:** `_supervisor_attempt.py`; `_supervisor_loop.py`; `_supervisor_tdd.py`; `work-supervisor.py` (first-pin recording at `start` and the entry-point pin check); Core manifests and changelog
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-5030 (AC-0013):** a `conftest.py` that an earlier task added writes
     `plan.md` during a red proof and during a gate run. Both are refused before
     commit.
   - **VI-5031 (AC-0014, AC-0015):** an edited installed module gives
-    `supervisor-changed` at every entry point. A malicious `.pyc` never runs.
+    `supervisor-changed` at every entry point, including after core's caches
+    are deleted. The first admitted `start` records the pins, and a second
+    `start` neither overwrites nor accepts a differing record. After admission,
+    a missing or malformed pin record gives `supervisor-changed`. A malicious `.pyc` never runs.
   - **VI-5032 (AC-0016):** after readiness, with the pack source edited, exactly
     one `regenerate` is emitted, admitted, and re-pinned. A mismatched install is
     refused.
@@ -248,3 +262,6 @@ Owned by: T1, T2, T3, T4.
 ## Changelog
 
 <!-- Approvals only. -->
+
+- 2026-10-20: spec approved by eugenelim
+- 2026-10-20: plan approved by eugenelim
