@@ -1,7 +1,7 @@
 # Plan: solution-reference-and-physical-bom
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (patch bump, eval harness update, portable shipped content, self-host); analogous change: `docs/specs/architect-diagram-drawio-export/` (a new reference and assets plus evals in one architect skill); existing suites `packs/architect/tests/skills/architect-design/test_shaping_reach.py`, `packs/product-engineering/tests/pack/test_architect_optional_offers.py`, `packs/product-engineering/tests/pack/test_intent_skill_structure.py`. Deviation: none.
 
 > **Plan contract:** this is the implementation strategy. It may change
