@@ -93,4 +93,4 @@ slug; direct the PE to `work-intake` or manual edit. Do not write to `workspace.
 
 Never write to `workspace.toml`. Never write to a literal hardcoded path.
 Never run `diverge-solutions` inline — offer it; let the PE decide. Never block
-when no options artifact exists — offer and degrade gracefully. Never produce a brief.
+when no options artifact exists — offer and degrade gracefully. Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

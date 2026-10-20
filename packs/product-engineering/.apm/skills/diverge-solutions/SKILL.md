@@ -115,4 +115,4 @@ add it by hand. Do not write to `workspace.toml`.
 - Narrowing the field without surfacing the constraint that closed it first.
 - Deleting non-recommended options from the artifact.
 - Writing to `workspace.toml` or any literal hardcoded path.
-- Producing a brief — that is `place-bet` + `author-delivery-brief create`'s responsibility.
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

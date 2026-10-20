@@ -78,6 +78,13 @@ another skill.
 5. `place-bet` (separate skill)
 6. `map-capabilities` (separate skill)
 
+Then `decompose` (intent mode) takes `capability-map.md` as input from the intent
+de-risked at step 4. Each Build capability becomes one capability-level child
+intent (`Level: capability`, `Parent intent:` that intent, carrying the
+capability id). Buy, Partner, and Adopt capabilities stay as dependencies the
+children name. Each child runs `intent frame`, `intent de-risk`, and
+`intent decompose`, as on the short route.
+
 ### Supervised route
 
 1. `discovery-loop` (separate skill) runs a whole-product idea through its own

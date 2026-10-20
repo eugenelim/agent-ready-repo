@@ -98,7 +98,7 @@ canonical artifact and writes the entry, or to add it to the
 ## Anti-patterns to refuse
 
 - Writing to `workspace.toml` or a literal hardcoded path.
-- Producing a brief (that is `place-bet` + `author-delivery-brief create`'s job).
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.
 - Forcing a Wardley stage when evidence is insufficient — name it as a residual
   assumption instead.
 - Forcing an altitude when it is **genuinely ambiguous** — ask instead.

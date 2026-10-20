@@ -365,6 +365,18 @@
         "Recommends intent decompose for the short route",
         "Offers place-bet labelled longer route"
       ]
+    },
+    {
+      "id": "longer-route-capability-map-continuation",
+      "mode": "decompose",
+      "prompt": "The longer route is done: capability-map.md exists for the intent we de-risked at step 4. What happens next?",
+      "expected_output": "The agent runs decompose in intent mode with capability-map.md as input from the de-risked intent. Each Build capability becomes one capability-level child intent with Level: capability, a Parent intent: back-link to that intent, and the capability id. Buy, Partner, and Adopt capabilities stay as dependencies the children name. Each child then runs intent frame, intent de-risk, and intent decompose as on the short route.",
+      "assertions": [
+        "Runs decompose (intent mode) with capability-map.md as input, after map-capabilities",
+        "Turns each Build capability into one capability-level child intent with Level: capability and a Parent intent: back-link carrying the capability id",
+        "Keeps Buy, Partner, and Adopt capabilities as dependencies the children name, not as child intents",
+        "Sends each child through intent frame, intent de-risk, and intent decompose as on the short route"
+      ]
     }
   ]
 }
