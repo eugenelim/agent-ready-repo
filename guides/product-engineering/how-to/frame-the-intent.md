@@ -76,13 +76,13 @@ The agent ranks the assumptions and adds its verdict to the intent file.
 
 ## Design the architecture
 
-If the architecture is not settled, ask for a design before the work is cut:
+This step is optional. It needs the `architect` pack, an add-on set of agent skills. To add it, run:
 
-```text
-Design the architecture for this intent before we decompose it.
+```bash
+agentbundle install --pack architect
 ```
 
-This step is optional and needs the `architect` pack, which you add with `agentbundle install --pack architect`. Without it you see no offer. With it, the agent offers `architect-design` here, and you can say skip to go straight to the break-down.
+With the pack installed, the agent offers `architect-design` after de-risk. It drafts a design sized to the change and offers to save it, and breaking the work down then follows that design. Say `skip` to go straight to breaking it into work. Without the pack, you see no offer.
 
 ## Break it into work
 
