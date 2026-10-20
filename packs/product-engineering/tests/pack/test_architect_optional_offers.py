@@ -343,3 +343,7 @@ def test_readme_states_the_optional_behaviour() -> None:
     readme = _flat((PACK_ROOT / "README.md").read_text(encoding="utf-8"))
     assert "When the `architect` pack is installed" in readme
     assert "Without it, they say nothing about it." in readme
+    assert (
+        "`intent de-risk` and `intent decompose` offer `architect-design` before the work is cut"
+        in readme
+    )

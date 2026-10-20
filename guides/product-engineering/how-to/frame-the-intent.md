@@ -74,6 +74,16 @@ De-risk this bet — what are the riskiest assumptions, and how would we test ea
 
 The agent ranks the assumptions and adds its verdict to the intent file.
 
+## Design the architecture
+
+If the architecture is not settled, ask for a design before the work is cut:
+
+```text
+Design the architecture for this intent before we decompose it.
+```
+
+This step is optional and needs the `architect` pack, which you add with `agentbundle install --pack architect`. Without it you see no offer. With it, the agent offers `architect-design` here, and you can say skip to go straight to the break-down.
+
 ## Break it into work
 
 To split the intent into slices a build can take one at a time, ask:
