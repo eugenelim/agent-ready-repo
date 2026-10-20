@@ -1,6 +1,6 @@
 # Plan: Graph well-formed authoring
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 - **Constrained by:** RFC-0103; ADR-0007; ADR-0074; ADR-0142 D10
 - **Repository anchors:** `ARCHITECTURE.md` owns pack-source boundaries; work-loop's `scripts/lint-spec-status.py` is the portable-linter precedent; `tools/repo/build_gate_chain.py` owns repository CI invocation; the grammar migration's surface inventory owns writer discovery.

@@ -1,6 +1,6 @@
 # Spec: Graph well-formed authoring
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Approved:** 2026-10-08 by the repository owner, spec and plan together, after clean shaping and adversarial reviews and a passing final alignment check.
 - **Owner:** Core maintainer
 - **Plan:** [`plan.md`](plan.md)
@@ -71,18 +71,18 @@ Authors and agents create intent parents and spec-to-brief pointers that name ex
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Against a supplied Git base, the check selects the current versions of artifact files added or modified by the change, including staged and unstaged edits and untracked additions. A renamed artifact is checked at its destination. A deleted artifact is not read. Artifacts are intent and brief files directly under their canonical collections, and `docs/specs/<dir>/spec.md`, with the delivery resolver's admitted file and directory names; templates are excluded.
-- [ ] **AC-0002.** An unchanged artifact with an untyped or unresolved governed pointer contributes no field violation, even when another artifact in the same collection changes.
-- [ ] **AC-0003.** Outside AC-0005's non-pointer cases, each active `Parent intent:` in a selected artifact passes exactly when its typed reference names one live intent with the referenced registered kind and slug. A bare slug, repository path, markdown link, malformed typed reference, wrong kind, missing target, retired target, or duplicate target identity produces a violation.
-- [ ] **AC-0004.** Outside AC-0005's non-pointer cases, each active `Brief:` in a selected artifact passes exactly when it is `brief:<slug>` naming one live brief. An untyped value or a typed reference naming no unique live brief produces a violation.
-- [ ] **AC-0005.** For either governed field, an absent, blank, comment-only value, or a value whose first word is `none` in any letter case, produces no field violation. Text after that first word does not change this result.
-- [ ] **AC-0006.** Adding or changing body text or commented field-shaped text does not create a pointer value. A selected artifact's active preamble fields are still checked when its edit is only in the body.
-- [ ] **AC-0007.** A check with an unavailable Git base or an unsafe, unreadable, or invalid-UTF-8 artifact needed for selection or target resolution exits non-zero. It does not return a clean result from an incomplete inventory. A safe fixture with no selected artifacts exits zero.
-- [ ] **AC-0008.** A complete check exits zero only when every selected governed value passes; otherwise it exits non-zero.
-- [ ] **AC-0009.** No author-facing source in the bounded writer-candidate universe emits or instructs an untyped populated `Parent intent:` or `Brief:`. The derivation enumerates every candidate and records its instruction, template, example, generated-copy, or excluded role; an unclassified candidate or remaining untyped writer fails verification. Already-converted sources require no form rewrite.
-- [ ] **AC-0010.** Installed Core includes the executable shared check, and work-loop completion invokes it against the change's base. The repository's slice-PR gate invokes the same check against its PR base. A fixture introducing an untyped pointer makes each invocation fail.
-- [ ] **AC-0011.** Each field violation is identified by stable code, field name, and repository-relative artifact path. Standard output, standard error, and diagnostics surfaced by the skill contain no raw unsafe reference, absolute host path, or traceback.
-- [ ] **AC-0012.** Invoking the check leaves repository file bytes unchanged.
+- [x] **AC-0001.** Against a supplied Git base, the check selects the current versions of artifact files added or modified by the change, including staged and unstaged edits and untracked additions. A renamed artifact is checked at its destination. A deleted artifact is not read. Artifacts are intent and brief files directly under their canonical collections, and `docs/specs/<dir>/spec.md`, with the delivery resolver's admitted file and directory names; templates are excluded.
+- [x] **AC-0002.** An unchanged artifact with an untyped or unresolved governed pointer contributes no field violation, even when another artifact in the same collection changes.
+- [x] **AC-0003.** Outside AC-0005's non-pointer cases, each active `Parent intent:` in a selected artifact passes exactly when its typed reference names one live intent with the referenced registered kind and slug. A bare slug, repository path, markdown link, malformed typed reference, wrong kind, missing target, retired target, or duplicate target identity produces a violation.
+- [x] **AC-0004.** Outside AC-0005's non-pointer cases, each active `Brief:` in a selected artifact passes exactly when it is `brief:<slug>` naming one live brief. An untyped value or a typed reference naming no unique live brief produces a violation.
+- [x] **AC-0005.** For either governed field, an absent, blank, comment-only value, or a value whose first word is `none` in any letter case, produces no field violation. Text after that first word does not change this result.
+- [x] **AC-0006.** Adding or changing body text or commented field-shaped text does not create a pointer value. A selected artifact's active preamble fields are still checked when its edit is only in the body.
+- [x] **AC-0007.** A check with an unavailable Git base or an unsafe, unreadable, or invalid-UTF-8 artifact needed for selection or target resolution exits non-zero. It does not return a clean result from an incomplete inventory. A safe fixture with no selected artifacts exits zero.
+- [x] **AC-0008.** A complete check exits zero only when every selected governed value passes; otherwise it exits non-zero.
+- [x] **AC-0009.** No author-facing source in the bounded writer-candidate universe emits or instructs an untyped populated `Parent intent:` or `Brief:`. The derivation enumerates every candidate and records its instruction, template, example, generated-copy, or excluded role; an unclassified candidate or remaining untyped writer fails verification. Already-converted sources require no form rewrite.
+- [x] **AC-0010.** Installed Core includes the executable shared check, and work-loop completion invokes it against the change's base. The repository's slice-PR gate invokes the same check against its PR base. A fixture introducing an untyped pointer makes each invocation fail.
+- [x] **AC-0011.** Each field violation is identified by stable code, field name, and repository-relative artifact path. Standard output, standard error, and diagnostics surfaced by the skill contain no raw unsafe reference, absolute host path, or traceback.
+- [x] **AC-0012.** Invoking the check leaves repository file bytes unchanged.
 
 ## Follow-ons
 

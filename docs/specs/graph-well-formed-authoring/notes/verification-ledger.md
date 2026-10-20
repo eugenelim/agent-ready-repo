@@ -39,3 +39,21 @@ Evidence for each task, bound to the commit that carries it.
 - **Roster:** `tools/lint-ci-parity.py` printed ok for both rosters. No `build-check.yml` step or Makefile suite line changed, so no entry was due.
 - **Portable-citation grep:** no match in lines added under `packs/`.
 - **Local gate:** `make lint-ruff lint-mypy` passed.
+
+## Revision binding
+
+- T1 is `fba607d84`, T2 is `6cc3d2f65`, and T3 is `03e1a9701`. Review ran on `03e1a9701`.
+- After T3, `make build-self` gave a zero diff and `catalogue verify` passed.
+- The combined suites passed 112 of 112 on four consecutive runs, in 42–93 s each. One earlier run under heavy machine load had 2 failures that did not reproduce. The likeliest cause is the check's 20 s Git timeout.
+
+## Review
+
+All reviews ran on `03e1a9701`, and every finding was refuted by an independent adjudicator.
+
+- `adversarial-reviewer`: 5 findings, all refuted.
+- `security-reviewer`: 3 findings, all refuted.
+- `quality-engineer`: 7 findings, all refuted.
+
+## Slice PR CI
+
+Run identifiers are added after the PR opens.
