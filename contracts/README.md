@@ -73,6 +73,11 @@ disagree, `contracts/` is authoritative.
 | `delivery/finding-disposition.v1.schema.json` | Authorized disposition for a supported material finding without mutating acceptance support | no |
 | `delivery/delivery-fact-feed.v1.schema.json` | One bounded page of a reproducible read-only snapshot of committed delivery facts, each with its knowledge candidate or an explicit none, or an unread-source report | no |
 | `delivery/knowledge-observation.v1.schema.json` | Attributed, reproducible knowledge candidate projected from one eligible delivery fact, with every free-text field typed as untrusted data | no |
+| `delivery/task-contract.v1.schema.json` | One task the work-loop supervisor projects from the approved plan, with its title identity, pinned-field revision, stubs, and declared effects | no |
+| `delivery/execution-request.v1.schema.json` | One deterministic request the work-loop supervisor issues to the trusted controller, closed over nine request kinds | no |
+| `delivery/execution-result.v1.schema.json` | The controller's report for one supervisor request: gate outcome, criterion results, review records, or effect outcome | no |
+| `delivery/mechanical-journal.v1.schema.json` | One advisory, deletable line of the supervisor's local journal; no decision reads it | no |
+| `delivery/effect-resolution.v1.schema.json` | One durable external-effect line: intent, dispatch, receipt, named-human decision, or retry claim | no |
 
 ## Which design governs which file
 

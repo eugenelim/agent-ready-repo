@@ -65,7 +65,6 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import NamedTuple
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -491,6 +490,9 @@ except GuardsUnavailable as exc:
     _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
     _BOTH_CAUSES = ""
+    walk_task_sections = section_depends_field = _guards_unavailable
+    parse_depends_on = _local_dep_ids = _guards_unavailable
+    _TASK_ID_RE = None
 else:
     # Re-bound at module level so no call site in this file changes, and so the
     # existing tests that reach for these attributes keep working.
@@ -535,6 +537,15 @@ else:
     _template_max_implementation_retries = _g._template_max_implementation_retries
     _template_max_review_retries = _g._template_max_review_retries
     _BOTH_CAUSES = _g._BOTH_CAUSES
+    # The plan grammar, re-bound rather than re-declared. Its one home is the guard
+    # layer, which the execution supervisor's projector also loads, so the engine
+    # and the supervisor read a plan's task sections and `Depends on:` lines the
+    # same way.
+    walk_task_sections = _g.walk_task_sections
+    section_depends_field = _g.section_depends_field
+    parse_depends_on = _g.parse_depends_on
+    _local_dep_ids = _g.local_dep_ids
+    _TASK_ID_RE = _g.TASK_ID_RE
 
 
 def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | None:
@@ -574,15 +585,7 @@ def _assert_status_legal(verb: str, *paths: Path) -> int | None:
 #
 # Pure functions over a plan's `Depends on:` graph. Sequential by default.
 
-# Accepts both '## T<n>' (level-2) and '### T<n>' (level-3) headings for
-# backward compatibility with existing plans that predate the Phase-1 spec.
-TASK_HEADING_RE = re.compile(r"^#{2,3}\s+(T\d+[a-z]?)\b", re.MULTILINE)
-DEPENDS_LINE_RE = re.compile(r"^\*\*Depends on:\*\*\s*(.+)$", re.MULTILINE)
 TOUCHES_LINE_RE = re.compile(r"^\*\*Touches:\*\*\s*(.+)$", re.MULTILINE)
-_RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")
-_TASK_ID_RE = re.compile(r"T\d+[a-z]?")
-_CROSS_MARKER_RE = re.compile(r"spec:([A-Za-z0-9._-]+)/(T\d+[a-z]?)")
-_CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?)")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 MAX_AMENDMENT_REF_LENGTH = 1000
 MAX_AMENDMENT_EVIDENCE_REFS = 64
@@ -590,82 +593,6 @@ MAX_TRANSITION_STATE_BYTES = 1024 * 1024
 RESET_PAIR_ORDER = "run `loop-cohort reset` then `loop-engine reset`"
 MAX_LEGACY_AMENDMENT_SEQUENCE_DERIVATION = 1_000_000
 _LEGACY_AMENDMENT_ID_RE = re.compile(r"\Aamendment-[0-9a-f]{64}\Z")
-
-
-def _local_dep_ids(field: str) -> set[str]:
-    """Local task IDs a `Depends on:` field names ahead of its first `(`.
-
-    Trailing parenthetical prose is authored commentary, not declaration, so the
-    field is truncated there. An ID written after that `(` is therefore not a
-    declared dependency for any caller: it is neither scheduled as an edge nor
-    reported as unknown. That is deliberate — widening it would change what
-    counts as a dependency for every caller of this helper, not just the
-    unknown-dependency check.
-    """
-    head = field.split("(")[0]
-    cleaned = _CROSS_MARKER_RE.sub("", head)
-    cleaned = _CROSS_LEGACY_RE.sub("", cleaned)
-    if not cleaned.strip() or re.fullmatch(r"\s*none\s*", cleaned, re.IGNORECASE):
-        return set()
-    ids: set[str] = set()
-    for lo, hi in _RANGE_RE.findall(cleaned):
-        ids.update(f"T{i}" for i in range(int(lo[1:]), int(hi[1:]) + 1))
-    ids.update(_TASK_ID_RE.findall(cleaned))
-    return ids
-
-
-def parse_depends_on(field: str, local_task_ids):
-    """Parse a 'Depends on:' field value into local task IDs and cross-spec markers."""
-    head = field.split("(")[0]
-    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
-    return {t for t in _local_dep_ids(field) if t in local_task_ids}, cross
-
-
-class _TaskSection(NamedTuple):
-    """One plan task's boundaries, as offsets into the plan text.
-
-    `start` opens the heading; `body_start` is just past it; `end` is where the
-    next task heading begins, or the end of the text for the final task.
-    """
-
-    task_id: str
-    start: int
-    body_start: int
-    end: int
-
-
-def walk_task_sections(text: str) -> list[_TaskSection]:
-    """Sole owner of the plan's task-section boundaries.
-
-    Every caller that needs to know which task owns a line resolves it here.
-    That is the point of the function rather than a convenience: the
-    unknown-dependency refusal in `detect_unknown_deps` must attribute a
-    `Depends on:` line to exactly the task `parse_plan` attributes it to. Were
-    the two to walk the boundaries separately and ever disagree, `schedule`
-    would refuse a plan it would otherwise have scheduled, or accept one whose
-    edges it then reads differently. Sharing the walk makes that agreement
-    structural instead of a coincidence maintained by hand.
-    """
-    matches = list(TASK_HEADING_RE.finditer(text))
-    return [
-        _TaskSection(
-            task_id=m.group(1),
-            start=m.start(),
-            body_start=m.end(),
-            end=matches[i + 1].start() if i + 1 < len(matches) else len(text),
-        )
-        for i, m in enumerate(matches)
-    ]
-
-
-def section_depends_field(text: str, section: _TaskSection) -> str | None:
-    """The raw `Depends on:` field value a task declares, or None.
-
-    Single-homed for the same reason as the walk above: the refusal and the
-    graph must read the same field text for the same task.
-    """
-    dm = DEPENDS_LINE_RE.search(text[section.body_start:section.end])
-    return dm.group(1) if dm else None
 
 
 def detect_unknown_deps(text: str, scan_task_ids: set[str] | None = None) -> list[tuple[str, str]]:

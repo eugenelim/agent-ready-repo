@@ -1,7 +1,7 @@
 # Plan: Execution supervisor core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** [ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)
   governs.
   - **Design:** [`work-loop-execution-supervisor.md`](../../architecture/work-loop-execution-supervisor.md),
@@ -318,16 +318,19 @@ Owned by: T4.
 ### T6: Readiness and counts derive from durable facts
 
 - **Depends on:** T4
-- **Spec behavior:** AC-0022, AC-0023, AC-0024, AC-0025; TDD.
+- **Spec behavior:** AC-0022, AC-0023, AC-0024, AC-0025, AC-0034; TDD.
 - **Touches:** new `_supervisor_readiness.py`; Core manifests and changelog
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-4045 (AC-0022, AC-0023):** one fixture per Readiness row. Deleting the
     journal and every derived index changes no answer.
+  - **VI-4047 (AC-0034):** after the uninterrupted crash-corpus run,
+    `_evidence_store.replay_admitted_frames` over `delivery/evidence.jsonl`
+    returns every evidence frame the run admitted.
   - **VI-4046 (AC-0024, AC-0025):** the cap is checked at count minus one and at
     the count, before and after journal deletion, and after a split. Exit 1 and
     exit 2 are covered, and exit 3 wins over a refusal.
-- **Done when:** VI-4045 and VI-4046 pass.
+- **Done when:** VI-4045, VI-4046, and VI-4047 pass.
 
 ### T7: External effects never repeat
 
@@ -375,3 +378,5 @@ Owned by: T4.
 ## Changelog
 
 <!-- Approvals only. -->
+- 2026-10-13: spec approved by owner
+- 2026-10-13: plan approved by owner

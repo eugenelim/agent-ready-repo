@@ -269,6 +269,17 @@
         "Confirms the isolation boundary with bounded repository-native evidence",
         "Does not require adapt-to-project or code intelligence"
       ]
+    },
+    {
+      "id": "plan-task-declares-its-external-effect",
+      "prompt": "Draft the plan task for a spec whose second task publishes the built release to the package index after its tests pass. The publication cannot be undone.",
+      "files": [],
+      "expected_output": "The task carries an `**Effects:**` line naming the publication, for example `- **Effects:** publish-release`, with a lowercase name unique across every `Effects:` line in the plan. The publication is not hidden in `Approach:` or `Done when:`. A task that performs no outside operation either omits the line or writes `none`.",
+      "assertions": [
+        "Adds an `**Effects:**` line to the publishing task",
+        "Names the effect with lowercase letters, digits, `.`, `_`, or `-`, unique in the plan",
+        "Does not describe the publication only in prose fields such as `Approach:`"
+      ]
     }
   ]
 }

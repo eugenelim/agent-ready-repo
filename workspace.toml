@@ -234,8 +234,12 @@ shipped   = [
 ]
 
 ["ini-002".work]
-active  = []
+active  = [
+]
 shipped = [
+  # Shipped 2026-10-19 as Core 3.1.9: Slice 4a, the dark execution supervisor
+  # core, beside the unchanged loop engine. Evidence is in notes/verification-ledger.md.
+  {path = "docs/specs/execution-supervisor-core/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Dark skill-shipped supervisor: admission, task projection and replanning, TDD guard, sequential dispatch, recovery, effects, and derived readiness", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-authority-and-evidence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/structured-review-boundary/spec.md"}]},
   # Shipped 2026-10-12 (run d1063609): per-update changelog fragments, with
   # released records in append-only monthly bundles under ADR-0143. Evidence
   # is in notes/verification-ledger.md.
@@ -541,7 +545,6 @@ shipped = [
 ]
 queue   = [
   # Slice 4 of acceptance-centered-work-loop delivers through four specs under ADR-0144; only the cutover moves authority.
-  {path = "docs/specs/execution-supervisor-core/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Dark skill-shipped supervisor: admission, task projection and replanning, TDD guard, sequential dispatch, recovery, effects, and derived readiness", needs = [{type = "local", kind = "spec", path = "docs/specs/acceptance-authority-and-evidence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/structured-review-boundary/spec.md"}]},
   {path = "docs/specs/execution-supervisor-attempt-security/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Refuse worker attempts that touch the control plane, harden supervisor git calls, pin the supervisor, and end Windows process trees through a Job Object", needs = [{type = "local", kind = "spec", path = "docs/specs/execution-supervisor-core/spec.md"}]},
   {path = "docs/specs/execution-supervisor-review-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Close supervisor review from structured readiness, carry the reviewer roster as data, relocate finding-adjudication commands, and key policy families on supervisor stages", needs = [{type = "local", kind = "spec", path = "docs/specs/execution-supervisor-core/spec.md"}]},
   {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = [{type = "local", kind = "spec", path = "docs/specs/delivery-knowledge-projection/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/execution-supervisor-core/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/execution-supervisor-attempt-security/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/execution-supervisor-review-gate/spec.md"}]},

@@ -649,6 +649,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest capture-rename guide contract (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest execution-supervisor emitted-record parity (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest package pytest pythonpath (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest shaping-review contracts (roster-owned)":
@@ -1018,6 +1020,7 @@ _GATE_MAIN_CHECKS = (
     "pytest confluence-crawler SSO suites (atlassian-sso-cookie)",
     "pytest spec-authority note live/seed parity (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
+    "pytest execution-supervisor emitted-record parity (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
     "pytest portable-catalogue-authentication packaging (roster-owned)",

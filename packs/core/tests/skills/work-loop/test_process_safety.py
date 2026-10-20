@@ -2362,15 +2362,20 @@ class TestRedactionAtTheCapAndAtScale:
         for fragment in (b"sec", b"pass", b"word"):
             assert fragment not in visible, result
 
+    # Each case is named by its label: an ID built from megabytes of data exceeds
+    # Windows' 32,767-character limit for the PYTEST_CURRENT_TEST variable.
+    SCALE_CASES = [
+        ("many short occurrences", b"abcX" * (1 << 18), [b"abc"], False),
+        ("env value 1 everywhere", b"x1" * (1 << 19), [b"1"], False),
+        ("one long periodic run", b"a" * (2 << 20), [b"a" * (1 << 20)], False),
+        ("large stdin, overflowed", b"z" * (1 << 20), [bytes(range(256)) * 4096], True),
+        ("crafted tail, overflowed", b"a" * (1 << 20), [b"a" * ((1 << 20) - 1) + b"b"], True),
+    ]
+
     @pytest.mark.parametrize(
         ("label", "data", "values", "overflowed"),
-        [
-            ("many short occurrences", b"abcX" * (1 << 18), [b"abc"], False),
-            ("env value 1 everywhere", b"x1" * (1 << 19), [b"1"], False),
-            ("one long periodic run", b"a" * (2 << 20), [b"a" * (1 << 20)], False),
-            ("large stdin, overflowed", b"z" * (1 << 20), [bytes(range(256)) * 4096], True),
-            ("crafted tail, overflowed", b"a" * (1 << 20), [b"a" * ((1 << 20) - 1) + b"b"], True),
-        ],
+        SCALE_CASES,
+        ids=[case[0] for case in SCALE_CASES],
     )
     def test_redaction_cost_stays_linear(
         self, process_safety: ModuleType, label: str, data: bytes,

@@ -1,6 +1,6 @@
 # Spec: Execution supervisor core
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0061, ADR-0005, RFC-0028
@@ -97,7 +97,7 @@ trusted, and named-human decisions are recorded with authority references.
   run.
 - **Effects (AC-0019, AC-0020):** goal-based runs of the effect corpus plus a
   two-process claim race.
-- **Re-approval, worker edits, and effect names (AC-0030, AC-0031, AC-0032, AC-0033):** TDD over
+- **Re-approval, worker edits, effect names, and feed compatibility (AC-0030, AC-0031, AC-0032, AC-0033, AC-0034):** TDD over
   re-approval, cited-record, and index fixtures.
 - **Readiness, counts, and status (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026):**
   TDD over the Readiness truth table and status fixtures.
@@ -236,115 +236,118 @@ re-dispatch cannot repeat an effect.
 
 Admission
 
-- [ ] **AC-0001.** A completed `start` commits exactly one line to
+- [x] **AC-0001.** A completed `start` commits exactly one line to
   `delivery/approvals.jsonl` holding one `approval-record.v1` and one
   `initial-plan-review.v1`, bound to the envelope fingerprint, terminal intent,
   code-trust classification, run id, and both authority references.
-- [ ] **AC-0002.** After an interrupted or refused `start`, no partial line is
+- [x] **AC-0002.** After an interrupted or refused `start`, no partial line is
   readable from `delivery/approvals.jsonl`, no task is projected, and the next
   `start` or `next` completes without a human decision.
-- [ ] **AC-0003.** `start` refuses unless the spec's `Status:` is `Approved` or
+- [x] **AC-0003.** `start` refuses unless the spec's `Status:` is `Approved` or
   `Implementing`, the plan's is `Approved` or `Executing`, and `--intent` equals
   the spec's `## Terminal Intent` value when that section exists.
-- [ ] **AC-0004.** `start` and `resolve-effect` refuse any value that is not an
+- [x] **AC-0004.** `start` and `resolve-effect` refuse any value that is not an
   authority reference accepted for that flag.
-- [ ] **AC-0005.** After any bookkeeping edit, the approval pair stays current
+- [x] **AC-0005.** After any bookkeeping edit, the approval pair stays current
   and the envelope fingerprint is unchanged.
-- [ ] **AC-0006.** A spec lacking every optional protected section imports with
+- [x] **AC-0006.** A spec lacking every optional protected section imports with
   six distinct reference values.
 
 Replanning and terminal intent
 
-- [ ] **AC-0007.** Every row of the Replan truth table returns its stated result
+- [x] **AC-0007.** Every row of the Replan truth table returns its stated result
   for every replan-corpus fixture that reaches it.
-- [ ] **AC-0008.** A refusal row writes no commit, ref, lease, journal line,
+- [x] **AC-0008.** A refusal row writes no commit, ref, lease, journal line,
   event, or tracked file; its code and owner reach the controller through
   `next`'s output and `run.json`'s `refusal` field.
-- [ ] **AC-0009.** No replan-corpus fixture in the first Replan row produces an
+- [x] **AC-0009.** No replan-corpus fixture in the first Replan row produces an
   approval request.
-- [ ] **AC-0010.** Renumbering or reordering tasks, or rewriting another task's
+- [x] **AC-0010.** Renumbering or reordering tasks, or rewriting another task's
   `Depends on:`, never re-requests a completed task.
-- [ ] **AC-0011.** A completed task whose own content changes, or that is split
+- [x] **AC-0011.** A completed task whose own content changes, or that is split
   or merged into new tasks, is requested again, and its earlier commits stay in
   history.
-- [ ] **AC-0012.** Under `spec-plan` intent the run ends with a terminal receipt
+- [x] **AC-0012.** Under `spec-plan` intent the run ends with a terminal receipt
   after the initial review, emits no execution request, projects no task, and
   makes exactly two commits — `approval` then `terminal` — touching only the
   spec's `delivery/` directory.
 
 TDD guard
 
-- [ ] **AC-0013.** In every TDD-corpus case, no production change for a
+- [x] **AC-0013.** In every TDD-corpus case, no production change for a
   stub-declaring task is admitted before the supervisor has itself observed
   each stub for the task's current stub digest fail with an exit code its fence
   declares as red (default `1`), byte-identical to the plan; any other exit is
   not red.
-- [ ] **AC-0014.** In every TDD-corpus case, the task reaches completion: a
+- [x] **AC-0014.** In every TDD-corpus case, the task reaches completion: a
   `no stub` task without a red proof, and a stub task whose stubs already pass
   through a `stub-not-red` refusal naming the `no stub` replan.
 
 Recovery and sequencing
 
-- [ ] **AC-0015.** Every crash-corpus variant reaches the uninterrupted run's
+- [x] **AC-0015.** Every crash-corpus variant reaches the uninterrupted run's
   completed tasks by identity, revision, and committed tree, and its
   `delivery/` records with timestamps normalized and effect dispatch lines
   excluded, with no duplicate record, and the synthetic effect source records
   exactly one run of each effect.
-- [ ] **AC-0016.** Every crash-corpus variant reaches terminal without a
+- [x] **AC-0016.** Every crash-corpus variant reaches terminal without a
   `human-decision` the uninterrupted run did not need.
-- [ ] **AC-0017.** In every crash-corpus variant, `next` issues a new attempt
+- [x] **AC-0017.** In every crash-corpus variant, `next` issues a new attempt
   only after the current attempt is reported or superseded, and otherwise
   re-issues the current attempt unchanged.
-- [ ] **AC-0018.** Every crash-corpus variant's `.loop-run/events.jsonl` holds
+- [x] **AC-0018.** Every crash-corpus variant's `.loop-run/events.jsonl` holds
   one validating line per supervisor step, with the step kinds defined above and
   no duplicate step id.
 
 Effects
 
-- [ ] **AC-0019.** Every effect-corpus case executes each declared effect
+- [x] **AC-0019.** Every effect-corpus case executes each declared effect
   exactly once, and every row of the Effect truth table returns its stated
   result.
-- [ ] **AC-0020.** Of two processes claiming one authorized retry, exactly one
+- [x] **AC-0020.** Of two processes claiming one authorized retry, exactly one
   records the claim and at most one dispatch occurs.
 
 Legacy runs
 
-- [ ] **AC-0033.** Projection refuses a plan in which two `**Effects:**` lines
+- [x] **AC-0033.** Projection refuses a plan in which two `**Effects:**` lines
   declare the same effect name.
-- [ ] **AC-0030.** After a protected-edit refusal, an amendment, and a second
+- [x] **AC-0030.** After a protected-edit refusal, an amendment, and a second
   `start`, the run id, completed tasks, effect receipts, and implementation
   retry count are unchanged.
-- [ ] **AC-0031.** `report` refuses, before any commit, a result whose change
+- [x] **AC-0031.** `report` refuses, before any commit, a result whose change
   set changes the spec directory or any cited record.
-- [ ] **AC-0032.** After every supervisor commit and working-copy sync,
+- [x] **AC-0032.** After every supervisor commit and working-copy sync,
   `git diff --cached` shows no change.
-- [ ] **AC-0021.** `start` on a spec directory holding `engine-state.json` or a
+- [x] **AC-0034.** Slice 3's `replay_admitted_frames` reads the supervisor's
+  `delivery/evidence.jsonl` and returns every admitted evidence frame the run
+  wrote.
+- [x] **AC-0021.** `start` on a spec directory holding `engine-state.json` or a
   cohort `state.json` never reads either file.
 
 Readiness, counts, and status
 
-- [ ] **AC-0022.** Every row of the Readiness truth table returns its stated
+- [x] **AC-0022.** Every row of the Readiness truth table returns its stated
   result.
-- [ ] **AC-0023.** The supervisor reads no stored criterion verdict or readiness
+- [x] **AC-0023.** The supervisor reads no stored criterion verdict or readiness
   answer as input.
-- [ ] **AC-0024.** On an admitted, non-terminal run with no refusal,
+- [x] **AC-0024.** On an admitted, non-terminal run with no refusal,
   `status --check` exits 3 when the implementation retry count has reached 5,
   and 0 below it, before and after journal deletion and across any replan; a
   terminal run exits 0.
-- [ ] **AC-0025.** On a non-terminal run, `status --check` exits 1 when the run
+- [x] **AC-0025.** On a non-terminal run, `status --check` exits 1 when the run
   is refused, and 3 takes precedence when both a refusal and the cap apply; any
   run exits 2 on a usage error.
-- [ ] **AC-0026.** `run.json` reports the stage and gate fields defined above at
+- [x] **AC-0026.** `run.json` reports the stage and gate fields defined above at
   every step of the crash corpus.
 
 Packaging and dark launch
 
-- [ ] **AC-0027.** `work-supervisor.py` completes the crash corpus's
+- [x] **AC-0027.** `work-supervisor.py` completes the crash corpus's
   uninterrupted run with only the standard library and the skill's `scripts/`
   directory importable.
-- [ ] **AC-0028.** No file in the skill other than the supervisor's own modules
+- [x] **AC-0028.** No file in the skill other than the supervisor's own modules
   invokes `work-supervisor.py`.
-- [ ] **AC-0029.** The work-loop test suites present at the merge-base with
+- [x] **AC-0029.** The work-loop test suites present at the merge-base with
   `main` when this spec's first task starts pass unchanged.
 
 ## Follow-ons

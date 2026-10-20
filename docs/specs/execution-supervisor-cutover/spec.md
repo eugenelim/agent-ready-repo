@@ -29,6 +29,7 @@ Adopters running full-mode `work-loop` reach the supervisor through the unchange
 - `loop-engine.py`, `loop-cohort.py`, `_compat_facade.py`, `_review_compat.py`, `assets/state.json`, `references/full-mode-engine.md`, and the wave-decision schema leave the catalogue.
 - The pre-PR hooks, `agentbundle`'s workspace bridge, CI, repository tools, guides, sibling packs, `new-spec`'s plan contract, and open backlog entries stop naming the old engine.
 - The workspace bridge reads the run id, active signal, stage, and pending human gate from the supervisor's `run.json`.
+- Slice 3's `delivery-fact-feed.py` reads each spec's committed `delivery/evidence.jsonl` instead of the shadow evidence log the cutover removes.
 - Core ships the switched skill in its next major release.
 
 ## Scope and Non-goals
@@ -40,7 +41,10 @@ only after ADR-0144 is Accepted, Slice 3 has shipped, and all three of
 `execution-supervisor-core`, `execution-supervisor-attempt-security`, and
 `execution-supervisor-review-gate` have shipped; T1 may merge earlier.
 
-It does not change light mode's steps or gates; change the supervisor's
+It keeps the reusable `spec-approved` and `plan-locked` knowledge-capture
+gates that Slice 3 retained, under those gate names; removing them belongs to
+Slice 8 once delivery facts are written by default, which this cutover makes
+true. It does not change light mode's steps or gates; change the supervisor's
 procedure, security checks, or review selection; ship a compatibility adapter,
 reverse reader, or dual-write path (ADR-0144 D7); or give adopters their own
 review rules.
@@ -54,6 +58,7 @@ review rules.
 | User and maintainer procedure | Adopters drive full mode through the skill. | `work-loop/SKILL.md`; `references/` (a supervisor reference replacing `full-mode-engine.md`, carrying `execution-supervisor-attempt-security`'s unsupported Git settings list; `state-schema.md`, `session-resumption.md`, `delivery-contract-lifecycle.md`, `supervisor-mode.md`, `finding-adjudication.md`, `pre-execute-review.md`, `review-verdict-record.md`, `reviewer-roster.md`, `light-mode.md`); `evals/evals.json`; `profiles/work-loop.toml` | Core pack maintainers | Skill evals and link checks | Every action AC-0001 lists names its supervisor verb. |
 | Planning contract | Tasks inside the envelope change without amendment. | `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`, `new-spec/assets/plan.md` | Core pack maintainers | new-spec evals | Both state which plan changes need an amendment and which do not. |
 | Current architecture | The authority map changes. | `ARCHITECTURE.md`; `packs/core/DESIGN.md`; `docs/architecture/` `loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`, `work-loop-execution-supervisor.md`, `work-loop-authority-migration.md`, `work-loop-review-disposition.md`, `acceptance-centered-work-loop.md`, `telemetry.md`, `verification-graph.md`, `README.md`, `workspace-mcp/design.md` | Platform Core | Architecture review | None describes a removed script, `legacy-result-ack.v1`, a `tools/` supervisor builder, or a `packages/agentbundle/` supervisor home as current. |
+| Knowledge architecture | The delivery fact feed's source moves from the shadow log to committed evidence. | `docs/architecture/work-loop-knowledge-handoff.md`, `docs/architecture/knowledge-capture.md` | Platform Core and project-knowledge maintainers | Architecture review | Both name `delivery/evidence.jsonl` as the feed source and the retained capture gates as Slice 8's to remove. |
 | Guides and sibling packs | They name the removed commands. | Files under `guides/` and `packs/` found by AC-0007's search | Owning pack maintainers | AC-0007 | No hit remains. |
 | Release history | Behavior changes, and in-flight runs re-derive. | Core manifests and `docs/product/changelog.md` | Core pack release maintainers | Version parity | T1's 3.x release and the next major each carry a changelog entry; the major names the in-flight-run consequence. |
 | Product coordination | Backlog entries target removed scripts, and the slice closes. | `workspace.toml` and the brief's Spec map | Platform Core | Workspace reconcile and brief-coverage lint | Each backlog entry naming a removed script is retired through `close-work` or rewritten, with its disposition in the ledger. |
@@ -85,6 +90,9 @@ review rules.
   installed-skill runs on POSIX and the Windows CI job, plus bridge and
   upgraded-adopter fixtures.
 - **Hooks (AC-0017, AC-0018):** goal-based hook runs.
+- **Knowledge (AC-0019, AC-0020, AC-0021):** goal-based runs against
+  project-knowledge's capture path, the fact feed, and a skill copy with
+  project-knowledge absent.
 
 ## Acceptance Criteria
 
@@ -165,6 +173,18 @@ Hooks
 - [ ] **AC-0018.** The hooks' supervisor check adds no failure when every such
   run exits 0, including a terminal run that reached the retry cap, or when no
   spec holds `delivery/approvals.jsonl`.
+
+Knowledge
+
+- [ ] **AC-0019.** The rewritten skill still requests a reusable capture at the
+  `spec-approved` gate before `start` and at the `plan-locked` gate at `start`,
+  under those gate names, and project-knowledge accepts each exactly as Slice
+  3's AC-0006 fixtures require.
+- [ ] **AC-0020.** `delivery-fact-feed.py` reads each spec's committed
+  `delivery/evidence.jsonl` with no shadow-services setting, and returns a
+  candidate for a supervisor run's review-failure receipt.
+- [ ] **AC-0021.** A full code run reaches readiness with project-knowledge
+  absent.
 
 ## Follow-ons
 
