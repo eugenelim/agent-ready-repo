@@ -12,7 +12,7 @@
 - **Governed by:** [RFC-0071 Area C and D2](../../rfc/0071-digital-experience-doctrine.md)
 - **De-risked:** 2026-10-01
 - **Shaping-reviewed:** 2026-10-01
-- **Decomposed:** 2026-10-01 spec
+- **Decomposed:** no
 
 ## Outcome
 

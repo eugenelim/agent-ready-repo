@@ -11,7 +11,7 @@
 - **Governed by:** [RFC-0071 § Implementation sequence — M3d](../../rfc/0071-digital-experience-doctrine.md)
 - **De-risked:** no
 - **Shaping-reviewed:** no
-- **Decomposed:** 2026-10-01 spec
+- **Decomposed:** no
 
 ## Outcome
 
