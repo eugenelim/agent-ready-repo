@@ -50,6 +50,7 @@ EXPECTED_ASSETS = {
     "architecture-change-design.md",
     "concept.md",
     "design-doc.md",
+    "physical-architecture-bom.md",
     "solution-reference.md",
     "subsystem-design.md",
 }

@@ -1,4 +1,4 @@
-"""Eval inventory for architect-design's solution reference mode."""
+"""Eval inventory for architect-design's new modes and offers."""
 
 from __future__ import annotations
 
@@ -7,7 +7,12 @@ from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 EVAL_DIR = PACK_ROOT / ".apm/skills/architect-design/evals"
-MODE_IDS = ("solution-reference-mode", "solution-reference-app-repo-routes-to-core")
+MODE_IDS = (
+    "solution-reference-mode",
+    "solution-reference-app-repo-routes-to-core",
+    "physical-bom-offer-and-grounding",
+    "physical-bom-delta-for-change",
+)
 
 
 def test_solution_reference_eval_cases_have_three_assertions() -> None:
@@ -25,5 +30,13 @@ def test_a_should_trigger_query_names_a_reference_architecture() -> None:
     assert any(
         item["should_trigger"] is True
         and "reference architecture" in item["query"].lower()
+        for item in queries
+    )
+
+
+def test_a_should_trigger_query_names_a_bill_of_materials() -> None:
+    queries = json.loads((EVAL_DIR / "eval_queries.json").read_text("utf-8"))
+    assert any(
+        item["should_trigger"] is True and "bill of materials" in item["query"].lower()
         for item in queries
     )

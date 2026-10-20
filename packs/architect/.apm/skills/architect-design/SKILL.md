@@ -1,6 +1,6 @@
 ---
 name: architect-design
-description: Use when the user is framing a problem, weighing a technical choice, or designing a system or integration without a diagram as the headline ask. Triggers on "how should we", "we need to", "what's the right way to build X", tech-selection, integration design, NFR trade-offs. Shapes a one-page concept first, then authors from one of three model-first templates chosen by architectural scope — a whole application or system, one subsystem, or a change to an existing architecture — leading with the structural, runtime, contract, data, deployment and quality models and following each with its rationale, Mermaid inline, and converges it against review. Cloud well-architected by construction (AWS/Azure/GCP and primitives providers like Hetzner). Also triggers on a solution or system reference architecture for a coordinating repo with no app code. Do NOT use when the ask is a diagram (use `architect-diagram`) or a critique (use `architect-review`).
+description: Use when the user is framing a problem, weighing a technical choice, or designing a system or integration without a diagram as the headline ask. Triggers on "how should we", "we need to", "what's the right way to build X", tech-selection, integration design, NFR trade-offs. Shapes a one-page concept first, then authors from one of three model-first templates chosen by architectural scope — a whole application or system, one subsystem, or a change to an existing architecture — leading with the structural, runtime, contract, data, deployment and quality models and following each with its rationale, Mermaid inline, and converges it against review. Cloud well-architected by construction (AWS/Azure/GCP and primitives providers like Hetzner). Also triggers on a solution or system reference architecture for a coordinating repo with no app code. Also offers a physical architecture or bill of materials. Do NOT use when the ask is a diagram (use `architect-diagram`) or a critique (use `architect-review`).
 metadata:
   boundaries: [filesystem_read_untrusted, filesystem_write, network_fetch]
 ---
@@ -298,6 +298,13 @@ real choice remains, create no new artifact.
    **auto-resolve mechanical findings without asking**, re-review, repeat to
    the pass cap / stasis escape. **Never auto-resolve a judgment finding** —
    surface the tradeoff / risk / low-confidence calls as explicit decisions.
+
+   Once the design has converged, offer once, at every altitude, a physical
+   architecture and bill of materials (BOM) for it: where each deployment unit
+   runs and what it costs. The rules live in
+   [`references/physical-bom.md`](references/physical-bom.md). A direct request
+   for a physical architecture or BOM on an existing design enters the same
+   reference. Make the offer before step 9's decision prompt.
 
 8. **Offer to save — role-aware, per-effort folder.** The semantic role is
    `architecture-design`; it is distinct from `current-architecture` and
