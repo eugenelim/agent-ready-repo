@@ -7,48 +7,54 @@ kind: how-to
 
 # Get a physical architecture and bill of materials
 
-You can turn a converged design into a physical architecture, which shows where each deployment unit runs, and a bill of materials (BOM), which lists each item with its size and cost.
+You can turn a finished design into a physical architecture, which shows where each part of the system runs, and a bill of materials (BOM), which lists every item the design needs and what it costs.
 
 ## Install the pack
 
-This job needs the `architect` pack. Core is optional and only decides where the file is saved:
+To get this job, install the `architect` pack:
 
 ```bash
 agentbundle install --pack architect
 ```
 
-The pack is now available to your agent in this repository.
+Without Core, the result comes back in chat or goes to a folder you choose; with Core, it is saved beside the design in your repository.
 
 ## Ask for it after a design
 
-Finish a design with `architect-design` first. Once the design has converged, the agent offers a physical architecture and BOM once, and you can also ask for one on an existing design:
+Once you accept a design from `architect-design`, ask for the physical view:
 
 ```text
 Add a physical architecture and bill of materials to this design.
 ```
 
-A design with no deployment section gets no BOM. The agent asks you to write the design first rather than invent deployment units.
+The agent drafts where each deployable part runs, then lists every item it needs.
 
 ## Read the bill of materials
 
-Each line has a kind: cloud service, container image, open-source library, hardware, network connection, or licence. The `Identifier` column says what the item is, such as a provider SKU, an image URI, or a package URL with its licence. The `Tier / size` column says how big it is:
+To see what each line costs and what is still missing, ask:
 
 ```text
 Which BOM lines are unpriced, and why?
 ```
 
-Each line is `priced` with a source, date, and region, `unpriced` when no grounded price exists, or `no direct cost`. Unpriced lines are counted and left out of the total, and no price comes from model memory. Prices are in USD unless you name another currency.
+Each line names the exact item, such as a cloud plan, a container image address, or a library and its version, and shows whether its price is cited, unpriced, or has no direct cost.
 
 ## Price a change
 
-For a change to an existing architecture, the agent writes a delta BOM instead of a full one:
+To see what a change to an existing system adds or removes, ask:
 
 ```text
 Show the delta BOM for this change.
 ```
 
-Each line is marked add, remove, or resize, and the BOM ends with the net monthly change.
+Each line is marked add, remove, or resize, and the total shows the net monthly change: added cost minus removed cost, per month.
 
 ## Save it
 
-The agent saves `physical-architecture.md` beside the design, in the same folder, after you confirm. If the design is not saved yet, one confirmation covers both files. If the physical choices contradict the design, the agent raises that as a design finding and changes nothing silently.
+To keep the result, say:
+
+```text
+Save the physical architecture beside the design.
+```
+
+The agent shows the file path, waits for your yes, and saves `physical-architecture.md` in the design's folder.

@@ -48,10 +48,12 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 **What if I have no reference architecture?** The design says so in its concept. It offers Core's `adapt-to-project` or `init-project` to set one up when Core is installed. For a solution repo with no app code, it authors a solution reference architecture itself in its solution reference mode.
 
-**Does the BOM include prices?** Each line is `priced` with its source, date, and region, `unpriced` when no grounded price exists, or `no direct cost`. Unpriced lines are counted and left out of the total.
+**Does the BOM include prices?** Each line is `priced` with its source, date, and region, `unpriced` when no grounded price exists, or `no direct cost`. Unpriced lines are counted and left out of the total. No price comes from model memory, and prices are in USD unless you name another currency.
+
+**What does a BOM line identify?** Its kind and exact item: a cloud service's plan code (SKU) and tier, a container image's registry address, an open-source library's package URL and licence, a node's hardware model and spec, a network link's endpoints and bandwidth, or a commercial licence. A design with no deployment section gets no BOM until the design names what runs where. If the physical choices contradict the design, the agent raises it as a design finding.
 
 **Can it work without Core?** Yes. Without Core it returns the result in chat or saves to a personal workspace you choose.
 
 ## Details
 
-Scope: user (default), repo · Version: 0.15.18 · Source: [packs/architect](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/architect)
+Scope: user (default), repo · Version: 0.15.19 · Source: [packs/architect](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/architect)

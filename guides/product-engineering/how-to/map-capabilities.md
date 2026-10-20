@@ -118,17 +118,18 @@ Add procurement decisions to your team's acquisition plan, not the spec queue.
 
 After the capability map is committed:
 
-1. Run `lean-canvas` to author the initiative brief (maps the bet and capability
-   map to a structured business brief).
-2. Or run `author-delivery-brief create` directly if you are working from an externally sourced brief.
-3. Use the build sequence to seed `workspace.toml [work].queue` for M3–M6 spec-writing.
+1. Run `intent decompose` on `capability-map.md`. Each Build capability becomes a capability-level child intent, which then runs `intent frame`, `intent de-risk`, and `intent decompose`.
+2. Use the build sequence to order those child intents.
+
+A brief is a separate path: `lean-canvas` writes the one-page initiative brief, and `author-delivery-brief` owns the delivery brief.
 
 ---
 
 ## See also
 
 - `place-bet` — step 5; produces the `bet.md` this skill reads
-- `lean-canvas` — brief-authoring from a committed bet and capability map
+- `intent decompose` — the next step; turns each Build capability into a child intent
+- `lean-canvas` — writes the one-page initiative brief
 - `frame-situation` — step 1; provides Wardley capability assessments the map reads opportunistically
 - `intent de-risk` — step 4 (validate); runs assumption tests before the bet is placed
 - `workspace-status` — surfaces the spec queue after you seed it from the build sequence
@@ -136,4 +137,4 @@ After the capability map is committed:
 ## What you have now
 
 - A capability map with maturity, criticality, disposition, and dependency-aware build order.
-- Its Build capabilities can inform a Lean Canvas or delivery brief and seed the future spec queue.
+- Its Build capabilities are ready for `intent decompose`, in build order.
