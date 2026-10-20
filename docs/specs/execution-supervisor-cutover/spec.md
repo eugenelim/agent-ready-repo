@@ -203,4 +203,4 @@ re-runs or replans them. The Platform Core decision-maker accepted this risk on
 
 ## Assumptions
 
-none
+- **The engine and the supervisor read `Depends on:` lines differently (found 2026-10-19 in `execution-supervisor-core`).** Both use the shared task-section walk and value parse in `_loop_guards.py`. But `loop-cohort.py` finds the line only when it is unbulleted and exact-case (`**Depends on:** T1`). The supervisor's projector also accepts a bulleted or differently cased line (`- **Depends on:** T1`), and this repository's plans use bullets. So on today's plans the engine schedules no dependency where the supervisor orders tasks. After the cutover, the supervisor's reading becomes the only one, and plans that relied on the engine ignoring their bulleted dependencies will start to see them ordered. Evidence: `docs/specs/execution-supervisor-core/notes/verification-ledger.md`, the "plan parser moved to `_loop_guards.py`" entry.
