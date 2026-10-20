@@ -1,11 +1,11 @@
 +++
 schema = 1
 id = "4b36bafb-beff-490a-b897-b1dedd6bf7bc"
-anchor = "product-engineering201--2026-10-20-4b36bafbbeff490ab897b1dedd6bf7bc"
+anchor = "product-engineering202--2026-10-20-4b36bafbbeff490ab897b1dedd6bf7bc"
 date = 2026-10-20
 [[packages]]
 name = "product-engineering"
-version = "2.0.1"
+version = "2.0.2"
 +++
 ## Highlights
 - The longer shaping route now continues from the capability map into intent decompose, and align-value-stream proposes a hard-limits README section.

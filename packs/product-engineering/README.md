@@ -58,4 +58,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE.
 
 ## Details
 
-Scope: user (default), repo · Version: 2.0.1 · Source: [packs/product-engineering](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-engineering)
+Scope: user (default), repo · Version: 2.0.2 · Source: [packs/product-engineering](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-engineering)
