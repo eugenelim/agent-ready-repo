@@ -1,8 +1,8 @@
 # Plan: Graph well-formed authoring
 
-- **Status:** Approved
+- **Status:** Executing
 - **Spec:** [`spec.md`](spec.md)
-- **Constrained by:** RFC-0103; ADR-0007; ADR-0074
+- **Constrained by:** RFC-0103; ADR-0007; ADR-0074; ADR-0142 D10
 - **Repository anchors:** `ARCHITECTURE.md` owns pack-source boundaries; work-loop's `scripts/lint-spec-status.py` is the portable-linter precedent; `tools/repo/build_gate_chain.py` owns repository CI invocation; the grammar migration's surface inventory owns writer discovery.
 - **Retention:** repository-durable spec and plan; fingerprints recorded at approval. Required readers are implementers, reviewers, resuming agents, and CI. Guides, source tests, and the release entry own current truth after closeout.
 
@@ -19,7 +19,7 @@
 | Output | Task |
 | --- | --- |
 | Shared check and construction suite | T1 |
-| Writer gaps, template and example meaning, field guide and contract guide | T2 |
+| Writer gaps, template and example meaning, field guide and build-loop guide | T2 |
 | Portable invocation, repository gate, versions, release entry, projections, ledger | T3 |
 
 ## Design (LLD)
@@ -34,7 +34,7 @@ The script uses only the standard library and the existing co-located `_file_saf
 
 The CLI takes `--root` and `--base-ref`. Git diff against that base supplies committed, index, and worktree changes; untracked artifact additions are included separately. NUL-delimited path records prevent filename text from becoming command syntax. Selection cannot silently return an empty change set when Git or the base is unavailable. Target inventory reads canonical intent and brief collections through the helper; it does not validate untouched artifacts' pointer values.
 
-The node index stores typed intent and brief identities. It applies RFC-0103 D2's kind rule and `Slug:` identity without global suffix matching. Duplicate identities remain unresolved rather than being overwritten. This is local authoring validation; no parity check or change to another reader is part of it.
+The node index stores typed intent and brief identities. It applies RFC-0103 D2's kind rule and `Slug:` identity without global suffix matching. Duplicate identities remain unresolved rather than being overwritten. This is local authoring validation; no parity check or change to another reader is part of it. It recognizes no repository-qualified pointer, because no qualifier syntax exists yet; the spec that fixes one extends this source.
 
 Source code, CLI help, and construction tests own selection and field dispatch after delivery. The field guide owns authoring versus legacy-reading behavior.
 
@@ -54,7 +54,7 @@ The seeded brief template and `author-delivery-brief/examples/shape-a-outcome-br
 
 For the field guide: “Write a brief's `Parent intent:` as the target intent's registered kind and `Slug:`, such as `outcome:service-reliability` or `intent:account-self-service`. Write a spec's `Brief:` as `brief:<slug>`. New and changed artifacts are checked; readers keep accepting legacy repository paths in untouched artifacts. An absent value or a value beginning with the word `none` records no pointer.”
 
-For the contract guide: “Before completing a change, the work-loop checks all active `Parent intent:` and `Brief:` fields in each artifact the change adds or modifies. A typed pointer must name an existing target of the field's type. A body-only edit still selects that artifact for checking.”
+For the build-loop guide, `guides/core/how-to/start-the-work.md`: “Before completing a change, the work-loop checks all active `Parent intent:` and `Brief:` fields in each artifact the change adds or modifies. A typed pointer must name an existing target of the field's type. A body-only edit still selects that artifact for checking.”
 
 ## Tasks
 
@@ -117,3 +117,9 @@ The check ships in a Core patch release and the slice PR merges straight to the 
 
 - 2026-10-08: spec and plan approved together by the repository owner, conditional on the final alignment check passing; that check passed with zero findings across both slices. Shaping round 2 and adversarial round 2 are clean; reports are under `.context/reviews/a6209001-f5a1-4c22-8754-a1108e54f566/`.
 - Approved reviewed revisions, before lifecycle-only approval annotations: spec SHA-256 `007228d76b69d0a9464dc39b92b6048fff2ce24e35ff29e1f6bd34268019c37e`; plan SHA-256 `40aa55052e37d72f574fd3863a040f9564f54b3fa639dd1be7c48d941322c1b1`.
+- 2026-10-20: pre-build review against current `main` found that `guides/core/how-to/write-the-contract.md` was merged into `guides/core/how-to/start-the-work.md` ("Run the build loop"). The spec's Durable Outputs row and this plan's guide draft now name that page. No criterion, boundary, task, or test changed.
+- 2026-10-20: spec re-approved by the repository owner with the guide-path amendment above.
+- 2026-10-20: plan re-approved by the repository owner with the guide-path amendment above.
+- 2026-10-20: drift amendment, at the owner's request to recheck the contract against current `main`. ADR-0142 D10, accepted 2026-10-11, lets a brief's `Parent intent:` carry a repository qualifier whose syntax is not yet fixed. The spec and plan now cite it, record the assumption and its kill condition, and name the follow-on owner. No criterion, boundary, task, or test changed. T1 is in progress and has no completed evidence.
+- 2026-10-20: spec re-approved by the repository owner with the ADR-0142 D10 drift amendment; round-5 adversarial review adjudicated clean.
+- 2026-10-20: plan re-approved by the repository owner with the ADR-0142 D10 drift amendment.

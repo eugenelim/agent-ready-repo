@@ -1,10 +1,10 @@
 # Spec: Graph well-formed authoring
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Approved:** 2026-10-08 by the repository owner, spec and plan together, after clean shaping and adversarial reviews and a passing final alignment check.
 - **Owner:** Core maintainer
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0103 D1–D3 and its 2026-10-08 errata; ADR-0007; ADR-0074
+- **Constrained by:** RFC-0103 D1–D3 and its 2026-10-08 errata; ADR-0007; ADR-0074; ADR-0142 D10
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none
 - **Contract:** none
@@ -32,7 +32,7 @@ Authors and agents create intent parents and spec-to-brief pointers that name ex
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Authoring contract | Authors need field meaning and the forward-only boundary | `guides/core/reference/product-brief-fields.md`; `guides/core/how-to/write-the-contract.md` | Core maintainer | Guide lints and source-form checks | Guides explain typed authoring and legacy reader compatibility |
+| Authoring contract | Authors need field meaning and the forward-only boundary | `guides/core/reference/product-brief-fields.md`; `guides/core/how-to/start-the-work.md` | Core maintainer | Guide lints and source-form checks | Guides explain typed authoring and legacy reader compatibility |
 | Portable procedure | Adopter work-loops need the same check | `packs/core/.apm/skills/work-loop/SKILL.md` and `scripts/lint-graph-pointers.py` | Core maintainer | Changed-artifact CLI fixtures and projected invocation | The shipped skill invokes its bundled check |
 | Brief template | New briefs carry a parent pointer | `packs/core/seeds/docs/product/briefs/_template.md`; `author-delivery-brief/examples/shape-a-outcome-brief.md` | Core maintainer | Authoring-surface content pins | Both descriptions agree with the field's parent meaning |
 | Verification | Selection, refusal, and authoring evidence remain available | `notes/verification-ledger.md` | Implementer | Targeted suites, local lint gate, slice-PR CI run identifiers | Ledger binds evidence to the reviewed revision |
@@ -86,8 +86,8 @@ Authors and agents create intent parents and spec-to-brief pointers that name ex
 
 ## Follow-ons
 
-The brief's slice 7 adds `Discovery:` to this check. No other field rule is part of this delivery.
+The brief's slice 7 adds `Discovery:` to this check. The spec that fixes the repository-qualifier syntax for cross-repository pointers, under ADR-0142 D10, owns adding qualified `Parent intent:` values to this check. No other field rule is part of this delivery.
 
 ## Assumptions
 
-None.
+- ADR-0142 D10 lets a brief's `Parent intent:` name an intent in another repository through a repository qualifier, but no syntax for that qualifier exists on the default branch yet. The specs that will fix it are still Draft. Until one lands, no qualified value can be valid, and AC-0003 reports one like any other value that names no local live intent. Kill condition: if a qualifier syntax reaches the default branch before this slice merges, stop and bring the AC-0003 boundary to the owner.
