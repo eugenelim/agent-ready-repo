@@ -14,7 +14,7 @@ agentbundle install --pack code-intelligence
 The pack drives [Wicked Estate](https://github.com/mikeparcewski/wicked-estate), which you install and run once to build the index:
 
 ```bash
-cargo install wicked-estate --version 0.29.2 --locked
+cargo install wicked-estate --version 0.30.0 --locked
 echo '.wicked-estate/' >> .gitignore
 wicked-estate index .
 ```
@@ -53,11 +53,11 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Details
 
-Scope: repo (default), user · Version: 0.1.9 · Source: [packs/code-intelligence](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/code-intelligence)
+Scope: repo (default), user · Version: 0.1.10 · Source: [packs/code-intelligence](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/code-intelligence)
 
 ## Setup check
 
-Run `python '<skill-dir>/scripts/estate_preflight.py' --check`. `<skill-dir>` is the installed `code-intelligence` skill folder, such as `.claude/skills/code-intelligence` at repo scope. Exit 0 is ready, 2 means the binary is missing, 3 means no index, and 4 means the binary is older than the 0.29 floor.
+Run `python '<skill-dir>/scripts/estate_preflight.py' --check`. `<skill-dir>` is the installed `code-intelligence` skill folder, such as `.claude/skills/code-intelligence` at repo scope. Exit 0 is ready, 2 means the binary is missing, 3 means no index, and 4 means the binary is older than the 0.30 floor.
 
 ## More detail
 

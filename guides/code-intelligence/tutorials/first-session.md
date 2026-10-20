@@ -87,17 +87,17 @@ whether its command is available:
 wicked-estate --version
 ```
 
-If it is absent or older than 0.29, run:
+If it is absent or older than 0.30, run:
 
 ```bash
-cargo install wicked-estate --version 0.29.2 --locked
+cargo install wicked-estate --version 0.30.0 --locked
 ```
 
 This compiles from source and can take several minutes. If `cargo` is missing
 or your machine blocks installation, use your usual IT/support route to prepare the
 tool. You do not need an MCP server for this walkthrough.
 
-**Check:** `wicked-estate --version` reports version 0.29.0 or newer (0.29.2 is the tested version).
+**Check:** `wicked-estate --version` reports version 0.30.0 or newer (0.30.0 is the tested version).
 
 ## 4. Build the app's index
 

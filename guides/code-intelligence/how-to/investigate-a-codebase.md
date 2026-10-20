@@ -15,7 +15,7 @@ Index your repository first, then ask your agent a question about the code.
 Install `code-intelligence` with `agentbundle install --pack code-intelligence`, then install `wicked-estate`, the tool the pack queries, and index the repository:
 
 ```bash
-cargo install wicked-estate --version 0.29.2 --locked
+cargo install wicked-estate --version 0.30.0 --locked
 echo '.wicked-estate/' >> .gitignore
 wicked-estate index .
 ```
