@@ -54,9 +54,6 @@ All reviews ran on `03e1a9701`, and every finding was refuted by an independent 
 - `security-reviewer`: 3 findings, all refuted.
 - `quality-engineer`: 7 findings, all refuted.
 
-## Slice PR CI
-
-Run identifiers are added after the PR opens.
 
 ## T4: Repository-level checks pass on the slice PR
 
@@ -69,3 +66,12 @@ Run identifiers are added after the PR opens.
 - **VI-4002:** the hash is now `90d06f1c…`, with a review comment citing `workspace_status_engine.py:4988`. The engine is unchanged. The moved suite and `tools/test_workspace_status.py` together: 109 passed in 5 s.
 - **VI-4003:** a local `make build-check` ran every chain step through to SAST, and all of them passed, including `lint-graph-pointers` with 0 violations. SAST exited 2 on two Semgrep rule timeouts, in `loop-cohort.py` and `arxiv-retriever.py`. Neither file is in this diff, and the 1-minute load average was 246.8 on 10 CPUs. Re-run alone with the Makefile's arguments, both exit 0. CI delegates SAST to `ci-security`, which passed (run 39481284028).
 - **T3 re-verification:** `catalogue verify` ok. The projected check on an untyped `Brief:` exits 1. The repository has 0 violations. Core is at 3.1.11 in both files.
+
+## Review of T4
+
+`adversarial-reviewer` reviewed `a04de7f00` and returned clean. `security-reviewer` and `quality-engineer` were not warranted, because T4 moves a test and changes no security boundary or runtime code.
+
+## Slice PR CI
+
+- First pass, at `bb2cd5257` plus the merge with main: `docs` 39481284344 failed, `test-corpus` 39481298710 failed, and `build-check` 39481284362 failed. T4 fixes all three. Passed: `test-roster` 39481305228, `ci-security` 39481284028, `build-check-windows` 39481284296, `codeql` 39481284162, `catalogue-tooling-ci-gates` 39481284051, and `Deploy GitHub Pages` 39481284319.
+- Second pass, on the T4 head: the run IDs are added to the PR once its runs finish.
