@@ -292,3 +292,38 @@ def test_a_batch_file_is_refused_before_launch(ps: ModuleType, tmp_path: Path,
                                audit_sink=_sink)
     assert info.value.denial_code == "denied-non-native-executable"
     assert not marker.exists()
+
+
+@pytest.mark.parametrize("form", ["stream", "unc", "device-question", "device-dot"])
+def test_a_stream_name_or_a_network_or_device_path_is_refused(
+        ps: ModuleType, tmp_path: Path, form: str) -> None:
+    local = Path(PYTHON)
+    executable = {
+        "stream": f"{local}::$DATA",
+        "unc": r"\\localhost\C$" + str(local)[2:],
+        "device-question": "\\\\?\\" + str(local),
+        "device-dot": "\\\\.\\" + str(local),
+    }[form]
+    spec = {**_spec(tmp_path, "pass"), "executable": executable}
+    EVENTS.clear()
+    with pytest.raises(ps.ProcessDenied) as info:
+        ps.launch_safe_process(
+            spec, cwd_roots=(str(tmp_path),),
+            env_values={"SYSTEMROOT": os.environ.get("SYSTEMROOT", r"C:\Windows")},
+            audit_sink=_sink)
+    assert info.value.denial_code == "denied-launch-failed"
+    assert [event.outcome for event in EVENTS] == ["denied"]
+
+
+def test_an_unexpected_launch_failure_stores_a_denial_and_a_stable_code(
+        ps: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail(self: object) -> None:
+        raise RuntimeError("a detail that must not leak")
+
+    monkeypatch.setattr(ps.threading.Thread, "start", fail)
+    EVENTS.clear()
+    with pytest.raises(ps.ProcessDenied) as info:
+        _launch(ps, tmp_path, "pass")
+    assert info.value.denial_code == "denied-launch-failed"
+    assert "must not leak" not in str(info.value)
+    assert [event.outcome for event in EVENTS] == ["allowed", "denied"]

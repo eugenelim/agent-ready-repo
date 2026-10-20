@@ -51,3 +51,15 @@ The owner (eugenelim) settled the three open T2 review findings:
 1. **Security events.** Only a check that cannot be verified writes a `security-event.v1` line with its refusal: an unreadable `.git` entry or `commondir`, unreadable config, or `git` unavailable. Verified refusals (`unsupported-git-config`, a control-state mismatch) refuse with their stable code only, as AC-0009 states.
 2. **Run id at the store boundary.** The supervisor store path code validates the run id against `run-[0-9a-f]{16}` itself, so no `build_commit` caller can skip the check. The run id is read from committed `delivery/approvals.jsonl` without a pattern check.
 3. **User config location.** The Launch grants `git` row was falsified: without `XDG_CONFIG_HOME`, and on Windows `USERPROFILE`, `HOMEDRIVE`, and `HOMEPATH`, an out-of-helper config read cannot see a global filter or commit identity kept there, so AC-0009 misses it. The owner directs a controlled amendment that grants those variables to the out-of-helper config read only; the hardened helper's own environment is unchanged.
+
+## T2: The Git helper as built, beyond the plan's design
+
+The plan's Git helper design names its flags and carried settings. The helper as built adds these, each stricter than the plan:
+
+- **`core.attributesFile`** points at the null device, and `core.excludesFile` defaults to it, so no user-level attributes or ignore file changes what a supervisor call stages.
+- **Repository-defined filters are neutralized.** For each `filter.<name>` in repository or worktree config, every helper call passes empty `clean`, `smudge`, and `process` with `required=false`.
+- **A graft file refuses.** `--no-replace-objects` does not stop Git reading `info/grafts`, so the helper refuses with `denied-git-control-state` when one exists.
+- **Commits are built with `hash-object -t commit`**, identity and date written into the object, because the helper clears every `GIT_*` variable the grants table does not list.
+- **`--literal-pathspecs`** replaces the `GIT_LITERAL_PATHSPECS` variable for the same reason.
+- **A boolean `core.fsmonitor`** is not a code-running setting; any other value is.
+- **Unverifiable checks log after the spec directory is confined.** A failure inside repository discovery, before the spec directory is confined, is a usage error with no security-event line, because no confined `.supervisor/` directory exists yet to hold one.

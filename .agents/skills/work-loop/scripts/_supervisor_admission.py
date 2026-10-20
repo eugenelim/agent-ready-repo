@@ -64,11 +64,12 @@ def _supervisor(filename: str) -> ModuleType:
 
 
 _commit = _supervisor("_supervisor_commit.py")
+_git = _supervisor("_supervisor_git.py")
 _journal = _supervisor("_supervisor_journal.py")
 _projector = _supervisor("_supervisor_projector.py")
 sibling = _commit.sibling
 
-__all__ = ["Refusal", "Workspace", "check_authority_ref", "start"]
+__all__ = ["Refusal", "Workspace", "check_authority_ref", "check_git_config", "start"]
 
 _POLICY_PATH = _SCRIPTS_DIR.parent / "supervisor-policy.json"
 _MAX_TEXT_BYTES = 4 * 1024 * 1024
@@ -322,6 +323,35 @@ class Workspace:
         )
 
 
+def _setting(key: str) -> str:
+    """A config key as one printable token; a value is never named."""
+    return re.sub(r"[^\x21-\x7e]", "?", key)[:200]
+
+
+def check_git_config(ws: Workspace) -> None:
+    """Refuse a Git setting that would run code, or a filter the work tree uses.
+
+    Names the setting's key and scope, never its value.
+    """
+    entries = ws.git.hardened.config_entries()
+    for entry in _git.code_running_keys(entries):
+        raise Refusal(
+            "unsupported-git-config",
+            "owner",
+            f"{_setting(entry.key)} is set in {entry.scope} config and runs code; remove it",
+        )
+    defined = _git.defined_filters(entries)
+    for name, label in sorted(_git.attribute_filters(ws.git.hardened.pins).items()):
+        if name in defined:
+            entry = defined[name]
+            raise Refusal(
+                "unsupported-git-config",
+                "owner",
+                f"filter.{_setting(name)} is defined in {entry.scope} config and {label} "
+                f"uses filter={_setting(name)}; remove the definition or the attribute",
+            )
+
+
 def _status_refusals(ws: Workspace, spec_text: str, plan_text: str, intent: str) -> None:
     spec_status = _projector.spec_status(spec_text)
     if spec_status not in _SPEC_STATUSES:
@@ -380,6 +410,7 @@ def start(
         )
     if intent not in INTENTS or code_trust not in CODE_TRUST:
         raise Refusal("invalid-argument", "owner", "unknown intent or code-trust value")
+    check_git_config(ws)
     spec_text, plan_text = ws.spec_text(), ws.plan_text()
     _status_refusals(ws, spec_text, plan_text, intent)
     refs, _cited = ws.envelope(spec_text)

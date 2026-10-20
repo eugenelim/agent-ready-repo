@@ -30,7 +30,6 @@ import importlib.util
 import json
 import os
 import stat
-import subprocess
 import sys
 import traceback
 from pathlib import Path
@@ -113,22 +112,14 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _repo_root(cwd: Path | None) -> Path:
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    """The repository root, found through the hardened Git helper."""
+    git = _supervisor("_supervisor_git.py")
     try:
-        out = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            cwd=str(cwd) if cwd is not None else None,
-            capture_output=True,
-            text=True,
-            check=False,
-            env=env,
-            timeout=30,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise UsageError(f"cannot find the repository root: {exc}") from exc
-    if out.returncode != 0 or not out.stdout.strip():
-        raise UsageError("run from inside a Git repository")
-    return Path(out.stdout.strip()).resolve()
+        return git.discover(cwd).root
+    except git.SupervisorGitError as exc:
+        if exc.code == "denied-git-unavailable":
+            raise UsageError(f"cannot find the repository root: {exc}") from exc
+        raise UsageError("run from inside a Git repository") from exc
 
 
 def _spec_rel(root: Path, raw: str) -> str:
@@ -164,6 +155,21 @@ def _read_result(path: str) -> Any:
         return json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as exc:
         raise UsageError("the result is not UTF-8 JSON") from exc
+
+
+def _log_unverifiable(workspace: Any, code: str) -> None:
+    """Write the security-event line an unverifiable Git check owes; best effort."""
+    se = _supervisor("_security_events.py")
+    event = se.SecurityEvent(
+        schema_version=1,
+        operation_id=se.make_operation_id(),
+        correlation_id=workspace.spec_rel,
+        event_type="supervisor-git-check",
+        outcome="denied",
+        reason_code=code,
+        timestamp=workspace.clock(),
+    )
+    se.emit_denial_best_effort(workspace.local.security_sink(), event)
 
 
 def _emit(payload: dict[str, Any]) -> None:
@@ -231,6 +237,8 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
         _emit({"refusal": exc.as_dict()})
         return EXIT_REFUSED
     except commit.SupervisorGitError as exc:
+        if exc.unverifiable:
+            _log_unverifiable(workspace, exc.code)
         _emit({"refusal": {"code": exc.code, "owner": "controller", "detail": str(exc)}})
         return EXIT_REFUSED
     except statelock.StateLockError as exc:
