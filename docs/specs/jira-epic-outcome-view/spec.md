@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0126; ADR-0077
 - **Brief:** none
-- **Discovery:** none
+- **Discovery:** `intent:tracker-native-value-before-adoption`
 - **Contract:** none
 - **Shape:** integration
 

@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099; RFC-0096; RFC-0094; ADR-0099; ADR-0061; ADR-0074
 - **Brief:** none
-- **Discovery:** `docs/product/intents/cut-before-adding-solution-ladder.md`
+- **Discovery:** none
 - **Contract:** none
 - **Shape:** service
 

@@ -10,7 +10,7 @@
   chooses a new one, that is an amendment to
   `docs/specs/work-item-capture/spec.md` § D2, not a change made here
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0006-work-item-capture-contract.md
+- **Discovery:** none
 - **Constrained by:** docs/specs/work-item-capture/spec.md — the record this tier validates is written under the contract that spec settles. That spec ships without this tier; `docs/specs/work-item-capture/spec.md` § D10's merge-path disclosure and `docs/specs/work-item-capture/spec.md` § D6's stored-path set are the two surfaces this one must not contradict.
 
 > **Contract tier.** `## Decisions this spec makes, and what it still owes`
