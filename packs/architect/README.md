@@ -50,7 +50,7 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 **Does the BOM include prices?** Each line is `priced` with its source, date, and region, `unpriced` when no grounded price exists, or `no direct cost`. Unpriced lines are counted and left out of the total. No price comes from model memory, and prices are in USD unless you name another currency.
 
-**What does a BOM line identify?** Its kind and exact item: a cloud service's plan code (SKU) and tier, a container image's registry address, an open-source library's package URL and licence, a node's hardware model and spec, a network link's endpoints and bandwidth, or a commercial licence. A design with no deployment section gets no BOM until the design names what runs where. If the physical choices contradict the design, the agent raises it as a design finding.
+**What does a BOM line identify?** Its kind and the exact item. A cloud service shows its plan code (SKU) and tier. A container image shows its registry address. An open-source library shows its package URL, a standard name that includes the version, and its licence. A node shows its hardware model and spec. A network link shows its endpoints and bandwidth. A commercial licence shows its product and edition. A design with no deployment section gets no BOM until the design names what runs where. If the physical choices contradict the design, the agent raises it as a design finding.
 
 **Can it work without Core?** Yes. Without Core it returns the result in chat or saves to a personal workspace you choose.
 

@@ -37,7 +37,7 @@ To see what each line costs and what is still missing, ask:
 Which BOM lines are unpriced, and why?
 ```
 
-Each line names the exact item, such as a cloud plan, a container image address, or a library and its version, and shows whether its price is cited, unpriced, or has no direct cost.
+Each line names the exact item, such as a cloud plan, a container image address, or a library and its version, and shows whether its price is cited, unpriced (no grounded price was found), or has no direct cost.
 
 ## Price a change
 

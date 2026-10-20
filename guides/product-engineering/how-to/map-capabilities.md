@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** You have a committed bet from `place-bet` and need to enumerate what to build, buy, or adopt — and in what order — before any spec or initiative brief is written.
 **Prerequisites:** `product-engineering` pack installed; a committed `bet.md` from `place-bet` (step 5 of the shaping sequence).
-**Result:** A capability map with Wardley-stage and strategic-criticality annotations, a dependency-ordered build sequence, and a `workspace.toml` spec-queue ready to seed M3–M6.
+**Result:** A capability map with Wardley-stage and strategic-criticality annotations, a dependency-ordered build sequence, ready for `intent decompose`.
 
 **Goal:** You have a committed bet and need to enumerate all the capability areas
 the initiative implies — what to build, what to buy or adopt, and in what order
@@ -88,7 +88,7 @@ The combination tells you the most important strategic signals:
 
 ---
 
-## How to use the suggested build sequence to seed M3–M6
+## How to use the suggested build sequence
 
 The suggested build sequence at the bottom of the capability map lists
 **Build-disposition capabilities only**, ordered dependency-first then by
@@ -97,22 +97,17 @@ Wardley maturity (Genesis / Differentiating capabilities first).
 It is a **recommendation, not a mandate** — the product team holds final
 sequencing authority.
 
-### Translating the sequence to your spec queue
+### Ordering the child intents
 
-Each position in the build sequence corresponds to a future spec:
-
-1. Open `workspace.toml`.
-2. For each capability in the build sequence, add an entry to the active
-   initiative's `["ini-NNN".work].queue`:
-   ```toml
-   {path = "spec/<capability-id>-<short-name>", needs = "work:spec/<prior-capability-id>"}
-   ```
-3. Run `workspace-status` to confirm the entries are surfaced correctly and
-   dependencies are resolved in the right order.
+`intent decompose` turns each Build capability into a capability-level child
+intent. Use the build sequence to order those child intents. Specs enter the
+`workspace.toml` queue only when a child intent reaches its own leaf and hands
+off through `work-intake`; the capability map never seeds the spec queue
+directly.
 
 **Non-Build capabilities (Buy / Partner / Adopt)** appear in the domain tables
 but are excluded from the build sequence — their disposition *is* the action.
-Add procurement decisions to your team's acquisition plan, not the spec queue.
+Add procurement decisions to your team's acquisition plan; child intents name them as dependencies.
 
 ### What comes next
 
@@ -132,7 +127,7 @@ A brief is a separate path: `lean-canvas` writes the one-page initiative brief, 
 - `lean-canvas` — writes the one-page initiative brief
 - `frame-situation` — step 1; provides Wardley capability assessments the map reads opportunistically
 - `intent de-risk` — step 4 (validate); runs assumption tests before the bet is placed
-- `workspace-status` — surfaces the spec queue after you seed it from the build sequence
+- `workspace-status` — surfaces the spec queue once child intents hand off their specs
 
 ## What you have now
 
