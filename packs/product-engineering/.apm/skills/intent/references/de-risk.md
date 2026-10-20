@@ -124,5 +124,7 @@ When `discovery-loop` or its `discovery-lead` agent called this mode, control re
 
 Otherwise the outcome is the verdict. Offer at most three options as questions to the user, and start none of them yourself.
 
-- **Survive.** Offer both next stages, each labelled with its route: `intent decompose` (short route) and `place-bet` (longer route). Recommend the one for the route the conversation shows. When the conversation shows no route, recommend neither and ask which route applies.
+- **Survive.** Offer the next stage for each route, each labelled with its route: `intent decompose` (short route) and `place-bet` (longer route). Recommend the one for the route the conversation shows, unless the next paragraph applies. When the conversation shows no route, recommend neither and ask which route applies. The next paragraph never overrides that, because it acts only on the short route.
+
+  On the short route, check your available-skills roster for `architect-design` and offer it as a third option, labelled short route, when § Architecture before the cut in the skill calls for it, at the scope that section picks. When you offer it, recommend `architect-design` instead of `intent decompose`. If it is not in the roster, continue with this skill's own behaviour and say nothing about it: no mention, no note, and no error.
 - **Kill.** Offer `intent frame` to reframe the intent, recommended. If this is a child intent, the kill bubbles up to its parent instead.
