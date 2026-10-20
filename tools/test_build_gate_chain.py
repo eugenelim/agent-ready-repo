@@ -828,6 +828,9 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/catalogue/check_contract_parity.py",
     "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
     ".claude/skills/work-loop/scripts/lint-spec-status.py",
+    "packs/core/tests/skills/work-loop/test_lint_graph_pointers.py",
+    "packs/core/tests/skills/work-loop/test_graph_pointer_authoring.py",
+    ".claude/skills/work-loop/scripts/lint-graph-pointers.py",
     "packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py",
     ".claude/skills/new-adr/scripts/next-ordinal.py",
     ".claude/skills/new-adr/scripts/index-records.py",
@@ -1378,6 +1381,11 @@ class BuildCheckChainTest(unittest.TestCase):
             if cwd is None and ".claude/skills/work-loop/scripts/lint-spec-status.py" in argv
         )
         self.assertEqual(lint_argv[-1], "--all")
+        pointer_argv = next(
+            argv for argv, cwd in seen
+            if cwd is None and ".claude/skills/work-loop/scripts/lint-graph-pointers.py" in argv
+        )
+        self.assertEqual(pointer_argv[-4:], ["--root", ".", "--base-ref", "origin/main"])
         adr_shape_argv = next(
             argv for argv, cwd in seen
             if cwd is None and ".claude/skills/new-adr/scripts/lint-adr-shape.py" in argv

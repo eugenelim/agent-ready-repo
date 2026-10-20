@@ -11,7 +11,7 @@
 - **Received:** 2026-05-18
 - **Owner:** platform team
 - **Epic:** ACME-2231 <!-- this slice is part of a larger "reduce support load" epic tracked in the company tracker; we own only the password-reset portion -->
-- **Parent intent:** `intent:account-self-service` <!-- the product intent this slice was projected from; provenance only, never interpreted. Distinct from `Epic:`, which names an external coordinator -->
+- **Parent intent:** `intent:account-self-service` <!-- the product intent this slice was projected from; it names the parent intent by its registered kind and `Slug:`, such as `intent:<slug>`, and the work-loop checks that it names an existing intent when the brief changes. Distinct from `Epic:`, which names an external coordinator -->
 
 ## Outcome
 

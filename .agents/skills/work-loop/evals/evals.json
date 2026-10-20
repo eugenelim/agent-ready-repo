@@ -1292,6 +1292,19 @@
         "Uses `{path}` in the run command rather than repeating the path",
         "Keeps `red-exit` to the failing-test exit code, excluding collection or setup errors"
       ]
+    },
+    {
+      "id": "finish-graph-pointer-check",
+      "prompt": "You are at the work-loop Finish checklist after adding a new spec that links its brief. How do you check its graph pointers, against what base, and what do exit codes 1 and 2 mean?",
+      "files": [],
+      "expected_output": "Run `python '<skill-dir>/scripts/lint-graph-pointers.py' --root . --base-ref <base>`, where `<base>` is the same target the base freshness check used (for example `origin/main` or the given `--target`). Exit 1 means a changed artifact has an untyped or dangling intent or brief pointer: rewrite it as a typed reference naming an existing target. Exit 2 means the check could not complete and is not a pass. Artifacts the change did not add or modify are never checked.",
+      "assertions": [
+        "Gives the `lint-graph-pointers.py --root . --base-ref <base>` invocation",
+        "Uses the same target as the base freshness check as the base",
+        "Says exit 1 means fix the pointer to a typed reference naming an existing target",
+        "Says exit 2 means the check could not complete and is not a pass",
+        "Says untouched artifacts are never checked"
+      ]
     }
   ]
 }

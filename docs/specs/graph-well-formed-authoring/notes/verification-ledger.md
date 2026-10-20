@@ -20,3 +20,22 @@ Evidence for each task, bound to the commit that carries it.
 - **Guide checks:** `validate_guides.py` 0 errors, `lint-guide-titles.py` OK, `lint-guides-no-repo-only-refs.py` OK.
 - **Local gate:** `make lint-ruff lint-mypy` passed.
 - **Product-engineering:** no source changed, so that pack needs no version bump.
+
+## T3: Shipped and repository invocation paths reject a bad pointer
+
+- **Wiring:** the work-loop finish checklist's "Artifacts consistent" assertion gains a `lint-graph-pointers.py --root . --base-ref <base>` bullet (exit 1 means fix the pointer; exit 2 is not a pass; untouched artifacts are not checked) and a new eval case `finish-graph-pointer-check`. `build_check` registers three steps after `lint-spec-status`: pytest for `test_lint_graph_pointers.py`, pytest for `test_graph_pointer_authoring.py`, and the projected script with `--root . --base-ref origin/main`. The gate-main job checks out with `fetch-depth: 0`, so `origin/main` resolves there. An unresolved base exits 2, which fails the step.
+- **Finding while building:** the first wording of the finish bullet named the two pointer fields literally. That made `work-loop/SKILL.md` a new writer candidate and turned the T2 inventory test red. The bullet now says "intent or brief pointer", so the inventory is unchanged.
+- **Versions:** core 3.1.10 to 3.1.11 in `pack.toml` and `plugin.json`. Product-engineering is unchanged. Fragment `docs/product/changelog.d/bf0802b2-7eff-4e8c-904d-e09ffc95090f.md` has four outcome-led Highlights.
+- **Projections:** `make build-self` and `self-host --write` refuse a dirty tree, and `FORCE` must not be passed from automation. The projection ran in a disposable clone of HEAD with the T3 diff committed there, and the 16 generated files were copied back. `catalogue verify --root .` printed `ok`. `catalogue lint --root . --deep` printed `ok: 77 finding(s)` (info and warn only). `marketplace.json` carries no pack version, so it did not change.
+- **VI-3001 proof** (disposable repo `/tmp/vi3001`, base commit holds a typed-free intent, brief and old spec; the new spec adds untyped `Brief:` and `Parent intent:` lines), projected script `.claude/skills/work-loop/scripts/lint-graph-pointers.py --root /tmp/vi3001 --base-ref main`:
+  ```
+  docs/specs/new/spec.md: Brief: brief-untyped
+  docs/specs/new/spec.md: Parent intent: parent-intent-untyped
+  lint-graph-pointers: 2 violation(s) in 1 selected artifact(s)
+  exit=1
+  ```
+  The gate's `_script_step` construction against the same repo printed the same lines and returned exit 1. `--base-ref nope` printed `lint-graph-pointers: base-unavailable`, exit 2. Real repo, `--root . --base-ref origin/main`: `0 violation(s) in 1 selected artifact(s)`, exit 0.
+- **Suites:** `tools/test_build_gate_chain.py` plus the two pointer suites, 112 passed and 28 subtests in 77 s. Work-loop and pack suites that read `SKILL.md` or `evals.json` (37 files), 1421 passed and 24 subtests in 399 s.
+- **Roster:** `tools/lint-ci-parity.py` printed ok for both rosters. No `build-check.yml` step or Makefile suite line changed, so no entry was due.
+- **Portable-citation grep:** no match in lines added under `packs/`.
+- **Local gate:** `make lint-ruff lint-mypy` passed.

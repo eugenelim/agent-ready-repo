@@ -255,6 +255,22 @@ def build_check(args: argparse.Namespace) -> int:
             ".claude", "skills", "work-loop", "scripts", "lint-spec-status.py",
             args=("--all",),
         ),
+        # Changed-artifact pointer check. The base is `origin/main`: the CI
+        # checkout has full history, and an unresolvable base exits 2, which
+        # fails this step rather than skipping it.
+        _pytest_step(
+            "test-lint-graph-pointers",
+            "packs", "core", "tests", "skills", "work-loop", "test_lint_graph_pointers.py",
+        ),
+        _pytest_step(
+            "test-graph-pointer-authoring",
+            "packs", "core", "tests", "skills", "work-loop", "test_graph_pointer_authoring.py",
+        ),
+        _script_step(
+            "lint-graph-pointers",
+            ".claude", "skills", "work-loop", "scripts", "lint-graph-pointers.py",
+            args=("--root", ".", "--base-ref", "origin/main"),
+        ),
         # Decision-record ordinal uniqueness. A duplicate ordinal is invisible
         # inside the branch that creates it — it exists only against the default
         # branch — so no review round can catch it and this gate is the control.
