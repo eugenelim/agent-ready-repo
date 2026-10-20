@@ -100,6 +100,17 @@ purpose   = "Offer a design at the scope the shaping question needs, without ans
 fallback  = "If the skill is not installed, the consuming skill continues with its own behaviour and must say nothing about it: no mention, no note, and no error."
 
 [[pack.integrations]]
+id        = "architect-solution-reference"
+pack      = "architect"
+kind      = "handoff"
+role      = "Optional solution reference design"
+consumers = ["skill:align-value-stream"]
+providers = ["skill:architect-design"]
+when      = "The architect pack's architect-design skill is in the available-skills roster and the value-stream meta-repo needs its system C4 view and domain boundaries."
+purpose   = "Offer solution reference mode to write the system view that every component's reference.md links to."
+fallback  = "If the skill is not installed, the consuming skill continues with its own behaviour and must say nothing about it: no mention, no note, and no error."
+
+[[pack.integrations]]
 id        = "architect-current-state"
 pack      = "architect"
 kind      = "handoff"
