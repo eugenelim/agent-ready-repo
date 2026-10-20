@@ -272,14 +272,14 @@ def test_every_offer_is_a_known_stage_and_at_most_three_per_state() -> None:
     known = {"intent frame", "intent de-risk", "intent decompose", "place-bet",
              "work-intake", "shaping-reviewer", "adversarial-reviewer",
              "author-delivery-brief", "new-spec", "discovery-loop",
-             "discovery-lead"}
+             "discovery-lead", "architect-design"}
     for mode in MODES:
         text = _next(mode)
         for token in re.findall(r"`([a-z-]+(?: [a-z-]+)?)`", text):
             if token in {"intent frame", "intent de-risk", "intent decompose"} or "-" in token:
                 assert token in known, (mode, token)
         for bullet in re.split(r"^- ", text, flags=re.MULTILINE)[1:]:
-            offers = set(re.findall(r"`(intent \w[\w-]*|place-bet|work-intake|shaping-reviewer|adversarial-reviewer)`", bullet))
+            offers = set(re.findall(r"`(intent \w[\w-]*|place-bet|work-intake|shaping-reviewer|adversarial-reviewer|architect-design)`", bullet))
             assert len(offers) <= 3, (mode, bullet)
 
 

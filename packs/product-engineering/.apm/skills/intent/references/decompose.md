@@ -26,6 +26,24 @@ Before decomposing, confirm:
    (`business-unit`, coordinated from a value-stream meta-repo via
    `align-value-stream`).
 
+## Design before you cut
+
+When `discovery-loop` or its `discovery-lead` agent called this mode, skip this
+section: the loop runs the architecture work itself.
+
+Otherwise, before cutting, check your available-skills roster for
+`architect-design`. When § Architecture before the cut in the skill calls for
+it, pause before cutting: say the architecture comes first on the short route,
+offer `architect-design` at the scope that section picks, and wait. If it is not
+in the roster, continue with this skill's own behaviour and say nothing about
+it: no mention, no note, and no error.
+
+When the user declines, cut as usual. When a design covers the intent, use it in
+step 1 and step 3. When the design changes the intent's capabilities, do not cut
+yet: for a `capability` or higher intent, recommend the longer route at
+`map-capabilities`; for a `feature`, recommend `intent frame` for its parent
+capability. Also offer to cut.
+
 ## Procedure
 
 1. **Decompose one level.** From the intent, produce its children:
@@ -43,13 +61,7 @@ Before decomposing, confirm:
    When a reachable current-architecture or architecture-design artifact names
    subsystem boundaries, check each child against them: a child that crosses a
    boundary names the contract it depends on. Boundaries inform dependencies;
-   the cut stays by shippability, never by component. When a capability-level
-   intent needs a structural decomposition before its children can be cut,
-   check your available-skills roster for `architect-design` and offer it at
-   `subsystem` or `application/system` scope; its decomposition rubric decides
-   how many design documents result. If it is not in the roster, continue with
-   this skill's own behaviour and say nothing about it: no mention, no note, and
-   no error.
+   the cut stays by shippability, never by component.
 
 2. **Record the decomposition decision.** Note *why* the cut went the way it did
    on the parent's `Decomposition` — the grouping rationale, and any branch you

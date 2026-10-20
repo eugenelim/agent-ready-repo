@@ -74,6 +74,16 @@ De-risk this bet — what are the riskiest assumptions, and how would we test ea
 
 The agent ranks the assumptions and adds its verdict to the intent file.
 
+## Design the architecture
+
+This step is optional. It needs the `architect` pack, an add-on set of agent skills. To add it, run:
+
+```bash
+agentbundle install --pack architect
+```
+
+With the pack installed, the agent offers `architect-design` after de-risk. It drafts a design sized to the change and offers to save it, and breaking the work down then follows that design. Say `skip` to go straight to breaking it into work. Without the pack, you see no offer.
+
 ## Break it into work
 
 To split the intent into slices a build can take one at a time, ask:

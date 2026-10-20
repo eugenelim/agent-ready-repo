@@ -117,14 +117,14 @@ def test_skill_and_agents_exist() -> None:
 
 
 def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
-    """Both runtime-dependency entries declare >=0.29, matching the preflight floor.
+    """Both runtime-dependency entries declare >=0.30, matching the preflight floor.
 
     The floor in pack.toml and the preflight's MINIMUM_VERSION must agree so they
     cannot drift independently.
     """
     preflight = _load_preflight()
-    assert preflight.MINIMUM_VERSION == (0, 29), (
-        f"preflight MINIMUM_VERSION must be (0, 29), got {preflight.MINIMUM_VERSION!r}"
+    assert preflight.MINIMUM_VERSION == (0, 30), (
+        f"preflight MINIMUM_VERSION must be (0, 30), got {preflight.MINIMUM_VERSION!r}"
     )
     expected = ">=" + ".".join(str(p) for p in preflight.MINIMUM_VERSION)
     for dep in load_pack()["runtime-dependencies"]:
@@ -134,18 +134,18 @@ def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
         )
 
 
-def test_pack_version_is_0_1_9() -> None:
-    """pack.toml and plugin.json both carry version 0.1.9.
+def test_pack_version_is_0_1_10() -> None:
+    """pack.toml and plugin.json both carry version 0.1.10.
 
-    Patch bump from 0.1.8: the pack moves to the Wicked Estate 0.29.2 surface.
+    Patch bump from 0.1.9: the pack moves to the Wicked Estate 0.30.0 surface.
     """
     pack_version = load_pack()["version"]
     plugin_version = load_plugin()["version"]
-    assert pack_version == "0.1.9", (
-        f"pack version is {pack_version!r}, expected '0.1.9'"
+    assert pack_version == "0.1.10", (
+        f"pack version is {pack_version!r}, expected '0.1.10'"
     )
-    assert plugin_version == "0.1.9", (
-        f"plugin version is {plugin_version!r}, expected '0.1.9'"
+    assert plugin_version == "0.1.10", (
+        f"plugin version is {plugin_version!r}, expected '0.1.10'"
     )
 
 
