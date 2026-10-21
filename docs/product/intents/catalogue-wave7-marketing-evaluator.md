@@ -25,11 +25,13 @@ A platform lead who meets the marketing site today sees a list of packs and thei
 - **Functional job:** Judge whether the catalogue model fits the organisation — open formats, versioned contracts, checks that run the same way every time, human approval points, source ownership, multi-tool projection, release integrity, and optional composition — and find the proof for each.
 - **Emotional job:** Feel that the decision rests on facts that can be checked, not on marketing that may be out of date.
 - **Social job:** Hand a budget holder or security reviewer a page where every claim links to the contract, command, or guide that enforces it.
-- **Struggling moment:** The facts exist, but they are spread across contracts, technical guides, and release references. The marketing pages show none of version, adapters, or composition, and no page is written for someone evaluating the catalogue as a platform.
+- **Struggling moment:** The facts exist, but they are spread across technical guides, release references, and a `contracts/` folder that mixes catalogue, work-loop, and delivery schemas with no published specification. The marketing pages show none of version, adapters, or composition, and no page is written for someone evaluating the catalogue as a platform.
 
 ## Boundary
 
 This intent owns three things on the marketing site in `web/`: a new `/evaluate/` page, index-backed facts on the catalogue and pack pages, and a relationship view of optional pack integrations using the RFC-0076 D6 labels. It links to evidence and does not restate contracts.
+
+The versioned catalogue specification that `/evaluate/` links to belongs to [`catalogue-specification-publication`](catalogue-specification-publication.md). This page explains and links; it does not publish contracts itself.
 
 Other owners keep the rest. The Build a Catalogue documentation route belongs to [`catalogue-wave6-technical-docs-ia`](catalogue-wave6-technical-docs-ia.md). Release-integrity behaviour belongs to [`catalogue-wave5-release-integrity`](catalogue-wave5-release-integrity.md). Finding packs by query belongs to [`catalogue-search-verb`](catalogue-search-verb.md). The marketing home page and its adoption-champion journey belong to [`team-orientation-future-state`](../../design/journeys/team-orientation-future-state.md). Any new pack `lifecycle` field is a contract change outside this intent.
 
@@ -60,19 +62,20 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
 
 ### Dependencies and sequencing
 
-- `/evaluate/` links into the Build a Catalogue route that [`catalogue-wave6-technical-docs-ia`](catalogue-wave6-technical-docs-ia.md) owns. That intent's Status and Decomposed lines own its state. On `main` at `3cc898b9` there is no Wave 6 spec and no open Wave 6 PR; the owner reports Wave 6 delivery running in parallel.
+- `/evaluate/` depends on [`catalogue-specification-publication`](catalogue-specification-publication.md) for the specification pages its open-formats and versioned-contracts claims link to. That intent needs an RFC amending RFC-0003 and RFC-0076 D9 and D10 before it can be decided.
+- `/evaluate/` also links into the Build a Catalogue route that [`catalogue-wave6-technical-docs-ia`](catalogue-wave6-technical-docs-ia.md) owns. That intent's Status and Decomposed lines own its state. On `main` at `3cc898b9` there is no Wave 6 spec and no open Wave 6 PR; the owner reports Wave 6 delivery running in parallel.
 - `workspace.toml` registers [`catalogue-wave9-migration-closeout`](catalogue-wave9-migration-closeout.md) as needing this intent. Wave 7 is therefore on the critical path for closing RFC-0076.
 
 ## Assumptions
 
-- Every `/evaluate/` claim can link to a public evidence page that exists today. Wave 6's Build a Catalogue route becomes the preferred entry link when it ships, but no claim waits for it.
+- Every `/evaluate/` claim can link to a published page. Claims about formats and contracts link to the versioned catalogue specification; the rest link to published guides. Wave 6's Build a Catalogue route becomes the preferred entry link when it ships.
 - Pack-page facts can come from a `catalogue-index.json` generated during the site build, while install-route facts such as `pluginInstallable` and the install command stay with their current owners.
 - A platform lead reads claim-then-proof copy: one plain sentence per claim, followed by a link to the contract, command, or guide that proves it.
 - **Knowledge surface:** the in-repository RFC, shipped Wave 2, 4, and 5 specs, published guides, contracts, `web/` source, the approved journey map, and an index generated from this repository, all at revision `3cc898b991df987b8ef8e515c6457a9ae8e5b501`. No external knowledge surface was used.
 
 ## Riskiest assumption
 
-**A platform lead can reach an informed build-or-adopt decision from one claim-then-proof page plus index-backed pack facts, and the evidence shipped today backs every claim without overstating it.** If any claim has no public proof, the page breaks the parent capability's guardrail. If the proof exists but platform leads still cannot decide, the page is only a list of links.
+**A platform lead can reach an informed build-or-adopt decision from one claim-then-proof page plus index-backed pack facts, and published evidence — the versioned catalogue specification and published guides — backs every claim without overstating it.** If any claim has no published proof, the page breaks the parent capability's guardrail. If the proof exists but platform leads still cannot decide, the page is only a list of links.
 
 ## De-risking verdict
 
@@ -91,7 +94,8 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
   7. Release integrity: [`catalogue-ci-contract.md`](../../../guides/_shared/reference/catalogue-ci-contract.md), covering `--force` and `--compare`.
   8. Optional composition: § 11 of [`catalogue-authoring-standards.md`](../../../guides/_shared/reference/catalogue-authoring-standards.md) and [`pack-catalogue.md`](../../../guides/_shared/explanation/pack-catalogue.md).
   9. Technical evidence: the docs site, `contracts/` in the public repository, and the PyPI destination declared in [`site.toml`](../../../site.toml).
-- **Verdict:** **Survived, desk-grounded.** The evidence exists today and does not depend on Wave 6. Whether platform leads make the decision from it remains `to-validate`.
+- **Owner reframe (2026-10-21):** The predeclared line accepted a raw file under `contracts/` as public proof. The owner rejects that: a platform publishes its specification on its website, and `contracts/` mixes catalogue, work-loop, and delivery schemas with no version or stable URL. Without that destination kind, claim 1 (open formats) and claim 2 (versioned contracts) have no published specification page, and claim 9 loses its contracts link.
+- **Verdict:** **Re-sequenced.** The line as written did not fire, but the owner's reframe removes the destination two claims rested on. Wave 7 waits for [`catalogue-specification-publication`](catalogue-specification-publication.md) and is de-risked again against the published specification once that exists. Whether platform leads make the decision from the page remains `to-validate`.
 - **Adversarial validation hook:** Stop the page if a claim can only be proved by following a link into maintainer-only material. Before release, open every `/evaluate/` link on the deployed site from a signed-out browser, and treat the first link that lands on an RFC, spec, `docs/guides/` page, or a 404 as a stop condition.
 
 ```yaml
@@ -103,7 +107,7 @@ validation_hook:
 
 ## What the decision requires
 
-- Add a marketing-site `/evaluate/` page covering open file-based formats, versioned contracts, deterministic verification and packaging, human gates, source ownership, adapter projection, release integrity, optional composition, and links to technical evidence (RFC-0076 D10).
+- Add a marketing-site `/evaluate/` page covering open file-based formats, versioned contracts, deterministic verification and packaging, human gates, source ownership, adapter projection, release integrity, optional composition, and links to technical evidence (RFC-0076 D10). Format and contract claims link to the published catalogue specification, not to repository files.
 - Update catalogue and pack pages to use neutral-index facts for version, scope, adapters, optional integrations, and documentation links (RFC-0076 D10). `lifecycle` is deferred by owner decision on 2026-10-21 because no contract carries it.
 - Render pack composition as a legible relationship view using the user-facing labels from D6 (RFC-0076 D10).
 
@@ -113,9 +117,11 @@ validation_hook:
 - Adding a `lifecycle` field to `pack.toml`, `pack.schema.json`, or the index schema.
 - Changing the marketing home page or its adoption-champion journey stages.
 - Building the Build a Catalogue documentation route, release-integrity behaviour, or the search verb.
+- Publishing the catalogue specification or changing contract `$id` URLs, which [`catalogue-specification-publication`](catalogue-specification-publication.md) owns.
 
 ## Open questions
 
+- **Governing RFC:** the RFC behind `catalogue-specification-publication` also amends RFC-0076 D10's "do not turn the marketing site into raw schema documentation". It must say whether `/evaluate/` links to a specification hosted on the docs site or on the marketing site. Decider: the owner.
 - **Lifecycle:** D10 asks for a lifecycle fact that no contract carries. A separate contract change would add it to `pack.schema.json` and the index together, as the Wave 4 spec suggests. Decider: the owner.
 - **Journey reconciliation:** `/evaluate/` adds a platform-lead reader beside the journey map's adoption champion. Either the map gains an amendment through `approve-journey`, or `/evaluate/` gets its own journey. Decider: the owner, before the spec freezes the page's reader.
 - **Documentation links:** The index has documentation links for 15 of 23 packs, while the site's own page data has one for every pack. The spec decides whether to close the gap with `JOURNEY.md` `docsUrl` entries or to keep the site value as a declared fallback.
