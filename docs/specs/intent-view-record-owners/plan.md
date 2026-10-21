@@ -156,7 +156,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Tests:**
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0012, AC-0013, AC-0017, AC-0020, AC-0021, AC-0022 and AC-0030 over the `owners` export, comparing each list under each README owner choice with the same list under "Any owner".
-- Browser checks decide AC-0008's readiness clause, AC-0012's readiness clause and AC-0014 over the `mixed` export with a checked status input, built by the readiness-bridge spec's status-input helper.
+- Browser checks decide AC-0008's readiness clause, AC-0012's readiness clause and AC-0014 over the readiness export. It is built in `tmp_path` from a copy of `mixed` whose `Owner:` lines are rewritten to two owners, with a status input from the readiness-bridge spec's status-input helper. Its start record and one other startable record carry the second owner.
 
 **Done when:** those checks pass, and the readiness-bridge spec's own browser checks still pass unchanged.
 
@@ -169,7 +169,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Tests:**
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations. Each also checks the general rule over every Group and Show choice, against the Python reading of the payload.
-- One differential browser check decides AC-0032. It renders each pair of pages named there, the "Any owner" page and the owner-choice page, and walks both documents' text nodes in order. It removes only the differences AC-0032 admits, then asserts that what remains is equal. The scoped export uses `--from` with the README's capability. The unavailable export reuses the shipped `_incomplete` delivery-provider seam (`view_browser_checks.py`, the `hostile_incomplete` export) on the `owners` corpus. The readiness export uses the readiness-bridge spec's status-input helper on `mixed`.
+- One differential browser check decides AC-0032. It renders each pair of pages named there, the "Any owner" page and the owner-choice page, and walks both documents' text nodes in order. It removes only the differences AC-0032 admits, then asserts that what remains is equal. The scoped export uses `--from` with the README's capability. The unavailable export reuses the shipped `_incomplete` delivery-provider seam (`view_browser_checks.py`, the `hostile_incomplete` export) on the `owners` corpus. The readiness export is the one T4 builds.
 - A browser check decides AC-0016 by comparing the flat filtered list with `run_query` `search` over the same fixture, using the filter selectors plus `owner`.
 - The shipped tree-and-roadmap checks for its criteria 0030 to 0036 still pass under "Any owner".
 

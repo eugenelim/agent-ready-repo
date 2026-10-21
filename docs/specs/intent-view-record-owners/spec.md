@@ -61,7 +61,7 @@ A maintainer opens the offline intent view, picks their own name in one "Owner" 
 
 - Any change to the owner key, such as merging `@name` with `name` or splitting a value at a comma.
 - Adding `owner` to plain-text output, to `tree` or `ancestors` results, or a selector to `outstanding`.
-- Letting the owner choice change any number a row, a strategy heading or the detail state line shows.
+- Letting the owner choice change any number AC-0013 names.
 
 ### Never do
 
@@ -89,6 +89,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - **Owner choice:** the selected option of the page's "Owner" control: "Any owner", one owner key, or "No owner recorded", which chooses the empty key.
 - **Matching record:** under an owner choice other than "Any owner", a node whose owner key equals the chosen key.
 - **Row link:** an `a.row-link` element in the list zone.
+- **Readiness export:** an export of a copy of the `mixed` fixture whose records carry at least two owners, with a checked status input as the readiness-bridge spec states one. Under one option of its Owner control, the start record and at least one other row of "What can I work on next?" are not matching records, and at least one row is.
 - **Width and theme matrix:** true viewport widths of 320, 1280, 1680 and 2560 CSS px, each in the light and the dark theme.
 
 ### The derivation and the query
@@ -103,7 +104,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
 ### Owner on rows and in the detail
 
-- [ ] **AC-0008.** Every row link the page renders ends with an owner cell. The cell reads "Owner: " followed by the node's `owner` when its owner key is not empty, and "No owner recorded" when it is, and the link's accessible name contains that text. Over the `owners` fixture, this holds for every row of each of the six questions, of search results, of "Browse all intents" with every subtree open, and of "How far along is each capability?". Over the `mixed` fixture with a checked status input, as the readiness-bridge spec states one, it holds for every row of "What can I work on next?".
+- [ ] **AC-0008.** Every row link the page renders ends with an owner cell. The cell reads "Owner: " followed by the node's `owner` when its owner key is not empty, and "No owner recorded" when it is, and the link's accessible name contains that text. Over the `owners` fixture, this holds for every row of each of the six questions, of search results, of "Browse all intents" with every subtree open, and of "How far along is each capability?". Over the readiness export, it holds for every row of "What can I work on next?".
 - [ ] **AC-0009.** Given the `hostile` fixture, whose owner values carry `</script><script>`, `<img src=x onerror=alert(1)>`, `"><svg onload=alert(1)>`, a U+200B zero-width space and the U+202E and U+2066 bidirectional controls, none of those strings appears in the HTML outside the data block.
 - [ ] **AC-0031.** Over that `hostile` export, the page's rendered text nodes contain no code point the text output escapes, and each such code point in an owner value appears as its `[U+XXXX]` escape.
 - [ ] **AC-0010.** Opening "Record details" for a picked node shows the label "Owner" with the node's `owner`, or "No owner recorded" when its owner key is empty.
@@ -116,9 +117,9 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
   3. "No owner recorded", present only when some node's owner key is empty.
 
   Over the `owners` fixture the options equal the list its README states.
-- [ ] **AC-0012.** Given an owner choice other than "Any owner", each of these lists exactly the row links it lists under "Any owner" whose node is a matching record, in the same order and under the same subheadings, with a subheading shown only when it holds a listed row link: "What can I work on next?", "What is broken?" (where an entry's node is the record that holds it), "What is still open under a capability?", "What has no parent?", and search results. Over the `mixed` fixture with a checked status input, "What can I work on next?" also meets this.
+- [ ] **AC-0012.** Given an owner choice other than "Any owner", each of these lists exactly the row links it lists under "Any owner" whose node is a matching record, in the same order and under the same subheadings, with a subheading shown only when it holds a listed row link: "What can I work on next?", "What is broken?" (where an entry's node is the record that holds it), "What is still open under a capability?", "What has no parent?", and search results. Over the readiness export, "What can I work on next?" also meets this.
 - [ ] **AC-0013.** Under every owner choice, each number a row shows equals the number it shows under "Any owner": the "<n> open" count, "<c>/<t> closed", "<n> open items", and a roadmap row's band counts, delivered share and bar cells. So do each strategy heading's progress and the detail state line's open-beneath and broken counts.
-- [ ] **AC-0014.** Given the `mixed` fixture with a checked status input whose `readiness.start.id` is a node id, under an owner choice for which that record is not a matching record, no row holds a start tag. Under an owner choice for which it is a matching record, that record's row holds the tag that the readiness-bridge spec's criterion 0025 states.
+- [ ] **AC-0014.** Given the readiness export, whose `readiness.start.id` is a node id, under an owner choice for which that record is not a matching record, no row holds a start tag. Under an owner choice for which it is a matching record, that record's row holds the tag that the readiness-bridge spec's criterion 0025 states.
 
 ### Browse all intents
 
@@ -144,17 +145,18 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
   1. the whole-corpus `owners` export;
   2. an `owners` export scoped with `--from` to the capability its README names;
   3. an `owners` export whose `outstanding` is unavailable;
-  4. the `mixed` export with a checked status input.
+  4. the readiness export.
 
-  It covers every question, every Show and Group choice, no search and the search text the README names, and each README owner choice. The page under that owner choice is compared with the page under "Any owner" with the same other choices, and it differs only in these ways:
+  It covers every question, every Show and Group choice, no search and the search text the README names, and each owner choice: the README's choices on the first three exports, and every option its Owner control offers on the readiness export. The page under that owner choice is compared with the page under "Any owner" with the same other choices, and it differs only in these ways:
   1. its row links that are not context rows are exactly the "Any owner" page's row links that are not context rows and whose node is a matching record, in the same relative order;
   2. its context rows are those AC-0015 and AC-0018 state;
-  3. its counts are those AC-0020 states;
-  4. it shows AC-0021's line;
-  5. a subheading that holds no row link is gone;
-  6. where no row link is left, the list area shows the AC-0022 or AC-0030 state;
-  7. a start tag is absent as AC-0014 states;
-  8. the Owner control's selected option differs.
+  3. its counts are those AC-0020 states, and the live region announces what AC-0017 states;
+  4. a subtree toggle's hidden text counts the rows shown beneath it, and a row with no shown row beneath it has no toggle;
+  5. it shows AC-0021's line;
+  6. a subheading that holds no row link is gone;
+  7. where no row link is left, the list area shows the AC-0022 or AC-0030 state;
+  8. a start tag is absent as AC-0014 states;
+  9. the Owner control's selected option differs.
 
   Every other rendered text node is identical, including the scope banner, header totals, notices, "unknown" counts, lead lines, sort keys, row text, the Key and the detail pane.
 - [ ] **AC-0023.** The URL fragment holds the owner choice as `owner`, and reloading restores it. Changing the owner choice adds no history entry. Choosing a question or picking a row keeps the owner choice. A fragment `owner` that names no option shows "Any owner" and lists as "Any owner" does.
