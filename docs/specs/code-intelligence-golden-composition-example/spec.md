@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079 and RFC-0104
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md
+- **Discovery:** intent:code-intelligence-golden-composition-example
 - **Contract:** none
 - **Shape:** integration
 

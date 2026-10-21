@@ -9,7 +9,10 @@ identical artifact trees produce identical serialized bytes.
 
 Relations:
 - direct-delivery: a feature intent with route 'spec' (or 'brief' via
-  Discovery) whose Discovery field resolves to exactly one matching spec.
+  Discovery) whose Discovery field resolves to exactly one matching spec. Discovery may
+  name the intent by any registered intent prefix (outcome, opportunity,
+  capability, intent) or by its canonical intents path; relations always
+  carry the canonical 'intent:<slug>' identifier.
 - coordinated-delivery: a feature intent with route 'brief' whose single
   matching brief is referenced by at least one spec's Brief field.
 
@@ -123,13 +126,14 @@ _INTENTS_PATH_RE = re.compile(r"^docs/product/intents/([^/]+\.md)$")
 _DELIVERY_ROUTES: frozenset[str] = frozenset({"spec", "brief", "direct-light", "closed-empty"})
 
 # Canonical diagnostic target forms:
-# (a) identifier:   intent/brief:<slug>, spec:<dir>
+# (a) identifier:   <intent-kind>/brief:<slug>, spec:<dir>; <intent-kind> is
+#     any registered intent prefix (outcome, opportunity, capability, intent)
 # (b) artifact path: docs/product/intents/<name>.md or docs/product/briefs/<name>.md
 #     (brief paths are emitted by corpus-level slug-ambiguity diagnostics and
 #      are already grammar-checked by _ARTIFACT_FILE_RE during traversal)
 # (c) date-route:   YYYY-MM-DD <closed-route>  (exactly one space, route in _DELIVERY_ROUTES)
 _CANONICAL_IDENTIFIER_RE = re.compile(
-    r"^(?:(?:intent|brief):[a-z0-9]+(?:-[a-z0-9]+)*"
+    r"^(?:(?:outcome|opportunity|capability|intent|brief):[a-z0-9]+(?:-[a-z0-9]+)*"
     r"|spec:[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)$"
 )
 _CANONICAL_DATE_ROUTE_RE = re.compile(
@@ -236,7 +240,8 @@ def _is_unsafe_ref(target: str) -> bool:
 def _is_canonical_target(t: str) -> bool:
     """Return True iff ``t`` matches a canonical diagnostic target form.
 
-    (a) A canonical identifier: ``intent/<brief>:<slug>`` or ``spec:<dir>``.
+    (a) A canonical identifier: ``<kind>:<slug>`` for a registered intent
+        prefix or ``brief``, or ``spec:<dir>``.
     (b) An artifact path: ``docs/product/intents/<name>.md`` or
         ``docs/product/briefs/<name>.md`` where ``<name>`` matches
         ``_ARTIFACT_FILE_RE``.  Brief paths appear in corpus-level slug-ambiguity
@@ -263,7 +268,9 @@ def _classify_discovery(value: str) -> tuple[str, str | None]:
     - 'not-intent-shaped': contextual provenance candidate
     - 'unsafe': absolute path or '..' segment
     - 'malformed': intent-shaped but wrong form
-    - 'valid-intent': exactly 'intent:<slug>' with valid slug
+    - 'valid-intent': '<prefix>:<slug>' with a registered intent prefix
+      (outcome, opportunity, capability, intent) and a valid slug; the
+      slug is resolved through the live intent index
     - 'valid-path': exactly 'docs/product/intents/<file>.md'
     """
     if not value or value.lower() == "none":
@@ -280,12 +287,14 @@ def _classify_discovery(value: str) -> tuple[str, str | None]:
             return "malformed", None
         return "not-intent-shaped", None
 
-    # Intent-shaped: starts with 'intent:' OR contains 'product/intents/'
-    if value.startswith("intent:"):
-        slug = value[len("intent:"):]
-        if not _SLUG_RE.match(slug):
-            return "malformed", None
-        return "valid-intent", slug
+    # Intent-shaped: starts with a registered intent prefix OR contains
+    # 'product/intents/'
+    for kind in _PARENT_INTENT_KINDS:
+        if value.startswith(f"{kind}:"):
+            slug = value[len(kind) + 1:]
+            if not _SLUG_RE.match(slug):
+                return "malformed", None
+            return "valid-intent", slug
 
     if "product/intents/" in value:
         if _is_unsafe_ref(value):

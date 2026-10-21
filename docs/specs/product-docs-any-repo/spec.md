@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0060
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0010-product-documentation-page-design.md
+- **Discovery:** intent:product-documentation-page-design
 - **Contract:** none
 - **Shape:** mixed
 

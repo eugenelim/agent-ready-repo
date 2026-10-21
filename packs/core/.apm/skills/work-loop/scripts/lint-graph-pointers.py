@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the `Parent intent:` and `Brief:` pointers of changed artifacts.
+"""Check the `Parent intent:`, `Brief:`, and `Discovery:` pointers of changed artifacts.
 
 Usage: lint-graph-pointers.py --root DIR --base-ref REF
 
@@ -7,12 +7,19 @@ The check selects the intent, brief, and spec artifacts the change adds or
 modifies relative to REF (committed, staged, unstaged, and untracked
 additions; a rename selects its destination; a deletion selects nothing). It
 then checks every active `Parent intent:` and `Brief:` field in the preamble
-of each selected artifact. A pointer must be typed and must name exactly one
+of each selected artifact, and every active `Discovery:` field in the preamble
+of each selected spec. A pointer must be typed and must name exactly one
 live target of the field's type:
 
 - `Parent intent:` takes `<kind>:<slug>` where kind is outcome, opportunity,
   capability, or intent and matches the target intent's registered kind.
 - `Brief:` takes `brief:<slug>`.
+- `Discovery:` in a spec takes the same typed form as `Parent intent:` when it
+  points at an intent. A repository path under `product/intents/`, a markdown
+  link that resolves there, or a bare slug of a live intent is untyped. The
+  path or link is judged by its text and its target is never opened. Any other
+  value (research or notes paths, `brief:` or `spec:` values, URLs, free text)
+  is non-intent provenance and is not checked.
 
 An empty value, or a value whose first word is `none`, records no pointer.
 Artifacts the change does not touch are never validated; they are read only
@@ -30,6 +37,7 @@ import argparse
 import contextlib
 import importlib.util
 import os
+import posixpath
 import re
 import shutil
 import stat as _stat
@@ -55,10 +63,13 @@ _COLLECTION_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
 _SPEC_DIR_RE = re.compile(r"^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*$")
 _SLUG = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 _SLUG_RE = re.compile(_SLUG)
-_PARENT_TYPED_RE = re.compile(rf"(outcome|opportunity|capability|intent):({_SLUG})")
+_INTENT_KINDS = ("outcome", "opportunity", "capability", "intent")
+_PARENT_TYPED_RE = re.compile(rf"({'|'.join(_INTENT_KINDS)}):({_SLUG})")
 _OTHER_TYPED_RE = re.compile(rf"(brief|spec):({_SLUG})")
 _BRIEF_TYPED_RE = re.compile(rf"brief:({_SLUG})")
 _LINK_RE = re.compile(r"\[.*\]\(.*\)")
+_INTENT_PREFIXES = tuple(f"{kind}:" for kind in _INTENT_KINDS)
+_INTENTS_DIR = "docs/product/intents/"
 
 # Preamble parsing is kept in lockstep by hand with the intent graph reader.
 _HEADING_PREFIX = "## "
@@ -417,11 +428,62 @@ def _check_brief(value: str, briefs: _Index) -> str:
     return "brief-malformed" if value.startswith("brief:") else "brief-untyped"
 
 
+def _resolves_under_intents(target: str, spec_dir: str) -> bool:
+    """Lexically resolve a link target against the spec's directory.
+
+    No filesystem access: the target is never opened.
+    """
+    target = target.split("#", 1)[0].split("?", 1)[0]
+    if not target or re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", target):
+        return False
+    joined = target.lstrip("/") if target.startswith("/") else f"{spec_dir}/{target}"
+    resolved = posixpath.normpath(joined)
+    if resolved == ".." or resolved.startswith("../"):
+        return False
+    return (resolved + "/").startswith(_INTENTS_DIR)
+
+
+def _link_targets(value: str) -> list[str]:
+    """Markdown link targets in one linear pass (no backtracking pattern)."""
+    targets = []
+    for chunk in value.split("](")[1:]:
+        target = chunk.split(")", 1)[0].strip().lstrip("<").strip()
+        targets.append(target.split(None, 1)[0].split(">", 1)[0] if target else "")
+    return targets
+
+
+def _check_discovery(value: str, intents: _Index, spec_dir: str) -> str:
+    """Classify a spec's Discovery value; only intent-valued forms can fail."""
+    if value.startswith(_INTENT_PREFIXES):
+        typed = _PARENT_TYPED_RE.fullmatch(value)
+        if not typed:
+            return "discovery-malformed"
+        kind, slug = typed.groups()
+        result = _lookup(intents, slug)
+        if result:
+            return f"discovery-{result}"
+        return "discovery-wrong-kind" if intents.live[slug] != kind else ""
+    if "product/intents/" in value or any(
+        _resolves_under_intents(t, spec_dir) for t in _link_targets(value)
+    ):
+        return "discovery-untyped"
+    if _SLUG_RE.fullmatch(value) and value in intents.live:
+        return "discovery-untyped"
+    return ""
+
+
 def _check_artifact(
-    text: str, intents: _Index, briefs: _Index
+    text: str, intents: _Index, briefs: _Index, rel: str = ""
 ) -> list[tuple[str, str]]:
     fields = _preamble(text)
     found: list[tuple[str, str]] = []
+    if rel.startswith("docs/specs/"):
+        spec_dir = posixpath.dirname(rel)
+        for value in fields.get("Discovery", []):
+            if not _is_no_pointer(value):
+                code = _check_discovery(value, intents, spec_dir)
+                if code:
+                    found.append(("Discovery", code))
     for value in fields.get("Parent intent", []):
         if not _is_no_pointer(value):
             code = _check_parent(value, intents)
@@ -463,7 +525,7 @@ def _run(root_arg: str, base_ref: str) -> int:
                 text = raw.decode("utf-8")
             except UnicodeDecodeError as exc:
                 raise Refusal("invalid-utf8", rel) from exc
-            for field, code in _check_artifact(text, intents, briefs):
+            for field, code in _check_artifact(text, intents, briefs, rel):
                 violations.append((rel, field, code))
     for rel, field, code in sorted(set(violations)):
         print(f"{rel}: {field}: {code}")
@@ -479,7 +541,8 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="lint-graph-pointers.py",
         description=(
             "Check the Parent intent and Brief pointers of intent, brief, and "
-            "spec artifacts changed since a base ref. Exit 0: complete check, "
+            "spec artifacts, and the Discovery pointer of specs, changed since "
+            "a base ref. Exit 0: complete check, "
             "no violations. Exit 1: one or more violations. Exit 2: refusal "
             "or incomplete check."
         ),

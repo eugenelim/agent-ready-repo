@@ -280,6 +280,18 @@
         "Names the effect with lowercase letters, digits, `.`, `_`, or `-`, unique in the plan",
         "Does not describe the publication only in prose fields such as `Approach:`"
       ]
+    },
+    {
+      "id": "discovery-header-typed-intent-form",
+      "prompt": "I'm writing a new spec that came out of the intent at docs/product/intents/account-management.md, whose preamble says `Level: capability` and `Slug: account-management`. It also drew on docs/product/research/login-study.md. How do I fill the spec's Discovery header?",
+      "files": [],
+      "expected_output": "Set `Discovery:` to the intent's registered kind and slug, `capability:account-management`, because `Level: capability` registers it as a capability and no `Kind:` overrides it. Do not use the file path for an intent. A research or notes file is provenance and would be written as its repository-relative path, such as `docs/product/research/login-study.md`, when it is the upstream artifact instead.",
+      "assertions": [
+        "Writes `capability:account-management`",
+        "Explains the kind comes from the registered kind (Kind over Level)",
+        "Does not write the intent's file path",
+        "Says a research or notes source stays a repository-relative path"
+      ]
     }
   ]
 }

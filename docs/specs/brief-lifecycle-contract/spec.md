@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0098, ADR-0077
 - **Brief:** brief:intent-lifecycle-and-closure
-- **Discovery:** docs/product/intents/FEAT-0005-lifecycle-and-closure.md
+- **Discovery:** intent:lifecycle-and-closure
 - **Contract:** none
 - **Shape:** data
 

@@ -1,6 +1,6 @@
 # Spec: Intent delivery traceability
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D2 — AC-0001, AC-0007, and AC-0010: a spec's Discovery: may name an intent by any registered kind prefix, now owned by [typed-discovery-pointers](../typed-discovery-pointers/spec.md); everything else stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0077, RFC-0103

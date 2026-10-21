@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Brief:** none
-- **Discovery:** docs/product/intents/spec-authoring-protocol-measured-before-shipping.md
+- **Discovery:** outcome:spec-authoring-protocol-measured-before-shipping
 - **Contract:** none
 - **Shape:** data
 
