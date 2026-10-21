@@ -21,6 +21,7 @@ The brief template is a **guide, not a schema**. Create mode records a Draft and
 | `Received` | recommended | The date the brief was handed over (`YYYY-MM-DD`). |
 | `Owner` | recommended | Who owns delivering this repo's slice. |
 | `Epic` | optional | Id or link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. This is the only pointer to the wider effort — the repo owns its slice, not a coordination hub. |
+| `Parent intent` | optional | The intent this brief was cut from. Write it as the target intent's registered kind and `Slug:`, such as `outcome:service-reliability` or `intent:account-self-service`. An absent value, or a value that begins with the word `none`, records no pointer. Distinct from `Epic`, which names an external coordinator. |
 | `Cut-closed` | required only when `Status: Shipped`; refused when `Status: Draft` | Records that the **cut** — the set of delivery slices this brief will ever have — is finalised and no further slices are coming. ISO 8601 date followed by non-empty evidence text (e.g. `2026-08-25 All nine slices are Shipped.`); a value in any other shape is refused. Like every field in this table it must sit **above the brief's first `## ` heading**: written below one, or inside an HTML comment, it reads as absent, so a refusal can name a file that visibly contains the line. A template row whose value is only a comment or is empty counts as absent rather than malformed, which is why the shipped template does not trip the gate. |
 
 ## Brief body sections
@@ -140,8 +141,12 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 | Field / marker | Where | Meaning |
 | --- | --- | --- |
-| `Brief: brief:<slug>` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from. `brief:<slug>` is the canonical form, and it replaces the repository-relative path this reference previously pinned. That path (`docs/product/briefs/<slug>.md`) remains an accepted fallback everywhere, so nothing written under the old convention breaks; a bare slug is accepted by traceability and the coverage join, but dispatch reconciliation refuses a bare slug and always has, so a bare slug still blocks dispatch. Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
+| `Brief: brief:<slug>` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from. Write it as `brief:<slug>`. Readers still accept a legacy repository path in older specs, so nothing written under the old convention breaks. A bare slug is accepted by traceability and the coverage join, but dispatch reconciliation refuses it, so a bare slug still blocks dispatch. Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
 | `Satisfies: US-n` | appended to an acceptance criterion | Story trace (Shape B only). Marks the AC that satisfies story `US-n`, giving story-granular coverage. Omitted in Shape A. |
+
+## How pointer fields are checked
+
+Write a brief's `Parent intent:` as the target intent's registered kind and `Slug:`, such as `outcome:service-reliability` or `intent:account-self-service`. Write a spec's `Brief:` as `brief:<slug>`. New and changed artifacts are checked: each typed pointer must name an existing target of the field's type. The check is forward-only, so an older artifact you do not touch is not checked. Readers keep accepting legacy repository paths in those older artifacts. An absent value or a value beginning with the word `none` records no pointer.
 
 ## The coverage lint
 

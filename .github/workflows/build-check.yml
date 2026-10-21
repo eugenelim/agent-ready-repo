@@ -524,6 +524,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_spec_authority_note.py
 
+      # The graph-pointer authoring pins read `guides/` and two packs' sources,
+      # so they sit above any one pack's test tree and are roster-owned. Placed
+      # above the carve-out step so a failure is attributed here.
+      - name: pytest graph-pointer authoring sources (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_graph_pointer_authoring.py
+
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
       # `pytest tests/ -q` also collects it. Placement above it still matters,

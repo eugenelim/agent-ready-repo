@@ -131,11 +131,10 @@ mechanical rule.
   register or external artifact is the stable pointer. Run `workspace-status`
   to see open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
-  `- **Brief:**` header naming that brief. `brief:<slug>` is the canonical form
-  ; the repository-relative path (`docs/product/briefs/<slug>.md`
-  — the brief file's real path) is an accepted fallback that `workspace-status`
-  reconciliation matches against the queue entry's `source.parent`. Both forms
-  pass reconciliation; a bare slug fails that check and blocks dispatch, as it
+  `- **Brief:**` header naming that brief. Write it as `brief:<slug>`, the only
+  form to write. `workspace-status` reconciliation matches it against the queue
+  entry's `source.parent`. Readers still accept a legacy repository path in
+  older specs; a bare slug fails that check and blocks dispatch, as it
   always has. It records *product provenance* and is distinct from
   `Constrained by:` (which cites the ADRs/RFCs that govern the spec). The field
   is additive and optional — a spec authored directly omits it and stays valid.

@@ -215,8 +215,8 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    - Stamp the optional `Brief:` header **only** when this spec is
      derived from a product brief — i.e. you arrived here from
      `author-delivery-brief continue`, which passes a confirmed slice into this skill. Set
-     it to `brief:<slug>` — the canonical form (the repository-relative path
-     `docs/product/briefs/<slug>.md` is an accepted fallback). Leave it blank
+     it to `brief:<slug>`, the only form to write. Readers still accept a
+     legacy repository path in older specs. Leave it blank
      or `none` for a spec authored directly. The workspace entry for a
      brief-derived spec carries the same parent provenance; a direct spec
      omits that brief parent. A spec without it stays valid — the field is

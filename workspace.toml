@@ -2444,8 +2444,7 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # Slices 5 and 7, approved together on 2026-10-08, each target the default branch.
-  { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
+  # Slice 7, approved together with slice 5 on 2026-10-08, targets the default branch.
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
 ]
 active  = [
@@ -2467,6 +2466,8 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 5 of `intent-navigation-delivery`, shipped 2026-10-20 (core 3.1.11); moved from `queue` when the spec was set Shipped.
+  { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
   # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), shipped 2026-10-19 (core 3.1.10); moved from `active` when the spec was set Shipped.
   { path = "docs/specs/intent-view-handover-prompt/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show a fixed-template, grammar-checked next-step prompt with a Copy control in the intent view's detail zone, selecting it for manual copy when the clipboard refuses", needs = [] },
   # Slice 13 of `intent-navigation-delivery` (tree, roadmap and grouped rail), shipped 2026-10-17 (core 3.1.8); moved from `active` when the spec was set Shipped.
