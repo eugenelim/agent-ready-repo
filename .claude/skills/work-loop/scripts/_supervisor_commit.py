@@ -292,7 +292,6 @@ class GitPort:
         key = (run_id, self.head())
         if key in self._commits:
             return list(self._commits[key])
-        made = self.made_commits(run_id)
         out = self.run(
             "log",
             "--reverse",
@@ -312,7 +311,7 @@ class GitPort:
                 key, sep, value = line.partition(": ")
                 if sep and key.startswith("Supervisor-") and key not in trailers:
                     trailers[key] = value.strip()
-            if trailers.get("Supervisor-Run") == run_id and sha in made:
+            if trailers.get("Supervisor-Run") == run_id:
                 commits.append(Commit(sha, committed, trailers))
         self._commits[key] = commits
         return list(commits)

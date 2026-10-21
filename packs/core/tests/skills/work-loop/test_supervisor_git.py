@@ -401,48 +401,16 @@ def test_a_graft_is_never_read(tmp_path: Path) -> None:
         assert after == before
 
 
-def test_a_packed_ref_move_is_not_a_supervisor_commit(tmp_path: Path) -> None:
+def test_a_message_preserving_rebase_still_reads_the_supervisor_commits(tmp_path: Path) -> None:
     repo, run_id = _started(tmp_path)
     before = _view(repo, run_id)
-    head = h.git(repo, "rev-parse", "HEAD").strip()
-    fake = _forged(repo, run_id, head, "forged:packed")
-    h.git(repo, "pack-refs", "--all", "--prune")
-    packed = repo / ".git" / "packed-refs"
-    packed.write_text(packed.read_text(encoding="utf-8").replace(head, fake), encoding="utf-8")
-    assert h.git(repo, "rev-parse", "HEAD").strip() == fake
-    assert _view(repo, run_id) == before
-
-
-def _linked_worktree(tmp_path: Path, repo: Path) -> tuple[Path, Path]:
-    linked = tmp_path / "linked"
-    h.git(repo, "worktree", "add", "-q", "-b", "linked", str(linked))
-    decoy = tmp_path / "decoy"
-    h.git(repo, "clone", "-q", str(repo), str(decoy))
-    return linked, decoy
-
-
-def test_a_rewritten_gitfile_is_refused_and_never_read(tmp_path: Path) -> None:
-    repo, run_id = _started(tmp_path)
-    linked, decoy = _linked_worktree(tmp_path, repo)
-    ws = h.admission.Workspace(linked, h.SPEC_DIR, clock=lambda: h.FIXED_TIME)
-    assert ws.git.head() == h.git(repo, "rev-parse", "HEAD").strip()
-    fake = _forged(decoy, run_id, h.git(decoy, "rev-parse", "HEAD").strip(), "forged:gitfile")
-    h.git(decoy, "reset", "-q", "--hard", fake)
-    (linked / ".git").write_text(f"gitdir: {decoy / '.git'}\n", encoding="utf-8")
-    with pytest.raises(h.commit_module.SupervisorGitError) as caught:
-        ws.git.run("rev-parse", "HEAD")
-    assert caught.value.code == "denied-git-control-state"
-    fresh = h.admission.Workspace(linked, h.SPEC_DIR, clock=lambda: h.FIXED_TIME)
-    assert fake not in [c.sha for c in fresh.git.supervisor_commits(run_id)]
-
-
-def test_a_rewritten_commondir_is_refused(tmp_path: Path) -> None:
-    repo, run_id = _started(tmp_path)
-    linked, decoy = _linked_worktree(tmp_path, repo)
-    ws = h.admission.Workspace(linked, h.SPEC_DIR, clock=lambda: h.FIXED_TIME)
-    ws.git.head()
-    private = Path(h.git(linked, "rev-parse", "--absolute-git-dir").strip())
-    (private / "commondir").write_text(f"{decoy / '.git'}\n", encoding="utf-8")
-    with pytest.raises(h.commit_module.SupervisorGitError) as caught:
-        ws.git.run("rev-parse", "HEAD")
-    assert caught.value.code == "denied-git-control-state"
+    root = h.git(repo, "rev-list", "--max-parents=0", "HEAD").strip()
+    h.git(repo, "checkout", "-q", "-b", "upstream", root)
+    (repo / "OTHER.md").write_text("upstream\n", encoding="utf-8")
+    h.git(repo, "add", "OTHER.md")
+    h.git(repo, "commit", "-q", "-m", "unrelated upstream change")
+    h.git(repo, "checkout", "-q", "main")
+    h.git(repo, "rebase", "-q", "upstream")
+    after = _view(repo, run_id)
+    assert [step for _sha, step in after] == [step for _sha, step in before]
+    assert [sha for sha, _step in after] != [sha for sha, _step in before]

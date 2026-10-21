@@ -67,6 +67,7 @@ _commit = _supervisor("_supervisor_commit.py")
 _git = _supervisor("_supervisor_git.py")
 _journal = _supervisor("_supervisor_journal.py")
 _projector = _supervisor("_supervisor_projector.py")
+_attempt = _supervisor("_supervisor_attempt.py")
 sibling = _commit.sibling
 
 __all__ = ["Refusal", "Workspace", "check_authority_ref", "check_git_config", "start"]
@@ -164,6 +165,7 @@ class Workspace:
         if self.clock is None:
             self.clock = CLOCK[0]
         self.git = _commit.GitPort(self.root, self.spec_rel, clock=self.clock)
+        self.attempts = _attempt.Attempts(self)
         self.local = _journal.LocalState(self.root, self.spec_rel, clock=self.clock)
         self.spec_path = self.root / self.spec_rel / "spec.md"
         self.plan_path = self.root / self.spec_rel / "plan.md"
@@ -395,6 +397,7 @@ def start(
     review_authority_ref: str,
 ) -> dict[str, Any]:
     """Admit the approved pair; under ``spec-plan`` also commit the terminal step."""
+    ws.attempts.guard("start")
     roles = ws.policy["authority_roles"]
     if not check_authority_ref(authority_ref, roles["start_authority_ref"]):
         raise Refusal(
