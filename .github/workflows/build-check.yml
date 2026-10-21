@@ -531,6 +531,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_graph_pointer_authoring.py
 
+      # The lint-vs-navigator intent parity check reads `docs/product/intents`
+      # above any pack, so it is roster-owned. Placed above the bulk step so a
+      # failure is attributed here.
+      - name: pytest lint-traceability intent parity vs the real corpus (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_lint_traceability_intent_parity.py
+
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
       # `pytest tests/ -q` also collects it. Placement above it still matters,

@@ -842,6 +842,7 @@ EXPECTED_SCRIPT_STEPS = [
     "packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py",
     ".claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py",
     "packs/core/tests/skills/work-loop/test_lint_traceability.py",
+    "packs/core/tests/skills/work-loop/test_lint_traceability_intent_parity.py",
     ".claude/skills/work-loop/scripts/lint-traceability.py",
     # The closure check carries read-side projections of five shipped
     # vocabularies, because a cross-skill import is banned. The pack suite

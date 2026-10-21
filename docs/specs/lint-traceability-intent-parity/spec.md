@@ -1,6 +1,6 @@
 # Spec: Lint traceability intent parity
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Approved:** 2026-10-21 by the repository owner, spec and plan together, after a clean shaping review and a clean adjudicated adversarial review in round 3.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
