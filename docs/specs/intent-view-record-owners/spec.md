@@ -118,7 +118,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
   Over the `owners` fixture the options equal the list its README states.
 - [ ] **AC-0012.** Given an owner choice other than "Any owner", each of these lists exactly the row links it lists under "Any owner" whose node is a matching record, in the same order and under the same subheadings, with a subheading shown only when it holds a listed row link: "What can I work on next?", "What is broken?" (where an entry's node is the record that holds it), "What is still open under a capability?", "What has no parent?", and search results. Over the readiness export, "What can I work on next?" also meets this.
-- [ ] **AC-0013.** Under every owner choice, each number a row shows equals the number it shows under "Any owner": the "<n> open" count, "<c>/<t> closed", "<n> open items", and a roadmap row's band counts, delivered share and bar cells. So do each strategy heading's progress and the detail state line's open-beneath and broken counts.
+- [ ] **AC-0013.** Under every owner choice, each of these numbers equals the number shown under "Any owner", and this list is the complete set this criterion covers: the "<n> open" count, "<c>/<t> closed", "<n> open items", and a roadmap row's band counts, delivered share and bar cells. So do each strategy heading's progress and the detail state line's open-beneath and broken counts.
 - [ ] **AC-0014.** Given the readiness export, whose `readiness.start.id` is a node id, under an owner choice for which that record is not a matching record, no row holds a start tag. Under an owner choice for which it is a matching record, that record's row holds the tag that the readiness-bridge spec's criterion 0025 states.
 
 ### Browse all intents
@@ -151,7 +151,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
   1. its row links that are not context rows are exactly the "Any owner" page's row links that are not context rows and whose node is a matching record, in the same relative order;
   2. its context rows are those AC-0015 and AC-0018 state;
   3. its counts are those AC-0020 states, and the live region announces what AC-0017 states;
-  4. a subtree toggle's hidden text counts the rows shown beneath it, and a row with no shown row beneath it has no toggle;
+  4. a subtree toggle's hidden text counts its row's shown child rows, the rows shown directly beneath it, and a row with no shown child row has no toggle;
   5. it shows AC-0021's line;
   6. a subheading that holds no row link is gone;
   7. where no row link is left, the list area shows the AC-0022 or AC-0030 state;

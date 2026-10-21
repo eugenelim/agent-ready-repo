@@ -156,7 +156,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Tests:**
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0012, AC-0013, AC-0017, AC-0020, AC-0021, AC-0022 and AC-0030 over the `owners` export, comparing each list under each README owner choice with the same list under "Any owner".
-- Browser checks decide AC-0008's readiness clause, AC-0012's readiness clause and AC-0014 over the readiness export. It is built in `tmp_path` from a copy of `mixed` whose `Owner:` lines are rewritten to two owners, with a status input from the readiness-bridge spec's status-input helper. Its start record and one other startable record carry the second owner.
+- Browser checks decide AC-0008's readiness clause, AC-0012's readiness clause and AC-0014 over the readiness export. It is built in `tmp_path` from a copy of `mixed` whose `Owner:` lines are rewritten to two owners, with a status input from the readiness-bridge spec's status-input helper. Its status input lists the start record and one other record that carry the second owner, and at least one record that carries the first owner. The check asserts the Readiness export term's three conditions on the built export before it decides AC-0008, AC-0012, AC-0014 or AC-0032.
 
 **Done when:** those checks pass, and the readiness-bridge spec's own browser checks still pass unchanged.
 
