@@ -102,6 +102,9 @@ _PATH_OFFER = re.compile(
     r"docs/product/briefs/<slug>\.md|repository-relative path|accepted fallback", re.I)
 
 
+_RESEARCH_PATH = re.compile(r"research or notes", re.I)
+
+
 def untyped_header_values(text: str) -> list[str]:
     """Header lines whose populated value is not a typed pointer.
 
@@ -133,6 +136,8 @@ def path_offers(text: str) -> list[str]:
         if "Brief:" not in flat and "back-link" not in flat:
             continue
         for sent in re.split(r"(?<=[.;])\s+(?=[A-Z`<*-])", flat):
+            if _RESEARCH_PATH.search(sent):
+                continue  # a research or notes path is Discovery provenance, not a Brief value
             if _PATH_OFFER.search(sent) and not _LEGACY_READER.search(sent):
                 bad.append(sent)
     return bad
@@ -230,6 +235,12 @@ def test_path_offer_predicate_fails_on_fallback_and_passes_reader_sentence() -> 
     assert not path_offers("A brief lives at `docs/product/briefs/<slug>.md`.")
 
 
+def test_path_offer_predicate_exempts_discovery_research_paths() -> None:
+    assert not path_offers(
+        "Discovery next to Brief: when it names a research or notes file, use its repository-relative path.")
+    assert path_offers("Brief: may be the repository-relative path.")
+
+
 def test_stale_parent_meaning_predicate_fails() -> None:
     assert never_interpreted("- **Parent intent:** `x:y` <!-- provenance only, never interpreted -->")
     assert never_interpreted("Parent intent: carried as provenance; never interpreted.")
@@ -275,9 +286,123 @@ def test_field_guide_passage() -> None:
 def test_work_loop_guide_passage() -> None:
     text = " ".join(_read("guides/core/how-to/start-the-work.md").split())
     for phrase in (
-        "Before completing a change, the work-loop checks all active `Parent intent:` and `Brief:` fields",
+        "Before completing a change, the work-loop checks all active `Parent intent:`, `Brief:`, and `Discovery:` fields",
         "each artifact the change adds or modifies",
         "A typed pointer must name an existing target of the field's type",
         "A body-only edit still selects that artifact for checking",
     ):
         assert phrase in text, phrase
+
+
+# --- Discovery writers: typed intent form, repository-path provenance --------
+
+DISCOVERY_MENTION = re.compile(r"Discovery:")
+# path -> (role, reason). Instruction, template, example, generated-copy roles
+# are recorded separately from excluded readers; reasons are for "excluded".
+DISCOVERY_MANIFEST: dict[str, tuple[str, str]] = {
+    S + "new-spec/SKILL.md": ("instruction", ""),
+    S + "new-spec/references/spec-and-plan-contract.md": ("instruction", ""),
+    S + "new-spec/assets/spec.md": ("template", ""),
+    "guides/core/how-to/close-and-disposition-work.md": ("instruction", ""),
+    "guides/core/how-to/start-the-work.md": (
+        "excluded", "lists the checked fields only; instructs no value form"),
+    S + "navigate-intents/SKILL.md": (
+        "excluded", "describes the pointer fields the reader follows; writes none"),
+    "guides/core/how-to/navigate-intents.md": (
+        "excluded", "describes the reader's output; writes no field"),
+    "packs/core/DESIGN.md": ("excluded", "design record of the reader; writes no field"),
+    P + "discovery-loop/SKILL.md": (
+        "excluded", "names the up-edge header as a lint prerequisite; instructs no value form"),
+}
+DISCOVERY_WRITERS = sorted(r for r, (role, _) in DISCOVERY_MANIFEST.items() if role != "excluded")
+_TYPED_FORMS = ("outcome:", "capability:", "intent:")
+_BARE_INTENTS_PATH = re.compile(r"docs/product/intents/")
+_LEGACY = re.compile(r"\blegacy\b|older specs", re.I)
+
+
+def derive_discovery_candidates() -> set[str]:
+    """Return repo-relative Markdown paths that mention the ``Discovery:`` field."""
+    found: set[str] = set()
+    for top in SEARCH_ROOTS:
+        base = ROOT / top
+        for path in base.rglob("*.md"):
+            parts = path.relative_to(base).parts
+            if any(p in EXCLUDED_DIRS for p in parts[:-1]):
+                continue
+            if path.is_symlink() or not path.is_file():
+                continue
+            if DISCOVERY_MENTION.search(path.read_text(encoding="utf-8")):
+                found.add(path.relative_to(ROOT).as_posix())
+    return found
+
+
+def discovery_path_offers(text: str) -> list[str]:
+    """Sentences naming ``Discovery:`` that offer a bare intents path as the form to write."""
+    bad: list[str] = []
+    for para in re.split(r"\n\s*\n|\n(?=\s*- )", text):
+        flat = " ".join(para.split())
+        if "Discovery:" not in flat:
+            continue
+        for sent in re.split(r"(?<=[.;])\s+(?=[A-Z`<*-])", flat):
+            if "Discovery:" in sent and _BARE_INTENTS_PATH.search(sent) and not _LEGACY.search(sent):
+                bad.append(sent)
+    return bad
+
+
+def test_discovery_manifest_roles_are_valid_and_exclusions_have_reasons() -> None:
+    for rel, (role, reason) in DISCOVERY_MANIFEST.items():
+        assert role in ROLES, rel
+        assert (role != "excluded") or reason, f"{rel}: exclusion needs a reason"
+    assert {r for r, _ in DISCOVERY_MANIFEST.values()} >= {"instruction", "template", "excluded"}
+
+
+def test_every_discovery_candidate_is_classified_and_no_entry_is_stale() -> None:
+    derived = derive_discovery_candidates()
+    assert not sorted(derived - DISCOVERY_MANIFEST.keys()), "unclassified Discovery candidates"
+    assert not sorted(DISCOVERY_MANIFEST.keys() - derived), "stale Discovery manifest entries"
+
+
+@pytest.mark.parametrize("rel", DISCOVERY_WRITERS)
+def test_discovery_writer_names_typed_intent_and_repository_path_forms(rel: str) -> None:
+    text = " ".join(_read(rel).split())
+    assert all(form in text for form in _TYPED_FORMS), rel
+    assert "repository-relative path" in text, rel
+    assert "registered kind" in text, rel
+    assert not discovery_path_offers(_read(rel)), rel
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [S + "new-spec/SKILL.md", S + "new-spec/references/spec-and-plan-contract.md"],
+)
+def test_discovery_instruction_states_precedence_and_provenance_meaning(rel: str) -> None:
+    text = " ".join(_read(rel).split())
+    for phrase in (
+        "`Kind:` takes precedence over `Level:`",
+        "New and changed specs are checked for typed, live intent targets; legacy paths remain readable",
+        "does not itself assert a feature-delivery route",
+    ):
+        assert phrase in text, f"{rel}: missing {phrase!r}"
+
+
+def test_close_guide_refusals_list_the_four_admitted_prefixes() -> None:
+    text = _read("guides/core/how-to/close-and-disposition-work.md")
+    for code in (
+        "delivery-target-missing", "delivery-reference-malformed",
+        "delivery-reference-unsafe", "artifact-not-in-graph",
+    ):
+        entry = next(ln for ln in text.splitlines() if ln.startswith(f"- `{code}`"))
+        for prefix in ("outcome", "opportunity", "capability", "intent"):
+            assert f"`{prefix}`" in entry, f"{code}: missing {prefix}"
+
+
+def test_build_loop_guide_lists_discovery_among_checked_fields() -> None:
+    text = " ".join(_read("guides/core/how-to/start-the-work.md").split())
+    assert "`Parent intent:`, `Brief:`, and `Discovery:` fields" in text
+
+
+def test_discovery_path_offer_predicate_can_fail() -> None:
+    assert discovery_path_offers("Set `Discovery:` to `docs/product/intents/x.md`.")
+    assert not discovery_path_offers(
+        "Set `Discovery:` to `intent:x`. A legacy `docs/product/intents/x.md` path is readable.")
+    assert not discovery_path_offers("A decision brief lives in `docs/product/intents/x.md`.")
