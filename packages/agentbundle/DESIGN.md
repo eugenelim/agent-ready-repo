@@ -1100,20 +1100,26 @@ The default `_REQUIRED_PATHS` constant requires `LICENSE-APACHE` and `LICENSE-MI
 - When `required` is absent or empty (the common case), `_REQUIRED_PATHS` applies unchanged.
 - This is a full replacement, not a merge — the operator owns the complete required-files contract when they override it.
 
-### 8-step staging + atomic placement sequence
+### Staging + atomic placement sequence
 
-`package_catalogue()` never writes partial output. It uses a staged-then-renamed sequence:
+`package_catalogue()` never writes partial output and never replaces an existing release unless forced. It runs this sequence:
 
-1. Pre-package `verify_catalogue` (full source-checkout pipeline)
-2. Load `catalogue.toml` config (include/required overrides, manifest metadata)
-3. Scan + validate content (allowlist, symlink/hardlink/traversal guards, pack.toml validity)
-4. Build archive bytes in memory
-5. Write staged `.tmp` archive + sidecar
-6. Self-verify the staged archive (`verify_archive`)
-7. Atomic rename archive and sidecar into place
-8. Write channel descriptor **last** (only after archive is verified and placed)
+1. Validate flag values.
+2. Refuse when `catalogue-<release>.tar.gz` already exists and `force` is false: return `CAT-PKG-002` before any write. The handler maps that code to exit 2.
+3. Pre-package `verify_catalogue` (full source-checkout pipeline).
+4. When `compare` is set, read the prior archive with `read_verified_manifest`, which runs `verify_archive` on it first and parses the manifest only if that passes. The archive is never extracted to disk. A failure returns `CAT-PKG-001` with the verify diagnostics.
+5. Load `catalogue.toml` config (include/required overrides, manifest metadata).
+6. Scan + validate content (allowlist, symlink/hardlink/traversal guards, pack.toml validity) and read each file once into the `file_bytes` snapshot.
+7. Build the manifest from that snapshot: file digests, then pack and profile entries with `unit_digest`.
+8. When `compare` is set, derive each prior unit digest from the prior archive's verified `files[]` and compute the difference. A prior unit whose path has no member file returns `CAT-PKG-001`. Steps 4 and 8 run before any directory is created, so a comparison failure leaves `--output` untouched.
+9. Write the staged `.tmp` archive and sidecar, then self-verify the staged archive (`verify_archive`).
+10. Place the archive with `_place_archive`. Without `force` it uses `os.link` (exclusive) and unlinks the staged file; where hard links are unsupported it copies into an exclusive-create `open(dest, "xb")`. An archive that appears after step 2 raises `ReleaseExistsError`, which removes the staged files and returns `CAT-PKG-002`. With `force` it is `os.replace`.
+11. Place the sidecar with `os.replace`.
+12. Write the channel descriptor **last** (only after the archive is verified and placed). A forced run rewrites only the descriptor of the `--channel` given.
 
-Step 6 ensures the archive is structurally sound before it becomes visible. Step 8 ensures the channel descriptor never points to a partially-written or missing archive.
+Step 9 ensures the archive is structurally sound before it becomes visible. Step 12 ensures the channel descriptor never points to a partially-written or missing archive. `package_source_flavour()` applies the same refusal and `_place_archive` to `catalogue-source-<release>.tar.gz`; it has no comparison.
+
+The handler (`commands/catalogue_package.py`) renders every runtime result through one exit point, which writes the stderr lines `<code>: <message>` and, with `--format json`, the stdout envelope. Unit digests establish consistency with the archive's own `files[]`, not publisher identity.
 
 ### Config loading order
 

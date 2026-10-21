@@ -2268,6 +2268,7 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
+  {path = "docs/specs/catalogue-wave5-release-integrity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/catalogue-wave5-release-integrity.md"}, summary = "Catalogue Wave 5 — per-unit content digests, release comparison with a prior archive, and refusal to replace an existing release unless forced", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}]},
 ]
 shipped = [
   {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},

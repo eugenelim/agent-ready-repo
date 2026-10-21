@@ -684,14 +684,16 @@ def package_catalogue(
 ) -> PackageResult:
     """Package a catalogue at *root* into an Artifactory artifact layout.
 
-    Implements the 7-step staging + atomic placement sequence:
-      1. Pre-package verify_catalogue
-      2. Build and stream archive directly to the staged path
-      3. Compute + write staged sidecar
-      4. Self-verify staged archive + sidecar
-      5. Atomic place archive
-      6. Atomic place sidecar
-      7. Write channel descriptor LAST
+    Runs this staging + placement sequence:
+      1. Refuse an existing release archive unless ``force`` (CAT-PKG-002)
+      2. Pre-package verify_catalogue
+      3. With ``compare``, read the prior archive after verify_archive passes
+      4. Scan content, build the manifest with unit digests, compare releases
+      5. Build and stream archive directly to the staged path
+      6. Compute + write staged sidecar
+      7. Self-verify staged archive + sidecar
+      8. Place archive (exclusive unless ``force``), then sidecar
+      9. Write channel descriptor LAST
 
     Returns a PackageResult; does NOT raise on expected failures.
     """
