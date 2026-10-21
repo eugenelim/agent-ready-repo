@@ -1,6 +1,6 @@
 # Spec: Execution supervisor review gate
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0042, ADR-0047, ADR-0061
@@ -119,44 +119,44 @@ stays with the trusted controller (ADR-0144 D11).
 
 Review closure and dispositions
 
-- [ ] **AC-0001.** A full-mode code run passes the supervisor's review stage
+- [x] **AC-0001.** A full-mode code run passes the supervisor's review stage
   exactly when Slice 2 review readiness for the current review subject and
   policy is acceptance eligible.
-- [ ] **AC-0002.** An admitted `human-decision` result carrying a `risk-owner`
+- [x] **AC-0002.** An admitted `human-decision` result carrying a `risk-owner`
   authority reference records `accept-risk` for a supported material finding,
   readiness then counts that finding as disposed, and no other result records
   `accept-risk`.
-- [ ] **AC-0003.** A supported material finding projects repair work, and the
+- [x] **AC-0003.** A supported material finding projects repair work, and the
   supervisor records `fixed-by` only when a fresh report for the replacement
   subject closes it.
 
 Selection data and enforcement
 
-- [ ] **AC-0004.** In a fixture copy of the skill without a roster table, a
+- [x] **AC-0004.** In a fixture copy of the skill without a roster table, a
   synthetic reviewer role added only to `review-rules.json` closes its
   obligation by returning a `review-report.v1`.
-- [ ] **AC-0005.** Each roster role in `review-rules.json` holds its roster
+- [x] **AC-0005.** Each roster role in `review-rules.json` holds its roster
   condition, mode limit, role bullet, and fallback text from `SKILL.md`, and the
   file holds the high-risk definition, all matching the live text with only
   these normalizations: a trailing `(full mode)` moves into the mode limit,
   relative links are rewritten relative to the skill root, and a role with no
   bullet holds an empty boundary.
-- [ ] **AC-0006.** While `SKILL.md` holds a reviewer roster table, a check fails
+- [x] **AC-0006.** While `SKILL.md` holds a reviewer roster table, a check fails
   whenever its roster roles' text differs from `review-rules.json`, and whenever
   `assets/state.json`'s `max_review_retries` differs from the rules file's.
-- [ ] **AC-0007.** For each roster role, selected and omitted, the resolver's
+- [x] **AC-0007.** For each roster role, selected and omitted, the resolver's
   Slice 2 kind equals the role obligation.
-- [ ] **AC-0008.** The resolver refuses a selection record that omits a
+- [x] **AC-0008.** The resolver refuses a selection record that omits a
   conditional role without a reason, or names a role absent from
   `review-rules.json`.
-- [ ] **AC-0009.** Two selection records that resolve to different roles or kinds
+- [x] **AC-0009.** Two selection records that resolve to different roles or kinds
   give different `review_policy_fingerprint` values.
-- [ ] **AC-0010.** A second selection record for the same delivery subject and
+- [x] **AC-0010.** A second selection record for the same delivery subject and
   changed-path digest is refused unless an admitted `human-decision` result
   carrying an `owner` authority reference authorizes the change.
-- [ ] **AC-0011.** The selection record is committed through core's `review`
+- [x] **AC-0011.** The selection record is committed through core's `review`
   step kind.
-- [ ] **AC-0021.** The resolver refuses with a named error, and the review
+- [x] **AC-0021.** The resolver refuses with a named error, and the review
   stage stays unsatisfied, when `review-rules.json` is missing, is not valid
   JSON, or holds a `kind` or `mandatory_when` value outside its closed set; when
   a `review-selections.jsonl` line does not parse or repeats an earlier line's
@@ -165,19 +165,19 @@ Selection data and enforcement
 
 Command relocation
 
-- [ ] **AC-0012.** For every comparison-corpus case, run as a sequence of calls
+- [x] **AC-0012.** For every comparison-corpus case, run as a sequence of calls
   against its seeded cohort state, both `review-artifact.py` and the
   `loop-cohort.py review` verbs return output byte-identical to the recorded
   pre-change output, and with cohort state present `review-artifact.py record`
   updates that state exactly as the pre-change verb did and writes no `record`
   artifact.
-- [ ] **AC-0013.** For every comparison-corpus case run with cohort state, the
+- [x] **AC-0013.** For every comparison-corpus case run with cohort state, the
   `loop-cohort.py review` verbs leave the cohort counter values the pre-change
   verbs left.
-- [ ] **AC-0014.** With no cohort state, `review-artifact.py inspect --run-id`
+- [x] **AC-0014.** With no cohort state, `review-artifact.py inspect --run-id`
   reads the previous round's fingerprint from that run's persisted `record`
   artifact.
-- [ ] **AC-0015.** With no cohort state, `review-artifact.py record` writes one
+- [x] **AC-0015.** With no cohort state, `review-artifact.py record` writes one
   `record` artifact per recorded round, counts the budget from `record`
   artifacts only, and refuses the round that would exceed `max_review_retries`
   unless `--allow-retry-cap-override` comes with `--authority-ref` holding an
@@ -185,14 +185,14 @@ Command relocation
   --authority-ref` accepts. That `record` artifact stores the override and the
   reference, and any other reference refuses the round. With cohort state
   present, the override keeps its pre-change behaviour (AC-0012).
-- [ ] **AC-0016.** A replayed `record` with the same operation id and payload
+- [x] **AC-0016.** A replayed `record` with the same operation id and payload
   returns the first result and writes no second artifact.
-- [ ] **AC-0017.** The supervisor's ingest maps every row of Slice 2's
+- [x] **AC-0017.** The supervisor's ingest maps every row of Slice 2's
   compatibility corpus to the result that corpus requires.
-- [ ] **AC-0018.** `review-artifact.py validate` accepts a `record` artifact
+- [x] **AC-0018.** `review-artifact.py validate` accepts a `record` artifact
   named `.context/reviews/<run-id>/<round>-record.md` and refuses one under any
   other name.
-- [ ] **AC-0022.** With no cohort state, `review-artifact.py record` and
+- [x] **AC-0022.** With no cohort state, `review-artifact.py record` and
   `inspect --run-id` accept only a run id in canonical lowercase UUID form. They
   read and write `record` artifacts only beneath `.context/reviews/<run-id>/`,
   through the no-follow, regular-file-only open that `validate` uses, and they
@@ -202,11 +202,11 @@ Command relocation
 
 Policy families
 
-- [ ] **AC-0019.** Every stage in core's stage set and the declared
+- [x] **AC-0019.** Every stage in core's stage set and the declared
   `PRE-APPROVAL` constant have a policy-family registry entry, and each
   pre-change engine state maps to a stage or that constant whose entry selects
   the same families.
-- [ ] **AC-0020.** While `loop-engine.py` exists, every engine state still
+- [x] **AC-0020.** While `loop-engine.py` exists, every engine state still
   selects its pre-change families.
 
 ## Follow-ons

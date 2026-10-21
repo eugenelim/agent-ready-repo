@@ -1,7 +1,7 @@
 # Plan: Execution supervisor review gate
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - **Roster:** `packs/core/.apm/skills/work-loop/SKILL.md` holds the reviewer
     roster table, each role's bullet, and the high-risk paragraph.
