@@ -511,8 +511,8 @@ def check_kiro_wiring(
 # ---------------------------------------------------------------------------
 # T-C2: kiro-ide-hook validate rail.
 #
-# Five refusal paths covering the validate rail
-# under § *Kiro IDE event hooks — new `kiro-ide-hook` primitive*:
+# Five refusal paths covering the validate rail for the `kiro-ide-hook`
+# primitive:
 #
 #   1. Missing required field (`name`, `version`, `when.type`,
 #      `then.type`).

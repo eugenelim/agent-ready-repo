@@ -2,10 +2,10 @@
 
 Uses example.test placeholders only — no real credentials or external URIs.
 
-Wave 4 note: helpers are now in agentbundle.catalogue_tooling.package but
+Helpers are in agentbundle.catalogue_tooling.package but
 re-exported from agentbundle.commands.package_catalogue for backward compat.
 Fixtures now include source identity, LICENSE-APACHE, LICENSE-MIT, and
-.claude-plugin/marketplace.json per the updated Wave 4 allowlist.
+.claude-plugin/marketplace.json per the packager allowlist.
 """
 
 from __future__ import annotations
@@ -168,7 +168,7 @@ def test_scan_content_includes_allowlisted_files(tmp_path: Path) -> None:
     root = _make_fixture_catalogue(tmp_path, extra_dirs=["build", "tests", ".git"])
     paths = _scan_content(root)
     posix = [p.relative_to(root).as_posix() for p in paths]
-    # Allowlisted entries present (Wave 4 allowlist)
+    # Allowlisted entries present
     assert "packs/core/pack.toml" in posix
     assert "packs/core/SKILL.md" in posix
     assert "profiles/default.toml" in posix
@@ -442,7 +442,7 @@ def test_generate_manifest_required_fields() -> None:
         packs_metadata=[{"name": "core", "version": "0.1.0"}],
     )
     manifest = json.loads(manifest_bytes)
-    assert manifest["schema"] == 2  # Wave 4: schema bumped to 2
+    assert manifest["schema"] == 2  # The manifest schema is 2
     assert manifest["bundle"] == "engineering"
     assert manifest["release"] == "0.1.0"
     assert "source_revision" in manifest
@@ -754,7 +754,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
     all_files = [p for p in output.rglob("*") if p.is_file()]
     assert len(all_files) == 3
 
-    # Only allowlisted entries in archive (Wave 4 allowlist)
+    # Only allowlisted entries in archive
     archive_bytes = archive_path.read_bytes()
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
         names = set(tf.getnames())
@@ -773,7 +773,7 @@ def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
         assert not n.startswith("tests/")
         assert not n.startswith(".git/")
 
-    # Catalogue-manifest.json schema (Wave 4: schema 2)
+    # Catalogue-manifest.json schema
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tf:
         mf = tf.extractfile("catalogue-manifest.json")
         assert mf is not None

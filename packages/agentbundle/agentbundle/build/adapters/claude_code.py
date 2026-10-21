@@ -84,8 +84,8 @@ def project_packs(
 
 
 # Mirror of kiro.py:_skill_direct_directory_target — keep in sync.
-# A shared helper is barred by the spec's `Never do` boundary (no
-# expansion of projections/direct_directory.py beyond `sweep_orphans`).
+# A shared helper is deliberately avoided, so projections/direct_directory.py
+# stays limited to `sweep_orphans`.
 def _resolve_target(output_root: Path, target_path: str) -> Path:
     """Join a contract ``target-path`` onto ``output_root``, confined.
 

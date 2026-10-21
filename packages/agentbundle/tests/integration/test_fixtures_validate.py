@@ -88,7 +88,7 @@ def _ensure_executable(path: Path) -> None:
 
 
 class FixturePresenceTests(unittest.TestCase):
-    """Every fixture named in spec.md § Testing Strategy is on disk."""
+    """Every expected fixture is on disk."""
 
     def test_all_well_formed_fixtures_exist(self) -> None:
         for name in WELL_FORMED:

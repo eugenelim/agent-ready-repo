@@ -131,8 +131,8 @@ def project_packs(
 
 
 # Mirror of claude_code.py:_skill_direct_directory_target — keep in sync.
-# A shared helper is barred by the spec's `Never do` boundary (no
-# expansion of projections/direct_directory.py beyond `sweep_orphans`).
+# A shared helper is deliberately avoided, so projections/direct_directory.py
+# stays limited to `sweep_orphans`.
 def _skill_direct_directory_target(contract: dict, output_root: Path) -> Path | None:
     adapter_block = contract["adapter"]["kiro"]
     for entry in adapter_block.get("projection", []):

@@ -1,7 +1,6 @@
 """Stub handler for agentbundle catalogue <sub> and agentbundle lint packs.
 
-All catalogue_tooling subcommands exit 1 with "not yet implemented" until
-Wave 2-4 specs fill them in.
+All catalogue_tooling subcommands exit 1 with "not yet implemented".
 """
 
 from __future__ import annotations

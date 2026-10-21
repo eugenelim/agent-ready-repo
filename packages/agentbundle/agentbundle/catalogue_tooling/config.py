@@ -1,8 +1,8 @@
 """catalogue.toml configuration loading and validation.
 
-Implements load_catalogue_config — the entry point Wave 2-4 specs call to
-read the repo's catalogue.toml. All validation logic is here; no business
-logic belongs in this module.
+Implements load_catalogue_config — the entry point the catalogue
+commands call to read the repo's catalogue.toml. All validation logic is
+here; no business logic belongs in this module.
 
 Validation order:
   1. JSON Schema (structural) via agentbundle.build.validate (Assumption 2)

@@ -1,4 +1,4 @@
-"""Catalogue packaging engine — wave 4 (catalogue-tooling-package-enhanced spec).
+"""Catalogue packaging engine.
 
 Packages a catalogue repository into an Artifactory artifact layout:
   - <output>/catalogues/<bundle>/releases/<release>/catalogue-<release>.tar.gz

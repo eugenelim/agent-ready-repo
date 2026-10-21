@@ -794,7 +794,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("package_catalogue"))
 
-    # --- catalogue <sub> --- (Wave 2-4; lint/sync-defaults/build/self-host/init implemented)
+    # --- catalogue <sub> --- (lint/sync-defaults/build/self-host/init implemented)
     cat_parser = subparsers.add_parser(
         "catalogue",
         help="Portable catalogue engine commands.",
@@ -1219,9 +1219,8 @@ def _build_parser() -> argparse.ArgumentParser:
     # an apply run (each restricts the write set to its declared subtree).
     # The same declared subtree is meant to restrict the plan a `--dry-run`
     # preview prints and to be refused alongside `--check` — that wiring is
-    # `commands/catalogue_sync.py`'s, not this parser's; see plan.md T7's
-    # cross-task note. `--package` is a reserved selector, not a scoping
-    # flag, and is wired separately.
+    # `commands/catalogue_sync.py`'s, not this parser's. `--package` is a
+    # reserved selector, not a scoping flag, and is wired separately.
     _sync_p.add_argument(
         "--pack",
         action="append",
@@ -1338,7 +1337,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _contracts_export_p.set_defaults(func=_lazy("catalogue_contracts"))
 
-    # --- lint packs --- (Wave 2; implemented)
+    # --- lint packs --- (implemented)
     lint_parser = subparsers.add_parser(
         "lint",
         help="Lint commands.",

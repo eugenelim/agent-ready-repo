@@ -1,4 +1,4 @@
-"""Tests for catalogue_tooling.package (Wave 4 — catalogue-tooling-package-enhanced spec).
+"""Tests for catalogue_tooling.package.
 
 Covers the full packager contract.
 """
@@ -38,7 +38,7 @@ def _make_catalogue(
     with_license_mit: bool = True,
     with_agents_md: bool = True,
 ) -> Path:
-    """Create a minimal valid catalogue root for Wave 4 tests."""
+    """Create a minimal valid catalogue root for packager tests."""
     root = tmp_path / "catalogue"
     root.mkdir()
     config_text = emit_catalogue_toml(

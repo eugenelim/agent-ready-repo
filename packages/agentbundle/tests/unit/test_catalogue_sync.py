@@ -2534,8 +2534,8 @@ def test_apply_keep_set_handed_to_the_shipped_guard_is_full_replayed(
 
     It spies `_plan_stale_owned_paths`, not `select_removal_set`. AC-0035
     constrains the argument handed to the shipped guard, and a narrowing
-    inside `select_removal_set` -- which is exactly where the plan's § Never
-    do violation would live -- never touches `select_removal_set`'s own
+    inside `select_removal_set` -- which is exactly where a narrowing
+    violation would live -- never touches `select_removal_set`'s own
     inputs. Measured 2026-09-23: a spy one level too high reports 9 paths
     while the guard is handed 3.
 

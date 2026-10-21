@@ -97,7 +97,7 @@ def test_stub_raises_not_implemented():
     """
     from agentbundle.catalogue_tooling.package import package_catalogue
 
-    # Wave 4: package_catalogue is implemented; calling with missing required
+    # package_catalogue is implemented; calling with missing required
     # args returns a PackageResult error rather than raising NotImplementedError.
     result = package_catalogue(
         root=Path(),
