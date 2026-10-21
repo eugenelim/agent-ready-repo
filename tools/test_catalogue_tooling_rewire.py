@@ -17,6 +17,41 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
+def forced_package_lines(text: str) -> list[str]:
+    """Return logical lines that run `catalogue package` with `--force`.
+
+    Backslash-continued lines are joined and whitespace runs collapsed, so a
+    line break between the words cannot hide the flag.
+    """
+    joined = re.sub(r"\\[ \t]*\r?\n", " ", text)
+    logical = (re.sub(r"\s+", " ", line).strip() for line in joined.splitlines())
+    return [line for line in logical if "catalogue package" in line and "--force" in line]
+
+
+class FirstPartyCiNeverForcesReleaseTest(unittest.TestCase):
+    """AC-0010: first-party CI never passes --force to `catalogue package`."""
+
+    def test_no_forced_package_in_makefile_or_workflows(self):
+        files = [REPO_ROOT / "Makefile", *sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml"))]
+        hits = {
+            str(f.relative_to(REPO_ROOT)): forced_package_lines(f.read_text(encoding="utf-8"))
+            for f in files
+        }
+        hits = {k: v for k, v in hits.items() if v}
+        self.assertEqual(hits, {}, "catalogue package must not use --force in first-party CI")
+
+    def test_predicate_reports_planted_forms(self):
+        planted = [
+            "agentbundle catalogue package --force\n",
+            "agentbundle catalogue package \\\n  --force\n",
+            "agentbundle catalogue \\\n    package --force\n",
+        ]
+        for text in planted:
+            with self.subTest(text=text):
+                self.assertTrue(forced_package_lines(text))
+        self.assertEqual(forced_package_lines("agentbundle catalogue package \\\n  --out x\n"), [])
+
+
 class MakefileRewireTest(unittest.TestCase):
     """Makefile targets must use canonical agentbundle catalogue commands."""
 
