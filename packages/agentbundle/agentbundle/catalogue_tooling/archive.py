@@ -222,7 +222,83 @@ def _parse_manifest(
         return None, [_err("CAT-V-ARC-010", f"{_MANIFEST_NAME} parse error: {exc}")]
 
 
-def _check_manifest_schema(manifest: dict) -> list[Diagnostic]:
+def _entry_label(kind: str, index: int, item: object) -> str:
+    """Name a manifest entry for a diagnostic: its ``name`` when a string, else its index."""
+    if isinstance(item, str):
+        return f"{kind}[{index}] {item!r}"
+    if isinstance(item, dict) and isinstance(item.get("name"), str):
+        return f"{kind}[{index}] {item['name']!r}"
+    return f"{kind}[{index}]"
+
+
+def _check_unit_entry_fields(label: str, item: dict) -> list[Diagnostic]:
+    """AC-0018: ``path`` and ``digest`` must be strings, and ``digest`` needs ``path``."""
+    diags: list[Diagnostic] = []
+    for field in ("path", "digest"):
+        if field in item and not isinstance(item[field], str):
+            diags.append(_err("CAT-V-ARC-019", f"manifest {label} {field!r} must be a string"))
+    if "digest" in item and "path" not in item:
+        diags.append(_err("CAT-V-ARC-019", f"manifest {label} has a 'digest' but no 'path'"))
+    return diags
+
+
+def _check_manifest_shape(manifest: dict) -> list[Diagnostic]:
+    """AC-0018 shape checks over ``files``, ``packs`` and ``profiles``; one diagnostic per item."""
+    diags: list[Diagnostic] = []
+    files = manifest.get("files")
+    if isinstance(files, list):
+        for i, item in enumerate(files):
+            if not (
+                isinstance(item, dict)
+                and isinstance(item.get("path"), str)
+                and isinstance(item.get("sha256"), str)
+            ):
+                diags.append(_err(
+                    "CAT-V-ARC-019",
+                    f"manifest {_entry_label('files', i, item)} must be an object "
+                    "with string 'path' and 'sha256'",
+                ))
+    packs = manifest.get("packs")
+    if isinstance(packs, list):
+        for i, item in enumerate(packs):
+            label = _entry_label("packs", i, item)
+            if not (
+                isinstance(item, dict)
+                and isinstance(item.get("name"), str)
+                and isinstance(item.get("version"), str)
+            ):
+                diags.append(_err(
+                    "CAT-V-ARC-019",
+                    f"manifest {label} must be an object with string 'name' and 'version'",
+                ))
+            if isinstance(item, dict):
+                diags.extend(_check_unit_entry_fields(label, item))
+    if "profiles" in manifest:
+        profiles = manifest["profiles"]
+        if not isinstance(profiles, list):
+            diags.append(_err("CAT-V-ARC-019", "manifest 'profiles' must be a list"))
+        else:
+            for i, item in enumerate(profiles):
+                label = _entry_label("profiles", i, item)
+                if isinstance(item, str):
+                    continue
+                if not (isinstance(item, dict) and isinstance(item.get("name"), str)):
+                    diags.append(_err(
+                        "CAT-V-ARC-019",
+                        f"manifest {label} must be a string or an object with a string 'name'",
+                    ))
+                if isinstance(item, dict):
+                    diags.extend(_check_unit_entry_fields(label, item))
+    return diags
+
+
+def _check_manifest_schema(manifest: object) -> list[Diagnostic]:
+    """Check manifest schema and shape; accepts any parsed JSON value without raising."""
+    if not isinstance(manifest, dict):
+        return [_err(
+            "CAT-V-ARC-019",
+            f"manifest must be a JSON object, got {type(manifest).__name__}",
+        )]
     diags: list[Diagnostic] = []
     schema = manifest.get("schema")
     if schema not in (1, 2):
@@ -237,6 +313,31 @@ def _check_manifest_schema(manifest: dict) -> list[Diagnostic]:
         diags.append(_err("CAT-V-ARC-011", "manifest 'files' must be a list"))
     if not isinstance(manifest.get("packs"), list):
         diags.append(_err("CAT-V-ARC-011", "manifest 'packs' must be a list"))
+    diags.extend(_check_manifest_shape(manifest))
+    return diags
+
+
+def _check_unit_digests(manifest: dict) -> list[Diagnostic]:
+    """AC-0005: each declared unit ``digest`` must equal the unit digest of its ``path``.
+
+    Entries without a ``digest`` (legacy manifests) are skipped (AC-0006). Runs only on
+    manifests that passed ``_check_manifest_schema``, so entries are well typed.
+    """
+    file_digests = {e["path"]: e["sha256"] for e in manifest["files"]}
+    diags: list[Diagnostic] = []
+    for kind in ("packs", "profiles"):
+        for i, item in enumerate(manifest.get(kind, [])):
+            if not isinstance(item, dict) or "digest" not in item:
+                continue
+            expected = item["digest"]
+            actual = unit_digest(file_digests, item["path"])
+            if actual != expected:
+                diags.append(_err(
+                    "CAT-V-ARC-018",
+                    f"unit digest mismatch for {_entry_label(kind, i, item)} "
+                    f"path {item['path']!r}: declared {expected!r}, computed {actual!r}",
+                    path=item["path"],
+                ))
     return diags
 
 
@@ -440,14 +541,16 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
 
         manifest, manifest_diags = _parse_manifest(tf, members)
         diags.extend(manifest_diags)
-        if manifest is None:
+        if manifest_diags:
             return _make_result(diags, "archive")
 
         diags.extend(_check_manifest_schema(manifest))
         if any(d.severity == Severity.ERROR for d in diags):
             return _make_result(diags, "archive")
+        assert isinstance(manifest, dict)  # a non-object manifest yields CAT-V-ARC-019 above
 
         diags.extend(_check_all_manifest_digests(tf, members, manifest))
+        diags.extend(_check_unit_digests(manifest))
         diags.extend(_check_no_undeclared_members(members, manifest))
         diags.extend(_check_catalogue_markers(members))
         diags.extend(_check_marketplace_entries(tf, members))
