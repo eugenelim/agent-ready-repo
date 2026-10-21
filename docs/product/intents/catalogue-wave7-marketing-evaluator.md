@@ -10,7 +10,7 @@
 - **Shaping-reviewed:** 2026-10-21
 - **Decomposed:** no
 - **Parent intent:** capability:catalogue-trust-and-adoption
-- **Governed by:** [RFC-0076 D10](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
+- **Governed by:** [RFC-0076 D10](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md), as amended by [RFC-0109](../../rfc/0109-catalogue-specification-publication.md)
 
 ## Outcome
 
@@ -31,7 +31,7 @@ A platform lead who meets the marketing site today sees a list of packs and thei
 
 This intent owns three things on the marketing site in `web/`: a new `/evaluate/` page, index-backed facts on the catalogue and pack pages, and a relationship view of optional pack integrations using the RFC-0076 D6 labels. It links to evidence and does not restate contracts.
 
-The versioned catalogue specification that `/evaluate/` links to belongs to [`catalogue-specification-publication`](catalogue-specification-publication.md). This page explains and links; it does not publish contracts itself.
+The versioned catalogue specification that `/evaluate/` links to belongs to [`catalogue-specification-publication`](catalogue-specification-publication.md). This page explains and links; it does not publish contracts itself. [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D2 places that specification at `/docs/spec/catalogue/` on the docs site, and the marketing site stays free of schema pages.
 
 Other owners keep the rest. The Build a Catalogue documentation route belongs to [`catalogue-wave6-technical-docs-ia`](catalogue-wave6-technical-docs-ia.md). Release-integrity behaviour belongs to [`catalogue-wave5-release-integrity`](catalogue-wave5-release-integrity.md). Finding packs by query belongs to [`catalogue-search-verb`](catalogue-search-verb.md). The marketing home page and its adoption-champion journey belong to [`team-orientation-future-state`](../../design/journeys/team-orientation-future-state.md). Any new pack `lifecycle` field is a contract change outside this intent.
 
@@ -41,7 +41,7 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
 
 - Wave 5 shipped on 2026-10-21 in PR #1587 (merge `d714ab829`, agentbundle 0.53.0). It adds per-pack and per-profile SHA-256 digests to `catalogue-manifest.json`, refuses with exit 2 to package an existing release unless `--force` is passed, and adds `catalogue package --compare <prior archive>` with table or `--format json` output. See [the Wave 5 spec](../../specs/catalogue-wave5-release-integrity/spec.md).
 - These release facts are published in [`catalogue-ci-contract.md`](../../../guides/_shared/reference/catalogue-ci-contract.md). [`catalogue-archive.md`](../../guides/reference/catalogue-archive.md) states that a unit digest shows agreement with the archive's own `files[]` and does not show who published it.
-- RFC-0076 D10 still says release integrity is "Wave 8, after D8 ships". That is stale: D8 shipped as Wave 5. D10 also says optional composition waits for D6; D6 shipped in [Wave 2](../../specs/catalogue-wave2-pack-integrations/spec.md). The accepted RFC is not edited; this intent records the current fact.
+- RFC-0076 § Errata now records that D10's "Wave 8, after D8 ships" is stale, because D8 shipped as Wave 5. It also records RFC-0109's D10 amendment: the "Versioned contracts" and "Links to technical evidence" claims link to the published specification instead of the `contracts/` folder. D10 also says optional composition waits for D6; D6 shipped in [Wave 2](../../specs/catalogue-wave2-pack-integrations/spec.md).
 
 ### What the neutral index carries
 
@@ -62,7 +62,7 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
 
 ### Dependencies and sequencing
 
-- `/evaluate/` depends on [`catalogue-specification-publication`](catalogue-specification-publication.md) for the specification pages its open-formats and versioned-contracts claims link to. That intent needs an RFC amending RFC-0003 and RFC-0076 D9 and D10 before it can be decided.
+- `/evaluate/` depends on [`catalogue-specification-publication`](catalogue-specification-publication.md) for the specification pages its open-formats and versioned-contracts claims link to. [RFC-0109](../../rfc/0109-catalogue-specification-publication.md), accepted on 2026-10-21 and merged in PR #1592 (`99dafc6ef`), governs it. Its slice S4, the one-way 0.1 release, is what unblocks Wave 7's specification links (RFC-0109 D8). Until then only the `draft/` pages from slice S3 exist, and a draft `$id` is not a promise.
 - `/evaluate/` also links into the Build a Catalogue route that [`catalogue-wave6-technical-docs-ia`](catalogue-wave6-technical-docs-ia.md) owns. That intent's Status and Decomposed lines own its state. On `main` at `3cc898b9` there is no Wave 6 spec and no open Wave 6 PR; the owner reports Wave 6 delivery running in parallel.
 - `workspace.toml` registers [`catalogue-wave9-migration-closeout`](catalogue-wave9-migration-closeout.md) as needing this intent. Wave 7 is therefore on the critical path for closing RFC-0076.
 
@@ -71,7 +71,7 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
 - Every `/evaluate/` claim can link to a published page. Claims about formats and contracts link to the versioned catalogue specification; the rest link to published guides. Wave 6's Build a Catalogue route becomes the preferred entry link when it ships.
 - Pack-page facts can come from a `catalogue-index.json` generated during the site build, while install-route facts such as `pluginInstallable` and the install command stay with their current owners.
 - A platform lead reads claim-then-proof copy: one plain sentence per claim, followed by a link to the contract, command, or guide that proves it.
-- **Knowledge surface:** the in-repository RFC, shipped Wave 2, 4, and 5 specs, published guides, contracts, `web/` source, the approved journey map, and an index generated from this repository, all at revision `3cc898b991df987b8ef8e515c6457a9ae8e5b501`. No external knowledge surface was used.
+- **Knowledge surface:** the in-repository RFC, shipped Wave 2, 4, and 5 specs, published guides, contracts, `web/` source, the approved journey map, and an index generated from this repository, all at revision `3cc898b991df987b8ef8e515c6457a9ae8e5b501`; RFC-0109 and the RFC-0076 errata at `99dafc6efb608f4856cc7ec311ec554959f271bf`. No external knowledge surface was used.
 
 ## Riskiest assumption
 
@@ -95,7 +95,7 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
   8. Optional composition: § 11 of [`catalogue-authoring-standards.md`](../../../guides/_shared/reference/catalogue-authoring-standards.md) and [`pack-catalogue.md`](../../../guides/_shared/explanation/pack-catalogue.md).
   9. Technical evidence: the docs site, `contracts/` in the public repository, and the PyPI destination declared in [`site.toml`](../../../site.toml).
 - **Owner reframe (2026-10-21):** The predeclared line accepted a raw file under `contracts/` as public proof. The owner rejects that: a platform publishes its specification on its website, and `contracts/` mixes catalogue, work-loop, and delivery schemas with no version or stable URL. Without that destination kind, claim 1 (open formats) and claim 2 (versioned contracts) have no published specification page, and claim 9 loses its contracts link.
-- **Verdict:** **Re-sequenced.** The line as written did not fire, but the owner's reframe removes the destination two claims rested on. Wave 7 waits for [`catalogue-specification-publication`](catalogue-specification-publication.md) and is de-risked again against the published specification once that exists. Whether platform leads make the decision from the page remains `to-validate`.
+- **Verdict:** **Re-sequenced.** The line as written did not fire, but the owner's reframe removes the destination two claims rested on. Wave 7 waits for [`catalogue-specification-publication`](catalogue-specification-publication.md) through RFC-0109 slice S4, and is de-risked again against the published specification once that exists. Whether platform leads make the decision from the page remains `to-validate`.
 - **Adversarial validation hook:** Stop the page if a claim can only be proved by following a link into maintainer-only material. Before release, open every `/evaluate/` link on the deployed site from a signed-out browser, and treat the first link that lands on an RFC, spec, `docs/guides/` page, or a 404 as a stop condition.
 
 ```yaml
@@ -121,7 +121,6 @@ validation_hook:
 
 ## Open questions
 
-- **Governing RFC:** the RFC behind `catalogue-specification-publication` also amends RFC-0076 D10's "do not turn the marketing site into raw schema documentation". It must say whether `/evaluate/` links to a specification hosted on the docs site or on the marketing site. Decider: the owner.
 - **Lifecycle:** D10 asks for a lifecycle fact that no contract carries. A separate contract change would add it to `pack.schema.json` and the index together, as the Wave 4 spec suggests. Decider: the owner.
 - **Journey reconciliation:** `/evaluate/` adds a platform-lead reader beside the journey map's adoption champion. Either the map gains an amendment through `approve-journey`, or `/evaluate/` gets its own journey. Decider: the owner, before the spec freezes the page's reader.
 - **Documentation links:** The index has documentation links for 15 of 23 packs, while the site's own page data has one for every pack. The spec decides whether to close the gap with `JOURNEY.md` `docsUrl` entries or to keep the site value as a declared fallback.
@@ -135,4 +134,4 @@ None yet. After acceptance, this feature intent projects to one marketing-site s
 
 - Mode: repo-origin
 - Locator: docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md
-- Revision: 3cc898b991df987b8ef8e515c6457a9ae8e5b501
+- Revision: 99dafc6efb608f4856cc7ec311ec554959f271bf
