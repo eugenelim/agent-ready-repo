@@ -1,7 +1,6 @@
 """Tier-1/2/3 file-safety primitives, path-jail enforcement, content hashing.
 
-The Tier contract is owned by the sibling `distribution-adapters` spec.
-Here we implement it:
+This module implements the file-safety Tier model:
 
   - Tier-1 — adapter-contract-projected; SHA in state matches on-disk.
             The CLI may write or overwrite.

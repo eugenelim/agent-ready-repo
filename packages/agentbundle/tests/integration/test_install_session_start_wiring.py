@@ -1,4 +1,4 @@
-"""T1 of wire-session-start-hook spec — construction test.
+"""Construction test for session-start hook wiring.
 
 Stages a synthetic minimal pack inside a tmp catalogue and asserts that
 `install.run(...)` with `--emit-install-routes` compiles the wiring TOML into
@@ -6,7 +6,7 @@ Claude Code's nested SessionStart schema. At **repo scope**, that opt-in
 produces a dist-tree Claude-plugin layout, so the compiled hook lands
 in `<target>/claude-plugins/<pack>/.claude-plugin/plugin.json`
 (the flat `<target>/.claude/...` shape is only produced at user scope,
-which this spec doesn't cover).
+which this test doesn't cover).
 
 Synthetic — not the real `packs/core/` — so the assertion compresses
 the invariant "any v0.2 pack that ships this wiring TOML, installed at

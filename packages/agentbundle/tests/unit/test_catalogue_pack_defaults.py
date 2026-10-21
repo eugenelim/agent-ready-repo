@@ -1,4 +1,4 @@
-"""Tests for catalogue-pack-defaults spec.
+"""Tests for catalogue pack defaults.
 
 Covers:
   - T1: catalogue.schema.json accepts user-dir and [pack-defaults.*]

@@ -397,7 +397,7 @@ def _generate_manifest(
     generated_at: str,
     file_digests: dict[str, str],
     packs_metadata: list[dict],
-    # Bucket 8 extended fields
+    # Extended manifest fields
     minimum_agentbundle_version: str | None = None,
     catalogue_name: str | None = None,
     catalogue_display_name: str | None = None,

@@ -1942,8 +1942,8 @@ def _run(args: argparse.Namespace) -> int:
     # installs are ephemeral; adapt-discovery re-running would apply to files
     # the user considers git-invisible, producing confusing churn.  The marker
     # file was deliberately NOT written in step 11 for local scope, so the
-    # adapt-to-project spec comment "invoke regardless of install scope
-    # (markers are repo-only)" does not apply here.  Two failure modes
+    # rule that adapt-discovery is invoked regardless of install scope
+    # (markers are repo-only) does not apply here.  Two failure modes
     # exist for repo/user scope.
     if requested_scope != "local":
         repo_plan = next((p for p in plans if p.scope == "repo"), None)
@@ -2445,9 +2445,8 @@ def _format_dropped_warning(
     Thin positional-argument wrapper around
     :func:`agentbundle.commands._drop_warning.format_drop_message` so
     existing callers (tests + ``_maybe_emit_dropped_warning``) keep
-    working without modification. T4 of spec incompatible-hook-event-drop
-    moved the canonical implementation to ``_drop_warning.py``; this
-    shim lives here for backward compat.
+    working without modification. The canonical implementation lives in
+    ``_drop_warning.py``; this shim stays here for backward compat.
 
     Raises:
         ValueError: when ``dropped_counts`` has no nonzero entries (same

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack activation-eval runner (pack-activation-evals spec, Tier A).
+"""Pack activation-eval runner (Tier A: the claude-code reference harness).
 
 Measures — repeatably and empirically — whether each covered skill in a pack
 *activates* on the prompts it should and stays quiet on the near-misses it

@@ -1,4 +1,4 @@
-"""Integration tests for agentbundle catalogue init (spec catalogue-tooling-init, Bucket 11).
+"""Integration tests for agentbundle catalogue init (init lifecycle, conflicts, rollback, dry-run).
 
 Test matrix:
   - new-target full lifecycle

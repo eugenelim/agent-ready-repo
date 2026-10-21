@@ -1,4 +1,4 @@
-"""Tests for ``agentbundle catalogue sync`` (spec: catalogue-sync-dry-run)."""
+"""Tests for ``agentbundle catalogue sync``, including its dry-run preview."""
 
 from __future__ import annotations
 
@@ -2533,11 +2533,11 @@ def test_apply_keep_set_handed_to_the_shipped_guard_is_full_replayed(
     Two things this pins that the sibling ordering test above cannot.
 
     It spies `_plan_stale_owned_paths`, not `select_removal_set`. AC-0035
-    constrains the argument handed to the shipped guard, and a narrowing
-    inside `select_removal_set` -- which is exactly where a narrowing
-    violation would live -- never touches `select_removal_set`'s own
-    inputs. Measured 2026-09-23: a spy one level too high reports 9 paths
-    while the guard is handed 3.
+    constrains the argument handed to the shipped guard. The rule is that
+    scoping narrows the write set, never the replay, and a narrowing of the
+    replay inside `select_removal_set` would never touch
+    `select_removal_set`'s own inputs. Measured 2026-09-23: a spy one level
+    too high reports 9 paths while the guard is handed 3.
 
     And it drives a SCOPED run. With no scoping flag every path is in scope,
     so narrowing the keep-set is a no-op and an unscoped fixture cannot fail.

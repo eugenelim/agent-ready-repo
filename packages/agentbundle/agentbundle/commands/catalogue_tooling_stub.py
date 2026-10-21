@@ -1,6 +1,7 @@
 """Stub handler for agentbundle catalogue <sub> and agentbundle lint packs.
 
-All catalogue_tooling subcommands exit 1 with "not yet implemented".
+This handler prints "agentbundle catalogue <sub> not yet implemented" to stderr
+and returns 1.
 """
 
 from __future__ import annotations

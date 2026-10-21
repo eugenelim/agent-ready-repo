@@ -1,4 +1,4 @@
-"""Tests for list-installed-update-status spec (T1–T6).
+"""Tests for the list-installed update status.
 
 Covers:
   T1: _compute_status_pair — pure status computation

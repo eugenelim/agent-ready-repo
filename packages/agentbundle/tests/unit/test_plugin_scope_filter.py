@@ -1,4 +1,4 @@
-"""Construction tests for the claude-plugin-route-scope spec.
+"""Construction tests for the claude-plugins route scope filter.
 
 Two kinds of assertion, deliberately:
 

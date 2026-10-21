@@ -14,14 +14,14 @@ attach-to-agent missing, and attach-to-agent naming an unknown agent.
 Covered: the refusal text; fixtures exist and are exercised; and no test
 writes to ~/.claude, ~/.kiro, or ~/.agentbundle outside tmp_path.
 
-**T2 update (incompatible-hook-event-drop spec):** The
+**Compatibility-only refusals:** The
 ``test_missing_attach_to_agent_refused`` and
 ``test_pascal_events_refused_with_vocabulary_text`` tests below have
-been updated to reflect the new T2 behaviour: these compatibility-only
+been updated to reflect the current behaviour: these compatibility-only
 refusals are now swallowed by validate, which exits 0 and emits an
 ``info:`` line on stdout instead. The
 ``test_unknown_agent_refused`` test remains exit-1 (correctness
-refusal, per the incompatible-hook-event-drop rules).
+refusal).
 """
 
 from __future__ import annotations

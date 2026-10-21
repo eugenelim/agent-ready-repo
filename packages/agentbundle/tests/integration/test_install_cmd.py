@@ -471,7 +471,7 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Dry-run preview (projection-dry-run spec): read-only, writes nothing
+# Dry-run preview: read-only, writes nothing
 # ---------------------------------------------------------------------------
 
 CATALOGUE_ROOT = Path()
@@ -648,7 +648,7 @@ def test_dry_run_preflight_path_jail_passthrough(tmp_path):
     )
 
 
-# Dry-run seed preview (projection-dry-run-governance-seeds spec)
+# Dry-run seed preview
 # ---------------------------------------------------------------------------
 
 def test_dry_run_includes_seed_create_lines(tmp_path):

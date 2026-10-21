@@ -396,7 +396,7 @@ def test_staged_cleanup_on_verify_failure(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Manifest has all Bucket 8 fields
+# Manifest has all extended fields
 # ---------------------------------------------------------------------------
 
 

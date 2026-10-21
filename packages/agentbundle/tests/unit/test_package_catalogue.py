@@ -449,7 +449,7 @@ def test_generate_manifest_required_fields() -> None:
     assert "generated_at" in manifest
     assert "files" in manifest
     assert "packs" in manifest
-    # Bucket 8 extended fields present in schema 2
+    # Extended manifest fields present in schema 2
     assert "adapter_contract_version" in manifest
     assert "pack_schema_version" in manifest
     assert "profiles" in manifest

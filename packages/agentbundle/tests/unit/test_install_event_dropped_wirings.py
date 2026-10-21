@@ -78,7 +78,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         that file says "No attach-to-agent: that's a Kiro-only field").
         The T3 Approach code fires both step 2a (vocab) and step 2b
         (attach-to-agent) independently; the correct result is two entries.
-        work-loop-check.toml (work-loop-activation-hook spec) mirrors that
+        work-loop-check.toml mirrors that
         shape, adding the second pair.
         """
         result = enumerate_event_dropped_wirings(
