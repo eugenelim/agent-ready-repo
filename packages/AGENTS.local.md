@@ -10,8 +10,10 @@ rootdir. `pytest packages/credbroker` needs
 
 ## Release Coupling
 
-See [`docs/guides/explanation/release-coupling.md`](../docs/guides/explanation/release-coupling.md).
-Release when a public CLI verb, required flag semantics, published output layout,
+See [`docs/guides/explanation/release-coupling.md`](../docs/guides/explanation/release-coupling.md)
+for when to release and
+[`docs/guides/how-to/cut-a-package-release.md`](../docs/guides/how-to/cut-a-package-release.md)
+for how. Release when a public CLI verb, required flag semantics, published output layout,
 or a schema change invalidates previously valid files.
 
 ## No internal-governance markers in source

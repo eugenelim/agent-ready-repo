@@ -44,5 +44,5 @@ package behaviour here against fixtures and move the repository-level half to
 
 ## Deeper pointers
 
-Package release process lives in
-[`docs/guides/explanation/release-coupling.md`](../docs/guides/explanation/release-coupling.md).
+To cut a package release, follow
+[`docs/guides/how-to/cut-a-package-release.md`](../docs/guides/how-to/cut-a-package-release.md).

@@ -40,7 +40,7 @@ Edit sources, not generated catalogue-scaffold projections. For changes under
 
 ## Release coupling
 
-See [`docs/guides/explanation/release-coupling.md`](docs/guides/explanation/release-coupling.md); per-package specifics live in `packages/AGENTS.local.md`.
+See [`docs/guides/explanation/release-coupling.md`](docs/guides/explanation/release-coupling.md) for when to release and [`docs/guides/how-to/cut-a-package-release.md`](docs/guides/how-to/cut-a-package-release.md) for how; per-package specifics live in `packages/AGENTS.local.md`.
 
 ## Projected source comments
 
