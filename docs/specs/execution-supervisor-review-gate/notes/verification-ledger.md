@@ -265,3 +265,10 @@ subject. A clean report under that subject records `fixed-by` for the earlier
 subject's open findings, even though the product did not change. This matches
 AC-0003's wording: a fresh report for the replacement subject closes the
 finding. Slice 2 scopes readiness to one subject, so readiness is not affected.
+
+## T4
+
+- Mapping check: `SPEC-PLAN-DRAFTING` and `SPEC-PLAN-REVIEW` both select the five authoring families, and the three human-gate states all select nothing, so the plan's stage mapping loses nothing.
+- Registry gained `PRE-APPROVAL`, `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, `terminal`. Engine-state and `DIRECT-LIGHT` entries are untouched.
+- Existing tests changed in `packs/core/tests/skills/work-loop/test_policy_family_registry.py`: `test_selection_map_is_the_declared_mapping` pinned exactly eleven keys, and `test_selection_covers_every_legal_state_plus_the_reserved_token` expected states plus `DIRECT-LIGHT`. Both now include the seven new keys (renamed the second to `..._declared_constants_and_stage_keys`). Added three VI-6040 tests: engine entries unchanged (pinned literals), stage key equals each mapped state, and the full map.
+- Red first: 3 failed before the registry edit.
