@@ -290,3 +290,19 @@ finding. Slice 2 scopes readiness to one subject, so readiness is not affected.
   and `quality-engineer` stay `mandatory_when: "selected"` in
   `review-rules.json`. That is the spec's role obligation: `SKILL.md` allows
   neither a named skip.
+
+## PR CI round 1
+
+Two existing tests failed in PR CI because behaviour changed on purpose. Each
+keeps what it asserts.
+
+- `tests/roster/test_work_loop_root_validation.py::test_report_sites_route_through_resolver`
+  counts the `--report` call sites that pass through `_resolved_report`. T1 moved
+  those sites from `loop-cohort.py` into `review-artifact.py`. The test now reads
+  `review-artifact.py` and still expects three assignment-form sites and no bare
+  `Path(args.report)`.
+- `test_supervisor_crash_corpus.py` pins the uninterrupted run's kill points.
+  T2's reviewer-selection exchange adds one supervisor step (four kill points)
+  and one journal append, so `BOUNDARIES` rises from 59 to 64. Every kill and
+  delete variant at those points must still converge, which now covers the
+  selection step.
