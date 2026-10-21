@@ -623,11 +623,16 @@ def _report_decision(
     """Admit a ``human-decision`` result and commit it as one ``review`` step."""
     review = _supervisor("_supervisor_review.py")
     record = review.admit_decision(ws, state, request, result)
+    appends = {review.DECISIONS_FILE: _admission.canonical_line(record)}
+    if record["decision"] == "accept-risk":
+        # The dispositions are built before the commit, so a finding that is not
+        # open and supported refuses with nothing written.
+        appends["evidence.jsonl"] = review.accept_risk_evidence(ws, state, record)
     ws.git.build_commit(
         run_id=state.run_id,
         step=f"decision:{request['request_id']}",
         operation="review",
-        appends={review.DECISIONS_FILE: _admission.canonical_line(record)},
+        appends=appends,
         summary=f"record {record['decision']}",
         known_steps=state.steps,
     )

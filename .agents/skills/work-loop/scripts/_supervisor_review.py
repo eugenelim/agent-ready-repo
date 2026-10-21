@@ -1,4 +1,4 @@
-"""_supervisor_review — reviewer selection data, the selection record, and the policy resolver.
+"""_supervisor_review — reviewer selection, the policy resolver, and review dispositions.
 
 ``review-rules.json`` lists every reviewer role with its roster text and its
 obligation. The trusted controller answers a selection request with the
@@ -14,6 +14,13 @@ value outside a closed set, a selection line that does not parse, or a repeated
 key without an owner ``reselect-review`` decision leaves the review stage
 unsatisfied.
 
+The review stage closes from Slice 2 review readiness alone. This module adds
+the dispositions that stage owns: ``repair-request`` for a supported material
+finding, ``fixed-by`` after a fresh report for the replacement subject no longer
+carries it, and ``accept-risk`` only from an admitted ``risk-owner`` decision.
+Every record goes through ``_review_disposition.append_finding_disposition`` into
+the Slice 2 evidence log. Legacy review events map through ``_review_compat.py``.
+
 Standard library only. Python 3.11+.
 """
 
@@ -26,6 +33,7 @@ import os
 import re
 import stat
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
@@ -72,12 +80,17 @@ __all__ = [
     "RULES_PATH",
     "SELECTIONS_FILE",
     "DECISIONS_FILE",
+    "SUPERVISOR_ROLE",
     "Selection",
+    "accept_risk_evidence",
+    "accept_risk_writer",
     "admit_decision",
     "admit_selection",
     "candidates",
     "current_policy",
+    "ingest_legacy_event",
     "load_rules",
+    "record_dispositions",
     "resolve_policy",
     "selection_key",
     "selection_status",
@@ -86,6 +99,7 @@ __all__ = [
 RULES_PATH = _SCRIPTS_DIR.parent / "review-rules.json"
 SELECTIONS_FILE = "review-selections.jsonl"
 DECISIONS_FILE = "review-decisions.jsonl"
+SUPERVISOR_ROLE = "work-supervisor"
 _MAX_BYTES = 4 * 1024 * 1024
 _ROLE_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 _KEY_RE = re.compile(r"[0-9a-f]{64}")
@@ -478,8 +492,11 @@ def admit_decision(
     """The ``review-decisions.jsonl`` record for a ``human-decision`` result, or a refusal.
 
     Only the ``review-not-eligible`` request takes a decision. ``reselect-review``
-    needs an owner authority reference naming the request's selection key; every
-    other decision, role, or reason refuses ``authority-refused``.
+    needs an owner authority reference naming the request's selection key;
+    ``accept-risk`` needs a ``risk-owner`` reference and the finding ids it
+    accepts (``accept_risk_evidence`` then checks those findings against the
+    evidence log before anything commits). Every other decision, role, or reason
+    refuses ``authority-refused``.
     """
     if request.get("reason") != "review-not-eligible":
         raise Refusal(
@@ -490,15 +507,40 @@ def admit_decision(
         raise Refusal("invalid-result", "controller", "a human-decision result needs decision")
     kind, ref = decision.get("decision"), decision.get("authority_ref")
     roles = ws.policy["authority_roles"]
-    if kind != "reselect-review":
+    if kind not in DECISIONS:
         raise Refusal("authority-refused", "controller", f"decision {kind!r} is not admitted here")
+    if kind == "accept-risk":
+        if not _admission.check_authority_ref(ref, roles["risk_decision"]):
+            raise Refusal(
+                "authority-refused",
+                roles["risk_decision"],
+                f"accept-risk needs a {roles['risk_decision']} authority reference",
+            )
+        ids = decision.get("finding_ids")
+        if (
+            not isinstance(ids, list)
+            or not ids
+            or len(set(ids)) != len(ids)
+            or not all(_text(i) for i in ids)
+            or "selection_key" in decision
+        ):
+            raise Refusal(
+                "invalid-result", "controller", "accept-risk names its finding_ids and no key"
+            )
+        return {
+            "run_id": state.run_id,
+            "request_id": request["request_id"],
+            "decision": kind,
+            "authority_ref": ref,
+            "finding_ids": ids,
+        }
     if not _admission.check_authority_ref(ref, roles["reselect_review"]):
         raise Refusal(
             "authority-refused",
             "owner",
             f"reselect-review needs a {roles['reselect_review']} authority reference",
         )
-    if decision.get("selection_key") != request.get("selection_key"):
+    if decision.get("selection_key") != request.get("selection_key") or "finding_ids" in decision:
         raise Refusal(
             "invalid-result", "controller", "the decision names another selection key"
         )
@@ -509,3 +551,313 @@ def admit_decision(
         "authority_ref": ref,
         "selection_key": decision["selection_key"],
     }
+
+
+# ── assessments and dispositions ────────────────────────────────────────────
+
+
+def _review_grant(issuer: Any) -> Any:
+    """A grant over the ``review`` write scope, from the issuer the evidence write holds.
+
+    Dispositions need ``review/disposition``; the receipts grant covers only
+    ``evidence``, so this one is issued for the disposition alone.
+    """
+    return issuer.issue_root_grant(
+        roots=["delivery"],
+        operations=["append"],
+        trust_class="trusted",
+        writes_allowed_roots=["review"],
+        control_denies=[],
+    )
+
+
+def _write_disposition(
+    ws: Any,
+    store: Any,
+    issuer: Any,
+    sink: Any,
+    *,
+    kind: str,
+    report: dict[str, Any],
+    finding_id: str,
+    assessment_id: str,
+    subject: dict[str, Any],
+    identity: str,
+    role: str,
+    step: str,
+    replacement_report_id: str | None = None,
+) -> str:
+    """Append one ``finding-disposition.v1`` and its approval through Slice 2's write port.
+
+    The disposition belongs to *subject*; the approval is bound to that subject
+    and its policy. Returns the disposition id.
+    """
+    key = f"{report['report_id']}:{finding_id}"
+    approval_id = f"approval:{kind}:{key}"
+    disposition_id = f"disposition:{kind}:{key}"
+    approval = {
+        "schema_version": 1,
+        "approval_id": approval_id,
+        "authority": {"identity": identity, "role": role},
+        "decision_scope": "review-disposition",
+        "base": {"manifest_ref": subject["review_subject_fingerprint"]},
+        "lineage": {"spec_ref": f"{ws.spec_rel}/spec.md"},
+        "spec_policy_fingerprint": subject["review_policy_fingerprint"],
+        "decision": "approved",
+        "timestamp": ws.clock(),
+    }
+    disposition: dict[str, Any] = {
+        "schema_version": 1,
+        "disposition_id": disposition_id,
+        "finding_id": finding_id,
+        "assessment_id": assessment_id,
+        "review_subject_fingerprint": subject["review_subject_fingerprint"],
+        "disposition": kind,
+        "decision_maker": {"identity": identity, "role": role},
+        "lineage": {"authority_ref": approval_id, "source_event_id": step},
+    }
+    if replacement_report_id is not None:
+        disposition["replacement_report_id"] = replacement_report_id
+    _admission.sibling("_review_disposition.py").append_finding_disposition(
+        store,
+        disposition,
+        approval_record=approval,
+        current_subject=subject,
+        transaction_id=f"tx:{step}:{kind}:{key}",
+        acceptance_fingerprint=subject["delivery_subject_ref"]["acceptance_fingerprint"],
+        issuer=issuer,
+        grant=_review_grant(issuer),
+        audit_sink=sink,
+    )
+    return disposition_id
+
+
+def _finding_of(report: dict[str, Any] | None, finding_id: str) -> dict[str, Any] | None:
+    if report is None:
+        return None
+    return next((f for f in report["findings"] if f["finding_id"] == finding_id), None)
+
+
+def record_dispositions(
+    ws: Any,
+    state: Any,
+    store: Any,
+    issuer: Any,
+    sink: Any,
+    *,
+    subject: dict[str, Any],
+    step: str,
+) -> None:
+    """Record the dispositions the supervisor owns after a report or assessment lands.
+
+    A current supported material finding with no disposition gets a
+    ``repair-request``: the finding stays open and readiness projects repair
+    work. An earlier subject's ``repair-request`` gets ``fixed-by`` only when
+    the current subject's report for the same role is the tip, does not carry
+    the finding (same id or same actual failure), and every one of its findings
+    has a current non-indeterminate assessment, so the store's own closure check
+    agrees. ``fixed-by`` is never recorded any other way, and ``accept-risk``
+    never comes from here.
+    """
+    current_fp = subject["review_subject_fingerprint"]
+    reports = {r["report_id"]: r for r in store.get_semantic_records("review-report.v1")}
+    assessments = {
+        a["assessment_id"]: a for a in store.get_semantic_records("finding-assessment.v1")
+    }
+    dispositions = store.get_semantic_records("finding-disposition.v1")
+    disposed = {d["assessment_id"] for d in dispositions}
+    current = store.current_finding_assessments(current_fp)
+    for (report_id, finding_id), entry in sorted(current.items()):
+        assessment = entry["assessment"]
+        finding = _finding_of(reports.get(report_id), finding_id)
+        if (
+            assessment["assessment"] != "supported"
+            or finding is None
+            or not finding.get("material", False)
+            or assessment["assessment_id"] in disposed
+        ):
+            continue
+        _write_disposition(
+            ws,
+            store,
+            issuer,
+            sink,
+            kind="repair-request",
+            report=reports[report_id],
+            finding_id=finding_id,
+            assessment_id=assessment["assessment_id"],
+            subject=subject,
+            identity=state.run_id,
+            role=SUPERVISOR_ROLE,
+            step=step,
+        )
+        disposed.add(assessment["assessment_id"])
+    closed = {
+        d["assessment_id"] for d in dispositions if d["disposition"] in ("fixed-by", "accept-risk")
+    }
+    for repair in dispositions:
+        assessment = assessments.get(repair["assessment_id"])
+        if (
+            repair["disposition"] != "repair-request"
+            or repair["review_subject_fingerprint"] == current_fp
+            or repair["assessment_id"] in closed
+            or assessment is None
+        ):
+            continue
+        original = reports.get(assessment["report_id"])
+        old = _finding_of(original, repair["finding_id"])
+        if original is None or old is None:
+            continue
+        persistence = _admission.sibling("_review_persistence.py")
+        replacement, _code = persistence.select_current_review_report(
+            store,
+            role=original["role"],
+            expected_subject=subject,
+            review_policy_fingerprint=subject["review_policy_fingerprint"],
+        )
+        if replacement is None or (
+            replacement["subject"]["delivery_subject_ref"]["subject_id"]
+            != original["subject"]["delivery_subject_ref"]["subject_id"]
+        ):
+            continue
+        settled = True
+        for found in replacement["findings"]:
+            carried = (
+                found["finding_id"] == repair["finding_id"]
+                or found["actual_failure"] == old["actual_failure"]
+            )
+            seen = current.get((replacement["report_id"], found["finding_id"]))
+            if carried or seen is None or seen["assessment"]["assessment"] == "indeterminate":
+                settled = False
+        if not settled:
+            continue
+        disposition_id = _write_disposition(
+            ws,
+            store,
+            issuer,
+            sink,
+            kind="fixed-by",
+            report=original,
+            finding_id=repair["finding_id"],
+            assessment_id=repair["assessment_id"],
+            subject=original["subject"],
+            identity=state.run_id,
+            role=SUPERVISOR_ROLE,
+            step=step,
+            replacement_report_id=replacement["report_id"],
+        )
+        if not store.disposition_closes(disposition_id, original["subject"]):
+            raise Refusal(
+                "review-record-refused",
+                "skill maintainer",
+                "a fixed-by disposition the supervisor wrote does not close its finding",
+            )
+
+
+def accept_risk_writer(
+    ws: Any,
+    *,
+    subject: dict[str, Any],
+    open_findings: list[dict[str, Any]],
+    record: dict[str, Any],
+    role: str,
+) -> Callable[[Any, Any, Any, Any], None]:
+    """The evidence write that records ``accept-risk`` for the decision's findings.
+
+    Each named id must be exactly one of *open_findings* (supported, material,
+    and without a closing disposition on *subject*); any other id refuses before
+    that finding or a later one is written, and a refusal discards the whole
+    write. The decision's authority reference is the decision maker.
+    """
+    open_keys = {(f["role"], f["finding_id"]) for f in open_findings}
+
+    def write(store: Any, issuer: Any, _grant: Any, sink: Any) -> None:
+        reports = {r["report_id"]: r for r in store.get_semantic_records("review-report.v1")}
+        current = store.current_finding_assessments(subject["review_subject_fingerprint"])
+        for finding_id in record["finding_ids"]:
+            matches = [
+                (report_id, entry["assessment"])
+                for (report_id, found_id), entry in sorted(current.items())
+                if found_id == finding_id
+                and entry["assessment"]["assessment"] == "supported"
+                and report_id in reports
+                and (reports[report_id]["role"], finding_id) in open_keys
+            ]
+            if len(matches) != 1:
+                raise Refusal(
+                    "invalid-result",
+                    "controller",
+                    f"{finding_id} is not exactly one open supported material finding",
+                )
+            report_id, assessment = matches[0]
+            _write_disposition(
+                ws,
+                store,
+                issuer,
+                sink,
+                kind="accept-risk",
+                report=reports[report_id],
+                finding_id=finding_id,
+                assessment_id=assessment["assessment_id"],
+                subject=subject,
+                identity=record["authority_ref"],
+                role=role,
+                step=record["request_id"],
+            )
+
+    return write
+
+
+def accept_risk_evidence(ws: Any, state: Any, record: dict[str, Any]) -> bytes:
+    """The evidence-log bytes that record ``accept-risk`` for an admitted decision."""
+    view = _supervisor("_supervisor_readiness.py").readiness(ws, state)
+    subject = view["review_subject"]
+    if subject is None:
+        raise Refusal("invalid-result", "controller", "no current review subject exists")
+    write = accept_risk_writer(
+        ws,
+        subject=subject,
+        open_findings=view["review"]["open_findings"],
+        record=record,
+        role=ws.policy["authority_roles"]["risk_decision"],
+    )
+    try:
+        return bytes(ws.evidence_append(writer=write))
+    except Refusal:
+        raise
+    except Exception as exc:  # noqa: BLE001 - every disposition refusal names its own code
+        code = getattr(exc, "denial_code", None) or type(exc).__name__
+        raise Refusal("review-record-refused", "controller", str(code)) from exc
+
+
+# ── legacy ingest ───────────────────────────────────────────────────────────
+
+
+def ingest_legacy_event(
+    store: Any,
+    source_event: dict[str, Any],
+    *,
+    legacy_state: dict[str, Any],
+    review_subject: dict[str, Any],
+    review_policy: dict[str, Any],
+    issuer: Any,
+    grant: Any,
+    audit_sink: Any,
+) -> dict[str, Any]:
+    """Map one legacy review event to its structured result.
+
+    The four-value mapping (``clean``, ``findings``, ``indeterminate``,
+    ``unable``) and the acknowledgement rules stay owned by ``_review_compat.py``,
+    which this calls; nothing here copies them.
+    """
+    result: dict[str, Any] = _supervisor("_review_compat.py").reconcile_review_source_event(
+        store,
+        source_event,
+        legacy_state=legacy_state,
+        review_subject=review_subject,
+        review_policy=review_policy,
+        issuer=issuer,
+        grant=grant,
+        audit_sink=audit_sink,
+    )
+    return result

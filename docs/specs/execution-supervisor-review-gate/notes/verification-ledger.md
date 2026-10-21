@@ -163,3 +163,105 @@ passed under `WORK_SUPERVISOR_INTEGRATION=1`.
 - A direct drive of the same run found none of the test's forbidden markers in
   `delivery/`.
 - CI's integration lane is the deciding run.
+
+## T3: The supervisor review stage closes from readiness
+
+### Design notes
+
+- **Closure (AC-0001).** Nothing new closes the stage. `readiness().ready`
+  already requires `review_readiness(...)["acceptance_eligible"]` for the
+  resolved policy, and `decide` returns terminal only when `readiness_action`
+  is `None`. VI-6020 asserts it end to end: ineligible with a finding open and
+  again with a fresh subject awaiting its report, eligible and terminal on the
+  step that admits the clean report.
+- **Repair projection (AC-0003).** `_supervisor_review.record_dispositions`
+  runs inside the same evidence write as every admitted report and assessment,
+  so one `review` step carries both. A current supported material finding with
+  no disposition gets `repair-request`, with the run id as the identity and
+  `work-supervisor` as the role of its approval. Repair work reaches the
+  controller through the existing `review-not-eligible` `human-decision`
+  request; no request kind was added. Its question now lists the open finding
+  ids and names `accept-risk`.
+- **`fixed-by`.** Recorded for an earlier subject's open `repair-request` only
+  when, on the current subject, the same role's report is the tip, shares the
+  delivery subject id, carries no finding with the old finding's id or actual
+  failure, and every one of its findings has a current non-indeterminate
+  assessment. The store's own `disposition_closes` is checked after the write
+  and a disagreement refuses the step. A reselection that changes only the
+  policy fingerprint is also a replacement subject, so a clean report under it
+  records `fixed-by` for the old subject's findings. Slice 2 scopes readiness
+  per subject, so readiness does not change.
+- **Grant.** Dispositions need the `review/disposition` write scope, which the
+  receipts grant (`evidence`) lacks. `_review_grant` issues a `review`-scoped
+  grant from the same issuer for the disposition write alone. No change to
+  `_supervisor_admission.py`.
+- **`accept-risk` (AC-0002).** `admit_decision` admits it for a `risk-owner`
+  reference and a non-empty, duplicate-free `finding_ids` with no
+  `selection_key`. `accept_risk_evidence` then requires each id to be exactly
+  one open (supported, material, no closing disposition) finding of the current
+  subject, and writes one disposition per id with the reference as decision
+  maker and role `risk-owner`. The line goes to `delivery/review-decisions.jsonl`
+  in the same `review` step as the evidence. A bad id refuses before the
+  commit, so a mixed list records nothing.
+- **Ingest (AC-0017).** `ingest_legacy_event` calls
+  `_review_compat.reconcile_review_source_event` and holds no result value.
+  The corpus is read from the `pytest.mark.parametrize` rows of
+  `test_review_compat.py::test_vi1013_compatibility_corpus` by path, so the
+  rows are not copied. `_review_compat.py` and `test_review_compat.py` are
+  unchanged.
+- **Synthetic role (AC-0004).** The fixture skill drops the roster table from
+  `SKILL.md`, adds one role to `review-rules.json`, and loads it through
+  `load_rules(path)`. The shipped code names no role from the rules.
+
+### Existing tests changed on purpose
+
+- `test_supervisor_review.py::test_vi6012_a_decision_outside_reselect_review_by_the_owner_is_refused`:
+  removed the `risk-owner` `accept-risk` case. T3 admits it, so it no longer
+  refuses. The `owner`-role `accept-risk`, unknown-decision, and wrong-key cases
+  stay; docstring updated.
+- `test_supervisor_review_gate.py::test_vi6012_vi6013_selection_then_reselection_through_a_run`:
+  the refused `accept-risk` answer now uses the `owner` reference instead of
+  `risk-owner`, for the same reason.
+
+### Anchor sweep
+
+No test pins a digest, size, or snapshot of `_supervisor_review.py`,
+`_supervisor_readiness.py`, or `_supervisor_loop.py`. The `.claude/` and
+`.agents/` copies are projections that `self-host --write --force` regenerated.
+No digest was updated.
+
+### Gates
+
+- `make lint-ruff lint-mypy`: pass.
+- `test_supervisor_review_closure.py` (new, 14 tests, 12 function-level and 2
+  integration-marked): 14 passed. Run with `WORK_SUPERVISOR_INTEGRATION=1`
+  serially, 452 s.
+- `test_supervisor_review.py`, `test_review_rules_roster.py`,
+  `test_review_compat.py`, `test_review_disposition.py`, `test_review_bridge.py`,
+  `test_supervisor_dark_launch.py`, and the new file without the marker:
+  318 passed, 3 skipped, 12 s.
+- `tests/roster/test_review_gate_schemas.py`: 22 passed.
+- `test_supervisor_review_gate.py` and `test_supervisor_readiness.py` with
+  `WORK_SUPERVISOR_INTEGRATION=1`, serially: 16 passed, 826 s.
+- `agentbundle catalogue lint --root . --deep`: ok, 79 findings, none new.
+- The CI `supervisor-integration` lane lists its suites by file name, and
+  neither `test_supervisor_review_gate.py` (T2) nor
+  `test_supervisor_review_closure.py` is in that list, so both skip in CI. Not
+  changed here.
+
+### CI lane
+
+`.github/workflows/catalogue-tooling-ci-gates.yml`'s `supervisor-integration`
+job lists its suites by file name. It now also runs
+`test_supervisor_review_gate.py` (T2) and `test_supervisor_review_closure.py`
+(T3), which otherwise skip everywhere. Its timeout rose from 30 to 40 minutes,
+because the two suites took about 9 minutes when run serially on a local
+machine.
+
+### Reselection and `fixed-by`
+
+A reselection that changes only the policy fingerprint makes a new review
+subject. A clean report under that subject records `fixed-by` for the earlier
+subject's open findings, even though the product did not change. This matches
+AC-0003's wording: a fresh report for the replacement subject closes the
+finding. Slice 2 scopes readiness to one subject, so readiness is not affected.

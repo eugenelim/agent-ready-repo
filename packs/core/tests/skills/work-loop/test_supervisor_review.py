@@ -281,7 +281,6 @@ def test_vi6012_a_decision_for_another_key_does_not_authorize() -> None:
 @pytest.mark.parametrize(
     "decision",
     [
-        {"decision": "accept-risk", "authority_ref": RISK_OWNER, "finding_ids": ["f-1"]},
         {"decision": "accept-risk", "authority_ref": OWNER, "finding_ids": ["f-1"]},
         {"decision": "waive-everything", "authority_ref": OWNER},
         {"decision": "reselect-review", "authority_ref": "owner", "selection_key": OTHER_KEY},
@@ -290,7 +289,7 @@ def test_vi6012_a_decision_for_another_key_does_not_authorize() -> None:
 def test_vi6012_a_decision_outside_reselect_review_by_the_owner_is_refused(
     decision: dict[str, Any],
 ) -> None:
-    """VI-6012: until the review stage lands accept-risk, only owner reselect-review passes."""
+    """VI-6012: a wrong-role accept-risk, an unknown decision, and a wrong key are all refused."""
     request = {"request_id": "decide:review-not-eligible:abc", "reason": "review-not-eligible",
                "selection_key": KEY}
     with pytest.raises(Refusal) as refused:

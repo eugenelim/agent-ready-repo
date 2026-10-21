@@ -140,7 +140,7 @@ def test_vi6012_vi6013_selection_then_reselection_through_a_run(tmp_path: Path) 
     for answer in (
         {"decision": "reselect-review", "authority_ref": RISK_OWNER, "selection_key": key},
         {"decision": "reselect-review", "authority_ref": OWNER, "selection_key": "0" * 64},
-        {"decision": "accept-risk", "authority_ref": RISK_OWNER, "finding_ids": ["finding-1"]},
+        {"decision": "accept-risk", "authority_ref": OWNER, "finding_ids": ["finding-1"]},
     ):
         code, refused = controller.report(_result(decision_request, decision=answer))
         assert code == 1, answer

@@ -343,6 +343,7 @@ def readiness_action(ws: Any, state: Any) -> Any:
                             finding_id=finding["finding_id"],
                         ),
                     )
+    open_ids = sorted({f["finding_id"] for f in view["review"]["open_findings"]})
     return _loop.Action(
         "request",
         _loop.human_decision(
@@ -350,9 +351,11 @@ def readiness_action(ws: Any, state: Any) -> Any:
             state,
             "review-not-eligible",
             "Review readiness is not acceptance eligible: a supported finding is open or an "
-            "obligation cannot be decided. Replan repair work, record a disposition, or "
-            "answer reselect-review with an owner authority reference to choose the "
-            "reviewers again.",
+            "obligation cannot be decided"
+            + (f" (open findings: {', '.join(open_ids)})" if open_ids else "")
+            + ". Replan repair work, answer accept-risk with a risk-owner authority "
+            "reference and the finding ids to accept, or answer reselect-review with an "
+            "owner authority reference to choose the reviewers again.",
             key=subject_fp,
             selection_key=selection["key"],
         ),
@@ -484,6 +487,9 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
                 grant=grant,
                 audit_sink=sink,
             )
+            _review.record_dispositions(
+                ws, state, store, issuer, sink, subject=view["review_subject"], step=step
+            )
 
         writer = write_report
     else:
@@ -510,6 +516,9 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
                 issuer=issuer,
                 grant=grant,
                 audit_sink=sink,
+            )
+            _review.record_dispositions(
+                ws, state, store, issuer, sink, subject=view["review_subject"], step=step
             )
 
         writer = write_assessment
