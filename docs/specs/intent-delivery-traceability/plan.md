@@ -1,7 +1,7 @@
 # Plan: Intent delivery traceability
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done
+- **Status:** Done (superseded in part by [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D2 — AC-0001, AC-0007, and AC-0010: a spec's Discovery: may name an intent by any registered kind prefix, now owned by [typed-discovery-pointers](../typed-discovery-pointers/spec.md); everything else stands)
 - **Repository anchors:** `docs/architecture/reference.md` and `docs/architecture/pack-layout.md` own pack source and repo-scope primitive projection; `guides/_shared/how-to/author-a-skill.md` owns skill self-containment; `closure_index.py` with `test_closure_walk.py` and `lint-traceability.py` with `test_lint_traceability.py` are the two current implementations and construction paths. Named deviation: their current route handling differs, so this plan moves delivery inversion to one source resolver whose byte-identical, parity-pinned copies each consuming skill ships and runs, instead of preserving either consumer as the owner.
 
 > **Plan contract:** this is the implementation strategy. It may change
