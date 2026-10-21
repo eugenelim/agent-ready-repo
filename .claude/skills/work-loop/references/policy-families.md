@@ -45,13 +45,30 @@ state has an entry; the state set is owned by
 a state there without adding an entry here is a defect — the selector has no
 answer for that phase and refuses.
 
-`DIRECT-LIGHT` is the one reserved constant. The light path creates no engine
-state, so it has no FSM value to key on — the token is a declared constant, never
-an inference from prose.
+The supervisor reports a stage instead of an engine state, and the stage is also
+a key: `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, and
+`terminal`. Each selects what the engine states it replaces select, and the
+engine-state entries stay as they were:
+
+| Stage key | Engine states it replaces |
+| --- | --- |
+| `PRE-APPROVAL` (declared constant) | `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW` |
+| `admitted` | `SPEC-PLAN-APPROVED` |
+| `implementing` | `CODE-IMPLEMENTATION` |
+| `gating` | `CODE-VERIFICATION` |
+| `reviewing` | `CODE-REVIEW` |
+| `awaiting-human` | `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `CODE-HUMAN-GATE` |
+| `terminal` | `DONE` |
+
+`DIRECT-LIGHT` and `PRE-APPROVAL` are the two declared constants. The light path
+creates no engine state, and the supervisor has no stage before approval, so
+neither has a value to key on — each token is declared, never an inference from
+prose.
 
 An empty list is a deliberate answer, not a gap. The human-gate and terminal
 states (`SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`,
-`CODE-HUMAN-GATE`, `DONE`) select nothing because no agent authors an artifact
+`CODE-HUMAN-GATE`, `DONE`, and the stage keys `admitted`, `awaiting-human`,
+`terminal`) select nothing because no agent authors an artifact
 while the loop waits in them. Emptying any *other* key silently stops delivering
 policy for that phase, so pin the map's expected contents in whatever test suite
 covers this registry rather than trusting a review to notice.
@@ -123,7 +140,29 @@ covers this registry rather than trusting a review to notice.
     "PLAN-HUMAN-GATE": [],
     "SPEC-PLAN-APPROVED": [],
     "CODE-HUMAN-GATE": [],
-    "DONE": []
+    "DONE": [],
+    "PRE-APPROVAL": [
+      "observable-outcome",
+      "repository-anchoring",
+      "new-spec-step-5a",
+      "the-razor",
+      "cognitive-load"
+    ],
+    "admitted": [],
+    "implementing": [
+      "the-razor",
+      "cognitive-load"
+    ],
+    "gating": [
+      "the-razor",
+      "cognitive-load"
+    ],
+    "reviewing": [
+      "the-razor",
+      "cognitive-load"
+    ],
+    "awaiting-human": [],
+    "terminal": []
   }
 }
 ```

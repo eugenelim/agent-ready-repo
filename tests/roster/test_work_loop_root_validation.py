@@ -45,6 +45,9 @@ if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
 TRACEABILITY = SCRIPT_DIR / "lint-traceability.py"
 SPEC_STATUS = SCRIPT_DIR / "lint-spec-status.py"
 LOOP_COHORT = SCRIPT_DIR / "loop-cohort.py"
+# The `review` verbs of `loop-cohort.py` delegate to `review-artifact.py`, which
+# now holds every `--report` call site.
+REVIEW_ARTIFACT = SCRIPT_DIR / "review-artifact.py"
 
 # The two `--root` scripts. `loop-cohort.py` takes `--report` and is driven
 # separately because it needs a subcommand and cohort state.
@@ -177,15 +180,15 @@ def test_report_sites_route_through_resolver() -> None:
     guard is that the call sites still use it. Do not replace this with a
     behavioural assertion that appears stronger; it would be green either way.
     """
-    name = "loop-cohort: every --report site routes through _resolved_report"
-    src = LOOP_COHORT.read_text(encoding="utf-8")
+    name = "review-artifact: every --report site routes through _resolved_report"
+    src = REVIEW_ARTIFACT.read_text(encoding="utf-8")
     # Match assignment form only: `_resolved_report`'s own docstring names
     # `Path(args.report)` in prose, and a substring count would score that as
     # a live call site.
     routed = src.count("= _resolved_report(args.report)")
     bare = src.count("= Path(args.report)")
-    # One site per `--report`-taking verb: `review inspect`, `review record`,
-    # and `review classify`. Adding a verb should bump this deliberately, which
+    # One site per `--report`-taking verb: `inspect`, `record`, and `classify`.
+    # `raw-classify` and the no-cohort record path pass the resolved path inline. Adding a verb should bump this deliberately, which
     # is the point of counting rather than asserting "at least one".
     expected_sites = 3
     if routed != expected_sites:

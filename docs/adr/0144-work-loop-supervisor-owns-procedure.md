@@ -170,8 +170,9 @@ whole-plan lock, and the legacy review gate, with no legacy compatibility layer.
 - **Signal:** a clean-environment test runs the installed skill's
   `work-supervisor.py` with only the standard library importable and fails on
   any import outside the skill directory. A test fails if any script other
-  than the supervisor writes procedure state. A synthetic reviewer closes a
-  review obligation with only a `review-rules.json` entry added.
+  than the supervisor writes procedure state. A reviewer joins through a
+  `review-rules.json` entry and a typed report: a synthetic reviewer closes a
+  review obligation with only that entry added and a `review-report.v1` returned.
 - **Owner:** Core pack maintainers
 
 ## Alternatives considered

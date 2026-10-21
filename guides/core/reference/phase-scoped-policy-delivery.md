@@ -89,7 +89,7 @@ parser is safe.
 
 | What you see | What it means |
 | --- | --- |
-| `unknown selection key 'X'` | `X` is not an `engine-state.json.state` value or the reserved token. Selection never infers a phase from prose — check what the engine actually recorded. |
+| `unknown selection key 'X'` | `X` is not an `engine-state.json.state` value, a stage key, or a declared constant. Selection never infers a phase from prose — check what the engine actually recorded. |
 | `module 'Y' resolves to no file confined to Z` | Either the file is not installed under `--root`, or it exists but is **reached from outside the boundary** — through `..`, an absolute path, a symlink that leaves the root, or a hard link to a file outside it. The second cause is the common one in a monorepo: check what the locator resolves to before assuming the file is missing. |
 | `info string ... disagrees with schema_version` | The fence's version token and the block's `schema_version` diverged. Both must move together. |
 | `unsupported schema_version` | The registry was written for a newer selector than the one installed. |
@@ -101,11 +101,26 @@ the skill, while `seed:` rules live at your repository root. Pointing `--root` a
 a projection output directory makes every `seed:` family unresolvable — pass the
 repository root instead.
 
-**The light path uses `DIRECT-LIGHT`.** A direct-light change creates no engine
-state, so there is no FSM value to key on. It is a declared constant, and it is
-the only reserved token.
+**Stage keys select the same families as the states they replace.** The
+supervisor's `status --json` reports a `stage`, and the selector accepts it as
+the key:
+
+| Stage key | Engine states it replaces |
+| --- | --- |
+| `PRE-APPROVAL` | `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW` |
+| `admitted` | `SPEC-PLAN-APPROVED` |
+| `implementing` | `CODE-IMPLEMENTATION` |
+| `gating` | `CODE-VERIFICATION` |
+| `reviewing` | `CODE-REVIEW` |
+| `awaiting-human` | `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `CODE-HUMAN-GATE` |
+| `terminal` | `DONE` |
+
+**The light path uses `DIRECT-LIGHT`, and pre-approval work uses
+`PRE-APPROVAL`.** A direct-light change creates no engine state, and the
+supervisor has no stage before approval, so neither has a value to key on. Both
+are declared constants, and they are the only reserved tokens.
 
 **An empty result for a gate or terminal state is correct.** If a state that
 *should* teach something returns nothing, the `selection` map has been thinned.
 Compare the map against what you expect that phase to teach; an empty list is a
-deliberate answer only for the gate and terminal states listed above.
+deliberate answer only for the gate and terminal states, and the `admitted`, `awaiting-human`, and `terminal` stage keys.

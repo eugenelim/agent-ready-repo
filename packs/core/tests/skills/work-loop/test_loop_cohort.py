@@ -1907,7 +1907,8 @@ def test_record_path_never_rereads_for_its_digest(tmp: Path) -> None:
     that the recorder consumes it rather than taking its own.
     """
     name = "record-digest-no-reread"
-    source = (_SKILL_DIR / "scripts" / "loop-cohort.py").read_text(encoding="utf-8")
+    # The recorder moved to `review-artifact.py`; `cmd_review_record` delegates to it.
+    source = (_SKILL_DIR / "scripts" / "review-artifact.py").read_text(encoding="utf-8")
     start = source.index("elif structural_clean_file :=")
     branch = source[start : source.index("    else:", start)]
     rereads = [c for c in ("read_bytes(", "read_text(", "read_managed_text(", "open(")

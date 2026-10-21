@@ -1,0 +1,77 @@
+{
+  "rules_version": "1",
+  "max_review_retries": 5,
+  "high_risk_definition": "**High-risk work** means any one of three conditions, and this is its only\ndefinition. (1) The change warrants at least one module from [`operational-safety`'s Module\nindex](../operational-safety/SKILL.md#module-index), already the deterministic\nfailure-mode→module routing authority; that condition subsumes persistent state,\ninfrastructure, and reliability-critical behaviour, so none of the three is a\nseparate predicate. (2) The change is structural exactly as the pre-EXECUTE\nfootnote 1 defines it — new module boundary, new dependency, new abstraction\nlayer, new top-level directory. (3) A human asks for the pass, which warrants it in either mode and is the\nlight-mode exception's sibling — light mode otherwise runs no `quality-engineer`\npass except under the adopter exception in\n[`references/light-mode.md`](references/light-mode.md). Act on the observed\nchange surface; don't scan for config files.",
+  "roles": [
+    {
+      "role": "adversarial-reviewer",
+      "kind": "always",
+      "condition": "*(always)*",
+      "mode_limit": [
+        "light",
+        "full"
+      ],
+      "boundary": "",
+      "fallback": "",
+      "mandatory_when": "always"
+    },
+    {
+      "role": "security-reviewer",
+      "kind": "conditional",
+      "condition": "a security boundary, data flow, or guarding control",
+      "mode_limit": [
+        "light",
+        "full"
+      ],
+      "boundary": "**`security-reviewer`** — the diff changes a security boundary, data flow, or guarding control: auth, secrets, untrusted input, deserialization, dependency trust, or file/network validation, confinement, redirect policy, timeout/resource limits, or metadata/internal-range blocking. For LLM/agent code, dispatch only when authority, untrusted-input handling, tool exposure, permissions, sandboxing, or data handling changes; ordinary prompt wording with none of those effects does not fire this reviewer. Route via [`security-checklists` Module index](../security-checklists/SKILL.md#module-index); load only modules the diff crosses, never a flat march. Missing `security-reviewer` on infra work = loud blocker; run both reviewer and scanner. Its framework lens, the inline-the-depth rule, and the infra-flavored force-load set are in [`references/reviewer-roster.md`](references/reviewer-roster.md).",
+      "fallback": "Missing `security-reviewer` on infra work = loud blocker; run both reviewer and scanner.",
+      "mandatory_when": "selected"
+    },
+    {
+      "role": "experience-reviewer",
+      "kind": "conditional",
+      "condition": "what a reader or adopter sees",
+      "mode_limit": [
+        "full"
+      ],
+      "boundary": "**`experience-reviewer`** — diff changes what a reader or adopter sees (full-mode only). Pass rendered output + grounded aesthetic reference and constraints — not the code diff. Its confirm-before-reviewing gate requires the grounded reference. For web: run the build, describe key pages from output. Fallback absent: named skip.",
+      "fallback": "Fallback absent: named skip.",
+      "mandatory_when": "never"
+    },
+    {
+      "role": "frontend-reviewer",
+      "kind": "conditional",
+      "condition": "HTML/CSS/JS as its primary output",
+      "mode_limit": [
+        "full"
+      ],
+      "boundary": "**`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 AA Target Size, AAA Focus Appearance, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.",
+      "fallback": "Fallback absent: named skip.",
+      "mandatory_when": "never"
+    },
+    {
+      "role": "design-reviewer",
+      "kind": "conditional",
+      "condition": "an architecture artifact an architect-pack integration activates",
+      "mode_limit": [
+        "light",
+        "full"
+      ],
+      "boundary": "**`design-reviewer`** — only when an architect-pack integration explicitly\n  activates it for an architecture artifact inside this work-loop. Pass the\n  named artifact, accepted concept/constraints, and governing rubric paths;\n  route its report through finding adjudication. This adds no core trigger.",
+      "fallback": "",
+      "mandatory_when": "selected"
+    },
+    {
+      "role": "quality-engineer",
+      "kind": "conditional",
+      "condition": "**high-risk work**",
+      "mode_limit": [
+        "light",
+        "full"
+      ],
+      "boundary": "**`quality-engineer`** — testability, observability, reliability, maintainability lens; raised quality floor (universal maintainability smells + mutation-testing mindset). Also drafts contract or construction tests on request. Its `operational-safety` module inlining, the reliability-vs-security carve, and independent contract re-derivation are in [`references/reviewer-roster.md`](references/reviewer-roster.md).",
+      "fallback": "",
+      "mandatory_when": "selected"
+    }
+  ]
+}
