@@ -61,7 +61,7 @@ Traces to: AC-0001, AC-0004, AC-0005.
 
 Owned by: T2
 
-`derive` sets `"owner": owner_vals[0] if owner_vals else ""` on each of the three node dicts, reading `fields.get("Owner", [])`. The `fields` value comes from `_preamble_visible`, which the intent and spec loops already compute. The brief loop does not keep `fields` today, so it reads `_preamble_visible(text)` once into a local, from the same text with no new file read. The JSON stays raw, as `heading` does. `_build_intent_record`, the `search` entry builder and both item shapes in `_build_outstanding_items` copy `node.get("owner", "")`. The view payload's `nodes` and `records` therefore carry it with no export change, and the payload schema name stays `intent-navigation.view.v1`. The added bytes over this repository's 769 nodes total about 17 KB, measured as the JSON length of each node's `owner` member. That is far under the 100 MiB export budget.
+`derive` sets `"owner": owner_vals[0] if owner_vals else ""` on each of the three node dicts, reading `fields.get("Owner", [])`. The `fields` value comes from `_preamble_visible`, which the intent and spec loops already compute. The brief loop's existing `fields` local (`intent_graph.py:1171`) is read the same way, so there is no second preamble parse. The JSON stays raw, as `heading` does. `_build_intent_record`, the `search` entry builder and both item shapes in `_build_outstanding_items` copy `node.get("owner", "")`. The view payload's `nodes` and `records` therefore carry it with no export change, and the payload schema name stays `intent-navigation.view.v1`. The added bytes over this repository's 769 nodes total about 17 KB, measured as the JSON length of each node's `owner` member. That is far under the 100 MiB export budget.
 
 ### Interfaces & contracts
 
@@ -104,7 +104,8 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/tests/skills/navigate-intents/fixtures/owners/**`, `packs/core/tests/skills/navigate-intents/fixtures/README.md`
 
 **Tests:**
-- A collected test in `test_derivation_contract.py` parses the README's owner table, option list, selector table and per-choice Browse and roadmap expectations. It asserts that every record path the README names exists in the fixture, and that every record in the fixture appears in the table. A table that drifts from the corpus therefore fails before any owner code exists.
+- `no stub (implementation-discovered)`: the README's table layout is the seam, and it does not exist until this task writes it. Discovery predicate: the README's owner table, option list, selector table and per-choice expectations are machine-readable Markdown tables. Proof obligation: the cross-check test below goes red when one record is added to the corpus without a README row, and the ledger records that red.
+- A collected test in `test_derivation_contract.py` parses the README's owner table, option list, selector table and per-choice Browse expectations (under "Full hierarchy" with "All", "By capability" with "All", and "Full hierarchy" with "Open") and roadmap expectations. It asserts that every record path the README names exists in the fixture, and that every record in the fixture appears in the table. A table that drifts from the corpus therefore fails before any owner code exists.
 
 **Approach:**
 - The corpus holds a product strategy, two capabilities with one nested under the other, intents under each, a brief and specs with open and closed statuses, and every AC-0001 owner form. One owner appears in two letter-case and spacing variants. One value holds a non-ASCII capital letter. A capability's owner differs from the owners of the intents beneath it, so context rows occur under "Full hierarchy", "By capability" and the roadmap. That combination is what makes AC-0015 and AC-0018 fail on a wrong rule.
@@ -118,8 +119,15 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py`, `packs/core/.apm/skills/close-work/scripts/intent_graph.py`, `packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py`, `packs/core/tests/skills/navigate-intents/test_derivation_contract.py`, `packs/core/tests/skills/navigate-intents/test_query_contract.py`, `packs/core/tests/skills/navigate-intents/test_outstanding.py`
 
 **Tests:**
-- `test_derivation_contract.py` decides AC-0001 against the README's owner table.
-- `test_query_contract.py` decides AC-0002 and AC-0003 by copying the fixture to `tmp_path`, dropping every line matching `^- \*\*Owner:\*\*`, and comparing all six operations. JSON results are compared with `owner` members and `generated_at` stripped, and text output byte for byte. It decides AC-0005 against the README's selector table, plus `{"owner": 1}` and `{"owner": null}` for `invalid_selector`.
+- `test_derivation_contract.py` decides AC-0001 against the README's owner table. Its contract-surface stub, compiled and run red against the current derivation over the `mixed` fixture (it fails on the `owner` assertion), is:
+
+  ```python
+  def test_every_node_carries_owner_ac0001() -> None:  # stub: true
+      nodes = ig.derive(_FIXTURE_MIXED)["nodes"]
+      assert nodes
+      assert all(isinstance(n.get("owner"), str) for n in nodes)
+  ```
+- `test_query_contract.py` decides AC-0002 and AC-0003 by copying the fixture to `tmp_path`, dropping every line matching `^- \*\*Owner:\*\*`, and running every operation in `_VALID_OPS` on both trees: `summary`; `record`, `ancestors`, `tree` and `dependencies` with `--id` set to each live intent the README names; `tree` without `--id`; `outstanding` with and without `--from`; and `search` with each non-`owner` selector the README lists. JSON results are compared with `owner` members and `generated_at` stripped. `tree`, `outstanding` and `dependencies` with `--format text` are compared byte for byte. It decides AC-0005 against the README's selector table, plus `{"owner": 1}` and `{"owner": null}` for `invalid_selector`.
 - `test_outstanding.py` and `test_query_contract.py` decide AC-0004 for `record`, `search` and both `outstanding` lists.
 - The existing byte-identity assertion in `test_intent_delivery_relations_copies.py` decides AC-0006.
 
@@ -132,7 +140,8 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/.apm/skills/navigate-intents/scripts/view_src/owners.js`, `rows.js`, `roadmap.js`, `routing.js`, `labels.js`, `chrome.js`, `detail-render.js`, `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py`, `packs/core/.apm/skills/navigate-intents/scripts/view_assets/view.css`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`, `packs/core/tests/skills/navigate-intents/test_export_html.py`
 
 **Tests:**
-- Browser checks decide AC-0008, AC-0010, AC-0011, AC-0023 and AC-0024 over the `owners` export.
+- `no stub (mode)`: scripted browser check.
+- Browser checks decide AC-0008's `owners` clause, AC-0010, AC-0011, AC-0023 and AC-0024 over the `owners` export.
 - The shipped row-shape assertion `["c-name", "c-state", "c-context"]` in `view_browser_checks.py`, which checks session-start criterion 0009, moves to `["c-name", "c-state", "c-context", "c-owner"]`, as AC-0008 extends that criterion.
 - `test_export_html.py`'s part-list and part-size tests keep the source-and-style spec's criteria 0001 to 0008 with `owners.js` added.
 
@@ -145,8 +154,9 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/.apm/skills/navigate-intents/scripts/view_src/list-bodies.js`, `lists.js`, `chrome.js`, `readiness.js`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`
 
 **Tests:**
-- Browser checks decide AC-0012, AC-0013, AC-0017, AC-0020, AC-0021 and AC-0022 over the `owners` export, comparing each list under each README owner choice with the same list under "Any owner".
-- Browser checks decide AC-0012's readiness clause and AC-0014 over the `mixed` export with a checked status input, built by the readiness-bridge spec's status-input helper.
+- `no stub (mode)`: scripted browser check.
+- Browser checks decide AC-0012, AC-0013, AC-0017, AC-0020, AC-0021, AC-0022 and AC-0030 over the `owners` export, comparing each list under each README owner choice with the same list under "Any owner".
+- Browser checks decide AC-0008's readiness clause, AC-0012's readiness clause and AC-0014 over the `mixed` export with a checked status input, built by the readiness-bridge spec's status-input helper.
 
 **Done when:** those checks pass, and the readiness-bridge spec's own browser checks still pass unchanged.
 
@@ -157,7 +167,8 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/.apm/skills/navigate-intents/scripts/view_src/browse.js`, `roadmap.js`, `owners.js`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`
 
 **Tests:**
-- Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations, under both Group choices for Browse.
+- `no stub (mode)`: scripted browser check.
+- Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations. Each also checks the general rule over every Group and Show choice, against the Python reading of the payload.
 - A browser check decides AC-0016 by comparing the flat filtered list with `run_query` `search` over the same fixture, using the filter selectors plus `owner`.
 - The shipped tree-and-roadmap checks for its criteria 0030 to 0036 still pass under "Any owner".
 
@@ -170,7 +181,8 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/tests/skills/navigate-intents/fixtures/hostile/**`, `packs/core/tests/skills/navigate-intents/fixtures/owners/**`, `packs/core/tests/skills/navigate-intents/test_export_html.py`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`, `packs/core/.apm/skills/navigate-intents/scripts/view_assets/view.css`
 
 **Tests:**
-- `test_export_html.py` decides AC-0009's HTML clause over the `hostile` export, with its owner values added to that fixture's records. The browser check decides the rendered-text clause.
+- `test_export_html.py` decides AC-0009 over the `hostile` export, with its owner values added to that fixture's records. This is the TDD part of the task, and its contract-surface stub is the shipped hostile-string assertion extended with the owner values. A browser check decides AC-0031.
+- `no stub (mode)` for AC-0025, AC-0026 and AC-0031: scripted browser check.
 - Browser checks decide AC-0025 and AC-0026 across the width and theme matrix, over an `owners` export built in `tmp_path` with one record's owner replaced by a 200-code-point token.
 
 **Done when:** those checks pass and the full `view_browser_checks.py` run reports no skip.
@@ -182,6 +194,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/.apm/skills/navigate-intents/SKILL.md`, `packs/core/.apm/skills/navigate-intents/evals/eval_queries.json`, `guides/core/how-to/navigate-intents.md`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/*`, the eight amended specs' headers, `workspace.toml`, `docs/product/briefs/intent-navigation-delivery.md`
 
 **Tests:**
+- `no stub (mode)`: goal-based check.
 - A one-line JSON check finds AC-0007's case in `eval_queries.json`.
 - The guide lints named in the spec's Durable Outputs pass, and `agentbundle catalogue self-host --root . --write` shows no diff after commit.
 
@@ -194,6 +207,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `docs/specs/intent-view-record-owners/notes/**`
 
 **Tests:**
+- `no stub (mode)`: goal-based check and visual / manual QA.
 - The scale benchmark script that the export spec's criterion 0066 uses (`view_bench.py`) runs with owner lines in every synthetic record, for AC-0027.
 - A ledger-recorded script reads the real export's payload, and a headless Chromium run reads the page, for AC-0028.
 - 24 screenshots and an adjudicated `experience-reviewer` pass, for AC-0029.
