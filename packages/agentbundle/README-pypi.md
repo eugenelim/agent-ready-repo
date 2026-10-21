@@ -14,6 +14,16 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.53.1
+
+`agentbundle catalogue init` now writes a root `AGENTS.md` and a `CLAUDE.md`, so
+a new catalogue packages and verifies with no hand edits. A bad
+`[catalogue.package].include` entry fails with a `CAT-PKG-001` message, not a
+traceback. An `include` entry that names a `_` directory under `packs/`, such as
+`packs/_example`, now fails too and must be removed; if that leaves `include`
+empty, list the packs to ship. A catalogue made by an earlier release needs a
+root `AGENTS.md` added by hand.
+
 ## What's new in 0.53.0
 
 `agentbundle catalogue package` now refuses to replace a release archive that

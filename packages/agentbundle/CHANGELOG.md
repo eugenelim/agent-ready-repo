@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.53.1] — 2026-10-21
+
+### Fixed
+
+- `agentbundle catalogue init` writes a root `AGENTS.md`, the installable-catalogue
+  marker `catalogue package` ships, and a root `CLAUDE.md` that holds
+  `@AGENTS.md`. A freshly scaffolded catalogue packages and verifies with no
+  hand edits, as an empty but valid release. An existing root `AGENTS.md` or
+  `CLAUDE.md` is kept and reported as already present with its on-disk hash.
+- A bad `[catalogue.package].include` entry now fails `catalogue package` with a
+  `CAT-PKG-001` diagnostic, not a Python traceback.
+
+### Changed
+
+- Breaking: an `include` entry that names a `_` directory under `packs/`, such as
+  `packs/_example`, used to package the template and now fails with
+  `CAT-PKG-001`. Remove the entry. If removing it leaves `include` empty,
+  packaging falls back to every non-`_` pack, so list the packs to ship instead.
+- Compatibility: a catalogue created by an earlier release does not gain the root
+  file when you re-run `catalogue init`, because `catalogue.toml` conflicts. Add a
+  root `AGENTS.md` by hand.
+
+Engine-Change-RFC: n/a — plain catalogue init gains a root AGENTS.md marker and CLAUDE.md shim, and catalogue package reports bad include entries as CAT-PKG-001; no RFC governs either (docs/specs/catalogue-init-packageable/spec.md)
+
 ## [0.53.0] — 2026-10-20
 
 ### Added
