@@ -500,11 +500,13 @@ def _act(ws: Workspace, state: State) -> tuple[State, Action]:
 def next_request(ws: Workspace) -> dict[str, Any]:
     """The ``next`` verb: the current request, a refusal, or terminal."""
     with ws.run_lock():
+        ws.attempts.guard("next")
         state, refusal = _prepare(ws)
         if refusal is not None:
             state.refusal = refusal
             return {"refusal": refusal.as_dict(), "run": _write_status(ws, state, None)}
         state, action = _act(ws, state)
+        ws.attempts.issue(state, action)
         status = _write_status(ws, state, action)
         if action.kind == "refusal" and action.refusal is not None:
             return {"refusal": action.refusal.as_dict(), "run": status}
@@ -552,6 +554,7 @@ def _refuse_protected_change(ws: Workspace, state: State) -> list[str]:
             "controller",
             "the attempt changed trusted files: " + ", ".join(protected),
         )
+    ws.attempts.check_change_set(state, changed)
     return changed
 
 
@@ -562,6 +565,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
     readiness = _supervisor("_supervisor_readiness.py")
     checked = _validate_result(result)
     with ws.run_lock():
+        ws.attempts.guard("report")
         state = derive(ws)
         if state.refusal is not None:
             raise state.refusal
@@ -612,6 +616,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     "controller",
                     f"a {kind} result is not admitted through report",
                 )
+        ws.attempts.close(checked)
         after = derive(ws)
         ws.local.reconcile_events(after.run_id, after.commits)
         return {"admitted": outcome}
