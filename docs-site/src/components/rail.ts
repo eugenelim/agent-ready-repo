@@ -2,7 +2,7 @@
  * Tab and stage lookups over Starlight's resolved sidebar.
  *
  * The sidebar config's top level is the set of top-bar tabs (Docs, CLI,
- * Author, Catalogue System). Inside the Docs tab, groups whose label is an
+ * Packs, Build a Catalogue). Inside the Docs tab, groups whose label is an
  * operating-model stage carry that stage's line colour. Both facts come from
  * the one sidebar array, so the header, sidebar, and page title cannot drift.
  */

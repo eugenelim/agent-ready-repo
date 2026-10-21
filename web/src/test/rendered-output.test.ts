@@ -41,6 +41,36 @@ const CORE_START_WORK_GUIDE = join(
 );
 
 /**
+ * spec/catalogue-wave6-technical-docs-ia AC-0003: the 21 pages the former
+ * Author (12) and Catalogue System (9) tabs linked, taken from
+ * docs-site/astro.config.ts at d714ab829. Each must stay reachable from the
+ * Build a Catalogue sidebar.
+ */
+const FORMER_AUTHOR_AND_CATALOGUE_SYSTEM_URLS = [
+  `${DOCS_BASE_PATH}guides/_shared/how-to/author-a-skill/`,
+  `${DOCS_BASE_PATH}guides/catalogue-curation/tutorials/your-first-subagent/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/build-an-org-stack-pack/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/design-a-profile/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/pack-journey-authoring/`,
+  `${DOCS_BASE_PATH}guides/credential-brokers/how-to/add-a-credentialed-skill/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/pack-config-api/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/skill-authoring-standards/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/skill-script-conventions/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/skill-ux-patterns/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/catalogue-authoring-standards/`,
+  `${DOCS_BASE_PATH}guides/credential-brokers/reference/credentialed-skill-walkthrough/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-catalogue/`,
+  `${DOCS_BASE_PATH}guides/_reference/catalogue-format/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/configure-catalogue-enterprise-distribution/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-self-hosted-catalogue/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/roll-out-agent-ready-repo-across-an-enterprise/`,
+  `${DOCS_BASE_PATH}guides/catalogue-curation/how-to/survey-a-repo/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/catalogue-ci-contract/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/artifactory-catalogue-distribution/`,
+  `${DOCS_BASE_PATH}guides/catalogue-curation/reference/ledger-and-guard/`,
+];
+
+/**
  * spec/site-shared-chrome AC7, for one emitted shared-chrome link.
  *
  * Factored out because it was previously applied only to the footers, so a
@@ -434,6 +464,23 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     expect(d.querySelector('.docs-hub__primary, .docs-hub__supporting')).toBeNull();
   });
 
+  // spec/catalogue-wave6-technical-docs-ia AC-0008.
+  it('AC-0008: the docs home offers two routes before Install', () => {
+    const d = doc(DOCS_HOME);
+    const cards = [...d.querySelectorAll<HTMLAnchorElement>('.sl-link-card a')];
+    const hrefs = cards.map((a) => a.getAttribute('href'));
+    const build = `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-catalogue/`;
+    expect(hrefs).toContain('#install');
+    expect(hrefs).toContain(build);
+    const install = [...d.querySelectorAll('main h2')].find((h) => h.textContent?.trim() === 'Install')!;
+    expect(install).toBeTruthy();
+    const before = Node.DOCUMENT_POSITION_FOLLOWING;
+    for (const href of ['#install', build]) {
+      const card = cards.find((a) => a.getAttribute('href') === href)!;
+      expect(card.compareDocumentPosition(install) & before, `${href} card precedes Install`).toBeTruthy();
+    }
+  });
+
   /** The rendered sidebar's links, excluding the phone-only tab row. */
   const sidebarLinks = (d: Document) =>
     [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar .rail-nav a[href]')].map((a) => ({
@@ -447,14 +494,14 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
   const UNLISTED_PAGE = page('guides/core/explanation/token-economy');
 
   // spec/docs-site-rail-shell AC1.
-  it('AC1: every docs page has one top bar with the four tabs and no product strip', () => {
+  it('AC1: every docs page has one top bar with the docs tabs and no product strip', () => {
     for (const path of [DOCS_HOME, NESTED_GUIDE, AUTHOR_PAGE, CLI_PAGE, UNLISTED_PAGE]) {
       const d = doc(path);
       const tabNavs = d.querySelectorAll('header nav[aria-label="Documentation sections"]');
       expect(tabNavs.length, path).toBe(1);
       const tabs = [...tabNavs[0].querySelectorAll('a')];
       expect(tabs.map((a) => a.textContent?.trim()), path).toEqual([
-        'Docs', 'CLI', 'Packs', 'Author', 'Catalogue System',
+        'Docs', 'CLI', 'Packs', 'Build a Catalogue',
       ]);
       expect(tabs.filter((a) => a.getAttribute('aria-current') === 'true').length, path).toBe(1);
       expect(d.querySelectorAll('header site-search').length, path).toBe(1);
@@ -469,7 +516,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       doc(path).querySelector('header nav[aria-label="Documentation sections"] [aria-current="true"]')
         ?.textContent?.trim();
     expect(current(NESTED_GUIDE)).toBe('Docs');
-    expect(current(AUTHOR_PAGE)).toBe('Author');
+    expect(current(AUTHOR_PAGE)).toBe('Build a Catalogue');
     expect(current(CLI_PAGE)).toBe('CLI');
     expect(current(UNLISTED_PAGE)).toBe('Docs');
   });
@@ -477,15 +524,15 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
   // spec/docs-site-rail-shell AC3.
   it('AC3: the sidebar holds only the current tab, with the current page marked', () => {
     const docsTab = sidebarLinks(doc(NESTED_GUIDE));
-    const authorTab = sidebarLinks(doc(AUTHOR_PAGE));
+    const buildTab = sidebarLinks(doc(AUTHOR_PAGE));
     expect(docsTab.filter((l) => l.current).map((l) => l.href)).toEqual([
       `${DOCS_BASE_PATH}guides/core/how-to/start-a-project/`,
     ]);
-    expect(authorTab.filter((l) => l.current).map((l) => l.href)).toEqual([
+    expect(buildTab.filter((l) => l.current).map((l) => l.href)).toEqual([
       `${DOCS_BASE_PATH}guides/_shared/how-to/author-a-skill/`,
     ]);
     const docsHrefs = new Set(docsTab.map((l) => l.href));
-    expect(authorTab.some((l) => docsHrefs.has(l.href)), 'tabs share no links').toBe(false);
+    expect(buildTab.some((l) => docsHrefs.has(l.href)), 'tabs share no links').toBe(false);
     // Same tab, same list, wherever you stand in it.
     expect(sidebarLinks(doc(DOCS_HOME)).map((l) => l.href)).toEqual(docsTab.map((l) => l.href));
     // A page in no tab falls back to the Docs tab with nothing current.
@@ -498,8 +545,45 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     // The phone menu repeats the tabs.
     expect(
       [...doc(NESTED_GUIDE).querySelectorAll('nav.sidebar .rail-tabs--menu a')].map((a) => a.textContent?.trim())
-    ).toEqual(['Docs', 'CLI', 'Packs', 'Author', 'Catalogue System']);
+    ).toEqual(['Docs', 'CLI', 'Packs', 'Build a Catalogue']);
   });
+
+  // spec/catalogue-wave6-technical-docs-ia AC-0003 and AC-0004.
+  it('AC-0003/AC-0004: Build a Catalogue keeps all 21 former links and shares none with other tabs', () => {
+    const hrefs = sidebarLinks(doc(AUTHOR_PAGE)).map((l) => l.href);
+    const missing = FORMER_AUTHOR_AND_CATALOGUE_SYSTEM_URLS.filter((u) => !hrefs.includes(u));
+    expect(FORMER_AUTHOR_AND_CATALOGUE_SYSTEM_URLS.length).toBe(21);
+    expect(missing, 'former links missing from the sidebar').toEqual([]);
+    const own = new Set(hrefs);
+    for (const [name, path] of [
+      ['Docs', NESTED_GUIDE],
+      ['CLI', CLI_PAGE],
+      ['Packs', join(DOCS_ROOT, 'packs/index.html')],
+    ] as const) {
+      const shared = sidebarLinks(doc(path)).map((l) => l.href).filter((h) => own.has(h));
+      expect(shared, `Build a Catalogue shares links with ${name}`).toEqual([]);
+    }
+  });
+
+  // spec/catalogue-wave6-technical-docs-ia AC-0006.
+  it('AC-0006: every Build a Catalogue page carries the two fragment links exactly', () => {
+    const failures: string[] = [];
+    const pages = sidebarLinks(doc(AUTHOR_PAGE)).filter((l) => !l.href.includes('#'));
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { href } of pages) {
+      const built = builtDocsPage(href);
+      if (!built || !existsSync(built)) {
+        failures.push(`${href}: no built page`);
+        continue;
+      }
+      const links = sidebarLinks(doc(built));
+      const optional = links.find((l) => l.label === 'Optional pack integrations')?.href;
+      const pkg = links.find((l) => l.label === 'Package a release')?.href;
+      if (!optional?.endsWith('#11-optional-pack-integrations')) failures.push(`${href}: optional=${optional}`);
+      if (!pkg?.endsWith('#agentbundle-catalogue-package')) failures.push(`${href}: package=${pkg}`);
+    }
+    expect(failures, `fragment link drift:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
 
   // spec/docs-site-rail-shell AC4.
   it('AC4: the Docs tab runs Intro, the Operating model group, then the five stages', () => {
@@ -553,7 +637,8 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
   it('AC6: previous and next stay inside the current tab', () => {
     const failures: string[] = [];
     for (const sample of [NESTED_GUIDE, AUTHOR_PAGE, CLI_PAGE]) {
-      const ordered = sidebarLinks(doc(sample)).map((l) => l.href);
+      // Fragment entries are sidebar-only: pagination skips them.
+      const ordered = sidebarLinks(doc(sample)).map((l) => l.href).filter((h) => !h.includes('#'));
       for (const [index, href] of ordered.entries()) {
         const built = builtDocsPage(href);
         if (!built || !existsSync(built)) {
@@ -563,6 +648,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
         const frag = mainFragment(built);
         const prev = frag.querySelector('a[rel="prev"]')?.getAttribute('href');
         const next = frag.querySelector('a[rel="next"]')?.getAttribute('href');
+        if (prev?.includes('#') || next?.includes('#')) failures.push(`${href}: pagination points at a fragment`);
         if (prev !== ordered[index - 1] || next !== ordered[index + 1]) {
           failures.push(`${href}: prev=${prev} (expected ${ordered[index - 1]}), next=${next} (expected ${ordered[index + 1]})`);
         }

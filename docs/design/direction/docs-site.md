@@ -25,8 +25,8 @@ Surface: responsive-web. Genre: documentation.
    catalogue first." Arrives mid-task from search, a skill, or a teammate's link.
 2. **Platform lead** — "When I decide whether my team adopts this, I want the
    site to look as finished as the tools I already trust." Judges by feel first.
-3. **Pack author or catalogue operator** — long reading sessions in the Author,
-   CLI, and Catalogue System tabs.
+3. **Pack author or catalogue operator** — long reading sessions in the Build a
+   Catalogue and CLI tabs.
 
 ## Named goals (ranked)
 
@@ -144,7 +144,7 @@ copyable code block with the command alone, never prose that contains a command.
 
 ## Compositional commitments
 
-- One top bar: logo, tabs (Docs, CLI, Author, Catalogue System), then search,
+- One top bar: logo, tabs (Docs, CLI, Packs, Build a Catalogue), then search,
   GitHub, and theme on the right. No product strip above it.
 - Each tab owns its sidebar; Docs groups follow the operating-model stages.
 - The page title carries a stage chip when the page belongs to a stage.
