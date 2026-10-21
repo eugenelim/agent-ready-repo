@@ -28,7 +28,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from agentbundle.catalogue_tooling.archive import unit_digest
+from agentbundle.catalogue_tooling.archive import read_verified_manifest, unit_digest
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
@@ -573,6 +573,96 @@ def _place_archive(staged: Path, dest: Path, *, force: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Release comparison (--compare)
+# ---------------------------------------------------------------------------
+
+
+class _UnderivableUnitError(Exception):
+    """A prior unit's path has no member file in the prior archive's files[] (AC-0016)."""
+
+
+def _prior_units(
+    prior: dict, kind: str, file_digests: dict[str, str]
+) -> dict[str, dict]:
+    """Derive ``{name: {version, digest}}`` for the prior's ``packs`` or ``profiles``.
+
+    Digests are always derived from the prior's verified ``files[]``; a digest the
+    prior manifest declares is never read. The path is the entry's ``path`` when
+    present, else ``packs/<name>`` or ``profiles/<name>.toml``.
+    """
+    units: dict[str, dict] = {}
+    for entry in prior.get(kind) or []:  # schema 1 may omit profiles
+        item = {"name": entry} if isinstance(entry, str) else entry
+        name = item["name"]
+        path = item.get("path")
+        if path is None:
+            path = f"packs/{name}" if kind == "packs" else f"profiles/{name}.toml"
+        digest = unit_digest(file_digests, path)
+        if digest is None:
+            raise _UnderivableUnitError(
+                f"prior {kind[:-1]} \"{name}\" has no member files at {path}"
+            )
+        units[name] = {"version": item.get("version"), "digest": digest}
+    return units
+
+
+def _compare_kind(
+    current: list[dict], prior: dict[str, dict], *, versioned: bool
+) -> dict:
+    """Return the AC-0013 ``added``/``removed``/``changed``/``unchanged`` object."""
+    now = {e["name"]: e for e in current}
+    added, removed, changed, unchanged = [], [], [], 0
+    for name in sorted(now):
+        entry = now[name]
+        if name not in prior:
+            item = {"name": name, "digest": entry["digest"]}
+            if versioned:
+                item["version"] = entry["version"]
+            added.append(item)
+            continue
+        before = prior[name]
+        if before["digest"] == entry["digest"] and (
+            not versioned or before["version"] == entry["version"]
+        ):
+            unchanged += 1
+            continue
+        item = {"name": name, "digest": {"from": before["digest"], "to": entry["digest"]}}
+        if versioned:
+            item["version"] = {"from": before["version"], "to": entry["version"]}
+        changed.append(item)
+    for name in sorted(prior):
+        if name not in now:
+            item = {"name": name, "digest": prior[name]["digest"]}
+            if versioned:
+                item["version"] = prior[name]["version"]
+            removed.append(item)
+    return {"added": added, "removed": removed, "changed": changed, "unchanged": unchanged}
+
+
+def _compare_releases(
+    prior: dict,
+    compare: str,
+    packs: list[dict],
+    profiles: list[dict],
+) -> dict:
+    """Compare the new units against the prior archive's verified manifest (AC-0013)."""
+    file_digests = {f["path"]: f["sha256"] for f in prior["files"]}
+    return {
+        "prior": {
+            "archive": compare,
+            "bundle": prior.get("bundle"),
+            "release": prior.get("release"),
+        },
+        "packs": _compare_kind(
+            packs, _prior_units(prior, "packs", file_digests), versioned=True
+        ),
+        "profiles": _compare_kind(
+            profiles, _prior_units(prior, "profiles", file_digests), versioned=False
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -589,6 +679,7 @@ def package_catalogue(
     published_at: str | None = None,
     generated_at: str | None = None,
     force: bool = False,
+    compare: Path | str | None = None,
     _verify_archive_fn=None,  # injectable for testing
 ) -> PackageResult:
     """Package a catalogue at *root* into an Artifactory artifact layout.
@@ -651,6 +742,24 @@ def package_catalogue(
             d.message for d in verify_result.diagnostics if d.severity == Severity.ERROR
         )
         return _err(f"pre-package verify failed: {msgs}")
+
+    # --- Read the prior archive (before any write) ---
+    prior_manifest: dict | None = None
+    if compare is not None:
+        try:
+            prior_manifest, prior_verify = read_verified_manifest(Path(compare))
+        except Exception as exc:  # boundary: an untrusted archive may raise anything
+            return _err(f"cannot read prior archive: {type(exc).__name__}: {exc}")
+        if prior_manifest is None:
+            return PackageResult(
+                ok=False,
+                diagnostics=[d for d in prior_verify.diagnostics if d.severity == Severity.ERROR],
+                schema_version=1,
+                command="catalogue",
+                operation="package",
+                agentbundle_version=CLI_VERSION,
+                catalogue_schema_version=1,
+            )
 
     # --- Load catalogue.toml for package config ---
     pack_include: list[str] = []
@@ -767,6 +876,18 @@ def package_catalogue(
         profiles_metadata=profiles_metadata,
     )
 
+    # --- Compare with the prior archive (before any write) ---
+    comparison: dict | None = None
+    if prior_manifest is not None and compare is not None:
+        try:
+            comparison = _compare_releases(
+                prior_manifest, str(compare), packs_metadata, profiles_metadata
+            )
+        except _UnderivableUnitError as exc:
+            return _err(str(exc))
+        except Exception as exc:  # boundary: see the prior-archive read above
+            return _err(f"cannot compare with prior archive: {type(exc).__name__}: {exc}")
+
     # --- Create output directories ---
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     (output / "catalogues" / bundle / "channels").mkdir(parents=True, exist_ok=True)
@@ -828,6 +949,7 @@ def package_catalogue(
         operation="package",
         agentbundle_version=CLI_VERSION,
         catalogue_schema_version=1,
+        comparison=comparison,
     )
 
 

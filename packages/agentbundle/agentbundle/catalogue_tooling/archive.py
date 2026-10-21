@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import stat
 import tarfile
 from collections.abc import Mapping
 from pathlib import Path
@@ -557,3 +558,27 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
         diags.extend(_check_min_agentbundle_compat(manifest))
 
     return _make_result(diags, "archive")
+
+
+def read_verified_manifest(archive: Path) -> tuple[dict | None, VerifyResult]:
+    """Return the manifest of ``archive`` only when ``verify_archive`` passes on it.
+
+    A path that is not a regular file is refused before it is opened (AC-0023).
+    The archive is read in memory; nothing is extracted to disk. The manifest is
+    ``None`` whenever the returned result is not ok.
+    """
+    try:
+        is_regular = stat.S_ISREG(archive.stat().st_mode)
+        problem = None if is_regular else f"not a regular file: {archive}"
+    except OSError as exc:
+        problem = f"cannot read archive: {exc}"
+    if problem is not None:
+        return None, _make_result([_err("CAT-V-ARC-002", problem)], "archive")
+    result = verify_archive(archive)
+    if not result.ok:
+        return None, result
+    with tarfile.open(archive, "r:gz") as tf:
+        manifest, diags = _parse_manifest(tf, tf.getmembers())
+    if diags or not isinstance(manifest, dict):
+        return None, _make_result(diags, "archive")
+    return manifest, result

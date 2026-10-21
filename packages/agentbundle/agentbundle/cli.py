@@ -935,6 +935,18 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Replace an existing release archive instead of refusing (exit 2).",
     )
+    _pkg_p.add_argument(
+        "--compare",
+        default=None,
+        metavar="PATH",
+        help="Prior release archive to compare against (runtime flavor only).",
+    )
+    _pkg_p.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="Output format; json writes one envelope on stdout (runtime flavor only).",
+    )
     _pkg_p.set_defaults(func=_lazy("catalogue_package"))
 
     # catalogue sync-defaults
