@@ -117,6 +117,11 @@ agentbundle catalogue package --bundle BUNDLE --release RELEASE
 | `--compare` | no | Prior release archive to compare against (runtime flavour only) |
 | `--format` | no | `table` (default) or `json`; `json` writes one envelope on stdout (runtime flavour only) |
 
+A runtime archive must carry a root `AGENTS.md`, which is packaged by default; `catalogue init`
+writes one. A `[catalogue.package].include` entry that is not under `packs/`, does not exist, names
+build residue, or names a `_`-prefixed directory directly under `packs/` fails with `CAT-PKG-001`.
+An empty `include` packages every non-`_` pack.
+
 The subcommand rejects abbreviated options (`--forc` exits 2). `--flavor source` with `--compare`
 or `--format json` exits 2 and writes nothing.
 

@@ -90,7 +90,7 @@ publication ordering, exit codes, and JSON output shapes — see the
 
 ## Scaffold options
 
-`agentbundle catalogue init <dir>` takes these metadata flags. A fresh scaffold writes `catalogue.toml`, `.claude-plugin/marketplace.json`, `packs/` and `profiles/` with an `_example` entry each, and the CI contract and authoring standards under `guides/_shared/reference/`. It never overwrites an existing file, so a second run reports each file as `SKIP (already-present)`.
+`agentbundle catalogue init <dir>` takes these metadata flags. A fresh scaffold writes `catalogue.toml`, `.claude-plugin/marketplace.json`, a root `AGENTS.md` and `CLAUDE.md` (which contains `@AGENTS.md`), `packs/` and `profiles/` with an `_example` entry each, and the CI contract and authoring standards under `guides/_shared/reference/`. It never overwrites an existing file, so a second run reports each file as `SKIP (already-present)`. An existing root `AGENTS.md` or `CLAUDE.md` is kept and reported already-present with its on-disk hash. Any other existing file that differs is a conflict that blocks init.
 
 | Flag | Default |
 |------|---------|

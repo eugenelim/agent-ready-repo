@@ -157,6 +157,10 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
     When pack_include is non-empty, only the listed pack directories are walked;
     non-pack dirs (profiles/, contracts/, .claude-plugin/) are always included.
     An empty or absent pack_include includes all packs (default behavior).
+
+    Raises ValueError for an include entry that is not under ``packs/``, contains
+    path traversal, does not exist as a directory, names build residue, or names a
+    ``_`` template directory directly under ``packs/``.
     """
     collected: list[Path] = []
 
@@ -177,6 +181,11 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
                 raise ValueError(
                     f"pack_include entry {entry!r} names build residue; "
                     f"it is never packaged"
+                )
+            if len(parts) > 1 and parts[1].startswith("_"):
+                raise ValueError(
+                    f"pack_include entry {entry!r} names a '_' directory; "
+                    f"'_' directories are templates that are never packaged"
                 )
             for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
                 dp = Path(dirpath)
@@ -790,7 +799,10 @@ def package_catalogue(
         pass
 
     # --- Scan and validate content ---
-    content_paths = _scan_content(root, pack_include=pack_include)
+    try:
+        content_paths = _scan_content(root, pack_include=pack_include)
+    except ValueError as exc:
+        return _err(f"invalid [catalogue.package].include: {exc}")
 
     req_err = _check_required_files(root, content_paths, required_override=required_override)
     if req_err is not None:

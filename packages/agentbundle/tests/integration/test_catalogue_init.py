@@ -398,7 +398,12 @@ def test_dogfood_no_host_files_leaked(tmp_path):
 
     scaffold_paths = set(list_files())
     # Generated files
-    generated_paths = {"catalogue.toml", ".claude-plugin/marketplace.json"}
+    generated_paths = {
+        "catalogue.toml",
+        ".claude-plugin/marketplace.json",
+        "AGENTS.md",
+        "CLAUDE.md",
+    }
     allowed = scaffold_paths | generated_paths
 
     # Walk target and collect all files
