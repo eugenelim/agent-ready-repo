@@ -1,0 +1,139 @@
+{
+  "label": "Build a Catalogue",
+  "items": [
+    {
+      "label": "Create a catalogue",
+      "slug": "guides/_shared/how-to/create-a-catalogue"
+    },
+    {
+      "label": "Catalogue authoring standards",
+      "slug": "guides/_shared/reference/catalogue-authoring-standards"
+    },
+    {
+      "label": "Author a pack",
+      "items": [
+        {
+          "label": "Build a pack",
+          "slug": "guides/_shared/how-to/build-an-org-stack-pack"
+        },
+        {
+          "label": "Pack config API",
+          "slug": "guides/_shared/reference/pack-config-api"
+        }
+      ]
+    },
+    {
+      "label": "Author a skill",
+      "items": [
+        {
+          "label": "Write a skill",
+          "slug": "guides/_shared/how-to/author-a-skill"
+        },
+        {
+          "label": "Author a subagent",
+          "slug": "guides/catalogue-curation/tutorials/your-first-subagent"
+        },
+        {
+          "label": "Import and curate skills",
+          "slug": "guides/catalogue-curation/how-to/survey-a-repo"
+        },
+        {
+          "label": "Add credentials to a skill",
+          "slug": "guides/credential-brokers/how-to/add-a-credentialed-skill"
+        },
+        {
+          "label": "Reference",
+          "items": [
+            {
+              "label": "Skill authoring standards",
+              "slug": "guides/_shared/reference/skill-authoring-standards"
+            },
+            {
+              "label": "Skill script conventions",
+              "slug": "guides/_shared/reference/skill-script-conventions"
+            },
+            {
+              "label": "Skill UX patterns",
+              "slug": "guides/_shared/reference/skill-ux-patterns"
+            },
+            {
+              "label": "Credentialed skill walkthrough",
+              "slug": "guides/credential-brokers/reference/credentialed-skill-walkthrough"
+            },
+            {
+              "label": "Ledger and guard",
+              "slug": "guides/catalogue-curation/reference/ledger-and-guard"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Optional pack integrations",
+      "link": "/guides/_shared/reference/catalogue-authoring-standards/#11-optional-pack-integrations"
+    },
+    {
+      "label": "Author a profile",
+      "slug": "guides/_shared/how-to/design-a-profile"
+    },
+    {
+      "label": "Journey format",
+      "items": [
+        {
+          "label": "Journey format reference",
+          "slug": "guides/_shared/reference/pack-journey-format"
+        },
+        {
+          "label": "Write a pack journey",
+          "slug": "guides/_shared/how-to/pack-journey-authoring"
+        }
+      ]
+    },
+    {
+      "label": "Contract and schema reference",
+      "items": [
+        {
+          "label": "pack.toml fields",
+          "slug": "reference/pack-toml"
+        },
+        {
+          "label": "SKILL.md frontmatter fields",
+          "slug": "reference/skill-frontmatter"
+        },
+        {
+          "label": "catalogue.toml format",
+          "slug": "guides/_reference/catalogue-format"
+        }
+      ]
+    },
+    {
+      "label": "Verify and test",
+      "slug": "guides/_shared/reference/catalogue-ci-contract"
+    },
+    {
+      "label": "Package and publish",
+      "items": [
+        {
+          "label": "Package a release",
+          "link": "/guides/_shared/reference/catalogue-ci-contract/#agentbundle-catalogue-package"
+        },
+        {
+          "label": "Host on Artifactory",
+          "slug": "guides/_shared/how-to/create-a-self-hosted-catalogue"
+        },
+        {
+          "label": "Artifactory distribution",
+          "slug": "guides/_shared/reference/artifactory-catalogue-distribution"
+        },
+        {
+          "label": "Set enterprise defaults",
+          "slug": "guides/_shared/how-to/configure-catalogue-enterprise-distribution"
+        },
+        {
+          "label": "Roll out across an enterprise",
+          "slug": "guides/_shared/how-to/roll-out-agent-ready-repo-across-an-enterprise"
+        }
+      ]
+    }
+  ]
+}
