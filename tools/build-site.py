@@ -1409,6 +1409,18 @@ def sync_pack_journeys(
     return count
 
 
+# Field reference pages generated from the two published JSON Schemas.
+_FIELD_REFERENCE_MODULE = Path(__file__).with_name("schema_field_reference.py")
+_field_reference_spec = importlib.util.spec_from_file_location(
+    "schema_field_reference", _FIELD_REFERENCE_MODULE
+)
+if _field_reference_spec is None or _field_reference_spec.loader is None:
+    raise ImportError(f"cannot load field reference module at {_FIELD_REFERENCE_MODULE}")
+_field_reference = importlib.util.module_from_spec(_field_reference_spec)
+sys.modules[_field_reference_spec.name] = _field_reference
+_field_reference_spec.loader.exec_module(_field_reference)
+
+
 # ---------------------------------------------------------------------------
 # Released changelog Highlights -> the public /now/ projection.
 # ---------------------------------------------------------------------------
@@ -2082,9 +2094,10 @@ def main() -> None:
     packs_out = SITE_DOCS / "packs"
     guides_src = REPO_ROOT / "guides"
     guides_out = SITE_DOCS / "guides"
+    reference_out = SITE_DOCS / "reference"
 
     if args.clean and not args.dry_run:
-        for d in (packs_out, guides_out, SITE_PUBLIC_GUIDES):
+        for d in (packs_out, guides_out, SITE_PUBLIC_GUIDES, reference_out):
             if d.exists():
                 shutil.rmtree(d)
                 print(f"  clean {d.relative_to(REPO_ROOT)}/")
@@ -2134,6 +2147,10 @@ def main() -> None:
         guides_src, SITE_DOCS, dry_run=args.dry_run, public_guides=SITE_PUBLIC_GUIDES
     )
     print(f"  {n} files from guides/")
+
+    print("build-site: generating schema field reference pages …")
+    for page in _field_reference.generate(reference_out, dry_run=args.dry_run):
+        print(f"  {_relpath(page)}")
 
     print("build-site: projecting released changelog highlights …")
     report_changelog_views(

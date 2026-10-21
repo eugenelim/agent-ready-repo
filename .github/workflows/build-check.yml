@@ -394,7 +394,7 @@ jobs:
       # navigation. make build-check runs no pytest — wire them explicitly.
       - name: pytest guides sidebar generation
         if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
+        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_build_a_catalogue_nav.py tools/test_schema_field_reference.py
       - name: pytest guides + catalogue navigation
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
