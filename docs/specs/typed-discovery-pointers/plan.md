@@ -1,6 +1,6 @@
 # Plan: Typed discovery pointers
 
-- **Status:** Approved
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 - **Constrained by:** RFC-0106 D2; RFC-0103; ADR-0142 D10
 - **Repository anchors:** canonical adapter-root resolver and its Core resolver/copy suites; the existing close-work parent lookup; the grammar migration's writer inventory. A source-only AST probe found the existing four-kind tuple and only an `intent:` classifier branch; it establishes a reusable prefix source, not runtime consumer behavior.
