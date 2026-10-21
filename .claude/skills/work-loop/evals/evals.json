@@ -1359,7 +1359,7 @@
       "id": "review-artifact-retry-cap-override",
       "prompt": "With no cohort state, a findings round would exceed `max_review_retries`. What happens, and what does it take to record that round anyway?",
       "files": [],
-      "expected_output": "`review-artifact.py record --run-id <uuid>` refuses the round that would exceed `max_review_retries` from `review-rules.json`. A human who has looked may pass `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference, the form `work-supervisor.py start --authority-ref` accepts. The `record` artifact then stores the override and the reference. An override with no reference or with any other role's reference, such as `risk-owner`, refuses the round. With cohort state the override keeps its bare-flag behaviour.",
+      "expected_output": "`review-artifact.py record --run-id <uuid>` refuses the round that would exceed `max_review_retries` from `review-rules.json`. A human who has looked may pass `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference (`owner` or `owner:<hex>`). The `record` artifact then stores the override and the reference. An override with no reference or with any other role's reference, such as `risk-owner`, refuses the round. With cohort state the override keeps its bare-flag behaviour.",
       "assertions": [
         "Says the round that would exceed `max_review_retries` is refused",
         "Requires `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference",
