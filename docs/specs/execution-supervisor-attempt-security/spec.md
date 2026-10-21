@@ -266,7 +266,8 @@ Result facts and grants
 Windows
 
 - [ ] **AC-0021.** On Windows, a launched process is created suspended, assigned
-  to a Job Object that denies breakaway, and only then resumed.
+  to a Job Object that denies breakaway and ends every member when its last
+  handle closes, and only then resumed.
 - [ ] **AC-0022.** On Windows, any failure to create, configure, or assign the
   Job Object refuses the launch with `denied-job-object` and ends the process.
 - [ ] **AC-0023.** On Windows, a timeout terminates the job explicitly, and no

@@ -328,10 +328,19 @@ def attribute_filters(pins: Pins) -> dict[str, str]:
 
 
 def _same(left: Path, right: Path) -> bool:
+    """Whether two paths name the same file; a path that is missing is a mismatch.
+
+    A path that exists but cannot be stated is not a mismatch: the check could
+    not be made, so it refuses as unverifiable.
+    """
     try:
         return left.samefile(right)
-    except OSError:
+    except (FileNotFoundError, NotADirectoryError):
         return False
+    except OSError as exc:
+        raise SupervisorGitError(
+            "denied-git-control-state", "a pinned directory cannot be read", unverifiable=True
+        ) from exc
 
 
 def _small_text(path: Path) -> str | None:

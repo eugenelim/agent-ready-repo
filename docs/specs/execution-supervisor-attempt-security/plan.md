@@ -132,7 +132,7 @@ and needs a security-reviewer pass.
 
   A timeout calls `TerminateJobObject`.
 
-Owned by: T1, T2, T3, T4.
+Owned by: T1, T2, T3, T4, T5.
 
 ## Tasks
 
@@ -274,3 +274,5 @@ Owned by: T1, T2, T3, T4.
 - 2026-10-20: plan approved by eugenelim
 - 2026-10-20: spec approved by eugenelim
 - 2026-10-20: plan approved by eugenelim
+- 2026-10-21: spec approved by eugenelim
+- 2026-10-21: plan approved by eugenelim

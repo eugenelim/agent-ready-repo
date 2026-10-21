@@ -82,3 +82,11 @@ The attempt checks run before core's own refusals and refuse any trusted-file ch
 - `test_supervisor_commit.py::test_returning_to_earlier_spec_content_is_a_new_replan`: each spec edit now follows the report of the issued attempt, with its replan assertions unchanged.
 
 A re-approval `start` during an open attempt advances `HEAD` only when the spec declares no `## Terminal Intent` and a `spec-plan` start follows a `code` approval; the kill-point tests cover that path, and the other two `start` outcomes, `current` and `attempt-residue`, make no commit and fire no kill point.
+
+## Owner direction: close the deferred nits (2026-10-21)
+
+The owner (eugenelim) directed that the deferred review nits be worked:
+
+- **Kill-on-close in the contract.** AC-0021 now states that the Job Object ends every member when its last handle closes. That a supervisor crash then leaves no launched descendant is an inference from this flag and the job handle being unnamed and non-inheritable; no test ends the supervisor and checks for survivors. The plan's Windows Job Object design already sets `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, and the T1 suite's `test_child_is_in_a_kill_on_close_job_without_breakaway` already asserts the flag on a real Windows host.
+- **`Owned by:` names T5.** T5 also changes the LLD's surfaces (`_supervisor_git.py`, `_supervisor_loop.py`), so the LLD's owner list includes it.
+- **T3 also touched `_supervisor_admission.py`.** T3 is complete, and a completed task's section is not edited by amendment, so this is recorded here instead: T3 builds `ws.attempts` and calls `guard("start")` in `_supervisor_admission.py`, the admission path AC-0004 requires.

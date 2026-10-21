@@ -414,3 +414,27 @@ def test_a_message_preserving_rebase_still_reads_the_supervisor_commits(tmp_path
     after = _view(repo, run_id)
     assert [step for _sha, step in after] == [step for _sha, step in before]
     assert [sha for sha, _step in after] != [sha for sha, _step in before]
+
+
+# ── control-state comparison: unverifiable versus a verified mismatch ───────
+
+_git_module = h.cli._supervisor("_supervisor_git.py")
+
+
+@posix_only
+def test_a_path_that_cannot_be_stated_is_an_unverifiable_control_check(tmp_path: Path) -> None:
+    sealed = tmp_path / "sealed"
+    inner = sealed / "repo.git"
+    inner.mkdir(parents=True)
+    sealed.chmod(0)
+    try:
+        with pytest.raises(_git_module.SupervisorGitError) as caught:
+            _git_module._same(inner, inner)
+    finally:
+        sealed.chmod(0o700)
+    assert caught.value.code == "denied-git-control-state"
+    assert caught.value.unverifiable
+
+
+def test_a_named_path_that_does_not_exist_is_a_verified_mismatch(tmp_path: Path) -> None:
+    assert _git_module._same(tmp_path / "missing", tmp_path) is False
