@@ -272,3 +272,21 @@ finding. Slice 2 scopes readiness to one subject, so readiness is not affected.
 - Registry gained `PRE-APPROVAL`, `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, `terminal`. Engine-state and `DIRECT-LIGHT` entries are untouched.
 - Existing tests changed in `packs/core/tests/skills/work-loop/test_policy_family_registry.py`: `test_selection_map_is_the_declared_mapping` pinned exactly eleven keys, and `test_selection_covers_every_legal_state_plus_the_reserved_token` expected states plus `DIRECT-LIGHT`. Both now include the seven new keys (renamed the second to `..._declared_constants_and_stage_keys`). Added three VI-6040 tests: engine entries unchanged (pinned literals), stage key equals each mapped state, and the full map.
 - Red first: 3 failed before the registry edit.
+
+## Post-gates review round 1
+
+- **Security:** clean after adjudication. All five findings were refuted
+  against the settled spec-stage decisions.
+- **Adversarial and quality-engineer:** three findings were sustained.
+  - Shipped docstrings in `_supervisor_review.py` named an internal delivery
+    slice. They now name the contract or module.
+  - `Selection.latest` had no docstring. It now has one.
+  - The owner's confirmation of two roster roles was not recorded. See below.
+- **Repair receipts:** the controller made the six-line docstring repair
+  itself, as the FIX step allows for a small diagnosis-sized fix. On
+  2026-10-21, eugenelim directed that it stands, so T1–T4 carry
+  `--decline human-directed` dispatch records for this round.
+- **Owner decision, 2026-10-21:** eugenelim confirmed that `design-reviewer`
+  and `quality-engineer` stay `mandatory_when: "selected"` in
+  `review-rules.json`. That is the spec's role obligation: `SKILL.md` allows
+  neither a named skip.
