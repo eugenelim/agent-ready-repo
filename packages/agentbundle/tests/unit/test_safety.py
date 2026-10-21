@@ -115,7 +115,7 @@ def test_write_companion_drops_upstream_file(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# spec AC-0052 (docs/specs/catalogue-sync-apply/spec.md) — the non-replacing
+# AC-0052 — the non-replacing
 # publish selector's DEFAULT must be today's unconditional replace, for both
 # helpers, pinned separately: `write_companion` is a thin forward to
 # `write_jailed`, so a guard written against `write_jailed` alone stays green
@@ -125,7 +125,7 @@ def test_write_companion_drops_upstream_file(tmp_path):
 # selector's default rather than an untested `mode` default. The shipped
 # `test_write_companion_drops_upstream_file` above writes to a path that does
 # not yet exist, so it cannot observe this: it passes unchanged whichever way
-# either default goes. plan.md T4 § Tests.
+# either default goes.
 # ---------------------------------------------------------------------------
 
 
@@ -146,7 +146,7 @@ def test_write_companion_default_replaces_occupied_destination(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# `Publish.NEVER_REPLACE` — spec AC-0070's non-replacing publish mechanism,
+# `Publish.NEVER_REPLACE` — the non-replacing publish mechanism,
 # tested directly at the primitive rather than through the apply path.
 # ---------------------------------------------------------------------------
 
@@ -253,7 +253,7 @@ def test_write_jailed_never_replace_persistent_staged_unlink_failure_stays_typed
 
 
 # ---------------------------------------------------------------------------
-# `Publish.REPLACE_IF_UNCHANGED` — spec AC-0077's rename recheck.
+# `Publish.REPLACE_IF_UNCHANGED` — the rename recheck.
 # ---------------------------------------------------------------------------
 
 

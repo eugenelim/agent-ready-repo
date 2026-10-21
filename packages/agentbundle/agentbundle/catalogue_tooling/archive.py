@@ -39,7 +39,7 @@ def _get_agentbundle_version() -> str:
 
 
 def unit_digest(file_digests: Mapping[str, str], unit_path: str) -> str | None:
-    """Return the unit digest of ``unit_path`` over ``file_digests`` (AC-0001).
+    """Return the unit digest of ``unit_path`` over ``file_digests``.
 
     ``file_digests`` maps archived relative paths to lowercase hex SHA-256.
     If it holds ``unit_path`` exactly, the unit is that one file, named by its
@@ -233,7 +233,7 @@ def _entry_label(kind: str, index: int, item: object) -> str:
 
 
 def _check_unit_entry_fields(label: str, item: dict) -> list[Diagnostic]:
-    """AC-0018: ``path`` and ``digest`` must be strings, and ``digest`` needs ``path``."""
+    """``path`` and ``digest`` must be strings, and ``digest`` needs ``path``."""
     diags: list[Diagnostic] = []
     for field in ("path", "digest"):
         if field in item and not isinstance(item[field], str):
@@ -244,7 +244,7 @@ def _check_unit_entry_fields(label: str, item: dict) -> list[Diagnostic]:
 
 
 def _check_manifest_shape(manifest: dict) -> list[Diagnostic]:
-    """AC-0018 shape checks over ``files``, ``packs`` and ``profiles``; one diagnostic per item."""
+    """Shape checks over ``files``, ``packs`` and ``profiles``; one diagnostic per item."""
     diags: list[Diagnostic] = []
     files = manifest.get("files")
     if isinstance(files, list):
@@ -319,9 +319,9 @@ def _check_manifest_schema(manifest: object) -> list[Diagnostic]:
 
 
 def _check_unit_digests(manifest: dict) -> list[Diagnostic]:
-    """AC-0005: each declared unit ``digest`` must equal the unit digest of its ``path``.
+    """Each declared unit ``digest`` must equal the unit digest of its ``path``.
 
-    Entries without a ``digest`` (legacy manifests) are skipped (AC-0006). Runs only on
+    Entries without a ``digest`` (legacy manifests) are skipped. Runs only on
     manifests that passed ``_check_manifest_schema``, so entries are well typed.
     """
     file_digests = {e["path"]: e["sha256"] for e in manifest["files"]}
@@ -563,7 +563,7 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
 def read_verified_manifest(archive: Path) -> tuple[dict | None, VerifyResult]:
     """Return the manifest of ``archive`` only when ``verify_archive`` passes on it.
 
-    A path that is not a regular file is refused before it is opened (AC-0023).
+    A path that is not a regular file is refused before it is opened.
     The archive is read in memory; nothing is extracted to disk. The manifest is
     ``None`` whenever the returned result is not ok.
     """

@@ -57,7 +57,7 @@ def _is_publishable(pack_dir) -> bool:
     """Mirror of the route's membership predicate for parametrisation.
 
     Derived, not hardcoded: the fixture set changes, and a hardcoded list would
-    silently stop covering a pack. See docs/specs/claude-plugin-route-scope.
+    silently stop covering a pack.
     """
     import sys as _sys
 
@@ -674,7 +674,7 @@ def test_repo_only_packs_are_not_derived(tmp_path, pack_name):
     """A pack whose allowed-scopes omits "user" must not reach this route.
 
     The route installs at user scope, so publishing it would offer an install
-    the pack's own declaration forbids (ADR-0002's refusal contract).
+    the pack's own declaration forbids.
     """
     output_dir = tmp_path / "dist"
     result = _run_build(FIXTURES_PACKS, output_dir)

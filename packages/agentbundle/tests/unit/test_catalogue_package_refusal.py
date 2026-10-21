@@ -1,4 +1,4 @@
-"""Wave 5 same-version refusal (AC-0007)."""
+"""Same-version refusal (AC-0007)."""
 
 from __future__ import annotations
 

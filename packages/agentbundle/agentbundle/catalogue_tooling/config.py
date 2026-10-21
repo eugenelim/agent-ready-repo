@@ -1,11 +1,11 @@
 """catalogue.toml configuration loading and validation.
 
-Implements load_catalogue_config — the entry point Wave 2-4 specs call to
-read the repo's catalogue.toml. All validation logic is here; no business
-logic belongs in this module.
+Implements load_catalogue_config — the entry point the catalogue
+commands call to read the repo's catalogue.toml. All validation logic is
+here; no business logic belongs in this module.
 
 Validation order:
-  1. JSON Schema (structural) via agentbundle.build.validate (Assumption 2)
+  1. JSON Schema (structural) via agentbundle.build.validate
   2. Business rules — symlink escape, credentials, version comparability, etc.
 
 Python 3.11 stdlib only.
@@ -287,7 +287,7 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     except tomllib.TOMLDecodeError as exc:
         raise CatalogueConfigError(f"catalogue.toml: TOML parse error: {exc}") from exc
 
-    # --- Step 1: JSON Schema structural validation (Assumption 2) ---
+    # --- Step 1: JSON Schema structural validation ---
     _apply_schema_validation(raw)
 
     # --- Step 2: Business rules beyond schema ---

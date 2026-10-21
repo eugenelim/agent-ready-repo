@@ -159,6 +159,19 @@ def report_review(role: str, subject: dict[str, Any], sequence: int) -> dict[str
     }
 
 
+def select_none(request: dict[str, Any], selected: tuple[str, ...] = ()) -> dict[str, Any]:
+    """A selection answering a selection request: *selected* roles, all others omitted."""
+    return {
+        "selected": [r for r in request["candidates"] if r in selected],
+        "omitted": [
+            {"role": r, "reason": "the change does not reach this lens"}
+            for r in request["candidates"]
+            if r not in selected
+        ],
+        "authority_ref": "controller:0123456789ab",
+    }
+
+
 def assessment(request: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": 1,
@@ -227,6 +240,8 @@ class Controller:
             result["criteria"] = [
                 {"criterion_ref": ac, "outcome": "pass"} for ac in request["criteria"]
             ]
+        elif kind == "review-role" and "candidates" in request:
+            result["selection"] = select_none(request)
         elif kind == "review-role":
             sequence = int(request["request_id"].rsplit(":", 1)[1])
             result["report"] = report_review(request["role"], request["review_subject"], sequence)

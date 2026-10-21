@@ -254,7 +254,7 @@ def _read_install_marker_template() -> bytes:
 def _project_pack_readme(pack_path: Path, per_pack_output: Path) -> None:
     """Copy a pack's ``README.md`` into its per-pack dist route, if present.
 
-    enriched-pack-manifest T5: the README is the sole portable per-pack doc,
+    The README is the sole portable per-pack doc,
     and the manifest's ``readme = "README.md"`` pointer resolves relative to
     the route directory. A pack without a README projects none and does not
     error (the ``readme`` field is then simply absent / unresolved — never a
@@ -326,7 +326,7 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
     the output only when its source field is present and non-empty, so a
     legacy ``pack.toml`` declaring none of the enriched fields yields ``{}``
     and the projected manifest is byte-identical to the pre-enrichment output
-    (legacy-invariance AC). This is a pure function — no I/O, no schema read.
+    (legacy invariance). This is a pure function — no I/O, no schema read.
     """
     pack = pack_toml.get("pack", {})
     if not isinstance(pack, dict):
@@ -1683,20 +1683,20 @@ def _discover_packs_confined(packs_dir: Path) -> list[Pack]:
 
 
 # ---------------------------------------------------------------------------
-# Claude-plugin route membership (docs/specs/claude-plugin-route-scope)
+# Claude-plugin route membership
 #
 # The route is a user-scope distribution channel: a plugin's code always lives
 # in the adopter's global cache, and `claude plugin install` defaults to
 # `--scope user`. A pack declaring `allowed-scopes = ["repo"]` therefore forbids
 # the only install this route offers, and publishing it contradicts the refusal
-# contract ADR-0002 defines. One predicate decides membership; every writer that
+# contract for scope-restricted packs. One predicate decides membership; every writer that
 # can publish calls it.
 # ---------------------------------------------------------------------------
 
 def is_publishable(pack_meta: dict, *, slug: str) -> bool:
     """Does this pack belong on the Claude-plugin route?
 
-    Three conditions, all required (spec § The derived set):
+    Three conditions, all required:
 
     1. the slug is not underscore-prefixed (reserved authoring asset);
     2. — checked by the caller, which knows whether `.claude-plugin/plugin.json`
@@ -1846,7 +1846,7 @@ def validate_pack_uniqueness(pack: Pack) -> None:
     """Raise if a pack has two primitives with the same local name.
 
     The local name is the stem for most primitives, except `hooks` where
-    `.sh` and `.py` are both legal (the spec § Hook extensions makes both
+    `.sh` and `.py` are both legal (both are
     valid in `packs/<pack>/.apm/hooks/`) — so for hooks we key by the
     full filename so `baz.sh` and `baz.py` coexist.
     """
@@ -1912,7 +1912,7 @@ def run_recipe(
 
     `aggregate_scope` is required and has no default: it decides whether a
     pack skipped on the claude-plugins route is announced. A catalogue build
-    names every exclusion (AC1); a single-pack render stays silent, because
+    names every exclusion; a single-pack render stays silent, because
     that is the flagship *successful* repo-scope path — `agentbundle install
     --pack core` — and a route refusal there reads as an error on a command
     that worked. A default would let `render_packs_to_dir` and `cmd_build
@@ -2071,7 +2071,7 @@ def _run_per_pack_adapter(context: _PerPackRouteContext) -> dict[str, Any]:
         if not pack_is_publishable(pack.path):
             # Route membership, not an error: a repo-only pack forbids the only
             # install this route offers. Named on stderr so an exclusion is
-            # never silent (spec § AC1, AC3).
+            # never silent.
             if aggregate_scope == "catalogue":
                 # Catalogue builds name every exclusion. A single-pack render —
                 # which is what `agentbundle install --pack core` and every
@@ -2274,7 +2274,7 @@ def _run_per_pack_single(
     if pack_toml_src.exists():
         shutil.copy2(pack_toml_src, per_pack_output / "pack.toml", follow_symlinks=False)
 
-    # enriched-pack-manifest T5: project the pack's README.md into the route so
+    # Project the pack's README.md into the route so
     # the manifest's `readme = "README.md"` pointer resolves. The README is the
     # sole portable per-pack doc. follow_symlinks=False mirrors the pack.toml
     # copy's posture (a symlinked README is not dereferenced into dist/).
@@ -2352,7 +2352,7 @@ def _run_per_pack_apm(
                 follow_symlinks=False,
             )
 
-        # enriched-pack-manifest T5: project the pack's README into the APM
+        # Project the pack's README into the APM
         # route too (the sole portable per-pack doc; same posture as above).
         _project_pack_readme(pack.path, per_pack_output)
 
@@ -2451,7 +2451,7 @@ def _run_aggregate(
     Membership is resolved from the **source** tree (`packs/<slug>/pack.toml`),
     never from the projected copy under `dist/`: `make build` has no dependency
     on `clean`, so a stale dist directory carries the *old* declaration and
-    would republish contrary to the pack's current intent (spec § AC4).
+    would republish contrary to the pack's current intent.
     """
     input_subdir = (
         resolved_route.output_subdir
@@ -2528,7 +2528,7 @@ def _run_aggregate(
     # Every surviving entry must agree. Taking the FIRST match let a filtered
     # set silently re-key the marketplace to whichever pack happened to sort
     # first — identity derived from pack-supplied metadata, decided by an
-    # unrelated membership change. Refuse on disagreement instead (spec AC7).
+    # unrelated membership change. Refuse on disagreement instead.
     identities: set[tuple[str, str]] = set()
     for entry in entries:
         src = entry.get("source")
@@ -2590,7 +2590,7 @@ def _run_aggregate(
     # single-pack render of a repo-only pack is a *successful* `agentbundle
     # install --pack core`, and announcing an empty marketplace there reads as
     # an error on a command that worked. Round thirteen added this warning
-    # ungated and regressed AC12's single-pack silence.
+    # ungated and regressed the single-pack silence.
     if aggregate_scope == "catalogue" and source_by_name and not entries:
         print(_empty_marketplace_warning(excluded + stale), file=sys.stderr)
     output_path.write_text(

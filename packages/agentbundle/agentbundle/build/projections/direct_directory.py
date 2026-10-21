@@ -24,8 +24,7 @@ def ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
     dropping every symlink, two dropping only absolute targets — which is what
     six copies of one rule does.
 
-    The surviving policy is pass-through, because
-    `docs/specs/codex-native-skills/spec.md` states it as the invariant:
+    The surviving policy is pass-through, because the invariant is:
     "the symlink-pass-through is the path-traversal-safety invariant; never
     resolve a symlink to its target at projection time". Resolving is what
     materialises a target's bytes into the output; preserving the link does not,

@@ -34,9 +34,8 @@ Three concerns:
      layout differs per adapter (``.claude/`` vs ``.kiro/`` vs
      ``.agents/skills/`` vs ``.github/skills/``) and the
      orphan-recovery scanner's per-pack heuristic interacts
-     differently with each shape. Per AGENTS.local.md § "Install-test
-     coverage rule", install-handler tests must fan out across all
-     four shipped adapters; adapter-specific gaps are pinned
+     differently with each shape. Install-handler tests must fan out across
+     all four shipped adapters; adapter-specific gaps are pinned
      explicitly as their own tests rather than silently elided.
 
 Per-adapter projection geometry:

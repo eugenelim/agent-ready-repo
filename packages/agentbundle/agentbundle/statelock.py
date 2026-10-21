@@ -267,7 +267,7 @@ def persist_state_locked(
         state = config.load_state(state_path, for_write=True)
         existing_version = state.schema_version
         mutate(state)
-        # AC12: the floor is computed against the state re-read *inside* the
+        # The floor is computed against the state re-read *inside* the
         # lock, never a pre-lock snapshot. A concurrent run that raised the file
         # to 0.5 between our read and our write would otherwise be silently
         # downgraded back to 0.4 by this write, stranding its direct rows.

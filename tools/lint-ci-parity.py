@@ -599,6 +599,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest skill HTML view token file agreement (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest agentbundle shipped governance markers (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
@@ -1081,6 +1083,7 @@ _GATE_MAIN_CHECKS = (
     "pytest T9a clean-environment fence (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
     "pytest skill HTML view token file agreement (roster-owned)",
+    "pytest agentbundle shipped governance markers (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
@@ -1619,6 +1622,14 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),
     'tools/test_build_site_sidebar.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_build_a_catalogue_nav.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_schema_field_reference.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),

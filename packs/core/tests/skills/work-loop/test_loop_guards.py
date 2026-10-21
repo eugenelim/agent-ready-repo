@@ -48,6 +48,7 @@ _SCRIPT_PATHS = {
     "_loop_guards.py": SCRIPTS / "_loop_guards.py",
     "_statelock.py": SCRIPTS / "_statelock.py",
     "lint-spec-status.py": SCRIPTS / "lint-spec-status.py",
+    "review-artifact.py": SCRIPTS / "review-artifact.py",
 }
 
 
@@ -1456,8 +1457,10 @@ def test_a_newly_bounded_read_refuses_and_says_why(tmp_path: Path) -> None:
     """
     scripts = tmp_path / "scripts"
     scripts.mkdir()
+    # `review-artifact.py` is a sibling `loop-cohort.py` loads: report
+    # classification moved there, so the report reader below needs it beside it.
     for name in ("loop-cohort.py", "_loop_guards.py", "_statelock.py",
-                 "lint-spec-status.py"):
+                 "lint-spec-status.py", "review-artifact.py"):
         (scripts / name).write_bytes(_script(name).read_bytes())
     (tmp_path / "assets").mkdir()
     template = tmp_path / "assets" / "state.json"

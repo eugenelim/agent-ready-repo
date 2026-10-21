@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.53.2
+
+Error messages from `install` and from `.adapt-discovery.toml` loading state
+their rule directly instead of citing internal design records. The legacy
+layout notices now say `legacy dist-tree`. Exit codes are unchanged.
+
 ## What's new in 0.53.1
 
 `agentbundle catalogue init` now writes a root `AGENTS.md` and a `CLAUDE.md`, so

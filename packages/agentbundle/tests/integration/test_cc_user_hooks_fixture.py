@@ -7,7 +7,7 @@ construct wiring data in-memory; this test reads the fixture's actual
 ``tomllib``, and runs the merger end-to-end against a ``tmp_path``-
 scoped ``~/.claude/settings.json``.
 
-Per spec § Boundaries — *Never do* — no live writes to
+No live writes to
 ``~/.claude/`` outside ``tmp_path``. ``$HOME`` is redirected via
 ``patch.dict(os.environ, {"HOME": tmp})`` for the duration of each
 test; the assertion target is the tmp-scoped settings file.

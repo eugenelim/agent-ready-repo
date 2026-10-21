@@ -1,7 +1,7 @@
 """Shared result and diagnostic types for catalogue_tooling commands.
 
 These types are the stable contract between all catalogue_tooling modules.
-Wave 2-4 specs populate the logic; this module defines the shape.
+This module defines the shape; the command modules supply the logic.
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ PKG_REFUSED_CODE = "CAT-PKG-002"
 
 @dataclass
 class PackageResult(CommandResult):
-    # Release comparison (AC-0013 ``comparison`` object); None without --compare.
+    # Release comparison (the ``comparison`` object); None without --compare.
     comparison: dict | None = None
 
 

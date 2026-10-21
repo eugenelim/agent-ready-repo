@@ -12,7 +12,7 @@ Coverage:
   ``adapter_root_bins``).
 - The projection/drift/orphan API is **retired** — a guard test fails
   loudly if it is reintroduced.
-- Standing real-tree invariants (spec AC): no shim copy remains under any
+- Standing real-tree invariants: no shim copy remains under any
   consumer ``scripts/``, and the shim *source* is retained for the
   ``sso-broker`` companion rail.
 """

@@ -245,7 +245,8 @@ _RESERVED_BASES: dict[str, str] = {
 def test_a_reserved_character_never_widens_the_staged_set(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, item_type: str, character: str
 ) -> None:
-    """AC-0004's outcome, which two independent mechanisms now guarantee.
+    """A base containing `*` never widens staging; two independent mechanisms
+    now guarantee that.
 
     This was the suite's original red: a base of `docs/*` reached the scope
     grammar and staged every uncommitted file under `docs/`. It no longer
@@ -419,7 +420,8 @@ def test_a_refused_base_leaves_the_sibling_git_tools_working(
 def test_a_reserved_character_normalised_away_by_resolution_is_still_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC-0002 is about the value the adopter configured. `scratch*/../artifacts`
+    """The reserved-character screen is about the value the adopter configured.
+    `scratch*/../artifacts`
     contains `*` and resolves to `artifacts`, so a screen over the resolved base
     reads a path the adopter never wrote and lets this one through."""
     repo = tmp_path / "repo"
@@ -675,8 +677,8 @@ def test_a_star_the_base_resolves_through_is_not_pattern_syntax(
     literally named `*`, collapsed the scope's static root to the repository
     root and staged every changed file in it.
 
-    AC-0002 cannot help here and should not try — `out` carries no reserved
-    character, and AC-0001 requires it to keep working. The fix is that the
+    The reserved-character screen cannot help here and should not try — `out`
+    carries no reserved character, and it must keep working. The fix is that the
     split point never reads a character the base contributed.
 
     The mid-segment sibling of this case (a repository directory named
@@ -755,8 +757,9 @@ def test_braces_the_base_resolves_through_are_not_substitution_syntax(
     `{slug}`, had its own resolved base rewritten by the `{slug}` substitution —
     so the scope named `<repo>/alpha/actual` while the adopter's directory was
     `<repo>/{slug}/actual`. That staged a file outside the configured directory
-    and left the file inside it unstaged, breaking AC-0004 and AC-0001 at once.
-    AC-0002 cannot reach it: `out` carries no reserved character.
+    and left the file inside it unstaged, breaking staging confinement and ordinary-base staging at once.
+    The reserved-character screen cannot reach it: `out` carries no reserved
+    character.
 
     Both entry kinds run, because one line feeds the exact-file entry and the
     wildcard static root alike.
@@ -799,8 +802,8 @@ def test_a_base_carrying_pathspec_magic_stages_the_file_it_reports(
     the configured directory, and the tool's own answer disagreed with the
     repository — which is worse than a refusal, because nothing looks wrong.
 
-    AC-0002 cannot reach this: `:(glob)artifacts` carries none of the five
-    reserved characters, and AC-0001 requires it to keep staging.
+    The reserved-character screen cannot reach this: `:(glob)artifacts` carries
+    none of the five reserved characters, and it must still keep staging.
     """
     repo = tmp_path / "repo"
     _seed_repo(repo)

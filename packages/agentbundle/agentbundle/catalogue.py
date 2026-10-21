@@ -129,7 +129,7 @@ def resolve_git_ref(uri: str) -> str | None:
 
     A missing ``@<ref>`` suffix resolves to ``"main"`` — the same default
     ``_resolve_https`` fetches against, so this is the one parse both the
-    fetch and the AC-0037 pin read, rather than two parses that could
+    fetch and the pin read, rather than two parses that could
     disagree. A local path and the digest-bearing ``archive+https://`` and
     ``catalogue+https://`` schemes don't name a ref at all, so each of those
     resolves to ``None``.

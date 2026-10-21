@@ -167,7 +167,7 @@ class AllowedScopesOmittedTests(unittest.TestCase):
     """Row 4: omitting allowed-scopes is accepted.
 
     The implied `allowed-scopes = [default-scope]` is a CLI consumption-time
-    behaviour (per § *Install-scope dimension*); the schema simply does not
+    behaviour; the schema simply does not
     require the field.
     """
 
@@ -232,9 +232,8 @@ version = "0.1.0"
         """A v0.1 pack carrying a stray [pack.install] table is accepted.
 
         The schema must not validate the install table when the pack declares
-        an older contract version; CLI consumption ignores the table per
-        § *Install-scope dimension*. As long as the rest of the pack is
-        well-formed, the pack is accepted.
+        an older contract version; CLI consumption ignores the table. As long
+        as the rest of the pack is well-formed, the pack is accepted.
         """
         from agentbundle.build.validate import validate
 

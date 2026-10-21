@@ -43,8 +43,8 @@ from agentbundle.safety import write_jailed
 
 MANIFESTLESS_VERSION_SENTINEL = "0.0.0"
 
-# Family-2 limits are deliberately module constants.  The corpus fixture and
-# AC36 harness import them, so a bound change cannot silently leave either
+# Family-2 limits are deliberately module constants. The corpus fixture and
+# harness import them, so a bound change cannot silently leave either
 # evidence source measuring an old value.
 DIRECT_MAX_ENTRIES = 2_500
 DIRECT_MAX_DEPTH = 12
@@ -187,7 +187,7 @@ def probe_measured_path(root: Path, relative: str, *, directory: bool) -> Measur
 
 
 def read_root_manifest(root: Path) -> MeasuredFile | None:
-    """AC15's single confined read of a root `pack.toml`, exposed for routing.
+    """The single confined read of a root `pack.toml`, exposed for routing.
 
     The CLI has to know whether a `pack.toml` declares the top-level `schema`
     that marks a direct manifest before it can choose a route, and it was
@@ -196,7 +196,7 @@ def read_root_manifest(root: Path) -> MeasuredFile | None:
     arbitrarily large publisher file before any bound applied.
 
     Reading through this function instead means the observation is the same
-    single measured read AC15 governs. The caller passes the result back into
+    single measured read the route allows. The caller passes the result back into
     :func:`validate_direct_source`, so the manifest is opened exactly once on
     the route, not once for routing and again during admission.
     """
@@ -281,7 +281,7 @@ def classify_direct_source(
         # separately, the root-collection shape could consume 2,500 root children
         # and then 2,500 walked entries while reporting only the second figure,
         # while the `skills/` shape counts its envelope directories in the one
-        # budget. AC33 requires entries to accumulate across every enumerated
+        # budget. Entries must accumulate across every enumerated
         # directory.
         return _inventory_collection(
             root,
@@ -298,7 +298,7 @@ def root_skill_folders(root: Path) -> tuple[str, ...]:
     """The child directory names of *root* that carry a `SKILL.md`.
 
     Probed through the marker primitive rather than a bare walk, so a link-like
-    or wrong-type child refuses through AC34 instead of being followed.
+    or wrong-type child refuses instead of being followed.
     """
 
     return _root_skill_folders_with_entries(root)[0]
@@ -342,7 +342,7 @@ def _root_skill_folders_with_entries(root: Path) -> tuple[tuple[str, ...], int]:
 
 
 # Set by acquisition for a remote source, so a root-single takes the repository
-# name rather than the archive's `<repo>-<ref>` wrapper directory. AC1/E17: the
+# name rather than the archive's `<repo>-<ref>` wrapper directory. The
 # wrapper encodes the commit, so using it would change the installed identity on
 # every upgrade — the instability that argued for the frontmatter name before
 # the corpus ruled that out.
@@ -469,7 +469,7 @@ def _inventory_collection(
     _enforce_unique_skill_names(skills)
     named_files: tuple[MeasuredFile, ...] = ()
     if has_pack:
-        # Re-read only when the caller did not already observe it. AC15 allows
+        # Re-read only when the caller did not already observe it. The route allows
         # exactly one read per direct file across the whole route, and the
         # validate router observes this one before admission runs.
         named_files = (pack_toml or _read_named(root, root / "pack.toml"),)
@@ -557,8 +557,8 @@ def _build_envelopes(
     # `relative_to` calls, which measured 27.7s. Walking parents is bounded by
     # the depth budget instead, and measures 0.05s on the same shape.
     envelope_set = set(by_envelope)
-    # AC1: refuse a nested envelope rather than admitting both. AC2 makes a
-    # child holding `SKILL.md` an envelope, so it cannot also be a category of
+    # Refuse a nested envelope rather than admitting both. A
+    # child holding `SKILL.md` is an envelope, so it cannot also be a category of
     # its parent — the structure is ambiguous, and the two readings install
     # different things. Bucketing to the nearest envelope stops the inner
     # skill's files from being counted and installed twice, but that resolves
@@ -764,7 +764,7 @@ def _enforce_files(count: int) -> None:
 def _enforce_unique_skill_names(skills: tuple[DirectSkill, ...]) -> None:
     """Refuse duplicate leaf identities before selection or projection."""
 
-    # AC11 compares NFC-normalized, case-folded names rather than raw ones. A
+    # Names are compared NFC-normalized and case-folded rather than raw. A
     # case-insensitive filesystem collapses `Alpha` and `alpha` onto one
     # directory, so admitting both installs one skill over the other silently.
     seen: dict[str, DirectSkill] = {}
@@ -901,7 +901,7 @@ def _refusal(
 
 
 def enforce_logical_path(relative: str, root: Path) -> None:
-    """Refuse a logical path segment AC14 forbids, before anything reads it.
+    """Refuse a logical path segment the path rules forbid, before anything reads it.
 
     Three classes, all checked before enumeration, digest, normalization, or
     diagnostic emission, because each one reaches a sink that cannot render it
@@ -1129,18 +1129,18 @@ def validate_direct_source(
 ) -> DirectAdmission:
     """Admit a direct source without raising: the shared validate/install seam.
 
-    AC14 requires validation and install preflight to yield *identical*
+    Validation and install preflight must yield *identical*
     diagnostics.  The cheapest way to guarantee that is for neither to own a
     check: both call this, and it is the only place `admit_direct_source`'s
     refusal is turned into a reportable result.  A second implementation on the
     install side would agree on the day it was written and drift silently
-    afterwards, which is precisely the failure AC14 names.
+    afterwards, which is precisely the failure this seam prevents.
     """
 
     try:
         classification = admit_direct_source(root, pack_toml=pack_toml)
     except DirectAdmissionError as exc:
-        # AC27 requires an offending path on every refusal. A raise site that
+        # Every refusal must carry an offending path. A raise site that
         # knows a more specific path supplies it; the rest describe the source
         # as a whole, so the source stands in rather than a null reaching the
         # reader. Before a root exists this is the validated source string,
@@ -1161,7 +1161,7 @@ def validate_direct_source(
 def recovery_command(*parts: str) -> str:
     """Build a printed recovery command with every interpolated value quoted.
 
-    AC11 requires shell-quoting for *every* interpolated value — publisher
+    Shell-quoting is required for *every* interpolated value — publisher
     strings, source strings, and paths alike — because a recovery command is
     text a reader is invited to paste into a shell.  A publisher-chosen skill
     name containing a space, a quote, or a `;` is otherwise a command the

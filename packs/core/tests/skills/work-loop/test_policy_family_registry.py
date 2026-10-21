@@ -6,7 +6,7 @@ so it lives in `tests/roster/test_policy_family_selector.py` instead, which is
 what `pack-tests-stay-in-pack` requires.
 """
 
-# STUB: AC3 — the selection map is exactly the declared eleven-key mapping
+# STUB: AC3 — the selection map is exactly the declared eighteen-key mapping
 # Stored and validated in PLAN's T1 Tests: subsection. The literal mapping is
 # the durable contract surface: it is what fails when a registry keeps every
 # key and selects nothing.
@@ -30,22 +30,58 @@ def _registry_block() -> dict:
     return json.loads(match.group(1))
 
 
+# Pinned engine-state entries, as they stood before the stage keys landed.
+ENGINE_STATE_SELECTION = {
+    "SPEC-PLAN-DRAFTING": AUTHORING,
+    "SPEC-PLAN-REVIEW": AUTHORING,
+    "CODE-IMPLEMENTATION": IMPLEMENTING,
+    "CODE-VERIFICATION": IMPLEMENTING,
+    "CODE-REVIEW": IMPLEMENTING,
+    "SPEC-HUMAN-GATE": [],
+    "PLAN-HUMAN-GATE": [],
+    "SPEC-PLAN-APPROVED": [],
+    "CODE-HUMAN-GATE": [],
+    "DONE": [],
+}
+
+# Supervisor stage key -> the engine states it replaces.
+STAGE_KEYS = {
+    "PRE-APPROVAL": ["SPEC-PLAN-DRAFTING", "SPEC-PLAN-REVIEW"],
+    "admitted": ["SPEC-PLAN-APPROVED"],
+    "implementing": ["CODE-IMPLEMENTATION"],
+    "gating": ["CODE-VERIFICATION"],
+    "reviewing": ["CODE-REVIEW"],
+    "awaiting-human": ["SPEC-HUMAN-GATE", "PLAN-HUMAN-GATE", "CODE-HUMAN-GATE"],
+    "terminal": ["DONE"],
+}
+
+
 def test_selection_map_is_the_declared_mapping():
+    """VI-6040: engine entries, DIRECT-LIGHT, and the stage keys, exactly."""
     selection = _registry_block()["selection"]
 
-    assert selection == {
-        "SPEC-PLAN-DRAFTING": AUTHORING,
-        "SPEC-PLAN-REVIEW": AUTHORING,
-        "CODE-IMPLEMENTATION": IMPLEMENTING,
-        "CODE-VERIFICATION": IMPLEMENTING,
-        "CODE-REVIEW": IMPLEMENTING,
-        "DIRECT-LIGHT": IMPLEMENTING,
-        "SPEC-HUMAN-GATE": [],
-        "PLAN-HUMAN-GATE": [],
-        "SPEC-PLAN-APPROVED": [],
-        "CODE-HUMAN-GATE": [],
-        "DONE": [],
-    }
+    expected = dict(ENGINE_STATE_SELECTION)
+    expected["DIRECT-LIGHT"] = IMPLEMENTING
+    for key, states in STAGE_KEYS.items():
+        expected[key] = ENGINE_STATE_SELECTION[states[0]]
+    assert selection == expected
+
+
+def test_vi_6040_engine_state_entries_are_unchanged():
+    """VI-6040: every engine-state entry equals its pinned pre-change value."""
+    selection = _registry_block()["selection"]
+
+    for state, families in ENGINE_STATE_SELECTION.items():
+        assert selection[state] == families, state
+
+
+def test_vi_6040_every_stage_key_selects_what_its_engine_states_select():
+    """VI-6040: selection by a mapped key equals selection by each of its states."""
+    selection = _registry_block()["selection"]
+
+    for key, states in STAGE_KEYS.items():
+        for state in states:
+            assert selection[key] == selection[state], (key, state)
 
 
 # --- EXECUTE fill -------------------------------------------------------------
@@ -110,7 +146,7 @@ def _fsm_states() -> set[str]:
     return states
 
 
-def test_selection_covers_every_legal_state_plus_the_reserved_token():
-    expected = _fsm_states() | {"DIRECT-LIGHT"}
+def test_selection_covers_every_legal_state_plus_the_declared_constants_and_stage_keys():
+    expected = _fsm_states() | {"DIRECT-LIGHT"} | set(STAGE_KEYS)
 
     assert set(_registry_block()["selection"]) == expected

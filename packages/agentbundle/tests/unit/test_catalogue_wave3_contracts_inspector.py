@@ -164,7 +164,7 @@ class TestExportContracts:
     def test_accepts_symlinked_ancestor(self, tmp_path: Path) -> None:
         """A symlinked *ancestor* must not block export.
 
-        AC9 scopes link refusal to the output directory itself and to
+        Link refusal is scoped to the output directory itself and to
         existing destinations. Refusing ancestors too breaks ordinary
         paths: /tmp is a symlink to private/tmp on macOS, and a symlinked
         $HOME or checkout does the same on Linux.

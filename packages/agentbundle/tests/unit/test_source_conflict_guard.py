@@ -1,4 +1,4 @@
-"""Tests for spec/source-conflict-install-guard.
+"""Tests for the install guard that refuses a conflicting pack source.
 
 Unit tests call _check_source_conflict directly (pure function, no I/O).
 Integration tests drive install.run() with a minimal args namespace.

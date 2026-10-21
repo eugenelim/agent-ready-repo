@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import sidebarConfig from './src/sidebar-config.json';
+import buildACatalogueNav from './src/build-a-catalogue-nav.json';
 import { visit } from 'unist-util-visit';
 import { rehypeScrollableTables } from './src/plugins/rehype-scrollable-tables';
 import { rehypeChatTurns } from './src/plugins/rehype-chat-turns';
@@ -200,47 +201,9 @@ export default defineConfig({
               .sort((a, b) => a.label.localeCompare(b.label)),
           ],
         },
-        {
-          label: 'Author',
-          items: [
-            { label: 'Author a skill', slug: 'guides/_shared/how-to/author-a-skill' },
-            { label: 'Author a subagent', slug: 'guides/catalogue-curation/tutorials/your-first-subagent' },
-            { label: 'Build a pack', slug: 'guides/_shared/how-to/build-an-org-stack-pack' },
-            { label: 'Design a profile', slug: 'guides/_shared/how-to/design-a-profile' },
-            { label: 'Write a pack journey', slug: 'guides/_shared/how-to/pack-journey-authoring' },
-            { label: 'Add credentials to a skill', slug: 'guides/credential-brokers/how-to/add-a-credentialed-skill' },
-            {
-              label: 'Reference',
-              items: [
-                { label: 'Pack config API', slug: 'guides/_shared/reference/pack-config-api' },
-                { label: 'Skill authoring standards', slug: 'guides/_shared/reference/skill-authoring-standards' },
-                { label: 'Skill script conventions', slug: 'guides/_shared/reference/skill-script-conventions' },
-                { label: 'Skill UX patterns', slug: 'guides/_shared/reference/skill-ux-patterns' },
-                { label: 'Catalogue authoring standards', slug: 'guides/_shared/reference/catalogue-authoring-standards' },
-                { label: 'Credentialed skill walkthrough', slug: 'guides/credential-brokers/reference/credentialed-skill-walkthrough' },
-              ],
-            },
-          ],
-        },
-        {
-          label: 'Catalogue System',
-          items: [
-            { label: 'How a catalogue works', slug: 'guides/_shared/how-to/create-a-catalogue' },
-            { label: 'Configure catalogue.toml', slug: 'guides/_reference/catalogue-format' },
-            { label: 'Set enterprise defaults', slug: 'guides/_shared/how-to/configure-catalogue-enterprise-distribution' },
-            { label: 'Host on Artifactory', slug: 'guides/_shared/how-to/create-a-self-hosted-catalogue' },
-            { label: 'Roll out across an enterprise', slug: 'guides/_shared/how-to/roll-out-agent-ready-repo-across-an-enterprise' },
-            { label: 'Import and curate skills', slug: 'guides/catalogue-curation/how-to/survey-a-repo' },
-            {
-              label: 'Reference',
-              items: [
-                { label: 'Catalogue CI contract', slug: 'guides/_shared/reference/catalogue-ci-contract' },
-                { label: 'Artifactory distribution', slug: 'guides/_shared/reference/artifactory-catalogue-distribution' },
-                { label: 'Ledger and guard', slug: 'guides/catalogue-curation/reference/ledger-and-guard' },
-              ],
-            },
-          ],
-        },
+        // The Build a Catalogue tab: the ten D9 routes of RFC 0076, kept in JSON
+        // so tools/test_build_a_catalogue_nav.py can read the same tree.
+        buildACatalogueNav,
       ],
     }),
   ],

@@ -1,4 +1,4 @@
-"""Wave 5 unit digest verification in verify_archive (AC-0005)."""
+"""Unit digest verification in verify_archive (AC-0005)."""
 
 from __future__ import annotations
 
