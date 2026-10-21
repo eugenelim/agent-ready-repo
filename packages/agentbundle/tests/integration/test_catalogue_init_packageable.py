@@ -151,3 +151,15 @@ def test_changed_nested_guidance_file_still_conflicts(tmp_path: Path) -> None:
         assert not result.ok, rel
         assert any(d.code == "CAT-INIT-007" and d.path == rel for d in result.diagnostics), rel
         assert _snapshot(target) == before, rel
+
+
+def test_name_with_trailing_newline_is_refused(tmp_path: Path) -> None:
+    """`$` matches before a final newline, so the name check must be a full match."""
+    from agentbundle.catalogue_tooling.initialise import init_catalogue
+
+    target = tmp_path / "cat"
+    result = init_catalogue(target=target, name="foo\n")
+
+    assert not result.ok
+    assert [d.code for d in result.diagnostics] == ["CAT-INIT-003"]
+    assert not target.exists()

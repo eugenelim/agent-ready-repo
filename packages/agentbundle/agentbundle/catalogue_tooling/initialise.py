@@ -79,7 +79,7 @@ def _derive_name(basename: str) -> str | None:
     cleaned = _UNSAFE_NAME_CHARS_RE.sub("-", basename.lower())
     # Collapse multiple dashes, strip leading/trailing dashes
     cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
-    if _SAFE_NAME_RE.match(cleaned):
+    if _SAFE_NAME_RE.fullmatch(cleaned):
         return cleaned
     return None
 
@@ -219,7 +219,7 @@ def resolve_metadata(
     # --- name ---
     resolved_name: str
     if name:
-        if not _SAFE_NAME_RE.match(name):
+        if not _SAFE_NAME_RE.fullmatch(name):
             errors.append(
                 f"--name {name!r} is not a valid catalogue name. "
                 "Use only letters, digits, hyphens, and underscores, "
