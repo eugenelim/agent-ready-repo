@@ -492,7 +492,7 @@ def test_entry_integrity_refusal_names_its_path_and_is_not_a_budget(tmp_path: Pa
         admit_direct_source(root)
     diagnostic = raised.value.diagnostic
     assert diagnostic.code == "CAT-D009", "integrity refusal, never a budget code"
-    assert diagnostic.path, "a budget refusal carries the offending path as data"
+    assert diagnostic.path, "an entry-integrity refusal carries its offending path as data"
     assert "link.py" in diagnostic.path
 
 

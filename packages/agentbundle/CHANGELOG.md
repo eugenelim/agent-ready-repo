@@ -14,7 +14,8 @@ breaking.
   `install --force` removal notice and the `install` refusal name the
   `legacy dist-tree` layout; the `--emit-install-routes` refusal at
   `--scope local` states the plugins-route reason; the `.adapt-discovery.toml`
-  refusals end at the rule they enforce. Exit codes are unchanged.
+  refusals end at the rule they enforce; and `pack evals` refuses a GUI-only
+  adapter without a spec-section pointer. Exit codes are unchanged.
 - Comments and docstrings in the engine, and the shipped test suite, no longer
   cite internal design-record ordinals, acceptance criteria or spec paths; each
   states its rule instead. Test comments keep bare criterion labels as tags.

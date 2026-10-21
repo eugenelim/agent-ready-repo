@@ -1,4 +1,4 @@
-"""Tests for the install first-value handoff block (spec/agentbundle-first-value-handoff).
+"""Tests for the install first-value handoff block.
 
 Part 1: Unit tests for `_emit_first_value_handoff` directly — pure function,
 no install pipeline needed.

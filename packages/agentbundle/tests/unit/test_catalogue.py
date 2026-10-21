@@ -1,4 +1,4 @@
-"""``resolve_git_ref`` — spec/catalogue-sync-apply T1.
+"""``resolve_git_ref`` reads the ref a ``git+https://`` URI names.
 
 The ``git+https://`` row records the ref the URI names, or ``"main"``
 when none is given. This module asserts that value is readable without a

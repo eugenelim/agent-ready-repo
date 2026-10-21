@@ -1,8 +1,8 @@
-"""Red stubs for spec/claude-plugins-manifest-correctness.
+"""Contract tests for Claude-plugin manifest and marketplace-entry correctness.
 
-Materialised at PLAN per the spec-and-plan contract reference § Stub → EXECUTE handoff. Every
-test here asserts a contract surface the spec's Acceptance Criteria determine;
-none is a bare TODO. They are expected to FAIL until their task lands.
+Written as red stubs before the implementation. Every test here asserts a
+contract surface of the plugin manifest or marketplace entry; none is a bare
+TODO. They are expected to FAIL until their task lands.
 
 Task map:
   T0   marketplace entries are validated, on both paths

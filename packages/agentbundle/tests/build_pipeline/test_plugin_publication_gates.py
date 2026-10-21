@@ -19,8 +19,9 @@ from agentbundle.build.lint_packs import lint_pack
 
 from tests._support import cli_namespace
 
-# The command surface this change partitions. Six derive the per-pack-claude-plugin
-# recipe through `render_pack` and change by design; the rest must not.
+# The command surface, partitioned by whether it reaches `render_pack`. Six
+# commands derive the per-pack-claude-plugin recipe through it; the rest must
+# not.
 PLUGIN_RECIPE_CONSUMERS = (
     "render",
     "install",
@@ -153,9 +154,9 @@ def test_validate_accepts_a_conforming_route_qualified_pack(tmp_path: Path) -> N
 
 
 def test_the_six_named_consumers_reach_render_pack() -> None:
-    """Exactly six consumers change by design. If a seventh starts deriving
-    the recipe, or one of these stops, the change's blast radius is wrong
-    and this fails."""
+    """Exactly six consumers derive the recipe through `render_pack`. If a
+    seventh starts deriving it, or one of these stops, the partition above is
+    wrong and this fails."""
     reaching = {
         module.stem
         for module in sorted(COMMANDS_DIR.glob("*.py"))

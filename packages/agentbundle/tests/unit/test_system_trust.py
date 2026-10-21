@@ -1,4 +1,4 @@
-"""Tests for corporate trust-store resolution — spec/catalogue-corporate-trust-store.
+"""Tests for corporate trust-store resolution.
 
 Coverage:
   T1 — resolve_trust_paths precedence, build_context strictness + augment-not-replace

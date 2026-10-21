@@ -1006,7 +1006,7 @@ def _recreate_claude_symlink(output_root: Path, *, force_copy: bool = False) -> 
             pass
         claude.unlink()
     elif claude.exists():
-        # Regular file at CLAUDE.md — replace with symlink per spec.
+        # Regular file at CLAUDE.md — replace it with the symlink.
         claude.unlink()
     claude.symlink_to(desired_target)
     return claude
@@ -1308,7 +1308,7 @@ def diff_against_working_tree(
     the source path and regeneration command
     (`[drift] <projected>: edit <source>; run: make build-self`).
 
-    Phase-2 strengthening per the self-hosting spec:
+    Strengthened beyond a plain byte comparison:
 
     - **CRLF→LF normalisation** for text-like files (those that decode
       as UTF-8). Binary content is compared byte-for-byte. A CRLF-on-
@@ -1486,7 +1486,7 @@ def run_self_host(
     # Read `.adapt-discovery.toml` via the typed loader. Legacy
     # `[adapt]` table, unknown `discovery-schema-version`, and any
     # other invalid shape surface as `ConfigError` and refuse with
-    # the `self-host: ` prefix per spec.
+    # the `self-host: ` prefix.
     from agentbundle.config import ConfigError, load_adapt_discovery_typed
 
     try:

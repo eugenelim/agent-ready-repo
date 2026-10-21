@@ -461,7 +461,7 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
             continue
         if entry.is_dir():
             destination = target_dir / entry.name
-            # Spec § Never do — `shutil.rmtree` is barred against
+            # `shutil.rmtree` is barred against
             # any entry whose `is_symlink()` is true. If a previous
             # run left a symlink at the destination path, unlink it.
             if destination.is_symlink():

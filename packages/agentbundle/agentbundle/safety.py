@@ -436,7 +436,7 @@ def write_jailed(
         # Programming error in CLI code (not adopter-facing). The rail
         # must never silently degrade — surfacing forces the caller to
         # pass the declared prefix list from the adapter's [scope]
-        # block. Documented in the spec.
+        # block.
         raise TypeError(
             "allowed_prefixes is required when scope='user'"
         )

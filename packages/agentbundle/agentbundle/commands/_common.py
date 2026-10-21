@@ -2,7 +2,7 @@
 
 This module is imported lazily (alongside its sibling command modules) so it
 does not add startup cost to `--version` / `--help`. Only pure stdlib is
-allowed here — see spec § Never do.
+allowed here, so the CLI keeps no third-party runtime dependency.
 """
 
 from __future__ import annotations

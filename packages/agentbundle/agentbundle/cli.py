@@ -17,8 +17,8 @@ Install-scope surface:
     `--scope user`; both were dead (parsed-but-never-read / only-legal-value-
     equals-default) and dropped in the CLI-hygiene sweep, so passing `--scope`
     to either now surfaces `unknown flag for <verb>: --scope`.
-  - `--force` on install only (cross-scope conflict bypass; see
-    spec § *Dual-scope install conflict*).
+  - `--force` on install only (it bypasses the cross-scope install
+    conflict).
   - Forbidden flags on the five excluded subcommands surface with the
     spec's exact stderr contract: `unknown flag for <verb>: <flag>`.
     `argparse`'s default text (`error: unrecognized arguments:`) omits
@@ -1123,10 +1123,9 @@ def _build_parser() -> argparse.ArgumentParser:
     #
     # Abbreviation is withdrawn on this subparser only: `--guides`
     # is now its own registered scoping flag (below), so a prefix like
-    # `--guides-mo` can no longer silently resolve to `--guides-mode`
-    # (spec plan.md § Rollout records the one compatibility break this
-    # takes: every other abbreviation of a `sync` flag stops resolving
-    # too).
+    # `--guides-mo` can no longer silently resolve to `--guides-mode`.
+    # The one compatibility break this takes: every other abbreviation of a
+    # `sync` flag stops resolving too.
     _sync_p = cat_subs.add_parser(
         "sync",
         allow_abbrev=False,

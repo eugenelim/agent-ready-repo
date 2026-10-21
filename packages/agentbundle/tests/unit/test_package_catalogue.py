@@ -1,6 +1,5 @@
 """Tests for the package-catalogue subcommand (compat shim) and helpers.
 
-Covers all ACs from spec/package-catalogue-command/spec.md.
 Uses example.test placeholders only — no real credentials or external URIs.
 
 Wave 4 note: helpers are now in agentbundle.catalogue_tooling.package but

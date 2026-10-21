@@ -2,11 +2,11 @@
 
 Sources read here:
   - `pack.toml`                   — a pack's manifest. Schema owned by
-                                    the sibling `distribution-adapters`
-                                    spec and validated by F-build's
+                                    `pack.schema.json` and validated by
+                                    the build pipeline's
                                     `validate_pack_metadata` helper.
-  - `.agentbundle-state.toml`     — install-time state. Schema documented
-                                    in the sibling spec § "state schema".
+  - `.agentbundle-state.toml`     — install-time state; `dump_state`
+                                    and `load_state` own its schema.
   - `.adapt-discovery.toml`       — adopter values for `<adapt:NAME>`
                                     markers. CLI **reads only**; the
                                     `adapt-to-project` LLM skill writes it.

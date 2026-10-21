@@ -304,8 +304,8 @@ def test_delete_removed_projection_refuses_forged_out_of_prefix_ownership(tmp_pa
 def _emitted_codes(tmp_path) -> set[str]:
     """Every direct code an actual refusal emits, one scenario per code.
 
-    Across committed direct fixtures, "every emitted direct `code` ... exactly
-    covers that set". The sibling test above scans for raise
+    Across the committed direct fixtures, the set of emitted direct codes must
+    equal ``DIRECT_CODES`` exactly. The sibling test above scans for raise
     SITES, which its own docstring calls weaker: a code can have a raise site
     that no input reaches. These scenarios reach them.
     """

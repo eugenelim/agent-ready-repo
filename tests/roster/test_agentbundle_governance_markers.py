@@ -6,18 +6,20 @@ repository's decision records, so a citation of one reads as a broken pointer.
 `packages/AGENTS.local.md` § "No internal-governance markers in source" owns
 the rule; this module is its mechanical half.
 
-Three checks, each scoped to what it can decide without false positives:
+Four checks, each scoped to what it can decide without false positives:
 
 - A zero-padded `RFC-0NNN` / `ADR-0NNN` ordinal anywhere in a shipped file.
   IETF RFC numbers never start with `0`, so `RFC 9106` stays legal.
-- A `docs/specs|rfc|adr/<name>` path in a Python comment or docstring, or in
-  shipped prose, when `<name>` is a real record in this repository. String
+- A `docs/specs|rfc|adr/<name>` path, or the short `spec/<slug>` form, in a
+  Python comment or docstring, or in shipped prose, when it names a real
+  record in this repository. String
   literals are code, and placeholder paths such as `docs/specs/<slug>/spec.md`
   or `docs/specs/example/` describe the adopter's own layout, so neither is a
   citation.
 - A spec acceptance-criterion citation (`AC18`, `AC-0013`) in a comment or
   docstring of shipped engine source. Test files are exempt: a bare AC label
   in a test comment traces a materialised stub to the criterion it proves.
+- A `spec §` or `RFC §` section pointer in any shipped comment or docstring.
 
 Out of scope: `CHANGELOG.md` and `AGENTS*.md`, which ship to nobody, and JSON
 schemas, whose `x-spec` key is the contracts tree's backward pointer to its
@@ -39,6 +41,8 @@ _ORDINAL = re.compile(r"\b(?:RFC|ADR)-0[0-9]{3}\b")
 _AC_CITATION = re.compile(r"\bACs?\s*-?#?\s*[0-9]+[a-z]?(?:\([a-z]\))?\b")
 _TEST_FILE = re.compile(r"(?:^|/)(?:tests/|conftest\.py$|test_[^/]*\.py$)")
 _RECORD_PATH = re.compile(r"docs/(specs|rfc|adr)/([A-Za-z0-9][A-Za-z0-9._-]*)")
+_SHORT_SPEC_PATH = re.compile(r"(?<![\w/.-])spec/([a-z0-9][a-z0-9-]*)")
+_SECTION_POINTER = re.compile(r"\b(?:spec|RFC)(?:'s)?\s*§", re.IGNORECASE)
 _UNSHIPPED_NAMES = re.compile(r"^(?:CHANGELOG\.md|AGENTS.*\.md)$")
 _PROSE_SUFFIXES = {".md", ".toml", ".txt", ".cfg", ".ini", ".yaml", ".yml"}
 
@@ -87,6 +91,17 @@ def _is_record(kind: str, name: str) -> bool:
     return (REPO_ROOT / "docs" / kind / name).exists()
 
 
+def _record_citations(text: str) -> list[str]:
+    """Return every real-record path *text* cites, in either path form."""
+    cited = [
+        m.group(0) for m in _RECORD_PATH.finditer(text) if _is_record(m.group(1), m.group(2))
+    ]
+    cited += [
+        m.group(0) for m in _SHORT_SPEC_PATH.finditer(text) if _is_record("specs", m.group(1))
+    ]
+    return cited
+
+
 def test_no_rfc_or_adr_ordinals_in_shipped_files() -> None:
     """No shipped file names an internal RFC or ADR by ordinal."""
     hits = []
@@ -114,11 +129,8 @@ def test_no_internal_record_paths_in_shipped_prose() -> None:
         else:
             continue
         for lineno, text in chunks:
-            for match in _RECORD_PATH.finditer(text):
-                if _is_record(match.group(1), match.group(2)):
-                    hits.append(
-                        f"{path.relative_to(REPO_ROOT)}:{lineno}: {match.group(0)}"
-                    )
+            for cited in _record_citations(text):
+                hits.append(f"{path.relative_to(REPO_ROOT)}:{lineno}: {cited}")
     assert not hits, "internal record paths in shipped prose:\n" + "\n".join(hits)
 
 
@@ -135,6 +147,18 @@ def test_no_ac_citations_in_shipped_engine_prose() -> None:
     assert not hits, "spec AC citations in shipped engine prose:\n" + "\n".join(hits)
 
 
+def test_no_section_pointers_in_shipped_prose() -> None:
+    """No shipped comment or docstring points at a spec or RFC section."""
+    hits = []
+    for path in _shipped_files():
+        if path.suffix != ".py":
+            continue
+        for lineno, text in _comment_and_docstring_text(path.read_text(encoding="utf-8")):
+            if _SECTION_POINTER.search(text):
+                hits.append(f"{path.relative_to(REPO_ROOT)}:{lineno}")
+    assert not hits, "spec/RFC section pointers in shipped prose:\n" + "\n".join(hits)
+
+
 def test_the_path_check_recognises_a_real_record() -> None:
     """The path check fires on a real record and ignores a placeholder.
 
@@ -147,6 +171,12 @@ def test_the_path_check_recognises_a_real_record() -> None:
     matches = [m for _, t in chunks for m in _RECORD_PATH.finditer(t)]
     assert matches and _is_record(matches[0].group(1), matches[0].group(2))
     assert not _is_record("specs", "<slug>")
+    assert _record_citations(f"# see spec/{real.name}") == [f"spec/{real.name}"]
+    assert _record_citations(f"# see docs/specs/{real.name}/") == [f"docs/specs/{real.name}"]
+    assert not _record_citations("# a legacy entry such as spec/no-such-slug-here")
+    assert _SECTION_POINTER.search("# per spec § Never do")
+    assert _SECTION_POINTER.search("(RFC § Substitution rules)")
+    assert not _SECTION_POINTER.search("# AGENTS.md § Privacy")
 
 
 def test_the_ac_check_matches_citations_and_skips_tests() -> None:

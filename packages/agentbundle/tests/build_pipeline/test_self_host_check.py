@@ -441,7 +441,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
 
 
 class SelfHostAdapterAllowListTests(unittest.TestCase):
-    """Self-host allow-list (spec § Phased rollout / § Always do).
+    """Self-host allow-list: only the adapters it names are self-hosted.
 
     The allow-list is load-bearing: a future contributor adding the
     `kiro` or `copilot` adapter to `ADAPTERS` (the global registry) but
@@ -2032,7 +2032,7 @@ class DirtyTreeStderrMessageTests(unittest.TestCase):
 
 
 class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
-    """Spec § Boundaries: only --self resolves markers. Plain `make build`
+    """Only --self resolves markers. Plain `make build`
     must copy `<adapt:NAME>` markers through unchanged."""
 
     @classmethod

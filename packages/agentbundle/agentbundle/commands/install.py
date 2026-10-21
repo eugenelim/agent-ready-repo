@@ -1254,8 +1254,7 @@ def _run(args: argparse.Namespace) -> int:
     # Claude-Code-only projection (consumed by user-scope writes). The
     # dist-tree render is cached for the lifetime of this run; the
     # Claude-Code render uses the same adapter the `make build --self`
-    # path uses (the spec §Tier model defines this as the user-scope
-    # projection target).
+    # path uses, which is the user-scope projection target.
     repo_projection: dict[str, bytes] | None = None
     user_projection: dict[str, bytes] | None = None
     # Hook-body at user scope: user-scope packs ship hook
@@ -1860,9 +1859,9 @@ def _run(args: argparse.Namespace) -> int:
             print(_disclosure, file=sys.stderr)
 
     # ── Step 10: recommends cross-scope warnings (stderr) ─────────────────────
-    # Emitted per scope per recommend per spec § *recommends across
-    # scopes*. The warning text distinguishes three cases (compatible-
-    # present / missing-installable / scope-disjoint). Output goes to
+    # Emitted once per scope per recommended pack. The warning text
+    # distinguishes three cases (compatible-present / missing-installable /
+    # scope-disjoint). Output goes to
     # stderr so the `installed:` rail on stdout stays parseable.
     recommends = pack_toml.get("pack", {}).get("recommends", [])
     if isinstance(recommends, list):
@@ -2039,7 +2038,7 @@ def _run(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
-# First-value handoff (spec/agentbundle-first-value-handoff)
+# First-value handoff
 # ---------------------------------------------------------------------------
 
 

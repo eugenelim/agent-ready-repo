@@ -6,8 +6,8 @@ install handler's refusal tiers. Each case supplies inputs that
 asserts only the higher-tier line fires; the lower-tier line must be
 absent (i.e., evaluation short-circuited before the lower tier ran).
 
-Tier order per spec § *Boundaries — Always do* (refusal-ordering
-invariant) and the pinned-refusal-message rule's closing paragraph:
+Tier order, which is the refusal-ordering invariant: a higher tier's
+refusal always wins over a lower one's:
 
   1. ``scope.resolve()`` declared-scope refusals
      (``<pack>: scope '<requested>' not in allowed-scopes <set>``)

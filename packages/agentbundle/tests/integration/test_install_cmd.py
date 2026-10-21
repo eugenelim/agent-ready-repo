@@ -95,7 +95,7 @@ def test_brownfield_tier2_gets_companion_not_overwrite(tmp_path):
     This test used to pre-seed `.agentbundle-state.toml` with the
     same pack at an old SHA to force Tier-2 detection. Now
     install refuses against a pack already installed at the requested
-    scope (spec § *Dual-scope install conflict*); pre-seeding the same
+    scope (the dual-scope install conflict); pre-seeding the same
     pack would short-circuit before Tier classification. The new shape
     relies on `_classify_for_install`'s fallback: a file on disk that
     differs from the incoming bundle *and* has no matching SHA in any

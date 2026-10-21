@@ -149,7 +149,7 @@ def grade(rate: float, should_trigger: bool) -> bool:
 # Only the `claude-code` detector ships in the first cut. Additional *headless*
 # detectors (codex / copilot / cursor-agent / gemini) are additive behind this
 # seam. GUI-only IDE adapters (kiro-ide, cursor) expose no headless surface and
-# are rejected, not silently run (spec § Never do).
+# are rejected, not silently run.
 
 
 class ClaudeCodeDetector:
@@ -232,7 +232,7 @@ def get_detector(adapter: str):
     if adapter in _GUI_ONLY_ADAPTERS:
         raise ValueError(
             f"adapter {adapter!r} is a GUI-only IDE with no headless surface; "
-            f"activation evals are headless-only (spec § Never do)"
+            "activation evals are headless-only"
         )
     raise ValueError(
         f"no headless detector registered for adapter {adapter!r}; "

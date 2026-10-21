@@ -381,7 +381,7 @@ class TestDirectDirectoryProjection(unittest.TestCase):
             )
 
     def test_destination_symlink_safe_overwrite(self) -> None:
-        # Spec § Never do: `shutil.rmtree` is barred against entries
+        # `shutil.rmtree` is barred against entries
         # whose `is_symlink()` is true. If a previous run left a
         # symlink at `<target>/skills/<name>`, the next projection
         # must unlink it (removing the link, not the target).

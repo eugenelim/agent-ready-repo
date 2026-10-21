@@ -64,7 +64,7 @@ _MARKER_REGEX = re.compile(rb"<adapt:(?:[A-Z_][A-Z0-9_]*|[a-z][a-z0-9-]*)>")
 # `.apm/hook-wiring/` are already user-scope-refused by Rail B, so a
 # marker check on them is unreachable. `seeds/` is already
 # user-scope-refused by Rail A, so the marker rail's input never
-# includes `seeds/`. Spec § *Install-scope dimension* pins the list.
+# includes `seeds/`. This list is fixed, not derived.
 _MARKER_RAIL_DIRS = (".apm/skills", ".apm/agents", ".apm/commands")
 
 # Cap per-file inspection size to keep Rail C bounded. A primitive file

@@ -248,8 +248,8 @@ def _expand_placeholders(
 
     Refuses (defense-in-depth) on malformed or unresolvable
     placeholders even though the validate rail covered these
-    upstream. Resolved text is NOT re-scanned (RFC § Substitution
-    rules clause 3) — single pass via ``re.sub``.
+    upstream. Resolved text is NOT re-scanned, so a substituted value
+    cannot itself expand — single pass via ``re.sub``.
     """
     # Defense-in-depth check 1 — malformed placeholder.
     for match in _ANY_PLACEHOLDER_RE.finditer(command):
