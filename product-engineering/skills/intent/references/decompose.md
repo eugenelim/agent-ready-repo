@@ -1,6 +1,6 @@
 # decompose mode
 
-Stage: `decompose`, an `intent` mode. On the short route it is step 3 of 3 (after `de-risk`, before the hand-off through `work-intake`); on the supervised route `discovery-loop` calls it at G1 and G3; the longer route ends at `map-capabilities` and does not use it.
+Stage: `decompose`, an `intent` mode. On the short route it is step 3 of 3 (after `de-risk`, before the hand-off through `work-intake`); on the supervised route `discovery-loop` calls it at G1 and G3; on the longer route it follows `map-capabilities`, taking `capability-map.md` as input.
 
 Break a de-risked `intent` into the **next level down** — child intents, or, at
 the leaf, a shippable delivery contract — and optionally project the tree onto a tracker.

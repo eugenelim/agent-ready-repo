@@ -6,6 +6,7 @@
   {"query": "Group what the payments bet needs into capability areas and suggest a build order", "should_trigger": true},
   {"query": "Which capabilities in this bet are commodity and which differentiate us?", "should_trigger": true},
   {"query": "Turn bet.md into a capability map", "should_trigger": true},
+  {"query": "The capability map is done. What step follows it?", "should_trigger": true},
   {"query": "What's our build/buy split for the scheduling product?", "should_trigger": true},
 
   {"query": "Map the jobs users are trying to get done in scheduling", "should_trigger": false},

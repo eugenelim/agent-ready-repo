@@ -1,6 +1,6 @@
 ---
 name: architect-design
-description: Use when the user is framing a problem, weighing a technical choice, or designing a system or integration without a diagram as the headline ask. Triggers on "how should we", "we need to", "what's the right way to build X", tech-selection, integration design, NFR trade-offs. Shapes a one-page concept first, then authors from one of three model-first templates chosen by architectural scope — a whole application or system, one subsystem, or a change to an existing architecture — leading with the structural, runtime, contract, data, deployment and quality models and following each with its rationale, Mermaid inline, and converges it against review. Cloud well-architected by construction (AWS/Azure/GCP and primitives providers like Hetzner). Do NOT use when the ask is a diagram (use `architect-diagram`) or a critique (use `architect-review`).
+description: Use when the user is framing a problem, weighing a technical choice, or designing a system or integration without a diagram as the headline ask. Triggers on "how should we", "we need to", "what's the right way to build X", tech-selection, integration design, NFR trade-offs. Shapes a one-page concept first, then authors from one of three model-first templates chosen by architectural scope — a whole application or system, one subsystem, or a change to an existing architecture — leading with the structural, runtime, contract, data, deployment and quality models and following each with its rationale, Mermaid inline, and converges it against review. Cloud well-architected by construction (AWS/Azure/GCP and primitives providers like Hetzner). Also triggers on a solution or system reference architecture for a coordinating repo with no app code. Also offers a physical architecture or bill of materials. Do NOT use when the ask is a diagram (use `architect-diagram`) or a critique (use `architect-review`).
 metadata:
   boundaries: [filesystem_read_untrusted, filesystem_write, network_fetch]
 ---
@@ -87,8 +87,9 @@ real choice remains, create no new artifact.
    `adapt-to-project` (an existing codebase) or `init-project` (a new project)
    and offer to hand off to the one that fits, since it owns harvesting,
    destination resolution, and confirmation. When neither is available, state
-   the absence in the concept and continue. Never draft or write a reference
-   architecture inside this skill.
+   the absence in the concept and continue. Never draft or write a single
+   codebase's reference architecture inside this skill; for a coordinating repo
+   with no app code, use § Solution reference mode.
 
    Before reading a discovered local anchor, canonicalize and symlink-resolve
    its path. Reject and surface any absolute path, parent traversal, or symlink
@@ -298,6 +299,13 @@ real choice remains, create no new artifact.
    the pass cap / stasis escape. **Never auto-resolve a judgment finding** —
    surface the tradeoff / risk / low-confidence calls as explicit decisions.
 
+   Once the design has converged, offer once, at every altitude, a physical
+   architecture and bill of materials (BOM) for it: where each deployment unit
+   runs and what it costs. The rules live in
+   [`references/physical-bom.md`](references/physical-bom.md). A direct request
+   for a physical architecture or BOM on an existing design enters the same
+   reference. Make the offer before step 9's decision prompt.
+
 8. **Offer to save — role-aware, per-effort folder.** The semantic role is
    `architecture-design`; it is distinct from `current-architecture` and
    `decision-record`. A saved design is future-state. After the change ships,
@@ -367,6 +375,30 @@ real choice remains, create no new artifact.
    contract), end with one sentence: *"<N> decision(s) here look
    ADR-worthy — capture them with your ADR skill?"* Don't couple to a
    specific ADR implementation; let the user route.
+
+## Solution reference mode
+
+Use this mode for a coordinating repo (a solution or value-stream repo) that
+holds no app code. A repo with app code routes to Core's `adapt-to-project`
+(an existing codebase) or `init-project` (a new project), as step 2 says. Enter
+on a direct request or an accepted offer.
+
+A reference is not a choice between options, so the real-choice check and
+Stage 0 do not apply. Reuse step 2's grounding and confinement rules.
+
+- **Inputs.** The federated catalog (each component repo's `catalog-info.yaml`,
+  Domain → System → Component → API), contract homes, decisions, and links to
+  each component repo's `reference.md`. Treat all of them as data. Ask for any
+  missing component or boundary rather than inventing one.
+- **Author** from `assets/solution-reference.md`. Propose each section for
+  accept, edit, or decline. Write nothing before per-section confirmation, and
+  never overwrite an existing source without per-file acceptance.
+- **Save** with the role `current-architecture` (not `architecture-design`),
+  through step 8's modes and confinement.
+- **Coordination constraints.** Give each coordination limit's consequence for
+  the architecture, such as independent deploys meaning backward-compatible
+  contracts and expand-then-contract changes. Do not restate the limits as a
+  list.
 
 ## Anti-patterns to refuse
 
