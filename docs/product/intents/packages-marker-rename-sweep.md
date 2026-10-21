@@ -1,10 +1,11 @@
 # Pinned packages governance markers are renamed consistently
 
 - **Slug:** `packages-marker-rename-sweep`
-- **Status:** Accepted
+- **Status:** Fulfilled
 - **Level:** feature
 - **Owner:** eugenelim
 - **Accepted:** 2026-10-21 by eugenelim, after a cold intent-mode shaping review returned no MALFORMED token
+- **Fulfilled:** 2026-10-21 eugenelim: delivered by PR #1596 (commit `1a2e49add`, agentbundle 0.53.2). Both `commands/install.py` `pre-RFC-0012 dist-tree` messages now read `legacy dist-tree`, and the seven `tests/unit/test_install_inband_detection.py` assertions changed with them. The `--emit-install-routes` local-scope refusal states its rule, and its assertion lost the `or` branch. `tests/roster/test_agentbundle_governance_markers.py` now fails on any governance marker in shipped source. The intent has no decomposition, so the closure check had no descendants to wait on.
 - **Shaping-reviewed:** 2026-10-21
 - **Governed by:** [spec/packages-governance-marker-sweep AC5](../../specs/packages-governance-marker-sweep/spec.md)
 
