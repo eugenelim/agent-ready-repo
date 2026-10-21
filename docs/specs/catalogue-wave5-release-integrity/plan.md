@@ -1,7 +1,7 @@
 # Plan: Catalogue Wave 5 — release integrity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0076 D8; `packages/agentbundle/DESIGN.md` § Catalogue packaging engine; analogous production paths `catalogue_tooling/package.py` (`package_catalogue`, the staged-placement sequence) and `commands/catalogue_verify.py` (JSON envelope on stdout, human output on stderr); their tests `packages/agentbundle/tests/unit/test_catalogue_tooling_package.py`, `test_catalogue_tooling_archive.py` and `test_package_catalogue.py`. Deviation: the spec's Exit-code convention section.
 
 > **Plan contract:** this is the implementation strategy. It may change
