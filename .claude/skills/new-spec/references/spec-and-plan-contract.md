@@ -142,8 +142,14 @@ mechanical rule.
   hand-write a spec's status into the brief.
 - **Discovery up-edge (optional).** A spec descended from an upstream
   product-discovery artifact (a decision brief or intent produced by an upstream
-  discovery process) carries a `- **Discovery:**` header naming that artifact by
-  its stable id. Like `Brief:` it records *upstream provenance* — the producer
+  discovery process) carries a `- **Discovery:**` header naming that artifact.
+  When `Discovery:` names an intent, write its registered kind and `Slug:`, such
+  as `outcome:service-reliability`, `capability:account-management`, or
+  `intent:account-self-service`. `Kind:` takes precedence over `Level:`. When it
+  names a research or notes file, use its repository-relative path. New and
+  changed specs are checked for typed, live intent targets; legacy paths remain
+  readable. Discovery records provenance and does not itself assert a
+  feature-delivery route. Like `Brief:` it records *upstream provenance* — the producer
   edge a traceability check walks from the discovery side into the spec — and is
   additive and optional: a spec authored directly omits it (or `none`) and stays
   valid. The discovery-side producer artifacts themselves (intents, screens,

@@ -18,6 +18,7 @@ These guides help you design a system, draw it, and check it against the code yo
 - [Your first architecture session](tutorials/architect-first-session.md) — Survey an existing repository without changing it, then pick the first thing to look at.
 - [Create and use your `reference.md`](tutorials/create-your-reference-architecture.md) — Commit one real architecture standard and use it to steer a design choice.
 - [Assess a repository and turn evidence into action](how-to/assess-a-repository.md) — Build a model of what exists and turn the evidence into an action.
+- [Get a physical architecture and bill of materials](how-to/get-a-physical-architecture-and-bom.md) — Turn a finished design into where each part runs and what it costs.
 - [Establish your repo's reference architecture](how-to/establish-reference-architecture.md) — Write down the architecture decisions you have settled so later designs follow them.
 - [Why the architect-diagram skill works the way it does](explanation/architect-diagram-skill-design.md) — Why the diagram skill draws what it draws.
 - [Architecture assessment reference](reference/architecture-assessment.md) — Assessment modes, evidence, output fields, and limits.

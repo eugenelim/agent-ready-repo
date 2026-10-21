@@ -53,7 +53,12 @@ Before aligning, confirm:
 ## Procedure
 
 1. **Confirm the meta-repo and Scale.** Name the value stream and the component
-   repos it coordinates. The meta-repo holds only cross-cutting artifacts.
+   repos it coordinates. The meta-repo holds only cross-cutting artifacts. Then
+   propose the `## Hard limits` section from `assets/hard-limits.md` for the
+   solution repo's README: show the text, write it only after the user confirms,
+   and never overwrite an existing `## Hard limits` section without their
+   acceptance. Resolve, surface, and confine the README path under the rules in
+   § Where the rollup lives.
 
 2. **Federate the catalog.** Anchor to Backstage's **Domain → System → Component
    → API** ontology, but **reference** each component repo's own
@@ -74,6 +79,10 @@ Before aligning, confirm:
 4. **Anchor the system architecture.** The C4 / bounded-context `reference.md`
    lives **here**; each component repo's own `reference.md` links to and conforms
    to it rather than re-deriving the system view. This is the `architect` seam.
+   Check your available-skills roster for `architect-design` and offer its
+   solution reference mode to write the system C4 view and domain boundaries that
+   every component's `reference.md` links to. If it is not in the roster, continue
+   with this skill's own behaviour and say nothing about it: no mention, no note, and no error.
 
 5. **Keep the rollup current.** Resolve `output_dir` using the config-driven
    procedure below, then maintain the cross-component rollup (copy this skill's
@@ -151,9 +160,8 @@ deliberate non-goal of this layout config).
 ## Hard limits — state them honestly
 
 The coordination pattern has real costs an adopter must accept, not engineered
-away: **no atomic cross-repo commit**, **no shared release train**, and the
-rollup is a **snapshot, not a live feed**. Name them when you stand the meta-repo
-up.
+away. Step 1 proposes the README section that names them, from
+`assets/hard-limits.md`; name them when you stand the meta-repo up.
 
 ## Anti-patterns to refuse
 

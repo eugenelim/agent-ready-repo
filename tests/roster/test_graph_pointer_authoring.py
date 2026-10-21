@@ -41,6 +41,7 @@ MANIFEST: dict[str, tuple[str, str]] = {
     "packs/core/seeds/docs/product/briefs/_template.md": ("template", ""),
     P + "intent/assets/intent-template.md": ("template", ""),
     P + "align-value-stream/assets/rollup-template.md": ("template", ""),
+    P + "intent/SKILL.md": ("instruction", ""),
     P + "intent/references/decompose.md": ("instruction", ""),
     P + "intent/references/recursive-decomposition.md": ("instruction", ""),
     "guides/core/reference/product-brief-fields.md": ("instruction", ""),

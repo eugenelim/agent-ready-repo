@@ -90,4 +90,4 @@ the missing skill and describing what step 3 provides; do not block emission.
 - Capping the job list — scores drive prioritization, not list length.
 - Silently inventing importance or satisfaction ratings; always label agent-estimated values.
 - Writing to `workspace.toml` or any literal hardcoded path.
-- Producing a brief (`place-bet` + `author-delivery-brief create` own the hand-off).
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

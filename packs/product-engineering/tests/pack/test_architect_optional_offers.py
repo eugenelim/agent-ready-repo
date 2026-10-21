@@ -30,6 +30,7 @@ OFFER_FILES = {
     "intent de-risk": DE_RISK_MODE,
     "intent decompose": DECOMPOSE_MODE,
     "map-capabilities": SKILLS / "map-capabilities" / "SKILL.md",
+    "align-value-stream": SKILLS / "align-value-stream" / "SKILL.md",
 }
 FORBIDDEN = ("install architect", "install the architect", "architect is not installed")
 
@@ -293,6 +294,8 @@ def test_manifest_declares_optional_architect_integrations() -> None:
     assert {"skill:architect-design", "skill:architect-assess"} <= providers
     for integration in mine:
         assert "say nothing about it" in integration["fallback"]
+    solution = [i for i in mine if "skill:align-value-stream" in i["consumers"]]
+    assert solution and all("skill:architect-design" in i["providers"] for i in solution)
 
 
 def test_eval_ids_and_silent_assertions() -> None:

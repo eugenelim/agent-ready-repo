@@ -213,12 +213,61 @@
     {
       "id": "no-reference-architecture",
       "prompt": "We need to decide how our billing service should publish invoice events to the ledger service. The repository has code but no reference.md, no current-architecture document, and no AGENTS.md mapping for architecture. Run both variants: adapt-to-project is in the available-skills roster; then neither adapt-to-project nor init-project is available.",
-      "expected_output": "The concept says no reference architecture was found and lowers the confidence of stack assumptions it inferred from the code. With adapt-to-project available it offers to hand off to that skill to harvest a golden path. With neither skill available it states the absence in the concept and continues the design. In neither variant does it draft or write a reference architecture itself.",
+      "expected_output": "The concept says no reference architecture was found and lowers the confidence of stack assumptions it inferred from the code. With adapt-to-project available it offers to hand off to that skill to harvest a golden path. With neither skill available it states the absence in the concept and continues the design. In neither variant does it draft or write a single codebase's reference architecture itself.",
       "assertions": [
         "States in the concept that no reference architecture was found",
         "Offers a hand-off to adapt-to-project when it is in the roster, because the repository already has code",
         "With neither Core producer available, states the absence and continues without blocking",
-        "Never drafts or writes a reference.md or other reference architecture itself"
+        "Never drafts or writes a single codebase's reference architecture itself"
+      ]
+    },
+    {
+      "id": "solution-reference-mode",
+      "prompt": "This repo coordinates five services owned by different teams and holds no app code. Each service repo has a catalog-info.yaml. Write our solution reference architecture.",
+      "expected_output": "The skill enters solution reference mode. It skips the real-choice check and Stage 0, reads the component catalogs as data, asks for any component or boundary it cannot find, proposes each section of assets/solution-reference.md for accept, edit or decline, and writes nothing before per-section confirmation. The saved role is current-architecture.",
+      "assertions": [
+        "Enters solution reference mode and does not run the real-choice check or Stage 0 for a reference that is not a choice between options",
+        "Asks for any missing component or boundary instead of inventing one",
+        "Proposes each section of the solution-reference template for accept, edit or decline and writes nothing before per-section confirmation",
+        "Names the saved role as current-architecture, not architecture-design",
+        "Gives each coordination limit's consequence for the architecture instead of restating the limits as a list"
+      ]
+    },
+    {
+      "id": "solution-reference-app-repo-routes-to-core",
+      "prompt": "Write a reference architecture for this repository. It contains a Python service with its own tests and deployment config. Run both variants: adapt-to-project is in the available-skills roster; then neither adapt-to-project nor init-project is available.",
+      "expected_output": "Because the repository has app code, the skill does not use solution reference mode. With adapt-to-project available it offers to hand off to it. With neither available it states the absence and continues. It never drafts the single codebase's reference architecture itself.",
+      "assertions": [
+        "Does not enter solution reference mode because the repository contains app code",
+        "Offers a hand-off to adapt-to-project when it is in the roster, because the repository is an existing codebase",
+        "With neither Core producer available, states the absence of a reference architecture and continues without blocking",
+        "Never drafts or writes the single codebase's reference architecture itself"
+      ]
+    },
+    {
+      "id": "physical-bom-offer-and-grounding",
+      "prompt": "A converged application design with a deployment section on AWS is ready. Offer the physical architecture and BOM, accept, and price it. One container image is not published yet, and one managed service has no price you can find from a grounded source.",
+      "expected_output": "After convergence and before the decision prompt, the skill offers a physical architecture and BOM once. It maps every deployment unit to a BOM line or lists it as not costed with a reason. Prices come from a platform skill, the official pricing page, or desk research, each with source, date and region. The unpublished image gets a visible placeholder. The ungrounded line is unpriced, counted and left out of the total. It saves the BOM as a sibling file after one confirmation.",
+      "assertions": [
+        "Offers the physical architecture and BOM once, after convergence and before the decision prompt, naming references/physical-bom.md",
+        "Maps every deployment unit in the design's deployment section to at least one BOM line, or lists it as not costed with a reason",
+        "Takes each price from a platform skill, the provider's official pricing page or calculator, or desk-research, and cites source, date and region on every priced line, never from model memory",
+        "Writes the unpublished container image as the placeholder <registry>/<repository>:<tag> with who publishes it, and invents no URI or digest",
+        "Marks the ungrounded line unpriced, counts it, and leaves it out of the total",
+        "Uses only the Kinds cloud service, container image, open-source library, hardware, network connection and licence, with what the item is in Identifier and how big it is in Tier / size",
+        "Writes an open-source library as a purl with its SPDX licence id and a version read from a lock file or manifest, and marks a free library no direct cost with the SPDX id as the reason",
+        "Saves physical-architecture.md beside the design in the same per-effort folder through step 8's modes, with one confirmation when the design is unsaved"
+      ]
+    },
+    {
+      "id": "physical-bom-delta-for-change",
+      "prompt": "An architecture-change design that adds a cache tier, removes a queue and resizes a database is converged. Produce the physical architecture and BOM.",
+      "expected_output": "A delta BOM whose lines each carry a Change of add, remove or resize, with totals that state the net monthly change, per environment, in USD.",
+      "assertions": [
+        "Produces a delta BOM, not a full BOM, because the altitude is architecture change",
+        "Gives every line a Change value of add, remove or resize, matching the cache, queue and database changes",
+        "States the net monthly change in the totals, shows per-environment totals, and uses USD unless the user names another currency",
+        "Raises any physical choice that contradicts the design as a design finding instead of silently changing it"
       ]
     }
   ]

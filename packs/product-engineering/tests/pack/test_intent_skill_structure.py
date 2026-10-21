@@ -207,6 +207,19 @@ def test_short_and_supervised_routes_and_stage_kinds() -> None:
     assert "`de-risk` (intent mode;" in longer
 
 
+def test_longer_route_continues_into_capability_level_child_intents() -> None:
+    """An unnumbered paragraph hands the capability map to `intent decompose`."""
+    raw = _section(SKILL.read_text("utf-8"), "Longer route", "###")
+    assert len(_numbered_names(raw)) == 6
+    tail = raw.split("6. `map-capabilities` (separate skill)", 1)[1]
+    assert not re.search(r"^\d+\. ", tail, re.MULTILINE)
+    paragraph = _flat(tail)
+    assert "`capability-map.md`" in paragraph
+    assert "`decompose` (intent mode)" in paragraph
+    assert "capability-level child intent" in paragraph
+    assert "(separate skill)" not in paragraph
+
+
 def test_review_gates_are_marked_where_they_fall() -> None:
     short = _section(SKILL.read_text("utf-8"), "Short route", "###")
     frame, rest = short.split("2. `de-risk`", 1)
@@ -244,12 +257,15 @@ def test_each_mode_opens_with_an_orientation_line_that_matches_the_map() -> None
         assert mode in short
         if mode in longer:
             assert "longer route it is" in flat, mode
+        elif mode == "decompose":
+            assert "longer route" in flat and "follows `map-capabilities`" in flat, mode
         else:
             assert "longer route" in flat and "does not use it" in flat, mode
     # step positions are stated on each route that includes the mode
     assert "step 1 of 3" in _mode("frame")
     assert "step 2 of 3" in _mode("de-risk") and "step 4 of 6" in _mode("de-risk")
     assert "step 3 of 3" in _mode("decompose")
+    assert "does not use it until `intent decompose` hands it a child intent" in _mode("frame")
 
 
 def _next(mode: str) -> str:
