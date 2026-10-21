@@ -229,7 +229,7 @@
     {
       "id": "decompose-1",
       "mode": "decompose",
-      "prompt": "Break the de-risked intent into the next level down.",
+      "prompt": "Break the de-risked intent into the next level down. The architect skills are not in the available-skills roster.",
       "expected_output": "A decomposition of exactly one level — child intents when the intent is above feature level (each a lower Level: with a Parent intent: back-link), or a shippable delivery unit at the leaf. The leaf is cut by shippability, never by component or layer. The decomposition decision is recorded. One independently shippable feature becomes a delivery contract; a multi-spec or cross-repository outcome becomes a coordinating delivery brief. It only decomposes an intent whose riskiest assumption has survived de-risking.",
       "assertions": [
         "Decomposes exactly one level — child intents above feature, or a spec/slice at the leaf; does not skip levels",
@@ -244,7 +244,7 @@
     {
       "id": "capability-negotiated-handoff",
       "mode": "decompose",
-      "prompt": "Project the confirmed leaf to delivery. Compare a Wave-2-compatible Core invocation with Core absent, unknown, and pre-handoff-schema fixtures.",
+      "prompt": "Project the confirmed leaf to delivery. Compare a Wave-2-compatible Core invocation with Core absent, unknown, and pre-handoff-schema fixtures. The architect skills are not in the available-skills roster.",
       "expected_output": "The compatible invocation receives a closed normalized-intake.v1 handoff through work-intake. Every other fixture submits through work-intake the same bounded role and content as a portable rendered handoff, without the unsupported top-level object. External locators remain opaque and no downstream approval is inferred.",
       "assertions": [
         "Sends the machine object only when normalized-intake.v1#handoff is explicit",
@@ -263,6 +263,107 @@
         "Does not mention architect, its skills, or their absence",
         "Records the decomposition decision on the parent",
         "Does not skip a level"
+      ]
+    },
+    {
+      "id": "de-risk-survive-architect-first",
+      "mode": "de-risk",
+      "prompt": "Short route. The riskiest assumption of this feature intent survived de-risk. The architect-design skill is in the available-skills roster.",
+      "expected_output": "Offers architect-design as a third option labelled short route, alongside intent decompose and place-bet, and recommends architect-design instead of intent decompose.",
+      "assertions": [
+        "Recommends architect-design instead of intent decompose",
+        "Offers intent decompose (short route) and place-bet (longer route) alongside it",
+        "Starts none of the offered options",
+        "Opens by naming the short route, step 2 of 3: de-risk"
+      ]
+    },
+    {
+      "id": "decompose-architect-first",
+      "mode": "decompose",
+      "prompt": "Short route. This capability-level intent survived de-risk and no architecture design exists for it. The architect-design skill is in the available-skills roster. The user has not declined architect-design.",
+      "expected_output": "Pauses before cutting, says the architecture comes first on the short route, offers architect-design at subsystem scope when the system already runs, and waits.",
+      "assertions": [
+        "Pauses before cutting and offers architect-design",
+        "Names the scope from the intent's level",
+        "Does not start architect-design itself",
+        "Does not cut children before the user answers"
+      ]
+    },
+    {
+      "id": "decompose-declined-at-de-risk",
+      "mode": "decompose",
+      "prompt": "Short route. This capability-level intent survived de-risk. The architect-design skill is in the available-skills roster. At de-risk the user declined architect-design for this intent and asked to go straight on.",
+      "expected_output": "Cuts the children by shippability without offering architect-design again.",
+      "assertions": [
+        "Cuts without offering architect-design again",
+        "Cuts children by shippability, not by component",
+        "Records the decomposition decision on the parent"
+      ]
+    },
+    {
+      "id": "decompose-design-already-covers",
+      "mode": "decompose",
+      "prompt": "Short route. This feature intent survived de-risk. The architect-design skill is in the available-skills roster. A resolved architecture-design artifact made for its parent capability names the subsystem this feature changes.",
+      "expected_output": "Cuts the leaf using the covering design, with its locator in the delivery contract's design context, and makes no architect offer.",
+      "assertions": [
+        "Cuts without offering architect-design",
+        "Carries the design's locator in the delivery contract's design context",
+        "Cuts by shippability, not by component"
+      ]
+    },
+    {
+      "id": "decompose-design-changes-capabilities",
+      "mode": "decompose",
+      "prompt": "Short route. This capability-level intent survived de-risk. The architect-design skill is in the available-skills roster. The user took architect-design, and the resulting design changes which capabilities the intent contains.",
+      "expected_output": "Does not cut yet, recommends the longer route at map-capabilities, and also offers to cut.",
+      "assertions": [
+        "Recommends the longer route at map-capabilities",
+        "Does not cut before the user chooses",
+        "Also offers to cut"
+      ]
+    },
+    {
+      "id": "decompose-feature-design-changes-capabilities",
+      "mode": "decompose",
+      "prompt": "Short route. This feature intent survived de-risk. The architect-design skill is in the available-skills roster. The user took architect-design, and the resulting design changes the capabilities of the feature's parent capability.",
+      "expected_output": "Does not cut yet, recommends intent frame for the parent capability, and also offers to cut.",
+      "assertions": [
+        "Recommends intent frame for the parent capability",
+        "Does not recommend map-capabilities for a single feature",
+        "Also offers to cut"
+      ]
+    },
+    {
+      "id": "de-risk-survive-no-route-architect-installed",
+      "mode": "de-risk",
+      "prompt": "The riskiest assumption of this intent survived de-risk. The conversation does not show which route applies. The architect-design skill is in the available-skills roster.",
+      "expected_output": "Offers both labelled routes, recommends neither, and asks which route applies, without recommending architect-design.",
+      "assertions": [
+        "Recommends neither route and asks which route applies",
+        "Does not recommend architect-design",
+        "Opens with the de-risk mode alone, naming no route"
+      ]
+    },
+    {
+      "id": "de-risk-chose-decompose-then-decompose",
+      "mode": "decompose",
+      "prompt": "Short route. This capability-level intent survived de-risk. The architect-design skill is in the available-skills roster. At de-risk the offered options included architect-design, and the user chose intent decompose.",
+      "expected_output": "Treats the choice of intent decompose as declining architect-design and cuts without offering it again.",
+      "assertions": [
+        "Cuts without offering architect-design again",
+        "Cuts children by shippability, not by component",
+        "Records the decomposition decision on the parent"
+      ]
+    },
+    {
+      "id": "de-risk-survive-architect-absent",
+      "mode": "de-risk",
+      "prompt": "Short route. The riskiest assumption of this feature intent survived de-risk. The architect skills are not in the available-skills roster.",
+      "expected_output": "Offers intent decompose and place-bet, each labelled with its route, recommends intent decompose for the short route, and says nothing about a design skill.",
+      "assertions": [
+        "Does not mention architect, its skills, or their absence",
+        "Recommends intent decompose for the short route",
+        "Offers place-bet labelled longer route"
       ]
     }
   ]

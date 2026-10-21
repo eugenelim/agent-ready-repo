@@ -31,7 +31,7 @@ graph and therefore **no blast radius**. Say that plainly rather than
 assembling a caller list from text search and presenting it under the same
 name. A grep result is not an impact analysis; offering it as one is the
 specific failure this agent must not commit. Remediation is
-`cargo install wicked-estate --version 0.29.2 --locked` then
+`cargo install wicked-estate --version 0.30.0 --locked` then
 `wicked-estate index .` — offer it, do not run it.
 
 ## How you work
