@@ -19,7 +19,7 @@ from agentbundle.build.lint_packs import lint_pack
 
 from tests._support import cli_namespace
 
-# The command surface AC20 partitions. Six derive the per-pack-claude-plugin
+# The command surface this change partitions. Six derive the per-pack-claude-plugin
 # recipe through `render_pack` and change by design; the rest must not.
 PLUGIN_RECIPE_CONSUMERS = (
     "render",
@@ -51,7 +51,7 @@ def _wiring_pack(
     (pack / ".apm" / "hook-wiring").mkdir(parents=True)
     (pack / ".claude-plugin").mkdir(parents=True)
     (pack / ".apm" / "hooks" / "run.py").write_text("pass\n", encoding="utf-8")
-    # `pack_is_publishable` — and therefore AC22's route-qualification — needs a
+    # `pack_is_publishable` — and therefore the route-qualification gate — needs a
     # source manifest as well as a user-admitting scope.
     (pack / ".claude-plugin" / "plugin.json").write_text(
         json.dumps({"name": name, "version": "1.0.0"}), encoding="utf-8"
@@ -87,7 +87,7 @@ def test_lint_dry_runs_the_compiler_and_reports_a_finding(tmp_path: Path) -> Non
 
 
 def test_lint_dry_runs_the_compiler_on_a_repo_only_pack(tmp_path: Path) -> None:
-    """AC30's whole point: the build-time scope filter never lets a repo-only
+    """The whole point: the build-time scope filter never lets a repo-only
     pack reach the compiler, so `packs/core` — the only real wiring in the tree
     — would be the one wiring these checks never run against."""
     pack = _wiring_pack(
@@ -153,16 +153,16 @@ def test_validate_accepts_a_conforming_route_qualified_pack(tmp_path: Path) -> N
 
 
 def test_the_six_named_consumers_reach_render_pack() -> None:
-    """AC20 names exactly six consumers that change by design. If a seventh
-    starts deriving the recipe, or one of these stops, the criterion's blast
-    radius is wrong and this fails."""
+    """Exactly six consumers change by design. If a seventh starts deriving
+    the recipe, or one of these stops, the change's blast radius is wrong
+    and this fails."""
     reaching = {
         module.stem
         for module in sorted(COMMANDS_DIR.glob("*.py"))
         if "render_pack" in module.read_text(encoding="utf-8")
     }
     assert reaching == set(PLUGIN_RECIPE_CONSUMERS), (
-        f"render_pack consumers drifted from AC20's named six: {sorted(reaching)}"
+        f"render_pack consumers drifted from the named six: {sorted(reaching)}"
     )
 
 

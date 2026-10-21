@@ -1,6 +1,6 @@
 """Three-surface membership and `render_pack`-consumer characterization.
 
-Spec: docs/specs/claude-plugin-route-scope. Covers the membership criterion
+Covers the membership criterion
 (all three surfaces, both directions, expected side enumerated literally) and
 the consumer criterion (six `render_pack` callers, plus the pre-change
 `state.json` an adopter carries through `upgrade`).
@@ -122,7 +122,7 @@ def test_envelope_derived_from_a_single_agreed_identity(tmp_path) -> None:
 
 
 def test_envelope_refuses_when_survivors_disagree(tmp_path) -> None:
-    """The control AC7 exists for.
+    """The control for the survivors-must-agree refusal.
 
     Taking the FIRST entry's `source.url` let a filtered set re-key the
     marketplace to whichever pack sorted first — identity decided by an
@@ -317,9 +317,9 @@ def _recipe():
 def test_catalogue_build_warns_and_continues_when_the_filter_empties_it(
     tmp_path, capsys
 ) -> None:
-    """AC12, driven through `_run_aggregate` rather than a pure helper.
+    """Driven through `_run_aggregate` rather than a pure helper.
 
-    This raised until round thirteen. It broke `agentbundle catalogue build`
+    This used to raise. It broke `agentbundle catalogue build`
     for any adopter whose packs are all repo-scoped — including the
     catalogue-tooling smoke gate's own fixture, which went red on this branch
     with no local target covering it. Warn-and-continue now, matching the
@@ -340,12 +340,12 @@ def test_catalogue_build_warns_and_continues_when_the_filter_empties_it(
 
 
 def test_blank_catalogue_is_silent_not_merely_non_fatal(tmp_path, capsys) -> None:
-    """AC12's blank-catalogue clause — nothing was filtered, so say nothing.
+    """A blank catalogue is silent — nothing was filtered, so say nothing.
 
-    `result["entries"] == 0` alone was the whole assertion until round
-    fourteen, so relaxing the guard from `source_by_name and not entries` to
-    `not entries` left the entire suite green while a blank catalogue started
-    warning about a filter that never ran.
+    `result["entries"] == 0` alone was once the whole assertion, so relaxing
+    the guard from `source_by_name and not entries` to `not entries` left
+    the entire suite green while a blank catalogue started warning about a
+    filter that never ran.
     """
     from agentbundle.build.main import _run_aggregate
 
@@ -359,7 +359,7 @@ def test_blank_catalogue_is_silent_not_merely_non_fatal(tmp_path, capsys) -> Non
 
 
 def test_scope_resolves_from_source_not_a_stale_dist(tmp_path) -> None:
-    """AC4's control: `make build` has no `clean`, so a stale dist survives.
+    """Control: `make build` has no `clean`, so a stale dist survives.
 
     The dist copy keeps the OLD, user-capable declaration; the source has been
     narrowed. Resolving from dist would republish against current intent.
@@ -384,7 +384,7 @@ def test_scope_resolves_from_source_not_a_stale_dist(tmp_path) -> None:
 
 
 def test_pack_flag_refused_on_an_aggregate_recipe(tmp_path) -> None:
-    """AC26 guard one: `--pack` truncated the shared marketplace and exited 0."""
+    """Guard one: `--pack` truncated the shared marketplace and exited 0."""
     result = subprocess.run(
         [sys.executable, "-m", "agentbundle.build", "build",
          "--packs-dir", str(FIXTURES), "--output-dir", str(tmp_path / "d"),
@@ -396,7 +396,7 @@ def test_pack_flag_refused_on_an_aggregate_recipe(tmp_path) -> None:
 
 
 def test_run_recipe_rejects_an_unknown_scope_on_a_per_pack_recipe(tmp_path) -> None:
-    """AC26 guard two, at the boundary a per-pack recipe actually reaches.
+    """Guard two, at the boundary a per-pack recipe actually reaches.
 
     Validating only where the value is *read* left per-pack call sites
     unchecked — the class the frozenset exists to close.
@@ -432,7 +432,7 @@ def test_every_exclusion_is_named_on_stderr(tmp_path) -> None:
     err = result.stderr
     for slug in sorted(EXPECTED_WITHHELD):
         assert f"claude-plugins: skipping {slug} —" in err, (
-            f"{slug} was dropped without saying so — AC1's disclosure clause. "
+            f"{slug} was dropped without saying so, which breaks the disclosure rule. "
             f"stderr was:\n{err}"
         )
     # The aggregate's own summary is deliberately NOT asserted here: on a
@@ -518,7 +518,7 @@ def test_the_skip_reason_names_the_condition_that_actually_held(tmp_path) -> Non
 
 
 def test_self_host_warns_loudly_when_the_filter_empties_the_marketplace(tmp_path) -> None:
-    """AC12's self-host bullet — warn and continue, never silently empty."""
+    """The self-host writer warns and continues, never silently empty."""
     from agentbundle.build.self_host import _aggregate_marketplace
 
     packs_dir = tmp_path / "packs"
@@ -546,7 +546,7 @@ def test_self_host_warns_loudly_when_the_filter_empties_the_marketplace(tmp_path
 
 
 def test_a_single_pack_render_says_nothing_about_the_route(tmp_path) -> None:
-    """AC12's single-pack clause — the silence is deliberate, so pin it.
+    """A single-pack render is silent on purpose, so pin it.
 
     Deleting the `aggregate_scope == "catalogue"` gate would make
     `agentbundle install --pack core` start printing a route refusal on a
@@ -576,7 +576,7 @@ def test_a_manifest_less_pack_produces_no_route_output(tmp_path) -> None:
     `.claude-plugin/plugin.json`, and scopes admitting `user`. The first and
     third are pinned in `test_plugin_scope_filter.py`; the second was not,
     because every fixture pack carries a manifest — so deleting the guard
-    passed the entire suite. AC5 names this as a behavioural change ("manifest-
+    passed the entire suite. This is a behavioural change ("manifest-
     less packs now produce no claude-plugins output"), so it earns a control.
     """
     packs = tmp_path / "packs"

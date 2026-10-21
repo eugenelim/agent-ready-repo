@@ -18,7 +18,7 @@ import os
 
 import pytest
 
-# The AC33 budget names BoundExceeded carries. Deliberately plain strings: the
+# The budget names BoundExceeded carries. Deliberately plain strings: the
 # byte-pinned file_safety.py mirror must not import diagnostics.py.
 BUDGET_NAMES = frozenset(
     {"entries", "depth", "files", "selected-skills", "per-file-bytes", "total-bytes"}
@@ -41,8 +41,8 @@ def test_direct_codes_registry_contract():
 
     # No member-count assertion: two were tried during review — nine, then
     # twelve — and both went stale as later criteria added refusals. Assert
-    # structural properties that cannot age instead. AC31's lint owns exact
-    # coverage against the published table.
+    # structural properties that cannot age instead. The published-table lint
+    # owns exact coverage against the published table.
 
     # The direct namespace is disjoint from the catalogue lint namespace, so a
     # catalogue code can never be emitted as a direct one and vice versa.
@@ -56,11 +56,11 @@ def test_direct_codes_registry_contract():
     from agentbundle.catalogue_tooling.diagnostics import BUDGET_CODES
 
     assert set(BUDGET_CODES) == BUDGET_NAMES, (
-        "BUDGET_CODES must map exactly AC33's six budget names"
+        "BUDGET_CODES must map exactly the six budget names"
     )
     assert set(BUDGET_CODES.values()) <= DIRECT_CODES
     assert len(set(BUDGET_CODES.values())) == len(BUDGET_NAMES), (
-        "each AC33 budget needs its own member, not a shared one"
+        "each budget needs its own member, not a shared one"
     )
 
     # Positive case first — a registered code is accepted and round-trips.
@@ -77,7 +77,7 @@ def test_direct_codes_registry_contract():
     assert produced.code == registered.value
     assert produced.path == "skills/example/SKILL.md"
     # Severity is an IntEnum, not a str: the established serializer emits
-    # `d.severity.name` (lint.py:2272), which is the shape AC21 pins, and a
+    # `d.severity.name` (lint.py:2272), which is the pinned envelope shape, and a
     # bare "error" string would raise AttributeError there.
     assert produced.severity is Severity.ERROR
 
@@ -137,7 +137,7 @@ def test_read_confined_regular_file_attributes_the_per_file_bytes_budget(tmp_pat
     assert excinfo.value.budget == "per-file-bytes"
     assert excinfo.value.limit == 64
 
-    # A value equal to the limit is admitted — AC15's bounds allow equality and
+    # A value equal to the limit is admitted — the bounds allow equality and
     # refuse only a greater value. Without this the refusal above is satisfied
     # by an implementation that rejects every read.
     at_limit = root / "at-limit.md"
@@ -201,7 +201,7 @@ def test_integrity_refusal_is_discriminable_from_a_budget_breach(tmp_path):
 
 
 def test_every_registered_direct_code_has_a_raise_site():
-    # AC31 requires every DIRECT_CODES member to be reachable. Nothing asserted
+    # Every DIRECT_CODES member must be reachable. Nothing asserted
     # it, which is how CAT-D018 was registered, published in the adopter table,
     # and lint-checked for set equality while having no raise site at all — the
     # table lint compares the registry to the document, so it certified a code
@@ -304,8 +304,8 @@ def test_delete_removed_projection_refuses_forged_out_of_prefix_ownership(tmp_pa
 def _emitted_codes(tmp_path) -> set[str]:
     """Every direct code an actual refusal emits, one scenario per code.
 
-    AC31 requires that across committed direct fixtures "every emitted direct
-    `code` ... exactly covers that set". The sibling test above scans for raise
+    Across committed direct fixtures, "every emitted direct `code` ... exactly
+    covers that set". The sibling test above scans for raise
     SITES, which its own docstring calls weaker: a code can have a raise site
     that no input reaches. These scenarios reach them.
     """
@@ -381,7 +381,7 @@ def _emitted_codes(tmp_path) -> set[str]:
     # from the assertion state meant that the moment two consecutive scenarios
     # stopped contributing a new code, a later extraction silently reused a
     # spool path and unpacked into a directory already holding the previous
-    # members — so the control establishing AC31's reachability half would be
+    # members — so the control establishing the reachability half would be
     # measuring a different input than the one it names.
     extraction_count = itertools.count()
 
@@ -769,7 +769,7 @@ def _emitted_codes(tmp_path) -> set[str]:
 
 
 def test_every_registered_direct_code_is_emitted_by_a_fixture(tmp_path):
-    # AC31's coverage half. The raise-site scan above proves a code is wired to
+    # The coverage half. The raise-site scan above proves a code is wired to
     # something; this proves an input reaches it. CAT-D018 passed a set-equality
     # lint against the published table while having no raise site at all, so
     # "declared" and "reachable" are demonstrably different properties.

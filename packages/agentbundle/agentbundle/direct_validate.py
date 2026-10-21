@@ -1,4 +1,4 @@
-"""Direct-source validation output: the AC21 JSON envelope and its text form.
+"""Direct-source validation output: the JSON envelope and its text form.
 
 Kept beside the direct modules rather than inside ``commands/validate.py`` so
 the catalogue route's bytes cannot move: that command's existing text output and
@@ -12,7 +12,7 @@ import json
 
 from agentbundle.direct_source import DirectAdmission
 
-# AC21: the direct route has no catalogue, so its `catalogue_schema_version`
+# The direct route has no catalogue, so its `catalogue_schema_version`
 # default is 1 rather than a value read from a catalogue that is not there.
 DIRECT_CATALOGUE_SCHEMA_VERSION = 1
 DIRECT_SCHEMA_VERSION = 1
@@ -27,7 +27,7 @@ def _agentbundle_version() -> str:
 
 
 def direct_validation_summary(admission: DirectAdmission) -> dict[str, object]:
-    """AC21's summary: the shape and the skills that were selected."""
+    """The summary: the shape and the skills that were selected."""
 
     classification = admission.classification
     if classification is None:

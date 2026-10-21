@@ -145,7 +145,7 @@ def _emitted_install_routes_line(
 def _dist_tree_removal_lines(subtree_roots: list[str]) -> list[str]:
     """Format the ordered destructive-action notices for dist-tree subtrees."""
     return [
-        f"install --force will REMOVE pre-RFC-0012 dist-tree subtree: "
+        f"install --force will REMOVE legacy dist-tree subtree: "
         f"{root_rel}/ (recursively)"
         for root_rel in subtree_roots
     ]
@@ -255,7 +255,7 @@ def _local_preflight_refusal(
     """
     from agentbundle.local_exclude import tracked_paths
 
-    # AC10a — a tracked target. Writing over it would make the file dirty in
+    # A tracked target. Writing over it would make the file dirty in
     # git while the exclude block claims it is invisible, and uninstall would
     # delete a file the repository owns.
     tracked = tracked_paths(root, relpaths)
@@ -269,7 +269,7 @@ def _local_preflight_refusal(
             "file on uninstall. This refusal is not overridable with --force."
         )
 
-    # AC10b — an untracked file with no ownership record anywhere. Matching
+    # An untracked file with no ownership record anywhere. Matching
     # content does NOT grant ownership: uninstall would delete a file this tool
     # never created, which is the exact-restoration guarantee broken.
     states = [("repo", repo_state), ("user", user_state), ("local", local_state)]
@@ -288,7 +288,7 @@ def _local_preflight_refusal(
             "refusal is not overridable with --force."
         )
 
-    # AC12b — path-level collision with the opposing scope, across ANY pack.
+    # Path-level collision with the opposing scope, across ANY pack.
     # The pack-level mutual exclusion upstream only catches the same pack
     # installed at both scopes; two DIFFERENT packs projecting the same path
     # slipped through, and the second install would silently take ownership of
@@ -316,7 +316,7 @@ def run(args: argparse.Namespace) -> int:
     try:
         return _run(args)
     except OrphanSweepRefused as exc:
-        # AC28's refusal is correct — a sweep that cannot read the state file
+        # The refusal is correct — a sweep that cannot read the state file
         # must not delete what it cannot prove is unowned — but install reaches
         # it through each adapter's `project()`, and unhandled it arrived as a
         # traceback with internal paths on stderr.
@@ -367,7 +367,7 @@ def _run(args: argparse.Namespace) -> int:
             return 1
         return _run_profile(args)
 
-    # AC7: `--pack` / `--profile` is no longer an argparse-required group,
+    # `--pack` / `--profile` is no longer an argparse-required group,
     # because a direct source arrives as the positional with neither flag.
     # "Exactly one of --pack / --profile / a direct source" is enforced here
     # instead, and a usage error still exits 2 so the observable contract is
@@ -635,8 +635,8 @@ def _run(args: argparse.Namespace) -> int:
         # The plugins route has its own local-scope behaviour; the
         # catalogue-publishing opt-in must not run for per-clone installs.
         print(
-            "install: --emit-install-routes is not supported at --scope local "
-            "(see RFC-0008 for the plugins route's own local-scope behaviour)",
+            "install: --emit-install-routes is not supported at --scope local; "
+            "the plugins route has its own local-scope behaviour",
             file=sys.stderr,
         )
         return 1
@@ -1994,8 +1994,8 @@ def _run(args: argparse.Namespace) -> int:
             # produce a per-pack directory and is excluded from the
             # route list for the repo-scope install-time message rail.
             # The claude-plugins route publishes only packs whose
-            # `allowed-scopes` admits "user" (docs/specs/claude-plugin-route-scope),
-            # so a repo-only pack produces no such directory. Gate on what the
+            # `allowed-scopes` admits "user", so a repo-only pack produces
+            # no such directory. Gate on what the
             # projection actually wrote rather than re-deriving the predicate
             # here — it has already run by this point, and a second copy of the
             # rule would drift from the one in build/main.py.
@@ -2728,7 +2728,7 @@ def _classify_pre_rfc0012_state(
                     )
                 return None
             print(
-                f"install: pre-RFC-0012 dist-tree files for pack "
+                f"install: legacy dist-tree files for pack "
                 f"{pack_name} at "
                 f"{_format_route_list([str(p) for p in dist_tree])} — "
                 f"state recorded but on-disk shape predates per-IDE "
@@ -3239,8 +3239,7 @@ def _append_layout_section(
     caller's handler is therefore scoped to ``_append_install_marker``, which
     stays fatal because uninstall and ``adapt`` read what it writes.
 
-    The reachable states, **in this order** (spec
-    ``docs/specs/layout-install-sections``):
+    The reachable states, **in this order**:
 
     1.  declaration incomplete — silent
     2.  layout path is a symlink, by ``lstat`` — report
@@ -3279,8 +3278,8 @@ def _append_layout_section(
     The read and the write are separate syscalls with no lock between them, so
     two installs racing on one layout file can lose the earlier append. The
     window is small and the loss is a missing default rather than damaged
-    adopter content; `docs/specs/layout-install-sections` records it as an
-    accepted residual rather than taking the state lock.
+    adopter content, so it is accepted as a residual rather than taking the
+    state lock.
     """
     import tomllib
 
@@ -3357,11 +3356,11 @@ def _append_layout_section(
         # ── 5/6. Confine the declared base to the root we write under ───────
         # `output_dir` is catalogue-sourced and reaches a filesystem root for
         # the first time here, so it is confined to the same root the write
-        # jail uses for this scope (RFC-0040's security contract). A relative
-        # value is anchored to that root, never to the process working
-        # directory — anchoring to the CWD is the defect the resolver side
-        # repairs, and it would also refuse every shipped default whenever the
-        # CLI runs from another directory.
+        # jail uses for this scope. A relative value is anchored to that
+        # root, never to the process working directory — anchoring to the
+        # CWD is the defect the resolver side repairs, and it would also
+        # refuse every shipped default whenever the CLI runs from another
+        # directory.
         confine_root = root.resolve()
         candidate = Path(output_dir).expanduser()
         if not candidate.is_absolute():

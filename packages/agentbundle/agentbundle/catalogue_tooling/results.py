@@ -66,7 +66,7 @@ PKG_REFUSED_CODE = "CAT-PKG-002"
 
 @dataclass
 class PackageResult(CommandResult):
-    # Release comparison (AC-0013 ``comparison`` object); None without --compare.
+    # Release comparison (the ``comparison`` object); None without --compare.
     comparison: dict | None = None
 
 

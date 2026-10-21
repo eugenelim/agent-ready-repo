@@ -5,9 +5,9 @@ test here asserts a contract surface the spec's Acceptance Criteria determine;
 none is a bare TODO. They are expected to FAIL until their task lands.
 
 Task map:
-  T0 → AC9   marketplace entries are validated, on both paths
-  T1 → AC7   no assertion pins the old source shape
-  T2 → AC1, AC5, AC8   source shape, envelope, schema
+  T0   marketplace entries are validated, on both paths
+  T1   no assertion pins the old source shape
+  T2   source shape, envelope, schema
 """
 
 from __future__ import annotations

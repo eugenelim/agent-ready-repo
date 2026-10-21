@@ -375,7 +375,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # the requiredness. `--scope` with `--profile` is rejected at the handler
     # (a profile declares its own scope); argparse can't express that mutex
     # because `--scope` is valid alongside `--pack`.
-    # AC7: the group is no longer argparse-required, because a direct source is
+    # The group is no longer argparse-required, because a direct source is
     # supplied as the positional with neither flag. "Exactly one of --pack /
     # --profile / a direct source" moves to the handler, which still exits 2 for
     # a usage error so the observable contract is unchanged.
@@ -1121,7 +1121,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # catalogue sync
     #
-    # AC-0060 withdraws abbreviation on this subparser only: `--guides`
+    # Abbreviation is withdrawn on this subparser only: `--guides`
     # is now its own registered scoping flag (below), so a prefix like
     # `--guides-mo` can no longer silently resolve to `--guides-mode`
     # (spec plan.md § Rollout records the one compatibility break this
@@ -1182,7 +1182,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default="table",
         help="Output format: table (default, human-readable) or json (machine-readable).",
     )
-    # AC-0030: `--dry-run`, `--check`, and neither (an apply run) are three
+    # `--dry-run`, `--check`, and neither (an apply run) are three
     # mutually exclusive invocation modes, so the group is no longer
     # `required=True` — a bare invocation is now valid and reaches the apply
     # path. `--yes` only means anything on an apply run, so it joins the same
@@ -1216,7 +1216,7 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="compare_tree",
         help="With --check, compare every recorded path against the tree.",
     )
-    # AC-0043's scoping flags. `run()` already reads these defensively for
+    # The scoping flags below. `run()` already reads these defensively for
     # an apply run (each restricts the write set to its declared subtree).
     # The same declared subtree is meant to restrict the plan a `--dry-run`
     # preview prints and to be refused alongside `--check` — that wiring is
@@ -1247,11 +1247,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "which sets the replayed guides mode."
         ),
     )
-    # AC-0081 — `--package` is a scoping flag, restricting the run to that
-    # name's AC-0078 destination. `choices` stays the whole validation this
+    # `--package` is a scoping flag, restricting the run to that name's
+    # destination. `choices` stays the whole validation this
     # parser owns: any other name is malformed by argparse itself, before
     # `run()` sees it. Whether a recognised name's destination is *present*
-    # is AC-0082's, not this parser's — `agentbundle` needs a vendored
+    # is not this parser's to check — `agentbundle` needs a vendored
     # replay, and `credbroker` needs the resolved selection, which does not
     # exist until the source resolves.
     _sync_p.add_argument(

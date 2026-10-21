@@ -20,10 +20,10 @@ from agentbundle.https_catalogue import CatalogueArchiveResult
 
 # Reused rather than copied — T4 introduces this helper and its first rows in
 # test_catalogue_tooling_self_hosted_init.py; every later task's no-write case
-# parametrises against the same walk, per plan.md § Construction tests.
+# parametrises against the same walk.
 from tests.unit.test_catalogue_tooling_self_hosted_init import walk_target_tree
 
-# T9's fixture pack declaring adapter-contract major 1 (spec AC-0019); every
+# T9's fixture pack declaring adapter-contract major 1 (AC-0019); every
 # pack shipped in this repository declares major 0, so this fixture is what
 # makes that refusal able to fail.
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "catalogue_sync"
@@ -62,11 +62,11 @@ def _write_minimal_sync_state(
     packs: list[str] | None = None,
     managed_paths: list[dict] | None = None,
 ) -> None:
-    """Write the minimal schema-3 state a derivable AC-0009 selection needs.
+    """Write the minimal schema-3 state a derivable recorded selection needs.
 
     ``packs`` recorded (even the empty explicit list) is what makes the
     recipe derivable -- an *absent* ``packs`` key, by contrast, is one of
-    AC-0009's underivable conditions.
+    the underivable conditions.
     """
     state_path = target / ".agentbundle" / "self-host-state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -200,7 +200,7 @@ def test_sync_verification_refusal_never_leaks_source_outside_attributed(
 ):
     """A source resolvable as a path but missing catalogue.toml raises
     ``ReplayError`` inside ``replay_derivation`` — the verification half of
-    AC-0002's refusal set.
+    the source-refusal set.
     """
     missing_source = str(tmp_path / "does-not-exist")
 
@@ -234,7 +234,7 @@ def test_sync_resolution_refusal_never_leaks_source_outside_attributed(
     derived_tree, capsys, attribution
 ):
     """``git+ssh://`` is refused by ``resolve_catalogue`` itself — the
-    resolution half of AC-0002's refusal set.
+    resolution half of the source-refusal set.
     """
     source_uri = "git+ssh://git@example.com/example-owner/example-repo.git"
 
@@ -355,7 +355,7 @@ def test_sync_reports_tier_verdict_and_selection(derived_tree, upstream, capsys)
 
 
 def _setup_five_path_states(derived_tree: Path, upstream: Path) -> None:
-    """Drive all five AC-0010 path states into one target/source pair.
+    """Drive all five path states into one target/source pair.
 
     Shared by the per-verdict test below and the seven-count identity test,
     so the two can't drift into checking different fixtures under the same
@@ -365,7 +365,7 @@ def _setup_five_path_states(derived_tree: Path, upstream: Path) -> None:
     (derived_tree / "packs" / "alpha" / "extra.md").write_bytes(b"legacy\n")
     (derived_tree / "packs" / "alpha" / "README.md").write_bytes(b"edited by the adopter\n")
     (derived_tree / "packs" / "alpha" / "stale.md").write_bytes(b"stale\n")
-    # AC-0010 row 2: recorded, absent on disk -> would-update. Still planned
+    # AC-0010: recorded, absent on disk -> would-update. Still planned
     # by the source (so it stays in `planned_paths`) and recorded with a
     # real digest, but never created under the target -- no companion file
     # here, unlike every other recorded path this fixture drives.
@@ -390,7 +390,7 @@ def _setup_five_path_states(derived_tree: Path, upstream: Path) -> None:
 
 
 def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, capsys):
-    """Drive all five AC-0010 path states through one run and check the
+    """Drive all five path states through one run and check the
     reported verdict, the companion path, and the reported pack/profile
     selection against the recorded recipe."""
     _setup_five_path_states(derived_tree, upstream)
@@ -405,8 +405,8 @@ def test_sync_five_path_states_and_reported_selection(derived_tree, upstream, ca
     verdicts_by_path = {row["path"]: row for row in doc["verdicts"]}
     # recorded, present, sha matches -> would-update.
     assert verdicts_by_path["packs/alpha/pack.toml"]["verdict"] == "would-update"
-    # recorded, absent on disk -> would-update (AC-0010 row 2; distinct from
-    # the present-and-matching row above, so this is not the same assertion
+    # recorded, absent on disk -> would-update (AC-0010; distinct from
+    # the present-and-matching case above, so this is not the same assertion
     # under a different path).
     assert verdicts_by_path["packs/alpha/missing-on-disk.md"]["verdict"] == "would-update"
     assert "companion" not in verdicts_by_path["packs/alpha/missing-on-disk.md"]
@@ -519,7 +519,7 @@ def test_sync_reports_seven_counts_and_the_identity(derived_tree, upstream, caps
     """Quality finding 3: pin the exact seven values on the five-path-state
     fixture (which already carries a schema-1-inert entry), and compare the
     table's rendered counts against the JSON `summary` from the same run —
-    AC-0016's own named oracle. A per-bucket mis-attribution keeps every
+    the named oracle for this attribution. A per-bucket mis-attribution keeps every
     verdict row correct, so only this exact-value and cross-surface check
     can catch it; the identity alone (compared + uncompared == recorded
     count) cannot."""
@@ -565,7 +565,7 @@ def test_sync_identity_accounts_for_malformed_and_unrenderable_entries(
 ):
     """The identity's denominator is the raw managed_paths array before
     filtering; a malformed entry (no "path" key) and an unrenderable one
-    (a control character) both land in uncompared (spec AC-0016)."""
+    (a control character) both land in uncompared (AC-0016)."""
     state_path = derived_tree / ".agentbundle" / "self-host-state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
     recorded_count_before = len(state["managed_paths"])
@@ -752,7 +752,6 @@ def test_sync_ownership_state_recursion_exhaustion_exits_cannot_answer(
 # AC-0012: every value this command renders that it did not itself author is
 # routed through the bounded terminal-safe scalar check before it reaches any
 # output surface. One rejecting case per value kind the sink-class probe
-# (docs/specs/catalogue-sync-dry-run/notes/grounding/probe-sink-class.py)
 # enumerates: the field name and reason appear, the value never does. The
 # pass direction alone cannot distinguish an applied check from an absent
 # one, so each case drives a genuinely hostile value through the real
@@ -983,7 +982,7 @@ def test_sync_rejects_hostile_dependency_edge_name(derived_tree, tmp_path, capsy
 
 
 # value kind: packs -- a selected pack's own directory name (a source-tree
-# entry name AC-0012 names expressly), reached via an explicit-but-empty
+# entry name the screening rule names expressly), reached via an explicit-but-empty
 # recorded selection: `select_packs` treats `[]` the same as `None` and
 # resolves to every source pack directory.
 def test_sync_rejects_hostile_pack_name(tmp_path, capsys):
@@ -1060,7 +1059,7 @@ def test_sync_rejects_hostile_target(tmp_path, capsys):
 # Security finding 5: `[pack.dependencies] required`/`conflicts` is a valid
 # TOML scalar as well as an array. An unguarded non-list container must be
 # skipped and reported, and the run must still print its plan and exit 0 —
-# AC-0013's success row, undisturbed by AC-0018's warn-only signals.
+# the exit-code table's success row, undisturbed by warn-only signals.
 # ---------------------------------------------------------------------------
 
 def _source_dependency_required_not_a_list(root: Path) -> Path:
@@ -1144,8 +1143,8 @@ def test_sync_recorded_modes_do_not_affect_the_plan(derived_tree, upstream, caps
 
 
 # ---------------------------------------------------------------------------
-# The `--format json` document's content on each refusing row of spec
-# AC-0013 that sync's own dispatch reaches today (T8 owns the ordered, total
+# The `--format json` document's content on each refusing row of the
+# exit-code table that sync's own dispatch reaches today (T8 owns the ordered, total
 # table over every row, including the `--check` comparison rows).
 # ---------------------------------------------------------------------------
 
@@ -1184,7 +1183,7 @@ def test_sync_json_document_shape_on_cannot_answer_resolution_refusal(
     derived_tree, capsys
 ):
     # `git+ssh://` is refused by `resolve_catalogue` itself (a `CatalogueError`)
-    # -- the resolution half of AC-0002's refusal set, reused here for its
+    # -- the resolution half of the source-refusal set, reused here for its
     # JSON shape rather than a local path, which `resolve_catalogue` accepts
     # unconditionally and only ``replay_derivation`` later finds unverifiable.
     source_uri = "git+ssh://git@example.com/example-owner/example-repo.git"
@@ -1300,7 +1299,7 @@ def _source_adapter_contract_version_unchanged(root: Path) -> Path:
 
 def _source_adapter_contract_version_changed(root: Path) -> Path:
     # Major 0 — agrees with this CLI's own SPEC_VERSION major, so this stays
-    # a warn-only signal rather than tripping AC-0019's refusal gate.
+    # a warn-only signal rather than tripping the adapter-contract refusal gate.
     return _make_source_with_pack_toml(
         root,
         '[pack]\n'
@@ -1393,9 +1392,9 @@ def test_compatibility_signal_warns_without_changing_exit_code(
 
 
 def test_sync_refuses_when_adapter_contract_major_mismatches(derived_tree, tmp_path, capsys):
-    """Spec AC-0019: a pack declaring a differing adapter-contract major
-    refuses via the existing uniform-refusal gate, returning AC-0013's
-    difference code — distinct from AC-0018's warn-only signals above."""
+    """AC-0019: a pack declaring a differing adapter-contract major refuses
+    via the existing uniform-refusal gate, returning the difference exit
+    code — distinct from the warn-only signals above."""
     pack_toml_text = (
         FIXTURES / "adapter_contract_major_mismatch" / "pack.toml"
     ).read_text(encoding="utf-8")
@@ -1414,7 +1413,7 @@ def test_sync_refuses_when_adapter_contract_major_mismatches(derived_tree, tmp_p
 def test_sync_reads_derived_tree_baseline_through_the_confinement_helper(
     derived_tree, upstream_with_bumped_pack, monkeypatch, capsys
 ):
-    """Spec AC-0020: the derived-tree baseline manifest read goes through the
+    """AC-0020: the derived-tree baseline manifest read goes through the
     declared ``file_safety`` helper. Patching it to always refuse must make
     the pack-version signal disappear — an inline lexical-prefix check would
     not observe this patch and the test would still pass."""
@@ -1455,14 +1454,14 @@ def test_check_returns_cannot_answer_when_pin_has_no_digest(
 
 
 # Row: "any: the invocation is malformed" — --compare-tree without --check
-# and a symlinked target are already covered by AC-0002/AC-0007's tests
-# above; "an omitted --source" and "neither or both of --dry-run and
+# and a symlinked target are already covered by the source-refusal and replayed-mode
+# tests above; "an omitted --source" and "neither or both of --dry-run and
 # --check" are argparse-level refusals (both flags required) and never
 # reach run() at all, per the comment in run() itself.
 
 # Row: "any: source could not be resolved or its integrity could not be
-# verified" — a CatalogueError case is covered above (AC-0002's resolution-
-# refusal tests); this is AC-0014's second boundary case, a *non*-
+# verified" — a CatalogueError case is covered above (the resolution-
+# refusal tests); this is the second boundary case, a *non*-
 # CatalogueError exception from the resolver, which must still reach a named
 # row rather than propagate as an uncaught traceback.
 def test_sync_resolver_exception_reaches_cannot_answer_without_a_traceback(
@@ -1480,9 +1479,9 @@ def test_sync_resolver_exception_reaches_cannot_answer_without_a_traceback(
     assert catalogue_sync.run(args) == 3
 
 
-# Row: "--dry-run: the identity leak check reported a violation" — AC-0004
-# and AC-0005 drive this at the replay-callable level; this is the row's
-# CLI-level case, the one AC-0013's table itself binds to a code.
+# Row: "--dry-run: the identity leak check reported a violation" — the
+# replay-callable tests drive this at that level; this is the row's
+# CLI-level case, the one the exit-code table itself binds to a code.
 #
 # Uses a fresh minimal-state target rather than `derived_tree`: that
 # fixture's recorded recipe already carries a real `owner_email`, and
@@ -1528,7 +1527,7 @@ def test_sync_identity_leak_violation_returns_difference_code(tmp_path, capsys):
 # Row: "--dry-run or --check --compare-tree: the recorded-path container is
 # not an array". The recipe stays derivable (packs=["alpha"]) — this is what
 # separates a container that cannot be iterated at all from a malformed
-# *entry*, which AC-0016 routes to "uncompared" instead.
+# *entry*, which is routed to "uncompared" instead.
 def test_sync_scalar_managed_paths_container_cannot_answer_and_prints_no_plan(
     derived_tree, upstream, capsys
 ):
@@ -1722,7 +1721,7 @@ def test_sync_no_invocation_produces_a_code_outside_the_four(
     derived_tree, upstream, tmp_path, capsys
 ):
     """Every case this module drives anywhere returns one of the four codes
-    AC-0013 declares — never a fifth."""
+    the exit-code table declares — never a fifth."""
     codes: set[int] = set()
 
     args_dry_run = _build_parser().parse_args(
@@ -1764,13 +1763,13 @@ def test_sync_no_invocation_produces_a_code_outside_the_four(
 
 
 # ---------------------------------------------------------------------------
-# T2: the scope predicate that selects the write set (spec AC-0033 clauses
-# 4-5, AC-0042, AC-0043, AC-0066).
+# T2: the scope predicate that selects the write set (AC-0033, AC-0042,
+# AC-0043, AC-0066).
 #
 # The planned-path set every test below drives the predicate against comes
 # from a real `replay_derivation` call over an on-disk fixture source, never
 # from a hand-written `planned_paths = {...}` literal — the fixture ships a
-# `core` pack and a `core-extras` sibling (the prefix trap AC-0043 names), a
+# `core` pack and a `core-extras` sibling (the prefix trap), a
 # `credential-brokers` pack (which pulls `packages/credbroker/**` into the
 # plan), a `packages/agentbundle/` tree (collected under
 # `.agentbundle/tooling/agentbundle/**` in vendored mode), a
@@ -1864,7 +1863,7 @@ def test_scope_predicate_admits_named_subtrees_and_unions_repeated_pack(tmp_path
 
 def test_scope_predicate_excludes_nothing_with_no_scoping_flag(tmp_path):
     # AC-0042. Rewritten from phase 3's anchor, which also asserted
-    # `deferred == 0`: AC-0088 retires that count, and AC-0079 means an
+    # `deferred == 0`: that count is retired, and an
     # unscoped run admits the package extent rather than deferring it.
     planned = _replay_scope_predicate_source(tmp_path)
     assert _scope_select(tmp_path, planned) == set(planned)
@@ -1888,7 +1887,7 @@ def test_scope_predicate_excludes_catalogue_toml_and_conformance_under_any_scope
 def test_scope_predicate_admits_the_package_extent_rather_than_deferring_it(tmp_path):
     # Rewritten from phase 3's anchor, which duplicated
     # `_DEFERRED_PACKAGE_PREFIXES` literally and asserted every path under it
-    # was excluded from the write set under every scope. AC-0079 inverts that:
+    # was excluded from the write set under every scope. That is now inverted:
     # the extent is admitted on the same terms as any other replayed path.
     #
     # Driven over a real replay's planned-path set, not a hand-written list.
@@ -1984,7 +1983,8 @@ def test_merge_path_set_equals_recorded_minus_removed_union_written():
         "packs/alpha/new.md": "sha-new",
     }
     assert "packs/alpha/stale.md" not in merged_paths  # removed
-    # AC-0059's two absolute clauses are NOT asserted here, deliberately.
+    # The two absolute rules (a Tier-3 path and a companion destination
+    # never appear) are NOT asserted here, deliberately.
     # Asserting that a Tier-3 path or a companion destination is absent, when
     # neither was supplied in `recorded` or `written`, holds whatever this
     # function does -- it is a check that cannot fail. Measured 2026-09-23:
@@ -1995,7 +1995,7 @@ def test_merge_path_set_equals_recorded_minus_removed_union_written():
     # says "a path THE RUN CLASSIFIED Tier-3", and this run classifies nothing
     # that arrives through `recorded`. The clauses bind the caller, which is
     # the only seam that knows which paths were companion destinations -- and
-    # a suffix filter here would be wrong outright, since AC-0071 shows a
+    # a suffix filter here would be wrong outright, since a
     # source may legitimately ship `x.upstream.md`. T4/T6 own the assertion
     # that no companion destination ever enters `written`; the verification
     # ledger records that hand-off.
@@ -2160,7 +2160,7 @@ def test_pin_source_uri_absent_under_white_label_on_every_row(source_uri):
 # ---------------------------------------------------------------------------
 # T4: the write sequence applies a plan or restores the tree.
 #
-# `edited_tree` (plan.md § Construction tests) is built programmatically
+# `edited_tree` is built programmatically
 # rather than as a committed fixture directory, matching this file's existing
 # convention for every other generated-source fixture (`_make_source`,
 # `_make_scope_predicate_source`) — a bounded search found no existing helper
@@ -2172,8 +2172,8 @@ def test_pin_source_uri_absent_under_white_label_on_every_row(source_uri):
 #   - `packs/alpha/` — `README.md` (on-disk matches recorded -> would-update),
 #     `unchanged.md` (on-disk differs from recorded -> would-companion).
 #   - `packs/beta/` — a pack the recorded recipe never named (an "introduced"
-#     pack): every path Tier-3/untouched, all admitted per AC-0033 clause 3's
-#     third admission.
+#     pack): every path Tier-3/untouched, all admitted as paths of a pack
+#     this run introduces (AC-0033).
 #   - `profiles/default.toml` — likewise an introduced profile.
 #   - `guides/_shared/guide.md`, `catalogue.toml`,
 #     `tests/conformance/test_example.py` — Tier-3/untouched for an ordinary
@@ -2284,7 +2284,7 @@ def _replay_apply_fixture(tmp_path: Path, *, tag: str = "default"):
     ``(target, replay, verdict_rows)``.
 
     ``packs=["alpha", "beta"]``/``profiles=["default"]`` simulate what T6
-    owns resolving (AC-0033 clause 1's union of the recorded recipe with any
+    owns resolving (AC-0033: the union of the recorded recipe with any
     name a scoping flag introduces) -- a bare replay with no explicit
     selection would instead read back only the recorded recipe's own
     ``["alpha"]``/``[]``, leaving "beta"/"default" never selected at all,
@@ -2390,7 +2390,7 @@ def test_apply_write_order_is_packs_profiles_guides_derivation_then_state(
 
 
 def test_apply_written_set_equals_admitted_rows_in_both_directions(tmp_path):
-    # Verifies AC-0033 clauses 3 and 6, and AC-0045.
+    # Verifies AC-0033 (the written set equals the admitted rows) and AC-0045.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path)
     result = _apply(target, replay, verdict_rows)
 
@@ -2402,7 +2402,7 @@ def test_apply_written_set_equals_admitted_rows_in_both_directions(tmp_path):
         "profiles/default.toml",              # untouched, default is introduced
     }
     assert set(result.written) == expected_written_paths
-    # The companion is a SEPARATE destination from `written` -- AC-0034's own
+    # The companion is a SEPARATE destination from `written` -- the companion's own
     # bytes assertion covers it below; asserting it here too would make this
     # an "at least" check that a would-update-only oracle also passes.
     assert (target / "packs" / "alpha" / "unchanged.upstream.md").exists()
@@ -2434,9 +2434,8 @@ def test_apply_companion_carries_source_bytes_and_original_is_unchanged(tmp_path
 
 
 def test_apply_companion_destination_never_enters_written(tmp_path):
-    # Discharges the obligation T3 handed forward (docs/specs/
-    # catalogue-sync-apply/notes/verification-ledger.md § Execution --
-    # wave 1): `merge_ownership_state` has no argument through which a
+    # Discharges the obligation T3 handed forward:
+    # `merge_ownership_state` has no argument through which a
     # companion destination could arrive, but that only holds if this
     # task's own `written` mapping -- the argument T6 will pass it -- never
     # puts one there either. Driven through the real write sequence, over a
@@ -2508,7 +2507,7 @@ def test_apply_stale_removal_runs_after_writes_with_full_keep_set(tmp_path, monk
     assert unlink_call_indexes  # the fixture removes at least one path
     # AC-0035: the destructive removal runs only after every planned write
     # has landed. `select_removal_set` itself is now computed once, up
-    # front, for the printed plan (AC-0057; Blocker 3's fix — the write
+    # front, for the printed plan (the write
     # phase reuses that same removal set rather than recomputing it after
     # consent), so it is the unlink that must be ordered after the writes,
     # not the selection.
@@ -2657,7 +2656,7 @@ def test_apply_unscoped_run_leaves_vendored_tooling_present_and_out_of_coverage(
 def test_apply_pack_scoped_coverage_leaves_out_of_pack_recorded_paths_present(
     tmp_path,
 ):
-    # Verifies AC-0064's scope axis: a --pack run leaves every recorded path
+    # Verifies the scope axis: a --pack run leaves every recorded path
     # outside that pack present, including one the guard would otherwise
     # admit for removal.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="scoped-removal")
@@ -2677,7 +2676,7 @@ def test_apply_pack_scoped_coverage_leaves_out_of_pack_recorded_paths_present(
 
 
 def test_apply_guides_mode_none_leaves_recorded_guides_paths_present(tmp_path):
-    # Verifies AC-0069 clause 2 -- the mode-narrowing axis, which no fixed
+    # Verifies the mode-narrowing axis, which no fixed
     # subtree list reaches.
     source = _make_apply_source(tmp_path / "guides-mode-source")
     target = tmp_path / "guides-mode-target"
@@ -2768,7 +2767,7 @@ def test_apply_removal_refuses_at_unlink_when_entry_becomes_link_like(tmp_path):
 
 
 def test_apply_removal_spelling_traversal_resolves_inside_protected_subtree(tmp_path):
-    # Verifies AC-0069's spelling clause, traversal half. Driven directly
+    # Verifies the spelling rule, traversal half. Driven directly
     # against `_in_coverage` rather than through the full removal pipeline:
     # `_plan_stale_owned_paths`'s own confined sha guard refuses a literal
     # `..` path segment outright (a dot-segment is never removable through
@@ -2810,7 +2809,7 @@ def _filesystem_is_case_insensitive(tmp_path: Path) -> bool:
 def test_apply_removal_case_insensitive_spelling_resolves_inside_protected_subtree(
     tmp_path,
 ):
-    # Verifies AC-0069's spelling clause, case-insensitive half. Skipped
+    # Verifies the spelling rule, case-insensitive half. Skipped
     # where the filesystem does not fold case -- see AGENTS.md's package
     # traps note on platform-dependent tests.
     if not _filesystem_is_case_insensitive(tmp_path):
@@ -2839,7 +2838,7 @@ def test_apply_removal_case_insensitive_spelling_resolves_inside_protected_subtr
 
 
 def test_apply_occupied_companion_destination_is_reported_and_untouched(tmp_path):
-    # Verifies AC-0070's admission half.
+    # Verifies the companion admission half.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="occupied")
     companion = target / "packs" / "alpha" / "unchanged.upstream.md"
     companion.write_bytes(b"adopter's own resolution")
@@ -2854,7 +2853,7 @@ def test_apply_occupied_companion_destination_is_reported_and_untouched(tmp_path
 
 
 def test_apply_companion_admission_race_takes_write_failed_not_occupied(tmp_path):
-    # Verifies AC-0070's admission race: a destination absent at admission
+    # Verifies the companion admission race: a destination absent at admission
     # and created before the write is byte-identical afterwards and the run
     # takes the write-failed row -- a stat-at-admission implementation using
     # the clobbering rename would pass the occupied case and fail this one.
@@ -2882,7 +2881,7 @@ def test_apply_companion_admission_race_takes_write_failed_not_occupied(tmp_path
 
 
 def test_apply_companion_publish_leaves_link_count_one_and_no_staged_residue(tmp_path):
-    # Verifies AC-0070's post-publish state.
+    # Verifies the companion post-publish state.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="post-publish")
     result = _apply(target, replay, verdict_rows)
 
@@ -2901,7 +2900,7 @@ def test_apply_companion_publish_leaves_link_count_one_and_no_staged_residue(tmp
 def test_apply_companion_write_failure_for_other_reason_is_write_failed_not_occupied(
     tmp_path,
 ):
-    # Verifies AC-0070's failure attribution.
+    # Verifies the companion failure attribution.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="other-failure")
 
     def _fail_companion(root, relpath, content, **kwargs):
@@ -2960,7 +2959,7 @@ def test_apply_companion_admission_race_with_identical_bytes_is_not_restored(
     # Verifies B2's failure mode directly: a *different* writer creates the
     # companion destination with bytes identical to what this run is about
     # to publish, immediately before an ordinary (not-landed) publish
-    # failure -- the admission race AC-0070 names. A content read-back
+    # failure -- the admission race. A content read-back
     # ("does the destination hold what I tried to write?") compares equal
     # and would wrongly unlink the other writer's file as this run's own.
     # The fix instead only restores on `CompanionLinkPublishedError`, which
@@ -2995,8 +2994,8 @@ def test_apply_companion_admission_race_with_identical_bytes_is_not_restored(
 def test_apply_acted_result_names_a_landed_companion_after_a_later_removal_failure(
     tmp_path,
 ):
-    # Concern 7, round 2: `result.written` is keyed by non-companion
-    # destination only (AC-0059 keeps a companion path itself out of the
+    # `result.written` is keyed by non-companion
+    # destination only (a companion path itself stays out of the
     # recorded state), so a companion that landed before a LATER removal
     # or state-write failure was excluded from `written` entirely -- the
     # post-write receipt, which used to print only `written`, then left
@@ -3057,7 +3056,7 @@ def test_apply_companion_collision_refuses_whole_run(tmp_path):
 
 
 def test_apply_new_pack_directory_is_removed_on_injected_write_failure(tmp_path):
-    # Verifies AC-0038's entry-set half: a file-only restore passes every
+    # Verifies the rollback entry-set half: a file-only restore passes every
     # other rollback case and fails this one.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="new-pack-rollback")
     real_write_jailed = catalogue_sync.write_jailed
@@ -3079,7 +3078,7 @@ def test_apply_new_pack_directory_is_removed_on_injected_write_failure(tmp_path)
 def test_apply_introduced_pack_path_gate_rechecks_and_refuses_when_occupied(
     tmp_path,
 ):
-    # Verifies AC-0077's gate recheck extended to AC-0033 clause 3's
+    # Verifies the gate recheck extended to the
     # "belongs to a pack this run introduced" admission (`admitted_new`).
     # `packs/beta/NEW.md` is `untouched` on the printed plan -- Tier-3, never
     # read at classification time -- because "beta" is not in the recorded
@@ -3103,7 +3102,7 @@ def test_apply_introduced_pack_path_gate_rechecks_and_refuses_when_occupied(
 
 
 def test_apply_snapshot_bound_refuses_before_the_prompt_and_before_any_write(tmp_path):
-    # Verifies AC-0076's pre-prompt sum. The low-level bound check.
+    # Verifies the pre-prompt sum. The low-level bound check.
     target = tmp_path / "bound-target"
     big_file = target / "packs" / "alpha" / "big.md"
     big_file.parent.mkdir(parents=True)
@@ -3145,7 +3144,7 @@ def test_apply_snapshot_bound_refuses_before_the_prompt_and_before_any_write(tmp
 def test_apply_snapshot_as_built_bound_reads_no_more_than_the_bound(
     tmp_path, monkeypatch
 ):
-    # Verifies AC-0076's as-built half: a finished-total implementation
+    # Verifies the as-built half: a finished-total implementation
     # passes the pre-prompt case above and fails this one.
     target = tmp_path / "grow-target"
     target.mkdir()
@@ -3177,7 +3176,7 @@ def test_apply_snapshot_as_built_bound_reads_no_more_than_the_bound(
 def test_apply_snapshot_write_set_raises_unreadable_on_a_permission_error(
     tmp_path, monkeypatch
 ):
-    # Verifies AC-0039's snapshot row and the P2 fix directly: injected at
+    # Verifies the snapshot row and its fix directly: injected at
     # the `lstat` a path's own read makes, not at `snapshot_write_set`
     # itself (a test that mocks the function out, as
     # ``test_run_apply_snapshot_unreadable_refuses_cannot_answer`` above
@@ -3243,7 +3242,7 @@ def test_apply_snapshot_lstat_entry_raises_unreadable_on_a_later_readlink_failur
 
 
 def test_apply_restore_matches_pre_run_walk_tuple_on_injected_failure(tmp_path):
-    # Verifies AC-0038's restore half: comparing paths and digests alone
+    # Verifies the restore half: comparing paths and digests alone
     # passes a restore that changed a mode.
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="restore-tuple")
     before = walk_target_tree(target)
@@ -3267,7 +3266,7 @@ def test_apply_restore_matches_pre_run_walk_tuple_on_injected_failure(tmp_path):
 
 
 def test_apply_restore_leaves_unreached_paths_as_another_writer_left_them(tmp_path):
-    # Verifies AC-0038's leave-as-found half and AC-0041's every-row
+    # Verifies the leave-as-found half and the every-row
     # permitted difference: a restore driven off the whole snapshot rather
     # than off what the run acted on passes the restore-tuple case above and
     # fails this one.
@@ -3342,7 +3341,7 @@ def test_apply_restore_catches_path_jail_error_and_reports_it_unrestored(tmp_pat
     # became an escaping symlink between the snapshot and this restore.
     # Before the fix, `restore_from_snapshot`'s loop caught only `OSError`,
     # so this exception propagated straight out of the best-effort restore
-    # instead of landing in `unrestored`, breaking AC-0058's "name every
+    # instead of landing in `unrestored`, breaking the rule to "name every
     # path this run could not restore before returning".
     target = tmp_path / "restore-jail-target"
     target.mkdir()
@@ -3397,7 +3396,7 @@ def test_apply_planned_path_outside_target_root_is_refused_at_the_write(tmp_path
 def test_apply_gate_recheck_detects_every_divergence_shape(
     tmp_path, mutate, is_none_expected_case
 ):
-    # Verifies AC-0077's gate recheck (3 of 6 cases). The third case needs
+    # Verifies the gate recheck (3 of 6 cases). The third case needs
     # its own path that starts ABSENT so its `expected` entry is `None` —
     # every `would-update` path is present on disk (that is what earns it
     # the verdict), so reusing README.md for all three cases (as this test
@@ -3467,7 +3466,7 @@ def test_apply_gate_recheck_unreadable_destination_with_no_entry_expected_diverg
     # path (the "not exists, expected non-null" branch also diverges, so a
     # would-update path's own unreadable-destination case cannot tell the
     # two apart). The bug only surfaces where `expected_sha is None` (an
-    # admitted-new path — spec AC-0033 clause 3 — that `classify` never
+    # admitted-new path that `classify` never
     # read at classification time): there, "collapsed to absent" and
     # "genuinely absent" both take the no-op path, silently passing an
     # occupant this run never actually read.
@@ -3534,8 +3533,8 @@ def test_apply_gate_recheck_over_full_run_refuses_before_any_write(tmp_path):
 def test_apply_rename_recheck_refuses_after_earlier_write_landed_and_restores_it(
     tmp_path,
 ):
-    # Verifies AC-0077's rename recheck, driven at the rename after an
-    # earlier write has landed: AC-0038's restore covers the landed writes.
+    # Verifies the rename recheck, driven at the rename after an
+    # earlier write has landed: the restore covers the landed writes.
     # A dedicated two-would-update fixture, so the write order (AC-0032) is
     # under direct control: "a.md" writes first, "b.md" second.
     target = tmp_path / "rename-recheck-target"
@@ -3579,16 +3578,16 @@ def test_apply_rename_recheck_refuses_after_earlier_write_landed_and_restores_it
     assert not result.ok
     assert result.write_failed_path == "packs/alpha/b.md"
     assert result.restored
-    # The raced-in bytes are what the OTHER writer left -- AC-0041's every-
-    # row permitted difference -- not clobbered by our own would-be write.
+    # The raced-in bytes are what the OTHER writer left -- a
+    # permitted difference for every row -- not clobbered by our own would-be write.
     assert (alpha / "b.md").read_bytes() == b"raced in after the first write landed"
     # The earlier landed write ("a.md") was rolled back to its pre-run value.
     assert (alpha / "a.md").read_bytes() == b"old a"
 
 
 def test_apply_target_reads_refused_on_hardlink_and_reparse_point_inputs(tmp_path):
-    # Verifies AC-0065 re-driven through the apply path's own reads (the
-    # gate recheck).
+    # Verifies the confinement refusal re-driven through the apply path's own
+    # reads (the gate recheck).
     target, replay, verdict_rows = _replay_apply_fixture(tmp_path, tag="confinement")
     readme = target / "packs" / "alpha" / "README.md"
     other = target / "packs" / "alpha" / "hardlink-partner.md"
@@ -3601,13 +3600,12 @@ def test_apply_target_reads_refused_on_hardlink_and_reparse_point_inputs(tmp_pat
 
 
 # ---------------------------------------------------------------------------
-# T5: consent gates the first write (spec AC-0031, AC-0049, AC-0050, AC-0072).
+# T5: consent gates the first write (AC-0031, AC-0049, AC-0050, AC-0072).
 #
-# The gate's returned decision is the oracle throughout. AC-0031's own oracle
+# The gate's returned decision is the oracle throughout. The consent rule's own oracle
 # is the target tree, but that only moves once T6's `_run_apply` composes
 # this gate with the write sequence — driving a tree here would test
-# duplicated test logic rather than the planned implementation (plan.md T5
-# § Tests), so every case below asserts the boolean decision or the prompt
+# duplicated test logic rather than the planned implementation, so every case below asserts the boolean decision or the prompt
 # text `_consent_gate` builds, never a filesystem effect.
 # ---------------------------------------------------------------------------
 
@@ -3746,7 +3744,7 @@ def test_consent_gate_names_the_fidelity_token_on_the_prompt(
 def test_plan_document_and_render_carry_each_source_forms_fidelity_token(
     capsys, fidelity_token
 ):
-    # AC-0072's `--yes`-run half: a `--yes` run never prompts, so this drives
+    # The `--yes`-run half: a `--yes` run never prompts, so this drives
     # the printed plan and the `--format json` document directly rather than
     # through the prompt, over the same four tokens the prompt test above
     # covers — a prompt-only fixture would leave this half unverified.
@@ -3803,7 +3801,7 @@ def test_consent_gate_recorded_value_failing_terminal_safe_check_is_not_prompted
     # Fails only the whitespace bound (a trailing space) — never a control
     # character, which an escaping sink (e.g. `json.dumps`) would neutralise
     # whether or not the check runs, making a control-character assertion
-    # vacuous (spec AC-0049; plan.md T5 § Tests).
+    # vacuous (AC-0049).
     unsafe_source = "https://example.test/repo "
     # Pin which bound trips: the trailing space fails `_is_safe_recipe_text`
     # (whitespace), and the stripped value alone would pass it — proving this
@@ -3823,7 +3821,7 @@ def test_consent_gate_recorded_value_failing_terminal_safe_check_is_not_prompted
 
 
 # ---------------------------------------------------------------------------
-# The whole-tree walk (spec AC-0015), reusing T4's helper rather than a copy.
+# The whole-tree walk (AC-0015), reusing T4's helper rather than a copy.
 # T5's rows: a dry-run success and a resolution refusal reached via sync's
 # own dispatch, over-and-above T4's replay_derivation-level rows.
 #
@@ -3842,7 +3840,7 @@ def _setup_success_target(target: Path) -> None:
     # AC-0009: a target with no recorded selection is itself one of the
     # underivable conditions, so this success row needs one recorded — T5
     # predates that check and this setup supplies the minimal state it
-    # requires to still land on AC-0013's success row.
+    # requires to still land on the exit-code table's success row.
     _write_minimal_sync_state(target, packs=["alpha"])
 
 
@@ -3911,7 +3909,7 @@ def _invoke_sync_dry_run_would_remove(target: Path) -> None:
 
 
 def _invoke_sync_dry_run_underivable_selection(target: Path) -> None:
-    # No state file at all -- one of AC-0009's own underivable conditions.
+    # No state file at all -- one of the underivable conditions.
     source = _make_source(target.parent / "sync-tree-walk-underivable-source")
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(target), "--source", str(source), "--dry-run"]
@@ -3921,7 +3919,7 @@ def _invoke_sync_dry_run_underivable_selection(target: Path) -> None:
 
 def _invoke_sync_dry_run_adapter_contract_refusal(target: Path) -> None:
     # T9: a selected pack's adapter-contract major differing from the CLI's
-    # refuses (spec AC-0019) — the row this task adds to the walk.
+    # refuses (AC-0019) — the row this task adds to the walk.
     pack_toml_text = (
         FIXTURES / "adapter_contract_major_mismatch" / "pack.toml"
     ).read_text(encoding="utf-8")
@@ -3940,7 +3938,7 @@ def _invoke_sync_dry_run_adapter_contract_refusal(target: Path) -> None:
 
 def _invoke_sync_check_no_compare_tree_cannot_answer(target: Path) -> None:
     # A local-path source affords no verified digest, so this is
-    # AC-0013's row 7 — reached before the recorded pin is even read.
+    # row 7 of the exit-code table — reached before the recorded pin is even read.
     source = _make_source(target.parent / "sync-tree-walk-check-source")
     args = _build_parser().parse_args(
         ["catalogue", "sync", str(target), "--source", str(source), "--check"]
@@ -4028,14 +4026,14 @@ def _invoke_sync_dry_run_identity_leak_difference(target: Path) -> None:
     assert catalogue_sync.run(args) == 1
 
 
-# Adversarial finding 5: five more AC-0013 rows the registry above omitted —
-# row 1 (a malformed invocation reachable through `run()`), rows 9-11 (the
-# three digest-bearing `--check` rows; every registered `--check` row above
-# uses a local-path source, which refuses at row 8 before the recorded pin is
-# ever read), and row 14 (`--check --compare-tree`, some differ).
+# Five more exit-code cases the registry above omits: a malformed invocation
+# reachable through `run()`, the three digest-bearing `--check` cases (every
+# registered `--check` case above uses a local-path source, which refuses
+# before the recorded pin is ever read), and `--check --compare-tree` where
+# some paths differ.
 
 def _invoke_sync_malformed_compare_tree_without_check(target: Path) -> None:
-    # AC-0013 row 1: `--compare-tree` without `--check` is malformed and
+    # AC-0013: `--compare-tree` without `--check` is malformed and
     # never reaches the recorded state or the source at all.
     source = _make_source(target.parent / "sync-tree-walk-malformed-source")
     args = _build_parser().parse_args(
@@ -4046,8 +4044,8 @@ def _invoke_sync_malformed_compare_tree_without_check(target: Path) -> None:
 
 
 def _invoke_sync_check_digest_source_no_recorded_pin(target: Path) -> None:
-    # AC-0013 row 9: a digest-bearing source (so `_check_digest_only` reads
-    # past its own "no verified digest" row), but the recorded pin carries
+    # AC-0013: a digest-bearing source (so `_check_digest_only` reads
+    # past its own "no verified digest" case), but the recorded pin carries
     # no `archive_sha256` at all -- `_setup_success_target`'s minimal state
     # never writes a "pin" key.
     extracted = _make_source(target.parent / "sync-tree-walk-check-no-pin-source")
@@ -4077,7 +4075,7 @@ def _setup_check_digest_recorded_target(target: Path) -> None:
 
 
 def _invoke_sync_check_digest_matches(target: Path) -> None:
-    # AC-0013 row 10: the recorded digest equals the resolved source's own
+    # AC-0013: the recorded digest equals the resolved source's own
     # verified digest.
     extracted = _make_source(
         target.parent / "sync-tree-walk-check-digest-match-source"
@@ -4098,7 +4096,7 @@ def _invoke_sync_check_digest_matches(target: Path) -> None:
 
 
 def _invoke_sync_check_digest_differs(target: Path) -> None:
-    # AC-0013 row 11: the recorded digest differs from the resolved source's.
+    # AC-0013: the recorded digest differs from the resolved source's.
     extracted = _make_source(
         target.parent / "sync-tree-walk-check-digest-differ-source"
     )
@@ -4117,7 +4115,7 @@ def _invoke_sync_check_digest_differs(target: Path) -> None:
 
 
 def _invoke_sync_check_compare_tree_differs(target: Path) -> None:
-    # AC-0013 row 14: `--check --compare-tree`, every recorded path
+    # AC-0013: `--check --compare-tree`, every recorded path
     # compared and some differ. Reuses `_setup_would_companion_target`'s
     # recorded-vs-edited README, which is exactly this shape.
     source = _make_source(target.parent / "sync-tree-walk-compare-differs-source")
@@ -4197,12 +4195,12 @@ def test_sync_leaves_the_target_tree_unchanged(tmp_path, case):
 
 
 # ---------------------------------------------------------------------------
-# T8: AC-0041's permitted-difference table. `SYNC_TREE_WALK_CASES` above
+# T8: the permitted-difference table. `SYNC_TREE_WALK_CASES` above
 # asserts `after == before` unconditionally, so it cannot express a run that
 # is *permitted* to change the target tree — folding these rows into it would
 # force that assertion to weaken for every no-write row it already holds.
 # This is a second, separate registry and a second parametrised test: each
-# case names the exact set of relative paths AC-0041's table permits to
+# case names the exact set of relative paths the permitted-difference table permits to
 # differ for that row, asserted as an equality against the real before/after
 # diff, not a containment (a containment would pass an implementation that
 # changed more than the row permits).
@@ -4212,7 +4210,7 @@ def test_sync_leaves_the_target_tree_unchanged(tmp_path, case):
 # there) is not correspondence.
 #
 # Every case drives `catalogue_sync.run(args)` through the real parser, the
-# same seam every case in `SYNC_TREE_WALK_CASES` uses, because AC-0041's walk
+# same seam every case in `SYNC_TREE_WALK_CASES` uses, because the walk
 # is taken "immediately before the command runs and immediately after it
 # returns" — the command boundary, not an inner seam.
 # ---------------------------------------------------------------------------
@@ -4265,7 +4263,7 @@ def _setup_apply_permitted_difference_partial_restore_target(target: Path) -> No
 
 
 def _invoke_sync_apply_partial_restore_row(target: Path) -> None:
-    # AC-0058/AC-0041's partial-restore `4` row: the first of two ordered
+    # The partial-restore `4` row: the first of two ordered
     # writes (`AAA.md`, alphabetically first in write order) lands for
     # real, the second (`BBB.md`) fails, and the restore itself is injected
     # to fail on the one path it did act on -- so `AAA.md`'s changed bytes
@@ -4315,7 +4313,7 @@ def _setup_apply_permitted_difference_removal_failed_target(target: Path) -> Non
 
 
 def _invoke_sync_apply_removal_failed_row(target: Path) -> None:
-    # AC-0041's removal-failed `4` row: the write set's one path (`README.md`)
+    # The removal-failed `4` row: the write set's one path (`README.md`)
     # lands for real, `gone-a.md` is really unlinked before the guard fails
     # on `gone-b.md` -- would fail if either the write never happened or
     # `gone-a.md` were left in place (removal not actually attempted).
@@ -4350,7 +4348,7 @@ def _setup_apply_permitted_difference_state_write_failed_target(target: Path) ->
 
 
 def _invoke_sync_apply_state_write_failed_row(target: Path) -> None:
-    # AC-0041's state-write-failed `4` row: both the write and the full
+    # The state-write-failed `4` row: both the write and the full
     # stale removal complete for real (`README.md` written, `gone.md`
     # unlinked) before the state persist is injected to fail -- would fail
     # if either never actually happened, or if the state file itself
@@ -4368,7 +4366,7 @@ def _invoke_sync_apply_state_write_failed_row(target: Path) -> None:
 
 
 # Each value is a (setup, invoke, expected_diff) triple. `expected_diff` is
-# the exact set of relative paths AC-0041's permitted-difference table names
+# the exact set of relative paths the permitted-difference table names
 # for that row -- the oracle the second test below asserts as an equality.
 SYNC_TREE_WALK_PERMITTED_DIFFERENCE_CASES = {
     "sync-apply-0-success": (
@@ -4421,7 +4419,7 @@ def test_sync_apply_permitted_difference_matches_ac_0041_row_exactly(tmp_path, c
 
 
 # ---------------------------------------------------------------------------
-# T6: `_run_apply` owns the apply exit rows (spec AC-0039, AC-0040, AC-0046,
+# T6: `_run_apply` owns the apply exit rows (AC-0039, AC-0040, AC-0046,
 # AC-0047, AC-0048, AC-0049, AC-0051, AC-0057, AC-0066, AC-0068, AC-0069).
 #
 # `_run_apply` is called directly, not through `run()`/the real parser: T7
@@ -4500,7 +4498,7 @@ def _call_run_apply(target: Path, source: Path, **overrides) -> int:
 def test_run_apply_names_fidelity_on_the_table_and_json_apply_surfaces(
     tmp_path, capsys, fidelity_token
 ):
-    # AC-0072's apply-side half. The existing fidelity test
+    # The apply-side half. The existing fidelity test
     # (`test_plan_document_and_render_carry_each_source_forms_fidelity_token`
     # above) builds with `_plan_document(..., dry_run=True)` and renders
     # with `_render_plan` — the DRY-RUN document and renderer — never
@@ -4550,7 +4548,7 @@ def test_run_apply_names_fidelity_on_the_table_and_json_apply_surfaces(
 
 
 def test_run_apply_success_row_writes_admitted_paths_and_returns_zero(tmp_path):
-    # AC-0039's `0 — success` row: every planned write lands, removal and the
+    # The `0 — success` row: every planned write lands, removal and the
     # state write complete, and `companion_occupied` is zero. A recorded,
     # unedited README (on-disk sha == recorded sha, source bytes differ) is
     # what classifies `would-update` — with no recorded entry at all the
@@ -4584,7 +4582,7 @@ def test_run_apply_recorded_path_appearing_during_consent_wait_is_not_removed(
     tmp_path, monkeypatch
 ):
     # Verifies the printed removal set is the removal set the write phase
-    # acts on (spec § Never do's phase delta; AC-0057). "packs/alpha/gone.md"
+    # acts on (AC-0057). "packs/alpha/gone.md"
     # is recorded but not shipped by the source this run replays, and it is
     # absent on disk when `_run_apply` computes the removal set for the
     # printed plan, before the consent prompt -- `_plan_stale_owned_paths`
@@ -4625,7 +4623,7 @@ def test_run_apply_recorded_path_appearing_during_consent_wait_is_not_removed(
 
 
 def test_run_apply_companion_occupied_returns_difference_not_success(tmp_path):
-    # AC-0039's `1 — difference` row: every write lands but an occupied
+    # The `1 — difference` row: every write lands but an occupied
     # companion destination stops the run short of a clean `0`.
     target, source = _apply_run_target(
         tmp_path,
@@ -4685,7 +4683,7 @@ def test_run_apply_recorded_packs_wrong_type_is_cannot_answer(tmp_path):
 
 def test_run_apply_recorded_profiles_list_of_non_strings_is_cannot_answer(tmp_path):
     # AC-0068, profiles axis, a different invalid shape (list of non-strings)
-    # — driven independently per plan.md T6 § Tests.
+    # — driven independently.
     target, source = _apply_run_target(
         tmp_path, "profiles-non-strings", recipe={"packs": ["alpha"], "profiles": [1, 2]}
     )
@@ -4698,7 +4696,7 @@ def test_run_apply_recorded_profiles_list_of_non_strings_is_cannot_answer(tmp_pa
 
 
 def test_run_apply_recorded_packs_names_a_tooling_pack_is_cannot_answer(tmp_path):
-    # AC-0068's own regression case: `select_packs` silently drops a tooling
+    # This selection's own regression case: `select_packs` silently drops a tooling
     # pack name (`catalogue-curation` — the one name `_TOOLING_PACKS`
     # carries) from an explicit selection rather than refusing, so a
     # recorded list naming only such a name must refuse *here* instead of
@@ -4750,7 +4748,7 @@ def test_run_apply_empty_recorded_packs_selects_nothing_not_a_refusal(tmp_path):
 
 
 def test_run_apply_empty_recorded_packs_does_not_remove_recorded_pack_tree(tmp_path):
-    # AC-0069's selection axis — the regression this delivery is most at
+    # The selection axis — the regression this delivery is most at
     # risk of reintroducing: an empty recorded `packs` category must put no
     # path under `packs/` inside coverage, so a recorded pack tree the
     # source still ships survives even though `packs` resolves to nothing.
@@ -4798,9 +4796,9 @@ def test_run_apply_recorded_path_container_not_array_is_cannot_answer(tmp_path):
 def test_run_apply_source_resolution_failure_is_cannot_answer_and_writes_nothing(
     tmp_path,
 ):
-    # AC-0039's row 3, driven for the apply invocation specifically through
+    # Row 3 of the exit-code table, driven for the apply invocation specifically through
     # `run()`'s own dispatch — the `--dry-run`/`--check` rows are re-driven
-    # elsewhere in this file rather than inherited (plan.md T6 § Tests): the
+    # elsewhere in this file rather than inherited: the
     # table is this spec's own, not phase 2's shorter one. Reached via a
     # hand-built namespace, since the parser does not yet admit a bare apply
     # invocation (T7).
@@ -4820,7 +4818,7 @@ def test_run_apply_source_resolution_failure_is_cannot_answer_and_writes_nothing
 def test_run_apply_identity_leak_violation_returns_difference_and_never_prompts(
     tmp_path, monkeypatch
 ):
-    # AC-0039's leak row (`1 — difference`) and AC-0051: no write, and the
+    # The leak row (`1 — difference`): no write, and the
     # operator is never prompted for consent.
     source = tmp_path / "leaky-source"
     source.mkdir()
@@ -4886,9 +4884,9 @@ def test_package_credbroker_no_longer_refuses_and_does_reach_the_source(
 ):
     # Rewrites phase 3's anchor, which asserted `--package <name>` exits 3 as
     # "not available yet" across the 3-mode x 2-name cross product. Phase 4
-    # retires that row. The `credbroker` half of AC-0082 cannot be decided
-    # here at all: its input is the resolved selection, so AC-0084 records
-    # that a run refusing on it has already fetched. What this pins is that
+    # retires that row. The `credbroker` half of the packaging rule cannot be decided
+    # here at all: its input is the resolved selection, so a run refusing
+    # on it has already fetched. What this pins is that
     # the retired row is gone and the run proceeds to resolution.
     target = tmp_path / "t"
     target.mkdir()
@@ -4907,7 +4905,7 @@ def test_package_credbroker_no_longer_refuses_and_does_reach_the_source(
         ]
     )
     assert catalogue_sync.run(args) == 3  # source could not be resolved
-    assert reached, "the credbroker half must reach source resolution, per AC-0084"
+    assert reached, "the credbroker half must reach source resolution"
 
 
 def test_no_invocation_reports_package_sync_as_unavailable(tmp_path, monkeypatch):
@@ -4917,8 +4915,8 @@ def test_no_invocation_reports_package_sync_as_unavailable(tmp_path, monkeypatch
 
 
 def test_run_package_unrecognized_name_exits_2_via_the_real_parser(tmp_path):
-    # Concern 9, round 2: no test anywhere asserted that an UNRECOGNISED
-    # `--package` name exits 2 -- the entire `cli.py` half of AC-0047's own
+    # No test anywhere asserted that an UNRECOGNISED
+    # `--package` name exits 2 -- the entire `cli.py` half of the
     # fix is the `choices=("agentbundle", "credbroker")` tuple on the
     # parser's `--package` argument; deleting that tuple (accepting any
     # string) left every other test in this suite green, since they only
@@ -5104,7 +5102,7 @@ def test_run_apply_declined_consent_refuses_difference_and_writes_nothing(tmp_pa
 def test_run_apply_gate_recheck_diverged_after_consent_refuses_cannot_answer(
     tmp_path, monkeypatch
 ):
-    # AC-0039's snapshot-scoped trailing note: the gate recheck row sits
+    # The snapshot-scoped trailing note: the gate recheck row sits
     # below the consent rows because the gate runs after consent by
     # construction. Consent (`--yes`) is given here, and only the recheck —
     # driven by monkeypatching `gate_recheck` itself, since the gate always
@@ -5194,9 +5192,9 @@ def test_run_apply_removal_failure_returns_apply_failed(tmp_path, monkeypatch):
 def test_run_apply_post_write_failure_names_what_it_left_behind(
     tmp_path, monkeypatch, capsys
 ):
-    """AC-0039's two post-write `4` rows leave the tree changed — say how.
+    """The two post-write `4` rows leave the tree changed — say how.
 
-    Neither row rolls back: plan.md T4 § Approach fixes that a removal or
+    Neither row rolls back: a removal or
     state-write failure after every write landed leaves those writes in
     place. So the exit code alone leaves an operator with a rewritten tree
     and no statement of what changed, and on a re-run those paths
@@ -5235,8 +5233,8 @@ def test_run_apply_post_write_failure_names_what_it_left_behind(
 def test_run_apply_post_write_receipt_names_a_landed_companion(
     tmp_path, monkeypatch, capsys
 ):
-    """Round 3, F3: the receipt repair (printing `result.acted`, the write
-    loop's own record, instead of `result.written`, which AC-0059 keeps a
+    """The receipt repair (printing `result.acted`, the write
+    loop's own record, instead of `result.written`, which keeps a
     companion destination out of by construction) was pinned only at the
     `WriteSequenceResult` dataclass -- no test ever called
     `_print_post_write_receipt` and checked the companion actually appears
@@ -5366,7 +5364,7 @@ def test_run_apply_replay_boundary_fault_reaches_cannot_answer_not_a_crash(
 def test_run_apply_printed_acted_rows_equal_admitted_write_set(tmp_path, capsys):
     # AC-0057: the row set the run prints equals the row set its write phase
     # acts on (the "consented-plan-is-applied" half), asserted by equality —
-    # AC-0033's own oracle requires both directions precisely because a
+    # The written-set oracle requires both directions precisely because a
     # subset check passes a run that wrote nothing. The previous fixture
     # (`_apply_run_target(tmp_path, "printed-plan")`, no `managed_paths`,
     # "alpha" already in the recorded recipe) admitted nothing and
@@ -5440,7 +5438,7 @@ def test_run_apply_printed_acted_rows_equal_admitted_write_set(tmp_path, capsys)
 def test_run_apply_removal_and_out_of_coverage_paths_pass_the_terminal_safe_check(
     tmp_path, capsys
 ):
-    # Spec AC-0012: every unauthored value this command renders passes the
+    # AC-0012: every unauthored value this command renders passes the
     # terminal-safe scalar check first -- recorded paths, planned paths, the
     # companion path, the pin fields, pack/profile names, and the dry-run's
     # own would-remove rows all already do. `select_removal_set`'s own
@@ -5611,7 +5609,7 @@ def test_sync_subparser_help_does_not_claim_the_command_is_read_only():
 
 
 def test_sync_apply_format_json_without_yes_exits_2_via_the_real_parser(tmp_path):
-    # AC-0030's document clause, driven through the real parser rather than
+    # The document rule, driven through the real parser rather than
     # `_call_run_apply`'s hand-built kwargs.
     target, source = _apply_run_target(tmp_path, "json-no-yes-parser")
 
@@ -5625,7 +5623,7 @@ def test_sync_apply_format_json_without_yes_exits_2_via_the_real_parser(tmp_path
 def test_sync_apply_recognised_package_with_format_json_and_no_yes_is_malformed(
     tmp_path,
 ):
-    # Concern 5, round 2: AC-0039's malformed row ("an apply run with
+    # The malformed row ("an apply run with
     # `--format json` and no `--yes`") sits ABOVE the `--package` row (`3 —
     # cannot-answer`) in the table -- first-match-wins means a recognised
     # `--package` name combined with this malformed shape must still exit
@@ -5648,7 +5646,7 @@ def test_sync_apply_recognised_package_with_format_json_and_no_yes_is_malformed(
     ids=["pack", "profile", "guides"],
 )
 def test_sync_check_with_a_scoping_flag_is_malformed(tmp_path, scope_args):
-    # AC-0030's --check clause / AC-0039's malformed row: any of --pack,
+    # The --check rule and the malformed row: any of --pack,
     # --profile or --guides supplied with --check is malformed — `--check`
     # answers whether the whole recorded recipe is current and has no
     # scoped variant. Reached before source resolution, so a nonexistent
@@ -5664,7 +5662,7 @@ def test_sync_check_with_a_scoping_flag_is_malformed(tmp_path, scope_args):
 def test_sync_dry_run_pack_scope_excludes_the_out_of_scope_pack_from_the_printed_plan(
     tmp_path, capsys
 ):
-    # AC-0043's preview half: the same scope that would restrict an apply
+    # The preview half: the same scope that would restrict an apply
     # run's write set restricts the plan a --dry-run preview prints. Both
     # packs carry a real, would-update change here — asserting only that
     # the in-scope pack's path is present would pass a preview that never
@@ -5722,7 +5720,7 @@ def test_sync_dry_run_pack_scope_excludes_the_out_of_scope_pack_from_the_printed
 def test_sync_dry_run_gates_and_reports_the_resolved_selection_not_the_replay(
     tmp_path, capsys
 ):
-    # Verifies AC-0068's narrowing outcome holds all the way through the
+    # Verifies the narrowing outcome holds all the way through the
     # preview: an empty recorded `packs` field narrows the effective
     # selection to nothing (never a refusal), but `select_packs(source,
     # [])` widens an empty *explicit* list to every pack the source ships —
@@ -5782,7 +5780,7 @@ def test_sync_dry_run_gates_and_reports_the_resolved_selection_not_the_replay(
 def test_sync_dry_run_narrows_an_empty_recorded_profiles_field_to_nothing(
     tmp_path, capsys
 ):
-    # Concern 10, round 2: AC-0068's narrowing-to-nothing outcome was only
+    # The narrowing-to-nothing outcome was only
     # ever exercised on the PACKS axis above (`_write_minimal_sync_state`'s
     # own "packs": [] fixture) -- the PROFILES axis narrows through the
     # exact same `_resolve_effective_selection` code path (a present but
@@ -5856,10 +5854,10 @@ def test_package_path_admits_an_existing_path_under_each_destination(tmp_path):
 
 
 def test_package_path_admits_a_planned_path_that_is_not_yet_on_disk(tmp_path):
-    """The case AC-0087 exists for: every planned path of a destination a run
+    """The case the path comparison exists for: every planned path of a destination a run
     is about to create has no on-disk entry of its own. Answering "not a
     package path" here would sort it into the derivation-wide write group and
-    silently defeat AC-0080's packages-last ordering."""
+    silently defeat the packages-last ordering."""
     target = _extent_fixture(tmp_path)
     assert catalogue_sync._is_package_path(
         target, ".agentbundle/tooling/agentbundle/agentbundle/brand_new.py", _PKG_PREFIXES
@@ -5898,7 +5896,7 @@ def test_package_path_rejects_a_sibling_sharing_a_string_prefix(tmp_path):
 
 
 def test_same_directory_answers_equality_for_two_spellings_of_one_root(tmp_path):
-    """AC-0083 input 1 asks whether a resolved catalogue root *is* the target
+    """The first self-replacement input asks whether a resolved catalogue root *is* the target
     root — an equality question, which the same comparison answers."""
     target = _extent_fixture(tmp_path)
     assert catalogue_sync._same_directory(target, target / "packs" / "..")
@@ -5932,9 +5930,9 @@ def _sync_args(target, source, *extra):
 def test_package_agentbundle_without_vendored_tooling_is_malformed(
     tmp_path, monkeypatch, mode_flag
 ):
-    # AC-0082 agentbundle half: the destination does not exist in external
+    # Agentbundle half of the absent-extent refusal: the destination does not exist in external
     # tooling, and a run reporting success would refresh the pin over a
-    # subtree it never wrote. AC-0084: no fetch.
+    # subtree it never wrote. The refusal fetches nothing.
     target = tmp_path / "t"
     target.mkdir()
     _no_fetch(monkeypatch)
@@ -5945,8 +5943,8 @@ def test_package_agentbundle_without_vendored_tooling_is_malformed(
 def test_package_agentbundle_with_vendored_tooling_passes_the_absent_extent_row(
     tmp_path, monkeypatch
 ):
-    # The same invocation with `--tooling vendored` is past AC-0082 and
-    # reaches source resolution, which is where it now fails instead.
+    # The same invocation with `--tooling vendored` is past the absent-extent
+    # refusal and reaches source resolution, which is where it now fails instead.
     target = tmp_path / "t"
     target.mkdir()
     monkeypatch.setattr(catalogue_sync, "_detect_editable_source", lambda *_a, **_k: None)
@@ -5959,7 +5957,7 @@ def test_package_agentbundle_with_vendored_tooling_passes_the_absent_extent_row(
 def test_self_replacement_refuses_when_the_detector_resolves_the_target_root(
     tmp_path, monkeypatch
 ):
-    # AC-0083 input 1, and AC-0084's no-fetch obligation.
+    # The first self-replacement input, and the refusal's no-fetch obligation.
     target = tmp_path / "t"
     target.mkdir()
     _no_fetch(monkeypatch)
@@ -5975,7 +5973,7 @@ def test_self_replacement_refuses_when_the_detector_resolves_the_target_root(
 def test_self_replacement_refuses_when_the_running_package_is_inside_the_target(
     tmp_path, monkeypatch
 ):
-    # AC-0083 input 2 — the case input 1 cannot see. `_detect_editable_source`
+    # The second self-replacement input — the case the first cannot see. `_detect_editable_source`
     # is bounded by an enclosing git repository and returns nothing for a
     # derived catalogue that is not one, so this target carries no `.git`.
     target = tmp_path / "t"
@@ -5999,7 +5997,7 @@ def test_self_replacement_does_not_fire_when_neither_input_holds(tmp_path, monke
 
 
 def test_self_replacement_is_not_reached_under_external_tooling(tmp_path, monkeypatch):
-    # AC-0083 triggers on the run's effective scope. External tooling replays
+    # The self-replacement refusal triggers on the run's effective scope. External tooling replays
     # no `.agentbundle/tooling/` paths, so the scope never reaches the
     # destination and the refusal has nothing to refuse.
     target = tmp_path / "t"
@@ -6018,7 +6016,7 @@ def test_self_replacement_is_not_reached_under_external_tooling(tmp_path, monkey
 
 
 def test_malformed_json_without_yes_still_outranks_both_new_rows(tmp_path, monkeypatch):
-    # AC-0085 ordering: the `--format json` malformed row sits above the
+    # Ordering: the `--format json` malformed row sits above the
     # absent-extent and self-replacement rows. Rewrites the phase-3 anchor.
     target = tmp_path / "t"
     target.mkdir()
@@ -6061,7 +6059,7 @@ def _select(target, **kw):
 
 def test_unscoped_write_set_admits_the_package_extent(tmp_path):
     # AC-0079: a package path is admitted on the same terms as any other
-    # replayed path. AC-0033 clause 4 still excludes the derivation-wide ones.
+    # replayed path. The derivation-wide ones are still excluded.
     target = _extent_fixture(tmp_path)
     admitted = _select(target)
     assert "packages/credbroker/credbroker/__init__.py" in admitted
@@ -6090,7 +6088,7 @@ def test_package_scope_unions_with_a_pack_scope(tmp_path):
 
 
 def test_pack_scope_never_reaches_inside_a_package_destination(tmp_path):
-    # AC-0081's closing paragraph: the vendored catalogue-curation copy moves
+    # The vendored catalogue-curation copy moves
     # only under `--package agentbundle`, never under `--pack`.
     target = _extent_fixture(tmp_path)
     assert _select(target, pack_names=["catalogue-curation"]) == set()
@@ -6157,7 +6155,7 @@ def test_write_order_keeps_the_first_four_groups_unchanged(tmp_path):
 
 def test_write_order_sorts_a_planned_package_path_not_yet_on_disk(tmp_path):
     # The ordering must hold for the paths a vendored run is about to create,
-    # which is the whole case AC-0087's two-part comparison exists for.
+    # which is the whole case the two-part path comparison exists for.
     target = _extent_fixture(tmp_path)
     ordered = catalogue_sync.write_order(
         target,
@@ -6185,11 +6183,11 @@ def _cov(tmp_path, path, *, tooling, packs=("core",), guides_mode="selected", sc
 
 
 def test_vendored_tooling_path_is_inside_coverage_only_under_a_vendored_replay(tmp_path):
-    # AC-0086's presence condition. The negative half is the important one:
-    # `_in_coverage` ends `return True`, so deleting AC-0069's exclusion
+    # The presence condition. The negative half is the important one:
+    # `_in_coverage` ends `return True`, so deleting the exclusion
     # without adding this condition would put every recorded
     # `.agentbundle/tooling/` path inside coverage on an external-mode run --
-    # reinstating the mass removal AC-0069 measures at 240 paths for a
+    # reinstating the mass removal measured at 240 paths for a
     # vendored-derived tree met by this command's external default.
     p = ".agentbundle/tooling/agentbundle/agentbundle/cli.py"
     assert _cov(tmp_path, p, tooling="vendored")
@@ -6258,7 +6256,7 @@ def test_tree_modified_is_true_for_a_path_the_run_created(tmp_path):
 
 
 def test_tree_modified_ignores_a_path_the_run_never_touched(tmp_path):
-    # AC-0041 permits a path another writer changed during the run, at which
+    # The permitted-difference table includes a path another writer changed during the run, at which
     # the command neither wrote, created nor removed. Scoping the field to the
     # run's own paths is what keeps a concurrent writer from reporting true
     # for a run that changed nothing.
@@ -6313,8 +6311,8 @@ def test_rollback_restores_the_tree_when_a_package_write_fails(tmp_path):
 
 
 def test_the_snapshot_spans_the_package_extent(tmp_path):
-    # AC-0090's third clause: a vendored fixture's snapshot accounting
-    # includes those bytes, which is what AC-0076's bound now measures over.
+    # AC-0090: a vendored fixture's snapshot accounting
+    # includes those bytes, which is what the snapshot bound now measures over.
     target, replay, _rows, pkg = _replay_with_package_paths(tmp_path, "pkg-snap")
     snapshot = catalogue_sync.snapshot_write_set(target, {pkg, "packs/alpha/one.md"})
     assert pkg in snapshot
@@ -6350,7 +6348,7 @@ def test_package_path_decided_when_the_destination_root_is_absent(tmp_path):
 
 
 def test_write_group_is_last_on_a_first_time_vendoring_run(tmp_path):
-    # AC-0080's justification fails on exactly this run if containment needs
+    # The packages-last justification fails on exactly this run if containment needs
     # the destination to pre-exist: the engine lands interleaved with the
     # derivation-wide paths instead of after them.
     t = _bare_target(tmp_path)
@@ -6407,7 +6405,7 @@ def test_apply_package_scope_reaches_the_write_set_at_the_command_boundary(
         return plan
 
     monkeypatch.setattr(catalogue_sync, "plan_write_set", _capture)
-    # AC-0082's credbroker row is decided from the resolved selection and
+    # The credbroker row is decided from the resolved selection and
     # would refuse this fixture, whose source ships no `credential-brokers`.
     # Point the pack constant at one this fixture does ship, so the run gets
     # past that row: this test is about what the write-set selector receives,
@@ -6442,8 +6440,8 @@ def test_apply_package_scope_reaches_the_write_set_at_the_command_boundary(
 @pytest.mark.parametrize("name", ["agentbundle", "credbroker"])
 @pytest.mark.parametrize("tooling", [[], ["--tooling", "vendored"]])
 def test_package_with_check_is_malformed(tmp_path, monkeypatch, name, tooling):
-    # Blocker 3. AC-0085 row 1 covers all four scoping flags; AC-0081 makes
-    # `--package` one. Before the fix this returned 3.
+    # `--check` with any of the four scoping flags is malformed, and
+    # `--package` is one of them. Before the fix this returned 3.
     target = tmp_path / "t"
     target.mkdir()
     _no_fetch(monkeypatch)
@@ -6463,9 +6461,9 @@ def test_check_refusal_names_all_four_scoping_flags(tmp_path, monkeypatch, capsy
 def test_package_credbroker_refuses_when_the_resolved_selection_lacks_its_pack(
     tmp_path, monkeypatch
 ):
-    # Blocker 2 / AC-0082's credbroker half, with the oracle the Testing
-    # Strategy names: exit 2, and a fetch DID run -- which is what
-    # distinguishes this half from the agentbundle one, per AC-0084.
+    # The credbroker half of the absent-extent refusal: exit 2, and a
+    # fetch DID run -- which is what
+    # distinguishes this half from the agentbundle one.
     source = _make_apply_source(tmp_path / "cb-source")
     target = tmp_path / "cb-target"
     target.mkdir()
@@ -6479,14 +6477,14 @@ def test_package_credbroker_refuses_when_the_resolved_selection_lacks_its_pack(
     )
     args = _sync_args(target, source, "--package", "credbroker", "--yes")
     assert catalogue_sync.run(args) == 2
-    assert reached, "AC-0084: the credbroker row is decided after source resolution"
+    assert reached, "the credbroker refusal is decided after source resolution"
 
 
 def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path, monkeypatch):
-    # Review round 2, blocker 3. This is the only negative control for
-    # AC-0082's credbroker row, and it never reached that row: it passed
+    # This is the only negative control for
+    # the credbroker row, and it never reached that row: it passed
     # `--pack credential-brokers`, which `_make_apply_source` does not ship,
-    # so AC-0046's unshipped-name row refused first and the assertion held
+    # so the unshipped-name row refused first and the assertion held
     # vacuously. Point the pack constant at one the fixture does ship, so the
     # run actually reaches the row with the pack present.
     monkeypatch.setattr(catalogue_sync, "_USER_LIBS_PACK", "alpha")
@@ -6516,7 +6514,7 @@ def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path, monkeyp
         "before round 2"
     )
     assert not fired, (
-        "AC-0082's credbroker row must not fire when the resolved selection "
+        "the credbroker refusal must not fire when the resolved selection "
         "carries the pack; a refusal that always fires would pass the "
         "positive test alone"
     )
@@ -6525,14 +6523,14 @@ def test_package_credbroker_proceeds_when_its_pack_is_resolved(tmp_path, monkeyp
 def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
     tmp_path, monkeypatch
 ):
-    # Review round 2, blocker 2. AC-0083's refusal returns 3, and so do three
+    # The self-replacement refusal returns 3, and so do three
     # other rows -- source resolution among them -- so `== 3` cannot tell
     # "proceeded past the refusal" from "was refused by it". The oracle is
     # whether `_self_replacement_reason` was consulted at all.
     #
-    # The behaviour under test: AC-0083's trigger is the run's effective
+    # The behaviour under test: the refusal's trigger is the run's effective
     # scope. A `--tooling vendored --pack <name>` run is scoped to
-    # `packs/<name>/`, which AC-0081 fixes can never reach inside a package
+    # `packs/<name>/`, which can never reach inside a package
     # destination, so it has nothing to refuse. Testing `package is None`
     # instead refused every pack-, profile- and guides-scoped sync a vendored
     # adopter with an editable engine could run.
@@ -6566,7 +6564,7 @@ def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
             _sync_args(target, tmp_path / "src", "--tooling", "vendored", *extra)
         )
         assert not consulted, (
-            f"{extra} scopes away from the engine, so AC-0083 must not fire; "
+            f"{extra} scopes away from the engine, so the self-replacement refusal must not fire; "
             "consulting it refuses a sync a vendored adopter may legitimately run"
         )
 
@@ -6581,7 +6579,7 @@ def test_self_replacement_does_not_refuse_a_pack_scoped_vendored_run(
 
 @pytest.mark.parametrize("mode", [[], ["--dry-run"]], ids=["apply", "dry-run"])
 def test_absent_credbroker_extent_refuses_on_preview_and_apply_alike(tmp_path, mode):
-    # AC-0085's row invocation column reads `any`. A refusal the apply takes
+    # The row's invocation column reads `any`. A refusal the apply takes
     # and the preview does not is the defect shape this phase already shipped
     # twice -- `_run_apply` ignoring `--package` while `_run_dry_run` honoured
     # it, then the reverse. One predicate, two call sites, so they cannot
@@ -6605,7 +6603,7 @@ def test_package_path_admits_a_reentrant_spelling_via_the_identity_half(tmp_path
     # This is a removal-safety case, not a cosmetic one: `_in_coverage` uses
     # this predicate as an EXCLUSION, so a False makes the path a removal
     # candidate on a run whose destination is not present -- the mass-removal
-    # class AC-0069 exists to prevent.
+    # class the coverage rule exists to prevent.
     t = tmp_path / "derived"
     (t / "packages" / "credbroker").mkdir(parents=True)
     (t / "packages" / "credbroker" / "x.py").write_text("real", encoding="utf-8")
@@ -6629,8 +6627,8 @@ def test_package_path_still_refuses_a_spelling_that_truly_escapes(tmp_path):
 
 @pytest.mark.parametrize("mode", [[], ["--dry-run"]], ids=["apply", "dry-run"])
 def test_credbroker_row_outranks_the_container_row(tmp_path, mode):
-    # Review round 2, blocker 1. AC-0085 is total and first-match-wins, and
-    # places AC-0082's credbroker row ABOVE "the recorded-path container is
+    # The exit-code table is total and first-match-wins, and
+    # places the credbroker row ABOVE "the recorded-path container is
     # not an array". Implemented below it, this returned 3 where the table
     # requires 2 -- on both paths.
     tag = "-".join(mode) or "apply"
@@ -6647,8 +6645,8 @@ def test_credbroker_row_outranks_the_container_row(tmp_path, mode):
     consent = [] if mode else ["--yes"]
     args = _sync_args(target, source, *mode, "--package", "credbroker", *consent)
     assert catalogue_sync.run(args) == 2, (
-        "AC-0085 places the credbroker row above the container row; a 3 here "
-        "means the implemented order disagrees with the table"
+        "the credbroker refusal ranks above the container refusal; a 3 here "
+        "means the implemented exit-code order is wrong"
     )
     # ...and with no --package, the container row is still reached.
     args2 = _sync_args(target, source, *mode, *consent)
@@ -6657,7 +6655,7 @@ def test_credbroker_row_outranks_the_container_row(tmp_path, mode):
 
 @pytest.mark.parametrize("mode", [["--dry-run"], []], ids=["dry-run", "apply"])
 def test_credbroker_row_sits_above_the_integrity_row(derived_tree, tmp_path, mode):
-    # Review round 3, blocker 1. AC-0085 splits AC-0039's conflated
+    # The table splits the conflated
     # resolve/verify row: resolution is decided in `run()` above everything,
     # verification inside the replay, which cannot run until the effective
     # selection exists. The credbroker row needs that selection too, and sits
@@ -6681,7 +6679,7 @@ def test_credbroker_row_sits_above_the_integrity_row(derived_tree, tmp_path, mod
 
     assert run() == 3, "control: the integrity row is reached and returns 3"
     assert run("--package", "credbroker") == 2, (
-        "the credbroker row is above the integrity row in AC-0085's split table"
+        "the credbroker refusal ranks above the integrity refusal"
     )
 
 

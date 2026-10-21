@@ -62,8 +62,7 @@ def _stage_synthetic_pack(catalogue_root: Path) -> None:
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(PACK_TOML, encoding="utf-8", newline="\n")
     # The claude-plugins route requires a source manifest as well as
-    # user-admitting scopes (docs/specs/claude-plugin-route-scope § The derived
-    # set, condition 2). Without it this pack produces no dist-tree output and
+    # user-admitting scopes. Without it this pack produces no dist-tree output and
     # the wiring assertion below has nothing to read.
     claude_plugin = pack / ".claude-plugin"
     claude_plugin.mkdir(parents=True)

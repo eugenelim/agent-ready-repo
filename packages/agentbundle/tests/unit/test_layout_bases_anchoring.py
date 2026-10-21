@@ -1,7 +1,7 @@
-"""Anchoring of a configured `output_dir` per scope (spec AC7).
+"""Anchoring of a configured `output_dir` per scope.
 
 `agentbundle-layout.toml` values are anchored by the layout file's own
-location, never by the ambient working directory (RFC-0040 Decision 9).
+location, never by the ambient working directory.
 
 Before this change `_read_scope` did `Path(raw).expanduser().resolve()`, which
 anchors a relative value to the *process* working directory. The path was
@@ -117,7 +117,7 @@ def test_user_scope_absolute_still_resolves(
 def test_a_fix_anchoring_both_scopes_alike_fails_the_user_case(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
-    """The two halves of AC7 cannot be satisfied by one undifferentiated fix.
+    """The two halves of this rule cannot be satisfied by one undifferentiated fix.
 
     Anchoring every relative value to the repository root passes the repo case
     above and must fail here, because the user-scope value would resolve

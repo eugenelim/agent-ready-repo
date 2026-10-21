@@ -88,7 +88,7 @@ def run(args) -> int:
     # ── 1. Locate and load pack.toml ──────────────────────────────────────
     pack_toml_path = pack_path / "pack.toml"
     # A direct pack is one of the three direct shapes even though it carries a
-    # pack.toml, and it is distinguishable: T2 requires a direct manifest to
+    # pack.toml, and it is distinguishable: a direct manifest is required to
     # declare a top-level `schema`, while catalogue manifests keep it implicit.
     # Routing on that rather than on the requested output format, because the
     # earlier rule made the same directory take the catalogue route in text and
@@ -98,7 +98,7 @@ def run(args) -> int:
     # `_has_direct_marker` probes the source, so it can refuse: the entry bound
     # and the marker probe both raise `DirectAdmissionError`. Uncaught, that
     # reached the terminal as a stack trace carrying internal paths instead of
-    # AC21's registered exit-1 refusal — the routing seam was added after the
+    # the registered exit-1 refusal — the routing seam was added after the
     # handler `_install_admitted_source` already had.
     try:
         # Observed ONCE here and carried into admission, so the manifest is
@@ -199,8 +199,8 @@ def run(args) -> int:
     #   - every entry must be in the bundled contract's shipped-adapter set;
     #   - when "user" ∈ allowed-scopes, every entry must additionally be in
     #     the user-scope-capable subset (declare an `[adapter.<name>.scope]`
-    #     table). The refuse-and-explain messages match the wording pinned
-    #     in spec § *Always do*.
+    #     table). The refuse-and-explain messages match the documented
+    #     wording.
     aa_refusal = _validate_allowed_adapters(pack_data)
     if aa_refusal is not None:
         print(f"validate: pack.toml: {aa_refusal}", file=sys.stderr)
@@ -241,7 +241,7 @@ def run(args) -> int:
         print(f"validate: {exc}", file=sys.stderr)
         return 1
 
-    # ── 4d/4e. Kiro hook-wiring rails (T2 / T6) ──────────────────────────
+    # ── 4d/4e. Kiro hook-wiring rails ──────────────────────────────────
     # Rails 4c (attach-to-agent) and 4d (event-vocabulary) are now merged
     # into a single dispatch that swallows the compatibility-only refusals
     # (missing attach-to-agent, out-of-vocab event) while preserving
@@ -319,7 +319,7 @@ def run(args) -> int:
     # Fires whenever the pack ships `.apm/kiro-ide-hooks/` content. The
     # rail's `target_adapters` heuristic differs from `_kiro_target_adapters`
     # — kiro-ide-hook needs no agent (file-event triggers fire
-    # independent of agent runtime; cf. § Pack-side schema), so a
+    # independent of agent runtime), so a
     # pack with kiro-ide-hooks but no `.apm/agents/` still targets
     # kiro. Cheapest heuristic: presence of the source directory with
     # at least one *.kiro.hook file.
@@ -521,7 +521,7 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
             return None, None
     contract = load_contract(contract_path)
     adapters = contract.get("adapter", {})
-    # Prefer the kiro-ide block (v0.9+); fall back to kiro alias (pre-T1).
+    # Prefer the kiro-ide block (v0.9+); fall back to kiro alias (older contracts).
     kiro = adapters.get("kiro-ide") or adapters.get("kiro") or {}
     projections = kiro.get("projections", {}) if isinstance(kiro, dict) else {}
     rule = projections.get("kiro-ide-hook", {}) if isinstance(projections, dict) else {}
@@ -777,8 +777,8 @@ def _tree_files(root: Path) -> dict[str, bytes]:
 def _run_direct(source: Path, output_format: str, *, pack_toml=None) -> int:
     """Validate a direct source through the one shared admission entry point.
 
-    AC14 requires validation and install preflight to yield identical
-    diagnostics, which holds here because neither owns a check: both call
+    Validation and install preflight must yield identical diagnostics, which
+    holds here because neither owns a check: both call
     `validate_direct_source`.
     """
 
@@ -837,7 +837,7 @@ _DIRECT_MARKERS = ("SKILL.md", "skills", ".claude/skills")
 def _has_direct_marker(source: Path) -> bool:
     """Report whether *source* looks like a direct source at all.
 
-    The fixed markers are not the whole set. RFC-0098 E22 admits a repository
+    The fixed markers are not the whole set. Admission accepts a repository
     whose own root is the collection — skill folders sitting directly at the
     root with no wrapper — and such a source carries none of the markers above.
     Checking only for them made the CLI refuse a shape admission accepts, which
@@ -858,10 +858,10 @@ def _read_root_manifest(root: Path):
 
     Returns the measured file, or None when there is none to read or it cannot
     be read safely. The result is handed to `_run_direct`, which passes it into
-    admission, so the manifest is opened exactly once on this route — AC15's
-    rule, which the previous `exists()` + `read_text()` pre-check broke in
-    three ways at once: it followed a symlink out of the source, blocked on a
-    FIFO, and materialised an arbitrarily large publisher file before any
+    admission, so the manifest is opened exactly once on this route — a rule
+    the previous `exists()` + `read_text()` pre-check broke in three ways at
+    once: it followed a symlink out of the source, blocked on a FIFO, and
+    materialised an arbitrarily large publisher file before any
     bound could apply.
     """
 
@@ -878,7 +878,7 @@ def _read_root_manifest(root: Path):
 def _declares_direct_schema(manifest) -> bool:
     """True when a measured `pack.toml` declares the top-level `schema` key.
 
-    T2 makes `schema = 1` required for a direct manifest and its omission fail
+    A direct manifest requires `schema = 1` and its omission fails
     closed, while catalogue manifests keep schema-major-1 implicit. That makes
     the field the discriminator between the two profiles, so neither has to be
     guessed at from the caller's output format.

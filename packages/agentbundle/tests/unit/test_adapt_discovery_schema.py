@@ -156,7 +156,7 @@ def test_canonical_schema_parses_user_scope(tmp_path):
 def test_user_scope_with_markers_refused(tmp_path):
     """User-scope file with [markers] raises ConfigError naming the rule."""
     p = _write_toml(tmp_path, _USER_SCOPE_WITH_MARKERS_TOML)
-    with pytest.raises(ConfigError, match="markers are repo-only per RFC-0004"):
+    with pytest.raises(ConfigError, match="markers are repo-only"):
         load_adapt_discovery_typed(p, scope="user")
 
 
@@ -267,9 +267,8 @@ def test_findings_round_trip_preserves_fields(tmp_path):
 
 
 def test_marker_key_must_follow_lowercase_hyphen_grammar(tmp_path):
-    """Spec § Canonical schemas: a repo-scope file with a marker key
-    violating the lowercase-hyphen grammar is refused (adversarial-
-    review concern 5)."""
+    """A repo-scope file with a marker key violating the lowercase-hyphen
+    grammar is refused."""
     bad = tmp_path / "bad.toml"
     bad.write_text(
         'discovery-schema-version = "0.1"\n'

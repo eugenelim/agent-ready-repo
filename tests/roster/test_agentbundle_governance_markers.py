@@ -6,7 +6,7 @@ repository's decision records, so a citation of one reads as a broken pointer.
 `packages/AGENTS.local.md` § "No internal-governance markers in source" owns
 the rule; this module is its mechanical half.
 
-Two checks, each scoped to what it can decide without false positives:
+Three checks, each scoped to what it can decide without false positives:
 
 - A zero-padded `RFC-0NNN` / `ADR-0NNN` ordinal anywhere in a shipped file.
   IETF RFC numbers never start with `0`, so `RFC 9106` stays legal.
@@ -15,6 +15,9 @@ Two checks, each scoped to what it can decide without false positives:
   literals are code, and placeholder paths such as `docs/specs/<slug>/spec.md`
   or `docs/specs/example/` describe the adopter's own layout, so neither is a
   citation.
+- A spec acceptance-criterion citation (`AC18`, `AC-0013`) in a comment or
+  docstring of shipped engine source. Test files are exempt: a bare AC label
+  in a test comment traces a materialised stub to the criterion it proves.
 
 Out of scope: `CHANGELOG.md` and `AGENTS*.md`, which ship to nobody, and JSON
 schemas, whose `x-spec` key is the contracts tree's backward pointer to its
@@ -33,6 +36,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "packages/agentbundle"
 _ORDINAL = re.compile(r"\b(?:RFC|ADR)-0[0-9]{3}\b")
+_AC_CITATION = re.compile(r"\bACs?\s*-?#?\s*[0-9]+[a-z]?(?:\([a-z]\))?\b")
+_TEST_FILE = re.compile(r"(?:^|/)(?:tests/|conftest\.py$|test_[^/]*\.py$)")
 _RECORD_PATH = re.compile(r"docs/(specs|rfc|adr)/([A-Za-z0-9][A-Za-z0-9._-]*)")
 _UNSHIPPED_NAMES = re.compile(r"^(?:CHANGELOG\.md|AGENTS.*\.md)$")
 _PROSE_SUFFIXES = {".md", ".toml", ".txt", ".cfg", ".ini", ".yaml", ".yml"}
@@ -117,6 +122,19 @@ def test_no_internal_record_paths_in_shipped_prose() -> None:
     assert not hits, "internal record paths in shipped prose:\n" + "\n".join(hits)
 
 
+def test_no_ac_citations_in_shipped_engine_prose() -> None:
+    """No engine-source comment or docstring cites a spec acceptance criterion."""
+    hits = []
+    for path in _shipped_files():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if path.suffix != ".py" or _TEST_FILE.search(rel.removeprefix(PACKAGE + "/")):
+            continue
+        for lineno, text in _comment_and_docstring_text(path.read_text(encoding="utf-8")):
+            for match in _AC_CITATION.finditer(text):
+                hits.append(f"{rel}:{lineno}: {match.group(0)}")
+    assert not hits, "spec AC citations in shipped engine prose:\n" + "\n".join(hits)
+
+
 def test_the_path_check_recognises_a_real_record() -> None:
     """The path check fires on a real record and ignores a placeholder.
 
@@ -129,3 +147,13 @@ def test_the_path_check_recognises_a_real_record() -> None:
     matches = [m for _, t in chunks for m in _RECORD_PATH.finditer(t)]
     assert matches and _is_record(matches[0].group(1), matches[0].group(2))
     assert not _is_record("specs", "<slug>")
+
+
+def test_the_ac_check_matches_citations_and_skips_tests() -> None:
+    """The AC pattern catches both label shapes; test paths are exempt."""
+    assert _AC_CITATION.search("# AC18: emitted only between markers")
+    assert _AC_CITATION.search('"""Return the AC-0013 object."""')
+    assert not _AC_CITATION.search("# ACME and TRAC-1 are not criteria")
+    assert _TEST_FILE.search("tests/unit/test_x.py")
+    assert _TEST_FILE.search("agentbundle/_data/catalogue-scaffold/tests/conformance/test_y.py")
+    assert not _TEST_FILE.search("agentbundle/commands/install.py")

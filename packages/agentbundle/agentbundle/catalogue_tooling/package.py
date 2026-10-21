@@ -593,7 +593,7 @@ def _place_archive(staged: Path, dest: Path, *, force: bool) -> None:
 
 
 class _UnderivableUnitError(Exception):
-    """A prior unit's path has no member file in the prior archive's files[] (AC-0016)."""
+    """A prior unit's path has no member file in the prior archive's files[]."""
 
 
 def _prior_units(
@@ -624,7 +624,7 @@ def _prior_units(
 def _compare_kind(
     current: list[dict], prior: dict[str, dict], *, versioned: bool
 ) -> dict:
-    """Return the AC-0013 ``added``/``removed``/``changed``/``unchanged`` object."""
+    """Return the ``added``/``removed``/``changed``/``unchanged`` object."""
     now = {e["name"]: e for e in current}
     added, removed, changed, unchanged = [], [], [], 0
     for name in sorted(now):
@@ -660,7 +660,7 @@ def _compare_releases(
     packs: list[dict],
     profiles: list[dict],
 ) -> dict:
-    """Compare the new units against the prior archive's verified manifest (AC-0013)."""
+    """Compare the new units against the prior archive's verified manifest."""
     file_digests = {f["path"]: f["sha256"] for f in prior["files"]}
     return {
         "prior": {

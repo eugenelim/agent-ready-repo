@@ -13,10 +13,6 @@ It detects first-install-or-update and writes a ``[[packs-installed]]`` entry
 to the scope-correct ``.adapt-install-marker.toml`` file so the existing core
 session-start nudge and ``/adapt-to-project`` skill can consume it.
 
-Specs:
-  docs/specs/claude-plugins-install-route/spec.md  (route = "claude-plugins")
-  docs/specs/apm-install-route-parity/spec.md      (route = "apm"; --install-route flag)
-
 CLI:
   ``--install-route {claude-plugins,apm}`` is *required*. The build pipeline bakes
   the value into the projected hook ``command`` at projection time for both routes;

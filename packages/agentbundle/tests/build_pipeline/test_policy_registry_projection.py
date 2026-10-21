@@ -21,7 +21,7 @@ EXPECTED_LANDINGS = {
     "claude-code": f".claude/{RELATIVE}",
     "codex": f".agents/{RELATIVE}",
 }
-# AC9's comparison value. A literal, not the other projection: the two copies are
+# The comparison value. A literal, not the other projection: the two copies are
 # byte-identical by construction, so comparing them to each other passes on an
 # empty or wrong registry.
 EXPECTED_IDS = ["the-razor", "cognitive-load"]

@@ -16,9 +16,9 @@ intact under dry-run too.
 
 Marker resolution (`<adapt:NAME>` → discovery value) is the ONE place
 install-time substitution happens — every other build mode copies
-markers through unchanged (spec § Boundaries — Never do). The
+markers through unchanged. The
 `.adapt-discovery.toml` *materialisation* lives in the
-`adapt-to-project` skill, out of scope here. T7 ships only the
+`adapt-to-project` skill, out of scope here. This module ships only the
 consumer.
 
 Self-host scope:
@@ -306,10 +306,10 @@ TARGET_PATHS = (
 # so `make build-self` only projects the in-house packs;
 # `_aggregate_marketplace` applies the Claude-plugin route's publishability
 # predicate. It previously ignored the pack filter on the rationale that "the
-# catalogue advertises every pack"; docs/specs/claude-plugin-route-scope
-# overturns that. The route installs at user scope, so advertising a pack whose
-# `allowed-scopes` forbids user scope offers an install it cannot honour — and
-# once the dist branch drops the directory, the entry becomes a dangling fetch.
+# catalogue advertises every pack"; that rationale no longer holds. The route
+# installs at user scope, so advertising a pack whose `allowed-scopes` forbids
+# user scope offers an install it cannot honour — and once the dist branch
+# drops the directory, the entry becomes a dangling fetch.
 # Adapters outside this list (e.g. `kiro-ide`) are handled via the
 # `preferred_adapter` override path in `_effective_adapters`.
 _DEFAULT_SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
@@ -678,7 +678,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     # projection contract. Pyc files embed the absolute source path so they
     # can never be byte-identical across machines; excluding them prevents
     # false-positive drift failures when a skill script is imported or run
-    # before build-check executes. See docs/backlog.md § pycache-drift.
+    # before build-check executes.
     "**/__pycache__/**",
 )
 
@@ -765,7 +765,7 @@ def _project_seeds(
     Returns a `{relative_target → source}` map for use by the drift
     source-naming logic.
     """
-    # Two-pass design (per spec § Always do): build the full
+    # Two-pass design: build the full
     # {relative → source} map and detect collisions *before* writing
     # anything, so a collision-mid-real-write doesn't leave a partial
     # projection on disk.
@@ -791,9 +791,8 @@ def _project_seeds(
             # targets. They live in seeds so adopters can edit them;
             # the Phase-2 composite-agents-md recipe consumes them
             # by reading `packs/core/seeds/_agents-footer.md`
-            # directly. Skip standalone projection. Convention
-            # documented in ``docs/architecture/pack-layout.md`` § The source-of-truth split.
-            # split.
+            # directly. By convention a leading underscore marks a
+            # source-only partial, so it gets no standalone projection.
             if src.name.startswith("_"):
                 continue
             relative = src.relative_to(seeds_dir)
@@ -884,8 +883,7 @@ def _aggregate_marketplace(
         # marketplace add <owner>/<repo>` resolves — so it must apply the same
         # predicate as the dist writer. The prior note here said this function
         # "intentionally ignores the pack filter — the catalogue advertises
-        # every pack"; that is overturned by
-        # docs/specs/claude-plugin-route-scope: advertising a pack whose
+        # every pack"; that no longer holds: advertising a pack whose
         # allowed-scopes forbids user scope offers an install the route cannot
         # honour, and leaves a dangling fetch once the branch drops it.
         from agentbundle.build.main import pack_is_publishable
@@ -1147,7 +1145,7 @@ def _emit_info_for_unclassified(
     `[info]` lines for paths that are neither Projected nor Excluded.
 
     Info-level — does not fail the build. Surfaces omissions so the
-    next PR can classify them (per spec § *Always do*). If the working
+    next PR can classify them. If the working
     tree is not a git repo or git is unavailable, emits a single
     warning rather than silently skipping classification — an operator
     seeing "zero info lines" should not mis-attribute it to "fully
@@ -1307,7 +1305,7 @@ def diff_against_working_tree(
 ) -> list[str]:
     """Compare every file in `shadow` against the corresponding path in
     `working_tree`. When `source_map` is provided, drift messages name
-    the source path and regeneration command per spec § *Always do*
+    the source path and regeneration command
     (`[drift] <projected>: edit <source>; run: make build-self`).
 
     Phase-2 strengthening per the self-hosting spec:
@@ -1576,7 +1574,7 @@ def run_self_host(
     # credentialed consumers resolve via the `credbroker`
     # pip library, not a vendored shim. The shim source survives only as
     # the adapter-root-bins companion-shim projection source (below).
-    # T6: project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
+    # Project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
     # with 0o755 on POSIX. Inter-pack basename collision raises
     # ValueError; surface as self-host: <msg> and exit 5.
     try:
@@ -1584,7 +1582,7 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 5
-    # credbroker-user-scope T3: vendor the stdlib-base `credbroker` source
+    # Vendor the stdlib-base `credbroker` source
     # to the per-scope lib floor (`<working_tree>/.agentbundle/lib/credbroker/`)
     # and the catalogue-visible pack copy (`.apm/user-libs/credbroker/`). No-op
     # outside the monorepo (package source absent — see user_libs docstring).
@@ -2074,7 +2072,7 @@ def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
     either alone:
 
     * **Components.** A `tests` component followed anywhere by a `fixtures`
-      component. RFC-0082 moved the engine suite to
+      component. The engine suite now lives at
       `tests/build_pipeline/fixtures/`, where the two are no longer adjacent;
       the original substring test missed that and failed *open*.
     * **The historical substring.** `tests/fixtures/` anywhere in the path.

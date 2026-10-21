@@ -167,7 +167,7 @@ def _collect_tree(root: Path) -> dict[str, bytes]:
     innocent — only the link is not.
 
     Projection deliberately preserves links, and must keep doing so:
-    `docs/specs/codex-native-skills/spec.md` states that "the symlink
+    the invariant is that "the symlink
     pass-through is the path-traversal-safety invariant; never resolve a symlink
     to its target at projection time", and `build/main.py`'s `.apm` and `seeds`
     copytrees pass `symlinks=True` for that reason. Preserving a link is safe

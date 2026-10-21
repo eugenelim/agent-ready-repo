@@ -1,6 +1,6 @@
 """Foundation tests for catalogue_tooling package (T1–T4).
 
-Verification modes per plan.md:
+Verification modes:
   T1 — TDD: import, result-type structure, stub raises
   T2 — TDD: config loading and all 13 validation failure paths
   T3 — Goal-based: packaged schema + catalogue.toml validation

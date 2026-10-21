@@ -145,7 +145,7 @@ def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
     """Return skill dir names recorded in the repo state file under target_dir.
 
     Delegates to the one shared implementation so this adapter cannot
-    drift from the other six; see `_sweep_guard` for the AC28 refusal.
+    drift from the other six; see `_sweep_guard` for the unreadable-state refusal.
     """
     from agentbundle.build.adapters._sweep_guard import installed_skill_names
 

@@ -1,6 +1,6 @@
 """Integration tests for agentbundle catalogue init (spec catalogue-tooling-init, Bucket 11).
 
-Test matrix per plan.md § Task 14:
+Test matrix:
   - new-target full lifecycle
   - existing-repo unrelated files untouched
   - idempotence (second run all ALREADY_PRESENT)
