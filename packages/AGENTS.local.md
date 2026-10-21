@@ -8,14 +8,6 @@ Applies to `packages/`. Inherits the root `AGENTS.md`. Scope-specific deltas onl
 rootdir. `pytest packages/credbroker` needs
 `PYTHONPATH=packages/agentbundle:packages/credbroker`.
 
-## Release Coupling
-
-See [`docs/guides/explanation/release-coupling.md`](../docs/guides/explanation/release-coupling.md)
-for when to release and
-[`docs/guides/how-to/cut-a-package-release.md`](../docs/guides/how-to/cut-a-package-release.md)
-for how. Release when a public CLI verb, required flag semantics, published output layout,
-or a schema change invalidates previously valid files.
-
 ## No internal-governance markers in source
 
 Everything here is adopter-visible: the sdist ships source and the repository is

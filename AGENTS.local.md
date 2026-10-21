@@ -38,9 +38,9 @@ Edit sources, not generated catalogue-scaffold projections. For changes under
 `packs/` or `profiles/` that feed the scaffold, use
 `tools/catalogue/sync_authoring_scaffold.py` to synchronize and check projections.
 
-## Release coupling
+## Package releases
 
-See [`docs/guides/explanation/release-coupling.md`](docs/guides/explanation/release-coupling.md) for when to release and [`docs/guides/how-to/cut-a-package-release.md`](docs/guides/how-to/cut-a-package-release.md) for how; per-package specifics live in `packages/AGENTS.local.md`.
+See [`docs/guides/how-to/cut-a-package-release.md`](docs/guides/how-to/cut-a-package-release.md) for when and how to release `agentbundle` and `credbroker`.
 
 ## Projected source comments
 

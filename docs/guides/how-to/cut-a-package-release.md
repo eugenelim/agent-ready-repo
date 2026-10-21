@@ -1,13 +1,62 @@
-# Cut a package release
+# Release agentbundle and credbroker
 
-This page covers how to publish a new version of `agentbundle` or `credbroker` to
-PyPI. Pushing a tag on `main` starts the release workflow, and the workflow builds
-and publishes the package. Your job is to make the version files agree before the
-merge, push the right tag, and approve and watch the run.
+This internal maintainer page covers when a change needs a new `agentbundle` or
+`credbroker` release, and how to publish one to PyPI. It is not adopter
+documentation: `docs/guides/` is not mirrored into the published docs site.
 
-Whether a change needs a release at all is covered in
-[release coupling](../explanation/release-coupling.md). This page starts once you
-know it does.
+Pushing a tag on `main` starts the release workflow, and the workflow builds and
+publishes the package. Your job is to decide whether a release is due, make the
+version files agree before the merge, push the right tag, and approve and watch
+the run.
+
+## Does this change need a release?
+
+The version bump rule in [`packages/AGENTS.md`](../../../packages/AGENTS.md)
+applies to both packages: a non-cosmetic package change updates both
+`version.py` and `pyproject.toml`. The rest of this section is about when that
+bump must also be published.
+
+agentbundle's public surface is what adopters call: the `agentbundle catalogue *`
+command group and the `catalogue.toml` and `pack.toml` schemas. A change to that
+surface needs a release. A change that stays inside repository tooling, or that
+keeps observable CLI behaviour, does not.
+
+### Changes that need an agentbundle release
+
+| Change | Why |
+| --- | --- |
+| Adding a new `agentbundle catalogue <sub>` command | Adopters need to call it; it can't exist until released |
+| Removing or renaming a `catalogue` sub-command | Callers break |
+| Changing required CLI flags or flag semantics | Callers break |
+| Changing the output layout of `dist/` or archive file names | Downstream tools expect a fixed layout |
+| Changing `catalogue.toml` or `pack.toml` schema in a way that invalidates previously valid files | Adopter catalogues fail validation |
+| Adding a required field to either schema | Existing catalogues fail until updated |
+
+### Changes that do not need a release
+
+| Change | Why |
+| --- | --- |
+| Refactoring internal helpers that preserve observable CLI behaviour | Callers see no difference |
+| Adding optional CLI flags with backward-compatible defaults | Callers not using the flag are unaffected |
+| Updating `docs/guides/` or `tools/` without touching the package | No installed code changes |
+| Improving error messages without changing exit codes | Observable behaviour is exit code plus stdout schema |
+| Adding or changing tests | Never reaches the installed surface |
+| Updating Makefile targets that delegate to existing commands | Repository governance, not a public interface |
+
+### Where new behaviour belongs
+
+- `packages/agentbundle/agentbundle/` holds portable mechanics. It is installed in
+  every adopter's environment, so changes there are release-gated.
+- `tools/` holds repository-only policy. It runs only in this checkout and needs no
+  release.
+
+Put a purely repository-governance capability, such as a new lint or gate, in
+`tools/`. Put something every catalogue author needs in their own CI in
+`packages/agentbundle/`, and plan a release.
+
+Where you can, drive variation through `catalogue.toml` configuration rather than
+new CLI flags or sub-commands. An optional, backward-compatible config field needs
+no release, and adopters can adjust it without updating their tooling.
 
 ## Rules for both packages
 
@@ -225,7 +274,8 @@ more things follow:
 ### Tag, watch, and confirm
 
 1. Create an annotated tag on the merge commit. Its message is at least
-   `credbroker X.Y.Z`. Past tags carry only that line.
+   `credbroker X.Y.Z`. The `credbroker-v0.6.0` and `credbroker-v0.7.0` tags
+   carry only that line.
 
    ```bash
    git tag -a credbroker-vX.Y.Z <merge-sha> -m "credbroker X.Y.Z"

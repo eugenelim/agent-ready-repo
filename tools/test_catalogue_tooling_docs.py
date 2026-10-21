@@ -20,7 +20,7 @@ _EXPECTED_GUIDES = [
     "docs/guides/how-to/create-external-catalogue.md",
     "docs/guides/how-to/enterprise-app-store.md",
     "docs/guides/how-to/flow-e-disconnected.md",
-    "docs/guides/explanation/release-coupling.md",
+    "docs/guides/how-to/cut-a-package-release.md",
 ]
 
 
@@ -78,11 +78,11 @@ class AgentsLocalMdTest(unittest.TestCase):
     def setUp(self):
         self._text = _AGENTS_LOCAL.read_text(encoding="utf-8")
 
-    def test_has_release_coupling(self):
+    def test_has_package_releases(self):
         self.assertIn(
-            "release coupling",
+            "## package releases",
             self._text.lower(),
-            "AGENTS.local.md must contain a Release Coupling section",
+            "AGENTS.local.md must contain a Package releases section",
         )
 
     def test_projected_agents_no_release_coupling(self):

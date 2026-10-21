@@ -11,7 +11,7 @@ from _common import fail, read_text
 def main() -> int:
     try:
         package_rules = read_text("packages/AGENTS.md")
-        coupling = read_text("docs/guides/explanation/release-coupling.md")
+        coupling = read_text("docs/guides/how-to/cut-a-package-release.md")
         package_config = tomllib.loads(read_text("packages/agentbundle/pyproject.toml"))
         required = "Non-cosmetic package changes update both `version.py` and `pyproject.toml`."
         trigger = "Adding a new `agentbundle catalogue <sub>` command"
