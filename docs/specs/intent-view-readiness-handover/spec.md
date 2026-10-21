@@ -1,0 +1,216 @@
+# Spec: Intent view readiness bridge
+
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-21 by eugenelim, spec and plan, after spec-mode shaping, adversarial and security spec-stage reviews, each clean after adjudication at round 6 (security clean at round 5); reports under `.context/reviews/0a188736-11f7-4026-a708-8882a5361a39/`.
+- **Owner:** eugenelim
+- **Plan:** [`plan.md`](plan.md)
+- **Constrained by:** RFC-0108 (D3, and D1 rules 1 to 10 as corrected by its errata entries), RFC-0105 (D3, through RFC-0108 D3's errata exception), RFC-0106 (D1, the bridge's end condition), ADR-0007, ADR-0074
+- **Amends:** [intent-navigation-export](../intent-navigation-export/spec.md) — its criteria 0010 and 0022, its Always-do "Build every fact in the view from the same derivation…" and its Never-do "Never let the export or view code read `workspace.toml`"; [intent-view-session-start](../intent-view-session-start/spec.md) — its broken-entry term, criteria 0002, 0003, 0006, 0007, 0008, 0010, 0014, 0017, 0022 and 0042, its Always-do "Build every list, count and next step from the payload…", its Ask-first "Any change to … the payload schema…", and its Never-do rules "Never show readiness…" and "Never add … a module under `scripts/`…"; [intent-dependency-graphs](../intent-dependency-graphs/spec.md) — its reading of export criterion 0001 and its Never-do rules "Read workspace `needs` entries, decide scheduling/readiness/closure…" and "Show readiness or a copyable prompt…"; [intent-view-handover-prompt](../intent-view-handover-prompt/spec.md) — its Ask-first "Any change to the payload, a `query` output, or any derivation" and its Never-do rules "Never show readiness, read `workspace.toml`, or accept piped input" and "Never add … a script part beyond `handover.js`"; [intent-view-source-and-style](../intent-view-source-and-style/spec.md) — its Ask-first "Any change to the payload…"; [intent-view-tree-and-roadmap](../intent-view-tree-and-roadmap/spec.md) — its criterion 0004 and its Ask-first "Any change to the payload, a `query` output, or any derivation". The table "Amended criteria and rules" at the end of § Acceptance Criteria states each disposition. Every other criterion and rule of those six specs carries over unchanged.
+- **Brief:** brief:intent-navigation-delivery
+- **Discovery:** none
+- **Contract:** none — the export's versioned result object and view payload are contracted here and in the specs this one amends.
+- **Shape:** mixed
+
+> **Spec contract:** this document defines what "done" means. The implementing
+> PR must match this spec, or update it. Verification must be derivable from it.
+>
+> **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
+> `Acceptance Criteria` are what a completion gate reads, and an amendment
+> changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
+> `Assumptions` are working material: they orient a reader and an author corrects them in place
+> as the work teaches, without an amendment and without a review round. A review
+> finding against working material is advisory — it cannot block, because nothing
+> gates the text it cites. Marking the tiers is the spec's job; honouring them
+> when a finding is adjudicated is the reviewing surface's.
+
+## Outcome
+
+A maintainer who pipes `workspace-status`'s read-only status output into `export --readiness -` opens an offline intent view whose "What can I work on next?" shows exactly `workspace-status`'s active, ready and blocked sets for the records the view loaded, marks the one item an argless `work-loop` would resume or start when nothing names it in a finding, and whose "What is broken?" shows each loaded blocked record's workspace finding codes. The piped bytes are untrusted: the export waits at most 60 seconds and uses at most 4 MiB of them, and only node ids of loaded records, finding codes and `next_action` text reach the page. Any failure leaves readiness unchecked while the export still succeeds, and the navigator still never runs `workspace-status` or reads `workspace.toml`.
+
+## What Changes
+
+- `export` gains `--readiness -`. It reads standard input once, checks it and projects it — a new module `scripts/intent_readiness.py`, called from `run_export` in `scripts/navigate_intents.py`.
+- The view payload gains a `readiness` member and the export's `ok` result gains a `readiness` field.
+- "What can I work on next?" shows the canonical sets and the argless `work-loop` mark when readiness is checked, or a plain failure notice when the check failed. "What is broken?", the detail's "What is broken" part and its broken count include workspace findings. The Key explains ▶ Ready and ■ Blocked when readiness is checked. These live in a new script part `view_src/readiness.js`, in `view_src/lists.js`, `list-bodies.js`, `detail-render.js`, `labels.js` and `chrome.js`, and in the `ready` and `blocked` mark rules of `view_assets/view-base.css`.
+- Collected tests cover the input checks, the projection, the mark, independence from `workspace.toml`, the finding-vocabulary copy and the hostile inputs. Browser checks cover the rendered lists, marks, notices, layout and access — `test_export_readiness.py` (new), `test_export_html.py`, `test_independence.py` and `view_browser_checks.py`.
+- The skill instructions, user guide, evaluations, core design note and amended specs' headers describe the bridge.
+- Core moves to its next unused patch version.
+
+## Durable Outputs
+
+| Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
+| --- | --- | --- | --- | --- | --- |
+| Current product truth | Six shipped specs' criteria or rules change | An `Amended in part by:` header line in `docs/specs/intent-navigation-export/spec.md`, `intent-view-session-start/spec.md`, `intent-dependency-graphs/spec.md`, `intent-view-handover-prompt/spec.md`, `intent-view-source-and-style/spec.md` and `intent-view-tree-and-roadmap/spec.md` | This spec's implementer | Header lines present | Each names this spec and what this spec's `Amends:` line names for it |
+| User procedure | The export gains an input and the first list changes | `guides/core/how-to/navigate-intents.md` § Export an offline view, re-read whole for "readiness is not checked" claims, from the draft in [`notes/guide-draft.md`](notes/guide-draft.md); `guides/core/how-to/orient-at-session-start.md` re-read for its pointer to the view | `core` maintainer | `tools/lint-guide-titles.py`, `tools/validate_guides.py` and `tools/lint-guides-no-repo-only-refs.py` pass | The section gives the pipe command, says what the page shows when readiness is checked, not requested, or failed for each reason, and says the view never runs `workspace-status` itself |
+| Skill instructions and activation | The described command and output change | `navigate-intents/SKILL.md` § Export an offline view and § Safety controls; `navigate-intents/evals/eval_queries.json` | `core` maintainer | Self-host re-run shows no diff; the eval file holds a new case; the T7 content check passes | SKILL.md names `workspace-status`'s `status` subcommand as the only command piped into `export --readiness -`, forbids every other subcommand for this purpose, tells the agent to pass the output straight into the export without reading or acting on its contents, and says the export never runs `workspace-status`; a `should_trigger: true` case asks for the intent view with readiness from `workspace-status` |
+| Current architecture | A new untrusted input crosses into the export | `packs/core/DESIGN.md`, the `navigate-intents` paragraphs | `core` maintainer | Paragraph present | It names the bridge as the export's one piped input, its allowlisted projection, and that the navigator still reads no `workspace.toml` |
+| Release history | A pack content change | A changelog fragment under `docs/product/changelog.d/` from `tools/changelog.py new` | Pack release workflow (`packs/AGENTS.local.md`) | Fragment validates; Highlights decided | Fragment present at the bumped version |
+| Verification record | Browser, width, scale, real-input and review evidence | `docs/specs/intent-view-readiness-handover/notes/verification-ledger.md` and `notes/screens/` (repository-durable) | Implementer | Ledger entries with commit, test counts, real-input counts and screenshot SHA-256 values | Ledger cited by the pull request |
+| Coordination | A confirmed brief slice | `workspace.toml` `[backlog].open` while Draft, then `["ini-010".work].queue` once approved; the brief's Spec map | Implementer | Entry and Spec-map row present | Entry follows the spec's status |
+
+## Agent Rules
+
+### Always do
+
+- Treat the status input as untrusted bytes: read standard input only when `--readiness -` is given, and keep only the projection AC-0014 names.
+- Decide the argless `work-loop` mark over the checked lists before any entry is dropped.
+- Put every piped string into the page only as text, through the view's existing element helpers.
+- Keep the shipped content-security policy string, with only its two digests changing.
+- Record every browser, width, scale, real-input and review result in this spec's verification ledger with the commit it ran against.
+
+### Ask first
+
+- Any change to the size cap, the read time limit, the accepted mode, the reason set, the start rules or the projected fields.
+- Showing readiness anywhere other than "What can I work on next?", the broken entries and the Key.
+- Any change to a `query` output, the derivation, or a hand-over prompt.
+
+### Never do
+
+- Never run `workspace-status`, locate its script, start any process other than the export's shipped Git calls, or read `workspace.toml` or any file the status input names.
+- Never let status input add a node, a row for a record the view did not load, a link, or a prompt, and never put piped text into a prompt or an `href`.
+- Never derive readiness or the argless `work-loop` mark from a status word, a plan file or a `Depends on:` header.
+- Never refuse the export, write a partial file, or let an exception escape, because of the status input.
+- Never import from another skill, add a dependency outside the Python standard library or a JavaScript library, or add a module or script part beyond `intent_readiness.py` and `readiness.js`.
+
+## Testing Strategy
+
+- **TDD (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0034, AC-0038, AC-0046, AC-0047, AC-0048, AC-0049, AC-0050):** the command, input checks, projection, start rules, independence and hostile-input safety are invariants over constructed byte streams, so collected pytest tests drive `run_export` and the readiness module with them. They run in `make test`, which CI runs only through the dispatch-only `test-corpus.yml` workflow, so the ledger records a passing dispatch of that workflow at the final code commit. Named hostile fixtures:
+  - **hostile status inputs** — constructed streams for every check of AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0046, AC-0047 and AC-0048, dropped paths (AC-0015), dropped fields (AC-0016), and next-action text carrying the export spec's criterion 0031 strings (AC-0034, AC-0035);
+  - **hostile `workspace.toml` fixture** — a copy of the `mixed` corpus with a `workspace.toml` whose free text and paths carry those strings, run through the shipped `workspace-status` status command and piped in (AC-0038).
+- **Scripted browser check (AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0032, AC-0033, AC-0035, AC-0036, AC-0037, AC-0039, AC-0040):** `view_browser_checks.py` drives exported fixture files in headless Chromium at true viewport sizes, since a browser is the only oracle for rendered lists, marks, focus and layout. It is not collected by CI, so its full pass at the final code commit, with the count run and none skipped, is recorded in the ledger.
+- **Goal-based check (AC-0041, AC-0042, AC-0043, AC-0044):** the scale benchmark, the largest admitted input, the real-input corpus and the real export are measurements recorded in the ledger.
+- **Visual / manual QA (AC-0045):** an adjudicated `experience-reviewer` pass over screenshots of every readiness state decides the design outcome no script can. By owner decision on 2026-10-21 it is a completion gate, as the hand-over prompt spec's criterion 0021 is.
+
+## Acceptance Criteria
+
+Unless a criterion names another fixture, it is checked on a whole-corpus export of the `mixed` fixture corpus, opened from local disk. Terms used below:
+
+- **Status word, display name, name order, open item, broken entry:** as the session-start spec defines them, with the broken-entry term extended by AC-0030.
+- **Status input:** the bytes the export reads from standard input when `--readiness -` is given.
+- **Base status:** the JSON object `{"schema_version": 1, "mode": "status", "workspace_present": true, "workspace_root": ".", "canonical": {"performed": true, "bounded": true, "findings": [], "ready": [], "active": [], "blocked": []}}`.
+- **Entry:** an object in `canonical.ready`, `canonical.active` or `canonical.blocked`. The checks read only its `path`, `dispatchable` and `findings`; every other member, such as `slug`, `kind`, `ini_slug`, `collection`, `origin_mode`, `refresh`, `surface_role`, `locator` or an authority field, is optional, unchecked and dropped.
+- **Finding:** an object in `canonical.findings` or an entry's `findings`. The checks read only its `code`, `dispatchable`, `next_action` and, for AC-0049, `path`; every other member is optional, unchecked and dropped.
+- **Ready entry, active entry, blocked entry:** an entry with `dispatchable` `true` and no finding, with no finding, and with `dispatchable` `false` and at least one finding, respectively.
+- **Loaded record:** a node in the export payload's `nodes`; its **loaded path** is that node's `path`.
+- **Checked lists:** the status input's `canonical.active`, `canonical.ready` and `canonical.blocked` after every check of AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0046 and AC-0047 has passed, before any entry is dropped.
+- **Finding table:** the code-to-sentence table the shipped `workspace-status` engine emits next actions from (`_FINDING_NEXT_ACTIONS` in `workspace_status_engine.py`).
+- **Reason set:** `not_requested`, `unreadable`, `timed_out`, `too_large`, `empty`, `not_json`, `no_workspace`, `wrong_schema`, `bad_workspace` and `page_too_big`. No member is longer than `not_requested`.
+- **Unchecked baseline:** the page one export would write with its `readiness` member set to `{"checked": false, "reason": "not_requested"}`, at that export's own `provenance.generated_at`. Because no reason is longer than `not_requested`, the export's page carrying any unchecked reason is no larger than its unchecked baseline.
+- **Start phrase:** "work-loop with no spec named".
+- **Readiness matrix:** true viewport widths of 320, 1280, 1680 and 2560 CSS px, each in the light and the dark theme.
+- **Rendered text:** the text nodes of the page's document after its script has run, and the content of its data block; not the source of its script or style elements.
+
+### The command
+
+- [ ] **AC-0001.** `export --readiness <value>` with any value other than `-` returns an `error` object with `error.code` `invalid_query`, exits 1, writes no file, and reads nothing from standard input.
+- [ ] **AC-0002.** Without `--readiness`, the export reads nothing from standard input: given a standard input pipe that is never written to or closed, the export completes and returns `ok`.
+- [ ] **AC-0003.** An `ok` export object carries `readiness`, an object with exactly the keys `checked`, a boolean, and `reason`, which is `null` when `checked` is `true` and otherwise a member of the reason set equal to the payload's `readiness.reason`.
+- [ ] **AC-0004.** The payload's keys are exactly `schema`, `scope`, `provenance`, `summary`, `records`, `outstanding`, `nodes`, `edges`, `source_links`, `dependencies` and `readiness`, and `schema` stays `intent-navigation.view.v1`.
+- [ ] **AC-0005.** When readiness is not checked, the payload's `readiness` is exactly `{"checked": false, "reason": <reason>}`; without `--readiness` the reason is `not_requested`.
+
+### The input checks
+
+- [ ] **AC-0046.** Given `--readiness -` with standard input in any of these states, the reason is `unreadable`, no byte read before the failure is checked, and nothing is printed to standard error: closed, so that the process has no standard input stream; opened on a directory; opened write-only; a non-blocking pipe whose write end is held open and which holds no data; and a standard input object whose `fileno()` raises.
+- [ ] **AC-0047.** Given a standard input pipe that is held open and receives fewer than 4,194,305 bytes and no end of file, the export stops waiting for it 60 seconds after it starts reading, uses none of the bytes received, gives the reason `timed_out`, and returns `ok`; a reader still blocked on the pipe may run on until the process exits, and its bytes are never used. The cases are a pipe that receives no byte and a pipe that receives the first 100 bytes of the base status.
+- [ ] **AC-0006.** Given a status input of 4,194,305 bytes — the base status followed by spaces — the reason is `too_large`; given the same input one space shorter, 4,194,304 bytes, readiness is checked. Given a stream that delivers more than 4,194,304 bytes within 60 seconds and never ends, the export stops reading after 4,194,305 bytes and the reason is `too_large`.
+- [ ] **AC-0007.** Given a standard input that is a terminal, the export reads nothing from it and the reason is `empty`. Given a status input of zero bytes, or only spaces, tabs, line feeds and carriage returns, the reason is `empty`.
+- [ ] **AC-0008.** Each of these status inputs gives the reason `not_json`: bytes that are not valid UTF-8; the base status preceded by a UTF-8 byte-order mark; a JSON value that is not an object; the base status with a member name repeated in any object; the base status with an extra member whose value is `NaN`, `Infinity` or `-Infinity`; the base status followed by a second JSON value; and the base status with an extra member holding an array nested 100,000 deep.
+- [ ] **AC-0009.** A status input whose top-level object's `workspace_present` is `false` gives the reason `no_workspace`, whatever its other members hold. The cases are `{"mode": "status", "schema_version": 1, "workspace_present": false, "workspace_root": "."}`, which `workspace-status` prints when `workspace.toml` is absent, `{"workspace_present": false}`, and `{"schema_version": 2, "mode": "error", "workspace_present": false}`.
+- [ ] **AC-0010.** Each of these changes to a base status holding one ready, one active and one blocked entry gives the reason `wrong_schema`: `workspace_present` absent or any value other than `true` and `false`; `schema_version` of `true`, `1.0`, `"1"` or `2`; `mode` of `"reconcile"`, `"explain"` or `"error"`; `workspace_root` other than `"."`; `canonical` absent or not an object; `canonical.performed` not `true`; any of `canonical.ready`, `active`, `blocked` or `findings` absent or not a list; an entry that is not an object; an entry `path` that is absent or not a string; an entry or finding `dispatchable` that is absent or not a boolean; an entry `findings` that is absent or not a list; a finding that is not an object; a finding `code` that is absent or does not match `[a-z][a-z0-9_]{0,63}`; a finding `next_action` that is absent, not a string, longer than 500 code points, or holding a code point from U+D800 to U+DFFF; an item of `canonical.ready` that is not a ready entry; an item of `canonical.active` that is not an active entry; an item of `canonical.blocked` that is not a blocked entry; and one `path` in two of the three lists.
+- [ ] **AC-0011.** A status input that passes AC-0010's checks and holds a finding, at top level or in an entry, whose `code` is `invalid_workspace`, `configuration_mismatch` or `unsafe_path` gives the reason `bad_workspace`. Each of the failure outputs `workspace-status` prints for those three codes gives it.
+- [ ] **AC-0048.** Given a checked status input whose projection would make the page larger than the export's size budget while the export's unchecked baseline fits it, the export writes the page with readiness unchecked, the reason is `page_too_big`, and the export returns `ok`. The case is checked with the clock pinned through a test seam, so every export in the check carries the same `generated_at`, and the budget lowered to exactly the size of the page the export without `--readiness` writes at that time; every failing case of AC-0006 to AC-0011 and AC-0046 to AC-0047 also returns `ok` under that budget.
+- [ ] **AC-0050.** With `--readiness -`, given an export whose unchecked baseline is one byte larger than the budget, the export refuses with `export_too_large` and writes nothing, for a checked status input and for each failing case of AC-0006 to AC-0011, AC-0046 and AC-0047. The refusal's `error.limits` carries `budget_bytes` and `bounded_route` `--from` as export criterion 0022 states, and its `error.observed.bytes` is the unchecked baseline's UTF-8 length.
+- [ ] **AC-0012.** The reason is that of the first failing check in this order: `unreadable`, `timed_out`, `too_large`, `empty`, `not_json`, `no_workspace`, `wrong_schema`, `bad_workspace`, `page_too_big`. A status input carrying both a repeated member name and a `schema_version` of `2` gives `not_json`.
+- [ ] **AC-0013.** Given any status input or standard input that gives a reason other than `not_requested`, including every case of AC-0006 to AC-0011 and AC-0046 to AC-0048, on an export whose unchecked baseline fits the budget, the export returns `ok`, exits 0, writes its file and prints nothing to standard error, and the payload equals the payload of the same export without `--readiness` except for `readiness.reason` and `provenance.generated_at`.
+
+### The projection
+
+- [ ] **AC-0014.** When readiness is checked, the payload's `readiness` holds exactly `checked` (`true`), `active`, `ready`, `blocked` and `start`. `active` and `ready` are lists of node ids. `blocked` is a list of objects holding exactly `id` and `findings`, and each finding holds exactly `code`, `next_action` and `known`. Each list keeps its checked list's order, and only entries whose `path` is a loaded path appear, under that record's node id.
+- [ ] **AC-0015.** No entry whose `path` is not exactly a loaded path appears in `readiness`, and the rendered text does not contain its `path`. The dropped set holds `/etc/passwd`, `C:\x\spec.md`, `../x/spec.md`, `docs/specs/../../x/spec.md`, `docs/specs//bravo-spec/spec.md`, `no-such-slug`, `docs/specs/absent-spec/spec.md`, `docs/specs/bravo-spec/spec.md/` and `docs/specs/Bravo-Spec/spec.md`, and, under `export --from intent:india-none`, `docs/specs/bravo-spec/spec.md`, for which only the `readiness` clause is checked. An entry whose `path` is `workspace.toml` is dropped from `readiness`.
+- [ ] **AC-0016.** Given a checked status input whose top level, entries and findings carry extra members — `locator` set to `{"kind": "path", "value": "/home/user/marker-locator"}`, and `slug`, `summary`, `refresh`, `ini_slug`, `collection`, `initiatives` and a finding `path`, each holding its own distinct marker string — none of the marker strings appears in the HTML.
+- [ ] **AC-0017.** A path that occurs more than once in `canonical.blocked` appears once, with the codes of all its occurrences in input order and repeats removed.
+- [ ] **AC-0018.** A projected finding's `known` is `true` exactly when its `code` and `next_action` are a pair in the finding table: for every pair in the table, a finding carrying it is known, and a finding with that code and any other sentence, or with a code the table lacks, is not known.
+- [ ] **AC-0019.** For one status input, the payload is the same, except `provenance.generated_at`, with the root's `workspace.toml` absent, present as the hostile `workspace.toml` fixture's file, unreadable, or a directory.
+- [ ] **AC-0020.** An export with `--readiness -` starts no process other than the Git commands an export without `--readiness` starts, and opens no file that such an export does not open.
+
+### The argless work-loop mark
+
+- [ ] **AC-0021.** The payload's `readiness.start` holds exactly `rule`, `id`, `held` and `active_count`, where `active_count` is the length of the checked `canonical.active` list and `rule` is the first that matches: `resume` when that list holds exactly one entry; `ask` when it holds more than one; `start` when `canonical.ready` holds at least one entry; `none` otherwise. For `resume` and `start`, the chosen entry is the one active entry or the first ready entry of the checked lists, and `id` is its node id when its `path` is a loaded path and `held` is `false`, and `null` otherwise. For `ask` and `none`, `id` is `null` and `held` is `false`. Given checked lists whose `canonical.ready` is `["docs/specs/absent-spec/spec.md", "docs/specs/bravo-spec/spec.md"]` and whose `canonical.active` is empty, `rule` is `start`, `id` is `null`, and `readiness.ready` is `["spec:bravo-spec"]`.
+- [ ] **AC-0049.** For `resume` and `start`, `held` is `true` exactly when some finding in the status input, in `canonical.findings` or in any entry's `findings`, has a `path` equal to the chosen entry's `path`. Given checked lists whose only ready entry is `docs/specs/bravo-spec/spec.md` and whose `canonical.findings` holds an `unsatisfied_dependency` finding with that `path`, `rule` is `start`, `held` is `true` and `id` is `null`.
+
+### What can I work on next?
+
+- [ ] **AC-0022.** When readiness is checked, "What can I work on next?" lists exactly the records of `readiness.active`, `readiness.ready` and `readiness.blocked`, under the subheadings "Active", "Ready" and "Blocked" in that order, each in its payload order, with a subheading shown only when it holds a row, and the question's rail count is the number of rows. Given checked lists whose `canonical.ready` names the `Draft` spec `docs/specs/charlie-spec/spec.md` and that name nothing else, the list holds only `spec:charlie-spec`, and `spec:bravo-spec`, which is `Implementing`, is not in it.
+- [ ] **AC-0023.** When readiness is checked, that list's title reads "Active, ready and blocked", its lead line reads "Readiness from workspace-status, read when this snapshot was made.", and its sort key reads "Active, then ready, then blocked, in workspace-status order".
+- [ ] **AC-0024.** In that list, a row under "Active" carries the mark ● "Active", a row under "Ready" carries ▶ "Ready", and a row under "Blocked" carries ■ "Blocked", each a glyph with `aria-hidden="true"` followed by the word, and a "Blocked" row's context cell ends with its codes in payload order, joined by ", ".
+- [ ] **AC-0025.** When `readiness.start.id` is a node id, exactly one row of the page holds a start tag: that record's row in "What can I work on next?", whose tag reads the start phrase followed by " resumes this" for `resume` or " starts this" for `start`, inside the row's link so that its accessible name contains it. When `readiness.start.id` is `null`, no row holds a start tag.
+- [ ] **AC-0026.** When readiness is checked and `readiness.start.id` is `null`, a line below the list header reads the start phrase followed by, for `ask`, " asks which of the <n> active items to resume, so none is marked.", with `<n>` the `active_count`; for `resume` or `start` with `held` `true`, " may refuse the item it would resume, because workspace-status reports a finding about it, so none is marked." or " may refuse the item it would start, because workspace-status reports a finding about it, so none is marked."; for `resume` or `start` with `held` `false`, " would resume an item outside this export, so none is marked." or " would start an item outside this export, so none is marked."; and for `none`, " finds nothing to start or resume.".
+- [ ] **AC-0027.** Every state mark and Key entry the page renders with the ▶ glyph belongs to a record in `readiness.ready` or to the Key while readiness is checked, and while readiness is not checked no state mark or Key entry carries ▶ or ■. Text taken from a `next_action` is not a state mark or Key entry.
+- [ ] **AC-0028.** When readiness is checked and the list shows no row, whether the checked lists were empty or every entry was dropped, the list area shows "workspace-status lists nothing active, ready or blocked in this export." in place of a list. When readiness is checked and `outstanding` is unavailable, the list and its rail count follow AC-0022, and the count is a number, not "unknown".
+- [ ] **AC-0029.** When readiness is not checked, "What can I work on next?" follows the session-start spec's criteria 0002, 0003, 0007 and 0008 and the tree-and-roadmap spec's criterion 0004. For a reason other than `not_requested`, a notice above the list also reads "Readiness could not be checked: <sentence>. Run the workspace-status skill to see what is ready.", with `<sentence>`: `unreadable` "standard input could not be read"; `timed_out` "nothing finished arriving within 60 seconds"; `too_large` "the piped input was larger than 4 MiB"; `empty` "nothing was piped in"; `not_json` "the piped input was not valid JSON"; `no_workspace` "this repository has no workspace.toml"; `wrong_schema` "the piped input was not workspace-status status output this view reads"; `bad_workspace` "workspace-status reported a problem with workspace.toml itself"; `page_too_big` "the page would have been too large with it".
+
+### What is broken?
+
+- [ ] **AC-0030.** Each `code` of each `readiness.blocked` item is one workspace broken entry, held by that item's record. "What is broken?" lists every workspace broken entry, in the session-start spec's broken-list order, as a row whose context reads "Workspace finding: " followed by the code, including while `outstanding` is unavailable.
+- [ ] **AC-0031.** In a picked record's "What is broken" part, a workspace broken entry whose finding is known reads "Workspace finding <code>: <next_action>"; one whose finding is not known reads "Workspace finding <code>." followed by the label "Note from workspace-status:" and the `next_action` text. The state line's broken count includes the record's workspace broken entries.
+- [ ] **AC-0032.** A finding's own `path` marks nothing: given checked lists with a blocked entry for `docs/specs/bravo-spec/spec.md` whose finding `path` is `docs/product/intents/FEAT-0005-india-none.md`, and a top-level finding whose `path` is `docs/specs/charlie-spec/spec.md`, only `spec:bravo-spec` holds a workspace broken entry.
+- [ ] **AC-0033.** While readiness is checked, the opened Key explains ● Active, ▶ Ready and ■ Blocked as readiness from workspace-status and "Workspace finding" as a finding workspace-status reported; while it is not checked, the Key holds none of those entries. Every label the page renders over the `hostile` fixture with a checked status input is in the closed set in force — the session-start spec's criterion 0022 set as the dependency-graphs spec's criterion 0023 extends it — further extended by "Active", "Ready", "Blocked", "Workspace finding" and "Note from workspace-status", and every state-mark glyph is one of ● ◆ ◇ ✕ △ ✓ ▶ ■.
+
+### Safety
+
+- [ ] **AC-0034.** Given a checked status input whose not-known `next_action` values carry `</script><script>`, `<img src=x onerror=alert(1)>`, a `javascript:` value, `"><svg onload=alert(1)>`, a U+2028 line separator and bidirectional controls, none of those strings appears in the HTML outside the data block, and the data block parses back to a `readiness` member equal to the projection.
+- [ ] **AC-0035.** Over that export, the rendered page's text nodes contain no code point the text output escapes, and each such code point in a `next_action` appears as its `[U+XXXX]` escape.
+- [ ] **AC-0036.** Given a checked status input naming every loaded record in one of the three lists, the set of `href` values in the page and the set of records with a hand-over prompt, with each prompt's text, equal those of the same export without `--readiness`.
+- [ ] **AC-0037.** Over a session that opens every question, picks each record holding readiness data and opens the Key, the page makes no network request and raises no content-security-policy violation.
+- [ ] **AC-0038.** The hostile `workspace.toml` fixture's status output, produced by the shipped `workspace-status` status command over that fixture and piped in, contains those strings and gives an `ok` export with readiness checked and at least one `readiness.blocked` item, in which none of the fixture's hostile strings appears in the HTML.
+
+### Layout and access
+
+- [ ] **AC-0039.** Across the readiness matrix, with readiness checked over lists holding an active, a ready and a blocked entry, a start tag, and a blocked entry with a 64-character code and a 500-code-point not-known `next_action` picked, no two rows' boxes overlap, the start tag and every mark lie within their row's box, and the document's `scrollWidth` does not exceed the viewport width. The session-start spec's criteria 0034, 0035, 0036, 0037, 0038 and 0041 hold in the same states, with every readiness element included.
+- [ ] **AC-0040.** With `prefers-reduced-motion` set to `reduce`, every start tag, readiness mark and failure notice computes every `transition-duration` and `animation-duration` as `0s`.
+
+### Measurement and review
+
+- [ ] **AC-0041.** The export spec's scale benchmark (its criterion 0066), re-run on this view with this repository's status output piped in, meets its thresholds at 1, 10, 25 and 50 times this repository's corpus, and the ledger records each result.
+- [ ] **AC-0042.** An export of this repository with a 4,194,304-byte status input that passes every check, made of blocked entries naming loaded paths, returns `ok` within 5 seconds on the ledger's machine, and the ledger records the time.
+- [ ] **AC-0043.** Over this repository at the final code commit, its `status` output gives a checked projection whose `active`, `ready` and `blocked` counts and `start` equal those that a ledger-recorded script computes from the same output by this spec's terms; its `reconcile` output gives `wrong_schema`. The ledger records both outputs' SHA-256 values and the accepted and refused counts.
+- [ ] **AC-0044.** An export of this repository at the final code commit with its status output piped in, opened in headless Chromium, shows in "What can I work on next?" as many rows as `readiness` holds records, and in "What is broken?" every workspace broken entry, and the ledger records both counts.
+- [ ] **AC-0045.** An `experience-reviewer` pass over screenshots of four states — checked with a start tag, checked with more than one active item, a failed check, and "What is broken?" with workspace findings — across the readiness matrix, against RFC-0108 D1 rules 1 to 10 as corrected and the `skill-html-views` direction's ranked goals, leaves no Major or Blocker finding after adjudication, recorded in the ledger with the 32 screenshots' SHA-256 values and each finding's adjudicated disposition.
+
+### Amended criteria and rules
+
+| Amended spec: criterion or rule | Disposition |
+| --- | --- |
+| Export 0010, the `ok` object's fields | Extended by AC-0003 with `readiness`; `path`, `bytes`, `scope` and the `error` object carried unchanged |
+| Export Always-do "Build every fact in the view from the same derivation and query code the `query` command runs, in the same process, over one derivation" | Narrowed: the facts of the payload's `readiness` member come from the status input's projection (AC-0014); every other fact carried unchanged |
+| Export Never-do "Never let the export or view code read `workspace.toml`" | Reworded to "Never let the export or view code read `workspace.toml`; readiness reaches the export only as status input on standard input, under the readiness-bridge spec." The ban on reading the file carried unchanged |
+| Export 0001 as the dependency-graphs spec reads it, payload keys | Replaced by AC-0004 |
+| Export 0022, the budget refusal | Narrowed for an export with `--readiness -`: the budget is measured on the export's unchecked baseline, not the page it writes. A baseline over the budget refuses as 0022 states, whatever the status input (AC-0050); a baseline that fits is never refused for size (AC-0013, AC-0048). Carried unchanged without `--readiness` |
+| Session-start, broken-entry term | Also each workspace broken entry of AC-0030 |
+| Session-start 0002, 0003, 0007 and 0008, the first list's contents, title, lead, ▶ ban, sort key and empty line | Hold while readiness is not checked (AC-0027, AC-0029); replaced by AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027 and AC-0028 while it is checked. The sort keys and empty lines of every other list carried unchanged |
+| Session-start 0006, "What is broken?" | Also lists the workspace broken entries of AC-0030 |
+| Session-start 0010, state marks | A row of "What can I work on next?" while readiness is checked takes AC-0024's mark; every other rule carried unchanged |
+| Session-start 0014 and 0017, broken count and "What is broken" part | Also count and list workspace broken entries, shown as AC-0031 states |
+| Session-start 0022, Key and closed label and glyph sets | Extended by AC-0033 |
+| Session-start 0042, the page while `outstanding` is unavailable | "What can I work on next?" follows AC-0028 while readiness is checked; "What is broken?" also lists workspace broken entries (AC-0030) |
+| Session-start Always-do "Build every list, count and next step from the payload the export already embeds; change no derivation, query, or payload field" | Narrowed to admit the payload's `readiness` member; the derivation, every query and every other payload field carried unchanged |
+| Session-start Ask-first "Any change to `close-work/scripts/intent_graph.py`, the payload schema, or any `query` output" | This spec is that ask for the `readiness` member, decided by the owner's approval; the rule carried unchanged for every other change |
+| Session-start Never-do "Never show readiness: no ▶ mark, no 'ready to start' wording, no `workspace-status` call or input, and no read of `workspace.toml`" | Narrowed to admit this spec's status input, marks and wording; the `workspace-status` call and the `workspace.toml` read carried unchanged |
+| Session-start Never-do "Never add a top-level directory, a pack, a skill, or a module under `scripts/` other than the one stylesheet named above" | Narrowed to admit `scripts/intent_readiness.py`; carried unchanged otherwise |
+| Dependency-graphs Never-do "Read workspace `needs` entries, decide scheduling/readiness/closure, or infer a dependency from parentage, relatedness, status, or prose" | Narrowed: the export's argless `work-loop` mark restates `work-loop`'s dispatch rule over `workspace-status`'s sets (AC-0021, AC-0049); the dependency view itself still reads no `needs` entry and decides no scheduling, readiness or closure |
+| Dependency-graphs Never-do "Show readiness or a copyable prompt, launch anything, reach the network, or change the shipped content-security policy string" | Narrowed to admit this spec's readiness display; launching, network and the policy string carried unchanged |
+| Hand-over prompt Never-do "Never show readiness, read `workspace.toml`, or accept piped input; that is a separate slice" | Replaced by this spec's Never-do rules; the prompt's templates and path rule carried unchanged |
+| Hand-over prompt Never-do "Never add a JavaScript library, a dependency outside the Python standard library, or a script part beyond `handover.js`" | Narrowed to admit the script part `readiness.js`; carried unchanged otherwise |
+| Source-and-style Ask-first "Any change to the payload, a `query` output, `intent_graph.py`, or any derivation" | This spec is that ask for the `readiness` member, decided by the owner's approval; the rule carried unchanged for every other change |
+| Hand-over prompt Ask-first "Any change to the payload, a `query` output, or any derivation" | This spec is that ask for the `readiness` member, decided by the owner's approval; the rule carried unchanged for every other change |
+| Tree-and-roadmap Ask-first "Any change to the payload, a `query` output, or any derivation" | This spec is that ask for the `readiness` member, decided by the owner's approval; the rule carried unchanged for every other change |
+| Tree-and-roadmap 0004, the "unknown" count while `outstanding` is unavailable | Holds for "What can I work on next?" while readiness is not checked; replaced for that question by AC-0028 while it is checked; carried unchanged for every other question |
+
+## Follow-ons
+
+- eugenelim, as owner of the FEAT-0034 dispatch specification ([FEAT-0034](../../product/intents/FEAT-0034-workspace-registry-retirement.md)): list this bridge in RFC-0105 D3's consumer inventory. The bridge ends in the release where `work-loop` stops dispatching from `workspace-status` under RFC-0106 D1. In that release the `navigate-intents` owner re-points `--readiness -` to the read-only output of whatever `work-loop` then dispatches from, through the same checks, and the argless `work-loop` mark goes when first-in-list selection is removed (RFC-0108 D3).
+
+## Assumptions
+
+- The export cannot prove that the status input describes the same repository as `--root`: `workspace-status` always prints `workspace_root` as `"."`, and its repository identity hash needs `workspace.toml`. Marks attach only by exact loaded path, so a mismatched input marks at most records whose paths coincide. Accepted as a residual by eugenelim at approval on 2026-10-21.
+- The argless mark cannot reflect `work-loop`'s shaping-item guard, which reads `workspace.toml`'s shaping entries. A marked spec that the guard would route to a shaping skill is the residual; `work-loop` re-checks before it starts. Accepted as a residual by eugenelim at approval on 2026-10-21.
