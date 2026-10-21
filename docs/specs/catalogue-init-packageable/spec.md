@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`catalogue-tooling-init`](../catalogue-tooling-init/spec.md) (a blank catalogue has zero installable packs) and [`catalogue-authoring-scaffold`](../catalogue-authoring-scaffold/spec.md) AC10 (`_`-prefixed directories are templates that packaging skips)
-- **Amends:** [`catalogue-tooling-init`](../catalogue-tooling-init/spec.md) file-status table — `already-present` also covers a kept root `AGENTS.md` or `CLAUDE.md` whose content differs from the planned file (AC-0003)
+- **Amends:** [`catalogue-tooling-init`](../catalogue-tooling-init/spec.md) — Bucket 2 "The following files are created" gains root `AGENTS.md` and `CLAUDE.md` (AC-0001); Bucket 7 conflict classification: for those two root paths a differing regular file is `already-present`, not `conflict`, and every other path keeps the byte-identical `already-present` and the differing-file `conflict` rules (AC-0003)
 - **Discovery:** none
 - **Contract:** none — `catalogue init` output and the runtime archive have no schema file; the acceptance criteria pin the observable behaviour and the reference guides in Durable Outputs describe it.
 - **Shape:** service
@@ -41,8 +41,8 @@ its first release is an empty but valid archive.
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | the files init writes and the first-release path change | `guides/_shared/how-to/create-a-catalogue.md` § Create the catalogue | implementer | names the root `AGENTS.md` and says a fresh catalogue packages as an empty release | text matches AC-0001 and AC-0005 |
 | Interface reference (init) | the scaffold file list and the keep-existing rule change | `guides/_shared/reference/catalogue-format.md` § Scaffold options | implementer | lists root `AGENTS.md` and `CLAUDE.md`, states that existing ones are kept and reported `already-present` with their on-disk hash | text matches AC-0001 and AC-0003 |
-| Command reference (package) | the root marker and the include diagnostic | `docs/guides/reference/catalogue-commands.md` § `agentbundle catalogue package` | implementer | states that a runtime archive needs a root `AGENTS.md` and that a bad include entry reports `CAT-PKG-001` | text matches AC-0006 |
-| Release history | a public CLI output changes | release `0.53.1`, moved together across `version.py`, `pyproject.toml`, `CHANGELOG.md` (entry carrying `Engine-Change-RFC: n/a — …`), `README-pypi.md` (`What's new in 0.53.1` first), a `docs/product/changelog.d/` fragment, and the pin in `tests/roster/test_okf_catalogue_discovery.py` | implementer | changelog entry names both fixes | `tests/roster/test_okf_catalogue_discovery.py` green |
+| Command reference (package) | the root marker and the include diagnostic | `docs/guides/reference/catalogue-commands.md` § `agentbundle catalogue package` | implementer | states that a runtime archive needs a root `AGENTS.md`, that a bad include entry reports `CAT-PKG-001`, and that an entry naming a `_`-prefixed directory directly under `packs/` is rejected | text matches AC-0006 |
+| Release history | a public CLI output changes | release `0.53.1`, moved together across `version.py`, `pyproject.toml`, `CHANGELOG.md` (entry carrying `Engine-Change-RFC: n/a — …`), `README-pypi.md` (`What's new in 0.53.1` first), a `docs/product/changelog.d/` fragment, and the pin in `tests/roster/test_okf_catalogue_discovery.py` | implementer | changelog entry and the README-pypi "What's new" entry name both fixes, and state that an include entry naming a `_` directory under `packs/`, which packaged the template before, now fails with `CAT-PKG-001` and must be removed | `tests/roster/test_okf_catalogue_discovery.py` green |
 
 ## Agent Rules
 
@@ -67,7 +67,7 @@ its first release is an empty but valid archive.
 
 - **Init writes and keeps the root files — TDD (AC-0001, AC-0002, AC-0003, AC-0004)** — `init_catalogue` on `tmp_path` targets gives exact files, bytes and file actions.
 - **Blank catalogue packages and verifies — TDD, integration through the CLI (AC-0005)** — a subprocess run of the four commands on a fresh `tmp_path` target observes each exit code; this is the regression test for the defect.
-- **Include diagnostic — TDD (AC-0006)** — `package_catalogue` on a fixture catalogue with a bad include entry returns a result, not an exception.
+- **Include diagnostic and valid include — TDD (AC-0006, AC-0007)** — `package_catalogue` on a fixture catalogue returns a `CAT-PKG-001` result, not an exception, for a bad entry, and still packages a valid one.
 - **Adopter rehearsal — manual QA, end to end** — the four commands run from this worktree's code in a temporary directory outside the repository, with no hand edits.
 
 ## Acceptance Criteria
@@ -78,6 +78,7 @@ its first release is an empty but valid archive.
 - [ ] **AC-0004.** When the target's root `AGENTS.md` or `CLAUDE.md` is a symlink, init fails with `CAT-INIT-007` and writes no file.
 - [ ] **AC-0005.** On a directory just created by `catalogue init <dir> --name <name>`, with no other change, `catalogue verify --root <dir>`, then `catalogue package --root <dir> --bundle <b> --release <r> --channel <c> --output <out>`, then `catalogue verify --archive <archive> --sha256-file <sidecar>` each exit 0, and the archive holds a root `AGENTS.md` and no member under `packs/_example/` or `profiles/_example/`.
 - [ ] **AC-0006.** When `[catalogue.package].include` holds an entry that `catalogue package` rejects — one not under `packs/`, one that does not exist, one naming build residue, or one whose path has a `_`-prefixed directory directly under `packs/` — `catalogue package` exits 1 with a `CAT-PKG-001` diagnostic naming the entry, prints no traceback, and creates no file under `--output`.
+- [ ] **AC-0007.** With `[catalogue.package].include` naming one real pack directory under `packs/`, `catalogue package` exits 0 and the archive holds every file of that pack, including files inside a `_`-prefixed subdirectory of that pack.
 
 ## Follow-ons
 

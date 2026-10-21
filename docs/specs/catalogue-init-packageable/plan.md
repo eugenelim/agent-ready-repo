@@ -51,7 +51,7 @@ bypassed — AC-0005 runs the real CLI in a subprocess, not the engine functions
 | --- | --- | --- | --- |
 | User-facing promise — `create-a-catalogue.md` | T3 | edited section | `python3 tools/validate_guides.py` green |
 | Interface reference (init) — `catalogue-format.md` | T3 | edited Scaffold options | `python3 tools/validate_guides.py` green |
-| Command reference (package) — `catalogue-commands.md` | T3 | edited package section | text names the marker and `CAT-PKG-001` |
+| Command reference (package) — `catalogue-commands.md` | T3 | edited package section | text names the marker, `CAT-PKG-001`, and the `_` include rejection |
 | Release history — the surfaces in the spec's Release history row | T4 | changelog entry, README-pypi heading, fragment, roster pin | `tests/roster/test_okf_catalogue_discovery.py` green |
 
 ## Design (LLD)
@@ -159,14 +159,14 @@ Owned by: T1.
 
 **Done when:** `python -m pytest -q packages/agentbundle/tests/integration/test_catalogue_init_packageable.py packages/agentbundle/tests/integration/test_catalogue_init.py packages/agentbundle/tests/unit/test_catalogue_tooling_init.py` is green.
 
-### T2: A bad include entry reports `CAT-PKG-001`
+### T2: A bad include entry reports `CAT-PKG-001`; a valid one still packages
 
 **Depends on:** none
 
 **Touches:** packages/agentbundle/agentbundle/catalogue_tooling/package.py, packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py
 
 **Tests:**
-- New file `packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py` covers AC-0006. The stub drives the not-under-`packs/` case through `package_catalogue`; EXECUTE adds the missing-entry, build-residue and `packs/_example` cases and a CLI subprocess case for the no-traceback clause.
+- New file `packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py` covers AC-0006 and AC-0007. The stub drives the not-under-`packs/` case through `package_catalogue`; EXECUTE adds the missing-entry, build-residue and `packs/_example` cases, a CLI subprocess case for the no-traceback clause, and the AC-0007 case: a fixture pack holding a `_sub/` directory, named in `include`, packages with that directory's files in the archive.
 
   ```stub path=packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py run="python -m pytest -q {path}" red-exit=1
   """An invalid [catalogue.package].include entry is a CAT-PKG-001 diagnostic, not a traceback."""
@@ -245,7 +245,9 @@ Owned by: T1.
 Ships in the next `agentbundle` patch release. A catalogue created by an earlier
 release does not gain the root files by re-running init: its `catalogue.toml`
 carries an older `minimum-agentbundle-version`, so init reports `CAT-INIT-007`
-and writes nothing. Rollback is reverting the release.
+and writes nothing. A catalogue whose `include` names a `_` directory under `packs/` fails
+`catalogue package` with `CAT-PKG-001` from this release; it removes that entry.
+Rollback is reverting the release.
 
 ## Risks
 
