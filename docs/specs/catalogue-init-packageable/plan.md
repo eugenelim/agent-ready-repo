@@ -30,7 +30,7 @@ green.
 
 ## Constraints
 
-- `packages/AGENTS.md`: version bump in both `version.py` and `pyproject.toml`; UTF-8 text I/O; package tests use `tmp_path` and read no repository path.
+- `packages/AGENTS.md` owns the cross-package traps and the test-home table: version bump in both `version.py` and `pyproject.toml`, UTF-8 text I/O, and package tests that read no repository path.
 - `tools/lint-catalogue-curation-guard.py`: every commit touching `packages/agentbundle/` carries an `Engine-Change-RFC:` trailer. No RFC governs plain init, so the trailer is `n/a — <justification>`; the changelog entry carries the same line.
 - `docs/product/AGENTS.md` owns the changelog fragment procedure (`python3 tools/changelog.py new ...`).
 - `guides/AGENTS.md`: job-page rules for `create-a-catalogue.md`; `title` equals the H1.
@@ -60,8 +60,9 @@ bypassed — AC-0005 runs the real CLI in a subprocess, not the engine functions
 
 - `initialise.py` gains `generate_root_agents_md(name: str) -> bytes`, a pure function beside `generate_empty_marketplace`. Its only input is the validated `name` (`_SAFE_NAME_RE`), so no free-text flag reaches Markdown.
 - `_build_plan` appends `AGENTS.md` and `CLAUDE.md` as `kind="generated"` after the two existing generated files. `CLAUDE.md` content is the constant `b"@AGENTS.md\n"`.
-- `classify_conflicts` keeps a regular, non-symlink root `AGENTS.md` or `CLAUDE.md` as `ALREADY_PRESENT` whatever its content. The symlink and not-a-regular-file checks run first and are unchanged, so AC-0004 falls out of existing code. `_commit_files` already skips `ALREADY_PRESENT`. The reported `sha256` stays the planned content's hash, as for every other plan entry.
-- `package_catalogue` wraps its `_scan_content(...)` call in `except ValueError as exc: return _err(f"invalid [catalogue.package].include: {exc}")`. `_scan_content` raises `ValueError` only for the three include-entry cases, and the call runs before any write.
+- `classify_conflicts` keeps a regular, non-symlink root `AGENTS.md` or `CLAUDE.md` as `ALREADY_PRESENT` whatever its content. The symlink and not-a-regular-file checks run first and are unchanged, so AC-0004 falls out of existing code. `_commit_files` already skips `ALREADY_PRESENT`. The rule matches the exact plan paths `AGENTS.md` and `CLAUDE.md`, never a basename, so `packs/AGENTS.md` and its siblings keep the conflict rule. A kept file's `sha256` is the hash of the bytes already read for the comparison; every other entry keeps the planned content's hash.
+- `_scan_content`'s include branch gains a fourth `ValueError`: an entry whose first component under `packs/` starts with `_`. That matches the default walk, which prunes `_` directories directly under `packs/`.
+- `package_catalogue` wraps its `_scan_content(...)` call in `except ValueError as exc: return _err(f"invalid [catalogue.package].include: {exc}")`. `_scan_content` raises `ValueError` only for the include-entry cases, and the call runs before any write.
 
 Owned by: T1, T2.
 
@@ -83,6 +84,7 @@ Owned by: T1.
 **Tests:**
 - New file `packages/agentbundle/tests/integration/test_catalogue_init_packageable.py` covers AC-0001 to AC-0005. EXECUTE adds the AC-0002, AC-0003 and AC-0004 cases after the stub's red is proven.
 - `test_dogfood_no_host_files_leaked` in `test_catalogue_init.py` adds `AGENTS.md` and `CLAUDE.md` to its generated-path set; it is the shipped assertion this change moves.
+- The new file also checks that a changed nested `packs/AGENTS.md` and a changed `profiles/CLAUDE.md` each still give `CAT-INIT-007` with no file written, so the keep-existing rule cannot widen past the root.
 
   ```stub path=packages/agentbundle/tests/integration/test_catalogue_init_packageable.py run="python -m pytest -q {path}" red-exit=1
   """A blank catalogue from `catalogue init` packages and verifies with no hand edits."""
@@ -164,7 +166,7 @@ Owned by: T1.
 **Touches:** packages/agentbundle/agentbundle/catalogue_tooling/package.py, packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py
 
 **Tests:**
-- New file `packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py` covers AC-0006. The stub drives the not-under-`packs/` case through `package_catalogue`; EXECUTE adds the missing-entry and build-residue cases and a CLI subprocess case for the no-traceback clause.
+- New file `packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py` covers AC-0006. The stub drives the not-under-`packs/` case through `package_catalogue`; EXECUTE adds the missing-entry, build-residue and `packs/_example` cases and a CLI subprocess case for the no-traceback clause.
 
   ```stub path=packages/agentbundle/tests/unit/test_catalogue_package_include_diagnostic.py run="python -m pytest -q {path}" red-exit=1
   """An invalid [catalogue.package].include entry is a CAT-PKG-001 diagnostic, not a traceback."""
@@ -227,7 +229,7 @@ Owned by: T1.
 **Tests:**
 - no stub (goal-based). `tests/roster/test_okf_catalogue_discovery.py` pins `expected = "0.53.1"` against `version.py`, `pyproject.toml`, the README-pypi heading and the changelog heading.
 
-**Done when:** `python -m pytest -q tests/roster/test_okf_catalogue_discovery.py` is green and `python3 tools/changelog.py` validates the new fragment.
+**Done when:** `python -m pytest -q tests/roster/test_okf_catalogue_discovery.py` is green and `python3 tools/changelog.py validate` exits 0.
 
 ### T5: Adopter rehearsal
 
@@ -240,9 +242,10 @@ Owned by: T1.
 
 ## Rollout
 
-Ships in the next `agentbundle` patch release. Init is additive: an existing
-catalogue that re-runs init gains the two root files only where they are absent.
-Rollback is reverting the release.
+Ships in the next `agentbundle` patch release. A catalogue created by an earlier
+release does not gain the root files by re-running init: its `catalogue.toml`
+carries an older `minimum-agentbundle-version`, so init reports `CAT-INIT-007`
+and writes nothing. Rollback is reverting the release.
 
 ## Risks
 

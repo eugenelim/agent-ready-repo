@@ -4,6 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`catalogue-tooling-init`](../catalogue-tooling-init/spec.md) (a blank catalogue has zero installable packs) and [`catalogue-authoring-scaffold`](../catalogue-authoring-scaffold/spec.md) AC10 (`_`-prefixed directories are templates that packaging skips)
+- **Amends:** [`catalogue-tooling-init`](../catalogue-tooling-init/spec.md) file-status table — `already-present` also covers a kept root `AGENTS.md` or `CLAUDE.md` whose content differs from the planned file (AC-0003)
 - **Discovery:** none
 - **Contract:** none — `catalogue init` output and the runtime archive have no schema file; the acceptance criteria pin the observable behaviour and the reference guides in Durable Outputs describe it.
 - **Shape:** service
@@ -30,8 +31,8 @@ its first release is an empty but valid archive.
 ## What Changes
 
 - `catalogue init` generates a root `AGENTS.md` and a root `CLAUDE.md` import shim beside `catalogue.toml` (`catalogue_tooling/initialise.py`). `catalogue package` already ships a root `AGENTS.md`, and the archive verifier accepts it as the installable-catalogue marker.
-- A target that already holds its own root `AGENTS.md` or `CLAUDE.md` keeps it: init reports the file `already-present` and does not write it.
-- An invalid `[catalogue.package].include` entry makes `catalogue package` fail with a `CAT-PKG-001` diagnostic instead of an uncaught `ValueError` (`catalogue_tooling/package.py`).
+- A target that already holds its own root `AGENTS.md` or `CLAUDE.md` keeps it: init reports the file `already-present` with the SHA-256 of the bytes on disk, and does not write it. For every other path `already-present` still means byte-identical.
+- An invalid `[catalogue.package].include` entry makes `catalogue package` fail with a `CAT-PKG-001` diagnostic instead of an uncaught `ValueError`, and an entry naming a `_` template directory is invalid, so a template never ships (`catalogue_tooling/package.py`).
 - The bundled scaffold (`_data/catalogue-scaffold/` and its `manifest.json`) is unchanged.
 
 ## Durable Outputs
@@ -39,7 +40,7 @@ its first release is an empty but valid archive.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | the files init writes and the first-release path change | `guides/_shared/how-to/create-a-catalogue.md` § Create the catalogue | implementer | names the root `AGENTS.md` and says a fresh catalogue packages as an empty release | text matches AC-0001 and AC-0005 |
-| Interface reference (init) | the scaffold file list and the keep-existing rule change | `guides/_shared/reference/catalogue-format.md` § Scaffold options | implementer | lists root `AGENTS.md` and `CLAUDE.md`, and states that existing ones are kept | text matches AC-0001 and AC-0003 |
+| Interface reference (init) | the scaffold file list and the keep-existing rule change | `guides/_shared/reference/catalogue-format.md` § Scaffold options | implementer | lists root `AGENTS.md` and `CLAUDE.md`, states that existing ones are kept and reported `already-present` with their on-disk hash | text matches AC-0001 and AC-0003 |
 | Command reference (package) | the root marker and the include diagnostic | `docs/guides/reference/catalogue-commands.md` § `agentbundle catalogue package` | implementer | states that a runtime archive needs a root `AGENTS.md` and that a bad include entry reports `CAT-PKG-001` | text matches AC-0006 |
 | Release history | a public CLI output changes | release `0.53.1`, moved together across `version.py`, `pyproject.toml`, `CHANGELOG.md` (entry carrying `Engine-Change-RFC: n/a — …`), `README-pypi.md` (`What's new in 0.53.1` first), a `docs/product/changelog.d/` fragment, and the pin in `tests/roster/test_okf_catalogue_discovery.py` | implementer | changelog entry names both fixes | `tests/roster/test_okf_catalogue_discovery.py` green |
 
@@ -49,8 +50,6 @@ its first release is an empty but valid archive.
 
 - Build the root `AGENTS.md` text from the validated catalogue `name` only; never interpolate `--display-name`, `--description` or `--owner-name` into it.
 - Route the generated root files through the existing plan, conflict, staging, commit and rollback path in `initialise.py`.
-- Pass `encoding="utf-8"` to every text read and write.
-- Keep package-level tests on `tmp_path` fixtures; read no repository path from `packages/agentbundle/tests/`.
 
 ### Ask first
 
@@ -60,7 +59,7 @@ its first release is an empty but valid archive.
 
 ### Never do
 
-- Add a dependency or a new module; the change lives in `initialise.py` and `package.py`.
+- Add a dependency or a new source module under `packages/agentbundle/agentbundle/`; the engine change lives in `initialise.py` and `package.py`.
 - Overwrite or edit an existing root `AGENTS.md` or `CLAUDE.md` in the target.
 - Relax `verify_archive`'s marker check or the `_`-prefix packaging exclusion.
 
@@ -75,10 +74,10 @@ its first release is an empty but valid archive.
 
 - [ ] **AC-0001.** `catalogue init` into a new directory creates a root `AGENTS.md` and a root `CLAUDE.md` whose bytes are exactly `@AGENTS.md\n`, and reports both with action `create`.
 - [ ] **AC-0002.** The root `AGENTS.md` that init writes contains the catalogue's `name`, and its Markdown link targets are exactly `packs/AGENTS.md`, `profiles/AGENTS.md` and `guides/_shared/reference/catalogue-authoring-standards.md`.
-- [ ] **AC-0003.** When the target already holds a regular, non-symlink root `AGENTS.md` or `CLAUDE.md` with any content, init exits 0, leaves that file's bytes unchanged, and reports it with action `already-present`.
+- [ ] **AC-0003.** When the target already holds a regular, non-symlink root `AGENTS.md` or `CLAUDE.md` with any content, init exits 0, leaves that file's bytes unchanged, and reports it with action `already-present` and a `sha256` equal to the SHA-256 of that file's bytes.
 - [ ] **AC-0004.** When the target's root `AGENTS.md` or `CLAUDE.md` is a symlink, init fails with `CAT-INIT-007` and writes no file.
 - [ ] **AC-0005.** On a directory just created by `catalogue init <dir> --name <name>`, with no other change, `catalogue verify --root <dir>`, then `catalogue package --root <dir> --bundle <b> --release <r> --channel <c> --output <out>`, then `catalogue verify --archive <archive> --sha256-file <sidecar>` each exit 0, and the archive holds a root `AGENTS.md` and no member under `packs/_example/` or `profiles/_example/`.
-- [ ] **AC-0006.** When `[catalogue.package].include` holds an entry that `catalogue package` rejects — one not under `packs/`, one that does not exist, or one naming build residue — `catalogue package` exits 1 with a `CAT-PKG-001` diagnostic naming the entry, prints no traceback, and creates no file under `--output`.
+- [ ] **AC-0006.** When `[catalogue.package].include` holds an entry that `catalogue package` rejects — one not under `packs/`, one that does not exist, one naming build residue, or one whose path has a `_`-prefixed directory directly under `packs/` — `catalogue package` exits 1 with a `CAT-PKG-001` diagnostic naming the entry, prints no traceback, and creates no file under `--output`.
 
 ## Follow-ons
 
