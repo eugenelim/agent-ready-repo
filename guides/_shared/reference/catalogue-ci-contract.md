@@ -113,6 +113,18 @@ is computed over the archive and stored alongside it. The channel descriptor is 
 small JSON file that records which release the channel currently points to; it is
 the live pointer consumers use to resolve the latest version.
 
+Packaging refuses to replace a release that already exists. When
+`catalogue-$RELEASE.tar.gz` is already under `$OUTPUT`, the command exits 2,
+prints the existing archive path on stderr, and writes nothing. Publish each
+release once, from a fresh output directory. A CI step never passes `--force`;
+only a publisher replacing a release by hand does.
+
+To see what changed since the last release, pass the prior archive:
+
+```bash
+agentbundle catalogue package ... --compare "/path/to/catalogue-$PRIOR.tar.gz" --format json
+```
+
 Re-run `agentbundle catalogue verify --archive <path>.tar.gz` after packaging to
 confirm the archive is valid before uploading it.
 
@@ -197,10 +209,11 @@ All `agentbundle catalogue` commands follow the same convention:
 |------|---------|
 | `0` | Success |
 | `1` | Validation or operational failure (errors in the catalogue, archive mismatch, internal error) |
-| `2` | CLI usage error (missing required flag, unknown option) |
+| `2` | CLI usage error (missing required flag, unknown or abbreviated option); for `catalogue package`, also a refused replacement of an existing release archive |
 
 These codes are stable. A CI step that treats any non-zero exit as a failure
-gets the correct behaviour.
+gets the correct behaviour. A step that must tell a refused replacement from a
+usage error reads exit 2 together with the `CAT-PKG-002` line on stderr.
 
 ## Credential and network boundaries
 
@@ -277,15 +290,80 @@ agentbundle catalogue package --bundle BUNDLE --release RELEASE
                                [--source-revision SOURCE_REVISION]
                                [--minimum-agentbundle-version VERSION]
                                [--published-at DATETIME]
+                               [--flavor {runtime,source}]
+                               [--force] [--compare PATH]
+                               [--format {table,json}]
 ```
 
 Required flags: `--bundle`, `--release`, `--channel`, `--output`.
-Optional: `--root` (defaults to `.`), `--source-revision`, `--minimum-agentbundle-version`,
-`--published-at`.
+Optional:
 
-`catalogue package` does not support `--format json`; its result is the output
-directory layout described in [Phase 3](#phase-3--release-packaging). Exits 0
-on success, 1 on failure, 2 on missing required flags.
+| Flag | Meaning |
+|------|---------|
+| `--root` | Catalogue root; defaults to `.` |
+| `--source-revision` | VCS revision recorded as audit metadata |
+| `--minimum-agentbundle-version` | Minimum consumer version required |
+| `--published-at` | ISO-8601 timestamp override |
+| `--flavor` | `runtime` (default) writes the runtime archive; `source` writes the self-hosted source archive |
+| `--force` | Replace an existing release archive instead of refusing. First-party CI never passes it |
+| `--compare PATH` | Prior release archive to compare against; runtime flavour only |
+| `--format` | `table` (default) or `json`; `json` writes one envelope on stdout; runtime flavour only |
+
+`--flavor source` with `--compare` or `--format json` exits 2 with a usage
+message and writes nothing. The subcommand rejects abbreviated options, so
+`--forc` exits 2 rather than selecting `--force`.
+
+**Streams.** Human output and diagnostic lines go to stderr in both formats.
+Each diagnostic is one line, `<code>: <message>`. Stdout carries the JSON
+envelope alone, and nothing when `--format table` is used. Text taken from the
+prior archive is printed with non-printable characters written as escapes.
+
+**`--format json`.** On success and on a failure after argument parsing, stdout
+is one JSON object:
+
+```json
+{
+  "schema_version": 1,
+  "command": "catalogue",
+  "operation": "package",
+  "agentbundle_version": "<version>",
+  "catalogue_schema_version": 1,
+  "ok": true,
+  "diagnostics": []
+}
+```
+
+With `--compare`, a successful run adds a `comparison` object:
+
+```json
+{
+  "comparison": {
+    "prior": {"archive": "<--compare value>", "bundle": "<bundle>", "release": "<release>"},
+    "packs": {"added": [], "removed": [], "changed": [], "unchanged": 0},
+    "profiles": {"added": [], "removed": [], "changed": [], "unchanged": 0}
+  }
+}
+```
+
+Added and removed pack items are `{name, version, digest}`; profile items are
+`{name, digest}`. A changed pack is `{name, version: {from, to}, digest: {from, to}}`;
+a changed profile is `{name, digest: {from, to}}`. Each list is sorted by name and
+`unchanged` is a count. A failed run has `ok` false, the failing codes in
+`diagnostics`, and no `comparison`. The human comparison on stderr marks a pack
+whose content changed under an unchanged version with
+`content changed, version unchanged`.
+
+**Exit codes.**
+
+| Code | Meaning |
+|------|---------|
+| `0` | Packaged; with `--force`, a replaced release also exits 0 |
+| `1` | Failure: verification, an unreadable or invalid `--compare` archive, or an internal error |
+| `2` | Usage error, or a refused replacement of an existing release archive (`CAT-PKG-002`) |
+
+The refusal applies to both flavours and runs before any file is written. The
+deprecated top-level `package-catalogue` command is unchanged and exits 1 on the
+same refusal.
 
 ## See also
 

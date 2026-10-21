@@ -14,6 +14,15 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.53.0
+
+`agentbundle catalogue package` now refuses to replace a release archive that
+already exists and exits 2; `--force` replaces it on purpose. `--compare
+<archive>` lists the packs and profiles added, removed or changed since a prior
+release, and `--format json` writes that result on stdout. Shortened options
+such as `--forc` are rejected, and each `profiles` entry in the manifest is now
+an object with a `path` and a `digest`.
+
 ## What's new in 0.52.1
 
 The workspace-status engine and MCP tool now route `shape` entries to

@@ -20,6 +20,7 @@ import io
 import json
 import os
 import re
+import shutil
 import tarfile
 import tomllib
 from dataclasses import dataclass as _dataclass
@@ -27,11 +28,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from agentbundle.catalogue_tooling.archive import read_verified_manifest, unit_digest
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
 )
-from agentbundle.catalogue_tooling.results import Diagnostic, PackageResult, Severity
+from agentbundle.catalogue_tooling.results import (
+    PKG_REFUSED_CODE,
+    Diagnostic,
+    PackageResult,
+    Severity,
+)
 from agentbundle.config import ConfigError, load_pack_toml
 
 if TYPE_CHECKING:
@@ -388,7 +395,7 @@ def _generate_manifest(
     adapter_contract_version: str | None = None,
     pack_schema_version: str | None = None,
     marketplace_digest: str | None = None,
-    profiles_metadata: list[str] | None = None,
+    profiles_metadata: list[dict] | None = None,
 ) -> bytes:
     """Build catalogue-manifest.json bytes (schema 2).
 
@@ -416,7 +423,7 @@ def _generate_manifest(
         "marketplace_digest": marketplace_digest,
         "files": files,
         "packs": packs,
-        "profiles": profiles_metadata or [],
+        "profiles": sorted(profiles_metadata or [], key=lambda x: x["name"]),
     }
     return json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8")
 
@@ -438,7 +445,7 @@ def _write_archive(file_bytes: dict[str, bytes], manifest_bytes: bytes, dest: Pa
     members.append(("catalogue-manifest.json", manifest_bytes))
     members.sort(key=lambda x: x[0])
 
-    with dest.open("wb") as f:
+    with dest.open("xb") as f:
         # filename="" keeps the gzip FNAME header field empty for byte-identical output
         # regardless of the dest path — same determinism guarantee as the old BytesIO path.
         gz = gzip.GzipFile(fileobj=f, mode="wb", mtime=0, filename="")
@@ -513,8 +520,14 @@ def _write_channel_descriptor(
 
 
 def _staging_path(final_path: Path) -> Path:
-    """Return the .tmp staging path for *final_path* in the same directory."""
-    return final_path.parent / (final_path.name + ".tmp")
+    """Return a staging path for *final_path* in the same directory, unique per call.
+
+    Two runs writing the same release must never share a staging file: the run
+    that loses placement cleans up its staged files, and a shared name would
+    delete the winner's. Callers create the file exclusively (``"x"`` mode), so
+    an entry already at the name is never written through.
+    """
+    return final_path.parent / f"{final_path.name}.{os.urandom(8).hex()}.tmp"
 
 
 def _cleanup_staged(*paths: Path) -> None:
@@ -522,6 +535,137 @@ def _cleanup_staged(*paths: Path) -> None:
     for p in paths:
         with contextlib.suppress(OSError):
             p.unlink(missing_ok=True)
+
+
+class ReleaseExistsError(Exception):
+    """The release archive already exists and the run was not forced."""
+
+    def __init__(self, dest: Path) -> None:
+        super().__init__(f"output archive already exists: {dest}")
+        self.dest = dest
+
+
+def _place_archive(staged: Path, dest: Path, *, force: bool) -> None:
+    """Move the staged archive to *dest*, never replacing it unless *force*.
+
+    With *force* this is ``os.replace``. Without it the placement fails if *dest*
+    exists at that instant: ``os.link`` is exclusive, and where hard links are
+    unsupported an exclusive-create copy is. Raises ``ReleaseExistsError`` (after
+    removing *staged*) when *dest* exists. A failed copy removes only the file
+    this call created.
+    """
+    if force:
+        staged.replace(dest)
+        return
+    try:
+        os.link(staged, dest)
+    except FileExistsError:
+        _cleanup_staged(staged)
+        raise ReleaseExistsError(dest) from None
+    except OSError:
+        # Hard links unsupported here: exclusive-create copy instead.
+        try:
+            out = dest.open("xb")
+        except FileExistsError:
+            _cleanup_staged(staged)
+            raise ReleaseExistsError(dest) from None
+        try:
+            with out, staged.open("rb") as src:
+                shutil.copyfileobj(src, out)
+        except BaseException:
+            _cleanup_staged(dest)
+            raise
+    staged.unlink()
+
+
+# ---------------------------------------------------------------------------
+# Release comparison (--compare)
+# ---------------------------------------------------------------------------
+
+
+class _UnderivableUnitError(Exception):
+    """A prior unit's path has no member file in the prior archive's files[] (AC-0016)."""
+
+
+def _prior_units(
+    prior: dict, kind: str, file_digests: dict[str, str]
+) -> dict[str, dict]:
+    """Derive ``{name: {version, digest}}`` for the prior's ``packs`` or ``profiles``.
+
+    Digests are always derived from the prior's verified ``files[]``; a digest the
+    prior manifest declares is never read. The path is the entry's ``path`` when
+    present, else ``packs/<name>`` or ``profiles/<name>.toml``.
+    """
+    units: dict[str, dict] = {}
+    for entry in prior.get(kind) or []:  # schema 1 may omit profiles
+        item = {"name": entry} if isinstance(entry, str) else entry
+        name = item["name"]
+        path = item.get("path")
+        if path is None:
+            path = f"packs/{name}" if kind == "packs" else f"profiles/{name}.toml"
+        digest = unit_digest(file_digests, path)
+        if digest is None:
+            raise _UnderivableUnitError(
+                f"prior {kind[:-1]} \"{name}\" has no member files at {path}"
+            )
+        units[name] = {"version": item.get("version"), "digest": digest}
+    return units
+
+
+def _compare_kind(
+    current: list[dict], prior: dict[str, dict], *, versioned: bool
+) -> dict:
+    """Return the AC-0013 ``added``/``removed``/``changed``/``unchanged`` object."""
+    now = {e["name"]: e for e in current}
+    added, removed, changed, unchanged = [], [], [], 0
+    for name in sorted(now):
+        entry = now[name]
+        if name not in prior:
+            item = {"name": name, "digest": entry["digest"]}
+            if versioned:
+                item["version"] = entry["version"]
+            added.append(item)
+            continue
+        before = prior[name]
+        if before["digest"] == entry["digest"] and (
+            not versioned or before["version"] == entry["version"]
+        ):
+            unchanged += 1
+            continue
+        item = {"name": name, "digest": {"from": before["digest"], "to": entry["digest"]}}
+        if versioned:
+            item["version"] = {"from": before["version"], "to": entry["version"]}
+        changed.append(item)
+    for name in sorted(prior):
+        if name not in now:
+            item = {"name": name, "digest": prior[name]["digest"]}
+            if versioned:
+                item["version"] = prior[name]["version"]
+            removed.append(item)
+    return {"added": added, "removed": removed, "changed": changed, "unchanged": unchanged}
+
+
+def _compare_releases(
+    prior: dict,
+    compare: str,
+    packs: list[dict],
+    profiles: list[dict],
+) -> dict:
+    """Compare the new units against the prior archive's verified manifest (AC-0013)."""
+    file_digests = {f["path"]: f["sha256"] for f in prior["files"]}
+    return {
+        "prior": {
+            "archive": compare,
+            "bundle": prior.get("bundle"),
+            "release": prior.get("release"),
+        },
+        "packs": _compare_kind(
+            packs, _prior_units(prior, "packs", file_digests), versioned=True
+        ),
+        "profiles": _compare_kind(
+            profiles, _prior_units(prior, "profiles", file_digests), versioned=False
+        ),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -540,28 +684,32 @@ def package_catalogue(
     minimum_agentbundle_version: str | None = None,
     published_at: str | None = None,
     generated_at: str | None = None,
+    force: bool = False,
+    compare: Path | str | None = None,
     _verify_archive_fn=None,  # injectable for testing
 ) -> PackageResult:
     """Package a catalogue at *root* into an Artifactory artifact layout.
 
-    Implements the 7-step staging + atomic placement sequence:
-      1. Pre-package verify_catalogue
-      2. Build and stream archive directly to the staged path
-      3. Compute + write staged sidecar
-      4. Self-verify staged archive + sidecar
-      5. Atomic place archive
-      6. Atomic place sidecar
-      7. Write channel descriptor LAST
+    Runs this staging + placement sequence:
+      1. Refuse an existing release archive unless ``force`` (CAT-PKG-002)
+      2. Pre-package verify_catalogue
+      3. With ``compare``, read the prior archive after verify_archive passes
+      4. Scan content, build the manifest with unit digests, compare releases
+      5. Build and stream archive directly to the staged path
+      6. Compute + write staged sidecar
+      7. Self-verify staged archive + sidecar
+      8. Place archive (exclusive unless ``force``), then sidecar
+      9. Write channel descriptor LAST
 
     Returns a PackageResult; does NOT raise on expected failures.
     """
     from agentbundle.version import CLI_VERSION
 
-    def _err(msg: str) -> PackageResult:
+    def _err(msg: str, code: str = "CAT-PKG-001") -> PackageResult:
         return PackageResult(
             ok=False,
             diagnostics=[Diagnostic(
-                code="CAT-PKG-001",
+                code=code,
                 severity=Severity.ERROR,
                 pack=None,
                 path=None,
@@ -590,9 +738,9 @@ def package_catalogue(
     sidecar_path = archive_path.parent / (archive_path.name + ".sha256")
     channel_path = output / "catalogues" / bundle / "channels" / f"{channel}.json"
 
-    # Refuse to overwrite existing immutable release archive
-    if archive_path.exists():
-        return _err(f"output archive already exists: {archive_path}")
+    # Refuse to overwrite an existing release archive unless forced
+    if archive_path.exists() and not force:
+        return _err(f"output archive already exists: {archive_path}", PKG_REFUSED_CODE)
 
     # --- Step 1: Pre-package verify_catalogue ---
     from agentbundle.catalogue_tooling.verify import verify_catalogue
@@ -602,6 +750,24 @@ def package_catalogue(
             d.message for d in verify_result.diagnostics if d.severity == Severity.ERROR
         )
         return _err(f"pre-package verify failed: {msgs}")
+
+    # --- Read the prior archive (before any write) ---
+    prior_manifest: dict | None = None
+    if compare is not None:
+        try:
+            prior_manifest, prior_verify = read_verified_manifest(Path(compare))
+        except Exception as exc:  # boundary: an untrusted archive may raise anything
+            return _err(f"cannot read prior archive: {type(exc).__name__}: {exc}")
+        if prior_manifest is None:
+            return PackageResult(
+                ok=False,
+                diagnostics=[d for d in prior_verify.diagnostics if d.severity == Severity.ERROR],
+                schema_version=1,
+                command="catalogue",
+                operation="package",
+                agentbundle_version=CLI_VERSION,
+                catalogue_schema_version=1,
+            )
 
     # --- Load catalogue.toml for package config ---
     pack_include: list[str] = []
@@ -653,16 +819,19 @@ def package_catalogue(
         if len(parts) == 3 and parts[0] == "packs" and parts[2] == "pack.toml":
             try:
                 pack_data = tomllib.loads(data.decode("utf-8"))
+                pack_path = f"packs/{parts[1]}"
                 pack_entry = {
                     "name": pack_data["pack"]["name"],
                     "version": pack_data["pack"]["version"],
+                    "path": pack_path,
+                    "digest": unit_digest(digests, pack_path),
                 }
             except (KeyError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
                 return _err(f"captured pack metadata is invalid at {key}: {exc}")
             packs_metadata.append(pack_entry)
 
-    # --- Extract profile names ---
-    profiles_metadata: list[str] = []
+    # --- Extract profile entries (only profiles/<name>.toml, directly under) ---
+    profiles_metadata: list[dict] = []
     for key, data in sorted(file_bytes.items()):
         parts = key.split("/")
         if len(parts) >= 2 and parts[0] == "profiles" and key.endswith(".toml"):
@@ -670,7 +839,12 @@ def package_catalogue(
                 tomllib.loads(data.decode("utf-8"))
             except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
                 return _err(f"captured profile TOML is invalid at {key}: {exc}")
-            profiles_metadata.append(parts[-1].removesuffix(".toml"))
+            if len(parts) == 2:
+                profiles_metadata.append({
+                    "name": parts[1].removesuffix(".toml"),
+                    "path": key,
+                    "digest": unit_digest(digests, key),
+                })
 
     # --- Determine generated_at ---
     if generated_at is None:
@@ -710,6 +884,18 @@ def package_catalogue(
         profiles_metadata=profiles_metadata,
     )
 
+    # --- Compare with the prior archive (before any write) ---
+    comparison: dict | None = None
+    if prior_manifest is not None and compare is not None:
+        try:
+            comparison = _compare_releases(
+                prior_manifest, str(compare), packs_metadata, profiles_metadata
+            )
+        except _UnderivableUnitError as exc:
+            return _err(str(exc))
+        except Exception as exc:  # boundary: see the prior-archive read above
+            return _err(f"cannot compare with prior archive: {type(exc).__name__}: {exc}")
+
     # --- Create output directories ---
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     (output / "catalogues" / bundle / "channels").mkdir(parents=True, exist_ok=True)
@@ -723,7 +909,8 @@ def package_catalogue(
         sha256_hex = hashlib.sha256(staged_archive.read_bytes()).hexdigest()
 
         # --- Step 4: Write staged sidecar ---
-        staged_sidecar.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
+        with staged_sidecar.open("x", encoding="utf-8", newline="\n") as sidecar_file:
+            sidecar_file.write(sha256_hex + "\n")
 
         # --- Step 5: Self-verify staged archive + sidecar ---
         if _verify_archive_fn is None:
@@ -738,12 +925,15 @@ def package_catalogue(
             )
             return _err(f"staged archive self-verification failed: {msgs}")
 
-        # --- Step 6: Atomic place archive ---
-        staged_archive.rename(archive_path)
+        # --- Step 6: Place archive (never replacing an existing one unless forced) ---
+        _place_archive(staged_archive, archive_path, force=force)
 
         # --- Step 7: Atomic place sidecar ---
-        staged_sidecar.rename(sidecar_path)
+        staged_sidecar.replace(sidecar_path)
 
+    except ReleaseExistsError as exc:
+        _cleanup_staged(staged_archive, staged_sidecar)
+        return _err(str(exc), PKG_REFUSED_CODE)
     except Exception as exc:
         _cleanup_staged(staged_archive, staged_sidecar)
         raise exc
@@ -768,6 +958,7 @@ def package_catalogue(
         operation="package",
         agentbundle_version=CLI_VERSION,
         catalogue_schema_version=1,
+        comparison=comparison,
     )
 
 
@@ -782,6 +973,7 @@ class SourcePackageResult:
     archive_path: str
     manifest_path: str
     diagnostics: list[str]
+    refused: bool = False
 
 
 # Positive allowlist for source-flavor packaging.
@@ -805,6 +997,7 @@ def package_source_flavour(
     output: Path,
     source_revision: str | None = None,
     generated_at: str | None = None,
+    force: bool = False,
 ) -> SourcePackageResult:
     """Package a source distribution for self-hosted enterprise catalogues.
 
@@ -897,6 +1090,12 @@ def package_source_flavour(
     archive_path = release_dir / archive_name
     sidecar_path = release_dir / f"{archive_name}.sha256"
     manifest_path = release_dir / "self-hosted-source-manifest.json"
+    if archive_path.exists() and not force:
+        return SourcePackageResult(
+            ok=False, archive_path=str(archive_path), manifest_path="",
+            diagnostics=[f"output archive already exists: {archive_path}"],
+            refused=True,
+        )
     release_dir.mkdir(parents=True, exist_ok=True)
 
     # Compute digests.
@@ -977,7 +1176,20 @@ def package_source_flavour(
     archive_bytes = buf.getvalue()
     sha256_hex = hashlib.sha256(archive_bytes).hexdigest()
 
-    archive_path.write_bytes(archive_bytes)
+    staged_archive = _staging_path(archive_path)
+    try:
+        with staged_archive.open("xb") as staged_file:
+            staged_file.write(archive_bytes)
+        _place_archive(staged_archive, archive_path, force=force)
+    except ReleaseExistsError as exc:
+        _cleanup_staged(staged_archive)
+        return SourcePackageResult(
+            ok=False, archive_path=str(archive_path), manifest_path="",
+            diagnostics=[str(exc)], refused=True,
+        )
+    except BaseException:
+        _cleanup_staged(staged_archive)
+        raise
     sidecar_path.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
 
     # Write sidecar source manifest with the real sha256.

@@ -88,36 +88,67 @@ One of `--check` or `--write` is required. `--windows` is only valid with `--che
 
 ## `agentbundle catalogue package`
 
-Packages the built catalogue into a distributable archive with a SHA-256 sidecar and a channel
-descriptor, following the Artifactory output layout.
+Packages the catalogue into a distributable archive with a SHA-256 sidecar. The runtime flavour
+also writes a channel descriptor. It refuses to replace a release that already exists, and it can
+compare the new release with a prior archive.
 
 ```
 agentbundle catalogue package --bundle BUNDLE --release RELEASE
                                --channel CHANNEL --output OUTPUT
-                               [--root ROOT] [--source-revision REV]
-                               [--minimum-agentbundle-version VER]
-                               [--published-at TIMESTAMP]
+                               [--root ROOT] [--source-revision SOURCE_REVISION]
+                               [--minimum-agentbundle-version MINIMUM_AGENTBUNDLE_VERSION]
+                               [--published-at PUBLISHED_AT]
+                               [--flavor {runtime,source}] [--force]
+                               [--compare PATH] [--format {table,json}]
 ```
 
 | Flag | Required | Description |
 |------|----------|-------------|
 | `--bundle` | yes | Bundle/product identifier (e.g. `engineering`) |
 | `--release` | yes | Release version string (e.g. `1.0.0`) |
-| `--channel` | yes | Channel name (e.g. `stable`) |
+| `--channel` | yes | Channel name (e.g. `stable`); the source flavour takes none |
 | `--output` | yes | Output root directory |
 | `--root` | no | Catalogue root (default: `.`) |
 | `--source-revision` | no | VCS revision for audit metadata |
 | `--minimum-agentbundle-version` | no | Minimum consumer version required |
-| `--published-at` | no | Timestamp override (ISO-8601) |
+| `--published-at` | no | Published-at timestamp (ISO-8601) |
+| `--flavor` | no | `runtime` (default) or `source`. `source` packages `catalogue.toml`, `packs/`, `profiles/` and `guides/_shared/` for self-hosted enterprise catalogues and writes `self-hosted-source-manifest.json` beside the archive |
+| `--force` | no | Replace an existing release archive instead of refusing with exit 2 |
+| `--compare` | no | Prior release archive to compare against (runtime flavour only) |
+| `--format` | no | `table` (default) or `json`; `json` writes one envelope on stdout (runtime flavour only) |
 
-Output layout:
+The subcommand rejects abbreviated options (`--forc` exits 2). `--flavor source` with `--compare`
+or `--format json` exits 2 and writes nothing.
+
+Output layout, runtime flavour:
 
 ```
-<output>/catalogues/<bundle>/releases/<release>/<channel>/
-  <bundle>-<release>.tar.gz        # archive
-  <bundle>-<release>.tar.gz.sha256 # SHA-256 sidecar
-  channel.json                     # channel descriptor (do not publish before verifying)
+<output>/catalogues/<bundle>/
+  releases/<release>/
+    catalogue-<release>.tar.gz         # archive
+    catalogue-<release>.tar.gz.sha256  # SHA-256 sidecar
+  channels/<channel>.json              # channel descriptor (do not publish before verifying)
 ```
+
+Output layout, source flavour:
+
+```
+<output>/catalogue-sources/<bundle>/releases/<release>/
+  catalogue-source-<release>.tar.gz
+  catalogue-source-<release>.tar.gz.sha256
+  self-hosted-source-manifest.json
+```
+
+Exit codes: `0` on success; `1` on a verification, comparison or other failure; `2` on a usage
+error or when the release archive already exists and `--force` is absent (`CAT-PKG-002`, printed
+with the existing path). A refused run changes nothing under `--output`.
+
+`--compare` reads the prior archive only after `catalogue verify --archive` checks pass on it,
+then lists every added, removed and changed pack and profile on stderr, with the count of
+unchanged ones. A pack whose content changed under the same version carries
+`content changed, version unchanged`. With `--format json`, stdout holds the envelope and a
+`comparison` object; see the [CI contract](../../../guides/_shared/reference/catalogue-ci-contract.md#agentbundle-catalogue-package)
+for its fields.
 
 ## `agentbundle catalogue sync-defaults`
 
