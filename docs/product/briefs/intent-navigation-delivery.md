@@ -165,6 +165,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `intent-view-source-and-style` | <auto> |
 | `intent-view-tree-and-roadmap` | <auto> |
 | `intent-view-handover-prompt` | <auto> |
+| `intent-view-readiness-handover` | <auto> |
 
 ## Governance references (optional)
 
