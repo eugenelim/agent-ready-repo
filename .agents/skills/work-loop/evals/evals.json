@@ -1329,6 +1329,56 @@
         "Re-runs `lint-traceability.py --root .` to confirm an `outcome:` node",
         "Does not change the lint or add a workaround"
       ]
+    },
+    {
+      "id": "review-artifact-adjudication-commands",
+      "prompt": "A spec-plan reviewer returned a report and you need to classify it before recording the round. Which script runs the finding-adjudication commands today, and which subcommand do you use for an adjudication report, a raw reviewer return, a read-only look against the previous round, and recording the round?",
+      "files": [],
+      "expected_output": "`review-artifact.py` carries the commands: `classify --report <path>` for an adjudication report, `raw-classify --report <path>` for a raw reviewer return, `inspect <spec-dir> --report <path> [--adjudication]` for a read-only classification against the previous round's fingerprints, and `record <spec-dir> ... --expect-run-id <uuid>` to record the round. With cohort state they print what `loop-cohort.py review <verb>` prints and update `state.json` the same way, so the `loop-cohort.py review` verbs stay valid and call the same code.",
+      "assertions": [
+        "Names `review-artifact.py` as the script that holds `classify`, `raw-classify`, `inspect`, and `record`",
+        "Maps an adjudication report to `classify`, a raw reviewer return to `raw-classify`, a read-only look to `inspect`, and recording to `record`",
+        "Says that with cohort state the output and the `state.json` update match the `loop-cohort.py review` verbs",
+        "Does not invent a different recording command"
+      ]
+    },
+    {
+      "id": "review-artifact-record-without-cohort-state",
+      "prompt": "There is no cohort `state.json` for this run, only a run id. How do you record a findings round and read the previous round's fingerprints, and where does the round count come from?",
+      "files": [],
+      "expected_output": "Pass `--run-id <canonical lowercase uuid>` instead of a spec directory: `review-artifact.py record --run-id <uuid> --fingerprint <hex> ...` writes one `.context/reviews/<run-id>/<round>-record.md` artifact per round, and `review-artifact.py inspect --run-id <uuid> --report <path>` reads the previous round's fingerprints from those artifacts. The round and the review retry count come from `record` artifacts only, so a persisted raw or adjudication report that was never recorded does not count. A malformed record or a gap in the round numbers refuses the command.",
+      "assertions": [
+        "Uses `--run-id <uuid>` in place of a spec directory for `record` and `inspect`",
+        "Says each recorded round becomes one `<round>-record.md` artifact under `.context/reviews/<run-id>/`",
+        "Says `inspect --run-id` reads the previous fingerprints from the `record` artifacts",
+        "Says the budget counts `record` artifacts only, so an unrecorded round does not count",
+        "Says a malformed record or a round gap refuses the command rather than being skipped"
+      ]
+    },
+    {
+      "id": "review-artifact-retry-cap-override",
+      "prompt": "With no cohort state, a findings round would exceed `max_review_retries`. What happens, and what does it take to record that round anyway?",
+      "files": [],
+      "expected_output": "`review-artifact.py record --run-id <uuid>` refuses the round that would exceed `max_review_retries` from `review-rules.json`. A human who has looked may pass `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference, the form `work-supervisor.py start --authority-ref` accepts. The `record` artifact then stores the override and the reference. An override with no reference or with any other role's reference, such as `risk-owner`, refuses the round. With cohort state the override keeps its bare-flag behaviour.",
+      "assertions": [
+        "Says the round that would exceed `max_review_retries` is refused",
+        "Requires `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference",
+        "Says the artifact stores the override and the reference",
+        "Says a missing reference or a `risk-owner` reference refuses the round",
+        "Says the cohort-state override keeps its pre-change bare-flag behaviour"
+      ]
+    },
+    {
+      "id": "review-artifact-record-replay-and-validate",
+      "prompt": "A session lost track of whether `record --operation-id <run-id>:2` landed and re-issues it. Then you want to check the persisted record file. What happens, and which command checks the file?",
+      "files": [],
+      "expected_output": "A repeat with the same `--operation-id` and the same payload returns the first result and writes no second `record` artifact; the same id with a different payload refuses. `review-artifact.py validate --root . --run-id <uuid> --round <n> --kind record` accepts a record named `<round>-record.md` under `.context/reviews/<run-id>/` and refuses any other name, and it takes no `--review-stage` or `--reviewer-role` for that kind.",
+      "assertions": [
+        "Says a replay with the same operation id and payload returns the first result and writes no second artifact",
+        "Says the same id with a different payload is refused",
+        "Gives `validate ... --kind record` for the persisted file",
+        "Says only the `<round>-record.md` name is accepted for a record"
+      ]
     }
   ]
 }
