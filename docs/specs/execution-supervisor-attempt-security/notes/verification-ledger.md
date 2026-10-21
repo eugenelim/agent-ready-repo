@@ -71,3 +71,14 @@ The supervisor integration lane on PR #1585 failed three core tests that rebase 
 The owner (eugenelim) chose to apply the made-commit list only during an open worker attempt, where every commit after the manifest's `HEAD` must be listed. Outside an open attempt the supervisor reads its commits by their trailers, as core does, and replace refs and graft files are still never honored. A packed-ref move or a rewritten gitfile or `commondir` is a forgery only a worker could make, and a worker acts only during an attempt, so those cases move from T2 to T3. AC-0012 is narrowed to match, by controlled amendment.
 
 T3 also edits the core crash-corpus variant `test_supervisor_commit_during_a_live_lease`: its spec edit moves from inside the open attempt to after the report, because an edit to a trusted file during an open attempt cannot be told apart from a worker's and is now refused as attempt residue.
+
+## T3: Existing core tests changed by the attempt checks
+
+The attempt checks run before core's own refusals and refuse any trusted-file change during an open attempt, so four existing core integration tests change. Each keeps what it asserts:
+
+- `test_supervisor_step_loop.py`: the worker-edit cases now expect `attempt-refused`. Core's `protected-path-changed` and `authority-changed` refusals stay asserted by `test_supervisor_effects.py` and the VI-4030 rows.
+- `test_supervisor_crash_corpus.py::test_supervisor_commit_during_a_live_lease`: the spec edit moves to after the report, as the owner decision above records.
+- `test_supervisor_commit.py`: the foreign `delivery/` edit during an open attempt now expects `attempt-residue`, and a new sibling, `test_a_foreign_delivery_edit_with_no_open_attempt_is_refused_by_next_and_report`, keeps core's `foreign-delivery-edit` refusal asserted when no attempt is open.
+- `test_supervisor_commit.py::test_returning_to_earlier_spec_content_is_a_new_replan`: each spec edit now follows the report of the issued attempt, with its replan assertions unchanged.
+
+A re-approval `start` during an open attempt advances `HEAD` only when the spec declares no `## Terminal Intent` and a `spec-plan` start follows a `code` approval; the kill-point tests cover that path, and the other two `start` outcomes, `current` and `attempt-residue`, make no commit and fire no kill point.

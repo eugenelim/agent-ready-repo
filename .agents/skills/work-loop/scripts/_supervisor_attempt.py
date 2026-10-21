@@ -262,7 +262,8 @@ class Attempts:
             packed = self._text(directory, "packed-refs")
             if packed is not None:
                 lines = [ln for ln in packed.splitlines() if " refs/replace/" in ln]
-                state[f"{label}:packed-refs/replace"] = _digest("\n".join(lines).encode())
+                if lines:
+                    state[f"{label}:packed-refs/replace"] = _digest("\n".join(lines).encode())
         return state
 
     def head_state(self) -> tuple[str | None, str]:
@@ -481,9 +482,17 @@ class Attempts:
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue
-            current_ref, current = self.head_state()
-            bad = current != issuance.head and self._history(issuance, current)
-            paths = self._differences(issuance, current, current_ref, bad)
+            # Git control state first, by direct file reads: no supervisor git call may
+            # read state a worker changed, and a refusal here is still recorded.
+            git_paths = differences(issuance.git, self.git_state())
+            if git_paths:
+                trusted = [k for k in issuance.trusted if not k.startswith("skill:")]
+                files = self._trusted_state(trusted)
+                paths = sorted({*git_paths, *differences(issuance.trusted, files)})
+            else:
+                current_ref, current = self.head_state()
+                bad = current != issuance.head and self._history(issuance, current)
+                paths = self._differences(issuance, current, current_ref, bad)
             if issuance.refused:
                 if paths:
                     raise _refusal("attempt-residue", self._detail(paths, standing=True))

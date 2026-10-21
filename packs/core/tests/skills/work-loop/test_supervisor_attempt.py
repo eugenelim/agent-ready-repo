@@ -224,6 +224,28 @@ def test_a_forged_change_is_refused_at_report(
     assert "attempt-refused" in [e["reason_code"] for e in _events(repo)]
 
 
+def test_an_unparseable_git_config_is_refused_and_recorded_before_any_git_call(
+    implementer_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy(implementer_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    # The CLI pins the repository before it reads anything, so a config broken
+    # earlier ends it as a usage error; here the pins exist when the config breaks.
+    ws = h.workspace(repo)
+    assert ws.git.hardened.pins.git_dir
+    config = repo / ".git" / "config"
+    config.write_text(config.read_text("utf-8") + "[broken\n", "utf-8")
+    with pytest.raises(h.admission.Refusal) as caught:
+        h.loop.report(ws, result)
+    assert caught.value.code == "attempt-refused"
+    assert "config" in caught.value.detail
+    assert any(p.name.endswith(".refused.json") for p in (_store(repo) / "attempts").iterdir())
+    with pytest.raises(h.admission.Refusal) as again:
+        h.loop.next_request(ws)
+    assert again.value.code == "attempt-residue"
+
+
 def test_a_modified_installed_skill_is_refused_at_report(
     implementer_template: Path, tmp_path: Path, skill: Path
 ) -> None:
@@ -399,34 +421,184 @@ def test_next_after_an_edit_is_residue_before_any_envelope_refusal(
 # ── VI-5022: supervisor commits and re-approval during an open attempt ──────
 
 
-def test_a_supervisor_commit_during_an_open_attempt_does_not_refuse_it(
-    implementer_template: Path, tmp_path: Path
+EXTRA_TASK = sup.task(
+    "T4",
+    "Release extra note is written",
+    touches="`release.txt`",
+    mode="goal-based",
+    tests="no stub (goal-based)",
+    done="release.txt says ready",
+)
+OPERATOR = "effect-authority:0123456789ab"
+KILL_POINTS = ["commit-built", "head-moved", "synced", "event"]
+
+
+@pytest.fixture(scope="module")
+def effect_template(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, str]:
+    """An unresolved effect and, after a replan, an open worker attempt; returns (base, key)."""
+    base = tmp_path_factory.mktemp("effect")
+    repo = h.make_repo(base)
+    assert h.start(repo)[0] == 0
+    controller = h.Controller(repo, base / "effects.log")
+    request = _drive_to(repo, "external-effect", base)
+    key = request["effect"]["operation_key"]
+    controller.dispatch(request)
+    _code, payload = h.run_cli(repo, "next", SPEC)
+    query = payload["request"]
+    assert query["kind"] == "effect-query", payload
+    code, admitted = controller.report({
+        "schema_version": 1,
+        "request_id": query["request_id"],
+        "run_id": query["run_id"],
+        "kind": "effect-query",
+        "effect": {"outcome": "unknowable"},
+    })
+    assert admitted["admitted"] == "decision-required", admitted
+    # Replanned between attempts: a new task is issued while the effect is unresolved.
+    plan = repo / SPEC / "plan.md"
+    plan.write_text(sup.plan(*_plan_tasks(), EXTRA_TASK), "utf-8")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "implement-task", payload
+    assert payload["request"]["task"]["title"] == "Release extra note is written"
+    return base, key
+
+
+def _plan_tasks() -> list[str]:
+    return [sup.TASKS["calc"](), sup.TASKS["push"](), sup.TASKS["plain"]()]
+
+
+def _decisions(repo: Path) -> list[dict[str, Any]]:
+    records = h.workspace(repo).records("effect-resolutions.jsonl")
+    return [r for r in records if r["entry"] == "decision"]
+
+
+def _resolve(repo: Path, key: str) -> tuple[int, dict[str, Any]]:
+    return h.run_cli(
+        repo, "resolve-effect", SPEC, "--operation", key, "--decision", "do-not-retry",
+        "--authority-ref", OPERATOR,
+    )  # fmt: skip
+
+
+def _crash_at(point: str) -> Callable[[str], None]:
+    fired: list[str] = []
+
+    def hook(name: str) -> None:
+        if name == point and not fired:
+            fired.append(name)
+            raise h.Crash(name)
+
+    return hook
+
+
+def test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it(
+    effect_template: tuple[Path, str], tmp_path: Path
 ) -> None:
-    repo = _copy(implementer_template, tmp_path)
+    template, key = effect_template
+    repo = _copy(template, tmp_path)
     request = _current_request(repo)
-    ws = h.workspace(repo)
-    run_id = ws.approvals()[0]["run_id"]
-    # The commit builder is what resolve-effect and a re-approval use.
-    ws.git.build_commit(run_id=run_id, step="resolution:probe", operation="resolution")
-    code, out = h.run_cli(repo, "next", SPEC)
+    head, issuances = _head(repo), _issuances(repo)
+    code, out = _resolve(repo, key)
     assert code == 0, out
-    assert out["request"]["request_id"] == request["request_id"]
-    assert len(_issuances(repo)) == 1, "the open attempt's manifest was re-recorded"
+    assert _head(repo) != head, "the resolution did not advance HEAD"
+    assert len(_decisions(repo)) == 1
+    again = _current_request(repo)
+    assert again["request_id"] == request["request_id"]
+    assert _issuances(repo) == issuances, "the open attempt's manifest was re-recorded"
     assert _report(repo, request)[0] == 0
 
 
-def test_a_re_approval_start_during_an_open_attempt_compares_first(
+@pytest.mark.parametrize("point", KILL_POINTS)
+def test_a_resolve_effect_killed_during_an_open_attempt_converges(
+    effect_template: tuple[Path, str], tmp_path: Path, point: str
+) -> None:
+    template, key = effect_template
+    repo = _copy(template, tmp_path)
+    request = _current_request(repo)
+    issuances = _issuances(repo)
+    h.commit_module.set_kill_hook(_crash_at(point))
+    try:
+        with pytest.raises(h.Crash):
+            _resolve(repo, key)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    # The operator runs it again; it may find the resolution already committed.
+    code, out = _resolve(repo, key)
+    assert code == 0 or out["refusal"]["code"] == "no-open-effect", out
+    assert len(_decisions(repo)) == 1
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    assert _issuances(repo) == issuances
+    assert _report(repo, request)[0] == 0
+
+
+NO_INTENT_SPEC = sup.SPEC.replace("## Terminal Intent\n\n`code` — build the calculator.\n\n", "")
+
+
+@pytest.fixture(scope="module")
+def reapproval_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A spec that declares no terminal intent, with an open attempt under a ``code`` approval."""
+    base = tmp_path_factory.mktemp("reapproval")
+    repo = h.make_repo(base, spec=NO_INTENT_SPEC)
+    assert h.start(repo)[0] == 0
+    assert _current_request(repo)["kind"] == "write-stub"
+    return base
+
+
+def _steps(repo: Path) -> list[str]:
+    ws = h.workspace(repo)
+    return [c.step for c in ws.git.supervisor_commits(ws.approvals()[0]["run_id"])]
+
+
+def test_a_re_approval_start_during_an_open_attempt_advances_head_and_passes(
+    reapproval_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy(reapproval_template, tmp_path)
+    head, issuances = _head(repo), _issuances(repo)
+    code, out = h.start(repo, "spec-plan")
+    assert code == 0 and out["status"] == "terminal", out
+    assert _head(repo) != head
+    assert _steps(repo)[-2:-1] == ["approval:2"]
+    assert len(_issuances(repo)) == len(issuances)
+    assert not list((_store(repo) / "attempts").glob("*.refused.json"))
+
+
+@pytest.mark.parametrize("point", KILL_POINTS)
+def test_a_re_approval_start_killed_during_an_open_attempt_converges(
+    reapproval_template: Path, tmp_path: Path, point: str
+) -> None:
+    repo = _copy(reapproval_template, tmp_path)
+    h.commit_module.set_kill_hook(_crash_at(point))
+    try:
+        with pytest.raises(h.Crash):
+            h.start(repo, "spec-plan")
+    finally:
+        h.commit_module.set_kill_hook(None)
+    code, out = h.start(repo, "spec-plan")
+    assert code == 0, out
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out.get("terminal") is True, out
+    steps = _steps(repo)
+    assert steps.count("approval:2") == 1
+    assert len([s for s in steps if s.startswith("terminal:")]) == 1
+    assert not list((_store(repo) / "attempts").glob("*.refused.json"))
+
+
+def test_a_re_approval_start_refused_for_a_changed_trusted_file_fires_no_kill_point(
     implementer_template: Path, tmp_path: Path
 ) -> None:
+    """The only other path a ``start`` can take during an open attempt makes no commit."""
     repo = _copy(implementer_template, tmp_path)
     _current_request(repo)
-    code, out = h.start(repo)
-    assert code == 0 and out["status"] == "current", out
-    _forge_adr(repo)
-    code, out = h.start(repo)
-    assert code == 1, out
-    assert out["refusal"]["code"] == "attempt-residue"
+    fired: list[str] = []
+    h.commit_module.set_kill_hook(fired.append)
+    try:
+        assert h.start(repo)[1]["status"] == "current"
+        _forge_adr(repo)
+        code, out = h.start(repo)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
     assert "0001-calculators-answer.md" in out["refusal"]["detail"]
+    assert fired == []
 
 
 # ── VI-5023: residue persists until restored; a refused edit is never committed ──
