@@ -1,6 +1,6 @@
 # Verification ledger: lint-traceability-intent-parity
 
-- **Verified head:** (filled at PR time)
+- **Verified head:** `b443f31e8` (PR #1594); the ledger-only commit after it changes no code
 
 ## T1 red set
 
@@ -55,3 +55,6 @@ On 2026-10-21 the lint and the navigator compare 169 paths in the real intents c
 
 ## CI runs
 
+- `test-corpus.yml` dispatched on the PR branch at the verified head: run 39563085128.
+- `test-roster.yml` dispatched on the PR branch at the verified head: run 39563088563.
+- PR #1594 checks report on the ledger commit.
