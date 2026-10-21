@@ -72,8 +72,7 @@ def test_legacy_accepted_refused_with_prefix(tmp_path, capsys):
     err = capsys.readouterr().err
     first_line = err.splitlines()[0]
     assert first_line == (
-        "adapt: legacy [accepted] table; migrate to [markers] per "
-        "docs/specs/adapt-to-project/spec.md"
+        "adapt: legacy [accepted] table; migrate to [markers]"
     )
 
 

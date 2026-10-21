@@ -3,7 +3,7 @@
 This package provides the configuration schema, result types, and command
 stubs for the agentbundle catalogue * and agentbundle lint packs CLI surface.
 
-Wave 2-4 specs fill the command logic; this package establishes the stable
+This package establishes the stable
 contract layer between all modules.
 """
 

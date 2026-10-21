@@ -1070,14 +1070,14 @@ def test_to_dict_contains_all_phase2_fields(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# RFC-0082: the vendored payload carries no test content
+# The vendored payload carries no test content
 # ---------------------------------------------------------------------------
 #
 # `catalogue init --preset self-hosted --tooling vendored` copies the engine's
 # source into the adopter's tree, where the emitted instruction tells them to
-# `pip install -e` it. That makes it wheel-class (ADR-0075 D3), so it carries no
+# `pip install -e` it. That makes it wheel-class, so it carries no
 # test content — while the adopter's *own* catalogue keeps its tests, which
-# ADR-0071 explicitly wants.
+# catalogue archives are meant to carry.
 
 
 def _synthetic_source(root: Path) -> Path:
@@ -1164,7 +1164,7 @@ def test_vendored_curation_pack_carries_no_tests(tmp_path):
 
 
 def test_adopter_packs_still_carry_tests(tmp_path):
-    """The regression a careless fix causes. ADR-0071 wants catalogue archives
+    """The regression a careless fix causes. Catalogue archives are meant
     to carry pack tests, so the non-vendored callers must keep copying them —
     which is why `exclude` defaults to empty and is passed only at the two
     vendored call sites."""
@@ -1179,7 +1179,7 @@ def test_adopter_packs_still_carry_tests(tmp_path):
 
 
 def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None:
-    """AC5 driven through the real entry point, not through `_collect_dir_bytes`.
+    """The vendored-content exclusion, driven through the real entry point, not through `_collect_dir_bytes`.
 
     The unit tests above pass `exclude=` themselves, so they assert the routine
     plus the constants and would survive the wiring at the two vendored call
@@ -1215,7 +1215,7 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     (cc / "tests" / "test_y.py").write_text("x\n", encoding="utf-8")
 
     # ...and test content on the two non-vendored copy paths, which must
-    # survive: ADR-0071 wants catalogue archives to carry tests.
+    # survive: catalogue archives are meant to carry tests.
     own_tests = source / "packs" / "core" / "tests"
     own_tests.mkdir()
     (own_tests / "test_own.py").write_text("x\n", encoding="utf-8")
@@ -1255,7 +1255,7 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     shipped = vendored / "agentbundle" / "agentbundle" / "build" / "self_host.py"
     assert shipped.exists(), "the shipped agentbundle/build/ package was pruned"
 
-    # ...while the adopter's own catalogue keeps its pack tests (ADR-0071).
+    # ...while the adopter's own catalogue keeps its pack tests.
     own = cfg.target / "packs" / "core" / "tests" / "test_own.py"
     assert own.exists(), "the adopter's own pack lost its tests"
     guided = cfg.target / "guides" / "_shared" / "tests" / "test_g.py"
@@ -1584,7 +1584,7 @@ def test_toml_forbidden_controls_are_escaped_in_vendored_adapter_entries(
 
 
 def test_a_benign_value_still_produces_the_expected_tables(tmp_path: Path) -> None:
-    """AC-0017's positive clause: escaping must not change a normal document."""
+    """AC-0017: escaping must not change a normal document."""
     cfg = SelfHostedInitConfig(
         target=tmp_path / "t",
         source=tmp_path / "s",
@@ -2416,7 +2416,7 @@ def test_schema_two_state_still_removes_owned_stale_path(tmp_path: Path) -> None
 
 # ---------------------------------------------------------------------------
 # T4: replay_derivation — the derivation replay is one implementation,
-# callable without writing (spec AC-0004, AC-0005, AC-0006, AC-0015)
+# callable without writing (AC-0004, AC-0005, AC-0006, AC-0015)
 # ---------------------------------------------------------------------------
 
 # STUB: AC-0015
@@ -2502,7 +2502,7 @@ def test_replay_derivation_recipe_admission_matches_init_and_sync_callers(
 
 
 # ---------------------------------------------------------------------------
-# The whole-tree walk (spec AC-0015). Non-dereferencing: relative path, entry
+# The whole-tree walk (AC-0015). Non-dereferencing: relative path, entry
 # kind, mode, symlink target, and bytes for a regular file only. Hard-link
 # counts, extended attributes, and timestamps are outside this oracle by
 # decision. T4 introduces the helper and this task's reachable rows; every
@@ -2578,7 +2578,7 @@ def _replay_source_validation_failure_row(target: Path) -> None:
 
 
 # Registry other tasks extend with their own (label, scenario) rows against
-# spec AC-0013's exit-code table, reusing walk_target_tree rather than a copy.
+# the exit-code table (AC-0013), reusing walk_target_tree rather than a copy.
 TREE_WALK_CASES = {
     "replay-success": _replay_success_row,
     "replay-identity-leak-violation": _replay_identity_leak_row,

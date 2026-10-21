@@ -210,7 +210,7 @@ def test_capability_block_reports_what_the_publisher_declared(tmp_path: Path):
     assert "re-resolved revision:" not in rendered
     assert "stored digest:" not in rendered
     assert "re-resolved digest:" not in rendered
-    # AC19 requires report-time executable mode beside each payload digest. It
+    # The report must show report-time executable mode beside each payload digest. It
     # was computed by `report_time_mode` and never rendered anywhere.
     assert "executable" in rendered
 
@@ -279,7 +279,7 @@ def test_receipt_reports_kind_source_revision_digest_and_undo():
         assert expected in receipt
     # NOT an `uninstall --skill` line. That command does not exist — `uninstall`
     # accepts `--pack` only — so pinning it here made a false promise a
-    # contract. AC28 allows an uninstall command in the receipt only when the
+    # contract. The receipt may offer an uninstall command only when the
     # row exists; the command must exist too.
     assert "uninstall --skill" not in receipt
     assert ".claude/skills/alpha/" in receipt
@@ -398,7 +398,7 @@ def test_install_writes_the_measured_bytes_and_owns_them(tmp_path: Path, capsys)
     installed = target / ".claude" / "skills" / "solo"
     assert installed.joinpath("SKILL.md").read_bytes() == (source / "SKILL.md").read_bytes()
 
-    # AC19's report-time mode, asserted from the RENDERED summary rather than
+    # The report-time mode, asserted from the RENDERED summary rather than
     # by passing the label in. The capability-block test injects
     # `payload_digests={... "executable"}`, which pins the rendering but not the
     # computation: `report_time_mode` could return "" and both tests would pass.
@@ -709,7 +709,7 @@ def test_a_user_scope_row_lands_where_every_reader_looks(
     # `diff`, and `upgrade` all read. A user-scope install therefore projected
     # files and recorded ownership in a file nothing consults, so the projection
     # was permanently unowned and the ownership guard could not see its own
-    # prior row. AC12's concurrency test pins `persist_state_locked` usage; only
+    # prior row. The concurrency test pins `persist_state_locked` usage; only
     # this pins the path.
     from agentbundle.commands._common import resolve_state_path
     from agentbundle.config import load_state
@@ -1214,10 +1214,10 @@ def test_an_unresolvable_user_root_refuses_rather_than_raising(
 
 
 def test_the_sentinel_never_reaches_list_installed(tmp_path: Path, capsys):
-    # AC26 says `0.0.0` may reach NO rendered surface, and the guarding test
+    # The `0.0.0` sentinel may reach NO rendered surface, and the guarding test
     # only ever exercised the direct route's own renderers — so the one surface
     # an adopter sees first, `list-installed`, printed the internal sentinel in
-    # its INSTALLED column as though it were a published version. AC22 says a
+    # its INSTALLED column as though it were a published version. A
     # manifestless row shows an em dash.
     import json as _json
 
@@ -1254,8 +1254,8 @@ def test_the_sentinel_never_reaches_list_installed(tmp_path: Path, capsys):
 def test_the_receipt_names_an_uninstall_command_that_works(tmp_path: Path, capsys):
     # The receipt promised `uninstall --skill`, which does not exist; the
     # correction over-swung into manual removal, when `uninstall --pack` in
-    # fact resolves a direct row and removes both the files and the row. AC28
-    # allows promising an uninstall command only when the row exists — so the
+    # fact resolves a direct row and removes both the files and the row. An uninstall
+    # command may be promised only when the row exists — so the
     # promise and the behaviour are asserted together, here, rather than the
     # receipt text being pinned on its own.
     from agentbundle.commands import uninstall as uninstall_cmd

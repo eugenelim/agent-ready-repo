@@ -128,7 +128,7 @@ class CleanPackPasses(unittest.TestCase):
 
 
 class MissingRequiredFieldRefuses(unittest.TestCase):
-    """T-C2.1 — RFC § validate rail check 2: required fields are
+    """T-C2.1 — validate rail check 2: required fields are
     ``name``, ``version``, ``when.type``, ``then.type``."""
 
     def test_missing_top_level_name(self) -> None:
@@ -258,7 +258,7 @@ class UnresolvablePlaceholderRefusal(unittest.TestCase):
 
 
 class PlaceholderScanFencedToCommand(unittest.TestCase):
-    """RFC § Substitution rules clause 1 — only ``then.command`` is scanned.
+    """Only ``then.command`` is scanned for placeholders.
 
     A placeholder-shaped string in ``then.prompt`` (askAgent), ``name``,
     or ``description`` is passed through verbatim and never resolved

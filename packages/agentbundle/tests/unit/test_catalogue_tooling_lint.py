@@ -1,4 +1,4 @@
-"""Unit tests for agentbundle.catalogue_tooling.lint (Wave 2, ini-005).
+"""Unit tests for agentbundle.catalogue_tooling.lint.
 
 Coverage:
   - lint_catalogue(root, pack=None) -> LintResult

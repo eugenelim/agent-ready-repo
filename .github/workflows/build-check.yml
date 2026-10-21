@@ -870,6 +870,14 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_skill_html_view_tokens.py
 
+      # agentbundle-governance-markers: shipped engine source and tests cite no
+      # internal RFC/ADR ordinal or record path. It resolves cited paths against
+      # docs/, which the sdist does not carry, so it cannot live in the package
+      # suite. Placed ABOVE the bulk tests/ step for named failure attribution.
+      - name: pytest agentbundle shipped governance markers (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_agentbundle_governance_markers.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

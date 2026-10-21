@@ -128,8 +128,7 @@ def unproject(target_path: Path, owned: list[tuple[str, str]]) -> None:
 
     Empty ``hooks.<event>`` arrays are removed. The agent file itself
     is **never** removed by this function — that's the agent
-    primitive's ``direct-file`` uninstall's responsibility (the
-    § Conflict, idempotency, uninstall).
+    primitive's ``direct-file`` uninstall's responsibility.
 
     If the target file is absent, ``unproject`` is a no-op — same
     rationale as T5's ``user_merge_json.unproject``: a state row
@@ -219,8 +218,8 @@ def _shape_check_event_array(target_path: Path, event: str, value: object) -> No
 def _merge_one_entry(event_array: list, tagged_entry: dict) -> None:
     """Append or replace-in-place by id.
 
-    No adopter-collision branch: the agent JSON is pack-owned (the
-    § What this section does NOT add — no ``--force-merge`` for Kiro).
+    No adopter-collision branch: the agent JSON is pack-owned, so there is
+    no ``--force-merge`` for Kiro.
     Adopter hand-edits to the agent file are squatting on a managed
     surface; the next upgrade replaces the file via the agent
     primitive's ``direct-file`` projection.

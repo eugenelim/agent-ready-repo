@@ -1,4 +1,4 @@
-"""Tests for pack-config-api spec.
+"""Tests for the pack config API.
 
 Covers:
   - make_pack_dir: slug validation, reserved slugs, home-confinement, symlink guard

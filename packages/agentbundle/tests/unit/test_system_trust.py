@@ -1,4 +1,4 @@
-"""Tests for corporate trust-store resolution — spec/catalogue-corporate-trust-store.
+"""Tests for corporate trust-store resolution.
 
 Coverage:
   T1 — resolve_trust_paths precedence, build_context strictness + augment-not-replace
@@ -236,8 +236,8 @@ def test_good_anchor_survives_a_malformed_block_in_the_dump(monkeypatch, tmp_pat
 
 
 def test_no_shipped_module_can_disable_verification():
-    """Invariant across every shipped package, per the credentialed-skill contract
-    § Corporate-network requirements.
+    """Invariant across every shipped package: corporate networks require
+    verification to stay on.
 
     An --insecure escape hatch must not appear even as a debug convenience.
 
@@ -285,7 +285,7 @@ def test_the_default_keychain_tuple_is_administrator_only():
     """The *default* mode consults the administrator store and nothing else.
 
     Scoped deliberately: the empty-store mode does reach Apple's public TLS
-    export (RFC-0086 Errata). With any working trust store this holds, because
+    export. With any working trust store this holds, because
     the retry already carries Python's own roots and a second root program would
     widen trust for no gain on a fetch path with no post-transport integrity
     check.
@@ -348,7 +348,7 @@ def test_a_process_wide_ssl_override_cannot_weaken_the_context(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Empty default trust store — RFC-0086 erratum
+# Empty default trust store
 # ---------------------------------------------------------------------------
 
 
@@ -377,7 +377,7 @@ def test_intact_store_is_not_reported_empty():
 def test_apple_roots_are_read_only_when_the_store_is_empty(monkeypatch, tmp_path):
     """The erratum's whole point, and the bound on it.
 
-    RFC-0086 D4 excluded Apple's root program outright. That was too broad: an
+    The original design excluded Apple's root program outright. That was too broad: an
     interpreter trusting nothing cannot be repaired from the administrator
     keychain, which holds private roots. It stays excluded with an intact store.
     """

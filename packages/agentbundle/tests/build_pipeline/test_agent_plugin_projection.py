@@ -412,7 +412,7 @@ def _extension_value_with_serialized_size(target: int) -> dict[str, str]:
 
 
 def test_agent_plugin_extension_limit_boundaries() -> None:
-    """Pin every AC8 equality/plus-one boundary in the limit checker."""
+    """Pin every equality/plus-one boundary in the limit checker."""
     check = build_main._check_agent_plugin_extension_limits
 
     exact_json = _extension_value_with_serialized_size(8 * 1024 * 1024)
@@ -655,7 +655,7 @@ def _assert_route_refusal_keeps_sentinel(pack_path: Path, output: Path) -> None:
 def test_agent_plugin_source_limit_boundaries_and_plus_one(
     tmp_path: Path,
 ) -> None:
-    """Accept exact AC9 source bounds and refuse each boundary-plus-one."""
+    """Accept exact source bounds and refuse each boundary-plus-one."""
     count_pack = tmp_path / "packs" / "count-pack"
     count_skill = _write_minimal_agent_plugin_pack(count_pack)
     for index in range(4096):

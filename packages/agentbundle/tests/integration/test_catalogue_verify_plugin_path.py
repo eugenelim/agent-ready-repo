@@ -1,6 +1,6 @@
 """Plugin-manifest path resolution in `catalogue verify` steps 4 and 5.
 
-Covers `spec/catalogue-verifier-correctness` AC1 and AC2 (plan T1). Both steps
+Covers the plugin-manifest path fix. Both steps
 used to probe `<pack>/plugin.json`, but every pack — first-party and scaffolded
 alike — keeps the manifest at `<pack>/.claude-plugin/plugin.json`, so the probes
 missed on every pack and CAT-V-004 / CAT-V-005 never fired.
@@ -81,7 +81,7 @@ def test_step4_allows_pack_with_no_manifest_anywhere(tmp_path):
 
     Verify runs against adopter catalogues, not just this repo's packs, and an
     unconditional missing-manifest error would fail every manifest-less pack —
-    including the packaging suite's own fixtures. See AC1.
+    including the packaging suite's own fixtures.
     """
     _make_pack(tmp_path)
 

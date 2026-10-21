@@ -1976,7 +1976,7 @@ def _resolve_primitive_ref(ref: object, pack_dir: Path) -> tuple[bool, str | Non
 def _step_integration_validation(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 19: validate [[pack.integrations]] entries (Wave 2).
+    """Step 19: validate [[pack.integrations]] entries.
 
     Rules checked (schema-layer rules are NOT re-implemented here):
       - id is unique within each declaring pack
