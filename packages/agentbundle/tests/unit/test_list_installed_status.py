@@ -1,12 +1,12 @@
 """Tests for the list-installed update status.
 
 Covers:
-  T1: _compute_status_pair — pure status computation
-  T2: _resolve_per_source — multi-source resolution + _redact_error
-  T3: CLI --format and --updates-only flags
-  T4: _render_json — JSON contract
-  T5: _print_table — SOURCE column, sort order, --updates-only
-  T6: Golden file layout, subprocess exit-0, no-mutation
+  - _compute_status_pair — pure status computation
+  - _resolve_per_source — multi-source resolution + _redact_error
+  - CLI --format and --updates-only flags
+  - _render_json — JSON contract
+  - _print_table — SOURCE column, sort order, --updates-only
+  - Golden file layout, subprocess exit-0, no-mutation
 """
 from __future__ import annotations
 

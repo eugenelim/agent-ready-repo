@@ -1,12 +1,12 @@
 """Tests for catalogue pack defaults.
 
 Covers:
-  - T1: catalogue.schema.json accepts user-dir and [pack-defaults.*]
-  - T2: CatalogueConfig.user_dir / pack_defaults parsing and validation
-  - T3: compile_defaults sorted [pack-defaults.*] sections
-  - T4: check_defaults drift detection (via byte comparison) including pack-defaults
-  - T5: PackState.user_root serialization round-trip
-  - T6: install user-root plumbing (data-flow; full integration test deferred)
+  - catalogue.schema.json accepts user-dir and [pack-defaults.*]
+  - CatalogueConfig.user_dir / pack_defaults parsing and validation
+  - compile_defaults sorted [pack-defaults.*] sections
+  - check_defaults drift detection (via byte comparison) including pack-defaults
+  - PackState.user_root serialization round-trip
+  - install user-root plumbing (data-flow; full integration test deferred)
 """
 
 from __future__ import annotations
