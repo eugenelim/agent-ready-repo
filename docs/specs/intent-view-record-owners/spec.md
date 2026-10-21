@@ -73,7 +73,7 @@ A maintainer opens the offline intent view, picks their own name in one "Owner" 
 ## Testing Strategy
 
 - **TDD (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0009):** the owner field, the selector, the unchanged text output, the inert HTML and the byte-identical copy are pure functions of fixture files, so collected pytest tests decide them. The `owners` fixture's README states each record's owner and each selector's result by hand, so a wrong reading rule shows up as a disagreement with the hand-stated values. They run in `make test`, which CI runs only through the dispatch-only `test-corpus.yml` workflow. The ledger records a passing dispatch at the final code commit.
-- **Scripted browser check (AC-0008, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0030, AC-0031):** `view_browser_checks.py` drives exported fixture files in headless Chromium at true viewport sizes. A browser is the only oracle for rendered rows, controls, focus and layout. Expected rows and counts come from a Python reading of the same export's payload that applies this spec's terms, cross-checked against the `owners` README. The suite is not collected by CI, so its full pass at the final code commit, with the count run and none skipped, is recorded in the ledger.
+- **Scripted browser check (AC-0008, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0030, AC-0031, AC-0032):** `view_browser_checks.py` drives exported fixture files in headless Chromium at true viewport sizes. A browser is the only oracle for rendered rows, controls, focus and layout. Expected rows and counts come from a Python reading of the same export's payload that applies this spec's terms, cross-checked against the `owners` README. The suite is not collected by CI, so its full pass at the final code commit, with the count run and none skipped, is recorded in the ledger.
 - **Goal-based check (AC-0027, AC-0028):** the scale benchmark and the real export are measurements recorded in the ledger.
 - **Visual / manual QA (AC-0029):** an adjudicated `experience-reviewer` pass over screenshots decides the design outcome no script can, and it is a completion gate.
 
@@ -137,6 +137,26 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 - [ ] **AC-0021.** While the owner choice is not "Any owner", each list header shows, below its lead, the line "Only rows whose owner is <owner label>." or, for "No owner recorded", "Only rows with no owner recorded.". While it is "Any owner", no list header shows either line.
 - [ ] **AC-0022.** Given a question's list that shows at least one row link under "Any owner" with the same filters and none under the current owner choice, the list area reads "Nothing matches " and then a description, followed by ".". The description lists each set filter as the session-start spec describes it, followed by `owner "<owner label>"` or `no owner recorded`, joined by ", ". The area offers one "Clear filters" control, which sets "Any owner" and clears every filter. A list that shows nothing under "Any owner" with the same filters shows the empty line or filtered-empty state the specs this one amends state.
 - [ ] **AC-0030.** Given a search text that matches at least one node under "Any owner" and none under the current owner choice, the list area reads `Nothing matches the search "<text>" for owner "<owner label>".`, or `Nothing matches the search "<text>" with no owner recorded.`, and offers one "Clear owner" control, which sets "Any owner" and keeps the search text. A search with no match under "Any owner" shows the session-start spec's criterion 0023 line and its "Clear search" control.
+
+### Owner narrowing is the only difference
+
+- [ ] **AC-0032.** The check covers four exports, with every subtree and disclosure open:
+  1. the whole-corpus `owners` export;
+  2. an `owners` export scoped with `--from` to the capability its README names;
+  3. an `owners` export whose `outstanding` is unavailable;
+  4. the `mixed` export with a checked status input.
+
+  It covers every question, every Show and Group choice, no search and the search text the README names, and each README owner choice. The page under that owner choice is compared with the page under "Any owner" with the same other choices, and it differs only in these ways:
+  1. its row links that are not context rows are exactly the "Any owner" page's row links that are not context rows and whose node is a matching record, in the same relative order;
+  2. its context rows are those AC-0015 and AC-0018 state;
+  3. its counts are those AC-0020 states;
+  4. it shows AC-0021's line;
+  5. a subheading that holds no row link is gone;
+  6. where no row link is left, the list area shows the AC-0022 or AC-0030 state;
+  7. a start tag is absent as AC-0014 states;
+  8. the Owner control's selected option differs.
+
+  Every other rendered text node is identical, including the scope banner, header totals, notices, "unknown" counts, lead lines, sort keys, row text, the Key and the detail pane.
 - [ ] **AC-0023.** The URL fragment holds the owner choice as `owner`, and reloading restores it. Changing the owner choice adds no history entry. Choosing a question or picking a row keeps the owner choice. A fragment `owner` that names no option shows "Any owner" and lists as "Any owner" does.
 
 ### Access and layout
@@ -153,6 +173,8 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
 ### Amended criteria and rules
 
+**Owner reading**, as a disposition below: under "Any owner" the criterion holds as written. Under any other owner choice, its lists, counts and empty states are read through AC-0032, and every other clause holds as written.
+
 | Amended spec: criterion or rule | Disposition |
 | --- | --- |
 | Navigator 0015, `search` selectors | Extended by AC-0005 with `owner` |
@@ -160,14 +182,14 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 | Navigator 0076, `search` entry fields | Extended by AC-0004 with `owner`; `tree` and `ancestors` fields carried unchanged |
 | Navigator Ask-first "Changing the query schema, the admitted edge fields…" | This spec is that ask for the `owner` field and selector, decided by the owner's approval; the schema name, edge fields and every other rule carried unchanged |
 | Export Ask-first "Changing the query schema, the derivation, or any `query` operation's output" | This spec is that ask for `owner`, decided by the owner's approval; carried unchanged for every other change |
-| Session-start 0002, 0004, 0005, 0006 and the readiness-bridge spec's 0022 and 0030, each "lists exactly…" | Hold under "Any owner"; narrowed by AC-0012 under any other owner choice |
-| Session-start 0008 and the readiness-bridge spec's 0028, empty lines | Hold when the list shows nothing under "Any owner"; AC-0022 applies otherwise |
+| Session-start 0002, 0004, 0005, 0006 and the readiness-bridge spec's 0022 and 0030, each "lists exactly…" | Owner reading; AC-0012 states the narrowed lists |
+| Session-start 0008 and the readiness-bridge spec's 0028, empty lines | Owner reading; AC-0022 states the narrowed empty state |
 | Session-start 0009, a row is a name, a state and a context cell | Extended by AC-0008 with a final owner cell |
 | Session-start 0019, "Record details" fields | Extended by AC-0010 with "Owner" |
-| Session-start 0023, search | Narrowed by AC-0012 under an owner choice; its query parity holds under "Any owner"; its no-match line and "Clear search" hold when the search matches nothing under "Any owner", and AC-0030 applies otherwise |
-| Session-start 0024, Browse lists every live intent once; filter parity; empty filter result | Carried under every owner choice, with these readings: the listing and the filter parity hold as written under "Any owner"; under any other owner choice AC-0015 governs the listing and AC-0016 the filtered list and its parity, with roots and siblings still in name order; the empty filter result is extended by AC-0022 |
-| Session-start 0025, scoped export | Carried under every owner choice, with these readings: the banner naming the scoped intent, the in-scope limit on every question and the header totals that say they cover the whole corpus (AC-0050) hold as written; the scoped intent is the only root of "Browse all intents"; under any owner choice other than "Any owner", Browse shows as AC-0015 states, search follows AC-0012 and AC-0030, each filter follows AC-0016 over the in-scope intents, and AC-0022 applies when nothing is shown |
-| Session-start 0042, the page while `outstanding` is unavailable | Carried under every owner choice, with these readings: its clause "Browse all intents still lists every live intent" holds under "Any owner", and AC-0015 and AC-0016 govern Browse otherwise; its "What is broken?" list is narrowed by AC-0012 under any other owner choice; every other clause holds as written |
+| Session-start 0023, search | Owner reading; AC-0030 states the narrowed no-match state |
+| Session-start 0024, Browse lists every live intent once; filter parity; empty filter result | Owner reading; AC-0016 adds `owner` to its filter parity, and AC-0022 extends its empty filter result |
+| Session-start 0025, scoped export | Owner reading |
+| Session-start 0042, the page while `outstanding` is unavailable | Owner reading |
 | Session-start 0030, fragment state | Extended by AC-0023 |
 | Session-start 0038, keyboard | Extended by AC-0024 |
 | Session-start 0040, live region | Extended by AC-0017 |
@@ -178,16 +200,16 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 | Source-and-style Ask-first "Any visible text change … and any new control…" | This spec is that ask for the Owner control, the owner cell, the "Clear owner" control, the "Record details" Owner line (AC-0010), and AC-0019, AC-0021, AC-0022 and AC-0030's text |
 | Hand-over prompt Ask-first "Any change to the payload, a `query` output, or any derivation" | This spec is that ask for `owner`; the prompts carried unchanged |
 | Hand-over prompt Never-do "Never add … a script part beyond `handover.js`" and readiness-bridge Never-do "Never … add a module or script part beyond `intent_readiness.py` and `readiness.js`" | Narrowed to admit the script part `owners.js` |
-| Readiness-bridge 0025, exactly one row holds a start tag | Holds under "Any owner"; AC-0014 under any other owner choice |
+| Readiness-bridge 0025, exactly one row holds a start tag | Owner reading; AC-0014 states the start tag |
 | Readiness-bridge Ask-first "Any change to a `query` output, the derivation, or a hand-over prompt" | This spec is that ask for `owner`, decided by the owner's approval |
-| Tree-and-roadmap 0004 and 0036, counts | Hold under "Any owner"; AC-0020 under any other owner choice, with 0036's count reading "Browse match" for "matching the Show choice" |
-| Tree-and-roadmap 0005, every capability listed once | Holds under "Any owner"; AC-0018 under any other owner choice |
-| Tree-and-roadmap 0007, each top capability in exactly one section | Holds under "Any owner"; under any other owner choice each listed capability with no nearest capability ancestor is in exactly one section |
-| Tree-and-roadmap 0019, every capability listed while `outstanding` is unavailable | Holds under "Any owner"; AC-0018 under any other owner choice, with 0019's "Progress unknown" text carried unchanged |
-| Tree-and-roadmap 0041, the scoped intent is the only "Hierarchy roots" entry | Holds under "Any owner"; under any other owner choice it is the only root and is shown as AC-0015 states, and AC-0022 applies when nothing is shown |
-| Tree-and-roadmap 0049, scoped "By capability" lists every intent once | Holds under "Any owner"; AC-0015 under any other owner choice |
+| Tree-and-roadmap 0004 and 0036, counts | Owner reading; 0036's count reads "Browse match" for "matching the Show choice" |
+| Tree-and-roadmap 0005, every capability listed once | Owner reading; AC-0018 states the narrowed list |
+| Tree-and-roadmap 0007, each top capability in exactly one section | Owner reading |
+| Tree-and-roadmap 0019, every capability listed while `outstanding` is unavailable | Owner reading |
+| Tree-and-roadmap 0041, the scoped intent is the only "Hierarchy roots" entry | Owner reading |
+| Tree-and-roadmap 0049, scoped "By capability" lists every intent once | Owner reading |
 | Tree-and-roadmap 0012 and 0025, row contents | Extended by AC-0008 with a final owner cell |
-| Tree-and-roadmap 0030 and 0031, every intent appears exactly once | Hold under "Any owner" |
+| Tree-and-roadmap 0030 and 0031, every intent appears exactly once | Owner reading |
 | Tree-and-roadmap 0032, 0033, 0034 and 0035, Show matches, context rows and open subtrees | Read "Browse match" (AC-0015) for "matches the choice"; 0034 and 0035 apply under "All" too when the owner choice is not "Any owner" |
 | Tree-and-roadmap 0038, the flat filtered list | Extended by AC-0016 with the owner choice |
 | Tree-and-roadmap 0053, the Browse lead | Carried unchanged; AC-0021's line follows it |

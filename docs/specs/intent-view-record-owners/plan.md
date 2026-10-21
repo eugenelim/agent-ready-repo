@@ -162,15 +162,14 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 
 ### T5: Browse and the roadmap narrow with context rows
 
-**Depends on:** T4
+**Depends on:** T4 (the readiness export in AC-0032's check needs T4's rebase onto the readiness bridge)
 
 **Touches:** `packs/core/.apm/skills/navigate-intents/scripts/view_src/browse.js`, `roadmap.js`, `owners.js`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`
 
 **Tests:**
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations. Each also checks the general rule over every Group and Show choice, against the Python reading of the payload.
-- A browser check over the roadmap decides the amended tree-and-roadmap 0007 rule under each README owner choice: each listed capability with no nearest capability ancestor is in exactly one section.
-- Browser checks over an `owners` export scoped with `--from` to a capability the README names decide, under each README owner choice, the amended session-start 0025 and tree-and-roadmap 0041 and 0049 rows: the scoped intent is the only root, the scope banner and whole-corpus totals still show, Browse follows AC-0015 under both Group choices, and AC-0022 shows when nothing is shown. The same scoped export checks search against AC-0012 and AC-0030, and the flat filtered list against `run_query` `search` with `owner` set, limited to the in-scope intents.
+- One differential browser check decides AC-0032. It renders each pair of pages named there, the "Any owner" page and the owner-choice page, and walks both documents' text nodes in order. It removes only the differences AC-0032 admits, then asserts that what remains is equal. The scoped export uses `--from` with the README's capability. The unavailable export reuses the shipped `_incomplete` delivery-provider seam (`view_browser_checks.py`, the `hostile_incomplete` export) on the `owners` corpus. The readiness export uses the readiness-bridge spec's status-input helper on `mixed`.
 - A browser check decides AC-0016 by comparing the flat filtered list with `run_query` `search` over the same fixture, using the filter selectors plus `owner`.
 - The shipped tree-and-roadmap checks for its criteria 0030 to 0036 still pass under "Any owner".
 
