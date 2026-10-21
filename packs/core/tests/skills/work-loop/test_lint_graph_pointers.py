@@ -457,3 +457,173 @@ def test_invocation_does_not_modify_the_repository(
     code, _, _ = run(repo, capsys)
     assert code == 1
     assert _snapshot(repo) == before
+
+
+# ---------------------------------------------------------------------------
+# VI-2001: the `Discovery:` rule (changed specs only)
+# ---------------------------------------------------------------------------
+
+D = "Discovery"
+DISCOVERY_CASES: dict[str, tuple[str, list[tuple[str, str]]]] = {
+    # passing
+    "d-ok-outcome": (f"- **{D}:** outcome:svc-reliability", []),
+    "d-ok-opportunity": (f"- **{D}:** opportunity:opp-one", []),
+    "d-ok-capability": (f"- **{D}:** capability:cap-lvl", []),
+    "d-ok-intent": (f"- **{D}:** intent:plain-one", []),
+    "d-ok-backticks": (f"- **{D}:** `intent:plain-one`", []),
+    "d-ok-bare-nonlive": (f"- **{D}:** not-an-intent", []),
+    "d-ok-bare-retired": (f"- **{D}:** old-one", []),
+    "d-ok-research": (f"- **{D}:** docs/research/topic.md", []),
+    "d-ok-notes": (f"- **{D}:** docs/specs/other/notes/discovery.md", []),
+    "d-ok-research-link": (f"- **{D}:** [r](../../research/topic.md)", []),
+    "d-ok-brief": (f"- **{D}:** brief:b-one", []),
+    "d-ok-spec": (f"- **{D}:** spec:tracked", []),
+    "d-ok-url": (f"- **{D}:** https://example.invalid/page", []),
+    "d-ok-free-text": (f"- **{D}:** talked to the team", []),
+    "d-ok-absent": ("- **Slug:** nothing", []),
+    "d-ok-blank": (f"- **{D}:**   ", []),
+    "d-ok-comment-only": (f"- **{D}:** <!-- docs/product/intents/outcome-a.md -->", []),
+    "d-ok-none": (f"- **{D}:** None", []),
+    "d-ok-none-reason": (f"- **{D}:** None — docs/product/intents/outcome-a.md", []),
+    "d-ok-commented-line": (f"<!--\n- **{D}:** docs/product/intents/outcome-a.md\n-->", []),
+    "d-ok-body-text": (
+        f"- **Slug:** x\n\n## Body\n\n- **{D}:** docs/product/intents/outcome-a.md\n", []),
+    # failing
+    "d-wrong-kind": (f"- **{D}:** outcome:plain-one", [(D, "discovery-wrong-kind")]),
+    "d-wrong-kind-level": (f"- **{D}:** intent:cap-lvl", [(D, "discovery-wrong-kind")]),
+    "d-malformed": (f"- **{D}:** outcome:Bad_Slug", [(D, "discovery-malformed")]),
+    "d-malformed-trailing": (
+        f"- **{D}:** outcome:svc-reliability extra", [(D, "discovery-malformed")]),
+    "d-malformed-empty": (f"- **{D}:** intent:", [(D, "discovery-malformed")]),
+    "d-missing": (f"- **{D}:** outcome:nowhere", [(D, "discovery-missing")]),
+    "d-retired": (f"- **{D}:** intent:old-one", [(D, "discovery-retired")]),
+    "d-ambiguous": (f"- **{D}:** intent:twin", [(D, "discovery-ambiguous")]),
+    "d-repo-path": (f"- **{D}:** docs/product/intents/outcome-a.md", [(D, "discovery-untyped")]),
+    "d-repo-path-missing": (f"- **{D}:** docs/product/intents/ghost.md", [(D, "discovery-untyped")]),
+    "d-rel-link": (
+        f"- **{D}:** [x](../../product/intents/outcome-a.md)", [(D, "discovery-untyped")]),
+    "d-rel-link-fragment": (
+        f"- **{D}:** [x](../../product/intents/outcome-a.md#top)", [(D, "discovery-untyped")]),
+    "d-slash-link": (
+        f"- **{D}:** [x](/docs/product/intents/outcome-a.md)", [(D, "discovery-untyped")]),
+    "d-spec-relative-link": (
+        f"- **{D}:** [x](docs/product/intents/outcome-a.md)", [(D, "discovery-untyped")]),
+    "d-escaping-link": (
+        f"- **{D}:** [r](../../../../product/intents/x.md)", [(D, "discovery-untyped")]),
+    "d-bare-live": (f"- **{D}:** svc-reliability", [(D, "discovery-untyped")]),
+    "d-repeated-second-bad": (
+        f"- **{D}:** intent:plain-one\n- **{D}:** plain-one", [(D, "discovery-untyped")]),
+}
+
+
+@pytest.fixture(scope="module")
+def discovery_results(
+    template: Path, tmp_path_factory: pytest.TempPathFactory
+) -> dict[str, dict[str, object]]:
+    results: dict[str, dict[str, object]] = {}
+    for label, wanted in (("pass", True), ("fail", False)):
+        dest = tmp_path_factory.mktemp(f"discovery-{label}") / "repo"
+        shutil.copytree(template, dest, symlinks=True)
+        for name, (preamble, expected) in DISCOVERY_CASES.items():
+            if (not expected) == wanted:
+                write(dest, f"docs/specs/{name}/spec.md", doc(preamble))
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            code = lint.main(["--root", str(dest), "--base-ref", "base"])
+        results[label] = {"code": code, "out": buf.getvalue(), "err": err.getvalue()}
+    return results
+
+
+def test_discovery_passing_cases_exit_zero(
+    discovery_results: dict[str, dict[str, object]]
+) -> None:
+    res = discovery_results["pass"]
+    assert res["code"] == 0
+    assert res["err"] == ""
+    assert "0 violation(s)" in str(res["out"])
+
+
+def test_discovery_failing_cases_exit_one(
+    discovery_results: dict[str, dict[str, object]]
+) -> None:
+    assert discovery_results["fail"]["code"] == 1
+
+
+@pytest.mark.parametrize("name", [n for n, (_, e) in DISCOVERY_CASES.items() if e])
+def test_discovery_diagnostic(
+    name: str, discovery_results: dict[str, dict[str, object]]
+) -> None:
+    found = parse(str(discovery_results["fail"]["out"]))
+    assert sorted(found[f"docs/specs/{name}/spec.md"]) == sorted(DISCOVERY_CASES[name][1])
+
+
+def test_discovery_untouched_legacy_spec_produces_nothing(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write(repo, "docs/specs/legacy/spec.md", doc(f"- **{D}:** docs/product/intents/outcome-a.md"))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "legacy")
+    git(repo, "tag", "-f", "base")
+    write(repo, "docs/specs/other/spec.md", doc(f"- **{D}:** outcome:svc-reliability"))
+    code, out, _ = run(repo, capsys)
+    assert code == 0
+    assert "0 violation(s) in 1 selected" in out
+
+
+def test_discovery_body_only_edit_still_checks_preamble(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    legacy = doc(f"- **{D}:** docs/product/intents/outcome-a.md")
+    write(repo, "docs/specs/legacy/spec.md", legacy)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "legacy")
+    git(repo, "tag", "-f", "base")
+    write(repo, "docs/specs/legacy/spec.md", legacy.replace("text", "edited text"))
+    code, out, _ = run(repo, capsys)
+    assert code == 1
+    assert parse(out) == {"docs/specs/legacy/spec.md": [(D, "discovery-untyped")]}
+
+
+def test_discovery_does_not_apply_to_intents_or_briefs(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    legacy = f"- **{D}:** docs/product/intents/outcome-a.md"
+    write(repo, "docs/product/intents/new.md", doc(f"- **Slug:** n1\n{legacy}"))
+    write(repo, "docs/product/briefs/new.md", doc(f"- **Slug:** nb\n{legacy}"))
+    code, out, _ = run(repo, capsys)
+    assert code == 0
+    assert "0 violation(s) in 2 selected" in out
+
+
+# ---------------------------------------------------------------------------
+# VI-2002: the real CLI on the Discovery field
+# ---------------------------------------------------------------------------
+
+
+def _cli(repo: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(_SCRIPT), "--root", str(repo), "--base-ref", "base"],
+        capture_output=True, text=True, env=_GIT_ENV, check=False,
+    )
+
+
+def test_discovery_cli_valid_fixture_exits_zero_and_changes_nothing(repo: Path) -> None:
+    write(repo, "docs/specs/ok/spec.md", doc(f"- **{D}:** outcome:svc-reliability"))
+    before = _snapshot(repo)
+    proc = _cli(repo)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.splitlines()[-1] == (
+        "lint-graph-pointers: 0 violation(s) in 1 selected artifact(s)")
+    assert proc.stderr == ""
+    assert _snapshot(repo) == before
+
+
+def test_discovery_cli_invalid_fixture_names_code_without_value(repo: Path) -> None:
+    raw = "docs/product/intents/outcome-a.md"
+    write(repo, "docs/specs/bad/spec.md", doc(f"- **{D}:** {raw}"))
+    before = _snapshot(repo)
+    proc = _cli(repo)
+    assert proc.returncode == 1
+    assert proc.stdout.splitlines()[0] == "docs/specs/bad/spec.md: Discovery: discovery-untyped"
+    assert "outcome-a" not in proc.stdout + proc.stderr
+    assert _snapshot(repo) == before
