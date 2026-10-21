@@ -1,6 +1,6 @@
 # Spec: Lint traceability intent parity
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Approved:** 2026-10-21 by the repository owner, spec and plan together, after a clean shaping review and a clean adjudicated adversarial review in round 3.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -75,7 +75,7 @@ A maintainer running `lint-traceability.py` gets the same node id for every inte
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** For each fixture intent file below, `lint-traceability` registers exactly the node id that `intent-navigation` AC-0004 assigns to it, and no other `outcome`, `opportunity`, `capability`, or `intent` node for that file:
+- [x] **AC-0001.** For each fixture intent file below, `lint-traceability` registers exactly the node id that `intent-navigation` AC-0004 assigns to it, and no other `outcome`, `opportunity`, `capability`, or `intent` node for that file:
       - `Kind: outcome` appearing only below the first `## ` heading;
       - `Kind: opportunity` appearing only inside an HTML comment in the preamble;
       - `` Kind: `outcome` extra ``;
@@ -85,16 +85,16 @@ A maintainer running `lint-traceability.py` gets the same node id for every inte
       - `` Kind: `outcome (note)` ``;
       - `` Level: `capability (note)` `` with no `Kind:`;
       - `Level: Capability` with no `Kind:`.
-- [ ] **AC-0002.** The lint takes a live intent's slug from the first visible preamble `Slug:` field line. A `Slug:` only below the preamble or only inside a comment is not read. A ladder file with no such line keeps its filename stem as the slug. A non-ladder file with no such line gets no node and a note naming the file. A first `Slug:` value that is empty, `none` in any letter case, or a single-word `<…>` placeholder counts as no such line.
-- [ ] **AC-0003.** A file whose visible preamble has a `Tombstone:` field line, with any value, gives the lint no `outcome`, `opportunity`, `capability`, or `intent` node. That holds when the file also has `Kind: outcome`. A `Tombstone:` only below the preamble or only inside a comment does not retire the file.
-- [ ] **AC-0004.** For every AC-0001 and AC-0003 fixture whose visible preamble `Slug:` the navigator admits and is not `none`, and whose `Tombstone:`, if any, has a non-empty value, the three ports agree per file:
+- [x] **AC-0002.** The lint takes a live intent's slug from the first visible preamble `Slug:` field line. A `Slug:` only below the preamble or only inside a comment is not read. A ladder file with no such line keeps its filename stem as the slug. A non-ladder file with no such line gets no node and a note naming the file. A first `Slug:` value that is empty, `none` in any letter case, or a single-word `<…>` placeholder counts as no such line.
+- [x] **AC-0003.** A file whose visible preamble has a `Tombstone:` field line, with any value, gives the lint no `outcome`, `opportunity`, `capability`, or `intent` node. That holds when the file also has `Kind: outcome`. A `Tombstone:` only below the preamble or only inside a comment does not retire the file.
+- [x] **AC-0004.** For every AC-0001 and AC-0003 fixture whose visible preamble `Slug:` the navigator admits and is not `none`, and whose `Tombstone:`, if any, has a non-empty value, the three ports agree per file:
       - on a live file, the lint's node id equals the navigator's, and the lint's node kind equals the `lint-graph-pointers.py` registered kind;
       - on a retired file, neither the lint nor the navigator derives a node, and `lint-graph-pointers.py` marks it retired.
 
       AC-0002's fixtures stay outside this check, because the navigator refuses a live intent with no admitted `Slug:`. The AC-0003 fixture with an empty `Tombstone:` value stays outside it too, because `lint-graph-pointers.py` reads that file as live.
-- [ ] **AC-0005.** Over the real `docs/product/intents/` directory, for each file path, the set of node ids the lint's ladder and intent recognizers derive together equals the set the navigator derives. The navigator's set is one id for a live intent and empty otherwise. On any difference, the check fails and names each differing path with both sets. If the navigator refuses the derivation, the check fails rather than skips. If the compared corpus lacks one of the four kinds, the check fails as vacuous.
-- [ ] **AC-0006.** The real-corpus check runs as its own named step in `.github/workflows/build-check.yml`, above the bulk roster step. The fixture suite runs as its own `make build-check` gate-chain step. `tools/lint-ci-parity.py` and `tools/test_build_gate_chain.py` pass with both registered.
-- [ ] **AC-0007.** The self-hosted copies of `lint-traceability.py` are byte-identical to the pack source, and `agentbundle catalogue verify --root .` reports no drift.
+- [x] **AC-0005.** Over the real `docs/product/intents/` directory, for each file path, the set of node ids the lint's ladder and intent recognizers derive together equals the set the navigator derives. The navigator's set is one id for a live intent and empty otherwise. On any difference, the check fails and names each differing path with both sets. If the navigator refuses the derivation, the check fails rather than skips. If the compared corpus lacks one of the four kinds, the check fails as vacuous.
+- [x] **AC-0006.** The real-corpus check runs as its own named step in `.github/workflows/build-check.yml`, above the bulk roster step. The fixture suite runs as its own `make build-check` gate-chain step. `tools/lint-ci-parity.py` and `tools/test_build_gate_chain.py` pass with both registered.
+- [x] **AC-0007.** The self-hosted copies of `lint-traceability.py` are byte-identical to the pack source, and `agentbundle catalogue verify --root .` reports no drift.
 
 ## Follow-ons
 

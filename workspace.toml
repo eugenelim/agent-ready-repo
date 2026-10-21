@@ -2442,8 +2442,6 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # Slice 6 of `intent-navigation-delivery`, approved 2026-10-21; moved from `backlog.open` when the spec and plan were approved.
-  { path = "docs/specs/lint-traceability-intent-parity/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "lint-traceability classifies intent ladder kinds from the preamble only, with a parity check against the navigator", needs = [] },
 ]
 active  = [
 ]
@@ -2464,6 +2462,8 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 6 of `intent-navigation-delivery`, shipped 2026-10-21 (core 3.1.13); moved from `queue` when the spec was set Shipped.
+  { path = "docs/specs/lint-traceability-intent-parity/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "lint-traceability classifies intent ladder kinds from the preamble only, with a parity check against the navigator", needs = [] },
   # Slice 7 of `intent-navigation-delivery`, shipped 2026-10-21 (core 3.1.12); moved from `queue` when the spec was set Shipped.
   { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
   # Slice 5 of `intent-navigation-delivery`, shipped 2026-10-20 (core 3.1.11); moved from `queue` when the spec was set Shipped.

@@ -1,7 +1,7 @@
 # Plan: Lint traceability intent parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Constrained by:** RFC-0103 D2; RFC-0105 D1; ADR-0007; ADR-0074
 - **Repository anchors:** the navigator's `_preamble_visible`, `_normalize_kind_level` and `_compute_node_id` in `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py`; the existing hand-mirror in `packs/core/.apm/skills/work-loop/scripts/lint-graph-pointers.py` (`_preamble`, `_registered_kind`); the cross-port parity precedent `packs/core/tests/skills/navigate-intents/test_related_intents_lint_parity.py`; the roster precedent `tests/roster/test_graph_pointer_authoring.py` and its CI wiring.
 - **Retention:** repository-durable spec, plan and `notes/verification-ledger.md`. Implementers, reviewers, resuming agents and CI read them. After closeout, source docstrings, the suites, the architecture page and the release fragment own current truth.
