@@ -41,7 +41,7 @@ _ORDINAL = re.compile(r"\b(?:RFC|ADR)-0[0-9]{3}\b")
 _AC_CITATION = re.compile(r"\bACs?\s*-?#?\s*[0-9]+[a-z]?(?:\([a-z]\))?\b")
 _TEST_FILE = re.compile(r"(?:^|/)(?:tests/|conftest\.py$|test_[^/]*\.py$)")
 _RECORD_PATH = re.compile(r"docs/(specs|rfc|adr)/([A-Za-z0-9][A-Za-z0-9._-]*)")
-_SHORT_SPEC_PATH = re.compile(r"(?<![\w/.-])spec/([a-z0-9][a-z0-9-]*)")
+_SHORT_SPEC_PATH = re.compile(r"(?<![\w/.-])spec/([A-Za-z0-9][A-Za-z0-9.-]*)")
 _SECTION_POINTER = re.compile(r"\b(?:spec|RFC)(?:'s)?\s*§", re.IGNORECASE)
 _UNSHIPPED_NAMES = re.compile(r"^(?:CHANGELOG\.md|AGENTS.*\.md)$")
 _PROSE_SUFFIXES = {".md", ".toml", ".txt", ".cfg", ".ini", ".yaml", ".yml"}
@@ -165,7 +165,11 @@ def test_the_path_check_recognises_a_real_record() -> None:
     Without this control, a renamed records tree would leave `_is_record`
     false for every path and the check above green while it checks nothing.
     """
-    real = next(p for p in (REPO_ROOT / "docs" / "specs").iterdir() if p.is_dir())
+    real = min(
+        p
+        for p in (REPO_ROOT / "docs" / "specs").iterdir()
+        if p.is_dir() and _SHORT_SPEC_PATH.fullmatch(f"spec/{p.name}")
+    )
     source = f"# see docs/specs/{real.name}/spec.md\nx = 1\n"
     chunks = _comment_and_docstring_text(source)
     matches = [m for _, t in chunks for m in _RECORD_PATH.finditer(t)]
