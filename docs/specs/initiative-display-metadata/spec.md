@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
-- **Discovery:** `docs/product/intents/initiative-display-metadata-restoration.md`
+- **Discovery:** `intent:initiative-display-metadata-restoration`
 - **Contract:** none — the projection's shape is documented in the skill's own `SKILL.md`, not a `contracts/` artifact
 - **Shape:** service
 

@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Brief:** none
-- **Discovery:** docs/product/intents/review-response-protocol-across-reviewer-surfaces.md
+- **Discovery:** outcome:review-response-protocol-across-reviewer-surfaces
 - **Contract:** none
 - **Shape:** data
 

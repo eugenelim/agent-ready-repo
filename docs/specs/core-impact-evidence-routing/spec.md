@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079
 - **Brief:** none
-- **Discovery:** `docs/product/intents/CAP-0011-optional-code-intelligence-composition.md`
+- **Discovery:** `capability:optional-code-intelligence-composition`
 - **Contract:** none
 - **Shape:** mixed
 

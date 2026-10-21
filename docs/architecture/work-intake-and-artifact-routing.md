@@ -477,8 +477,8 @@ artifacts and migration evidence.
   [`adapter-root-bins/intent_delivery_relations.py`](../../packs/core/.apm/adapter-root-bins/intent_delivery_relations.py).
   Byte-identical copies of that source and its private confinement helper
   `_file_safety.py` ship inside each consuming skill's own `scripts/` folder
-  (`close-work` and `work-loop`); a parity test run at build and test time pins
-  them to the source. Each consumer runs the copy beside its own script file,
+  (`close-work`, `work-loop`, and `navigate-intents`); a parity test run at build
+  and test time pins them to the source. Each consumer runs the copy beside its own script file,
   never from the analysed repository, so the copy carries the consumer's own
   trust boundary. The source's projection to `.agentbundle/bin/` is a maintainer
   diagnostic tool in this repository; the skill-local copies are what reaches
@@ -489,7 +489,11 @@ artifacts and migration evidence.
   `provenance`, `diagnostics`, and an `artifacts` map from each identifier to its
   repository-relative file path; its module docstring and
   [construction tests](../../packs/core/tests/pack/test_intent_delivery_relations.py)
-  own the relation vocabulary. An unsafe or over-budget corpus yields an
+  own the relation vocabulary. A spec's `Discovery:` may name an intent by any
+  of the four registered prefixes (`outcome:`, `opportunity:`, `capability:`,
+  `intent:`) or by the legacy `docs/product/intents/<file>.md` path; the
+  resolver matches the slug against the live intent index without checking the
+  kind, and every relation and provenance record carries `intent:<slug>`. An unsafe or over-budget corpus yields an
   incomplete snapshot rather than partial data.
 - `close-work` calls the resolver once per ancestor lookup and once per closure
   decision. `lint-traceability.py` calls it once per run when the repository has

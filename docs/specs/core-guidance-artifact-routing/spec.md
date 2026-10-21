@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099
 - **Brief:** none
-- **Discovery:** `docs/product/intents/cut-before-adding-solution-ladder.md`
+- **Discovery:** `intent:cut-before-adding-solution-ladder`
 - **Contract:** none
 - **Shape:** mixed
 

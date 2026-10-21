@@ -1665,8 +1665,12 @@ _WORK_LOOP_CONTRACT_HASH = (
 # The engine states its own boundary at workspace_status_engine.py:4988 ("Its
 # finish checklist only sets spec.md Status: Shipped"), and ownership is
 # unchanged.
+# Re-pinned 2026-10-20 for typed Discovery pointers: the same bullet now names
+# intent-valued Discovery beside the intent and brief pointers. Reviewed as the
+# pin requires, and the engine needs no edit: the bullet still runs the same
+# read-only lint, writes no spec.md field, and mutates no workspace.toml array.
 _WORK_LOOP_FINISH_HASH = (
-    "90d06f1caa06c3e151db49cc24ec9b01cd3ffb62ec6fa3dbcce097c175cd31dd"
+    "3a0e440c7820ee39662e18f63de5cec533e1a5a844fd6d6cbefadf03fed8219a"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

@@ -1305,6 +1305,18 @@
         "Says exit 2 means the check could not complete and is not a pass",
         "Says untouched artifacts are never checked"
       ]
+    },
+    {
+      "id": "finish-graph-pointer-check-discovery",
+      "prompt": "At the work-loop Finish checklist, the graph-pointer check reports `docs/specs/billing-export/spec.md: Discovery: discovery-untyped`. The spec's Discovery is `docs/product/intents/billing-export.md`, and that intent's preamble has `Kind: outcome` and `Slug: billing-export`. What do you change?",
+      "files": [],
+      "expected_output": "Rewrite the spec's `Discovery:` as the intent's registered kind and slug, `outcome:billing-export`, then re-run `lint-graph-pointers.py --root . --base-ref <base>` until it exits 0. A repository path to an intent is untyped; a research or notes path would stay a path and is not checked.",
+      "assertions": [
+        "Rewrites the value to `outcome:billing-export`",
+        "Takes the kind from `Kind:` rather than defaulting to `intent:`",
+        "Re-runs the check against the same base",
+        "Does not type a research or notes path"
+      ]
     }
   ]
 }

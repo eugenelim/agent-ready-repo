@@ -1341,3 +1341,169 @@ def test_vi1003_projected_cli_usage_error_exit_2(tmp_path: Path) -> None:
     assert result.returncode == 2
     # Nothing on stdout for usage errors (argparse error path)
     assert result.stdout == b""
+
+
+# ---------------------------------------------------------------------------
+# Registered intent prefixes in Discovery
+# ---------------------------------------------------------------------------
+
+_REGISTERED_PREFIXES = ("outcome", "opportunity", "capability", "intent")
+_NEW_PREFIXES = ("outcome", "opportunity", "capability")
+
+
+def _discovery_value(form: str, slug: str) -> str:
+    if form == "path":
+        return f"docs/product/intents/{slug}.md"
+    return f"{form}:{slug}"
+
+
+@pytest.mark.parametrize("form", [*_REGISTERED_PREFIXES, "path"])
+def test_registered_discovery_form_keeps_direct_delivery_relation(
+    tmp_path: Path, form: str
+) -> None:
+    """Every registered Discovery form yields the legacy path form's relation."""
+    _make_intent(
+        tmp_path,
+        slug="alpha",
+        level="feature",
+        decomposed="2026-10-04 spec",
+        extra_fields="- **Kind:** outcome",
+    )
+    _make_spec(tmp_path, dir_name="alpha-delivery", discovery=f"`{_discovery_value(form, 'alpha')}`")
+    snap = _resolve(tmp_path)
+
+    legacy = tmp_path.parent / f"{tmp_path.name}-legacy"
+    legacy.mkdir()
+    _make_intent(
+        legacy,
+        slug="alpha",
+        level="feature",
+        decomposed="2026-10-04 spec",
+        extra_fields="- **Kind:** outcome",
+    )
+    _make_spec(legacy, dir_name="alpha-delivery", discovery="`docs/product/intents/alpha.md`")
+    legacy_snap = _resolve(legacy)
+
+    assert snap["relations"] == legacy_snap["relations"]
+    assert snap["relations"] == [
+        {
+            "basis": {"intent": "Decomposed", "spec": "Discovery"},
+            "intent": "intent:alpha",
+            "route": "spec",
+            "spec": "spec:alpha-delivery",
+            "type": "direct-delivery",
+        }
+    ]
+    assert snap["diagnostics"] == []
+
+
+@pytest.mark.parametrize("prefix", _NEW_PREFIXES)
+def test_registered_prefix_resolving_to_non_feature_intent_is_provenance(
+    tmp_path: Path, prefix: str
+) -> None:
+    _make_intent(tmp_path, slug="not-feat", level="outcome", decomposed="2026-01-01 children")
+    _make_spec(tmp_path, dir_name="foo", discovery=f"`{prefix}:not-feat`")
+    snap = _resolve(tmp_path)
+    assert snap["relations"] == []
+    assert snap["diagnostics"] == []
+    assert snap["provenance"] == [
+        {
+            "field": "Discovery",
+            "intent": "intent:not-feat",
+            "subject": "spec:foo",
+            "target": f"{prefix}:not-feat",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "target", ["docs/research/some-note.md", "docs/notes/some-note.md"]
+)
+def test_research_and_notes_paths_stay_provenance(tmp_path: Path, target: str) -> None:
+    _make_spec(tmp_path, dir_name="foo", discovery=f"`{target}`")
+    snap = _resolve(tmp_path)
+    assert snap["relations"] == []
+    assert snap["diagnostics"] == []
+    assert snap["provenance"] == [
+        {"field": "Discovery", "subject": "spec:foo", "target": target}
+    ]
+
+
+@pytest.mark.parametrize("prefix", _NEW_PREFIXES)
+def test_registered_prefix_with_bad_slug_is_malformed(tmp_path: Path, prefix: str) -> None:
+    _make_spec(tmp_path, dir_name="foo", discovery=f"`{prefix}:Bad_Slug`")
+    reference = tmp_path.parent / f"{tmp_path.name}-ref"
+    reference.mkdir()
+    _make_spec(reference, dir_name="foo", discovery="`intent:Bad_Slug`")
+    snap = _resolve(tmp_path)
+    assert snap == _resolve(reference)
+    assert [d["code"] for d in snap["diagnostics"]] == ["delivery-reference-malformed"]
+    assert snap["relations"] == [] and snap["provenance"] == []
+
+
+@pytest.mark.parametrize("prefix", _NEW_PREFIXES)
+def test_registered_prefix_missing_intent_is_target_missing(tmp_path: Path, prefix: str) -> None:
+    _make_spec(tmp_path, dir_name="foo", discovery=f"`{prefix}:ghost`")
+    snap = _resolve(tmp_path)
+    assert snap["diagnostics"] == [
+        {"code": "delivery-target-missing", "field": "Discovery", "subject": "spec:foo"}
+    ]
+    assert snap["relations"] == [] and snap["provenance"] == []
+
+
+@pytest.mark.parametrize("prefix", _NEW_PREFIXES)
+def test_registered_prefix_duplicate_slug_is_ambiguous(tmp_path: Path, prefix: str) -> None:
+    _make_intent(tmp_path, slug="dup", level="outcome", decomposed="2026-01-01 children")
+    _make_intent(
+        tmp_path, slug="dup", level="outcome", decomposed="2026-01-01 children",
+        filename="dup-copy.md",
+    )
+    _make_spec(tmp_path, dir_name="foo", discovery=f"`{prefix}:dup`")
+    snap = _resolve(tmp_path)
+    codes = [d["code"] for d in snap["diagnostics"]]
+    assert "delivery-relation-ambiguous" in codes
+    assert snap["relations"] == []
+
+
+@pytest.mark.parametrize("prefix", _NEW_PREFIXES)
+def test_registered_prefix_ambiguous_with_missing_keeps_canonical_target(
+    tmp_path: Path, prefix: str
+) -> None:
+    """A not-found typed value among distinct targets is emitted like an intent: one."""
+    _make_intent(tmp_path, slug="alpha", decomposed="2026-01-01 spec")
+    _make_spec(tmp_path, dir_name="multi", discovery=f"`intent:alpha`\n- **Discovery:** `{prefix}:ghost`")
+    snap = _resolve(tmp_path)
+    ambiguous = [d for d in snap["diagnostics"] if d["code"] == "delivery-relation-ambiguous"]
+    assert ambiguous == [
+        {
+            "code": "delivery-relation-ambiguous",
+            "field": "Discovery",
+            "subject": "spec:multi",
+            "targets": sorted(["intent:alpha", f"{prefix}:ghost"]),
+        }
+    ]
+
+
+@pytest.mark.parametrize("prefix", _NEW_PREFIXES)
+def test_unsafe_intent_path_next_to_typed_value_is_unsafe_diagnostic(
+    tmp_path: Path, prefix: str
+) -> None:
+    """An unsafe intents path beside a typed value yields the existing unsafe code."""
+    _make_intent(tmp_path, slug="alpha", decomposed="2026-01-01 spec")
+    _make_spec(
+        tmp_path,
+        dir_name="multi",
+        discovery=f"`{prefix}:alpha`\n- **Discovery:** `../outside/product/intents/x.md`",
+    )
+    snap = _resolve(tmp_path)
+    assert snap["diagnostics"] == [
+        {"code": "delivery-reference-unsafe", "field": "Discovery", "subject": "spec:multi"}
+    ]
+    assert "outside" not in json.dumps(snap)
+
+
+def test_unsafe_non_intent_value_is_emitted_without_target(tmp_path: Path) -> None:
+    _make_spec(tmp_path, dir_name="foo", discovery="`../../etc/passwd`")
+    snap = _resolve(tmp_path)
+    assert snap["provenance"] == [{"field": "Discovery", "subject": "spec:foo"}]
+    assert "passwd" not in json.dumps(snap)
