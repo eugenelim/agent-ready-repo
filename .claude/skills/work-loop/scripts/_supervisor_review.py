@@ -5,7 +5,7 @@ obligation. The trusted controller answers a selection request with the
 conditional roles it selects and the ones it omits, each omission with a reason;
 the supervisor commits that answer as one ``delivery/review-selections.jsonl``
 line per delivery subject and changed-path digest. The resolver turns the rules
-and that record into one Slice 2 review-policy.
+and that record into one ``review-policy``.
 
 A role is mandatory when selected unless ``SKILL.md`` allows a named skip
 (``mandatory_when`` is ``always``, ``selected``, or ``never``). Every refusal
@@ -14,12 +14,12 @@ value outside a closed set, a selection line that does not parse, or a repeated
 key without an owner ``reselect-review`` decision leaves the review stage
 unsatisfied.
 
-The review stage closes from Slice 2 review readiness alone. This module adds
+The review stage closes from structured review readiness alone. This module adds
 the dispositions that stage owns: ``repair-request`` for a supported material
 finding, ``fixed-by`` after a fresh report for the replacement subject no longer
 carries it, and ``accept-risk`` only from an admitted ``risk-owner`` decision.
 Every record goes through ``_review_disposition.append_finding_disposition`` into
-the Slice 2 evidence log. Legacy review events map through ``_review_compat.py``.
+the ``_evidence_store`` evidence log. Legacy review events map through ``_review_compat.py``.
 
 Standard library only. Python 3.11+.
 """
@@ -266,7 +266,7 @@ def check_selection(
 
 
 def resolve_policy(rules: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
-    """The Slice 2 review-policy for the rules and one selection record.
+    """The ``review-policy`` for the rules and one selection record.
 
     Every always role comes from the rules, then each selected role; a role is
     ``mandatory`` when ``mandatory_when`` is ``always`` or ``selected`` and
@@ -384,6 +384,7 @@ class Selection:
 
     @property
     def latest(self) -> dict[str, Any]:
+        """The most recent selection record for this key."""
         return self.records[-1]
 
 
@@ -587,7 +588,7 @@ def _write_disposition(
     step: str,
     replacement_report_id: str | None = None,
 ) -> str:
-    """Append one ``finding-disposition.v1`` and its approval through Slice 2's write port.
+    """Append one ``finding-disposition.v1`` through the evidence store's write port.
 
     The disposition belongs to *subject*; the approval is bound to that subject
     and its policy. Returns the disposition id.
