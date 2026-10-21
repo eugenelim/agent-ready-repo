@@ -6,6 +6,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.53.0] — 2026-10-20
+
+### Added
+
+- `agentbundle catalogue package --compare <archive>` compares the release with
+  a prior runtime archive and lists every added, removed and changed pack and
+  profile, with the count of unchanged ones. A pack whose content changed under
+  an unchanged version is marked `content changed, version unchanged`.
+- `agentbundle catalogue package --format {table,json}`. With `json`, stdout is
+  one envelope object and carries a `comparison` object when `--compare` is
+  given; human output stays on stderr. `--compare` and `--format json` apply to
+  the runtime flavour only.
+- `agentbundle catalogue package --force` replaces an existing release archive.
+- `catalogue-manifest.json` gives each `packs[]` entry a `path` and a `digest`,
+  and each `profiles[]` entry a `name`, `path` and `digest`. The manifest
+  `schema` stays `2`.
+- `catalogue verify --archive` reports `CAT-V-ARC-018` for a declared unit digest
+  that differs from the one recomputed over `files[]`, and `CAT-V-ARC-019` for a
+  malformed manifest shape. Older manifests raise neither.
+
+### Changed
+
+- Breaking: `catalogue package` refuses to replace an existing release archive,
+  for both flavours, and exits 2 where a first run without `--force` used to
+  overwrite it. The deprecated `package-catalogue` command is unchanged.
+- Breaking: the `catalogue package` subcommand rejects abbreviated options, so
+  `--forc` exits 2.
+- Breaking: each `profiles[]` entry in `catalogue-manifest.json` is an object
+  `{name, path, digest}`, not a name string. Only `.toml` files directly under
+  `profiles/` are profile entries.
+- Unit digests show that a manifest agrees with its own `files[]`, not who
+  published the archive; the sidecar and channel descriptor remain the
+  provenance evidence.
+
+Engine-Change-RFC: RFC-0076
+
 ## [0.52.1] — 2026-10-11
 
 ### Changed

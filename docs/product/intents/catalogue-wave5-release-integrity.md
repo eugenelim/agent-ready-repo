@@ -9,7 +9,7 @@
 - **Maturity:** brownfield
 - **De-risked:** 2026-10-02
 - **Shaping-reviewed:** 2026-10-02
-- **Decomposed:** no
+- **Decomposed:** 2026-10-20 spec
 - **Parent intent:** capability:catalogue-trust-and-adoption
 - **Governed by:** [RFC-0076 D8](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 
@@ -85,7 +85,7 @@ validation_hook:
 
 ## Decomposition
 
-None yet. This feature intent projects to one release-integrity specification after acceptance; the specification owns the detailed manifest, CLI, comparison, and refusal contracts.
+One same-repository spec and plan at `docs/specs/catalogue-wave5-release-integrity/` own this feature: [Catalogue Wave 5 — release integrity](../../specs/catalogue-wave5-release-integrity/spec.md). The specification owns the detailed manifest, CLI, comparison, and refusal contracts.
 
 ## Source
 
