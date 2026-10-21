@@ -22,6 +22,26 @@
         "Names exactly the eight [product] readers: intent, align-value-stream, frame-situation, identify-opportunities, diverge-solutions, place-bet, map-capabilities, and lean-canvas",
         "Distinguishes lean-canvas reading [product] to scan from writing its pinned path"
       ]
+    },
+    {
+      "id": "solution-reference-offer-architect-absent-silent",
+      "prompt": "Anchor the system architecture for the value-stream meta-repo. The architect pack is not in the available-skills roster.",
+      "expected_output": "The skill anchors the C4 / bounded-context reference in the meta-repo itself and continues silently, with no mention of the missing architect skill.",
+      "assertions": [
+        "Anchors the system C4 / bounded-context reference.md in the meta-repo that component repos link to",
+        "Does not mention architect-design, its absence, or installing anything",
+        "Continues with the skill's own procedure and reaches the rollup step without an error"
+      ]
+    },
+    {
+      "id": "hard-limits-readme-proposal",
+      "prompt": "Stand up the value-stream meta-repo and tell me what limits the team must accept.",
+      "expected_output": "The skill proposes the Hard limits section from its asset for the solution repo's README, shows it, and writes only after confirmation.",
+      "assertions": [
+        "Proposes a ## Hard limits README section naming no atomic cross-repo commit, no shared release train, and the rollup as a snapshot, not a live feed",
+        "Shows the section text and writes the README only after the user confirms",
+        "Does not overwrite an existing Hard limits section without the user's acceptance"
+      ]
     }
   ]
 }

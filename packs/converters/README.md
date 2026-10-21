@@ -51,4 +51,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE.
 
 ## Details
 
-Scope: user (default), repo · Version: 0.9.8 · Source: [packs/converters](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/converters)
+Scope: user (default), repo · Version: 0.9.9 · Source: [packs/converters](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/converters)

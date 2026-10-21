@@ -96,8 +96,8 @@ own behaviour and say nothing about it: no mention, no note, and no error.
 
 **5. Emit.** Write `<output_dir>/shaping/<slug>/capability-map.md` using
 `assets/capability-map-template.md`. Surface the resolved absolute path before
-writing; confirm before overwriting an existing file. Append "Next step readiness"
-when `lean-canvas` / `author-delivery-brief create` is not detected in available skills.
+writing; confirm before overwriting an existing file. The map always ends with a
+`## Next step` section that names `intent decompose`.
 
 **6. Suggest workspace.toml transition.** Print the TOML snippet to transition the
 slug. Direct PE to `work-intake` or manual edit. Do not write to `workspace.toml`.
@@ -109,4 +109,4 @@ slug. Direct PE to `work-intake` or manual edit. Do not write to `workspace.toml
 - Never mint a new slug.
 - Never include Buy / Partner / Adopt capabilities in the suggested build sequence.
 - Never fabricate domains from thin input — elicit more context first.
-- Never produce a brief (`lean-canvas` / `author-delivery-brief create` owns that hand-off).
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

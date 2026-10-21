@@ -1,6 +1,6 @@
 # frame mode
 
-Stage: `frame`, an `intent` mode. On the short route it is step 1 of 3 (`frame`, `de-risk`, `decompose`, then the hand-off through `work-intake`); on the supervised route `discovery-loop` calls it at G0; the longer route opens with `frame-situation` and does not use it.
+Stage: `frame`, an `intent` mode. On the short route it is step 1 of 3 (`frame`, `de-risk`, `decompose`, then the hand-off through `work-intake`); on the supervised route `discovery-loop` calls it at G0; the longer route opens with `frame-situation` and does not use it until `intent decompose` hands it a child intent.
 
 Shape a piece of product work into an `intent` — a level-tagged statement of an
 outcome and the opportunity behind it — *before* it becomes a spec. A

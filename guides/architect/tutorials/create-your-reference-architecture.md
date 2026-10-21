@@ -96,5 +96,5 @@ sections, or assess whether the implemented system conforms to that standard.
 
 - [Foundation vs. map](../../core/explanation/foundation-vs-map.md) — why `reference.md` and `overview.md` are separate.
 - [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md) — the authoritative section list.
-- [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md) — the task recipe with all three routes.
+- [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md) — the task recipe with all four routes.
 - [Assess a repository and turn evidence into action](../how-to/assess-a-repository.md) — compare the normative foundation with implemented and operational evidence.

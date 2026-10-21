@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** You have a committed bet from `place-bet` and need to enumerate what to build, buy, or adopt — and in what order — before any spec or initiative brief is written.
 **Prerequisites:** `product-engineering` pack installed; a committed `bet.md` from `place-bet` (step 5 of the shaping sequence).
-**Result:** A capability map with Wardley-stage and strategic-criticality annotations, a dependency-ordered build sequence, and a `workspace.toml` spec-queue ready to seed M3–M6.
+**Result:** A capability map with Wardley-stage and strategic-criticality annotations, a dependency-ordered build sequence, ready for `intent decompose`.
 
 **Goal:** You have a committed bet and need to enumerate all the capability areas
 the initiative implies — what to build, what to buy or adopt, and in what order
@@ -25,13 +25,16 @@ Map our capabilities for a self-service export-retention service for workspace o
 
 ## When to run `map-capabilities`
 
-Run `map-capabilities` after `place-bet` and before `lean-canvas` / `author-delivery-brief create`.
-It is step 6 — the terminal step — of the PE six-step shaping sequence:
+Run `map-capabilities` after `place-bet`.
+It is step 6 of the PE six-step shaping sequence:
 
 ```
 frame-situation → identify-opportunities → diverge-solutions
   → validate → place-bet → map-capabilities
 ```
+
+The longer route then continues: its next step is `intent decompose`, which takes
+`capability-map.md` as input and turns each Build capability into a child intent.
 
 This guide belongs to the [robust shaping path](../explanation/the-intent-tree.md#light-and-robust-shaping-paths).
 
@@ -42,8 +45,8 @@ If you do not yet have a bet, run `place-bet` first.
 **Not the right skill if:**
 
 - You are working on a single feature or screen → use `intent frame`.
-- You want to author the initiative brief → use `lean-canvas` or `author-delivery-brief create`
-  (run those after this skill, not instead of it).
+- You want to author the initiative brief → use `lean-canvas` for the one-page initiative brief or
+  `author-delivery-brief` for the delivery brief (neither replaces this skill).
 
 ---
 
@@ -85,7 +88,7 @@ The combination tells you the most important strategic signals:
 
 ---
 
-## How to use the suggested build sequence to seed M3–M6
+## How to use the suggested build sequence
 
 The suggested build sequence at the bottom of the capability map lists
 **Build-disposition capabilities only**, ordered dependency-first then by
@@ -94,43 +97,39 @@ Wardley maturity (Genesis / Differentiating capabilities first).
 It is a **recommendation, not a mandate** — the product team holds final
 sequencing authority.
 
-### Translating the sequence to your spec queue
+### Ordering the child intents
 
-Each position in the build sequence corresponds to a future spec:
-
-1. Open `workspace.toml`.
-2. For each capability in the build sequence, add an entry to the active
-   initiative's `["ini-NNN".work].queue`:
-   ```toml
-   {path = "spec/<capability-id>-<short-name>", needs = "work:spec/<prior-capability-id>"}
-   ```
-3. Run `workspace-status` to confirm the entries are surfaced correctly and
-   dependencies are resolved in the right order.
+`intent decompose` turns each Build capability into a capability-level child
+intent. Use the build sequence to order those child intents. Specs enter the
+`workspace.toml` queue only when a child intent reaches its own leaf and hands
+off through `work-intake`; the capability map never seeds the spec queue
+directly.
 
 **Non-Build capabilities (Buy / Partner / Adopt)** appear in the domain tables
 but are excluded from the build sequence — their disposition *is* the action.
-Add procurement decisions to your team's acquisition plan, not the spec queue.
+Add procurement decisions to your team's acquisition plan; child intents name them as dependencies.
 
 ### What comes next
 
 After the capability map is committed:
 
-1. Run `lean-canvas` to author the initiative brief (maps the bet and capability
-   map to a structured business brief).
-2. Or run `author-delivery-brief create` directly if you are working from an externally sourced brief.
-3. Use the build sequence to seed `workspace.toml [work].queue` for M3–M6 spec-writing.
+1. Run `intent decompose` on `capability-map.md`. Each Build capability becomes a capability-level child intent, which then runs `intent frame`, `intent de-risk`, and `intent decompose`.
+2. Use the build sequence to order those child intents.
+
+A brief is a separate path: `lean-canvas` writes the one-page initiative brief, and `author-delivery-brief` owns the delivery brief.
 
 ---
 
 ## See also
 
 - `place-bet` — step 5; produces the `bet.md` this skill reads
-- `lean-canvas` — brief-authoring from a committed bet and capability map
+- `intent decompose` — the next step; turns each Build capability into a child intent
+- `lean-canvas` — writes the one-page initiative brief
 - `frame-situation` — step 1; provides Wardley capability assessments the map reads opportunistically
 - `intent de-risk` — step 4 (validate); runs assumption tests before the bet is placed
-- `workspace-status` — surfaces the spec queue after you seed it from the build sequence
+- `workspace-status` — surfaces the spec queue once child intents hand off their specs
 
 ## What you have now
 
 - A capability map with maturity, criticality, disposition, and dependency-aware build order.
-- Its Build capabilities can inform a Lean Canvas or delivery brief and seed the future spec queue.
+- Its Build capabilities are ready for `intent decompose`, in build order.
