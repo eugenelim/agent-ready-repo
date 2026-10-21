@@ -45,6 +45,9 @@ fixtures/
 ├── roadmap/               export view: two product strategies, nested capabilities, a capability
 │                          under no strategy, every delivery band, a refused parent edge, and a
 │                          parent loop; its README states each record's band and placement by hand
+├── owners/                record owners: every `Owner:` header form, two capabilities (one nested),
+│                          a brief and open and closed specs; its README states each record's owner,
+│                          the option list, selector results and per-choice Browse and roadmap rows by hand
 ├── hostile/               export view: header values carry script-closing text, markup,
 │                          a `javascript:` value, attribute-breaking quotes, a line separator
 │                          (the derivation reads lines with `splitlines`, so a separator ends

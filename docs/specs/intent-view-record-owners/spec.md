@@ -1,6 +1,6 @@
 # Spec: Intent view record owners
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-21 by eugenelim, spec and plan, at revision 5a8a691e1, after spec-mode shaping and adversarial reviews, each clean after adjudication at round 8; reports under `.context/reviews/6aa4e0b5-a803-41fb-964f-84d041130fdd/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

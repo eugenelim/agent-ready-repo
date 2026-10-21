@@ -1,7 +1,7 @@
 # Plan: Intent view record owners
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `intent_graph.py` `derive` and `_preamble_visible`, where the shipped `heading` field is the analogue (slice 9, `docs/specs/intent-node-headings/`); `navigate_intents.py` `_build_intent_record`, `_op_search` and `_VALID_SELECTORS`, and `_build_outstanding_items`; `view_src/rows.js` `rowLink`, `browse.js` `treeRow` and its `ctx.match`, `roadmap.js` `capabilityRow`, `routing.js` `parseRoute`/`questionHash`, and `chrome.js` `buildNav`; the part list in `intent_view.py`; and the construction path `packs/core/tests/pack/test_intent_delivery_relations_copies.py`, `test_derivation_contract.py`, `test_query_contract.py`, `test_outstanding.py`, `test_export_html.py` and `view_browser_checks.py`. Named uncertainty: the readiness-bridge spec is Approved but not built, so its `readiness.js` rows are grounded only once it merges (T4).
 
 > **Plan contract:** this is the implementation strategy. It may change
