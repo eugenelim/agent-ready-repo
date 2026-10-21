@@ -27,6 +27,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from agentbundle.catalogue_tooling.archive import unit_digest
 from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
@@ -388,7 +389,7 @@ def _generate_manifest(
     adapter_contract_version: str | None = None,
     pack_schema_version: str | None = None,
     marketplace_digest: str | None = None,
-    profiles_metadata: list[str] | None = None,
+    profiles_metadata: list[dict] | None = None,
 ) -> bytes:
     """Build catalogue-manifest.json bytes (schema 2).
 
@@ -416,7 +417,7 @@ def _generate_manifest(
         "marketplace_digest": marketplace_digest,
         "files": files,
         "packs": packs,
-        "profiles": profiles_metadata or [],
+        "profiles": sorted(profiles_metadata or [], key=lambda x: x["name"]),
     }
     return json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8")
 
@@ -653,16 +654,19 @@ def package_catalogue(
         if len(parts) == 3 and parts[0] == "packs" and parts[2] == "pack.toml":
             try:
                 pack_data = tomllib.loads(data.decode("utf-8"))
+                pack_path = f"packs/{parts[1]}"
                 pack_entry = {
                     "name": pack_data["pack"]["name"],
                     "version": pack_data["pack"]["version"],
+                    "path": pack_path,
+                    "digest": unit_digest(digests, pack_path),
                 }
             except (KeyError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
                 return _err(f"captured pack metadata is invalid at {key}: {exc}")
             packs_metadata.append(pack_entry)
 
-    # --- Extract profile names ---
-    profiles_metadata: list[str] = []
+    # --- Extract profile entries (only profiles/<name>.toml, directly under) ---
+    profiles_metadata: list[dict] = []
     for key, data in sorted(file_bytes.items()):
         parts = key.split("/")
         if len(parts) >= 2 and parts[0] == "profiles" and key.endswith(".toml"):
@@ -670,7 +674,12 @@ def package_catalogue(
                 tomllib.loads(data.decode("utf-8"))
             except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
                 return _err(f"captured profile TOML is invalid at {key}: {exc}")
-            profiles_metadata.append(parts[-1].removesuffix(".toml"))
+            if len(parts) == 2:
+                profiles_metadata.append({
+                    "name": parts[1].removesuffix(".toml"),
+                    "path": key,
+                    "digest": unit_digest(digests, key),
+                })
 
     # --- Determine generated_at ---
     if generated_at is None:

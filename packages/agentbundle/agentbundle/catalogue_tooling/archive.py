@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tarfile
+from collections.abc import Mapping
 from pathlib import Path
 
 from agentbundle.catalogue import CatalogueError
@@ -34,6 +35,34 @@ def _get_agentbundle_version() -> str:
         except Exception:
             _AGENTBUNDLE_VERSION = "unknown"
     return _AGENTBUNDLE_VERSION
+
+
+def unit_digest(file_digests: Mapping[str, str], unit_path: str) -> str | None:
+    """Return the unit digest of ``unit_path`` over ``file_digests`` (AC-0001).
+
+    ``file_digests`` maps archived relative paths to lowercase hex SHA-256.
+    If it holds ``unit_path`` exactly, the unit is that one file, named by its
+    basename; otherwise it is the directory of files under ``unit_path + "/"``.
+    Returns ``None`` when no member file exists.
+    """
+    if unit_path in file_digests:
+        members = {unit_path.rsplit("/", 1)[-1]: file_digests[unit_path]}
+    else:
+        prefix = unit_path + "/"
+        members = {
+            path[len(prefix):]: digest
+            for path, digest in file_digests.items()
+            if path.startswith(prefix)
+        }
+    if not members:
+        return None
+    # Sort by UTF-8 bytes, not code points, to honour "byte order".
+    lines = sorted(
+        (rel.encode("utf-8"), f"{digest}  {rel}\n")
+        for rel, digest in members.items()
+    )
+    preimage = "".join(line for _, line in lines)
+    return "sha256:" + hashlib.sha256(preimage.encode("utf-8")).hexdigest()
 
 
 def _err(code: str, message: str, path: str | None = None) -> Diagnostic:
