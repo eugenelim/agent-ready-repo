@@ -221,9 +221,11 @@ Git hardening
 - [ ] **AC-0011.** A planted hook, fsmonitor command, filter driver, textconv
   driver, external diff, signing command, or config include runs nothing during
   any supervisor `git` call.
-- [ ] **AC-0012.** A commit substituted through `refs/replace/`, a graft, a
-  packed ref, or a rewritten gitfile or `commondir` is never read as a
-  supervisor commit.
+- [ ] **AC-0012.** A commit substituted through `refs/replace/` or a graft is
+  never read as a supervisor commit. During an open attempt, neither is a commit
+  reached through a packed-ref move or a rewritten gitfile or `commondir`.
+  Outside an open attempt, the supervisor reads its commits by their trailers,
+  so a rebase that preserves their messages still converges.
 
 Launched code, pinning, and trust
 

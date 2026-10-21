@@ -100,7 +100,9 @@ and needs a security-reviewer pass.
   files and Git control state against the manifest. A moved `HEAD` is accepted
   only when the manifest's `HEAD` is its ancestor and every newer commit id is
   in the supervisor store's list of commits the supervisor made; trailers alone
-  never count.
+  never count. Outside an open attempt, supervisor commits are read by their
+  trailers, as core reads them; replace refs and graft files are never honored.
+  An attempt's report is recorded in the store, so a rebase does not reopen it.
 - **Supervisor store.** `<pinned Git directory>/agentbundle-supervisor/<run id>/`
   holds the pinned digests, manifests, refusal records, and made-commit ids.
   Residue derives only from its refusal records, so deleting core's caches
@@ -174,20 +176,22 @@ Owned by: T1, T2, T3, T4.
     a `log`. With `core.autocrlf=true` carried, staged bytes match plain
     `git add`.
   - **VI-5012 (AC-0012):** these forgeries leave completion unchanged:
-    `git replace` of a supervisor commit, a graft, a packed-ref move, and a
-    rewritten gitfile or `commondir`.
+    `git replace` of a supervisor commit and a graft. Core's message-preserving
+    rebase cases still converge.
 - **Done when:** VI-5010 through VI-5012 pass, and security-reviewer returns clean.
 
 ### T3: Worker changes to trusted files are refused and never adopted
 
 - **Depends on:** T2
-- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0026, AC-0027; TDD.
+- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0012 (its open-attempt clause; T2 owns the rest), AC-0026, AC-0027; TDD.
 - **Touches:** new `_supervisor_attempt.py`; `_supervisor_loop.py` (manifest at attempt issue, open-attempt check, `report` checks); `_supervisor_git.py` (helper pre-check against an open attempt's manifest); Core manifests and changelog
 - **Verification mode:** TDD
 - **Tests:**
-  - **VI-5020 (AC-0001):** each of these worker changes is refused at `report`:
+  - **VI-5020 (AC-0001, AC-0012):** each of these worker changes is refused at `report`:
     `plan.md`, a cited ADR, the installed skill, an `evidence.jsonl` append, a
-    branch-ref move, `refs/replace/`, `.git/config`, a hook, and the gitfile.
+    branch-ref move, a packed-ref move, `refs/replace/`, `.git/config`, a hook,
+    the gitfile, and `commondir`. An attempt already reported stays closed
+    after a message-preserving rebase.
   - **VI-5021 (AC-0002, AC-0003):** an implementer, and separately a
     reviewer, edits `plan.md`, `## Acceptance Criteria`, and `evidence.jsonl`,
     then `next` runs before `report`. Each gives `attempt-residue` before any
@@ -264,6 +268,8 @@ Owned by: T1, T2, T3, T4.
 
 <!-- Approvals only. -->
 
+- 2026-10-20: spec approved by eugenelim
+- 2026-10-20: plan approved by eugenelim
 - 2026-10-20: spec approved by eugenelim
 - 2026-10-20: plan approved by eugenelim
 - 2026-10-20: spec approved by eugenelim

@@ -63,3 +63,11 @@ The plan's Git helper design names its flags and carried settings. The helper as
 - **`--literal-pathspecs`** replaces the `GIT_LITERAL_PATHSPECS` variable for the same reason.
 - **A boolean `core.fsmonitor`** is not a code-running setting; any other value is.
 - **Unverifiable checks log after the spec directory is confined.** A failure inside repository discovery, before the spec directory is confined, is a usage error with no security-event line, because no confined `.supervisor/` directory exists yet to hold one.
+
+## T2 and T3: Owner decision on where the made-commit list applies (2026-10-20)
+
+The supervisor integration lane on PR #1585 failed three core tests that rebase a run's history with its messages preserved: `test_rebase_preserving_messages_converges`, `test_a_rebase_after_the_push_does_not_reopen_it`, and `test_a_finish_push_runs_once_and_survives_a_rewrite`. T2 counted a commit as the supervisor's only when its id was in the made-commit list, and a rebase gives every commit a new id, so the shipped core guarantee that a message-preserving rebase converges was falsified.
+
+The owner (eugenelim) chose to apply the made-commit list only during an open worker attempt, where every commit after the manifest's `HEAD` must be listed. Outside an open attempt the supervisor reads its commits by their trailers, as core does, and replace refs and graft files are still never honored. A packed-ref move or a rewritten gitfile or `commondir` is a forgery only a worker could make, and a worker acts only during an attempt, so those cases move from T2 to T3. AC-0012 is narrowed to match, by controlled amendment.
+
+T3 also edits the core crash-corpus variant `test_supervisor_commit_during_a_live_lease`: its spec edit moves from inside the open attempt to after the report, because an edit to a trusted file during an open attempt cannot be told apart from a worker's and is now refused as attempt residue.
