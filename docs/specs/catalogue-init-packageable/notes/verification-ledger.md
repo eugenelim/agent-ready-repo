@@ -1,0 +1,11 @@
+# Verification ledger: catalogue-init-packageable
+
+- 2026-10-21, T5 adopter rehearsal (HEAD 655955719; `agentbundle 0.53.1 (spec 0.18)`; code from this worktree's `packages/agentbundle` via `PYTHONPATH`; temporary directory under `/tmp`, outside the repository; no hand edits before step 4). Steps and exit codes:
+  1. `catalogue init cat --name demo-cat`: exit 0, 23 files created, including root `AGENTS.md` and `CLAUDE.md`.
+  2. `catalogue verify --root cat`: exit 0, `catalogue verify: ok`.
+  3. `catalogue package --root cat --bundle demo --release 0.1.0 --channel stable --output out`: exit 0.
+  4. `catalogue verify --archive out/catalogues/demo/releases/0.1.0/catalogue-0.1.0.tar.gz --sha256-file <archive>.sha256`: exit 0, `catalogue verify: ok`. Archive holds 13 members: root `AGENTS.md`, `catalogue-manifest.json`, `.claude-plugin/marketplace.json`, `packs/{AGENTS,CLAUDE,README}.md`, `profiles/{AGENTS,CLAUDE,README}.md` and four `tests/conformance/` files; no `_example` member.
+  5. With `include = ["AGENTS.md"]`: `catalogue package ... --release 0.2.0` exit 1, one stderr line `CAT-PKG-001: invalid [catalogue.package].include: pack_include entry 'AGENTS.md' must start with 'packs/' ...`, no traceback.
+  6. With `include = ["packs/_example"]`: exit 1, one line `CAT-PKG-001: ... 'packs/_example' names a '_' directory; '_' directories are templates that are never packaged`; no 0.2.0 release directory created.
+- 2026-10-21, full package suite on Python 3.14.8 (local venv): 5731 passed, 3 failed. The three failures are outside this change's diff and fail identically on base d714ab829: `test_agent_plugin_projection.py::test_agent_plugin_manifest_sanitizes_deep_unused_metadata`, `test_direct_install.py::test_the_publisher_allowlist_refuses_invisible_code_points` (embedded Default_Ignorable table generated against UCD 15.1.0; Python 3.14 ships 16.0.0), and `tools/test_check_artifact_contents.py::test_real_sdist_carries_and_executes_complete_engine_suite` (re-runs the engine suite, so it inherits the two). CI runs Python 3.11.
+- 2026-10-21, T2 follow-up: an include entry of exactly `packs/` raised `IndexError` in the new `_` check; fixed in 5887887af with `test_bare_packs_include_entry_still_packages` (red on 4322a14e6, green after).
