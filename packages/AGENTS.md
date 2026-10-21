@@ -5,8 +5,8 @@ Applies to `packages/`. Inherits the root `AGENTS.md`. Scope-specific deltas onl
 ## Version bump rule
 
 Non-cosmetic package changes update both `version.py` and `pyproject.toml`.
-CLI-surface changes may require release; see
-[`AGENTS.local.md`](AGENTS.local.md#release-coupling).
+Whether a change also needs a release, and how to cut one, is in
+[`cut-a-package-release.md`](../docs/guides/how-to/cut-a-package-release.md).
 
 ## Cross-package traps
 
@@ -41,8 +41,3 @@ no `contracts/`, `packs/`, `docs/`, or `catalogue.toml`. A test placed here that
 reads a repository path passes locally and fails the sdist artifact gate. Keep the
 package behaviour here against fixtures and move the repository-level half to
 `tests/roster/`; [`tests/AGENTS.md`](../tests/AGENTS.md) owns what that obliges.
-
-## Deeper pointers
-
-Package release process lives in
-[`docs/guides/explanation/release-coupling.md`](../docs/guides/explanation/release-coupling.md).
