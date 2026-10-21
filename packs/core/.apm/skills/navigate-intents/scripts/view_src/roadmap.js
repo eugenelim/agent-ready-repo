@@ -147,6 +147,7 @@
     add(a, el('span', 'c-name', displayName(id)));
     add(add(a, el('span', 'c-state')), stateMark(id));
     add(a, progressEl(id));
+    add(a, ownerCell(id));
     if (current !== null && current.node === id) { a.setAttribute('aria-current', 'true'); }
     var inside = (nested.get(id) || []).sort(byName);
     if (inside.length) {

@@ -217,6 +217,7 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
     found: dict[str, pathlib.Path] = {}
     for name, root in (
         ("mixed", _FIXTURES / "mixed"),
+        ("owners", _FIXTURES / "owners"),
         ("hostile", _FIXTURES / "hostile"),
         ("dependency", _FIXTURES / "dependency"),
         ("empty", _FIXTURES / "empty"),
@@ -1174,7 +1175,7 @@ def test_ac_0009_row_is_one_link_with_three_cells(opener: Any, exports: dict[str
             "#list a.row-link",
             "els => els.map(e => [e.tagName, Array.from(e.children).map(c => c.className)])",
         )
-        assert all(s == ["A", ["c-name", "c-state", "c-context"]] for s in shape), key
+        assert all(s == ["A", ["c-name", "c-state", "c-context", "c-owner"]] for s in shape), key
         assert page.locator("#list li.row").count() == len(shape)
         assert not page.locator("#list li.row a").count() - len(shape)
     _choose(item, "next")
@@ -1476,7 +1477,7 @@ def test_ac_0019_record_details(opener: Any, exports: dict[str, pathlib.Path]) -
         page.locator("#detail-body details.record summary").click()
         record = page.locator("#detail-body details.record")
         facts = record.locator(".fact-name").all_inner_texts()
-        want = ["Id", "Path", "Type"] + (["Level", "Kind"] if node_id.startswith("intent") else []) + ["Status"]
+        want = ["Id", "Path", "Type"] + (["Level", "Kind"] if node_id.startswith("intent") else []) + ["Status", "Owner"]
         assert facts == want, node_id
         assert node_id in record.locator("dl.facts").inner_text()
         assert record.locator("h4.label-group").all_inner_texts() == groups, node_id
@@ -3805,7 +3806,7 @@ def test_roadmap_progress_text(opener: Any, exports: dict[str, pathlib.Path]) ->
     rows = {r["id"]: r for s in sections for r in _walk_rows(s["rows"])}
     assert rows
     for node, row in rows.items():
-        assert row["parts"] == ["c-name", "c-state", "rm-progress"], node
+        assert row["parts"] == ["c-name", "c-state", "rm-progress", "c-owner"], node
         assert row["mark"] == model.word(node), node
         assert _shown_progress(row["progress"]) == _expected_progress(found, node), node
     # Three rows stated outright: a share, an all-stopped row and a row with nothing beneath.
@@ -6319,3 +6320,235 @@ def test_readiness_ac_0040_reduced_motion_is_still(
         assert got["tags"] == 1 and got["count"] >= 4
     else:
         assert got["notices"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Record owners: the row cell, the Owner line, the Owner control and its route
+# ---------------------------------------------------------------------------
+
+_OWNERS_ROOT = _FIXTURES / "owners"
+_NO_OWNER = "No owner recorded"
+
+
+def _readme_helpers() -> Any:
+    """Load the README table reader from the derivation contract test, under a unique name."""
+    name = "core_navigate_intents_readme_helpers_view_browser_checks"
+    if name in sys.modules:
+        return sys.modules[name]
+    return _load(pathlib.Path(__file__).resolve().parent / "test_derivation_contract.py", name)
+
+
+def _owners_tables() -> dict[str, list[list[str]]]:
+    return _readme_helpers()._owners_readme_tables(_OWNERS_ROOT)  # type: ignore[no-any-return]
+
+
+def _owner_key(owner: str) -> str:
+    """The owner key: runs of spaces and tabs collapse, the ends trim, only A to Z lower."""
+    collapsed = re.sub(r"[ \t]+", " ", owner).strip(" ")
+    return "".join(chr(ord(c) + 32) if "A" <= c <= "Z" else c for c in collapsed)
+
+
+def _readme_owner_by_node() -> dict[str, str]:
+    return {r[0]: json.loads(r[2]) for r in _owners_tables()["Owner table"]}
+
+
+def _readme_options() -> list[tuple[str, str | None]]:
+    """The README's option list as (label, owner key), the key None for Any owner."""
+    out: list[tuple[str, str | None]] = []
+    for _pos, label, key in _owners_tables()["Option list"]:
+        out.append((label, None if key == "-" else json.loads(key)))
+    return out
+
+
+def _owner_route(key: str | None) -> str:
+    """The fragment value for an option: empty for Any owner, none, or k:<key>."""
+    if key is None:
+        return ""
+    return "none" if key == "" else "k:" + key
+
+
+def _owner_cell_text(owner: str) -> str:
+    return _NO_OWNER if _owner_key(owner) == "" else "Owner: " + owner
+
+
+def _row_owner_cells(page: Page) -> list[tuple[str, str, list[str]]]:
+    """Each row link's node, its last cell's text, and the cell class list."""
+    return page.eval_on_selector_all(  # type: ignore[no-any-return]
+        "#list a.row-link",
+        """els => els.map(e => [e.dataset.node, e.lastElementChild.textContent,
+          Array.from(e.lastElementChild.classList)])""",
+    )
+
+
+def _check_owner_cells(page: Page, by_node: dict[str, str], label: str) -> int:
+    rows = _row_owner_cells(page)
+    for node, cell, classes in rows:
+        assert classes == ["c-owner"], (label, node, classes)
+        assert cell == _owner_cell_text(by_node[node]), (label, node, cell)
+    return len(rows)
+
+
+def test_owner_key_helper_agrees_with_the_readme() -> None:
+    """The Python reading of the key reproduces every key the README states."""
+    owners = _readme_owner_by_node()
+    keys = {_owner_key(o) for o in owners.values()}
+    options = _readme_options()
+    assert {k for _l, k in options if k} == keys - {""}
+    for label, key in options:
+        if key:
+            assert _owner_key(label) == key or label.strip() != label or "  " in label, label
+    assert _owner_key("Édith Team") == "Édith team"
+    assert _owner_key("Team  Two") == _owner_key("TEAM TWO") == "team two"
+
+
+def test_owner_ac_0008_every_row_ends_with_its_owner_cell(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    by_node = _readme_owner_by_node()
+    assert set(by_node) == {n["id"] for n in payload_of(exports["owners"])["nodes"]}
+    seen = 0
+    for key in _QUESTIONS:
+        _choose(item, key)
+        _expand_all(page)
+        _open_disclosures(page)
+        seen += _check_owner_cells(page, by_node, key)
+    for group in ("capability", ""):
+        _choose(item, "browse", group=group)
+        _expand_all(page)
+        _open_disclosures(page)
+        assert _check_owner_cells(page, by_node, "browse " + group) > 0
+    _choose(item, "roadmap")
+    assert page.locator("#list li.rm-row a.row-link").count() == _capability_total(payload_of(exports["owners"]))
+    _choose(item, "next", search="feat")
+    assert _check_owner_cells(page, by_node, "search") > 0
+    assert seen > 10
+    _choose(item, "browse")
+    _expand_all(page)
+    _open_disclosures(page)
+    for (node, cell, _c), name in zip(_row_owner_cells(page), _row_ax_names(page), strict=True):
+        if name is not None:  # None: a row that is not rendered
+            assert re.sub(r"\s+", " ", cell) in name, (node, name)  # the accessible name collapses spaces
+    assert not item.errors
+
+
+def test_owner_ac_0010_record_details_shows_the_owner(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    for node, owner in _readme_owner_by_node().items():
+        _pick(item, node, "browse")
+        page.locator("#detail-body details.record > summary").click()
+        facts = page.eval_on_selector_all(
+            "#detail-body details.record dl.facts > div.fact",
+            "els => els.map(e => [e.querySelector('dt').textContent, e.querySelector('dd').textContent])",
+        )
+        owner_facts = [v for k, v in facts if k == "Owner"]
+        assert owner_facts == [_NO_OWNER if _owner_key(owner) == "" else owner], node
+
+
+def _owner_select_names(page: Page) -> list[str]:
+    """The accessible names of the page's combobox elements named Owner."""
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("DOM.enable")
+    cdp.send("Accessibility.enable")
+    doc = cdp.send("DOM.getDocument", {"depth": 0})
+    found = cdp.send("DOM.querySelectorAll", {"nodeId": doc["root"]["nodeId"], "selector": "header select"})
+    names = []
+    for node_id in found["nodeIds"]:
+        tree = cdp.send("Accessibility.getPartialAXTree", {"nodeId": node_id, "fetchRelatives": False})
+        names.append(tree["nodes"][0]["name"]["value"])
+    cdp.detach()
+    return names
+
+
+def test_owner_ac_0011_header_control_and_options(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    expected = [label for label, _k in _readme_options()]
+    for key in _QUESTIONS:
+        _choose(item, key)
+        assert _owner_select_names(page) == ["Owner"], key
+        assert page.locator("header label[for=owner]").inner_text() == "Owner"
+        assert page.locator("header label[for=owner]").is_visible()
+        assert page.eval_on_selector_all("#owner option", "os => os.map(o => o.textContent)") == expected, key
+    _choose(item, "browse", search="feat")
+    assert _owner_select_names(page) == ["Owner"]
+    assert page.locator("#owner").evaluate("e => e.closest('header') !== null")
+    # Option values carry the route encoding: empty, k:<key>, or none.
+    values = page.eval_on_selector_all("#owner option", "os => os.map(o => o.value)")
+    assert values == [_owner_route(k) for _l, k in _readme_options()]
+    # With no empty owner key among the nodes, the last option is absent.
+    owned = _rewrite(
+        exports["owners"],
+        exports["owners"].parent / "owners_all_owned.html",
+        lambda p: {**p, "nodes": [{**n, "owner": n["owner"] or "someone"} for n in p["nodes"]]},
+    )
+    page2 = opener(owned).page
+    labels = page2.eval_on_selector_all("#owner option", "os => os.map(o => o.textContent)")
+    assert labels[0] == "Any owner" and _NO_OWNER not in labels
+
+
+def test_owner_ac_0011_label_is_the_first_holder_by_id(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    """A key held by two nodes is labelled by the owner of the node whose id sorts first."""
+    path = _rewrite(
+        exports["owners"],
+        exports["owners"].parent / "owners_label.html",
+        lambda p: {
+            **p,
+            "nodes": [{**n, "owner": "team  two" if n["id"] == "capability:cap-nested" else n["owner"]} for n in p["nodes"]],
+        },
+    )
+    labels = opener(path).page.eval_on_selector_all("#owner option", "os => os.map(o => o.textContent)")
+    assert "team  two" in labels  # capability:cap-nested sorts before intent:feat-d
+    assert "TEAM TWO" not in labels and "Team  Two" not in labels
+
+
+def test_owner_ac_0023_route_holds_the_owner_choice(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    start = _history_length(page)
+    for label, key in _readme_options():
+        page.select_option("#owner", label=label)
+        page.wait_for_function(
+            "k => (new URLSearchParams(location.hash.slice(1)).get('owner') || '') === k", arg=_owner_route(key)
+        )
+        route = urllib.parse.parse_qs(page.evaluate("location.hash").lstrip("#"))
+        assert route.get("owner", [""])[0] == _owner_route(key), label
+        page.reload()
+        assert page.locator("#owner").input_value() == _owner_route(key), label
+    assert _history_length(page) == start  # replaceRoute adds no history entry
+    page.select_option("#owner", label="owner-two")
+    for question in ("roadmap", "browse"):
+        page.locator(f'nav a[data-q="{question}"]').click()
+        assert "owner=k%3Aowner-two" in page.evaluate("location.hash")
+        assert page.locator("#owner").input_value() == "k:owner-two"
+    page.locator('nav a[data-q="browse"]').click()
+    page.locator("#list a.row-link").first.click()
+    page.wait_for_function("() => location.hash.includes('node=')")
+    assert "owner=k%3Aowner-two" in page.evaluate("location.hash")
+    # A fragment owner that names no option reads as Any owner, with the same lists.
+    item.go(_frag(q="browse"))
+    any_ids = _ids(page)
+    for bad in ("k:nobody", "none-such", "k:Owner-One", "none ", "k:"):
+        item.go(_frag(q="browse", owner=bad))
+        assert page.locator("#owner").input_value() == "", bad
+        assert _ids(page) == any_ids, bad
+    # The sentinel and a real owner called "none" do not collide: k:none is not the sentinel.
+    item.go(_frag(q="browse", owner="k:none"))
+    assert page.locator("#owner").input_value() == ""
+    item.go(_frag(q="browse", owner="none"))
+    assert page.locator("#owner").input_value() == "none"
+    assert not item.errors
+
+
+def test_owner_ac_0024_keyboard_reaches_and_keeps_focus(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    page.evaluate("document.body.focus()")
+    _tab_to(page, "e.id === 'owner'")
+    page.keyboard.type("T")  # type-ahead picks "Team  Two" without opening the native popup
+    page.wait_for_function("() => document.getElementById('owner').value === 'k:team two'")
+    page.wait_for_function("() => document.activeElement.id === 'owner'")
+    assert "owner=k%3Ateam+two" in page.evaluate("location.hash")
+    page.keyboard.press("ArrowDown")
+    page.wait_for_function("() => document.activeElement.id === 'owner'")
+    assert not item.errors

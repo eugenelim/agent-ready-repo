@@ -25,3 +25,21 @@
   - navigate-intents suite (without the browser file), `test_intent_delivery_relations_copies.py` and the close-work suite: 968 passed, 4 skipped in 148s.
   - `make lint-ruff lint-mypy`: clean.
   - `lint-pack-test-boundary.py`: ok.
+
+## T3
+
+- Implemented by an `implementer` subagent.
+  - The new part `view_src/owners.js` is 78 lines, listed after `rows.js`. It holds the owner key, the options, the label, the match, the cell, the control and the route values `k:<key>` and `none`.
+  - `rowLink` and `capabilityRow` append `span.c-owner`, and "Record details" gains "Owner".
+  - Rail links now re-apply `questionHash(key, owner)` on each route, so a question switch keeps the owner choice.
+  - No list is narrowed yet; T4 and T5 do that.
+  - Named skip: the `frontend-engineering` craft file was not read. The repository's own view rules were applied instead.
+- Shipped assertions moved, each as the spec's amendment table states:
+  - the row shape now ends `c-owner`, for session-start 0009;
+  - the roadmap row parts now end `c-owner`, for tree-and-roadmap 0012;
+  - the "Record details" facts now end "Owner", for session-start 0019.
+- Console check: an `owners` export opens in headless Chromium with no console message and no page error. Its 7 options match the README.
+- Gates, all passing:
+  - Full `view_browser_checks.py`: 329 passed in 300s, none skipped. The controller re-ran the whole suite after the moved assertions.
+  - The navigate-intents suite without the browser file: 541 passed, 4 skipped.
+  - Clean: `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py`.
