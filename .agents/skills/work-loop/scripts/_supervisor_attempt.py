@@ -103,6 +103,7 @@ ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate"}
 SOURCE_REL = "packs/core/.apm/skills/work-loop"
 PINS_FILE = "pins.json"
 REGENERATE_FILE = "regenerate.json"
+ADMITTED_FILE = "admitted-skill.json"
 _POLICY_FILES = ("supervisor-policy.json", "review-rules.json")
 _HEX_RE = re.compile(r"[0-9a-f]{64}")
 _MAX_PIN_BYTES = 1024 * 1024
@@ -197,6 +198,8 @@ class Attempts:
         # The digests of the installed supervisor files, hashed before any sibling
         # loaded; ``None`` when a caller drives the modules without the entry point.
         self.installed: dict[str, str] | None = None
+        # Whether this ``start`` was asked to pin a run admitted before pinning shipped.
+        self.repin_legacy = False
         ws.git.hardened.control_check = self._control_check
 
     # ── reading files ───────────────────────────────────────────────────────
@@ -627,6 +630,7 @@ class Attempts:
         if request is not None and request["kind"] in ATTEMPT_KINDS:
             if open_attempt is not None and open_attempt.request_id == request["request_id"]:
                 return
+            self._confirm_admitted_skill(state.run_id)
             if open_attempt is not None:
                 self._supersede(open_attempt)
             regenerating = request["kind"] == "regenerate"
@@ -787,7 +791,14 @@ class Attempts:
             return
         run_id = approvals[0]["run_id"]
         pinned = self._pin_record(run_id)
+        if pinned is not None and verb == "start" and self.repin_legacy:
+            raise _refusal(
+                "repin-refused", "the run already has a pin record, which is never replaced"
+            )
         if pinned is None:
+            if verb == "start" and self.repin_legacy and self.ws.git.made_commits(run_id):
+                self._repin_legacy(run_id)
+                return
             commits = self.ws.git.supervisor_commits(run_id)
             if (
                 verb == "start"
@@ -801,6 +812,28 @@ class Attempts:
             raise _refusal(
                 "supervisor-changed", "the installed supervisor differs from its pinned digests"
             )
+
+    def _repin_legacy(self, run_id: str) -> None:
+        """Pin a run admitted before pinning shipped from the installed bytes, and log it."""
+        events = sibling("_security_events.py")
+        try:
+            events.emit_security_event(
+                self.ws.local.security_sink(),
+                events.SecurityEvent(
+                    schema_version=1,
+                    operation_id=events.make_operation_id(),
+                    correlation_id=self.ws.spec_rel,
+                    event_type="supervisor-repin",
+                    outcome="allowed",
+                    reason_code="legacy-run-repinned",
+                    timestamp=self.ws.clock(),
+                ),
+            )
+        except events.AuditSinkUnavailable as exc:
+            raise _unverifiable(
+                "supervisor-changed", "the re-pin cannot be logged, so the run is not re-pinned"
+            ) from exc
+        self.pin(run_id)
 
     def pin(self, run_id: str) -> None:
         """Record the installed digests once the run's first approval has landed.
@@ -828,15 +861,16 @@ class Attempts:
         head, _, name = rel.rpartition("/")
         return head == "scripts" and bool(name)
 
-    def source_digests(self) -> dict[str, str] | None:
-        """Digests of the pack source's pinned files at ``HEAD``; ``None`` without that source."""
-        prefix = SOURCE_REL + "/"
+    def _blobs_at_head(self, prefix: str, *, pinned_only: bool) -> dict[str, bytes] | None:
+        """The bytes of each file under *prefix* at ``HEAD``; ``None`` when there are none."""
         entries = {
             p[len(prefix) :]: oid for p, oid in self.ws.git.tree_entries() if p.startswith(prefix)
         }
         if not entries:
             return None
-        wanted = {rel: oid for rel, oid in entries.items() if self._pinned_name(rel)}
+        wanted = {
+            rel: oid for rel, oid in entries.items() if not pinned_only or self._pinned_name(rel)
+        }
         oids = sorted(set(wanted.values()))
         out = self.ws.git.run("cat-file", "--batch", stdin=("\n".join(oids) + "\n").encode())
         blobs: dict[str, bytes] = {}
@@ -849,7 +883,29 @@ class Attempts:
             size = int(fields[2])
             blobs[oid] = out[end + 1 : end + 1 + size]
             position = end + 1 + size + 1
-        return {rel: hashlib.sha256(blobs[oid]).hexdigest() for rel, oid in sorted(wanted.items())}
+        return {rel: blobs[oid] for rel, oid in sorted(wanted.items())}
+
+    def source_digests(self) -> dict[str, str] | None:
+        """Digests of the pack source's pinned files at ``HEAD``; ``None`` without that source."""
+        blobs = self._blobs_at_head(SOURCE_REL + "/", pinned_only=True)
+        if blobs is None:
+            return None
+        return {rel: hashlib.sha256(data).hexdigest() for rel, data in blobs.items()}
+
+    def _whole_skill_at_head(self, prefix: str) -> dict[str, str] | None:
+        """Every file under *prefix* at ``HEAD``, labelled like ``_walk`` labels the install."""
+        blobs = self._blobs_at_head(prefix, pinned_only=False)
+        if blobs is None:
+            return None
+        return {rel: _digest(data) for rel, data in blobs.items()}
+
+    def _tracked_skill_prefix(self) -> str | None:
+        """The installed skill's path in the work tree, ``/``-ended; ``None`` outside it."""
+        try:
+            rel = Path(os.path.realpath(SKILL_DIR)).relative_to(os.path.realpath(self.ws.root))
+        except ValueError:
+            return None
+        return rel.as_posix() + "/"
 
     def pending_regeneration(self) -> dict[str, str] | None:
         """The pack source's digests while a ``regenerate`` request is due or still open.
@@ -886,7 +942,14 @@ class Attempts:
         ):
             raise _refusal("not-current-attempt", "the result is not for the current request")
         source = self.source_digests()
-        if self.installed is None or source is None or source != self.installed:
+        whole = self._whole_skill_at_head(SOURCE_REL + "/")
+        installed_tree = self._walk(SKILL_DIR, "")
+        if (
+            self.installed is None
+            or source is None
+            or source != self.installed
+            or whole != installed_tree
+        ):
             raise _refusal(
                 "supervisor-changed",
                 "the installed skill does not match the pack source at HEAD",
@@ -895,6 +958,48 @@ class Attempts:
             issuance.run_id, PINS_FILE, self._pin_body(issuance.run_id, source), replace=True
         )
         (issuance.store / REGENERATE_FILE).unlink(missing_ok=True)
+        # A tracked install is committed by the controller; the next issuance checks that
+        # what it committed is what was admitted.
+        prefix = self._tracked_skill_prefix()
+        if prefix is not None and self._whole_skill_at_head(prefix) is not None:
+            self._put(
+                issuance.run_id,
+                ADMITTED_FILE,
+                _json({
+                    "schema_version": _SCHEMA_VERSION,
+                    "run_id": issuance.run_id,
+                    "tree": installed_tree,
+                }),
+                replace=True,
+            )
+
+    def _confirm_admitted_skill(self, run_id: str) -> None:
+        """Before the first issuance after a regeneration, check the committed install.
+
+        The controller commits a tracked install; what it committed must equal what the
+        regeneration admitted, or nothing more is issued.
+        """
+        record = self._store_record(run_id, ADMITTED_FILE)
+        if record is None:
+            return
+        tree = self._digest_map_any(record, "tree")
+        prefix = self._tracked_skill_prefix()
+        committed = self._whole_skill_at_head(prefix) if prefix is not None else None
+        if committed != tree:
+            raise _refusal(
+                "supervisor-changed",
+                "the committed installed skill differs from the one the regeneration admitted",
+            )
+        (self._store_dir(run_id) / ADMITTED_FILE).unlink(missing_ok=True)
+
+    @staticmethod
+    def _digest_map_any(record: dict[str, Any], key: str) -> dict[str, str]:
+        tree = record.get(key)
+        if not isinstance(tree, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in tree.items()
+        ):
+            raise _unverifiable("supervisor-changed", f"{ADMITTED_FILE} is malformed")
+        return tree
 
     # ── the change set ──────────────────────────────────────────────────────
 

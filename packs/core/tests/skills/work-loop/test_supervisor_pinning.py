@@ -14,6 +14,7 @@ import importlib.util
 import io
 import json
 import os
+import py_compile
 import shutil
 import subprocess
 import sys
@@ -284,11 +285,13 @@ class _SourceEditor(h.Controller):
 
 
 def _publish_source(repo: Path, skill: Path) -> None:
-    """Commit the installed skill's pack-source files to the repository."""
-    for rel in _digests(skill):
-        target = repo / _SOURCE / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(skill / rel, target)
+    """Commit the installed skill, whole, to the repository as the pack source."""
+    shutil.copytree(
+        skill,
+        repo / _SOURCE,
+        ignore=shutil.ignore_patterns("__pycache__"),
+        dirs_exist_ok=True,
+    )
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "pack source")
 
@@ -348,6 +351,105 @@ def test_one_regenerate_is_emitted_admitted_and_repinned(
         assert new == _digests(skill) and new != old
         code, out = h.run_cli(repo, "next", SPEC)
         assert code == 0 and out.get("terminal") is True, out
+
+
+def _tracked_regenerate(tmp_path: Path) -> tuple[Path, Path, ModuleType, h.Controller, dict[str, Any]]:
+    """A run at the issued ``regenerate`` request whose installed skill is tracked in the work tree."""
+    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
+    skill = _copy_skill(repo / ".installed" / "work-loop")
+    _publish_source(repo, skill)  # also commits the installed skill: `add -A`
+    assert h.git(repo, "ls-files", ".installed/work-loop/SKILL.md").strip()
+    controller = _SourceEditor(repo, tmp_path / "effects.log")
+    cli = _load_cli(skill)
+    with _via(cli):
+        assert h.start(repo)[0] == 0
+        for _ in range(12):
+            code, payload = h.run_cli(repo, "next", SPEC)
+            assert code == 0, payload
+            request = payload["request"]
+            if request["kind"] == "regenerate":
+                break
+            assert controller.report(controller.work(request))[0] == 0
+        else:
+            raise AssertionError("no regenerate request")
+    return repo, skill, cli, controller, request
+
+
+def _regenerate_result(request: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "request_id": request["request_id"],
+        "run_id": request["run_id"],
+        "kind": "regenerate",
+    }
+
+
+def test_a_tracked_install_waits_for_the_controller_to_commit_the_regenerated_skill(
+    tmp_path: Path,
+) -> None:
+    repo, skill, cli, controller, request = _tracked_regenerate(tmp_path)
+    with _via(cli):
+        old = json.loads(_pins(repo).read_text("utf-8"))["digests"]
+        shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+        code, out = h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(request))
+        assert code == 0 and out == {"admitted": "regenerate"}, out
+        new = json.loads(_pins(repo).read_text("utf-8"))["digests"]
+        assert new == _digests(skill) and new != old
+        # The regenerated skill is a tracked, modified file until the controller commits it.
+        code, out = h.run_cli(repo, "next", SPEC)
+        asked = out.get("request", {})
+        assert code == 0 and asked.get("kind") == "human-decision", out
+        assert asked["reason"] == "uncommitted-changes", out
+        h.git(repo, "add", "-A")
+        h.git(repo, "commit", "-q", "-m", "regenerate the installed skill")
+        # The commit moved HEAD, so the run re-earns its evidence before it converges.
+        kinds: list[str] = []
+        for _ in range(12):
+            code, out = h.run_cli(repo, "next", SPEC)
+            assert code == 0, out
+            if out.get("terminal") is True:
+                break
+            kinds.append(out["request"]["kind"])
+            result = controller.work(out["request"])
+            report = result.get("report")
+            if report is not None:  # a second review round must not reuse the first round's ids
+                report["report_id"] += "-again"
+                report["lineage"]["source_event_id"] += "-again"
+                for finding in report["findings"]:
+                    finding["finding_id"] += "-again"
+            assert controller.report(result)[0] == 0, kinds
+        else:
+            raise AssertionError(f"the run did not converge: {kinds}")
+        assert "regenerate" not in kinds, kinds
+        assert json.loads(_pins(repo).read_text("utf-8"))["digests"] == _digests(skill)
+
+
+def test_a_committed_skill_that_differs_from_the_admitted_one_is_refused(tmp_path: Path) -> None:
+    repo, skill, cli, _controller, request = _tracked_regenerate(tmp_path)
+    with _via(cli):
+        shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+        code, out = h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(request))
+        assert code == 0 and out == {"admitted": "regenerate"}, out
+        # The controller commits more than it regenerated; a file the pins do not name.
+        _append(skill / "SKILL.md", "\n<!-- slipped in after admission -->\n")
+        h.git(repo, "add", "-A")
+        h.git(repo, "commit", "-q", "-m", "regenerate the installed skill")
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+
+
+def test_an_install_whose_other_files_differ_from_the_source_is_refused(
+    regenerating: Path, tmp_path: Path
+) -> None:
+    repo, skill, cli = _regen_copy(regenerating, tmp_path)
+    shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+    _append(skill / "SKILL.md", "\n<!-- not in the pack source -->\n")  # not a pinned file
+    before = _pins(repo).read_bytes()
+    with _via(cli):
+        again = h.run_cli(repo, "next", SPEC)[1]["request"]
+        code, out = h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(again))
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert _pins(repo).read_bytes() == before
 
 
 def test_a_mismatched_install_is_refused(regenerating: Path, tmp_path: Path) -> None:
@@ -518,16 +620,37 @@ def _script(skill: Path, repo: Path, *argv: str) -> subprocess.CompletedProcess[
     )
 
 
-@pytest.mark.parametrize(
-    "planted", ["argparse.py", "json.pyc", "hashlib.cpython-313-x86_64-linux-gnu.so"]
-)
+_PLANTED = [
+    "argparse.py",
+    "json.pyc",
+    "hashlib.cpython-313-x86_64-linux-gnu.so",
+    "__future__.py",
+    "__future__.pyc",
+    "__future__/__init__.py",
+]
+
+
+def _plant(skill: Path, planted: str, marker: Path) -> None:
+    """Put a module named *planted* in ``scripts/`` that creates *marker* when it runs."""
+    body = f"open({str(marker)!r}, 'w').close()\n"
+    target = skill / "scripts" / planted
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if planted == "__future__.pyc":  # a real bytecode file, importable without its source
+        source = marker.parent / "planted-source.py"
+        source.write_text(body, "utf-8")
+        py_compile.compile(str(source), cfile=str(target), doraise=True)
+    else:
+        target.write_text(body, "utf-8")
+
+
+@pytest.mark.parametrize("planted", _PLANTED)
 def test_a_module_planted_in_scripts_never_runs_and_is_refused(
     pinned_template: Path, tmp_path: Path, planted: str
 ) -> None:
     repo = _copy_repo(pinned_template, tmp_path)
     skill = _copy_skill(tmp_path / "skill")
     marker = tmp_path / "shadow-ran"
-    (skill / "scripts" / planted).write_text(f"open({str(marker)!r}, 'w').close()\n", "utf-8")
+    _plant(skill, planted, marker)
     done = _script(skill, repo, "status", SPEC)
     assert not marker.exists(), "a module planted beside the script ran"
     assert done.returncode == 1, (done.stdout, done.stderr)
@@ -652,3 +775,99 @@ def test_the_pin_event_is_written_only_inside_an_existing_spec_directory(
     if os.name == "posix":
         assert log.stat().st_mode & 0o777 == 0o600
         assert (log.parent / ".gitignore").stat().st_mode & 0o777 == 0o600
+
+
+# ── review fixes: usage errors, the Git directory, the event file ──────────
+
+
+def test_a_malformed_spec_dir_is_a_usage_error_before_any_sibling_loads(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    skill = _copy_skill(tmp_path / "skill")
+    marker = tmp_path / "sibling-ran"
+    _append(skill / "scripts" / "_supervisor_git.py", f"\nopen({str(marker)!r}, 'w').close()\n")
+    for bad in ("../escape", "/abs", "docs\\specs", "a/./b"):
+        code, out = _run(_load_cli(skill), repo, "status", bad)
+        assert code == 2 and out["error"] == "usage", (bad, out)
+    assert not marker.exists(), "a sibling loaded before the spec path was checked"
+
+
+@pytest.mark.parametrize("target", ["absent", "file"])
+def test_a_gitfile_naming_no_git_directory_is_refused_as_unverifiable(
+    tmp_path: Path, target: str
+) -> None:
+    cli = _load_cli(_copy_skill(tmp_path / "skill"))
+    repo = tmp_path / "wt"
+    (repo / SPEC).mkdir(parents=True)
+    named = tmp_path / "gitdir"
+    if target == "file":
+        named.write_text("not a directory\n", "utf-8")
+    (repo / ".git").write_text(f"gitdir: {named}\n", "utf-8")
+    code, out = _run(cli, repo, "status", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert "supervisor-changed" in [e["reason_code"] for e in _events(repo)]
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs a named pipe")
+def test_the_pin_event_is_never_written_to_a_special_file(tmp_path: Path) -> None:
+    cli = _load_cli(_copy_skill(tmp_path / "skill"))
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    local = repo / "docs" / "real" / ".supervisor"
+    local.mkdir(parents=True)
+    pipe = local / "security-events.jsonl"
+    os.mkfifo(pipe)
+    reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)  # lets a write succeed, so it cannot hang
+    try:
+        cli._log_pin_event("docs/real", repo)
+        assert os.read(reader, 4096) == b"", "the event was written into a pipe"
+    finally:
+        os.close(reader)
+
+
+# ── legacy runs: start --repin-legacy-run ───────────────────────────────────
+
+
+def _legacy(regenerating: Path, tmp_path: Path) -> tuple[Path, Path, ModuleType]:
+    """A run admitted before pinning shipped: made-commit ids, and no pin record."""
+    repo, skill, cli = _regen_copy(regenerating, tmp_path)
+    assert (_store(repo) / "made-commits").read_text("utf-8").split()
+    _pins(repo).unlink()
+    return repo, skill, cli
+
+
+def test_a_legacy_run_is_refused_until_it_is_repinned_by_the_flag(
+    regenerating: Path, tmp_path: Path
+) -> None:
+    repo, skill, cli = _legacy(regenerating, tmp_path)
+    for argv in (("next", SPEC), tuple(_start_args())):
+        code, out = _run(cli, repo, *argv)
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
+    assert not _pins(repo).exists()
+    code, out = _run(cli, repo, *_start_args(), "--repin-legacy-run")
+    assert code == 0, out
+    record = json.loads(_pins(repo).read_text("utf-8"))
+    assert record["digests"] == _digests(skill) and record["spec"] == SPEC
+    repinned = [e for e in _events(repo) if e["reason_code"] == "legacy-run-repinned"]
+    assert len(repinned) == 1 and repinned[0]["outcome"] == "allowed", _events(repo)
+    assert repinned[0]["schema_version"] == 1
+    assert _run(cli, repo, "next", SPEC)[0] == 0
+
+
+@pytest.mark.parametrize("record", ["identical", "differing"])
+def test_the_repin_flag_never_overwrites_or_accepts_an_existing_record(
+    regenerating: Path, tmp_path: Path, record: str
+) -> None:
+    repo, _skill, cli = _regen_copy(regenerating, tmp_path)
+    if record == "differing":
+        data = json.loads(_pins(repo).read_text("utf-8"))
+        data["digests"]["scripts/_supervisor_loop.py"] = "0" * 64
+        _pins(repo).write_text(json.dumps(data), "utf-8")
+    before = _pins(repo).read_bytes()
+    head = _head(repo)
+    code, out = _run(cli, repo, *_start_args(), "--repin-legacy-run")
+    assert code == 1 and out["refusal"]["code"] in ("supervisor-changed", "repin-refused"), out
+    assert _pins(repo).read_bytes() == before
+    assert _head(repo) == head
+    assert not [e for e in _events(repo) if e["reason_code"] == "legacy-run-repinned"]

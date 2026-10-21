@@ -5,7 +5,7 @@ Usage, from the repository root:
 
     work-supervisor.py start <spec-dir> --intent code|spec-plan \\
         --code-trust trusted|untrusted --authority-ref owner[:<hex>] \\
-        --review-authority-ref plan-reviewer[:<hex>]
+        --review-authority-ref plan-reviewer[:<hex>] [--repin-legacy-run]
     work-supervisor.py next <spec-dir>
     work-supervisor.py report <spec-dir> <result.json>
     work-supervisor.py status <spec-dir> [--json] [--check]
@@ -28,13 +28,12 @@ Standard library only; it loads only its sibling scripts. Python 3.11+.
 """
 
 # ruff: noqa: E402
-from __future__ import annotations
-
 import sys
 
 # Run as a script, this file's own directory is sys.path[0], and a module planted
 # there would load in place of the standard library at the imports below, before
-# any check. Nothing in the scripts directory is importable by name from here on;
+# any check, so this file imports nothing, not even ``__future__``, ahead of that
+# deletion. Nothing in the scripts directory is importable by name from here on;
 # the sibling scripts load by path.
 if __name__ == "__main__" and not sys.flags.safe_path and sys.path:
     del sys.path[0]
@@ -66,6 +65,7 @@ _MAX_RESULT_BYTES = 16 * 1024 * 1024
 EXIT_OK, EXIT_REFUSED, EXIT_USAGE, EXIT_CAP = 0, 1, 2, 3
 
 _STORE_ROOT = "agentbundle-supervisor"
+SCHEMA_VERSION = 1  # of the store records and security-event lines this script reads or writes
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _HEX_RE = re.compile(r"[0-9a-f]{64}")
 _POLICY_FILES = ("supervisor-policy.json", "review-rules.json")
@@ -161,21 +161,28 @@ def _read_plain(path: Path, limit: int) -> bytes | None:
         raise _PinRefused(f"{path.name} cannot be read", unverifiable=True) from exc
 
 
-def _installed_digests(skill: Path) -> dict[str, str]:
-    """sha256 of every file in the installed ``scripts/`` and of the policy and rules files.
+def _scripts_digests(scripts: Path, prefix: str, found: dict[str, str]) -> None:
+    """Add the sha256 of every file under *scripts*, in subdirectories too, to *found*.
 
     Every file counts, not only ``*.py``: a bytecode or extension module beside the
-    scripts is importable too.
+    scripts is importable, and so is a package directory. Only ``__pycache__`` is
+    left out, because the bytecode cache prefix keeps it from being read.
     """
+    for path in sorted(scripts.iterdir()):
+        if path.is_dir() and not path.is_symlink():
+            if path.name != "__pycache__":
+                _scripts_digests(path, f"{prefix}{path.name}/", found)
+            continue
+        data = _read_plain(path, _MAX_SOURCE_BYTES)
+        if data is not None:
+            found[f"{prefix}{path.name}"] = hashlib.sha256(data).hexdigest()
+
+
+def _installed_digests(skill: Path) -> dict[str, str]:
+    """sha256 of every file under the installed ``scripts/`` and of the policy and rules files."""
     found: dict[str, str] = {}
     try:
-        entries = sorted((skill / "scripts").iterdir())
-        for path in entries:
-            if path.is_dir() and not path.is_symlink():
-                continue
-            data = _read_plain(path, _MAX_SOURCE_BYTES)
-            if data is not None:
-                found[f"scripts/{path.name}"] = hashlib.sha256(data).hexdigest()
+        _scripts_digests(skill / "scripts", "scripts/", found)
     except OSError as exc:
         raise _PinRefused("the installed scripts cannot be listed", unverifiable=True) from exc
     for name in _POLICY_FILES:
@@ -212,7 +219,14 @@ def _git_dir(dot_git: Path) -> Path:
     match = re.fullmatch(r"gitdir: (.+?)\r?\n?", (text or b"").decode("utf-8", "replace"))
     if match is None:
         raise _PinRefused(".git is not a Git directory or a gitfile", unverifiable=True)
-    return dot_git.parent / match.group(1)
+    target = dot_git.parent / match.group(1)
+    try:
+        named = os.lstat(target).st_mode
+    except OSError as exc:
+        raise _PinRefused(".gitfile target cannot be read", unverifiable=True) from exc
+    if not stat.S_ISDIR(named):
+        raise _PinRefused(".gitfile target is not a directory", unverifiable=True)
+    return target
 
 
 def _malformed(path: Path) -> _PinRefused:
@@ -230,7 +244,7 @@ def _read_record(path: Path, run_id: str) -> dict[str, Any] | None:
         record = None
     if (
         not isinstance(record, dict)
-        or record.get("schema_version") != 1
+        or record.get("schema_version") != SCHEMA_VERSION
         or record.get("run_id") != run_id
     ):
         raise _malformed(path)
@@ -330,9 +344,11 @@ def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, 
     a damaged record refuses them all. The first admission has no run yet and
     pins the files itself.
     """
-    found = _find_dot_git(cwd)
     spec = _clean_spec(spec_dir)
-    if found is None or spec is None:
+    if spec is None:
+        raise UsageError("<spec-dir> must be a repository-relative POSIX path")
+    found = _find_dot_git(cwd)
+    if found is None:
         return
     root, dot_git = found
     base = _git_dir(dot_git) / _STORE_ROOT
@@ -376,7 +392,7 @@ def _log_pin_event(spec_dir: str, cwd: Path | None) -> None:
     if found is None or spec is None:
         return
     event = {
-        "schema_version": 1,
+        "schema_version": SCHEMA_VERSION,
         "operation_id": "op-" + secrets.token_hex(16),
         "correlation_id": spec,
         "event_type": "supervisor-pin-check",
@@ -386,6 +402,7 @@ def _log_pin_event(spec_dir: str, cwd: Path | None) -> None:
     }
     line = (json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
     nofollow = getattr(os, "O_NOFOLLOW", 0)
+    nonblock = getattr(os, "O_NONBLOCK", 0)  # a pipe planted there must not block the open
     try:
         current = found[0]
         for part in spec.split("/"):
@@ -407,11 +424,12 @@ def _log_pin_event(spec_dir: str, cwd: Path | None) -> None:
                 handle.write(b"*\n")
         fd = os.open(
             local / "security-events.jsonl",
-            os.O_WRONLY | os.O_APPEND | os.O_CREAT | nofollow,
+            os.O_WRONLY | os.O_APPEND | os.O_CREAT | nonblock | nofollow,
             0o600,
         )
         with os.fdopen(fd, "ab") as handle:
-            handle.write(line)
+            if stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                handle.write(line)
     except OSError:
         return
 
@@ -430,6 +448,7 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     start.add_argument("--authority-ref", required=True)
     start.add_argument("--review-authority-ref", required=True)
+    start.add_argument("--repin-legacy-run", action="store_true")
     verbs.add_parser("next").add_argument("spec_dir")
     report = verbs.add_parser("report")
     report.add_argument("spec_dir")
@@ -496,7 +515,7 @@ def _log_unverifiable(workspace: Any, code: str) -> None:
     """Write the security-event line an unverifiable Git check owes; best effort."""
     se = _supervisor("_security_events.py")
     event = se.SecurityEvent(
-        schema_version=1,
+        schema_version=SCHEMA_VERSION,
         operation_id=se.make_operation_id(),
         correlation_id=workspace.spec_rel,
         event_type="supervisor-git-check",
@@ -545,6 +564,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     statelock = commit.sibling("_statelock.py")
     workspace = admission.Workspace(root, spec_rel)
     workspace.attempts.installed = installed
+    workspace.attempts.repin_legacy = bool(getattr(args, "repin_legacy_run", False))
     try:
         workspace.attempts.check_pins(args.verb)
         if args.verb == "start":
