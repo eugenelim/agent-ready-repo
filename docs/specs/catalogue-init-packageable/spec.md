@@ -1,6 +1,6 @@
 # Spec: Packageable blank catalogue from `catalogue init`
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`catalogue-tooling-init`](../catalogue-tooling-init/spec.md) (a blank catalogue has zero installable packs) and [`catalogue-authoring-scaffold`](../catalogue-authoring-scaffold/spec.md) AC10 (`_`-prefixed directories are templates that packaging skips)
@@ -72,13 +72,13 @@ its first release is an empty but valid archive.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `catalogue init` into a new directory creates a root `AGENTS.md` and a root `CLAUDE.md` whose bytes are exactly `@AGENTS.md\n`, and reports both with action `create`.
-- [ ] **AC-0002.** The root `AGENTS.md` that init writes contains the catalogue's `name`, and its Markdown link targets are exactly `packs/AGENTS.md`, `profiles/AGENTS.md` and `guides/_shared/reference/catalogue-authoring-standards.md`.
-- [ ] **AC-0003.** When the target already holds a regular, non-symlink root `AGENTS.md` or `CLAUDE.md` with any content, init exits 0, leaves that file's bytes unchanged, and reports it with action `already-present` and a `sha256` equal to the SHA-256 of that file's bytes.
-- [ ] **AC-0004.** When the target's root `AGENTS.md` or `CLAUDE.md` is a symlink, init fails with `CAT-INIT-007` and writes no file.
-- [ ] **AC-0005.** On a directory just created by `catalogue init <dir> --name <name>`, with no other change, `catalogue verify --root <dir>`, then `catalogue package --root <dir> --bundle <b> --release <r> --channel <c> --output <out>`, then `catalogue verify --archive <archive> --sha256-file <sidecar>` each exit 0, and the archive holds a root `AGENTS.md` and no member under `packs/_example/` or `profiles/_example/`.
-- [ ] **AC-0006.** When `[catalogue.package].include` holds an entry that `catalogue package` rejects — one not under `packs/`, one that does not exist, one naming build residue, or one whose path has a `_`-prefixed directory directly under `packs/` — `catalogue package` exits 1 with a `CAT-PKG-001` diagnostic naming the entry, prints no traceback, and creates no file under `--output`.
-- [ ] **AC-0007.** With `[catalogue.package].include` naming one real pack directory under `packs/`, `catalogue package` exits 0 and the archive holds every regular, non-symlink, non-build-residue file of that pack, including files inside a `_`-prefixed subdirectory of that pack.
+- [x] **AC-0001.** `catalogue init` into a new directory creates a root `AGENTS.md` and a root `CLAUDE.md` whose bytes are exactly `@AGENTS.md\n`, and reports both with action `create`.
+- [x] **AC-0002.** The root `AGENTS.md` that init writes contains the catalogue's `name`, and its Markdown link targets are exactly `packs/AGENTS.md`, `profiles/AGENTS.md` and `guides/_shared/reference/catalogue-authoring-standards.md`.
+- [x] **AC-0003.** When the target already holds a regular, non-symlink root `AGENTS.md` or `CLAUDE.md` with any content, init exits 0, leaves that file's bytes unchanged, and reports it with action `already-present` and a `sha256` equal to the SHA-256 of that file's bytes.
+- [x] **AC-0004.** When the target's root `AGENTS.md` or `CLAUDE.md` is a symlink, init fails with `CAT-INIT-007` and writes no file.
+- [x] **AC-0005.** On a directory just created by `catalogue init <dir> --name <name>`, with no other change, `catalogue verify --root <dir>`, then `catalogue package --root <dir> --bundle <b> --release <r> --channel <c> --output <out>`, then `catalogue verify --archive <archive> --sha256-file <sidecar>` each exit 0, and the archive holds a root `AGENTS.md` and no member under `packs/_example/` or `profiles/_example/`.
+- [x] **AC-0006.** When `[catalogue.package].include` holds an entry that `catalogue package` rejects — one not under `packs/`, one that does not exist, one naming build residue, or one whose path has a `_`-prefixed directory directly under `packs/` — `catalogue package` exits 1 with a `CAT-PKG-001` diagnostic naming the entry, prints no traceback, and creates no file under `--output`.
+- [x] **AC-0007.** With `[catalogue.package].include` naming one real pack directory under `packs/`, `catalogue package` exits 0 and the archive holds every regular, non-symlink, non-build-residue file of that pack, including files inside a `_`-prefixed subdirectory of that pack.
 
 ## Follow-ons
 
