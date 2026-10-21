@@ -104,8 +104,8 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/tests/skills/navigate-intents/fixtures/owners/**`, `packs/core/tests/skills/navigate-intents/fixtures/README.md`
 
 **Tests:**
-- `no stub (implementation-discovered)`: the README's table layout is the seam, and it does not exist until this task writes it. Discovery predicate: the README's owner table, option list, selector table and per-choice expectations are machine-readable Markdown tables. Proof obligation: the cross-check test below goes red when one record is added to the corpus without a README row, and the ledger records that red.
-- A collected test in `test_derivation_contract.py` parses the README's owner table, option list, selector table and per-choice Browse expectations (under "Full hierarchy" with "All", "By capability" with "All", and "Full hierarchy" with "Open") and roadmap expectations. It asserts that every record path the README names exists in the fixture, and that every record in the fixture appears in the table. A table that drifts from the corpus therefore fails before any owner code exists.
+- `no stub (implementation-discovered)`: the README's table layout is the seam, and it does not exist until this task writes it. Discovery predicate: the implementer finds the README's tables can be parsed by splitting Markdown table rows on `|`. Constraint: the parser lives in the test module and reads only the README. Required outcome: every record in the corpus has exactly one owner-table row. Verification mode: TDD, a collected pytest test. Proof obligation: the cross-check test below goes red when one record is added to the corpus without a README row, and the ledger records that red.
+- A collected test in `test_derivation_contract.py` parses the README's owner table, option list, owner-selector table, non-owner selector table (one value each for `level`, `kind`, `exact_status`, `parentless` and `text`) and per-choice Browse expectations (under "Full hierarchy" with "All", "By capability" with "All", and "Full hierarchy" with "Open") and roadmap expectations. It asserts that every record path the README names exists in the fixture, and that every record in the fixture appears in the table. A table that drifts from the corpus therefore fails before any owner code exists.
 
 **Approach:**
 - The corpus holds a product strategy, two capabilities with one nested under the other, intents under each, a brief and specs with open and closed statuses, and every AC-0001 owner form. One owner appears in two letter-case and spacing variants. One value holds a non-ASCII capital letter. A capability's owner differs from the owners of the intents beneath it, so context rows occur under "Full hierarchy", "By capability" and the roadmap. That combination is what makes AC-0015 and AC-0018 fail on a wrong rule.
@@ -127,7 +127,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
       assert nodes
       assert all(isinstance(n.get("owner"), str) for n in nodes)
   ```
-- `test_query_contract.py` decides AC-0002 and AC-0003 by copying the fixture to `tmp_path`, dropping every line matching `^- \*\*Owner:\*\*`, and running every operation in `_VALID_OPS` on both trees: `summary`; `record`, `ancestors`, `tree` and `dependencies` with `--id` set to each live intent the README names; `tree` without `--id`; `outstanding` with and without `--from`; and `search` with each non-`owner` selector the README lists. JSON results are compared with `owner` members and `generated_at` stripped. `tree`, `outstanding` and `dependencies` with `--format text` are compared byte for byte. It decides AC-0005 against the README's selector table, plus `{"owner": 1}` and `{"owner": null}` for `invalid_selector`.
+- `test_query_contract.py` decides AC-0002 and AC-0003 by copying the fixture to `tmp_path`, dropping every line matching `^- \*\*Owner:\*\*`, and running every operation in `_VALID_OPS` on both trees: `summary`; `record`, `ancestors`, `tree` and `dependencies` with `--id` set to each live intent the README names; `tree` without `--id`; `outstanding` with and without `--from`; and `search` with no selectors and with each entry of the README's non-owner selector table, which covers every member of `_VALID_SELECTORS` except `owner`. JSON results are compared with `owner` members and `generated_at` stripped. `tree`, `outstanding` and `dependencies` with `--format text` are compared byte for byte. It decides AC-0005 against the README's selector table, plus `{"owner": 1}` and `{"owner": null}` for `invalid_selector`.
 - `test_outstanding.py` and `test_query_contract.py` decide AC-0004 for `record`, `search` and both `outstanding` lists.
 - The existing byte-identity assertion in `test_intent_delivery_relations_copies.py` decides AC-0006.
 
@@ -169,6 +169,8 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Tests:**
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations. Each also checks the general rule over every Group and Show choice, against the Python reading of the payload.
+- A browser check over the roadmap decides the amended tree-and-roadmap 0007 rule under each README owner choice: each listed capability with no nearest capability ancestor is in exactly one section.
+- Browser checks over an `owners` export scoped with `--from` to a capability the README names decide, under each README owner choice, the amended session-start 0025 and tree-and-roadmap 0041 and 0049 rows: the scoped intent is the only root, Browse follows AC-0015 under both Group choices, and AC-0022 shows when nothing is shown.
 - A browser check decides AC-0016 by comparing the flat filtered list with `run_query` `search` over the same fixture, using the filter selectors plus `owner`.
 - The shipped tree-and-roadmap checks for its criteria 0030 to 0036 still pass under "Any owner".
 
@@ -181,7 +183,19 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Touches:** `packs/core/tests/skills/navigate-intents/fixtures/hostile/**`, `packs/core/tests/skills/navigate-intents/fixtures/owners/**`, `packs/core/tests/skills/navigate-intents/test_export_html.py`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`, `packs/core/.apm/skills/navigate-intents/scripts/view_assets/view.css`
 
 **Tests:**
-- `test_export_html.py` decides AC-0009 over the `hostile` export, with its owner values added to that fixture's records. This is the TDD part of the task, and its contract-surface stub is the shipped hostile-string assertion extended with the owner values. A browser check decides AC-0031.
+- `test_export_html.py` decides AC-0009 over the `hostile` export, with its owner values added to that fixture's records. Its stub pairs the exclusion with a positive assertion. It was compiled and run red against the current tree, where it fails on the positive assertion because no node carries an owner:
+
+  ```python
+  def test_hostile_owner_values_stay_inside_the_data_block_ac0009(hostile_html: str) -> None:  # stub: true
+      block = _DATA_BLOCK.search(hostile_html)
+      assert block is not None
+      owners = [n.get("owner", "") for n in json.loads(block.group(1))["nodes"]]
+      assert any("</script><script>" in o for o in owners)
+      outside = hostile_html.replace(block.group(1), "")
+      for needle in ("</script><script>", "<img src=x", '"><svg', "\u200b", "\u202e", "\u2066"):
+          assert needle not in outside, needle
+  ```
+- A browser check decides AC-0031.
 - `no stub (mode)` for AC-0025, AC-0026 and AC-0031: scripted browser check.
 - Browser checks decide AC-0025 and AC-0026 across the width and theme matrix, over an `owners` export built in `tmp_path` with one record's owner replaced by a 200-code-point token.
 
