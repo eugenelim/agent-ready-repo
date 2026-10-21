@@ -85,14 +85,19 @@ class AgentsLocalMdTest(unittest.TestCase):
             "AGENTS.local.md must contain a Package releases section",
         )
 
-    def test_projected_agents_no_release_coupling(self):
+    def test_projected_agents_no_release_section(self):
         for path in (_AGENTS_ROOT, _SEEDS_AGENTS):
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn(
+            for marker in (
                 "Release Coupling",
-                text,
-                f"{path.relative_to(REPO_ROOT)} must NOT contain 'Release Coupling'",
-            )
+                "Package releases",
+                "cut-a-package-release.md",
+            ):
+                self.assertNotIn(
+                    marker,
+                    text,
+                    f"{path.relative_to(REPO_ROOT)} must NOT contain {marker!r}",
+                )
 
 
 class GuideDocsTest(unittest.TestCase):
