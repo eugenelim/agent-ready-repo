@@ -46,7 +46,7 @@ def test_source_grammar_refusals():
     parse = acquisition.parse_direct_source
     good = f"git+https://github.com/owner/repo@{SHA}"
     assert parse(good).ref_kind == "sha"
-    assert parse(good).requested == good, "AC4: the exact string is retained"
+    assert parse(good).requested == good, "the exact requested string is retained"
     assert parse("git+https://github.com/owner/repo@v1.2.3").ref_kind == "ref"
     assert parse("git+https://github.com/owner/repo@abc1234").ref_kind == "abbreviated-sha"
 
@@ -339,7 +339,7 @@ def test_acquisition_holds_no_second_copy_of_the_classifier():
     # violation of it.
     #
     # The earlier version of this list also banned `system_anchor_pem` and
-    # `default_store_is_empty` as raw text, which pinned the absence of AC37's
+    # `default_store_is_empty` as raw text, which pinned the absence of the
     # retry rather than the absence of a second copy of it: the module consumed
     # neither, and the test called that correct.
     referenced = {
@@ -359,10 +359,10 @@ def test_acquisition_holds_no_second_copy_of_the_classifier():
     assert not any(
         name.startswith("_retry") for name in functions
     ), "the trust retry belongs to catalogue.py, not to a per-route copy"
-    # Both halves of AC37's seam are consumed, not just the classifier.
+    # Both halves of the shared seam are consumed, not just the classifier.
     assert "classify_transport_attempt" in source, "the shared classifier must be used"
     assert "retry_with_system_trust" in source, (
-        "AC37's single system-trust retry must be performed on this route too"
+        "the single system-trust retry must be performed on this route too"
     )
 
 

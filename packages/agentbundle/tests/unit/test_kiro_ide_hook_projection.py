@@ -290,7 +290,7 @@ class ProjectionDefenseInDepthRefusals(unittest.TestCase):
 
 
 class PromptFieldPreservedThroughProjection(unittest.TestCase):
-    """RFC § Substitution rules clause 1 + spec AC: a placeholder-
+    """A placeholder-
     shaped string in then.prompt passes through projection
     unchanged. Pin string-content preservation (byte-for-byte shape
     isn't promised when the parse-re-emit branch fires, only the

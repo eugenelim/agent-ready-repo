@@ -267,6 +267,12 @@ FIRST_TOOL_BATCH = (
     "tools/test_build_site_inventory.py",
     "tools/test_build_site_projection.py",
     "tools/test_build_site_sidebar.py",
+    # spec/catalogue-wave6-technical-docs-ia: the Build a Catalogue nav and the
+    # schema field-reference generator. Membership only — both join the
+    # existing `pytest guides sidebar generation` invocation in the Makefile
+    # enumeration and build-check.yml, so no group count moves.
+    "tools/test_build_a_catalogue_nav.py",
+    "tools/test_schema_field_reference.py",
     "tools/test_browser_gate_subset.py",
     "tools/test_local_ci_shared_test_deduplication.py",
     # spec/self-host-projection-merge-driver: both suites gate the
@@ -1036,11 +1042,18 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # line's text is the whole change. Prior pins were current:
 # `_effective_composition_errors()` over this Makefile with exactly those three
 # paths deleted returns no errors against `f2ca6521…` and `98e25890…`.
+# Bumped 2026-10-21 for the Wave 6 docs suites. Sole cause: two paths
+# appended to the existing site/catalogue batch line, after
+# `tools/test_build_site_sidebar.py` — `tools/test_build_a_catalogue_nav.py`,
+# `tools/test_schema_field_reference.py`. No line was added, removed or
+# reordered. Prior pins were current: `_effective_composition_errors()` over
+# this Makefile with exactly those two paths deleted returns no errors against
+# `21b35923…` and `d2981f8a…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "21b35923f9bfa392b90a3728a81ce274f4f362dda014c12723100aff06d7e22f"
+    "6cb1a71c62823d6a50d37e3c6b4da56365cedadc7a7d19fe6a01aa27c7ca1bc5"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "d2981f8aab6c7b4fca7414d469a39a6cd13cec814edcaf26962044b108f8e660"
+    "9a13a0bacf4799c939ba2b5f606641fefb33845385c35121cff31eb570b8f1b2"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

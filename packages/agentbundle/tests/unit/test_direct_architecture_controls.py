@@ -24,7 +24,7 @@ import pytest
 # on. `direct_source_state` is named by the LLD; `direct_install` and
 # `direct_validate` are direct modules this spec added. Scoping the control to
 # the modules that satisfy it is how it stayed green while `direct_install`
-# canonicalised a path with `.resolve()` — a spelling AC39 exists to ban.
+# canonicalised a path with `.resolve()` — a spelling the join-confinement rule exists to ban.
 DIRECT_MODULES = (
     direct_source,
     direct_source_acquisition,
@@ -34,7 +34,7 @@ DIRECT_MODULES = (
     bounded_metadata,
 )
 
-# AC17's explicit execution-name set. Written out rather than derived, because a
+# The explicit execution-name set. Written out rather than derived, because a
 # derivation over `dir(os)` silently tracks whatever the running interpreter
 # happens to expose and would quietly shrink on a platform missing a name.
 OS_EXECUTION_NAMES = frozenset(
@@ -46,15 +46,15 @@ OS_EXECUTION_NAMES = frozenset(
 )
 BANNED_BUILTINS = frozenset({"exec", "eval", "compile", "__import__"})
 # `realpath` and `abspath` are named because they are the spellings that defeat
-# AC39's caller-side-canonicalization rule while passing a ban written only
+# the caller-side-canonicalization rule while passing a ban written only
 # against `resolve`.
 BANNED_PATH_OBSERVERS = frozenset(
     {"lstat", "stat", "fstat", "resolve", "realpath", "abspath", "readlink"}
 )
-# AC34's single carve-out, as a (module filename, function name) pair.
+# The single path-observer carve-out, as a (module filename, function name) pair.
 PROBE_CARVE_OUT = ("direct_source.py", "probe_measured_path")
-# AC39's four *named callable* mechanisms. Mechanism (3), AC6's library-resolved
-# per-member destination and linkname check, is an extraction seam rather than
+# The four *named callable* confinement mechanisms. Mechanism (3), the
+# library-resolved per-member destination and linkname check, is an extraction seam rather than
 # an allowlistable call and is exempt by name.
 CONFINEMENT_CALLS = frozenset(
     {
@@ -94,11 +94,11 @@ def _enclosing_functions(tree: ast.AST) -> dict[int, str]:
 def _module_names(tree: ast.AST) -> set[str]:
     """Names bound by a plain `import X`, which are module references.
 
-    AC17 bans `stat` as an *observation* — `path.stat()` — not as a module.
+    The ban covers `stat` as an *observation* — `path.stat()` — not as a module.
     A module-level `import stat` is explicitly admitted and outside the
-    carve-out's scope, because AC34 needs `stat.S_ISDIR`/`S_ISLNK` for the
-    wrong-type-for-its-kind refusal. Without this distinction the control
-    reports the very spelling the criteria require.
+    carve-out's scope, because the type check needs `stat.S_ISDIR`/`S_ISLNK`
+    for the wrong-type-for-its-kind refusal. Without this distinction the control
+    reports the very spelling the rules require.
     """
 
     names: set[str] = set()
@@ -113,7 +113,7 @@ def _is_path_expression(node: ast.AST) -> bool:
     """True when *node* is path-shaped, so a `startswith` on it is a jail check.
 
     The ban has to be narrowed this way: a bare-name ban is undecidable here and
-    would equally flag AC13's `sha256-1:` digest-prefix refusal and AC3's
+    would equally flag the `sha256-1:` digest-prefix refusal and the
     `git+https` source grammar, both of which live in these same modules.
     """
 
@@ -171,7 +171,7 @@ def direct_module_findings(source: str, filename: str) -> list[str]:
             if node.id in OS_EXECUTION_NAMES:
                 report(node, f"os execution name {node.id}")
 
-        # --- path observers, with AC34's single carve-out ------------------
+        # --- path observers, with the single carve-out ---------------------
         if isinstance(node, ast.Attribute | ast.Name):
             name = node.attr if isinstance(node, ast.Attribute) else node.id
             module_reference = isinstance(node, ast.Name) and node.id in modules
@@ -197,7 +197,7 @@ def direct_module_findings(source: str, filename: str) -> list[str]:
             # comprehension that yields its own loop variable while filtering
             # `..` out silently sanitises a hostile path into an admissible
             # one; a generator whose element is a comparison is a refusal, and
-            # refusing is exactly what AC39 asks for. Both spellings mention
+            # refusing is exactly what the confinement rule asks for. Both spellings mention
             # `..`, so only the shape separates them.
             strips = (
                 len(node.generators) == 1
@@ -332,7 +332,7 @@ def test_the_carve_out_is_scoped_to_one_module_and_one_function():
 
 def test_prefix_ban_does_not_flag_the_grammars_that_share_these_modules():
     # A bare-name `startswith` ban is undecidable at this seam and would equally
-    # flag AC13's digest-prefix refusal and AC3's source grammar, both of which
+    # flag the digest-prefix refusal and the source grammar, both of which
     # live in these same modules. Narrowing to path-shaped receivers is what
     # makes the rule expressible at all.
     for benign in (
@@ -349,7 +349,7 @@ def test_prefix_ban_does_not_flag_the_grammars_that_share_these_modules():
 # join is a control that says nothing, while a false positive would be a rule
 # authors learn to work around.
 # Functions whose joins are confined UPSTREAM, which this seam cannot see.
-# Named individually with the reason, exactly as AC17 names its probe carve-out,
+# Named individually with the reason, exactly as the ban names its probe carve-out,
 # so widening the exemption is a deliberate edit and not a silent one. Anything
 # not listed here must reach a mechanism in its own body.
 JOIN_EXEMPTIONS = {
@@ -358,7 +358,7 @@ JOIN_EXEMPTIONS = {
     # Joins components returned by `_enumerate`'s confined traversal, and
     # candidate names already probed through the marker primitive.
     ("direct_source.py", "_inventory_collection"),
-    # IS AC39 mechanism (5) — the marker probe itself, and AC17's sanctioned
+    # IS confinement mechanism (5) — the marker probe itself, and the sanctioned
     # `lstat`/`resolve` carve-out. It cannot call itself, and its own join is
     # the one the criterion names as confined by this function.
     ("direct_source.py", "probe_measured_path"),
@@ -386,7 +386,7 @@ def _looks_like_path_operand(node: ast.AST) -> bool:
 def joins_without_confinement(source: str, filename: str) -> list[str]:
     """Report path joins in a function that reaches no admitted mechanism.
 
-    AC39 says every join in a direct module is confined by one of five named
+    Every join in a direct module is confined by one of five named
     mechanisms. Proving that needs dominance analysis, which the plan
     deliberately keeps out of scope — this control stays at the node-kind seam.
 
@@ -395,7 +395,7 @@ def joins_without_confinement(source: str, filename: str) -> list[str]:
     function to reference an admitted mechanism. That is weaker than dominance
     and this docstring says so, but unlike a name-shape check it fails when a
     join is added to a function that confines nothing, which is the actual
-    AC39 violation.
+    join-confinement violation.
     """
 
     tree = ast.parse(source)
@@ -443,7 +443,7 @@ def test_a_join_in_an_unconfined_function_is_reported():
     # `confined`/`jailed`/`_probe` and asserted that set was a subset of the
     # allowlist, which can only fire if someone invents a DIFFERENTLY NAMED
     # helper. Deleting every confinement call left it green, and a join with no
-    # confinement at all — the actual AC39 violation — was invisible.
+    # confinement at all — the actual join-confinement violation — was invisible.
     unconfined = (
         "from pathlib import Path\n"
         "def f(root, name):\n"
@@ -493,7 +493,7 @@ def test_the_join_exemption_list_does_not_grow_silently():
 
 
 def test_direct_modules_confine_their_joins():
-    # AC39 over the real modules, at the seam described above.
+    # Join confinement over the real modules, at the seam described above.
     for module in DIRECT_MODULES:
         path = Path(module.__file__)
         findings = joins_without_confinement(

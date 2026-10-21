@@ -8,7 +8,7 @@ relpath is innocent; only the link is not, which is why every path-confinement
 check upstream passed it.
 
 **This is the read half, and deliberately only that half.** Projection keeps its
-symlinks. `docs/specs/codex-native-skills/spec.md:92` states the invariant
+symlinks. The codex-native-skills contract states the invariant
 plainly — "the symlink-pass-through is the path-traversal-safety invariant;
 never resolve a symlink to its target at projection time" — and
 `build/main.py`'s `.apm` and `seeds` copytrees pass `symlinks=True` for the same

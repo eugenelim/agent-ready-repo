@@ -40,7 +40,7 @@ def test_classification_contract(tmp_path: Path):
     assert root_result.shape == "root-single"
     assert root_result.files == 1
     assert root_result.entries == 1
-    # AC1/E17: identity is the envelope directory name for every shape, so one
+    # Identity is the envelope directory name for every shape, so one
     # source cannot carry two identity rules. The envelope here is `root-single`
     # while the frontmatter says `root-skill`, so this asserts which one wins.
     assert root_result.skills[0].name == "root-single"
@@ -368,7 +368,7 @@ def test_direct_admission_diagnostic_registry(tmp_path: Path):
         assert diagnostic.code in registered, diagnostic.code
         assert diagnostic.message
 
-    # AC14's parity claim, driven through the two REAL routes. Comparing two
+    # The parity claim, driven through the two REAL routes. Comparing two
     # calls of `validate_direct_source` to each other — which is what this did
     # — cannot fail: it asserts a function is deterministic, not that install
     # preflight and validation agree. Install must reach the same tuple by
@@ -492,7 +492,7 @@ def test_entry_integrity_refusal_names_its_path_and_is_not_a_budget(tmp_path: Pa
         admit_direct_source(root)
     diagnostic = raised.value.diagnostic
     assert diagnostic.code == "CAT-D009", "integrity refusal, never a budget code"
-    assert diagnostic.path, "AC33 requires the offending path, carried as data"
+    assert diagnostic.path, "an entry-integrity refusal carries its offending path as data"
     assert "link.py" in diagnostic.path
 
 
@@ -500,7 +500,7 @@ def test_block_scalar_frontmatter_matches_a_real_yaml_parser():
     # AC16, AC18 — 22% of published skills write `description:` as a YAML block
     # scalar, so the bounded subset parser has to read the literal (`|`) and
     # folded (`>`) styles with every chomping indicator. Both parsers are
-    # checked because AC16 pins the direct route's parser as lifted unchanged
+    # checked because the direct route's parser is pinned as lifted unchanged
     # from catalogue discovery; a fix applied to one and not the other is the
     # drift this asserts against.
     import agentbundle.bounded_metadata as bounded_metadata
@@ -551,7 +551,7 @@ def test_block_scalar_frontmatter_matches_a_real_yaml_parser():
 
 
 def test_a_remote_root_single_takes_the_repository_name(tmp_path: Path):
-    # AC1/E17 — a GitHub archive extracts under a `<repo>-<ref>/` wrapper, so
+    # A GitHub archive extracts under a `<repo>-<ref>/` wrapper, so
     # the enclosing directory encodes the commit. Using it would change the
     # installed identity on every upgrade, which is the instability that argued
     # for the frontmatter name before the corpus ruled that out.
@@ -571,7 +571,7 @@ def test_a_remote_root_single_takes_the_repository_name(tmp_path: Path):
 
 
 def _corpus_fixture() -> dict:
-    """Load the committed AC35 corpus verdict table."""
+    """Load the committed corpus verdict table."""
     import json
 
     return json.loads(
@@ -623,7 +623,7 @@ def test_ac35_corpus_table_is_complete_and_attributable():
 
     fixture = _corpus_fixture()
     rows = fixture["repositories"]
-    assert len(rows) >= 15, f"AC35 requires at least fifteen repositories, got {len(rows)}"
+    assert len(rows) >= 15, f"the corpus requires at least fifteen repositories, got {len(rows)}"
     assert len({row["repository"] for row in rows}) == len(rows), "duplicate repository"
 
     measured = ("entries", "depth", "files", "largest_file", "total_bytes")
@@ -631,7 +631,7 @@ def test_ac35_corpus_table_is_complete_and_attributable():
     for row in rows:
         for column in measured:
             assert isinstance(row[column], int), (
-                f"{row['repository']} is missing the {column} column; AC35 requires "
+                f"{row['repository']} is missing the {column} column; the corpus requires "
                 f"it for refused repositories too"
             )
         assert row["verdict"] in {"admitted", "refused"}
@@ -645,7 +645,7 @@ def test_ac35_corpus_table_is_complete_and_attributable():
             assert row["shape"] in {"root-single", "collection", "direct-pack"}
             assert row["selected_skills"] >= 1
         assert row["allowlist_failures"] == [], (
-            f"{row['repository']} carries a publisher value that fails the AC18 "
+            f"{row['repository']} carries a publisher value that fails the publisher "
             f"allowlist: {row['allowlist_failures']}"
         )
 
@@ -676,7 +676,7 @@ def test_ac35_recorded_measurements_respect_the_bounds_they_were_measured_agains
 
 
 def test_a_repository_root_may_itself_be_the_collection(tmp_path: Path):
-    # RFC-0098 E22 — publishers commonly put skill folders straight at the
+    # Publishers commonly put skill folders straight at the
     # repository root with no `skills/` wrapper; two of eighteen surveyed
     # repositories do, and refusing them left a real publishing shape
     # unreachable. Still one level: a child holding SKILL.md is an envelope,
@@ -736,7 +736,7 @@ def test_a_symlinked_root_child_still_refuses(tmp_path: Path):
 
 
 def test_an_empty_git_placeholder_is_admitted_and_a_full_one_is_not(tmp_path: Path):
-    # RFC-0098 E22 — the hidden-entry rule guards against a dotfile carrying
+    # The hidden-entry rule guards against a dotfile carrying
     # instructions, which an empty Git placeholder cannot. Refusing a whole
     # repository over a zero-byte `.gitkeep` rejected real sources for a file
     # with no content.
@@ -768,7 +768,7 @@ def test_an_empty_git_placeholder_is_admitted_and_a_full_one_is_not(tmp_path: Pa
 
 
 def test_the_two_frontmatter_parsers_have_not_drifted():
-    # AC16 pins `bounded_metadata`'s parser as lifted from `okf_discovery`, and
+    # `bounded_metadata`'s parser is pinned as lifted from `okf_discovery`, and
     # the block-scalar support added by this spec landed in both. They cannot be
     # merged: `okf_discovery` imports `file_safety` and so has a filesystem API,
     # which `bounded_metadata` deliberately does not — a fresh direct-module
@@ -801,7 +801,7 @@ def test_the_two_frontmatter_parsers_have_not_drifted():
         assert name in direct, f"{name} missing from bounded_metadata"
         assert name in catalogue, f"{name} missing from okf_discovery"
         assert direct[name] == catalogue[name], (
-            f"{name} has drifted between the two parsers; AC16 pins them as the "
+            f"{name} has drifted between the two parsers; they are pinned as the "
             f"same primitive and nothing else compares them"
         )
 

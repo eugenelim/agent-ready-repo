@@ -1,4 +1,4 @@
-"""Wave 5 release comparison (AC-0013)."""
+"""Release comparison (AC-0013)."""
 
 from __future__ import annotations
 

@@ -235,12 +235,6 @@ def test_writer_is_stdlib_only():
     assert not forbidden, f"Writer imports modules outside the allow-list: {sorted(forbidden)}"
 
 
-def test_writer_docstring_names_spec():
-    """The module docstring contains the spec path."""
-    content = WRITER.read_text(encoding="utf-8")
-    assert "docs/specs/claude-plugins-install-route/spec.md" in content
-
-
 # ---------------------------------------------------------------------------
 # Scope detection
 # ---------------------------------------------------------------------------

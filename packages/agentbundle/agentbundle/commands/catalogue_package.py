@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 def _escape(text: str) -> str:
-    """Write every non-printable character as its ``\\x``, ``\\u`` or ``\\U`` escape (AC-0022)."""
+    """Write every non-printable character as its ``\\x``, ``\\u`` or ``\\U`` escape."""
     out: list[str] = []
     for ch in text:
         code = ord(ch)
@@ -59,7 +59,7 @@ def _failure(message: str) -> PackageResult:
 
 
 def _comparison_lines(comparison: dict) -> list[str]:
-    """Render the human comparison (AC-0011, AC-0012)."""
+    """Render the human comparison."""
     prior = comparison["prior"]
     lines = [f"Comparison with prior release: bundle {prior['bundle']} release {prior['release']}"]
     for kind, label in (("packs", "Packs"), ("profiles", "Profiles")):

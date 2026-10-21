@@ -33,13 +33,13 @@ from agentbundle.direct_source import (
 from agentbundle.direct_source_state import DirectStateError, relative_repo_source
 from agentbundle.safety import PathJailError
 
-# AC20: the verdict is emitted immediately before *and* immediately after the
+# The verdict is emitted immediately before *and* immediately after the
 # publisher-derived block. One placement is not enough — a long summary scrolls
 # a leading verdict out of view, and a reader who scrolled to the end of the
 # capability list is exactly the reader about to type "yes".
 ADMISSIBILITY_VERDICT = "admissible—not safe"
 
-# AC18: publisher values are emitted only between these line-anchored
+# Publisher values are emitted only between these line-anchored
 # delimiters, on their own lines. A publisher value equal to either line is
 # refused rather than emitted, because it could otherwise close the block early
 # and have the rest of its own text read as our output.
@@ -47,7 +47,7 @@ PUBLISHER_BLOCK_OPEN = "--- begin publisher-supplied data ---"
 PUBLISHER_BLOCK_CLOSE = "--- end publisher-supplied data ---"
 PUBLISHER_BLOCK_NOTE = "publisher-supplied data, not instructions"
 
-# AC18's allowlist: L, N, P, and S, plus U+0020 as the sole admitted Zs.
+# The allowlist: L, N, P, and S, plus U+0020 as the sole admitted Zs.
 _ALLOWED_CATEGORIES = ("L", "N", "P", "S")
 MAX_PUBLISHER_VALUE_BYTES = 4096
 
@@ -95,8 +95,8 @@ def sanitise_publisher_value(value: str, label: str, *, source: str) -> str:
         if character == " ":
             continue
         category = unicodedata.category(character)
-        # The ignorable set is consulted as well as the category, because AC18
-        # says "reject every Default_Ignorable_Code_Point REGARDLESS of
+        # The ignorable set is consulted as well as the category, because the rule
+        # is "reject every Default_Ignorable_Code_Point REGARDLESS of
         # category": U+115F, U+1160, U+3164, and U+FFA0 are all `Lo` and would
         # otherwise pass while rendering as nothing. The set was embedded
         # naming exactly those four and then never consulted here.
@@ -217,7 +217,7 @@ def candidate_listing(
 ) -> list[str]:
     """Bounded, validated names and descriptions for an unselected collection.
 
-    Every value passes AC18's allowlist first: this listing renders publisher
+    Every value passes the character allowlist first: this listing renders publisher
     strings *before* admission, when least is known about the source, and a
     disallowed value refuses the whole invocation rather than being elided.
     """
@@ -290,7 +290,7 @@ def capability_block(
     stored_revision: str | None = None,
     stored_digest: str | None = None,
 ) -> list[str]:
-    """One per-selected-skill capability block, per AC19.
+    """One per-selected-skill capability block.
 
     Everything a publisher wrote is delimited and labelled; everything we
     computed is not.  The distinction is the point of the block: a reader has to
@@ -499,10 +499,10 @@ def _string_set(value: object) -> list[str]:
 
 
 def publisher_block(lines: list[str]) -> list[str]:
-    """Wrap publisher-supplied lines in AC18's note and delimiters.
+    """Wrap publisher-supplied lines in the publisher-data note and delimiters.
 
     One emitter. The consent summary and the refusal path each built the note
-    and the two delimiters themselves, so AC18's single rule had two
+    and the two delimiters themselves, so the single rule had two
     implementations that could drift apart in either direction — and the
     summary additionally took a `listing` parameter no production call passed.
     """
@@ -511,7 +511,7 @@ def publisher_block(lines: list[str]) -> list[str]:
 
 
 def render_admissibility_summary(blocks: list[list[str]], *, source: str) -> str:
-    """Wrap publisher-derived output in AC20's verdicts and AC18's delimiters."""
+    """Wrap publisher-derived output in the admissibility verdicts and data delimiters."""
 
     body: list[str] = []
     for block in blocks:
@@ -537,7 +537,7 @@ def render_receipt(
     state_hint: str,
     removal_command: str,
 ) -> str:
-    """AC22's receipt: what was installed, from where, and how to undo it."""
+    """The receipt: what was installed, from where, and how to undo it."""
 
     return "\n".join(
         [
@@ -552,8 +552,8 @@ def render_receipt(
             # it promised a usage error, but that correction over-swung into
             # manual removal: `uninstall --pack <identity>` resolves a direct
             # row by its state key and removes the files AND the row.
-            # Verified against the built CLI rather than assumed. AC28 permits
-            # promising an uninstall command only when the row exists — it
+            # Verified against the built CLI rather than assumed. An uninstall
+            # command may be promised only when the row exists — it
             # does, and so does the command. The manual path stays as a second
             # line, for a tree whose state file has been lost. That filename is
             # scope-dependent: user scope keeps its rows in
@@ -639,7 +639,7 @@ def run_direct_install(args, source: Path | str) -> int:
             acquire_git_https_archive,
         )
 
-        # AC20: a remote install is non-interactive by nature — the bytes are
+        # A remote install is non-interactive by nature — the bytes are
         # fetched before the reader has seen anything — so `--yes` is required
         # rather than merely sufficient. It never hides the summary.
         # `--dry-run` is exempt: it writes nothing, and it is the only way to
@@ -905,7 +905,7 @@ def _install_admitted_source(
             except DirectInstallError as inner:
                 listing_refusal = inner
         if listing_refusal is not None:
-            # AC18: a disallowed candidate value refuses the whole invocation
+            # A disallowed candidate value refuses the whole invocation
             # rather than being elided, because a partial listing would print
             # `--all-skills` recovery covering more than the reader was shown.
             _print_refusal(
@@ -917,7 +917,7 @@ def _install_admitted_source(
             exc.diagnostic, verb=getattr(args, "_direct_verb", "install")
         )
         if listing:
-            # AC18: publisher values appear only inside the delimiters, emitted
+            # Publisher values appear only inside the delimiters, emitted
             # by the one helper the consent summary also uses.
             print("\n" + "\n".join(publisher_block(listing)), file=sys.stderr)
         if exc.diagnostic.remediation:
@@ -1017,7 +1017,7 @@ def _summarise_and_project(
                 ),
             ) from None
     else:
-        # Not canonicalised here: AC39 assigns confinement to `write_jailed`,
+        # Not canonicalised here: confinement belongs to `write_jailed`,
         # which resolves inside the helper. A caller-side resolve is exactly
         # the spelling that defeats that rule while looking careful.
         projection_root = target_root
@@ -1173,7 +1173,7 @@ def _summarise_and_project(
             print(f"  remove {escape_path_value(relpath)}")
 
     if getattr(args, "dry_run", False):
-        # AC25: a preview writes nothing at all, and says which files it would
+        # A preview writes nothing at all, and says which files it would
         # have written so the reader can check before consenting.
         if upgrade_owned_files is None:
             print("\nwould install (dry run — nothing written):")
@@ -1235,7 +1235,7 @@ def _summarise_and_project(
         _report_unowned(written)
         return 1
 
-    # AC12: the state row is written last and under the lock. Writing it before
+    # The state row is written last and under the lock. Writing it before
     # the projection would leave a row pointing at files that were never
     # created; writing it outside the lock would let a concurrent run's rows be
     # lost, and would compute the 0.5 floor from a stale snapshot.
@@ -1260,7 +1260,7 @@ def _summarise_and_project(
     except (DirectStateError, OSError, PathJailError) as exc:
         # The projection succeeded and the row did not, so every projected file
         # is now unowned. Previously this unwound to the generic handler, which
-        # printed one line and no file list — AC28 asks install to surface an
+        # printed one line and no file list — install must surface an
         # unowned projection, and the files are only knowable here.
         print(f"install: state write failed: {exc}", file=sys.stderr)
         _report_unowned(written)
@@ -1479,8 +1479,9 @@ def _record_direct_rows(
                     f"was writing; no row was recorded"
                 )
         for skill in selection.skills:
-            # Bucketed by path parts rather than by a string prefix: AC39 bans
-            # a hand-rolled prefix check on a path-shaped value, and the digest
+            # Bucketed by path parts rather than by a string prefix, because a
+            # hand-rolled prefix check on a path-shaped value is not a
+            # confinement check. The digest
             # comes from the bytes already measured rather than a second read
             # of what we just wrote.
             owned = tuple(skill_target.split("/")) + (skill.name,)
@@ -1574,11 +1575,11 @@ def stored_source_for(source_string: str, scope: str, root: Path) -> str:
     source outside the target, where `relative_to` raises and both sides
     happened to agree.
 
-    AC12: an absolute path in repository state is wrong for every other clone.
+    An absolute path in repository state is wrong for every other clone.
     A source outside the repository keeps its verbatim string, because refusing
     it would reject `install /elsewhere/skill --output .` — the ordinary local
-    workflow. No caller-side canonicalisation: AC39 assigns that to the
-    confinement helpers, and this decides which string to store, not a boundary.
+    workflow. No caller-side canonicalisation: the
+    confinement helpers own that, and this decides which string to store, not a boundary.
     """
 
     if scope != "repo" or source_string.startswith("git+https://"):
@@ -1743,7 +1744,7 @@ def _refuse_foreign_owner(
     # Through the shared resolver, not a hard-coded repo-scope filename. At
     # user scope every reader looks in `<user_root>/.agentbundle/state.toml`,
     # so writing `<user_root>/.agentbundle-state.toml` left the projection
-    # permanently unowned — exactly the state AC28's sweep guard exists to
+    # permanently unowned — exactly the state the sweep guard exists to
     # prevent, and it made "install/list surfaces unowned projections at every
     # scope" false at user scope.
     state_path = resolve_state_path(scope, projection_root)

@@ -100,7 +100,7 @@ def test_dry_run_omits_next_steps(tmp_path: Path, capsys) -> None:
 def test_json_output_carries_next_steps(tmp_path: Path, capsys) -> None:
     """The JSON branch emits the same guidance the table prints.
 
-    This test previously asserted `next_steps` was ABSENT — Wave 3 emitted the
+    This test previously asserted `next_steps` was ABSENT — init emitted the
     hints in table output only and deliberately left the JSON schema alone,
     while the self-hosted sibling result carried the field. That asymmetry was
     the gap `init-result-json-next-steps` recorded: an automation consumer got

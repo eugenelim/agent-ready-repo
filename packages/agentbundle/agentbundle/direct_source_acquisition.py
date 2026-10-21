@@ -37,7 +37,7 @@ from agentbundle.catalogue_tooling.results import Diagnostic, Severity
 
 # --- E11 Family-1 acquisition bounds -----------------------------------------
 #
-# Module constants rather than configuration on purpose: AC5 states that no
+# Module constants rather than configuration on purpose: no
 # flag, environment variable, or configuration may raise either family, and the
 # injectable seams below may only tighten them.
 MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024
@@ -64,7 +64,7 @@ _HEX_RE = re.compile(r"^[0-9a-fA-F]+$")
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _DEFAULTED_REFS = frozenset({"main", "master", "HEAD"})
 
-# AC18: the C0/C1 ranges and DEL are what turn a transport detail into log
+# The C0/C1 ranges and DEL are what turn a transport detail into log
 # forgery or terminal control once it reaches a message or a remediation.
 _UNSAFE_DETAIL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
@@ -83,7 +83,7 @@ class DirectAcquisitionError(ValueError):
 class DirectSource:
     """A parsed `git+https` source and the exact string that produced it.
 
-    ``requested`` is retained verbatim because AC4 builds every later request
+    ``requested`` is retained verbatim because every later request
     from the string that passed the grammar, with no re-canonicalisation between
     validation and request.  Rebuilding it from the parts would be a re-parse.
     """
@@ -133,7 +133,7 @@ def escape_transport_detail(detail: object) -> str:
     """Render an externally supplied transport string safe for any surface.
 
     A redirect `Location`, an HTTP reason phrase, and a TLS error detail are all
-    attacker-influenced and none is publisher metadata, so they bypass AC18's
+    attacker-influenced and none is publisher metadata, so they bypass the
     publisher allowlist entirely.  Left raw they carry CR/LF log forgery and
     ANSI terminal escapes straight into `message` and `remediation`.
     """
@@ -176,7 +176,7 @@ def enforce_runtime_floor(source: str) -> None:
 
 
 def parse_direct_source(source: str) -> DirectSource:
-    """Validate a `git+https` source string against AC3's grammar."""
+    """Validate a `git+https` source string against the `git+https` grammar."""
 
     if not source.startswith(_SOURCE_PREFIX):
         raise _refuse(
@@ -401,7 +401,7 @@ class _BoundedRedirectHandler(urllib.request.HTTPRedirectHandler):
 def _resolve_seam(value: object, constant: int, label: str, source: str) -> int:
     """Validate an injected numeric seam, then let it only tighten the bound.
 
-    Order matters and AC5 asserts it: validate first, then `min`. Applying `min`
+    Order matters: validate first, then `min`. Applying `min`
     to an unvalidated value would let `True` through as `1`, silently setting
     the tightest possible bound instead of refusing.
     """
@@ -572,7 +572,7 @@ def _read_revision(archive: tarfile.TarFile, source: DirectSource) -> str:
 
 
 def _refuse_member(source: DirectSource, name: str, reason: str, fix: str) -> None:
-    """One refusal shape for every AC6 member rule."""
+    """One refusal shape for every archive member rule."""
 
     raise _refuse(
         DiagnosticCode.CAT_D007,
@@ -590,7 +590,7 @@ def _extract(
     max_members: int,
     max_decompressed: int,
 ) -> tuple[str, int, set[str]]:
-    """Extract the archive under Family-1 bounds and AC6's link policy.
+    """Extract the archive under Family-1 bounds and the link policy.
 
     Also returns the set of first path segments seen across every member. A
     GitHub source archive prefixes all of them with one `<repo>-<ref>/`
@@ -718,7 +718,7 @@ def _acquire_bytes(
     exception = outcome.exception
     detail = escape_transport_detail(getattr(exception, "reason", None) or exception)
     if outcome.certificate_failure and outcome.anchors:
-        # AC37's single retry against operating-system anchors, through the one
+        # This is the single retry against operating-system anchors, through the one
         # shared entry point rather than a per-route copy. Reached only for a
         # certificate-verification failure, only when anchors exist, and
         # disabled by AGENTBUNDLE_NO_SYSTEM_TRUST — which
@@ -734,8 +734,8 @@ def _acquire_bytes(
         except CatalogueError as retry_failure:
             # The shared helper raises a catalogue-flavoured `CatalogueError`
             # when the second attempt also fails. Unhandled it exited as a
-            # traceback rather than the registered exit-1 refusal AC27 and AC21
-            # require, and its message reached the terminal unescaped.
+            # traceback rather than the registered exit-1 refusal
+            # required here, and its message reached the terminal unescaped.
             raise _refuse(
                 DiagnosticCode.CAT_D006,
                 f"the certificate for {url} could not be verified, and the "
@@ -846,7 +846,7 @@ def acquire_git_https_archive(
             if candidate.is_dir():
                 extracted = candidate
     except BaseException:
-        # AC25: every refusal removes its temporary tree.
+        # Every refusal removes its temporary tree.
         shutil.rmtree(working, ignore_errors=True)
         raise
     return AcquiredArchive(extracted, revision, downloaded, members, working)

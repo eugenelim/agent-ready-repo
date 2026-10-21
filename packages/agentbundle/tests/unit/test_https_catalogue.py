@@ -1,4 +1,4 @@
-"""Tests for HTTPS catalogue channels — Wave 2 of ini-004 (spec/https-catalogue-channels).
+"""Tests for HTTPS catalogue channels.
 
 Coverage:
   T1 — _is_valid_source new branches

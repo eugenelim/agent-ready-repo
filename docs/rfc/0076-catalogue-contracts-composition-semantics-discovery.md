@@ -581,7 +581,7 @@ and which require manual narrative explanation beyond what the JSON schema provi
 - [x] OQ1 resolved in Wave 3 spec: D5 surface does not conflict with ini-005 catalogue-tooling-rewire
 - [x] OQ2 resolved in Wave 4 spec: D7 catalogue-index command spelling confirmed
 - [x] OQ3 resolved in Wave 5 spec: D8 mutation refusal scope clarified ([resolution](../specs/catalogue-wave5-release-integrity/spec.md#oq3-resolution-rfc-0076))
-- [ ] OQ4 resolved in Wave 6 spec: D9 generated field reference criterion defined
+- [x] OQ4 resolved in Wave 6 spec: D9 generated field reference criterion defined ([resolution](../specs/catalogue-wave6-technical-docs-ia/spec.md#oq4-resolution-rfc-0076))
 - [x] Wave-to-decision mapping reviewed; no wave implements an unaccepted decision
 
 ## Errata

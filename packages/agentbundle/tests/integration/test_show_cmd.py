@@ -1,4 +1,4 @@
-"""``agentbundle show`` — command tests (catalogue-runtime-inventory spec).
+"""``agentbundle show`` — command tests (catalogue and runtime inventory).
 
 Two paths exercised through ``run(args)``:
 

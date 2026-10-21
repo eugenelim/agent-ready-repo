@@ -44,7 +44,7 @@ def _stage_pack(catalogue_root: Path, name: str, body: str) -> Path:
     (pack / "pack.toml").write_text(body, encoding="utf-8", newline="\n")
     (pack / ".apm").mkdir()
     # Reaching the claude-plugins dist tree requires a source manifest as well
-    # as user-admitting scopes (docs/specs/claude-plugin-route-scope).
+    # as user-admitting scopes.
     (pack / ".claude-plugin").mkdir(parents=True, exist_ok=True)
     (pack / ".claude-plugin" / "plugin.json").write_text(
         '{\n  "name": "' + name + '",\n  "version": "0.1.0",\n'
@@ -93,7 +93,7 @@ def _stage_pack_with_skill(catalogue_root: Path, name: str, body: str) -> Path:
         newline="\n",
     )
     # Reaching the claude-plugins dist tree requires a source manifest as well
-    # as user-admitting scopes (docs/specs/claude-plugin-route-scope).
+    # as user-admitting scopes.
     (pack / ".claude-plugin").mkdir(parents=True, exist_ok=True)
     (pack / ".claude-plugin" / "plugin.json").write_text(
         '{\n  "name": "' + name + '",\n  "version": "0.1.0",\n'

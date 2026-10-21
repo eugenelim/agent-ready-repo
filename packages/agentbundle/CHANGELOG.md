@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.53.2] — 2026-10-21
+
+### Changed
+
+- Runtime messages no longer cite internal design records or spec paths. The
+  `install --force` removal notice and the `install` refusal name the
+  `legacy dist-tree` layout; the `--emit-install-routes` refusal at
+  `--scope local` states the plugins-route reason; the `.adapt-discovery.toml`
+  refusals end at the rule they enforce; and `pack evals` refuses a GUI-only
+  adapter without a spec-section pointer. Exit codes are unchanged.
+- Comments and docstrings in the engine, and the shipped test suite, no longer
+  cite internal design-record ordinals, acceptance criteria or spec paths; each
+  states its rule instead. Test comments keep bare criterion labels as tags.
+
 ## [0.53.1] — 2026-10-21
 
 ### Fixed

@@ -7,7 +7,7 @@ pipeline-ordering invariant — the agent file must exist before
 wiring runs; T7 will enforce this; here we simulate the pipeline by
 pre-seeding), run the merger, assert the shape.
 
-Per spec § Boundaries — *Never do* — no live writes to
+No live writes to
 `~/.kiro/agents/` outside tmp_path. The repo-scope variant works
 against `tmp_path/.kiro/agents/<agent>.json`.
 

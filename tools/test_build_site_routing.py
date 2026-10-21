@@ -850,6 +850,12 @@ def _generator_fixture(tmp_path):
     (tmp_path / "tools").mkdir()
     shutil.copy2(_SCRIPT, tmp_path / "tools" / "build-site.py")
     shutil.copy2(_SCRIPT.with_name("changelog.py"), tmp_path / "tools" / "changelog.py")
+    # The field-reference generator build-site.py loads, and the two schemas it reads.
+    shutil.copy2(_SCRIPT.with_name("schema_field_reference.py"),
+                 tmp_path / "tools" / "schema_field_reference.py")
+    (tmp_path / "contracts").mkdir()
+    for schema in ("pack.schema.json", "skill.schema.json"):
+        shutil.copy2(_SCRIPT.parent.parent / "contracts" / schema, tmp_path / "contracts" / schema)
     real_site_toml = _SCRIPT.parent.parent / "site.toml"
     if real_site_toml.is_file():
         shutil.copy2(real_site_toml, tmp_path / "site.toml")
