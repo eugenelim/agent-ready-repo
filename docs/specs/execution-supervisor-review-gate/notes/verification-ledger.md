@@ -151,3 +151,15 @@ authority-reference pattern. A new VI-6002 test pins that copy equal to
 `_supervisor_admission._AUTHORITY_RE`, and the comment and eval wording no
 longer name the supervisor. With the fix, the dark-launch suite passes: 2
 passed under `WORK_SUPERVISOR_INTEGRATION=1`.
+
+### Integration subset after T2
+
+- Run under `WORK_SUPERVISOR_INTEGRATION=1` with `-n auto`: the readiness,
+  step-loop, admission, and commit suites. 95 passed and 1 failed, in 837 s.
+- The failure was `test_supervisor_readiness.py::test_no_stored_verdict_or_readiness_answer_exists`
+  at `_started` (`h.start(repo)` returned non-zero under parallel load), before
+  any review step ran.
+- Re-run alone, the test passed: 1 passed, in 65 s.
+- A direct drive of the same run found none of the test's forbidden markers in
+  `delivery/`.
+- CI's integration lane is the deciding run.
