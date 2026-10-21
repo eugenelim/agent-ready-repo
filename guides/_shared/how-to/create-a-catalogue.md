@@ -18,7 +18,7 @@ A catalogue is a folder with a `catalogue.toml` at its root, a `packs/` folder o
 agentbundle catalogue init my-catalogue --name my-catalogue
 ```
 
-This writes `catalogue.toml` and an `_example` pack and profile. It never overwrites an existing file, so running it again is safe.
+This writes `catalogue.toml`, a root `AGENTS.md` (which `catalogue package` needs to build a release), and an `_example` pack and profile. It never overwrites an existing file, so running it again is safe. A fresh catalogue packages into an empty release until you add a real pack.
 
 ## Check it
 
