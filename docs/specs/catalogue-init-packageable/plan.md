@@ -246,7 +246,9 @@ Ships in the next `agentbundle` patch release. A catalogue created by an earlier
 release does not gain the root files by re-running init: its `catalogue.toml`
 carries an older `minimum-agentbundle-version`, so init reports `CAT-INIT-007`
 and writes nothing. A catalogue whose `include` names a `_` directory under `packs/` fails
-`catalogue package` with `CAT-PKG-001` from this release; it removes that entry.
+`catalogue package` with `CAT-PKG-001` from this release. Its author removes that
+entry; if that leaves `include` empty, packaging falls back to every non-`_` pack,
+so the author lists the packs to ship instead.
 Rollback is reverting the release.
 
 ## Risks
