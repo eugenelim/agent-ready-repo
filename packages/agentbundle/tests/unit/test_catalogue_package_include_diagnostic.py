@@ -76,6 +76,20 @@ def test_scaffold_template_include_entry_is_a_diagnostic(tmp_path: Path) -> None
     _assert_single_diagnostic(tmp_path, root, "packs/_example")
 
 
+def test_bare_packs_include_entry_still_packages(tmp_path: Path) -> None:
+    """`packs/` names the whole packs directory, so it walks every pack as before."""
+    from agentbundle.catalogue_tooling.package import package_catalogue
+
+    root = _blank_catalogue(tmp_path)
+    _set_include(root, ["packs/"])
+
+    result = package_catalogue(
+        root=root, bundle="demo", release="0.1.0", channel="stable", output=tmp_path / "out",
+    )
+
+    assert result.ok, result.diagnostics
+
+
 def test_cli_reports_bad_include_without_a_traceback(tmp_path: Path) -> None:
     import os
     import subprocess

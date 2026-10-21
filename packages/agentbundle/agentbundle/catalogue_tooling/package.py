@@ -182,7 +182,7 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
                     f"pack_include entry {entry!r} names build residue; "
                     f"it is never packaged"
                 )
-            if Path(entry).parts[1].startswith("_"):
+            if len(parts) > 1 and parts[1].startswith("_"):
                 raise ValueError(
                     f"pack_include entry {entry!r} names a '_' directory; "
                     f"'_' directories are templates that are never packaged"
