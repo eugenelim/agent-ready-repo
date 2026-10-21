@@ -63,12 +63,12 @@ _COLLECTION_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.md$")
 _SPEC_DIR_RE = re.compile(r"^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*$")
 _SLUG = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 _SLUG_RE = re.compile(_SLUG)
-_PARENT_TYPED_RE = re.compile(rf"(outcome|opportunity|capability|intent):({_SLUG})")
+_INTENT_KINDS = ("outcome", "opportunity", "capability", "intent")
+_PARENT_TYPED_RE = re.compile(rf"({'|'.join(_INTENT_KINDS)}):({_SLUG})")
 _OTHER_TYPED_RE = re.compile(rf"(brief|spec):({_SLUG})")
 _BRIEF_TYPED_RE = re.compile(rf"brief:({_SLUG})")
 _LINK_RE = re.compile(r"\[.*\]\(.*\)")
-_LINK_TARGET_RE = re.compile(r"\[[^\]]*\]\(\s*<?([^)\s>]*)")
-_INTENT_PREFIXES = ("intent:", "outcome:", "opportunity:", "capability:")
+_INTENT_PREFIXES = tuple(f"{kind}:" for kind in _INTENT_KINDS)
 _INTENTS_DIR = "docs/product/intents/"
 
 # Preamble parsing is kept in lockstep by hand with the intent graph reader.
@@ -443,6 +443,15 @@ def _resolves_under_intents(target: str, spec_dir: str) -> bool:
     return (resolved + "/").startswith(_INTENTS_DIR)
 
 
+def _link_targets(value: str) -> list[str]:
+    """Markdown link targets in one linear pass (no backtracking pattern)."""
+    targets = []
+    for chunk in value.split("](")[1:]:
+        target = chunk.split(")", 1)[0].strip().lstrip("<").strip()
+        targets.append(target.split(None, 1)[0].split(">", 1)[0] if target else "")
+    return targets
+
+
 def _check_discovery(value: str, intents: _Index, spec_dir: str) -> str:
     """Classify a spec's Discovery value; only intent-valued forms can fail."""
     if value.startswith(_INTENT_PREFIXES):
@@ -455,7 +464,7 @@ def _check_discovery(value: str, intents: _Index, spec_dir: str) -> str:
             return f"discovery-{result}"
         return "discovery-wrong-kind" if intents.live[slug] != kind else ""
     if "product/intents/" in value or any(
-        _resolves_under_intents(t, spec_dir) for t in _LINK_TARGET_RE.findall(value)
+        _resolves_under_intents(t, spec_dir) for t in _link_targets(value)
     ):
         return "discovery-untyped"
     if _SLUG_RE.fullmatch(value) and value in intents.live:
