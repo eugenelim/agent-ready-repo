@@ -49,8 +49,11 @@ ROLE_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 MAX_ROLE_LENGTH = 64
 
 # The authority role that may lift the review retry cap without cohort state.
-# `work-supervisor.py start --authority-ref` takes the same role.
 OVERRIDE_AUTHORITY_ROLE = "owner"
+# An authority reference is `<role>` or `<role>:<hex>`. This pattern is kept
+# equal to the supervisor's own by a parity test; the supervisor stays dark, so
+# this script does not load it.
+_AUTHORITY_RE = re.compile(r"(?P<role>[a-z][a-z-]{0,62})(?::[0-9a-f]{12,64})?")
 # Round files are `<round>-record.md`; a round is a positive decimal integer
 # with no leading zero, so two spellings never name one round.
 _RECORD_NAME_RE = re.compile(r"(?P<round>[1-9][0-9]{0,8})-record\.md")
@@ -1406,27 +1409,12 @@ def _load_review_cap() -> int:
     return cap
 
 
-_admission_module: ModuleType | None = None
-
-
 def _check_override_authority(reference: str | None) -> bool:
-    """Return whether `reference` is an owner authority reference.
-
-    Asks the supervisor's own checker, so the accepted form cannot drift from
-    what `work-supervisor.py start --authority-ref` accepts. A checker that cannot
-    load refuses the override.
-    """
-    global _admission_module
-    if reference is None:
+    """Return whether `reference` is an owner authority reference."""
+    if not isinstance(reference, str):
         return False
-    try:
-        if _admission_module is None:
-            _admission_module = _load_sibling(
-                "_supervisor_admission.py", "_review_artifact_supervisor_admission"
-            )
-        return bool(_admission_module.check_authority_ref(reference, OVERRIDE_AUTHORITY_ROLE))
-    except Exception:
-        return False
+    match = _AUTHORITY_RE.fullmatch(reference)
+    return bool(match) and match.group("role") == OVERRIDE_AUTHORITY_ROLE
 
 
 def _parse_record(data: bytes, run_id: str, round_number: int) -> dict[str, Any]:

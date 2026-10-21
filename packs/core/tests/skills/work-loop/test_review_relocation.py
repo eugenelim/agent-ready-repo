@@ -549,3 +549,15 @@ def test_vi6004_a_one_sided_edit_fails_the_parity_check(tmp_path: Path) -> None:
         "assets/state.json and review-rules.json disagree on max_review_retries; "
         "change both together"
     ]
+
+
+def test_vi6002_override_reference_form_matches_the_supervisor(artifact: ModuleType) -> None:
+    """VI-6002: the override's authority-reference pattern equals the supervisor's.
+
+    `review-artifact.py` keeps its own copy so the dark-launched supervisor is
+    never loaded outside itself; this pins the two forms together.
+    """
+    admission = support.load_script(
+        "core_work_loop_relocation_admission", SCRIPTS / "_supervisor_admission.py"
+    )
+    assert artifact._AUTHORITY_RE.pattern == admission._AUTHORITY_RE.pattern
