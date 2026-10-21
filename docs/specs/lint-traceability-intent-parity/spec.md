@@ -1,324 +1,105 @@
 # Spec: Lint traceability intent parity
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved
+- **Approved:** 2026-10-21 by the repository owner, spec and plan together, after a clean shaping review and a clean adjudicated adversarial review in round 3.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
+- **Constrained by:** RFC-0103 D2; RFC-0105 D1; ADR-0007; ADR-0074
 - **Brief:** brief:intent-navigation-delivery
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
-- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / `references/spec-and-plan-contract.md` § Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
-- **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
-<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
+- **Discovery:** none
+- **Contract:** none
+- **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 >
-> **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
-> `Acceptance Criteria` are what a completion gate reads, and an amendment
-> changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
-> `Assumptions` are working material: they orient a reader and an author corrects them in place
-> as the work teaches, without an amendment and without a review round. A review
-> finding against working material is advisory — it cannot block, because nothing
-> gates the text it cites. Marking the tiers is the spec's job; honouring them
-> when a finding is adjudicated is the reviewing surface's.
-
-<!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Outcome, What Changes, Agent
-Rules, Testing Strategy, and Acceptance Criteria to the depth the durable work
-requires, and Assumptions only where something is unresolved. The sibling plan carries the implementation and verification strategy.
-Eligible direct-light work does not create this artifact. -->
-
-<!-- **Present tense, as-built.** Write every body section below as if the
-feature already exists and always worked this way — no "will be", no
-"previously X, now Y", no deprecation timelines, no version-stamped history.
-The body describes the current contract; decision history lives in ADRs and the
-release changelog. `plan.md` holds to the same rule: its `## Changelog` records
-approvals, not how the approach evolved. -->
+> `Agent Rules`, `Testing Strategy`, and `Acceptance Criteria` are contract.
+> `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons`, and `Assumptions`
+> are working material.
 
 ## Outcome
 
-<!--
-Two sentences, no more. The first names who this is for and what they get; the
-second says what success looks like for them. Frame from their perspective,
-not the implementer's, and leave implementation detail to `plan.md`. The cap is
-the point: an outcome that needs a third sentence is usually carrying a delta,
-which belongs in the section below, or a mechanism, which belongs in the plan.
--->
+A maintainer running `lint-traceability.py` gets the same node id for every intent file as `navigate-intents` derives for it, because both read the intent's kind, slug and retirement from its visible preamble by one rule. A build-check step compares the two over the real `docs/product/intents/` corpus and fails, naming each file, on any difference.
 
 ## What Changes
 
-<!--
-The delta, as bullets, for a human landing on this spec cold. It sits here —
-above every contract section — because a reader's first question is what moves,
-and a paragraph of Outcome does not answer it scannably.
-
-One bullet per change, each naming the thing that moves and where it lives. No
-rationale, no mechanism, no restating the Outcome in list form: a reader who
-stops after this section should know the shape of the change and nothing they
-would have to unlearn.
-
-- <what moves> — <where it lives>
--->
+- `lint-traceability.py` reads an intent file's `Kind:`, `Level:`, `Slug:` and `Tombstone:` from its visible preamble, by the navigator's field-line grammar — `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`.
+- The ladder recognizer skips tombstones, as the intent recognizer already does.
+- A pack-local fixture suite holds `lint-traceability`, `lint-graph-pointers` and the navigator to one verdict per fixture — `packs/core/tests/skills/work-loop/`.
+- A roster parity check compares the lint and the navigator over the real corpus — `tests/roster/`, with its named `build-check` step.
+- The living architecture page's sentence on intent-ladder markers names the preamble — `docs/architecture/work-intake-and-artifact-routing.md`.
+- Core ships the change as the next patch release.
 
 ## Durable Outputs
 
-<!--
-Plan the lasting records this delivery must create or update before the spec is
-approved. This is repository-specific, not a fixed checklist. Consider user
-promise, current product truth, current architecture, decision rationale,
-interface compatibility, operations, maintainer procedure, release history, and
-reusable learning. Include only applicable roles.
-
-For each row, name:
-
-- Semantic role
-- Applicability
-- Destination
-- Owner
-- Expected evidence
-- Closeout condition
-
-If no durable output is applicable, write `none` with an explicit rationale.
-If a destination is ambiguous or absent, record the still-required decision as
-the closeout blocker; do not guess or create a placeholder. Read each applicable
-existing human-readable surface as a whole and name any refresh work before
-approval. For user-facing behavior, draft the established user-documentation
-surface before implementation approval.
--->
-
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+| Current product truth | The lint's intent reading changes | `lint-traceability.py` docstrings for `recognize_ladder`, `recognize_intents` and `_is_tombstone` | Core maintainer | Fixture suite and parity suite | Docstrings state the preamble-only reading and cite the navigator as the rule's other port |
+| Current architecture | The architecture page describes where the lint finds ladder markers | `docs/architecture/work-intake-and-artifact-routing.md` § 8 | Architecture maintainer | Whole-section read against source | The ladder-marker sentence says the markers are read from the intent's preamble |
+| Release history | Core runtime content changes | `docs/product/changelog.d/` fragment; `packs/core/pack.toml` and `.claude-plugin/plugin.json` | Core maintainer | Catalogue verify; changelog checks | One outcome-led fragment for the next Core patch |
+| Eval coverage | `packs/AGENTS.md` requires an eval update with a non-cosmetic pack change | `packs/core/.apm/skills/work-loop/evals/evals.json` | Core maintainer | Eval JSON schema checks | One case on a body-only `Kind:` |
+| Verification record | Gate runs and corpus counts need a stable home | `docs/specs/lint-traceability-intent-parity/notes/verification-ledger.md` | Implementer | Run ids and counts | Ledger names the head revision it verifies |
+
+`packs/product-engineering/.apm/skills/intent/references/intent-model.md` § Placing an intent on the traceability chain names the markers without saying where they are read, and stays unchanged.
 
 ## Agent Rules
 
-The three-tier guard that keeps an implementing agent inside the lines.
-*Always do* applies without asking; *Ask first* requires human sign-off
-before proceeding; *Never do* is a hard rule, even under time pressure.
-
 ### Always do
 
-<!-- Defaults the agent applies without asking. -->
-
--
--
--
+- Mirror the navigator's reading by hand in `lint-traceability.py`, and pin the agreement in tests. The rule's owner is `intent-navigation` AC-0004.
+- Keep the ladder recognizer's filename-stem fallback for a file with no preamble `Slug:`.
+- Run the real-corpus parity check against the pack sources under `packs/core/.apm/`, not a projected copy.
+- Bump Core to exactly the next patch above `main` at landing time.
 
 ### Ask first
 
-<!-- Changes that need human sign-off before proceeding. -->
-
--
--
--
+- The real-corpus parity check finds a difference that only a corpus edit would fix.
+- A change to `navigate-intents` or `lint-graph-pointers.py` source looks necessary.
+- Commit, push, or merge any part of this work.
 
 ### Never do
 
-<!-- Hard rules. No exceptions, no clever workarounds. -->
-
--
--
--
+- Import across skills, or load the navigator from the lint at run time.
+- Change the navigator's derivation, its spec, or `lint-graph-pointers.py` behavior.
+- Change how the lint reads briefs, specs, screens, contracts, components, or the `Outcome co-owner:` field.
+- Add a dependency, a top-level directory, a new lint script, or a new finding code.
+- Weaken or delete an existing assertion to make a suite pass.
+- Edit generated adapter projections by hand.
 
 ## Testing Strategy
 
-Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
-
-- **TDD** — for logic with a compressible invariant.
-- **Goal-based check** — a one-liner verifies the outcome (a build
-  command, a `grep`, a typecheck).
-- **Visual / manual QA** — a recorded gesture and an observable
-  outcome, for UX flows.
-
-A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
-*surface*: a goal-based or manual-QA behavior may be verified by an
-**integration** test (two components together) or an **end-to-end (E2E)**
-test (the whole journey, as the user drives it) rather than a unit test —
-name that surface when a behavior only proves out across a boundary or a
-full flow.
-
-<!--
-e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
-flow: manual QA, exercised by an E2E test. Cross-service order placement:
-goal-based, exercised by an integration test." If you can't pick a mode for
-a behavior, the behavior is too vague — sharpen it before moving on.
--->
+- **TDD — lint reading (AC-0001, AC-0002, AC-0003):** fixture intent files in a temporary root drive `recognize_ladder` and `recognize_intents` directly. The reading is a compressible rule over constructed inputs.
+- **TDD — three-port agreement (AC-0004):** the same fixtures run through the lint, `lint-graph-pointers.py`, and the navigator's `derive`, compared per file. This is the parity pinning that stands in for the banned import.
+- **Goal-based check — real corpus (AC-0005):** one roster test over the repository's own intents. A measurement over the real tree, not an invariant over constructed inputs.
+- **Goal-based check — wiring and projection (AC-0006, AC-0007):** the CI-parity and gate-chain lints, and catalogue verification, decide these.
 
 ## Acceptance Criteria
 
-<!--
-The verifiable goals that close this spec. Each item should be checkable
-without subjective judgement — a reviewer can read it and know whether it
-holds. Notation: `- [ ]` open, `- [x]` met (see the `new-spec` skill's
-`references/spec-and-plan-contract.md` § Spec metadata contract). A newly Shipped spec has no open Acceptance Criteria.
+- [ ] **AC-0001.** For each fixture intent file below, `lint-traceability` registers exactly the node id that `intent-navigation` AC-0004 assigns to it, and no other `outcome`, `opportunity`, `capability`, or `intent` node for that file:
+      - `Kind: outcome` appearing only below the first `## ` heading;
+      - `Kind: opportunity` appearing only inside an HTML comment in the preamble;
+      - `` Kind: `outcome` extra ``;
+      - a lowercase `**kind:** outcome` field line;
+      - a `**Kind:** outcome` that is not on a line starting `- **`;
+      - `Kind: opportunity (note)` with `Level: capability`;
+      - `` Kind: `outcome (note)` ``;
+      - `` Level: `capability (note)` `` with no `Kind:`;
+      - `Level: Capability` with no `Kind:`.
+- [ ] **AC-0002.** The lint takes a live intent's slug from the first visible preamble `Slug:` field line. A `Slug:` only below the preamble or only inside a comment is not read. A ladder file with no such line keeps its filename stem as the slug. A non-ladder file with no such line gets no node and a note naming the file. A first `Slug:` value that is empty, `none` in any letter case, or a single-word `<…>` placeholder counts as no such line.
+- [ ] **AC-0003.** A file whose visible preamble has a `Tombstone:` field line, with any value, gives the lint no `outcome`, `opportunity`, `capability`, or `intent` node. That holds when the file also has `Kind: outcome`. A `Tombstone:` only below the preamble or only inside a comment does not retire the file.
+- [ ] **AC-0004.** For every AC-0001 and AC-0003 fixture whose visible preamble `Slug:` the navigator admits and is not `none`, and whose `Tombstone:`, if any, has a non-empty value, the three ports agree per file:
+      - on a live file, the lint's node id equals the navigator's, and the lint's node kind equals the `lint-graph-pointers.py` registered kind;
+      - on a retired file, neither the lint nor the navigator derives a node, and `lint-graph-pointers.py` marks it retired.
 
-This section owns criterion *shape*. Before writing criteria, work the six
-failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
-in order — they cover the failures shape rules cannot see, starting with a
-criterion that belongs to a different artifact. Two of those classes defer
-criterion shape back to this section; the rest defer elsewhere or own their own
-rules, and that reference states which.
-
-Two recurring sources of criteria, so they don't slip into the plan as
-mere design detail:
-
-- An **output-channel constraint** (e.g., "no sensitive data on stdout")
-  must enumerate *every* channel the consuming context makes user-visible
-  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
-  same constraint to each one explicitly — a constraint named on one
-  channel only is silently violated if the caller also sees another.
-
-- A **UI state** is an acceptance criterion: phrase it as
-  *state / trigger / outcome* — "given <state>, when <trigger>, the user
-  sees <outcome>" (e.g. "given an empty cart, when the page loads, the
-  user sees the empty-state illustration and a 'browse' link"). The
-  per-screen design itself lives in the plan's `## Design (LLD)`; the
-  observable state belongs here.
-- A **non-functional requirement with a pass/fail bar** is an acceptance
-  criterion: it must name a threshold a test or audit can check —
-  "meets WCAG 2.2 AA", "p99 latency under 200ms at 1k rps", "zero criticals
-  in the dependency scan". An NFR with no bar ("should be fast") is not a
-  criterion; give it a number or move it to the plan.
-
-- A criterion that needs "and" to join two **different predicates** is two
-  criteria: a conjunction is where a coverage check silently passes while half
-  the criterion is unimplemented. A criterion is more than one when its parts
-  have separate failure modes with separate remedies. Where the parts read as one
-  constraint over a set, rewrite the criterion as a single predicate with a
-  member substituted in; it stays one criterion only if that predicate is
-  checkable as written at every member rather than expanding into a different
-  check per member. The worked examples below fix where this boundary falls;
-  where the cue and an example conflict, the examples govern.
-
-  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
-    order, and `--dry-run` prints that manifest without writing a file." Two
-    different predicates; no single sentence covers both. The base case where the
-    conjunction cue and the split test agree.
-  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
-    output surfaced to the agent." One predicate substituted at each member of an
-    enumerated set, checkable as written at every member.
-  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
-    bytes, the execute byte, the u64be content length, then the content bytes."
-    One comparison value expressed in parts — the split test never engages,
-    because there is one failure and one remedy.
-  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
-    the exit code." "X is correct" is not checkable as written: it expands into a
-    different check per member. This is the anti-licence against reframing a
-    bundle as one constraint over a domain, and without it E2's shape is available
-    to any author.
-  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
-    Different failure modes (interception, script access) but one substitutable
-    predicate and one remedy. Shows that separate failure modes alone do not
-    split when the predicate survives substitution.
-
-- A universal claim enumerates its closed set or names the mechanism that makes
-  coverage exhaustive: without one, a reviewer cannot tell which members the
-  claim covers or whether an omitted member is a defect.
-
-- A new claim becomes a new checklist item, never a lettered or semicolon
-  graft: a graft hides a separately reviewable outcome inside an existing
-  criterion and makes its completion ambiguous.
-
-- For every numeric limit a criterion states, record the input that makes the
-  limit fire first and the enforcement mechanism that makes that ordering true;
-  a limit missing **either** fact is not yet a criterion. Where one quantity has
-  two limits, either order them so each is reachable for some input, or declare
-  one non-binding on that route and name the limit that fires instead.
-
-- A criterion stating a limit names the reference point it is measured from.
-  Choose an origin that gives the same input the same measurement however the
-  subject is organised; an unstated origin is not yet a criterion. A criterion
-  requiring a limit states its value and never asks an implementer to supply one:
-  a value invented to satisfy an unspecified requirement is worse than an absent
-  limit, because it reads as a decision that was made.
-
-- Make every claim earn its place by making a wrong implementation detectable.
-  Delete rationale, history, reassurance, restated context, and a figure that
-  merely explains where a threshold came from when it does not help establish the
-  outcome. Keep any claim that is the only written form of a comparison value,
-  such as a byte layout, exact key order, literal token, collection floor, or
-  stated bar. Ask: "could a wrong implementation now pass this?"
-
-- A criterion names an observable outcome. Naming a function's parameters, a
-  helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Outcome guidance and `SKILL.md`'s design-doc anti-pattern for
-  the document-level distinction.
-
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-
-Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
-is still required, keep the spec `Implementing` and resume it. If a separable
-item no longer belongs in the final accepted contract, pause for a reviewed
-spec/plan amendment, remove it from this checklist, and record it under
-`Follow-ons` with its owner and stable artifact or external evidence reference.
-Historical frozen specs may still contain older `(deferred: <slug>)` markers;
-do not copy that pattern into new shipped work.
--->
-
-<!--
-Optional story trace: when this spec was derived from a product brief that
-carries user stories (Shape B; see author-delivery-brief continue), append `Satisfies: US-n`
-to each acceptance criterion that satisfies that story, so coverage is
-story-granular:
-
-- [x] <observable outcome>. Satisfies: US-2
-
-The marker is optional — omit it for a no-stories brief (Shape A) or a spec
-authored directly.
--->
+      AC-0002's fixtures stay outside this check, because the navigator refuses a live intent with no admitted `Slug:`. The AC-0003 fixture with an empty `Tombstone:` value stays outside it too, because `lint-graph-pointers.py` reads that file as live.
+- [ ] **AC-0005.** Over the real `docs/product/intents/` directory, for each file path, the set of node ids the lint's ladder and intent recognizers derive together equals the set the navigator derives. The navigator's set is one id for a live intent and empty otherwise. On any difference, the check fails and names each differing path with both sets. If the navigator refuses the derivation, the check fails rather than skips. If the compared corpus lacks one of the four kinds, the check fails as vacuous.
+- [ ] **AC-0006.** The real-corpus check runs as its own named step in `.github/workflows/build-check.yml`, above the bulk roster step. The fixture suite runs as its own `make build-check` gate-chain step. `tools/lint-ci-parity.py` and `tools/test_build_gate_chain.py` pass with both registered.
+- [ ] **AC-0007.** The self-hosted copies of `lint-traceability.py` are byte-identical to the pack source, and `agentbundle catalogue verify --root .` reports no drift.
 
 ## Follow-ons
 
-<!--
-Separately scoped work that does not belong to the final accepted AC set. Each
-entry needs an owner and a stable work-intake artifact or external evidence
-reference. Do not use this section to hide unfinished accepted intent.
-
-- <owner>: <stable artifact or external ref> — <one-sentence scope>
--->
+None.
 
 ## Assumptions
 
-<!--
-What is still unresolved, and nothing else. Each item is a question the
-contract rests on that nobody has answered yet — so a reader sees the open
-questions instead of scrolling a list of facts that are already settled.
-
-A fact you settled is not an assumption, and how you checked it is not
-recorded here: that was the assumption checkpoint's evidence (`new-spec`
-SKILL.md step 3), and its job ended when the fact entered the contract. Route
-each settled fact by what it does. A fact that bounds what this delivery does
-goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
-into the plan's `## Design (LLD)` or `## Constraints`. There is no third
-destination, and nothing is left behind here as a receipt.
-
-Unresolved comes in two shapes, and both belong here.
-
-An **open question** — something that could still be answered:
-`- <category>: <open question> — <what it would change> (settled by: <who or
-what can answer it>)`
-
-A **named gap** — something that will not be answered on this delivery, such
-as a dependency that is absent or a corpus that is unreachable:
-`- <category>: <what is missing> — <what is therefore ungrounded>`
-
-Write `none` when nothing is unresolved. An empty section and an unexamined
-one read the same.
-
-- Technical: <open question> — <what it would change> (settled by: <…>)
-- Product: <what is missing> — <what is therefore ungrounded>
-
-When an item is settled later, route the fact to its destination above and
-delete the line. An item still here at approval is a known gap in the
-contract, recorded on purpose.
-
-A settled fact that later turns out wrong is a different event, and it does
-not come back here. Fix it where it lives — the spec body, or the plan's
-design — in the same PR that finds it, and say in that PR what changed. The
-correction belongs in the artifact the fact was doing work in, not in a note
-about the checkpoint that filed it.
--->
+- Technical: `lint-graph-pointers.py` treats a preamble `Tombstone:` line with an empty value as live, while the navigator and this lint treat it as retired. This spec does not change that script, so the three-port agreement is ungrounded for an empty `Tombstone:` value. No file in the real corpus has one. The owner accepted this gap at approval on 2026-10-21.

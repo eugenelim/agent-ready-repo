@@ -2209,9 +2209,6 @@ open = [
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
-  # Confirmed delivery slices of docs/product/briefs/intent-navigation-delivery.md, registered as Draft
-  # specs in the only initiative-free collection that admits them; the brief's Spec map owns the set.
-  { path = "docs/specs/lint-traceability-intent-parity/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "lint-traceability classifies intent ladder kinds from the preamble only, with a parity check against the navigator", needs = [] },
   { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
   { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
   # Delivery-system coexistence — CAP-0004's family. The capability and its
@@ -2445,6 +2442,8 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
+  # Slice 6 of `intent-navigation-delivery`, approved 2026-10-21; moved from `backlog.open` when the spec and plan were approved.
+  { path = "docs/specs/lint-traceability-intent-parity/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "lint-traceability classifies intent ladder kinds from the preamble only, with a parity check against the navigator", needs = [] },
 ]
 active  = [
 ]

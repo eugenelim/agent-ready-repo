@@ -1,331 +1,154 @@
 # Plan: Lint traceability intent parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** <task-relevant architecture/convention source;
-  one or two analogous production implementations; corresponding tests or
-  construction path; named uncertainty/deviation — or `none — non-structural`>
-
-> **Plan contract:** this is the implementation strategy. It may change
-> substantively only while its Status is `Drafting`, before approval records its
-> baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
-> only lifecycle bookkeeping is permitted, and execution observations belong in
-> `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
-> equivalent). A genuine artifact error follows the controlled-amendment path.
->
-> **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
-> completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
-> and `Risks` are working material that an implementer corrects in place only
-> before approval: approval hashes the whole plan. After approval, grounding for
-> a seam recorded as `no stub (implementation-discovered)` goes to the
-> verification ledger; a settled design decision that execution falsified is a
-> plan error that follows the controlled-amendment procedure. Treating them as
-> contract is how a review spends a round on prose no gate consumes — the
-> measured share is over half the plan's lines. `Grounding` stays *recorded*,
-> because a per-task resolution that nobody wrote is not grounding; what it stops
-> being is a claim a reviewer holds the plan to.
-
-<!-- Existing plans without this field remain valid. Treat its absence as a
-named assurance gap during structural review, not a universal lint failure. -->
-
-<!-- **Durable-plan fill.** This template is the implementation and verification
-strategy for a durable delivery slice. Fill Approach, Constraints, Risks,
-Design, Tasks, and Changelog to the depth the durable work requires. Its sibling
-spec is the durable behavior contract. Eligible direct-light work does not
-create this artifact. -->
-
-## Approach
-
-<!--
-A paragraph describing the strategy. What's the shape of the change? What's
-the order of operations? What's the riskiest part?
-
-A reader should finish this section knowing roughly what files will move and
-what the testing story is, without yet seeing the detailed task list.
--->
+- **Status:** Approved
+- **Constrained by:** RFC-0103 D2; RFC-0105 D1; ADR-0007; ADR-0074
+- **Repository anchors:** the navigator's `_preamble_visible`, `_normalize_kind_level` and `_compute_node_id` in `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py`; the existing hand-mirror in `packs/core/.apm/skills/work-loop/scripts/lint-graph-pointers.py` (`_preamble`, `_registered_kind`); the cross-port parity precedent `packs/core/tests/skills/navigate-intents/test_related_intents_lint_parity.py`; the roster precedent `tests/roster/test_graph_pointer_authoring.py` and its CI wiring.
+- **Retention:** repository-durable spec, plan and `notes/verification-ledger.md`. Implementers, reviewers, resuming agents and CI read them. After closeout, source docstrings, the suites, the architecture page and the release fragment own current truth.
 
 ## Constraints
 
-<!--
-What ADRs, RFCs, or other commitments shape this implementation? Cite them.
-This is what keeps the plan from contradicting prior decisions.
--->
-
-## Construction tests
-
-Most construction tests live under **Tasks** below (per-task `Tests:`
-subsections). This top-level section is only for cross-cutting tests that
-span tasks.
-
-<!--
-Construction tests guide implementation. They sit in two layers:
-
-1. **Per-task tests** (the majority) live under each Task below, in the
-   `Tests:` subsection. That's where unit, edge-case, and property tests
-   for a single task go.
-2. **Cross-cutting tests** (this section) live here, listed once: integration
-   tests that span tasks, end-to-end smoke tests, and any manual verification
-   steps.
-
-Designed up front, before EXECUTE. Revisable if a test over-specifies an
-internal detail the plan later changes. The contract itself lives in
-`spec.md` (Acceptance Criteria + Testing Strategy); construction tests
-that verify it live here.
-
-**Integration tests:** <list, or "none beyond per-task tests">
-**Manual verification:** <list, or "none">
--->
+- One slice PR targets `main`. No commit, push or merge without the owner's approval. No bare `git stash`.
+- Skill scripts are standard-library only (ADR-0074) and import no other skill. The navigator's rule is mirrored by hand, and the tests pin the mirror.
+- A pack test reads only inside `packs/core/`. The real-corpus check reads `docs/product/intents/`, so it lives in `tests/roster/`, anchored at `Path(__file__).resolve().parents[2]` (`tests/AGENTS.md`).
+- Test modules load skill scripts by path under unique `core_<skill>_…` names (`packs/AGENTS.md`).
+- Local gate: `make lint-ruff lint-mypy`, the touched suites, and one `make build-check` before the first push. `test-corpus.yml` and `test-roster.yml` are dispatched on the PR branch.
+- Use the Python 3.13 interpreter at `$HOME/.pyenv/versions/3.13.13/bin/python3` locally; CI runs 3.11, so no 3.12+ syntax.
+- Expected review shape: DEEP for T1 (a reader change in a gate script); WIDE for T3 and T4 wiring.
 
 ## Durable-output map
 
-<!--
-This section maps each task to the spec's Durable Outputs table so closeout can
-verify planned output, implementation evidence, and closeout evidence without
-copying requirements into a second record.
-
-For each output, name:
-
-- planned output
-- implementing task(s)
-- implementation evidence
-- closeout evidence
-- unresolved destination or freshness blocker, if any
-
-If the plan's Design (LLD) contains a non-inferable design fact, map it to its
-semantic owner here. Mechanically evident details may stay with code, types,
-docstrings, and tests; one-off construction order may remain delivery residue.
--->
-
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| <semantic role / destination> | <Tn> | <test, build, guide, contract, or review artifact> | <what close-work verifies> |
+| Lint docstrings (current product truth) | T1 | Fixture suite green | Docstrings name the preamble-only reading |
+| Architecture § 8 ladder-marker sentence | T1 | Diff of that sentence | Sentence names the preamble |
+| Release fragment, versions, eval case | T4 | Catalogue verify; eval JSON checks | Core is one patch above `main` |
+| Verification ledger | T3, T4 | Corpus counts; CI run ids | Ledger names the verified head |
 
 ## Design (LLD)
 
-The low-level design — the *how*, below the Approach and above the per-task
-steps. **Optional and shape-pruned:** scaffold only the sub-sections the spec's
-`Shape:` selects, and delete the rest. A one-file change keeps this section thin
-or empty; a heavyweight feature fills most of it. The spec stays the contract —
-**no acceptance criterion lives here**; each sub-section instead **traces to the
-AC(s) it satisfies and the `contracts/` it implements**, so the design is always
-anchored to something verifiable.
+### Behavior & rules
 
-Stack-neutral by construction: these are the *kinds* of design decision every
-build makes, never a framework. Name your actual stack *inside* each sub-section
-from the repository's mapped architecture and convention sources. If none are
-usable, use manifests/build files and, for structural work, one or two analogous
-production implementations with their tests or construction path; elicit any
-unresolved load-bearing choice. The headings themselves stay universal.
+Owned by: T1
 
-<!-- Shape → sub-sections (a guide, not a gate):
-  ui          → decomposition, state & control flow, behavior & rules, quality attributes
-  service     → interfaces & contracts, data & schema, failure & resilience, quality attributes
-  data        → data & schema, interfaces & contracts
-  integration → dependencies & integration, interfaces & contracts, failure & resilience
-  mixed/unsure→ scaffold all, then prune.
-Delete every sub-heading the shape doesn't select. -->
+Traces to: AC-0001, AC-0002, AC-0003.
 
-### Design decisions
-<!-- optional — the load-bearing choices and the alternatives rejected, one line
-of why each. Traces to: <AC(s) this satisfies> · <contracts/… it implements>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+The lint gains one preamble field reader for intent files. It reuses the existing `_visible_intent_preamble`, which hides HTML comments and stops at the first visible `## ` line. It then matches the navigator's field-line grammar, `^- \*\*([^*:]+):\*\*\s*(.*)$`, on each visible line. The field name is exact-case, and every value of each field is kept in order. Each value first takes the navigator's value normalization, the resolver's `_normalize`: strip a trailing comment, then one wrapping pair of backticks.
 
-### Data & schema
-<!-- optional — entities, fields, types, ownership, migrations, retention.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature migrates existing data, name backfill checkpointing,
-restartability, and cutover validation. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+- Kind and Level then take a hand copy of the navigator's `_normalize_kind_level`: strip a trailing comment, cut at ` (`, ` →` or `<!--`, strip one wrapping pair of backticks, then lowercase the first word. The kind is the first `Kind:` value when it is `outcome` or `opportunity`. Otherwise it is `capability` when the first `Level:` value is `capability`. Otherwise the file is not a ladder rung.
+- Slug is the first `Slug:` value, passed through the lint's existing `_token` and `_is_placeholder`. For every slug the navigator admits (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, optionally in backticks) other than `none`, this gives the navigator's value. `recognize_ladder` falls back to the filename stem. `recognize_intents` keeps its note and creates no node.
+- A file is a tombstone when its preamble fields contain `Tombstone`, whatever the value. `_is_tombstone` takes this reading. `recognize_ladder` skips tombstones before classifying, so a retired ladder file no longer collides with its reissue.
+
+`_intent_preamble_field`, which serves `Outcome co-owner:`, keeps its `field_re` matching unchanged. So do brief recognition and spec pointer reads.
+
+**Residual differences the hand copy does not cover.** The real-corpus check catches each of these if a corpus file ever reaches it:
+
+- File admission: the lint reads every non-`_` `*.md` file, while the navigator admits `^[A-Za-z0-9][A-Za-z0-9._-]*\.md$`.
+- Read limit: the lint's per-file cap is 8 MiB, while the navigator's is 1,000,000 bytes and fails the whole derivation past it.
+- Slug `none`: the navigator registers `intent:none`, while the lint treats `none` as a placeholder under AC-0002.
 
 ### Interfaces & contracts
-<!-- optional — the surfaces this feature exposes or consumes (REST API, event
-interface, BFF, RPC). Point at the `contracts/<type>/` file each implements.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature crosses a boundary, name a test seam for each
-crossed boundary. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
-### Component / module decomposition
-<!-- optional — the parts and their responsibilities; what's new vs. reused; for
-UI, the component tree. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+Owned by: T2, T3
 
-### State & control flow
-<!-- optional — state model and transitions; sequencing across components; for
-UI, screen states and navigation. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When state changes concurrently, name concurrency, consistency,
-locking, atomicity, and transaction boundaries. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+Traces to: AC-0004, AC-0005.
 
-### Behavior & rules
-<!-- optional — the business and validation rules and the decisions they drive.
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+The fixture suite (T2) builds a temporary root per case and observes three ports for each fixture file:
 
-### Failure, edge cases & resilience
-<!-- optional — what can go wrong and the response: retries, fallbacks, timeouts,
-partial failure, idempotency, degraded modes. Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When external failures are possible, name stable error classes,
-retryability, and external failure mapping. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+- **The lint:** `recognize_ladder`, then `recognize_intents` with `claimed=set(ladder.values())`, inverted to a map from path to the set of ids.
+- **The navigator:** `intent_graph.derive(root)`, taking its `type == "intent"` nodes.
+- **`lint-graph-pointers.py`:** `_registered_kind(_preamble(text))` and `any(_preamble(text).get("Tombstone", []))`.
 
-### Quality attributes (NFRs)
-<!-- optional — how the design meets each NFR-with-a-bar from the spec's
-Acceptance Criteria (performance, accessibility, security posture, operability).
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- When this feature needs operational visibility, name a concrete
-observability surface. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
+The roster check (T3) uses the same lint and navigator calls on the repository root and `docs/product/intents/`. It loads both modules from `packs/core/.apm/` sources. It compares the two maps over the union of their paths, and reports every differing path in one failure message. A `DerivationError` from the navigator fails the test. Non-vacuity: the navigator ids must include all four kinds. The verification ledger records the corpus counts.
+
+Some fixtures already pass against the current lint; the ledger records which ones T1 turns from red to green, run against the unchanged lint before T1's source edit.
 
 ### Dependencies & integration
-<!-- optional — external systems, services, and libraries this design leans on,
-and the coupling between them. (Reuse `Depends on:` / `Touches:` on the tasks
-below for *execution* ordering; this sub-section is for *design*-level coupling.)
-Traces to: <AC(s)> · <contracts/…>. -->
-<!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
-> **Rollout & deployment** — the tenth design dimension — is **not** a
-> sub-heading here. It is realized by [`## Rollout`](#rollout) below (infra,
-> external-system integration, deployment sequencing). Cross-link it from the
-> relevant sub-sections; never duplicate it.
+Owned by: T2, T3
+
+- The fixture suite is a new `_pytest_step("test-lint-traceability-intent-parity", …)` in `tools/repo/build_gate_chain.py`. It sits directly after `test-lint-traceability`, and `EXPECTED_SCRIPT_STEPS` in `tools/test_build_gate_chain.py` gains it.
+- The roster check gets a named step in `.github/workflows/build-check.yml`, placed beside `pytest graph-pointer authoring sources (roster-owned)`, above the bulk roster step. It carries the same `if:` guard.
+- In `tools/lint-ci-parity.py`, its `STEP_DISPOSITION` entry is `LOCAL("test-after-build-check")`, and `_GATE_MAIN_CHECKS` gains its name.
+- The test names no `docs/specs/` literal, so `.workspace-prune-protected.toml` is unchanged.
 
 ## Tasks
 
-The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
-**Phrase each task as a verifiable goal, not a procedure.** The task name
-*is* the success criterion: *"Add validation"* → *"All invalid-input tests
-pass"*; *"Refactor X"* → *"Tests for X green before and after; public
-surface unchanged"*. Tests drive implementation, not the other way around, so
-`Tests:` leads every task. Use red-green-refactor with separate commits when
-the change is non-trivial.
+### T1: The lint reads an intent's kind, slug and retirement from its visible preamble
 
-**`Approach:` is conditional.** Write one when the task carries a decision a
-reader cannot infer from `Tests:` and `Done when:` — an *ordering* decision
-(step B must follow step A for a reason the tests do not show) or a *seam*
-decision (which module, which existing helper, which boundary). Omit it when
-those two fields already say what to build and how it is observed: an
-`Approach:` that restates them is a second home for the same instruction, and
-no completion gate reads it. The field order is unchanged where it appears —
-`Tests:`, then `Approach:`, then `Done when:`.
+**Depends on:** none
 
-**Every task must declare `Depends on:` explicitly** — list prior task IDs
-or `none`. Don't omit the field; "obvious from order" is the failure mode
-that hides serial-by-default thinking. `none` is a valid and common answer.
+**Verification mode:** TDD
 
-Planning is sufficient when the plan supplies an observable contract, owner,
-boundaries, ordering, discovery predicates where a seam is not grounded,
-required outcomes, and verification modes adequate to begin safely. It need
-not settle a helper name, symbol, fixture-internal detail, or complete edge-case
-matrix before implementation. Such questions are build-time guidance unless
-their absence makes the plan unable to start or verify the contract.
-
-Keep observable behavior in `spec.md`. Use an exact path or symbol here only
-when repository evidence grounds it. For an implementation-discovered callable
-seam, record `no stub (implementation-discovered)` and its discovery predicate,
-constraint, required outcome, and verification mode; do not invent a helper,
-fixture, module, path, or symbol.
-
-**`Depends on:` grammar** (so the supervisor-mode scheduler —
-`loop-cohort schedule` — can read it). The field is a comma-separated list of:
-local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
-`spec:<name>/TN` for a dependency on another spec's task (e.g.
-`spec:auth-tokens/T7`). Parenthetical prose after the IDs is
-ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
-*spec-sequencing*, not intra-plan waves, and are excluded from this plan's
-DAG. The scheduler **fails on a dependency cycle** and **warns on a
-forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first). A `Depends on:` entry that
-names no task in the plan is refused: the run exits non-zero, every offending
-task→dep pair is named, and nothing is persisted.
-
-**Optional `Touches:` grammar** (read by `loop-cohort schedule`).
-A task *may* add a `**Touches:**` line listing the file globs it expects to
-touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
-trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
-`predicted-disjoint: yes|no|unknown` **before** dispatch — a cheap
-*serialize-only* screen. It **never greenlights** parallel: a predicted overlap
-serializes early, but `yes`/`unknown` still require the authoritative post-write
-`git merge-tree` check to actually parallelize (under-declaration is unsafe).
-The field is **optional** — omit it freely; a task with no `Touches:` makes its
-wave `unknown`, never an error.
-
-<!--
-Order matters — list tasks in the order they should be done. Mark
-dependencies inline. Format each task so a contributor (human or agent)
-could pick it up and complete it without follow-up questions:
-
-### T1: <task name>
-
-**Depends on:** <none | comma-separated prior task IDs>
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/lint-traceability.py`, `packs/core/tests/skills/work-loop/test_lint_traceability_intent_parity.py`, `docs/architecture/work-intake-and-artifact-routing.md`
 
 **Tests:**
-- <test 1 — behaviour, edge case, or property; reference the Acceptance
-  Criterion from spec.md this step verifies, if any>
-- <test 2>
-<!-- For an already-grounded callable seam or coherent TDD task family, include
-     one compilable red contract-surface assertion (`stub: true`). It need not
-     encode the finished edge-case matrix. -->
+- **VI-1001.** In the new `test_lint_traceability_intent_parity.py`, a parameterized case per AC-0001 fixture asserts the lint's id set for the file. The expected ids are written in the test, not computed (AC-0001).
+- **VI-1002.** Slug cases: a body-only `Slug:`, a comment-only `Slug:`, a ladder file with no preamble `Slug:` (stem id), a non-ladder file with no preamble `Slug:` (no node, one note naming it), and a non-ladder file whose `Slug:` is `none` (no node, one note) (AC-0002).
+- **VI-1003.** Tombstone cases: `Tombstone:` with `Kind: outcome`, an empty-valued preamble `Tombstone:`, a body-only `Tombstone:`, and a comment-only `Tombstone:` (AC-0003).
+- **VI-1004.** The existing `test_lint_traceability.py`, `test_lint_traceability_delivery_checks.py` and `test_lint_traceability_delivery_checks_vi.py` pass unchanged.
 
-**Approach:** <omit this field unless the task carries an ordering or seam
-decision the two fields around it do not show>
-- <the decision, and why this way>
+**Done when:** VI-1001 to VI-1004 pass, and the docstrings and the architecture sentence state the preamble reading.
 
-**Done when:** <name a concrete observable — specific test green, gate
-  passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
-  an execution-evidence destination; use the verification ledger. Not "looks
-  good" or "feature works".>
+### T2: Three ports agree on every fixture, as a gate-chain step
 
-### T2: <task name>
+**Depends on:** T1
 
-...
--->
+**Verification mode:** TDD
 
+**Touches:** `packs/core/tests/skills/work-loop/test_lint_traceability_intent_parity.py`, `tools/repo/build_gate_chain.py`, `tools/test_build_gate_chain.py`
+
+**Tests:**
+- **VI-2001.** Over the VI-1001 and VI-1003 fixtures, a parameterized case per fixture observes the three ports as AC-0004 states. The VI-1002 slug fixtures and the empty-valued `Tombstone:` fixture are not in this set (AC-0004).
+- **VI-2002.** `tools/test_build_gate_chain.py` passes with the new step in `EXPECTED_SCRIPT_STEPS` (AC-0006).
+
+**Done when:** VI-2001 and VI-2002 pass.
+
+### T3: The real corpus is compared on every pull request
+
+**Depends on:** T1
+
+**Verification mode:** goal-based check
+
+**Touches:** `tests/roster/test_lint_traceability_intent_parity.py`, `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`
+
+**Tests:**
+- **VI-3001.** The roster test passes on the real corpus. The same module's comparison runs on three temporary roots, never the real one, and each run must fail:
+  - a file named `a b.md` that the lint reads and the navigator does not admit, with the failure naming that path;
+  - a live intent with no `Slug:`, which raises the navigator's `DerivationError`;
+  - a corpus with no `outcome` intent, which fails as vacuous.
+
+  (AC-0005)
+- **VI-3002.** `python3 tools/lint-ci-parity.py` and `python3 tools/test-lint-ci-parity.py` pass, with the new step registered (AC-0006).
+
+**Done when:** VI-3001 and VI-3002 pass, and the ledger records the corpus counts.
+
+### T4: The Core patch release is projected and verified
+
+**Depends on:** T1, T2, T3
+
+**Verification mode:** goal-based check
+
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `docs/product/changelog.d/`, generated projections
+
+**Tests:**
+- **VI-4001.** Bump Core to the next patch above `main`, add one changelog fragment with Highlights, and add one work-loop eval on a body-only `Kind:`. Then commit, run `make build-self`, and run `agentbundle catalogue verify --root .` with no drift (AC-0007).
+- **VI-4002.** `make build-check` passes locally once before the first push. `test-corpus.yml` and `test-roster.yml` are dispatched on the PR branch and their run ids recorded in the ledger.
+
+**Approach:** Grep for hash and content pins on every edited file before committing. `make build-self` refuses a dirty tree, so commit first, then regenerate.
+
+**Done when:** VI-4001 and VI-4002 pass and the PR's checks are green.
 
 ## Rollout
 
-<!--
-How this ships — the tenth design dimension, realized here rather than as a
-`## Design (LLD)` sub-heading (cross-linked from there, never duplicated). Cover
-the dimensions that apply; a pure-logic change with none of them says so in one
-line.
-
-- **Delivery:** behind a flag? big bang? gradual / canary? Reversible — what is
-  the rollback, and what's irreversible (a data migration, a published event)?
-- **Infrastructure:** new or changed infra this needs (compute, storage, queues,
-  network, secrets, IAM) and how it's provisioned.
-- **External-system integration:** third-party or sibling-service dependencies
-  that must be live, migrated, or version-matched before this can ship.
-- **Deployment sequencing:** the order steps must ship in when one depends on
-  another — schema migration before the code that reads it, consumer before
-  producer, dark-launch before cutover. This is the dimension with no other home.
--->
+Core's next patch release ships the reader change. It changes no node id in the current corpus. Rollback reverts the slice commit.
 
 ## Risks
 
-<!--
-What could go wrong during implementation (vs. risks of the design itself,
-which belong in the spec)? Things like: "this migration is online and could
-slow the database", "this changes a behavior X teams depend on".
--->
+- An adopter intent with `Kind:` below its preamble, inside a comment, or on a lowercase label loses its ladder node. That node now matches what the navigator shows. The release fragment says so.
+- `main` may move before landing. Re-check the Core version and re-run the corpus check after any merge from `main`.
 
 ## Changelog
 
-<!--
-Approvals, and nothing else. Drafting history does not belong here: while the
-plan is `Drafting` its current text is the only version anyone acts on, so a
-dated account of how it got there is the draft narration `spec.md`'s
-present-tense rule already refuses, one document over. After approval this
-section is pinned like the rest of the plan, and an execution observation goes
-to the verification ledger, not to a new changelog entry.
-
-**Each approval is an entry.** The two forms are given at the end of this
-note — one per gate, a real date, the approver's own handle. Both live here
-because the plan carries the only dated history in the spec directory. Without them nothing in the artifacts says when
-the contract froze or on whose authority, so a later reader cannot tell which
-claims were in it at approval and which arrived afterwards. `work-loop`'s
-G-plan sequence owns *when* each is written and why the order matters; this
-template owns only the form.
-
-- YYYY-MM-DD: spec approved by <handle>
-- YYYY-MM-DD: plan approved by <handle>
--->
+- 2026-10-21: spec and plan approved together by the repository owner. Shaping review: round 1 four findings, round 2 one, round 3 clean. Adversarial review: round 1 three sustained, round 2 two refuted (clean), round 3 clean. Reports are under `.context/reviews/631a259c-68f2-484a-8273-5da4e904e54a/`. The owner accepted the empty-`Tombstone:` gap in `lint-graph-pointers.py`.
+- Approved reviewed revisions, before lifecycle-only approval annotations: spec SHA-256 `b071ed0c9ec8b857f02b7de8f07b7b9b5548f6e8d9a9f8561b2bb8e8b885330a`; plan SHA-256 `402062ba6bc9f29f06f902300cd1ddc7683ef07b18ca7ac4b3a4af94ad269b09`.
