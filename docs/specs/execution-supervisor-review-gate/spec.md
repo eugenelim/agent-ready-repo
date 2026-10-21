@@ -1,12 +1,12 @@
 # Spec: Execution supervisor review gate
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0042, ADR-0047, ADR-0061
 - **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none
-- **Contract:** `contracts/delivery/` (consumes Slice 2's `review-subject.v1`, `review-obligation.v1`, `review-report.v1`, `finding-assessment.v1`, and `finding-disposition.v1` unchanged); `packs/core/.apm/skills/work-loop/review-rules.json` (defined here)
+- **Contract:** `contracts/delivery/` (consumes Slice 2's `review-subject.v1`, `review-obligation.v1`, `review-report.v1`, `finding-assessment.v1`, and `finding-disposition.v1` unchanged; amends `execution-supervisor-core`'s `execution-request.v1` and `execution-result.v1` additively, with new optional fields only, for the reviewer-selection exchange and `human-decision` results); `packs/core/.apm/skills/work-loop/review-rules.json` and `delivery/review-selections.jsonl` (defined here)
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -54,7 +54,7 @@ stays with the trusted controller (ADR-0144 D11).
 | Decision rationale | ADR-0144's D8 scope, Consequence, and Confirmation must match this design. | `docs/adr/0144-work-loop-supervisor-owns-procedure.md` (Proposed, editable) | Platform Core decision-maker | ADR shape lint | D8 scopes the `raw-classify` removal to code-review closure, and the Confirmation says a reviewer joins through a `review-rules.json` entry and a typed report. |
 | Maintainer procedure | The registry gains stage keys. | `packs/core/.apm/skills/work-loop/references/policy-families.md`, `guides/core/reference/phase-scoped-policy-delivery.md` | Core pack maintainers | Registry parity test | Both list the stage keys and the `PRE-APPROVAL` constant. |
 | Skill evaluation | Live review commands gain new entry points. | `packs/core/.apm/skills/work-loop/evals/evals.json` | Core pack maintainers | Skill evals | The evals cover the relocated commands. |
-| Release history | Live code changes. | Core manifests and `docs/product/changelog.md` | Core pack release maintainers | Version parity | Each task's Core 3.x release carries a changelog line. |
+| Release history | Live code changes. | Core manifests and a `docs/product/changelog.d/` fragment | Core pack release maintainers | Version parity | The delivering pull request's one Core 3.x patch release carries the fragment. |
 
 ## Agent Rules
 
@@ -82,10 +82,10 @@ stays with the trusted controller (ADR-0144 D11).
 
 - **Review closure and dispositions (AC-0001, AC-0002, AC-0003):** goal-based
   integration with findings, repairs, and a risk acceptance.
-- **Selection data and enforcement (AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011):**
+- **Selection data and enforcement (AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0021):**
   goal-based for AC-0004 in a fixture copy of the skill, TDD for the rest over
   the rules file, the live roster, and selection fixtures.
-- **Command relocation (AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018):**
+- **Command relocation (AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0022):**
   goal-based comparison over the comparison corpus and its recorded pre-change
   outputs.
 - **Policy families (AC-0019, AC-0020):** TDD over the registry.
@@ -156,6 +156,12 @@ Selection data and enforcement
   carrying an `owner` authority reference authorizes the change.
 - [ ] **AC-0011.** The selection record is committed through core's `review`
   step kind.
+- [ ] **AC-0021.** The resolver refuses with a named error, and the review
+  stage stays unsatisfied, when `review-rules.json` is missing, is not valid
+  JSON, or holds a `kind` or `mandatory_when` value outside its closed set; when
+  a `review-selections.jsonl` line does not parse or repeats an earlier line's
+  key without an authorizing `owner` decision; or when no selection record exists
+  for the current key. None of these cases defaults a role to optional.
 
 Command relocation
 
@@ -174,7 +180,11 @@ Command relocation
 - [ ] **AC-0015.** With no cohort state, `review-artifact.py record` writes one
   `record` artifact per recorded round, counts the budget from `record`
   artifacts only, and refuses the round that would exceed `max_review_retries`
-  unless `--allow-retry-cap-override` carries an authority reference.
+  unless `--allow-retry-cap-override` comes with `--authority-ref` holding an
+  `owner` authority reference in the form `work-supervisor.py start
+  --authority-ref` accepts. That `record` artifact stores the override and the
+  reference, and any other reference refuses the round. With cohort state
+  present, the override keeps its pre-change behaviour (AC-0012).
 - [ ] **AC-0016.** A replayed `record` with the same operation id and payload
   returns the first result and writes no second artifact.
 - [ ] **AC-0017.** The supervisor's ingest maps every row of Slice 2's
@@ -182,6 +192,13 @@ Command relocation
 - [ ] **AC-0018.** `review-artifact.py validate` accepts a `record` artifact
   named `.context/reviews/<run-id>/<round>-record.md` and refuses one under any
   other name.
+- [ ] **AC-0022.** With no cohort state, `review-artifact.py record` and
+  `inspect --run-id` accept only a run id in canonical lowercase UUID form. They
+  read and write `record` artifacts only beneath `.context/reviews/<run-id>/`,
+  through the no-follow, regular-file-only open that `validate` uses, and they
+  refuse a traversing, absolute, or symlinked run id or record path. A malformed
+  or unreadable `record` artifact, or a gap in the round sequence, refuses the
+  command rather than being skipped in the budget count.
 
 Policy families
 
