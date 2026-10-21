@@ -131,8 +131,8 @@ def project_packs(
 
 
 # Mirror of claude_code.py:_skill_direct_directory_target — keep in sync.
-# A shared helper is barred by the spec's `Never do` boundary (no
-# expansion of projections/direct_directory.py beyond `sweep_orphans`).
+# A shared helper is deliberately avoided, so projections/direct_directory.py
+# stays limited to `sweep_orphans`.
 def _skill_direct_directory_target(contract: dict, output_root: Path) -> Path | None:
     adapter_block = contract["adapter"]["kiro"]
     for entry in adapter_block.get("projection", []):
@@ -145,7 +145,7 @@ def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
     """Return skill dir names recorded in the repo state file under target_dir.
 
     Delegates to the one shared implementation so this adapter cannot
-    drift from the other six; see `_sweep_guard` for the AC28 refusal.
+    drift from the other six; see `_sweep_guard` for the unreadable-state refusal.
     """
     from agentbundle.build.adapters._sweep_guard import installed_skill_names
 
@@ -461,7 +461,7 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
             continue
         if entry.is_dir():
             destination = target_dir / entry.name
-            # Spec § Never do — `shutil.rmtree` is barred against
+            # `shutil.rmtree` is barred against
             # any entry whose `is_symlink()` is true. If a previous
             # run left a symlink at the destination path, unlink it.
             if destination.is_symlink():

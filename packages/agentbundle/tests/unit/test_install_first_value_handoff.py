@@ -1,4 +1,4 @@
-"""Tests for the install first-value handoff block (spec/agentbundle-first-value-handoff).
+"""Tests for the install first-value handoff block.
 
 Part 1: Unit tests for `_emit_first_value_handoff` directly — pure function,
 no install pipeline needed.
@@ -100,7 +100,7 @@ class EmitFirstValueHandoffUnitTests(unittest.TestCase):
     def test_level_b_emits_exact_block_in_order(self) -> None:
         """Level B's whole block is pinned verbatim, order included.
 
-        AC2 promises Level B "retains prior output". Label-presence assertions
+        Level B must retain prior output. Label-presence assertions
         cannot see a reordering, and `Next:` is now emitted from a block outside
         the `level-b` branch — so hoisting that block above the branch would
         reorder Level B's output with every other case still green. This pins

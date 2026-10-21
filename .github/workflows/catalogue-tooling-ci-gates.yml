@@ -236,7 +236,7 @@ jobs:
   supervisor-integration:
     name: "Gate A-supervisor — execution supervisor integration suites (ubuntu-latest / py3.12)"
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -260,6 +260,8 @@ jobs:
           packs/core/tests/skills/work-loop/test_supervisor_tdd.py
           packs/core/tests/skills/work-loop/test_supervisor_readiness.py
           packs/core/tests/skills/work-loop/test_supervisor_dark_launch.py
+          packs/core/tests/skills/work-loop/test_supervisor_review_gate.py
+          packs/core/tests/skills/work-loop/test_supervisor_review_closure.py
           -q -rs --durations=10
 
   # ── Gate B: external catalogue portability ────────────────────────────────

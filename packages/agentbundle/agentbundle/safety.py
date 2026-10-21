@@ -1,7 +1,6 @@
 """Tier-1/2/3 file-safety primitives, path-jail enforcement, content hashing.
 
-The Tier contract is owned by the sibling `distribution-adapters` spec.
-Here we implement it:
+This module implements the file-safety Tier model:
 
   - Tier-1 — adapter-contract-projected; SHA in state matches on-disk.
             The CLI may write or overwrite.
@@ -58,8 +57,8 @@ class Tier(enum.Enum):
 class Publish(enum.Enum):
     """Selects ``write_jailed``/``write_companion``'s replace behaviour at
     publish time. Named distinctly from ``mode`` — which already carries
-    permission bits, and which ``render.py`` passes today — per spec
-    AC-0070/AC-0052 (docs/specs/catalogue-sync-apply/spec.md).
+    permission bits, and which ``render.py`` passes today — so the two are
+    not confused.
 
     ``REPLACE`` is the default and is every existing caller's behaviour,
     unchanged: an unconditional rename, exactly as ``write_jailed`` has
@@ -90,8 +89,8 @@ class WriteError(OSError):
 class DestinationDivergedError(WriteError):
     """Raised by :func:`write_jailed`'s ``Publish.REPLACE_IF_UNCHANGED`` mode
     when the destination no longer matches the state it was classified
-    against, at the moment immediately before the rename (spec AC-0077's
-    rename recheck). A subclass of ``WriteError`` — a caller that only
+    against, at the moment immediately before the rename (the rename
+    recheck). A subclass of ``WriteError`` — a caller that only
     catches the base class still sees this as an ordinary write failure —
     but its own type lets a caller distinguish it when it needs to.
     """
@@ -195,7 +194,7 @@ def classify(relpath: str, root: Path, state: State) -> Tier:
 def companion_path(path: Path) -> Path:
     """Compute the `.upstream.<ext>` companion path for `path`.
 
-    Rules (from the sibling spec § companion semantics):
+    Rules:
       - `AGENTS.md`        → `AGENTS.upstream.md`
       - `docs/CHARTER.md`  → `docs/CHARTER.upstream.md`
       - `Makefile`         → `Makefile.upstream`  (no extension)
@@ -380,7 +379,7 @@ def write_jailed(
     write_atomic backups / Tier-2 companion logic — `write_jailed` is the
     primitive, not the policy.
 
-    ``publish`` selects the publish step, per spec AC-0070/AC-0077. The
+    ``publish`` selects the publish step. The
     default, ``Publish.REPLACE``, is today's unconditional rename — every
     existing caller keeps it unchanged.
 
@@ -392,8 +391,7 @@ def write_jailed(
       appear and be overwritten. Atomic: no partial artifact is ever
       observable. The staged name is then unlinked; until that unlink the
       destination carries a link count above one, so the unlink is not
-      optional — see docs/specs/catalogue-sync-apply/plan.md's Design
-      decisions, "A non-replacing publish, without giving up atomicity".
+      optional.
       Any failure to link or to unlink the staged sibling raises the
       ordinary ``WriteError`` — this primitive does not itself classify
       "occupied" versus "no hard-link support"; that classification is the
@@ -402,12 +400,13 @@ def write_jailed(
       ``Publish.REPLACE_IF_UNCHANGED`` — rechecks the destination against
       ``expected_sha256`` (``None`` meaning the caller's classification
       found no on-disk entry) immediately before the rename, through the
-      same confined reader every other target read is bound to (spec
-      AC-0065). A divergence — a changed digest, a changed entry kind, or an
-      entry found where none was expected — raises
+      same confined reader every other target read is bound to. A
+      divergence — a changed digest, a changed entry kind, or an entry
+      found where none was expected — raises
       :class:`DestinationDivergedError` instead of publishing. This narrows,
       but does not close, the window between classification and the write:
-      see AC-0077.
+      the recheck and the rename are separate, non-atomic steps, so the
+      destination can still change between them.
 
     Scope extensions, generalised at repo scope:
       ``scope`` — the resolved path must additionally lie under one of
@@ -436,7 +435,7 @@ def write_jailed(
         # Programming error in CLI code (not adopter-facing). The rail
         # must never silently degrade — surfacing forces the caller to
         # pass the declared prefix list from the adapter's [scope]
-        # block. Documented in the spec.
+        # block.
         raise TypeError(
             "allowed_prefixes is required when scope='user'"
         )
@@ -519,7 +518,7 @@ def write_jailed(
 
 
 def _publish_never_replace(tmp: Path, target: Path) -> None:
-    """AC-0070 — publish by linking *tmp* at *target*; never replaces.
+    """Publish by linking *tmp* at *target*; never replaces.
 
     A link fails when anything is already present at *target* — a regular
     file, an empty file, a symlink, a dangling symlink, or a directory —
@@ -544,7 +543,7 @@ def _publish_never_replace(tmp: Path, target: Path) -> None:
     ``tmp`` does not consume its own name the way a rename does — until the
     unlink below runs, the destination carries a link count above one, so
     the unlink is not optional. A crash between the link and the unlink is
-    the residue state spec AC-0070's third outcome names, and is detected
+    the residue state of a non-replacing publish, and is detected
     only at the caller's own admission check on a later run, never here.
     """
     os.link(tmp, target)
@@ -562,19 +561,19 @@ def _publish_never_replace(tmp: Path, target: Path) -> None:
 def _publish_if_unchanged(
     root: Path, tmp: Path, target: Path, expected_sha256: str | None
 ) -> None:
-    """AC-0077's rename recheck — publish only when *target* still matches
+    """Rename recheck — publish only when *target* still matches
     *expected_sha256* (``None`` meaning the caller's classification found no
     on-disk entry), at the narrowest point this primitive can reach: the
     moment immediately before the rename.
 
-    Reuses the confined reader every other target read is bound to (spec
-    AC-0065) rather than a raw stat, so a destination that became a hard
+    Reuses the confined reader every other target read is bound to rather
+    than a raw stat, so a destination that became a hard
     link, a reparse point, or any other non-regular entry is refused here
     exactly like a changed digest — it is a divergence, not a special case.
 
     Only ``FileNotFoundError`` reads as absence: a destination this rename
     cannot even ``lstat`` for any other reason is refused as a divergence
-    too, rather than published over unread (spec AC-0065/AC-0077).
+    too, rather than published over unread.
     """
     try:
         target.lstat()
@@ -667,8 +666,8 @@ def _prepare_batch_directory_portable(output_dir: Path) -> Path:
 def _resolve_batch_ancestors(output_dir: Path) -> Path:
     """Resolve *output_dir*'s ancestors while refusing a linked final component.
 
-    AC9 scopes link refusal to ``output_dir`` itself and to existing
-    destinations. Refusing every symlinked *ancestor* additionally breaks
+    Link refusal covers ``output_dir`` itself and existing destinations.
+    Refusing every symlinked *ancestor* additionally breaks
     ordinary paths — ``/tmp`` is a symlink to ``private/tmp`` on macOS, and
     a symlinked ``$HOME`` or checkout does the same on Linux — so ancestors
     are resolved normally and only the leaf is held to lstat.
@@ -999,8 +998,8 @@ pack's source and build the per-pack scan filter.
 
 Source of truth is ``_data/adapter.toml``'s ``[primitive.*]`` tables
 (eight entries today: five originals + ``shared-libs`` and
-``adapter-root-bins``, + ``user-libs`` introduced
-by credbroker-user-scope T3). A contract bump that adds a new primitive
+``adapter-root-bins``, + ``user-libs``).
+A contract bump that adds a new primitive
 type must extend this tuple, or the per-pack scan will silently miss the
 new type's orphans at install start — catalogue-broker packs (e.g.
 ``credential-brokers``) project load-bearing artifacts under
@@ -1161,10 +1160,8 @@ def write_companion(
     """Write a `<stem>.upstream.<ext>` companion next to `relpath`.
 
     ``publish`` forwards to :func:`write_jailed` unchanged — the default is
-    today's unconditional replace, kept for every existing caller. Spec
-    AC-0070 is the only caller expected to pass ``Publish.NEVER_REPLACE``.
-    Deliberately no ``mode`` parameter: adding one would be a third edit site
-    docs/specs/catalogue-sync-apply/plan.md's § Constraints does not permit.
+    today's unconditional replace, kept for every existing caller. Only the
+    catalogue-sync apply path is expected to pass ``Publish.NEVER_REPLACE``.
     """
     companion = companion_path(Path(relpath))
     return write_jailed(root, str(companion), content, publish=publish)

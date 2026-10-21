@@ -441,7 +441,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
 
 
 class SelfHostAdapterAllowListTests(unittest.TestCase):
-    """Self-host allow-list (spec § Phased rollout / § Always do).
+    """Self-host allow-list: only the adapters it names are self-hosted.
 
     The allow-list is load-bearing: a future contributor adding the
     `kiro` or `copilot` adapter to `ADAPTERS` (the global registry) but
@@ -1031,8 +1031,8 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir.mkdir()
             pack = packs_dir / "core"
             (pack / "seeds" / "docs" / "specs").mkdir(parents=True)
-            # Placeholder seed (what ships to adopters). ADR-0112 retired the
-            # spec index, so this seed carries convention prose and no table.
+            # Placeholder seed (what ships to adopters). The spec index is
+            # retired, so this seed carries convention prose and no table.
             (pack / "seeds" / "docs" / "specs" / "README.md").write_text(
                 "# Specs\n\nWork that needs a durable delivery contract gets a"
                 " directory.\n", encoding="utf-8", newline="\n"
@@ -2032,7 +2032,7 @@ class DirtyTreeStderrMessageTests(unittest.TestCase):
 
 
 class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
-    """Spec § Boundaries: only --self resolves markers. Plain `make build`
+    """Only --self resolves markers. Plain `make build`
     must copy `<adapt:NAME>` markers through unchanged."""
 
     @classmethod

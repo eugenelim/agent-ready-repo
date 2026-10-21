@@ -337,6 +337,11 @@ def build_check(args: argparse.Namespace) -> int:
             "test-lint-traceability",
             "packs", "core", "tests", "skills", "work-loop", "test_lint_traceability.py",
         ),
+        _pytest_step(
+            "test-lint-traceability-intent-parity",
+            "packs", "core", "tests", "skills", "work-loop",
+            "test_lint_traceability_intent_parity.py",
+        ),
         _script_step(
             "lint-traceability",
             ".claude", "skills", "work-loop", "scripts", "lint-traceability.py",

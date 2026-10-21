@@ -3,8 +3,7 @@
 Neither ``--dry-run`` nor ``--check`` writes. Both resolve the upstream
 source, replay the recorded derivation in memory through
 ``initialise_self_hosted.replay_derivation(..., interactive=False)``, and
-print a plan or an answer. This phase's write path is exactly none — see
-``docs/specs/catalogue-sync-dry-run/spec.md`` § Boundaries.
+print a plan or an answer. This phase's write path is exactly none.
 
 ``resolve_catalogue`` and ``fetch_catalogue_archive_with_provenance`` are
 imported at module scope (rather than lazily per call) so a caller can
@@ -72,7 +71,7 @@ from agentbundle.source_defaults import _detect_editable_source, _load_distribut
 if TYPE_CHECKING:
     import argparse
 
-# Exit codes — spec AC-0013's ordered, total table. `run()` and its two
+# Exit codes — an ordered, total table. `run()` and its two
 # `--check` helpers implement every row as a sequence of first-match-wins
 # predicates; see each function's docstring for the rows it owns.
 _SUCCESS = 0
@@ -90,7 +89,7 @@ _APPLY_FAILED = 4
 # "verified-digest" token.
 _DIGEST_BEARING_PREFIXES = ("archive+https://", "catalogue+https://")
 
-# `_plan_stale_owned_paths` decline tokens spec AC-0017 marks undecided — the
+# `_plan_stale_owned_paths` decline tokens that count as undecided — the
 # confinement refusal and the unreadable entry. Every other decline reason is
 # decided (compared) even though it declines removal. See that function's
 # docstring for the full reason set.
@@ -98,20 +97,20 @@ _UNDECIDED_DECLINE_TOKENS = frozenset(
     {"path-confinement-refused", "recorded-entry-unreadable"}
 )
 
-# spec AC-0013's `--check` (no `--compare-tree`) rows: the recorded pin's
+# The `--check` (no `--compare-tree`) rows: the recorded pin's
 # `archive_sha256` must be exactly a 64-character lowercase hex string, or it
 # is treated as absent/malformed and the row reads cannot-answer.
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
-# spec AC-0043 — `--guides` names the whole `guides/_shared/` subtree.
+# `--guides` names the whole `guides/_shared/` subtree.
 _GUIDES_SCOPE_PREFIX = "guides/_shared/"
 
-# spec AC-0033 clause 5 / AC-0063 — the whole vendored tooling root, not only
+# The whole vendored tooling root, not only
 # its `agentbundle/` subdirectory: the engine and the vendored
 # `catalogue-curation` copy are installed as a pair, so phase 4 owns both
 # under one extent. Compared as a prefix, like the pack scope below, so
 # every path under either root is caught regardless of depth.
-# AC-0078 — the two `--package` destinations. `agentbundle` is the whole
+# The two `--package` destinations. `agentbundle` is the whole
 # vendored tooling root, not only its `agentbundle/` subdirectory: `init`
 # writes both subtrees under it from one mode decision, so a phase that moved
 # only the engine would leave the vendored `catalogue-curation` copy written
@@ -120,15 +119,15 @@ _CREDBROKER_PREFIX = "packages/credbroker/"
 _VENDORED_TOOLING_PREFIX = ".agentbundle/tooling/"
 _PACKAGE_PREFIXES = (_CREDBROKER_PREFIX, _VENDORED_TOOLING_PREFIX)
 
-# AC-0078 — the `agentbundle` destination's engine subtree, which is the only
+# The `agentbundle` destination's engine subtree, which is the only
 # part of the vendored tooling root that can supply a running interpreter.
-# AC-0083 input 2 tests this and not the whole root: the vendored
+# The self-replacement refusal tests this and not the whole root: the vendored
 # `packs/catalogue-curation/` copy beside it is content, not an install source.
 _VENDORED_ENGINE_PREFIX = ".agentbundle/tooling/agentbundle/"
 
 
 def _package_prefixes(package: str | None) -> tuple[str, ...]:
-    """AC-0078 — the destinations a `--package` value names, or every
+    """Return the destinations a `--package` value names, or every
     destination when it names none."""
     if package == "agentbundle":
         return (_VENDORED_TOOLING_PREFIX,)
@@ -142,12 +141,11 @@ def _in_scope(
     path: str,
     scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
 ) -> bool:
-    """AC-0043 as AC-0081 extends it — is *path* inside this run's scope?
+    """Report whether *path* is inside this run's scope, package paths included.
 
-    A package path is tested by AC-0087's identity comparison and never by the
-    string prefixes: those two disagreed before this phase, harmlessly while
-    nothing under them was written, and the disagreement is what AC-0087
-    collapses.
+    A package path is tested by identity comparison and never by the string
+    prefixes: the two used to disagree, harmlessly while nothing under them was
+    written, and the identity comparison removes that disagreement.
     """
     if scope is None:
         return True
@@ -169,7 +167,7 @@ def _scope_subtrees(
     guides: bool,
     package: str | None,
 ) -> tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None:
-    """Return AC-0043's scope as ``(dir_prefixes, exact_paths)``.
+    """Return the scope as ``(dir_prefixes, exact_paths)``.
 
     ``dir_prefixes`` each carry their trailing separator — comparing without
     it would let ``--pack core`` also admit the sibling
@@ -177,9 +175,8 @@ def _scope_subtrees(
     ``"packs/core/"``. ``--profile <name>`` names one exact file rather than
     a directory, so it is matched in ``exact_paths`` instead of as a prefix.
 
-    Returns ``None`` when no scoping flag was supplied at all — AC-0043's
-    "the scope is every path", which AC-0042 uses to assert clause 4 excludes
-    nothing.
+    Returns ``None`` when no scoping flag was supplied at all — "the scope
+    is every path", so the write set excludes nothing.
     """
     if not pack_names and not profile_names and not guides and package is None:
         return None
@@ -200,19 +197,18 @@ def select_write_set(
     guides: bool,
     package: str | None,
 ) -> set[str]:
-    """AC-0033 clause 4 and AC-0081 — narrow *planned_paths* to the write set.
+    """Narrow *planned_paths* to the write set.
 
-    *planned_paths* is AC-0033 clause 3's admission, never narrowed by this
-    function. See plan.md § Design decisions "The scope filter selects what is
-    written, never what is replayed": narrowing the replay itself would mark
-    the rest of the adopter's tree stale.
+    *planned_paths* is the admitted replay, never narrowed by this function.
+    The scope filter selects what is written, never what is replayed:
+    narrowing the replay itself would mark the rest of the adopter's tree
+    stale.
 
-    Clause 5's package exclusion is gone — AC-0079 admits a package path on
-    the same terms as any other replayed path — so this returns the admitted
-    set alone. AC-0088 retires the count that used to ride beside it.
+    A package path is admitted on the same terms as any other replayed path,
+    so this returns the admitted set alone.
 
-    *target* is needed because a package destination is decided by AC-0087's
-    identity comparison rather than a string prefix, and that comparison
+    *target* is needed because a package destination is decided by identity
+    comparison rather than a string prefix, and that comparison
     resolves against the tree.
     """
     scope = _scope_subtrees(pack_names, profile_names, guides, package)
@@ -231,7 +227,7 @@ def build_pin(
     attributed: bool,
     synced_at: str,
 ) -> dict[str, Any]:
-    """AC-0037 — the recorded pin row for *source_uri*'s source form.
+    """Return the recorded pin row for *source_uri*'s source form.
 
     Reuses ``SelfHostPin`` (``init``'s own pin record) rather than a second
     dict shape, so "``source_uri`` present only under ``attributed``" stays
@@ -244,9 +240,9 @@ def build_pin(
 
     A ``git+https://`` URI is the one row phase 2's resolver can't supply:
     ``_resolve_source`` computes the ref only to fetch against it and
-    discards the value (plan.md § Interfaces & contracts). This function
+    discards the value. This function
     reads the same ref through :func:`agentbundle.catalogue.resolve_git_ref`
-    — the one parse T1 exported — rather than re-deriving it, so the fetch
+    — the one parse that module exports — rather than re-deriving it, so the fetch
     and the pin can never disagree. *source_revision* is ignored for this
     one form.
     """
@@ -274,10 +270,10 @@ def merge_ownership_state(
     profile_names: list[str],
     pin: dict[str, Any],
 ) -> dict[str, Any]:
-    """AC-0059/AC-0036/AC-0033 clause 1/AC-0044/AC-0045 — the post-run state.
+    """Return the post-run state.
 
     Touches no filesystem: every value comes from an argument, never from a
-    read of *target*. Callers (T4's write phase, T6's ``_run_apply``) own
+    read of *target*. Callers (the write phase, ``_run_apply``) own
     building each argument from what they actually did.
 
     ``recorded`` is the pre-run ``path -> sha256`` mapping (``None`` for a
@@ -285,10 +281,9 @@ def merge_ownership_state(
     already builds from ``managed_paths``. ``written`` is ``path ->
     sha256`` for exactly the paths this run wrote *to their recorded
     identity* — a ``would-update`` path, or a path admitted only because it
-    belongs to a pack or profile this run introduced (AC-0033 clause 3's
-    last admission). A ``would-companion`` path's original path is not in
-    ``written`` (its digest does not change — that is what keeps it
-    classified Tier-2 next time) and its *companion destination* is never a
+    belongs to a pack or profile this run introduced. A ``would-companion``
+    path's original path is not in ``written`` (its digest does not change —
+    that is what keeps it classified Tier-2 next time) and its *companion destination* is never a
     key in either mapping, so the merged path set excludes Tier-3 and
     companion paths structurally: the merge has no argument through which
     either could ever arrive, rather than a runtime filter over one that
@@ -299,14 +294,14 @@ def merge_ownership_state(
     longer planned) and freshly written (e.g. re-admitted this run) lands
     on its new digest, never its pre-run one.
 
-    ``pack_names``/``profile_names`` are AC-0033 clause 1's already-resolved
-    effective selection; T6 owns resolving them and AC-0068's validity
+    ``pack_names``/``profile_names`` are the already-resolved
+    effective selection; ``_run_apply`` owns resolving them and their validity
     domain. Every other recipe field — ``name``, ``display_name``,
     ``guides``, ``attribution``, ``tooling``, and the rest — is carried
-    forward from ``old_state`` unchanged: AC-0033's write-set definition
+    forward from ``old_state`` unchanged: the write-set definition
     reaches no state-file field, so nothing here has a mandate to update
     one, and carrying every field forward unconditionally is what keeps a
-    scoped run's recorded identity untouched (AC-0044) without a second,
+    scoped run's recorded identity untouched without a second,
     scope-aware code path.
     """
     removed_set = set(removed)
@@ -330,25 +325,23 @@ def merge_ownership_state(
 
 
 # ---------------------------------------------------------------------------
-# T4: the write sequence applies a plan or restores the tree.
+# The write sequence applies a plan or restores the tree.
 #
 # Composes `select_write_set` (scope, including the package axis) and
-# T3's `merge_ownership_state`/`build_pin` rather than duplicating either.
-# `apply_write_sequence` is the one entry point T6's `_run_apply` calls after
+# `merge_ownership_state`/`build_pin` rather than duplicating either.
+# `apply_write_sequence` is the one entry point `_run_apply` calls after
 # consent; every other function here is one of its independently testable
-# pieces (plan.md § Component decomposition names the rollback snapshot as
-# this task's own named seam — the rest is what "applies a plan or restores
-# the tree" requires alongside it).
+# pieces, the rollback snapshot being the main seam.
 # ---------------------------------------------------------------------------
 
-# spec AC-0076 — a chosen ceiling, not a measurement (plan.md's Design
-# decisions "Rollback holds the prior walk tuple in memory").
+# A chosen ceiling, not a measurement: the rollback holds the prior walk tuple
+# in memory, so the snapshot is bounded.
 _SNAPSHOT_BOUND_BYTES = 256 * 1024 * 1024
 _SNAPSHOT_CHUNK_BYTES = 1024 * 1024
 
 
 class SnapshotBoundExceeded(Exception):
-    """AC-0076 — the write-set paths that exist hold more than the bound."""
+    """The write-set paths that exist hold more than the bound."""
 
     def __init__(self, *, bound: int, measured: int) -> None:
         super().__init__(
@@ -361,7 +354,7 @@ class SnapshotBoundExceeded(Exception):
 
 class SnapshotUnreadableError(Exception):
     """A write-set path's pre-run state could not be read while building the
-    rollback snapshot (an AC-0039 `3 — cannot-answer` row)."""
+    rollback snapshot (a `3 — cannot-answer` row)."""
 
     def __init__(self, path: str) -> None:
         super().__init__(f"cannot read pre-run state of {path!r}")
@@ -370,7 +363,7 @@ class SnapshotUnreadableError(Exception):
 
 @dataclass(frozen=True)
 class WalkEntry:
-    """One path's pre-run state — the same tuple AC-0041 compares: entry
+    """One path's pre-run state — the same tuple the post-run changed-tree check compares: entry
     kind, mode, symlink target, and bytes (regular files only).
     """
 
@@ -389,7 +382,7 @@ def _read_bounded_chunks(path: Path) -> Iterable[bytes]:
     Split out so a test can force a chunked read to yield more than the
     file's own ``st_size`` predicted — simulating a path that grew between
     the pre-prompt ``st_size`` sum and this read, which is the race
-    AC-0076's as-built bound exists to catch (plan.md T4 § Tests).
+    the snapshot byte bound exists to catch.
     """
     with path.open("rb") as handle:
         while True:
@@ -463,7 +456,7 @@ def _snapshot_lstat_entry(path: Path, relpath: str) -> WalkEntry:
     unrestorable path rather than raising), this distinguishes genuine
     absence (``FileNotFoundError``/``NotADirectoryError`` — an ancestor
     replaced by a file) from every other read error, raising
-    :class:`SnapshotUnreadableError` for the latter (spec AC-0039's `3 —
+    :class:`SnapshotUnreadableError` for the latter (the `3 —
     cannot-answer` row for a snapshot the run cannot read). Collapsing an
     ``EACCES`` into "absent" here would let the run both proceed past a path
     it never actually read AND -- since :func:`restore_from_snapshot` treats
@@ -494,20 +487,19 @@ def snapshot_write_set(
     *,
     bound: int = _SNAPSHOT_BOUND_BYTES,
 ) -> dict[str, WalkEntry]:
-    """AC-0038/AC-0076 — the pre-run walk tuple for every *paths* entry and
+    """Return the pre-run walk tuple for every *paths* entry and
     its ancestor directories, taken before the consent prompt.
 
-    Two passes, per AC-0076: first, a fast ``st_size`` sum over every
+    Two passes: first, a fast ``st_size`` sum over every
     existing path with no content read at all, refusing before any byte is
     read when the sum alone exceeds *bound* (naming it and the measured
     sum). Second, the actual snapshot is built, reading each file's bytes in
     bounded chunks and re-checking the running total as it reads — a bound
     checked only against a per-file finished total would still read one
-    path that grew past the first pass's sum in full before it could trip
-    (plan.md T4 § Tests, AC-0076's as-built half).
+    path that grew past the first pass's sum in full before it could trip.
 
     Raises :class:`SnapshotUnreadableError` when a path that exists cannot
-    be read at all (spec AC-0039's own row for this).
+    be read at all.
     """
     unique_paths = sorted(set(paths))
 
@@ -554,19 +546,18 @@ def restore_from_snapshot(
     snapshot: dict[str, WalkEntry],
     acted_paths: Iterable[str],
 ) -> list[str]:
-    """AC-0038 — restore every path in *acted_paths* to its *snapshot* state.
+    """Restore every path in *acted_paths* to its *snapshot* state.
 
     Scoped to *acted_paths* — what the run actually wrote, created or
     removed — never to the whole snapshot: restoring a path the run never
     reached would rewrite an adopter edit made at that path during the run
-    (plan.md's Design decisions, "Rollback holds the prior walk tuple in
-    memory"). Best-effort: every path is attempted regardless of an earlier
-    failure, and every path that could not be restored is returned rather
-    than raised (spec AC-0058).
+    (the rollback holds the prior walk tuple in memory). Best-effort: every
+    path is attempted regardless of an earlier failure, and every path that
+    could not be restored is returned rather than raised.
 
     File content is restored through :func:`agentbundle.safety.write_jailed`
     — every target-tree write goes through the jailed primitive, restore
-    included (plan.md § Constraints). A directory the run created and the
+    included. A directory the run created and the
     snapshot shows absent is removed once it is empty; a directory removal
     left non-empty by an unrestorable child is itself reported unrestored.
     """
@@ -602,26 +593,25 @@ def restore_from_snapshot(
         except (OSError, PathJailError):
             # `write_jailed`'s own `assert_under` raises `PathJailError` (a
             # `ValueError`, not an `OSError`) when an ancestor became an
-            # escaping symlink between the snapshot and this restore — AC-
-            # 0058 requires naming every path this run could not restore
-            # before returning, not letting that one escape uncaught past
-            # this best-effort loop.
+            # escaping symlink between the snapshot and this restore — every path
+            # this run could not restore must be named before returning, not
+            # left to escape uncaught past this best-effort loop.
             unrestored.append(relpath)
     return unrestored
 
 
 def _write_group(target: Path, path: str) -> int:
-    """AC-0080 — the order group *path*'s destination sorts into: packs,
-    profiles, guides, the derivation-wide paths, then the AC-0078 package
+    """Return the order group *path*'s destination sorts into: packs,
+    profiles, guides, the derivation-wide paths, then the package
     destinations.
 
     Packages are the fifth and last group because a failed package write is
     the one whose rollback may be executing from the code it just replaced,
     so every other write is already durable before one is attempted. This
-    supersedes AC-0032's four groups, which ended at the derivation-wide
+    adds a fifth group after the four that end at the derivation-wide
     paths.
 
-    Package membership is AC-0087's identity comparison, not a string
+    Package membership is an identity comparison, not a string
     prefix, so a planned path under a destination the run is about to create
     still sorts into group 4 rather than falling through to the
     derivation-wide group.
@@ -638,10 +628,10 @@ def _write_group(target: Path, path: str) -> int:
 
 
 def write_order(target: Path, paths: Iterable[str]) -> list[str]:
-    """AC-0080 — *paths* ordered packs, profiles, guides, derivation-wide,
+    """Order *paths*: packs, profiles, guides, derivation-wide,
     packages.
 
-    The ownership state (AC-0033 clause 6) is never passed here — it is
+    The ownership state is never passed here — it is
     always written after every path this returns, by construction of the
     caller.
     """
@@ -649,7 +639,7 @@ def write_order(target: Path, paths: Iterable[str]) -> list[str]:
 
 
 def gate_recheck(target: Path, expected: dict[str, str | None]) -> list[str]:
-    """AC-0077's gate recheck — *expected* maps a `would-update` destination
+    """Gate recheck — *expected* maps a `would-update` destination
     to the digest (``None`` for "classification found no entry") its row was
     classified against. Returns every path whose on-disk state has since
     diverged — a changed digest, a changed entry kind, or an entry found
@@ -658,9 +648,9 @@ def gate_recheck(target: Path, expected: dict[str, str | None]) -> list[str]:
     Runs once, after consent and before the write phase opens, over every
     write-set destination that carries a classified row — never over the
     ownership state, which has none. An ordinary confined read; needs no
-    change to the write helpers (plan.md § Constraints).
+    change to the write helpers.
 
-    Only ``FileNotFoundError`` reads as absence (spec AC-0065/AC-0077): a
+    Only ``FileNotFoundError`` reads as absence: a
     destination the gate cannot even ``lstat`` — a permissions error, a
     transient I/O fault, anything else — is a divergence, never "no entry",
     so a write this run cannot itself verify is refused rather than let
@@ -716,7 +706,7 @@ def _staged_sibling_name(directory: Path, destination_name: str) -> str | None:
 def classify_companion_destinations(
     target: Path, companions: dict[str, str]
 ) -> tuple[dict[str, str], dict[str, str], dict[str, str | None]]:
-    """AC-0070's admission check — classify every computed companion
+    """Admission check — classify every computed companion
     destination in *companions* (``original path -> companion path``).
 
     Returns ``(admitted, occupied, residue)``. ``admitted`` and ``occupied``
@@ -724,13 +714,13 @@ def classify_companion_destinations(
     (``None`` when no staged sibling of this command's own staging shape is
     found). A destination absent on disk is admitted. A present destination
     with a link count of one is an ordinary occupant. A present destination
-    with a link count above one is the crash residue AC-0070's third outcome
-    names, reported separately from an occupant.
+    with a link count above one is the crash residue of an interrupted
+    non-replacing publish, reported separately from an occupant.
 
     A plain ``lstat`` — never an attempted link — decides admission: the
     non-replacing publish's own atomic mechanism (not this check) is what
     actually protects against a destination that appears *after* this run
-    (spec AC-0070's admission race), so this function never itself writes.
+    (the admission race), so this function never itself writes.
     """
     admitted: dict[str, str] = {}
     occupied: dict[str, str] = {}
@@ -753,7 +743,7 @@ def classify_companion_destinations(
 def detect_companion_collisions(
     companions: dict[str, str], planned_paths: set[str]
 ) -> dict[str, str]:
-    """AC-0071 — every ``original -> companion`` pair whose companion
+    """Return every ``original -> companion`` pair whose companion
     destination the replayed source itself plans, refusing the whole run.
     """
     return {
@@ -764,7 +754,7 @@ def detect_companion_collisions(
 
 
 def _self_replacement_reason(target: Path) -> str | None:
-    """AC-0083 — why this run may not write the `agentbundle` destination, or
+    """Return why this run may not write the `agentbundle` destination, or
     ``None`` when it may.
 
     Two inputs, because input 1 alone fails open on the sharper case.
@@ -777,8 +767,8 @@ def _self_replacement_reason(target: Path) -> str | None:
     executing code.
 
     Both operands are the target, the run's flags, and the running
-    distribution. None comes from the source, which is what lets AC-0084 place
-    this above source resolution.
+    distribution. None comes from the source, which is what lets this check sit
+    above source resolution.
     """
     try:
         editable_root = _detect_editable_source(_load_distribution())
@@ -800,7 +790,7 @@ def _self_replacement_reason(target: Path) -> str | None:
     except Exception:  # noqa: BLE001 - see below; never decide by raising
         # The operand itself could not be read — `agentbundle.__file__` is
         # `None` under a frozen or zipped install, which raises `TypeError`,
-        # not `OSError`. AC-0083 is fail-closed in posture, but this input
+        # not `OSError`. The refusal is fail-closed in posture, but this input
         # cannot fail closed on its own: refusing every run whose engine
         # location is unreadable would refuse every frozen install, including
         # every one whose target is unrelated. Input 1 still answers, and it
@@ -824,7 +814,7 @@ def _self_replacement_reason(target: Path) -> str | None:
 def _running_package_root() -> Path:
     """The directory the running ``agentbundle`` package is executing from.
 
-    AC-0083 input 2's operand. Deliberately not a second editable-install
+    The operand of the vendored-engine check. Deliberately not a second editable-install
     detector: it answers "where is this code running from", which is the
     self-replacement question as asked, and needs neither a PEP 610 record nor
     an enclosing git repository to answer it.
@@ -841,7 +831,7 @@ def _resolve_longest_existing(target: Path, path: str) -> tuple[Path, int] | Non
     trailing segments that do not exist, or ``None`` when not even *target*
     resolves. ``missing_depth == 0`` means the path itself is on disk.
 
-    This split is what AC-0087 requires. ``Path.resolve(strict=True)`` answers
+    This split is required. ``Path.resolve(strict=True)`` answers
     only for a path that exists, and every planned path of a destination a run
     is about to create does not — so a comparison keyed on the path's own
     existence returns "outside every destination" for exactly the paths this
@@ -862,7 +852,7 @@ def _resolve_longest_existing(target: Path, path: str) -> tuple[Path, int] | Non
 def _same_directory(left: Path, right: Path) -> bool:
     """True when *left* and *right* name the same on-disk directory.
 
-    Identity, not string equality: AC-0083 input 1 compares a catalogue root
+    Identity, not string equality: the editable-install check compares a catalogue root
     the editable-install detector resolved against the target root, and the two
     can be different spellings — a symlink, a relative path, a trailing
     separator, or a differing case on a case-insensitive filesystem.
@@ -874,7 +864,7 @@ def _same_directory(left: Path, right: Path) -> bool:
 
 
 def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool:
-    """AC-0087 — True when *path* lies inside one of *prefixes* under *target*.
+    """Return True when *path* lies inside one of *prefixes* under *target*.
 
     Two comparisons, and the second is not a fallback for convenience: it is
     the one that answers for a destination the run is **about to create**. A
@@ -882,7 +872,7 @@ def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool
     before that root exists, and an identity comparison has nothing to compare
     against — so an identity-only predicate answers "not a package path" for
     the whole extent, sorting it into the derivation-wide write group and
-    losing the property AC-0080 justifies itself by.
+    losing the property the package write group exists for.
 
     1. **Lexical**, over the path normalised relative to *target*. Decides
        every input, including one whose destination is absent. `..` segments
@@ -903,7 +893,7 @@ def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool
     # may re-enter: `../<target-name>/packages/credbroker/x.py` normalises
     # unchanged and resolves inside the destination. `_in_coverage` reads this
     # predicate as an exclusion, so a False there makes such a path a removal
-    # candidate, which is the mass-removal class AC-0069 exists to prevent.
+    # candidate, which is the mass-removal class the coverage check exists to prevent.
     # Fall through to the identity half, which resolves it and answers.
     escapes = (
         normalised == ".."
@@ -953,7 +943,7 @@ def _is_package_path(target: Path, path: str, prefixes: tuple[str, ...]) -> bool
 
 
 def _resolves_within(target: Path, path: str, protected_prefixes: tuple[str, ...]) -> bool:
-    """AC-0069's spelling clause — True when *path* resolves, by directory
+    """Spelling clause — True when *path* resolves, by directory
     identity rather than a string prefix, inside one of *protected_prefixes*.
 
     A string prefix comparison is defeated by a traversal
@@ -1004,32 +994,30 @@ def _in_coverage(
     scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
     tooling: str,
 ) -> bool:
-    """AC-0069 as AC-0086 amends it — True when *path* lies inside this run's
-    coverage.
+    """Return True when *path* lies inside this run's coverage.
 
     Coverage is a positive set (this run's resolved packs/profiles, guides
-    under a selecting mode, and every path the scope AC-0043 fixes admits),
-    narrowed by the exclusions AC-0069 names — never the exclusions alone,
-    which would re-admit every axis nobody enumerated.
+    under a selecting mode, and every path the scope admits), narrowed by the
+    exclusions below — never the exclusions alone, which would re-admit every
+    axis nobody enumerated.
 
-    AC-0069's exclusion 1 barred both package destinations absolutely.
-    AC-0086 replaces it with each destination's AC-0078 presence condition,
-    and the replacement is a **positive condition rather than a deletion**
+    Each package destination is excluded by its own presence condition rather
+    than absolutely. That is a **positive condition rather than a deletion**
     because this function ends ``return True``: deleting the exclusion alone
     would put every recorded package path inside coverage on every run,
     including the external-mode run this command defaults to, reinstating the
-    mass removal AC-0069 measures at 240 paths for a vendored-derived tree.
+    mass removal (240 paths for a vendored-derived tree).
     """
-    # Present only under a vendored replay. The mode-asymmetry class AC-0069
-    # exists for: the recorded set is mode-independent while the replayed set
+    # Present only under a vendored replay. The mode-asymmetry class this
+    # check exists for: the recorded set is mode-independent while the replayed set
     # is not.
     if tooling != "vendored" and _is_package_path(
         target, path, (_VENDORED_TOOLING_PREFIX,)
     ):
         return False
     # Present whenever the resolved selection carries its pack, in either
-    # tooling mode. The resolved selection, not AC-0033 clause 1's
-    # pre-resolution union: AC-0068 records that the selector drops names, and
+    # tooling mode. The resolved selection, not the
+    # pre-resolution union: the selector drops names, and
     # the wider reading would put a prefix inside coverage with nothing
     # planned under it.
     if _USER_LIBS_PACK not in pack_names and _is_package_path(
@@ -1052,7 +1040,7 @@ def tree_modified(
     snapshot: dict[str, WalkEntry],
     acted_paths: Iterable[str],
 ) -> bool:
-    """AC-0089 — did this run leave the target tree changed?
+    """Report whether this run left the target tree changed?
 
     An **end state**, not a record of actions taken. The write sequence's own
     ``acted``/``removed`` lists are appended *before* ``restore_from_snapshot``
@@ -1061,10 +1049,10 @@ def tree_modified(
     a caller reading exit 4 needs, since a fully restored tree is safe to
     retry.
 
-    Scoped to the paths the run wrote, created or removed — AC-0038's restore
-    scope — rather than to AC-0041's whole-tree walk. AC-0041 permits, on
-    every row, a path another writer changed during the run at which the
-    command itself neither wrote, created nor removed; a whole-tree reading
+    Scoped to the paths the run wrote, created or removed — the restore
+    scope — rather than to a whole-tree walk. Every row permits a path
+    another writer changed during the run at which the command itself
+    neither wrote, created nor removed; a whole-tree reading
     would report true for a run that changed nothing. A change by another
     writer never sets this field.
     """
@@ -1104,15 +1092,15 @@ def select_removal_set(
     scope: tuple[frozenset[str], frozenset[str], tuple[str, ...] | None] | None,
     tooling: str,
 ) -> tuple[dict[str, str], set[str]]:
-    """AC-0035/AC-0064/AC-0069/AC-0073 — the paths this run actually removes
+    """Return the paths this run actually removes
     (mapped to the recorded sha256 that earned each its removability), and
     the recorded-but-protected paths reported as ``out_of_coverage``.
 
     The keep-set passed to the shipped removal guard is *full_replayed_paths*
-    unconditionally — never scope-narrowed, per plan.md's Design decisions
-    ("The removal set needs its own filter, and it is not the keep-set").
-    Coverage narrows the guard's *returned* removable list instead, which is
-    the § Never do boundary: passing a narrowed keep-set into
+    unconditionally — never scope-narrowed: the removal set needs its own
+    filter, and it is not the keep-set. Coverage narrows the guard's
+    *returned* removable list instead, which is the boundary that matters:
+    passing a narrowed keep-set into
     ``_plan_stale_owned_paths`` would mark every out-of-scope recipe path
     stale.
 
@@ -1125,7 +1113,7 @@ def select_removal_set(
     — the one that actually earned the path its "stale" verdict — can catch
     that; recomputing a fresh removal set post-consent was round 1's
     approach and was removed as Blocker 3's own fix, breaking the guard
-    it depended on (AC-0073's recorded-sha256-mismatch decline).
+    it depended on (the recorded-sha256-mismatch decline).
     """
     removable, _reasons = _plan_stale_owned_paths(
         target, old_state, full_replayed_paths
@@ -1154,7 +1142,7 @@ def select_removal_set(
 
 
 def _confined_unlink(target: Path, path: str, expected_sha256: str) -> bool:
-    """AC-0073 — remove *path*, refusing at the unlink (not only at the plan)
+    """Remove *path*, refusing at the unlink (not only at the plan)
     if it is no longer a confined, non-link-like regular file, OR if its
     live content no longer matches *expected_sha256* — the digest that
     earned it its removability at pre-consent plan time
@@ -1194,9 +1182,9 @@ def _dataclass_from_dict(cls: type, data: dict[str, Any]) -> Any:
 
 
 def write_merged_state(target: Path, merged_state: dict[str, Any]) -> None:
-    """AC-0033 clause 6 — persist *merged_state* through ``init``'s own state
+    """Persist *merged_state* through ``init``'s own state
     writer, so its symlink refusal and random ``O_EXCL`` staging name stay
-    one implementation (plan.md § Constraints) rather than a second one.
+    one implementation rather than a second one.
     """
     state = SelfHostOwnershipState(
         schema_version=merged_state.get("schema_version", "3"),
@@ -1213,7 +1201,7 @@ def write_merged_state(target: Path, merged_state: dict[str, Any]) -> None:
 
 @dataclass
 class WriteSequenceResult:
-    """T6's own material for mapping onto AC-0039's rows and for building
+    """`_run_apply`'s own material for mapping onto the exit rows and for building
     :func:`merge_ownership_state`'s arguments. At most one failure field is
     ever populated; ``ok`` says which shape this is.
     """
@@ -1222,7 +1210,7 @@ class WriteSequenceResult:
     written: dict[str, str] = field(default_factory=dict)
     # Every destination the write phase actually landed, companions
     # included — unlike `written`, which is keyed by non-companion
-    # destination only (AC-0059 keeps a companion path itself out of the
+    # destination only (a companion path itself stays out of the
     # recorded state). Concern 7, round 2: the post-write receipt named
     # only `written`, so a companion that landed before a later removal or
     # state-write failure stayed on disk unnamed in the receipt. This is
@@ -1245,7 +1233,7 @@ class WriteSequenceResult:
 
 
 class CompanionCollisionError(Exception):
-    """AC-0071 — a companion destination collides with a path the replay
+    """A companion destination collides with a path the replay
     itself plans. Raised by :func:`plan_write_set` rather than returned, so
     the one precondition failure this function itself detects reads the
     same as every other raised precondition in this module (``ReplayError``,
@@ -1261,7 +1249,7 @@ class CompanionCollisionError(Exception):
 
 @dataclass(frozen=True)
 class WritePlan:
-    """AC-0033 clauses 3-5 plus AC-0070/AC-0071's admission classification —
+    """The admission classification —
     everything the write phase needs to know before it opens, computed
     read-only (no write, no snapshot). Shared by ``_run_apply``'s
     pre-consent refusal checks and printed plan, and by
@@ -1292,21 +1280,20 @@ def plan_write_set(
     guides_scope: bool = False,
     package: str | None,
 ) -> WritePlan:
-    """AC-0033 clauses 3-5 / AC-0066 / AC-0070 / AC-0071 — classify
-    *verdict_rows* into the admitted write set, read-only.
+    """Classify *verdict_rows* into the admitted write set, read-only.
 
-    *pack_names*/*profile_names* are AC-0033 clause 1's already-resolved
+    *pack_names*/*profile_names* are the already-resolved
     effective selection (the recorded recipe unioned with any name a scoping
     flag introduces) — used for introduced-pack/profile detection and for
-    AC-0069's coverage selection axis, computed by this run's caller.
+    the coverage selection axis, computed by this run's caller.
     *scope_packs*/*scope_profiles*/*guides_scope* are the raw scoping
-    **flags** AC-0043 names — a narrower, usually-empty list distinct from
-    the resolved selection, forwarded to T2's ``select_write_set`` unchanged;
+    **flags** — a narrower, usually-empty list distinct from
+    the resolved selection, forwarded to ``select_write_set`` unchanged;
     conflating the two would scope every write to only the flag's own names
     even on an unscoped run, since the resolved selection is never empty in
     practice.
 
-    Raises :class:`CompanionCollisionError` on an AC-0071 collision.
+    Raises :class:`CompanionCollisionError` on a companion collision.
     """
     old_state = old_state or {}
     old_recipe = old_state.get("recipe")
@@ -1388,42 +1375,39 @@ def execute_write_sequence(
     profile_names: list[str],
     pin: dict[str, Any],
 ) -> WriteSequenceResult:
-    """AC-0032/AC-0034/AC-0035/AC-0038/AC-0057/AC-0058/AC-0059/AC-0073/
-    AC-0077 — AC-0077's gate recheck onward: the actual write phase, given an
+    """The gate recheck onward: the actual write phase, given an
     already-built *plan* (:func:`plan_write_set`) and rollback *snapshot*
     (:func:`snapshot_write_set`), both taken before the consent prompt so the
     gate recheck below is the only re-read of the target tree this sequence
-    performs after consent (plan.md's Design decisions, "Rollback holds the
-    prior walk tuple in memory"; spec AC-0039's trailing note on the
-    snapshot row).
+    performs after consent (the rollback holds the prior
+    walk tuple in memory).
 
     *removal_set* is :func:`_terminal_safe_removal_set`'s screened result
     (itself derived from :func:`select_removal_set`); *out_of_coverage* is
     :func:`select_removal_set`'s own return value, unscreened. Both are
-    computed once by the caller for the printed plan (AC-0057) and handed
+    computed once by the caller for the printed plan and handed
     in here unchanged rather than recomputed — a
     second post-consent call would re-read the tree and could admit a
     recorded path that only became present or readable during the
-    consent wait, deleting a path the printed plan never named (spec §
-    Never do's phase delta; AC-0057's "the rows the run consents against
-    and acts on"). *removal_set* maps each admitted path to the recorded
-    sha256 that earned it its removability — this is the digest
+    consent wait, deleting a path the printed plan never named — the rows the
+    run consents against must be the rows it acts on. *removal_set* maps
+    each admitted path to the recorded sha256 that earned it its
+    removability — this is the digest
     ``_confined_unlink`` re-compares against immediately before its own
     unlink, so a path edited during the consent wait is refused there
     instead of deleted (Blocker 3, round 2).
 
     Removal after every write, and the state after removal, because a crash
     between the two must leave a recorded state that under-claims rather
-    than over-claims what it owns (plan.md T4 § Approach): only a write-phase
-    failure is rolled back (AC-0038); a removal or state-write failure after
+    than over-claims what it owns: only a write-phase
+    failure is rolled back; a removal or state-write failure after
     every write has landed leaves those writes and any completed removal in
-    place, reporting `4 — apply-failed` (spec AC-0039/AC-0041's own rows for
-    each).
+    place, reporting `4 — apply-failed`.
     """
     old_state = old_state or {}
-    # AC-0077's gate recheck covers every classified-row destination the
+    # The gate recheck covers every classified-row destination the
     # write phase will replace, not only `would-update` — a `plan_write_set`
-    # `admitted_new` path (AC-0033 clause 3's introduced-pack/profile
+    # `admitted_new` path (an introduced-pack/profile
     # admission) is `untouched` on the printed plan but still replaces
     # whatever the adopter has at that destination, so it takes the same
     # recheck. A companion destination is excluded: it publishes through
@@ -1492,9 +1476,9 @@ def execute_write_sequence(
             break
         acted.append(path)
         # A companion destination is never a key in `written` — its
-        # *original* path's digest does not change (AC-0034), and AC-0059
-        # keeps the companion path itself out of the recorded state; T3's
-        # `merge_ownership_state` has no argument through which either could
+        # *original* path's digest does not change, and the companion path
+        # itself stays out of the recorded state; `merge_ownership_state` has
+        # no argument through which either could
         # arrive, and this is the one seam that must not hand it one.
         if not is_companion:
             written[path] = hashlib.sha256(content).hexdigest()
@@ -1506,7 +1490,7 @@ def execute_write_sequence(
         # path's own content: it was never actually written (a divergence
         # refuses before the rename, every other failure cleans up its own
         # staged tempfile), so whatever is at that path is either untouched
-        # or another writer's edit, and AC-0041 requires either to be left
+        # or another writer's edit, and either must be left
         # exactly as found rather than restored to the pre-run snapshot.
         #
         # A companion publish is the one exception: `_publish_never_replace`
@@ -1518,7 +1502,7 @@ def execute_write_sequence(
         # directly from `CompanionLinkPublishedError` — it is the publish
         # primitive's own report, not a content read-back. A read-back
         # would compare equal for a *different* writer's byte-identical
-        # file (an admission-time race, AC-0070) just as readily as for
+        # file (an admission-time race) just as readily as for
         # this run's own write, misattributing ownership either way.
         restore_scope = [*acted, *_ancestor_relpaths(write_failed_path)]
         if companion_link_published:
@@ -1589,15 +1573,14 @@ def apply_write_sequence(
     snapshot_bound_bytes: int = _SNAPSHOT_BOUND_BYTES,
     tooling: str = "external",
 ) -> WriteSequenceResult:
-    """AC-0032/AC-0033/AC-0034/AC-0035/AC-0038/AC-0058/AC-0059/AC-0070/
-    AC-0071/AC-0073/AC-0076/AC-0077 — apply the plan *verdict_rows* classified
-    (spec AC-0033 clauses 3-6), or restore the tree, in one call.
+    """Apply the plan *verdict_rows* classified, or restore the tree, in one
+    call.
 
     A thin composition of :func:`plan_write_set`, :func:`snapshot_write_set`
     and :func:`execute_write_sequence` — the three pieces ``_run_apply``
     calls separately so it can insert the consent prompt between the
-    snapshot build and the gate recheck (spec AC-0039's trailing note: "AC-
-    0076 builds the snapshot before the prompt"). Called directly (as this
+    snapshot build and the gate recheck, because the snapshot is built before
+    the prompt. Called directly (as this
     module's own tests do), it runs all three back to back with no prompt
     in between, which is exactly the composed apply-run behaviour when
     ``--yes`` is supplied.
@@ -1630,8 +1613,7 @@ def apply_write_sequence(
 
     scope = _scope_subtrees(scope_packs, scope_profiles, guides_scope, package)
     # Computed once here — mirroring `_run_apply`'s own printed-plan point —
-    # and handed to `execute_write_sequence` unchanged (spec AC-0057;
-    # plan.md's Design decisions), rather than left for it to recompute
+    # and handed to `execute_write_sequence` unchanged, rather than left for it to recompute
     # after the write phase.
     removal_set, out_of_coverage = select_removal_set(
         target, old_state or {}, planned_paths,
@@ -1650,7 +1632,7 @@ def _synthesize_state(recorded: dict[str, str | None]) -> State:
     """Build the one-row ``State`` :func:`safety.classify` reads.
 
     A null-sha entry is recorded with the ``"sha"`` key omitted rather than
-    present-and-``None`` — see plan.md's Design decisions: ``dict[str, str]``
+    present-and-``None``: ``dict[str, str]``
     carrying ``None`` is a type lie that survives only through
     ``no_strict_optional`` and an ``Any`` hole.
     """
@@ -1664,7 +1646,7 @@ def _synthesize_state(recorded: dict[str, str | None]) -> State:
 def _safe_scalar(field: str, value: str | None, rejections: list[str]) -> str | None:
     """Return *value* when it passes the bounded terminal-safe scalar check.
 
-    Spec AC-0012: every value this command renders that it did not itself
+    Every value this command renders that it did not itself
     author, whatever its origin, is routed through this gate before it
     reaches stdout, stderr, or the ``--format json`` document. A rejection
     names the field and the reason and never reproduces the value — so
@@ -1712,9 +1694,8 @@ def _screen_recorded_path(target: Path, path: str) -> bool:
     `IsADirectoryError` when a directory sits where a recorded regular file
     is expected. Screening through the declared `file_safety` confinement
     helper first, rather than reimplementing any part of the Tier contract,
-    keeps `safety.classify` the single Tier implementation (§ Always do,
-    § Never do) while refusing every one of those shapes before it is ever
-    reached.
+    keeps `safety.classify` the single Tier implementation while refusing
+    every one of those shapes before it is ever reached.
 
     A path with **no** on-disk entry at all is not screened here and always
     passes: `classify`'s own "absent on disk -> Tier-1 (about to write)"
@@ -1737,12 +1718,12 @@ def _screen_recorded_path(target: Path, path: str) -> bool:
 
 
 def _underivable_condition(target: Path, source: Path) -> str | None:
-    """Return spec AC-0009's underivable-selection condition, or ``None``.
+    """Return the underivable-selection condition, or ``None``.
 
-    Every condition AC-0009 enumerates is checked here, before any call that
+    Every such condition is checked here, before any call that
     would resolve an absent or discarded selection to the source's full
     contents (``select_packs``/``_select_profiles`` widen to "every pack"
-    when passed ``None`` — exactly the widening AC-0009 forbids).
+    when passed ``None`` — exactly the widening this check forbids).
     """
     state_path = target / _OWNERSHIP_STATE_FILE
     if not state_path.exists() and not state_path.is_symlink():
@@ -1786,9 +1767,9 @@ def _classify_planned_paths(
     Walks the raw ``managed_paths`` array exactly once: every entry lands in
     exactly one bucket, so a silently dropped entry breaks the
     ``compared + uncompared`` identity rather than passing it by
-    construction (spec AC-0016).
+    construction.
 
-    Spec AC-0012: a recorded path (``managed_paths``) and a source-tree entry
+    A recorded path (``managed_paths``) and a source-tree entry
     name (``planned_paths`` — a path the replay planned from the *source*,
     not the recorded state) are both unauthored input, so both are routed
     through the terminal-safe check before they can reach a printed row;
@@ -1831,8 +1812,8 @@ def _classify_planned_paths(
         recorded[path] = sha if isinstance(sha, str) else None
 
     # `planned_paths` names come from the replayed *source* tree, not the
-    # recorded state — a source-tree entry name is unauthored input too
-    # (spec AC-0012), so it is filtered the same way before it can reach a
+    # recorded state — a source-tree entry name is unauthored input too,
+    # so it is filtered the same way before it can reach a
     # printed row.
     safe_planned_paths: set[str] = set()
     for path in planned_paths:
@@ -1871,7 +1852,7 @@ def _classify_planned_paths(
             rows.append((path, "schema-1-inert", None))
         else:
             # `safety.companion_path` is a computed value derived from an
-            # already-checked *path*, but spec AC-0012 is origin-agnostic —
+            # already-checked *path*, but the terminal-safe rule is origin-agnostic —
             # it is routed through the same gate at its own render site
             # rather than trusted because its input already passed.
             companion = _safe_scalar(
@@ -1925,7 +1906,7 @@ def check_adapter_contract_gate(
     pack_names: list[str], file_bytes: dict[str, bytes]
 ) -> int | None:
     """Refuse when a selected pack's adapter-contract major differs from the
-    CLI's own (spec AC-0019).
+    CLI's own.
 
     Reuses ``check_spec_version_gate`` — the existing uniform-refusal gate
     every other pack-manifest consumer calls — rather than re-implementing
@@ -1946,7 +1927,7 @@ def _read_baseline_pack_toml(target: Path, name: str) -> dict[str, Any] | None:
     """Read the derived tree's own copy of *name*'s manifest, or ``None``.
 
     Goes through the declared ``file_safety`` confinement helper rather than
-    an inline path check (spec AC-0020) — a new pack the derived tree does
+    an inline path check — a new pack the derived tree does
     not yet carry has no baseline to compare, which reads the same as any
     other confinement refusal: no signal.
     """
@@ -1967,7 +1948,7 @@ def compatibility_warnings(
     file_bytes: dict[str, bytes],
     rejections: list[str],
 ) -> list[str]:
-    """Advisory rows for spec AC-0018 — warn-only, never change the exit code.
+    """Advisory rows — warn-only, never change the exit code.
 
     Compares each selected pack's ``[pack] version`` and
     ``[pack.adapter-contract] version`` against the derived tree's own copy
@@ -1977,7 +1958,7 @@ def compatibility_warnings(
     that is absent contributes nothing.
 
     Every compared value here is unauthored — a source or baseline
-    manifest's own text (spec AC-0012) — so a hostile one is reported to
+    manifest's own text — so a hostile one is reported to
     *rejections* by field name rather than embedded in an advisory line.
     """
     selected = set(pack_names)
@@ -2086,10 +2067,10 @@ def compatibility_warnings(
         # Security finding 5: `required`/`conflicts` is a valid TOML scalar
         # (e.g. `required = 1`) as well as an array. Iterating an
         # unguarded non-list container raises `TypeError` — an uncaught
-        # exception AC-0014 forbids deciding the process exit status. A
+        # exception must never decide the process exit status. A
         # malformed container is reported by field name into *rejections*
         # and contributes no warning row; it must never refuse the run
-        # (AC-0013's dry-run success row) or move the exit code (AC-0018).
+        # (the dry-run success row) or move the exit code.
         required = deps.get("required")
         if required is not None and not isinstance(required, list):
             rejections.append(
@@ -2135,8 +2116,8 @@ def _compare_recorded_entry(target: Path, entry: object) -> bool | None:
     """One `--check --compare-tree` comparison for a single raw ``managed_paths``
     entry. Returns ``True`` when the on-disk content differs from the
     recorded digest, ``False`` when it matches, and ``None`` when the entry
-    could not be compared at all — spec AC-0013's "any recorded path could
-    not be compared" reads this ``None``.
+    could not be compared at all — the "any recorded path could
+    not be compared" row reads this ``None``.
 
     Every malformed shape (not a dict, no ``path``, no ``sha256``, a hostile
     path) and every confinement failure (escaping, hard-linked, non-regular,
@@ -2175,7 +2156,7 @@ def _report_check_result(
 
     Mirrors `_refuse`'s shape — the source is named only under `attributed`,
     and only after the same terminal-safe check every other unauthored value
-    passes (spec AC-0002, AC-0012) — so a `--check` answer carries the same
+    passes — so a `--check` answer carries the same
     guarantees as every other output this command renders.
     """
     rejections: list[str] = []
@@ -2207,7 +2188,7 @@ def _check_digest_only(
     source_raw: str,
     fmt: str,
 ) -> int:
-    """Spec AC-0013's `--check`, no `--compare-tree`, rows: compare the
+    """The `--check`, no `--compare-tree`, rows: compare the
     recorded pin's `archive_sha256` against the resolved source's own
     verified digest. A local-path or `git+https://` source never affords one,
     so it cannot-answers before the recorded pin is even read.
@@ -2260,9 +2241,9 @@ def _check_compare_tree(
     source_raw: str,
     fmt: str,
 ) -> int:
-    """Spec AC-0013's `--check --compare-tree` rows, plus this mode's share of
+    """The `--check --compare-tree` rows, plus this mode's share of
     the recorded-path-container-not-an-array row. The resolved source is
-    never read here — see plan.md's Follow-ons: `--check --compare-tree`
+    never read here: `--check --compare-tree`
     answers entirely from the recorded state and the target tree.
     """
     diagnostics: list[str] = []
@@ -2366,7 +2347,7 @@ def _plan_document(
     """Build the plan document, following ``upgrade._build_json_doc``'s
     ``summary``-carrying shape and vocabulary.
 
-    Spec AC-0012: ``archive_sha256``, ``source_revision``, ``target``, every
+    ``archive_sha256``, ``source_revision``, ``target``, every
     ``pack_names``/``profile_names`` entry, and — under ``attributed`` — the
     source URI are all unauthored (resolved from a remote document, the
     replayed source tree, or the adopter's own ``--target``/``--source``
@@ -2374,7 +2355,7 @@ def _plan_document(
     the terminal-safe check here, at the one place they are assembled for
     rendering.
 
-    Spec AC-0005: ``violations`` (the identity leak check's count) is
+    ``violations`` (the identity leak check's count) is
     carried into the document so both this table and the ``--format json``
     surface report it, not only the exit code it also selects.
     """
@@ -2475,10 +2456,10 @@ def _refuse(
     """Report a resolution or verification refusal.
 
     Never reproduces the underlying exception text: it may embed the raw
-    source value (a local path is, after all, its own URI), which spec
-    AC-0002 forbids surfacing outside ``attributed`` mode. Only a fixed
+    source value (a local path is, after all, its own URI), which must
+    not be surfaced outside ``attributed`` mode. Only a fixed
     reason and, when attributed, the source itself are ever printed — and
-    even then only once it passes AC-0012's terminal-safe check, same as
+    even then only once it passes the terminal-safe check, same as
     every other unauthored value this command renders.
     """
     rejections: list[str] = []
@@ -2509,17 +2490,17 @@ def _consent_gate(
     source_raw: str,
     fidelity_token: str,
 ) -> bool:
-    """AC-0031 — ask an operator for consent before the apply path's first write.
+    """Ask an operator for consent before the apply path's first write.
 
     Composes ``commands._common.confirm_or_refuse`` — the shared
     confirm/refuse/``--yes`` mechanics ``uninstall``, ``install --force`` and
-    ``upgrade`` already share (plan.md's Cut-before-adding search: an adequate
-    repository solution for the yes/terminal/EOF mechanics already exists, so
-    this function adds only the two prompt obligations apply introduces) —
-    with what the prompt itself must and must not say: AC-0072 names the
-    source fidelity on every prompt, and AC-0050 forbids naming the source URI
-    outside ``attributed`` mode. *source_raw* is unauthored input, so AC-0049
-    routes it through the terminal-safe check first; a value that fails is
+    ``upgrade`` already share (an adequate repository solution for the
+    yes/terminal/EOF mechanics already exists, so this function adds only the
+    two prompt obligations apply introduces) —
+    with what the prompt itself must and must not say: the prompt names the
+    source fidelity every time, and never names the source URI
+    outside ``attributed`` mode. *source_raw* is unauthored input, so it is
+    routed through the terminal-safe check first; a value that fails is
     reported by field name and reason, never reproduced.
 
     Returns ``True`` on an affirmative reply or *yes*. Returns ``False`` on a
@@ -2529,8 +2510,8 @@ def _consent_gate(
     without a separate branch here.
 
     Reads only *yes* and the terminal — never a recorded value. Passing one in
-    is the seam plan.md's "Consent drift" risk names: it would reopen phase
-    2's modes-from-flags invariant (AC-0048), so this function takes no state
+    is the consent-drift seam: it would reopen the
+    modes-from-flags invariant, so this function takes no state
     argument at all.
     """
     rejections: list[str] = []
@@ -2555,11 +2536,11 @@ def _consent_gate(
 
 
 def _managed_paths_container_is_array(target: Path) -> bool:
-    """Spec AC-0039's shared row: ``True`` when the recorded ``managed_paths``
+    """``True`` when the recorded ``managed_paths``
     container is a JSON array (an absent field defaults to ``[]``, which is
     an array). Shared by dry-run and apply so this exact read — distinct
     from a malformed *entry* inside an otherwise-array container, which
-    AC-0016 routes to "uncompared" — is typed once.
+    is routed to "uncompared" — is typed once.
     """
     diagnostics: list[str] = []
     raw_state = _load_ownership_state(target, diagnostics)
@@ -2588,14 +2569,14 @@ def _run_dry_run(
     guides_scope: bool,
     package: str | None,
 ) -> int:
-    """Spec AC-0013's `--dry-run` rows: no recorded selection derivable, an
-    unshipped `--pack`/`--profile` name or an invalid recorded selection
-    (AC-0046/AC-0068), the recorded-path container not an array, source
+    """The `--dry-run` rows: no recorded selection derivable, an
+    unshipped `--pack`/`--profile` name or an invalid recorded selection,
+    the recorded-path container not an array, source
     verification failure, the identity leak check, the adapter-contract
     gate, and — reaching none of those — a printed plan and the success or
     difference code.
 
-    *cli_pack_names*/*cli_profile_names*/*guides_scope* are AC-0043's raw
+    *cli_pack_names*/*cli_profile_names*/*guides_scope* are the raw
     scoping flags. Resolved into the effective selection and narrowed the
     same way `_run_apply` does — via `_resolve_effective_selection` and
     `_narrow_replayed_paths`, reused rather than re-derived — so a preview
@@ -2630,8 +2611,8 @@ def _run_dry_run(
             fmt=fmt, code=_CANNOT_ANSWER,
         )
 
-    # AC-0082's `credbroker` row — see the matching block in `_run_apply`.
-    # AC-0085's invocation column reads `any`, and the preview must take the
+    # The `credbroker` row — see the matching block in `_run_apply`.
+    # It applies to every invocation, and the preview must take the
     # same row at the same position as the apply it previews.
     absent_extent = _absent_credbroker_extent(package, pack_names)
     if absent_extent is not None:
@@ -2640,7 +2621,7 @@ def _run_dry_run(
             fmt=fmt, code=_MALFORMED,
         )
 
-    # Spec AC-0013/AC-0014: a recorded `managed_paths` that is not an array
+    # A recorded `managed_paths` that is not an array
     # cannot be interpreted at all. Checked here, before any plan can be
     # printed, rather than left to `_classify_planned_paths`'s own
     # defensive coercion to an empty list.
@@ -2675,13 +2656,13 @@ def _run_dry_run(
             code=_CANNOT_ANSWER,
         )
 
-    # Spec AC-0019 — a selected pack's adapter-contract major differing from
+    # A selected pack's adapter-contract major differing from
     # the CLI's own refuses uniformly, via the same gate every other pack-
-    # manifest consumer calls. Unlike AC-0018's warnings below, this changes
+    # manifest consumer calls. Unlike the warnings below, this changes
     # the exit code and prints no plan.
-    # `pack_names` (AC-0033 clause 1's resolved effective selection), never
+    # `pack_names` (the resolved effective selection), never
     # `replay.pack_names` — an empty recorded selection field narrows to
-    # nothing (AC-0068), and `replay.pack_names` is the source's own
+    # nothing, and `replay.pack_names` is the source's own
     # unnarrowed shipped-pack list, so gating on it would run this check
     # over packs the resolved selection admits none of.
     gate_code = check_adapter_contract_gate(pack_names, replay.file_bytes)
@@ -2694,12 +2675,12 @@ def _run_dry_run(
     # author — a recorded path, a source-tree entry name, a manifest's own
     # version string, the resolved digest/revision, and the source URI
     # itself — is routed through the terminal-safe check before it can
-    # reach any output surface (spec AC-0012), and every rejection lands
+    # reach any output surface, and every rejection lands
     # here regardless of which stage produced it.
     rejections: list[str] = []
     # `planned_paths` here stays the full (unscoped) effective selection —
-    # T2's Risks note "the full replayed set [is] the keep-set on every
-    # path": narrowing it before classification would make every recorded,
+    # The full replayed set is the keep-set on every
+    # path: narrowing it before classification would make every recorded,
     # out-of-scope path (still shipped by the source, just outside the
     # declared subtree) misclassify as stale and print a spurious
     # `would-remove` row, exactly the removal-widening a scoped run must
@@ -2707,12 +2688,12 @@ def _run_dry_run(
     summary_counts, verdict_rows = _classify_planned_paths(
         target, replay.old_state, planned_paths, rejections
     )
-    # AC-0043: the same scope that would restrict an apply run's write set
+    # The same scope that would restrict an apply run's write set
     # restricts the plan a `--dry-run` preview prints — filtered here, after
     # classification, the same way `_apply_acted_rows` filters `verdict_rows`
     # down to `plan.admitted` for the apply run's own printed rows. `scope is
-    # None` (no scoping flag supplied) admits every path, matching AC-0042.
-    # `summary_counts` is left over the full selection, matching AC-0066's
+    # None` (no scoping flag supplied) admits every path.
+    # `summary_counts` is left over the full selection, matching the
     # apply-side counts convention.
     scope = _scope_subtrees(
         list(cli_pack_names), list(cli_profile_names), guides_scope, package
@@ -2746,10 +2727,10 @@ def _run_dry_run(
 
 
 # ---------------------------------------------------------------------------
-# T6: `_run_apply` owns the apply exit rows.
+# `_run_apply` owns the apply exit rows.
 #
-# Composes T1-T5's independently-testable seams in the order AC-0039's table
-# fixes, first-match-wins. Everything above this banner (the scope predicate,
+# Composes the independently-testable seams above in the order the exit-code
+# table fixes, first-match-wins. Everything above this banner (the scope predicate,
 # the state merge/pin builder, the write sequence, the consent gate) is
 # already exported and reused here rather than re-implemented.
 # ---------------------------------------------------------------------------
@@ -2760,28 +2741,27 @@ def _resolve_effective_selection(
     cli_pack_names: list[str],
     cli_profile_names: list[str],
 ) -> tuple[list[str], list[str], str | None, str | None]:
-    """AC-0033 clause 1 / AC-0046 / AC-0068 — resolve the effective packs and
-    profiles selection for an apply run.
+    """Resolve the effective packs and profiles selection for an apply run.
 
     Returns ``(pack_names, profile_names, malformed_field,
     cannot_answer_reason)``. On success both error fields are ``None``, and
     exactly one of *pack_names*/*profile_names* ever equals the recorded
     recipe's own list union a name a scoping flag introduces — never a
-    resolution neither field's recorded value named (AC-0068).
+    resolution neither field's recorded value named.
 
     Reuses ``_load_self_host_recipe`` — the same per-field selectability
-    check phase 2's own replay already applies to a recorded selection field
+    check the replay already applies to a recorded selection field
     (a name either selector would silently drop, e.g. a tooling-pack name,
     fails that check the same way a genuinely unshipped name does) — rather
     than a second reading of the recorded recipe. That reader conflates two
-    outcomes this criterion must tell apart: an *absent* field (AC-0068's
+    outcomes this function must tell apart: an *absent* field (the
     narrowing-to-nothing outcome, never a refusal) and a *present but
-    invalid* one (this criterion's refusal) both come back as ``None``; this
+    invalid* one (a refusal) both come back as ``None``; this
     function tells them apart by checking the raw recipe dict directly for
     the field's presence, adding no second selectability check of its own.
 
     A `--pack`/`--profile` CLI name is validated against the exact same
-    selectable set (AC-0046) — the set ``select_packs``/``_select_profiles``
+    selectable set — the set ``select_packs``/``_select_profiles``
     themselves resolve a valid, non-empty explicit list down to — so a name
     either selector would silently drop is refused at the same boundary for
     both a recorded value and a flag-supplied one.
@@ -2836,21 +2816,21 @@ def _resolve_effective_selection(
 def _absent_credbroker_extent(
     package: str | None, pack_names: list[str]
 ) -> str | None:
-    """AC-0082's `credbroker` half — the refusal message, or ``None``.
+    """Return the `credbroker` refusal message, or ``None``.
 
-    Decided from the **resolved** selection rather than AC-0033 clause 1's
-    union: AC-0068 records that the pack selector drops names, and a run whose
+    Decided from the **resolved** selection rather than the
+    pre-resolution union: the pack selector drops names, and a run whose
     recipe names `credential-brokers` but whose replay dropped it would
     otherwise write nothing under the destination and refresh the pin over a
     subtree it never touched.
 
     It cannot be decided in `run()` because the resolved selection does not
-    exist until the source resolves and the replay runs. AC-0084 records that
-    a run refusing on this row has already fetched, and AC-0085 places the row
-    below the AC-0068 selection-validity row.
+    exist until the source resolves and the replay runs. A run refusing on this
+    row has already fetched, and the row sits below the selection-validity
+    row.
 
-    **One home, called from both the preview and the apply.** AC-0085's row
-    invocation column reads `any`, and a refusal the apply takes but the
+    **One home, called from both the preview and the apply.** The row applies
+    to every invocation, and a refusal the apply takes but the
     preview does not is the defect shape this phase already shipped once: the
     plan an operator consents against must be the plan the apply acts on.
     """
@@ -2866,17 +2846,16 @@ def _absent_credbroker_extent(
 def _narrow_replayed_paths(
     file_bytes: dict[str, bytes], pack_names: list[str], profile_names: list[str]
 ) -> set[str]:
-    """AC-0033 clause 1/2 / AC-0068 — narrow the replayed path set to the
-    resolved effective selection.
+    """Narrow the replayed path set to the resolved effective selection.
 
-    Plan.md's Design decisions: "An empty recorded selection must not reach
-    ``select_packs``" — that helper (and ``_select_profiles``) widen a falsy
-    *explicit* argument to every pack/profile the source ships, so a
-    genuinely empty effective selection for one category, passed straight
-    through, would replay the source's full contents for it. Rather than
-    fight that widening at the replay call, this function narrows the
+    An empty recorded selection must not reach ``select_packs``: that helper
+    (and ``_select_profiles``) widen a falsy *explicit* argument to every
+    pack/profile the source ships, so a genuinely empty effective selection
+    for one category, passed straight through, would replay the source's full contents for
+    it. Rather than fight that widening at the replay call, this function
+    narrows the
     *result* back down to exactly *pack_names*/*profile_names* — the
-    resolved, AC-0068-validated selection — independent of whatever
+    resolved, validated selection — independent of whatever
     ``select_packs``/``_select_profiles`` internally produced. A path outside
     ``packs/``/``profiles/`` (guides, the derivation-wide paths) always
     passes through unfiltered.
@@ -2907,8 +2886,8 @@ def _apply_refusal(
     details: dict[str, Any] | None = None,
 ) -> int:
     """Like ``_refuse``, extended with the structured detail an apply-only
-    refusal row also names — AC-0071's ``companion_collision`` pair list,
-    AC-0076's ``bound``/``measured`` pair, or the unreadable path.
+    refusal row also names — the ``companion_collision`` pair list, the
+    ``bound``/``measured`` pair, or the unreadable path.
     """
     rejections: list[str] = []
     safe_source = _safe_scalar("source", source_raw, rejections) if attributed else None
@@ -2939,7 +2918,7 @@ def _apply_refusal(
 def _terminal_safe_removal_set(
     removal_set: dict[str, str], rejections: list[str]
 ) -> dict[str, str]:
-    """Spec AC-0012 — *removal_set* (:func:`select_removal_set`'s own
+    """Screen *removal_set* (:func:`select_removal_set`'s own
     return value, over ``_plan_stale_owned_paths``'s recorded-path read,
     which applies no terminal-safe screen of its own) screened exactly
     once.
@@ -2966,14 +2945,14 @@ def _apply_acted_rows(
     removal_set: dict[str, str],
     rejections: list[str],
 ) -> list[tuple[str, str, str | None]]:
-    """AC-0057's acted rows — every *verdict_rows* entry AC-0033 clauses 1-5
-    admit (``plan.admitted``, keyed by a would-companion row's *companion*
+    """Return the acted rows — every *verdict_rows* entry the write set
+    admits (``plan.admitted``, keyed by a would-companion row's *companion*
     destination rather than its original path), plus a synthetic
-    ``would-remove`` row per *removal_set* entry. Never clause 6's ownership
+    ``would-remove`` row per *removal_set* entry. Never the ownership
     state.
 
     *verdict_rows* already carries only paths ``_classify_planned_paths``
-    routed through the terminal-safe check (spec AC-0012). *removal_set*
+    routed through the terminal-safe check. *removal_set*
     must already be :func:`_terminal_safe_removal_set`'s return value — this
     function renders it as-is rather than screening it a second time, so
     the rendered rows and whatever set the caller goes on to execute can
@@ -3012,11 +2991,11 @@ def _apply_plan_document(
     out_of_coverage: set[str],
     rejections: list[str],
 ) -> dict[str, Any]:
-    """AC-0057/AC-0066 — the printed plan an apply run consents against.
+    """Return the printed plan an apply run consents against.
 
-    Every unauthored value (spec AC-0012) is routed through the terminal-safe
+    Every unauthored value is routed through the terminal-safe
     check, same as :func:`_plan_document`; the acted/reported split is
-    AC-0057's own, distinct from dry-run's exhaustive ``verdicts`` list.
+    this document's own, distinct from dry-run's exhaustive ``verdicts`` list.
     """
     safe_archive_sha256 = _safe_scalar("archive_sha256", archive_sha256, rejections)
     safe_source_revision = _safe_scalar("source_revision", source_revision, rejections)
@@ -3030,9 +3009,9 @@ def _apply_plan_document(
         if _safe_scalar("profiles", name, rejections) is not None
     ]
     # `out_of_coverage` is `select_removal_set`'s own read of the recorded
-    # paths (spec AC-0069), a second, unscreened source of the same
+    # paths, a second, unscreened source of the same
     # unauthored-path input `acted_rows`'s `would-remove` entries already
-    # pass through this check for (spec AC-0012).
+    # pass through this check.
     safe_out_of_coverage = [
         path for path in sorted(out_of_coverage)
         if _safe_scalar("out_of_coverage", path, rejections) is not None
@@ -3138,10 +3117,10 @@ def _run_apply(
     guides_scope: bool,
     package: str | None,
 ) -> int:
-    """AC-0039's apply rows — the write path `_run_dry_run` has none of.
+    """The apply rows — the write path `_run_dry_run` has none of.
 
     The caller (`run()`) already refused every malformed-invocation row
-    AC-0039 places above source resolution — including the apply-only
+    the table places above source resolution — including the apply-only
     `--format json` without `--yes` row (round 2, Concern 5: this used to
     be checked here instead, which sits below `run()`'s own `--package`
     refusal; a recognised `--package` name is a `3 — cannot-answer` row
@@ -3151,7 +3130,7 @@ def _run_apply(
     this is ever called. This function owns everything from the
     recorded-selection checks through the write phase's four
     `4 — apply-failed` rows, in the table's own first-match-wins order.
-    Composes T2-T5's already-exported seams; it re-implements none of them.
+    Composes the already-exported seams above; it re-implements none of them.
     """
     condition = _underivable_condition(target, source_path)
     if condition is not None:
@@ -3177,7 +3156,7 @@ def _run_apply(
             fmt=fmt, code=_CANNOT_ANSWER,
         )
 
-    # AC-0082's `credbroker` row. AC-0085 places it directly below the
+    # The `credbroker` row sits directly below the
     # selection-validity row and ABOVE the recorded-container and identity-leak
     # rows, so it is decided here — the moment the resolved selection exists
     # and before either of those. Placing it lower returned 3 where the table
@@ -3210,7 +3189,7 @@ def _run_apply(
     try:
         replay = replay_derivation(cfg, interactive=False)
     except Exception:
-        # AC-0040: every replay precondition failure this module knows
+        # Every replay precondition failure this module knows
         # about is already `ReplayError`; anything else still reaches this
         # row rather than an uncaught traceback deciding the exit status
         # (mirrors `run()`'s own resolver-exception handling above).
@@ -3220,10 +3199,10 @@ def _run_apply(
             code=_CANNOT_ANSWER,
         )
 
-    # AC-0051: a leak violation refuses before the adapter gate, before
+    # A leak violation refuses before the adapter gate, before
     # classification, and before the consent prompt — no plan is printed
-    # and the operator is never prompted (AC-0057's "refuses before it has
-    # classified anything").
+    # and the operator is never prompted (it refuses before it has
+    # classified anything).
     if replay.violations:
         return _DIFFERENCE
 
@@ -3332,11 +3311,10 @@ def _run_apply(
         pack_names=pack_names, profile_names=profile_names, pin=pin,
     )
 
-    # AC-0089 — reported on the run's own post-write surface, not on the
+    # Reported on the run's own post-write surface, not on the
     # printed plan. The plan renders before the consent gate and before any
     # write, so at that point the value does not exist: it is a post-run fact
-    # and the plan is a pre-consent artifact. The criterion is amended to say
-    # so rather than to require an impossible surface.
+    # and the plan is a pre-consent artifact.
     _print_tree_modified(
         tree_modified(target, snapshot, set(result.acted) | result.removed)
     )
@@ -3353,8 +3331,8 @@ def _run_apply(
             )
         return _APPLY_FAILED
     if result.removal_failed or result.state_write_failed:
-        # AC-0039's two post-write `4` rows leave every landed write in place
-        # — plan.md T4 § Approach fixes that, and neither row rolls back. So
+        # The two post-write `4` rows leave every landed write in place
+        # — neither row rolls back. So
         # the exit code alone tells an operator nothing about a tree that has
         # just been rewritten and possibly had paths deleted. Name what the
         # run left behind, on the same stderr surface the unrestored-path
@@ -3365,7 +3343,7 @@ def _run_apply(
 
 
 def _print_tree_modified(modified: bool) -> None:
-    """AC-0089's surface. stderr, beside the other post-write receipts: the
+    """Print the tree-modified line on stderr, beside the other post-write receipts: the
     plan's stdout surface has already been rendered by this point, and on a
     `--format json` run stdout carries a parse contract a second document
     would break.
@@ -3376,7 +3354,7 @@ def _print_tree_modified(modified: bool) -> None:
 def _print_post_write_receipt(
     result: WriteSequenceResult, *, state_written: bool
 ) -> None:
-    """Name what a post-write failure left behind (AC-0039's two `4` rows).
+    """Name what a post-write failure left behind (the two post-write `4` rows).
 
     Writes that landed are not rolled back on these rows, so the tree differs
     from its pre-run state and the operator needs to know how. Emitted on
@@ -3388,7 +3366,7 @@ def _print_post_write_receipt(
     on each already having passed that screen upstream, once, before ever
     reaching a ``WriteSequenceResult``: ``acted`` only ever holds
     ``verdict_rows``/companion destinations, already screened by
-    ``_classify_planned_paths`` (spec AC-0012); ``removed`` only ever holds
+    ``_classify_planned_paths``; ``removed`` only ever holds
     entries of ``_run_apply``'s ``removal_set`` after
     :func:`_terminal_safe_removal_set` has run over it (Blocker 4). A path
     that fails either screen never becomes a write or removal candidate at
@@ -3396,8 +3374,8 @@ def _print_post_write_receipt(
     to add here without duplicating one of those two.
 
     Prints *result.acted*, not *result.written* (Concern 7, round 2):
-    ``written`` is keyed by non-companion destination only (AC-0059 keeps a
-    companion path itself out of the recorded state), so a companion that
+    ``written`` is keyed by non-companion destination only (a
+    companion path itself stays out of the recorded state), so a companion that
     landed before a later removal or state-write failure was never named
     here at all. ``acted`` is the write loop's own record of every
     destination that actually landed, companions included.
@@ -3442,7 +3420,7 @@ def run(args: argparse.Namespace) -> int:
     # currently agrees with this one, because nothing then constrains the two
     # to keep agreeing as either side changes. `target`/`source` are the only
     # required fields; the ones this decision actually reads —
-    # `attribution` — are flag-derived, never the recorded recipe (AC-0003).
+    # `attribution` — are flag-derived, never the recorded recipe.
     attribution_cfg = SelfHostedInitConfig(
         target=Path(target_raw),
         source=Path(source_raw),
@@ -3461,8 +3439,8 @@ def run(args: argparse.Namespace) -> int:
     # An omitted `--source`, and neither or both of `--dry-run`/`--check`,
     # never reach this function at all: both are `argparse` requirements
     # (`--source` is `required=True`; the two flags form a `required=True`
-    # mutually exclusive group), so `argparse` itself exits 2 — spec
-    # AC-0013's malformed code — before `run()` is ever called.
+    # mutually exclusive group), so `argparse` itself exits 2 — the
+    # malformed code — before `run()` is ever called.
     target_path = Path(target_raw)
     if target_path.is_symlink():
         return _refuse(
@@ -3483,10 +3461,10 @@ def run(args: argparse.Namespace) -> int:
             code=_MALFORMED,
         )
 
-    # AC-0043's scoping flags, read once here so both the `--check` malformed
+    # The scoping flags, read once here so both the `--check` malformed
     # row directly below and the `--dry-run`/apply dispatch further down
-    # share one resolution. `--profile` is not documented repeatable (spec
-    # § What Changes marks only `--pack` "(repeatable)"), so a future
+    # share one resolution. `--profile` is not documented repeatable (only `--pack`
+    # is), so a future
     # single-value namespace attribute would be a bare string, not a list —
     # which `list(...)` would iterate character by character.
     cli_pack_names = list(getattr(args, "pack", None) or [])
@@ -3496,7 +3474,7 @@ def run(args: argparse.Namespace) -> int:
     )
     guides_scope = bool(getattr(args, "guides", False))
 
-    # Spec AC-0039/AC-0043: any of `--pack`, `--profile` or `--guides`
+    # Any of `--pack`, `--profile` or `--guides`
     # supplied with `--check` is malformed — `--check` answers whether the
     # tree is current against the recorded recipe as a whole, and has no
     # scoped variant.
@@ -3516,7 +3494,7 @@ def run(args: argparse.Namespace) -> int:
             code=_MALFORMED,
         )
 
-    # Spec AC-0039's malformed row names this one explicitly ("an apply run
+    # The malformed row names this one explicitly ("an apply run
     # with `--format json` and no `--yes`") and it sits above every
     # cannot-answer row, including `--package`'s, directly below — Concern
     # 5, round 2: this used to be checked only inside `_run_apply`, which
@@ -3533,15 +3511,15 @@ def run(args: argparse.Namespace) -> int:
             code=_MALFORMED,
         )
 
-    # AC-0082, `agentbundle` half — the destination exists only under a
+    # `agentbundle` half — the destination exists only under a
     # vendored replay, and a run reporting success would refresh the pin over
     # a subtree it never wrote. Reads only `--package` and `--tooling`, so
-    # AC-0084 places it above source resolution.
+    # it sits above source resolution.
     #
-    # AC-0082's `credbroker` half is NOT here: its input is the resolved
+    # The `credbroker` half is NOT here: its input is the resolved
     # selection, which does not exist until the source resolves and the replay
-    # runs. AC-0085 places that row below the AC-0068 selection-validity row
-    # for the same reason, and AC-0084 records that it does fetch.
+    # runs. That row sits below the selection-validity row
+    # for the same reason, and it does fetch.
     if package == "agentbundle" and tooling != "vendored":
         return _refuse(
             "--package agentbundle requires --tooling vendored: the "
@@ -3553,16 +3531,16 @@ def run(args: argparse.Namespace) -> int:
             code=_MALFORMED,
         )
 
-    # AC-0083 — the self-replacement refusal, on an apply or `--dry-run` whose
+    # The self-replacement refusal, on an apply or `--dry-run` whose
     # effective scope includes the `agentbundle` destination. `--check` is not
     # covered: it performs no replay, so it resolves no extent to write.
-    # AC-0083's trigger is the run's **effective scope**, not the absence of
+    # The trigger is the run's **effective scope**, not the absence of
     # a `--package` value. A `--tooling vendored --pack core` run is scoped to
-    # `packs/core/`, and AC-0081's closing paragraph fixes that `--pack` never
+    # `packs/core/`, and `--pack` never
     # reaches inside a package destination — so its scope provably excludes
     # the engine and it has nothing to refuse. Testing `package is None`
     # instead refused every pack-, profile- and guides-scoped sync a vendored
-    # adopter could run, which fails safe but is not this criterion.
+    # adopter could run, which fails safe but is not the intended rule.
     other_scope_flag = bool(cli_pack_names or cli_profile_names or guides_scope)
     scope_reaches_engine = (
         not check
@@ -3594,7 +3572,7 @@ def run(args: argparse.Namespace) -> int:
             code=_CANNOT_ANSWER,
         )
     except Exception:
-        # Spec AC-0014: a resolver exception is a named row too — never an
+        # A resolver exception is a named row too — never an
         # uncaught traceback deciding the process exit status. Every
         # resolver-specific failure this module knows about is already
         # `CatalogueError`; anything else is still "could not be resolved"

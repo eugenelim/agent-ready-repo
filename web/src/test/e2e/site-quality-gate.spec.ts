@@ -492,13 +492,13 @@ async function expectDocsChromeIsWellPlaced(
     };
   });
 
-  // spec/docs-site-rail-shell AC1: one top bar with the four tabs, pinned while
+  // spec/docs-site-rail-shell AC1: one top bar with the docs tabs, pinned while
   // the page scrolls, and no product strip.
   const where = `${label(ctx)}: docs chrome`;
   expect(measured.topBars, `${where}: one top bar`).toBe(1);
   expect(measured.tabNavs, `${where}: one tab landmark`).toBe(1);
   expect(measured.tabLabels, `${where}: tab order`).toEqual([
-    'Docs', 'CLI', 'Packs', 'Author', 'Catalogue System',
+    'Docs', 'CLI', 'Packs', 'Build a Catalogue',
   ]);
   expect(measured.currentTabs, `${where}: exactly one current tab`).toBe(1);
   expect(measured.tabsDisplayed, `${where}: tabs show in the bar from 800px`).toBe(ctx.width >= 800);

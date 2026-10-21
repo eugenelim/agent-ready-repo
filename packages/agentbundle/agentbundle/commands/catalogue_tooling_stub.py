@@ -1,7 +1,7 @@
 """Stub handler for agentbundle catalogue <sub> and agentbundle lint packs.
 
-All catalogue_tooling subcommands exit 1 with "not yet implemented" until
-Wave 2-4 specs fill them in.
+This handler prints "agentbundle catalogue <sub> not yet implemented" to stderr
+and returns 1.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 def run(args: argparse.Namespace) -> int:
     sub = getattr(args, "catalogue_sub", None) or getattr(args, "lint_sub", None) or ""
     print(
-        f"agentbundle catalogue {sub} not yet implemented — see ini-005 Wave 2-4 specs".rstrip(),
+        f"agentbundle catalogue {sub} not yet implemented".rstrip(),
         file=sys.stderr,
     )
     return 1

@@ -1,6 +1,6 @@
 """Unit tests for catalogue init — Tasks 1-10.
 
-Coverage map (per plan.md):
+Coverage map:
   T1 — Schema relaxation (optional contracts, owner)
   T2 — Config loading optional fields
   T3 — InitResult / FileAction types
@@ -12,7 +12,7 @@ Coverage map (per plan.md):
   T9 — catalogue_init command handler shape
   T10 — CLI registration
 
-Also: atomic_write symlink hardening (docs/specs/atomic-write-symlink-harden).
+Also: atomic_write symlink hardening.
 """
 
 from __future__ import annotations
@@ -790,7 +790,7 @@ class TestCliRegistration:
 
 
 # ---------------------------------------------------------------------------
-# atomic_write symlink hardening — docs/specs/atomic-write-symlink-harden
+# atomic_write symlink hardening
 # ---------------------------------------------------------------------------
 
 _FIXED = b"\xde\xad\xbe\xef\xde\xad\xbe\xef"

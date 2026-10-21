@@ -19,6 +19,11 @@ on:
       # route, so the site must rebuild and re-assert on them too.
       - 'packs/**/pack.toml'
       - 'tools/build-site.py'
+      # The field-reference generator build-site.py loads, and the schemas it
+      # projects into /docs/reference/.
+      - 'tools/schema_field_reference.py'
+      - 'contracts/pack.schema.json'
+      - 'contracts/skill.schema.json'
       # The offer assertion and the scope mirror it reads. Without these an
       # edit that disables the check triggers no run at all.
       - 'tools/check-site-plugin-offers.py'
@@ -48,6 +53,11 @@ on:
       # route, so the site must rebuild and re-assert on them too.
       - 'packs/**/pack.toml'
       - 'tools/build-site.py'
+      # The field-reference generator build-site.py loads, and the schemas it
+      # projects into /docs/reference/.
+      - 'tools/schema_field_reference.py'
+      - 'contracts/pack.schema.json'
+      - 'contracts/skill.schema.json'
       # The offer assertion and the scope mirror it reads. Without these an
       # edit that disables the check triggers no run at all.
       - 'tools/check-site-plugin-offers.py'

@@ -78,7 +78,7 @@ _RECIPE_TEXT_MAX_LENGTH = 4096
 # Vendored tooling root inside the target.
 _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
 
-# RFC-0082 / ADR-0075 D3: the vendored copy is wheel-class — the command tells
+# The vendored copy is wheel-class — the command tells
 # the adopter to `pip install -e` it, so it is an install source, not a source
 # tree, and carries no test content. Relative to each vendored call's own root.
 # The engine root is `packages/agentbundle/`, so its suite sits at `tests/` and
@@ -759,7 +759,7 @@ def _collect_dir_bytes(
     `exclude` holds paths relative to *src_dir*: a trailing-slash entry prunes
     that subtree, a bare entry drops that exact file. It defaults to empty and
     is passed only at the two vendored call sites — the adopter's own packs and
-    guides must keep their tests (ADR-0071), so excluding inside this routine
+    guides must keep their tests, so excluding inside this routine
     would break them with nothing going red.
     """
     prune = tuple(e.rstrip("/") for e in exclude if e.endswith("/"))

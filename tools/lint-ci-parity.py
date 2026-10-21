@@ -599,6 +599,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest skill HTML view token file agreement (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest agentbundle shipped governance markers (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
@@ -644,6 +646,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest spec-authority note live/seed parity (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest graph-pointer authoring sources (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest lint-traceability intent parity vs the real corpus (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest typed-ordinal owner parity and equivalence (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -1022,6 +1026,7 @@ _GATE_MAIN_CHECKS = (
     "pytest confluence-crawler SSO suites (atlassian-sso-cookie)",
     "pytest spec-authority note live/seed parity (roster-owned)",
     "pytest graph-pointer authoring sources (roster-owned)",
+    "pytest lint-traceability intent parity vs the real corpus (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
     "pytest execution-supervisor emitted-record parity (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
@@ -1078,6 +1083,7 @@ _GATE_MAIN_CHECKS = (
     "pytest T9a clean-environment fence (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
     "pytest skill HTML view token file agreement (roster-owned)",
+    "pytest agentbundle shipped governance markers (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
@@ -1616,6 +1622,14 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),
     'tools/test_build_site_sidebar.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_build_a_catalogue_nav.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_schema_field_reference.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),

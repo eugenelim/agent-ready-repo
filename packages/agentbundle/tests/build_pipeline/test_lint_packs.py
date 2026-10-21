@@ -284,7 +284,7 @@ class LintPackTests(unittest.TestCase):
 
 
 class LintPackVocabTests(unittest.TestCase):
-    """Per-target metadata gate (spec: lint-packs-target-vocab)."""
+    """Per-target metadata gate."""
 
     def _build_skill(
         self,

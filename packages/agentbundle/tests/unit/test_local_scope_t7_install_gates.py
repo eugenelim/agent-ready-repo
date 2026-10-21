@@ -104,7 +104,10 @@ def test_install_scope_local_emit_install_routes_refused(tmp_path, capsys):
     rc = install_run(args)
     captured = capsys.readouterr()
     assert rc != 0
-    assert "RFC-0008" in captured.err or "emit-install-routes" in captured.err.lower()
+    assert (
+        "install: --emit-install-routes is not supported at --scope local"
+        in captured.err
+    )
 
 
 # ---------------------------------------------------------------------------

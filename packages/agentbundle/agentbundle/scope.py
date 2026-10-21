@@ -2,7 +2,7 @@
 
 Two helpers:
 
-  - :func:`resolve` resolves the install scope per the spec precedence
+  - :func:`resolve` resolves the install scope by the precedence
     rule **CLI flag > pack default > built-in ``"repo"``**, and refuses
     when the resolved value is not in the pack's ``allowed-scopes`` with
     :class:`ScopeRefused`. Used by every write-capable subcommand once
@@ -120,7 +120,7 @@ def resolve(
     *,
     pack_name: str = "<pack>",
 ) -> str:
-    """Resolve the install scope per the spec precedence rule.
+    """Resolve the install scope by its precedence rule.
 
     Precedence: **CLI flag > pack ``default-scope`` > built-in ``repo``.**
     The resolved value must be in the pack's ``allowed-scopes`` (resolved

@@ -1,4 +1,4 @@
-"""Tests for spec/packstate-source-provenance: PackState.source default,
+"""Tests for pack-state source provenance: PackState.source default,
 _parse_adapter_row, dump_state, and canonicalize_source."""
 
 from __future__ import annotations

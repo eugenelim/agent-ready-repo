@@ -517,7 +517,6 @@ def _atomic_write(dest: Path, content: bytes) -> None:
     staged its writes under every ordinary umask — including ``002``, where the
     group-write bit is the point — while dropping the other-write bit that
     ``Path.write_bytes``'s ``0o666`` would grant under a null umask.
-    See ``docs/specs/atomic-write-symlink-harden``.
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     # Not derived from ``dest.name``: a long-but-valid destination plus a fixed

@@ -65,6 +65,8 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -79,20 +81,6 @@ SCHEMA_VERSION = 2
 # of the same list — keep the two together.
 PHASES = ("implement", "review", "gates-failed", "wave-exit", "wave-reopen")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
-
-CLEAN_SUBSTRING = "Clean — ready to commit."
-INDETERMINATE_SENTINEL = "ADJUDICATION-INDETERMINATE"
-# Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
-# on its own line as their clean verdict instead of CLEAN_SUBSTRING.
-_SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
-# Fingerprints are SHA-256 (64 hex). The 40-hex SHA-1 form is still accepted
-# so a cohort that was mid-review when core upgraded can finish: its
-# state.json holds SHA-1 values and `review record --fingerprint` would
-# otherwise hard-reject them. Stasis detection compares sets computed by the
-# same binary, so a straddling run misses a match for exactly one round and
-# self-heals on the next. Drop the 40-hex alternative once no in-flight
-# cohort predates core 2.3.0.
-_RE_FINGERPRINT = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 
 
 # Control-character neutralisation for this tool's own diagnostics.
@@ -546,6 +534,188 @@ else:
     parse_depends_on = _g.parse_depends_on
     _local_dep_ids = _g.local_dep_ids
     _TASK_ID_RE = _g.TASK_ID_RE
+
+
+# ── relocated finding-adjudication logic ──────────────────────────────────
+#
+# Report classification, finding fingerprints, and the review-round recorder
+# moved to the sibling `review-artifact.py`, which `review-artifact.py` itself
+# also serves as a command. The `review` verbs below call it, so both command
+# sets print the same text. Loaded by path, matching `_statelock()`: a plain import
+# resolves under file-path invocation but not under an importlib-based harness.
+#
+# Import must not raise, as for the guard layer: a missing sibling binds
+# stand-ins that raise the same message when touched, and `main()` refuses the
+# `review` verbs before any of them runs.
+
+
+class _ReviewUnavailable:
+    """Stand-in for a relocated name when `review-artifact.py` cannot load."""
+
+    def __init__(self, message: str) -> None:
+        self._message = message
+
+    def __getattr__(self, name: str) -> Any:
+        raise RuntimeError(self._message)
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError(self._message)
+
+
+def load_review_artifact() -> Any:
+    """Load the sibling `review-artifact.py` by path.
+
+    Bytecode writing is disabled across the load and restored to its PRIOR value,
+    so a stale or poisoned `__pycache__` entry cannot be executed here.
+    """
+    path = SCRIPT_DIR / "review-artifact.py"
+    info = os.lstat(path)
+    if not stat.S_ISREG(info.st_mode):
+        raise ImportError(f"loop-cohort: {path} is not a regular file")
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location("_review_artifact", str(path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"loop-cohort: cannot load {path}")
+        module = importlib.util.module_from_spec(spec)
+        # Registered only while the module body runs: a `@dataclass` resolves its
+        # own module by name, and the entry must not outlive a failed load.
+        sys.modules[spec.name] = module
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            sys.modules.pop(spec.name, None)
+    finally:
+        sys.dont_write_bytecode = previous
+    return module
+
+
+_RELOCATED_NAMES = (
+    "CLEAN_SUBSTRING", "INDETERMINATE_SENTINEL", "_SHIP_IT_RE", "_RE_FINGERPRINT",
+    "FINDING_LINE_RE", "FINDING_LINE_RE_UNQUOTED", "FINDING_LINE_RE_WHERE",
+    "ADJUDICATION_HEADINGS", "NUMBERED_FINDING_MARKER_RE", "NOT_CHECKED_HEADING",
+    "NOT_CHECKED_BULLET_RE", "STRICT_SUSTAINED_FINDING_LINE_RE",
+    "_STABLE_TITLE_SEVERITY_RE", "RAW_REFUSAL_REASONS", "RAW_CLASSIFICATION_FIELDS",
+    "_REVIEW_OP_ID_RE", "_REVIEW_OP_ID_MAX", "stable_title",
+    "parse_finding_identities", "parse_findings", "_is_strict_actionable_result",
+    "_invalid", "_actionable_review_text", "_resolved_report", "_warn_raw_refusal",
+    "_raw_classification_payload", "_print_review_result", "_review_payload_digest",
+    "_review_operation_decision",
+)
+
+_review_error: str | None = None
+try:
+    _ra: Any = load_review_artifact()
+except Exception as exc:  # a missing or broken sibling must not fail the import
+    _review_error = f"review-artifact.py is unavailable: {type(exc).__name__}: {exc}"
+    _ra = _ReviewUnavailable(_review_error)
+    for _name in _RELOCATED_NAMES:
+        globals()[_name] = _ra
+else:
+    CLEAN_SUBSTRING = _ra.CLEAN_SUBSTRING
+    INDETERMINATE_SENTINEL = _ra.INDETERMINATE_SENTINEL
+    _SHIP_IT_RE = _ra._SHIP_IT_RE
+    _RE_FINGERPRINT = _ra._RE_FINGERPRINT
+    FINDING_LINE_RE = _ra.FINDING_LINE_RE
+    FINDING_LINE_RE_UNQUOTED = _ra.FINDING_LINE_RE_UNQUOTED
+    FINDING_LINE_RE_WHERE = _ra.FINDING_LINE_RE_WHERE
+    ADJUDICATION_HEADINGS = _ra.ADJUDICATION_HEADINGS
+    NUMBERED_FINDING_MARKER_RE = _ra.NUMBERED_FINDING_MARKER_RE
+    NOT_CHECKED_HEADING = _ra.NOT_CHECKED_HEADING
+    NOT_CHECKED_BULLET_RE = _ra.NOT_CHECKED_BULLET_RE
+    STRICT_SUSTAINED_FINDING_LINE_RE = _ra.STRICT_SUSTAINED_FINDING_LINE_RE
+    _STABLE_TITLE_SEVERITY_RE = _ra._STABLE_TITLE_SEVERITY_RE
+    RAW_REFUSAL_REASONS = _ra.RAW_REFUSAL_REASONS
+    RAW_CLASSIFICATION_FIELDS = _ra.RAW_CLASSIFICATION_FIELDS
+    _REVIEW_OP_ID_RE = _ra._REVIEW_OP_ID_RE
+    _REVIEW_OP_ID_MAX = _ra._REVIEW_OP_ID_MAX
+    stable_title = _ra.stable_title
+    parse_finding_identities = _ra.parse_finding_identities
+    parse_findings = _ra.parse_findings
+    _is_strict_actionable_result = _ra._is_strict_actionable_result
+    _invalid = _ra._invalid
+    _actionable_review_text = _ra._actionable_review_text
+    _resolved_report = _ra._resolved_report
+    _warn_raw_refusal = _ra._warn_raw_refusal
+    _raw_classification_payload = _ra._raw_classification_payload
+    _print_review_result = _ra._print_review_result
+    _review_payload_digest = _ra._review_payload_digest
+    _review_operation_decision = _ra._review_operation_decision
+
+
+def _classify_raw_report(report_path: Path) -> dict[str, object]:
+    """Classify a raw reviewer return, reading through this module's bounded reader."""
+    result: dict[str, object] = _ra._classify_raw_report(
+        report_path, read_text=read_managed_text
+    )
+    return result
+
+
+def _classify_report(
+    report_path: Path,
+    state: dict,
+    *,
+    require_adjudication: bool = False,
+) -> dict:
+    """Classify a reviewer report, reading through this module's bounded reader."""
+    result: dict = _ra._classify_report(
+        report_path,
+        state,
+        require_adjudication=require_adjudication,
+        read_text=read_managed_text,
+    )
+    return result
+
+
+def _record_review_state(
+    state: dict,
+    *,
+    expected_run_id: str,
+    spec_name: str,
+    form: str,
+    operation_id: str | None,
+    payload_digest: str | None,
+    fingerprints: list[str] | None = None,
+    clean_source: str | None = None,
+    clean_digest: str | None = None,
+    allow_retry_cap_override: bool = False,
+    allow_durable_operation_id: bool = False,
+) -> tuple[dict, str]:
+    """Return state after recording a review round through the shared mutator."""
+    result: tuple[dict, str] = _ra._record_review_state(
+        state,
+        expected_run_id=expected_run_id,
+        spec_name=spec_name,
+        form=form,
+        operation_id=operation_id,
+        payload_digest=payload_digest,
+        fingerprints=fingerprints,
+        clean_source=clean_source,
+        clean_digest=clean_digest,
+        allow_retry_cap_override=allow_retry_cap_override,
+        allow_durable_operation_id=allow_durable_operation_id,
+        non_negative_int=non_negative_int,
+        default_cap=DEFAULTS["max_review_retries"],
+    )
+    return result
+
+
+def _review_host() -> SimpleNamespace:
+    """The cohort-state I/O `review-artifact.py` runs the `review` verbs against."""
+    return SimpleNamespace(
+        resolve_spec_dir=_resolve_spec_dir,
+        state_path_for=state_path_for,
+        read_state=read_state,
+        write_state_atomic=write_state_atomic,
+        validate_run_id=validate_run_id,
+        with_state_lock=with_state_lock,
+        stop=stop,
+        emit=_emit,
+        read_text=read_managed_text,
+        non_negative_int=non_negative_int,
+        default_cap=DEFAULTS["max_review_retries"],
+    )
 
 
 def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | None:
@@ -1429,80 +1599,6 @@ def _record_attempt_state(
     )
     updated["last_record_attempt_cycle_id"] = cycle_id
     return updated, "recorded"
-
-
-def _record_review_state(
-    state: dict,
-    *,
-    expected_run_id: str,
-    spec_name: str,
-    form: str,
-    operation_id: str | None,
-    payload_digest: str | None,
-    fingerprints: list[str] | None = None,
-    clean_source: str | None = None,
-    clean_digest: str | None = None,
-    allow_retry_cap_override: bool = False,
-    allow_durable_operation_id: bool = False,
-) -> tuple[dict, str]:
-    """Return state after recording a review round through a shared mutator."""
-    outcome, reason = _review_operation_decision(
-        state,
-        operation_id,
-        payload_digest,
-        expect_run_id=expected_run_id,
-        spec_name=spec_name,
-        allow_durable_operation_id=allow_durable_operation_id,
-    )
-    if outcome == "refuse":
-        raise ValueError(str(reason))
-    if outcome == "already":
-        return copy.deepcopy(state), "already"
-    updated = copy.deepcopy(state)
-    if outcome == "record":
-        updated["last_review_record_operation_id"] = operation_id
-        updated["last_review_record_payload_digest"] = payload_digest
-    updated["previous_finding_fingerprints"] = list(
-        updated.get("finding_fingerprints", [])
-    )
-    rounds = non_negative_int(updated, "review_round_count", 0)
-    if isinstance(rounds, str):
-        raise ValueError(f"review record: {rounds} for {spec_name}")
-    if form == "findings":
-        stored_fingerprints = sorted(set(fingerprints or []))
-        retries = non_negative_int(updated, "review_retry_count", 0)
-        cap = non_negative_int(
-            updated, "max_review_retries", DEFAULTS["max_review_retries"]
-        )
-        if isinstance(retries, str):
-            raise ValueError(f"review record: {retries} for {spec_name}")
-        if isinstance(cap, str):
-            raise ValueError(f"review record: {cap} for {spec_name}")
-        if retries >= cap and not allow_retry_cap_override:
-            raise ValueError(
-                f"review record: review retry cap reached ({retries}/{cap}) for "
-                f"{spec_name}; a findings round past the cap is the runaway "
-                f"the cap exists to stop — stop and surface it. Only a human "
-                f"directing this run may continue: reset and start a new run, or "
-                f"pass --allow-retry-cap-override to this command AND to the "
-                f"`loop-engine transition findings-remain` that opens the round "
-                f"(either half alone leaves the cohort and the engine a round apart)"
-            )
-        updated["finding_fingerprints"] = stored_fingerprints
-        updated["review_retry_count"] = retries + 1
-        updated["review_round_count"] = rounds + 1
-        return updated, "recorded"
-    if form == "all-skipped":
-        updated["finding_fingerprints"] = []
-        updated["review_round_count"] = rounds + 1
-        return updated, "recorded"
-    if form == "clean":
-        updated["finding_fingerprints"] = []
-        updated["review_round_count"] = rounds + 1
-        updated["last_review_clean_source"] = clean_source
-        updated["last_review_clean_digest"] = clean_digest
-        return updated, "recorded"
-    raise ValueError(f"review record: unknown form {form!r}")
 
 
 def _append_transition_history(state: dict, identity: dict, audit: dict) -> dict:
@@ -2993,608 +3089,19 @@ def cmd_record_attempt(args: argparse.Namespace) -> int:
 
 # ── review inspect / record ───────────────────────────────────────────────
 
-FINDING_LINE_RE = re.compile(
-    r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*`(?P<citation>[^`]+)`"
-)
-# frontend-reviewer: **title.** file:line. (unquoted file:line after title)
-FINDING_LINE_RE_UNQUOTED = re.compile(
-    r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*(?P<citation>\S+:\d+)"
-)
-# experience-reviewer: **title.** Where: <location>. (no file:line)
-FINDING_LINE_RE_WHERE = re.compile(
-    r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*Where:\s*(?P<location>[^.]+)"
-)
-ADJUDICATION_HEADINGS = (
-    "## Main-loop result",
-    "## Refuted audit",
-    "## Indeterminate audit",
-)
-NUMBERED_FINDING_MARKER_RE = re.compile(r"\*\*\d+\.")
-NOT_CHECKED_HEADING = "## Not checked"
-# Shape only, deliberately. Two earlier revisions tried to make footer bullets
-# safe to skip adjudication — first by rejecting finding-shaped markers, then by
-# requiring a `Did not ` opener. Both were defeated, because separating
-# disclosure prose from finding prose is undecidable by pattern
-# ("- Did not complete authorization review: unauthenticated requests can set
-# is_admin=true" satisfies both). The footer's content is therefore never
-# trusted: `not_checked_present` disqualifies a report from the clean fast path
-# and routes it to full adjudication, which reads the whole body. That makes a
-# content rule here non-load-bearing, and a guard that looks load-bearing but
-# is not is worse than none.
-NOT_CHECKED_BULLET_RE = re.compile(r"^- ")
-STRICT_SUSTAINED_FINDING_LINE_RE = re.compile(
-    r"^\*\*\d+\.[^*\n]+\*\*\s*"
-    r"(?:`[^`\n]+:\d+[^`\n]*`|\S+:\d+|Where:\s+[^.\n]+)\.\s+"
-    r"\S(?:.*\S)?\s+Fix:\s+\S.*$"
-)
-
-
-# Closed on purpose: the three-bucket scheme, the major/minor pair, and the
-# CRITICAL/HIGH/MEDIUM/LOW scheme the reviewer agents map onto on request.
-# Stripping any bracketed text would also strip a reviewer-assigned finding id.
-_STABLE_TITLE_SEVERITY_RE = re.compile(
-    r"^\[(?:blocker|concern|nit|major|minor|critical|high|medium|low)\]\s*",
-    re.IGNORECASE,
-)
-
-
-def stable_title(title: str) -> str:
-    """Return a finding title without its ordinal or severity tag."""
-    unwrapped = title.strip()
-    if unwrapped.startswith("**") and unwrapped.endswith("**"):
-        unwrapped = unwrapped[2:-2]
-    without_ordinal = re.sub(r"^\d+\.\s*", "", unwrapped)
-    return _STABLE_TITLE_SEVERITY_RE.sub("", without_ordinal)
-
-
-def parse_finding_identities(report_text: str) -> tuple[list[str], list[str]]:
-    """Return fingerprint and family digests for findings in a reviewer report.
-
-    Algorithm pinned by the work-loop SKILL §REVIEW:
-        sha256("<file>|<line>|<title>")
-    where <file> is the cited path exactly as written, <line> is the first
-    integer after the first colon in the citation, and <title> is the
-    bolded heading including the surrounding `**` markers.
-
-    Supports three formats:
-    - adversarial-reviewer: **title** `file:line`  (backtick-quoted citation)
-    - frontend-reviewer:    **title.** file:line.  (unquoted file:line)
-    - experience-reviewer:  **title.** Where: loc. (location; key uses loc|0|title)
-    """
-    fingerprints: list[str] = []
-    families: list[str] = []
-
-    def add_finding(location: str, line_number: str, title: str) -> None:
-        """Append both identities for one parsed finding."""
-        fingerprint_preimage = f"{location}|{line_number}|{title}"
-        family_preimage = f"{location}|{stable_title(title)}"
-        fingerprints.append(
-            hashlib.sha256(fingerprint_preimage.encode("utf-8")).hexdigest()
-        )
-        families.append(
-            hashlib.sha256(family_preimage.encode("utf-8")).hexdigest()
-        )
-
-    for raw in report_text.splitlines():
-        line = raw.strip()
-        if not line.startswith("**"):
-            continue
-        # Try backtick-quoted citation first (adversarial-reviewer)
-        m = FINDING_LINE_RE.match(line)
-        if m:
-            title = m.group("title").strip()
-            citation = m.group("citation").strip()
-            if ":" not in citation:
-                continue
-            file_part, _, rest = citation.partition(":")
-            line_match = re.match(r"\d+", rest)
-            if not line_match:
-                continue
-            add_finding(file_part, line_match.group(0), title)
-            continue
-        # Try Where: <location> (experience-reviewer)
-        m = FINDING_LINE_RE_WHERE.match(line)
-        if m:
-            title = m.group("title").strip()
-            location = m.group("location").strip()
-            add_finding(location, "0", title)
-            continue
-        # Try unquoted file:line (frontend-reviewer)
-        m = FINDING_LINE_RE_UNQUOTED.match(line)
-        if m:
-            title = m.group("title").strip()
-            citation = m.group("citation").strip()
-            file_part, _, rest = citation.partition(":")
-            line_match = re.match(r"\d+", rest)
-            if not line_match:
-                continue
-            add_finding(file_part, line_match.group(0), title)
-    return fingerprints, families
-
-
-def parse_findings(report_text: str) -> list[str]:
-    """Return SHA-256 fingerprints while preserving the legacy parser API."""
-    return parse_finding_identities(report_text)[0]
-
-
-def _is_strict_actionable_result(actionable: str) -> bool:
-    """Accept exact clean or complete parser-compatible sustained lines."""
-    if actionable == CLEAN_SUBSTRING:
-        return True
-
-    finding_lines = [line for line in actionable.splitlines() if line.strip()]
-    return bool(finding_lines) and all(
-        STRICT_SUSTAINED_FINDING_LINE_RE.fullmatch(line.strip()) is not None
-        and len(NUMBERED_FINDING_MARKER_RE.findall(line)) == 1
-        and len(parse_findings(line)) == 1
-        for line in finding_lines
-    )
-
-
-def _invalid(reason: str) -> dict:
-    """Refuse a report, naming which rule refused it.
-
-    `invalid` returns at exit 0 and stops the loop, so an unnamed refusal costs
-    the operator a parser read to act on. The reason is enumerated and
-    content-free, matching `review-artifact.py`'s refusal codes.
-    """
-    print(
-        f"loop-cohort: report classified invalid ({reason})",
-        file=sys.stderr,
-    )
-    return {
-        "classification": "invalid",
-        "fingerprints": [],
-        "families": [],
-        "matches_previous_round": False,
-        "reason": reason,
-    }
-
-
-def _actionable_review_text(
-    report_text: str,
-    *,
-    require_adjudication: bool = False,
-) -> tuple[str, str | None]:
-    """Return the main-loop result and a refusal reason, or None when accepted.
-
-    Legacy reviewer reports have no adjudication headings and remain unchanged.
-    When any adjudication heading is present, require the exact three-section
-    envelope, keep only the main-loop result, and reject finding-shaped audit
-    text rather than allowing it to reach fingerprinting.
-
-    The second element is `None` when the structure is acceptable, otherwise an
-    enumerated, content-free code naming which rule refused it. Codes mirror
-    `review-artifact.py`'s `INVALID <code>` refusal vocabulary — the other half
-    of this gateway — so a fail-closed stop is diagnosable without reopening the
-    artifact or reverse-engineering the parser. They carry no report content,
-    no path, and no line text.
-    """
-    lines = report_text.splitlines()
-    found_headings = [
-        line.strip() for line in lines if line.strip().startswith("## ")
-    ]
-    if not any(heading in found_headings for heading in ADJUDICATION_HEADINGS):
-        return report_text, "legacy-report" if require_adjudication else None
-    if found_headings != list(ADJUDICATION_HEADINGS):
-        return "", "envelope-headings"
-
-    heading_indexes = [
-        next(index for index, line in enumerate(lines) if line.strip() == heading)
-        for heading in ADJUDICATION_HEADINGS
-    ]
-    if any(line.strip() for line in lines[: heading_indexes[0]]):
-        return "", "prose-before-envelope"
-
-    main_start, refuted_start, indeterminate_start = heading_indexes
-    audit_lines = lines[refuted_start + 1 :]
-    if any(NUMBERED_FINDING_MARKER_RE.search(line) for line in audit_lines):
-        return "", "audit-numbered-finding"
-
-    actionable = "\n".join(lines[main_start + 1 : refuted_start]).strip()
-    indeterminate_audit = "\n".join(lines[indeterminate_start + 1 :]).strip()
-
-    # The refusals below are NOT gated on `require_adjudication`. Reaching here
-    # already proves the exact three-section envelope is present, so the report
-    # is an adjudication whichever flag the caller passed — and an indeterminate
-    # verdict must never classify as clean (AC5), including on a flagless
-    # `review inspect` or a replayed `review record`. Envelope-free legacy
-    # reports returned earlier and are unaffected.
-    #
-    # Order matters for the operator, not for soundness — every `if` below
-    # refuses. Report the most specific cause first: an indeterminate verdict is
-    # a decision the adjudicator made and the owner must resolve, whereas a
-    # shape complaint about the same report would send them to the wrong place.
-    if INDETERMINATE_SENTINEL in report_text:
-        return "", "indeterminate-present"
-    if indeterminate_audit != "None.":
-        return "", "indeterminate-audit-not-none"
-    if not _is_strict_actionable_result(actionable):
-        return "", "sustained-line-shape"
-    return actionable, None
-
-
-def _resolved_report(candidate: str) -> Path:
-    """Normalise the CLI-supplied `--report` path at the argv boundary.
-
-    Normalise-only, deliberately. The two `--root` linters in this skill raise
-    on an unusable path, but `--report` must not: `review inspect` classifies an
-    unreadable report as `invalid`, which the work-loop SKILL documents as a
-    Surface signal rather than a crash. Raising here would convert a defined
-    outcome into an operational error.
-
-    The `resolve()` still does the job it is here for — it puts the
-    normalisation adjacent to the argv read, where a taint analyser can see it,
-    instead of leaving a raw `Path(args.report)` as the boundary.
-    """
-    try:
-        return Path(candidate).resolve()
-    except (OSError, ValueError, RuntimeError):
-        # resolve() raises on an embedded null (ValueError) and on Windows
-        # reserved names (OSError). Falling back to the unresolved path keeps
-        # the value flowing to _classify_report, which classifies it `invalid`
-        # at exit 0 — the defined outcome. Raising here would reintroduce
-        # exactly the operational error this helper's docstring rules out.
-        return Path(candidate)
-
-
-def _classify_raw_report(report_path: Path) -> dict[str, object]:
-    """Classify a raw reviewer return without widening adjudication semantics.
-
-    This remains separate from `_classify_report`: that function's optional
-    adjudication envelope is a high-stakes path, where a third mode could
-    silently weaken strict classification.
-    """
-    reason: str | None = None
-    try:
-        report_text = read_managed_text(report_path.resolve(), report_path.name)
-    except (OSError, UnicodeDecodeError, ValueError):
-        classification = "invalid"
-        finding_count = 0
-        classified_digest = None
-        reason = "unreadable"
-        lines: list[str] = []
-    else:
-        # Digest the bytes this call actually classified, not a second read.
-        # `read_managed_text` decodes bytes strictly without folding newlines, so
-        # re-encoding is byte-identical to the file. A caller that re-opened the
-        # path for its audit anchor could digest content nobody classified.
-        classified_digest = hashlib.sha256(report_text.encode("utf-8")).hexdigest()
-        # LF and CRLF only (AC2.3b). `str.splitlines()` also breaks on \v, \f,
-        # \x1c-\x1e, \x85, U+2028 and U+2029, so a single visual line could be
-        # split into a grammar that reads clean. Any of those left embedded here
-        # makes its line unequal to the sentinel, which fails closed.
-        lines = report_text.replace("\r\n", "\n").split("\n")
-        finding_count = len(parse_findings(report_text))
-        if finding_count:
-            classification = "findings"
-        else:
-            sentinel_count = sum(line == CLEAN_SUBSTRING for line in lines)
-            sentinel_index = next(
-                (index for index, line in enumerate(lines) if line == CLEAN_SUBSTRING),
-                -1,
-            )
-            footer_started = False
-            clean_shape = sentinel_count == 1
-            if not clean_shape:
-                reason = "sentinel-absent" if sentinel_count == 0 else "sentinel-repeated"
-            for index, line in enumerate(lines):
-                if not clean_shape:
-                    break
-                if not line or index == sentinel_index:
-                    continue
-                if index < sentinel_index:
-                    clean_shape = False
-                    reason = "content-before-sentinel"
-                    break
-                if line == NOT_CHECKED_HEADING:
-                    if footer_started:
-                        clean_shape = False
-                        reason = "footer-heading-repeated"
-                        break
-                    footer_started = True
-                    continue
-                if footer_started and NOT_CHECKED_BULLET_RE.match(line):
-                    continue
-                clean_shape = False
-                reason = (
-                    "footer-bullet-malformed" if footer_started else "unpermitted-content"
-                )
-                break
-            classification = "clean" if clean_shape else "invalid"
-
-    # Disclosure metadata is deliberately computed after classification.
-    not_checked_present = NOT_CHECKED_HEADING in lines
-    return {
-        "classification": classification,
-        "finding_count": finding_count,
-        "not_checked_present": not_checked_present,
-        # Internal only — never emitted in the JSON payload.
-        # `_raw_classification_payload` projects the closed public field set so a
-        # key added here cannot leak into the documented contract. The reason is
-        # a fixed, content-free code surfaced on stderr, mirroring
-        # `_actionable_review_text`'s refusal vocabulary: a bare `invalid` leaves
-        # an operator unable to tell a missing sentinel from a malformed footer.
-        "_classified_digest": classified_digest,
-        "_reason": reason,
-    }
-
-
-RAW_REFUSAL_REASONS = frozenset(
-    {
-        "unreadable",
-        "sentinel-absent",
-        "sentinel-repeated",
-        "content-before-sentinel",
-        "footer-heading-repeated",
-        "footer-bullet-malformed",
-        "unpermitted-content",
-    }
-)
-
-
-def _warn_raw_refusal(result: dict[str, object]) -> None:
-    """Name which grammar rule refused the report, without echoing its content."""
-    reason = result.get("_reason")
-    if result["classification"] == "invalid" and reason:
-        print(f"loop-cohort: raw report refused ({reason})", file=sys.stderr)
-
-
-RAW_CLASSIFICATION_FIELDS = ("classification", "finding_count", "not_checked_present")
-
-
-def _raw_classification_payload(result: dict[str, object]) -> dict[str, object]:
-    """Project the closed emitted field set for the raw-classify contract."""
-    return {field: result[field] for field in RAW_CLASSIFICATION_FIELDS}
-
-
-def _classify_report(
-    report_path: Path,
-    state: dict,
-    *,
-    require_adjudication: bool = False,
-) -> dict:
-    """Classify a reviewer report. Exits 0 for all report-content outcomes.
-
-    Every return carries classification, fingerprints, families, and
-    matches_previous_round; an ``invalid`` return also carries reason.
-    """
-    # Bounded read, reached from `cmd_review_record`, which holds the state lock — so a
-    # reviewer report that is a FIFO or an arbitrarily large file would otherwise block
-    # or read without limit inside the critical section.
-    #
-    # The path is RESOLVED first, deliberately. Unlike `spec.md` / `plan.md` this is a
-    # user-supplied `--report` argument, not managed state: it carries no confinement
-    # claim, and a symlinked report worked before this change. Reading the unresolved
-    # path would make `O_NOFOLLOW` refuse it, narrowing a shipped CLI's accepted inputs
-    # for no security benefit — the author chose the path. Resolving keeps the size and
-    # FIFO bounds, which are the parts that matter under the lock.
-    try:
-        report_text = read_managed_text(report_path.resolve(), report_path.name)
-    except (OSError, UnicodeDecodeError, ValueError) as exc:
-        # The reason is REPORTED, not discarded. This returns `invalid` at exit 0, so
-        # without a diagnostic an unreadable report is indistinguishable from one that
-        # genuinely contains no findings — and that classification feeds the review
-        # retry accounting.
-        print(
-            f"loop-cohort: warning — {_diag(report_path.name)} could not be read "
-            f"({_diag(exc)}); classified invalid",
-            file=sys.stderr,
-        )
-        return _invalid("unreadable")
-
-    actionable_text, refusal = _actionable_review_text(
-        report_text,
-        require_adjudication=require_adjudication,
-    )
-    if refusal is not None:
-        return _invalid(refusal)
-
-    fps, families = parse_finding_identities(actionable_text)
-    if require_adjudication:
-        has_clean = actionable_text == CLEAN_SUBSTRING
-    else:
-        has_clean = (
-            CLEAN_SUBSTRING in actionable_text
-            or _SHIP_IT_RE.search(actionable_text) is not None
-        )
-
-    if fps:
-        classification = "findings"
-    elif has_clean:
-        classification = "clean"
-    else:
-        # No fingerprints and no clean sentinel. Reachable on the flagless
-        # legacy path; name it like every other refusal so a consumer reading
-        # `reason` never sees a missing key.
-        return _invalid("no-actionable-result")
-
-    canonical_fps = sorted(set(fps))
-    previous = sorted(set(state.get("finding_fingerprints", [])))
-
-    # Empty-vs-empty is always false (not stasis — no meaningful comparison)
-    matches_prev = bool(canonical_fps and canonical_fps == previous)
-
-    return {
-        "classification": classification,
-        "fingerprints": canonical_fps,
-        "families": sorted(set(families)),
-        "matches_previous_round": matches_prev,
-    }
-
-
-def _print_review_result(result: dict, *, as_json: bool, verb: str) -> None:
-    """Print one review classification without report content or path data."""
-    if as_json:
-        print(json.dumps(result))
-        return
-    print(
-        f"loop-cohort: review {verb} classification={result['classification']} "
-        f"fingerprints={len(result['fingerprints'])} "
-        f"matches_previous_round={result['matches_previous_round']}"
-    )
-
-
 def cmd_review_classify(args: argparse.Namespace) -> int:
     """Strictly classify an adjudication report without cohort state."""
-    report_path = _resolved_report(args.report)
-    result = _classify_report(
-        report_path,
-        {},
-        require_adjudication=True,
-    )
-    _print_review_result(result, as_json=args.json, verb="classify")
-    return 0
+    return _ra.run_classify(args, read_text=read_managed_text)
 
 
 def cmd_review_raw_classify(args: argparse.Namespace) -> int:
     """Classify a raw reviewer report without cohort state."""
-    full = _classify_raw_report(_resolved_report(args.report))
-    _warn_raw_refusal(full)
-    result = _raw_classification_payload(full)
-    if args.json:
-        print(json.dumps(result))
-    else:
-        print(
-            "loop-cohort: review raw-classify "
-            f"classification={result['classification']} "
-            f"finding_count={result['finding_count']} "
-            f"not_checked_present={result['not_checked_present']}"
-        )
-    return 0
+    return _ra.run_raw_classify(args, read_text=read_managed_text)
 
 
 def cmd_review_inspect(args: argparse.Namespace) -> int:
-    try:
-        spec_dir = _resolve_spec_dir(args.spec_dir)
-    except ValueError as exc:
-        return stop(str(exc))
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        # Operational error (spec-dir unresolvable or state.json unreadable)
-        return stop(str(exc))
-
-    report_path = _resolved_report(args.report)
-    result = _classify_report(
-        report_path,
-        state,
-        require_adjudication=args.adjudication,
-    )
-
-    _print_review_result(result, as_json=args.json, verb="inspect")
-    return 0  # content outcomes always exit 0
-
-
-# ── review-record idempotency ─────────────────────────────────────────────
-#
-# `--operation-id` names the round being recorded, so a session that re-issues a
-# recording after losing its own record of whether the write landed gets one
-# write rather than two. The id is `<run_id>:<transition_sequence>` supplied by
-# the caller and validated here; this module never reads `engine-state.json`.
-#
-# The payload digest is STORED, not derived on read. Deriving it is unsound: the
-# fingerprint and all-skipped branches overwrite `finding_fingerprints` and never
-# touch `last_review_clean_source`, the clean branches do the reverse, and no
-# field records which form closed a round — so `state.json` stops describing a
-# round's payload as soon as the next round lands.
-
-# `\A`/`\Z`, not `^`/`$`: Python's `$` also matches before a trailing newline,
-# so `"<run>:1\n"` would pass and then compare unequal to `"<run>:1"` -- two
-# spellings of one round, each recording separately. `[0-9]` rather than `\d`
-# for the same reason: `\d` accepts Unicode decimal digits.
-_REVIEW_OP_ID_RE = re.compile(r"\A(?P<run>[^:\n]+):(?P<seq>[0-9]{1,18})\Z")
-_REVIEW_OP_ID_MAX = 200
-
-
-def _review_payload_digest(form: str, payload: str) -> str:
-    r"""`sha256(form + "\n" + payload)`. The form prefix stops two forms colliding."""
-    return hashlib.sha256(f"{form}\n{payload}".encode()).hexdigest()
-
-
-def _review_operation_decision(
-    state: dict,
-    operation_id: str | None,
-    payload_digest: str | None,
-    *,
-    expect_run_id: str,
-    spec_name: str,
-    allow_durable_operation_id: bool = False,
-) -> tuple[str, str | None]:
-    """Decide the recorded round's fate before any mutation.
-
-    Returns `(outcome, reason)`. `outcome` is one of:
-
-    - `"unflagged"` — no id supplied; behave exactly as before and leave the two
-      recorded fields alone. They name the last round recorded *under an id*,
-      which a flagless round does not become.
-    - `"already"`   — this id and this payload are already recorded; no mutation.
-    - `"record"`    — proceed with the mutation and set both fields.
-    - `"refuse"`    — caller must surface the accompanying reason.
-    """
-    if operation_id is None:
-        return "unflagged", None
-
-    if len(operation_id) > _REVIEW_OP_ID_MAX:
-        # Its own message. Folding this into the format refusal below would tell
-        # an operator the format was wrong when the format may be perfectly
-        # correct and only the length is not.
-        return "refuse", (
-            f"review record: --operation-id is {len(operation_id)} characters, "
-            f"over the {_REVIEW_OP_ID_MAX}-character limit, for {spec_name}"
-        )
-
-    if allow_durable_operation_id:
-        if not _SHA256_RE.fullmatch(operation_id):
-            return "refuse", (
-                "review record: internal transition operation id must be a "
-                f"SHA-256 transition id (got {operation_id!r}) for {spec_name}"
-            )
-        matched = None
-    else:
-        matched = _REVIEW_OP_ID_RE.match(operation_id)
-
-    # A leading zero is a second spelling of the same sequence, and the recorded
-    # id is compared by exact string equality, so `:01` and `:1` would each
-    # record the round once.
-    if not allow_durable_operation_id:
-        canonical = matched is not None and (
-            matched.group("seq") == "0" or not matched.group("seq").startswith("0")
-        )
-        if not canonical:
-            return "refuse", (
-                f"review record: --operation-id must be "
-                f"'<expect-run-id>:<decimal-sequence>' with no leading zero "
-                f"(got {operation_id!r}) for {spec_name}"
-            )
-        if matched.group("run") != expect_run_id:
-            return "refuse", (
-                f"review record: --operation-id names run {matched.group('run')!r} "
-                f"but --expect-run-id is {expect_run_id!r} for {spec_name}"
-            )
-    if payload_digest is None:
-        # Refusing here is what keeps a later repeat decidable: an id recorded
-        # without a comparison value could never be judged a replay.
-        return "refuse", (
-            "review record: this round's payload digest could not be computed, "
-            "so recording it under an operation id would leave a later repeat "
-            f"undecidable; re-run once the payload is readable, for {spec_name}"
-        )
-
-    recorded_id = state.get("last_review_record_operation_id")
-    if recorded_id == operation_id:
-        if state.get("last_review_record_payload_digest") == payload_digest:
-            return "already", (
-                f"review record already recorded for operation "
-                f"{operation_id!r} (idempotent no-op) for {spec_name}"
-            )
-        return "refuse", (
-            f"review record: operation {operation_id!r} is already recorded with "
-            f"a different payload; a replay must carry the payload it recorded. "
-            f"Compare against last_review_record_payload_digest in "
-            f"`loop-cohort status --json` for {spec_name}"
-        )
-    return "record", None
+    """Classify a report against the cohort's previous round, read-only."""
+    return _ra.run_inspect(args, _review_host())
 
 
 def _review_operation_gate(
@@ -3620,210 +3127,9 @@ def _review_operation_gate(
     return outcome, None
 
 
-@_locked("review record")
 def cmd_review_record(args: argparse.Namespace) -> int:
-    try:
-        spec_dir = _resolve_spec_dir(args.spec_dir)
-    except ValueError as exc:
-        return stop(str(exc))
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-    err = _validate_run_id(state, args.expect_run_id, verb="review record")
-    if err is not None:
-        return err
-
-    operation_id = getattr(args, "operation_id", None)
-
-    if getattr(args, "all_skipped", False):
-        # All-skipped branch: every warranted reviewer was a named skip
-        digest = _review_payload_digest("all-skipped", "")
-        try:
-            updated, status = _record_review_state(
-                state,
-                expected_run_id=args.expect_run_id,
-                spec_name=spec_dir.name,
-                form="all-skipped",
-                operation_id=operation_id,
-                payload_digest=digest,
-            )
-        except ValueError as exc:
-            return stop(str(exc))
-        if status == "already":
-            _emit(
-                f"review record already recorded for operation "
-                f"{operation_id!r} (idempotent no-op) for {spec_dir.name}"
-            )
-            return 0
-        write_state_atomic(spec_dir, updated)
-        print(
-            f"loop-cohort: review record (all-skipped) "
-            f"round={updated['review_round_count']} for {spec_dir.name}"
-        )
-        return 0
-
-    if args.fingerprint:
-        # Findings branch: --fingerprint <hex> ...
-        fingerprints = sorted(set(args.fingerprint))
-        bad = [fp for fp in fingerprints if not _RE_FINGERPRINT.match(fp)]
-        if bad:
-            return stop(
-                f"review record: --fingerprint must be lowercase 64-char SHA-256 hex "
-                f"(40-char SHA-1 still accepted for a run that predates core 2.3.0); "
-                f"invalid: {bad!r}"
-            )
-        digest = _review_payload_digest("fingerprint", "\n".join(fingerprints))
-        try:
-            updated, status = _record_review_state(
-                state,
-                expected_run_id=args.expect_run_id,
-                spec_name=spec_dir.name,
-                form="findings",
-                operation_id=operation_id,
-                payload_digest=digest,
-                fingerprints=fingerprints,
-                allow_retry_cap_override=getattr(
-                    args, "allow_retry_cap_override", False
-                ),
-            )
-        except ValueError as exc:
-            return stop(str(exc))
-        if status == "already":
-            _emit(
-                f"review record already recorded for operation "
-                f"{operation_id!r} (idempotent no-op) for {spec_dir.name}"
-            )
-            return 0
-        write_state_atomic(spec_dir, updated)
-        print(
-            f"loop-cohort: review record (findings) "
-            f"round={updated['review_round_count']} retry={updated['review_retry_count']} "
-            f"fingerprints={len(fingerprints)} for {spec_dir.name}"
-        )
-        return 0
-
-    # Clean branches: a persisted byte-equal or structural raw return, or a
-    # validated adjudication report. Each rests on bytes read back from disk, so a
-    # recorded clean round is never the caller's own assertion about what a
-    # reviewer said.
-    direct_clean_file = getattr(args, "direct_clean_file", None)
-    if direct_clean_file is not None:
-        if args.adjudication:
-            return stop(
-                "review record: --direct-clean-file and --adjudication name two "
-                "different recording forms; use --report <path> --adjudication "
-                "for an adjudicated clean"
-            )
-        artifact_path = _resolved_report(direct_clean_file)
-        try:
-            raw = artifact_path.read_bytes()
-        except OSError:
-            return stop(
-                "review record: --direct-clean-file is unreadable; persist the "
-                "reviewer's complete return before recording"
-            )
-        # Byte comparison, not a decode-then-compare: an encoding that merely
-        # round-trips to the sentinel is not the sentinel.
-        if raw != CLEAN_SUBSTRING.encode("utf-8"):
-            return stop(
-                "review record: --direct-clean-file requires the exact clean sentinel"
-            )
-        clean_source = "direct-clean"
-        clean_digest = hashlib.sha256(raw).hexdigest()
-    elif structural_clean_file := getattr(args, "structural_clean_file", None):
-        if args.adjudication:
-            return stop(
-                "review record: --structural-clean-file and --adjudication name two "
-                "different recording forms"
-            )
-        artifact_path = _resolved_report(structural_clean_file)
-        result = _classify_raw_report(artifact_path)
-        if result["classification"] != "clean":
-            _warn_raw_refusal(result)
-            return stop(
-                "review record: --structural-clean-file requires a clean raw-report classification"
-            )
-        # A disclosure footer is prose, and prose is what the adjudicator exists
-        # to read. Its content is never trusted here, so a footer-bearing report
-        # is never fast-pathed however well-formed it looks. This reads
-        # `not_checked_present` for ROUTING only; classification above is
-        # decided without it (AC2.4).
-        if result["not_checked_present"]:
-            return stop(
-                "review record: a report carrying a '## Not checked' footer is not "
-                "eligible for the clean fast path; route it through "
-                "finding-adjudicator and record with --report … --adjudication"
-            )
-        clean_source = "structural-clean"
-        # The digest comes from the same read that classified the artifact. A
-        # second open here would let a concurrent write make the recorded audit
-        # anchor attest to content that was never classified clean.
-        clean_digest = result["_classified_digest"]
-        if not isinstance(clean_digest, str):
-            return stop(
-                "review record: --structural-clean-file produced no digest for "
-                "the classified bytes; re-persist the reviewer's return"
-            )
-    else:
-        if not args.report:
-            return stop(
-                "review record: one of --direct-clean-file, --structural-clean-file, --report, or "
-                "--fingerprint is required"
-            )
-        if not args.adjudication:
-            return stop(
-                "review record: --report requires --adjudication; use "
-                "--direct-clean-file for a persisted exact raw clean return"
-            )
-        report_path = _resolved_report(args.report)
-        result = _classify_report(
-            report_path,
-            state,
-            require_adjudication=True,
-        )
-        if result["classification"] != "clean":
-            cls = result["classification"]
-            return stop(
-                f"review record --report: report classified as {cls!r}; "
-                "use --fingerprint for a findings round"
-            )
-        clean_source = "report"
-        try:
-            clean_digest = hashlib.sha256(report_path.read_bytes()).hexdigest()
-        except OSError:
-            # _classify_report already read it; a race here loses provenance
-            # but must not undo a classification that succeeded.
-            clean_digest = None
-
-    digest = (None if clean_digest is None
-              else _review_payload_digest(clean_source, clean_digest))
-    try:
-        updated, status = _record_review_state(
-            state,
-            expected_run_id=args.expect_run_id,
-            spec_name=spec_dir.name,
-            form="clean",
-            operation_id=operation_id,
-            payload_digest=digest,
-            clean_source=clean_source,
-            clean_digest=clean_digest,
-        )
-    except ValueError as exc:
-        return stop(str(exc))
-    if status == "already":
-        _emit(
-            f"review record already recorded for operation "
-            f"{operation_id!r} (idempotent no-op) for {spec_dir.name}"
-        )
-        return 0
-    write_state_atomic(spec_dir, updated)
-    print(
-        f"loop-cohort: review record (clean:{clean_source}) "
-        f"round={updated['review_round_count']} "
-        f"retry={updated['review_retry_count']} for {spec_dir.name}"
-    )
-    return 0
+    """Record a review round; the shared logic lives in `review-artifact.py`."""
+    return _ra.run_record(args, _review_host())
 
 
 # ── disabled Phase-1 verbs ────────────────────────────────────────────────
@@ -4193,6 +3499,8 @@ def main(argv: list[str] | None = None) -> int:
     # stub callables that raise, which is loud but later than it needs to be.
     if _g is None:
         return stop(_guards_error or "_loop_guards.py is unavailable")
+    if _review_error is not None and getattr(args, "review_verb", None) is not None:
+        return stop(_review_error)
     try:
         return args.func(args)
     except KeyboardInterrupt:

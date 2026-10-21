@@ -437,8 +437,10 @@ artifacts and migration evidence.
 - The traceability lint recognizes a discovery-side producer node by a
   **bold-body** marker in the rendered document — `**Type:** screen-brief` for
   a screen, `**Action:**` and `**Service:**` for journey and blueprint entries
-  extracted from a container, `**Kind:**` and `**Level:**` for intent-ladder
-  rungs. YAML frontmatter is not the recognized form, so a file carrying
+  extracted from a container, and `**Kind:**` and `**Level:**` for
+  intent-ladder rungs, which it reads from the intent's preamble (above its
+  first `## ` heading, comments hidden) the way the intent navigator does.
+  YAML frontmatter is not the recognized form, so a file carrying
   `type: screen-flow` and no bold-body marker is not a producer to it. That is
   the trap worth knowing. Which directories it reads, when it uses a sidecar
   instead of walking the tree, and what an unrecognized shape costs are all

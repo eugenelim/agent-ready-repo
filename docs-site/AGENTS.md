@@ -5,8 +5,9 @@ Applies to `docs-site/`. Inherits the root `AGENTS.md`. Scope-specific deltas on
 ## Site boundary
 
 `docs-site/` is the technical documentation site. `tools/build-site.py` generates
-much of `src/content/docs/` from `guides/**` and `packs/**`; edit sources, not
-generated content. Package manifests own dependency versions.
+much of `src/content/docs/` from `guides/**` and `packs/**`, and the field
+references under `src/content/docs/reference/` from `contracts/pack.schema.json`
+and `contracts/skill.schema.json`; edit sources, not generated content. Package manifests own dependency versions.
 
 ## Build
 

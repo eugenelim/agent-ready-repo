@@ -215,6 +215,23 @@ The route-migration table owed for the job regrouping lands with the guide merge
 that move URLs (`docs/specs/docs-site-rail-shell` changes no guide URL). Stage 4's
 actions, emotions, and validation hook are unchanged.
 
+## Amendment 2026-10-21 — one Build a Catalogue tab and two home routes
+
+**Status: ratified at `approve-journey`, 2026-10-21, by the owner.** RFC-0076 D9
+gives catalogue authors and evaluators one route, so Stage 4's tab set and docs
+home change again. This supersedes the tab list and the docs-home line of the
+2026-10-15 amendment; its job groups are unchanged.
+
+- **Tabs.** The top bar carries four tabs — Docs, CLI, Packs, Build a Catalogue.
+  Build a Catalogue replaces the Author and Catalogue System tabs and holds the
+  ten D9 routes, from Create a catalogue to Package and publish.
+- **Two home routes.** The docs home opens with two choices, Use the catalogue
+  and Build or evaluate a catalogue, then installs the toolkit and makes a first
+  request as before.
+
+No guide URL moves (`docs/specs/catalogue-wave6-technical-docs-ia`). Stage 4's
+actions, emotions, and validation hook are unchanged.
+
 ## Stage 5: Make it the default `[assumption-based]`
 
 **Surface:** documentation, and the route back out to the internal case.

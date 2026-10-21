@@ -394,7 +394,7 @@ jobs:
       # navigation. make build-check runs no pytest — wire them explicitly.
       - name: pytest guides sidebar generation
         if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
+        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_build_a_catalogue_nav.py tools/test_schema_field_reference.py
       - name: pytest guides + catalogue navigation
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
@@ -530,6 +530,13 @@ jobs:
       - name: pytest graph-pointer authoring sources (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_graph_pointer_authoring.py
+
+      # The lint-vs-navigator intent parity check reads `docs/product/intents`
+      # above any pack, so it is roster-owned. Placed above the bulk step so a
+      # failure is attributed here.
+      - name: pytest lint-traceability intent parity vs the real corpus (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_lint_traceability_intent_parity.py
 
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
@@ -862,6 +869,14 @@ jobs:
       - name: pytest skill HTML view token file agreement (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_skill_html_view_tokens.py
+
+      # agentbundle-governance-markers: shipped engine source and tests cite no
+      # internal RFC/ADR ordinal or record path. It resolves cited paths against
+      # docs/, which the sdist does not carry, so it cannot live in the package
+      # suite. Placed ABOVE the bulk tests/ step for named failure attribution.
+      - name: pytest agentbundle shipped governance markers (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_agentbundle_governance_markers.py
 
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"

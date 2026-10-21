@@ -252,9 +252,6 @@ def field_re(label: str) -> re.Pattern[str]:
 
 _STATUS_RE = field_re("Status")
 _SLUG_RE = field_re("Slug")
-_KIND_RE = field_re("Kind")
-_LEVEL_RE = field_re("Level")
-_TOMBSTONE_RE = field_re("Tombstone")
 _TYPE_RE = field_re("Type")
 # Spec producer (up-edge) pointers: the adjacent `Contract:`, and the discovery
 # anchors `Brief:`/`Parent intent:` (the layer-skip shortcut when the
@@ -359,6 +356,76 @@ def _token(raw: str) -> str:
             text = text[:idx]
     parts = text.strip().split()
     return parts[0].strip("`") if parts else ""
+
+
+_INTENT_FIELD_RE = re.compile(r"^- \*\*([^*:]+):\*\*\s*(.*)$")
+_INTENT_COMMENT_SUFFIX_RE = re.compile(r"\s*<!--.*?-->\s*$", re.DOTALL)
+
+
+def _intent_value(raw: str) -> str:
+    """Strip a trailing comment, then one wrapping pair of backticks."""
+    value = _INTENT_COMMENT_SUFFIX_RE.sub("", raw.strip()).strip()
+    if len(value) >= 2 and value[0] == "`" and value[-1] == "`":
+        value = value[1:-1].strip()
+    return value
+
+
+def _intent_preamble_fields(text: str) -> dict[str, list[str]]:
+    """Return every visible preamble field of an intent as ``{label: [values]}``.
+
+    The preamble is the visible text above the first `## ` heading, with HTML
+    comments hidden. Only a line that starts `- **Label:**` is a field; the
+    label is exact-case and each value keeps its order. This is a hand copy of
+    the navigate-intents skill's intent-id reading (cross-skill import is
+    banned), kept in step with it by tests.
+    """
+    fields: dict[str, list[str]] = {}
+    for line in _visible_intent_preamble(text).splitlines():
+        match = _INTENT_FIELD_RE.match(line)
+        if match:
+            fields.setdefault(match.group(1).strip(), []).append(
+                _intent_value(match.group(2))
+            )
+    return fields
+
+
+def _normalize_kind_level(raw: str) -> str:
+    """Normalise a `Kind:` or `Level:` value: drop a trailing comment, cut at
+    ` (`, ` →` or `<!--`, strip one wrapping pair of backticks, and return the
+    first word lowercased. Hand copy of the navigate-intents rule."""
+    value = _INTENT_COMMENT_SUFFIX_RE.sub("", raw.strip()).strip()
+    for sentinel in (" (", " →", "<!--"):
+        idx = value.find(sentinel)
+        if idx >= 0:
+            value = value[:idx]
+    if len(value) >= 2 and value[0] == "`" and value[-1] == "`":
+        value = value[1:-1].strip()
+    parts = value.split()
+    return parts[0].lower() if parts else ""
+
+
+def _ladder_kind(fields: dict[str, list[str]]) -> str | None:
+    """The ladder node kind of an intent's fields: the first `Kind:` when it is
+    `outcome` or `opportunity`, else `capability` when the first `Level:` is
+    `capability`, else None (not a ladder rung)."""
+    kinds = fields.get("Kind", [])
+    kind = _normalize_kind_level(kinds[0]) if kinds else ""
+    if kind in ("outcome", "opportunity"):
+        return kind
+    levels = fields.get("Level", [])
+    if levels and _normalize_kind_level(levels[0]) == "capability":
+        return "capability"
+    return None
+
+
+def _intent_slug(fields: dict[str, list[str]]) -> str | None:
+    """The first preamble `Slug:` value as a token, or None when absent or a
+    placeholder."""
+    values = fields.get("Slug", [])
+    if not values:
+        return None
+    slug = _token(values[0])
+    return None if _is_placeholder(slug) else slug
 
 
 # --------------------------------------------------------------------------
@@ -703,7 +770,14 @@ def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
     and `**Level:** capability` → the `capability` node — the producer format the
     `intent` skill's intent template now emits (see
     `product-engineering`'s `intent-model.md` § Placing an intent on the
-    traceability chain). Returns slug→path for edge build."""
+    traceability chain). Returns slug→path for edge build.
+
+    Kind, Level, Slug and Tombstone are read from the intent's visible preamble
+    (above its first `## ` heading, comments hidden), on `- **Label:** value`
+    lines: a hand copy of the navigate-intents skill's intent-id rule
+    (cross-skill import is banned), kept in step by tests. A tombstone file is
+    skipped; a ladder file with no usable `Slug:` falls back to its filename
+    stem."""
     found: dict[str, Path] = {}
     for p in sorted(_confined(base.glob("*.md"), root)):
         if p.name.startswith("_"):
@@ -711,14 +785,11 @@ def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
         text = _read(p)
         if text is None:
             continue
-        slug = _first(text, _SLUG_RE) or p.stem
-        kind = (_first(text, _KIND_RE) or "").lower()
-        level = (_first(text, _LEVEL_RE) or "").lower()
-        node_kind = None
-        if kind in ("outcome", "opportunity"):
-            node_kind = kind
-        elif level == "capability":
-            node_kind = "capability"
+        fields = _intent_preamble_fields(text)
+        if "Tombstone" in fields:
+            continue
+        slug = _intent_slug(fields) or p.stem
+        node_kind = _ladder_kind(fields)
         if node_kind:
             g.add(_slug_id(node_kind, slug), node_kind)
             found[_slug_id(node_kind, slug)] = p
@@ -726,13 +797,14 @@ def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
 
 
 def _is_tombstone(text: str) -> bool:
-    """True when the preamble (text before the first `## ` heading) carries a
-    `Tombstone:` field. A tombstone keeps its retired `Slug:` so old links
-    resolve, but it names no live intent; deriving a node from it would collide
-    with the reissued record that carries the same slug. A `Tombstone:` line in
-    the body does not retire a live intent."""
-    preamble = re.split(r"^## ", text, maxsplit=1, flags=re.MULTILINE)[0]
-    return _TOMBSTONE_RE.search(preamble) is not None
+    """True when the visible preamble (above the first `## ` heading, comments
+    hidden) carries a `- **Tombstone:**` field, whatever its value. A tombstone
+    keeps its retired `Slug:` so old links resolve, but it names no live intent;
+    deriving a node from it would collide with the reissued record that carries
+    the same slug. A `Tombstone:` line in the body or a comment does not retire
+    a live intent. Hand copy of the navigate-intents skill's reading
+    (cross-skill import is banned), kept in step by tests."""
+    return "Tombstone" in _intent_preamble_fields(text)
 
 
 def recognize_intents(base: Path, root: Path, g: Graph,
@@ -752,6 +824,10 @@ def recognize_intents(base: Path, root: Path, g: Graph,
     no `Slug:` field is reported via `g.notes` and contributes no node; it does
     not fall back to the stem, because the stem is the form just ruled out.
 
+    The slug is read from the visible preamble only (above the first `## `
+    heading, comments hidden), as a hand copy of the navigate-intents skill's
+    intent-id rule (cross-skill import is banned), kept in step by tests.
+
     Returns id→path for edge build, so an unclaimed intent file's own
     `Parent intent:` pointer joins the same producer-pointer wiring pass as
     briefs and ladder rungs — registration alone leaves that pointer unbuilt."""
@@ -764,7 +840,7 @@ def recognize_intents(base: Path, root: Path, g: Graph,
             continue
         if _is_tombstone(text):
             continue
-        slug = _first(text, _SLUG_RE)
+        slug = _intent_slug(_intent_preamble_fields(text))
         if not slug:
             g.notes.append(
                 f"{p.relative_to(root).as_posix()}: no Slug: field — "

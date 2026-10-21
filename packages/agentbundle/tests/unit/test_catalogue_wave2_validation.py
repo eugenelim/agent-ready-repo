@@ -1,9 +1,4 @@
-"""Stub: Wave 2 integration-validation tests (Task 2 TDD).
-
-All tests in this file fail (ImportError at collection) until
-_step_integration_validation is added to verify.py. A passing test suite here
-is Task 2's Done-when criterion.
-"""
+"""Tests for _step_integration_validation in verify.py (integration validation)."""
 
 from __future__ import annotations
 

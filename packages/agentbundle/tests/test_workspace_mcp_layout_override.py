@@ -3,8 +3,8 @@
 `_LIFECYCLE_MANIFEST` carries each item type's output pattern under an
 in-repository convention base (`docs/product`, `docs/design`). An adopter
 overrides that base with `output_dir` in `agentbundle-layout.toml`, and
-RFC-0096 § 4 — the governing order under ADR-0120 D1 — puts declared
-configuration ahead of that convention.
+the governing order puts declared configuration ahead of that
+convention.
 
 The defect these tests pin: the payload emitted `manifest["output_pattern"]`
 unresolved, so a configured adopter read the convention base on the status

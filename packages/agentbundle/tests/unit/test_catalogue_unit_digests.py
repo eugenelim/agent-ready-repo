@@ -1,4 +1,4 @@
-"""Wave 5 unit digests in catalogue-manifest.json (AC-0001, AC-0002)."""
+"""Unit digests in catalogue-manifest.json (AC-0001, AC-0002)."""
 
 from __future__ import annotations
 

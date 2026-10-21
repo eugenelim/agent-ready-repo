@@ -5,7 +5,8 @@
   "description": "The controller's report for one execution-request.v1. The supervisor re-derives state and refuses a result that is not for the current request; the worker's change set is measured against the current HEAD, never against fields here.",
   "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
   "x-spec": [
-    "docs/specs/execution-supervisor-core/"
+    "docs/specs/execution-supervisor-core/",
+    "docs/specs/execution-supervisor-review-gate/"
   ],
   "type": "object",
   "additionalProperties": false,
@@ -120,6 +121,134 @@
           "description": "Opaque reference the effect source returned, such as a remote commit id."
         }
       }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected",
+        "omitted",
+        "authority_ref"
+      ],
+      "properties": {
+        "selected": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "omitted": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "reason"
+            ],
+            "properties": {
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            }
+          }
+        },
+        "authority_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "authorized_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Request id of the human decision that authorizes a repeated selection."
+        }
+      },
+      "description": "The controller's reviewer selection: selected conditional roles and each omitted role with its reason."
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "authority_ref"
+      ],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "reselect-review",
+            "accept-risk"
+          ]
+        },
+        "authority_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "selection_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "finding_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "decision": {
+              "const": "reselect-review"
+            }
+          },
+          "required": [
+            "selection_key"
+          ],
+          "not": {
+            "required": [
+              "finding_ids"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "decision": {
+              "const": "accept-risk"
+            }
+          },
+          "required": [
+            "finding_ids"
+          ],
+          "not": {
+            "required": [
+              "selection_key"
+            ]
+          }
+        }
+      ],
+      "description": "A named human's answer to a human-decision request."
     }
   },
   "allOf": [
@@ -187,8 +316,27 @@
         ]
       },
       "then": {
-        "required": [
-          "report"
+        "oneOf": [
+          {
+            "required": [
+              "report"
+            ],
+            "not": {
+              "required": [
+                "selection"
+              ]
+            }
+          },
+          {
+            "required": [
+              "selection"
+            ],
+            "not": {
+              "required": [
+                "report"
+              ]
+            }
+          }
         ]
       }
     },
@@ -240,6 +388,23 @@
       "then": {
         "required": [
           "effect"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "human-decision"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "decision"
         ]
       }
     }

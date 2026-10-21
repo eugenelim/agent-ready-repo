@@ -227,7 +227,7 @@ def collect_pack_root_bins(pack_dir: Path) -> dict[str, Path]:
     target into each pair. ``agentbundle install`` operates on a single
     resolved catalogue ``pack_dir`` and owns its own per-scope path-jail, so
     it needs basenames + sources for one pack, not absolute targets under a
-    build tree (credbroker-user-scope plan T4 — the install-side seam). The
+    build tree (the install-side seam). The
     install caller composes ``.agentbundle/bin/<basename>`` relpaths from
     :data:`TARGET_SUBDIR` and writes via ``safety.write_jailed`` with POSIX
     :data:`EXECUTABLE_MODE`.

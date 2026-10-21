@@ -53,9 +53,10 @@ STEP_KINDS = {"approval", "replan", "stub", "red", "implement", "evidence", "gat
               "terminal"}
 RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
 STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "terminal"}
-# Kill points in the uninterrupted run: 12 steps x (built, moved, synced, event),
-# 10 journal appends, and 1 effect dispatch.
-BOUNDARIES = 59
+# Kill points in the uninterrupted run: 13 steps x (built, moved, synced, event),
+# 11 journal appends, and 1 effect dispatch. The reviewer-selection exchange is
+# one of those steps and one of those appends.
+BOUNDARIES = 64
 
 
 class Recorder:
