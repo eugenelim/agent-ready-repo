@@ -20,6 +20,7 @@ import io
 import json
 import os
 import re
+import shutil
 import tarfile
 import tomllib
 from dataclasses import dataclass as _dataclass
@@ -32,7 +33,12 @@ from agentbundle.catalogue_tooling.file_safety import (
     UnsafeContentError,
     read_confined_regular_file,
 )
-from agentbundle.catalogue_tooling.results import Diagnostic, PackageResult, Severity
+from agentbundle.catalogue_tooling.results import (
+    PKG_REFUSED_CODE,
+    Diagnostic,
+    PackageResult,
+    Severity,
+)
 from agentbundle.config import ConfigError, load_pack_toml
 
 if TYPE_CHECKING:
@@ -525,6 +531,47 @@ def _cleanup_staged(*paths: Path) -> None:
             p.unlink(missing_ok=True)
 
 
+class ReleaseExistsError(Exception):
+    """The release archive already exists and the run was not forced."""
+
+    def __init__(self, dest: Path) -> None:
+        super().__init__(f"output archive already exists: {dest}")
+        self.dest = dest
+
+
+def _place_archive(staged: Path, dest: Path, *, force: bool) -> None:
+    """Move the staged archive to *dest*, never replacing it unless *force*.
+
+    With *force* this is ``os.replace``. Without it the placement fails if *dest*
+    exists at that instant: ``os.link`` is exclusive, and where hard links are
+    unsupported an exclusive-create copy is. Raises ``ReleaseExistsError`` (after
+    removing *staged*) when *dest* exists. A failed copy removes only the file
+    this call created.
+    """
+    if force:
+        staged.replace(dest)
+        return
+    try:
+        os.link(staged, dest)
+    except FileExistsError:
+        _cleanup_staged(staged)
+        raise ReleaseExistsError(dest) from None
+    except OSError:
+        # Hard links unsupported here: exclusive-create copy instead.
+        try:
+            out = dest.open("xb")
+        except FileExistsError:
+            _cleanup_staged(staged)
+            raise ReleaseExistsError(dest) from None
+        try:
+            with out, staged.open("rb") as src:
+                shutil.copyfileobj(src, out)
+        except BaseException:
+            _cleanup_staged(dest)
+            raise
+    staged.unlink()
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -541,6 +588,7 @@ def package_catalogue(
     minimum_agentbundle_version: str | None = None,
     published_at: str | None = None,
     generated_at: str | None = None,
+    force: bool = False,
     _verify_archive_fn=None,  # injectable for testing
 ) -> PackageResult:
     """Package a catalogue at *root* into an Artifactory artifact layout.
@@ -558,11 +606,11 @@ def package_catalogue(
     """
     from agentbundle.version import CLI_VERSION
 
-    def _err(msg: str) -> PackageResult:
+    def _err(msg: str, code: str = "CAT-PKG-001") -> PackageResult:
         return PackageResult(
             ok=False,
             diagnostics=[Diagnostic(
-                code="CAT-PKG-001",
+                code=code,
                 severity=Severity.ERROR,
                 pack=None,
                 path=None,
@@ -591,9 +639,9 @@ def package_catalogue(
     sidecar_path = archive_path.parent / (archive_path.name + ".sha256")
     channel_path = output / "catalogues" / bundle / "channels" / f"{channel}.json"
 
-    # Refuse to overwrite existing immutable release archive
-    if archive_path.exists():
-        return _err(f"output archive already exists: {archive_path}")
+    # Refuse to overwrite an existing release archive unless forced
+    if archive_path.exists() and not force:
+        return _err(f"output archive already exists: {archive_path}", PKG_REFUSED_CODE)
 
     # --- Step 1: Pre-package verify_catalogue ---
     from agentbundle.catalogue_tooling.verify import verify_catalogue
@@ -747,12 +795,15 @@ def package_catalogue(
             )
             return _err(f"staged archive self-verification failed: {msgs}")
 
-        # --- Step 6: Atomic place archive ---
-        staged_archive.rename(archive_path)
+        # --- Step 6: Place archive (never replacing an existing one unless forced) ---
+        _place_archive(staged_archive, archive_path, force=force)
 
         # --- Step 7: Atomic place sidecar ---
-        staged_sidecar.rename(sidecar_path)
+        staged_sidecar.replace(sidecar_path)
 
+    except ReleaseExistsError as exc:
+        _cleanup_staged(staged_archive, staged_sidecar)
+        return _err(str(exc), PKG_REFUSED_CODE)
     except Exception as exc:
         _cleanup_staged(staged_archive, staged_sidecar)
         raise exc
@@ -791,6 +842,7 @@ class SourcePackageResult:
     archive_path: str
     manifest_path: str
     diagnostics: list[str]
+    refused: bool = False
 
 
 # Positive allowlist for source-flavor packaging.
@@ -814,6 +866,7 @@ def package_source_flavour(
     output: Path,
     source_revision: str | None = None,
     generated_at: str | None = None,
+    force: bool = False,
 ) -> SourcePackageResult:
     """Package a source distribution for self-hosted enterprise catalogues.
 
@@ -906,6 +959,12 @@ def package_source_flavour(
     archive_path = release_dir / archive_name
     sidecar_path = release_dir / f"{archive_name}.sha256"
     manifest_path = release_dir / "self-hosted-source-manifest.json"
+    if archive_path.exists() and not force:
+        return SourcePackageResult(
+            ok=False, archive_path=str(archive_path), manifest_path="",
+            diagnostics=[f"output archive already exists: {archive_path}"],
+            refused=True,
+        )
     release_dir.mkdir(parents=True, exist_ok=True)
 
     # Compute digests.
@@ -986,7 +1045,19 @@ def package_source_flavour(
     archive_bytes = buf.getvalue()
     sha256_hex = hashlib.sha256(archive_bytes).hexdigest()
 
-    archive_path.write_bytes(archive_bytes)
+    staged_archive = _staging_path(archive_path)
+    try:
+        staged_archive.write_bytes(archive_bytes)
+        _place_archive(staged_archive, archive_path, force=force)
+    except ReleaseExistsError as exc:
+        _cleanup_staged(staged_archive)
+        return SourcePackageResult(
+            ok=False, archive_path=str(archive_path), manifest_path="",
+            diagnostics=[str(exc)], refused=True,
+        )
+    except BaseException:
+        _cleanup_staged(staged_archive)
+        raise
     sidecar_path.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
 
     # Write sidecar source manifest with the real sha256.

@@ -894,7 +894,11 @@ def _build_parser() -> argparse.ArgumentParser:
     _sh_p.set_defaults(func=_lazy("catalogue_self_host"))
 
     # catalogue package
-    _pkg_p = cat_subs.add_parser("package", help="Package catalogue into a distributable archive.")
+    _pkg_p = cat_subs.add_parser(
+        "package",
+        help="Package catalogue into a distributable archive.",
+        allow_abbrev=False,
+    )
     _pkg_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _pkg_p.add_argument("--bundle", required=True, help="Bundle/product identifier.")
     _pkg_p.add_argument("--release", required=True, help="Release version string.")
@@ -925,6 +929,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "catalogue.toml, packs/, profiles/, and guides/_shared/; produces a "
             "self-hosted-source-manifest.json alongside the archive."
         ),
+    )
+    _pkg_p.add_argument(
+        "--force",
+        action="store_true",
+        help="Replace an existing release archive instead of refusing (exit 2).",
     )
     _pkg_p.set_defaults(func=_lazy("catalogue_package"))
 

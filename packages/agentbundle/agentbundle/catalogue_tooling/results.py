@@ -59,6 +59,11 @@ class SelfHostResult(CommandResult):
     pass
 
 
+# Diagnostic code for a refused replacement of an existing release archive.
+# Handlers map it to exit 2 by code, never by message text.
+PKG_REFUSED_CODE = "CAT-PKG-002"
+
+
 @dataclass
 class PackageResult(CommandResult):
     pass
