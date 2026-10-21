@@ -74,3 +74,9 @@ Routes 5 and 10 are fragment links into pages routes 2 and 9 already open, so th
 - `make site-link-check`: exit 0, `rendered-site-links: 36072 links across 625 pages; clean`.
 - Branch page list: 291 `index.html` paths, identical to the pre-rebase list (289 base + `reference/pack-toml/` + `reference/skill-frontmatter/`).
 - `npm test --prefix web`: 24 files, 238 tests passed.
+
+## Files changed outside the plan's Touches (2026-10-21)
+
+- `tools/test_build_site_routing.py` — a necessary consequence of T1. `build-site.py` loads `tools/schema_field_reference.py` at import, and that module reads both schemas, so the suite's copied-generator fixture also copies the module and `contracts/pack.schema.json` and `contracts/skill.schema.json`. Without them the fixture's generator run raises `FileNotFoundError`.
+- CI wiring for the two new suites, from the sustained post-gates review finding that neither ran in any CI job. `tools/test_build_a_catalogue_nav.py` and `tools/test_schema_field_reference.py` join `build-check.yml`'s `pytest guides sidebar generation` step and the Makefile `run-test-suite` batch line. Each gets a `PR_GATED` entry in `tools/lint-ci-parity.py`, and both join `FIRST_TOOL_BATCH` in `tools/test_local_ci_shared_test_deduplication.py`, whose plan digests are bumped with their sole cause recorded. `python3 tools/lint-ci-parity.py` and `python3 tools/test-lint-ci-parity.py` pass, and the gate-chain suites give 90 passed and 1 skipped.
+- `.github/workflows/pages.yml` — from the sustained finding that a schema-only or generator-only change would neither rebuild nor redeploy the reference pages. Both `push` and `pull_request` path lists add `tools/schema_field_reference.py`, `contracts/pack.schema.json` and `contracts/skill.schema.json`. `python3 tools/test-pages-workflow.py` passes: posture OK, 42 mutations caught.
