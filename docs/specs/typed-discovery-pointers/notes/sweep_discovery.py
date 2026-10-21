@@ -19,8 +19,10 @@ Usage:
     sweep_discovery.py --selftest
 
 Exit: 0 nothing to do, 1 changes pending (--check only), 2 refusals present.
-The manifest is written only when files are rewritten, so a repeat run leaves it
-and every spec untouched.
+The manifest is written, from the full planned rewrite set, before the first spec is
+rewritten, and only when files will be rewritten, so a repeat run leaves it and every
+spec untouched. Reads and writes stay under docs/specs and docs/product/intents; a
+path through a symlink is skipped.
 """
 
 from __future__ import annotations
@@ -66,6 +68,26 @@ class Candidate:
     line_no: int = 0
 
 
+def confined(root: Path, path: Path, base_rel: str) -> bool:
+    """True when `path` is a regular file that stays under root/base_rel.
+
+    No component below the root may be a symlink, so a linked directory cannot
+    carry a read or write outside the tree.
+    """
+    try:
+        rel = path.relative_to(root)
+        current = root
+        for part in rel.parts:
+            current = current / part
+            if current.is_symlink():
+                return False
+        resolved = path.resolve()
+        resolved.relative_to((root / base_rel).resolve())
+    except (OSError, ValueError):
+        return False
+    return resolved.is_file()
+
+
 def intent_files(root: Path, lint: ModuleType) -> dict[str, dict[str, list[str]]]:
     """Repo-relative intent file -> its preamble fields."""
     found: dict[str, dict[str, list[str]]] = {}
@@ -73,7 +95,7 @@ def intent_files(root: Path, lint: ModuleType) -> dict[str, dict[str, list[str]]
     if not base.is_dir():
         return found
     for path in sorted(base.glob("*.md")):
-        if path.is_symlink() or not path.is_file():
+        if not confined(root, path, INTENTS_DIR):
             continue
         found[f"{INTENTS_DIR}/{path.name}"] = lint._preamble(path.read_text(encoding="utf-8"))
     return found
@@ -168,18 +190,22 @@ def run(root: Path, check: bool, manifest: Path, tool_root: Path = TOOL_ROOT) ->
     files = intent_files(root, lint)
     rewritten: list[Candidate] = []
     refused: list[Candidate] = []
+    skipped: list[str] = []
+    planned: list[tuple[Path, bytes]] = []
     for spec in sorted((root / "docs/specs").glob("*/spec.md")):
-        if spec.is_symlink() or not spec.is_file():
-            continue
         rel = spec.relative_to(root).as_posix()
+        if not confined(root, spec, "docs/specs"):
+            skipped.append(rel)
+            continue
         raw = spec.read_bytes()
         new_text, cands = sweep_spec(raw.decode("utf-8"), rel, files, intents, lint)
         good = [c for c in cands if not c.refusal]
         refused += [c for c in cands if c.refusal]
         if good:
             rewritten += good
-            if not check:
-                spec.write_bytes(new_text.encode("utf-8"))
+            planned.append((spec, new_text.encode("utf-8")))
+    for rel in skipped:
+        print(f"SKIPPED {rel}: path leaves docs/specs or crosses a symlink")
     for c in refused:
         print(f"REFUSED {c.spec}:{c.line_no} {c.old!r}: {c.refusal} (target {c.target or 'n/a'})")
     verb = "would rewrite" if check else "rewrote"
@@ -187,6 +213,8 @@ def run(root: Path, check: bool, manifest: Path, tool_root: Path = TOOL_ROOT) ->
     print(f"{verb} {len(rewritten)} header value(s) in {n_specs} spec(s); {len(refused)} refused")
     if rewritten and not check:
         write_manifest(manifest, rewritten)
+        for spec, data in planned:
+            spec.write_bytes(data)
     if refused:
         return 2
     return 1 if (check and rewritten) else 0
@@ -246,9 +274,24 @@ def selftest() -> int:
         again = {n: (root / "docs/specs" / n / "spec.md").read_bytes() for n in specs}
         assert second == 2 and again == after
         shutil.rmtree(root / "docs/specs/ok")
+    with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as outside:
+        root = Path(tmp)
+        intents = root / INTENTS_DIR
+        intents.mkdir(parents=True)
+        (intents / "good.md").write_text(good, encoding="utf-8")
+        foreign = Path(outside) / "spec.md"
+        body = "# S\n\n- **Discovery:** docs/product/intents/good.md\n\n## Outcome\n"
+        foreign.write_text(body, encoding="utf-8")
+        (root / "docs/specs").mkdir(parents=True)
+        (root / "docs/specs/linked").symlink_to(outside, target_is_directory=True)
+        manifest = root / "manifest.md"
+        code = run(root, False, manifest)
+        assert code == 0, code
+        assert foreign.read_text(encoding="utf-8") == body, "symlinked spec was written"
+        assert not manifest.exists(), "manifest written with nothing rewritten"
     print(
         "selftest: refusals reported and unchanged; accepted value rewrote only its value "
-        "(CRLF and comment kept); repeat run empty"
+        "(CRLF and comment kept); repeat run empty; symlinked spec directory skipped"
     )
     return 0
 

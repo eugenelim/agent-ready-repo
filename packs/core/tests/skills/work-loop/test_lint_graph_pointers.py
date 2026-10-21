@@ -476,6 +476,8 @@ DISCOVERY_CASES: dict[str, tuple[str, list[tuple[str, str]]]] = {
     "d-ok-research": (f"- **{D}:** docs/research/topic.md", []),
     "d-ok-notes": (f"- **{D}:** docs/specs/other/notes/discovery.md", []),
     "d-ok-research-link": (f"- **{D}:** [r](../../research/topic.md)", []),
+    "d-ok-scheme-link": (
+        f"- **{D}:** [x](https://example.invalid/docs/product/./intents/a.md)", []),
     "d-ok-brief": (f"- **{D}:** brief:b-one", []),
     "d-ok-spec": (f"- **{D}:** spec:tracked", []),
     "d-ok-url": (f"- **{D}:** https://example.invalid/page", []),
@@ -510,6 +512,8 @@ DISCOVERY_CASES: dict[str, tuple[str, list[tuple[str, str]]]] = {
         f"- **{D}:** [x](docs/product/intents/outcome-a.md)", [(D, "discovery-untyped")]),
     "d-escaping-link": (
         f"- **{D}:** [r](../../../../product/intents/x.md)", [(D, "discovery-untyped")]),
+    "d-normalized-link": (
+        f"- **{D}:** [x](../../product/./intents/outcome-a.md)", [(D, "discovery-untyped")]),
     "d-bare-live": (f"- **{D}:** svc-reliability", [(D, "discovery-untyped")]),
     "d-repeated-second-bad": (
         f"- **{D}:** intent:plain-one\n- **{D}:** plain-one", [(D, "discovery-untyped")]),
@@ -627,3 +631,29 @@ def test_discovery_cli_invalid_fixture_names_code_without_value(repo: Path) -> N
     assert proc.stdout.splitlines()[0] == "docs/specs/bad/spec.md: Discovery: discovery-untyped"
     assert "outcome-a" not in proc.stdout + proc.stderr
     assert _snapshot(repo) == before
+
+
+@pytest.mark.parametrize("unit", ["[", "[](", "[](<"])
+def test_discovery_link_scan_is_linear_on_hostile_values(unit: str) -> None:
+    import time
+
+    value = unit * (1_000_000 // len(unit))
+    started = time.monotonic()
+    lint._check_discovery(value, lint._Index(), "docs/specs/x")
+    assert time.monotonic() - started < 2.0
+
+
+def test_intent_kinds_match_the_resolver_kinds() -> None:
+    path = _SCRIPT.parent / "intent_delivery_relations.py"
+    name = "core_work_loop_intent_delivery_relations_kinds"
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    prev = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.dont_write_bytecode = prev
+    assert set(lint._INTENT_KINDS) == set(mod._PARENT_INTENT_KINDS)

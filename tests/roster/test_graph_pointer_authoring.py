@@ -137,8 +137,8 @@ def path_offers(text: str) -> list[str]:
         if "Brief:" not in flat and "back-link" not in flat:
             continue
         for sent in re.split(r"(?<=[.;])\s+(?=[A-Z`<*-])", flat):
-            if _RESEARCH_PATH.search(sent):
-                continue  # a research or notes path is Discovery provenance, not a Brief value
+            if _RESEARCH_PATH.search(sent) and "Discovery" in flat and "Brief:" not in sent:
+                continue  # a research or notes path in a Discovery passage, not a Brief value
             if _PATH_OFFER.search(sent) and not _LEGACY_READER.search(sent):
                 bad.append(sent)
     return bad
@@ -238,8 +238,13 @@ def test_path_offer_predicate_fails_on_fallback_and_passes_reader_sentence() -> 
 
 def test_path_offer_predicate_exempts_discovery_research_paths() -> None:
     assert not path_offers(
-        "Discovery next to Brief: when it names a research or notes file, use its repository-relative path.")
+        "Discovery: sits next to Brief:. When it names a research or notes file, "
+        "use its repository-relative path.")
     assert path_offers("Brief: may be the repository-relative path.")
+    assert path_offers(
+        "Brief: may be the repository-relative path, like a research or notes file.")
+    assert path_offers(
+        "Discovery or Brief: may be the repository-relative path, like a research or notes file.")
 
 
 def test_stale_parent_meaning_predicate_fails() -> None:
@@ -316,7 +321,12 @@ DISCOVERY_MANIFEST: dict[str, tuple[str, str]] = {
         "excluded", "names the up-edge header as a lint prerequisite; instructs no value form"),
 }
 DISCOVERY_WRITERS = sorted(r for r, (role, _) in DISCOVERY_MANIFEST.items() if role != "excluded")
-_TYPED_FORMS = ("outcome:", "capability:", "intent:")
+# Each kind is stated either as a typed prefix (`outcome:<slug>`) or as a bare
+# kind name in backticks; `Parent intent:` does not count for the intent kind.
+_TYPED_FORMS = tuple(
+    re.compile(rf"(?<![\w-])(?<!Parent ){kind}:|`{kind}`")
+    for kind in ("outcome", "opportunity", "capability", "intent")
+)
 _BARE_INTENTS_PATH = re.compile(r"docs/product/intents/")
 _LEGACY = re.compile(r"\blegacy\b|older specs", re.I)
 
@@ -350,6 +360,24 @@ def discovery_path_offers(text: str) -> list[str]:
     return bad
 
 
+def discovery_form_gaps(text: str) -> list[str]:
+    """Typed forms missing from every passage that names ``Discovery:``.
+
+    A passage is a paragraph or list item. One passage must carry all four forms,
+    so an unrelated mention elsewhere (such as ``Parent intent:``) cannot satisfy it.
+    """
+    passages = [
+        " ".join(p.split())
+        for p in re.split(r"\n\s*\n|\n(?=\s*- )", text)
+        if "Discovery:" in p
+    ]
+    return min(
+        ([rx.pattern for rx in _TYPED_FORMS if not rx.search(p)] for p in passages),
+        key=len,
+        default=[rx.pattern for rx in _TYPED_FORMS],
+    )
+
+
 def test_discovery_manifest_roles_are_valid_and_exclusions_have_reasons() -> None:
     for rel, (role, reason) in DISCOVERY_MANIFEST.items():
         assert role in ROLES, rel
@@ -366,7 +394,7 @@ def test_every_discovery_candidate_is_classified_and_no_entry_is_stale() -> None
 @pytest.mark.parametrize("rel", DISCOVERY_WRITERS)
 def test_discovery_writer_names_typed_intent_and_repository_path_forms(rel: str) -> None:
     text = " ".join(_read(rel).split())
-    assert all(form in text for form in _TYPED_FORMS), rel
+    assert not discovery_form_gaps(_read(rel)), rel
     assert "repository-relative path" in text, rel
     assert "registered kind" in text, rel
     assert not discovery_path_offers(_read(rel)), rel
@@ -386,15 +414,32 @@ def test_discovery_instruction_states_precedence_and_provenance_meaning(rel: str
         assert phrase in text, f"{rel}: missing {phrase!r}"
 
 
-def test_close_guide_refusals_list_the_four_admitted_prefixes() -> None:
+def test_close_guide_states_the_discovery_form_once_and_entries_refer_to_it() -> None:
     text = _read("guides/core/how-to/close-and-disposition-work.md")
+    form = next(
+        ln for ln in text.splitlines()
+        if ln.startswith("A spec's `Discovery:`") and "accepted `Discovery:` form" in ln
+    )
+    assert not discovery_form_gaps(form)
     for code in (
         "delivery-target-missing", "delivery-reference-malformed",
         "delivery-reference-unsafe", "artifact-not-in-graph",
     ):
         entry = next(ln for ln in text.splitlines() if ln.startswith(f"- `{code}`"))
-        for prefix in ("outcome", "opportunity", "capability", "intent"):
-            assert f"`{prefix}`" in entry, f"{code}: missing {prefix}"
+        assert "accepted `Discovery:` form" in entry, code
+
+
+def test_discovery_form_predicate_can_fail() -> None:
+    full = (
+        "Set `Discovery:` to `outcome:<slug>`, `opportunity:<slug>`, "
+        "`capability:<slug>`, or `intent:<slug>`.\n"
+    )
+    assert not discovery_form_gaps(full)
+    assert discovery_form_gaps("")
+    assert discovery_form_gaps(full.replace("`opportunity:<slug>`, ", ""))
+    other = "Write the brief's `Parent intent:` as `intent:<slug>`.\n"
+    assert discovery_form_gaps(
+        "Set `Discovery:` to `outcome:<slug>`, `capability:<slug>`.\n\n" + other)
 
 
 def test_build_loop_guide_lists_discovery_among_checked_fields() -> None:
