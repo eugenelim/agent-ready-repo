@@ -1,7 +1,8 @@
 # Catalogue marketing evaluator surface
 
 - **Slug:** `catalogue-wave7-marketing-evaluator`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-10-21 by eugenelim, lifecycle owner. Basis: explicit owner direction to accept; the recorded de-risking verdict is re-sequenced behind RFC-0109 slice S4, and intent-mode review of this revision produced no malformed findings.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app

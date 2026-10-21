@@ -1,7 +1,8 @@
 # Publish a versioned agentbundle catalogue specification
 
 - **Slug:** `catalogue-specification-publication`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-10-21 by eugenelim, lifecycle owner. Basis: explicit owner direction to accept; RFC-0109 governs the intent, and intent-mode review of this revision produced no malformed findings.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
