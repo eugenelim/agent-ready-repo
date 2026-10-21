@@ -5,6 +5,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108 (as corrected by its 2026-10-16 errata entry), ADR-0007, ADR-0074
+- **Amended in part by:** [intent-view-readiness-handover](../intent-view-readiness-handover/spec.md) — its Ask-first "Any change to the payload…", as that spec's `Amends:` line states.
 - **Amends:** [intent-navigation-export](../intent-navigation-export/spec.md) — its criterion 0065 ("no `transition`, `animation`, or `@keyframes`"), which AC-0011 to AC-0015 replace. [intent-view-session-start](../intent-view-session-start/spec.md) — the first sentence of its criterion 0027, which AC-0009 replaces; the motion half of its second sentence, which AC-0011 to AC-0015 replace, while its `url(` and `@import` half carries over unchanged; and its criterion 0028, which AC-0010 narrows by also banning shadows, radii, motion and every custom-property declaration in `view.css`. Every other criterion of both specs, including session-start 0014's state-line contents, carries over unchanged.
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

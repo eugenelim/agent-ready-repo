@@ -17,6 +17,9 @@
   };
   var START_RULES = { resume: true, start: true, ask: true, none: true };
   var READINESS_GROUPS = [['active', 'Active'], ['ready', 'Ready'], ['blocked', 'Blocked']];
+  // "What is broken?" while it holds workspace findings: the shipped lead, naming that source too.
+  var BROKEN_WITH_FINDINGS = 'Pointers that did not resolve, parent or dependency loops made of resolved ' +
+    'pointers, problems the delivery resolver found, and findings workspace-status reported.';
   var CHECKED_NEXT = { title: 'Active, ready and blocked',
     lead: 'Readiness from workspace-status, read when this snapshot was made.',
     sort: 'Active, then ready, then blocked, in workspace-status order',
@@ -57,17 +60,27 @@
   function blockedCodes(id) {
     for (var i = 0; i < readiness.blocked.length; i++) {
       if (readiness.blocked[i].id === id) {
-        return readiness.blocked[i].findings.map(function (f) { return f.code; }).join(', ');
+        return readiness.blocked[i].findings.map(function (f) { return f.code; });
       }
     }
-    return '';
+    return [];
   }
-  // A group's row: the readiness mark, then the usual context, and a blocked row ends with its codes.
+  // A group's row: the readiness mark, then the usual context, and a blocked row ends with its
+  // codes, each set as a code the way "What is broken?" sets it.
   function readinessRow(group) {
     return function (id) {
       var li = el('li', 'row');
       var context = contextText(id);
-      if (group === 'blocked' && blockedCodes(id) !== '') { context += ' \u00B7 ' + blockedCodes(id); }
+      var codes = group === 'blocked' ? blockedCodes(id) : [];
+      if (codes.length) {
+        var cell = el('span');
+        text(cell, context + ' \u00B7 ');
+        codes.forEach(function (code, i) {
+          if (i > 0) { text(cell, ', '); }
+          add(cell, el('span', 'value wrap', code));
+        });
+        context = cell;
+      }
       var word = group.charAt(0).toUpperCase() + group.slice(1);
       add(li, rowLink(id, markEl(group, word), context, startTagText(id)));
       return li;
@@ -105,7 +118,9 @@
   }
   // The question with its title, lead and sort key replaced while readiness is checked.
   function checkedQuestion(q) {
-    if (q.key !== 'next' || !readinessChecked()) { return q; }
+    if (!readinessChecked()) { return q; }
+    if (q.key === 'broken' && workspaceEntries().length) { return Object.assign({}, q, { lead: BROKEN_WITH_FINDINGS }); }
+    if (q.key !== 'next') { return q; }
     return Object.assign({}, q, { title: CHECKED_NEXT.title, lead: CHECKED_NEXT.lead, sort: CHECKED_NEXT.sort });
   }
   function readinessSummary() {

@@ -346,18 +346,22 @@ def project(checked: Checked, path_to_id: Mapping[str, str]) -> dict[str, Any]:
 
     An entry appears only when its ``path`` is exactly a key of ``path_to_id``.
     A blocked path that occurs more than once appears once, with its findings in
-    input order and a repeated code removed.
+    input order and a repeated code removed.  One pass with a set lookup per
+    finding keeps the cost linear in the input, however many codes one record holds.
     """
     blocked: dict[str, list[dict[str, Any]]] = {}
+    codes_seen: dict[str, set[str]] = {}
     for entry in checked.blocked:
         node_id = path_to_id.get(entry["path"])
         if node_id is None:
             continue
-        seen = blocked.setdefault(node_id, [])
+        found = blocked.setdefault(node_id, [])
+        codes = codes_seen.setdefault(node_id, set())
         for finding in entry["findings"]:
-            if any(f["code"] == finding["code"] for f in seen):
+            if finding["code"] in codes:
                 continue
-            seen.append({
+            codes.add(finding["code"])
+            found.append({
                 "code": finding["code"],
                 "next_action": finding["next_action"],
                 "known": _KNOWN_FINDINGS.get(finding["code"]) == finding["next_action"],

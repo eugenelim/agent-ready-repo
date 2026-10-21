@@ -173,12 +173,33 @@ The command prints one JSON object. On success it carries `status: ok`, `path` (
 | `--name <file>` | One name made of letters, digits, `.`, `_`, and `-`, ending in `.html`, at most 100 characters before the suffix. |
 | `--from <identity>` | Only the subtree under one intent. Takes the same identities as `query --from`. The export also carries the dependency records of intents linked to that subtree, and names those outside it by id. |
 
+### Show what is ready to work on
+
+The view can show what `workspace-status` says is ready. Pipe its status command into the export:
+
+```bash
+python3 '<workspace-status-dir>/scripts/workspace_status.py' status --root <repo-root> \
+  | python3 <skill-dir>/scripts/navigate_intents.py export --root <repo-root> --readiness -
+```
+
+Use the same `<repo-root>` on both sides. The command works in POSIX shells and in PowerShell 7; Windows PowerShell 5.1 can re-encode the pipe, and the export then reads it as not valid JSON. The export never runs `workspace-status` and never reads `workspace.toml`. It reads only what you pipe in.
+
+With readiness checked, "What can I work on next?" lists the items `workspace-status` calls active, ready and blocked, in that order. Each blocked row shows the finding codes that stop it. One row can say "work-loop with no spec named resumes this" or "starts this". That row is the item `work-loop` picks when you start it without naming a spec. It reflects how `work-loop` chooses, not a priority. No row is marked when more than one item is active, because `work-loop` then asks which one to resume. No row is marked either when `workspace-status` reports a finding about the item it would pick. "What is broken?" also lists each workspace finding.
+
+Without `--readiness -`, "What can I work on next?" lists open work in a startable stage and says readiness is not checked in the snapshot.
+
+If readiness cannot be checked, the export still writes the page. The page says readiness could not be checked and why: standard input could not be read, the input did not finish arriving within 60 seconds, the input was over 4 MiB, nothing was piped in, it was not valid JSON, the repository has no `workspace.toml`, it was not `workspace-status` status output, `workspace-status` reported a problem with `workspace.toml` itself, or the page would have been too large with it. The export's JSON result says the same in its `readiness` field.
+
+The page takes only a few facts from the piped input: which list each item is in, its finding codes and their next-action text. It shows an item only if the view already loaded that file, and shows that file's own name and state. Anything else in the input is dropped.
+
+Pipe only the `status` subcommand, and pass its output straight into the export. The export refuses every other subcommand's output, and some of those subcommands change files.
+
 ### What the file contains
 
 The page opens on six questions, each a link in the page's nav, grouped by the job you are doing. A link shows a short label; the question it answers is shown above that list's title, and a screen reader announces it as the link's description:
 
 - **Work.**
-  - **Next up** ("What can I work on next?"). Open work in a startable stage (Implementing spec, Approved spec, Executing brief, Ready brief), then Accepted intents with nothing beneath them. The page says that readiness is not checked in this snapshot, so an item can still be blocked for a reason the file does not show.
+  - **Next up** ("What can I work on next?"). Open work in a startable stage (Implementing spec, Approved spec, Executing brief, Ready brief), then Accepted intents with nothing beneath them. Unless you pipe readiness in (see [Show what is ready to work on](#show-what-is-ready-to-work-on)), the page says readiness is not checked in this snapshot, so an item can still be blocked for a reason the file does not show.
   - **Broken** ("What is broken?"). Pointers that did not resolve, dependency problems, and delivery problems.
 - **Progress.**
   - **Capability progress** ("How far along is each capability?"). Every capability under its product strategy, with a bar and counts of the work beneath it: delivered, in progress, not started, and stopped (withdrawn or archived work, kept apart). It shows only what the records say; it never claims a capability is on track or at risk. A capability that sits on a parent loop is listed once, with no capability above it.

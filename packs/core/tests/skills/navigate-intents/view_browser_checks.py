@@ -5573,6 +5573,8 @@ def test_readiness_ac_0024_marks_and_blocked_codes(opener: Any, rx: dict[str, pa
             if head == "Blocked":
                 codes = [f["code"] for b in ready["blocked"] if b["id"] == node_id for f in b["findings"]]
                 assert codes and context.endswith(", ".join(codes)), (context, codes)
+                # Each code is set as a code, the same element "What is broken?" uses.
+                assert row.locator(".c-context .value").all_inner_texts() == codes, node_id
             else:
                 assert not any(f["code"] in context for b in ready["blocked"] for f in b["findings"])
     assert seen == len(_ids(page))
@@ -5989,6 +5991,11 @@ def test_readiness_ac_0030_each_code_is_a_broken_entry_held_by_its_record(
     holders = [n for n, _c in rows]
     assert holders == Model(payload).by_name(holders)
     assert _rail_counts(page)["broken"] == str(len(rows)) and _count_text(page) == f"{len(rows)} entries"
+    # The lead names workspace-status as a source while the list holds its findings.
+    assert _text(page, "#list-lead") == (
+        "Pointers that did not resolve, parent or dependency loops made of resolved pointers, "
+        "problems the delivery resolver found, and findings workspace-status reported."
+    )
     if unavailable:
         assert page.locator("#list .notice").count() == 1
 
@@ -5999,6 +6006,7 @@ def test_readiness_ac_0030_unchecked_page_lists_no_workspace_entry(opener: Any, 
         _choose(item, "broken")
         assert _ws_rows(item.page) == [], name
         assert "workspace finding" not in item.page.inner_text("body").lower(), name
+        assert "workspace-status reported" not in _text(item.page, "#list-lead"), name
 
 
 def test_readiness_ac_0031_detail_part_reads_known_and_not_known_findings(

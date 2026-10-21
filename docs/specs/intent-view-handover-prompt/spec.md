@@ -5,6 +5,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0108 (D1 rules 1 to 10 as corrected by its errata entries, and D4), RFC-0105 (D4, through RFC-0108 D4's exception), ADR-0007, ADR-0074
+- **Amended in part by:** [intent-view-readiness-handover](../intent-view-readiness-handover/spec.md) — its Ask-first "Any change to the payload, a `query` output, or any derivation" and its Never-do rules "Never show readiness, read `workspace.toml`, or accept piped input" and "Never add … a script part beyond `handover.js`", as that spec's `Amends:` line states.
 - **Amends:** [intent-view-session-start](../intent-view-session-start/spec.md) — its criterion 0015 and one Never-do rule; [intent-dependency-graphs](../intent-dependency-graphs/spec.md) — one Never-do rule. The table "Amended criteria and rules" at the end of § Acceptance Criteria states each disposition. Every other criterion and rule of those specs, of [intent-view-source-and-style](../intent-view-source-and-style/spec.md), of [intent-view-tree-and-roadmap](../intent-view-tree-and-roadmap/spec.md) and of [intent-navigation-export](../intent-navigation-export/spec.md) carries over unchanged.
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

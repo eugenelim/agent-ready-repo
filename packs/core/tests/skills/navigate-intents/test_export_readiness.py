@@ -10,6 +10,7 @@ reason or value the spec names; no expected reason is read from the module.
 from __future__ import annotations
 
 import ast
+import atexit
 import contextlib
 import copy
 import datetime
@@ -576,12 +577,27 @@ def test_never_ending_stream_stops_after_limit_plus_one_bytes(monkeypatch) -> No
     assert not writer.is_alive()
 
 
+def _release_held_pipe(r: int, w: int, before: set[threading.Thread]) -> None:
+    """Close a held-open pipe only once every reader thread started on it has exited.
+
+    Closing the write end gives a blocked reader end of file; the read end is closed after
+    those threads are joined, so no abandoned reader can ever read a reused descriptor.
+    """
+    os.close(w)
+    for thread in set(threading.enumerate()) - before:
+        if thread is not threading.current_thread():
+            thread.join(30)
+            assert not thread.is_alive(), thread
+    os.close(r)
+
+
 # --- AC-0047: the deadline ------------------------------------------------------------
 
 
 @pytest.mark.parametrize("sent", [b"", BASE_BYTES[:100]], ids=["no_bytes", "first_100_bytes"])
 def test_a_held_open_pipe_times_out_and_its_bytes_are_unused(sent: bytes) -> None:
     r, w = os.pipe()
+    before = set(threading.enumerate())
     try:
         os.write(w, sent) if sent else None
         started = time.monotonic()
@@ -590,9 +606,7 @@ def test_a_held_open_pipe_times_out_and_its_bytes_are_unused(sent: bytes) -> Non
         assert (result.data, result.reason) == (None, "timed_out")
         assert elapsed < 2
     finally:
-        os.close(w)  # lets the reader thread see end of file and exit
-        time.sleep(0.2)
-        os.close(r)
+        _release_held_pipe(r, w, before)
 
 
 # --- AC-0046: unusable descriptors, with nothing on standard error --------------------
@@ -979,10 +993,14 @@ def _mixed_outside_git() -> pathlib.Path:
     the destination, so they export from this copy and never wait on that call under load.
     """
     if "root" not in _OUTSIDE:
-        root = pathlib.Path(tempfile.mkdtemp(prefix="readiness-mixed-")).resolve() / "mixed"
+        base = pathlib.Path(tempfile.mkdtemp(prefix="readiness-mixed-")).resolve()
+        atexit.register(shutil.rmtree, base, True)  # the copy lives as long as the session
+        root = base / "mixed"
         shutil.copytree(_MIXED, root)
         _OUTSIDE["root"] = root
     return _OUTSIDE["root"]
+
+
 _SCRIPT = _SCRIPTS / "navigate_intents.py"
 _PIN = datetime.datetime(2026, 10, 21, 12, 0, tzinfo=datetime.UTC)
 _DATA_BLOCK = re.compile(
@@ -1133,13 +1151,12 @@ def _terminal_source() -> Source:
 def _held_open_source(sent: bytes) -> Callable[[], Source]:
     def make() -> Source:
         r, w = os.pipe()
+        before = set(threading.enumerate())
         if sent:
             os.write(w, sent)
 
         def close() -> None:
-            os.close(w)  # lets the reader thread see end of file and exit
-            time.sleep(0.2)
-            os.close(r)
+            _release_held_pipe(r, w, before)
 
         return (lambda: r), close
 
@@ -1342,6 +1359,37 @@ def test_a_failing_input_exports_ok_and_leaves_the_payload_alone(
     assert ran.payload["readiness"] == {"checked": False, "reason": case.reason}
     assert ran.result["readiness"] == {"checked": False, "reason": case.reason}
     assert stripped(ran.payload) == stripped(baseline.payload)
+
+
+def test_a_page_that_fails_to_render_with_readiness_still_exports(tmp_path, pinned, monkeypatch) -> None:
+    real = view.build_html
+
+    def refuse_checked(payload):
+        if payload["readiness"]["checked"]:
+            raise RuntimeError("page builder failed")
+        return real(payload)
+
+    monkeypatch.setattr(view, "build_html", refuse_checked)
+    ran = export(tmp_path, BASE_BYTES)
+    assert ran.code == 0 and ran.result["status"] == "ok", ran.result
+    assert ran.files == ["view.html"]
+    assert ran.payload is not None
+    assert ran.payload["readiness"] == {"checked": False, "reason": "wrong_schema"}
+    assert ran.result["readiness"] == {"checked": False, "reason": "wrong_schema"}
+
+
+def test_many_distinct_codes_on_one_record_project_in_one_pass() -> None:
+    path = "docs/specs/bravo-spec/spec.md"
+    count = 50_000
+    findings = [{"code": f"c{i}", "dispatchable": False, "next_action": "x"} for i in range(count)]
+    status = copy.deepcopy(BASE)
+    status["canonical"]["blocked"] = [{"path": path, "dispatchable": False, "findings": findings}]
+    started = time.monotonic()
+    got = rd.member(encode(status), {path: "spec:bravo-spec"})
+    # One pass takes well under a second; a scan of the codes already kept per finding
+    # would take minutes at this size.
+    assert time.monotonic() - started < 10
+    assert [f["code"] for f in got["blocked"][0]["findings"]] == [f"c{i}" for i in range(count)]
 
 
 def test_the_cached_derivation_equals_a_real_one(tmp_path, pinned, monkeypatch) -> None:
@@ -1612,9 +1660,11 @@ def test_real_workspace_status_over_a_hostile_workspace_toml_exports_safely(tmp_
     assert ran.result["readiness"] == {"checked": True, "reason": None}
     assert ran.payload is not None and ran.html is not None
     assert len(ran.payload["readiness"]["blocked"]) >= 1
-    outside = outside_data_block(ran.html)
+    # The whole file, data block included: no hostile string reaches the page at all.
+    assert ran.html is not None
     for needle in HOSTILE_NEEDLES:
-        assert needle not in outside, needle
+        assert needle not in ran.html, needle
+        assert json.dumps(needle)[1:-1] not in ran.html, needle
 
 
 # --- AC-0020: no extra process and no extra file --------------------------------------------
@@ -1678,3 +1728,29 @@ def test_the_flag_starts_no_process_and_opens_no_file_the_plain_export_does_not(
     assert any("intent_view." in v for v in opens)
     assert "<DEST>" in opens and "<TMP>" in opens, "both normalisations applied"
     assert piped == plain
+
+
+_SKILL_MD = _PACK / ".apm" / "skills" / "navigate-intents" / "SKILL.md"
+
+
+def _skill_section(title: str) -> str:
+    """The text of one ``## <title>`` section of the skill's instructions."""
+    text = _SKILL_MD.read_text(encoding="utf-8")
+    match = re.search(rf"^## {re.escape(title)}\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+    assert match is not None, f"section {title!r} is missing"
+    return " ".join(match.group(1).split())
+
+
+def test_skill_export_section_gives_the_pipe_command_with_the_status_subcommand() -> None:
+    section = _skill_section("Export an offline view")
+    assert re.search(r"workspace_status\.py'? status --root \S+ \\ \| python3 scripts/navigate_intents\.py "
+                     r"export --root \S+ --readiness -", section)
+    assert "never runs `workspace-status`" in section
+
+
+def test_skill_safety_section_allows_only_status_piped_and_unread() -> None:
+    section = _skill_section("Safety controls")
+    assert "Pipe only `workspace-status`'s ``status`` subcommand" in section
+    assert "Never pipe any other `workspace-status` subcommand" in section
+    assert "straight into the export without reading it or acting on its contents" in section
+    assert "never runs `workspace-status`" in section

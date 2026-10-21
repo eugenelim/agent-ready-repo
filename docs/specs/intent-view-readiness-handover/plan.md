@@ -75,7 +75,7 @@ Owned by: T1, T4, T5
 - `view_src/readiness.js`, a new part placed after `lists.js`: `readinessChecked()`, `readinessGroups()`, `startTagText(id)`, `startLine()`, and the reason-sentence table.
 - `data.js` validates the member's shape. A member that fails is read as unchecked with `wrong_schema`, never as a damaged payload, so a hand-edited file still opens.
 - `lists.js`: `brokenEntries` adds `{holder, workspace: {code, next_action, known}}` entries. `list-bodies.js`: `bodyNext` branches on `readinessChecked()`, and `brokenRow` renders the workspace context. `detail-render.js` renders AC-0031's lines. `labels.js` and `chrome.js` carry the new labels and Key rows.
-- `view-base.css` gains `.mark[data-mark="ready"]` on `--c-ok`/`--c-ok-bg` and `.mark[data-mark="blocked"]` on `--c-bad`/`--c-bad-bg`, the token file's values. `view.css` gains only the start tag's spacing.
+- `view-base.css` gains `.mark[data-mark="ready"]` on `--c-ok`/`--c-ok-bg` and `.mark[data-mark="blocked"]` on `--c-bad`/`--c-bad-bg`, the token file's values. `view.css` gains three rules: the start tag's spacing; `.c-context .value.wrap`, which lets a finding code break instead of holding its row on one line, so a 64-character code cannot widen the page at 320 CSS px; and, inside the existing narrow-container block, `.key-list .fact` stacked in one column, so an opened Key at 320 CSS px no longer squeezes its explanations to a few pixels and scrolls the page sideways. That last rule applies with or without readiness: it fixes an overflow the shipped Key already had, which the readiness matrix's opened Key exposed.
 
 ### State & control flow
 
@@ -241,3 +241,6 @@ Ships in the next `core` patch release. Nothing migrates. Without `--readiness -
 - 2026-10-21: pre-EXECUTE drift review on main `5acc66440` (run `116dcdd2-c25d-41bc-81f5-09e52d745a7a`). Spec AC-0001 now separates the values argparse delivers (`invalid_query`) from the inputs it rejects (exit 2), AC-0010 requires the whole code to match, and AC-0020 states its path normalisation. The plan adds the deadline seam, the normalisation, a failing citation check, the predecessor-test and helper-extraction notes, and the observed real-input counts. Spec and plan returned to Draft and Drafting for re-approval.
 - 2026-10-21: amended spec re-approved by eugenelim
 - 2026-10-21: amended plan re-approved by eugenelim
+- 2026-10-21: controlled amendment after post-gates review (run `116dcdd2-c25d-41bc-81f5-09e52d745a7a`, adversarial finding 3): the design line now names the two `view.css` rules T6 added for the 320 CSS px layout. Plan returned to Drafting for re-approval; no task or criterion changed.
+- 2026-10-21: spec re-approved by eugenelim after the view.css plan amendment
+- 2026-10-21: amended plan re-approved by eugenelim (view.css design line)

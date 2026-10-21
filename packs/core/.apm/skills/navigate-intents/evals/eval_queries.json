@@ -226,5 +226,9 @@
   {
     "query": "Export an offline view of the intents with a copyable prompt I can paste to hand a picked item to the right skill",
     "should_trigger": true
+  },
+  {
+    "query": "Export the intent view with readiness from workspace-status, so it shows what is ready to work on",
+    "should_trigger": true
   }
 ]

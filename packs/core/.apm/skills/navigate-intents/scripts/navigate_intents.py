@@ -2501,9 +2501,12 @@ def run_export(
         return refusal("invalid_query", "--readiness takes only -")
     try:
         view_mod = _load_view_mod()
-        readiness_mod = _load_readiness_mod()
     except Exception:  # noqa: BLE001
         return refusal("resolver_unavailable", "view module is unavailable")
+    try:
+        readiness_mod = _load_readiness_mod()
+    except Exception:  # noqa: BLE001
+        return refusal("resolver_unavailable", "readiness module is unavailable")
     try:
         payload = build_view_payload(
             root, from_identity,
