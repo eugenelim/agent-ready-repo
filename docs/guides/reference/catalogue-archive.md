@@ -6,19 +6,21 @@ they form the distributable unit for fully-disconnected hosts.
 ## Output files
 
 ```
-<output>/catalogues/<bundle>/releases/<release>/<channel>/
-  <bundle>-<release>.tar.gz        # archive
-  <bundle>-<release>.tar.gz.sha256 # SHA-256 sidecar
-  channel.json                     # channel descriptor
+<output>/catalogues/<bundle>/
+  releases/<release>/
+    catalogue-<release>.tar.gz         # archive
+    catalogue-<release>.tar.gz.sha256  # SHA-256 sidecar
+  channels/<channel>.json              # channel descriptor
 ```
 
-### Archive (`<bundle>-<release>.tar.gz`)
+### Archive (`catalogue-<release>.tar.gz`)
 
 A gzip-compressed tar archive containing the installable subset of the
 catalogue. It is not a source-tree mirror and may omit source-only files such
 as `catalogue.toml`:
 
 ```
+catalogue-manifest.json
 packs/
   <pack-name>/
     pack.toml
@@ -30,19 +32,22 @@ packs/
       ...
     seeds/
     evals/
+profiles/<name>.toml
+contracts/
+.claude-plugin/marketplace.json
+tests/conformance/
+AGENTS.md, README.md, LICENSE-APACHE, LICENSE-MIT   # when present at the root
 ```
 
 ### SHA-256 sidecar (`.sha256`)
 
-A single line containing the hex SHA-256 digest of the archive, followed by two spaces and the
-archive filename:
+A single line containing the lowercase hex SHA-256 digest of the archive bytes, then a newline:
 
 ```
-3a7b9c... <bundle>-<release>.tar.gz
+3a7b9c...
 ```
 
-This matches `sha256sum` output format. The sidecar is what the receiving host uses to verify
-integrity before extraction.
+The sidecar is what the receiving host uses to verify integrity before extraction.
 
 ### Manifest (`catalogue-manifest.json`)
 
@@ -88,7 +93,7 @@ descriptor remain the provenance evidence. `catalogue package --compare` uses th
 it derives every prior digest from the prior archive's verified `files[]` and ignores a digest the
 prior manifest declares.
 
-### Channel descriptor (`channel.json`)
+### Channel descriptor (`channels/<channel>.json`)
 
 JSON metadata about this release, including the channel name, release version, bundle identifier,
 published-at timestamp, and minimum agentbundle version. It is audit context for the connected-side
@@ -100,8 +105,8 @@ Before extracting on the receiving host, verify the archive against its sidecar:
 
 ```bash
 agentbundle catalogue verify \
-  --archive <bundle>-<release>.tar.gz \
-  --sha256-file <bundle>-<release>.tar.gz.sha256
+  --archive catalogue-<release>.tar.gz \
+  --sha256-file catalogue-<release>.tar.gz.sha256
 ```
 
 Exits 0 on success. Do not extract an archive that fails verification.
@@ -110,10 +115,10 @@ Exits 0 on success. Do not extract an archive that fails verification.
 
 Transfer only the archive and sidecar to the disconnected host:
 
-- `<bundle>-<release>.tar.gz`
-- `<bundle>-<release>.tar.gz.sha256`
+- `catalogue-<release>.tar.gz`
+- `catalogue-<release>.tar.gz.sha256`
 
-The channel descriptor (`channel.json`) is not needed on the disconnected host — it is registry
+The channel descriptor (`channels/<channel>.json`) is not needed on the disconnected host — it is registry
 audit metadata for the connected side only.
 
 ## Extraction
@@ -122,7 +127,7 @@ After successful verification:
 
 ```bash
 mkdir -p /opt/company/agentbundle/catalogues/<bundle>
-tar -xzf <bundle>-<release>.tar.gz -C /opt/company/agentbundle/catalogues/<bundle>
+tar -xzf catalogue-<release>.tar.gz -C /opt/company/agentbundle/catalogues/<bundle>
 ```
 
 An installable archive is a published artifact, not a source catalogue. It
