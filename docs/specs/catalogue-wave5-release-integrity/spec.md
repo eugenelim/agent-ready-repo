@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D8 and OQ3](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
-- **Discovery:** intent:catalogue-wave5-release-integrity ([intent](../../product/intents/catalogue-wave5-release-integrity.md))
+- **Discovery:** intent:catalogue-wave5-release-integrity
 - **Contract:** none — `catalogue-manifest.json` and the `catalogue package` JSON output have no schema file; AC-0001, AC-0002, AC-0013 and AC-0018 pin their shape, and the reference guides in Durable Outputs describe it.
 - **Shape:** service
 
