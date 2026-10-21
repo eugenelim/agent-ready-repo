@@ -27,7 +27,17 @@ a difference. It also keeps bytecode files from loading or being written.
 Standard library only; it loads only its sibling scripts. Python 3.11+.
 """
 
+# ruff: noqa: E402
 from __future__ import annotations
+
+import sys
+
+# Run as a script, this file's own directory is sys.path[0], and a module planted
+# there would load in place of the standard library at the imports below, before
+# any check. Nothing in the scripts directory is importable by name from here on;
+# the sibling scripts load by path.
+if __name__ == "__main__" and not sys.flags.safe_path and sys.path:
+    del sys.path[0]
 
 import argparse
 import hashlib
@@ -38,7 +48,6 @@ import re
 import secrets
 import shutil
 import stat
-import sys
 import tempfile
 import traceback
 from collections.abc import Callable
@@ -153,17 +162,22 @@ def _read_plain(path: Path, limit: int) -> bytes | None:
 
 
 def _installed_digests(skill: Path) -> dict[str, str]:
-    """sha256 of each installed supervisor module and of the policy and rules files."""
+    """sha256 of every file in the installed ``scripts/`` and of the policy and rules files.
+
+    Every file counts, not only ``*.py``: a bytecode or extension module beside the
+    scripts is importable too.
+    """
     found: dict[str, str] = {}
-    scripts = skill / "scripts"
     try:
-        names = sorted(entry.name for entry in scripts.iterdir())
+        entries = sorted((skill / "scripts").iterdir())
+        for path in entries:
+            if path.is_dir() and not path.is_symlink():
+                continue
+            data = _read_plain(path, _MAX_SOURCE_BYTES)
+            if data is not None:
+                found[f"scripts/{path.name}"] = hashlib.sha256(data).hexdigest()
     except OSError as exc:
         raise _PinRefused("the installed scripts cannot be listed", unverifiable=True) from exc
-    for name in names:
-        data = _read_plain(scripts / name, _MAX_SOURCE_BYTES) if name.endswith(".py") else None
-        if data is not None:
-            found[f"scripts/{name}"] = hashlib.sha256(data).hexdigest()
     for name in _POLICY_FILES:
         data = _read_plain(skill / name, _MAX_SOURCE_BYTES)
         if data is not None:
@@ -171,29 +185,42 @@ def _installed_digests(skill: Path) -> dict[str, str]:
     return found
 
 
-def _locate(cwd: Path | None) -> tuple[Path, Path] | None:
-    """The work tree root and its Git directory, by direct reads; ``None`` when not found."""
+def _find_dot_git(cwd: Path | None) -> tuple[Path, Path] | None:
+    """The work tree root and its ``.git`` entry; ``None`` when there is no repository."""
     current = Path(cwd if cwd is not None else Path.cwd()).resolve()
     for directory in (current, *current.parents):
         dot_git = directory / ".git"
         try:
-            kind = os.lstat(dot_git).st_mode
+            os.lstat(dot_git)
         except FileNotFoundError:
             continue
-        except OSError:
-            return None
-        if stat.S_ISDIR(kind):
-            return directory, dot_git
-        if stat.S_ISREG(kind):
-            text = _read_plain(dot_git, 64 * 1024)
-            match = re.fullmatch(r"gitdir: (.+?)\r?\n?", (text or b"").decode("utf-8", "replace"))
-            return (directory, directory / match.group(1)) if match else None
-        return None
+        except OSError as exc:
+            raise _PinRefused(".git cannot be read", unverifiable=True) from exc
+        return directory, dot_git
     return None
 
 
-def _pin_map(path: Path, key: str) -> dict[str, str] | None:
-    """The digest map under *key* in a store record; ``None`` when the record is absent."""
+def _git_dir(dot_git: Path) -> Path:
+    """The Git directory a ``.git`` directory or gitfile names, by direct reads."""
+    try:
+        kind = os.lstat(dot_git).st_mode
+    except OSError as exc:
+        raise _PinRefused(".git cannot be read", unverifiable=True) from exc
+    if stat.S_ISDIR(kind):
+        return dot_git
+    text = _read_plain(dot_git, 64 * 1024) if stat.S_ISREG(kind) else None
+    match = re.fullmatch(r"gitdir: (.+?)\r?\n?", (text or b"").decode("utf-8", "replace"))
+    if match is None:
+        raise _PinRefused(".git is not a Git directory or a gitfile", unverifiable=True)
+    return dot_git.parent / match.group(1)
+
+
+def _malformed(path: Path) -> _PinRefused:
+    return _PinRefused(f"{path.name} is malformed", unverifiable=True)
+
+
+def _read_record(path: Path, run_id: str) -> dict[str, Any] | None:
+    """A store record of this run; ``None`` when absent, a refusal when it is not valid."""
     data = _read_plain(path, _MAX_PIN_BYTES)
     if data is None:
         return None
@@ -201,25 +228,92 @@ def _pin_map(path: Path, key: str) -> dict[str, str] | None:
         record = json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, ValueError):
         record = None
-    digests = record.get(key) if isinstance(record, dict) else None
     if (
         not isinstance(record, dict)
         or record.get("schema_version") != 1
-        or not isinstance(digests, dict)
+        or record.get("run_id") != run_id
+    ):
+        raise _malformed(path)
+    return record
+
+
+def _digest_map(record: dict[str, Any], key: str, path: Path) -> dict[str, str]:
+    digests = record.get(key)
+    if (
+        not isinstance(digests, dict)
         or not digests
         or not all(isinstance(k, str) and _HEX_RE.fullmatch(str(v)) for k, v in digests.items())
     ):
-        raise _PinRefused(f"{path.name} is malformed", unverifiable=True)
-    return digests  # type: ignore[no-any-return]
+        raise _malformed(path)
+    return digests
 
 
-def _working_run_id(root: Path, spec_dir: str) -> str | None:
-    """The run id on the first line of the spec's working ``approvals.jsonl``, if any."""
-    parts = [p for p in spec_dir.split("/") if p]
-    if not parts or "\\" in spec_dir or ":" in spec_dir or any(p in (".", "..") for p in parts):
+def _pin(store: Path, run_id: str) -> tuple[str, dict[str, str]] | None:
+    """The spec and digests a run pinned; ``None`` when it has no record."""
+    path = store / "pins.json"
+    record = _read_record(path, run_id)
+    if record is None:
         return None
+    if not isinstance(record.get("spec"), str):
+        raise _malformed(path)
+    return record["spec"], _digest_map(record, "digests", path)
+
+
+def _regeneration_open(store: Path, request_id: str) -> bool:
+    """Whether the run's latest issuance is that ``regenerate`` request, still open."""
+    attempts = store / "attempts"
     try:
-        data = _read_plain(root.joinpath(*parts, "delivery", "approvals.jsonl"), _MAX_SOURCE_BYTES)
+        names = {p.name for p in attempts.iterdir()}
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise _PinRefused("the attempt store cannot be listed", unverifiable=True) from exc
+    recorded = sorted(n[:6] for n in names if re.fullmatch(r"\d{6}\.json", n))
+    if not recorded:
+        return False
+    if any(recorded[-1] + mark in names for mark in (".superseded", ".reported", ".refused.json")):
+        return False
+    data = _read_plain(attempts / f"{recorded[-1]}.json", _MAX_SOURCE_BYTES)
+    try:
+        issued = json.loads((data or b"").decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        issued = None
+    if not isinstance(issued, dict):
+        raise _malformed(attempts / f"{recorded[-1]}.json")
+    return issued.get("kind") == "regenerate" and issued.get("request_id") == request_id
+
+
+def _open_regeneration(store: Path, run_id: str) -> dict[str, str] | None:
+    """The pack source digests a ``regenerate`` request records, while it is open."""
+    path = store / "regenerate.json"
+    record = _read_record(path, run_id)
+    if record is None:
+        return None
+    if not isinstance(record.get("request_id"), str):
+        raise _malformed(path)
+    source = _digest_map(record, "source", path)
+    return source if _regeneration_open(store, record["request_id"]) else None
+
+
+def _clean_spec(spec_dir: str) -> str | None:
+    """*spec_dir* as a repository-relative POSIX path, or ``None`` when it is not one."""
+    parts = [p for p in spec_dir.split("/") if p]
+    if (
+        not parts
+        or spec_dir.startswith("/")
+        or "\\" in spec_dir
+        or ":" in spec_dir
+        or any(p in (".", "..") for p in parts)
+    ):
+        return None
+    return "/".join(parts)
+
+
+def _working_run_id(root: Path, spec: str) -> str | None:
+    """The run id on the first line of the spec's working ``approvals.jsonl``, if readable."""
+    try:
+        data = _read_plain(root.joinpath(*spec.split("/"), "delivery", "approvals.jsonl"),
+                           _MAX_SOURCE_BYTES)
         first = json.loads(data.split(b"\n", 1)[0].decode("utf-8")) if data else None
     except (_PinRefused, UnicodeDecodeError, ValueError):
         return None
@@ -227,41 +321,64 @@ def _working_run_id(root: Path, spec_dir: str) -> str | None:
     return run_id if isinstance(run_id, str) and _RUN_ID_RE.fullmatch(run_id) else None
 
 
-def _preflight(spec_dir: str, cwd: Path | None, installed: dict[str, str]) -> None:
-    """Refuse unless the installed files match the run's pins, before any sibling loads.
+def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, str]) -> None:
+    """Refuse unless the installed files match the spec's pins, before any sibling loads.
 
-    The run is found from the working copy of the spec's approvals. A start that
-    finds none is the first admission and pins the files itself; anything a
-    missing working copy hides is caught again once HEAD can be read.
+    The runs come from the supervisor store, whose pin records name their spec, so a
+    deleted or damaged working copy of the approvals hides nothing. A run with no
+    valid pin record refuses every verb but ``start``, the one that may record it;
+    a damaged record refuses them all. The first admission has no run yet and
+    pins the files itself.
     """
-    located = _locate(cwd)
-    if located is None:
+    found = _find_dot_git(cwd)
+    spec = _clean_spec(spec_dir)
+    if found is None or spec is None:
         return
-    root, git_dir = located
-    run_id = _working_run_id(root, spec_dir)
-    if run_id is None:
-        return
-    store = git_dir / _STORE_ROOT / run_id
-    pinned = _pin_map(store / "pins.json", "digests")
-    if pinned is None:
+    root, dot_git = found
+    base = _git_dir(dot_git) / _STORE_ROOT
+    try:
+        names = sorted(p.name for p in base.iterdir() if _RUN_ID_RE.fullmatch(p.name))
+    except FileNotFoundError:
+        names = []
+    except OSError as exc:
+        raise _PinRefused("the supervisor store cannot be listed", unverifiable=True) from exc
+    known: set[str] = set()
+    ours: list[tuple[Path, str, dict[str, str]]] = []
+    for name in names:
+        store = base / name
+        pinned = _pin(store, name)
+        if pinned is None:
+            if verb != "start":
+                raise _PinRefused(f"run {name} has no pin record", unverifiable=True)
+            continue
+        known.add(name)
+        if pinned[0] == spec:
+            ours.append((store, name, pinned[1]))
+    working = _working_run_id(root, spec)
+    if working is not None and working not in known and verb != "start":
         raise _PinRefused("the supervisor's pin record is missing", unverifiable=True)
-    if installed == pinned:
-        return
-    if installed == _pin_map(store / "regenerate.json", "source"):
-        return
-    raise _PinRefused("the installed supervisor differs from its pinned digests")
+    for store, name, digests in ours:
+        if installed != digests and installed != _open_regeneration(store, name):
+            raise _PinRefused("the installed supervisor differs from its pinned digests")
 
 
 def _log_pin_event(spec_dir: str, cwd: Path | None) -> None:
-    """Append one ``security-event.v1`` denial for an unverifiable pin check; best effort."""
-    located = _locate(cwd)
-    parts = [p for p in spec_dir.split("/") if p]
-    if located is None or not parts or any(p in (".", "..") for p in parts):
+    """Append one ``security-event.v1`` denial for an unverifiable pin check; best effort.
+
+    Written only inside an existing, plain spec directory; the one directory it
+    creates is ``.supervisor/``.
+    """
+    try:
+        found = _find_dot_git(cwd)
+    except _PinRefused:
+        return
+    spec = _clean_spec(spec_dir)
+    if found is None or spec is None:
         return
     event = {
         "schema_version": 1,
         "operation_id": "op-" + secrets.token_hex(16),
-        "correlation_id": "/".join(parts),
+        "correlation_id": spec,
         "event_type": "supervisor-pin-check",
         "outcome": "denied",
         "reason_code": "supervisor-changed",
@@ -270,25 +387,28 @@ def _log_pin_event(spec_dir: str, cwd: Path | None) -> None:
     line = (json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     try:
-        current = located[0]
-        for part in (*parts, ".supervisor"):
+        current = found[0]
+        for part in spec.split("/"):
             current = current / part
-            try:
-                info = os.lstat(current)
-            except FileNotFoundError:
-                current.mkdir(mode=0o755)
-                info = os.lstat(current)
-            if not stat.S_ISDIR(info.st_mode):
+            if not stat.S_ISDIR(os.lstat(current).st_mode):
                 return
-        marker = current / ".gitignore"
+        local = current / ".supervisor"
+        try:
+            info = os.lstat(local)
+        except FileNotFoundError:
+            local.mkdir(mode=0o700)
+            info = os.lstat(local)
+        if not stat.S_ISDIR(info.st_mode):
+            return
+        marker = local / ".gitignore"
         if not os.path.lexists(marker):
-            fd = os.open(marker, os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow, 0o644)
+            fd = os.open(marker, os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow, 0o600)
             with os.fdopen(fd, "wb") as handle:
                 handle.write(b"*\n")
         fd = os.open(
-            current / "security-events.jsonl",
+            local / "security-events.jsonl",
             os.O_WRONLY | os.O_APPEND | os.O_CREAT | nofollow,
-            0o644,
+            0o600,
         )
         with os.fdopen(fd, "ab") as handle:
             handle.write(line)
@@ -406,7 +526,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
         args = _parser().parse_args(argv)
         spec_dir = args.spec_dir
         installed = _installed_digests(_SCRIPTS_DIR.parent)
-        _preflight(args.spec_dir, cwd, installed)
+        _preflight(args.verb, args.spec_dir, cwd, installed)
         root = _repo_root(cwd)
         spec_rel = _spec_rel(root, args.spec_dir)
         result_data = _read_result(args.result) if args.verb == "report" else None
@@ -426,7 +546,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     workspace = admission.Workspace(root, spec_rel)
     workspace.attempts.installed = installed
     try:
-        workspace.attempts.check_pins()
+        workspace.attempts.check_pins(args.verb)
         if args.verb == "start":
             with workspace.run_lock():
                 outcome = admission.start(

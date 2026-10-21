@@ -481,9 +481,6 @@ def start(
             review, "review_id", f"rev-{seed[24:48]}", when, pi.validate_initial_review_dict
         ),
     }
-    if not approvals:
-        # The first admission records the installed supervisor's digests, once.
-        ws.attempts.pin(run_id)
     ws.git.build_commit(
         run_id=run_id,
         step=f"approval:{sequence}",
@@ -491,6 +488,9 @@ def start(
         appends={"approvals.jsonl": canonical_line(line)},
         summary=f"admit approval pair {sequence}",
     )
+    if not approvals:
+        # Only an admitted start records the installed supervisor's digests, once.
+        ws.attempts.pin(run_id)
     result = {"status": "admitted", "run_id": run_id, "sequence": sequence}
     if intent == "spec-plan":
         loop = _supervisor("_supervisor_loop.py")

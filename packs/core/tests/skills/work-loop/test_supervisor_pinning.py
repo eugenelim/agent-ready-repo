@@ -500,3 +500,155 @@ def test_verified_containment_lifts_the_gate(monkeypatch: pytest.MonkeyPatch) ->
     )
     assert loop.untrusted_blocked(state) is False
     assert loop.untrusted_blocked(unittest.mock.Mock(latest={"code_trust": "trusted"})) is False
+
+
+# ── review fixes: shadow modules, the pre-import locator, regeneration scope ─
+
+
+def _script(skill: Path, repo: Path, *argv: str) -> subprocess.CompletedProcess[str]:
+    """Run the installed ``work-supervisor.py`` as a real script, the way a controller does."""
+    env = {**os.environ, **h.GIT_ENV, "PYTHONDONTWRITEBYTECODE": "1"}
+    return subprocess.run(
+        [sys.executable, str(skill / "scripts" / "work-supervisor.py"), *argv],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(
+    "planted", ["argparse.py", "json.pyc", "hashlib.cpython-313-x86_64-linux-gnu.so"]
+)
+def test_a_module_planted_in_scripts_never_runs_and_is_refused(
+    pinned_template: Path, tmp_path: Path, planted: str
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    skill = _copy_skill(tmp_path / "skill")
+    marker = tmp_path / "shadow-ran"
+    (skill / "scripts" / planted).write_text(f"open({str(marker)!r}, 'w').close()\n", "utf-8")
+    done = _script(skill, repo, "status", SPEC)
+    assert not marker.exists(), "a module planted beside the script ran"
+    assert done.returncode == 1, (done.stdout, done.stderr)
+    assert json.loads(done.stdout)["refusal"]["code"] == "supervisor-changed"
+
+
+def test_the_script_runs_when_nothing_is_planted(pinned_template: Path, tmp_path: Path) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    skill = _copy_skill(tmp_path / "skill")
+    done = _script(skill, repo, "status", SPEC)
+    assert done.returncode == 0, (done.stdout, done.stderr)
+
+
+def test_deleting_the_working_approvals_hides_nothing(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    skill = _copy_skill(tmp_path / "skill")
+    marker = tmp_path / "edited-module-ran"
+    _append(skill / "scripts" / "_supervisor_commit.py", f"\nopen({str(marker)!r}, 'w').close()\n")
+    (repo / SPEC / "delivery" / "approvals.jsonl").unlink()
+    code, out = _run(_load_cli(skill), repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert not marker.exists(), "an edited module loaded before the pin check"
+
+
+@pytest.mark.parametrize("damage", ["wrong-run", "wrong-spec"])
+def test_a_pin_record_naming_another_run_or_spec_is_refused_before_any_import(
+    pinned_template: Path, tmp_path: Path, damage: str
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    skill = _copy_skill(tmp_path / "skill")
+    record = json.loads(_pins(repo).read_text("utf-8"))
+    record["run_id" if damage == "wrong-run" else "spec"] = (
+        "run-0000000000000000" if damage == "wrong-run" else "docs/specs/other"
+    )
+    _pins(repo).write_text(json.dumps(record), "utf-8")
+    # The digests still match the install: only the record's own identity is wrong.
+    code, out = _run(_load_cli(skill), repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+
+
+def test_a_malformed_gitfile_is_refused_and_an_absent_repository_is_not(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    skill = _copy_skill(tmp_path / "skill")
+    cli = _load_cli(skill)
+    broken = tmp_path / "broken"
+    (broken / SPEC).mkdir(parents=True)
+    (broken / ".git").write_text("not a gitfile\n", "utf-8")
+    code, out = _run(cli, broken, "status", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    code, out = _run(cli, bare, "status", SPEC)
+    assert code == 2 and out["error"] == "usage", out
+
+
+def test_an_open_regenerate_is_honored_only_while_it_is_open(
+    regenerating: Path, tmp_path: Path
+) -> None:
+    for mark in (".superseded", ".reported"):
+        shutil.rmtree(tmp_path / mark.strip("."), ignore_errors=True)
+        base = tmp_path / mark.strip(".")
+        base.mkdir()
+        repo, skill, cli = _regen_copy(regenerating, base)
+        attempts = _store(repo) / "attempts"
+        latest = max(int(p.name[:6]) for p in attempts.glob("??????.json"))
+        shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+        (attempts / f"{latest:06d}{mark}").write_bytes(b"")
+        code, out = _run(cli, repo, "next", SPEC)
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (mark, out)
+
+
+@pytest.mark.parametrize("point", ["commit-built", "head-moved"])
+def test_pins_come_only_from_an_admitted_start(tmp_path: Path, point: str) -> None:
+    repo = h.make_repo(tmp_path)
+
+    def hook(name: str) -> None:
+        if name == point:
+            raise h.Crash(name)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            h.start(repo)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    pins = list((repo / ".git" / "agentbundle-supervisor").glob("*/pins.json"))
+    if point == "commit-built":
+        assert pins == [], "a start that never admitted left a pin record"
+        code, out = h.start(repo)
+        assert code == 0, out
+        assert len(list((repo / ".git" / "agentbundle-supervisor").glob("*/pins.json"))) == 1
+    else:
+        # Admitted but not yet pinned: only a start may record it.
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+        code, out = h.start(repo)
+        assert code == 0 and out["status"] == "current", out
+        assert len(list((repo / ".git" / "agentbundle-supervisor").glob("*/pins.json"))) == 1
+        assert h.run_cli(repo, "next", SPEC)[0] == 0
+
+
+def test_the_pin_event_is_written_only_inside_an_existing_spec_directory(
+    tmp_path: Path,
+) -> None:
+    cli = _load_cli(_copy_skill(tmp_path / "skill"))
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    (repo / "elsewhere").mkdir()
+    (repo / "docs").mkdir()
+    (repo / "docs" / "linked").symlink_to(repo / "elsewhere")
+    cli._log_pin_event("docs/missing/spec", repo)
+    cli._log_pin_event("docs/linked", repo)
+    assert not (repo / "docs" / "missing").exists(), "a missing spec path was created"
+    assert not (repo / "elsewhere" / ".supervisor").exists(), "the event followed a link"
+    (repo / "docs" / "real").mkdir()
+    cli._log_pin_event("docs/real", repo)
+    log = repo / "docs" / "real" / ".supervisor" / "security-events.jsonl"
+    assert json.loads(log.read_text("utf-8"))["reason_code"] == "supervisor-changed"
+    if os.name == "posix":
+        assert log.stat().st_mode & 0o777 == 0o600
+        assert (log.parent / ".gitignore").stat().st_mode & 0o777 == 0o600

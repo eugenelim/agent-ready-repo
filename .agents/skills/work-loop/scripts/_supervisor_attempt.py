@@ -628,7 +628,7 @@ class Attempts:
             if open_attempt is not None and open_attempt.request_id == request["request_id"]:
                 return
             if open_attempt is not None:
-                self._mark(open_attempt, ".superseded")
+                self._supersede(open_attempt)
             regenerating = request["kind"] == "regenerate"
             self._record(state, request, skill=not regenerating)
             if regenerating:
@@ -644,8 +644,14 @@ class Attempts:
                     replace=True,
                 )
         elif open_attempt is not None and (request is not None or action.kind == "terminal"):
-            self._mark(open_attempt, ".superseded")
+            self._supersede(open_attempt)
             self.open = self._manifest = None
+
+    def _supersede(self, issuance: Issuance) -> None:
+        """Mark *issuance* superseded; a ``regenerate`` request's recorded source goes with it."""
+        self._mark(issuance, ".superseded")
+        if issuance.kind == "regenerate":
+            (issuance.store / REGENERATE_FILE).unlink(missing_ok=True)
 
     def _record(self, state: Any, request: dict[str, Any], *, skill: bool = True) -> None:
         run_id = state.run_id
@@ -697,8 +703,8 @@ class Attempts:
 
     # ── pinned digests ──────────────────────────────────────────────────────
 
-    def _pin_record(self, run_id: str, name: str, key: str) -> dict[str, str] | None:
-        """The digest map under *key* in a store record; ``None`` when it is absent."""
+    def _store_record(self, run_id: str, name: str) -> dict[str, Any] | None:
+        """A store record of this run; ``None`` when absent, a refusal when it is not valid."""
         store = self._store_dir(run_id)
         path = store / name
         if not os.path.lexists(path):
@@ -710,12 +716,19 @@ class Attempts:
             )
         except (ValueError, fs.UnsafeContentError, OSError) as exc:
             raise _unverifiable("supervisor-changed", f"{name} cannot be read") from exc
-        digests = record.get(key) if isinstance(record, dict) else None
         if (
             not isinstance(record, dict)
             or record.get("schema_version") != _SCHEMA_VERSION
             or record.get("run_id") != run_id
-            or not isinstance(digests, dict)
+        ):
+            raise _unverifiable("supervisor-changed", f"{name} is malformed")
+        return record
+
+    @staticmethod
+    def _digest_map(record: dict[str, Any], key: str, name: str) -> dict[str, str]:
+        digests = record.get(key)
+        if (
+            not isinstance(digests, dict)
             or not digests
             or not all(
                 isinstance(k, str) and _HEX_RE.fullmatch(str(v)) for k, v in digests.items()
@@ -723,6 +736,33 @@ class Attempts:
         ):
             raise _unverifiable("supervisor-changed", f"{name} is malformed")
         return digests  # type: ignore[no-any-return]
+
+    def _pin_record(self, run_id: str) -> dict[str, str] | None:
+        """The digests a run pinned; ``None`` when it has no record."""
+        record = self._store_record(run_id, PINS_FILE)
+        if record is None:
+            return None
+        if record.get("spec") != self.ws.spec_rel:
+            raise _unverifiable("supervisor-changed", f"{PINS_FILE} names another spec")
+        return self._digest_map(record, "digests", PINS_FILE)
+
+    def _open_regeneration(self, run_id: str) -> dict[str, str] | None:
+        """The pack source digests a ``regenerate`` request recorded, while it is open."""
+        record = self._store_record(run_id, REGENERATE_FILE)
+        if record is None:
+            return None
+        source = self._digest_map(record, "source", REGENERATE_FILE)
+        issuance = self._load(run_id, self._store_dir(run_id))
+        if (
+            issuance is None
+            or issuance.kind != "regenerate"
+            or issuance.request_id != record.get("request_id")
+            or issuance.superseded
+            or issuance.reported
+            or issuance.refused
+        ):
+            return None
+        return source
 
     def _pin_body(self, run_id: str, digests: dict[str, str]) -> bytes:
         return _json({
@@ -732,38 +772,45 @@ class Attempts:
             "digests": digests,
         })
 
-    def check_pins(self) -> None:
+    def check_pins(self, verb: str = "") -> None:
         """Refuse unless the installed files match the admitted run's pins.
 
-        The entry point compared them before any sibling loaded, from the working
-        copy of the approvals; this reads the committed approvals, so a missing
-        working copy hides nothing. An open ``regenerate`` request also accepts the
-        digests of the pack source it recorded.
+        The entry point compared them before any sibling loaded; this reads the
+        committed approvals, so a damaged working copy hides nothing. An open
+        ``regenerate`` request also accepts the digests of the pack source it recorded.
+        An admission that crashed before its pin was written has only its own approval
+        and terminal steps; a ``start`` records it then, and nothing else may.
         """
         installed = self.installed
         approvals = self.ws.approvals() if installed is not None else []
         if installed is None or not approvals:
             return
         run_id = approvals[0]["run_id"]
-        pinned = self._pin_record(run_id, PINS_FILE, "digests")
+        pinned = self._pin_record(run_id)
         if pinned is None:
+            commits = self.ws.git.supervisor_commits(run_id)
+            if (
+                verb == "start"
+                and len(approvals) == 1
+                and all(c.operation in ("approval", "terminal") for c in commits)
+            ):
+                self.pin(run_id)
+                return
             raise _unverifiable("supervisor-changed", "the supervisor's pin record is missing")
-        if installed != pinned and installed != self._pin_record(
-            run_id, REGENERATE_FILE, "source"
-        ):
+        if installed != pinned and installed != self._open_regeneration(run_id):
             raise _refusal(
                 "supervisor-changed", "the installed supervisor differs from its pinned digests"
             )
 
     def pin(self, run_id: str) -> None:
-        """Record the installed digests for a run's first admission; a later one compares.
+        """Record the installed digests once the run's first approval has landed.
 
         A record that already exists is never overwritten, and a different one refuses.
         """
         installed = self.installed
         if installed is None:
             return
-        recorded = self._pin_record(run_id, PINS_FILE, "digests")
+        recorded = self._pin_record(run_id)
         if recorded is None:
             self._put(run_id, PINS_FILE, self._pin_body(run_id, installed))
         elif recorded != installed:
@@ -779,7 +826,7 @@ class Attempts:
         if rel in _POLICY_FILES:
             return True
         head, _, name = rel.rpartition("/")
-        return head == "scripts" and name.endswith(".py")
+        return head == "scripts" and bool(name)
 
     def source_digests(self) -> dict[str, str] | None:
         """Digests of the pack source's pinned files at ``HEAD``; ``None`` without that source."""
