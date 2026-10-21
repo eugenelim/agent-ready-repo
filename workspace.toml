@@ -2256,7 +2256,6 @@ open = [
   # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
   # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
   { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
-  {path = "docs/specs/intent-view-record-owners/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md"}, summary = "Carry each record's Owner: header through the intent derivation and query, show it on every intent view row, and narrow every question to one owner with a page-wide Owner control", needs = []},
 ]
 
 
@@ -2448,6 +2447,7 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
+  { path = "docs/specs/intent-view-record-owners/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md"}, summary = "Carry each record's Owner: header through the intent derivation and query, show it on every intent view row, and narrow every question to one owner with a page-wide Owner control", needs = [] },
 ]
 active  = [
 ]
