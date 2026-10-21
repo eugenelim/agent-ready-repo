@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Spec:** [`spec.md`](spec.md)
-- **Constrained by:** RFC-0106 D2; RFC-0103
+- **Constrained by:** RFC-0106 D2; RFC-0103; ADR-0142 D10
 - **Repository anchors:** canonical adapter-root resolver and its Core resolver/copy suites; the existing close-work parent lookup; the grammar migration's writer inventory. A source-only AST probe found the existing four-kind tuple and only an `intent:` classifier branch; it establishes a reusable prefix source, not runtime consumer behavior.
 - **Retention:** repository-durable spec and plan; approval records bind their fingerprints. Implementers, reviewers, resuming agents, and CI read them. Source/tests, guides, architecture, and the release entry own current truth after closeout.
 
@@ -43,11 +43,20 @@ T2 adds Discovery to `packs/core/.apm/skills/work-loop/scripts/lint-graph-pointe
 
 A typed target is checked against the registered live intent identity. An untyped intent path or markdown link is classified lexically without opening its target; it can produce only a form violation. A bare live intent slug is also an untyped intent value. Non-intent provenance is outside the field rule. The shared check's source and construction tests own this dispatch.
 
+The `Discovery:` violation codes are exactly these, each emitted only for an intent-valued value, so AC-0007's non-intent values never reach them:
+
+- `discovery-untyped`: a value naming a path under `product/intents/`, as a repository path or a markdown link, or a bare slug of a live intent.
+- `discovery-malformed`: a value with an intent prefix (`intent:`, `outcome:`, `opportunity:`, `capability:`) whose remainder is not a slug.
+- `discovery-missing`, `discovery-retired`, `discovery-ambiguous`: a typed value whose slug names no live intent, only a retired intent, or more than one live intent.
+- `discovery-wrong-kind`: a typed value naming one live intent under a kind other than its registered kind.
+
+A `brief:` or `spec:` value is non-intent provenance here, unlike in `Parent intent:`.
+
 ### Writers and corpus
 
 **Owned by:** T3
 
-T3 reuses the grammar migration's source-inventory method, deriving today's Discovery writers rather than copying historical counts. Known Core surfaces are `new-spec/SKILL.md`, `new-spec/assets/spec.md`, its metadata-contract reference, and the contract guide's template example. Inspect the product-engineering discovery handoff as a discovery condition. Change it only if it instructs the emitted field's form; bump that pack if changed. Kill condition: a candidate requires an unrelated pack or another pointer field; stop for scope review.
+T3 reuses the grammar migration's source-inventory method, deriving today's Discovery writers rather than copying historical counts. Known Core surfaces are `new-spec/SKILL.md`, `new-spec/assets/spec.md`, its metadata-contract reference, and the close-out guide `guides/core/how-to/close-and-disposition-work.md`, whose refusal reasons state the accepted spec `Discovery:` forms (the `delivery-target-missing`, `delivery-reference-malformed`, `delivery-reference-unsafe`, and `artifact-not-in-graph` entries). The build-loop guide `guides/core/how-to/start-the-work.md` is not a writer; its one sentence listing the fields the work-loop checks gains `Discovery:`. Inspect the product-engineering discovery handoff as a discovery condition. Change it only if it instructs the emitted field's form; bump that pack if changed. Kill condition: a candidate requires an unrelated pack or another pointer field; stop for scope review.
 
 The corpus sweep is reproducible working material under this spec's `notes/`. It records each selected spec path, old header value, target path, slug, registered kind, and replacement. It edits only the selected preamble value and checks unchanged bytes elsewhere. The known 31-value count is evidence from the authoring checkpoint, not a migration limit. Re-derive after rebase. Compare the resolver's relations before and after rewriting against the same widened resolver; the old resolver is not a parity oracle. A repeat run has an empty diff.
 
@@ -55,7 +64,7 @@ The corpus sweep is reproducible working material under this spec's `notes/`. It
 
 **Owned by:** T3
 
-For the contract guide and metadata reference: “When `Discovery:` names an intent, write its registered kind and `Slug:`, such as `outcome:service-reliability`, `capability:account-management`, or `intent:account-self-service`. `Kind:` takes precedence over `Level:`. When it names a research or notes file, use its repository-relative path. New and changed specs are checked for typed, live intent targets; legacy paths remain readable. Discovery records provenance and does not itself assert a feature-delivery route.”
+For the metadata-contract reference, adapted to the close-out guide's refusal entries: “When `Discovery:` names an intent, write its registered kind and `Slug:`, such as `outcome:service-reliability`, `capability:account-management`, or `intent:account-self-service`. `Kind:` takes precedence over `Level:`. When it names a research or notes file, use its repository-relative path. New and changed specs are checked for typed, live intent targets; legacy paths remain readable. Discovery records provenance and does not itself assert a feature-delivery route.”
 
 ## Tasks
 
@@ -96,7 +105,7 @@ For the contract guide and metadata reference: “When `Discovery:` names an int
 **Tests:**
 - **VI-3001.** Record the derived source-writer inventory, and add construction pins in the shared authoring suite for changed instructions/templates. Pins distinguish registered intent kinds from repository-path research/notes examples (AC-0009).
 - **VI-3002.** Capture the current cohort manifest, compare each replacement's target identity, and assert unchanged nonselected headers and body bytes. Compare before/after relation sets through the widened resolver; exercise the missing-target stop on a fixture. Run the sweep twice and record the empty second diff (AC-0010, AC-0011).
-- **VI-3003.** Run the named guide structure/title/portable-reference checks after applying the draft to the contract guide (AC-0009; Durable Outputs).
+- **VI-3003.** Run the named guide structure/title/portable-reference checks after applying the draft to the close-out guide and the check sentence to the build-loop guide (AC-0009; Durable Outputs).
 
 **Done when:** T3 authoring, migration, and edited-guide checks pass.
 
@@ -130,3 +139,7 @@ The Core patch release delivers the resolver before any newly typed writers or c
 
 - 2026-10-08: spec and plan approved together by the repository owner, conditional on the final alignment check passing; that check passed with zero findings across both slices. Both shaping findings are refuted by the replacement adjudication; adversarial round 1 is clean. Reports are under `.context/reviews/f7835c64-6659-4e9a-9317-f7b345bb3a39/`.
 - Approved reviewed revisions, before lifecycle-only approval annotations: spec SHA-256 `fd033ddf6f139b13a3d10d21f5d561e8b4ad941da83ee922e071f40ce0924586`; plan SHA-256 `cb3ba2fd580cf17d193c62d0454b993eda4323ab7bfae4cdd32df0d1ad37a966`.
+- 2026-10-20: drift amendment, at the owner's request to recheck the approved contract against current `main` before building. `guides/core/how-to/write-the-contract.md` was merged into `guides/core/how-to/start-the-work.md` ("Run the build loop") on 2026-10-15; the spec's Durable Outputs row and this plan's writer list, guide draft, and VI-3003 now name that page. ADR-0142 D10, accepted 2026-10-11, is now cited with an assumption and kill condition: it qualifies a brief's `Parent intent:` only. The spec's never-do rule now says *resolver* diagnostic code, because AC-0006 with the shared check's stable-code contract requires `Discovery:` violation codes; they reuse the check's existing failure suffixes. No acceptance criterion, task, or test changed. No task has started.
+- 2026-10-20: amendment review round 1 sustained two findings (owner ruling after two structurally invalid adjudications). `start-the-work.md` has no `Discovery:` text, so the writer list, guide draft, VI-3003, and the spec's Durable Outputs row now name `close-and-disposition-work.md` and limit `start-the-work.md` to its check sentence. The *Shared check* section now names the `discovery-` violation codes, and the spec's never-do rule points to them.
+- 2026-10-20: spec re-approved by the repository owner with the drift amendment; round-2 adversarial review adjudicated clean.
+- 2026-10-20: plan re-approved by the repository owner with the drift amendment.

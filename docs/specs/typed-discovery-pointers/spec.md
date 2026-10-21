@@ -1,10 +1,10 @@
 # Spec: Typed discovery pointers
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Approved:** 2026-10-08 by the repository owner, spec and plan together, after adjudicated shaping findings were refuted, a clean adversarial review, and a passing final alignment check.
 - **Owner:** Core maintainer
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0106 D2 and its errata; RFC-0103 D1–D3 and its 2026-10-08 errata; ADR-0074
+- **Constrained by:** RFC-0106 D2 and its errata; RFC-0103 D1–D3 and its 2026-10-08 errata; ADR-0074; ADR-0142 D10
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none
 - **Contract:** none
@@ -35,7 +35,7 @@ Authors name an intent-valued spec `Discovery:` with the intent's registered kin
 | --- | --- | --- | --- | --- | --- |
 | Current resolver contract | Additional admitted intent forms affect both consumers | Resolver source/docstrings and Core construction tests | Core maintainer | Resolver fixtures, closure-parent integration, copy pins | All pinned copies support the new forms |
 | Historical contract pointer | Readers of the frozen delivery record need the accepted decision | Status lines in `docs/specs/intent-delivery-traceability/spec.md` and `plan.md` | Core maintainer | Status-only diff review | Both point to RFC-0106 D2 and name the three affected criteria; frozen bodies remain unchanged |
-| Authoring procedure | The template and guides instruct new Discovery values | `packs/core/.apm/skills/new-spec/`; `guides/core/how-to/write-the-contract.md`; applicable inventory-proven writer surfaces | Owning pack maintainers | Source-form pins and guide lints | Typed intent authoring and path provenance are explicit |
+| Authoring procedure | The template and guides instruct new Discovery values | `packs/core/.apm/skills/new-spec/`; `guides/core/how-to/close-and-disposition-work.md`; the check sentence in `guides/core/how-to/start-the-work.md`; applicable inventory-proven writer surfaces | Owning pack maintainers | Source-form pins and guide lints | Typed intent authoring and path provenance are explicit |
 | Current architecture | Resolver admission is an existing runtime boundary | `docs/architecture/work-intake-and-artifact-routing.md` | Architecture maintainer | Whole-page comparison with source | The living resolver description admits the registered intent kinds |
 | Migration and verification | The sweep and consumer observations need stable evidence | `notes/verification-ledger.md` | Implementer | Derived manifest, before/after relations, zero-diff repeat, gates | Ledger binds evidence to the slice revision |
 | Release history | Core runtime and writer behavior change | `docs/product/changelog.md`; touched pack/plugin versions | Owning pack maintainers | Catalogue verify and release checks | Outcome-led release entry names typed Discovery support |
@@ -63,7 +63,7 @@ Authors name an intent-valued spec `Discovery:` with the intent's registered kin
 - Change `Contract:`, registry registration, navigator trust labels, or another slice's contract.
 - Add parity checks against other readers or edit `docs/specs/intent-navigation/spec.md`.
 - Rewrite the frozen delivery spec or plan bodies. Their status lines alone carry the agreed supersession pointer.
-- Add a dependency, pack, top-level directory, relation type, diagnostic code, or cross-skill import.
+- Add a dependency, pack, top-level directory, relation type, resolver diagnostic code, or cross-skill import. The shared check's `Discovery:` violation codes are the set the plan's *Shared check* section names, reusing the check's existing failure suffixes under a `discovery-` prefix.
 - Edit generated adapter projections by hand.
 
 ## Testing Strategy
@@ -94,4 +94,4 @@ None within RFC-0106 D2. Discovery edges remain `pointer_unchecked` under the un
 
 ## Assumptions
 
-None.
+- ADR-0142 D10 adds a repository qualifier to RFC-0103's grammar and applies it to a brief's `Parent intent:` only. It does not reach a spec's `Discovery:`, and no qualifier syntax exists on the default branch. Until one does, a qualified value is classified like any other value under AC-0006 and AC-0007. Kill condition: if a qualifier syntax that applies to `Discovery:` reaches the default branch before this slice merges, stop and bring the AC-0006 boundary to the owner.
