@@ -145,9 +145,10 @@ def test_a_git_failure_is_one_json_refusal(tmp_path: Path) -> None:
 
 
 def test_a_malformed_record_is_one_json_refusal(tmp_path: Path) -> None:
-    repo, _ws, _run = _started(tmp_path)
+    repo, _ws, run_id = _started(tmp_path)
     approvals = repo / SPEC / "delivery" / "approvals.jsonl"
-    approvals.write_text('{"run_id": "run-0000000000000000"}\n', "utf-8")
+    # The line keeps the run's own id: a line naming an unpinned run is refused earlier.
+    approvals.write_text(f'{{"run_id": "{run_id}"}}\n', "utf-8")
     h.git(repo, "commit", "-qam", "damage the approval line")
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 1 and payload["refusal"]["code"] == "malformed-record"

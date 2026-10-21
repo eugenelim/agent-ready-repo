@@ -432,6 +432,7 @@ def start(
         if (
             latest["envelope"]["envelope_fingerprint"] == envelope["envelope_fingerprint"]
             and latest["terminal_intent"] == intent
+            and latest["code_trust"] == code_trust
         ):
             if intent == "spec-plan":
                 _supervisor("_supervisor_loop.py").commit_terminal(ws, run_id)
@@ -480,6 +481,9 @@ def start(
             review, "review_id", f"rev-{seed[24:48]}", when, pi.validate_initial_review_dict
         ),
     }
+    if not approvals:
+        # The first admission records the installed supervisor's digests, once.
+        ws.attempts.pin(run_id)
     ws.git.build_commit(
         run_id=run_id,
         step=f"approval:{sequence}",

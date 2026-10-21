@@ -72,11 +72,20 @@ def _supervisor(filename: str) -> ModuleType:
 _commit = _supervisor("_supervisor_commit.py")
 _admission = _supervisor("_supervisor_admission.py")
 _projector = _supervisor("_supervisor_projector.py")
+_attempt = _supervisor("_supervisor_attempt.py")
 Refusal = _admission.Refusal
 Workspace = _admission.Workspace
 sibling = _commit.sibling
 
-__all__ = ["State", "derive", "next_request", "report", "status", "commit_terminal"]
+__all__ = [
+    "State",
+    "derive",
+    "next_request",
+    "report",
+    "status",
+    "commit_terminal",
+    "untrusted_blocked",
+]
 
 PRODUCER_CLASS = "work-supervisor"
 SCHEMA_VERSION = 1
@@ -289,6 +298,34 @@ class Action:
     detail: dict[str, Any] = field(default_factory=dict)
 
 
+def untrusted_blocked(state: State) -> bool:
+    """True when the run is ``untrusted`` and the host supplies no verified containment.
+
+    The supervisor then launches no repository code: no gate request, red proof, or
+    scratch receipt.
+    """
+    if state.latest["code_trust"] != "untrusted":
+        return False
+    containment = _supervisor("_containment.py")
+    return not containment.report_host_containment_axes().get("verified_sandbox")
+
+
+def untrusted_decision(ws: Workspace, state: State) -> Action:
+    """The ``human-decision`` that asks for trust or containment before code runs."""
+    return Action(
+        "request",
+        human_decision(
+            ws,
+            state,
+            "untrusted-code",
+            "The run's code trust is untrusted and this host supplies no verified "
+            "containment, so the supervisor will not run gates, red proofs, or scratch "
+            "receipts. Re-approve the run as trusted with an owner authority reference "
+            "(start --code-trust trusted), or supply verified containment.",
+        ),
+    )
+
+
 def _first_incomplete(state: State) -> tuple[dict[str, Any] | None, bool]:
     """The first incomplete task whose dependencies are complete, and whether any is incomplete."""
     complete_ids = {t["task_id"] for t in state.tasks if state.is_complete(t)}
@@ -355,7 +392,15 @@ def decide(ws: Workspace, state: State) -> Action:
         # A rules or selection defect: the stage stays unsatisfied and names its code.
         return Action("refusal", refusal=exc)
     if action is not None:
-        return action
+        gates = action.request is not None and action.request["kind"] == "run-gates"
+        return untrusted_decision(ws, state) if gates and untrusted_blocked(state) else action
+    source = ws.attempts.pending_regeneration()
+    if source is not None:
+        return Action(
+            "request",
+            make_request(ws, state, "regenerate", _attempt.regenerate_request_id(source)),
+            detail={"source_digests": source},
+        )
     for name in state.finish_effects:
         action = effects.effect_action(ws, state, name, scope="finish", task=None)
         if action is not None:
@@ -577,6 +622,9 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         if checked["kind"] in ("external-effect", "effect-query"):
             _refuse_protected_change(ws, state)
             outcome = effects.report_effect(ws, state, checked)
+        elif checked["kind"] == "regenerate":
+            ws.attempts.admit_regeneration(checked)
+            outcome = "regenerate"
         else:
             action = decide(ws, state)
             current = action.request if action.kind == "request" else None

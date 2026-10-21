@@ -16,6 +16,16 @@ committed, so a rebase never reopens a reported attempt. A moved ``HEAD`` is
 accepted only when every commit after the manifest's is in the store's list of
 commits the supervisor made; a trailer alone never counts.
 
+A ``run-gates`` or ``regenerate`` request is issued under a manifest too, and
+supervisor-launched repository code (a red proof) runs under one, so a write to a
+trusted file by launched code is refused before any commit. A ``regenerate``
+request's manifest leaves out the installed skill.
+
+The store also holds the pinned digests of the installed supervisor files. The
+admitted ``start`` records them once; every other entry point compares against
+them, and an open ``regenerate`` request also accepts the digests of the pack
+source at ``HEAD``, which the supervisor re-pins when it admits the result.
+
 Standard library only. Python 3.11+.
 """
 
@@ -28,7 +38,8 @@ import os
 import re
 import stat
 import sys
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -75,9 +86,26 @@ sibling = _commit.sibling
 ensure_directory = _commit.ensure_directory
 SupervisorGitError = _commit.SupervisorGitError
 
-__all__ = ["Attempts", "Issuance", "WORKER_KINDS", "differences"]
+__all__ = [
+    "ATTEMPT_KINDS",
+    "Attempts",
+    "Issuance",
+    "SOURCE_REL",
+    "WORKER_KINDS",
+    "differences",
+    "regenerate_request_id",
+]
 
 WORKER_KINDS = frozenset({"implement-task", "write-stub", "review-role", "assess-finding"})
+# Requests whose result the controller reports after running repository code or
+# regenerating the installed skill; each is issued under a manifest.
+ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate"}
+SOURCE_REL = "packs/core/.apm/skills/work-loop"
+PINS_FILE = "pins.json"
+REGENERATE_FILE = "regenerate.json"
+_POLICY_FILES = ("supervisor-policy.json", "review-rules.json")
+_HEX_RE = re.compile(r"[0-9a-f]{64}")
+_MAX_PIN_BYTES = 1024 * 1024
 _SCHEMA_VERSION = 1
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _SHA_RE = re.compile(r"[0-9a-f]{40,64}")
@@ -100,6 +128,15 @@ def _unverifiable(code: str, detail: str) -> SupervisorGitError:
 def _refusal(code: str, detail: str) -> Exception:
     """A ``Refusal``, loaded when needed because admission imports this module."""
     return _supervisor("_supervisor_admission.py").Refusal(code, "controller", detail)
+
+
+def _json(record: dict[str, Any]) -> bytes:
+    return json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
+
+
+def regenerate_request_id(source: dict[str, str]) -> str:
+    """The id of the ``regenerate`` request for a pack source with these digests."""
+    return "regenerate:" + hashlib.sha256(_json(source)).hexdigest()[:24]
 
 
 def _digest(data: bytes) -> str:
@@ -157,6 +194,9 @@ class Attempts:
         self.ws = ws
         self.open: Issuance | None = None
         self._manifest: Issuance | None = None
+        # The digests of the installed supervisor files, hashed before any sibling
+        # loaded; ``None`` when a caller drives the modules without the entry point.
+        self.installed: dict[str, str] | None = None
         ws.git.hardened.control_check = self._control_check
 
     # ── reading files ───────────────────────────────────────────────────────
@@ -298,7 +338,7 @@ class Attempts:
         rel = self.ws.spec_rel
         return [f"{rel}/spec.md", f"{rel}/plan.md", *state.cited_paths]
 
-    def _trusted_state(self, paths: Iterable[str]) -> dict[str, str]:
+    def _trusted_state(self, paths: Iterable[str], *, skill: bool = True) -> dict[str, str]:
         found: dict[str, str] = {}
         for rel in paths:
             try:
@@ -310,7 +350,8 @@ class Attempts:
                 continue
             if content is not None:
                 found[rel] = _digest(content)
-        found.update(self._walk(Path(SKILL_DIR), "skill:"))
+        if skill:
+            found.update(self._walk(Path(SKILL_DIR), "skill:"))
         return found
 
     # ── the supervisor store ────────────────────────────────────────────────
@@ -331,6 +372,22 @@ class Attempts:
             if exc.denial_code != "denied-already-exists":
                 raise _unverifiable(
                     "denied-attempt-store", "the attempt record cannot be written"
+                ) from exc
+
+    def _put(self, run_id: str, name: str, data: bytes, *, replace: bool = False) -> None:
+        """Write *name* in the run's store; an existing file stays unless *replace*."""
+        cm = sibling("_confined_mutation.py")
+        git_dir = self.ws.git.hardened.pins.git_dir
+        store = ensure_directory(git_dir, self.ws.git._store_rel(run_id))
+        try:
+            if replace:
+                cm.confined_atomic_replace(store, store / name, data)
+            else:
+                cm.confined_create(store, store / name, data)
+        except cm.MutationDenied as exc:
+            if replace or exc.denial_code != "denied-already-exists":
+                raise _unverifiable(
+                    "denied-attempt-store", f"{name} cannot be written to the store"
                 ) from exc
 
     def _load(self, run_id: str, store: Path) -> Issuance | None:
@@ -450,12 +507,16 @@ class Attempts:
         self, issuance: Issuance, current: str, symref: str | None, bad: bool
     ) -> list[str]:
         paths = differences(issuance.git, self.git_state())
-        trusted = [k for k in issuance.trusted if not k.startswith("skill:")]
-        paths += differences(issuance.trusted, self._trusted_state(trusted))
+        paths += differences(issuance.trusted, self._files(issuance))
         if bad or symref != issuance.head_ref:
             paths.append("HEAD")
         paths += self._delivery()
         return sorted(set(paths))
+
+    def _files(self, issuance: Issuance) -> dict[str, str]:
+        """The trusted files as they stand now, for comparison with *issuance*'s manifest."""
+        trusted = [k for k in issuance.trusted if not k.startswith("skill:")]
+        return self._trusted_state(trusted, skill=issuance.kind != "regenerate")
 
     def _control_check(self, hardened: Any) -> None:
         """The helper's pre-check: Git control state must match the open attempt's manifest."""
@@ -486,9 +547,7 @@ class Attempts:
             # read state a worker changed, and a refusal here is still recorded.
             git_paths = differences(issuance.git, self.git_state())
             if git_paths:
-                trusted = [k for k in issuance.trusted if not k.startswith("skill:")]
-                files = self._trusted_state(trusted)
-                paths = sorted({*git_paths, *differences(issuance.trusted, files)})
+                paths = sorted({*git_paths, *differences(issuance.trusted, self._files(issuance))})
             else:
                 current_ref, current = self.head_state()
                 bad = current != issuance.head and self._history(issuance, current)
@@ -565,17 +624,30 @@ class Attempts:
         """
         request = action.request if action.kind == "request" else None
         open_attempt = self.open
-        if request is not None and request["kind"] in WORKER_KINDS:
+        if request is not None and request["kind"] in ATTEMPT_KINDS:
             if open_attempt is not None and open_attempt.request_id == request["request_id"]:
                 return
             if open_attempt is not None:
                 self._mark(open_attempt, ".superseded")
-            self._record(state, request)
+            regenerating = request["kind"] == "regenerate"
+            self._record(state, request, skill=not regenerating)
+            if regenerating:
+                self._put(
+                    state.run_id,
+                    REGENERATE_FILE,
+                    _json({
+                        "schema_version": _SCHEMA_VERSION,
+                        "run_id": state.run_id,
+                        "request_id": request["request_id"],
+                        "source": action.detail["source_digests"],
+                    }),
+                    replace=True,
+                )
         elif open_attempt is not None and (request is not None or action.kind == "terminal"):
             self._mark(open_attempt, ".superseded")
             self.open = self._manifest = None
 
-    def _record(self, state: Any, request: dict[str, Any]) -> None:
+    def _record(self, state: Any, request: dict[str, Any], *, skill: bool = True) -> None:
         run_id = state.run_id
         store = self._store_dir(run_id)
         previous = self._load(run_id, store)
@@ -589,12 +661,193 @@ class Attempts:
             "kind": request["kind"],
             "head": head,
             "head_ref": symref,
-            "trusted": self._trusted_state(self.trusted_paths(state)),
+            "trusted": self._trusted_state(self.trusted_paths(state), skill=skill),
             "git": self.git_state(),
         }
-        body = json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
+        body = _json(record)
         self._write(run_id, f"{seq:06d}.json", body)
         self.open = self._manifest = self._load(run_id, store)
+
+    # ── launched code ───────────────────────────────────────────────────────
+
+    @contextmanager
+    def launched(self, state: Any, label: str) -> Generator[None]:
+        """Run repository code the supervisor launches, then check what it left behind.
+
+        With an attempt open, the attempt's manifest is the baseline; otherwise the
+        launch is issued under its own manifest. A difference afterwards refuses the
+        result the same way a refused attempt does, and leaves residue.
+        """
+        own = self.open is None
+        if own:
+            self._record(state, {"request_id": f"launch:{label}", "kind": "red-proof"})
+        issuance = self.open
+        assert issuance is not None
+        try:
+            yield
+        finally:
+            current_ref, current = self.head_state()
+            bad = current != issuance.head and self._history(issuance, current)
+            paths = self._differences(issuance, current, current_ref, bad)
+            if paths:
+                self._refuse(issuance, paths, "report")
+            if own:
+                self._mark(issuance, ".reported")
+                self.open = self._manifest = None
+
+    # ── pinned digests ──────────────────────────────────────────────────────
+
+    def _pin_record(self, run_id: str, name: str, key: str) -> dict[str, str] | None:
+        """The digest map under *key* in a store record; ``None`` when it is absent."""
+        store = self._store_dir(run_id)
+        path = store / name
+        if not os.path.lexists(path):
+            return None
+        fs = sibling("_file_safety.py")
+        try:
+            record = json.loads(
+                bytes(fs.read_confined_regular_file(store, path, max_bytes=_MAX_PIN_BYTES))
+            )
+        except (ValueError, fs.UnsafeContentError, OSError) as exc:
+            raise _unverifiable("supervisor-changed", f"{name} cannot be read") from exc
+        digests = record.get(key) if isinstance(record, dict) else None
+        if (
+            not isinstance(record, dict)
+            or record.get("schema_version") != _SCHEMA_VERSION
+            or record.get("run_id") != run_id
+            or not isinstance(digests, dict)
+            or not digests
+            or not all(
+                isinstance(k, str) and _HEX_RE.fullmatch(str(v)) for k, v in digests.items()
+            )
+        ):
+            raise _unverifiable("supervisor-changed", f"{name} is malformed")
+        return digests  # type: ignore[no-any-return]
+
+    def _pin_body(self, run_id: str, digests: dict[str, str]) -> bytes:
+        return _json({
+            "schema_version": _SCHEMA_VERSION,
+            "run_id": run_id,
+            "spec": self.ws.spec_rel,
+            "digests": digests,
+        })
+
+    def check_pins(self) -> None:
+        """Refuse unless the installed files match the admitted run's pins.
+
+        The entry point compared them before any sibling loaded, from the working
+        copy of the approvals; this reads the committed approvals, so a missing
+        working copy hides nothing. An open ``regenerate`` request also accepts the
+        digests of the pack source it recorded.
+        """
+        installed = self.installed
+        approvals = self.ws.approvals() if installed is not None else []
+        if installed is None or not approvals:
+            return
+        run_id = approvals[0]["run_id"]
+        pinned = self._pin_record(run_id, PINS_FILE, "digests")
+        if pinned is None:
+            raise _unverifiable("supervisor-changed", "the supervisor's pin record is missing")
+        if installed != pinned and installed != self._pin_record(
+            run_id, REGENERATE_FILE, "source"
+        ):
+            raise _refusal(
+                "supervisor-changed", "the installed supervisor differs from its pinned digests"
+            )
+
+    def pin(self, run_id: str) -> None:
+        """Record the installed digests for a run's first admission; a later one compares.
+
+        A record that already exists is never overwritten, and a different one refuses.
+        """
+        installed = self.installed
+        if installed is None:
+            return
+        recorded = self._pin_record(run_id, PINS_FILE, "digests")
+        if recorded is None:
+            self._put(run_id, PINS_FILE, self._pin_body(run_id, installed))
+        elif recorded != installed:
+            raise _refusal(
+                "supervisor-changed", "the installed supervisor differs from its pinned digests"
+            )
+
+    # ── regeneration ────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _pinned_name(rel: str) -> bool:
+        """Whether *rel*, relative to a skill directory, is a pinned file."""
+        if rel in _POLICY_FILES:
+            return True
+        head, _, name = rel.rpartition("/")
+        return head == "scripts" and name.endswith(".py")
+
+    def source_digests(self) -> dict[str, str] | None:
+        """Digests of the pack source's pinned files at ``HEAD``; ``None`` without that source."""
+        prefix = SOURCE_REL + "/"
+        entries = {
+            p[len(prefix) :]: oid for p, oid in self.ws.git.tree_entries() if p.startswith(prefix)
+        }
+        if not entries:
+            return None
+        wanted = {rel: oid for rel, oid in entries.items() if self._pinned_name(rel)}
+        oids = sorted(set(wanted.values()))
+        out = self.ws.git.run("cat-file", "--batch", stdin=("\n".join(oids) + "\n").encode())
+        blobs: dict[str, bytes] = {}
+        position = 0
+        for oid in oids:
+            end = out.index(b"\n", position)
+            fields = out[position:end].split()
+            if len(fields) != 3 or fields[0].decode() != oid or fields[1] != b"blob":
+                raise _unverifiable("denied-attempt-record", "the pack source cannot be read")
+            size = int(fields[2])
+            blobs[oid] = out[end + 1 : end + 1 + size]
+            position = end + 1 + size + 1
+        return {rel: hashlib.sha256(blobs[oid]).hexdigest() for rel, oid in sorted(wanted.items())}
+
+    def pending_regeneration(self) -> dict[str, str] | None:
+        """The pack source's digests while a ``regenerate`` request is due or still open.
+
+        It is due when ``HEAD`` holds the source and the installed skill differs. Once the
+        controller has regenerated, the request stays current until it is reported.
+        """
+        if self.installed is None:
+            return None
+        source = self.source_digests()
+        if source is None:
+            return None
+        if source != self.installed:
+            return source
+        open_attempt = self.open
+        if (
+            open_attempt is not None
+            and open_attempt.kind == "regenerate"
+            and open_attempt.request_id == regenerate_request_id(source)
+        ):
+            return source
+        return None
+
+    def admit_regeneration(self, result: dict[str, Any]) -> None:
+        """Admit a ``regenerate`` result: the installed files must equal the source at ``HEAD``.
+
+        Re-pins the installed digests and closes the request's acceptance of source digests.
+        """
+        issuance = self.open
+        if (
+            issuance is None
+            or issuance.kind != "regenerate"
+            or issuance.request_id != result.get("request_id")
+        ):
+            raise _refusal("not-current-attempt", "the result is not for the current request")
+        source = self.source_digests()
+        if self.installed is None or source is None or source != self.installed:
+            raise _refusal(
+                "supervisor-changed",
+                "the installed skill does not match the pack source at HEAD",
+            )
+        self._put(
+            issuance.run_id, PINS_FILE, self._pin_body(issuance.run_id, source), replace=True
+        )
+        (issuance.store / REGENERATE_FILE).unlink(missing_ok=True)
 
     # ── the change set ──────────────────────────────────────────────────────
 

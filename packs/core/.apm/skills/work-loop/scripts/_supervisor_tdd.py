@@ -76,6 +76,8 @@ def _stub_view(task: dict[str, Any]) -> list[dict[str, Any]]:
 def task_action(ws: Any, state: Any, task: dict[str, Any]) -> Any:
     """The current action for the first incomplete task."""
     if task["stubs"] and (task["task_id"], task["stub_digest"]) not in state.red:
+        if _loop.untrusted_blocked(state):
+            return _loop.untrusted_decision(ws, state)
         if all(ws.git.show(s["path"]) == s["content"].encode("utf-8") for s in task["stubs"]):
             return _loop.Action("auto-red", detail={"task": task})
         return _loop.Action(
@@ -180,6 +182,17 @@ def observe(
     return results
 
 
+def _refuse_untrusted_launch(state: Any) -> None:
+    """Refuse a red proof for an untrusted run that has no verified containment."""
+    if _loop.untrusted_blocked(state):
+        raise Refusal(
+            "untrusted-code-refused",
+            "owner",
+            "the run is untrusted and no verified containment is available, so no red "
+            "proof or scratch receipt is launched",
+        )
+
+
 def _all_red(task: dict[str, Any], observed: list[tuple[str, int | None]]) -> bool:
     by_path = {s["path"]: s for s in task["stubs"]}
     return all(code is not None and code in by_path[path]["red_exit"] for path, code in observed)
@@ -218,7 +231,9 @@ def _red_receipt(ws: Any, state: Any, step: str, task: dict[str, Any]) -> dict[s
 
 def commit_supervisor_red(ws: Any, state: Any, task: dict[str, Any]) -> Any:
     """Observe committed stubs on HEAD and record the supervisor's red proof."""
-    observed = observe(ws, task, {})
+    _refuse_untrusted_launch(state)
+    with ws.attempts.launched(state, f"red:{task['task_id']}:{task['stub_digest']}"):
+        observed = observe(ws, task, {})
     if not _all_red(task, observed):
         return _not_red(task, observed)
     step = f"red:{task['task_id']}:{task['stub_digest']}"
@@ -249,6 +264,7 @@ def report_task(
                 "controller",
                 "a stub attempt may change exactly the stub files: " + ", ".join(changed),
             )
+        _refuse_untrusted_launch(state)
         overlay = {}
         for stub in task["stubs"]:
             content = ws.git.read_working(stub["path"])
@@ -259,7 +275,8 @@ def report_task(
                     f"{stub['path']} is not byte-identical to the plan",
                 )
             overlay[stub["path"]] = content
-        observed = observe(ws, task, overlay)
+        with ws.attempts.launched(state, f"stub:{task['task_id']}:{task['stub_digest']}"):
+            observed = observe(ws, task, overlay)
         if not _all_red(task, observed):
             raise _not_red(task, observed)
         evidence = ws.evidence_append([_red_receipt(ws, state, step, task)])
