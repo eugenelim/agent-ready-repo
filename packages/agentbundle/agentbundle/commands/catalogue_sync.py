@@ -83,9 +83,10 @@ _APPLY_FAILED = 4
 
 # The two digest-bearing schemes fetch_catalogue_archive_with_provenance
 # handles; every other URI (local path or git+https://) goes through
-# resolve_catalogue instead. Whose digest each form verifies differs — see
-# docs/specs/catalogue-sync-dry-run/notes/grounding/probe-digest-provenance.py —
-# which is why the two get distinct fidelity tokens rather than one shared
+# resolve_catalogue instead. Whose digest each form verifies differs: an
+# archive+https URI carries the adopter's own `#sha256=` fragment, while
+# catalogue+https takes the sha256 from the resolved channel descriptor. That
+# is why the two get distinct fidelity tokens rather than one shared
 # "verified-digest" token.
 _DIGEST_BEARING_PREFIXES = ("archive+https://", "catalogue+https://")
 
