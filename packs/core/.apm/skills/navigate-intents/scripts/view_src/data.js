@@ -1,5 +1,6 @@
   // ------------------------------------------------------------------ data
   var data = null;
+  var readiness = null;
   var nodes = new Map();
   var recordIds = [];
   var kidsOf = new Map();
@@ -31,6 +32,29 @@
       Array.isArray(d.nodes) && Array.isArray(d.edges) && isObj(d.source_links) &&
       d.nodes.every(function (n) { return isObj(n) && isStr(n.id); }) &&
       d.edges.every(function (e) { return isObj(e) && isStr(e.from); });
+  }
+
+  function validFinding(f) {
+    return isObj(f) && isStr(f.code) && isStr(f.next_action) && typeof f.known === 'boolean';
+  }
+  // The shape the export writes.  A member that fails it is read as unchecked, never as damage.
+  function validReadiness(r) {
+    if (!isObj(r)) { return false; }
+    if (r.checked === false) {
+      return r.reason === 'not_requested' || (isStr(r.reason) && own(REASON_TEXT, r.reason) !== undefined);
+    }
+    var s = r.start;
+    return r.checked === true && Array.isArray(r.active) && r.active.every(isStr) &&
+      Array.isArray(r.ready) && r.ready.every(isStr) && Array.isArray(r.blocked) &&
+      r.blocked.every(function (b) {
+        return isObj(b) && isStr(b.id) && Array.isArray(b.findings) && b.findings.every(validFinding);
+      }) && isObj(s) && own(START_RULES, s.rule) === true && (s.id === null || isStr(s.id)) &&
+      typeof s.held === 'boolean' && Number.isInteger(s.active_count) && s.active_count >= 0;
+  }
+  // An export made before this member existed has none: that is the quiet default.
+  function readReadiness(raw) {
+    if (raw === undefined) { return { checked: false, reason: 'not_requested' }; }
+    return validReadiness(raw) ? raw : { checked: false, reason: 'wrong_schema' };
   }
 
   function rec(id) {
@@ -185,6 +209,7 @@
   function posOf(item) { return typeof item.position === 'number' ? item.position : 0; }
 
   function buildIndexes() {
+    readiness = readReadiness(data.readiness);
     data.nodes.forEach(function (n) { nodes.set(n.id, n); });
     indexDependencies();
     recordIds = Object.keys(data.records).sort(cmp);

@@ -103,6 +103,10 @@
     if (entry.edge) {
       context = (isStr(entry.edge.field) ? entry.edge.field : 'Pointer') + ': ' +
         (own(STATE_HELP, entry.edge.state) !== undefined ? entry.edge.state : 'refused');
+    } else if (entry.workspace) {
+      context = el('span');
+      text(context, 'Workspace finding: ');
+      add(context, el('span', 'value wrap', entry.workspace.code));
     } else if (entry.dep || entry.cycle) {
       var depState = entry.cycle ? 'cycle' : entry.dep.state;
       context = 'Depends on: ' + (own(STATE_HELP, depState) !== undefined ? depState : 'refused');
@@ -115,8 +119,23 @@
     return li;
   }
 
+  // Checked readiness lists what workspace-status reports, grouped, instead of the startable stages.
+  function bodyReadiness() {
+    add(dom.list, readinessPreface());
+    var groups = readinessGroups();
+    if (!groups.length) { add(dom.list, emptyLine(CHECKED_NEXT.empty)); return 0; }
+    var total = 0;
+    groups.forEach(function (g) {
+      add(dom.list, el('h3', 'group-head', g.head));
+      add(dom.list, rows(g.ids, readinessRow(g.key)));
+      total += g.ids.length;
+    });
+    return total;
+  }
   // Each body builder fills dom.list and returns the count it shows.
   function bodyNext() {
+    if (readinessChecked()) { return bodyReadiness(); }
+    add(dom.list, readinessPreface());
     if (deliveryUnavailable()) { add(dom.list, unavailableStatement()); return null; }
     var ids = startableIds();
     if (!ids.length) { add(dom.list, emptyLine(question('next').empty)); return 0; }
@@ -186,7 +205,7 @@
   function emptyCorpus() { return data.nodes.length === 0; }
 
   function renderList(route, announce) {
-    var q = question(route.q);
+    var q = checkedQuestion(question(route.q));
     listGeneration += 1;
     clear(dom.list);
     clear(dom.tools);
@@ -204,6 +223,7 @@
       dom.listTitle.textContent = q.title;
       dom.listLead.textContent = q.key === 'next' ? q.lead : '';
       dom.listSort.textContent = q.sort;
+      if (q.key === 'next') { add(dom.list, readinessPreface()); }
       var box = add(dom.list, el('div', 'empty'));
       add(box, el('p', '', 'No intents, briefs or specs found under this root.'));
       add(box, el('p', 'note', 'The export reads docs/product/intents, docs/product/briefs and docs/specs.'));

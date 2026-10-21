@@ -127,6 +127,8 @@ def test_token_file_names_every_property_the_base_sheet_declares() -> None:
 
 
 _MARKS = ("active", "approved", "draft", "done", "broken", "stale")
+# The readiness marks reuse the tint of the state they sit beside; their glyph and word tell them apart.
+_SHARED_TINT = {"ready": "approved", "blocked": "broken"}
 
 
 def _mark_colours(css: str, colour: dict[str, str]) -> dict[str, str]:
@@ -143,12 +145,13 @@ def _mark_colours(css: str, colour: dict[str, str]) -> dict[str, str]:
 
 
 def test_state_mark_backgrounds_differ() -> None:
-    """The six state marks each declare a background, and the six resolve to six different colours per theme."""
+    """The six state marks resolve to six different colours per theme; each readiness mark takes its neighbour's."""
     colours = _token_tables()["Colour"]
     for index, theme in enumerate(("light", "dark")):
         resolved = _mark_colours(_BASE_CSS, {role: pair[index] for role, pair in colours.items()})
-        assert sorted(resolved) == sorted(_MARKS), theme
-        assert len(set(resolved.values())) == len(_MARKS), (theme, resolved)
+        assert sorted(resolved) == sorted((*_MARKS, *_SHARED_TINT)), theme
+        assert len({resolved[m] for m in _MARKS}) == len(_MARKS), (theme, resolved)
+        assert all(resolved[m] == resolved[o] for m, o in _SHARED_TINT.items()), (theme, resolved)
     # The check can fail: two marks that resolve to one colour are caught.
     same = _mark_colours(
         '.mark[data-mark="done"] { background: var(--c-a); } .mark[data-mark="draft"] { background: var(--c-b); }',

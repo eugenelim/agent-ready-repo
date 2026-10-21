@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import re
 import shutil
 
 # Path to the committed mixed/ corpus, resolved relative to this file.
@@ -217,3 +218,33 @@ def build_unsafe_nested_spec_corpus(tmp_path: pathlib.Path) -> pathlib.Path:
     real_target = notes_dir.parent / "spec.md"
     (notes_dir / "link.md").symlink_to(real_target)
     return root
+
+
+# ---------------------------------------------------------------------------
+# Hostile strings and the data-block scan, shared by the export suites
+# ---------------------------------------------------------------------------
+
+# The strings of export criterion 0031: none may appear in the HTML outside the data block.
+HOSTILE_NEEDLES = (
+    "</script><script>",
+    "<img src=x",
+    "onerror",
+    "javascript:",
+    '"><svg',
+    "alert(1)",
+    "\u2028",
+    "\u2029",
+    "\u202e",
+    "\u200f",
+)
+
+_DATA_BLOCK = re.compile(
+    r'<script type="application/json" id="intent-data">(.*?)</script>', re.DOTALL
+)
+
+
+def outside_data_block(html: str) -> str:
+    """Return ``html`` with the content of its one data block removed."""
+    block = _DATA_BLOCK.search(html)
+    assert block is not None
+    return html.replace(block.group(1), "")

@@ -5278,3 +5278,1036 @@ def test_handover_ac_0018_reduced_motion_keeps_the_prompt_block_still(
     )
     assert bad == [], bad
     assert page.locator(".prompt-block *").count() >= 3
+
+
+# ---------------------------------------------------------------------------
+# "What can I work on next?" with readiness (readiness-handover AC-0015, AC-0022 .. AC-0029,
+# AC-0036, AC-0037)
+# ---------------------------------------------------------------------------
+
+import os  # noqa: E402
+import tempfile  # noqa: E402
+
+rmod = nav._load_readiness_mod()  # the module run_export loads: the read deadline lives here
+
+_R_BRAVO = "docs/specs/bravo-spec/spec.md"
+_R_CHARLIE = "docs/specs/charlie-spec/spec.md"
+_R_GOLF = "docs/specs/golf-new/spec.md"
+_R_DELIVERY = "docs/product/briefs/bravo-delivery.md"
+_DEP_ACTION = "Complete or explicitly revise the dependency."
+_R_REASON_TEXT = {
+    "unreadable": "standard input could not be read",
+    "timed_out": "nothing finished arriving within 60 seconds",
+    "too_large": "the piped input was larger than 4 MiB",
+    "empty": "nothing was piped in",
+    "not_json": "the piped input was not valid JSON",
+    "no_workspace": "this repository has no workspace.toml",
+    "wrong_schema": "the piped input was not workspace-status status output this view reads",
+    "bad_workspace": "workspace-status reported a problem with workspace.toml itself",
+    "page_too_big": "the page would have been too large with it",
+}
+_START = "work-loop with no spec named"
+_DROPPED_PATHS = [
+    "/etc/passwd",
+    "C:\\x\\spec.md",
+    "../x/spec.md",
+    "docs/specs/../../x/spec.md",
+    "docs/specs//bravo-spec/spec.md",
+    "no-such-slug",
+    "docs/specs/absent-spec/spec.md",
+    "docs/specs/bravo-spec/spec.md/",
+    "docs/specs/Bravo-Spec/spec.md",
+    "workspace.toml",
+]
+
+
+def _r_finding(code: str = "unsatisfied_dependency", action: str = _DEP_ACTION, **extra: Any) -> dict[str, Any]:
+    return {"code": code, "dispatchable": False, "next_action": action, **extra}
+
+
+def _r_entry(path: str, dispatchable: bool = True, findings: list[Any] | None = None) -> dict[str, Any]:
+    return {"path": path, "dispatchable": dispatchable, "findings": findings or []}
+
+
+def _r_blocked(path: str, *codes: str) -> dict[str, Any]:
+    return _r_entry(path, False, [_r_finding(c) for c in codes or ("unsatisfied_dependency",)])
+
+
+def _r_status(
+    ready: list[Any] | None = None,
+    active: list[Any] | None = None,
+    blocked: list[Any] | None = None,
+    findings: list[Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "mode": "status",
+        "workspace_present": True,
+        "workspace_root": ".",
+        "canonical": {
+            "performed": True,
+            "bounded": True,
+            "findings": findings or [],
+            "ready": ready or [],
+            "active": active or [],
+            "blocked": blocked or [],
+        },
+    }
+
+
+_NAMED_STATUS: dict[str, Any] = {
+    "start": _r_status(
+        ready=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)],
+        blocked=[_r_blocked(_R_GOLF, "unsatisfied_dependency", "missing_plan")],
+    ),
+    "resume": _r_status(active=[_r_entry(_R_CHARLIE)], ready=[_r_entry(_R_BRAVO)]),
+    "ask": _r_status(active=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)], ready=[_r_entry(_R_DELIVERY)]),
+    "outside": _r_status(ready=[_r_entry("docs/specs/absent-spec/spec.md"), _r_entry(_R_BRAVO)]),
+    "held": _r_status(
+        ready=[_r_entry(_R_BRAVO)], findings=[_r_finding(path=_R_BRAVO)]
+    ),
+    "none": _r_status(blocked=[_r_blocked(_R_GOLF), _r_blocked(_R_CHARLIE, "missing_plan")]),
+    "empty_lists": _r_status(),
+    "all_dropped": _r_status(
+        ready=[_r_entry("docs/specs/absent-spec/spec.md")],
+        blocked=[_r_blocked("docs/specs/other-absent/spec.md")],
+    ),
+    # Draft-only: the ready list names a Draft spec and nothing else (AC-0022's example).
+    "charlie": _r_status(ready=[_r_entry(_R_CHARLIE)]),
+    # A not-known next action holds both readiness glyphs; it is text, never a state mark.
+    "glyph_text": _r_status(
+        ready=[_r_entry(_R_BRAVO)],
+        blocked=[_r_entry(_R_GOLF, False, [_r_finding("custom_code", "\u25B6 \u25A0 go \u25B6 \u25A0")])],
+    ),
+}
+_CHECKED_NAMES = list(_NAMED_STATUS)
+
+
+def _r_bytes(status_obj: Any) -> bytes:
+    return status_obj if isinstance(status_obj, bytes) else json.dumps(status_obj).encode("utf-8")
+
+
+def _with_readiness(
+    out: pathlib.Path,
+    name: str,
+    status_obj: Any,
+    *,
+    root: pathlib.Path = _FIXTURES / "mixed",
+    from_id: str | None = None,
+    stream: Any = None,
+    deadline: float | None = None,
+    budget: int | None = None,
+    **seams: Any,
+) -> pathlib.Path:
+    """Export *root* with *status_obj*'s bytes behind the readiness descriptor."""
+    out.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryFile() as tmp:
+        tmp.write(_r_bytes(status_obj))
+        tmp.flush()
+        tmp.seek(0)
+        old_deadline, old_budget = rmod.READ_DEADLINE_SECONDS, view_mod.EXPORT_BUDGET_BYTES
+        if deadline is not None:
+            rmod.READ_DEADLINE_SECONDS = deadline
+        if budget is not None:
+            view_mod.EXPORT_BUDGET_BYTES = budget
+        try:
+            result, code = nav.run_export(
+                root, str(out), name, from_id, readiness="-",
+                readiness_stream=stream or (lambda: tmp.fileno()), **seams,
+            )
+        finally:
+            rmod.READ_DEADLINE_SECONDS, view_mod.EXPORT_BUDGET_BYTES = old_deadline, old_budget
+    assert code == 0, result
+    return pathlib.Path(result["path"])
+
+
+def _held_pipe() -> tuple[Any, Any]:
+    """A pipe whose write end stays open and silent, so a read never ends."""
+    r, w = os.pipe()
+    return (lambda: r), (r, w)
+
+
+def _failing_exports(out: pathlib.Path) -> dict[str, pathlib.Path]:
+    """One export per reason a status input can fail with, each over `mixed`."""
+    found: dict[str, pathlib.Path] = {}
+    found["unreadable"] = _with_readiness(out, "r_unreadable.html", b"", stream=lambda: None)
+    opener, (r, w) = _held_pipe()
+    try:
+        found["timed_out"] = _with_readiness(out, "r_timed_out.html", b"", stream=opener, deadline=0.3)
+    finally:
+        os.close(w)
+        os.close(r)
+    base = json.dumps(_r_status()).encode("utf-8")
+    found["too_large"] = _with_readiness(out, "r_too_large.html", base + b" " * (4_194_305 - len(base)))
+    found["empty"] = _with_readiness(out, "r_empty.html", b" \n\t ")
+    found["not_json"] = _with_readiness(out, "r_not_json.html", b"{not json")
+    found["no_workspace"] = _with_readiness(
+        out, "r_no_workspace.html", {**_r_status(), "workspace_present": False}
+    )
+    found["wrong_schema"] = _with_readiness(out, "r_wrong_schema.html", {"mode": "reconcile"})
+    found["bad_workspace"] = _with_readiness(
+        out, "r_bad_workspace.html", _r_status(findings=[_r_finding("invalid_workspace")])
+    )
+    # The lowered budget is the page's own size without the flag, so a checked page cannot fit.
+    plain = _export(_FIXTURES / "mixed", out / "plain", "plain.html")
+    found["page_too_big"] = _with_readiness(
+        out, "r_page_too_big.html", _NAMED_STATUS["start"],
+        budget=len(plain.read_text(encoding="utf-8").encode("utf-8")) + 1,
+    )
+    return found
+
+
+@pytest.fixture(scope="module")
+def rx(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]:
+    """Named checked exports, then one per failing reason, then the no-flag export, over `mixed`."""
+    out = tmp_path_factory.mktemp("readiness_exports")
+    found = {name: _with_readiness(out, f"r_{name}.html", obj) for name, obj in _NAMED_STATUS.items()}
+    found.update(_failing_exports(out))
+    found["noflag"] = _export(_FIXTURES / "mixed", out, "r_noflag.html")
+    return found
+
+
+_FAIL_NAMES = list(_R_REASON_TEXT)
+
+
+def _readiness_of(path: pathlib.Path) -> dict[str, Any]:
+    return payload_of(path)["readiness"]  # type: ignore[no-any-return]
+
+
+def _group_rows(page: Page) -> list[tuple[str, list[str]]]:
+    """(subheading, row ids) for each group under the list's header."""
+    found = page.evaluate(
+        """() => Array.from(document.querySelectorAll('#list > h3.group-head')).map((h) => [
+          h.textContent,
+          Array.from(h.nextElementSibling.querySelectorAll('a.row-link')).map((a) => a.dataset.node)])"""
+    )
+    return [(head, ids) for head, ids in found]
+
+
+def _expected_groups(ready: dict[str, Any]) -> list[tuple[str, list[str]]]:
+    groups = [
+        ("Active", list(ready["active"])),
+        ("Ready", list(ready["ready"])),
+        ("Blocked", [b["id"] for b in ready["blocked"]]),
+    ]
+    return [(head, ids) for head, ids in groups if ids]
+
+
+def test_readiness_payload_fixtures_have_the_intended_shape(rx: dict[str, pathlib.Path]) -> None:
+    """The named inputs project to the states the other checks rely on, so none can quietly drift."""
+    start = {name: _readiness_of(rx[name])["start"] for name in _CHECKED_NAMES}
+    assert start["start"] == {"rule": "start", "id": "spec:bravo-spec", "held": False, "active_count": 0}
+    assert start["resume"] == {"rule": "resume", "id": "spec:charlie-spec", "held": False, "active_count": 1}
+    assert start["ask"] == {"rule": "ask", "id": None, "held": False, "active_count": 2}
+    assert start["outside"] == {"rule": "start", "id": None, "held": False, "active_count": 0}
+    assert start["held"] == {"rule": "start", "id": None, "held": True, "active_count": 0}
+    assert start["none"]["rule"] == "none"
+    for name in _CHECKED_NAMES:
+        assert _readiness_of(rx[name])["checked"] is True, name
+    assert _readiness_of(rx["all_dropped"])["ready"] == []
+    for reason in _FAIL_NAMES:
+        assert _readiness_of(rx[reason]) == {"checked": False, "reason": reason}, reason
+    assert _readiness_of(rx["noflag"]) == {"checked": False, "reason": "not_requested"}
+
+
+@pytest.mark.parametrize("name", _CHECKED_NAMES)
+def test_readiness_ac_0022_groups_order_and_rail_count(
+    opener: Any, rx: dict[str, pathlib.Path], name: str
+) -> None:
+    item = opener(rx[name])
+    page = item.page
+    ready = _readiness_of(rx[name])
+    want = _expected_groups(ready)
+    assert _group_rows(page) == want
+    rows = [i for _h, ids in want for i in ids]
+    assert _ids(page) == rows
+    assert _rail_counts(page)["next"] == str(len(rows))
+    assert _count_text(page) == (f"{len(rows)} item" if len(rows) == 1 else f"{len(rows)} items")
+    assert page.locator("#list > h3.group-head + ul.rows").count() == len(want)
+    summary = "In this list: " + ", ".join(f"{len(ids)} {head.lower()}" for head, ids in want) + "."
+    if rows:
+        assert page.locator(".list-summary").inner_text() == summary
+    # The same list holds after another question and back.
+    _choose(item, "broken")
+    _choose(item, "next")
+    assert _group_rows(page) == want
+
+
+def test_readiness_ac_0022_draft_only_ready_list_is_only_that_record(
+    opener: Any, rx: dict[str, pathlib.Path]
+) -> None:
+    page = opener(rx["charlie"]).page
+    assert _ids(page) == ["spec:charlie-spec"]
+    assert "spec:bravo-spec" not in _ids(page)  # Implementing, but nothing names it
+    assert _group_rows(page) == [("Ready", ["spec:charlie-spec"])]
+
+
+@pytest.mark.parametrize("name", _CHECKED_NAMES)
+def test_readiness_ac_0023_title_lead_and_sort_key(opener: Any, rx: dict[str, pathlib.Path], name: str) -> None:
+    page = opener(rx[name]).page
+    assert _text(page, "#list-question") == "What can I work on next?"
+    assert _text(page, "#list-title") == "Active, ready and blocked"
+    assert _text(page, "#list-lead") == "Readiness from workspace-status, read when this snapshot was made."
+    assert _text(page, "#list-sort") == "Active, then ready, then blocked, in workspace-status order"
+    # No other question's header changes.
+    other = opener(rx[name])
+    _choose(other, "capabilities")
+    assert _text(other.page, "#list-title") == "Capabilities with open work"
+
+
+@pytest.mark.parametrize("name", ["start", "ask", "none"])
+def test_readiness_ac_0024_marks_and_blocked_codes(opener: Any, rx: dict[str, pathlib.Path], name: str) -> None:
+    page = opener(rx[name]).page
+    ready = _readiness_of(rx[name])
+    marks = {"Active": ("\u25CF", "Active"), "Ready": ("\u25B6", "Ready"), "Blocked": ("\u25A0", "Blocked")}
+    seen = 0
+    for head, ids in _group_rows(page):
+        for node_id in ids:
+            row = page.locator(f'#list a.row-link[data-node="{node_id}"]')
+            glyph = row.locator(".mark-g")
+            assert (glyph.inner_text(), row.locator(".mark-w").inner_text()) == marks[head], node_id
+            assert glyph.get_attribute("aria-hidden") == "true"
+            assert row.locator(".mark").count() == 1
+            seen += 1
+            context = row.locator(".c-context").inner_text()
+            if head == "Blocked":
+                codes = [f["code"] for b in ready["blocked"] if b["id"] == node_id for f in b["findings"]]
+                assert codes and context.endswith(", ".join(codes)), (context, codes)
+            else:
+                assert not any(f["code"] in context for b in ready["blocked"] for f in b["findings"])
+    assert seen == len(_ids(page))
+
+
+def _tag_text(rule: str) -> str:
+    return f"{_START} {'resumes' if rule == 'resume' else 'starts'} this"
+
+
+@pytest.mark.parametrize("name", _CHECKED_NAMES)
+def test_readiness_ac_0025_one_start_tag_inside_the_row_link(
+    opener: Any, rx: dict[str, pathlib.Path], name: str
+) -> None:
+    item = opener(rx[name], width=320)
+    page = item.page
+    start = _readiness_of(rx[name])["start"]
+    tags = page.locator(".c-tag")
+    for key in _QUESTIONS:
+        _choose(item, key)
+        want = 1 if key == "next" and start["id"] is not None else 0
+        assert page.locator(".c-tag").count() == want, key
+    _choose(item, "next")
+    if start["id"] is None:
+        assert tags.count() == 0
+        return
+    row = page.locator(f'#list a.row-link[data-node="{start["id"]}"]')
+    assert row.locator(".c-tag").inner_text() == _tag_text(start["rule"])
+    assert page.locator("a.row-link .c-tag").count() == 1
+    assert row.get_by_text(_tag_text(start["rule"])).count() == 1
+    link = page.get_by_role("link", name=re.compile(re.escape(_tag_text(start["rule"]))))
+    assert link.count() == 1 and link.get_attribute("data-node") == start["id"]
+    # At 320 CSS px the tag wraps under the name, inside its row.
+    box = row.bounding_box()
+    tag = tags.bounding_box()
+    name_box = row.locator(".c-name").bounding_box()
+    assert box and tag and name_box
+    assert box["x"] - 0.5 <= tag["x"] and tag["x"] + tag["width"] <= box["x"] + box["width"] + 0.5
+    assert box["y"] <= tag["y"] and tag["y"] + tag["height"] <= box["y"] + box["height"] + 0.5
+    assert tag["y"] >= row.locator(".c-name").evaluate(
+        "e => e.firstChild ? (() => { const r = document.createRange(); r.selectNodeContents(e.firstChild);"
+        " const b = r.getBoundingClientRect(); return b.bottom; })() : 0"
+    ) - 1
+
+
+def _expected_line(start: dict[str, Any]) -> str | None:
+    if start["id"] is not None:
+        return None
+    verb = "resume" if start["rule"] == "resume" else "start"
+    if start["rule"] == "ask":
+        return f"{_START} asks which of the {start['active_count']} active items to resume, so none is marked."
+    if start["rule"] == "none":
+        return f"{_START} finds nothing to start or resume."
+    if start["held"]:
+        return (
+            f"{_START} may refuse the item it would {verb}, because workspace-status reports a finding "
+            "about it, so none is marked."
+        )
+    return f"{_START} would {verb} an item outside this export, so none is marked."
+
+
+@pytest.mark.parametrize("name", _CHECKED_NAMES)
+def test_readiness_ac_0026_start_line_below_the_header(
+    opener: Any, rx: dict[str, pathlib.Path], name: str
+) -> None:
+    page = opener(rx[name]).page
+    want = _expected_line(_readiness_of(rx[name])["start"])
+    lines = page.eval_on_selector_all("#list > p.note", "els => els.map(e => e.textContent)")
+    assert lines == ([] if want is None else [want])
+    if want is not None:
+        first = page.evaluate("document.getElementById('list').firstElementChild.textContent")
+        assert first == want  # it sits above every subheading and row
+    assert page.locator(".list-head #list > p").count() == 0  # it is below the header, not in it
+
+
+def test_readiness_ac_0026_start_line_text_by_case(rx: dict[str, pathlib.Path]) -> None:
+    """The rendered sentences are pinned here against the spec's wording, not the helper above."""
+    assert _expected_line(_readiness_of(rx["ask"])["start"]) == (
+        "work-loop with no spec named asks which of the 2 active items to resume, so none is marked."
+    )
+    assert _expected_line(_readiness_of(rx["held"])["start"]) == (
+        "work-loop with no spec named may refuse the item it would start, because workspace-status "
+        "reports a finding about it, so none is marked."
+    )
+    assert _expected_line(_readiness_of(rx["outside"])["start"]) == (
+        "work-loop with no spec named would start an item outside this export, so none is marked."
+    )
+    assert _expected_line(_readiness_of(rx["none"])["start"]) == (
+        "work-loop with no spec named finds nothing to start or resume."
+    )
+
+
+_STATE_GLYPHS = set("\u25CF\u25C6\u25C7\u2715\u25B3\u2713\u25B6\u25A0")
+
+
+def _page_glyphs(page: Page) -> dict[str, Any]:
+    """Every state mark with its row, plus the glyph of every Key entry (the Key opened)."""
+    return page.evaluate(  # type: ignore[no-any-return]
+        """() => ({
+          marks: Array.from(document.querySelectorAll('.mark')).filter(m => !m.closest('#key')).map(m => [
+            m.querySelector('.mark-g').textContent, m.dataset.mark,
+            (m.closest('a.row-link') || {dataset: {}}).dataset.node || null]),
+          key: Array.from(document.querySelectorAll('#key .mark')).map(m => m.querySelector('.mark-g').textContent),
+          keyText: document.getElementById('key').innerText,
+        })"""
+    )
+
+
+def _all_glyph_states(item: Opened) -> list[dict[str, Any]]:
+    item.page.locator("#key summary").click()
+    found = []
+    for key in _QUESTIONS:
+        _choose(item, key)
+        found.append(_page_glyphs(item.page))
+    return found
+
+
+@pytest.mark.parametrize("name", [*_CHECKED_NAMES, "noflag", *_FAIL_NAMES])
+def test_readiness_ac_0027_ready_and_blocked_glyphs_belong_to_their_records(
+    opener: Any, rx: dict[str, pathlib.Path], name: str
+) -> None:
+    item = opener(rx[name])
+    ready = _readiness_of(rx[name])
+    for state in _all_glyph_states(item):
+        glyphs = {g for g, _m, _n in state["marks"]} | set(state["key"])
+        assert glyphs <= _STATE_GLYPHS - ({"\u25B6", "\u25A0"} if not ready["checked"] else set()), glyphs
+        if not ready["checked"]:
+            assert "\u25B6" not in state["keyText"] and "\u25A0" not in state["keyText"]
+            continue
+        for glyph, mark, node in state["marks"]:
+            if glyph == "\u25B6":
+                assert mark == "ready" and node in ready["ready"], (mark, node)
+            if glyph == "\u25A0":
+                assert mark == "blocked" and node in [b["id"] for b in ready["blocked"]], (mark, node)
+        assert not any(m == "ready" and g != "\u25B6" for g, m, _n in state["marks"])
+
+
+def test_readiness_ac_0027_next_action_text_is_not_a_state_mark(opener: Any, rx: dict[str, pathlib.Path]) -> None:
+    ready = _readiness_of(rx["glyph_text"])
+    action = ready["blocked"][0]["findings"][0]["next_action"]
+    assert "\u25B6" in action and "\u25A0" in action and ready["blocked"][0]["findings"][0]["known"] is False
+    item = opener(rx["glyph_text"])
+    for state in _all_glyph_states(item):
+        assert [n for g, _m, n in state["marks"] if g == "\u25B6"] in ([], ["spec:bravo-spec"])
+        assert [n for g, _m, n in state["marks"] if g == "\u25A0"] in ([], ["spec:golf-new"])
+
+
+def test_readiness_ac_0027_no_flag_page_has_no_ready_or_blocked_glyph_anywhere(
+    opener: Any, rx: dict[str, pathlib.Path]
+) -> None:
+    item = opener(rx["noflag"])
+    item.page.locator("#key summary").click()
+    for key in _QUESTIONS:
+        _choose(item, key)
+        body = item.page.inner_text("body")
+        assert "\u25B6" not in body and "\u25A0" not in body, key
+
+
+@pytest.mark.parametrize("name", ["empty_lists", "all_dropped"])
+def test_readiness_ac_0028_nothing_listed(opener: Any, rx: dict[str, pathlib.Path], name: str) -> None:
+    item = opener(rx[name])
+    page = item.page
+    assert _ids(page) == [] and page.locator("#list h3.group-head, #list ul.rows").count() == 0
+    assert _text(page, "#list .empty") == "workspace-status lists nothing active, ready or blocked in this export."
+    assert _count_text(page) == "0 items" and _rail_counts(page)["next"] == "0"
+    assert page.locator("#list .empty").count() == 1
+
+
+def test_readiness_ac_0028_count_is_a_number_while_outstanding_is_unavailable(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    path = _with_readiness(tmp_path, "unavailable.html", _NAMED_STATUS["start"], _delivery_provider=_incomplete)
+    assert payload_of(path)["outstanding"]["available"] is False
+    item = opener(path)
+    page = item.page
+    assert _ids(page) == ["spec:bravo-spec", "spec:charlie-spec", "spec:golf-new"]
+    assert _count_text(page) == "3 items" and _rail_counts(page)["next"] == "3"
+    assert page.locator("#list .notice").count() == 0
+    # The other questions keep their unknown counts.
+    assert _rail_counts(page)["capabilities"] == "unknown" and _rail_counts(page)["noparent"] == "unknown"
+    empty = _with_readiness(tmp_path, "unavailable_empty.html", _r_status(), _delivery_provider=_incomplete)
+    page = opener(empty).page
+    assert _count_text(page) == "0 items" and _rail_counts(page)["next"] == "0"
+    assert _text(page, "#list .empty") == "workspace-status lists nothing active, ready or blocked in this export."
+
+
+@pytest.mark.parametrize("name", [*_FAIL_NAMES, "noflag"])
+def test_readiness_ac_0029_unchecked_keeps_the_startable_list(
+    opener: Any, rx: dict[str, pathlib.Path], name: str
+) -> None:
+    item = opener(rx[name])
+    page = item.page
+    payload = payload_of(rx[name])
+    expected = Model(payload).startable()
+    assert expected == ["spec:bravo-spec", "brief:bravo-delivery", "intent:india-none"]
+    assert _ids(page) == expected and page.locator("#list h3.group-head").count() == 0
+    assert _text(page, "#list-title") == "In a startable stage"
+    assert _text(page, "#list-lead") == "Readiness not checked in this snapshot."
+    assert _text(page, "#list-sort") == "By stage, then name"
+    assert _rail_counts(page)["next"] == str(len(expected))
+    assert page.locator(".c-tag").count() == 0 and page.locator("#list > p.note").count() == 0
+    notices = page.eval_on_selector_all("#list > p.notice", "els => els.map(e => e.textContent)")
+    if name == "noflag":
+        assert notices == []
+    else:
+        assert notices == [
+            f"Readiness could not be checked: {_R_REASON_TEXT[name]}. "
+            "Run the workspace-status skill to see what is ready."
+        ]
+        assert page.evaluate("document.getElementById('list').firstElementChild.className") == "notice"
+    assert [g for g, _w, _h in _marks(page, "#list")] == [
+        Model(payload).mark(i)[0] for i in expected
+    ]
+
+
+def test_readiness_ac_0029_a_hand_edited_member_reads_as_wrong_schema_never_damaged(
+    opener: Any, rx: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    def edit(change: Any) -> Any:
+        def apply(p: dict[str, Any]) -> dict[str, Any]:
+            change(p)
+            return p
+        return apply
+
+    bad_members = {
+        "not_an_object": lambda p: p.__setitem__("readiness", "yes"),
+        "unknown_reason": lambda p: p.__setitem__("readiness", {"checked": False, "reason": "because"}),
+        "checked_missing_start": lambda p: p["readiness"].pop("start"),
+        "id_not_string": lambda p: p["readiness"]["ready"].append(7),
+        "finding_shape": lambda p: p["readiness"].__setitem__("blocked", [{"id": "spec:golf-new", "findings": [{}]}]),
+        "bad_rule": lambda p: p["readiness"]["start"].__setitem__("rule", "later"),
+        "bad_count": lambda p: p["readiness"]["start"].__setitem__("active_count", -1),
+    }
+    for label, change in bad_members.items():
+        path = _rewrite(rx["start"], tmp_path / f"{label}.html", edit(change))
+        item = opener(path)
+        page = item.page
+        assert page.locator(".alert").count() == 0 and item.errors == [], label
+        assert _ids(page) == Model(payload_of(path)).startable(), label
+        assert _text(page, "#list > p.notice") == (
+            f"Readiness could not be checked: {_R_REASON_TEXT['wrong_schema']}. "
+            "Run the workspace-status skill to see what is ready."
+        ), label
+    # An export made before the member existed carries none: unchecked, with no notice at all.
+    old = _rewrite(rx["noflag"], tmp_path / "old.html", edit(lambda p: p.pop("readiness")))
+    page = opener(old).page
+    assert page.locator(".alert, #list .notice").count() == 0
+    assert _ids(page) == ["spec:bravo-spec", "brief:bravo-delivery", "intent:india-none"]
+
+
+def test_readiness_ac_0015_rendered_text_never_holds_a_dropped_path(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    """After every question and every pick, no dropped entry's path is on the page."""
+    status_obj = _r_status(
+        ready=[*(_r_entry(p) for p in _DROPPED_PATHS[:5]), _r_entry(_R_BRAVO)],
+        active=[_r_entry("docs/specs/nowhere/spec.md")],
+        blocked=[_r_blocked(p) for p in _DROPPED_PATHS[5:]],
+    )
+    path = _with_readiness(tmp_path, "dropped.html", status_obj)
+    payload = payload_of(path)
+    assert payload["readiness"]["ready"] == ["spec:bravo-spec"] and payload["readiness"]["blocked"] == []
+    item = opener(path)
+    page = item.page
+    leaked: list[tuple[str, str]] = []
+
+    def scan(label: str) -> None:
+        body = page.evaluate("document.body.innerText")
+        for dropped in _DROPPED_PATHS:
+            # A loaded path is shown legitimately; a dropped path is tested as the whole token.
+            if re.search(r"(?<![\w./\\-])" + re.escape(dropped) + r"(?![\w./\\-])", body):
+                leaked.append((label, dropped))
+
+    for key in _QUESTIONS:
+        _choose(item, key)
+        scan(key)
+        for node in payload["nodes"]:
+            _choose(item, key, node=node["id"])
+            scan(f"{key}:{node['id']}")
+    assert leaked == []
+    scoped = _with_readiness(
+        tmp_path, "dropped_scoped.html", _r_status(ready=[_r_entry(_R_BRAVO)]), from_id="intent:india-none"
+    )
+    assert payload_of(scoped)["readiness"]["ready"] == []
+    assert _R_BRAVO not in json.dumps(payload_of(scoped)["readiness"])
+
+
+def _all_record_status(payload: dict[str, Any]) -> dict[str, Any]:
+    """A status input naming every loaded record, spread over the three lists."""
+    ready: list[Any] = []
+    active: list[Any] = []
+    blocked: list[Any] = []
+    for index, node in enumerate(sorted(payload["nodes"], key=lambda n: n["id"])):
+        if index % 3 == 0:
+            ready.append(_r_entry(node["path"]))
+        elif index % 3 == 1:
+            blocked.append(_r_blocked(node["path"]))
+        else:
+            active.append(_r_entry(node["path"]))
+    return _r_status(ready=ready, active=active, blocked=blocked)
+
+
+def _link_targets(hrefs: list[str]) -> set[str]:
+    """What each link leads to: the record a fragment names (whatever question it keeps open), the
+    bare question otherwise, and any other href exactly."""
+    targets = set()
+    for href in hrefs:
+        node = urllib.parse.parse_qs(href[1:]).get("node") if href.startswith("#") else None
+        targets.add("node " + node[0] if node else href)
+    return targets
+
+
+def _links_and_prompts(item: Opened, payload: dict[str, Any]) -> tuple[set[str], dict[str, list[str]]]:
+    hrefs: list[str] = []
+    prompts: dict[str, list[str]] = {}
+    for key in _QUESTIONS:
+        _choose(item, key)
+        hrefs += item.page.eval_on_selector_all("a[href]", "els => els.map(e => e.getAttribute('href'))")
+        for node in payload["nodes"]:
+            _choose(item, key, node=node["id"])
+            hrefs += item.page.eval_on_selector_all("a[href]", "els => els.map(e => e.getAttribute('href'))")
+            blocks = item.page.eval_on_selector_all(
+                "#detail-body .prompt-block > code.prompt", "els => els.map(e => e.textContent)"
+            )
+            if key == "next":
+                prompts[node["id"]] = blocks
+    return _link_targets(hrefs), prompts
+
+
+def test_readiness_ac_0036_links_and_prompts_equal_those_without_readiness(
+    opener: Any, rx: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    payload = payload_of(rx["noflag"])
+    status_obj = _all_record_status(payload)
+    path = _with_readiness(tmp_path, "all_records.html", status_obj)
+    checked = payload_of(path)["readiness"]
+    named = set(checked["active"]) | set(checked["ready"]) | {b["id"] for b in checked["blocked"]}
+    assert named == {n["id"] for n in payload["nodes"]}
+    plain_hrefs, plain_prompts = _links_and_prompts(opener(rx["noflag"]), payload)
+    with_hrefs, with_prompts = _links_and_prompts(opener(path), payload)
+    assert with_hrefs == plain_hrefs and with_prompts == plain_prompts
+    assert any(plain_prompts.values()), "the corpus must hold at least one prompt for this to bite"
+    assert all(h.startswith(("#", "node ", "https://github.com/")) for h in with_hrefs)
+
+
+@pytest.mark.parametrize("name", ["start", "ask", "glyph_text", "bad_workspace", "page_too_big"])
+def test_readiness_ac_0037_no_network_and_no_policy_violation(
+    opener: Any, rx: dict[str, pathlib.Path], name: str
+) -> None:
+    item = opener(rx[name])
+    _visit_everything(item, payload_of(rx[name]))
+    item.page.locator("#key summary").click()
+    assert item.page.locator("#key[open]").count() == 1
+    assert set(item.requests) == {item.url}, item.requests
+    assert item.page.evaluate("window.__csp") == []
+    assert not [m for m in item.console if "Content Security Policy" in m or "Refused" in m]
+    assert item.errors == []
+
+
+# ---------------------------------------------------------------------------
+# Workspace findings in "What is broken?", the detail and the Key
+# ---------------------------------------------------------------------------
+
+_R_HOSTILE_SPEC = "docs/specs/hostile-spec/spec.md"
+_WS_NEXT = "Workspace finding: "
+
+
+def _ws_findings(payload: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    """(holder id, finding) for every blocked finding the payload carries, in payload order."""
+    return [(b["id"], f) for b in payload["readiness"]["blocked"] for f in b["findings"]]
+
+
+def _broken_rows(page: Page) -> list[tuple[str, str]]:
+    """(holder id, context text) of every row of the open list."""
+    return page.eval_on_selector_all(  # type: ignore[no-any-return]
+        "#list a.row-link", "els => els.map(e => [e.dataset.node, e.querySelector('.c-context').textContent])"
+    )
+
+
+def _ws_rows(page: Page) -> list[tuple[str, str]]:
+    return [(n, c) for n, c in _broken_rows(page) if c.startswith(_WS_NEXT)]
+
+
+_MIXED_STATUS = _r_status(
+    blocked=[
+        _r_entry(_R_GOLF, False, [_r_finding(), _r_finding("custom_code", "Do the thing.")]),
+        _r_blocked(_R_CHARLIE, "missing_plan"),
+    ],
+    ready=[_r_entry(_R_BRAVO)],
+)
+
+
+@pytest.mark.parametrize("unavailable", [False, True])
+def test_readiness_ac_0030_each_code_is_a_broken_entry_held_by_its_record(
+    opener: Any, tmp_path: pathlib.Path, unavailable: bool
+) -> None:
+    seams = {"_delivery_provider": _incomplete} if unavailable else {}
+    path = _with_readiness(tmp_path, "ws30.html", _MIXED_STATUS, **seams)
+    payload = payload_of(path)
+    assert (payload["outstanding"].get("available", True) is False) == unavailable
+    findings = _ws_findings(payload)
+    assert [(h, f["code"]) for h, f in findings] == [
+        ("spec:golf-new", "unsatisfied_dependency"),
+        ("spec:golf-new", "custom_code"),
+        ("spec:charlie-spec", "missing_plan"),
+    ]
+    item = opener(path)
+    page = item.page
+    _choose(item, "broken")
+    rows = _broken_rows(page)
+    ws = _ws_rows(page)
+    # Held by the item's record, one row per code, in the broken-list order (by holder name, stable).
+    order = Model(payload).by_name({h for h, _f in findings})
+    assert ws == [(h, _WS_NEXT + f["code"]) for h in order for hh, f in findings if hh == h]
+    holders = [n for n, _c in rows]
+    assert holders == Model(payload).by_name(holders)
+    assert _rail_counts(page)["broken"] == str(len(rows)) and _count_text(page) == f"{len(rows)} entries"
+    if unavailable:
+        assert page.locator("#list .notice").count() == 1
+
+
+def test_readiness_ac_0030_unchecked_page_lists_no_workspace_entry(opener: Any, rx: dict[str, pathlib.Path]) -> None:
+    for name in ("noflag", "bad_workspace", "wrong_schema"):
+        item = opener(rx[name])
+        _choose(item, "broken")
+        assert _ws_rows(item.page) == [], name
+        assert "workspace finding" not in item.page.inner_text("body").lower(), name
+
+
+def test_readiness_ac_0031_detail_part_reads_known_and_not_known_findings(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    path = _with_readiness(tmp_path, "ws31.html", _MIXED_STATUS)
+    payload = payload_of(path)
+    findings = {f["code"]: f for h, f in _ws_findings(payload) if h == "spec:golf-new"}
+    assert findings["unsatisfied_dependency"]["known"] is True and findings["custom_code"]["known"] is False
+    item = opener(path)
+    page = _pick(item, "spec:golf-new", "broken")
+    part = _detail_part(page, "What is broken")
+    lines = part.locator("li.edge")
+    assert lines.count() == 2
+    first, second = lines.all_inner_texts()
+    assert first == f"Workspace finding unsatisfied_dependency: {_DEP_ACTION}"
+    assert second.startswith("Workspace finding custom_code.") and second.index("Note from workspace-status:") > 0
+    assert lines.nth(1).locator(".field").inner_text() == "Note from workspace-status:"
+    assert lines.nth(1).locator(".value").inner_text() == "Do the thing."
+    assert part.locator("li.edge a, li.edge img, li.edge script").count() == 0
+    meta = _text(page, ".state-meta")
+    count = int(meta.rsplit(" · ", 1)[1].split(" ")[0])
+    assert count >= 2 and count == page.locator("#detail-body section.part", has=page.locator("li.edge")).locator("li.edge").count()
+    # A record with no blocked item holds none.
+    other = _pick(item, "spec:bravo-spec", "broken")
+    assert "Workspace finding" not in _text(other, "#detail-body")
+
+
+def test_readiness_ac_0032_a_findings_own_path_marks_nothing(opener: Any, tmp_path: pathlib.Path) -> None:
+    status_obj = _r_status(
+        blocked=[
+            _r_entry(_R_BRAVO, False, [_r_finding(path="docs/product/intents/FEAT-0005-india-none.md")])
+        ],
+        findings=[_r_finding(path=_R_CHARLIE)],
+    )
+    path = _with_readiness(tmp_path, "ws32.html", status_obj)
+    assert [h for h, _f in _ws_findings(payload_of(path))] == ["spec:bravo-spec"]
+    item = opener(path)
+    _choose(item, "broken")
+    assert [n for n, _c in _ws_rows(item.page)] == ["spec:bravo-spec"]
+    for node in ("intent:india-none", "spec:charlie-spec"):
+        page = _pick(item, node, "broken")
+        assert "Workspace finding" not in _text(page, "#detail-body"), node
+    page = _pick(item, "spec:bravo-spec", "broken")
+    assert "Workspace finding unsatisfied_dependency" in _text(page, "#detail-body")
+
+
+_WS_LABELS = {"Active", "Ready", "Blocked", "Workspace finding", "Note from workspace-status"}
+_ALL_GLYPHS = set("●◆◇✕△✓▶■")
+
+
+def test_readiness_ac_0033_key_explains_readiness_only_while_checked(
+    opener: Any, rx: dict[str, pathlib.Path]
+) -> None:
+    item = opener(rx["start"])
+    item.page.locator("#key summary").click()
+    facts = item.page.eval_on_selector_all("#key .fact", "els => els.map(e => e.innerText)")
+    for word, glyph in (("Active", "●"), ("Ready", "▶"), ("Blocked", "■")):
+        hit = [f for f in facts if f.split("\n")[:2] == [glyph, word]]
+        assert len(hit) == 1 and "Readiness from workspace-status" in hit[0], (word, facts)
+    finding = [f for f in facts if f.startswith("Workspace finding")]
+    assert len(finding) == 1 and "workspace-status reported" in finding[0]
+    for name in ("noflag", "bad_workspace", "wrong_schema", "not_json"):
+        plain = opener(rx[name])
+        plain.page.locator("#key summary").click()
+        text = plain.page.inner_text("#key")
+        assert "Workspace finding" not in text and "workspace-status" not in text, name
+        assert not [g for g in "▶■" if g in text], name
+        for fact in plain.page.eval_on_selector_all("#key .fact", "els => els.map(e => e.innerText)"):
+            assert fact.split("\n")[1:2] not in (["Active"], ["Ready"], ["Blocked"]), (name, fact)
+
+
+def test_readiness_ac_0033_closed_label_set_over_the_hostile_export(opener: Any, tmp_path: pathlib.Path) -> None:
+    status_obj = _r_status(
+        blocked=[_r_entry(_R_HOSTILE_SPEC, False, [_r_finding(), _r_finding("custom_code", "</script> go")])],
+        ready=[_r_entry("docs/product/intents/FEAT-0001-hostile-root.md")],
+    )
+    path = _with_readiness(tmp_path, "ws33.html", status_obj, root=_FIXTURES / "hostile")
+    payload = payload_of(path)
+    assert [h for h, _f in _ws_findings(payload)] == ["spec:hostile-spec"] * 2
+    item = opener(path)
+    item.page.locator("#key summary").click()
+    rendered: dict[str, set[str]] = {c: set() for c in ("label-group", "label-state", "label-trust", "label-form")}
+    fields: set[str] = set()
+    glyphs: set[str] = set()
+    for key in ("next", "broken", "browse"):
+        _choose(item, key)
+        for node in payload["nodes"]:
+            _choose(item, key, node=node["id"])
+            for cls in rendered:
+                rendered[cls] |= set(item.page.eval_on_selector_all(f".{cls}", "e => e.map(x => x.textContent)"))
+            fields |= set(item.page.eval_on_selector_all(".field", "e => e.map(x => x.textContent)"))
+            glyphs |= {g for g, _w, _a in _marks(item.page, "body")}
+    assert rendered["label-group"] <= set(_GROUPS) | {"Workspace finding"}
+    assert "Workspace finding" in rendered["label-group"]
+    assert rendered["label-state"] <= set(_STATES)
+    assert rendered["label-trust"] <= set(_TRUST)
+    assert rendered["label-form"] <= set(_FORMS)
+    assert "Note from workspace-status:" in fields
+    assert {f.rstrip(":") for f in fields if f.startswith(("Note", "Workspace"))} <= _WS_LABELS
+    assert glyphs <= _ALL_GLYPHS and {"▶", "■"} <= glyphs
+    words = set(item.page.eval_on_selector_all("#key .mark-w", "e => e.map(x => x.textContent)"))
+    assert {"Active", "Ready", "Blocked"} <= words
+    assert item.errors == [] and set(item.requests) == {item.url}
+
+
+def test_readiness_ac_0035_unsafe_code_points_in_next_actions_show_as_escapes(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    chars = sorted(nav._UNSAFE_CHARS)
+    chunks = ["".join(chars[i : i + 40]) for i in range(0, len(chars), 40)]
+    findings = [_r_finding(f"custom_{n}", f"a{chunk}z") for n, chunk in enumerate(chunks)]
+    path = _with_readiness(tmp_path, "ws35.html", _r_status(blocked=[_r_entry(_R_GOLF, False, findings)]))
+    payload = payload_of(path)
+    carried = "".join(f["next_action"] for _h, f in _ws_findings(payload))
+    assert all(c in carried for c in chars) and not any(f["known"] for _h, f in _ws_findings(payload))
+    item = opener(path)
+    seen = ""
+    for key in _QUESTIONS:
+        _choose(item, key)
+        _expand_all(item.page)
+        seen += "".join(item.page.evaluate(_TEXT_NODES))
+        for node in payload["nodes"]:
+            _choose(item, key, node=node["id"])
+            seen += "".join(item.page.evaluate(_TEXT_NODES))
+    item.page.locator("#key summary").click()
+    seen += "".join(item.page.evaluate(_TEXT_NODES))
+    assert _unsafe_present(seen) == []
+    assert all(f"[U+{ord(c):04X}]" in seen for c in chars)
+
+
+# ---------------------------------------------------------------------------
+# Readiness layout and access across the matrix (AC-0039, AC-0040).  The shipped helpers above
+# do the measuring: _sweep, _SMALL_TARGETS, _contrast_report, _accessible_names, _tab_to.
+# ---------------------------------------------------------------------------
+
+_LONG_CODE = "a" + "b0_" * 21  # 64 characters, no break opportunity
+_LONG_NOTE = ("Run " + "x" * 160 + " then read the plan and rerun the check. " * 20)[:500]  # 500 code points
+_LAYOUT_BLOCKED = _r_entry(_R_GOLF, False, [_r_finding(_LONG_CODE, _LONG_NOTE), _r_finding()])
+_LAYOUT_STATUS = _r_status(
+    active=[_r_entry(_R_CHARLIE)], ready=[_r_entry(_R_BRAVO)], blocked=[_LAYOUT_BLOCKED]
+)
+# Every element readiness adds: the start tag, the marks, the start line, the failure notice and the
+# workspace finding lines.  The picked record (golf-new) holds the long code and the long note.
+_READINESS_ELEMENTS = ".c-tag, .mark[data-mark='active'], .mark[data-mark='ready'], .mark[data-mark='blocked'], .note, .notice, li.edge"
+_LAYOUT_NODE = "spec:golf-new"
+
+
+@pytest.fixture(scope="module")
+def rlayout(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]:
+    out = tmp_path_factory.mktemp("readiness_layout")
+    ask = _r_status(
+        active=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)], blocked=[_LAYOUT_BLOCKED]
+    )
+    return {
+        "checked": _with_readiness(out, "l_checked.html", _LAYOUT_STATUS),
+        "ask": _with_readiness(out, "l_ask.html", ask),
+        "failed": _with_readiness(out, "l_failed.html", {"mode": "reconcile"}),
+    }
+
+
+def test_readiness_layout_status_has_the_intended_shape(rlayout: dict[str, pathlib.Path]) -> None:
+    ready = _readiness_of(rlayout["checked"])
+    assert ready["start"]["id"] == "spec:charlie-spec" and ready["start"]["rule"] == "resume"
+    assert (len(ready["active"]), len(ready["ready"]), len(ready["blocked"])) == (1, 1, 1)
+    long = ready["blocked"][0]["findings"][0]
+    assert len(long["code"]) == 64 and len(long["next_action"]) == 500 and long["known"] is False
+    assert ready["blocked"][0]["id"] == _LAYOUT_NODE
+    assert _readiness_of(rlayout["ask"])["start"]["rule"] == "ask"
+    assert _readiness_of(rlayout["failed"])["checked"] is False
+
+
+def _readiness_states(
+    opener: Any, rlayout: dict[str, pathlib.Path], width: int, scheme: str
+) -> Any:
+    """(label, page) over every readiness state: lists, start line, notice, the detail, Key open."""
+    plan = [
+        ("checked-next", "checked", "next", ""),
+        ("checked-broken", "checked", "broken", ""),
+        ("checked-detail", "checked", "next", _LAYOUT_NODE),
+        ("broken-detail", "checked", "broken", _LAYOUT_NODE),
+        ("ask-next", "ask", "next", ""),
+        ("failed-next", "failed", "next", ""),
+    ]
+    for label, export, question, node in plan:
+        item = opener(rlayout[export], width=width, height=700, scheme=scheme)
+        page = item.page
+        item.go(_frag(q=question))
+        page.wait_for_selector("#list a.row-link")
+        page.locator("#key summary").click()  # open while the list is on screen (a narrow page hides it once picked)
+        if node:
+            item.go(_frag(q=question, node=node))
+            page.wait_for_selector("#detail-body details.record summary")
+            page.locator("#detail-body details.record summary").click()
+        yield label, page
+
+
+_GEOMETRY = """() => {
+  const box = (e) => e.getBoundingClientRect();
+  const rows = Array.from(document.querySelectorAll('#list li.row')).filter((e) => box(e).width > 0);
+  const out = { rows: rows.length, overlap: [], outside: [], detail: [] };
+  for (let i = 0; i < rows.length; i++) {
+    const a = box(rows[i]);
+    for (let j = i + 1; j < rows.length; j++) {
+      const b = box(rows[j]);
+      if (a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) {
+        out.overlap.push([i, j]);
+      }
+    }
+    rows[i].querySelectorAll('.c-tag, .mark').forEach((m) => {
+      const r = box(m);
+      if (r.left < a.left - 0.5 || r.right > a.right + 0.5 || r.top < a.top - 0.5 || r.bottom > a.bottom + 0.5) {
+        out.outside.push(m.className + ' ' + m.textContent.slice(0, 20));
+      }
+    });
+  }
+  const zone = document.getElementById('detail-body');
+  const z = box(zone);
+  if (z.width > 0) zone.querySelectorAll('li.edge, li.edge *').forEach((e) => {
+    const r = box(e);
+    if (r.width > 0 && (r.left < z.left - 0.5 || r.right > z.right + 0.5)) out.detail.push(e.className + ' ' + r.right + '>' + z.right);
+  });
+  out.scroll = [document.documentElement.scrollWidth, document.documentElement.clientWidth];
+  return out;
+}"""
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_readiness_ac_0039_rows_marks_and_tag_stay_inside(
+    opener: Any, rlayout: dict[str, pathlib.Path], width: int, scheme: str
+) -> None:
+    seen: set[str] = set()
+    for label, page in _readiness_states(opener, rlayout, width, scheme):
+        got = page.evaluate(_GEOMETRY)
+        assert got["overlap"] == [] and got["outside"] == [] and got["detail"] == [], (label, got)
+        assert got["scroll"][0] <= got["scroll"][1], (label, got["scroll"])
+        seen |= set(page.eval_on_selector_all(_READINESS_ELEMENTS, "e => e.map(x => x.className + x.dataset.mark)"))
+        if label == "checked-next":
+            assert got["rows"] == 3 and page.locator("#list .c-tag").count() == 1
+    flat = " ".join(seen)
+    for part in ("c-tag", "note", "notice", "edge", "active", "ready", "blocked"):
+        assert part in flat, (part, seen)
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_readiness_ac_0039_session_start_access_criteria_hold(
+    opener: Any, rlayout: dict[str, pathlib.Path], width: int, scheme: str
+) -> None:
+    checked = 0
+    for label, page in _readiness_states(opener, rlayout, width, scheme):
+        stops = _sweep(page)  # session-start 0034 and 0037
+        assert len(stops) > 5, (label, len(stops))
+        for stop in stops:
+            assert stop["hit"] and stop["visible"], (label, stop)
+            assert stop["outlineStyle"] == "solid" and stop["outlineWidth"] >= 2, (label, stop)
+            assert _ratio(_rgb(stop["outlineColor"]), _rgb(stop["bg"])) >= 3, (label, stop)
+        assert page.evaluate(_SMALL_TARGETS) == [], label  # 0035
+        rows = _contrast_report(page)  # 0036
+        checked += len(rows)
+        assert [r for r in rows if r[1] < 4.5] == [], label
+        for accessible, text in _accessible_names(page):  # 0041
+            assert accessible.strip() and _squash(text) in _squash(accessible), (label, accessible, text)
+    assert checked > 100
+
+
+def test_readiness_ac_0039_keyboard_alone_reaches_the_rows_and_detail(
+    opener: Any, rlayout: dict[str, pathlib.Path]
+) -> None:  # session-start 0038
+    page = opener(rlayout["checked"]).page
+    page.evaluate("document.body.focus()")
+    _tab_to(page, "e.matches('nav a[data-q=\"next\"]')")
+    page.keyboard.press("Enter")
+    page.wait_for_selector("#list .c-tag")
+    _tab_to(page, "e.matches('#list a.row-link') && !!e.querySelector('.c-tag')")
+    page.keyboard.press("Enter")
+    page.wait_for_function("() => document.getElementById('main').hasAttribute('data-picked')")
+    assert page.evaluate("document.querySelector('#list a.row-link[aria-current]').querySelector('.c-tag') !== null")
+    _tab_to(page, "e.matches('#list a.row-link[data-node=\"spec:golf-new\"]')")
+    page.keyboard.press("Enter")
+    page.wait_for_function("() => location.hash.includes('golf-new')")
+    _tab_to(page, "e.matches('#key summary')")
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.getElementById('key').open") is True
+    _tab_to(page, "e.matches('#detail-body details.record summary')")
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.querySelector('#detail-body details.record').open") is True
+
+
+@pytest.mark.parametrize("export", ["checked", "failed"])
+def test_readiness_ac_0040_reduced_motion_is_still(
+    opener: Any, rlayout: dict[str, pathlib.Path], export: str
+) -> None:
+    item = opener(rlayout[export], reduced_motion="reduce")
+    item.go(_frag(q="next"))
+    item.page.wait_for_selector("#list a.row-link")
+    got = item.page.evaluate(
+        """() => {
+          const els = Array.from(document.querySelectorAll('.c-tag, .mark, .notice'));
+          const bad = els.flatMap((e) => {
+            const cs = getComputedStyle(e);
+            return ['transitionDuration', 'animationDuration'].filter(
+              (p) => cs[p].split(',').some((d) => d.trim() !== '0s')).map((p) => e.className + ' ' + p + '=' + cs[p]);
+          });
+          return { count: els.length, bad, tags: document.querySelectorAll('.c-tag').length,
+                   notices: document.querySelectorAll('.notice').length };
+        }"""
+    )
+    assert got["bad"] == [], got["bad"]
+    if export == "checked":
+        assert got["tags"] == 1 and got["count"] >= 4
+    else:
+        assert got["notices"] == 1

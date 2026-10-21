@@ -19,6 +19,7 @@ import os
 import re
 import stat as _stat
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -238,6 +239,11 @@ def _load_resolver_mod() -> Any:
 # ---------------------------------------------------------------------------
 
 
+def _now() -> _dt.datetime:
+    """Return the current time; a seam so a test can pin ``generated_at``."""
+    return _dt.datetime.now(tz=_UTC)
+
+
 def _provenance(root: Path | str, graph: dict[str, Any] | None) -> dict[str, Any]:
     """Build the ``provenance`` block for a query response.
 
@@ -254,7 +260,7 @@ def _provenance(root: Path | str, graph: dict[str, Any] | None) -> dict[str, Any
         counts = {"intents": None, "briefs": None, "specs": None}
     return {
         "root": str(root),
-        "generated_at": _dt.datetime.now(tz=_UTC).isoformat(),
+        "generated_at": _now().isoformat(),
         "counts": counts,
         "untrusted_data": _UNTRUSTED_DATA,
     }
@@ -2151,6 +2157,7 @@ def _op_dependencies(
 
 VIEW_SCHEMA = "intent-navigation.view.v1"
 _VIEW_MOD: Any = None
+_READINESS_MOD: Any = None
 
 
 class ExportRefusal(Exception):
@@ -2206,6 +2213,44 @@ def _load_view_mod() -> Any:
     finally:
         sys.dont_write_bytecode = prev
     _VIEW_MOD = mod
+    return mod
+
+
+def _load_readiness_mod() -> Any:
+    """Load the co-located ``intent_readiness.py`` at most once.
+
+    Raises ``ImportError`` when the file is absent, is not a regular
+    non-symlink file, or cannot be executed.
+    """
+    global _READINESS_MOD
+    if _READINESS_MOD is not None:
+        return _READINESS_MOD
+    path = _SCRIPT_DIR / "intent_readiness.py"
+    try:
+        st = os.lstat(path)
+    except OSError as exc:
+        raise ImportError("required helper unavailable: intent_readiness.py") from exc
+    if not _stat.S_ISREG(st.st_mode) or _stat.S_ISLNK(st.st_mode):
+        raise ImportError("required helper is not a regular file: intent_readiness.py")
+    name = "core_navigate_intents_readiness_nav"
+    if name in sys.modules:
+        _READINESS_MOD = sys.modules[name]
+        return _READINESS_MOD
+    prev = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec_obj = importlib.util.spec_from_file_location(name, path)
+        if spec_obj is None or spec_obj.loader is None:
+            raise ImportError("cannot load intent_readiness.py")
+        mod = importlib.util.module_from_spec(spec_obj)
+        sys.modules[name] = mod
+        spec_obj.loader.exec_module(mod)  # type: ignore[union-attr]
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
+    finally:
+        sys.dont_write_bytecode = prev
+    _READINESS_MOD = mod
     return mod
 
 
@@ -2369,7 +2414,46 @@ def build_view_payload(
         "edges": edges,
         "source_links": links,
         "dependencies": dependencies,
+        "readiness": {"checked": False, "reason": "not_requested"},
     }
+
+
+def _readiness_page(
+    view_mod: Any,
+    readiness_mod: Any,
+    payload: dict[str, Any],
+    baseline: str,
+    stream: Callable[[], int | None] | None,
+) -> tuple[str, dict[str, Any]]:
+    """Read the status input and return the page and its ``readiness`` member.
+
+    ``baseline`` is the page with readiness unchecked.  A baseline over the
+    budget raises the export-too-large refusal before anything is read; a
+    checked page over the budget is written with ``page_too_big`` instead.
+    No failure of the status input raises.
+    """
+    size = len(baseline.encode("utf-8"))
+    if size > view_mod.EXPORT_BUDGET_BYTES:
+        raise view_mod.budget_refusal(size)
+    got = readiness_mod.read(
+        stream if stream is not None else (lambda: None),
+        readiness_mod.INPUT_LIMIT_BYTES,
+        readiness_mod.READ_DEADLINE_SECONDS,
+    )
+    if got.reason is not None:
+        member = readiness_mod.unchecked(got.reason)
+    else:
+        path_to_id = {n["path"]: n["id"] for n in payload["nodes"]}
+        member = readiness_mod.member(got.data, path_to_id)
+    if member["checked"]:
+        try:
+            page = view_mod.build_html(dict(payload, readiness=member))
+            if len(page.encode("utf-8")) <= view_mod.EXPORT_BUDGET_BYTES:
+                return page, member
+            member = readiness_mod.unchecked("page_too_big")
+        except Exception:  # noqa: BLE001 - nothing the status input causes may escape
+            member = readiness_mod.unchecked("wrong_schema")
+    return view_mod.build_html(dict(payload, readiness=member)), member
 
 
 def run_export(
@@ -2378,10 +2462,16 @@ def run_export(
     name: str | None = None,
     from_identity: str | None = None,
     *,
+    readiness: str | None = None,
+    readiness_stream: Callable[[], int | None] | None = None,
     _delivery_provider: Any | None = None,
     _resolver_loader: Any | None = None,
 ) -> tuple[dict[str, Any], int]:
-    """Build and publish the offline view; return the ``export.v1`` object and exit code."""
+    """Build and publish the offline view; return the ``export.v1`` object and exit code.
+
+    ``readiness`` is ``None`` or ``"-"``; with ``"-"`` the descriptor
+    ``readiness_stream`` returns is read once, checked and projected.
+    """
 
     def refusal(
         code: str,
@@ -2402,13 +2492,16 @@ def run_export(
     bad = sorted(
         label for label, value in (
             ("root", str(root)), ("destination", destination),
-            ("name", name), ("from", from_identity),
+            ("name", name), ("from", from_identity), ("readiness", readiness),
         ) if isinstance(value, str) and not _is_utf8_encodable(value)
     )
     if bad:
         return refusal("invalid_query", "argument is not valid UTF-8: " + ", ".join(bad))
+    if readiness not in (None, "-"):
+        return refusal("invalid_query", "--readiness takes only -")
     try:
         view_mod = _load_view_mod()
+        readiness_mod = _load_readiness_mod()
     except Exception:  # noqa: BLE001
         return refusal("resolver_unavailable", "view module is unavailable")
     try:
@@ -2416,8 +2509,14 @@ def run_export(
             root, from_identity,
             _delivery_provider=_delivery_provider, _resolver_loader=_resolver_loader,
         )
-        html = view_mod.build_html(payload)
+        html = view_mod.build_html(payload)  # the unchecked baseline when readiness is "-"
         target = view_mod.validate_destination(root, destination, name)
+        if readiness == "-":
+            html, member = _readiness_page(
+                view_mod, readiness_mod, payload, html, readiness_stream
+            )
+        else:
+            member = payload["readiness"]
         path = view_mod.publish(html, target)
     except (ExportRefusal, view_mod.ViewRefusal) as exc:
         return refusal(exc.code, exc.message, exc.limits, exc.observed)
@@ -2427,6 +2526,10 @@ def run_export(
         "path": str(path),
         "bytes": len(html.encode("utf-8")),
         "scope": payload["scope"],
+        "readiness": {
+            "checked": member["checked"],
+            "reason": None if member["checked"] else member["reason"],
+        },
     }, 0
 
 
@@ -2462,6 +2565,8 @@ def _build_cli_parser() -> argparse.ArgumentParser:
                    help="File name (default: intent-graph-<UTC time>.html).")
     e.add_argument("--from", dest="from_id", metavar="IDENTITY", default=None,
                    help="Limit the view to the subtree under this intent.")
+    e.add_argument("--readiness", metavar="-", default=None,
+                   help="Pass - to read workspace-status status output from standard input.")
     return parser
 
 
@@ -2813,7 +2918,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "export":
         result, code = run_export(
-            Path(args.root).resolve(), args.destination, args.name, args.from_id
+            Path(args.root).resolve(), args.destination, args.name, args.from_id,
+            readiness=args.readiness,
+            readiness_stream=lambda: None if sys.stdin is None else sys.stdin.fileno(),
         )
         sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=False))
         sys.stdout.write("\n")
