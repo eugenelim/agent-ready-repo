@@ -418,7 +418,7 @@ def test_close_guide_states_the_discovery_form_once_and_entries_refer_to_it() ->
     text = _read("guides/core/how-to/close-and-disposition-work.md")
     form = next(
         ln for ln in text.splitlines()
-        if ln.startswith("A spec's `Discovery:`") and "accepted `Discovery:` form" in ln
+        if ln.startswith("The accepted `Discovery:` form")
     )
     assert not discovery_form_gaps(form)
     for code in (

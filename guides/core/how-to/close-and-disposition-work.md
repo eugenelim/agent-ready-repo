@@ -62,7 +62,7 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 | **not-eligible** | At least one descendant in the full closure remains in a non-terminal state; each live descendant is named with its current state | Wait for the named descendants to complete, or close them first, then re-run closeout |
 | **eligible** | Every descendant in the full closure is terminal; an evidence packet is presented with the date, ratified decomposition, and each descendant's final state | Confirm the closure by supplying your name and the evidence you reviewed |
 
-A spec's `Discovery:` names the intent it came from as `outcome:<slug>`, `opportunity:<slug>`, `capability:<slug>`, or `intent:<slug>`. The kind is the intent's registered kind: `outcome` or `opportunity` when its `Kind:` line says so, `capability` when its `Level:` is `capability`, and `intent` for every other intent. A research or notes file stays a repository-relative path. A legacy `docs/product/intents/<file>.md` path in an older spec is still readable. This is the accepted `Discovery:` form.
+The accepted `Discovery:` form names the intent a spec came from as `outcome:<slug>`, `opportunity:<slug>`, `capability:<slug>`, or `intent:<slug>`. The kind is the intent's registered kind: `outcome` or `opportunity` when its `Kind:` line says so, `capability` when its `Level:` is `capability`, and `intent` for every other intent. A research or notes file stays a repository-relative path. A legacy `docs/product/intents/<file>.md` path in an older spec is still readable, but a spec you add or change cannot use it.
 
 **Refusal reasons that `close-work` can name:**
 

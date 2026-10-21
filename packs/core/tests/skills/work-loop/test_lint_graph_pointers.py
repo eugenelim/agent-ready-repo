@@ -477,7 +477,7 @@ DISCOVERY_CASES: dict[str, tuple[str, list[tuple[str, str]]]] = {
     "d-ok-notes": (f"- **{D}:** docs/specs/other/notes/discovery.md", []),
     "d-ok-research-link": (f"- **{D}:** [r](../../research/topic.md)", []),
     "d-ok-scheme-link": (
-        f"- **{D}:** [x](https://example.invalid/docs/product/./intents/a.md)", []),
+        f"- **{D}:** [x](https://example.invalid/../../../../../docs/product/./intents/a.md)", []),
     "d-ok-brief": (f"- **{D}:** brief:b-one", []),
     "d-ok-spec": (f"- **{D}:** spec:tracked", []),
     "d-ok-url": (f"- **{D}:** https://example.invalid/page", []),
