@@ -1,6 +1,6 @@
 # Spec: Catalogue Wave 6 — technical documentation information architecture
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D9 and OQ4](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
@@ -120,23 +120,23 @@ scaffold sync apply.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** On every built docs page, the header's "Documentation sections" navigation shows exactly the tabs Docs, CLI, Packs, Build a Catalogue, in that order.
-- [ ] **AC-0002.** The Build a Catalogue tab's top-level entry labels equal the ten labels in the RFC-0076 D9 tree, in D9 order.
-- [ ] **AC-0003.** Each page the Author and Catalogue System tabs link in `docs-site/astro.config.ts` at the branch's merge base with `origin/main` is linked from the Build a Catalogue tab's sidebar.
-- [ ] **AC-0004.** No page linked from the Build a Catalogue tab's sidebar is linked from the Docs, CLI or Packs tab's sidebar.
-- [ ] **AC-0005.** `tools/check-rendered-site-links.py --build-dir build` reports no missing page or fragment, including every Build a Catalogue sidebar link.
-- [ ] **AC-0006.** On every built page in the Build a Catalogue tab, the sidebar href of each entry carrying a `#fragment` ends with that fragment, with no `/` after it.
-- [ ] **AC-0007.** The set of built `build/docs/**/index.html` paths equals the set built from the branch's merge base with `origin/main`, plus exactly `reference/pack-toml/index.html` and `reference/skill-frontmatter/index.html`.
-- [ ] **AC-0008.** The built docs home shows a "Use the catalogue" choice linking to its own `#install` section and a "Build or evaluate a catalogue" choice linking to `guides/_shared/how-to/create-a-catalogue/`, both before the "Install" heading.
-- [ ] **AC-0009.** For each of `contracts/pack.schema.json` and `contracts/skill.schema.json`, its generated page has exactly one row per field path, where field paths are every `properties` key reached from the root through object `properties` and array `items`, after resolving local `$ref`.
-- [ ] **AC-0010.** Each row states the field's `type` value, plus for an array the `type` its `items` schema gives, with an empty Type cell when the node has no `type`; whether its parent's `required` lists it; and every `enum`, `const`, `pattern`, `default`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `maxProperties`, `uniqueItems` and `additionalProperties` value the schema gives at that path, on that field's `items` schema, or under its `propertyNames`.
-- [ ] **AC-0011.** A row's description cell is the schema's `description` at that path, verbatim, when one exists, and is empty otherwise.
-- [ ] **AC-0012.** Each row whose schema node carries `if`, `allOf`, `anyOf` or `not` contains the marker `Conditional rules: see the narrative reference`, and no row contains text derived from those keywords' contents.
-- [ ] **AC-0013.** Any schema node given as `oneOf` — a field, a value schema, an `items` schema, or an alternative of another `oneOf` — is rendered, after local `$ref` resolution, as a list of alternatives in schema order in which an alternative that is itself a `oneOf` contributes its own alternatives in its place, an alternative's `items` alternatives stay grouped inside that alternative, and each alternative carries its type and the AC-0010 values it gives.
-- [ ] **AC-0014.** Each generated page names its source schema path and links to its narrative owner: `catalogue-authoring-standards#2-pack-manifest` for `pack.toml`, `catalogue-authoring-standards#5-skill-frontmatter-and-body` for `SKILL.md` frontmatter.
-- [ ] **AC-0015.** Generating both pages twice from the same schemas produces byte-identical output.
-- [ ] **AC-0016.** At a 375 px viewport, neither generated reference page's document scrolls horizontally.
-- [ ] **AC-0017.** On every built page linked from the Build a Catalogue tab, the previous and next links are that page's neighbours in the tab's sidebar order with every `#fragment` entry skipped, and no previous or next href carries a fragment.
+- [x] **AC-0001.** On every built docs page, the header's "Documentation sections" navigation shows exactly the tabs Docs, CLI, Packs, Build a Catalogue, in that order.
+- [x] **AC-0002.** The Build a Catalogue tab's top-level entry labels equal the ten labels in the RFC-0076 D9 tree, in D9 order.
+- [x] **AC-0003.** Each page the Author and Catalogue System tabs link in `docs-site/astro.config.ts` at the branch's merge base with `origin/main` is linked from the Build a Catalogue tab's sidebar.
+- [x] **AC-0004.** No page linked from the Build a Catalogue tab's sidebar is linked from the Docs, CLI or Packs tab's sidebar.
+- [x] **AC-0005.** `tools/check-rendered-site-links.py --build-dir build` reports no missing page or fragment, including every Build a Catalogue sidebar link.
+- [x] **AC-0006.** On every built page in the Build a Catalogue tab, the sidebar href of each entry carrying a `#fragment` ends with that fragment, with no `/` after it.
+- [x] **AC-0007.** The set of built `build/docs/**/index.html` paths equals the set built from the branch's merge base with `origin/main`, plus exactly `reference/pack-toml/index.html` and `reference/skill-frontmatter/index.html`.
+- [x] **AC-0008.** The built docs home shows a "Use the catalogue" choice linking to its own `#install` section and a "Build or evaluate a catalogue" choice linking to `guides/_shared/how-to/create-a-catalogue/`, both before the "Install" heading.
+- [x] **AC-0009.** For each of `contracts/pack.schema.json` and `contracts/skill.schema.json`, its generated page has exactly one row per field path, where field paths are every `properties` key reached from the root through object `properties` and array `items`, after resolving local `$ref`.
+- [x] **AC-0010.** Each row states the field's `type` value, plus for an array the `type` its `items` schema gives, with an empty Type cell when the node has no `type`; whether its parent's `required` lists it; and every `enum`, `const`, `pattern`, `default`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `maxProperties`, `uniqueItems` and `additionalProperties` value the schema gives at that path, on that field's `items` schema, or under its `propertyNames`.
+- [x] **AC-0011.** A row's description cell is the schema's `description` at that path, verbatim, when one exists, and is empty otherwise.
+- [x] **AC-0012.** Each row whose schema node carries `if`, `allOf`, `anyOf` or `not` contains the marker `Conditional rules: see the narrative reference`, and no row contains text derived from those keywords' contents.
+- [x] **AC-0013.** Any schema node given as `oneOf` — a field, a value schema, an `items` schema, or an alternative of another `oneOf` — is rendered, after local `$ref` resolution, as a list of alternatives in schema order in which an alternative that is itself a `oneOf` contributes its own alternatives in its place, an alternative's `items` alternatives stay grouped inside that alternative, and each alternative carries its type and the AC-0010 values it gives.
+- [x] **AC-0014.** Each generated page names its source schema path and links to its narrative owner: `catalogue-authoring-standards#2-pack-manifest` for `pack.toml`, `catalogue-authoring-standards#5-skill-frontmatter-and-body` for `SKILL.md` frontmatter.
+- [x] **AC-0015.** Generating both pages twice from the same schemas produces byte-identical output.
+- [x] **AC-0016.** At a 375 px viewport, neither generated reference page's document scrolls horizontally.
+- [x] **AC-0017.** On every built page linked from the Build a Catalogue tab, the previous and next links are that page's neighbours in the tab's sidebar order with every `#fragment` entry skipped, and no previous or next href carries a fragment.
 
 ## Follow-ons
 

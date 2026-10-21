@@ -1,7 +1,7 @@
 # Plan: Catalogue Wave 6 — technical documentation information architecture
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0076 D9; `docs-site/AGENTS.md` (build order, rail tab rule, prime journey); analogous production paths `tools/build-site.py` `generate_sidebar_config` and `build_pack_index` (build-time projection into gitignored docs-site content) and `tools/build-site.py`'s importlib load of `tools/changelog.py` (sibling-module seam); their tests `tools/test_build_site_sidebar.py` and `web/src/test/rendered-output.test.ts`. Deviation: the Build a Catalogue tree lives in a JSON file `astro.config.ts` imports, rather than inline TypeScript, so a Python test can parse it natively.
 
 > **Plan contract:** this is the implementation strategy. It may change
