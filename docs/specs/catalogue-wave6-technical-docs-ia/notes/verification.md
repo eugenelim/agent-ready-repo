@@ -67,3 +67,10 @@ The ten Build a Catalogue top-level routes, first link of each, read from the bu
 | 10 | Package and publish | `guides/_shared/reference/catalogue-ci-contract/#agentbundle-catalogue-package` | Catalogue CI contract |
 
 Routes 5 and 10 are fragment links into pages routes 2 and 9 already open, so they share an h1 by design.
+
+## Re-check after rebase onto `73c77ed71` (2026-10-21)
+
+- New merge base: `73c77ed71`. `git diff --name-status --diff-filter=ADR d714ab829 73c77ed71 -- guides packs docs-site` lists one file, `packs/core/tests/skills/close-work/test_closure_typed_discovery_parent.py`, which is not a page; `docs-site/astro.config.ts` is unchanged between the two bases. The merge-base page set and the AC-0003 slug set are therefore unchanged.
+- `make site-link-check`: exit 0, `rendered-site-links: 36072 links across 625 pages; clean`.
+- Branch page list: 291 `index.html` paths, identical to the pre-rebase list (289 base + `reference/pack-toml/` + `reference/skill-frontmatter/`).
+- `npm test --prefix web`: 24 files, 238 tests passed.
