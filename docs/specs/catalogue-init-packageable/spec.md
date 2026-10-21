@@ -1,6 +1,6 @@
 # Spec: Packageable blank catalogue from `catalogue init`
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`catalogue-tooling-init`](../catalogue-tooling-init/spec.md) (a blank catalogue has zero installable packs) and [`catalogue-authoring-scaffold`](../catalogue-authoring-scaffold/spec.md) AC10 (`_`-prefixed directories are templates that packaging skips)

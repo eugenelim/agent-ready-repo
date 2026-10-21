@@ -1,7 +1,7 @@
 # Plan: Packageable blank catalogue from `catalogue init`
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `catalogue_tooling/initialise.py` (`_build_plan` already emits two generated files, `catalogue.toml` and `.claude-plugin/marketplace.json`, through `classify_conflicts`, `_stage_and_verify`, `_commit_files` and `_rollback`); `catalogue_tooling/package.py` (`package_catalogue` already returns `_err(...)` results for every other expected failure); tests `packages/agentbundle/tests/integration/test_catalogue_init.py` and `packages/agentbundle/tests/unit/test_catalogue_tooling_package.py`. Deviation: `classify_conflicts` gains one keep-existing rule for two root agent-guidance paths.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -256,3 +256,5 @@ Rollback is reverting the release.
 - A catalogue that already relied on init refusing an existing root `AGENTS.md` now gets it kept instead; no such reliance exists, because init never planned that path before.
 
 ## Changelog
+- 2026-10-21: spec approved by eugenelim
+- 2026-10-21: plan approved by eugenelim
