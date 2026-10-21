@@ -11,6 +11,8 @@ Every node carries ``id``, ``type`` (``intent`` / ``brief`` / ``spec``),
 ``path`` (repo-relative), and ``status`` (raw ``Status:`` value).
 Intent and brief nodes also carry ``slug``.  Intent nodes also carry
 ``level`` (raw ``Level:`` value) and ``kind`` (raw ``Kind:`` value).
+Every node also carries ``owner``: the first ``Owner:`` value in the
+preamble, raw, or the empty string when there is none.
 
 Edge shape
 ----------
@@ -1149,6 +1151,7 @@ def derive(root: Path) -> dict[str, Any]:
             "level": level_vals[0] if level_vals else "",
             "kind": kind_vals[0] if kind_vals else "",
             "heading": _first_h1_heading(text),
+            "owner": fields.get("Owner", [""])[0],
             "_fields": fields,  # kept for edge building; stripped from output
         }
         intent_nodes.append(node)
@@ -1195,6 +1198,7 @@ def derive(root: Path) -> dict[str, Any]:
             "path": rel,
             "status": status_vals[0] if status_vals else "",
             "heading": _first_h1_heading(text),
+            "owner": fields.get("Owner", [""])[0],
             "_text": text,  # kept for resolver's _preamble_all; stripped from output
         }
         brief_nodes.append(node)
@@ -1220,6 +1224,7 @@ def derive(root: Path) -> dict[str, Any]:
             "path": rel,
             "status": status_vals[0] if status_vals else "",
             "heading": _first_h1_heading(text),
+            "owner": fields.get("Owner", [""])[0],
             "_fields": fields,
             "_file_path": f,
         }

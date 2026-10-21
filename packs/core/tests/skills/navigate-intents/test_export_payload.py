@@ -566,6 +566,15 @@ def _expected_diag(m: dict[str, Any]) -> dict[str, Any]:
     return diag
 
 
+def _without_owner(value: Any) -> Any:
+    """Return *value* with every ``owner`` member removed at any depth."""
+    if isinstance(value, dict):
+        return {k: _without_owner(v) for k, v in value.items() if k != "owner"}
+    if isinstance(value, list):
+        return [_without_owner(v) for v in value]
+    return value
+
+
 def _digest(value: Any) -> str:
     """SHA-256 of the canonical JSON of *value*."""
     import hashlib
@@ -624,7 +633,10 @@ def test_other_members_equal_the_golden_recorded_before_dependencies(
     shutil.copytree(_FIXTURES / corpus, root)
     payload, _ = _exported(capsys, root, tmp_path / "out")
     payload["provenance"].pop("generated_at")
+    # The golden predates the `owner` member, so compare with every `owner` removed.
     digests = {
-        k: _digest(v) for k, v in payload.items() if k not in ("dependencies", "readiness")
+        k: _digest(_without_owner(v))
+        for k, v in payload.items()
+        if k not in ("dependencies", "readiness")
     }
     assert digests == _GOLDEN[corpus]

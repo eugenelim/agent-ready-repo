@@ -56,8 +56,23 @@ _VALID_OPS: frozenset[str] = frozenset(
     {"summary", "record", "tree", "ancestors", "search", "outstanding", "dependencies"}
 )
 _VALID_SELECTORS: frozenset[str] = frozenset(
-    {"level", "kind", "exact_status", "parentless", "text"}
+    {"level", "kind", "exact_status", "parentless", "text", "owner"}
 )
+
+#: Translation table for the owner key: A to Z only.
+_ASCII_LOWER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
+
+
+def _owner_key(owner: str) -> str:
+    """Return the comparison key of an owner value.
+
+    Each run of spaces and tabs becomes one space, the ends are trimmed, and
+    only the letters A to Z are lower-cased. ``str.lower`` is avoided because it
+    also folds non-ASCII letters, which the key must leave alone.
+    """
+    collapsed = re.sub(r"[ \t]+", " ", owner).strip(" ")
+    return collapsed.translate(_ASCII_LOWER)
+
 
 # Ordinal identity prefix: e.g. FEAT-0029, CAP-0001 (uppercase letters, dash, 4 digits)
 _ORDINAL_PREFIX_RE = re.compile(r"^([A-Z]+-\d{4})")
@@ -955,6 +970,7 @@ def _build_intent_record(
         "level": node.get("level") or "unrecorded",
         "kind": node.get("kind") or "",
         "status": node.get("status") or "",
+        "owner": node.get("owner", ""),
         "parent_edge": parent_edge,
         "children": children,
         "briefs": briefs,
@@ -1213,6 +1229,10 @@ def _op_search(
             parent_edge = parent_edges.get(node["id"])
             if parent_edge is not None and "to" in parent_edge and "state" not in parent_edge:
                 return False
+        if "owner" in selectors and _owner_key(node.get("owner", "")) != _owner_key(
+            selectors["owner"]
+        ):
+            return False
         if "text" in selectors:
             text_lower = selectors["text"].lower()
             slug = (node.get("slug") or "").lower()
@@ -1233,6 +1253,7 @@ def _op_search(
             "level": node.get("level") or "unrecorded",
             "kind": node.get("kind") or "",
             "status": node.get("status") or "",
+            "owner": node.get("owner", ""),
             "parent_edge": parent_edges.get(node["id"]),
         }
         intent_entries.append(entry)
@@ -1423,6 +1444,7 @@ def _build_outstanding_items(
                 "type": node_type,
                 "status": node.get("status", ""),
                 "heading": node.get("heading", ""),
+                "owner": node.get("owner", ""),
                 "parent_edge": parent_edge,
                 "ancestors": ancestors,
                 "_in_no_parent": in_no_parent,
@@ -1486,6 +1508,7 @@ def _build_outstanding_items(
                 "type": "spec",
                 "status": node.get("status", ""),
                 "heading": node.get("heading", ""),
+                "owner": node.get("owner", ""),
                 "placements": placements,
                 # in_no_parent: all placements are in no_parent
                 "_in_no_parent": all(p["_in_no_parent"] for p in placements),

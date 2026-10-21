@@ -1048,3 +1048,23 @@ def test_owners_cross_check_fails_for_an_unlisted_record(tmp_path: pathlib.Path)
     (scratch / "docs" / "specs" / "spec-open" / "spec.md").unlink()
     with pytest.raises(AssertionError, match="do not exist"):
         _check_owner_table_matches_corpus(scratch)
+
+
+# ---------------------------------------------------------------------------
+# AC-0001: every node carries `owner`
+# ---------------------------------------------------------------------------
+
+
+def test_every_node_carries_owner_ac0001() -> None:  # stub: true
+    nodes = ig.derive(_FIXTURE_MIXED)["nodes"]
+    assert nodes
+    assert all(isinstance(n.get("owner"), str) for n in nodes)
+
+
+def test_every_node_owner_equals_the_readme_value_ac0001() -> None:
+    """Over the owners fixture each node's owner is the value its README row states."""
+    _skip_if_module_absent()
+    rows = _owners_readme_tables(_FIXTURE_OWNERS)["Owner table"]
+    stated = {r[0]: json.loads(r[2]) for r in rows}
+    derived = {n["id"]: n["owner"] for n in ig.derive(_FIXTURE_OWNERS)["nodes"]}
+    assert derived == stated
