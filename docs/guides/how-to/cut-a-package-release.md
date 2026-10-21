@@ -11,9 +11,8 @@ know it does.
 
 ## Rules for both packages
 
-- Publish only from `main`. Both release workflows refuse a tag whose commit is not
-  on `origin/main`. Never push a release tag from a feature, research, or worktree
-  branch.
+- Both release workflows refuse a tag whose commit is not on `origin/main`, so
+  every tag goes on a merge commit on `main`.
 - Move every version file in the same PR as the change it releases. The tag job
   fails when `pyproject.toml` and the tag disagree.
 - After a version-bumping PR merges, tag and push straight away. An untagged bump
@@ -50,8 +49,9 @@ release date in `YYYY-MM-DD` form.
 
 The roster test checks that `version.py`, `pyproject.toml`, the first
 `README-pypi.md` heading, the first `CHANGELOG.md` heading, and the newest product
-changelog release all name the same version. It runs only in the dispatch-only
-`test-roster.yml`, so PR CI stays green when you forget the pin.
+changelog release all name the same version. It runs on every PR through the
+`build-check` `gate-main` job, whose `python -m pytest tests/ -q` step collects
+every roster module, so a forgotten pin turns the PR red.
 
 Create the fragment with the command that
 [`docs/product/AGENTS.md`](../../product/AGENTS.md) describes, then edit the file
@@ -64,11 +64,14 @@ python3 tools/changelog.py new --package agentbundle --version X.Y.Z \
 
 ### Steps before merge
 
-1. Add an `Engine-Change-RFC:` trailer to each commit that touches
-   `packages/agentbundle/`. Name the RFC that governs the change, or write
-   `n/a — <reason>` when none does. `tools/lint-catalogue-curation-guard.py`
-   enforces this in `build-check.yml`. Locally, run it with `--base origin/main`,
-   because without a base it skips the check.
+1. Add an `Engine-Change-RFC:` trailer to a commit in the PR. Name the RFC that
+   governs the change, or write `n/a — <reason>` when none does.
+   `tools/lint-catalogue-curation-guard.py` enforces this in `build-check.yml` for
+   any PR that touches `packages/agentbundle/`, except
+   `packages/agentbundle/agentbundle/build/recipes/` and `tests/` paths. One
+   trailer anywhere in the commit range satisfies it. Locally, run
+   `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main`.
+   It fails when the base ref is missing.
 2. If the change edits a scaffold source, run
    `python3 tools/catalogue/sync_authoring_scaffold.py --write`, then `--check`.
    The script's `--help` lists the source files. A stale copy breaks
@@ -83,11 +86,11 @@ python3 tools/changelog.py new --package agentbundle --version X.Y.Z \
 5. Push and open the PR. `build-check` and `ci-security` always run.
    `release-agentbundle.yml` also runs its `build-and-smoke` job on the PR, because
    the change touches `packages/agentbundle/`.
-6. Dispatch the suites the PR does not trigger:
+6. Dispatch the two suites that have no PR trigger:
    `gh workflow run test-corpus.yml --ref "$B"` and
    `gh workflow run test-roster.yml --ref "$B"`, where `$B` is the branch name.
-   The root [`AGENTS.md`](../../../AGENTS.md) "Build and test commands" lists
-   them.
+   `test-corpus.yml` runs `make test`. The root [`AGENTS.md`](../../../AGENTS.md)
+   "Build and test commands" lists both as partial evidence, not required checks.
 7. Merge to `main` once the owner approves.
 
 ### Tag the merge commit
@@ -124,8 +127,8 @@ The run has four jobs:
    install-defaults smoke, a package-config test, a catalogue archive round trip,
    and the schema-copy check.
 3. `publish-artifactory` needs only `build-and-smoke`. It uploads to a private
-   index when all three `ARTIFACTORY_*` secrets are set, and skips with a notice
-   when they are not.
+   index when all three `ARTIFACTORY_*` secrets are set. It skips with a notice
+   when none are set, and skips with a warning when only some are set.
 4. `publish-pypi` needs `build-and-smoke` and both Gate H jobs. It runs in the
    `pypi` GitHub environment, which requires a reviewer. The job shows `waiting`
    until a maintainer approves it under **Review deployments** on the run page.
@@ -177,8 +180,8 @@ It runs on any `credbroker-v*` tag.
 To find the test pins, search for the old version string:
 `grep -rn '"<old-version>"' packages/credbroker/tests tests/roster`. At 0.7.0 the
 pins are in `packages/credbroker/tests/unit/test_http_access_version.py` and
-`tests/roster/test_portable_catalogue_authentication_packaging.py`. The roster
-file runs only in the dispatch-only `test-roster.yml`.
+`tests/roster/test_portable_catalogue_authentication_packaging.py`. `build-check`
+runs the roster file on every PR as its own step.
 
 ### The vendored copy and the credential-brokers pack
 
@@ -200,9 +203,9 @@ more things follow:
   version assertion in `packs/credential-brokers/tests/pack/test_pack_install.py`.
   [`packs/AGENTS.local.md`](../../../packs/AGENTS.local.md) "Marketplace and
   release pipeline" owns the rest of the pack release.
-- Each commit that touches `packs/credential-brokers/` needs an
-  `Engine-Change-RFC:` trailer. That tree has no exemptions in
-  `tools/lint-catalogue-curation-guard.py`.
+- A PR that touches `packs/credential-brokers/` needs an `Engine-Change-RFC:`
+  trailer on one of its commits. `tools/lint-catalogue-curation-guard.py` exempts
+  no path in that tree.
 - `tests/roster/test_portable_catalogue_authentication_packaging.py` reads the
   previous minor release from its git tag, for example `credbroker-v0.6.0`.
   Keep old tags in place.
@@ -234,8 +237,8 @@ more things follow:
    - `build-and-smoke` checks the tag against `pyproject.toml` and that the commit
      is on `origin/main`. It then builds, runs `twine check`, and smoke-imports the
      base wheel. A second smoke adds the `[crypto]` extra from PyPI.
-   - `publish-artifactory` needs only `build-and-smoke`. It skips when the
-     `ARTIFACTORY_*` secrets are not set.
+   - `publish-artifactory` needs only `build-and-smoke`. It skips with a notice
+     when no `ARTIFACTORY_*` secret is set, and with a warning when only some are.
    - `publish-pypi` needs only `build-and-smoke`. It runs in the same `pypi`
      environment and waits for a reviewer's approval.
 3. Confirm publication with
@@ -243,9 +246,13 @@ more things follow:
    Then, in a fresh virtual environment, run `pip install credbroker==X.Y.Z` and
    `python -c "import credbroker; print(credbroker.__version__)"`.
 
-Recovery follows the agentbundle rules above. credbroker has no Gate H, so a
-`build-and-smoke` failure publishes nothing, and anything after it is fixed
-forward with the next patch version.
+Recovery follows the agentbundle rules above, without the Gate H case:
+
+- A `build-and-smoke` failure publishes nothing. Fix the tag the same way.
+- A failed publish job that never reached its index can be rerun with
+  `gh run rerun <run-id> --failed`.
+- Once `X.Y.Z` reached PyPI or the private index, any fix ships as the next patch
+  version.
 
 ## When both packages release together
 
