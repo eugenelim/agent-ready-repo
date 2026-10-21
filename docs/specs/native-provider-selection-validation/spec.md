@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0032-native-provider-selection-validation.md
+- **Discovery:** intent:native-provider-selection-validation
 - **Contract:** none
 - **Shape:** data
 

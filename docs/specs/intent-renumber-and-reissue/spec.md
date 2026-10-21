@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098; ADR-0129
 - **Brief:** brief:intent-identity-and-registration
-- **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
+- **Discovery:** intent:intent-identity-and-registration
 - **Contract:** none
 - **Shape:** data
 

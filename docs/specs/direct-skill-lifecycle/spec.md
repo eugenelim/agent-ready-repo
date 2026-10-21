@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0098 (D4, D5, D6); ADR-0106
 - **Brief:** none
-- **Discovery:** docs/product/intents/direct-skill-lifecycle.md
+- **Discovery:** intent:direct-skill-lifecycle
 - **Contract:** none
 - **Shape:** service
 

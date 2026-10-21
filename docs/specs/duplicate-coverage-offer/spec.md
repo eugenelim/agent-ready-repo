@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Mode:** full
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0009-duplicate-coverage-check.md
+- **Discovery:** opportunity:duplicate-coverage-check
 - **Related:** docs/specs/work-item-promotion-handoff/spec.md — the sibling this spec's offer runs inside
 - **Constrained by:**
   - docs/product/research/sub-spec-work-items-survey.md § Refuted approaches — path proximity is refuted as a candidate mechanism and is not re-proposed

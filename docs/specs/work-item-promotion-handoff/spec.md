@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Mode:** full
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md
+- **Discovery:** opportunity:work-item-promotion-routing
 - **Constrained by:** docs/specs/work-item-capture/spec.md — the captured record this spec consumes is written under the contract that spec settles, including the fields a routing decision can read. Also docs/specs/work-item-capture/spec.md § D6, whose argv rules and case table `AC-0013`, `AC-0016` and `AC-0017` bind to
 
 ## Objective
