@@ -1317,6 +1317,18 @@
         "Re-runs the check against the same base",
         "Does not type a research or notes path"
       ]
+    },
+    {
+      "id": "finish-traceability-lint-kind-below-preamble",
+      "prompt": "At the work-loop Finish checklist, an intent file has `- **Kind:** outcome` only under its `## Outcome` heading, and `lint-traceability.py --root .` lists the intent as a plain `intent:` node rather than an `outcome:` node. What do you change?",
+      "files": [],
+      "expected_output": "Move `- **Kind:** outcome` into the preamble above the first `## ` heading, outside any HTML comment, then re-run `lint-traceability.py --root .`. The lint reads `Kind:` only from the visible preamble, the same way the intent navigator does, so a `Kind:` under a heading does not place the intent on the ladder. Do not change the lint or add a workaround.",
+      "assertions": [
+        "Moves the `- **Kind:** outcome` line into the preamble above the first `## ` heading",
+        "Keeps the line outside an HTML comment",
+        "Re-runs `lint-traceability.py --root .` to confirm an `outcome:` node",
+        "Does not change the lint or add a workaround"
+      ]
     }
   ]
 }
