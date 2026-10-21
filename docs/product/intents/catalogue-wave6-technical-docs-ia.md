@@ -9,7 +9,7 @@
 - **Maturity:** brownfield
 - **De-risked:** 2026-10-02
 - **Shaping-reviewed:** 2026-10-02
-- **Decomposed:** no
+- **Decomposed:** 2026-10-21 spec
 - **Parent intent:** capability:catalogue-trust-and-adoption
 - **Governed by:** [RFC-0076 D9](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 
@@ -90,7 +90,7 @@ validation_hook:
 
 ## Decomposition
 
-None yet. This feature intent projects to one technical-documentation information-architecture specification after acceptance; the specification owns the route inventory, navigation projection, and generated-versus-narrative reference cut.
+One same-repository spec and plan at `docs/specs/catalogue-wave6-technical-docs-ia/` own this feature: [Catalogue Wave 6 — technical documentation information architecture](../../specs/catalogue-wave6-technical-docs-ia/spec.md). The specification owns the route inventory, navigation projection, and generated-versus-narrative reference cut.
 
 ## Source
 
