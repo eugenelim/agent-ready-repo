@@ -44,7 +44,7 @@ Run the work loop on this spec.
 
 The agent plans, builds, runs your checks, and sends the change to independent reviewers, pausing wherever it needs your decision. If a check fails, it goes back and fixes the build before review.
 
-Before completing a change, the work-loop checks all active `Parent intent:`, `Brief:`, and `Discovery:` fields in each artifact the change adds or modifies. A typed pointer must name an existing target of the field's type. A body-only edit still selects that artifact for checking.
+Before completing a change, the work-loop checks all active `Parent intent:`, `Brief:`, and `Discovery:` fields in each artifact the change adds or modifies. A typed pointer must name an existing target of the field's type. A `Discovery:` that points at an intent must be written `<kind>:<slug>` and name a live intent of that kind; a research or notes path there is not checked. A body-only edit still selects that artifact for checking.
 
 ## Close it out
 

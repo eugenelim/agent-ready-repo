@@ -144,8 +144,10 @@ mechanical rule.
   product-discovery artifact (a decision brief or intent produced by an upstream
   discovery process) carries a `- **Discovery:**` header naming that artifact.
   When `Discovery:` names an intent, write its registered kind and `Slug:`, such
-  as `outcome:service-reliability`, `capability:account-management`, or
-  `intent:account-self-service`. `Kind:` takes precedence over `Level:`. When it
+  as `outcome:service-reliability`, `opportunity:onboarding-friction`,
+  `capability:account-management`, or `intent:account-self-service`. `Kind:` takes precedence over `Level:`: the kind is `outcome` or `opportunity` when
+  the intent's `Kind:` line says so, `capability` when its `Level:` is
+  `capability`, and `intent` otherwise. When it
   names a research or notes file, use its repository-relative path. New and
   changed specs are checked for typed, live intent targets; legacy paths remain
   readable. Discovery records provenance and does not itself assert a

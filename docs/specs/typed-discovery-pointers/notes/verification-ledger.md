@@ -75,3 +75,36 @@ Script: `notes/sweep_discovery.py` (stdlib; loads the shared check by path; `--c
 - Named roster suites plus `packs/core/tests/pack/test_spec_authority_scoping.py`: 427 passed, 38.8 s. (A first run with the system `python3` on PATH failed `test_conventions_retirement` because a subprocess lacked `tomllib`; it passes with the pyenv 3.13 bin first.)
 - `packs/core/tests/skills/new-spec/`: 267 passed, 79 subtests, 75.8 s. No step-5a digest pin changed.
 - Shipped-citation grep on the changed `.apm` text: no hit from this change (existing hits are in `evals.json` prompts and a `x-spec` example).
+
+## Review fixes, round 1
+
+- **AC-0004 (adversarial).** The close-work parent test uses placeholder slugs because `AGENTS.md` forbids real identifiers in fixtures. The placeholders reproduce the registered shape of the two named targets: `Kind: outcome`, `Level: feature`, `Decomposed: <date> spec`, and the path-valued Discovery replaced by the typed form. The corpus before/after resolver comparison (VI-3002) covers the real `finding-response-receptacle` and `finding-response-scoring` specs, whose direct-delivery relations to their outcome intents the sweep left unchanged.
+- **Fix 1, linear link scan (security).** Red, against the old `_LINK_TARGET_RE.findall` on a line of unclosed `[`: 20,000 characters took 0.147 s and 40,000 took 0.581 s (4x for 2x input, quadratic; about 370 s extrapolated for 1,000,000). Green: `_link_targets` splits on `](` and reads each target up to the first `)`; the regex is removed. New test `test_discovery_link_scan_is_linear_on_hostile_values` runs 1,000,000-character values (`[`, `[](`, `[](<`) and asserts under 2.0 s. `test_lint_graph_pointers.py`: all existing cases still pass.
+- **Fix 2, one intent-kind tuple (quality F6).** `_INTENT_KINDS` now feeds `_PARENT_TYPED_RE` and `_INTENT_PREFIXES`. New test `test_intent_kinds_match_the_resolver_kinds` loads `intent_delivery_relations.py` by path and compares the set with `_PARENT_INTENT_KINDS`.
+- **Fix 3, narrowed research exemption (quality F1).** The `path_offers` exemption now needs a Discovery passage and no `Brief:` in the sentence. Red-case test: a sentence naming `Brief:` plus "research or notes" still fails. All current writers pass.
+- **Fix 4, four-kind pin (quality F2).** `discovery_form_gaps` requires all four kinds (`outcome:`, `opportunity:`, `capability:`, `intent:` not preceded by `Parent `, or the kind name in backticks) inside one passage that names `Discovery:`. Writers updated: new-spec `SKILL.md`, the spec contract reference, the spec template, and the close guide. Self-test `test_discovery_form_predicate_can_fail`: an empty text, a text without `opportunity:`, and a Discovery passage plus an unrelated `Parent intent:` paragraph all fail the pin. Red evidence: before the writers were updated the pin failed for the template (three kinds missing).
+- **Fix 5, confined sweep (security).** `confined()` rejects any symlinked component under the root and any resolved path outside `docs/specs` or `docs/product/intents`, for specs and intents. Selftest case: a symlinked spec directory pointing outside the tree is skipped, the outside file stays byte-identical, and no manifest is written.
+- **Fix 6, manifest first (quality F3).** The manifest is written from the full planned rewrite set before the first spec is written; with nothing to do, neither is written. Real tree: `sweep_discovery.py --root .` reports `rewrote 0 header value(s) in 0 spec(s); 0 refused`, exit 0, no manifest written; `--check` reports `would rewrite 0 ...`, exit 0. `--selftest` passes.
+- **Fixes 7 to 9, prose.** Changelog Highlights rewritten in plain words (3 bullets). The close guide states the accepted `Discovery:` form once, and the four refusal entries refer to it; the roster pin now checks the single form statement for all four kinds and that each entry refers to it. The template `Discovery:` comment is split into short sentences. The shipped-citation grep on the changed `.apm` files is clean.
+
+## Review fixes, round 2
+
+Round-2 experience adjudication (Opus replacement; two Sonnet attempts were structurally invalid) sustained three items, applied by the controller:
+
+- `guides/core/how-to/start-the-work.md`: the check sentence now says an intent-valued `Discovery:` is written `<kind>:<slug>` naming a live intent of that kind, and that a research or notes path is not checked.
+- `new-spec/SKILL.md` and `references/spec-and-plan-contract.md`: the precedence clause now states the rule (the intent's `Kind:` line, `capability` for `Level: capability`, otherwise `intent`).
+- Release Highlights bullet 2: plain-word gate names and "names no existing intent of that kind".
+
+Gates: `make lint-ruff lint-mypy` clean; roster authoring + new-spec + spec-authority suites 324 passed (53 s); `changelog.py validate`, `validate_guides`, `check-guide-index`, `lint-guide-titles`, `lint-guides-no-repo-only-refs` exit 0. The round-2 quality nit (sweep exits 0 after skipping a symlinked spec) is deferred unchanged: the sweep is complete working material.
+
+## Review fixes, round 3
+
+Final round on Opus (reviewers and adjudicators on their designated model). Sustained and applied:
+
+- Kind rule (guide and template, and aligned in the skill and contract reference): `outcome` or `opportunity` from the intent's `Kind:` line, `capability` for `Level: capability`, `intent` for every other intent. This matches `_registered_kind`.
+- Highlights: the refusal is now stated as happening before the work loop completes the change. The pull-request claim was dropped, because the pack installs no PR workflow.
+- `artifact-not-in-graph`: the second cause now says the resolver finds the intent but the tree does not hold it. The missing-intent cause stays only under `delivery-target-missing`.
+- Link resolution: added fixtures `d-normalized-link` (`[x](../../product/./intents/outcome-a.md)`, no literal `product/intents/`, expects `discovery-untyped`) and `d-ok-scheme-link` (a scheme-prefixed target, passes). Mutation proof: stubbing `_resolves_under_intents` to return `False` turns `test_discovery_diagnostic[d-normalized-link]` red (1 failed, 27 passed); restored source passes.
+- Deferred nit (security round 3): the sweep's header-line regex is quadratic on a long whitespace run. The sweep has already run and is working material; no change.
+
+Gates: `make lint-ruff lint-mypy` clean; the check, authoring-roster, new-spec, and closure-guide suites passed 636 tests (89 s); the guide tools and `changelog.py validate` exited 0. The T4 evidence follows under `## T4` once the projections are regenerated from the committed source.
