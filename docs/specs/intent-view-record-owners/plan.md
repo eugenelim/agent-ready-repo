@@ -170,7 +170,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations. Each also checks the general rule over every Group and Show choice, against the Python reading of the payload.
 - A browser check over the roadmap decides the amended tree-and-roadmap 0007 rule under each README owner choice: each listed capability with no nearest capability ancestor is in exactly one section.
-- Browser checks over an `owners` export scoped with `--from` to a capability the README names decide, under each README owner choice, the amended session-start 0025 and tree-and-roadmap 0041 and 0049 rows: the scoped intent is the only root, Browse follows AC-0015 under both Group choices, and AC-0022 shows when nothing is shown.
+- Browser checks over an `owners` export scoped with `--from` to a capability the README names decide, under each README owner choice, the amended session-start 0025 and tree-and-roadmap 0041 and 0049 rows: the scoped intent is the only root, the scope banner and whole-corpus totals still show, Browse follows AC-0015 under both Group choices, and AC-0022 shows when nothing is shown. The same scoped export checks search against AC-0012 and AC-0030, and the flat filtered list against `run_query` `search` with `owner` set, limited to the in-scope intents.
 - A browser check decides AC-0016 by comparing the flat filtered list with `run_query` `search` over the same fixture, using the filter selectors plus `owner`.
 - The shipped tree-and-roadmap checks for its criteria 0030 to 0036 still pass under "Any owner".
 
