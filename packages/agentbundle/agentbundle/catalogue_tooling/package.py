@@ -445,7 +445,7 @@ def _write_archive(file_bytes: dict[str, bytes], manifest_bytes: bytes, dest: Pa
     members.append(("catalogue-manifest.json", manifest_bytes))
     members.sort(key=lambda x: x[0])
 
-    with dest.open("wb") as f:
+    with dest.open("xb") as f:
         # filename="" keeps the gzip FNAME header field empty for byte-identical output
         # regardless of the dest path — same determinism guarantee as the old BytesIO path.
         gz = gzip.GzipFile(fileobj=f, mode="wb", mtime=0, filename="")
@@ -520,8 +520,14 @@ def _write_channel_descriptor(
 
 
 def _staging_path(final_path: Path) -> Path:
-    """Return the .tmp staging path for *final_path* in the same directory."""
-    return final_path.parent / (final_path.name + ".tmp")
+    """Return a staging path for *final_path* in the same directory, unique per call.
+
+    Two runs writing the same release must never share a staging file: the run
+    that loses placement cleans up its staged files, and a shared name would
+    delete the winner's. Callers create the file exclusively (``"x"`` mode), so
+    an entry already at the name is never written through.
+    """
+    return final_path.parent / f"{final_path.name}.{os.urandom(8).hex()}.tmp"
 
 
 def _cleanup_staged(*paths: Path) -> None:
@@ -903,7 +909,8 @@ def package_catalogue(
         sha256_hex = hashlib.sha256(staged_archive.read_bytes()).hexdigest()
 
         # --- Step 4: Write staged sidecar ---
-        staged_sidecar.write_text(sha256_hex + "\n", encoding="utf-8", newline="\n")
+        with staged_sidecar.open("x", encoding="utf-8", newline="\n") as sidecar_file:
+            sidecar_file.write(sha256_hex + "\n")
 
         # --- Step 5: Self-verify staged archive + sidecar ---
         if _verify_archive_fn is None:
@@ -1171,7 +1178,8 @@ def package_source_flavour(
 
     staged_archive = _staging_path(archive_path)
     try:
-        staged_archive.write_bytes(archive_bytes)
+        with staged_archive.open("xb") as staged_file:
+            staged_file.write(archive_bytes)
         _place_archive(staged_archive, archive_path, force=force)
     except ReleaseExistsError as exc:
         _cleanup_staged(staged_archive)

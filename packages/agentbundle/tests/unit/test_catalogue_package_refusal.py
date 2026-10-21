@@ -174,6 +174,39 @@ def test_runtime_race_between_staging_and_placement_refuses(tmp_path: Path) -> N
     assert not (output / "catalogues" / "engineering" / "channels" / "stable.json").exists()
 
 
+def test_refused_run_leaves_another_runs_staged_files_alone(tmp_path: Path) -> None:
+    """A losing run cleans up only its own staged files, never a concurrent winner's."""
+    root = _make_catalogue(tmp_path)
+    output = tmp_path / "out"
+    archive = _archive_path(output, "runtime")
+    foreign = [
+        archive.parent / (archive.name + ".tmp"),
+        archive.parent / (archive.name + ".sha256.tmp"),
+    ]
+
+    def racing_verify(staged: Path, **kwargs: object):
+        assert staged not in foreign
+        for path in foreign:
+            path.write_bytes(b"winner-staged")
+        archive.write_bytes(b"racer")
+        return verify_archive(staged, **kwargs)
+
+    result = package_catalogue(
+        root=root, bundle="engineering", release="0.1.0", channel="stable",
+        output=output, _verify_archive_fn=racing_verify,
+    )
+    assert [d.code for d in result.diagnostics] == ["CAT-PKG-002"]
+    assert all(path.read_bytes() == b"winner-staged" for path in foreign)
+    assert sorted(_tmp_files(output)) == sorted(foreign)
+
+
+def test_staging_paths_differ_between_calls(tmp_path: Path) -> None:
+    final = tmp_path / "catalogue-0.1.0.tar.gz"
+    first, second = package_mod._staging_path(final), package_mod._staging_path(final)
+    assert first != second
+    assert first.parent == final.parent and first.name.endswith(".tmp")
+
+
 def test_runtime_race_maps_to_exit_2_through_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
