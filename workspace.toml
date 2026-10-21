@@ -2304,8 +2304,6 @@ draft     = []
 ["ini-007".shaping_queue]
 active = []
 backlog = [
-  {path = "docs/product/intents/catalogue-specification-publication.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Publish a versioned agentbundle catalogue specification on the site, separated from work-loop and delivery contracts", needs = []},
-  {path = "docs/product/intents/catalogue-wave7-marketing-evaluator.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "99dafc6efb608f4856cc7ec311ec554959f271bf"}, summary = "Give prospective adopters an evaluator-oriented catalogue marketing surface", needs = [{type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave6-technical-docs-ia.md"}, {type = "local", kind = "intent", path = "docs/product/intents/catalogue-specification-publication.md"}]},
   {path = "docs/product/intents/catalogue-wave9-migration-closeout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Close the first-party catalogue migration after release and discovery outcomes are complete", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave5-release-integrity.md"}, {type = "local", kind = "intent", path = "docs/product/intents/catalogue-wave7-marketing-evaluator.md"}, {type = "local", kind = "spec", path = "docs/specs/documentation-entry-navigation/spec.md"}]},
 ]
 # ─────────────────────────────────────────────────────────────────────────────
