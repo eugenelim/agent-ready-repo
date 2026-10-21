@@ -5,7 +5,8 @@
   "description": "One request the supervisor issues to the trusted controller. The request id is deterministic, so a repeated `next` re-issues the current request unchanged. The controller executes it, possibly through an untrusted worker attempt, and reports an execution-result.v1.",
   "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
   "x-spec": [
-    "docs/specs/execution-supervisor-core/"
+    "docs/specs/execution-supervisor-core/",
+    "docs/specs/execution-supervisor-review-gate/"
   ],
   "type": "object",
   "additionalProperties": false,
@@ -231,6 +232,24 @@
       "minLength": 1,
       "maxLength": 2048,
       "description": "Question put to the human; supervisor-authored text."
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "description": "Reviewer selection request: the conditional roles the controller selects or omits."
+    },
+    "selection_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Delivery subject and changed-path digest a reviewer selection answers."
     }
   },
   "allOf": [
@@ -301,9 +320,31 @@
       },
       "then": {
         "required": [
-          "role",
           "review_subject_fingerprint",
           "review_subject"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "role"
+            ],
+            "not": {
+              "required": [
+                "candidates"
+              ]
+            }
+          },
+          {
+            "required": [
+              "candidates",
+              "selection_key"
+            ],
+            "not": {
+              "required": [
+                "role"
+              ]
+            }
+          }
         ]
       }
     },

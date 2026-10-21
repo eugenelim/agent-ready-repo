@@ -237,11 +237,17 @@ def make_request(
 
 
 def human_decision(
-    ws: Workspace, state: State, reason: str, question: str, key: str = ""
+    ws: Workspace, state: State, reason: str, question: str, key: str = "", **fields: Any
 ) -> dict[str, Any]:
     digest = hashlib.sha256(f"{reason}\0{key}\0{state.head}".encode()).hexdigest()[:16]
     return make_request(
-        ws, state, "human-decision", f"decide:{reason}:{digest}", reason=reason, question=question
+        ws,
+        state,
+        "human-decision",
+        f"decide:{reason}:{digest}",
+        reason=reason,
+        question=question,
+        **fields,
     )
 
 
@@ -343,7 +349,11 @@ def decide(ws: Workspace, state: State) -> Action:
             action = effects.effect_action(ws, state, name, scope="task", task=task)
             if action is not None:
                 return action
-    action = readiness.readiness_action(ws, state)
+    try:
+        action = readiness.readiness_action(ws, state)
+    except Refusal as exc:
+        # A rules or selection defect: the stage stays unsatisfied and names its code.
+        return Action("refusal", refusal=exc)
     if action is not None:
         return action
     for name in state.finish_effects:
@@ -580,6 +590,14 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
             kind = checked["kind"]
             if kind in ("implement-task", "write-stub"):
                 outcome = tdd.report_task(ws, state, current, checked, changed)
+            elif kind == "human-decision":
+                if changed:
+                    raise Refusal(
+                        "unexpected-change",
+                        "controller",
+                        "the attempt changed files: " + ", ".join(changed[:20]),
+                    )
+                outcome = _report_decision(ws, state, current, checked)
             elif kind in ("run-gates", "review-role", "assess-finding"):
                 if changed:
                     raise Refusal(
@@ -599,6 +617,23 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         return {"admitted": outcome}
 
 
+def _report_decision(
+    ws: Workspace, state: State, request: dict[str, Any], result: dict[str, Any]
+) -> str:
+    """Admit a ``human-decision`` result and commit it as one ``review`` step."""
+    review = _supervisor("_supervisor_review.py")
+    record = review.admit_decision(ws, state, request, result)
+    ws.git.build_commit(
+        run_id=state.run_id,
+        step=f"decision:{request['request_id']}",
+        operation="review",
+        appends={review.DECISIONS_FILE: _admission.canonical_line(record)},
+        summary=f"record {record['decision']}",
+        known_steps=state.steps,
+    )
+    return "review"
+
+
 def status(ws: Workspace) -> dict[str, Any]:
     """Stage, readiness, projection, decisions, and the retry count; never commits."""
     state = derive(ws)
@@ -616,7 +651,7 @@ def status(ws: Workspace) -> dict[str, Any]:
         "terminal": action.kind == "terminal",
         "retry_count": state.retry_count,
         "retry_cap": int(ws.policy["implementation_retry_cap"]),
-        "readiness": readiness.readiness(ws, state),
+        "readiness": _status_readiness(ws, state, readiness),
         "tasks": [
             {
                 "task_id": t["task_id"],
@@ -629,6 +664,14 @@ def status(ws: Workspace) -> dict[str, Any]:
         "request": action.request,
         "refusal": action.refusal.as_dict() if action.refusal else {},
     }
+
+
+def _status_readiness(ws: Workspace, state: State, readiness: ModuleType) -> dict[str, Any]:
+    """The readiness view, or the refusal that stopped it (a rules or selection defect)."""
+    try:
+        return readiness.readiness(ws, state)  # type: ignore[no-any-return]
+    except Refusal as exc:
+        return {"ready": False, "refusal": exc.as_dict()}
 
 
 def _safe_count(ws: Workspace, state: State) -> int:

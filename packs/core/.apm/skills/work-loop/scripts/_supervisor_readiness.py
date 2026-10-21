@@ -62,11 +62,15 @@ def _supervisor(filename: str) -> ModuleType:
 
 _loop = _supervisor("_supervisor_loop.py")
 _projector = _supervisor("_supervisor_projector.py")
+_review = _supervisor("_supervisor_review.py")
+_admission = _supervisor("_supervisor_admission.py")
 sibling = _loop.sibling
 Refusal = _loop.Refusal
 
 __all__ = [
+    "changed_files",
     "criteria",
+    "current_selection_key",
     "delivery_subject",
     "readiness",
     "readiness_action",
@@ -106,8 +110,8 @@ def delivery_subject(ws: Any, state: Any) -> dict[str, Any]:
     )
 
 
-def review_subject(ws: Any, state: Any, subject: dict[str, Any]) -> dict[str, Any]:
-    """The ``review-subject.v1`` over the product paths the run's own commits changed.
+def changed_files(ws: Any, state: Any) -> list[dict[str, str]]:
+    """The product paths the run's own commits changed, each with its status.
 
     Read from the run's ``stub`` and ``implement`` commits, so a rebase onto new
     upstream work never makes that work part of the run's review.
@@ -128,7 +132,34 @@ def review_subject(ws: Any, state: Any, subject: dict[str, Any]) -> dict[str, An
         else:
             status = "modified"
         changes.append({"path": path, "status": status})
-    policy = ws.policy["review_policy"]
+    return changes
+
+
+def current_selection_key(ws: Any, state: Any) -> str:
+    """The key of the run's current reviewer selection."""
+    subject = delivery_subject(ws, state)
+    changes = changed_files(ws, state)
+    return _review.selection_key(subject["acceptance_fingerprint"], [c["path"] for c in changes])
+
+
+def review_subject(
+    ws: Any,
+    state: Any,
+    subject: dict[str, Any],
+    policy: dict[str, Any] | None = None,
+    changes: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """The ``review-subject.v1`` over the changed product paths and the resolved policy.
+
+    The policy comes from the run's selection record (``current_policy``), so it
+    refuses when no valid record exists.
+    """
+    if changes is None:
+        changes = changed_files(ws, state)
+    if policy is None:
+        paths = [c["path"] for c in changes]
+        key = _review.selection_key(subject["acceptance_fingerprint"], paths)
+        policy = _review.current_policy(ws, state, key)
     return sibling("_review_selection.py").project_review_subject(
         subject,
         changed_paths=changes,
@@ -180,10 +211,28 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
         r["acceptance_fingerprint"] == fingerprint and r["lineage"]["criterion_ref"] == GATES_RUN
         for r in state.receipts
     )
-    review = review_subject(ws, state, subject)
-    review_state = sibling("_review_disposition.py").review_readiness(
-        store, review_subject=review, review_policy=ws.policy["review_policy"]
+    changes = changed_files(ws, state)
+    rules = _review.load_rules()
+    selection = _review.selection_status(
+        ws,
+        rules,
+        _review.selection_key(subject["acceptance_fingerprint"], [c["path"] for c in changes]),
     )
+    review: dict[str, Any] | None
+    if selection.required:
+        # No usable record: nothing is eligible until the controller selects.
+        review = None
+        review_state: dict[str, Any] = {
+            "acceptance_eligible": False,
+            "obligations": [],
+            "open_findings": [],
+        }
+    else:
+        policy = _review.resolve_policy(rules, selection.latest)
+        review = review_subject(ws, state, subject, policy, changes)
+        review_state = sibling("_review_disposition.py").review_readiness(
+            store, review_subject=review, review_policy=policy
+        )
     supported = all(v == "supported" for v in by_criterion.values())
     return {
         "ready": supported and not gates_failed and bool(review_state["acceptance_eligible"]),
@@ -193,6 +242,13 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
         "gates_ran_for_subject": gated,
         "review_subject": review,
         "review": review_state,
+        "selection": {
+            "key": selection.key,
+            "required": selection.required,
+            "sequence": selection.sequence,
+            "candidates": _review.candidates(rules),
+            "changed_files": changes,
+        },
     }
 
 
@@ -239,6 +295,9 @@ def readiness_action(ws: Any, state: Any) -> Any:
                 key=fingerprint,
             ),
         )
+    selection = view["selection"]
+    if selection["required"]:
+        return _loop.Action("request", _selection_request(ws, state, view))
     review = view["review_subject"]
     subject_fp = review["review_subject_fingerprint"]
     reports = ws.open_evidence().get_semantic_records("review-report.v1")
@@ -291,9 +350,34 @@ def readiness_action(ws: Any, state: Any) -> Any:
             state,
             "review-not-eligible",
             "Review readiness is not acceptance eligible: a supported finding is open or an "
-            "obligation cannot be decided. Replan repair work or record a disposition.",
+            "obligation cannot be decided. Replan repair work, record a disposition, or "
+            "answer reselect-review with an owner authority reference to choose the "
+            "reviewers again.",
             key=subject_fp,
+            selection_key=selection["key"],
         ),
+    )
+
+
+def _selection_request(ws: Any, state: Any, view: dict[str, Any]) -> dict[str, Any]:
+    """The ``review-role`` request asking the controller to select reviewers."""
+    selection = view["selection"]
+    # The subject lists the changed paths the controller selects from; its policy
+    # fingerprint is a placeholder until a selection resolves one.
+    pending = sibling("_review_selection.py").project_review_subject(
+        delivery_subject(ws, state),
+        changed_paths=selection["changed_files"],
+        review_policy_fingerprint="review-selection-pending",
+    )
+    return _loop.make_request(
+        ws,
+        state,
+        "review-role",
+        f"select:{selection['key'][:24]}:{selection['sequence']}",
+        candidates=selection["candidates"],
+        selection_key=selection["key"],
+        review_subject_fingerprint=pending["review_subject_fingerprint"],
+        review_subject=pending,
     )
 
 
@@ -375,9 +459,15 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             known_steps=state.steps,
         )
         return "evidence"
+    if request["kind"] == "review-role" and "candidates" in request:
+        return _report_selection(ws, state, request, result, view)
     persistence = sibling("_review_persistence.py")
     bridge = sibling("_review_bridge.py")
     if request["kind"] == "review-role":
+        if "selection" in result:
+            raise Refusal(
+                "invalid-result", "controller", "this request takes a report, not a selection"
+            )
         report = result.get("report")
         if not isinstance(report, dict) or report.get("role") != request["role"]:
             raise Refusal(
@@ -434,6 +524,26 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
         operation="review",
         appends={"evidence.jsonl": evidence},
         summary=f"record {request['kind']}",
+        known_steps=state.steps,
+    )
+    return "review"
+
+
+def _report_selection(
+    ws: Any, state: Any, request: dict[str, Any], result: dict[str, Any], view: dict[str, Any]
+) -> str:
+    """Admit a selection result as one ``review`` step appending ``review-selections.jsonl``."""
+    if "report" in result or not isinstance(result.get("selection"), dict):
+        raise Refusal("invalid-result", "controller", "a selection request takes a selection")
+    rules = _review.load_rules()
+    status = _review.selection_status(ws, rules, request["selection_key"])
+    record = _review.admit_selection(rules, status, result["selection"])
+    ws.git.build_commit(
+        run_id=state.run_id,
+        step=request["request_id"],
+        operation="review",
+        appends={_review.SELECTIONS_FILE: _admission.canonical_line(record)},
+        summary="record review selection",
         known_steps=state.steps,
     )
     return "review"
