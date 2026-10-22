@@ -93,7 +93,6 @@
     var box = el('span', 'tree-ctx');
     if (context) {
       add(box, el('span', 'ctx-tag', 'context')).setAttribute('aria-hidden', 'true');
-      add(box, el('span', 'visually-hidden', 'shown for context'));
     }
     // The shipped context stays, so a refused parent and an outside parent still show.
     add(box, el('span', 'tree-where', contextText(id)));
@@ -122,6 +121,8 @@
       add(li, el('span', 'toggle-spacer')).setAttribute('aria-hidden', 'true');
     }
     var link = add(li, rowLink(id, stateMark(id), treeContext(id, ctx, context)));
+    // Last in the link, so it never splits the visible label run the accessible name must contain.
+    if (context) { add(link, el('span', 'visually-hidden', 'shown for context')); }
     // The name cell keeps the display name alone; the tag follows it inside one first cell.
     var title = el('span', 'c-title');
     link.insertBefore(title, link.firstChild);

@@ -151,11 +151,12 @@
     if (context) {
       text(name, ' ');
       add(name, el('span', 'ctx-tag', 'context')).setAttribute('aria-hidden', 'true');
-      add(name, el('span', 'visually-hidden', 'shown for context'));
     }
     add(add(a, el('span', 'c-state')), stateMark(id));
     add(a, progressEl(id));
     add(a, ownerCell(id));
+    // Last in the link, so it never splits the visible label run the accessible name must contain.
+    if (context) { add(a, el('span', 'visually-hidden', 'shown for context')); }
     if (current !== null && current.node === id) { a.setAttribute('aria-current', 'true'); }
     var inside = (nested.get(id) || []).sort(byName).filter(listed);
     if (inside.length) {

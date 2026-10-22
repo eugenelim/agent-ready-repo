@@ -183,6 +183,16 @@ def test_hostile_strings_stay_inside_the_data_block(hostile_html: str) -> None:
     assert "</script><script>alert(1)</script>" in json.dumps(payload["records"])
 
 
+def test_hostile_owner_values_stay_inside_the_data_block_ac0009(hostile_html: str) -> None:  # stub: true
+    block = _DATA_BLOCK.search(hostile_html)
+    assert block is not None
+    owners = [n.get("owner", "") for n in json.loads(block.group(1))["nodes"]]
+    assert any("</script><script>" in o for o in owners)
+    outside = hostile_html.replace(block.group(1), "")
+    for needle in ("</script><script>", "<img src=x", '"><svg', "\u200b", "\u202e", "\u2066"):
+        assert needle not in outside, needle
+
+
 def _strip_comments(source: str) -> str:
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
     return re.sub(r"(?m)^\s*//.*$", "", source)

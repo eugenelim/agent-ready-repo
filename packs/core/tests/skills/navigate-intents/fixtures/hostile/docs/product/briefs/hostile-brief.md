@@ -2,7 +2,7 @@
 
 - **Slug:** `hostile-brief`
 - **Received:** 2026-01-01
-- **Owner:** placeholder-owner
+- **Owner:** desk⁦ one
 - **Status:** Draft</script><script> 
 - **Parent intent:** intent:hostile-root
 

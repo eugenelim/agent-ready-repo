@@ -4035,7 +4035,7 @@ _READ_TREE = """() => {
       tagAfterName: !!tag && tag.previousSibling.nodeValue === ' ' && tag.previousSibling.previousSibling === a.querySelector('.c-name'),
       context: text('.ctx-tag') !== null,
       ctxText: text('.ctx-tag'),
-      hidden: text('.visually-hidden'),
+      hidden: (() => { const h = a.querySelector(':scope > .visually-hidden'); return h ? h.textContent : null; })(),  // last in the link
       roll: text('.tree-roll'),
       open: text('.tree-open'),
       where: text('.tree-where'),
@@ -6277,12 +6277,10 @@ def test_readiness_ac_0039_rows_marks_and_tag_stay_inside(
         assert part in flat, (part, seen)
 
 
-@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
-def test_readiness_ac_0039_session_start_access_criteria_hold(
-    opener: Any, rlayout: dict[str, pathlib.Path], width: int, scheme: str
-) -> None:
+def _access_criteria_hold(states: Any) -> int:
+    """Session-start criteria 0034, 0035, 0036, 0037 and 0041 over each (label, page); the contrast rows seen."""
     checked = 0
-    for label, page in _readiness_states(opener, rlayout, width, scheme):
+    for label, page in states:
         stops = _sweep(page)  # session-start 0034 and 0037
         assert len(stops) > 5, (label, len(stops))
         for stop in stops:
@@ -6295,7 +6293,14 @@ def test_readiness_ac_0039_session_start_access_criteria_hold(
         assert [r for r in rows if r[1] < 4.5] == [], label
         for accessible, text in _accessible_names(page):  # 0041
             assert accessible.strip() and _squash(text) in _squash(accessible), (label, accessible, text)
-    assert checked > 100
+    return checked
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_readiness_ac_0039_session_start_access_criteria_hold(
+    opener: Any, rlayout: dict[str, pathlib.Path], width: int, scheme: str
+) -> None:
+    assert _access_criteria_hold(_readiness_states(opener, rlayout, width, scheme)) > 100
 
 
 def test_readiness_ac_0039_keyboard_alone_reaches_the_rows_and_detail(
@@ -7671,3 +7676,144 @@ def test_owner_list_summary_counts_only_the_shown_rows_ac_0032(
     if name != "unavailable":  # while open work is unavailable every list this line covers shows none or "unknown"
         assert seen["line"] > 0 and seen["narrowed"] > 0, seen
     assert not item.errors
+
+
+# Hostile and long owner values: record-owners AC-0031, AC-0025 and AC-0026
+
+_ESCAPE_JS = _SCRIPTS / "view_src" / "escape.js"
+_OWNER_TOKEN = "ownertoken" * 20  # 200 code points, no space
+_OWNER_TARGET = "docs/product/intents/FEAT-0004-feat-a.md"  # owner-three in the README; held there with feat-c
+
+
+def _unsafe_ranges() -> list[tuple[int, int]]:
+    """The code point ranges the page escapes, read from the one place the view declares them."""
+    source = _ESCAPE_JS.read_text(encoding="utf-8")
+    body = re.search(r"var UNSAFE_RANGES = \[(.*?)\];", source, re.DOTALL)
+    assert body is not None
+    found = [(int(a, 16), int(b, 16)) for a, b in re.findall(r"\[0x([0-9A-Fa-f]+), 0x([0-9A-Fa-f]+)\]", body.group(1))]
+    assert len(found) > 10
+    return found
+
+
+def _is_unsafe(char: str) -> bool:
+    return any(lo <= ord(char) <= hi for lo, hi in _unsafe_ranges())
+
+
+def test_owner_ac_0031_hostile_owner_values_render_as_escapes(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["hostile"])
+    page = item.page
+    payload = payload_of(exports["hostile"])
+    seen = ""
+    for key in _QUESTIONS:
+        item.go(_frag(q=key))
+        _expand_all(page)
+        seen += "".join(page.evaluate(_TEXT_NODES))
+    for node in payload["nodes"]:  # the Owner line of each record's details
+        item.go(_frag(q="browse", node=node["id"]))
+        page.locator("#detail-body details.record summary").click()
+        seen += "".join(page.evaluate(_TEXT_NODES))
+    assert [c for c in seen if _is_unsafe(c)] == []
+    owner_unsafe = {c for n in payload["nodes"] for c in n["owner"] if _is_unsafe(c)}
+    assert {"​", "‮", "⁦"} <= owner_unsafe
+    for char in owner_unsafe:
+        assert f"[U+{ord(char):04X}]" in seen, hex(ord(char))
+    assert not item.errors
+
+
+@pytest.fixture(scope="module")
+def lowners(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """The `owners` export with one record's owner replaced by a 200-code-point token with no space."""
+    tmp = tmp_path_factory.mktemp("owner_layout")
+    root = tmp / "owners"
+    shutil.copytree(_FIXTURES / "owners", root)
+    record = root / _OWNER_TARGET
+    text = record.read_text(encoding="utf-8")
+    edited = re.sub(r"^(- \*\*Owner:\*\* ).*$", rf"\g<1>{_OWNER_TOKEN}", text, count=1, flags=re.M)
+    assert edited != text
+    record.write_text(edited, encoding="utf-8")
+    path = _export(root, tmp / "out", "owners_long.html")
+    owners = [n["owner"] for n in payload_of(path)["nodes"]]
+    assert max(len(o) for o in owners) == 200 and _OWNER_TOKEN in owners
+    return path
+
+
+def _owner_layout_states(opener: Any, path: pathlib.Path, width: int, scheme: str) -> Any:
+    """(label, page) over the lists and one open detail with the 200-code-point owner chosen."""
+    node = next(n["id"] for n in payload_of(path)["nodes"] if n["owner"] == _OWNER_TOKEN)
+    owner = "k:" + _OWNER_TOKEN
+    # The owner matches no capability, so Roadmap and Open by capability show their empty state naming it.
+    for label, question, picked in (
+        ("next", "next", ""),
+        ("browse", "browse", ""),
+        ("detail", "browse", node),
+        ("roadmap", "roadmap", ""),
+        ("capabilities", "capabilities", ""),
+    ):
+        item = opener(path, width=width, height=700, scheme=scheme)
+        page = item.page
+        item.go(_frag(q=question, owner=owner))
+        page.wait_for_selector("#list-title")
+        assert page.locator("#owner").input_value() == owner
+        if label in _OWNER_ROW_STATES:
+            page.wait_for_selector("#list a.row-link")
+        if question == "browse":
+            _expand_all(page)
+        page.locator("#key summary").click()  # open while the list is on screen
+        if picked:
+            item.go(_frag(q=question, owner=owner, node=picked))
+            page.wait_for_selector("#detail-body details.record summary")
+            page.locator("#detail-body details.record summary").click()
+        yield label, page
+
+
+_OWNER_ROW_STATES = {"next", "browse"}  # the other states show a detail or an empty state
+_OWNER_GEOMETRY = """() => {
+  const box = (e) => e.getBoundingClientRect();
+  const rows = Array.from(document.querySelectorAll('#list a.row-link')).filter((e) => box(e).width > 0);
+  const out = { rows: rows.length, overlap: [], outside: [], long: 0, detail: [] };
+  for (let i = 0; i < rows.length; i++) {
+    const a = box(rows[i]);
+    for (let j = i + 1; j < rows.length; j++) {
+      const b = box(rows[j]);
+      if (a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) {
+        out.overlap.push([rows[i].dataset.node, rows[j].dataset.node]);
+      }
+    }
+    const cell = rows[i].querySelector('.c-owner');
+    const c = box(cell);
+    if (cell.textContent.length > 150) out.long += 1;
+    if (c.left < a.left - 0.5 || c.right > a.right + 0.5 || c.top < a.top - 0.5 || c.bottom > a.bottom + 0.5) {
+      out.outside.push(rows[i].dataset.node);
+    }
+  }
+  const zone = box(document.getElementById('detail-body'));
+  if (zone.width > 0) document.querySelectorAll('#detail-body *:not(summary)').forEach((e) => {  // a summary's marker hangs outside its box
+    const r = box(e);
+    if (r.width > 1 && (r.left < zone.left - 0.5 || r.right > zone.right + 0.5)) out.detail.push(e.tagName + '.' + e.className + ' ' + r.left + ',' + r.right + ' in ' + zone.left + ',' + zone.right);
+  });
+  out.wide = Array.from(document.querySelectorAll('body, body *')).filter((e) => e.scrollWidth > e.clientWidth + 0.5 && e.clientWidth > 0).slice(0, 6)
+    .map((e) => e.tagName + '.' + e.className + '#' + e.id + ' ' + e.scrollWidth + '>' + e.clientWidth);
+  out.scroll = [document.documentElement.scrollWidth, document.documentElement.clientWidth];
+  return out;
+}"""
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_owner_ac_0025_a_200_code_point_owner_stays_inside_its_row(
+    opener: Any, lowners: pathlib.Path, width: int, scheme: str
+) -> None:
+    long_cells = 0
+    for label, page in _owner_layout_states(opener, lowners, width, scheme):
+        got = page.evaluate(_OWNER_GEOMETRY)
+        assert got["rows"] > 0 or label not in _OWNER_ROW_STATES, label
+        assert got["overlap"] == [] and got["outside"] == [] and got["detail"] == [], (label, got)
+        assert got["scroll"][0] <= width, (label, got["scroll"], width, got["wide"])
+        long_cells += got["long"]
+    assert long_cells >= 2
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_owner_ac_0026_session_start_access_criteria_hold_with_an_owner_chosen(
+    opener: Any, lowners: pathlib.Path, width: int, scheme: str
+) -> None:
+    assert _access_criteria_hold(_owner_layout_states(opener, lowners, width, scheme)) > 100

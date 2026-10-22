@@ -66,6 +66,8 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .c-context .value.wrap { overflow-wrap: anywhere; white-space: normal; }
 /* The owner cell is the last grid item: with several columns it takes the full row below the other cells. */
 .c-owner { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; }
+/* The owner line under the list title and the empty-state text repeat the chosen owner, so they wrap a long value inside the zone. */
+.owner-line, .empty { min-width: 0; overflow-wrap: anywhere; }
 .tree-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: start; }
 .tree-row > .row-link { grid-template-columns: minmax(0, 1fr); align-items: baseline; }
 .tree-row > .subtree { grid-column: 1 / -1; padding-left: var(--s-5); }

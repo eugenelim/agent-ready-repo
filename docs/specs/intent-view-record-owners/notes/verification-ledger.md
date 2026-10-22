@@ -125,3 +125,19 @@
   - The navigate-intents suite without the browser file, under `-n 4`: 1134 passed and 6 skipped.
   - `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py` are clean.
   - The controller re-ran the AC-0032 checks: 10 passed.
+
+## T6
+
+- Implemented by an `implementer` subagent. Five `hostile` records now carry hostile `Owner:` values: `</script><script>`, `<img … onerror>`, `"><svg onload>`, U+200B, U+202E and U+2066. U+2028 is left out because the preamble reader splits a line at it.
+- **Stub red.** Before the fixture edit, `test_hostile_owner_values_stay_inside_the_data_block_ac0009` failed with `assert False`.
+- **AC-0025 found two overflows.** With a 200-code-point owner chosen, the owner line and the empty-state text scrolled the page to 1558px. `view.css` now gives `.owner-line` and `.empty` the rules `min-width: 0` and `overflow-wrap: anywhere`.
+- **AC-0026 found a label-in-name defect.** Session-start 0041 failed on context rows in all 8 matrix cells: the hidden "shown for context" text sat in the middle of the link's accessible name. `browse.js` and `roadmap.js` now append that span as the link's last child. The browser checks' tree reader now looks for it there.
+- **Red proofs.**
+  - AC-0031: with the owner cell set through raw `textContent`, the check failed.
+  - AC-0025: without `overflow-wrap: anywhere` on `.c-owner`, 6 of 8 cells failed.
+  - AC-0026: with the old span position, 8 of 8 cells failed.
+- **Gates.**
+  - Full `view_browser_checks.py`: 490 passed in 358s, none skipped.
+  - The navigate-intents suite without the browser file: 1135 passed, 6 skipped.
+  - `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py` are clean.
+  - The controller re-ran 51 of the layout, escape and context checks, and they passed.
