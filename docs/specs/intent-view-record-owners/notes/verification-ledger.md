@@ -6,7 +6,7 @@
 
 ## T1
 
-- Implemented by an `implementer` subagent, commit `53c598f00`. `fixtures/owners/` holds 13 records: 10 intents, 1 brief and 2 specs. Its README hand-states 7 tables: 13 owner rows, 7 options, 15 owner-selector values, 5 non-owner selectors, 18 Browse rows, 6 roadmap rows and the scoping row. It covers every AC-0001 owner form, plus `Team  Two` and `TEAM TWO` as one owner key and `Édith Team` as a non-ASCII value.
+- Implemented by an `implementer` subagent, commit `7de8b4a7a`. `fixtures/owners/` holds 13 records: 10 intents, 1 brief and 2 specs. Its README hand-states 7 tables: 13 owner rows, 7 options, 15 owner-selector values, 5 non-owner selectors, 18 Browse rows, 6 roadmap rows and the scoping row. It covers every AC-0001 owner form, plus `Team  Two` and `TEAM TWO` as one owner key and `Édith Team` as a non-ASCII value.
 - Red proof: `test_owners_cross_check_fails_for_an_unlisted_record` adds an unlisted record to a `tmp_path` copy and asserts that the cross-check fails. It then removes a listed record and asserts the failure again.
 - Gates:
   - `test_derivation_contract.py`: 62 passed.
@@ -16,7 +16,7 @@
 
 ## T2
 
-- Implemented by an `implementer` subagent, with one controller repair, in commit `5de6840bb`.
+- Implemented by an `implementer` subagent, with one controller repair, in commit `dde88be7f`.
 - Stub red before any production edit: `test_every_node_carries_owner_ac0001` failed with `assert False`.
 - Anchor moved: `test_export_payload.py`'s golden digests now hash the payload with every `owner` member stripped. The recorded goldens therefore still prove that nothing else changed.
 - Controller repair: the AC-0002 and AC-0003 comparisons first stripped every key named `root`, because the two corpora sat at different paths. That strip could hide a real `root` difference. Both comparisons now run before and after removing the `Owner:` lines from one `tmp_path` copy at one path, and strip only `owner` and `generated_at`, as AC-0002 states.
@@ -89,3 +89,9 @@
   - Full `view_browser_checks.py`: 457 passed, none skipped, in 293s.
   - The navigate-intents suite without the browser file, run under `-n 4`: 1134 passed, 6 skipped. The controller re-ran the 16 owner browser checks, which passed.
   - Clean: `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py`.
+
+## T5 — contract amendment (owner decision, 2026-10-22)
+
+- T5's differential check, `test_owner_narrowing_is_the_only_difference_ac_0032`, found one text node that AC-0032 does not admit: the detail pane's "In this list: …" summary, which `listSummary` in `detail-render.js` builds. It counts the unnarrowed list but disappears when the owner choice leaves no row. This was the only residual difference in 588 page pairs: 16 states across the `owners`, `scoped` and `readiness` exports.
+- Owner decision on 2026-10-22 by eugenelim: under an owner choice, the summary follows the narrowed list and is absent when no row link is left. AC-0032's admitted difference 3 is amended to say so, and T5 gains a check of the summary's value.
+- Completed tasks are untouched: T1 at `7de8b4a7a`, T2 at `dde88be7f`, T3 at `d15a372b4` and T4 at `e5f106e4f`, as this ledger records under each task.
