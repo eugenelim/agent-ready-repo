@@ -155,7 +155,8 @@ that leaves open.
 
 | Request kind (from `execution-supervisor-core`) | Facts the result may assert | Everything else |
 | --- | --- | --- |
-| `implement-task`, `write-stub` | None; the supervisor computes the change set | Refused |
+| `implement-task` | The controller-run gate outcome only; the supervisor computes the change set | Refused |
+| `write-stub` | Nothing; the supervisor computes the change set and runs the red proof | Refused |
 | `review-role` | One `review-report.v1` bound to the requested subject, or a selection record | Refused |
 | `assess-finding` | One finding assessment for the requested finding | Refused |
 | `run-gates` | Gate commands, exit codes, and output digests | Refused |
@@ -272,8 +273,9 @@ Launched code, pinning, and trust
   issuance first confirms that the committed installed skill equals what was
   admitted, and refuses `supervisor-changed` when it does not.
 - [ ] **AC-0017.** Under an `untrusted` code-trust classification with no Slice 1
-  verified containment, `next` emits no `run-gates` or `regenerate` request and
-  the supervisor launches no red proof or scratch receipt; `next` emits a
+  verified containment, `next` emits no `implement-task`, `run-gates`, or
+  `regenerate` request and the supervisor launches no red proof or scratch
+  receipt; `next` emits a
   `human-decision`
   naming re-approval as `trusted` or supplying containment.
 

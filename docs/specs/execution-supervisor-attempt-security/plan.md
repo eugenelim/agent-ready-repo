@@ -257,16 +257,20 @@ Owned by: T1, T2, T3, T4, T5.
 ### T5: Results assert only their kind's facts, under recorded grants
 
 - **Depends on:** T3, spec:execution-supervisor-core/T5, spec:execution-supervisor-core/T7, spec:execution-supervisor-review-gate/T2
-- **Spec behavior:** AC-0018, AC-0019, AC-0020; TDD.
+- **Spec behavior:** AC-0017 (the `implement-task` clause), AC-0018, AC-0019, AC-0020; TDD.
 - **Touches:** `_supervisor_loop.py`; `_supervisor_tdd.py`; `_supervisor_git.py`; `docs/architecture/runtime-security-primitives.md`; Core manifests and changelog
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-5040 (AC-0018):** one fixture per Result acceptance row. It includes
-    an unknown kind, an `implement-task` result that carries gate outcomes, and
-    a `regenerate` result that asserts digests.
+    an unknown kind, an `implement-task` result that carries criteria, review,
+    or effect facts beside its gate outcome, a `write-stub` result that carries
+    a gate outcome, and a `regenerate` result that asserts digests.
+  - **VI-5042 (AC-0017):** under `untrusted` with no attestation, a task with
+    no stubs gets no `implement-task` request, and the same `human-decision`
+    as `run-gates` is emitted.
   - **VI-5041 (AC-0019, AC-0020):** each launch kind's `safe-process.v1` record
     holds its table row. A probe child sees only the allowlisted variables.
-- **Done when:** VI-5040 and VI-5041 pass, the architecture review is recorded, and security-reviewer returns clean.
+- **Done when:** VI-5040 through VI-5042 pass, the architecture review is recorded, and security-reviewer returns clean.
 
 ## Rollout
 
@@ -297,3 +301,5 @@ Owned by: T1, T2, T3, T4, T5.
 - 2026-10-21: plan approved by eugenelim
 - 2026-10-21: spec approved by eugenelim
 - 2026-10-21: plan approved by eugenelim
+- 2026-10-22: spec approved by eugenelim
+- 2026-10-22: plan approved by eugenelim
