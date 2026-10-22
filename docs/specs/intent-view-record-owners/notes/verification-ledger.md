@@ -235,3 +235,57 @@ d38d07552c3bc7da74f09af9e4189a1d502bff6f064fb4a96ead15be6eda7618 roadmap-320-dar
 - The 24 images were recaptured from an export of `845ea3fba` plus the owner-cell layout fix in `view.css` (the owner now sits in the name column under the name at every multi-column width). The first set showed the owner cell drifting toward the next row, and the detail zone caught mid-fade. The script now uses reduced motion and scrolls to the top before each capture, so the header shows the Owner control and the owner line. The same states and owners were chosen as before.
 - The T8 measurements ran against `29007336b`. The later commit `aa8e4f2d3` changes only tests, `SKILL.md` and the guide. It leaves the view code and the payload untouched. So the bench, the counts and the screenshots still describe the final code.
 - On 2026-10-22, after the round-2 reviews, the 24 screenshots were recaptured from a fresh export at the final view code. The pointer now moves off the list before each capture, so no row keeps a hover band, and each row cell now names its grid column explicitly. The hashes above are from this recapture.
+
+## T7
+
+- Done by the controller (receipt `human-directed`).
+  - `navigate-intents/SKILL.md` and `guides/core/how-to/navigate-intents.md` describe `owner` on query results, the `search` `owner` selector and the Owner control.
+  - `evals/eval_queries.json` gains one `should_trigger: true` case, bringing it to 59 queries.
+  - The eight amended specs each carry an `Amended in part by:` line.
+  - Core moves to 3.1.16 in `pack.toml` and `.claude-plugin/plugin.json`. Main was at 3.1.15, and no open PR claimed 3.1.16.
+  - The changelog fragment `d2e4eb78-3fe9-4758-b5a4-230e7e02da0b` carries Highlights.
+  - `workspace.toml` moves the spec to `["ini-010".work].active`.
+- Checks:
+  - All pass: `tools/changelog.py validate`, `lint-guide-titles.py`, `validate_guides.py`, `lint-guides-no-repo-only-refs.py`, `lint-spec-status.py` and `make lint-ruff lint-mypy`.
+  - `make build-self` ran after each commit that touched `.apm`, and a second run showed no diff.
+  - `workspace-status` shows this spec as canonical active, with no findings.
+- `make build-check`: every drift and lint gate passed, and SAST was not clean. In this shell the SAST leg first stopped because `npm` was not on PATH. Run with the full toolchain, it failed only on semgrep `--strict` timeout diagnostics:
+  - 1 file at load 51;
+  - 5 files at load 93.
+
+  None of those files is in this diff. The machine's load comes from OneDrive, FileProvider and Microsoft Defender as well as the suites. CI's `gate-sast` is the enforcing scan (ADR-0113).
+  A third run, with nothing else of this session running, had the same result:
+  - semgrep timed out on 5 files outside the diff at load 55;
+  - bandit, pip-audit, npm audit and the dependency-advisory checks passed.
+- `tests/roster` errors locally on `test_installed_07_wins_over_floor_06`, because that test needs a Python 3.11 interpreter this machine lacks. CI runs 3.11.
+
+## Post-gates review
+
+Raw reports and adjudications are under `.context/reviews/9b92719e-436b-4011-84e6-34eff6105418/`.
+
+| Reviewer | Round | Sustained | Refuted |
+| --- | --- | --- | --- |
+| adversarial-reviewer | 1 | 2 Nits: an assertion that could not fail; docs overstating owner matching | 3 |
+| quality-engineer | 1 | 1 Concern (scoped rail counts undecided), 3 advisories, 3 Nits | 2 |
+| security-reviewer | 1 | none; clean after adjudication, its `## Not checked` footer leaving no reachable risk | — |
+| experience-reviewer | 1 | 2 Majors (the owner cell drifted from its row at 1280 and 1680; captures taken mid-fade), 1 Minor (the browse-320 header was not shown) | 4 |
+| frontend-reviewer | 1 | 1 Major (captures taken mid-fade) | 2 |
+| experience-reviewer | 2 | 1 Minor: a hover band in the 1280 Browse shots | 2 |
+| frontend-reviewer | 2 | 1 Nit: implicit grid columns (verdict SHIP IT) | 1 |
+
+- Every sustained finding is fixed, in commits `aa8e4f2d3`, `0dccd23bf` and `9d0b45703`.
+- **Test strength.**
+  - Rail counts are decided on every differential pair.
+  - The dead `skip` parameter and the unused `_ADMITTED` are removed.
+  - The README's non-owner selector ids are compared against `search`.
+  - Three assertions that could not fail are fixed.
+  - Red proofs: a stale rail failed 4 of 10 AC-0032 checks, and a seeded empty box failed the flat-list check.
+- **Design.**
+  - At multi-column widths the owner cell sits in column 1, row 2, directly under its name. `test_owner_cell_sits_under_its_own_name_not_by_the_next_row` failed on the old CSS at 1280.
+  - Every row cell names its grid column.
+  - The captures use reduced motion, scroll to the top and move the pointer away first.
+- AC-0029: after adjudication, round 2 left no Major or Blocker.
+- Ledger wording: the `-n auto` export failures under load (see "Rebase onto the readiness bridge") pass when run serially. Their cause is not confirmed: `_list_worktrees` raises the same `invalid_destination` for a Git timeout, a non-zero exit and an empty listing. That code predates this change.
+- Final gates:
+  - Full `view_browser_checks.py`: 492 passed in 527s, none skipped. It ran alone, because an earlier run that overlapped SAST at load 92 hit the same Git refusal in export setup.
+  - `make lint-ruff lint-mypy`, `check_view_base_parity.py` and `lint-pack-test-boundary.py` are clean.
