@@ -134,47 +134,36 @@ _AGENT_PLUGIN_SCHEMA_ANNOTATION_KEYWORDS = {
 }
 
 
-def _bundled_or_repo(name: str) -> Path:
-    """Locate a data file shipped under both `agentbundle/_data/` and
-    `<repo>/contracts/`.
+def _bundled_path(name: str) -> Path:
+    """Return the path of a data file shipped under `agentbundle/_data/`.
 
-    Prefer the bundled copy when present on disk (works in a `pip install`
-    and a dev checkout); fall back to the repo path for dev checkouts
-    whose `_data/` hasn't been synced. Inside a `zipapp` neither path is
-    a real filesystem location — callers should use `_read_bundled` to
-    get the text content instead of trying to open the returned Path.
+    Inside a `zipapp` the returned path is not a real filesystem location;
+    use `_read_bundled` to get the text instead of opening it.
     """
-    bundled = PACKAGE_ROOT.parent / "_data" / name
-    if bundled.exists():
-        return bundled
-    return REPO_ROOT / "contracts" / name
+    return PACKAGE_ROOT.parent / "_data" / name
 
 
 def _read_bundled(name: str) -> str:
     """Read a packaged data file, transparently handling the zipapp case.
 
-    Resolution order:
-      1. `<package>/_data/<name>` via `importlib.resources` — works for
-         filesystem installs AND inside a `zipapp` archive.
-      2. `<repo>/contracts/<name>` — dev fallback for source trees
-         whose `_data/` hasn't been populated.
+    Reads `agentbundle/_data/<name>` through `importlib.resources`, which
+    works for filesystem installs and inside a `zipapp`. A missing file
+    raises `FileNotFoundError` naming `_data/<name>`; no other source is
+    tried.
     """
-    try:
-        from importlib.resources import files
+    from importlib.resources import files
 
-        resource = files("agentbundle").joinpath(f"_data/{name}")
-        if resource.is_file():
-            return resource.read_text(encoding="utf-8")
-    except (FileNotFoundError, ModuleNotFoundError):
-        pass
-    return (REPO_ROOT / "contracts" / name).read_text(encoding="utf-8")
+    resource = files("agentbundle").joinpath(f"_data/{name}")
+    if not resource.is_file():
+        raise FileNotFoundError(f"bundled contract missing: _data/{name}")
+    return resource.read_text(encoding="utf-8")
 
 
-CONTRACT_PATH = _bundled_or_repo("adapter.toml")
-ROUTE_CONTRACT_PATH = _bundled_or_repo("distribution-routes.toml")
-ROUTE_SCHEMA_PATH = _bundled_or_repo("distribution-routes.schema.json")
-PACK_SCHEMA_PATH = _bundled_or_repo("pack.schema.json")
-PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
+CONTRACT_PATH = _bundled_path("adapter.toml")
+ROUTE_CONTRACT_PATH = _bundled_path("distribution-routes.toml")
+ROUTE_SCHEMA_PATH = _bundled_path("distribution-routes.schema.json")
+PACK_SCHEMA_PATH = _bundled_path("pack.schema.json")
+PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_path("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The canonical SessionStart hook command synthesised into each derived

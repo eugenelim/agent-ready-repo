@@ -119,34 +119,18 @@ class CatalogueConfig:
 def _load_schema() -> dict:
     """Load catalogue.schema.json from the bundled _data directory.
 
-    Raises CatalogueConfigError when the schema cannot be found or is
-    invalid JSON — the validator cannot run without it.
+    Raises CatalogueConfigError naming ``_data/catalogue.schema.json`` when
+    the copy is missing, unreadable or not valid JSON; no other source is
+    tried.
     """
-    # Primary: importlib.resources (installed package path)
+    from agentbundle.build.main import _read_bundled
+
     try:
-        from importlib.resources import files
-
-        resource = files("agentbundle").joinpath("_data/catalogue.schema.json")
-        if resource.is_file():
-            return json.loads(resource.read_text(encoding="utf-8"))
-    except Exception:
-        pass
-
-    # Fallback: filesystem path relative to this file (editable install)
-    here = Path(__file__).resolve()
-    data_schema = here.parents[1] / "_data" / "catalogue.schema.json"
-    if data_schema.exists():
-        try:
-            return json.loads(data_schema.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise CatalogueConfigError(
-                f"catalogue.toml: cannot load catalogue.schema.json: {exc}"
-            ) from exc
-
-    raise CatalogueConfigError(
-        "catalogue.toml: catalogue.schema.json not found in _data/ — "
-        "cannot validate without the schema"
-    )
+        return json.loads(_read_bundled("catalogue.schema.json"))
+    except (OSError, ValueError) as exc:
+        raise CatalogueConfigError(
+            f"catalogue.toml: cannot load _data/catalogue.schema.json: {exc}"
+        ) from exc
 
 
 def _apply_schema_validation(raw: dict) -> None:
@@ -164,43 +148,26 @@ def _apply_schema_validation(raw: dict) -> None:
 def _load_adapter_names() -> frozenset[str]:
     """Return adapter names from the bundled adapter contract.
 
-    Raises CatalogueConfigError if the contract cannot be loaded — the
-    preferred-adapter check cannot pass without the contract (fail-closed).
+    Raises CatalogueConfigError naming ``_data/adapter.toml`` if the
+    contract cannot be loaded — the preferred-adapter check cannot pass
+    without it (fail-closed). No other source is tried.
     """
-    # Primary: importlib.resources
+    from agentbundle.build.main import _read_bundled
+
     try:
-        from importlib.resources import files
-
-        resource = files("agentbundle").joinpath("_data/adapter.toml")
-        if resource.is_file():
-            data = tomllib.loads(resource.read_text(encoding="utf-8"))
-            adapters = data.get("adapter", {})
-            if isinstance(adapters, dict):
-                return frozenset(adapters.keys())
-    except Exception:
-        pass
-
-    # Fallback: filesystem path relative to repo root
-    here = Path(__file__).resolve()
-    # packages/agentbundle/agentbundle/catalogue_tooling/config.py -> repo root
-    repo_root = here.parents[4]
-    adapter_toml = repo_root / "contracts" / "adapter.toml"
-    if adapter_toml.exists():
-        try:
-            data = tomllib.loads(adapter_toml.read_text(encoding="utf-8"))
-            adapters = data.get("adapter", {})
-            if isinstance(adapters, dict):
-                return frozenset(adapters.keys())
-        except Exception as exc:
-            raise CatalogueConfigError(
-                f"catalogue.toml: cannot load adapter contract for preferred-adapter "
-                f"validation: {exc}"
-            ) from exc
-
-    raise CatalogueConfigError(
-        "catalogue.toml: adapter contract (adapter.toml) not found — "
-        "cannot validate preferred-adapter without it"
-    )
+        data = tomllib.loads(_read_bundled("adapter.toml"))
+    except (OSError, ValueError) as exc:
+        raise CatalogueConfigError(
+            f"catalogue.toml: cannot load _data/adapter.toml for preferred-adapter "
+            f"validation: {exc}"
+        ) from exc
+    adapters = data.get("adapter", {})
+    if not isinstance(adapters, dict):
+        raise CatalogueConfigError(
+            "catalogue.toml: _data/adapter.toml has no [adapter] table — "
+            "cannot validate preferred-adapter"
+        )
+    return frozenset(adapters.keys())
 
 
 def _check_no_credentials(value: str, field_name: str) -> None:

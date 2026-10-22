@@ -10,9 +10,9 @@ Monkeypatching strategy:
     unless a specific finding is under test (test 14). The stub avoids
     pulling in portability-check machinery and platform-specific state.
   - agentbundle.catalogue_tooling.lint._load_pack_schema is stubbed to
-    return None where schema-validation results are not the focus.
-    When None is returned, _check_pack_schema_validation emits CAT-L006
-    at WARN severity, which does not affect ok.
+    return an empty schema (which accepts every manifest) where
+    schema-validation results are not the focus. A loader that raises
+    makes _check_pack_schema_validation emit CAT-L006 at ERROR severity.
   - Shared fixtures create a valid catalogue.toml with the default paths and
     claude-code preferred adapter. Dedicated negative tests omit or customize
     it explicitly.
@@ -262,7 +262,7 @@ def test_allowed_adapter_requires_claude_marketplace(tmp_path, monkeypatch):
 def test_clean_catalogue(tmp_path, monkeypatch):
     """One pack with valid pack.toml + plugin.json → ok=True, no ERROR diagnostics."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
     result = lint_catalogue(tmp_path)
@@ -374,7 +374,7 @@ def test_agent_block_scalar_is_refused_but_skills_may_use_one(tmp_path, monkeypa
     the ones never checked. A helper that is never called cannot fail.
     """
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
 
@@ -462,7 +462,7 @@ def test_agent_boundary_without_tools_requires_a_declared_tool(tmp_path):
 def test_pack_filter(tmp_path, monkeypatch):
     """pack='pack-a' scope: pack-b diagnostics are excluded from the result."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
     # pack-b: dir/name mismatch → would produce CAT-L004 when pack-b is in scope
@@ -481,7 +481,7 @@ def test_pack_filter_suppresses_unrelated_unsafe_pack_with_relative_path(
 ):
     """Safety discovery is global, but scoped diagnostics remain pack-local."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
     unsafe = _add_pack(
@@ -513,7 +513,7 @@ def test_pack_filter_suppresses_unrelated_unsafe_pack_with_relative_path(
 def test_deep_lint_skips_manifestless_pack_with_linked_skill(tmp_path, monkeypatch):
     """Deep lint cannot bypass preflight through a pack without pack.toml."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
     unsafe = _add_pack(tmp_path, "pack-b")
@@ -549,7 +549,7 @@ def test_deep_lint_skips_manifestless_pack_with_linked_skill(tmp_path, monkeypat
 def test_deep_lint_prunes_transient_symlink_tree(tmp_path, monkeypatch):
     """Packager-pruned dependency trees do not fail authored-content preflight."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(
         tmp_path,
@@ -646,7 +646,7 @@ def test_deep_lint_skips_pack_with_fifo_manifest(tmp_path, monkeypatch):
 def test_cat_l003_duplicate_identity(tmp_path, monkeypatch):
     """Two packs with the same [pack].name → CAT-L003 error."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     shared_toml = "[pack]\nname = \"shared-name\"\nversion = \"0.1.0\"\n"
     _add_pack(tmp_path, "pack-a", pack_toml=shared_toml)
@@ -664,7 +664,7 @@ def test_cat_l003_duplicate_identity(tmp_path, monkeypatch):
 def test_cat_l004_dir_name_mismatch(tmp_path, monkeypatch):
     """Directory named 'pack-a' but [pack].name is 'pack-b' → CAT-L004 error."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(
         tmp_path,
@@ -691,25 +691,52 @@ def test_cat_l005_unparse_pack_toml(tmp_path, monkeypatch):
     assert "CAT-L005" in codes
 
 
-# ---------------------------------------------------------------------------
-# 7. test_cat_l006_schema_absent_warns
+# 7. test_cat_l006_schema_absent_errors
 # ---------------------------------------------------------------------------
 
 
-def test_cat_l006_schema_absent_warns(tmp_path, monkeypatch):
-    """No pack schema available → CAT-L006 WARN (not ERROR); ok stays True."""
+def _raise_missing_schema():
+    raise FileNotFoundError("bundled contract missing: _data/pack.schema.json")
+
+
+def test_cat_l006_schema_absent_errors(tmp_path, monkeypatch):
+    """No bundled pack schema -> CAT-L006 ERROR naming the file; ok is False."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", _raise_missing_schema)
     _setup_markers(tmp_path)
     _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
     result = lint_catalogue(tmp_path)
     l006_diags = [d for d in result.diagnostics if d.code == "CAT-L006"]
-    assert l006_diags, "expected at least one CAT-L006 diagnostic when schema is absent"
-    assert l006_diags[0].severity == Severity.WARN
-    # WARN does not set ok=False
-    assert result.ok is True
+    assert l006_diags, "expected a CAT-L006 diagnostic when the schema is absent"
+    assert l006_diags[0].severity == Severity.ERROR
+    assert "_data/pack.schema.json" in l006_diags[0].message
+    assert result.ok is False
 
 
+def test_cat_l006_schema_unparsable_errors(tmp_path, monkeypatch):
+    """An unparsable bundled pack schema -> CAT-L006 ERROR naming the file."""
+    import importlib
+
+    _build_main = importlib.import_module("agentbundle.build.main")
+
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    real = _build_main._read_bundled
+    monkeypatch.setattr(
+        _build_main,
+        "_read_bundled",
+        lambda name: "{not json" if name == "pack.schema.json" else real(name),
+    )
+    _setup_markers(tmp_path)
+    _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
+    result = lint_catalogue(tmp_path)
+    l006_diags = [d for d in result.diagnostics if d.code == "CAT-L006"]
+    assert l006_diags
+    assert l006_diags[0].severity == Severity.ERROR
+    assert "_data/pack.schema.json" in l006_diags[0].message
+    assert result.ok is False
+
+
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # 8. test_cat_l007_unparse_plugin_json
 # ---------------------------------------------------------------------------
@@ -718,7 +745,7 @@ def test_cat_l006_schema_absent_warns(tmp_path, monkeypatch):
 def test_cat_l007_unparse_plugin_json(tmp_path, monkeypatch):
     """plugin.json with invalid JSON → CAT-L007 error."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(
         tmp_path,
@@ -743,7 +770,7 @@ def test_cat_l008_missing_required_key(tmp_path, monkeypatch):
     was unreachable against any real pack, so nothing noticed the gap.
     """
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(
         tmp_path,
@@ -766,7 +793,7 @@ def test_manifest_at_pack_root_is_not_read_by_lint(tmp_path, monkeypatch):
     would silently restore the bug.
     """
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     # Deliberately misplaced: invalid JSON at the location lint must NOT read.
@@ -786,7 +813,7 @@ def test_manifest_at_pack_root_is_not_read_by_lint(tmp_path, monkeypatch):
 def test_cat_l009_name_version_mismatch(tmp_path, monkeypatch):
     """pack.toml name differs from plugin.json name → CAT-L009 error."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(
         tmp_path,
@@ -807,7 +834,7 @@ def test_cat_l009_name_version_mismatch(tmp_path, monkeypatch):
 def test_cat_l010_skill_missing_skill_md(tmp_path, monkeypatch):
     """Skill subdirectory exists but has no SKILL.md → CAT-L010 error."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(
         tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON
@@ -826,7 +853,7 @@ def test_cat_l010_skill_missing_skill_md(tmp_path, monkeypatch):
 def test_cat_l011_skill_missing_frontmatter_key(tmp_path, monkeypatch):
     """SKILL.md with frontmatter but missing 'name' key → CAT-L011 error."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(
         tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON
@@ -904,7 +931,7 @@ def test_render_table():
 
 def test_lint_packs_symlink_translated(tmp_path, monkeypatch):
     """lint_pack finding containing 'symlink not portable to Windows' → CAT-L022."""
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     symlink_finding = "pack-a: symlink not portable to Windows: some/linked/file"
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [symlink_finding])
     _setup_markers(tmp_path)
@@ -925,7 +952,7 @@ def test_lint_packs_symlink_translated(tmp_path, monkeypatch):
 def test_ok_false_on_any_error(tmp_path, monkeypatch):
     """A single ERROR diagnostic in the result makes ok=False."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     # dir='pack-a', [pack].name='pack-b' → CAT-L004 ERROR
     _add_pack(
@@ -993,7 +1020,7 @@ def _add_pack_full(
 def test_check_profiles_no_profiles_dir(tmp_path, monkeypatch):
     """No profiles/ directory → no CAT-L028 diagnostics."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     result = lint_catalogue(tmp_path)
     assert not any(d.code == "CAT-L028" for d in result.diagnostics)
@@ -1002,7 +1029,7 @@ def test_check_profiles_no_profiles_dir(tmp_path, monkeypatch):
 def test_check_profiles_invalid_scope_value(tmp_path, monkeypatch):
     """Profile with invalid scope value → CAT-L028 mentioning 'invalid scope' or 'scope must be'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _setup_profile(tmp_path, "bad-scope", 'scope = "cluster"\npacks = []')
     result = lint_catalogue(tmp_path)
@@ -1014,7 +1041,7 @@ def test_check_profiles_invalid_scope_value(tmp_path, monkeypatch):
 def test_check_profiles_empty_packs_list(tmp_path, monkeypatch):
     """Profile with empty packs list → CAT-L028 mentioning 'non-empty list'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _setup_profile(tmp_path, "empty-packs", 'scope = "repo"\npacks = []')
     result = lint_catalogue(tmp_path)
@@ -1026,7 +1053,7 @@ def test_check_profiles_empty_packs_list(tmp_path, monkeypatch):
 def test_check_profiles_pack_not_found(tmp_path, monkeypatch):
     """Profile references pack not in packs/ → CAT-L028 mentioning 'not found in packs/'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _setup_profile(
         tmp_path, "missing-pack",
@@ -1041,7 +1068,7 @@ def test_check_profiles_pack_not_found(tmp_path, monkeypatch):
 def test_check_profiles_scope_homogeneity_violation(tmp_path, monkeypatch):
     """Profile scope 'user' but pack only allows 'repo' → CAT-L028 mentioning 'does not allow scope'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(tmp_path, "repo-only", allowed_scopes=["repo"])
     _setup_profile(
@@ -1057,7 +1084,7 @@ def test_check_profiles_scope_homogeneity_violation(tmp_path, monkeypatch):
 def test_check_profiles_dependency_incomplete(tmp_path, monkeypatch):
     """Pack has required dep not in profile → CAT-L028 mentioning 'dependency-incomplete'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(
         tmp_path, "pack-a", allowed_scopes=["repo"],
@@ -1078,7 +1105,7 @@ def test_check_profiles_dependency_incomplete(tmp_path, monkeypatch):
 def test_check_profiles_order_invalid(tmp_path, monkeypatch):
     """Dep listed after dependent pack → CAT-L028 mentioning 'mis-ordered'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(tmp_path, "pack-base", allowed_scopes=["repo"])
     _add_pack_full(
@@ -1105,7 +1132,7 @@ def test_check_profiles_order_invalid(tmp_path, monkeypatch):
 def test_check_profiles_unsupported_range_grammar(tmp_path, monkeypatch):
     """Pack dep uses unsupported range grammar → CAT-L028 mentioning 'unsupported version range'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(tmp_path, "pack-base", allowed_scopes=["repo"])
     _add_pack_full(
@@ -1137,7 +1164,7 @@ def test_check_profiles_accepts_rfc_version_range_forms(
 ):
     """Profile lint accepts every dependency range form accepted by verify."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(tmp_path, "pack-base", version="0.1.0", allowed_scopes=["repo"])
     _add_pack_full(
@@ -1171,7 +1198,7 @@ def test_check_profiles_accepts_rfc_version_range_forms(
 def test_check_profiles_zero_minor_caret_rejects_next_minor(tmp_path, monkeypatch):
     """Profile lint applies npm's 0.x caret upper bound."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(
         tmp_path, "pack-base", version="0.2.0", allowed_scopes=["repo"]
@@ -1231,7 +1258,7 @@ def test_canonical_shim_comparison_refuses_linked_sibling_source(tmp_path):
 def test_check_profiles_skips_cross_catalogue_dependency_closure(tmp_path, monkeypatch):
     """An external dependency is not required in a local catalogue profile."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(
         tmp_path,
@@ -1265,7 +1292,7 @@ def test_check_profiles_rejects_malformed_cross_catalogue_dependency_range(
 ):
     """External dependencies skip closure, not shared range validation."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(
         tmp_path,
@@ -1350,7 +1377,7 @@ def test_profile_lint_rejects_unparseable_local_dependency_version():
 def test_check_profiles_parse_failure(tmp_path, monkeypatch):
     """Malformed TOML profile → CAT-L028 mentioning 'cannot parse'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _setup_profile(tmp_path, "bad-toml", "this = [[ invalid toml")
     result = lint_catalogue(tmp_path)
@@ -1362,7 +1389,7 @@ def test_check_profiles_parse_failure(tmp_path, monkeypatch):
 def test_check_profiles_clean(tmp_path, monkeypatch):
     """Valid profile → no CAT-L028 diagnostics."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_full(tmp_path, "pack-a", allowed_scopes=["repo"])
     _setup_profile(
@@ -1405,7 +1432,7 @@ def _add_pack_with_seeds(
 def test_check_seeds_opt_out(tmp_path, monkeypatch):
     """Pack without lint-seeds = true → no CAT-L029 even with unknown seed."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_with_seeds(
         tmp_path, "pack-a", lint_seeds=False, seeds={"AGENTS.md": "<project-name>"}
@@ -1417,7 +1444,7 @@ def test_check_seeds_opt_out(tmp_path, monkeypatch):
 def test_check_seeds_unknown_seed(tmp_path, monkeypatch):
     """Seed not in REQUIRED_PLACEHOLDERS → CAT-L029 fail-loud mentioning 'declare its expected'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_with_seeds(
         tmp_path, "pack-a", lint_seeds=True,
@@ -1432,7 +1459,7 @@ def test_check_seeds_unknown_seed(tmp_path, monkeypatch):
 def test_portable_seed_lint_ignores_repository_specific_names(tmp_path, monkeypatch):
     """Portable lint leaves repository-specific governance to local tooling."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_with_seeds(
         tmp_path, "pack-a", lint_seeds=True,
@@ -1445,7 +1472,7 @@ def test_portable_seed_lint_ignores_repository_specific_names(tmp_path, monkeypa
 def test_check_seeds_missing_placeholder(tmp_path, monkeypatch):
     """Seed missing required placeholder token → CAT-L029."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     # AGENTS.md requires '<project-name>'
     _add_pack_with_seeds(
@@ -1463,7 +1490,7 @@ def test_architecture_seed_requires_responsibility_map_placeholders(
 ):
     """Portable architecture seeds describe responsibilities, not a fixed tree."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_with_seeds(
         tmp_path,
@@ -1486,7 +1513,7 @@ def test_architecture_seed_requires_responsibility_map_placeholders(
 def test_check_seeds_sentinel_exemption(tmp_path, monkeypatch):
     """Seed with sentinel above blocklist hit → no CAT-L029."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     content = (
         "<project-name>\n"
@@ -1501,7 +1528,7 @@ def test_check_seeds_sentinel_exemption(tmp_path, monkeypatch):
 def test_check_seeds_stacked_sentinel(tmp_path, monkeypatch):
     """Two back-to-back sentinels → CAT-L029 mentioning 'stacked sentinel'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     content = (
         "<project-name>\n"
@@ -1519,7 +1546,7 @@ def test_check_seeds_stacked_sentinel(tmp_path, monkeypatch):
 def test_check_seeds_patterns_jsonl_nonempty(tmp_path, monkeypatch):
     """patterns.jsonl with content → CAT-L029."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     seeds = {
         "AGENTS.md": "<project-name>",
@@ -1545,7 +1572,7 @@ def test_check_seeds_patterns_jsonl_nonempty(tmp_path, monkeypatch):
 def test_check_seeds_clean(tmp_path, monkeypatch):
     """Opt-in pack with clean seeds → no CAT-L029."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_with_seeds(
         tmp_path, "pack-a", lint_seeds=True,
@@ -1565,7 +1592,7 @@ def test_check_seeds_symlinked_dir_skipped(tmp_path, monkeypatch):
     Skipped on platforms where os.symlink is unavailable (some Windows configs).
     """
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=True,
                                     seeds={"AGENTS.md": "<project-name>"})
@@ -1593,7 +1620,7 @@ def test_check_seeds_symlinked_dir_skipped(tmp_path, monkeypatch):
 def test_check_seeds_symlinked_file_skipped(tmp_path, monkeypatch):
     """A symlinked file inside seeds/ must not be read by the linter."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack_with_seeds(tmp_path, "pack-a", lint_seeds=True,
                                     seeds={"AGENTS.md": "<project-name>"})
@@ -1643,7 +1670,7 @@ def _add_pack_fv(root: Path, name: str, *, pack_toml_extra: str = "") -> Path:
 def test_check_first_value_missing_section(tmp_path, monkeypatch):
     """Pack without [pack.first-value] → silently skipped (adoption is opt-in)."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack_fv(tmp_path, "pack-a")
     result = lint_catalogue(tmp_path)
@@ -1654,7 +1681,7 @@ def test_check_first_value_missing_section(tmp_path, monkeypatch):
 def test_check_first_value_level_a_missing_field(tmp_path, monkeypatch):
     """Pack with first-value but missing 'verification' → CAT-L030."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     # missing 'verification'
     extra = (
@@ -1674,7 +1701,7 @@ def test_check_first_value_level_a_missing_field(tmp_path, monkeypatch):
 def test_check_first_value_level_b_required_when_flagged(tmp_path, monkeypatch):
     """Pack with level-b = true missing starter-task → CAT-L030."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = (
         "[pack.first-value]\n"
@@ -1696,7 +1723,7 @@ def test_check_first_value_level_b_required_when_flagged(tmp_path, monkeypatch):
 def test_check_first_value_writes_to_repo_gate(tmp_path, monkeypatch):
     """Pack with writes-to-repo = true missing safety-gate → CAT-L030."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = (
         "[pack.first-value]\n"
@@ -1718,7 +1745,7 @@ def test_check_first_value_writes_to_repo_gate(tmp_path, monkeypatch):
 def test_check_first_value_tutorial_missing_file(tmp_path, monkeypatch):
     """Pack declares tutorial that doesn't exist → CAT-L030 mentioning 'does not exist'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = (
         "[pack.first-value]\n"
@@ -1739,7 +1766,7 @@ def test_check_first_value_tutorial_missing_file(tmp_path, monkeypatch):
 def test_check_first_value_clean(tmp_path, monkeypatch):
     """Pack with complete valid first-value section → no CAT-L030."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = (
         "[pack.first-value]\n"
@@ -1757,7 +1784,7 @@ def test_check_first_value_clean(tmp_path, monkeypatch):
 def test_check_first_value_level_a_next_action_over_limit(tmp_path, monkeypatch):
     """A present Level A next-action keeps the shared 120-character limit."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = _FV_SECTION + f'next-action = "{"x" * 121}"\n'
     _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
@@ -1769,7 +1796,7 @@ def test_check_first_value_level_a_next_action_over_limit(tmp_path, monkeypatch)
 def test_check_first_value_level_a_next_action_requires_string(tmp_path, monkeypatch):
     """A present Level A next-action must use the shared string type."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = _FV_SECTION + "next-action = 42\n"
     _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
@@ -1787,7 +1814,7 @@ def test_check_first_value_next_action_at_limit_is_accepted(tmp_path, monkeypatc
     every other unit case stayed green.
     """
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = _FV_SECTION + f'next-action = "{"x" * 120}"\n'
     _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
@@ -1805,7 +1832,7 @@ def test_check_first_value_level_b_still_requires_next_action(tmp_path, monkeypa
     only `next-action`.
     """
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     extra = (
         _FV_SECTION
@@ -1906,7 +1933,7 @@ Call with MY_TOOL_API_KEY set.
 def test_check_credentialed_skills_no_skills_dir(tmp_path, monkeypatch):
     """Pack without .apm/skills/ → no CAT-L031."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     result = lint_catalogue(tmp_path)
@@ -1916,7 +1943,7 @@ def test_check_credentialed_skills_no_skills_dir(tmp_path, monkeypatch):
 def test_check_credentialed_skills_missing_security_heading(tmp_path, monkeypatch):
     """Credentialed skill missing '### Security rules (non-negotiable)' heading → CAT-L031."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     # Flat frontmatter (required by parser), no security heading
@@ -1944,7 +1971,7 @@ No security section here.
 def test_check_credentialed_skills_argv_ban(tmp_path, monkeypatch):
     """Credentialed skill script uses banned argv flag → CAT-L031 mentioning 'argv-borne credential flag'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     _add_credentialed_skill(
@@ -1965,7 +1992,7 @@ def test_check_credentialed_skills_argv_ban(tmp_path, monkeypatch):
 def test_check_credentialed_skills_env_missing_env_read(tmp_path, monkeypatch):
     """Env broker skill missing expected os.environ read → CAT-L031."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     # namespace=MY_TOOL + keys=["API_KEY"] → expected env read is MY_TOOL_API_KEY
@@ -1983,7 +2010,7 @@ def test_check_credentialed_skills_env_missing_env_read(tmp_path, monkeypatch):
 def test_check_credentialed_skills_denyset_incomplete(tmp_path, monkeypatch):
     """D2b: deny-set with 2+ banned flags but missing others → CAT-L031 mentioning 'deny-set'."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     # Flat frontmatter: auth: cli, primitive-class: credentialed-cli
@@ -2006,7 +2033,7 @@ def test_check_credentialed_skills_denyset_incomplete(tmp_path, monkeypatch):
 def test_check_credentialed_skills_dotfile_read(tmp_path, monkeypatch):
     """D3: script reads .agentbundle/credentials.env via AST path chain → CAT-L031 mentioning 'dotfile'."""  # noqa: E501
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     # auth: cli avoids env-read enforcement (just D1 + D3 checks apply)
@@ -2028,7 +2055,7 @@ def test_check_credentialed_skills_dotfile_read(tmp_path, monkeypatch):
 def test_check_credentialed_skills_clean(tmp_path, monkeypatch):
     """Pack with non-credentialed skill → no CAT-L031."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
     _setup_markers(tmp_path)
     pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
     _add_credentialed_skill(pack_dir, "my-skill", skill_md_content=_CLEAN_SKILL_MD)

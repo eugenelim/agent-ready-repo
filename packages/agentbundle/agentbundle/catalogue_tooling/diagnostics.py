@@ -17,7 +17,7 @@ class DiagnosticCode(enum.StrEnum):
     CAT_L003 = "CAT-L003"   # Duplicate pack identity across packs dir
     CAT_L004 = "CAT-L004"   # Pack directory name differs from [pack].name in pack.toml
     CAT_L005 = "CAT-L005"   # pack.toml not parseable as TOML
-    CAT_L006 = "CAT-L006"   # pack.toml fails pack.schema.json validation (WARN if schema absent)
+    CAT_L006 = "CAT-L006"   # pack.toml fails pack.schema.json, or that schema is missing
     CAT_L007 = "CAT-L007"   # plugin.json not parseable as JSON
     CAT_L008 = "CAT-L008"   # plugin.json fails plugin schema validation
     CAT_L009 = "CAT-L009"   # pack.toml and plugin.json name or version mismatch

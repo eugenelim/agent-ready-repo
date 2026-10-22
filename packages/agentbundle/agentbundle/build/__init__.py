@@ -26,7 +26,7 @@ from pathlib import Path
 
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.lint_packs import cmd_lint_packs
-from agentbundle.build.main import _read_bundled, cmd_build
+from agentbundle.build.main import cmd_build
 from agentbundle.build.self_host import cmd_check, cmd_self
 from agentbundle.build.validate import validate as validate_instance
 
@@ -42,12 +42,15 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         )
         return 1
 
+    # Imported at call time so a patch of `agentbundle.build.main._read_bundled`
+    # reaches this call.
+    from agentbundle.build.main import _read_bundled
+
     try:
         schema_text = _read_bundled("adapter.schema.json")
-    except (FileNotFoundError, ModuleNotFoundError):
+    except (OSError, ModuleNotFoundError) as exc:
         print(
-            "validate: adapter.schema.json not found in package data or "
-            "repository contracts",
+            f"validate: cannot read bundled _data/adapter.schema.json: {exc}",
             file=sys.stderr,
         )
         return 1

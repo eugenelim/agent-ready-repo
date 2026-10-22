@@ -90,28 +90,29 @@ def _humanize_name(name: str) -> str:
 
 
 def _load_adapter_names() -> frozenset[str]:
-    """Return the set of valid adapter names from the bundled contract."""
+    """Return the set of valid adapter names from the bundled contract.
+
+    Raises ValueError naming ``_data/adapter.toml`` when it cannot be
+    loaded; no other source is tried.
+    """
     import tomllib
+
+    from agentbundle.build.main import _read_bundled
+
     try:
-        from importlib.resources import files
-        resource = files("agentbundle").joinpath("_data/adapter.toml")
-        if resource.is_file():
-            data = tomllib.loads(resource.read_text(encoding="utf-8"))
-            adapters = data.get("adapter", {})
-            if isinstance(adapters, dict):
-                return frozenset(adapters.keys())
-    except Exception:
-        pass
-    here = Path(__file__).resolve()
-    fallback = here.parents[4] / "contracts" / "adapter.toml"
-    if fallback.exists():
-        data = tomllib.loads(fallback.read_text(encoding="utf-8"))
-        adapters = data.get("adapter", {})
-        if isinstance(adapters, dict):
-            return frozenset(adapters.keys())
-    raise ValueError(
-        "catalogue init: adapter contract not found — cannot validate preferred-adapter"
-    )
+        data = tomllib.loads(_read_bundled("adapter.toml"))
+    except (OSError, ValueError) as exc:
+        raise ValueError(
+            f"catalogue init: cannot load _data/adapter.toml — cannot validate "
+            f"preferred-adapter: {exc}"
+        ) from exc
+    adapters = data.get("adapter", {})
+    if not isinstance(adapters, dict):
+        raise ValueError(
+            "catalogue init: _data/adapter.toml has no [adapter] table — "
+            "cannot validate preferred-adapter"
+        )
+    return frozenset(adapters.keys())
 
 
 def _get_default_adapter() -> str:

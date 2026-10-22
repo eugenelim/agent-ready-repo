@@ -51,20 +51,13 @@ def valid_recipes() -> frozenset[str]:
     return _NON_ROUTE_RECIPES | frozenset(default_recipes())
 
 
-# Location of pack.schema.json relative to the repo root.  The schema is
-# bundled in contracts/ and is also bundled at
-# agentbundle/_data/pack.schema.json for zipapp use.
+# pack.schema.json ships at agentbundle/_data/pack.schema.json.
 _HERE = Path(__file__).resolve().parent
 
 
 def _schema_path() -> Path:
-    """Locate pack.schema.json — bundled copy preferred, dev fallback."""
-    bundled = _HERE.parent / "_data" / "pack.schema.json"
-    if bundled.exists():
-        return bundled
-    # Dev fallback: walk up from agentbundle/ package to repo root.
-    repo_root = _HERE.parent.parent.parent.parent
-    return repo_root / "contracts" / "pack.schema.json"
+    """Return the bundled pack.schema.json path; no other source is tried."""
+    return _HERE.parent / "_data" / "pack.schema.json"
 
 
 def _conformance_fixtures_dir() -> Path:
@@ -145,7 +138,8 @@ def run(args) -> int:
     schema_path = _schema_path()
     if not schema_path.exists():
         print(
-            f"validate: pack.schema.json not found at {schema_path}",
+            f"validate: bundled contract missing: _data/pack.schema.json "
+            f"(looked at {schema_path})",
             file=sys.stderr,
         )
         return 1
@@ -509,17 +503,9 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
     truth; no module-level cache so a test-time swap is visible
     immediately.
     """
-    from agentbundle.build.contract import load as load_contract
+    from agentbundle.build.main import _read_bundled
 
-    here = Path(__file__).resolve().parent
-    bundled = here.parent / "_data" / "adapter.toml"
-    if bundled.exists():
-        contract_path = bundled
-    else:
-        contract_path = here.parent.parent.parent.parent / "contracts" / "adapter.toml"
-        if not contract_path.exists():
-            return None, None
-    contract = load_contract(contract_path)
+    contract = tomllib.loads(_read_bundled("adapter.toml"))
     adapters = contract.get("adapter", {})
     # Prefer the kiro-ide block (v0.9+); fall back to kiro alias (older contracts).
     kiro = adapters.get("kiro-ide") or adapters.get("kiro") or {}
@@ -544,22 +530,11 @@ def _load_adapter_contract() -> dict:
     ``_kiro_ide_hook_vocabularies`` — the contract file is the source of
     truth; no module-level cache so a test-time swap is visible.
 
-    Returns an empty dict when neither the bundled nor the dev-checkout
-    path exists (keeps the enumeration rail a no-op rather than crashing).
+    A missing or unparsable bundled copy raises; no other source is tried.
     """
-    from agentbundle.build.contract import load as load_contract
+    from agentbundle.build.main import _read_bundled
 
-    here = Path(__file__).resolve().parent
-    bundled = here.parent / "_data" / "adapter.toml"
-    if bundled.exists():
-        contract_path = bundled
-    else:
-        contract_path = (
-            here.parent.parent.parent.parent / "contracts" / "adapter.toml"
-        )
-        if not contract_path.exists():
-            return {}
-    return load_contract(contract_path)
+    return tomllib.loads(_read_bundled("adapter.toml"))
 
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:

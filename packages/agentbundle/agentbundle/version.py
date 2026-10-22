@@ -12,33 +12,22 @@ from __future__ import annotations
 
 import tomllib
 from importlib.resources import files
-from pathlib import Path
 
 CLI_VERSION = "0.53.2"
 
-_HERE = Path(__file__).resolve().parent
-
 
 def _read_bundled_adapter_toml_text() -> str:
-    """Read the canonical adapter.toml as text.
+    """Read the bundled adapter.toml as text.
 
-    Resolution:
-      1. `agentbundle._data/adapter.toml` via `importlib.resources` —
-         works inside a `zipapp`, a `pip install`, and a dev checkout
-         that has `_data/` populated.
-      2. `<repo>/contracts/adapter.toml` — dev-checkout fallback
-         for the (rare) case where `_data/` is missing in the source
-         tree (mostly during initial scaffolding).
+    Reads `agentbundle/_data/adapter.toml` through `importlib.resources`,
+    which works in a `pip install`, a `zipapp` and an editable install.
+    A missing copy raises `FileNotFoundError` naming it; no other source
+    is tried.
     """
-    try:
-        resource = files("agentbundle").joinpath("_data/adapter.toml")
-        if resource.is_file():
-            return resource.read_text(encoding="utf-8")
-    except (FileNotFoundError, ModuleNotFoundError):
-        pass
-
-    fallback = _HERE.parent.parent.parent / "contracts" / "adapter.toml"
-    return fallback.read_text(encoding="utf-8")
+    resource = files("agentbundle").joinpath("_data/adapter.toml")
+    if not resource.is_file():
+        raise FileNotFoundError("bundled contract missing: _data/adapter.toml")
+    return resource.read_text(encoding="utf-8")
 
 
 def _read_spec_version() -> str:
