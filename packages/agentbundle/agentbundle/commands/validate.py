@@ -18,7 +18,6 @@ Usage (wired by cli.py):
 
 from __future__ import annotations
 
-import json
 import sys
 import tomllib
 from pathlib import Path
@@ -53,11 +52,6 @@ def valid_recipes() -> frozenset[str]:
 
 # pack.schema.json ships at agentbundle/_data/pack.schema.json.
 _HERE = Path(__file__).resolve().parent
-
-
-def _schema_path() -> Path:
-    """Return the bundled pack.schema.json path; no other source is tried."""
-    return _HERE.parent / "_data" / "pack.schema.json"
 
 
 def _conformance_fixtures_dir() -> Path:
@@ -135,16 +129,13 @@ def run(args) -> int:
         return gate
 
     # ── 3. Schema validation ──────────────────────────────────────────────
-    schema_path = _schema_path()
-    if not schema_path.exists():
-        print(
-            f"validate: bundled contract missing: _data/pack.schema.json "
-            f"(looked at {schema_path})",
-            file=sys.stderr,
-        )
-        return 1
+    from agentbundle.build.main import _load_bundled_json
 
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    try:
+        schema = _load_bundled_json("pack.schema.json")
+    except (OSError, ValueError) as exc:
+        print(f"validate: {exc}", file=sys.stderr)
+        return 1
 
     # Import validate_instance from F-build (library-first).
     from agentbundle.build.validate import validate as validate_instance

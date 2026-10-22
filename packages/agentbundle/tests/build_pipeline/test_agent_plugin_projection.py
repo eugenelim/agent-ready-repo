@@ -387,9 +387,39 @@ def test_agent_plugin_missing_active_extension_schema_is_sanitized(
     with pytest.raises(ValueError) as refusal:
         build_main._load_agent_plugin_extension_registry()
     assert str(refusal.value) == (
-        "agent-plugin: extension-registry error invalid-schema"
+        "agent-plugin: extension-registry error invalid-schema: "
+        "_data/vendor/test/v1/test.schema.json"
     )
     assert "/private/host/path" not in str(refusal.value)
+
+
+def test_agent_plugin_unparsable_active_extension_schema_is_named(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unparsable active schema keeps the stable token and names the file."""
+    original_read = build_main._read_bundled
+    registry = (
+        '[contract]\nversion = "1.0"\n\n'
+        '[namespace."com.example.test"]\n'
+        'owner = "test-profile"\n'
+        'state = "active"\n'
+        'schema = "vendor/test/v1/test.schema.json"\n'
+    )
+
+    def read_with_bad_schema(name: str) -> str:
+        if name == "agent-plugin-extension-namespaces.toml":
+            return registry
+        if name == "vendor/test/v1/test.schema.json":
+            return "{not json"
+        return original_read(name)
+
+    monkeypatch.setattr(build_main, "_read_bundled", read_with_bad_schema)
+    with pytest.raises(ValueError) as refusal:
+        build_main._load_agent_plugin_extension_registry()
+    assert str(refusal.value) == (
+        "agent-plugin: extension-registry error invalid-schema: "
+        "_data/vendor/test/v1/test.schema.json"
+    )
 
 
 def _extension_value_with_serialized_size(target: int) -> dict[str, str]:

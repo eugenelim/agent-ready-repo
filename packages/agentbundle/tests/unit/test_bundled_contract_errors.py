@@ -245,3 +245,45 @@ def test_archive_marketplace_check_names_the_file(monkeypatch, reader, tmp_path:
         diags = archive._check_marketplace_entries(tf, tf.getmembers())
     assert [d.code for d in diags] == ["CAT-V-ARC-017"]
     assert "_data/marketplace-entry.schema.json" in diags[0].message
+
+
+_JSON_READERS = [
+    pytest.param(lambda n: "{not json", id="unparsable"),
+    pytest.param(_bad_bytes, id="undecodable"),
+]
+
+
+@pytest.mark.parametrize("reader", _JSON_READERS)
+def test_validate_command_names_the_pack_schema(monkeypatch, reader, tmp_path: Path, capsys) -> None:
+    from agentbundle.cli import main as cli_main
+
+    pack = tmp_path / "demo"
+    pack.mkdir()
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "demo"\nversion = "0.1.0"\ndescription = "d"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    _patch_only(monkeypatch, "pack.schema.json", reader)
+    assert cli_main(["validate", str(pack)]) == 1
+    assert "_data/pack.schema.json" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("reader", _JSON_READERS)
+def test_direct_source_pack_schema_names_the_file(monkeypatch, reader) -> None:
+    from agentbundle import direct_source
+
+    _patch_only(monkeypatch, "pack.schema.json", reader)
+    with pytest.raises(ValueError, match="_data/pack.schema.json"):
+        direct_source._load_pack_schema()
+
+
+@pytest.mark.parametrize("reader", _JSON_READERS)
+def test_profile_schema_names_the_file(monkeypatch, reader, tmp_path: Path) -> None:
+    from agentbundle.commands import profile
+
+    profile_file = tmp_path / "demo.toml"
+    profile_file.write_text('[profile]\nname = "demo"\n', encoding="utf-8", newline="\n")
+    _patch_only(monkeypatch, "profile.schema.json", reader)
+    with pytest.raises(profile.ProfileError, match="_data/profile.schema.json"):
+        profile._parse_and_validate("demo", profile_file)

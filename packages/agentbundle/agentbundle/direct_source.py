@@ -8,7 +8,6 @@ schema: the bundled validator does not support conditional schema constructs.
 from __future__ import annotations
 
 import contextlib
-import json
 import shlex
 import shutil
 import stat
@@ -16,7 +15,6 @@ import tempfile
 import unicodedata
 from collections.abc import Generator
 from dataclasses import dataclass
-from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -1005,11 +1003,9 @@ def validate_direct_manifest(
 def _load_pack_schema() -> dict[str, Any]:
     """Load the bundled shared pack schema for direct admission."""
 
-    return json.loads(
-        files("agentbundle").joinpath("_data/pack.schema.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    from agentbundle.build.main import _load_bundled_json
+
+    return _load_bundled_json("pack.schema.json")
 
 
 def _reject_unknown(

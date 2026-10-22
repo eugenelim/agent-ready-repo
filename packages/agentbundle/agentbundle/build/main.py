@@ -874,12 +874,13 @@ def _load_agent_plugin_extension_registry() -> dict:
 
 
 def _load_agent_plugin_extension_schema(schema_path: str) -> dict:
-    """Load one active schema with stable, path-free refusal diagnostics."""
+    """Load one active schema; a refusal names only its package-relative path."""
     try:
         schema = _load_bundled_json(schema_path)
-    except (OSError, TypeError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, TypeError, ValueError) as exc:
         raise ValueError(
-            "agent-plugin: extension-registry error invalid-schema"
+            "agent-plugin: extension-registry error invalid-schema: "
+            f"_data/{schema_path}"
         ) from exc
     _validate_agent_plugin_extension_schema(schema)
     return schema
