@@ -79,6 +79,7 @@ _SCRIPT_PARTS: tuple[str, ...] = (
     "utilities.js",
     "data.js",
     "lists.js",
+    "readiness.js",
     "routing.js",
     "small-parts.js",
     "rows.js",
@@ -610,6 +611,16 @@ def _same_directory(directory: str, identity: tuple[int, int]) -> bool:
     return (st.st_dev, st.st_ino) == identity
 
 
+def budget_refusal(size: int) -> ViewRefusal:
+    """Return the refusal for a page of ``size`` UTF-8 bytes over the export budget."""
+    return ViewRefusal(
+        "export_too_large",
+        "the view exceeds the export budget; export one intent's subtree with --from",
+        limits={"budget_bytes": EXPORT_BUDGET_BYTES, "bounded_route": "--from"},
+        observed={"bytes": size},
+    )
+
+
 def publish(html: str, destination: Destination) -> Path:
     """Publish *html* at its final name complete or not at all; return its path.
 
@@ -618,12 +629,7 @@ def publish(html: str, destination: Destination) -> Path:
     """
     data = html.encode("utf-8")
     if len(data) > EXPORT_BUDGET_BYTES:
-        raise ViewRefusal(
-            "export_too_large",
-            "the view exceeds the export budget; export one intent's subtree with --from",
-            limits={"budget_bytes": EXPORT_BUDGET_BYTES, "bounded_route": "--from"},
-            observed={"bytes": len(data)},
-        )
+        raise budget_refusal(len(data))
     supports = getattr(os, "supports_dir_fd", set())
     if (
         not hasattr(os, "O_NOFOLLOW")

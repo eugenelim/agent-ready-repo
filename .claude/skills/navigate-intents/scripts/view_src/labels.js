@@ -58,8 +58,17 @@
     draft: { glyph: '\u25C7', help: 'Open and still being shaped.' },
     broken: { glyph: '\u2715', help: 'A pointer that did not resolve, a parent or dependency loop made of pointers that did resolve, or a delivery problem.' },
     stale: { glyph: '\u25B3', help: 'The linked file may be newer than this snapshot.' },
-    done: { glyph: '\u2713', help: 'Finished or closed: not open work.' }
+    done: { glyph: '\u2713', help: 'Finished or closed: not open work.' },
+    ready: { glyph: '\u25B6', help: 'Ready, as workspace-status reports it.' },
+    blocked: { glyph: '\u25A0', help: 'Blocked, as workspace-status reports it.' }
   };
+  // Shown in the Key only while readiness is checked: each mark as workspace-status reports it.
+  var READINESS_KEY = [
+    ['active', 'Active', 'Readiness from workspace-status: it lists this item as active.'],
+    ['ready', 'Ready', 'Readiness from workspace-status: it lists this item as ready.'],
+    ['blocked', 'Blocked', 'Readiness from workspace-status: it lists this item as blocked.']
+  ];
+  var FINDING_HELP = 'A finding workspace-status reported about a blocked item, shown with its code.';
   var MARK_ORDER = ['active', 'approved', 'draft', 'broken', 'stale', 'done'];
   var ACTIVE_WORDS = { Implementing: true, Executing: true };
   var APPROVED_WORDS = { Approved: true, Accepted: true, Ready: true };

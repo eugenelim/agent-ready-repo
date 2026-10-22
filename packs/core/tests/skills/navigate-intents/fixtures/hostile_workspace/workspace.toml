@@ -1,0 +1,22 @@
+# Hostile workspace.toml for the readiness bridge (AC-0038). Copied over the
+# `mixed` corpus by the test, then read by the real workspace-status. Every
+# free-text field and `ref` carries the strings of export criterion 0031.
+
+["ini-001"]
+name      = "</script><script>alert(1)</script> \"><svg onload=alert(1)> ‮‏"
+status    = "active"
+milestone = "<img src=x onerror=alert(1)> javascript:alert(1)"
+
+[backlog]
+open = [
+  { path = "docs/product/intents/FEAT-0005-india-none.md", kind = "intent", source = { mode = "repo-origin", ref = "</script><script>alert(1)</script>javascript:alert(1)  ‮‏" }, summary = "</script><script>alert(1)</script> <img src=x onerror=alert(1)> javascript:alert(1) \"><svg onload=alert(1)>     ‮ ‏", needs = [] },
+]
+
+["ini-001".work]
+queue = [
+  { path = "docs/specs/charlie-spec/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "\"><svg onload=alert(1)>javascript:alert(1)" }, summary = "</script><script>alert(1)</script> <img src=x onerror=alert(1)> javascript:alert(1) \"><svg onload=alert(1)>     ‮ ‏", needs = [] },
+  { path = "docs/specs/<img src=x onerror=alert(1)>/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "<img src=x onerror=alert(1)>" }, summary = "</script><script>alert(1)</script> <img src=x onerror=alert(1)> javascript:alert(1) \"><svg onload=alert(1)>     ‮ ‏", needs = [] },
+]
+active = [
+  { path = "docs/specs/bravo-spec/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "</script><script>alert(1)</script>" }, summary = "</script><script>alert(1)</script> <img src=x onerror=alert(1)> javascript:alert(1) \"><svg onload=alert(1)>     ‮ ‏", needs = [] },
+]

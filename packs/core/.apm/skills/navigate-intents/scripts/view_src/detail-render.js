@@ -9,6 +9,9 @@
   // A plain count of what the list holds, from fixed words and numbers only.
   function listSummary(route) {
     if (shownCount === null || emptyCorpus()) { return ''; }
+    if (route.search === '' && route.q === 'next' && readinessChecked()) {
+      return shownCount > 0 ? readinessSummary() : '';
+    }
     if (route.search === '' && route.q === 'next') {
       var per = STAGES.map(function () { return 0; });
       startableIds().forEach(function (id) { per[stageOf(id)] += 1; });
@@ -20,12 +23,15 @@
     if (route.q === 'broken') {
       var entries = brokenEntries();
       var pointers = entries.filter(function (b) { return b.edge || b.dep || b.cycle; }).length;
+      var findings = entries.filter(function (b) { return b.workspace; }).length;
+      var findingNoun = ['workspace finding', 'workspace findings'];
       if (deliveryUnavailable()) {
         return 'In this list: ' + plural(pointers, ['broken pointer', 'broken pointers']) +
-          '. Delivery diagnostics were unavailable.';
+          (findings ? ', ' + plural(findings, findingNoun) : '') + '. Delivery diagnostics were unavailable.';
       }
       return 'In this list: ' + nonZero([[pointers, ['broken pointer', 'broken pointers']],
-        [entries.length - pointers, ['delivery diagnostic', 'delivery diagnostics']]]) + '.';
+        [findings, findingNoun],
+        [entries.length - pointers - findings, ['delivery diagnostic', 'delivery diagnostics']]]) + '.';
     }
     if (route.q === 'noparent') {
       return 'In this list: ' + nonZero(TYPE_GROUPS.map(function (pair) {
@@ -149,6 +155,8 @@
           if (own(STATE_HELP, b.edge.state) !== undefined) {
             add(li, el('p', 'meaning', own(STATE_HELP, b.edge.state)));
           }
+        } else if (b.workspace) {
+          workspaceBroken(li, b.workspace);
         } else if (b.dep || b.cycle) {
           dependencyBroken(li, id, b);
         } else {

@@ -4,7 +4,7 @@
 Not collected by pytest: the file name does not match ``test_*.py``.  Run it
 locally; it needs Playwright and Chromium:
 
-    python packs/core/tests/skills/navigate-intents/view_bench.py --source <repo-root> [--counts 1 10 25 50]
+    python packs/core/tests/skills/navigate-intents/view_bench.py --source <repo-root> [--counts 1 10 25 50] [--readiness <status-output-file>]
 
 It builds N renumbered copies of the source repository's intents, briefs, and spec
 directories (each copied whole) in a scratch repository under the system
@@ -15,6 +15,12 @@ file from ``file://`` with no fragment (so startup measures the default question
 "What can I work on next?") in headless Chromium, types ``graph`` into the header
 search field for the search timing, and prints a Markdown table that includes
 whether ``outstanding`` was available and the default list's row count.
+
+With ``--readiness <file>`` the saved ``workspace-status`` ``status`` output is piped
+into each export through ``export --readiness -``, and the table gains the export's
+``readiness`` result.  The file names this repository's own paths, so a renumbered
+copy loads none of them and the page drops those entries: the run measures reading,
+checking and projecting the input, not a page full of readiness rows.
 """
 
 from __future__ import annotations
@@ -130,13 +136,14 @@ def init_repo(root: pathlib.Path) -> None:
          "commit", "-q", "--allow-empty", "-m", "bench")
 
 
-def export(root: pathlib.Path, out_dir: pathlib.Path) -> dict[str, Any]:
-    proc = subprocess.run(
-        [sys.executable, str(_SCRIPT), "export", "--root", str(root),
-         "--destination", str(out_dir), "--name", "bench.html"],
-        capture_output=True, text=True, check=False,
-    )
-    return json.loads(proc.stdout)  # type: ignore[no-any-return]
+def export(root: pathlib.Path, out_dir: pathlib.Path, readiness: bytes | None = None) -> dict[str, Any]:
+    """Run the real export; pipe *readiness* in through ``--readiness -`` when given."""
+    args = [sys.executable, str(_SCRIPT), "export", "--root", str(root),
+            "--destination", str(out_dir), "--name", "bench.html"]
+    if readiness is not None:
+        args += ["--readiness", "-"]
+    proc = subprocess.run(args, input=readiness, capture_output=True, check=False)
+    return json.loads(proc.stdout.decode("utf-8"))  # type: ignore[no-any-return]
 
 
 def _startup(browser: Browser, url: str) -> float:
@@ -192,19 +199,21 @@ def _search_and_heap(browser: Browser, url: str) -> tuple[float, float, dict[str
         ctx.close()
 
 
-def measure(copies: int, browser: Browser, work: pathlib.Path, source: pathlib.Path) -> dict[str, Any]:
+def measure(copies: int, browser: Browser, work: pathlib.Path, source: pathlib.Path,
+            readiness: bytes | None = None) -> dict[str, Any]:
     root = work / f"corpus-{copies}"
     build_corpus(root, copies, source)
     init_repo(root)
     out = work / f"out-{copies}"
     out.mkdir()
-    result = export(root, out)
+    result = export(root, out, readiness)
     row: dict[str, Any] = {"copies": copies, "status": result.get("status")}
     if result.get("status") != "ok":
         row["error"] = result.get("error")
         return row
     url = pathlib.Path(result["path"]).as_uri()
     row["bytes"] = result["bytes"]
+    row["readiness"] = result.get("readiness")
     row["startup_ms"] = statistics.median(_startup(browser, url) for _ in range(3))
     search_ms, heap, facts = _search_and_heap(browser, url)
     row.update(search_ms=search_ms, heap_bytes=heap, outstanding_available=facts["available"],
@@ -224,7 +233,10 @@ def main() -> int:
     ap.add_argument("--counts", type=int, nargs="+", default=[1, 10, 25, 50])
     ap.add_argument("--source", type=pathlib.Path, required=True,
                     help="repository whose intents, briefs, and specs are copied")
+    ap.add_argument("--readiness", type=pathlib.Path, default=None,
+                    help="saved workspace-status status output to pipe into each export")
     args = ap.parse_args()
+    readiness = args.readiness.read_bytes() if args.readiness else None
     work = pathlib.Path(tempfile.mkdtemp(prefix="intent-view-bench-"))
     rows = []
     try:
@@ -232,15 +244,16 @@ def main() -> int:
             browser = pw.chromium.launch(args=["--enable-precise-memory-info"])
             try:
                 for n in args.counts:
-                    row = measure(n, browser, work, args.source.resolve())
+                    row = measure(n, browser, work, args.source.resolve(), readiness)
                     print(json.dumps(row), file=sys.stderr, flush=True)
                     rows.append(row)
             finally:
                 browser.close()
     finally:
         shutil.rmtree(work, ignore_errors=True)
-    print("| copies | outstanding available | default rows | file bytes | startup ms | search ms | heap MiB | meets all |")
-    print("| --- | --- | --- | --- | --- | --- | --- | --- |")
+    extra = " readiness |" if readiness is not None else ""
+    print("| copies | outstanding available | default rows | file bytes | startup ms | search ms | heap MiB | meets all |" + extra)
+    print("| --- | --- | --- | --- | --- | --- | --- | --- |" + (" --- |" if extra else ""))
     for r in rows:
         if r["status"] != "ok":
             print(f"| {r['copies']} | export refused: {r.get('error')} | | | | | | no |")
@@ -248,7 +261,8 @@ def main() -> int:
         avail = "yes" if r["outstanding_available"] else "no ({}, limit {})".format(*r["outstanding_reason"])
         print(f"| {r['copies']} | {avail} | {r['default_rows']} | {r['bytes']:,} "
               f"| {r['startup_ms']:.0f} | {r['search_ms']:.0f} | {r['heap_bytes'] / 2**20:.0f} "
-              f"| {'yes' if r['meets_all'] else 'no'} |")
+              f"| {'yes' if r['meets_all'] else 'no'} |"
+              + (f" {json.dumps(r['readiness'])} |" if extra else ""))
     return 0
 
 
