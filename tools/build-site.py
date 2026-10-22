@@ -32,6 +32,7 @@ SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
 # Astro serves only public/ as static files, so a guide asset (an image beside
 # a guide) is published from here at the URL _guide_site_url gives it.
 SITE_PUBLIC_GUIDES = REPO_ROOT / "docs-site" / "public" / "guides"
+SITE_PUBLIC = REPO_ROOT / "docs-site" / "public"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
 SITE_BASE = "/agent-ready-repo/docs"
 NOW_PROJECTION = (
@@ -1420,6 +1421,16 @@ _field_reference = importlib.util.module_from_spec(_field_reference_spec)
 sys.modules[_field_reference_spec.name] = _field_reference
 _field_reference_spec.loader.exec_module(_field_reference)
 
+_SPEC_SITE_MODULE = Path(__file__).with_name("catalogue_spec_site.py")
+_spec_site_spec = importlib.util.spec_from_file_location(
+    "catalogue_spec_site", _SPEC_SITE_MODULE
+)
+if _spec_site_spec is None or _spec_site_spec.loader is None:
+    raise ImportError(f"cannot load {_SPEC_SITE_MODULE}")
+_spec_site = importlib.util.module_from_spec(_spec_site_spec)
+sys.modules[_spec_site_spec.name] = _spec_site
+_spec_site_spec.loader.exec_module(_spec_site)
+
 
 # ---------------------------------------------------------------------------
 # Released changelog Highlights -> the public /now/ projection.
@@ -2097,7 +2108,10 @@ def main() -> None:
     reference_out = SITE_DOCS / "reference"
 
     if args.clean and not args.dry_run:
-        for d in (packs_out, guides_out, SITE_PUBLIC_GUIDES, reference_out):
+        for d in (
+            packs_out, guides_out, SITE_PUBLIC_GUIDES, reference_out,
+            SITE_DOCS / "spec", SITE_PUBLIC / "spec",
+        ):
             if d.exists():
                 shutil.rmtree(d)
                 print(f"  clean {d.relative_to(REPO_ROOT)}/")
@@ -2150,6 +2164,10 @@ def main() -> None:
 
     print("build-site: generating schema field reference pages …")
     for page in _field_reference.generate(reference_out, dry_run=args.dry_run):
+        print(f"  {_relpath(page)}")
+
+    print("build-site: generating the catalogue specification section …")
+    for page in _spec_site.generate(SITE_DOCS, SITE_PUBLIC, dry_run=args.dry_run):
         print(f"  {_relpath(page)}")
 
     print("build-site: projecting released changelog highlights …")

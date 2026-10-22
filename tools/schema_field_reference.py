@@ -239,13 +239,18 @@ def render_page(
     source: str,
     narrative_href: str,
     narrative_label: str,
+    slug: str | None = None,
 ) -> str:
-    """Return the Markdown page, Starlight frontmatter included."""
+    """Return the Markdown page, Starlight frontmatter included.
+
+    ``slug`` is emitted in the frontmatter only when given.
+    """
     description = f"Field reference for {title}, generated from {source}."
     lines = [
         "---",
         f"title: {json.dumps(title, ensure_ascii=False)}",
         f"description: {json.dumps(description, ensure_ascii=False)}",
+        *([f"slug: {slug}"] if slug else []),
         "---",
         "",
         f"This table is generated from `{source}`.",

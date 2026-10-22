@@ -30,6 +30,9 @@ build_site = _load("build_site", ROOT / "tools" / "build-site.py")
 sfr = _load("schema_field_reference", ROOT / "tools" / "schema_field_reference.py")
 
 
+SPEC_DRAFT_SLUG = "spec/catalogue/draft"
+
+
 def _nav() -> dict:
     return json.loads(NAV.read_text(encoding="utf-8"))
 
@@ -65,7 +68,7 @@ def _guide_routes() -> set[str]:
 
 
 def _known_routes() -> set[str]:
-    return _guide_routes() | {p["slug"] for p in sfr.PAGES}
+    return _guide_routes() | {p["slug"] for p in sfr.PAGES} | {SPEC_DRAFT_SLUG}
 
 
 def test_top_level_labels_match_d9_tree():
@@ -73,6 +76,16 @@ def test_top_level_labels_match_d9_tree():
     labels = [item["label"] for item in _nav()["items"]]
     assert len(labels) == 10
     assert labels == _d9_labels()
+
+
+def test_contract_group_leads_with_the_draft_specification():
+    """Catalogue spec site AC-8: the draft spec is the group's first item."""
+    group = next(i for i in _nav()["items"] if i["label"] == "Contract and schema reference")
+    assert group["items"][0] == {
+        "label": "Catalogue specification (draft)",
+        "slug": SPEC_DRAFT_SLUG,
+    }
+    assert len(group["items"]) == 4
 
 
 def test_every_slug_resolves():

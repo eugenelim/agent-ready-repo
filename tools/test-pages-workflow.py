@@ -70,6 +70,11 @@ REQUIRED_PATHS = (
     # AC-B10: monthly bundle parts and retraction list also trigger a site rebuild.
     "docs/product/changelog.months/**",
     "docs/product/changelog-retractions.toml",
+    # Catalogue specification site: the contract members it publishes and the
+    # generators that project them into /docs/spec/catalogue/draft/.
+    "contracts/**",
+    "tools/catalogue_spec_site.py",
+    "tools/catalogue/sync_contract_inventory.py",
 )
 # What `test:plugins` must actually BE. An explicit path fails closed when the suite
 # moves; a glob exits 0 with `tests 0`, and so does `true`.

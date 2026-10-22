@@ -112,6 +112,8 @@ docs-site/src/content/docs/packs/
 docs-site/src/content/docs/guides/
 docs-site/src/content/docs/reference/
 docs-site/public/guides/
+docs-site/src/content/docs/spec/
+docs-site/public/spec/
 docs-site/src/content/docs/changelog.md
 docs-site/src/content/docs/contributing.md
 docs-site/src/sidebar-config.json

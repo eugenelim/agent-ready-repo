@@ -21,7 +21,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, basename } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { JSDOM } from 'jsdom';
 
 const REPO_ROOT = join(__dirname, '../../..');
@@ -1620,6 +1621,48 @@ describe('whole-site scan budget', () => {
         '--max-old-space-size in web/vitest.config.ts together, or shard the ' +
         'whole-site scans — do not raise one without the other.'
     ).toBeLessThanOrEqual(DOCS_PAGE_BUDGET);
+  });
+});
+
+/**
+ * catalogue-spec-site AC 10: every member contract of the catalogue
+ * specification manifest has a rendered page and a served raw file, and each
+ * raw JSON file's `$id` is its served draft URL. Member names come from the
+ * canonical manifest loader, not from generator output.
+ */
+describe.skipIf(!docsBuilt)('catalogue specification draft output', () => {
+  const DRAFT_URL = 'https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/draft/';
+  const draftRoot = join(DOCS_ROOT, 'spec/catalogue/draft');
+  const script = [
+    'import importlib.util, json, sys',
+    'from pathlib import Path',
+    'root = Path(sys.argv[1])',
+    'spec = importlib.util.spec_from_file_location("sci", root / "tools/catalogue/sync_contract_inventory.py")',
+    'mod = importlib.util.module_from_spec(spec)',
+    'sys.modules["sci"] = mod',
+    'spec.loader.exec_module(mod)',
+    'rows = mod.load_manifest(root / "contracts")',
+    'print(json.dumps([r.path for r in rows if r.role == "member"]))',
+  ].join('\n');
+  const members: string[] = (
+    JSON.parse(execFileSync('python3', ['-c', script, REPO_ROOT], { encoding: 'utf8' })) as string[]
+  ).map((path) => basename(path));
+
+  it('lists at least one member', () => {
+    expect(members.length).toBeGreaterThan(0);
+  });
+
+  it('renders a page and serves a raw file per member, with a draft $id', () => {
+    for (const fileName of members) {
+      const pageName = fileName.replace(/\./g, '-');
+      expect(existsSync(join(draftRoot, pageName, 'index.html')), `${pageName} page`).toBe(true);
+      const raw = join(draftRoot, fileName);
+      expect(existsSync(raw), `${fileName} raw file`).toBe(true);
+      if (fileName.endsWith('.json')) {
+        const parsed = JSON.parse(readFileSync(raw, 'utf8')) as { $id?: string };
+        expect(parsed.$id, `${fileName} $id`).toBe(`${DRAFT_URL}${fileName}`);
+      }
+    }
   });
 });
 

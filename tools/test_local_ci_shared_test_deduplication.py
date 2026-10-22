@@ -273,6 +273,7 @@ FIRST_TOOL_BATCH = (
     # enumeration and build-check.yml, so no group count moves.
     "tools/test_build_a_catalogue_nav.py",
     "tools/test_schema_field_reference.py",
+    "tools/test_catalogue_spec_site.py",
     "tools/test_browser_gate_subset.py",
     "tools/test_local_ci_shared_test_deduplication.py",
     # spec/self-host-projection-merge-driver: both suites gate the
@@ -1049,11 +1050,17 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # reordered. Prior pins were current: `_effective_composition_errors()` over
 # this Makefile with exactly those two paths deleted returns no errors against
 # `21b35923…` and `d2981f8a…`.
+# Bumped 2026-10-22 for the catalogue specification site suite. Sole cause:
+# one path appended to the existing site/catalogue batch line, after
+# `tools/test_schema_field_reference.py` — `tools/test_catalogue_spec_site.py`.
+# No line was added, removed or reordered. Prior pins were current:
+# `_effective_composition_errors()` over this Makefile with exactly that path
+# deleted returns no drift errors against `6cb1a71c…` and `9a13a0ba…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "6cb1a71c62823d6a50d37e3c6b4da56365cedadc7a7d19fe6a01aa27c7ca1bc5"
+    "8e9fcfdf677e0aeb86f662976685a0cc841e26f3048b9167ab0587d91939fcb8"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "9a13a0bacf4799c939ba2b5f606641fefb33845385c35121cff31eb570b8f1b2"
+    "861eb168215265d9fab6f83da75f629cf4e2420575783088f1770b0f87c71c8d"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

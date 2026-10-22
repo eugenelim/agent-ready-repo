@@ -355,6 +355,13 @@ def test_pages_name_source_and_narrative_link():
     assert 'title: "SKILL.md frontmatter fields"' in skill
 
 
+def test_wave6_pages_carry_only_title_and_description_frontmatter():
+    """A slug-less call keeps the Wave 6 frontmatter exactly as it was."""
+    for page in _real_pages().values():
+        frontmatter = page.split("---\n", 2)[1].splitlines()
+        assert [line.split(":", 1)[0] for line in frontmatter] == ["title", "description"]
+
+
 def test_page_has_no_prose_beyond_sentences_and_table():
     body = _real_pages()["reference/pack-toml"].split("---\n", 2)[2]
     blocks = body.strip().split("\n\n")

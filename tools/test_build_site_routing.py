@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 # build-site.py uses a hyphen, so plain `import build_site` won't work.
@@ -856,6 +857,23 @@ def _generator_fixture(tmp_path):
     (tmp_path / "contracts").mkdir()
     for schema in ("pack.schema.json", "skill.schema.json"):
         shutil.copy2(_SCRIPT.parent.parent / "contracts" / schema, tmp_path / "contracts" / schema)
+    # The catalogue specification generator, the manifest loader it path-loads,
+    # the manifest, every file its rows name, and the overview prose.
+    repo = _SCRIPT.parent.parent
+    shutil.copy2(_SCRIPT.with_name("catalogue_spec_site.py"),
+                 tmp_path / "tools" / "catalogue_spec_site.py")
+    (tmp_path / "tools" / "catalogue").mkdir()
+    shutil.copy2(_SCRIPT.parent / "catalogue" / "sync_contract_inventory.py",
+                 tmp_path / "tools" / "catalogue" / "sync_contract_inventory.py")
+    manifest = repo / "contracts" / "catalogue-spec.toml"
+    shutil.copy2(manifest, tmp_path / "contracts" / "catalogue-spec.toml")
+    for row in tomllib.loads(manifest.read_text(encoding="utf-8"))["contract"]:
+        dest = tmp_path / "contracts" / row["path"]
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(repo / "contracts" / row["path"], dest)
+    overview = tmp_path / "docs-site" / "spec-src" / "catalogue" / "overview.md"
+    overview.parent.mkdir(parents=True)
+    shutil.copy2(repo / "docs-site" / "spec-src" / "catalogue" / "overview.md", overview)
     real_site_toml = _SCRIPT.parent.parent / "site.toml"
     if real_site_toml.is_file():
         shutil.copy2(real_site_toml, tmp_path / "site.toml")
@@ -883,6 +901,27 @@ def _run_generator(root):
         [sys.executable, str(root / "tools" / "build-site.py")],
         cwd=root, capture_output=True, text=True,
     )
+
+
+def test_clean_clears_stale_spec_content_and_regenerates(tmp_path):
+    """AC11: --clean removes both spec trees, then the full pass rebuilds them."""
+    root = _generator_fixture(tmp_path)
+    stale = [
+        root / "docs-site" / "src" / "content" / "docs" / "spec" / "stale.md",
+        root / "docs-site" / "public" / "spec" / "stale.json",
+    ]
+    for f in stale:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("stale", encoding="utf-8")
+    r = subprocess.run(
+        [sys.executable, str(root / "tools" / "build-site.py"), "--clean"],
+        cwd=root, capture_output=True, text=True,
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not any(f.exists() for f in stale)
+    section = root / "docs-site" / "src" / "content" / "docs" / "spec" / "catalogue"
+    assert (section / "draft" / "index.md").is_file()
+    assert (root / "docs-site" / "public" / "spec" / "catalogue" / "index.json").is_file()
 
 
 def test_generation_succeeds_without_the_marketing_token_file(tmp_path):
