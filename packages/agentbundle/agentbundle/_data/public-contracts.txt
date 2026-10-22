@@ -3,6 +3,7 @@ adapter.toml
 agent-plugin-extension-namespaces.schema.json
 agent-plugin-extension-namespaces.toml
 catalogue-index.schema.json
+catalogue-manifest.schema.json
 catalogue.schema.json
 distribution-routes.schema.json
 distribution-routes.toml

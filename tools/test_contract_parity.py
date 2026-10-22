@@ -130,6 +130,7 @@ def test_manifest_repository_rows_match_the_specification() -> None:
         "pack.schema.json", "catalogue.schema.json", "profile.schema.json",
         "skill.schema.json", "skill-manifest.schema.json", "target-vocab.toml",
         "catalogue-index.schema.json", "adapter.toml", "adapter.schema.json",
+        "catalogue-manifest.schema.json",
     ]  # fmt: skip
     assert sorted(by_role["bundled"]) == sorted([
         "marketplace-entry.schema.json", "plugin-manifest.schema.json",
@@ -142,7 +143,7 @@ def test_manifest_repository_rows_match_the_specification() -> None:
         "vendor/agent-plugins/1.0.0/mcp.schema.json",
         "vendor/agent-plugins/1.0.0/plugin.schema.json",
     ]
-    assert len(rows) == 20
+    assert len(rows) == 21
     assert "release = []" in (REPO_ROOT / "contracts" / "catalogue-spec.toml").read_text()
 
 
