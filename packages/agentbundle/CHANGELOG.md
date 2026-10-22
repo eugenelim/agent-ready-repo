@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.54.0] — 2026-10-21
+
+### Changed
+
+- **Breaking.** Every contract load reads only the copy bundled with the
+  package. A `contracts/` folder in or above a catalogue no longer overrides
+  `target-vocab.toml` or `adapter.toml`; the `lint-packs` API and the
+  `pack evals` projection were the two places that read one. Remove any such
+  override folder and put the change in the bundled contract instead.
+- A missing or unparsable bundled contract fails closed and names
+  `_data/<name>`.
+- `catalogue lint` reports a missing pack schema as a `CAT-L006` error. It was
+  a warning that skipped validation.
+
+### Added
+
+- `contracts/catalogue-spec.toml` declares which contracts form the catalogue
+  specification. It is a repository-side manifest; the published contract
+  list is unchanged.
+
 ## [0.53.2] — 2026-10-21
 
 ### Changed

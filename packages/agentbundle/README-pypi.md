@@ -14,6 +14,14 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.54.0
+
+Every contract now loads from the copy bundled with `agentbundle`. A
+`contracts/` folder in or above a catalogue no longer overrides
+`target-vocab.toml` or `adapter.toml`, and a missing or unparsable bundled
+contract fails closed. `catalogue lint` now reports a missing pack schema as a
+`CAT-L006` error instead of a warning that skipped validation.
+
 ## What's new in 0.53.2
 
 Error messages from `install` and from `.adapt-discovery.toml` loading state
