@@ -51,11 +51,16 @@ def _build_cases() -> dict[str, dict]:
         "missing-schema": lambda m: m.pop("schema"),
         "schema-3": lambda m: m.__setitem__("schema", 3),
         "schema-string": lambda m: m.__setitem__("schema", "2"),
+        "bundle-missing": lambda m: m.pop("bundle"),
         "bundle-number": lambda m: m.__setitem__("bundle", 1),
         "release-missing": lambda m: m.pop("release"),
+        "release-number": lambda m: m.__setitem__("release", 1),
+        "generated-at-missing": lambda m: m.pop("generated_at"),
         "generated-at-null": lambda m: m.__setitem__("generated_at", None),
+        "files-missing": lambda m: m.pop("files"),
         "files-object": lambda m: m.__setitem__("files", {}),
         "packs-missing": lambda m: m.pop("packs"),
+        "packs-object": lambda m: m.__setitem__("packs", {}),
     }.items():
         manifest = copy.deepcopy(_base_manifest())
         mutate(manifest)
@@ -194,6 +199,8 @@ def test_description_states_limits() -> None:
     assert "neither archive verification" in text
     assert "nor evidence of who published" in text
     assert "separately authenticated channel" in text
+    assert "--sha256-file" in text
+    assert "signature" in text
 
 
 # --- AC 9: objects stay open ---
