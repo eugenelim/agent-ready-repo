@@ -290,8 +290,12 @@ does not govern, and what it supersedes in ADR-0030.
   wired.
 - The self-host drift gate raises `CAT-V-015` for source/projection drift and
   `CAT-V-014` for generated `dist/` drift.
-- `tools/catalogue/check_contract_parity.py` requires portable contract schemas
-  and TOML to match their `agentbundle/_data/` counterparts.
+- `tools/catalogue/check_contract_parity.py` reads `contracts/catalogue-spec.toml`
+  and requires each member and bundled contract to match its
+  `agentbundle/_data/` counterpart byte for byte, the packaged inventory to
+  match the manifest, and `contracts/README.md` to list each row under its
+  role. The CLI loads contracts only from `_data/`; it has no fallback to the
+  repository `contracts/` folder.
 - Distribution-route golden tests pin complete APM, Claude, and Agent Plugin
   package trees by path, bytes, link target, and mode across the route/adapter
   ownership split.

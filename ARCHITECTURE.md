@@ -134,8 +134,13 @@ dependency of pack source or of a target runtime.
   conformance.
 - `make build-check` verifies that the self-host projection matches its source
   inputs.
-- `tools/catalogue/check_contract_parity.py` verifies that portable contracts
-  and bundled contract copies remain byte-identical where required.
+- `tools/catalogue/check_contract_parity.py` reads the manifest
+  `contracts/catalogue-spec.toml` and verifies that every member and bundled
+  contract has a byte-identical `agentbundle/_data/` copy, that the packaged
+  inventory matches the manifest, that no top-level contract lacks a row, and
+  that `contracts/README.md` lists each row under its role. `agentbundle`
+  loads contracts only from `_data/`, never from the repository `contracts/`
+  folder.
 - `tools/lint-pack-test-boundary.py` keeps pack test content out of projected
   runtime content and keeps pack tests in their owning pack tree.
 - `tools/lint-plugin-membership.py` and `tools/lint-plugin-roster.py` enforce

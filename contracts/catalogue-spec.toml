@@ -1,0 +1,89 @@
+# The catalogue specification manifest: every contract file the agentbundle
+# catalogue specification names, each with one role (member, bundled or
+# vendored). public-contracts.txt is generated from the member and bundled rows.
+release = []
+
+[spec]
+name = "agentbundle catalogue specification"
+
+[[contract]]
+path = "pack.schema.json"
+role = "member"
+
+[[contract]]
+path = "catalogue.schema.json"
+role = "member"
+
+[[contract]]
+path = "profile.schema.json"
+role = "member"
+
+[[contract]]
+path = "skill.schema.json"
+role = "member"
+
+[[contract]]
+path = "skill-manifest.schema.json"
+role = "member"
+
+[[contract]]
+path = "target-vocab.toml"
+role = "member"
+
+[[contract]]
+path = "catalogue-index.schema.json"
+role = "member"
+
+[[contract]]
+path = "adapter.toml"
+role = "member"
+
+[[contract]]
+path = "adapter.schema.json"
+role = "member"
+
+[[contract]]
+path = "marketplace-entry.schema.json"
+role = "bundled"
+
+[[contract]]
+path = "plugin-manifest.schema.json"
+role = "bundled"
+
+[[contract]]
+path = "plugin-manifest.derived.schema.json"
+role = "bundled"
+
+[[contract]]
+path = "distribution-routes.toml"
+role = "bundled"
+
+[[contract]]
+path = "distribution-routes.schema.json"
+role = "bundled"
+
+[[contract]]
+path = "agent-plugin-extension-namespaces.toml"
+role = "bundled"
+
+[[contract]]
+path = "agent-plugin-extension-namespaces.schema.json"
+role = "bundled"
+
+[[contract]]
+path = "guide.schema.json"
+role = "bundled"
+
+[[contract]]
+path = "jsonschema/knowledge-captured-observation.schema.json"
+role = "bundled"
+
+[[contract]]
+path = "vendor/agent-plugins/1.0.0/plugin.schema.json"
+role = "vendored"
+upstream = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+
+[[contract]]
+path = "vendor/agent-plugins/1.0.0/mcp.schema.json"
+role = "vendored"
+upstream = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
