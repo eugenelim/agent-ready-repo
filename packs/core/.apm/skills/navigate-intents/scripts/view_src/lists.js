@@ -68,14 +68,20 @@
     return list;
   }
 
-  function questionCount(key) {
+  // The entries of "What is broken?" that a matching record holds.
+  function ownerEntries(entries, choice) {
+    return choice === '' ? entries : entries.filter(function (e) { return ownerMatches(e.holder, choice); });
+  }
+  // A rail count: the row links its list shows under the owner choice. The roadmap and Browse
+  // narrow with context rows, so their counts are not yet narrowed here.
+  function questionCount(key, owner) {
     if (key === 'browse') { return recordIds.length; }
-    if (key === 'broken') { return brokenEntries().length; }
+    if (key === 'broken') { return ownerEntries(brokenEntries(), owner).length; }
     if (key === 'roadmap') { return capabilityRecordIds().length; }
-    if (key === 'next' && readinessChecked()) { return readinessRowCount(); }
+    if (key === 'next' && readinessChecked()) { return readinessRowCount(owner); }
     if (deliveryUnavailable()) { return null; }
-    if (key === 'next') { return startableIds().length; }
-    if (key === 'capabilities') { return capabilityIds().length; }
-    return noParentIds().length;
+    if (key === 'next') { return ownerOnly(startableIds(), owner).length; }
+    if (key === 'capabilities') { return ownerOnly(capabilityIds(), owner).length; }
+    return ownerOnly(noParentIds(), owner).length;
   }
 

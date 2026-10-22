@@ -28,18 +28,18 @@
   function readinessChecked() { return readiness !== null && readiness.checked === true; }
 
   // The rows of each group, in payload order; a group with no row is left out.
-  function readinessGroups() {
+  function readinessGroups(owner) {
     var found = [];
     READINESS_GROUPS.forEach(function (pair) {
       var key = pair[0];
       var ids = key === 'blocked' ? readiness.blocked.map(function (b) { return b.id; }) : readiness[key];
-      ids = ids.filter(function (id) { return nodes.has(id); });
+      ids = ownerOnly(ids.filter(function (id) { return nodes.has(id); }), owner || '');
       if (ids.length) { found.push({ key: key, head: pair[1], ids: ids }); }
     });
     return found;
   }
-  function readinessRowCount() {
-    return readinessGroups().reduce(function (sum, g) { return sum + g.ids.length; }, 0);
+  function readinessRowCount(owner) {
+    return readinessGroups(owner).reduce(function (sum, g) { return sum + g.ids.length; }, 0);
   }
   // Each code of a blocked item is one broken entry, held by that item.  The finding's
   // own path never holds anything: only the blocked item's id does.

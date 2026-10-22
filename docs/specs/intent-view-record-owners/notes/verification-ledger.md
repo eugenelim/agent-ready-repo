@@ -61,3 +61,31 @@
 - **Readiness-module refusal message.** `test_an_unloadable_readiness_module_refuses_and_writes_nothing` in `test_export_readiness.py` pins `resolver_unavailable` with "readiness module is unavailable", and checks that no file is written. Mutation proof: with the message changed to "view module is unavailable", the test failed, 1 of 1; with the message restored from Git, it passed.
 - **Short list card at rail widths.** From 90rem, `view.css` now sets `.worklist { align-self: start; }`, so a short "What is broken?" card keeps its own height instead of stretching to the rail. `test_a_short_list_card_keeps_its_own_height_beside_the_rail[1680, 2560]` checks two things: the card is shorter than the rail, and the card ends within 48px of its last child. Mutation proof: without the rule, 2 of 2 failed; with it, 2 of 2 passed.
 - Left as the owner decided: the Blocked-row codes still wrap at 1280 and 1680px, and the start tag keeps its quiet style.
+
+## T4
+
+- Implemented by an `implementer` subagent. The five flat lists narrow through `ownerOnly` and `ownerEntries` in `owners.js`. The lists are "What can I work on next?" (checked and unchecked), "What is broken?" (by holder, workspace findings included), "What is still open under a capability?", "What has no parent?" and search.
+  - Rail counts are refreshed in `handleRoute` on each owner change, and "unknown" stays "unknown".
+  - The header line is a `p.lead.owner-line`. The empty states and the "Clear owner" control are added.
+  - The live region already announced on an owner change, so it only gained a check.
+- Readiness export: a `tmp_path` copy of `mixed` with `owner-two` on `bravo-spec` and `charlie-spec` and `owner-one` elsewhere. The status input is ready = [bravo, charlie] and blocked = [golf]. Its three term conditions are asserted under `k:owner-one`.
+- Red proofs (temporary mutations, each restored):
+
+  | Criterion | Mutation | Checks failed |
+  | --- | --- | ---: |
+  | AC-0012 | the owner filter returns every id | 5 |
+  | AC-0013 | the open count follows the owner | 2 |
+  | AC-0014 | the start tag lands on every row | 1 |
+  | AC-0017 | no announcement on an owner change | 1 |
+  | AC-0020 | rail counts are not refreshed | 2 |
+  | AC-0020, "unknown" | the count stops returning "unknown" | 1 |
+  | AC-0021 | the header line is empty | 4 |
+  | AC-0022 | the owner words are dropped | 3 |
+  | AC-0030 | "Clear owner" clears the search | 1 |
+
+  AC-0008's readiness clause rests on T3's unchanged row cell.
+- Open for T5: `listSummary` in `detail-render.js`, the detail pane's "In this list:" line, is built from unnarrowed data, but it is gated on the narrowed count. AC-0032's differential check decides whether that holds.
+- Gates:
+  - Full `view_browser_checks.py`: 457 passed, none skipped, in 293s.
+  - The navigate-intents suite without the browser file, run under `-n 4`: 1134 passed, 6 skipped. The controller re-ran the 16 owner browser checks, which passed.
+  - Clean: `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py`.

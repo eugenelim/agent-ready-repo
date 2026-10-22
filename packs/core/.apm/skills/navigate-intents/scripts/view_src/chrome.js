@@ -30,7 +30,7 @@
   }
 
   // The links are built once, so a link that has focus keeps it across routes; a route only
-  // moves aria-current.  The counts come from the data, which never changes, so they are set here.
+  // moves aria-current.  The counts are set by setNavCounts, as the owner choice changes them.
   function buildNav() {
     RAIL_GROUPS.forEach(function (group) {
       var head = add(dom.questions, el('h2', 'rail-group', group.label));
@@ -44,16 +44,23 @@
         a.setAttribute('href', questionHash(q.key));
         a.setAttribute('data-q', q.key);
         add(a, el('span', 'q-name', q.label));
-        if (q.key !== 'browse') {
-          var count = emptyCorpus() ? 0 : questionCount(q.key);
-          add(a, el('span', 'q-count', count === null ? 'unknown' : String(count)));
-        }
+        if (q.key !== 'browse') { add(a, el('span', 'q-count')); }
         // The full question is the link's description; it sits beside the link so the name stays short.
         var why = add(li, el('span', 'visually-hidden', q.name));
         why.setAttribute('id', 'q-desc-' + q.key);
         a.setAttribute('aria-describedby', why.id);
       });
     });
+  }
+  // The counts follow the owner choice, so they are set again whenever it changes.
+  function setNavCounts(owner) {
+    var links = dom.questions.querySelectorAll('a.question-link');
+    for (var i = 0; i < links.length; i++) {
+      var span = links[i].querySelector('.q-count');
+      if (!span) { continue; }
+      var count = emptyCorpus() ? 0 : questionCount(links[i].getAttribute('data-q'), owner);
+      span.textContent = count === null ? 'unknown' : String(count);
+    }
   }
   function markNav(route) {
     var links = dom.questions.querySelectorAll('a.question-link');
@@ -108,6 +115,7 @@
     if (dom.search.value !== next.search) { dom.search.value = next.search; }
     markNav(next);
     syncOwnerControl(next);
+    if (prev === null || prev.owner !== next.owner) { setNavCounts(next.owner); }
     // A filter select is rebuilt with the list; keep the reader on the one they were using.
     var held = document.activeElement;
     var heldFilter = held && held.closest && held.closest('#filters, #owner-pick') ? held.id : '';
@@ -182,6 +190,9 @@
         skip: byIdEl('skip-details'), owner: byIdEl('owner-pick')
       };
       wide = window.matchMedia('(min-width: 40rem)');
+      dom.listOwner = el('p', 'lead owner-line');
+      dom.listOwner.hidden = true;
+      dom.listLead.parentNode.insertBefore(dom.listOwner, dom.listLead.nextSibling);
       buildIndexes();
       renderMeta();
       renderKey();

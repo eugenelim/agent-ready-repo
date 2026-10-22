@@ -6573,3 +6573,357 @@ def test_owner_ac_0024_keyboard_reaches_and_keeps_focus(opener: Any, exports: di
     page.keyboard.press("ArrowDown")
     page.wait_for_function("() => document.activeElement.id === 'owner'")
     assert not item.errors
+
+
+# ---------------------------------------------------------------------------
+# Record owners: the flat lists, counts, header line and empty states follow the owner choice
+# ---------------------------------------------------------------------------
+
+_FLAT = ["next", "broken", "capabilities", "noparent"]
+_NOUN_FILTERS = ("type", "level")  # noparent's filters, in the order the page describes them
+
+_READ_FLAT = """() => {
+  const list = document.getElementById('list');
+  const rows = Array.from(list.querySelectorAll('a.row-link')).map((a) => [
+    a.dataset.node, a.querySelector('.c-name').firstChild.textContent,
+    a.querySelector('.c-state').textContent, a.querySelector('.c-context').textContent]);
+  const heads = Array.from(list.querySelectorAll('h3.group-head')).map((h) => [h.textContent,
+    h.nextElementSibling ? Array.from(h.nextElementSibling.querySelectorAll('a.row-link')).map((a) => a.dataset.node) : []]);
+  const line = document.getElementById('list-lead').nextElementSibling;
+  const lineShown = line && line.classList.contains('owner-line') && !line.hidden && line.offsetParent !== null;
+  return { rows, heads, tags: list.querySelectorAll('.c-tag').length,
+    title: document.getElementById('list-title').textContent,
+    count: document.getElementById('list-count').textContent,
+    line: lineShown ? line.textContent : null,
+    empty: Array.from(list.querySelectorAll('.empty')).map((e) => e.tagName === 'P' ? e.textContent
+      : Array.from(e.querySelectorAll('p')).map((p) => p.textContent).join('\\n')),
+    buttons: Array.from(list.querySelectorAll('.empty button')).map((b) => b.textContent) };
+}"""
+
+
+def _read_flat(page: Page) -> dict[str, Any]:
+    return page.evaluate(_READ_FLAT)  # type: ignore[no-any-return]
+
+
+def _page_options(page: Page) -> list[tuple[str, str]]:
+    """The Owner control's (label, route value) options, in order, without Any owner."""
+    found = page.eval_on_selector_all("#owner option", "os => os.map(o => [o.textContent, o.value])")
+    return [(label, value) for label, value in found if value != ""]
+
+
+def _choice_key(value: str) -> str:
+    """The owner key a route value chooses: none is the empty key, k:<key> is <key>."""
+    return "" if value == "none" else value[2:]
+
+
+def _owner_matcher(payload: dict[str, Any], value: str) -> Any:
+    keys = {n["id"]: _owner_key(n.get("owner") or "") for n in payload["nodes"]}
+    want = _choice_key(value)
+    return lambda node_id: keys.get(node_id, "") == want
+
+
+def _owner_words(label: str, value: str) -> str:
+    return "no owner recorded" if value == "none" else f'owner "{label}"'
+
+
+def _owner_line(label: str, value: str) -> str:
+    return "Only rows with no owner recorded." if value == "none" else f"Only rows whose owner is {label}."
+
+
+def _check_flat_against_any(
+    page: Page, payload: dict[str, Any], label: str, value: str, any_: dict[str, Any], got: dict[str, Any], where: str
+) -> str:
+    """Decide AC-0012, AC-0013, AC-0021 and AC-0022 for one list; returns "narrowed", "empty" or "same"."""
+    match = _owner_matcher(payload, value)
+    want_rows = [r for r in any_["rows"] if match(r[0])]
+    # AC-0012 and AC-0013: the same rows in the same order, each with the row's own numbers and text.
+    assert got["rows"] == want_rows, (where, label)
+    want_heads = [[h, [i for i in ids if match(i)]] for h, ids in any_["heads"]]
+    assert got["heads"] == [h for h in want_heads if h[1]], (where, label)
+    # AC-0020: the header count is the number of row links shown.
+    assert got["count"].split(" ")[0] == str(len(want_rows)), (where, label, got["count"])
+    # AC-0021: the line below the lead, and nothing under Any owner.
+    assert got["line"] == _owner_line(label, value), (where, label)
+    assert any_["line"] is None, where
+    assert got["title"] == any_["title"], where
+    if want_rows:
+        assert got["empty"] == [] or any_["empty"] != [] or got["rows"], (where, label)
+        return "narrowed" if len(want_rows) < len(any_["rows"]) else "same"
+    return "empty"
+
+
+def _check_empty_state(
+    any_: dict[str, Any], got: dict[str, Any], label: str, value: str, filters: dict[str, str], where: str
+) -> None:
+    """AC-0022: the narrowed-empty state, or the shipped one when Any owner shows nothing too."""
+    if not any_["rows"]:
+        assert got["empty"] == any_["empty"] and got["buttons"] == any_["buttons"], (where, label)
+        return
+    words = [f'{k} "{filters[k]}"' for k in _NOUN_FILTERS if k in filters] + [_owner_words(label, value)]
+    assert got["empty"][0].split("\n")[0] == "Nothing matches " + ", ".join(words) + ".", (where, label, got["empty"])
+    assert got["buttons"] == ["Clear filters"], (where, label)
+
+
+def _flat_sweep(item: Opened, payload: dict[str, Any], where: str) -> dict[str, int]:
+    """Every flat list under every option of the control, against the same list under Any owner."""
+    page = item.page
+    stats = {"narrowed": 0, "empty": 0, "narrowed_empty": 0}
+    options = _page_options(page)
+    assert options
+    any_rows: dict[str, dict[str, Any]] = {}
+    _choose(item, "next")
+    any_rail = _rail_counts(page)
+    for question in _FLAT:
+        _choose(item, question)
+        any_rows[question] = _read_flat(page)
+        assert any_rows[question]["line"] is None
+        assert any_rail[question] == str(len(any_rows[question]["rows"])), (where, question)
+    for label, value in options:
+        shown: dict[str, int] = {}
+        for question in _FLAT:
+            _choose(item, question, owner=value)
+            got = _read_flat(page)
+            kind = _check_flat_against_any(page, payload, label, value, any_rows[question], got, f"{where} {question}")
+            if kind == "empty":
+                _check_empty_state(any_rows[question], got, label, value, {}, f"{where} {question}")
+                stats["narrowed_empty"] += 1 if any_rows[question]["rows"] else 0
+                stats["empty"] += 1
+            else:
+                stats["narrowed"] += 1 if kind == "narrowed" else 0
+            shown[question] = len(got["rows"])
+        # AC-0020: each rail count is the number of row links its list shows under this choice.
+        rail = _rail_counts(page)
+        for question in _FLAT:
+            assert rail[question] == str(shown[question]), (where, label, question, rail)
+    return stats
+
+
+def test_owner_flat_lists_counts_and_empty_states_ac_0012_0013_0020_0021_0022(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["owners"])
+    stats = _flat_sweep(item, payload_of(exports["owners"]), "owners")
+    assert stats["narrowed"] > 0 and stats["narrowed_empty"] > 0, stats
+    assert not item.errors
+
+
+def test_owner_noparent_filters_and_the_empty_state_ac_0022(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    payload = payload_of(exports["owners"])
+    seen_narrowed_empty = 0
+    first_empty: tuple[dict[str, str], str] | None = None
+    for filters in ({"type": "intent"}, {"level": "capability"}, {"type": "intent", "level": "feature"}, {"type": "brief"}):
+        _choose(item, "noparent", **filters)
+        any_ = _read_flat(page)
+        for label, value in _page_options(page):
+            _choose(item, "noparent", owner=value, **filters)
+            got = _read_flat(page)
+            kind = _check_flat_against_any(page, payload, label, value, any_, got, f"noparent {filters}")
+            if kind == "empty":
+                _check_empty_state(any_, got, label, value, filters, f"noparent {filters}")
+                seen_narrowed_empty += 1 if any_["rows"] else 0
+                if any_["rows"] and first_empty is None:
+                    first_empty = (filters, value)
+    assert seen_narrowed_empty > 0 and first_empty is not None
+    # A filtered list empty under Any owner too keeps the shipped state, with the filters alone.
+    for label, value in _page_options(page):
+        _choose(item, "noparent", owner=value, level="nonesuch")
+        got = _read_flat(page)
+        assert got["empty"] == ['Nothing matches level "nonesuch".'] and got["buttons"] == ["Clear filters"], label
+    # "Clear filters" sets Any owner and clears every filter.
+    _choose(item, "noparent", owner=first_empty[1], **first_empty[0])
+    page.locator("#list .empty button", has_text="Clear filters").click()
+    page.wait_for_function("() => !location.hash.includes('owner') && !location.hash.includes('type=')")
+    assert page.locator("#owner").input_value() == ""
+    assert page.locator("#filter-type").input_value() == "" and page.locator("#filter-level").input_value() == ""
+    assert not item.errors
+
+
+def test_owner_search_results_and_the_empty_state_ac_0012_0030(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    payload = payload_of(exports["owners"])
+    reached = {"clear_owner": 0, "shipped": 0}
+    for text in ("feat", "cap", "a", "zzz-no-match"):
+        _choose(item, "next", search=text)
+        any_ = _read_flat(page)
+        for label, value in _page_options(page):
+            _choose(item, "next", search=text, owner=value)
+            got = _read_flat(page)
+            kind = _check_flat_against_any(page, payload, label, value, any_, got, f"search {text}")
+            if kind != "empty":
+                continue
+            if any_["rows"]:
+                tail = "with no owner recorded" if value == "none" else f'for owner "{label}"'
+                assert got["empty"][0].split("\n")[0] == f'Nothing matches the search "{text}" {tail}.', (text, label)
+                assert got["buttons"] == ["Clear owner"], (text, label)
+                reached["clear_owner"] += 1
+            else:
+                assert got["empty"][0].split("\n")[0] == f'Nothing matches the search "{text}".', (text, label)
+                assert got["buttons"] == ["Clear search"], (text, label)
+                reached["shipped"] += 1
+    assert reached["clear_owner"] > 0 and reached["shipped"] > 0, reached
+    # "Clear owner" sets Any owner and keeps the search text.
+    _choose(item, "next", search="feat", owner="k:owner-one")
+    page.locator("#list .empty button", has_text="Clear owner").click()
+    page.wait_for_function("() => !location.hash.includes('owner')")
+    assert page.locator("#search").input_value() == "feat" and page.locator("#owner").input_value() == ""
+    assert "search=feat" in page.evaluate("location.hash")
+    assert _ids(page)
+    assert not item.errors
+
+
+def test_owner_live_region_announces_title_and_count_ac_0017(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    for question in _FLAT:
+        _choose(item, question)
+        previous = ""
+        for _label, value in [*_page_options(page), ("Any owner", "")]:
+            assert value != previous
+            previous = value
+            page.evaluate("document.getElementById('live').textContent = 'stale'")
+            page.select_option("#owner", value=value)
+            page.wait_for_function(
+                "v => document.getElementById('owner').value === v && (new URLSearchParams(location.hash.slice(1)).get('owner') || '') === v",
+                arg=value,
+            )
+            title, count = _text(page, "#list-title"), _count_text(page)
+            page.wait_for_function(
+                "t => document.getElementById('live').textContent === t", arg=f"{title}, {count}"
+            )
+    assert not item.errors
+
+
+def test_owner_rail_counts_stay_unknown_while_open_work_is_unavailable_ac_0020(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    path = _export(_OWNERS_ROOT, tmp_path, "owners_incomplete.html", _delivery_provider=_incomplete)
+    item = opener(path)
+    page = item.page
+    payload = payload_of(path)
+    _choose(item, "broken")
+    any_rail = _rail_counts(page)
+    assert [any_rail[q] for q in ("next", "capabilities", "noparent")] == ["unknown"] * 3
+    for label, value in _page_options(page):
+        _choose(item, "broken", owner=value)
+        rail = _rail_counts(page)
+        assert [rail[q] for q in ("next", "capabilities", "noparent")] == ["unknown"] * 3, label
+        match = _owner_matcher(payload, value)
+        _choose(item, "broken")
+        any_ = _read_flat(page)
+        _choose(item, "broken", owner=value)
+        got = _read_flat(page)
+        assert got["rows"] == [r for r in any_["rows"] if match(r[0])], label
+        assert rail["broken"] == str(len(got["rows"])), label
+        _choose(item, "next", owner=value)
+        assert _count_text(page) == "Count unavailable", label
+    assert not item.errors
+
+
+# The readiness export: a copy of `mixed` whose records carry two owners, with a checked status
+# input that lists the start record and one other record under the second owner, and a record under
+# the first.
+_R_SECOND = {_R_BRAVO, _R_CHARLIE}
+
+
+def _readiness_owner_option(payload: dict[str, Any]) -> str | None:
+    """The Readiness export term's three conditions; the route value of an option meeting the third."""
+    keys = {_owner_key(n.get("owner") or "") for n in payload["nodes"]}
+    assert len(keys - {""}) >= 2, keys  # records carry at least two owners
+    ready = payload["readiness"]
+    assert ready["checked"] is True and ready["start"]["id"] in {n["id"] for n in payload["nodes"]}
+    rows = [i for _h, ids in _expected_groups(ready) for i in ids]
+    owner_of = {n["id"]: _owner_key(n.get("owner") or "") for n in payload["nodes"]}
+    for key in sorted(keys - {""}):
+        others = [i for i in rows if i != ready["start"]["id"] and owner_of[i] != key]
+        if owner_of[ready["start"]["id"]] != key and others and any(owner_of[i] == key for i in rows):
+            return "k:" + key
+    return None
+
+
+@pytest.fixture(scope="module")
+def rowners(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    tmp = tmp_path_factory.mktemp("readiness_owner_export")
+    root = tmp / "mixed"
+    shutil.copytree(_FIXTURES / "mixed", root)
+    for path in root.rglob("*.md"):
+        owner = "owner-two" if path.relative_to(root).as_posix() in _R_SECOND else "owner-one"
+        path.write_text(
+            re.sub(r"^(- \*\*Owner:\*\* ).*$", rf"\g<1>{owner}", path.read_text(encoding="utf-8"), flags=re.M),
+            encoding="utf-8",
+        )
+    status = _r_status(
+        ready=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)],
+        blocked=[_r_blocked(_R_GOLF, "unsatisfied_dependency", "missing_plan")],
+    )
+    path = _with_readiness(tmp / "out", "owners_readiness.html", status, root=root)
+    assert _readiness_owner_option(payload_of(path)) == "k:owner-one"
+    return path
+
+
+def test_owner_readiness_export_meets_its_three_conditions(rowners: pathlib.Path) -> None:
+    payload = payload_of(rowners)
+    assert _readiness_owner_option(payload) is not None
+    assert payload["readiness"]["start"]["id"] == "spec:bravo-spec"
+
+
+def test_owner_ac_0008_readiness_rows_end_with_their_owner_cell(opener: Any, rowners: pathlib.Path) -> None:
+    item = opener(rowners)
+    page = item.page
+    by_node = {n["id"]: n["owner"] for n in payload_of(rowners)["nodes"]}
+    _choose(item, "next")
+    assert _check_owner_cells(page, by_node, "readiness next") >= 3
+    for (node, cell, _c), name in zip(_row_owner_cells(page), _row_ax_names(page), strict=True):
+        assert re.sub(r"\s+", " ", cell) in name, (node, name)
+    for _label, value in _page_options(page):
+        _choose(item, "next", owner=value)
+        _check_owner_cells(page, by_node, "readiness next " + value)
+    assert not item.errors
+
+
+def test_owner_ac_0012_readiness_groups_follow_the_owner_choice(opener: Any, rowners: pathlib.Path) -> None:
+    item = opener(rowners)
+    page = item.page
+    payload = payload_of(rowners)
+    stats = _flat_sweep(item, payload, "readiness")
+    assert stats["narrowed"] > 0, stats
+    ready = payload["readiness"]
+    for label, value in _page_options(page):
+        match = _owner_matcher(payload, value)
+        want = [(h, [i for i in ids if match(i)]) for h, ids in _expected_groups(ready)]
+        _choose(item, "next", owner=value)
+        assert _group_rows(page) == [w for w in want if w[1]], label
+    # A subheading with no row is gone: owner-one holds no ready row, owner-two no blocked one.
+    _choose(item, "next", owner="k:owner-one")
+    assert [h for h, _ids in _group_rows(page)] == ["Blocked"]
+    _choose(item, "next", owner="k:owner-two")
+    assert [h for h, _ids in _group_rows(page)] == ["Ready"]
+    assert not item.errors
+
+
+def test_owner_ac_0014_the_start_tag_stays_with_its_row(opener: Any, rowners: pathlib.Path) -> None:
+    item = opener(rowners)
+    page = item.page
+    payload = payload_of(rowners)
+    start = payload["readiness"]["start"]
+    _choose(item, "next")
+    assert page.locator(".c-tag").count() == 1
+    seen = {"held": 0, "none": 0}
+    for _label, value in _page_options(page):
+        _choose(item, "next", owner=value)
+        if _owner_matcher(payload, value)(start["id"]):
+            row = page.locator(f'#list a.row-link[data-node="{start["id"]}"]')
+            assert row.locator(".c-tag").inner_text() == _tag_text(start["rule"]), value
+            assert page.locator(".c-tag").count() == 1
+            seen["held"] += 1
+        else:
+            assert start["id"] not in _ids(page)
+            assert page.locator(".c-tag").count() == 0, value
+            seen["none"] += 1
+        for question in ("broken", "capabilities", "noparent"):
+            _choose(item, question, owner=value)
+            assert page.locator(".c-tag").count() == 0, (question, value)
+    assert seen["held"] > 0 and seen["none"] > 0, seen
+    assert not item.errors

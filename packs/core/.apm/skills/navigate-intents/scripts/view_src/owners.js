@@ -53,6 +53,24 @@
     var key = n ? ownerKey(n.owner) : '';
     return key === (choice === OWNER_NONE ? '' : choice.slice(2));
   }
+  // The rows of a list that a matching record holds, in the same order.
+  function ownerOnly(ids, choice) {
+    return choice === '' ? ids : ids.filter(function (id) { return ownerMatches(id, choice); });
+  }
+  function ownerChoiceLabel(choice) {
+    var found = ownerOptions().filter(function (o) { return o.value === choice; });
+    return found.length ? found[0].label : '';
+  }
+  // The header line under an owner choice; nothing under Any owner.
+  function ownerLine(choice) {
+    if (choice === '') { return ''; }
+    return choice === OWNER_NONE ? 'Only rows with no owner recorded.' :
+      'Only rows whose owner is ' + ownerChoiceLabel(choice) + '.';
+  }
+  // The owner as an empty-state description words it.
+  function ownerWords(choice) {
+    return choice === OWNER_NONE ? 'no owner recorded' : 'owner "' + ownerChoiceLabel(choice) + '"';
+  }
   function ownerText(id) {
     var n = nodes.get(id);
     return n && ownerKey(n.owner) !== '' ? 'Owner: ' + n.owner : NO_OWNER_TEXT;
