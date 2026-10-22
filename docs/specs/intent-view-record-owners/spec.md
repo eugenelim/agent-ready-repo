@@ -1,6 +1,6 @@
 # Spec: Intent view record owners
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-21 by eugenelim, spec and plan, at revision 5a8a691e1, after spec-mode shaping and adversarial reviews, each clean after adjudication at round 8; reports under `.context/reviews/6aa4e0b5-a803-41fb-964f-84d041130fdd/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -151,7 +151,7 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
   It covers every question, every Show and Group choice, no search and the search text the README names, and each owner choice: the README's choices on the first three exports, and every option its Owner control offers on the readiness export. The page under that owner choice is compared with the page under "Any owner" with the same other choices, and it differs only in these ways:
   1. its row links that are not context rows are exactly the "Any owner" page's row links that are not context rows and whose node is a matching record, in the same relative order;
   2. its context rows are those AC-0015 and AC-0018 state;
-  3. its counts are those AC-0020 states, and the live region announces what AC-0017 states;
+  3. its counts are those AC-0020 states, the live region announces what AC-0017 states, and the detail pane's list summary, the "In this list: …" line shown while no row is picked, is computed as the "Any owner" page computes it but over only the row links the list shows, and is absent when the list shows none;
   4. a subtree toggle's hidden text counts its row's shown child rows, the rows shown directly beneath it, and a row with no shown child row has no toggle;
   5. it shows AC-0021's line;
   6. a subheading that holds no row link is gone;

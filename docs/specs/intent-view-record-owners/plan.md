@@ -1,7 +1,7 @@
 # Plan: Intent view record owners
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `intent_graph.py` `derive` and `_preamble_visible`, where the shipped `heading` field is the analogue (slice 9, `docs/specs/intent-node-headings/`); `navigate_intents.py` `_build_intent_record`, `_op_search` and `_VALID_SELECTORS`, and `_build_outstanding_items`; `view_src/rows.js` `rowLink`, `browse.js` `treeRow` and its `ctx.match`, `roadmap.js` `capabilityRow`, `routing.js` `parseRoute`/`questionHash`, and `chrome.js` `buildNav`; the part list in `intent_view.py`; and the construction path `packs/core/tests/pack/test_intent_delivery_relations_copies.py`, `test_derivation_contract.py`, `test_query_contract.py`, `test_outstanding.py`, `test_export_html.py` and `view_browser_checks.py`. Named uncertainty: the readiness-bridge spec is Approved but not built, so its `readiness.js` rows are grounded only once it merges (T4).
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -169,6 +169,7 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 **Tests:**
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations. Each also checks the general rule over every Group and Show choice, against the Python reading of the payload.
+- A browser check decides AC-0032's list-summary clause. Under each README owner choice on the `owners` export, and on the readiness export, it checks every question's "In this list: …" line, with no row picked, against the line a Python reading of the payload computes over the shown row links only. Where the list shows none, it checks that the line is absent.
 - One differential browser check decides AC-0032. It renders each pair of pages named there, the "Any owner" page and the owner-choice page, and walks both documents' text nodes in order. It removes only the differences AC-0032 admits, then asserts that what remains is equal. The scoped export uses `--from` with the README's capability. The unavailable export reuses the shipped `_incomplete` delivery-provider seam (`view_browser_checks.py`, the `hostile_incomplete` export) on the `owners` corpus. The readiness export is the one T4 builds.
 - A browser check decides AC-0016 by comparing the flat filtered list with `run_query` `search` over the same fixture, using the filter selectors plus `owner`.
 - The shipped tree-and-roadmap checks for its criteria 0030 to 0036 still pass under "Any owner".
