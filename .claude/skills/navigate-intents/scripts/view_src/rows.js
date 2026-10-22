@@ -37,6 +37,7 @@
     } else {
       add(add(a, el('span', 'c-context')), context);
     }
+    add(a, ownerCell(id));
     if (current !== null && current.node === id) { a.setAttribute('aria-current', 'true'); }
     return a;
   }

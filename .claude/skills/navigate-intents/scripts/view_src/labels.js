@@ -113,7 +113,7 @@
   var FILTER_LABELS = { type: ['Type', 'Any type'], level: ['Level', 'Any level'],
     kind: ['Kind', 'Any kind'], status: ['Status', 'Any status'] };
   var ROUTE_KEYS = ['q', 'node', 'search', 'type', 'level', 'kind', 'status', 'dir', 'steps', 'show',
-    'group'];
+    'group', 'owner'];
   // The "Dependencies" controls: the offered choices, with the default first.
   var DIR_CHOICES = [['prerequisites', 'What it waits for'], ['dependents', 'What waits for it'],
     ['both', 'Both']];

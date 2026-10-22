@@ -1301,6 +1301,23 @@ def test_the_closed_standard_input_gives_unreadable(tmp_path) -> None:
     assert result["readiness"] == {"checked": False, "reason": "unreadable"}
 
 
+def test_an_unloadable_readiness_module_refuses_and_writes_nothing(monkeypatch, tmp_path) -> None:
+    """A readiness module that will not load refuses with its own message and writes no file."""
+
+    def _missing() -> Any:
+        raise ImportError("readiness module removed")
+
+    monkeypatch.setattr(nav, "_load_readiness_mod", _missing)
+    dest = tmp_path / "out"
+    dest.mkdir()
+    result, code = nav.run_export(_MIXED, str(dest), "v.html", readiness="-",
+                                  readiness_stream=lambda: pytest.fail("the stream was opened"))
+    assert code == 1
+    assert result["error"]["code"] == "resolver_unavailable"
+    assert result["error"]["message"] == "readiness module is unavailable"
+    assert list(dest.iterdir()) == []
+
+
 def test_run_export_refuses_a_bad_value_before_anything_else(tmp_path) -> None:
     result, code = nav.run_export(
         tmp_path / "no-such-root", str(tmp_path), "v.html", readiness="foo",

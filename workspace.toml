@@ -2467,6 +2467,7 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  { path = "docs/specs/intent-view-record-owners/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md"}, summary = "Carry each record's Owner: header through the intent derivation and query, show it on every intent view row, and narrow every question to one owner with a page-wide Owner control", needs = [] },
   # Shipped 2026-10-21 as core 3.1.15: the intent view readiness bridge (slice 11b of
   # intent-navigation-delivery). Evidence is in its notes/verification-ledger.md.
   { path = "docs/specs/intent-view-readiness-handover/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show workspace-status's active, ready and blocked sets and the argless work-loop mark in the intent view from a piped, size-capped, schema-checked and allowlisted status projection, with workspace findings in What is broken", needs = [] },

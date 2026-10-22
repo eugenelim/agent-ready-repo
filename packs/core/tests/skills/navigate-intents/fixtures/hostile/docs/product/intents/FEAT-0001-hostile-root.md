@@ -4,7 +4,7 @@
 - **Status:** Draft</script><script>alert(1)</script>
 - **Level:** feature
 - **Kind:** <img src=x onerror=alert(1)>
-- **Owner:** placeholder-owner
+- **Owner:** </script><script>alert(1)</script>
 - **Parent intent:** none
 - **Depends on:** intent:hostile-child, </script><script>alert(1)</script>, javascript:alert(1), spec:hostile-spec
 

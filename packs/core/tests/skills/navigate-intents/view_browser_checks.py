@@ -217,6 +217,7 @@ def exports(tmp_path_factory: pytest.TempPathFactory) -> dict[str, pathlib.Path]
     found: dict[str, pathlib.Path] = {}
     for name, root in (
         ("mixed", _FIXTURES / "mixed"),
+        ("owners", _FIXTURES / "owners"),
         ("hostile", _FIXTURES / "hostile"),
         ("dependency", _FIXTURES / "dependency"),
         ("empty", _FIXTURES / "empty"),
@@ -1174,7 +1175,7 @@ def test_ac_0009_row_is_one_link_with_three_cells(opener: Any, exports: dict[str
             "#list a.row-link",
             "els => els.map(e => [e.tagName, Array.from(e.children).map(c => c.className)])",
         )
-        assert all(s == ["A", ["c-name", "c-state", "c-context"]] for s in shape), key
+        assert all(s == ["A", ["c-name", "c-state", "c-context", "c-owner"]] for s in shape), key
         assert page.locator("#list li.row").count() == len(shape)
         assert not page.locator("#list li.row a").count() - len(shape)
     _choose(item, "next")
@@ -1476,7 +1477,7 @@ def test_ac_0019_record_details(opener: Any, exports: dict[str, pathlib.Path]) -
         page.locator("#detail-body details.record summary").click()
         record = page.locator("#detail-body details.record")
         facts = record.locator(".fact-name").all_inner_texts()
-        want = ["Id", "Path", "Type"] + (["Level", "Kind"] if node_id.startswith("intent") else []) + ["Status"]
+        want = ["Id", "Path", "Type"] + (["Level", "Kind"] if node_id.startswith("intent") else []) + ["Status", "Owner"]
         assert facts == want, node_id
         assert node_id in record.locator("dl.facts").inner_text()
         assert record.locator("h4.label-group").all_inner_texts() == groups, node_id
@@ -2046,6 +2047,27 @@ def test_ac_0033_wide_is_rail_list_detail(opener: Any, exports: dict[str, pathli
         assert max(tops) - min(tops) <= 120 and nav["bottom"] > work["top"], (name, nav, work, detail)
         assert width - detail["right"] <= 48, (name, width, detail)
         assert abs(page.evaluate("document.documentElement.scrollWidth") - width) <= 0
+
+
+@pytest.mark.parametrize("width", [1680, 2560])
+def test_a_short_list_card_keeps_its_own_height_beside_the_rail(
+    opener: Any, exports: dict[str, pathlib.Path], width: int
+) -> None:
+    """At rail widths, a short "What is broken?" card ends below its last child, not at the rail's foot."""
+    page = opener(exports["mixed"], width=width).page
+    page.evaluate("location.hash = 'q=broken'")
+    page.wait_for_function("() => document.getElementById('list-title').textContent.length > 0")
+    gap = page.evaluate(
+        """() => {
+          const card = document.querySelector('.worklist');
+          const last = card.lastElementChild;
+          const rail = document.querySelector('nav').getBoundingClientRect();
+          const c = card.getBoundingClientRect();
+          return { below: c.bottom - last.getBoundingClientRect().bottom, card: c.height, rail: rail.height };
+        }"""
+    )
+    assert gap["card"] < gap["rail"], gap
+    assert gap["below"] <= 48, gap
 
 
 _FOCUS_INFO = """() => {
@@ -3805,7 +3827,7 @@ def test_roadmap_progress_text(opener: Any, exports: dict[str, pathlib.Path]) ->
     rows = {r["id"]: r for s in sections for r in _walk_rows(s["rows"])}
     assert rows
     for node, row in rows.items():
-        assert row["parts"] == ["c-name", "c-state", "rm-progress"], node
+        assert row["parts"] == ["c-name", "c-state", "rm-progress", "c-owner"], node
         assert row["mark"] == model.word(node), node
         assert _shown_progress(row["progress"]) == _expected_progress(found, node), node
     # Three rows stated outright: a share, an all-stopped row and a row with nothing beneath.
@@ -3922,20 +3944,24 @@ _LEVEL_WORDS = {"product-vision": "Vision", "product-strategy": "Strategy", "cap
 _UNKNOWN_OPEN = "Open and done are unknown: delivery mapping incomplete."
 
 
-def _browse_expectations(payload: dict[str, Any], show: str = "all", group: str = "hierarchy") -> dict[str, Any]:
+def _browse_expectations(
+    payload: dict[str, Any], show: str = "all", group: str = "hierarchy", owner: str = ""
+) -> dict[str, Any]:
     """The Browse tree the spec's terms give for a Show and Group choice, read from the payload alone.
 
     ``sections`` lists ``{"title", "disclosure", "rows"}``; a row is ``{"id", "name", "tag", "context",
     "roll", "open", "refused", "children"}``, children being the shown rows beneath it. ``count`` is the
-    number of intents matching Show.
+    number of Browse matches: intents matching Show and, for an *owner* route value other than "", a
+    matching record.
     """
     model = Model(payload)
     available = model.available
     if not available:
         show = "all"
+    owned = (lambda _i: True) if owner == "" else _owner_matcher(payload, owner)
 
     def matches(i: str) -> bool:
-        return show == "all" or (i in model.open) == (show == "open")
+        return (show == "all" or (i in model.open) == (show == "open")) and bool(owned(i))
 
     kids: dict[str, list[str]] = {}
     if group == "hierarchy":
@@ -4009,7 +4035,7 @@ _READ_TREE = """() => {
       tagAfterName: !!tag && tag.previousSibling.nodeValue === ' ' && tag.previousSibling.previousSibling === a.querySelector('.c-name'),
       context: text('.ctx-tag') !== null,
       ctxText: text('.ctx-tag'),
-      hidden: text('.visually-hidden'),
+      hidden: (() => { const h = a.querySelector(':scope > .visually-hidden'); return h ? h.textContent : null; })(),  // last in the link
       roll: text('.tree-roll'),
       open: text('.tree-open'),
       where: text('.tree-where'),
@@ -6251,12 +6277,10 @@ def test_readiness_ac_0039_rows_marks_and_tag_stay_inside(
         assert part in flat, (part, seen)
 
 
-@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
-def test_readiness_ac_0039_session_start_access_criteria_hold(
-    opener: Any, rlayout: dict[str, pathlib.Path], width: int, scheme: str
-) -> None:
+def _access_criteria_hold(states: Any) -> int:
+    """Session-start criteria 0034, 0035, 0036, 0037 and 0041 over each (label, page); the contrast rows seen."""
     checked = 0
-    for label, page in _readiness_states(opener, rlayout, width, scheme):
+    for label, page in states:
         stops = _sweep(page)  # session-start 0034 and 0037
         assert len(stops) > 5, (label, len(stops))
         for stop in stops:
@@ -6269,7 +6293,14 @@ def test_readiness_ac_0039_session_start_access_criteria_hold(
         assert [r for r in rows if r[1] < 4.5] == [], label
         for accessible, text in _accessible_names(page):  # 0041
             assert accessible.strip() and _squash(text) in _squash(accessible), (label, accessible, text)
-    assert checked > 100
+    return checked
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_readiness_ac_0039_session_start_access_criteria_hold(
+    opener: Any, rlayout: dict[str, pathlib.Path], width: int, scheme: str
+) -> None:
+    assert _access_criteria_hold(_readiness_states(opener, rlayout, width, scheme)) > 100
 
 
 def test_readiness_ac_0039_keyboard_alone_reaches_the_rows_and_detail(
@@ -6319,3 +6350,1508 @@ def test_readiness_ac_0040_reduced_motion_is_still(
         assert got["tags"] == 1 and got["count"] >= 4
     else:
         assert got["notices"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Record owners: the row cell, the Owner line, the Owner control and its route
+# ---------------------------------------------------------------------------
+
+_OWNERS_ROOT = _FIXTURES / "owners"
+_NO_OWNER = "No owner recorded"
+
+
+def _readme_helpers() -> Any:
+    """Load the README table reader from the derivation contract test, under a unique name."""
+    name = "core_navigate_intents_readme_helpers_view_browser_checks"
+    if name in sys.modules:
+        return sys.modules[name]
+    return _load(pathlib.Path(__file__).resolve().parent / "test_derivation_contract.py", name)
+
+
+def _owners_tables() -> dict[str, list[list[str]]]:
+    return _readme_helpers()._owners_readme_tables(_OWNERS_ROOT)  # type: ignore[no-any-return]
+
+
+def _owner_key(owner: str) -> str:
+    """The owner key: runs of spaces and tabs collapse, the ends trim, only A to Z lower."""
+    collapsed = re.sub(r"[ \t]+", " ", owner).strip(" ")
+    return "".join(chr(ord(c) + 32) if "A" <= c <= "Z" else c for c in collapsed)
+
+
+def _readme_owner_by_node() -> dict[str, str]:
+    return {r[0]: json.loads(r[2]) for r in _owners_tables()["Owner table"]}
+
+
+def _readme_options() -> list[tuple[str, str | None]]:
+    """The README's option list as (label, owner key), the key None for Any owner."""
+    out: list[tuple[str, str | None]] = []
+    for _pos, label, key in _owners_tables()["Option list"]:
+        out.append((label, None if key == "-" else json.loads(key)))
+    return out
+
+
+def _owner_route(key: str | None) -> str:
+    """The fragment value for an option: empty for Any owner, none, or k:<key>."""
+    if key is None:
+        return ""
+    return "none" if key == "" else "k:" + key
+
+
+def _owner_cell_text(owner: str) -> str:
+    return _NO_OWNER if _owner_key(owner) == "" else "Owner: " + owner
+
+
+def _row_owner_cells(page: Page) -> list[tuple[str, str, list[str]]]:
+    """Each row link's node, its last cell's text, and the cell class list."""
+    return page.eval_on_selector_all(  # type: ignore[no-any-return]
+        "#list a.row-link",
+        """els => els.map(e => [e.dataset.node, e.lastElementChild.textContent,
+          Array.from(e.lastElementChild.classList)])""",
+    )
+
+
+def _check_owner_cells(page: Page, by_node: dict[str, str], label: str) -> int:
+    rows = _row_owner_cells(page)
+    for node, cell, classes in rows:
+        assert classes == ["c-owner"], (label, node, classes)
+        assert cell == _owner_cell_text(by_node[node]), (label, node, cell)
+    return len(rows)
+
+
+def test_owner_key_helper_agrees_with_the_readme() -> None:
+    """The Python reading of the key reproduces every key the README states."""
+    owners = _readme_owner_by_node()
+    keys = {_owner_key(o) for o in owners.values()}
+    options = _readme_options()
+    assert {k for _l, k in options if k} == keys - {""}
+    for label, key in options:
+        if key:
+            assert _owner_key(label) == key, label
+    assert _owner_key("Édith Team") == "Édith team"
+    assert _owner_key("Team  Two") == _owner_key("TEAM TWO") == "team two"
+
+
+def test_owner_ac_0008_every_row_ends_with_its_owner_cell(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    by_node = _readme_owner_by_node()
+    assert set(by_node) == {n["id"] for n in payload_of(exports["owners"])["nodes"]}
+    seen = 0
+    for key in _QUESTIONS:
+        _choose(item, key)
+        _expand_all(page)
+        _open_disclosures(page)
+        seen += _check_owner_cells(page, by_node, key)
+    for group in ("capability", ""):
+        _choose(item, "browse", group=group)
+        _expand_all(page)
+        _open_disclosures(page)
+        assert _check_owner_cells(page, by_node, "browse " + group) > 0
+    _choose(item, "roadmap")
+    assert page.locator("#list li.rm-row a.row-link").count() == _capability_total(payload_of(exports["owners"]))
+    _choose(item, "next", search="feat")
+    assert _check_owner_cells(page, by_node, "search") > 0
+    assert seen > 10
+    _choose(item, "browse")
+    _expand_all(page)
+    _open_disclosures(page)
+    for (node, cell, _c), name in zip(_row_owner_cells(page), _row_ax_names(page), strict=True):
+        if name is not None:  # None: a row that is not rendered
+            assert re.sub(r"\s+", " ", cell) in name, (node, name)  # the accessible name collapses spaces
+    assert not item.errors
+
+
+def test_owner_ac_0010_record_details_shows_the_owner(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    for node, owner in _readme_owner_by_node().items():
+        _pick(item, node, "browse")
+        page.locator("#detail-body details.record > summary").click()
+        facts = page.eval_on_selector_all(
+            "#detail-body details.record dl.facts > div.fact",
+            "els => els.map(e => [e.querySelector('dt').textContent, e.querySelector('dd').textContent])",
+        )
+        owner_facts = [v for k, v in facts if k == "Owner"]
+        assert owner_facts == [_NO_OWNER if _owner_key(owner) == "" else owner], node
+
+
+def _owner_select_names(page: Page) -> list[str]:
+    """The accessible names of the page's combobox elements named Owner."""
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("DOM.enable")
+    cdp.send("Accessibility.enable")
+    doc = cdp.send("DOM.getDocument", {"depth": 0})
+    found = cdp.send("DOM.querySelectorAll", {"nodeId": doc["root"]["nodeId"], "selector": "header select"})
+    names = []
+    for node_id in found["nodeIds"]:
+        tree = cdp.send("Accessibility.getPartialAXTree", {"nodeId": node_id, "fetchRelatives": False})
+        names.append(tree["nodes"][0]["name"]["value"])
+    cdp.detach()
+    return names
+
+
+def test_owner_ac_0011_header_control_and_options(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    expected = [label for label, _k in _readme_options()]
+    for key in _QUESTIONS:
+        _choose(item, key)
+        assert _owner_select_names(page) == ["Owner"], key
+        assert page.locator("header label[for=owner]").inner_text() == "Owner"
+        assert page.locator("header label[for=owner]").is_visible()
+        assert page.eval_on_selector_all("#owner option", "os => os.map(o => o.textContent)") == expected, key
+    _choose(item, "browse", search="feat")
+    assert _owner_select_names(page) == ["Owner"]
+    assert page.locator("#owner").evaluate("e => e.closest('header') !== null")
+    # Option values carry the route encoding: empty, k:<key>, or none.
+    values = page.eval_on_selector_all("#owner option", "os => os.map(o => o.value)")
+    assert values == [_owner_route(k) for _l, k in _readme_options()]
+    # With no empty owner key among the nodes, the last option is absent.
+    owned = _rewrite(
+        exports["owners"],
+        exports["owners"].parent / "owners_all_owned.html",
+        lambda p: {**p, "nodes": [{**n, "owner": n["owner"] or "someone"} for n in p["nodes"]]},
+    )
+    page2 = opener(owned).page
+    labels = page2.eval_on_selector_all("#owner option", "os => os.map(o => o.textContent)")
+    assert labels[0] == "Any owner" and _NO_OWNER not in labels
+
+
+def test_owner_ac_0011_label_is_the_first_holder_by_id(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    """A key held by two nodes is labelled by the owner of the node whose id sorts first."""
+    path = _rewrite(
+        exports["owners"],
+        exports["owners"].parent / "owners_label.html",
+        lambda p: {
+            **p,
+            "nodes": [{**n, "owner": "team  two" if n["id"] == "capability:cap-nested" else n["owner"]} for n in p["nodes"]],
+        },
+    )
+    labels = opener(path).page.eval_on_selector_all("#owner option", "os => os.map(o => o.textContent)")
+    assert "team  two" in labels  # capability:cap-nested sorts before intent:feat-d
+    assert "TEAM TWO" not in labels and "Team  Two" not in labels
+
+
+def test_owner_ac_0023_route_holds_the_owner_choice(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    start = _history_length(page)
+    for label, key in _readme_options():
+        page.select_option("#owner", label=label)
+        page.wait_for_function(
+            "k => (new URLSearchParams(location.hash.slice(1)).get('owner') || '') === k", arg=_owner_route(key)
+        )
+        route = urllib.parse.parse_qs(page.evaluate("location.hash").lstrip("#"))
+        assert route.get("owner", [""])[0] == _owner_route(key), label
+        page.reload()
+        assert page.locator("#owner").input_value() == _owner_route(key), label
+    assert _history_length(page) == start  # replaceRoute adds no history entry
+    page.select_option("#owner", label="owner-two")
+    for question in ("roadmap", "browse"):
+        page.locator(f'nav a[data-q="{question}"]').click()
+        assert "owner=k%3Aowner-two" in page.evaluate("location.hash")
+        assert page.locator("#owner").input_value() == "k:owner-two"
+    page.locator('nav a[data-q="browse"]').click()
+    page.locator("#list a.row-link").first.click()
+    page.wait_for_function("() => location.hash.includes('node=')")
+    assert "owner=k%3Aowner-two" in page.evaluate("location.hash")
+    # A fragment owner that names no option reads as Any owner, with the same lists.
+    item.go(_frag(q="browse"))
+    any_ids = _ids(page)
+    for bad in ("k:nobody", "none-such", "k:Owner-One", "none ", "k:"):
+        item.go(_frag(q="browse", owner=bad))
+        assert page.locator("#owner").input_value() == "", bad
+        assert _ids(page) == any_ids, bad
+    # The sentinel and a real owner called "none" do not collide: k:none is not the sentinel.
+    item.go(_frag(q="browse", owner="k:none"))
+    assert page.locator("#owner").input_value() == ""
+    item.go(_frag(q="browse", owner="none"))
+    assert page.locator("#owner").input_value() == "none"
+    assert not item.errors
+
+
+def test_owner_ac_0024_keyboard_reaches_and_keeps_focus(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    page.evaluate("document.body.focus()")
+    _tab_to(page, "e.id === 'owner'")
+    page.keyboard.type("T")  # type-ahead picks "Team  Two" without opening the native popup
+    page.wait_for_function("() => document.getElementById('owner').value === 'k:team two'")
+    page.wait_for_function("() => document.activeElement.id === 'owner'")
+    assert "owner=k%3Ateam+two" in page.evaluate("location.hash")
+    page.keyboard.press("ArrowDown")
+    page.wait_for_function("() => document.activeElement.id === 'owner'")
+    assert not item.errors
+
+
+# ---------------------------------------------------------------------------
+# Record owners: the flat lists, counts, header line and empty states follow the owner choice
+# ---------------------------------------------------------------------------
+
+_FLAT = ["next", "broken", "capabilities", "noparent"]
+_NOUN_FILTERS = ("type", "level")  # noparent's filters, in the order the page describes them
+
+_READ_FLAT = """() => {
+  const list = document.getElementById('list');
+  const rows = Array.from(list.querySelectorAll('a.row-link')).map((a) => [
+    a.dataset.node, a.querySelector('.c-name').firstChild.textContent,
+    a.querySelector('.c-state').textContent, a.querySelector('.c-context').textContent]);
+  const heads = Array.from(list.querySelectorAll('h3.group-head')).map((h) => [h.textContent,
+    h.nextElementSibling ? Array.from(h.nextElementSibling.querySelectorAll('a.row-link')).map((a) => a.dataset.node) : []]);
+  const line = document.getElementById('list-lead').nextElementSibling;
+  const lineShown = line && line.classList.contains('owner-line') && !line.hidden && line.offsetParent !== null;
+  return { rows, heads, tags: list.querySelectorAll('.c-tag').length,
+    title: document.getElementById('list-title').textContent,
+    count: document.getElementById('list-count').textContent,
+    line: lineShown ? line.textContent : null,
+    empty: Array.from(list.querySelectorAll('.empty')).map((e) => e.tagName === 'P' ? e.textContent
+      : Array.from(e.querySelectorAll('p')).map((p) => p.textContent).join('\\n')),
+    buttons: Array.from(list.querySelectorAll('.empty button')).map((b) => b.textContent) };
+}"""
+
+
+def _read_flat(page: Page) -> dict[str, Any]:
+    return page.evaluate(_READ_FLAT)  # type: ignore[no-any-return]
+
+
+def _page_options(page: Page) -> list[tuple[str, str]]:
+    """The Owner control's (label, route value) options, in order, without Any owner."""
+    found = page.eval_on_selector_all("#owner option", "os => os.map(o => [o.textContent, o.value])")
+    return [(label, value) for label, value in found if value != ""]
+
+
+def _choice_key(value: str) -> str:
+    """The owner key a route value chooses: none is the empty key, k:<key> is <key>."""
+    return "" if value == "none" else value[2:]
+
+
+def _owner_matcher(payload: dict[str, Any], value: str) -> Any:
+    keys = {n["id"]: _owner_key(n.get("owner") or "") for n in payload["nodes"]}
+    want = _choice_key(value)
+    return lambda node_id: keys.get(node_id, "") == want
+
+
+def _owner_words(label: str, value: str) -> str:
+    return "no owner recorded" if value == "none" else f'owner "{label}"'
+
+
+def _owner_line(label: str, value: str) -> str:
+    return "Only rows with no owner recorded." if value == "none" else f"Only rows whose owner is {label}."
+
+
+def _check_flat_against_any(
+    page: Page, payload: dict[str, Any], label: str, value: str, any_: dict[str, Any], got: dict[str, Any], where: str
+) -> str:
+    """Decide AC-0012, AC-0013, AC-0021 and AC-0022 for one list; returns "narrowed", "empty" or "same"."""
+    match = _owner_matcher(payload, value)
+    want_rows = [r for r in any_["rows"] if match(r[0])]
+    # AC-0012 and AC-0013: the same rows in the same order, each with the row's own numbers and text.
+    assert got["rows"] == want_rows, (where, label)
+    want_heads = [[h, [i for i in ids if match(i)]] for h, ids in any_["heads"]]
+    assert got["heads"] == [h for h in want_heads if h[1]], (where, label)
+    # AC-0020: the header count is the number of row links shown.
+    assert got["count"].split(" ")[0] == str(len(want_rows)), (where, label, got["count"])
+    # AC-0021: the line below the lead, and nothing under Any owner.
+    assert got["line"] == _owner_line(label, value), (where, label)
+    assert any_["line"] is None, where
+    assert got["title"] == any_["title"], where
+    if want_rows:
+        assert got["empty"] == [], (where, label)
+        return "narrowed" if len(want_rows) < len(any_["rows"]) else "same"
+    return "empty"
+
+
+def _check_empty_state(
+    any_: dict[str, Any], got: dict[str, Any], label: str, value: str, filters: dict[str, str], where: str
+) -> None:
+    """AC-0022: the narrowed-empty state, or the shipped one when Any owner shows nothing too."""
+    if not any_["rows"]:
+        assert got["empty"] == any_["empty"] and got["buttons"] == any_["buttons"], (where, label)
+        return
+    words = [f'{k} "{filters[k]}"' for k in _NOUN_FILTERS if k in filters] + [_owner_words(label, value)]
+    assert got["empty"][0].split("\n")[0] == "Nothing matches " + ", ".join(words) + ".", (where, label, got["empty"])
+    assert got["buttons"] == ["Clear filters"], (where, label)
+
+
+def _flat_sweep(item: Opened, payload: dict[str, Any], where: str) -> dict[str, int]:
+    """Every flat list under every option of the control, against the same list under Any owner."""
+    page = item.page
+    stats = {"narrowed": 0, "empty": 0, "narrowed_empty": 0}
+    options = _page_options(page)
+    assert options
+    any_rows: dict[str, dict[str, Any]] = {}
+    _choose(item, "next")
+    any_rail = _rail_counts(page)
+    for question in _FLAT:
+        _choose(item, question)
+        any_rows[question] = _read_flat(page)
+        assert any_rows[question]["line"] is None
+        assert any_rail[question] == str(len(any_rows[question]["rows"])), (where, question)
+    for label, value in options:
+        shown: dict[str, int] = {}
+        for question in _FLAT:
+            _choose(item, question, owner=value)
+            got = _read_flat(page)
+            kind = _check_flat_against_any(page, payload, label, value, any_rows[question], got, f"{where} {question}")
+            if kind == "empty":
+                _check_empty_state(any_rows[question], got, label, value, {}, f"{where} {question}")
+                stats["narrowed_empty"] += 1 if any_rows[question]["rows"] else 0
+                stats["empty"] += 1
+            else:
+                stats["narrowed"] += 1 if kind == "narrowed" else 0
+            shown[question] = len(got["rows"])
+        # AC-0020: each rail count is the number of row links its list shows under this choice.
+        rail = _rail_counts(page)
+        for question in _FLAT:
+            assert rail[question] == str(shown[question]), (where, label, question, rail)
+    return stats
+
+
+def test_owner_flat_lists_counts_and_empty_states_ac_0012_0013_0020_0021_0022(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["owners"])
+    stats = _flat_sweep(item, payload_of(exports["owners"]), "owners")
+    assert stats["narrowed"] > 0 and stats["narrowed_empty"] > 0, stats
+    assert not item.errors
+
+
+def test_owner_noparent_filters_and_the_empty_state_ac_0022(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    payload = payload_of(exports["owners"])
+    seen_narrowed_empty = 0
+    first_empty: tuple[dict[str, str], str] | None = None
+    for filters in ({"type": "intent"}, {"level": "capability"}, {"type": "intent", "level": "feature"}, {"type": "brief"}):
+        _choose(item, "noparent", **filters)
+        any_ = _read_flat(page)
+        for label, value in _page_options(page):
+            _choose(item, "noparent", owner=value, **filters)
+            got = _read_flat(page)
+            kind = _check_flat_against_any(page, payload, label, value, any_, got, f"noparent {filters}")
+            if kind == "empty":
+                _check_empty_state(any_, got, label, value, filters, f"noparent {filters}")
+                seen_narrowed_empty += 1 if any_["rows"] else 0
+                if any_["rows"] and first_empty is None:
+                    first_empty = (filters, value)
+    assert seen_narrowed_empty > 0 and first_empty is not None
+    # A filtered list empty under Any owner too keeps the shipped state, with the filters alone.
+    for label, value in _page_options(page):
+        _choose(item, "noparent", owner=value, level="nonesuch")
+        got = _read_flat(page)
+        assert got["empty"] == ['Nothing matches level "nonesuch".'] and got["buttons"] == ["Clear filters"], label
+    # "Clear filters" sets Any owner and clears every filter.
+    _choose(item, "noparent", owner=first_empty[1], **first_empty[0])
+    page.locator("#list .empty button", has_text="Clear filters").click()
+    page.wait_for_function("() => !location.hash.includes('owner') && !location.hash.includes('type=')")
+    assert page.locator("#owner").input_value() == ""
+    assert page.locator("#filter-type").input_value() == "" and page.locator("#filter-level").input_value() == ""
+    assert not item.errors
+
+
+def test_owner_search_results_and_the_empty_state_ac_0012_0030(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    payload = payload_of(exports["owners"])
+    reached = {"clear_owner": 0, "shipped": 0}
+    for text in ("feat", "cap", "a", "zzz-no-match"):
+        _choose(item, "next", search=text)
+        any_ = _read_flat(page)
+        for label, value in _page_options(page):
+            _choose(item, "next", search=text, owner=value)
+            got = _read_flat(page)
+            kind = _check_flat_against_any(page, payload, label, value, any_, got, f"search {text}")
+            if kind != "empty":
+                continue
+            if any_["rows"]:
+                tail = "with no owner recorded" if value == "none" else f'for owner "{label}"'
+                assert got["empty"][0].split("\n")[0] == f'Nothing matches the search "{text}" {tail}.', (text, label)
+                assert got["buttons"] == ["Clear owner"], (text, label)
+                reached["clear_owner"] += 1
+            else:
+                assert got["empty"][0].split("\n")[0] == f'Nothing matches the search "{text}".', (text, label)
+                assert got["buttons"] == ["Clear search"], (text, label)
+                reached["shipped"] += 1
+    assert reached["clear_owner"] > 0 and reached["shipped"] > 0, reached
+    # "Clear owner" sets Any owner and keeps the search text.
+    _choose(item, "next", search="feat", owner="k:owner-one")
+    page.locator("#list .empty button", has_text="Clear owner").click()
+    page.wait_for_function("() => !location.hash.includes('owner')")
+    assert page.locator("#search").input_value() == "feat" and page.locator("#owner").input_value() == ""
+    assert "search=feat" in page.evaluate("location.hash")
+    assert _ids(page)
+    assert not item.errors
+
+
+def test_owner_live_region_announces_title_and_count_ac_0017(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    for question in _FLAT:
+        _choose(item, question)
+        previous = ""
+        for _label, value in [*_page_options(page), ("Any owner", "")]:
+            assert value != previous
+            previous = value
+            page.evaluate("document.getElementById('live').textContent = 'stale'")
+            page.select_option("#owner", value=value)
+            page.wait_for_function(
+                "v => document.getElementById('owner').value === v && (new URLSearchParams(location.hash.slice(1)).get('owner') || '') === v",
+                arg=value,
+            )
+            title, count = _text(page, "#list-title"), _count_text(page)
+            page.wait_for_function(
+                "t => document.getElementById('live').textContent === t", arg=f"{title}, {count}"
+            )
+    assert not item.errors
+
+
+def test_owner_rail_counts_stay_unknown_while_open_work_is_unavailable_ac_0020(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    path = _export(_OWNERS_ROOT, tmp_path, "owners_incomplete.html", _delivery_provider=_incomplete)
+    item = opener(path)
+    page = item.page
+    payload = payload_of(path)
+    _choose(item, "broken")
+    any_rail = _rail_counts(page)
+    assert [any_rail[q] for q in ("next", "capabilities", "noparent")] == ["unknown"] * 3
+    for label, value in _page_options(page):
+        _choose(item, "broken", owner=value)
+        rail = _rail_counts(page)
+        assert [rail[q] for q in ("next", "capabilities", "noparent")] == ["unknown"] * 3, label
+        match = _owner_matcher(payload, value)
+        _choose(item, "broken")
+        any_ = _read_flat(page)
+        _choose(item, "broken", owner=value)
+        got = _read_flat(page)
+        assert got["rows"] == [r for r in any_["rows"] if match(r[0])], label
+        assert rail["broken"] == str(len(got["rows"])), label
+        _choose(item, "next", owner=value)
+        assert _count_text(page) == "Count unavailable", label
+    assert not item.errors
+
+
+# The readiness export: a copy of `mixed` whose records carry two owners, with a checked status
+# input that lists the start record (ready) and one other record (blocked) under the second owner,
+# and a blocked record under the first, so "What is broken?" holds findings from both owners.
+_R_SECOND = {_R_BRAVO, _R_CHARLIE}
+
+
+def _readiness_owner_option(payload: dict[str, Any]) -> str | None:
+    """The Readiness export term's three conditions; the route value of an option meeting the third."""
+    keys = {_owner_key(n.get("owner") or "") for n in payload["nodes"]}
+    assert len(keys - {""}) >= 2, keys  # records carry at least two owners
+    ready = payload["readiness"]
+    assert ready["checked"] is True and ready["start"]["id"] in {n["id"] for n in payload["nodes"]}
+    rows = [i for _h, ids in _expected_groups(ready) for i in ids]
+    owner_of = {n["id"]: _owner_key(n.get("owner") or "") for n in payload["nodes"]}
+    for key in sorted(keys - {""}):
+        others = [i for i in rows if i != ready["start"]["id"] and owner_of[i] != key]
+        if owner_of[ready["start"]["id"]] != key and others and any(owner_of[i] == key for i in rows):
+            return "k:" + key
+    return None
+
+
+@pytest.fixture(scope="module")
+def rowners(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    tmp = tmp_path_factory.mktemp("readiness_owner_export")
+    root = tmp / "mixed"
+    shutil.copytree(_FIXTURES / "mixed", root)
+    for path in root.rglob("*.md"):
+        owner = "owner-two" if path.relative_to(root).as_posix() in _R_SECOND else "owner-one"
+        path.write_text(
+            re.sub(r"^(- \*\*Owner:\*\* ).*$", rf"\g<1>{owner}", path.read_text(encoding="utf-8"), flags=re.M),
+            encoding="utf-8",
+        )
+    status = _r_status(
+        ready=[_r_entry(_R_BRAVO)],
+        blocked=[_r_blocked(_R_GOLF, "unsatisfied_dependency", "missing_plan"), _r_blocked(_R_CHARLIE, "missing_plan")],
+    )
+    path = _with_readiness(tmp / "out", "owners_readiness.html", status, root=root)
+    assert _readiness_owner_option(payload_of(path)) == "k:owner-one"
+    return path
+
+
+def test_owner_readiness_export_meets_its_three_conditions(rowners: pathlib.Path) -> None:
+    payload = payload_of(rowners)
+    assert _readiness_owner_option(payload) is not None
+    assert payload["readiness"]["start"]["id"] == "spec:bravo-spec"
+
+
+def test_owner_ac_0008_readiness_rows_end_with_their_owner_cell(opener: Any, rowners: pathlib.Path) -> None:
+    item = opener(rowners)
+    page = item.page
+    by_node = {n["id"]: n["owner"] for n in payload_of(rowners)["nodes"]}
+    _choose(item, "next")
+    assert _check_owner_cells(page, by_node, "readiness next") >= 3
+    for (node, cell, _c), name in zip(_row_owner_cells(page), _row_ax_names(page), strict=True):
+        assert re.sub(r"\s+", " ", cell) in name, (node, name)
+    for _label, value in _page_options(page):
+        _choose(item, "next", owner=value)
+        _check_owner_cells(page, by_node, "readiness next " + value)
+    assert not item.errors
+
+
+def test_owner_ac_0012_readiness_groups_follow_the_owner_choice(opener: Any, rowners: pathlib.Path) -> None:
+    item = opener(rowners)
+    page = item.page
+    payload = payload_of(rowners)
+    stats = _flat_sweep(item, payload, "readiness")
+    assert stats["narrowed"] > 0, stats
+    ready = payload["readiness"]
+    for label, value in _page_options(page):
+        match = _owner_matcher(payload, value)
+        want = [(h, [i for i in ids if match(i)]) for h, ids in _expected_groups(ready)]
+        _choose(item, "next", owner=value)
+        assert _group_rows(page) == [w for w in want if w[1]], label
+    # A subheading with no row is gone: owner-one holds no ready row.
+    _choose(item, "next", owner="k:owner-one")
+    assert _group_rows(page) == [("Blocked", ["spec:golf-new"])]
+    _choose(item, "next", owner="k:owner-two")
+    assert [h for h, _ids in _group_rows(page)] == ["Ready", "Blocked"]
+    assert not item.errors
+
+
+def test_owner_ac_0014_the_start_tag_stays_with_its_row(opener: Any, rowners: pathlib.Path) -> None:
+    item = opener(rowners)
+    page = item.page
+    payload = payload_of(rowners)
+    start = payload["readiness"]["start"]
+    _choose(item, "next")
+    assert page.locator(".c-tag").count() == 1
+    seen = {"held": 0, "none": 0}
+    for _label, value in _page_options(page):
+        _choose(item, "next", owner=value)
+        if _owner_matcher(payload, value)(start["id"]):
+            row = page.locator(f'#list a.row-link[data-node="{start["id"]}"]')
+            assert row.locator(".c-tag").inner_text() == _tag_text(start["rule"]), value
+            assert page.locator(".c-tag").count() == 1
+            seen["held"] += 1
+        else:
+            assert start["id"] not in _ids(page)
+            assert page.locator(".c-tag").count() == 0, value
+            seen["none"] += 1
+        for question in ("broken", "capabilities", "noparent"):
+            _choose(item, question, owner=value)
+            assert page.locator(".c-tag").count() == 0, (question, value)
+    assert seen["held"] > 0 and seen["none"] > 0, seen
+    assert not item.errors
+
+
+# ---------------------------------------------------------------------------
+# Record owners: Browse and the roadmap narrow with context rows, and the differential check
+# ---------------------------------------------------------------------------
+
+_SCOPED_ID = "capability:cap-nested"  # the README's Scoping row, checked by test_owner_scoped_id_is_the_readme_row
+_SCOPED_OPTIONS = ["Owner-One", "owner-three", "owner-two", "Team  Two", _NO_OWNER]
+
+# Every row link with its node, the node of the row it sits beneath, its section heading, its
+# context tag and hidden text, and its subtree toggle; in document order, a parent before its children.
+_ROW_FIELDS = """
+  const direct = (li) => li.querySelector(':scope > a.row-link');
+  const rowOf = (from) => {
+    let li = from.closest('#list li');
+    while (li && !direct(li)) li = li.parentElement.closest('#list li');
+    return li;
+  };
+  const headOf = (li) => {
+    const sec = li.closest('section.rm-section');
+    if (sec) return sec.querySelector('.rm-title').textContent;
+    let ul = li.closest('ul');
+    while (ul.parentElement.closest('#list ul')) ul = ul.parentElement.closest('#list ul');
+    const prev = ul.previousElementSibling;
+    return prev && prev.matches('h3.group-head, summary.group-head') ? prev.textContent : '';
+  };
+  const rowsOf = () => Array.from(document.querySelectorAll('#list li')).filter(direct).map((li) => {
+    const a = direct(li);
+    const above = rowOf(li.parentElement);
+    const tag = a.querySelector('.ctx-tag');
+    const toggle = li.querySelector(':scope > button.toggle');
+    return { node: a.dataset.node, parent: above ? direct(above).dataset.node : null, head: headOf(li),
+      tree: li.classList.contains('tree-row'),
+      tag: tag ? tag.textContent : null,
+      hidden: Array.from(a.querySelectorAll('.visually-hidden')).map((e) => e.textContent.trim())
+        .filter((t) => t.includes('shown for context')),
+      toggle: toggle ? [toggle.getAttribute('aria-expanded'), toggle.querySelector('.visually-hidden').textContent] : null };
+  });
+"""
+_READ_SHOWN = "() => {" + _ROW_FIELDS + " return rowsOf(); }"
+
+# Every rendered text node in order, each tagged with the part of the page it belongs to.
+_READ_DOC = (
+    "() => {"
+    + _ROW_FIELDS
+    + """
+  const tokens = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const n = walker.currentNode;
+    const p = n.parentElement;
+    if (p.closest('script, noscript')) continue;
+    const tok = { t: n.textContent, cat: 'page', key: '', sub: '' };
+    const li = rowOf(p);
+    const heading = p.closest('#list .rm-head, #list h3.group-head, #list summary.group-head');
+    if (li) {
+      tok.cat = 'row'; tok.key = direct(li).dataset.node;
+      const toggle = p.closest('button.toggle');
+      const next = n.nextSibling;
+      if (toggle && toggle.parentElement === li) tok.sub = 'toggle';
+      else if (p.closest('.ctx-tag') || (p.classList.contains('visually-hidden') && n.textContent.includes('shown for context'))
+        || (next && next.nodeType === 1 && next.classList.contains('ctx-tag'))) tok.sub = 'ctxtag';
+    } else if (p.closest('.q-count')) { tok.cat = 'qcount'; tok.key = p.closest('a[data-q]').dataset.q; }
+    else if (p.closest('#list-count')) tok.cat = 'lcount';
+    else if (p.closest('#live')) tok.cat = 'live';
+    else if (p.closest('#detail-body .list-summary')) tok.cat = 'summary';
+    else if (p.closest('.owner-line')) tok.cat = 'ownerline';
+    else if (p.closest('#list .empty')) tok.cat = 'empty';
+    else if (heading) {
+      tok.cat = 'head';
+      tok.key = heading.classList.contains('rm-head') ? heading.querySelector('.rm-title').textContent : heading.textContent;
+    }
+    tokens.push(tok);
+  }
+  return { rows: rowsOf(), tokens: tokens };
+}"""
+)
+
+
+_READ_NOTES = """() => {
+  const list = document.getElementById('list');
+  const line = document.getElementById('list-lead').nextElementSibling;
+  const shown = line && line.classList.contains('owner-line') && !line.hidden && line.offsetParent !== null;
+  return { line: shown ? line.textContent : null,
+    empty: Array.from(list.querySelectorAll('.empty')).map((e) => e.tagName === 'P' ? e.textContent
+      : Array.from(e.querySelectorAll('p')).map((p) => p.textContent).join('\\n')),
+    buttons: Array.from(list.querySelectorAll('.empty button')).map((b) => b.textContent) };
+}"""
+
+
+def _read_notes(page: Page) -> dict[str, Any]:
+    """The owner line, the empty states and their buttons, for lists whose rows `_read_flat` cannot read."""
+    return page.evaluate(_READ_NOTES)  # type: ignore[no-any-return]
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _check_context_marks(rows: list[dict[str, Any]], label: str) -> None:
+    """AC-0015 and AC-0019: a context row shows "context" and the hidden text; a Browse match shows neither."""
+    for r in rows:
+        if r["tag"] is None:
+            assert r["hidden"] == [], (label, r["node"])
+        else:
+            assert r["tag"] == "context" and r["hidden"] == ["shown for context"], (label, r["node"], r)
+
+
+def _scoped_export(tmp: pathlib.Path) -> pathlib.Path:
+    return _export(_OWNERS_ROOT, tmp, "owners_scoped.html", _SCOPED_ID)
+
+
+def test_owner_scoped_id_is_the_readme_row() -> None:
+    assert _owners_tables()["Scoping"][0][1] == _SCOPED_ID
+    assert _owners_tables()["Scoping"][1][1] == '"feat"'
+
+
+def test_owner_browse_rows_and_context_rows_match_the_readme_ac_0015(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    _choose(item, "browse")
+    options = dict(_page_options(page))
+    table = _owners_tables()["Browse expectations"]
+    ids = _readme_helpers()._id_list
+    assert len(table) == 18
+    for choice, group, show, shown, context in table:
+        where = (choice, group, show)
+        route = _browse_route(show.lower(), "hierarchy" if group == "Full hierarchy" else "capability")
+        _choose(item, "browse", owner=options[choice], **route)
+        got = page.evaluate(_READ_SHOWN)
+        assert [r["node"] for r in got] == ids(shown), where
+        assert sorted(r["node"] for r in got if r["tag"] is not None) == sorted(ids(context)), where
+        _check_context_marks(got, str(where))
+        # Subtrees holding a shown row are open on render, with no Expand all click.
+        assert all(r["toggle"] is None or r["toggle"][0] == "true" for r in got), where
+        n = len(ids(shown)) - len(ids(context))
+        assert _count_text(page) == _plural(n, "intent", "intents"), where
+        if not got:
+            empty = _read_notes(page)["empty"]
+            assert empty == [f'Nothing matches owner "{choice}".'], (where, empty)
+    assert not item.errors
+
+
+def _check_browse_state(page: Page, payload: dict[str, Any], show: str, group: str, value: str, label: str) -> int:
+    """AC-0015, AC-0013, AC-0020 and AC-0021 for one Browse state against the payload reading."""
+    want = _browse_expectations(payload, show, group, value)
+    where = (label, show, group, value)
+    if value != "" or show != "all":  # open on render, with no Expand all click
+        assert all(r["toggle"] is None or r["toggle"][0] == "true" for r in page.evaluate(_READ_SHOWN)), where
+    _expand_all(page)
+    _open_disclosures(page)
+    got = page.evaluate(_READ_TREE)
+    _compare_tree(got, want)
+    rows = _flatten([r for s in got for r in s["rows"]])
+    for r in rows:
+        if r["context"]:
+            assert (r["ctxText"], r["hidden"]) == ("context", "shown for context"), (where, r["id"])
+        else:
+            assert (r["ctxText"], r["hidden"]) == (None, None), (where, r["id"])
+        kids = len(r["children"])
+        assert (r["toggle"] is not None) == (kids > 0), (where, r["id"])
+        if r["toggle"] is not None:
+            assert r["toggleName"].endswith(f"Show {kids} beneath {r['name']}"), (where, r["id"], r["toggleName"])
+    assert _count_text(page) == _plural(want["count"], "intent", "intents"), where
+    flat = _read_notes(page)
+    assert flat["line"] == (None if value == "" else _owner_line(label, value)), where
+    return int(want["count"])
+
+
+def test_owner_browse_general_rule_over_every_show_and_group_ac_0015_0013_0020(
+    opener: Any, exports: dict[str, pathlib.Path], rowners: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    unavailable = _export(_OWNERS_ROOT, tmp_path, "owners_incomplete.html", _delivery_provider=_incomplete)
+    states = 0
+    for name, path in (
+        ("owners", exports["owners"]),
+        ("scoped", _scoped_export(tmp_path)),
+        ("unavailable", unavailable),
+        ("readiness", rowners),
+    ):
+        payload = payload_of(path)
+        item = opener(path)
+        page = item.page
+        _choose(item, "browse")
+        options = _page_options(page)
+        for show in ("all", "open", "done"):
+            for group in ("hierarchy", "capability"):
+                for label, value in [("Any owner", ""), *options]:
+                    _choose(item, "browse", owner=value, **_browse_route(show, group))
+                    count = _check_browse_state(page, payload, show, group, value, label)
+                    states += 1
+                    if count == 0:
+                        _check_browse_empty(page, payload, show, group, label, value, f"{name} {show} {group}")
+        assert not item.errors, name
+    assert states == 6 * (7 + 6 + 7 + 3)
+
+
+def _check_browse_empty(page: Page, payload: dict[str, Any], show: str, group: str, label: str, value: str, where: str) -> None:
+    """AC-0022: the owner empties a list that shows rows under Any owner; else the shipped empty line."""
+    flat = _read_notes(page)
+    if value != "" and _browse_expectations(payload, show, group)["count"] > 0:
+        assert flat["empty"] == [f"Nothing matches {_owner_words(label, value)}."], (where, label, flat["empty"])
+        assert flat["buttons"] == ["Clear filters"], (where, label)
+    elif value != "":
+        want = "No intent is an open item." if show == "open" else "No intent is done."
+        assert flat["empty"] == [want], (where, label, flat["empty"])
+
+
+def test_owner_browse_empty_state_and_clear_filters_ac_0022(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    # An unscoped filtered list under a choice that holds none of its rows says so, with the filter first.
+    _choose(item, "browse", level="capability", owner="k:owner-one")
+    assert _read_notes(page)["empty"] == ['Nothing matches level "capability", owner "Owner-One".']
+    _choose(item, "browse", kind="outcome", show="open", owner="k:owner-one")
+    assert _read_notes(page)["empty"] == ['Nothing matches kind "outcome", owner "Owner-One".']
+    _choose(item, "browse", level="capability", owner="none")
+    assert _read_notes(page)["empty"] == ['Nothing matches level "capability", no owner recorded.']
+    # Under Any owner the same filters keep the shipped state, with the filters alone.
+    _choose(item, "browse", level="nonesuch", owner="k:owner-one")
+    assert _read_notes(page)["empty"] == ['Nothing matches level "nonesuch".']
+    # Clear filters sets Any owner and clears every filter.
+    _choose(item, "browse", level="capability", owner="k:owner-one")
+    page.locator("#list .empty button", has_text="Clear filters").click()
+    page.wait_for_function("() => !location.hash.includes('owner') && !location.hash.includes('level=')")
+    assert page.locator("#owner").input_value() == ""
+    assert page.locator("#filter-level").input_value() == "" and page.locator("#filter-status").input_value() == ""
+    assert not item.errors
+
+
+def _owner_search_ids(payload: dict[str, Any], selectors: dict[str, Any], value: str) -> list[str]:
+    """`search` over the owners corpus with the owner selector, limited to the export's own intents."""
+    found = _search_ids(_OWNERS_ROOT, {**selectors, "owner": _choice_key(value)})
+    return [i for i in found if i in payload["records"]]
+
+
+def test_owner_filtered_browse_equals_search_with_owner_ac_0016(
+    opener: Any, exports: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    both = (("level", "capability"), ("level", "feature"), ("kind", "outcome"), ("status", "Withdrawn"))
+    sets = [dict([pair]) for pair in both] + [{"level": "feature", "status": "Fulfilled"}]
+    compared = 0
+    for name, path in (("owners", exports["owners"]), ("scoped", _scoped_export(tmp_path))):
+        payload = payload_of(path)
+        model = Model(payload)
+        item = opener(path)
+        page = item.page
+        _choose(item, "browse")
+        options = _page_options(page)
+        for filters in sets:
+            selectors = {("exact_status" if k == "status" else k): v for k, v in filters.items()}
+            for show in ("all", "open", "done"):
+                for label, value in options:
+                    _choose(item, "browse", owner=value, **filters, **_browse_route(show, "hierarchy"))
+                    found = _owner_search_ids(payload, selectors, value)
+                    want = model.by_name(i for i in found if show == "all" or (i in model.open) == (show == "open"))
+                    where = (name, filters, show, label)
+                    if want:
+                        assert _ids(page) == want, where
+                        assert page.locator("#list .tree, #list details, #list .context-only, #list .ctx-tag").count() == 0
+                        assert _count_text(page) == _plural(len(want), "intent", "intents"), where
+                        assert _read_notes(page)["line"] == _owner_line(label, value), where
+                        compared += 1
+                    else:
+                        assert _ids(page) == [], where
+                        empty = _read_notes(page)["empty"]
+                        assert empty and empty[0].startswith("Nothing matches "), (where, empty)
+                        anywhere = _search_ids(_OWNERS_ROOT, selectors)
+                        has_any = any(i in payload["records"] and (show == "all" or (i in model.open) == (show == "open")) for i in anywhere)
+                        if has_any:
+                            tail = f"{_owner_words(label, value)}."
+                            assert empty[0].endswith(tail), (where, empty)
+        assert not item.errors
+    assert compared > 20, compared
+    # The README's search table fixes the same match for each filter set it can state.
+    item = opener(exports["owners"])
+    _choose(item, "browse", level="capability", owner="k:team two")
+    assert _ids(item.page) == ["capability:cap-nested"]
+    _choose(item, "browse", level="capability", owner="k:owner-two")
+    assert _ids(item.page) == ["capability:cap-top"]
+
+
+def _listed(entries: list[dict[str, Any]], match: Any) -> list[dict[str, Any]]:
+    """A capability is listed when it matches or a nested capability is listed."""
+    out = []
+    for e in entries:
+        kids = _listed(e["children"], match)
+        if match(e["id"]) or kids:
+            out.append({"id": e["id"], "children": kids})
+    return out
+
+
+def _roadmap_sections(payload: dict[str, Any], value: str) -> list[tuple[str, list[Any]]]:
+    match = (lambda _i: True) if value == "" else _owner_matcher(payload, value)
+    out = []
+    for s in _roadmap_expectations(payload)["sections"]:
+        caps = _listed(s["capabilities"], match)
+        if caps:
+            out.append((s["heading"], _expected_shape(caps)))
+    return out
+
+
+def _read_roadmap_now(page: Page) -> list[dict[str, Any]]:
+    return page.evaluate(_READ_ROADMAP)  # type: ignore[no-any-return]
+
+
+def _check_roadmap_state(
+    item: Opened, payload: dict[str, Any], any_rows: dict[str, Any], label: str, value: str, where: str
+) -> int:
+    """AC-0018, AC-0019, AC-0013, AC-0020 and AC-0021 for one roadmap state."""
+    page = item.page
+    sections = _read_roadmap_now(page)
+    assert [(s["heading"], _shape(s["rows"])) for s in sections] == _roadmap_sections(payload, value), (where, label)
+    shown = page.evaluate(_READ_SHOWN)
+    match = (lambda _i: True) if value == "" else _owner_matcher(payload, value)
+    _check_context_marks(shown, f"{where} {label}")
+    assert {r["node"] for r in shown if r["tag"] is not None} == {r["node"] for r in shown if not match(r["node"])}, (where, label)
+    assert all(r["tag"] is None for r in shown if match(r["node"])), (where, label)
+    names = _row_ax_names(page)
+    for r, name in zip(shown, names, strict=True):
+        assert ("shown for context" in name) == (r["tag"] is not None), (where, label, r["node"], name)
+    # Progress numbers are those of the same row and section under Any owner.
+    for s in sections:
+        for row in _walk_rows(s["rows"]):
+            assert row["progress"] == any_rows["rows"][row["id"]], (where, label, row["id"])
+        assert s["progress"] == any_rows["sections"][s["heading"]], (where, label, s["heading"])
+    matching = sum(1 for r in shown if r["tag"] is None)
+    assert int(_count_text(page).split(" ")[0]) == matching, (where, label)
+    assert _rail_counts(page)["roadmap"] == str(matching), (where, label)
+    flat = _read_notes(page)
+    assert flat["line"] == (None if value == "" else _owner_line(label, value)), (where, label)
+    if not shown and value != "":
+        assert flat["empty"] == [f"Nothing matches {_owner_words(label, value)}."], (where, label, flat["empty"])
+        assert flat["buttons"] == ["Clear filters"], (where, label)
+    return matching
+
+
+def _roadmap_baseline(item: Opened) -> dict[str, Any]:
+    _choose(item, "roadmap")
+    sections = _read_roadmap_now(item.page)
+    return {
+        "rows": {r["id"]: r["progress"] for s in sections for r in _walk_rows(s["rows"])},
+        "sections": {s["heading"]: s["progress"] for s in sections},
+    }
+
+
+def test_owner_roadmap_lists_context_capabilities_per_the_readme_ac_0018_0019(
+    opener: Any, exports: dict[str, pathlib.Path]
+) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    _choose(item, "roadmap")
+    options = dict(_page_options(page))
+    ids = _readme_helpers()._id_list
+    table = _owners_tables()["Roadmap expectations"]
+    assert len(table) == 6
+    for choice, sections, listed, context in table:
+        _choose(item, "roadmap", owner=options[choice])
+        shown = page.evaluate(_READ_SHOWN)
+        assert [r["node"] for r in shown] == ids(listed), choice
+        assert sorted(r["node"] for r in shown if r["tag"] is not None) == sorted(ids(context)), choice
+        heads = page.eval_on_selector_all("#list .rm-title", "els => els.map(e => e.textContent)")
+        assert heads == ([] if sections == "-" else [sections]), choice
+    assert not item.errors
+
+
+def test_owner_roadmap_general_rule_ac_0018_0019_0013_0020_0021_0022(
+    opener: Any, exports: dict[str, pathlib.Path], rowners: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    unavailable = _export(_OWNERS_ROOT, tmp_path, "owners_incomplete.html", _delivery_provider=_incomplete)
+    scoped = _scoped_export(tmp_path)
+    states = 0
+    for name, path in (
+        ("owners", exports["owners"]),
+        ("scoped", scoped),
+        ("unavailable", unavailable),
+        ("readiness", rowners),
+        ("roadmap", exports["roadmap"]),
+    ):
+        payload = payload_of(path)
+        item = opener(path)
+        base = _roadmap_baseline(item)
+        for label, value in [("Any owner", ""), *_page_options(item.page)]:
+            _choose(item, "roadmap", owner=value)
+            _check_roadmap_state(item, payload, base, label, value, name)
+            states += 1
+        assert not item.errors, name
+    assert states >= 20
+    # The README's scoped export lists no capability under Owner-One or owner-two.
+    item = opener(scoped)
+    empty_choices = _readme_helpers()._id_list(dict(_owners_tables()["Scoping"])["Empty scoped Browse choices"])
+    assert empty_choices
+    for choice in empty_choices:
+        _choose(item, "roadmap", owner=dict(_page_options(item.page))[choice])
+        assert item.page.locator("#list a.row-link").count() == 0 and item.page.locator("#list .rm-section").count() == 0
+        _choose(item, "browse", owner=dict(_page_options(item.page))[choice])
+        assert item.page.locator("#list a.row-link").count() == 0
+    assert [label for label, _v in _page_options(item.page)] == _SCOPED_OPTIONS
+
+
+def test_owner_browse_and_roadmap_announce_title_and_count_ac_0017(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["owners"])
+    page = item.page
+    for question in ("browse", "roadmap"):
+        _choose(item, question)
+        for _label, value in [*_page_options(page), ("Any owner", "")]:
+            page.evaluate("document.getElementById('live').textContent = 'stale'")
+            page.select_option("#owner", value=value)
+            page.wait_for_function(
+                "v => document.getElementById('owner').value === v && (new URLSearchParams(location.hash.slice(1)).get('owner') || '') === v",
+                arg=value,
+            )
+            title, count = _text(page, "#list-title"), _count_text(page)
+            page.wait_for_function("t => document.getElementById('live').textContent === t", arg=f"{title}, {count}")
+    assert not item.errors
+
+
+# ----------------------------------------------------------------- the differential check (AC-0032)
+
+_README_FILTERS = {"level": "capability", "kind": "outcome", "status": "Withdrawn"}  # the README's filter values
+_QUESTION_FILTERS = {"noparent": ("type", "level"), "browse": ("level", "kind", "status")}
+_FILTER_WORDS = {"type": "type", "level": "level", "kind": "kind", "status": "status"}
+
+
+def _diff_routes(unavailable: bool, search: str) -> list[dict[str, str]]:
+    """Every question with every Show, Group and README filter choice that applies, then the search."""
+    routes: list[dict[str, str]] = []
+    for question in _QUESTIONS:
+        keys = _QUESTION_FILTERS.get(question, ())
+        variants: list[dict[str, str]] = [{}] + [{k: _README_FILTERS[k]} for k in keys if k in _README_FILTERS]
+        for filters in variants:
+            if question != "browse":
+                routes.append({"q": question, **filters})
+                continue
+            for show in ("", "open", "done"):
+                for group in ("", "capability"):
+                    if unavailable and show:
+                        continue  # Open and done read as All while open work is unavailable
+                    routes.append({"q": question, "show": show, "group": group, **filters})
+    routes += [{"q": question, "search": search} for question in _QUESTIONS]
+    return routes
+
+
+def _read_doc(item: Opened) -> dict[str, Any]:
+    _expand_all(item.page)
+    item.page.evaluate("() => document.querySelectorAll('details').forEach((d) => { d.open = true; })")
+    return item.page.evaluate(_READ_DOC)  # type: ignore[no-any-return]
+
+
+def _restrict(rows: list[dict[str, Any]], match: Any) -> list[tuple[Any, ...]]:
+    """The Any owner page's rows narrowed per AC-0015 and AC-0018: a Browse match or a row above one.
+
+    A row is a Browse match when it is a matching record and not already a context row under Show.
+    Returns (node, parent, heading, is_context) in the Any owner page's order.
+    """
+    at = {r["node"]: i for i, r in enumerate(rows)}
+    hit = [r["tag"] is None and bool(match(r["node"])) for r in rows]
+    shown = list(hit)
+    for i in reversed(range(len(rows))):  # a parent precedes its children, so children settle first
+        if shown[i] and rows[i]["parent"] is not None:
+            shown[at[rows[i]["parent"]]] = True
+    return [(r["node"], r["parent"], r["head"], not hit[i]) for i, r in enumerate(rows) if shown[i]]
+
+
+def _by_count(tokens: list[dict[str, Any]], cats: tuple[str, ...]) -> dict[tuple[str, str], tuple[str, ...]]:
+    found: dict[tuple[str, str], list[str]] = {}
+    for t in tokens:
+        if t["cat"] in cats:
+            found.setdefault((t["cat"], t["key"]), []).append(t["t"])
+    return {k: tuple(v) for k, v in found.items()}
+
+
+def _toggles(tokens: list[dict[str, Any]]) -> dict[str, tuple[str, ...]]:
+    found: dict[str, list[str]] = {}
+    for t in tokens:
+        if t["cat"] == "row" and t["sub"] == "toggle":
+            found.setdefault(t["key"], []).append(t["t"])
+    return {k: tuple(v) for k, v in found.items()}
+
+
+def _remainder(
+    any_doc: dict[str, Any], own_doc: dict[str, Any]
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """Both pages' text nodes, in order, with only the differences AC-0032 admits taken out.
+    """
+    keep = {r["node"] for r in own_doc["rows"]}
+    context_before = {r["node"] for r in any_doc["rows"] if r["tag"] is not None}  # context under Show already
+    own_heads = {t["key"] for t in own_doc["tokens"] if t["cat"] == "head"}
+    counts = ("qcount", "lcount", "live", "summary")
+    a_counts, o_counts = _by_count(any_doc["tokens"], counts), _by_count(own_doc["tokens"], counts)
+    count_differs = {k for k in a_counts.keys() | o_counts.keys() if a_counts.get(k) != o_counts.get(k)}
+    a_tog, o_tog = _toggles(any_doc["tokens"]), _toggles(own_doc["tokens"])
+    toggle_differs = {k for k in a_tog.keys() | o_tog.keys() if a_tog.get(k) != o_tog.get(k)}
+    emptied = bool(any_doc["rows"]) and not own_doc["rows"]
+
+    def strip(doc: dict[str, Any], is_any: bool) -> list[tuple[str, str]]:
+        out = []
+        for t in doc["tokens"]:
+            cat = t["cat"]
+            if cat == "row":
+                if is_any and t["key"] not in keep:
+                    continue  # 1 (and 8, the start tag, which sits inside its row)
+                if not is_any and t["sub"] == "ctxtag" and t["key"] not in context_before:
+                    continue  # 2: a context row the owner choice adds
+                if t["sub"] == "toggle" and t["key"] in toggle_differs:
+                    continue  # 4
+            elif cat in counts and (cat, t["key"]) in count_differs:
+                continue  # 3
+            elif cat == "ownerline" and not is_any:
+                continue  # 5
+            elif cat == "head" and is_any and t["key"] not in own_heads:
+                continue  # 6
+            elif cat == "empty" and not is_any and emptied:
+                continue  # 7
+            out.append((cat + ":" + t["sub"], t["t"]))
+        return out
+
+    return strip(any_doc, True), strip(own_doc, False)
+
+
+def _first_difference(a: list[Any], b: list[Any]) -> str:
+    for i in range(max(len(a), len(b))):
+        if i >= len(a) or i >= len(b) or a[i] != b[i]:
+            return f"at text node {i}: any={a[max(0, i - 1) : i + 2]} owner={b[max(0, i - 1) : i + 2]}"
+    return "equal"
+
+
+def _expected_empty(filters: dict[str, str], question: str, search: str, label: str, value: str) -> str:
+    if search:
+        tail = "with no owner recorded" if value == "none" else f'for {_owner_words(label, value)}'
+        return f'Nothing matches the search "{search}" {tail}.'
+    keys = [k for k in _QUESTION_FILTERS.get(question, ()) if k in filters]
+    parts = [f'{_FILTER_WORDS[k]} "{filters[k]}"' for k in keys] + [_owner_words(label, value)]
+    return "Nothing matches " + ", ".join(parts) + "."
+
+
+def _check_pair(
+    payload: dict[str, Any], route: dict[str, str], any_doc: dict[str, Any], own_doc: dict[str, Any], label: str, value: str, where: str
+) -> None:
+    """The structural reading of AC-0032's admitted differences, decided from the payload."""
+    match = _owner_matcher(payload, value)
+    # Nesting and order: the shown rows are the Any owner page's rows restricted per AC-0015 and AC-0018.
+    own_rows = [(r["node"], r["parent"], r["head"], r["tag"] is not None) for r in own_doc["rows"]]
+    assert own_rows == _restrict(any_doc["rows"], match), (where, label)
+    for r in own_doc["rows"]:
+        kids = sum(1 for k in own_doc["rows"] if k["parent"] == r["node"] and r["node"] != k["node"])
+        if not r["tree"]:
+            continue
+        assert (r["toggle"] is not None) == (kids > 0), (where, label, r["node"])
+        if r["toggle"] is not None:
+            assert re.match(rf"Show {kids} beneath ", r["toggle"][1]), (where, label, r["node"], r["toggle"])
+    # Counts: the header count is the number of rows that are not context rows.
+    plain = sum(1 for r in own_doc["rows"] if r["tag"] is None)
+    own_count = [t["t"] for t in own_doc["tokens"] if t["cat"] == "lcount"]
+    any_count = [t["t"] for t in any_doc["tokens"] if t["cat"] == "lcount"]
+    if any_count and any_count[0][0].isdigit():
+        assert int(own_count[0].split(" ")[0]) == plain, (where, label, own_count)
+    else:
+        assert own_count == any_count, (where, label)
+    # AC-0020: the current question's rail count is that same number, or stays unknown. Browse has no rail count,
+    # and the rail count ignores a filter or a search, so it is compared only on the question's unfiltered list.
+    own_rail = [t["t"] for t in own_doc["tokens"] if t["cat"] == "qcount" and t["key"] == route["q"]]
+    any_rail = [t["t"] for t in any_doc["tokens"] if t["cat"] == "qcount" and t["key"] == route["q"]]
+    if route["q"] != "browse" and set(route) == {"q"}:
+        assert own_rail and any_rail, (where, label, own_rail, any_rail)
+        if any_rail[0][0].isdigit():
+            assert own_rail[0].split(" ")[0] == str(plain), (where, label, own_rail, plain)
+        else:
+            assert own_rail == any_rail, (where, label, own_rail, any_rail)
+    # The line, and the empty state.
+    line = [t["t"] for t in own_doc["tokens"] if t["cat"] == "ownerline"]
+    assert line == [_owner_line(label, value)], (where, label, line)
+    assert not [t for t in any_doc["tokens"] if t["cat"] == "ownerline"], where
+    if any_doc["rows"] and not own_doc["rows"]:
+        filters = {k: v for k, v in route.items() if k in _README_FILTERS or k == "type"}
+        empty = [t["t"] for t in own_doc["tokens"] if t["cat"] == "empty"]
+        want = _expected_empty(filters, route["q"], route.get("search", ""), label, value)
+        assert empty[:1] == [want], (where, label, empty)
+    # Every subheading that stays holds a row link.
+    heads = {t["key"] for t in own_doc["tokens"] if t["cat"] == "head"}
+    assert heads <= {r["head"] for r in own_doc["rows"]} or not own_doc["rows"], (where, label, heads)
+
+
+def _differential_sweep(
+    item: Opened, payload: dict[str, Any], choices: list[tuple[str, str]], name: str, search: str
+) -> dict[str, int]:
+    """Each owner choice's page against the Any owner page, over every route, with all rows open."""
+    unavailable = payload["outstanding"].get("available") is False
+    stats = {"states": 0, "pairs": 0, "tokens": 0, "narrowed": 0, "emptied": 0}
+    for route in _diff_routes(unavailable, search):
+        item.go(_frag(**route))
+        any_doc = _read_doc(item)
+        stats["states"] += 1
+        for label, value in choices:
+            item.go(_frag(**route, owner=value))
+            own_doc = _read_doc(item)
+            where = f"{name} {route}"
+            assert item.page.locator("#owner").input_value() == value, (where, label)
+            a, b = _remainder(any_doc, own_doc)
+            assert a == b, (where, label, _first_difference(a, b))
+            _check_pair(payload, route, any_doc, own_doc, label, value, where)
+            stats["states"] += 1
+            stats["pairs"] += 1
+            stats["tokens"] += len(own_doc["tokens"])
+            stats["narrowed"] += 1 if len(own_doc["rows"]) < len(any_doc["rows"]) else 0
+            stats["emptied"] += 1 if any_doc["rows"] and not own_doc["rows"] else 0
+    assert not item.errors, name
+    return stats
+
+
+def _readme_choices() -> list[tuple[str, str]]:
+    return [(label, _owner_route(key)) for label, key in _readme_options() if key is not None]
+
+
+@pytest.fixture(scope="module")
+def diff_exports(
+    exports: dict[str, pathlib.Path], rowners: pathlib.Path, tmp_path_factory: pytest.TempPathFactory
+) -> dict[str, pathlib.Path]:
+    out = tmp_path_factory.mktemp("differential")
+    return {
+        "owners": exports["owners"],
+        "scoped": _scoped_export(out),
+        "unavailable": _export(_OWNERS_ROOT, out, "owners_unavailable.html", _delivery_provider=_incomplete),
+        "readiness": rowners,
+    }
+
+
+def _diff_choices(item: Opened, payload: dict[str, Any], name: str) -> list[tuple[str, str]]:
+    """The owner choices AC-0032 names for an export: the README's, or every option on the readiness export."""
+    _choose(item, "next")
+    options = _page_options(item.page)
+    if name == "readiness":
+        assert _readiness_owner_option(payload) is not None  # the Readiness export term's third condition
+        assert len(options) == 2
+        return options
+    if name == "scoped":
+        assert [label for label, _v in options] == _SCOPED_OPTIONS
+        return options
+    choices = _readme_choices()
+    assert [label for label, _v in choices] == [label for label, _v in options]
+    return choices
+
+
+@pytest.mark.parametrize("name", ["owners", "scoped", "unavailable", "readiness"])
+def test_owner_narrowing_is_the_only_difference_ac_0032(
+    opener: Any, diff_exports: dict[str, pathlib.Path], name: str
+) -> None:
+    path = diff_exports[name]
+    payload = payload_of(path)
+    item = opener(path)
+    choices = _diff_choices(item, payload, name)
+    search = json.loads(_owners_tables()["Scoping"][1][1])
+    stats = _differential_sweep(item, payload, choices, name, search)
+    assert stats["narrowed"] > 0 and stats["emptied"] > 0, stats
+    print(f"differential {name}: {stats}")  # noqa: T201
+
+
+# ----------------------------------------------------------- the list summary (AC-0032, difference 3)
+
+_SUMMARY_STAGES = [("Implementing spec", "Implementing specs"), ("Approved spec", "Approved specs"),
+                   ("Executing brief", "Executing briefs"), ("Ready brief", "Ready briefs"),
+                   ("Accepted intent with nothing beneath", "Accepted intents with nothing beneath")]
+
+
+def _summary_over(page: Page, payload: dict[str, Any], question: str) -> str | None:
+    """The "In this list" line the payload gives over the row links the list shows; None where none shows."""
+    model = Model(payload)
+    rows = page.evaluate(
+        """() => Array.from(document.querySelectorAll('#list a.row-link')).map((a) => [a.dataset.node,
+          (a.querySelector('.c-context') || {textContent: ''}).textContent])"""
+    )
+    if not rows or _text(page, "#list-count") == "Count unavailable":
+        return None
+    if question == "next" and payload.get("readiness", {}).get("checked") is True:
+        heads = [head for head, ids in _group_rows(page) if ids]
+        return "In this list: " + ", ".join(f"{len(ids)} {head.lower()}" for head, ids in _group_rows(page) if ids) + "." if heads else None
+    if question == "next":
+        per = [0] * len(_STAGES)
+        for node, _c in rows:
+            per[_STAGES.index((payload_of_node_type(model, node), model.word(node)))] += 1
+        parts = [f"{n} {one if n == 1 else many}" for n, (one, many) in zip(per, _SUMMARY_STAGES, strict=True) if n]
+        return "In this list: " + ", ".join(parts) + "." if parts else None
+    if question == "broken":
+        findings = sum(1 for _n, c in rows if c.startswith("Workspace finding:"))
+        diags = sum(1 for _n, c in rows if c.startswith("Delivery diagnostic:"))
+        pointers = len(rows) - findings - diags
+        if not model.available:
+            more = f", {findings} workspace finding{'' if findings == 1 else 's'}" if findings else ""
+            return f"In this list: {pointers} broken pointer{'' if pointers == 1 else 's'}{more}. Delivery diagnostics were unavailable."
+        bits = [(pointers, "broken pointer", "broken pointers"), (findings, "workspace finding", "workspace findings"),
+                (diags, "delivery diagnostic", "delivery diagnostics")]
+        return "In this list: " + ", ".join(f"{n} {one if n == 1 else many}" for n, one, many in bits if n) + "."
+    if question == "noparent":
+        parts = []
+        for kind, one, many in (("intent", "intent", "intents"), ("brief", "brief", "briefs"), ("spec", "spec", "specs")):
+            n = sum(1 for node, _c in rows if payload_of_node_type(model, node) == kind)
+            if n:
+                parts.append(f"{n} {one if n == 1 else many}")
+        return "In this list: " + ", ".join(parts) + "."
+    if question == "capabilities":
+        total = sum(int(c.rsplit(" \u00b7 ", 1)[1].split(" ")[0]) for _n, c in rows)
+        return (f"In this list: {total} open item{'' if total == 1 else 's'} in total across these capabilities; "
+                "an item under two capabilities counts twice.")
+    return None
+
+
+def payload_of_node_type(model: Model, node: str) -> str:
+    return str(model.nodes[node]["type"])
+
+
+@pytest.mark.parametrize("name", ["owners", "scoped", "unavailable", "readiness"])
+def test_owner_list_summary_counts_only_the_shown_rows_ac_0032(
+    opener: Any, diff_exports: dict[str, pathlib.Path], name: str
+) -> None:
+    payload = payload_of(diff_exports[name])
+    item = opener(diff_exports[name])
+    page = item.page
+    seen = {"line": 0, "absent": 0, "narrowed": 0}
+    for label, value in [("Any owner", ""), *_diff_choices(item, payload, name)]:
+        for question in _QUESTIONS:
+            _choose(item, question, owner=value)
+            assert page.locator("#main[data-picked]").count() == 0
+            want = _summary_over(page, payload, question)
+            got = page.locator("#detail-body .list-summary")
+            if want is None:
+                assert got.count() == 0, (name, label, question, got.all_inner_texts())
+                seen["absent"] += 1
+            else:
+                assert got.count() == 1 and got.inner_text() == want, (name, label, question, want)
+                seen["line"] += 1
+                if value:
+                    seen["narrowed"] += 1
+    assert seen["absent"] > 0, seen
+    if name != "unavailable":  # while open work is unavailable every list this line covers shows none or "unknown"
+        assert seen["line"] > 0 and seen["narrowed"] > 0, seen
+    assert not item.errors
+
+
+# Hostile and long owner values: record-owners AC-0031, AC-0025 and AC-0026
+
+_ESCAPE_JS = _SCRIPTS / "view_src" / "escape.js"
+_OWNER_TOKEN = "ownertoken" * 20  # 200 code points, no space
+_OWNER_TARGET = "docs/product/intents/FEAT-0004-feat-a.md"  # owner-three in the README; held there with feat-c
+
+
+def _unsafe_ranges() -> list[tuple[int, int]]:
+    """The code point ranges the page escapes, read from the one place the view declares them."""
+    source = _ESCAPE_JS.read_text(encoding="utf-8")
+    body = re.search(r"var UNSAFE_RANGES = \[(.*?)\];", source, re.DOTALL)
+    assert body is not None
+    found = [(int(a, 16), int(b, 16)) for a, b in re.findall(r"\[0x([0-9A-Fa-f]+), 0x([0-9A-Fa-f]+)\]", body.group(1))]
+    assert len(found) > 10
+    return found
+
+
+def _is_unsafe(char: str) -> bool:
+    return any(lo <= ord(char) <= hi for lo, hi in _unsafe_ranges())
+
+
+def test_owner_ac_0031_hostile_owner_values_render_as_escapes(opener: Any, exports: dict[str, pathlib.Path]) -> None:
+    item = opener(exports["hostile"])
+    page = item.page
+    payload = payload_of(exports["hostile"])
+    seen = ""
+    for key in _QUESTIONS:
+        item.go(_frag(q=key))
+        _expand_all(page)
+        seen += "".join(page.evaluate(_TEXT_NODES))
+    for node in payload["nodes"]:  # the Owner line of each record's details
+        item.go(_frag(q="browse", node=node["id"]))
+        page.locator("#detail-body details.record summary").click()
+        seen += "".join(page.evaluate(_TEXT_NODES))
+    assert [c for c in seen if _is_unsafe(c)] == []
+    owner_unsafe = {c for n in payload["nodes"] for c in n["owner"] if _is_unsafe(c)}
+    assert {"​", "‮", "⁦"} <= owner_unsafe
+    for char in owner_unsafe:
+        assert f"[U+{ord(char):04X}]" in seen, hex(ord(char))
+    assert not item.errors
+
+
+@pytest.fixture(scope="module")
+def lowners(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """The `owners` export with one record's owner replaced by a 200-code-point token with no space."""
+    tmp = tmp_path_factory.mktemp("owner_layout")
+    root = tmp / "owners"
+    shutil.copytree(_FIXTURES / "owners", root)
+    record = root / _OWNER_TARGET
+    text = record.read_text(encoding="utf-8")
+    edited = re.sub(r"^(- \*\*Owner:\*\* ).*$", rf"\g<1>{_OWNER_TOKEN}", text, count=1, flags=re.M)
+    assert edited != text
+    record.write_text(edited, encoding="utf-8")
+    path = _export(root, tmp / "out", "owners_long.html")
+    owners = [n["owner"] for n in payload_of(path)["nodes"]]
+    assert max(len(o) for o in owners) == 200 and _OWNER_TOKEN in owners
+    return path
+
+
+def _owner_layout_states(opener: Any, path: pathlib.Path, width: int, scheme: str) -> Any:
+    """(label, page) over the lists and one open detail with the 200-code-point owner chosen."""
+    node = next(n["id"] for n in payload_of(path)["nodes"] if n["owner"] == _OWNER_TOKEN)
+    owner = "k:" + _OWNER_TOKEN
+    # The owner matches no capability, so Roadmap and Open by capability show their empty state naming it.
+    for label, question, picked in (
+        ("next", "next", ""),
+        ("browse", "browse", ""),
+        ("detail", "browse", node),
+        ("roadmap", "roadmap", ""),
+        ("capabilities", "capabilities", ""),
+    ):
+        item = opener(path, width=width, height=700, scheme=scheme)
+        page = item.page
+        item.go(_frag(q=question, owner=owner))
+        page.wait_for_selector("#list-title")
+        assert page.locator("#owner").input_value() == owner
+        if label in _OWNER_ROW_STATES:
+            page.wait_for_selector("#list a.row-link")
+        if question == "browse":
+            _expand_all(page)
+        page.locator("#key summary").click()  # open while the list is on screen
+        if picked:
+            item.go(_frag(q=question, owner=owner, node=picked))
+            page.wait_for_selector("#detail-body details.record summary")
+            page.locator("#detail-body details.record summary").click()
+        yield label, page
+
+
+_OWNER_ROW_STATES = {"next", "browse"}  # the other states show a detail or an empty state
+_OWNER_GEOMETRY = """() => {
+  const box = (e) => e.getBoundingClientRect();
+  const rows = Array.from(document.querySelectorAll('#list a.row-link')).filter((e) => box(e).width > 0);
+  const out = { rows: rows.length, overlap: [], outside: [], long: 0, detail: [] };
+  for (let i = 0; i < rows.length; i++) {
+    const a = box(rows[i]);
+    for (let j = i + 1; j < rows.length; j++) {
+      const b = box(rows[j]);
+      if (a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) {
+        out.overlap.push([rows[i].dataset.node, rows[j].dataset.node]);
+      }
+    }
+    const cell = rows[i].querySelector('.c-owner');
+    const c = box(cell);
+    if (cell.textContent.length > 150) out.long += 1;
+    if (c.left < a.left - 0.5 || c.right > a.right + 0.5 || c.top < a.top - 0.5 || c.bottom > a.bottom + 0.5) {
+      out.outside.push(rows[i].dataset.node);
+    }
+  }
+  const zone = box(document.getElementById('detail-body'));
+  if (zone.width > 0) document.querySelectorAll('#detail-body *:not(summary)').forEach((e) => {  // a summary's marker hangs outside its box
+    const r = box(e);
+    if (r.width > 1 && (r.left < zone.left - 0.5 || r.right > zone.right + 0.5)) out.detail.push(e.tagName + '.' + e.className + ' ' + r.left + ',' + r.right + ' in ' + zone.left + ',' + zone.right);
+  });
+  out.wide = Array.from(document.querySelectorAll('body, body *')).filter((e) => e.scrollWidth > e.clientWidth + 0.5 && e.clientWidth > 0).slice(0, 6)
+    .map((e) => e.tagName + '.' + e.className + '#' + e.id + ' ' + e.scrollWidth + '>' + e.clientWidth);
+  out.scroll = [document.documentElement.scrollWidth, document.documentElement.clientWidth];
+  return out;
+}"""
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_owner_ac_0025_a_200_code_point_owner_stays_inside_its_row(
+    opener: Any, lowners: pathlib.Path, width: int, scheme: str
+) -> None:
+    long_cells = 0
+    for label, page in _owner_layout_states(opener, lowners, width, scheme):
+        got = page.evaluate(_OWNER_GEOMETRY)
+        assert got["rows"] > 0 or label not in _OWNER_ROW_STATES, label
+        assert got["overlap"] == [] and got["outside"] == [] and got["detail"] == [], (label, got)
+        assert got["scroll"][0] <= width, (label, got["scroll"], width, got["wide"])
+        long_cells += got["long"]
+    assert long_cells >= 2
+
+
+_OWNER_BELONGS = """() => {
+  const box = (e) => e.getBoundingClientRect();
+  const rows = Array.from(document.querySelectorAll('#list a.row-link')).filter((e) => box(e).width > 0);
+  const bad = [];
+  let context = 0;
+  rows.forEach((row, i) => {
+    const owner = box(row.querySelector('.c-owner'));
+    const name = box(row.querySelector('.c-name'));
+    if (row.querySelector('.ctx-tag')) context += 1;
+    const next = rows[i + 1] ? box(rows[i + 1]).top : Infinity;
+    if (owner.top > name.bottom + 12 || owner.top >= next) {
+      bad.push([row.dataset.node, owner.top - name.bottom, next - owner.top]);
+    }
+  });
+  return { rows: rows.length, context, bad };
+}"""
+
+
+@pytest.mark.parametrize("width", [1280, 1680])
+def test_owner_cell_sits_under_its_own_name_not_by_the_next_row(
+    opener: Any, exports: dict[str, pathlib.Path], width: int
+) -> None:
+    """With several columns the owner cell is in the name column, within 12px under the name cell."""
+    path = exports["owners"]
+    item = opener(path, width=width, height=900)
+    _choose(item, "browse")
+    options = _page_options(item.page)
+    seen_rows = seen_context = 0
+    for label, value in options:
+        _choose(item, "browse", owner=value)
+        item.page.wait_for_selector("#list-title")
+        _expand_all(item.page)
+        _open_disclosures(item.page)
+        got = item.page.evaluate(_OWNER_BELONGS)
+        assert got["bad"] == [], (label, got)
+        seen_rows += got["rows"]
+        seen_context += got["context"]
+    assert seen_rows > 0 and seen_context > 0, (seen_rows, seen_context)
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
+def test_owner_ac_0026_session_start_access_criteria_hold_with_an_owner_chosen(
+    opener: Any, lowners: pathlib.Path, width: int, scheme: str
+) -> None:
+    assert _access_criteria_hold(_owner_layout_states(opener, lowners, width, scheme)) > 100

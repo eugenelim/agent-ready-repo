@@ -136,8 +136,8 @@ select {
   background-repeat: no-repeat;
 }
 summary { cursor: pointer; }
-.meta, .lead, .note, .note-inline { color: var(--c-muted); }
-.meta, .note-inline, .c-context { font: var(--t-meta); }
+.meta, .lead, .note, .note-inline, .c-owner { color: var(--c-muted); }
+.meta, .note-inline, .c-context, .c-owner { font: var(--t-meta); }
 .c-context, .empty { color: var(--c-subtle); }
 #meta, .list-head .meta { color: var(--c-subtle); }
 .notice, .alert {

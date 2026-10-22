@@ -106,6 +106,7 @@
       factList(dl, 'Kind', r.kind || 'none recorded');
     }
     factList(dl, 'Status', statusOf(id));
+    factList(dl, 'Owner', ownerKey(n.owner) !== '' ? n.owner : NO_OWNER_TEXT);
     var unavailable = deliveryUnavailable();
     if (r) {
       group(box, 'parent', function (sec) {

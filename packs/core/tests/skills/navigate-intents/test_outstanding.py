@@ -639,3 +639,40 @@ def test_outstanding_items_carry_their_node_heading() -> None:
         assert item["heading"] == headings[item_id], item_id
     assert items["brief:bravo-delivery"]["heading"] == "Brief: Bravo delivery"
     assert items["spec:bravo-spec"]["heading"] == "Spec: Bravo spec"
+
+
+# ---------------------------------------------------------------------------
+# Record owners: the README tables are the oracle
+# ---------------------------------------------------------------------------
+
+_FIXTURE_OWNERS = _HERE / "fixtures" / "owners"
+
+
+def _load_readme_helpers():
+    """Load the README table reader from the derivation contract test, under a unique name."""
+    name = "core_navigate_intents_readme_helpers_" + pathlib.Path(__file__).stem
+    spec = importlib.util.spec_from_file_location(name, _HERE / "test_derivation_contract.py")
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _owner_rows() -> dict[str, str]:
+    """Map node id to the owner the owners README states for it."""
+    tables = _load_readme_helpers()._owners_readme_tables(_FIXTURE_OWNERS)
+    return {r[0]: json.loads(r[2]) for r in tables["Owner table"]}
+
+
+def test_outstanding_items_carry_owner_ac0004() -> None:
+    """Items of `placed` and `no_parent` carry the owner the owners README states."""
+    _skip_if_module_absent()
+    owners = _owner_rows()
+    result, code = nav.run_query(  # type: ignore[union-attr]
+        _FIXTURE_OWNERS, ["query", "--operation", "outstanding"]
+    )
+    assert code == 0 and result["status"] == "ok"
+    assert result["placed"] and result["no_parent"]
+    for item in _all_outstanding_items(result):
+        assert item["owner"] == owners[item["id"]], item["id"]

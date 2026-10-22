@@ -12,6 +12,7 @@
     route.dir = route.dir === 'dependents' || route.dir === 'both' ? route.dir : '';
     route.show = route.show === 'open' || route.show === 'done' ? route.show : '';
     route.group = route.group === 'capability' ? 'capability' : '';
+    route.owner = ownerChoiceValid(route.owner) ? route.owner : '';
     route.steps = route.steps === '2' || route.steps === '3' || route.steps === 'all' ? route.steps : '';
     return route;
   }
@@ -25,9 +26,11 @@
     history.replaceState(null, '', hashFor(over));
     handleRoute();
   }
-  function questionHash(key) {
-    var over = { q: key, node: '', search: '' };
-    FILTER_KEYS.forEach(function (k) { over[k] = ''; });
+  // A link to a question starts from no other choice, but keeps the owner choice it is given.
+  function questionHash(key, owner) {
+    var over = {};
+    ROUTE_KEYS.forEach(function (k) { over[k] = ''; });
+    over.q = key;
+    over.owner = owner || '';
     return hashFor(over);
   }
-

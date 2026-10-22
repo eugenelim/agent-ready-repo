@@ -83,6 +83,7 @@ _SCRIPT_PARTS: tuple[str, ...] = (
     "routing.js",
     "small-parts.js",
     "rows.js",
+    "owners.js",
     "list-bodies.js",
     "browse.js",
     "roadmap.js",
@@ -112,6 +113,7 @@ _SHELL = """<!doctype html>
 <div class="title-row">
 <h1 class="page-title">Intent graph</h1>
 <div class="search"><label for="search">Search names and ids</label><input id="search" class="control" type="search" autocomplete="off" placeholder="Search names and ids"></div>
+<div id="owner-pick" class="owner-pick"></div>
 </div>
 <p id="meta" class="meta"></p>
 <div id="scope-banner" class="banner" hidden></div>

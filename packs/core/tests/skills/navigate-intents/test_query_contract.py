@@ -18,6 +18,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import pathlib
+import re
+import shutil
 import sys
 
 import pytest
@@ -1112,3 +1114,166 @@ def test_tab_character_is_escaped_in_display_values(  # finding 21, AC-0017
             "TAB character must be escaped in text output (AC-0017); "
             f"got output containing TAB: {result!r}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Record owners: the README tables are the oracle
+# ---------------------------------------------------------------------------
+
+_FIXTURE_OWNERS = _HERE / "fixtures" / "owners"
+
+
+def _load_readme_helpers():
+    """Load the README table reader from the derivation contract test, under a unique name."""
+    name = "core_navigate_intents_readme_helpers_" + pathlib.Path(__file__).stem
+    spec = importlib.util.spec_from_file_location(name, _HERE / "test_derivation_contract.py")
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _owner_rows() -> dict[str, str]:
+    """Map node id to the owner the owners README states for it."""
+    tables = _load_readme_helpers()._owners_readme_tables(_FIXTURE_OWNERS)
+    return {r[0]: json.loads(r[2]) for r in tables["Owner table"]}
+
+
+def _query(root: pathlib.Path, *args: str):
+    result, code = nav.run_query(root, ["query", *args])  # type: ignore[union-attr]
+    return result, code
+
+
+def _selectors(value: object) -> list[str]:
+    return ["--operation", "search", "--selectors", json.dumps(value)]
+
+
+def test_record_and_search_carry_owner_ac0004() -> None:
+    """`record` and each `search` entry carry the node's owner."""
+    _skip_if_module_absent()
+    owners = _owner_rows()
+    for node_id in (i for i in owners if not i.startswith(("brief:", "spec:"))):
+        result, code = _query(_FIXTURE_OWNERS, "--operation", "record", "--id", node_id)
+        assert code == 0 and result["record"]["owner"] == owners[node_id], node_id
+    result, code = _query(_FIXTURE_OWNERS, *_selectors({}))
+    assert code == 0 and result["intents"]
+    for entry in result["intents"]:
+        assert entry["owner"] == owners[entry["id"]], entry["id"]
+
+
+def test_search_owner_selector_matches_readme_ac0005() -> None:
+    """Each owner selector value in the README returns exactly the intents it states."""
+    _skip_if_module_absent()
+    helpers = _load_readme_helpers()
+    rows = helpers._owners_readme_tables(_FIXTURE_OWNERS)["Owner selector table"]
+    assert rows
+    for value, ids in rows:
+        result, code = _query(_FIXTURE_OWNERS, *_selectors({"owner": json.loads(value)}))
+        assert code == 0, value
+        assert [e["id"] for e in result["intents"]] == helpers._id_list(ids), value
+
+
+def test_search_non_owner_selectors_match_readme_ids() -> None:
+    """Each non-owner selector row in the README returns exactly the intent ids it states."""
+    _skip_if_module_absent()
+    helpers = _load_readme_helpers()
+    rows = helpers._owners_readme_tables(_FIXTURE_OWNERS)["Non-owner selector table"]
+    assert rows
+    for selector, value, ids in rows:
+        result, code = _query(_FIXTURE_OWNERS, *_selectors({selector: json.loads(value)}))
+        assert code == 0, selector
+        assert [e["id"] for e in result["intents"]] == helpers._id_list(ids), selector
+
+
+@pytest.mark.parametrize("value", [1, None, ["a"], True])
+def test_search_owner_selector_non_string_is_invalid_ac0005(value: object) -> None:
+    """A non-string owner selector returns invalid_selector."""
+    _skip_if_module_absent()
+    result, code = _query(_FIXTURE_OWNERS, *_selectors({"owner": value}))
+    assert code == 1
+    assert result["status"] == "error" and result["error"]["code"] == "invalid_selector"
+
+
+def _copy_owners(tmp_path: pathlib.Path) -> pathlib.Path:
+    """Copy the owners fixture, so both runs of a comparison share one root path."""
+    dest = tmp_path / "owners"
+    shutil.copytree(_FIXTURE_OWNERS, dest)
+    return dest
+
+
+def _drop_owner_lines(dest: pathlib.Path) -> None:
+    """Remove every `- **Owner:**` line from the corpus at *dest*, in place."""
+    for path in dest.rglob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        kept = [ln for ln in text.splitlines(keepends=True) if not re.match(r"- \*\*Owner:\*\*", ln)]
+        path.write_text("".join(kept), encoding="utf-8")
+
+
+def _strip_volatile(value: object) -> object:
+    """Remove every `owner` member and `generated_at`."""
+    if isinstance(value, dict):
+        return {
+            k: _strip_volatile(v)
+            for k, v in value.items()
+            if k not in {"owner", "generated_at"}
+        }
+    if isinstance(value, list):
+        return [_strip_volatile(v) for v in value]
+    return value
+
+
+def _owner_free_runs() -> list[list[str]]:
+    """Every argv (after `query`) AC-0002 and AC-0003 compare, as JSON runs."""
+    helpers = _load_readme_helpers()
+    tables = helpers._owners_readme_tables(_FIXTURE_OWNERS)
+    intents = [r[0] for r in tables["Owner table"] if not r[0].startswith(("brief:", "spec:"))]
+    scoped = tables["Scoping"][0][1]
+    runs: list[list[str]] = [["--operation", "summary"], ["--operation", "tree"]]
+    runs += [["--operation", "outstanding"], ["--operation", "outstanding", "--from", scoped]]
+    for op in ("record", "ancestors", "tree", "dependencies"):
+        runs += [["--operation", op, "--id", i] for i in intents]
+    runs.append(_selectors({}))
+    for selector, value, _ids in tables["Non-owner selector table"]:
+        runs.append(_selectors({selector: json.loads(value)}))
+    return runs
+
+
+def test_every_operation_is_exercised_ac0002() -> None:
+    """The comparison runs cover every operation `run_query` accepts."""
+    _skip_if_module_absent()
+    ops = {run[run.index("--operation") + 1] for run in _owner_free_runs()}
+    assert ops == set(nav._VALID_OPS)  # type: ignore[union-attr]
+
+
+def test_json_results_ignore_owner_lines_ac0002(tmp_path: pathlib.Path) -> None:
+    """Without `owner` members and `generated_at`, removing every Owner line changes nothing."""
+    _skip_if_module_absent()
+    corpus = _copy_owners(tmp_path)
+    runs = _owner_free_runs()
+    before = [_query(corpus, *run) for run in runs]
+    _drop_owner_lines(corpus)
+    for run, (with_owner, code_a) in zip(runs, before, strict=True):
+        without, code_b = _query(corpus, *run)
+        assert code_a == code_b == 0, run
+        assert _strip_volatile(with_owner) == _strip_volatile(without), run
+
+
+def test_text_output_ignores_owner_lines_ac0003(tmp_path: pathlib.Path) -> None:
+    """tree, outstanding and dependencies text is byte-identical with the Owner lines removed."""
+    _skip_if_module_absent()
+    corpus = _copy_owners(tmp_path)
+    scoped = _load_readme_helpers()._owners_readme_tables(_FIXTURE_OWNERS)["Scoping"][0][1]
+    runs = [
+        ["--operation", "tree"],
+        ["--operation", "outstanding"],
+        ["--operation", "outstanding", "--from", scoped],
+        ["--operation", "tree", "--id", scoped],
+        ["--operation", "dependencies", "--id", scoped],
+    ]
+    before = [_query(corpus, *run, "--format", "text") for run in runs]
+    _drop_owner_lines(corpus)
+    for run, (a, code_a) in zip(runs, before, strict=True):
+        b, code_b = _query(corpus, *run, "--format", "text")
+        assert code_a == code_b == 0 and isinstance(a, str), run
+        assert a == b and a.encode("utf-8") == b.encode("utf-8"), run

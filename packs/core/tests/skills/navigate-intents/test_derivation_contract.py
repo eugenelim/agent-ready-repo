@@ -16,7 +16,9 @@ and packs/core/tests/skills/close-work/test_closure_terminality.py.
 from __future__ import annotations
 
 import importlib.util
+import json
 import pathlib
+import shutil
 import sys
 
 import pytest
@@ -915,3 +917,154 @@ def test_derive_heading_inside_comment_is_hidden(tmp_path: pathlib.Path) -> None
         "<!--\n# Spec: Hidden\n-->\n\n" + _HEADING_SPEC + "\n## Outcome\n\nx\n",
     )
     assert _headings(tmp_path)["spec:gamma"] == ""
+
+
+# ---------------------------------------------------------------------------
+# The `owners` fixture README: hand-stated tables cross-checked with the corpus
+# ---------------------------------------------------------------------------
+
+_FIXTURE_OWNERS = _HERE / "fixtures" / "owners"
+_OWNERS_TABLES = (
+    "Owner table",
+    "Option list",
+    "Owner selector table",
+    "Non-owner selector table",
+    "Browse expectations",
+    "Roadmap expectations",
+    "Scoping",
+)
+
+
+def _cell(raw: str) -> str:
+    """Trim a table cell and remove one pair of surrounding backticks."""
+    text = raw.strip()
+    if len(text) >= 2 and text[0] == "`" and text[-1] == "`" and "`" not in text[1:-1]:
+        text = text[1:-1]
+    return text
+
+
+def _readme_tables(readme: pathlib.Path) -> dict[str, list[list[str]]]:
+    """Return each ``##`` section's table body rows, split on ``|``, by heading."""
+    tables: dict[str, list[list[str]]] = {}
+    heading = ""
+    in_table = False
+    for line in readme.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            heading = line[3:].strip()
+            tables[heading] = []
+            in_table = False
+            continue
+        if not heading or not line.startswith("|"):
+            in_table = in_table and line.startswith("|")
+            continue
+        cells = [_cell(c) for c in line.strip().strip("|").split("|")]
+        if not in_table:  # the header row: skip it and the rule row after it
+            in_table = True
+            tables[heading].append([])
+            continue
+        if all(set(c) <= {"-", ":"} for c in cells):
+            continue
+        tables[heading].append(cells)
+    return {h: [r for r in rows if r] for h, rows in tables.items()}
+
+
+def _id_list(cell: str) -> list[str]:
+    """Split a cell holding ids joined by a comma and a space; ``-`` is none."""
+    return [] if cell == "-" else [_cell(c) for c in cell.split(", ")]
+
+
+def _owners_readme_tables(root: pathlib.Path) -> dict[str, list[list[str]]]:
+    tables = _readme_tables(root / "README.md")
+    for name in _OWNERS_TABLES:
+        assert tables.get(name), f"README table missing or empty: {name}"
+    return tables
+
+
+def _check_owner_table_matches_corpus(root: pathlib.Path) -> None:
+    """Every path the README names exists, and every derived record is in the owner table."""
+    rows = _owners_readme_tables(root)["Owner table"]
+    named = {r[1]: r[0] for r in rows}
+    assert len(named) == len(rows), "a path appears in two owner-table rows"
+    missing = sorted(p for p in named if not (root / p).is_file())
+    assert not missing, f"README names paths that do not exist: {missing}"
+    derived = {n["path"]: n["id"] for n in ig.derive(root)["nodes"]}
+    absent = sorted(set(derived) - set(named))
+    assert not absent, f"records with no owner-table row: {absent}"
+    stale = sorted(set(named) - set(derived))
+    assert not stale, f"owner-table rows that are not records: {stale}"
+    wrong = sorted(p for p in derived if derived[p] != named[p])
+    assert not wrong, f"owner-table node ids differ from the derivation: {wrong}"
+
+
+def test_owners_readme_tables_are_well_formed() -> None:
+    """Each table parses with its column count, and every id it names is a record."""
+    _skip_if_module_absent()
+    tables = _owners_readme_tables(_FIXTURE_OWNERS)
+    widths = {"Owner table": 4, "Option list": 3, "Owner selector table": 2,
+              "Non-owner selector table": 3, "Browse expectations": 5,
+              "Roadmap expectations": 4, "Scoping": 2}
+    for name, width in widths.items():
+        bad = [r for r in tables[name] if len(r) != width]
+        assert not bad, f"{name}: rows without {width} cells: {bad}"
+    ids = {r[0] for r in tables["Owner table"]}
+    named: set[str] = set()
+    for r in tables["Owner selector table"]:
+        named.update(_id_list(r[1]))
+    for r in tables["Non-owner selector table"]:
+        named.update(_id_list(r[2]))
+    for r in tables["Browse expectations"]:
+        named.update(_id_list(r[3]) + _id_list(r[4]))
+    for r in tables["Roadmap expectations"]:
+        named.update(_id_list(r[2]) + _id_list(r[3]))
+    assert tables["Scoping"][0][1] in ids
+    assert sorted(named - ids) == [], "an expectation names an id that is no record"
+    # Hand-stated values are JSON where they are strings or booleans.
+    for r in tables["Owner table"]:
+        assert isinstance(json.loads(r[2]), str)
+    # One option per row, in position order, one option list header and the two sentinels.
+    options = [r[1] for r in tables["Option list"]]
+    assert options[0] == "Any owner" and options[-1] == "No owner recorded"
+    assert [r[0] for r in tables["Option list"]] == [str(i) for i in range(1, len(options) + 1)]
+
+
+def test_owners_readme_names_every_record_and_only_records() -> None:
+    """The README's owner table and the fixture's derived record set agree."""
+    _skip_if_module_absent()
+    _check_owner_table_matches_corpus(_FIXTURE_OWNERS)
+
+
+def test_owners_cross_check_fails_for_an_unlisted_record(tmp_path: pathlib.Path) -> None:
+    """Adding a record file with no README row makes the cross-check fail."""
+    _skip_if_module_absent()
+    scratch = tmp_path / "owners"
+    shutil.copytree(_FIXTURE_OWNERS, scratch)
+    _check_owner_table_matches_corpus(scratch)
+    extra = scratch / "docs" / "specs" / "spec-extra" / "spec.md"
+    extra.parent.mkdir()
+    extra.write_text("# Spec: Extra\n\n- **Status:** Draft\n\n## Outcome\n\nx\n", encoding="utf-8")
+    with pytest.raises(AssertionError, match="no owner-table row"):
+        _check_owner_table_matches_corpus(scratch)
+    extra.unlink()
+    (scratch / "docs" / "specs" / "spec-open" / "spec.md").unlink()
+    with pytest.raises(AssertionError, match="do not exist"):
+        _check_owner_table_matches_corpus(scratch)
+
+
+# ---------------------------------------------------------------------------
+# AC-0001: every node carries `owner`
+# ---------------------------------------------------------------------------
+
+
+def test_every_node_carries_owner_ac0001() -> None:  # stub: true
+    nodes = ig.derive(_FIXTURE_MIXED)["nodes"]
+    assert nodes
+    assert all(isinstance(n.get("owner"), str) for n in nodes)
+
+
+def test_every_node_owner_equals_the_readme_value_ac0001() -> None:
+    """Over the owners fixture each node's owner is the value its README row states."""
+    _skip_if_module_absent()
+    rows = _owners_readme_tables(_FIXTURE_OWNERS)["Owner table"]
+    stated = {r[0]: json.loads(r[2]) for r in rows}
+    derived = {n["id"]: n["owner"] for n in ig.derive(_FIXTURE_OWNERS)["nodes"]}
+    assert derived == stated

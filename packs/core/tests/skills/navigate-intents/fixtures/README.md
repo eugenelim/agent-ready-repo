@@ -45,10 +45,14 @@ fixtures/
 ├── roadmap/               export view: two product strategies, nested capabilities, a capability
 │                          under no strategy, every delivery band, a refused parent edge, and a
 │                          parent loop; its README states each record's band and placement by hand
+├── owners/                record owners: every `Owner:` header form, two capabilities (one nested),
+│                          a brief and open and closed specs; its README states each record's owner,
+│                          the option list, selector results and per-choice Browse and roadmap rows by hand
 ├── hostile/               export view: header values carry script-closing text, markup,
 │                          a `javascript:` value, attribute-breaking quotes, a line separator
 │                          (the derivation reads lines with `splitlines`, so a separator ends
-│                          its value and cannot reach the payload), and bidirectional controls
+│                          its value and cannot reach the payload), and bidirectional controls; each
+│                          record's `Owner:` value carries some of the same strings
 ├── hostile_workspace/     readiness bridge (AC-0038): a hostile `workspace.toml` copied over `mixed` and read by the real
 │                          `workspace-status`; hostile strings in every free-text field and `ref`, and a path with markup
 └── negative/              (one corpus per refused-edge state and integrity code)

@@ -6,6 +6,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 D3; RFC-0105 D1–D5; RFC-0103 D2; RFC-0108 D1; ADR-0074
 - **Amended in part by:** [intent-view-handover-prompt](../intent-view-handover-prompt/spec.md) — the Never-do "Show readiness or a copyable prompt…", narrowed for the prompt only, as that spec's `Amends:` line states. [intent-view-readiness-handover](../intent-view-readiness-handover/spec.md) — its reading of export criterion 0001 and its Never-do rules "Read workspace `needs` entries, decide scheduling/readiness/closure…" and "Show readiness or a copyable prompt…", as that spec's `Amends:` line states.
+- **Amended in part by:** [intent-view-record-owners](../intent-view-record-owners/spec.md) — its Ask-first "Any change to `close-work/scripts/intent_graph.py` or to `intent_graph.py`'s derivation output", for `owner`.
 - **Amends:** [intent-navigation](../intent-navigation/spec.md) criteria 0003 and 0013; [intent-navigation-export](../intent-navigation-export/spec.md) criterion 0001; [intent-view-session-start](../intent-view-session-start/spec.md) its broken-entry term and criteria 0006, 0013, 0014, 0017, 0019, 0022, 0030, 0038 and 0042. § *Amended predecessor criteria* states each change. The shipped specs are historical records and are not edited; this spec is where the amendments live.
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none
