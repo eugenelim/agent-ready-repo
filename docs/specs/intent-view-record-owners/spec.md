@@ -1,6 +1,6 @@
 # Spec: Intent view record owners
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-21 by eugenelim, spec and plan, at revision 5a8a691e1, after spec-mode shaping and adversarial reviews, each clean after adjudication at round 8; reports under `.context/reviews/6aa4e0b5-a803-41fb-964f-84d041130fdd/`. Re-approved 2026-10-22 by eugenelim at revision 7bd2592bb after a controlled amendment of AC-0032's difference 3 and T5, adversarial review clean after adjudication at round 2; reports under `.context/reviews/8f9fbaf0-ab75-48bc-a562-53aa5552abd1/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -95,54 +95,54 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
 
 ### The derivation and the query
 
-- [ ] **AC-0001.** Every intent, brief and spec node carries `owner`, a string equal to the first `Owner:` value the preamble reader yields for its file, or the empty string when it yields none. Over the `owners` fixture every node's `owner` equals the value its README states. That includes a backticked value, a value followed by a comment, a value that is only a comment, an `Owner:` line inside a multi-line comment, a second `Owner:` line, an `Owner:` line below the first `## ` line, mixed letter case and repeated spaces, and an absent line.
-- [ ] **AC-0002.** For every query operation in JSON, with any selectors other than `owner`, the result over the `owners` fixture equals the result over a copy with every `Owner:` line removed, once every `owner` member and `provenance.generated_at` are removed from both.
-- [ ] **AC-0003.** For `tree --format text`, `outstanding --format text` and `dependencies --format text`, the output over the `owners` fixture is byte-identical to the output over a copy with every `Owner:` line removed.
-- [ ] **AC-0004.** The `owner` of a `record` result, of each `search` entry, and of each item of `outstanding`'s `placed` and `no_parent` lists equals the `owner` of its node.
-- [ ] **AC-0005.** `search` accepts the selector `owner`. A string value matches exactly the intents whose owner key equals the value's owner key, so a value of `""` or only spaces matches the intents with no owner recorded. A value of any other JSON type returns `invalid_selector`. Over the `owners` fixture, each selector value its README lists returns exactly the intents it states.
-- [ ] **AC-0006.** `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py` and `packs/core/.apm/skills/close-work/scripts/intent_graph.py` are byte-identical.
-- [ ] **AC-0007.** `navigate-intents`' `evals/eval_queries.json` holds a `should_trigger: true` case that asks for one owner's open work.
+- [x] **AC-0001.** Every intent, brief and spec node carries `owner`, a string equal to the first `Owner:` value the preamble reader yields for its file, or the empty string when it yields none. Over the `owners` fixture every node's `owner` equals the value its README states. That includes a backticked value, a value followed by a comment, a value that is only a comment, an `Owner:` line inside a multi-line comment, a second `Owner:` line, an `Owner:` line below the first `## ` line, mixed letter case and repeated spaces, and an absent line.
+- [x] **AC-0002.** For every query operation in JSON, with any selectors other than `owner`, the result over the `owners` fixture equals the result over a copy with every `Owner:` line removed, once every `owner` member and `provenance.generated_at` are removed from both.
+- [x] **AC-0003.** For `tree --format text`, `outstanding --format text` and `dependencies --format text`, the output over the `owners` fixture is byte-identical to the output over a copy with every `Owner:` line removed.
+- [x] **AC-0004.** The `owner` of a `record` result, of each `search` entry, and of each item of `outstanding`'s `placed` and `no_parent` lists equals the `owner` of its node.
+- [x] **AC-0005.** `search` accepts the selector `owner`. A string value matches exactly the intents whose owner key equals the value's owner key, so a value of `""` or only spaces matches the intents with no owner recorded. A value of any other JSON type returns `invalid_selector`. Over the `owners` fixture, each selector value its README lists returns exactly the intents it states.
+- [x] **AC-0006.** `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py` and `packs/core/.apm/skills/close-work/scripts/intent_graph.py` are byte-identical.
+- [x] **AC-0007.** `navigate-intents`' `evals/eval_queries.json` holds a `should_trigger: true` case that asks for one owner's open work.
 
 ### Owner on rows and in the detail
 
-- [ ] **AC-0008.** Every row link the page renders ends with an owner cell. The cell reads "Owner: " followed by the node's `owner` when its owner key is not empty, and "No owner recorded" when it is, and the link's accessible name contains that text. Over the `owners` fixture, this holds for every row of each of the six questions, of search results, of "Browse all intents" with every subtree open, and of "How far along is each capability?". Over the readiness export, it holds for every row of "What can I work on next?".
-- [ ] **AC-0009.** Given the `hostile` fixture, whose owner values carry `</script><script>`, `<img src=x onerror=alert(1)>`, `"><svg onload=alert(1)>`, a U+200B zero-width space and the U+202E and U+2066 bidirectional controls, none of those strings appears in the HTML outside the data block.
-- [ ] **AC-0031.** Over that `hostile` export, the page's rendered text nodes contain no code point the text output escapes, and each such code point in an owner value appears as its `[U+XXXX]` escape.
-- [ ] **AC-0010.** Opening "Record details" for a picked node shows the label "Owner" with the node's `owner`, or "No owner recorded" when its owner key is empty.
+- [x] **AC-0008.** Every row link the page renders ends with an owner cell. The cell reads "Owner: " followed by the node's `owner` when its owner key is not empty, and "No owner recorded" when it is, and the link's accessible name contains that text. Over the `owners` fixture, this holds for every row of each of the six questions, of search results, of "Browse all intents" with every subtree open, and of "How far along is each capability?". Over the readiness export, it holds for every row of "What can I work on next?".
+- [x] **AC-0009.** Given the `hostile` fixture, whose owner values carry `</script><script>`, `<img src=x onerror=alert(1)>`, `"><svg onload=alert(1)>`, a U+200B zero-width space and the U+202E and U+2066 bidirectional controls, none of those strings appears in the HTML outside the data block.
+- [x] **AC-0031.** Over that `hostile` export, the page's rendered text nodes contain no code point the text output escapes, and each such code point in an owner value appears as its `[U+XXXX]` escape.
+- [x] **AC-0010.** Opening "Record details" for a picked node shows the label "Owner" with the node's `owner`, or "No owner recorded" when its owner key is empty.
 
 ### The Owner control
 
-- [ ] **AC-0011.** The header holds a `select` element whose accessible name is "Owner" on every question and while a search is typed. Its options are, in order:
+- [x] **AC-0011.** The header holds a `select` element whose accessible name is "Owner" on every question and while a search is typed. Its options are, in order:
   1. "Any owner";
   2. one option for each non-empty owner key among the export's `nodes`, showing that key's owner label, in code-point order of the key;
   3. "No owner recorded", present only when some node's owner key is empty.
 
   Over the `owners` fixture the options equal the list its README states.
-- [ ] **AC-0012.** Given an owner choice other than "Any owner", each of these lists exactly the row links it lists under "Any owner" whose node is a matching record, in the same order and under the same subheadings, with a subheading shown only when it holds a listed row link: "What can I work on next?", "What is broken?" (where an entry's node is the record that holds it), "What is still open under a capability?", "What has no parent?", and search results. Over the readiness export, "What can I work on next?" also meets this.
-- [ ] **AC-0013.** Under every owner choice, each of these numbers equals the number shown under "Any owner": the "<n> open" count, "<c>/<t> closed", "<n> open items", a roadmap row's band counts, delivered share and bar cells, each strategy heading's progress, and the detail state line's open-beneath and broken counts. This list is the complete set this criterion covers.
-- [ ] **AC-0014.** Given the readiness export, whose `readiness.start.id` is a node id, under an owner choice for which that record is not a matching record, no row holds a start tag. Under an owner choice for which it is a matching record, that record's row holds the tag that the readiness-bridge spec's criterion 0025 states.
+- [x] **AC-0012.** Given an owner choice other than "Any owner", each of these lists exactly the row links it lists under "Any owner" whose node is a matching record, in the same order and under the same subheadings, with a subheading shown only when it holds a listed row link: "What can I work on next?", "What is broken?" (where an entry's node is the record that holds it), "What is still open under a capability?", "What has no parent?", and search results. Over the readiness export, "What can I work on next?" also meets this.
+- [x] **AC-0013.** Under every owner choice, each of these numbers equals the number shown under "Any owner": the "<n> open" count, "<c>/<t> closed", "<n> open items", a roadmap row's band counts, delivered share and bar cells, each strategy heading's progress, and the detail state line's open-beneath and broken counts. This list is the complete set this criterion covers.
+- [x] **AC-0014.** Given the readiness export, whose `readiness.start.id` is a node id, under an owner choice for which that record is not a matching record, no row holds a start tag. Under an owner choice for which it is a matching record, that record's row holds the tag that the readiness-bridge spec's criterion 0025 states.
 
 ### Browse all intents
 
-- [ ] **AC-0015.** In "Browse all intents", an intent is a **Browse match** when it matches the Show choice, as the tree-and-roadmap spec's criteria 0032 and 0033 state, and is a matching record or the owner choice is "Any owner". With no level, kind or status filter set, under either Group choice and every Show choice, the list shows a row exactly when its intent is a Browse match or a row beneath it is shown, and every shown row that is not a Browse match is a context row. Over the `owners` fixture, each owner choice its README lists shows exactly the rows and context rows it states under "Full hierarchy" with "All", "By capability" with "All", and "Full hierarchy" with "Open".
-- [ ] **AC-0016.** With a level, kind or status filter set and an owner choice other than "Any owner", "Browse all intents" lists flat, in name order, the intents that match the filters, the Show choice and the owner choice. Under "All", those are the intents `query --operation search` returns for the same filter selectors with `owner` set to the chosen key.
-- [ ] **AC-0017.** After each change of the owner choice, the polite live region announces the list title and the list header's count.
+- [x] **AC-0015.** In "Browse all intents", an intent is a **Browse match** when it matches the Show choice, as the tree-and-roadmap spec's criteria 0032 and 0033 state, and is a matching record or the owner choice is "Any owner". With no level, kind or status filter set, under either Group choice and every Show choice, the list shows a row exactly when its intent is a Browse match or a row beneath it is shown, and every shown row that is not a Browse match is a context row. Over the `owners` fixture, each owner choice its README lists shows exactly the rows and context rows it states under "Full hierarchy" with "All", "By capability" with "All", and "Full hierarchy" with "Open".
+- [x] **AC-0016.** With a level, kind or status filter set and an owner choice other than "Any owner", "Browse all intents" lists flat, in name order, the intents that match the filters, the Show choice and the owner choice. Under "All", those are the intents `query --operation search` returns for the same filter selectors with `owner` set to the chosen key.
+- [x] **AC-0017.** After each change of the owner choice, the polite live region announces the list title and the list header's count.
 
 ### How far along is each capability?
 
-- [ ] **AC-0018.** Given an owner choice other than "Any owner", "How far along is each capability?" lists a capability exactly when it is a matching record or a capability nested beneath it is listed. It shows a strategy section only when the section holds a listed capability. Over the `owners` fixture, each owner choice its README lists shows exactly the capabilities it states.
-- [ ] **AC-0019.** In that list, every listed capability that is not a matching record shows the visible text "context", and its row link's accessible name contains "shown for context". No matching record's row shows either.
+- [x] **AC-0018.** Given an owner choice other than "Any owner", "How far along is each capability?" lists a capability exactly when it is a matching record or a capability nested beneath it is listed. It shows a strategy section only when the section holds a listed capability. Over the `owners` fixture, each owner choice its README lists shows exactly the capabilities it states.
+- [x] **AC-0019.** In that list, every listed capability that is not a matching record shows the visible text "context", and its row link's accessible name contains "shown for context". No matching record's row shows either.
 
 ### Counts, header and empty lists
 
-- [ ] **AC-0020.** Under an owner choice other than "Any owner", each question link's count and each list header's count is the number of row links its list shows that are not context rows. That rule covers every question except "Browse all intents", which shows no rail count, and except a count that the specs this one amends show as "unknown", which stays "unknown".
-- [ ] **AC-0021.** While the owner choice is not "Any owner", each list header shows, below its lead, the line "Only rows whose owner is <owner label>." or, for "No owner recorded", "Only rows with no owner recorded.". While it is "Any owner", no list header shows either line.
-- [ ] **AC-0022.** Given a question's list that shows at least one row link under "Any owner" with the same filters and none under the current owner choice, the list area reads "Nothing matches " and then a description, followed by ".". The description lists each set filter as the session-start spec describes it, followed by `owner "<owner label>"` or `no owner recorded`, joined by ", ". The area offers one "Clear filters" control, which sets "Any owner" and clears every filter. A list that shows nothing under "Any owner" with the same filters shows the empty line or filtered-empty state the specs this one amends state.
-- [ ] **AC-0030.** Given a search text that matches at least one node under "Any owner" and none under the current owner choice, the list area reads `Nothing matches the search "<text>" for owner "<owner label>".`, or `Nothing matches the search "<text>" with no owner recorded.`, and offers one "Clear owner" control, which sets "Any owner" and keeps the search text. A search with no match under "Any owner" shows the session-start spec's criterion 0023 line and its "Clear search" control.
+- [x] **AC-0020.** Under an owner choice other than "Any owner", each question link's count and each list header's count is the number of row links its list shows that are not context rows. That rule covers every question except "Browse all intents", which shows no rail count, and except a count that the specs this one amends show as "unknown", which stays "unknown".
+- [x] **AC-0021.** While the owner choice is not "Any owner", each list header shows, below its lead, the line "Only rows whose owner is <owner label>." or, for "No owner recorded", "Only rows with no owner recorded.". While it is "Any owner", no list header shows either line.
+- [x] **AC-0022.** Given a question's list that shows at least one row link under "Any owner" with the same filters and none under the current owner choice, the list area reads "Nothing matches " and then a description, followed by ".". The description lists each set filter as the session-start spec describes it, followed by `owner "<owner label>"` or `no owner recorded`, joined by ", ". The area offers one "Clear filters" control, which sets "Any owner" and clears every filter. A list that shows nothing under "Any owner" with the same filters shows the empty line or filtered-empty state the specs this one amends state.
+- [x] **AC-0030.** Given a search text that matches at least one node under "Any owner" and none under the current owner choice, the list area reads `Nothing matches the search "<text>" for owner "<owner label>".`, or `Nothing matches the search "<text>" with no owner recorded.`, and offers one "Clear owner" control, which sets "Any owner" and keeps the search text. A search with no match under "Any owner" shows the session-start spec's criterion 0023 line and its "Clear search" control.
 
 ### Owner narrowing is the only difference
 
-- [ ] **AC-0032.** The check covers four exports, with every subtree and disclosure open:
+- [x] **AC-0032.** The check covers four exports, with every subtree and disclosure open:
   1. the whole-corpus `owners` export;
   2. an `owners` export scoped with `--from` to the capability its README names;
   3. an `owners` export whose `outstanding` is unavailable;
@@ -160,19 +160,19 @@ Unless a criterion names another fixture, it is checked on a whole-corpus export
   9. the Owner control's selected option differs.
 
   Every other rendered text node is identical, including the scope banner, header totals, notices, "unknown" counts, lead lines, sort keys, row text, the Key and the detail pane.
-- [ ] **AC-0023.** The URL fragment holds the owner choice as `owner`, and reloading restores it. Changing the owner choice adds no history entry. Choosing a question or picking a row keeps the owner choice. A fragment `owner` that names no option shows "Any owner" and lists as "Any owner" does.
+- [x] **AC-0023.** The URL fragment holds the owner choice as `owner`, and reloading restores it. Changing the owner choice adds no history entry. Choosing a question or picking a row keeps the owner choice. A fragment `owner` that names no option shows "Any owner" and lists as "Any owner" does.
 
 ### Access and layout
 
-- [ ] **AC-0024.** Using the keyboard alone, a reader can reach the "Owner" control and change its choice. After the list re-renders, focus stays on the control.
-- [ ] **AC-0025.** Across the width and theme matrix, over an `owners` export whose longest owner value is 200 code points with no space, and with that owner chosen, no two rows' boxes overlap. Every owner cell also lies within its row's box, and the document's `scrollWidth` does not exceed the viewport width.
-- [ ] **AC-0026.** The session-start spec's criteria 0034, 0035, 0036, 0037 and 0041 hold across the width and theme matrix over the `owners` export, with an owner chosen and with the owner control included.
+- [x] **AC-0024.** Using the keyboard alone, a reader can reach the "Owner" control and change its choice. After the list re-renders, focus stays on the control.
+- [x] **AC-0025.** Across the width and theme matrix, over an `owners` export whose longest owner value is 200 code points with no space, and with that owner chosen, no two rows' boxes overlap. Every owner cell also lies within its row's box, and the document's `scrollWidth` does not exceed the viewport width.
+- [x] **AC-0026.** The session-start spec's criteria 0034, 0035, 0036, 0037 and 0041 hold across the width and theme matrix over the `owners` export, with an owner chosen and with the owner control included.
 
 ### Measurement and review
 
-- [ ] **AC-0027.** The export spec's scale benchmark (its criterion 0066) is re-run on this view over corpora whose every record carries an `Owner:` line. It meets the export spec's thresholds at 1, 10, 25 and 50 times this repository's corpus, and the ledger records each result.
-- [ ] **AC-0028.** An export of this repository at the final code commit is opened in headless Chromium. Its "Owner" control shows the options, and for each option "What can I work on next?" and "Browse all intents" show the row counts, that a ledger-recorded script computes from that export's payload by this spec's terms. The ledger records the option count and each option's two counts.
-- [ ] **AC-0029.** An `experience-reviewer` pass leaves no Major or Blocker finding after adjudication. It covers screenshots of three states across the width and theme matrix, over the real export: "What can I work on next?" with an owner chosen, "Browse all intents" with an owner chosen and context rows open, and "How far along is each capability?" with an owner chosen. It reviews them against RFC-0108 D1 rules 1 to 10 as corrected and the `skill-html-views` direction's ranked goals. The ledger records the 24 screenshots' SHA-256 values and each finding's adjudicated disposition.
+- [x] **AC-0027.** The export spec's scale benchmark (its criterion 0066) is re-run on this view over corpora whose every record carries an `Owner:` line. It meets the export spec's thresholds at 1, 10, 25 and 50 times this repository's corpus, and the ledger records each result.
+- [x] **AC-0028.** An export of this repository at the final code commit is opened in headless Chromium. Its "Owner" control shows the options, and for each option "What can I work on next?" and "Browse all intents" show the row counts, that a ledger-recorded script computes from that export's payload by this spec's terms. The ledger records the option count and each option's two counts.
+- [x] **AC-0029.** An `experience-reviewer` pass leaves no Major or Blocker finding after adjudication. It covers screenshots of three states across the width and theme matrix, over the real export: "What can I work on next?" with an owner chosen, "Browse all intents" with an owner chosen and context rows open, and "How far along is each capability?" with an owner chosen. It reviews them against RFC-0108 D1 rules 1 to 10 as corrected and the `skill-html-views` direction's ranked goals. The ledger records the 24 screenshots' SHA-256 values and each finding's adjudicated disposition.
 
 ### Amended criteria and rules
 

@@ -153,10 +153,12 @@ Command: `python3.13 packs/core/tests/skills/navigate-intents/view_bench.py --so
 
 | copies | outstanding available | default rows | file bytes | startup ms | search ms | heap MiB | meets all |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | yes | 28 | 776,823 | 21 | 30 | 6 | yes |
-| 10 | no (resource_limit, limit files) | 0 | 5,357,704 | 67 | 80 | 20 | yes |
-| 25 | no (resource_limit, limit files) | 0 | 13,160,676 | 171 | 91 | 42 | yes |
-| 50 | no (resource_limit, limit files) | 0 | 26,165,632 | 221 | 94 | 88 | yes |
+| 1 | yes | 28 | 779,038 | 21 | 29 | 6 | yes |
+| 10 | no (resource_limit, limit files) | 0 | 5,367,956 | 73 | 102 | 21 | yes |
+| 25 | no (resource_limit, limit files) | 0 | 13,184,326 | 159 | 118 | 43 | yes |
+| 50 | no (resource_limit, limit files) | 0 | 26,232,504 | 226 | 113 | 88 | yes |
+
+Thresholds are at most 104,857,600 bytes, 3,000 ms startup and 300 ms search. The widest margin used is a quarter of the file budget; the tightest is 39 percent of the search budget.
 
 - `outstanding` is unavailable from 10 copies up (`resource_limit`, files), as in the export's own benchmark and the earlier slices; the default list is then empty.
 
@@ -289,3 +291,21 @@ Raw reports and adjudications are under `.context/reviews/9b92719e-436b-4011-84e
 - Final gates:
   - Full `view_browser_checks.py`: 492 passed in 527s, none skipped. It ran alone, because an earlier run that overlapped SAST at load 92 hit the same Git refusal in export setup.
   - `make lint-ruff lint-mypy`, `check_view_base_parity.py` and `lint-pack-test-boundary.py` are clean.
+
+## Measurements re-verified at the final commit
+
+- The figures above were first taken at `aa8e4f2d3`. Commits `0dccd23bf` and `9d0b45703` then changed `view.css`, so AC-0027 and AC-0028 were re-run at the final code commit `3b2a6ddfb6c9de9099b2611484b6464f03bd4ad5` and their numbers replaced in place. The 24 screenshots already came from that final CSS.
+- AC-0028 at the final commit: the real export is 759,472 bytes, the Owner control offers 26 options, and the page and the script agree on every option's "What can I work on next?" and "Browse all intents" count. Under "Any owner" those are 28 and 170.
+
+## CI
+
+- Pull request #1605 to `main`. Its 38 checks pass; the one skip is the GitHub Pages deploy, which a pull request always skips.
+- Dispatched suites on the final branch, all green: `test-corpus`, `test-roster` and `pack-javascript`.
+- The first dispatch of `test-corpus` and `test-roster` failed with 12 errors in `tests/roster/test_catalogue_spec_contract_loads.py`, a file this change does not touch. A dispatch of `test-roster` on `main` (run 39783553393) failed identically, so the defect was `main`'s, from #1601: the test runs the catalogue command in a subprocess with `PYTHONPATH` stripped, and neither dispatch-only workflow installed the package. Pull request #1606 fixed that by installing it, as `build-check.yml` already did, and merged. This branch is rebased onto it.
+
+## Post-gates review, round 3
+
+- Both reviewers are clean, with no finding at any severity.
+  - `experience-reviewer`: SHIP IT. The round-2 hover band is gone from both 1280 Browse shots, and nothing else moved.
+  - `frontend-reviewer`: SHIP IT. It rebuilt the page without the six added `grid-column` declarations, and compared every row and cell across 35 rows over 15 route-and-width pairs, including 700px between the two breakpoints. The geometry is identical, so the explicit columns only pin what auto-placement already produced.
+- Reports: `3-post-gates-experience-reviewer-raw.md` and `3-post-gates-frontend-reviewer-raw.md`, both the exact clean sentence.
