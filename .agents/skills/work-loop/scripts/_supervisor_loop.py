@@ -301,8 +301,8 @@ class Action:
 def untrusted_blocked(state: State) -> bool:
     """True when the run is ``untrusted`` and the host supplies no verified containment.
 
-    The supervisor then launches no repository code: no gate request, red proof, or
-    scratch receipt.
+    The supervisor then launches no repository code and issues no ``run-gates`` or
+    ``regenerate`` request: no gate, red proof, scratch receipt, or regeneration.
     """
     if state.latest["code_trust"] != "untrusted":
         return False
@@ -319,9 +319,10 @@ def untrusted_decision(ws: Workspace, state: State) -> Action:
             state,
             "untrusted-code",
             "The run's code trust is untrusted and this host supplies no verified "
-            "containment, so the supervisor will not run gates, red proofs, or scratch "
-            "receipts. Re-approve the run as trusted with an owner authority reference "
-            "(start --code-trust trusted), or supply verified containment.",
+            "containment, so the supervisor will not run gates, red proofs, scratch "
+            "receipts, or a regeneration of the installed skill. Re-approve the run as "
+            "trusted with an owner authority reference (start --code-trust trusted), or "
+            "supply verified containment.",
         ),
     )
 
@@ -396,6 +397,8 @@ def decide(ws: Workspace, state: State) -> Action:
         return untrusted_decision(ws, state) if gates and untrusted_blocked(state) else action
     source = ws.attempts.pending_regeneration()
     if source is not None:
+        if untrusted_blocked(state):
+            return untrusted_decision(ws, state)
         return Action(
             "request",
             make_request(ws, state, "regenerate", _attempt.regenerate_request_id(source)),

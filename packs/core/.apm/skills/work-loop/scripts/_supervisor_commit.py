@@ -211,9 +211,26 @@ class GitPort:
         words = bytes(data).decode("ascii", "replace").split()
         return {w for w in words if _COMMIT_ID_RE.fullmatch(w)}
 
+    def ensure_store(self, run_id: str) -> Path:
+        """The run's store directory, created with a ``spec`` file naming this spec.
+
+        Written when the directory is first created, before anything else is, so a
+        run that never pinned can be tied to its spec without reading Git.
+        """
+        directory = ensure_directory(self.hardened.pins.git_dir, self._store_rel(run_id))
+        record = directory / "spec"
+        if not os.path.lexists(record):
+            cm = sibling("_confined_mutation.py")
+            try:
+                cm.confined_create(directory, record, self.spec_rel.encode("utf-8"))
+            except cm.MutationDenied as exc:
+                if exc.denial_code != "denied-already-exists":
+                    raise
+        return directory
+
     def record_made(self, run_id: str, sha: str) -> None:
         """Append *sha* to the run's made-commit list, before the commit can become HEAD."""
-        directory = ensure_directory(self.hardened.pins.git_dir, self._store_rel(run_id))
+        directory = self.ensure_store(run_id)
         cm = sibling("_confined_mutation.py")
         path = directory / "made-commits"
         if not os.path.lexists(path):

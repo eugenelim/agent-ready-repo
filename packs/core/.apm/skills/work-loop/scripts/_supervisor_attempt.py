@@ -103,6 +103,7 @@ ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate"}
 SOURCE_REL = "packs/core/.apm/skills/work-loop"
 PINS_FILE = "pins.json"
 REGENERATE_FILE = "regenerate.json"
+ORPHAN_FILE = "orphan"
 ADMITTED_FILE = "admitted-skill.json"
 _POLICY_FILES = ("supervisor-policy.json", "review-rules.json")
 _HEX_RE = re.compile(r"[0-9a-f]{64}")
@@ -365,6 +366,7 @@ class Attempts:
         cm = sibling("_confined_mutation.py")
         git_dir = self.ws.git.hardened.pins.git_dir
         rel = self.ws.git._store_rel(run_id)
+        self.ws.git.ensure_store(run_id)
         ensure_directory(git_dir, f"{rel}/attempts")
         store = git_dir / rel
         try:
@@ -378,8 +380,7 @@ class Attempts:
     def _put(self, run_id: str, name: str, data: bytes, *, replace: bool = False) -> None:
         """Write *name* in the run's store; an existing file stays unless *replace*."""
         cm = sibling("_confined_mutation.py")
-        git_dir = self.ws.git.hardened.pins.git_dir
-        store = ensure_directory(git_dir, self.ws.git._store_rel(run_id))
+        store = self.ws.git.ensure_store(run_id)
         try:
             if replace:
                 cm.confined_atomic_replace(store, store / name, data)
@@ -781,9 +782,13 @@ class Attempts:
         committed approvals, so a damaged working copy hides nothing. An open
         ``regenerate`` request also accepts the digests of the pack source it recorded.
         An admission that crashed before its pin was written has only its own approval
-        and terminal steps; a ``start`` records it then, and nothing else may.
+        and terminal steps, every one in the store's made-commit record; a ``start``
+        records it then, and nothing else may. A run with no such record, as one
+        admitted before pinning shipped, is never pinned.
         """
         installed = self.installed
+        if installed is not None and verb == "start":
+            self.retire_orphans()
         approvals = self.ws.approvals() if installed is not None else []
         if installed is None or not approvals:
             return
@@ -791,10 +796,12 @@ class Attempts:
         pinned = self._pin_record(run_id)
         if pinned is None:
             commits = self.ws.git.supervisor_commits(run_id)
+            made = self.ws.git.made_commits(run_id)
             if (
                 verb == "start"
                 and len(approvals) == 1
-                and all(c.operation in ("approval", "terminal") for c in commits)
+                and made
+                and all(c.sha in made and c.operation in ("approval", "terminal") for c in commits)
             ):
                 self.pin(run_id)
                 return
@@ -803,6 +810,44 @@ class Attempts:
             raise _refusal(
                 "supervisor-changed", "the installed supervisor differs from its pinned digests"
             )
+
+    def retire_orphans(self) -> None:
+        """Mark this spec's unpinned run directories whose approval never reached ``HEAD``.
+
+        A directory is an orphan when none of its made-commit ids is reachable from
+        ``HEAD``, judged through the hardened helper. The mark lets the entry point's
+        pre-import check pass it; the directory is kept.
+        """
+        fs = sibling("_file_safety.py")
+        git_dir = self.ws.git.hardened.pins.git_dir
+        base = git_dir / _STORE_ROOT
+        if not os.path.lexists(base):
+            return
+        try:
+            runs = fs.list_confined_directories(git_dir, base)
+        except (fs.UnsafeContentError, OSError) as exc:
+            raise _unverifiable(
+                "denied-attempt-record", "the supervisor store cannot be listed"
+            ) from exc
+        for directory in runs:
+            if not _RUN_ID_RE.fullmatch(directory.name) or any(
+                os.path.lexists(directory / name) for name in (PINS_FILE, ORPHAN_FILE)
+            ):
+                continue
+            try:
+                recorded = bytes(
+                    fs.read_confined_regular_file(
+                        directory, directory / "spec", max_bytes=_MAX_SMALL_BYTES
+                    )
+                ).decode("utf-8", "replace")
+            except (fs.UnsafeContentError, OSError):
+                continue  # unreadable: the entry point already refused it
+            if recorded != self.ws.spec_rel:
+                continue
+            made = self.ws.git.made_commits(directory.name)
+            landed = {c.sha for c in self.ws.git.supervisor_commits(directory.name)} & made
+            if not landed:
+                self._put(directory.name, ORPHAN_FILE, b"")
 
     def pin(self, run_id: str) -> None:
         """Record the installed digests once the run's first approval has landed.

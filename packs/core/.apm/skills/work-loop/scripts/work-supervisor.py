@@ -22,7 +22,10 @@ precedence over 1.
 Before it loads any sibling script, every verb hashes the installed supervisor
 files, compares them with the digests the first admitted ``start`` pinned in the
 supervisor store under the Git directory, and refuses ``supervisor-changed`` on
-a difference. It also keeps bytecode files from loading or being written.
+a difference. It also refuses when the installed files differ from the pins of any
+run in the worktree whose store holds an open attempt, and when <spec-dir> names a
+directory by other than its on-disk case. It also keeps bytecode files from loading
+or being written.
 
 Standard library only; it loads only its sibling scripts. Python 3.11+.
 """
@@ -49,6 +52,7 @@ import shutil
 import stat
 import tempfile
 import traceback
+import unicodedata
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -69,6 +73,7 @@ SCHEMA_VERSION = 1  # of the store records and security-event lines this script 
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _HEX_RE = re.compile(r"[0-9a-f]{64}")
 _POLICY_FILES = ("supervisor-policy.json", "review-rules.json")
+ORPHAN_FILE = "orphan"  # written by a ``start`` that found the run's approval never landed
 _MAX_PIN_BYTES = 1024 * 1024
 _MAX_SOURCE_BYTES = 16 * 1024 * 1024
 
@@ -166,12 +171,14 @@ def _scripts_digests(scripts: Path, prefix: str, found: dict[str, str]) -> None:
 
     Every file counts, not only ``*.py``: a bytecode or extension module beside the
     scripts is importable, and so is a package directory. Only ``__pycache__`` is
-    left out, because the bytecode cache prefix keeps it from being read.
+    left out, whatever its kind, because the bytecode cache prefix keeps it from
+    being read.
     """
     for path in sorted(scripts.iterdir()):
+        if path.name == "__pycache__":
+            continue
         if path.is_dir() and not path.is_symlink():
-            if path.name != "__pycache__":
-                _scripts_digests(path, f"{prefix}{path.name}/", found)
+            _scripts_digests(path, f"{prefix}{path.name}/", found)
             continue
         data = _read_plain(path, _MAX_SOURCE_BYTES)
         if data is not None:
@@ -273,20 +280,20 @@ def _pin(store: Path, run_id: str) -> tuple[str, dict[str, str]] | None:
     return record["spec"], _digest_map(record, "digests", path)
 
 
-def _regeneration_open(store: Path, request_id: str) -> bool:
-    """Whether the run's latest issuance is that ``regenerate`` request, still open."""
+def _open_issuance(store: Path) -> dict[str, Any] | None:
+    """The run's latest issuance record while it is open, with no mark of its own."""
     attempts = store / "attempts"
     try:
         names = {p.name for p in attempts.iterdir()}
     except FileNotFoundError:
-        return False
+        return None
     except OSError as exc:
         raise _PinRefused("the attempt store cannot be listed", unverifiable=True) from exc
     recorded = sorted(n[:6] for n in names if re.fullmatch(r"\d{6}\.json", n))
     if not recorded:
-        return False
+        return None
     if any(recorded[-1] + mark in names for mark in (".superseded", ".reported", ".refused.json")):
-        return False
+        return None
     data = _read_plain(attempts / f"{recorded[-1]}.json", _MAX_SOURCE_BYTES)
     try:
         issued = json.loads((data or b"").decode("utf-8"))
@@ -294,7 +301,17 @@ def _regeneration_open(store: Path, request_id: str) -> bool:
         issued = None
     if not isinstance(issued, dict):
         raise _malformed(attempts / f"{recorded[-1]}.json")
-    return issued.get("kind") == "regenerate" and issued.get("request_id") == request_id
+    return issued
+
+
+def _regeneration_open(store: Path, request_id: str) -> bool:
+    """Whether the run's latest issuance is that ``regenerate`` request, still open."""
+    issued = _open_issuance(store)
+    return (
+        issued is not None
+        and issued.get("kind") == "regenerate"
+        and issued.get("request_id") == request_id
+    )
 
 
 def _open_regeneration(store: Path, run_id: str) -> dict[str, str] | None:
@@ -335,14 +352,45 @@ def _working_run_id(root: Path, spec: str) -> str | None:
     return run_id if isinstance(run_id, str) and _RUN_ID_RE.fullmatch(run_id) else None
 
 
+def _recorded_spec(store: Path) -> str | None:
+    """The spec a run's store directory recorded when it was created; ``None`` when unreadable."""
+    data = _read_plain(store / "spec", 4096)
+    return _clean_spec(data.decode("utf-8", "replace")) if data else None
+
+
+def _case_exact(root: Path, spec: str) -> None:
+    """Refuse a *spec* path that names a directory by other than its on-disk case.
+
+    A case-insensitive filesystem resolves such a path to the tracked directory, but
+    the pin records name the spec by its exact path, so the variant would match none.
+    """
+    current = root
+    for part in spec.split("/"):
+        try:
+            names = [p.name for p in current.iterdir()]
+        except OSError:
+            return  # absent or unreadable: the later path check names it
+        if part in names:
+            current = current / part
+            continue
+        folded = unicodedata.normalize("NFC", part).casefold()
+        if any(unicodedata.normalize("NFC", n).casefold() == folded for n in names):
+            raise UsageError("<spec-dir> must match the case of the tracked path")
+        return
+
+
 def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, str]) -> None:
-    """Refuse unless the installed files match the spec's pins, before any sibling loads.
+    """Refuse unless the installed files match the pins, before any sibling loads.
 
     The runs come from the supervisor store, whose pin records name their spec, so a
-    deleted or damaged working copy of the approvals hides nothing. A run with no
-    valid pin record refuses every verb but ``start``, the one that may record it;
-    a damaged record refuses them all. The first admission has no run yet and
-    pins the files itself.
+    deleted or damaged working copy of the approvals hides nothing. The installed
+    files must match the pins of the spec's own runs and of every run in the
+    worktree whose store holds an open attempt, so an edit made during one spec's
+    attempt cannot run, or be pinned, under another. A run with no valid pin record
+    refuses every verb but ``start``, the one that may record it, on the spec its
+    store records, unless that spec's ``start`` marked it an orphan; a directory that
+    records no spec refuses on every spec, and a damaged record refuses them all.
+    The first admission has no run yet and pins the files itself.
     """
     spec = _clean_spec(spec_dir)
     if spec is None:
@@ -351,7 +399,9 @@ def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, 
     if found is None:
         return
     root, dot_git = found
-    base = _git_dir(dot_git) / _STORE_ROOT
+    _case_exact(root, spec)
+    git_dir = _git_dir(dot_git)
+    base = git_dir / _STORE_ROOT
     try:
         names = sorted(p.name for p in base.iterdir() if _RUN_ID_RE.fullmatch(p.name))
     except FileNotFoundError:
@@ -359,21 +409,25 @@ def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, 
     except OSError as exc:
         raise _PinRefused("the supervisor store cannot be listed", unverifiable=True) from exc
     known: set[str] = set()
-    ours: list[tuple[Path, str, dict[str, str]]] = []
+    guarded: list[tuple[Path, str, dict[str, str]]] = []
     for name in names:
         store = base / name
         pinned = _pin(store, name)
         if pinned is None:
             if verb != "start":
-                raise _PinRefused(f"run {name} has no pin record", unverifiable=True)
+                recorded = _recorded_spec(store)
+                if recorded is None:
+                    raise _PinRefused(f"run {name} records no spec", unverifiable=True)
+                if recorded == spec and _read_plain(store / ORPHAN_FILE, 16) is None:
+                    raise _PinRefused(f"run {name} has no pin record", unverifiable=True)
             continue
         known.add(name)
-        if pinned[0] == spec:
-            ours.append((store, name, pinned[1]))
+        if pinned[0] == spec or _open_issuance(store) is not None:
+            guarded.append((store, name, pinned[1]))
     working = _working_run_id(root, spec)
     if working is not None and working not in known and verb != "start":
         raise _PinRefused("the supervisor's pin record is missing", unverifiable=True)
-    for store, name, digests in ours:
+    for store, name, digests in guarded:
         if installed != digests and installed != _open_regeneration(store, name):
             raise _PinRefused("the installed supervisor differs from its pinned digests")
 

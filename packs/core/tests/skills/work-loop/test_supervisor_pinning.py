@@ -857,26 +857,52 @@ def test_a_run_admitted_before_pinning_is_refused_and_blocks_no_other_spec(
     assert _run(cli, repo, "next", SPEC)[1]["refusal"]["code"] == "supervisor-changed"
 
 
-def test_an_unpinned_run_directory_blocks_another_spec_until_its_start_pins(
+def test_an_unpinned_run_directory_blocks_only_its_own_spec_until_its_start_pins(
     pinned_template: Path, tmp_path: Path
 ) -> None:
     repo = _copy_repo(pinned_template, tmp_path)
-    other = "docs/specs/other"
-    shutil.copytree(repo / SPEC, repo / other, ignore=shutil.ignore_patterns(".supervisor", "delivery"))
-    h.git(repo, "add", "-A")
-    h.git(repo, "commit", "-q", "-m", "a second spec")
-    code, out = h.run_cli(repo, "start", other, *_start_args()[2:])
+    _add_other_spec_early(repo)
+    code, out = h.run_cli(repo, "start", "docs/specs/other", *_start_args()[2:])
     assert code == 0 and out["status"] == "admitted", out
     pins = sorted((repo / ".git" / "agentbundle-supervisor").glob("run-*/pins.json"))
     first = next(p for p in pins if json.loads(p.read_text("utf-8"))["spec"] == SPEC)
+    assert (first.parent / "spec").read_text("utf-8") == SPEC
     first.unlink()  # the first run's directory now has no pin record
-    code, out = h.run_cli(repo, "next", other)
+    code, out = h.run_cli(repo, "next", SPEC)
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert h.run_cli(repo, "next", "docs/specs/other")[0] == 0, "another spec was blocked"
     assert not first.exists()
     code, out = h.run_cli(repo, *_start_args())  # that run's own start pins it
     assert code == 0, out
     assert first.exists()
-    assert h.run_cli(repo, "next", other)[0] == 0
+    assert h.run_cli(repo, "next", SPEC)[0] == 0
+
+
+def _add_other_spec_early(repo: Path) -> None:
+    other = "docs/specs/other"
+    shutil.copytree(
+        repo / SPEC, repo / other, ignore=shutil.ignore_patterns(".supervisor", "delivery")
+    )
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "a second spec")
+
+
+def test_an_unpinned_directory_that_records_no_spec_blocks_every_spec(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    _add_other_spec_early(repo)
+    _pins(repo).unlink()
+    (_store(repo) / "spec").unlink()
+    code, out = h.run_cli(repo, "next", "docs/specs/other")
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    log = repo / _OTHER / ".supervisor" / "security-events.jsonl"  # the spec it was run for
+    assert "supervisor-changed" in [json.loads(x)["reason_code"] for x in log.read_text().splitlines()]
+
+
+def test_the_pre_import_check_runs_no_git(pinned_template: Path, tmp_path: Path) -> None:
+    cli = _load_cli(_copy_skill(tmp_path / "skill"))
+    assert not hasattr(cli, "subprocess"), "the entry script imports a way to spawn Git"
 
 
 _NESTED = "scripts/extra/x.py"
@@ -909,3 +935,168 @@ def test_a_nested_script_is_pinned_and_in_the_regenerated_source_digests(tmp_pat
         assert code == 0 and out == {"admitted": "regenerate"}, out
         new = json.loads(_pins(repo).read_text("utf-8"))["digests"]
         assert _NESTED in new and new == _digests(skill)
+
+
+# ── fourth review round ─────────────────────────────────────────────────────
+
+_OTHER = "docs/specs/other"
+WORKER_KINDS = {"implement-task", "write-stub", "review-role", "assess-finding"}
+
+
+def _add_other_spec(repo: Path) -> None:
+    """Commit a second spec, copied from the first without its delivery records."""
+    shutil.copytree(
+        repo / SPEC, repo / _OTHER, ignore=shutil.ignore_patterns(".supervisor", "delivery")
+    )
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "a second spec")
+
+
+def _run_dirs(repo: Path) -> list[str]:
+    return sorted(p.name for p in (repo / ".git" / "agentbundle-supervisor").iterdir())
+
+
+def _open_attempt_repo(template: Path, tmp_path: Path) -> Path:
+    """Spec A has an open worker attempt and a second spec B exists, with no run."""
+    repo = _copy_repo(template, tmp_path)
+    _add_other_spec(repo)
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out["request"]["kind"] in WORKER_KINDS, out
+    return repo
+
+
+def test_an_installed_file_edit_during_an_open_attempt_is_refused_on_every_spec(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _open_attempt_repo(pinned_template, tmp_path)
+    skill = _copy_skill(tmp_path / "skill")
+    _append(skill / "scripts" / "_supervisor_commit.py", "\n# edited during the attempt\n")
+    cli = _load_cli(skill)
+    runs, head = _run_dirs(repo), _head(repo)
+    for argv in (("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+        code, out = _run(cli, repo, *argv)
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
+    assert _run_dirs(repo) == runs, "spec B recorded a run or pins under the edited install"
+    assert _head(repo) == head
+
+
+def test_a_closed_attempt_does_not_guard_other_specs(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _open_attempt_repo(pinned_template, tmp_path)
+    attempts = _store(repo) / "attempts"
+    latest = max(int(p.name[:6]) for p in attempts.glob("??????.json"))
+    (attempts / f"{latest:06d}.superseded").write_bytes(b"")
+    skill = _copy_skill(tmp_path / "skill")
+    _append(skill / "scripts" / "_supervisor_commit.py", "\n# edited with no attempt open\n")
+    code, out = _run(_load_cli(skill), repo, "start", _OTHER, *_start_args()[2:])
+    assert code == 0 and out["status"] == "admitted", out
+
+
+def test_untrusted_trust_never_issues_regenerate(regenerating: Path, tmp_path: Path) -> None:
+    repo, _skill, cli = _regen_copy(regenerating, tmp_path)
+    code, out = _run(cli, repo, *_start_args("untrusted"))
+    assert code == 0 and out["status"] == "admitted", out
+    code, out = _run(cli, repo, "next", SPEC)
+    request = out["request"]
+    assert code == 0 and request["kind"] == "human-decision", out
+    assert request["reason"] == "untrusted-code"
+    assert "trusted" in request["question"] and "containment" in request["question"]
+    code, out = _run(cli, repo, *_start_args("trusted"))
+    assert code == 0, out
+    assert _run(cli, repo, "next", SPEC)[1]["request"]["kind"] == "regenerate"
+
+
+def test_a_first_pin_needs_the_made_commit_record(pinned_template: Path, tmp_path: Path) -> None:
+    """The released state: committed approvals, one approval, and no supervisor store."""
+    repo = _copy_repo(pinned_template, tmp_path)
+    shutil.rmtree(repo / ".git" / "agentbundle-supervisor")
+    assert len((repo / SPEC / "delivery" / "approvals.jsonl").read_text("utf-8").splitlines()) == 1
+    head = _head(repo)
+    code, out = h.run_cli(repo, *_start_args())
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert not (repo / ".git" / "agentbundle-supervisor").exists(), "a refused start wrote pins"
+    assert _head(repo) == head
+
+
+def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    _add_other_spec(repo)
+
+    def hook(name: str) -> None:
+        if name == "commit-built":
+            raise h.Crash(name)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            h.start(repo)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    (orphan,) = _run_dirs(repo)
+    store = repo / ".git" / "agentbundle-supervisor" / orphan
+    assert (store / "made-commits").read_text("utf-8")
+    assert (store / "spec").read_text("utf-8") == SPEC, "the store did not record its spec"
+    (repo / "unrelated.txt").write_text("moves HEAD past the unlanded approval\n", "utf-8")
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "an unrelated commit")
+    # The directory blocks no other spec at all.
+    code, out = h.run_cli(repo, "start", _OTHER, *_start_args()[2:])
+    assert code == 0 and out["status"] == "admitted", out
+    code, out = h.run_cli(repo, "next", _OTHER)
+    assert code == 0, out
+    # The orphan's own spec admits under a new run id; the directory stays.
+    code, out = h.start(repo)
+    assert code == 0 and out["status"] == "admitted", out
+    assert out["run_id"] != orphan
+    pinned = {
+        json.loads(p.read_text("utf-8"))["run_id"]
+        for p in (repo / ".git" / "agentbundle-supervisor").glob("run-*/pins.json")
+    }
+    assert out["run_id"] in pinned and orphan not in pinned
+    assert store.is_dir()
+    assert h.run_cli(repo, "next", SPEC)[0] == 0, "the ignored orphan still blocks its spec"
+
+
+def test_a_case_variant_spec_dir_is_refused_before_any_sibling_loads(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    variant = SPEC.upper()
+    if not (repo / variant).exists():
+        pytest.skip("this filesystem is case-sensitive, so a case variant is a different path")
+    skill = _copy_skill(tmp_path / "skill")
+    marker = tmp_path / "sibling-ran"
+    _append(skill / "scripts" / "_supervisor_git.py", f"\nopen({str(marker)!r}, 'w').close()\n")
+    code, out = _run(_load_cli(skill), repo, "status", variant)
+    assert code in (1, 2), out
+    assert not marker.exists(), "a sibling loaded for a case-variant spec path"
+
+
+def test_the_pinned_file_set_is_the_same_in_the_script_and_the_source_digests(
+    tmp_path: Path,
+) -> None:
+    skill = _copy_skill(tmp_path / "skill")
+    for rel in ("scripts/extra/x.py", "scripts/extra/deep/y.txt", "scripts/data.bin"):
+        (skill / rel).parent.mkdir(parents=True, exist_ok=True)
+        (skill / rel).write_bytes(b"x")
+    for rel in ("scripts/__pycache__/a.pyc", "scripts/extra/__pycache__/b.pyc"):
+        (skill / rel).parent.mkdir(parents=True, exist_ok=True)
+        (skill / rel).write_bytes(b"x")
+    # A plain file that carries the pruned name is left out the same way as the directories.
+    (skill / "scripts" / "other").mkdir()
+    (skill / "scripts" / "other" / "__pycache__").write_bytes(b"x")
+    cli = _load_cli(skill)
+    entry = cli._installed_digests(skill)
+    assert entry == _digests(skill)
+    everything = [
+        p.relative_to(skill).as_posix() for p in sorted(skill.rglob("*")) if p.is_file()
+    ]
+    attempt = h.cli._supervisor("_supervisor_attempt.py")
+    named = {rel for rel in everything if attempt.Attempts._pinned_name(rel)}
+    assert named == set(entry), sorted(named ^ set(entry))
+    assert all(
+        rel.startswith("scripts/") or rel in ("supervisor-policy.json", "review-rules.json")
+        for rel in entry
+    )
+    assert not any("__pycache__" in rel.split("/") for rel in entry)
