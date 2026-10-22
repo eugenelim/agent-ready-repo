@@ -14,6 +14,15 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.55.0
+
+A new bundled contract, `catalogue-manifest.schema.json`, describes the shape
+of the release archive manifest, and `catalogue contracts list`, `show`, and
+`export` expose it. It checks shape only and is not evidence of integrity or
+origin. `catalogue verify` now rejects a boolean `schema` value in
+`catalogue-manifest.json` with `CAT-V-ARC-011`. The archive guide states what
+proves where an archive came from.
+
 ## What's new in 0.54.0
 
 Every contract now loads from the copy bundled with `agentbundle`. A
