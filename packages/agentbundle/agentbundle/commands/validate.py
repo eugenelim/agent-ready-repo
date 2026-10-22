@@ -552,7 +552,6 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
     resolved scope is user (so a Copilot-bearing pack at
     ``default-scope = "repo"`` admits cleanly).
     """
-    import tomllib
 
     from agentbundle.scope import (
         shipped_adapters_from_contract,
@@ -588,10 +587,10 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
         if user_eligible and name not in user_capable:
             # Read the bundled contract version once so the message
             # tracks the v0.7 bump without per-spec edits.
-            from agentbundle.build.main import _read_bundled
+            from agentbundle.build.main import _load_bundled_toml
 
             cv = (
-                tomllib.loads(_read_bundled("adapter.toml"))
+                _load_bundled_toml("adapter.toml")
                 .get("contract", {})
                 .get("version", "?")
             )

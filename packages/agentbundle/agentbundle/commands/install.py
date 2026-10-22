@@ -2319,11 +2319,10 @@ def _enumerate_dropped_primitives(
       - The pack ships nothing under any of the adapter's dropped types.
     """
     if contract is None:
-        import tomllib as _tomllib
 
-        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.main import _load_bundled_toml
 
-        contract = _tomllib.loads(_read_bundled("adapter.toml"))
+        contract = _load_bundled_toml("adapter.toml")
 
     primitives = contract.get("primitive", {})
     adapter_entries = contract.get("adapter", {}).get(adapter, {}).get("projection", [])
@@ -2410,11 +2409,10 @@ def _enumerate_compatible_primitives(
     pack ships at least one file. Order matches the adapter's projection
     declaration order for stable output."""
     if contract is None:
-        import tomllib as _tomllib
 
-        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.main import _load_bundled_toml
 
-        contract = _tomllib.loads(_read_bundled("adapter.toml"))
+        contract = _load_bundled_toml("adapter.toml")
 
     primitives = contract.get("primitive", {})
     adapter_entries = contract.get("adapter", {}).get(adapter, {}).get("projection", [])
@@ -2493,10 +2491,9 @@ def _maybe_emit_dropped_warning(
         return
 
     # Load the contract once for both enumerators so we don't hit disk twice.
-    import tomllib as _tomllib
 
-    from agentbundle.build.main import _read_bundled
-    contract = _tomllib.loads(_read_bundled("adapter.toml"))
+    from agentbundle.build.main import _load_bundled_toml
+    contract = _load_bundled_toml("adapter.toml")
 
     # Enumerate against the *canonical* adapter so the deprecated `kiro`
     # alias reports kiro-ide's drops (hook-wiring + command), matching what
@@ -3028,7 +3025,6 @@ def _append_install_marker(
     Scope is encoded by the file's location, not as a
     field — the path is the source of truth.
     """
-    import tomllib
     from datetime import datetime
 
     from agentbundle import safety
@@ -3279,7 +3275,6 @@ def _append_layout_section(
     adopter content, so it is accepted as a residual rather than taking the
     state lock.
     """
-    import tomllib
 
     from agentbundle import safety
     from agentbundle.config import _emit_basic_string, _toml_key
@@ -3596,7 +3591,6 @@ def _emit_recommends_warning(
     pack's ``allowed-scopes`` is single-valued.
     """
     import re
-    import tomllib
 
     # Pack names follow the catalogue's `^[a-z0-9][a-z0-9-]*$` shape
     # (the pack-layout contract). The contents of `recommends` are not currently
@@ -3751,10 +3745,10 @@ def _render_for_user_scope(
         kiro_cli,
         kiro_ide,
     )
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
     from agentbundle.render import _collect_tree
 
-    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    contract = _load_bundled_toml("adapter.toml")
     target_adapter = _resolve_target_adapter(
         pack_dir,
         scope="user",
@@ -3851,10 +3845,10 @@ def _render_for_repo_scope(
         kiro_cli,
         kiro_ide,
     )
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
     from agentbundle.render import _collect_tree
 
-    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    contract = _load_bundled_toml("adapter.toml")
     target_adapter = _resolve_target_adapter(
         pack_dir,
         scope="repo",
@@ -3951,11 +3945,10 @@ def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
     Anything else (``dropped``, ``degraded-info-log``, absent
     projection) is refused.
     """
-    import tomllib
 
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    contract = _load_bundled_toml("adapter.toml")
     adapter_block = contract.get("adapter", {}).get(adapter_name, {})
     projections = adapter_block.get("projections", {}) if isinstance(adapter_block, dict) else {}
     hook_wiring = projections.get("hook-wiring") if isinstance(projections, dict) else None
@@ -4078,7 +4071,7 @@ def _resolve_target_adapter(
     shared-agent ownership will need to address this; this spec
     preserves the behaviour unchanged.
     """
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
     from agentbundle.scope import (
         DEFAULT_ADAPTER,
         configured_adapter,
@@ -4099,7 +4092,7 @@ def _resolve_target_adapter(
         for declared in allowed_adapters:
             if declared not in shipped:
                 from agentbundle.version import CLI_VERSION as cli_version
-                contract = tomllib.loads(_read_bundled("adapter.toml"))
+                contract = _load_bundled_toml("adapter.toml")
                 cv = contract.get("contract", {}).get("version", "?")
                 raise _AdapterResolutionRefused(
                     f"{command_name}: pack {pack_name!r} declares "
@@ -4114,7 +4107,7 @@ def _resolve_target_adapter(
             # must not fire there.
             for declared in allowed_adapters:
                 if declared not in user_capable:
-                    contract = tomllib.loads(_read_bundled("adapter.toml"))
+                    contract = _load_bundled_toml("adapter.toml")
                     cv = contract.get("contract", {}).get("version", "?")
                     raise _AdapterResolutionRefused(
                         f"{command_name}: pack {pack_name!r} declares "
@@ -4134,7 +4127,7 @@ def _resolve_target_adapter(
         else:
             if scope == "user":
                 if adapter not in user_capable:
-                    contract = tomllib.loads(_read_bundled("adapter.toml"))
+                    contract = _load_bundled_toml("adapter.toml")
                     cv = contract.get("contract", {}).get("version", "?")
                     raise _AdapterResolutionRefused(
                         f"{command_name}: --adapter {adapter} not admitted "
@@ -4143,7 +4136,7 @@ def _resolve_target_adapter(
             else:
                 # Repo scope: any shipped adapter is admissible.
                 if adapter not in shipped:
-                    contract = tomllib.loads(_read_bundled("adapter.toml"))
+                    contract = _load_bundled_toml("adapter.toml")
                     cv = contract.get("contract", {}).get("version", "?")
                     raise _AdapterResolutionRefused(
                         f"{command_name}: --adapter {adapter} not admitted "
@@ -4404,7 +4397,6 @@ def _merge_user_scope_hook_wiring(
     and explicit for ``kiro-cli`` rows. The deprecated ``kiro`` alias and
     ``kiro-ide`` drop hook-wiring and return no rows.
     """
-    import tomllib
 
     wiring_dir = pack_dir / ".apm" / "hook-wiring"
     if not wiring_dir.exists():
@@ -4530,11 +4522,10 @@ def _adapter_allowed_prefixes_user(adapter_name: str) -> list[str]:
     conservative single-prefix list rooted at the adapter's documented
     directory.
     """
-    import tomllib
 
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    contract = _load_bundled_toml("adapter.toml")
     try:
         return list(
             contract["adapter"][adapter_name]["scope"]["allowed-prefixes"]["user"]
@@ -4555,11 +4546,10 @@ def _adapter_allowed_prefixes_repo(adapter_name: str) -> list[str]:
     helper above; the fallback is the conservative single-prefix list
     rooted at the adapter's documented repo-scope directory.
     """
-    import tomllib
 
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    contract = _load_bundled_toml("adapter.toml")
     try:
         return list(
             contract["adapter"][adapter_name]["scope"]["allowed-prefixes"]["repo"]
@@ -4585,11 +4575,10 @@ def _shared_prefix_cohorts() -> dict[str, list[str]]:
     shared prefix → its reader cohort (shipped adapters). Empty when a legacy
     contract predates the registry. Memoised: the bundled contract
     is immutable for the process lifetime."""
-    import tomllib
 
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    contract = _load_bundled_toml("adapter.toml")
     sp = contract.get("contract", {}).get("shared-prefixes", {})
     return {k: list(v) for k, v in sp.items() if isinstance(v, list)}
 

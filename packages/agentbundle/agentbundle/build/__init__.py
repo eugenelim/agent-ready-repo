@@ -19,7 +19,6 @@ Subcommands landing in later tasks (T6–T8):
 from __future__ import annotations
 
 import argparse
-import json
 import shutil
 import sys
 from pathlib import Path
@@ -44,11 +43,11 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
     # Imported at call time so a patch of `agentbundle.build.main._read_bundled`
     # reaches this call.
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_json
 
     try:
-        schema_text = _read_bundled("adapter.schema.json")
-    except (OSError, ModuleNotFoundError) as exc:
+        schema = _load_bundled_json("adapter.schema.json")
+    except (OSError, ValueError, ModuleNotFoundError) as exc:
         print(
             f"validate: cannot read bundled _data/adapter.schema.json: {exc}",
             file=sys.stderr,
@@ -61,7 +60,6 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         print(f"validate: failed to load {contract_path}: {exc}", file=sys.stderr)
         return 1
 
-    schema = json.loads(schema_text)
     errors = validate_instance(contract, schema)
     if errors:
         print(

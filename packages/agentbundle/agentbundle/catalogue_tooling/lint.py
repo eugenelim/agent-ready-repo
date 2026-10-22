@@ -203,9 +203,9 @@ def _sort_key(d: Diagnostic) -> tuple:
 
 def _load_pack_schema() -> dict:
     """Return the bundled pack schema, or raise when it is missing or unparsable."""
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_json
 
-    return json.loads(_read_bundled("pack.schema.json"))
+    return _load_bundled_json("pack.schema.json")
 
 
 def _parse_frontmatter(text: str) -> dict[str, str] | None:

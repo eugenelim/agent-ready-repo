@@ -13,7 +13,6 @@ Python 3.11 stdlib only.
 
 from __future__ import annotations
 
-import json
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -123,10 +122,10 @@ def _load_schema() -> dict:
     the copy is missing, unreadable or not valid JSON; no other source is
     tried.
     """
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_json
 
     try:
-        return json.loads(_read_bundled("catalogue.schema.json"))
+        return _load_bundled_json("catalogue.schema.json")
     except (OSError, ValueError) as exc:
         raise CatalogueConfigError(
             f"catalogue.toml: cannot load _data/catalogue.schema.json: {exc}"
@@ -152,10 +151,10 @@ def _load_adapter_names() -> frozenset[str]:
     contract cannot be loaded — the preferred-adapter check cannot pass
     without it (fail-closed). No other source is tried.
     """
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
     try:
-        data = tomllib.loads(_read_bundled("adapter.toml"))
+        data = _load_bundled_toml("adapter.toml")
     except (OSError, ValueError) as exc:
         raise CatalogueConfigError(
             f"catalogue.toml: cannot load _data/adapter.toml for preferred-adapter "

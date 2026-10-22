@@ -472,14 +472,14 @@ def lint_pack(
         from agentbundle.build import route_lookup
         from agentbundle.build.hook_wiring_rules import claude_projection_paths
         from agentbundle.build.main import (
+            _load_bundled_toml,
             _load_distribution_route_contract,
-            _read_bundled,
         )
         from agentbundle.build.projections.plugin_hooks import compile_plugin_hooks
 
         contract_data = contract
         if contract_data is None:
-            contract_data = tomllib.loads(_read_bundled("adapter.toml"))
+            contract_data = _load_bundled_toml("adapter.toml")
         try:
             route_data = _load_distribution_route_contract()
             route_declarations = route_lookup.read_route_declarations(route_data)

@@ -95,12 +95,11 @@ def _load_adapter_names() -> frozenset[str]:
     Raises ValueError naming ``_data/adapter.toml`` when it cannot be
     loaded; no other source is tried.
     """
-    import tomllib
 
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
     try:
-        data = tomllib.loads(_read_bundled("adapter.toml"))
+        data = _load_bundled_toml("adapter.toml")
     except (OSError, ValueError) as exc:
         raise ValueError(
             f"catalogue init: cannot load _data/adapter.toml — cannot validate "

@@ -171,6 +171,18 @@ def _load_bundled_toml(name: str) -> dict:
         raise ValueError(f"bundled contract unreadable: _data/{name}: {exc}") from exc
 
 
+def _load_bundled_json(name: str) -> Any:
+    """Parse a packaged JSON file; no other source is tried.
+
+    A missing, undecodable or unparsable copy raises `ValueError` (or
+    `FileNotFoundError` when absent) whose message names `_data/<name>`.
+    """
+    try:
+        return json.loads(_read_bundled(name))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"bundled contract unreadable: _data/{name}: {exc}") from exc
+
+
 CONTRACT_PATH = _bundled_path("adapter.toml")
 ROUTE_CONTRACT_PATH = _bundled_path("distribution-routes.toml")
 ROUTE_SCHEMA_PATH = _bundled_path("distribution-routes.schema.json")
@@ -275,7 +287,7 @@ def validate_derived_plugin_manifest_dict(manifest: dict, label: str = "<derived
     Call this BEFORE writing to disk so a synthesis bug does not land a
     malformed plugin.json in dist/ (Blocker-3: pre-write validation).
     """
-    schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
+    schema = _load_bundled_json("plugin-manifest.derived.schema.json")
     errors = validate_instance(manifest, schema)
     if errors:
         raise ValueError(
@@ -849,10 +861,8 @@ def _validate_agent_plugin_extension_schema(schema: object) -> None:
 
 def _load_agent_plugin_extension_registry() -> dict:
     """Load the bundled, closed extension allocation contract."""
-    registry = tomllib.loads(_read_bundled("agent-plugin-extension-namespaces.toml"))
-    schema = json.loads(
-        _read_bundled("agent-plugin-extension-namespaces.schema.json")
-    )
+    registry = _load_bundled_toml("agent-plugin-extension-namespaces.toml")
+    schema = _load_bundled_json("agent-plugin-extension-namespaces.schema.json")
     if validate_instance(registry, schema):
         raise ValueError("agent-plugin: extension-registry error invalid-contract")
     _validate_agent_plugin_extension_registry(registry)
@@ -866,7 +876,7 @@ def _load_agent_plugin_extension_registry() -> dict:
 def _load_agent_plugin_extension_schema(schema_path: str) -> dict:
     """Load one active schema with stable, path-free refusal diagnostics."""
     try:
-        schema = json.loads(_read_bundled(schema_path))
+        schema = _load_bundled_json(schema_path)
     except (OSError, TypeError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError(
             "agent-plugin: extension-registry error invalid-schema"
@@ -1040,9 +1050,7 @@ def derive_agent_plugin_manifest(
     if extensions:
         manifest["extensions"] = extensions
 
-    schema = json.loads(
-        _read_bundled("vendor/agent-plugins/1.0.0/plugin.schema.json")
-    )
+    schema = _load_bundled_json("vendor/agent-plugins/1.0.0/plugin.schema.json")
     errors = validate_instance(manifest, schema)
     if errors:
         raise _agent_plugin_error(pack_name, "manifest", "schema-invalid")
@@ -1350,9 +1358,7 @@ def _run_per_pack_agent_plugin(
             raise ValueError("agent-plugin: output error unsafe-output") from exc
 
         produced: dict[str, str] = {}
-        schema = json.loads(
-            _read_bundled("vendor/agent-plugins/1.0.0/plugin.schema.json")
-        )
+        schema = _load_bundled_json("vendor/agent-plugins/1.0.0/plugin.schema.json")
         for item in prepared:
             pack_root = route_root / item.pack_name
             _assert_under(pack_root, route_root)
@@ -1477,7 +1483,7 @@ def _resolve_distribution_route(
         try:
             behaviors = route_lookup.resolve_route_behaviors(route_contract)
         except ValueError:
-            schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+            schema = _load_bundled_json("distribution-routes.schema.json")
             errors = validate_instance(route_contract, schema)
             if errors:
                 raise ValueError(
@@ -1527,7 +1533,7 @@ def _resolve_distribution_route(
                 f"adapter-projector {expected_adapter!r}"
             )
 
-    schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+    schema = _load_bundled_json("distribution-routes.schema.json")
     errors = validate_instance(route_contract, schema)
     if errors:
         raise ValueError(
@@ -1582,8 +1588,8 @@ def _resolve_distribution_route(
 
 def _load_distribution_route_contract() -> dict:
     """Decode and validate the bundled distribution-route contract."""
-    route_contract = tomllib.loads(_read_bundled("distribution-routes.toml"))
-    schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+    route_contract = _load_bundled_toml("distribution-routes.toml")
+    schema = _load_bundled_json("distribution-routes.schema.json")
     errors = validate_instance(route_contract, schema)
     if errors:
         raise ValueError(
@@ -1822,7 +1828,7 @@ def validate_pack_metadata(
             raise ValueError("pack metadata is unsafe") from exc
     else:
         metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
-    schema = json.loads(_read_bundled("pack.schema.json"))
+    schema = _load_bundled_json("pack.schema.json")
     errors = validate_instance(metadata, schema)
     if errors:
         raise ValueError(
@@ -1834,7 +1840,7 @@ def validate_pack_metadata(
 def validate_plugin_manifest(plugin_json_path: Path) -> None:
     """Validate a per-pack .claude-plugin/plugin.json against schema."""
     manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
-    schema = json.loads(_read_bundled("plugin-manifest.schema.json"))
+    schema = _load_bundled_json("plugin-manifest.schema.json")
     errors = validate_instance(manifest, schema)
     if errors:
         raise ValueError(
@@ -2623,7 +2629,7 @@ def run_default_build(
 ) -> list[dict]:
     """Run the bundled route-bearing recipes used by plain `make build`."""
     if contract is None:
-        contract = tomllib.loads(_read_bundled("adapter.toml"))
+        contract = _load_bundled_toml("adapter.toml")
     route_contract = _load_distribution_route_contract()
     behaviors = route_lookup.resolve_route_behaviors(route_contract)
     recipes = [load_recipe(recipe_name) for recipe_name in default_recipes()]
@@ -2661,7 +2667,7 @@ def cmd_build(args) -> int:
     output_dir = Path(args.output_dir).resolve()
     packs_dir = Path(args.packs_dir).resolve()
     try:
-        contract = tomllib.loads(_read_bundled("adapter.toml"))
+        contract = _load_bundled_toml("adapter.toml")
         route_contract = _load_distribution_route_contract()
     except Exception as exc:
         print(f"build: failed to load contract: {exc}", file=sys.stderr)
