@@ -7810,6 +7810,46 @@ def test_owner_ac_0025_a_200_code_point_owner_stays_inside_its_row(
     assert long_cells >= 2
 
 
+_OWNER_BELONGS = """() => {
+  const box = (e) => e.getBoundingClientRect();
+  const rows = Array.from(document.querySelectorAll('#list a.row-link')).filter((e) => box(e).width > 0);
+  const bad = [];
+  let context = 0;
+  rows.forEach((row, i) => {
+    const owner = box(row.querySelector('.c-owner'));
+    const name = box(row.querySelector('.c-name'));
+    if (row.querySelector('.ctx-tag')) context += 1;
+    const next = rows[i + 1] ? box(rows[i + 1]).top : Infinity;
+    if (owner.top > name.bottom + 12 || owner.top >= next) {
+      bad.push([row.dataset.node, owner.top - name.bottom, next - owner.top]);
+    }
+  });
+  return { rows: rows.length, context, bad };
+}"""
+
+
+@pytest.mark.parametrize("width", [1280, 1680])
+def test_owner_cell_sits_under_its_own_name_not_by_the_next_row(
+    opener: Any, exports: dict[str, pathlib.Path], width: int
+) -> None:
+    """With several columns the owner cell is in the name column, within 12px under the name cell."""
+    path = exports["owners"]
+    item = opener(path, width=width, height=900)
+    _choose(item, "browse")
+    options = _page_options(item.page)
+    seen_rows = seen_context = 0
+    for label, value in options:
+        _choose(item, "browse", owner=value)
+        item.page.wait_for_selector("#list-title")
+        _expand_all(item.page)
+        _open_disclosures(item.page)
+        got = item.page.evaluate(_OWNER_BELONGS)
+        assert got["bad"] == [], (label, got)
+        seen_rows += got["rows"]
+        seen_context += got["context"]
+    assert seen_rows > 0 and seen_context > 0, (seen_rows, seen_context)
+
+
 @pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_ID)
 def test_owner_ac_0026_session_start_access_criteria_hold_with_an_owner_chosen(
     opener: Any, lowners: pathlib.Path, width: int, scheme: str

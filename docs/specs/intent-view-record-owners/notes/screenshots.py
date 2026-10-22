@@ -13,6 +13,7 @@ States:
 
 The owner chosen for a state is the option with the most non-context rows, leaving out the option with
 the most rows overall (the dominant owner), so narrowing shows.  A viewport, not a window, sets the width.
+Each context uses reduced motion so the detail zone is not caught mid-fade, and each capture starts at the top of the page.
 """
 
 import hashlib
@@ -44,7 +45,7 @@ def prepare(page: Page, question: str, value: str) -> None:
 
 def choose(browser, question: str) -> str:
     """The non-dominant option with the most non-context rows."""
-    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    page = browser.new_page(viewport={"width": 1280, "height": 900}, reduced_motion="reduce")
     page.goto(export.as_uri() + f"#q={question}")
     page.wait_for_function(READY)
     values = [v for v in page.eval_on_selector_all("#owner option", "os => os.map(o => o.value)") if v]
@@ -66,10 +67,11 @@ with sync_playwright() as pw:
         print(f"{state}: owner {value}")
         for width, height in WIDTHS.items():
             for theme in ("light", "dark"):
-                ctx = browser.new_context(viewport={"width": width, "height": height}, color_scheme=theme)
+                ctx = browser.new_context(viewport={"width": width, "height": height}, color_scheme=theme, reduced_motion="reduce")
                 page = ctx.new_page()
                 prepare(page, QUESTIONS[state], value)
                 assert page.evaluate("() => window.innerWidth") == width
+                page.evaluate("() => window.scrollTo(0, 0)")  # the header shows the Owner control and the owner line
                 page.screenshot(path=str(out / f"{state}-{width}-{theme}.png"))
                 ctx.close()
     browser.close()

@@ -64,7 +64,8 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .c-tag { display: block; margin: var(--s-1) 0 0; }
 .c-context .value { overflow-wrap: normal; white-space: nowrap; }
 .c-context .value.wrap { overflow-wrap: anywhere; white-space: normal; }
-/* The owner cell is the last grid item: with several columns it takes the full row below the other cells. */
+/* The owner cell is the last grid item: in one column it is the last line; with several columns it sits in the name column
+   under the name (see the three row layouts below), and the other cells span both rows so it is not pushed down. */
 .c-owner { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; }
 /* The owner line under the list title and the empty-state text repeat the chosen owner, so they wrap a long value inside the zone. */
 .owner-line, .empty { min-width: 0; overflow-wrap: anywhere; }
@@ -113,10 +114,15 @@ ul.rm-sub { margin-left: var(--s-4); border-left-width: 1px; border-left-style: 
   .rm-head > .rm-progress { grid-column: 3; }
   .row-link.rm-link { grid-template-columns: max(6rem, calc(var(--name-w) - var(--rm-in))) 8.5rem var(--rm-prog); }
   .rm-progress { grid-template-columns: var(--rm-bar) minmax(0, 1fr); grid-template-areas: "bar pct" "words words"; width: var(--rm-prog); }
+  .row-link.rm-link { grid-template-rows: auto 1fr; }
+  .row-link.rm-link > .c-state, .row-link.rm-link > .rm-progress { grid-row: 1 / span 2; align-self: start; }
+  .row-link.rm-link > .c-owner { grid-column: 1; grid-row: 2; align-self: start; }
 }
 /* A tree row needs less beside its name than a roadmap row, so it takes the three tracks sooner. */
 @container (min-width: 36rem) {
-  .tree-row > .row-link { grid-template-columns: max(5rem, calc(var(--name-w) - var(--tr-in))) 8.5rem minmax(0, 1fr); }
+  .tree-row > .row-link { grid-template-columns: max(5rem, calc(var(--name-w) - var(--tr-in))) 8.5rem minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .tree-row > .row-link > .c-state, .tree-row > .row-link > .c-context { grid-row: 1 / span 2; align-self: start; }
+  .tree-row > .row-link > .c-owner { grid-column: 1; grid-row: 2; align-self: start; }
 }
 .detail { padding: var(--s-4) var(--s-5) var(--s-5); min-width: 0; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .detail-heading { overflow-wrap: anywhere; margin-bottom: var(--s-2); }
@@ -184,6 +190,9 @@ code.prompt { flex: 1 1 16rem; min-width: 0; padding: var(--s-2) var(--s-3); bor
 /* The three-track row needs about 20rem beside its name plus the card's padding and a tree toggle, so the list track must be wide enough. */
 @media (min-width: 66rem) {
   .row-link { grid-template-columns: minmax(10rem, 1fr) 8.5rem minmax(12rem, 1fr); }
+  :not(.tree-row) > .row-link:not(.rm-link) { grid-template-rows: auto 1fr; }
+  :not(.tree-row) > .row-link:not(.rm-link) > .c-state, :not(.tree-row) > .row-link:not(.rm-link) > .c-context { grid-row: 1 / span 2; align-self: start; }
+  :not(.tree-row) > .row-link:not(.rm-link) > .c-owner { grid-column: 1; grid-row: 2; align-self: start; }
 }
 /* Six tabs in four lists stay on one row from 66rem: the links shrink and wrap their names instead. */
 @media (min-width: 66rem) and (max-width: 89.99rem) {
