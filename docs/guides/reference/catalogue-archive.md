@@ -88,10 +88,15 @@ An older manifest whose `packs[]` entries are `{name, version}` and whose `profi
 or absent raises neither diagnostic.
 
 **What the digests prove.** A unit digest shows that an entry agrees with the archive's own
-`files[]`. It does not show who published the archive. The SHA-256 sidecar and the channel
-descriptor remain the provenance evidence. `catalogue package --compare` uses the same rule, so
-it derives every prior digest from the prior archive's verified `files[]` and ignores a digest the
-prior manifest declares.
+`files[]`. It does not show who published the archive. `catalogue package --compare` uses the
+same rule, so it derives every prior digest from the prior archive's verified `files[]` and
+ignores a digest the prior manifest declares.
+
+**What proves origin.** The SHA-256 sidecar and the channel descriptor prove only that the bytes
+arrived intact. They do not say who made the archive. To prove origin, you need a sidecar, or a
+signature, that you obtained through a separately authenticated channel. A manifest that passes
+the schema, [`contracts/catalogue-manifest.schema.json`](../../../contracts/catalogue-manifest.schema.json),
+is not evidence of origin: the schema checks shape, and anyone can write a valid manifest.
 
 ### Channel descriptor (`channels/<channel>.json`)
 
