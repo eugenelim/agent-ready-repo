@@ -10,18 +10,20 @@
   function listSummary(route) {
     if (shownCount === null || emptyCorpus()) { return ''; }
     if (route.search === '' && route.q === 'next' && readinessChecked()) {
-      return shownCount > 0 ? readinessSummary() : '';
+      return shownCount > 0 ? 'In this list: ' + nonZero(readinessGroups(route.owner).map(function (g) {
+        return [g.ids.length, [g.head.toLowerCase(), g.head.toLowerCase()]];
+      })) + '.' : '';
     }
     if (route.search === '' && route.q === 'next') {
       var per = STAGES.map(function () { return 0; });
-      startableIds().forEach(function (id) { per[stageOf(id)] += 1; });
+      ownerOnly(startableIds(), route.owner).forEach(function (id) { per[stageOf(id)] += 1; });
       var parts = [];
       per.forEach(function (n, i) { if (n > 0) { parts.push(plural(n, STAGE_NOUNS[i])); } });
       return parts.length ? 'In this list: ' + parts.join(', ') + '.' : '';
     }
     if (shownCount === 0 || route.search !== '') { return ''; }
     if (route.q === 'broken') {
-      var entries = brokenEntries();
+      var entries = ownerEntries(brokenEntries(), route.owner);
       var pointers = entries.filter(function (b) { return b.edge || b.dep || b.cycle; }).length;
       var findings = entries.filter(function (b) { return b.workspace; }).length;
       var findingNoun = ['workspace finding', 'workspace findings'];
@@ -35,12 +37,12 @@
     }
     if (route.q === 'noparent') {
       return 'In this list: ' + nonZero(TYPE_GROUPS.map(function (pair) {
-        return [noParentIds().filter(function (id) { return typeOf(id) === pair[0]; }).length,
+        return [ownerOnly(noParentIds(), route.owner).filter(function (id) { return typeOf(id) === pair[0]; }).length,
           [pair[1].toLowerCase().replace(/s$/, ''), pair[1].toLowerCase()]];
       })) + '.';
     }
     if (route.q === 'capabilities') {
-      var open = capabilityIds().reduce(function (sum, id) { return sum + openCount(id); }, 0);
+      var open = ownerOnly(capabilityIds(), route.owner).reduce(function (sum, id) { return sum + openCount(id); }, 0);
       return 'In this list: ' + plural(open, ['open item', 'open items']) +
         ' in total across these capabilities; an item under two capabilities counts twice.';
     }

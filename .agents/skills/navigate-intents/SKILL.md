@@ -100,7 +100,7 @@ python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation summary
 
-# All fields for one intent: node id, path, Level, Kind, Status, parent
+# All fields for one intent: node id, path, Level, Kind, Status, owner, parent
 # edge, child intents, the related intents it writes and the ones that
 # name it, placed briefs and specs, and the delivery resolver's relations
 # and diagnostics for that intent.
@@ -123,10 +123,12 @@ python3 scripts/navigate_intents.py query \
   --operation ancestors \
   --id capability:my-slug
 
-# Filter intents by level, kind, status, or text.
+# Filter intents by level, kind, status, owner, or text.
 # Pass selectors as a JSON object with one or more of the keys:
-# level, kind, exact_status, parentless, text.
+# level, kind, exact_status, parentless, owner, text.
 # text matches the slug or the intent's title line above its first `## ` heading, case-insensitively.
+# owner matches the Owner: header ignoring letter case (A-Z only) and repeated
+# spaces or tabs; "" matches intents with no owner recorded.
 python3 scripts/navigate_intents.py query \
   --root <repo-root> \
   --operation search \
@@ -184,7 +186,9 @@ An ``outstanding`` result lists ``placed`` items and ``no_parent`` items, each
 ordered by node id. An item carries its parent edge and its ancestor chain up
 to a root, with terminal ancestors marked ``terminal``. Each item also carries
 its node's ``heading``: the title line, kept as written, or empty when there is
-none. A spec carries one
+none. Every item, every node, and each ``record`` and ``search`` entry also carries
+``owner``: the first ``Owner:`` header value, kept as written, or empty when
+the file records none. Plain-text output never shows it. A spec carries one
 placement per pointer, each naming the pointer field and, where the delivery
 resolver joins them, its relation type. An intent with no ``Level:`` shows
 level ``unrecorded``. In ``--format text``, a terminal ancestor that places an
@@ -250,6 +254,14 @@ below the lines; dependency problems also appear in "What is broken?".  It reads
 start.  Unless readiness is piped in (below), the page says readiness is not
 checked in the snapshot.  It adapts its layout at 40rem and 90rem and follows
 the system light or dark theme.
+
+Every row ends with its record's owner ("Owner: <value>", or "No owner
+recorded").  An Owner control in the header narrows every question and the
+search to one owner, matched ignoring letter case and repeated spaces; it is
+kept when you switch question.  Under an owner, "Browse all intents" and
+"Capability progress" keep other owners' parents as marked context rows, and
+the numbers inside a row (open counts, closed tallies, progress) still count
+all the work beneath it.
 
 ```bash
 # Whole corpus, into the system temporary directory as

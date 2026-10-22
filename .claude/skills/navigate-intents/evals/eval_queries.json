@@ -230,5 +230,9 @@
   {
     "query": "Export the intent view with readiness from workspace-status, so it shows what is ready to work on",
     "should_trigger": true
+  },
+  {
+    "query": "Show me only the open intents, briefs and specs owned by one person in the intent view",
+    "should_trigger": true
   }
 ]

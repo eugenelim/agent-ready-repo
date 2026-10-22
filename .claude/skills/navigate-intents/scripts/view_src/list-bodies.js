@@ -61,12 +61,18 @@
     });
     return b;
   }
-  function filteredEmpty(route, keys, show) {
+  // byOwner: the list has rows under Any owner with these filters and none under the owner choice,
+  // so the description ends with the owner (and leaves out the Show words) and Clear filters also
+  // sets Any owner.
+  function filteredEmpty(route, keys, show, byOwner) {
     var box = el('div', 'empty');
-    add(box, el('p', '', 'Nothing matches ' + describeFilters(route, keys) +
-      (show ? ' among ' + show + ' items' : '') + '.'));
+    var parts = keys.length ? [describeFilters(route, keys)] : [];
+    if (byOwner) { parts.push(ownerWords(route.owner)); }
+    add(box, el('p', '', 'Nothing matches ' + parts.join(', ') +
+      (show && !byOwner ? ' among ' + show + ' items' : '') + '.'));
     var over = {};
     FILTER_KEYS.forEach(function (k) { over[k] = ''; });
+    if (byOwner) { over.owner = ''; }
     add(box, clearControl('Clear filters', over, function () { return dom.listTitle; }));
     return box;
   }
@@ -120,10 +126,14 @@
   }
 
   // Checked readiness lists what workspace-status reports, grouped, instead of the startable stages.
-  function bodyReadiness() {
+  function bodyReadiness(route) {
     add(dom.list, readinessPreface());
-    var groups = readinessGroups();
-    if (!groups.length) { add(dom.list, emptyLine(CHECKED_NEXT.empty)); return 0; }
+    var groups = readinessGroups(route.owner);
+    if (!groups.length) {
+      if (readinessGroups('').length) { add(dom.list, filteredEmpty(route, [], '', true)); }
+      else { add(dom.list, emptyLine(CHECKED_NEXT.empty)); }
+      return 0;
+    }
     var total = 0;
     groups.forEach(function (g) {
       add(dom.list, el('h3', 'group-head', g.head));
@@ -133,19 +143,29 @@
     return total;
   }
   // Each body builder fills dom.list and returns the count it shows.
-  function bodyNext() {
-    if (readinessChecked()) { return bodyReadiness(); }
+  function bodyNext(route) {
+    if (readinessChecked()) { return bodyReadiness(route); }
     add(dom.list, readinessPreface());
     if (deliveryUnavailable()) { add(dom.list, unavailableStatement()); return null; }
-    var ids = startableIds();
-    if (!ids.length) { add(dom.list, emptyLine(question('next').empty)); return 0; }
+    var all = startableIds();
+    var ids = ownerOnly(all, route.owner);
+    if (!ids.length) {
+      if (all.length) { add(dom.list, filteredEmpty(route, [], '', true)); }
+      else { add(dom.list, emptyLine(question('next').empty)); }
+      return 0;
+    }
     add(dom.list, rows(ids));
     return ids.length;
   }
-  function bodyCapabilities() {
+  function bodyCapabilities(route) {
     if (deliveryUnavailable()) { add(dom.list, unavailableStatement()); return null; }
-    var ids = capabilityIds();
-    if (!ids.length) { add(dom.list, emptyLine(question('capabilities').empty)); return 0; }
+    var all = capabilityIds();
+    var ids = ownerOnly(all, route.owner);
+    if (!ids.length) {
+      if (all.length) { add(dom.list, filteredEmpty(route, [], '', true)); }
+      else { add(dom.list, emptyLine(question('capabilities').empty)); }
+      return 0;
+    }
     var ul = add(dom.list, el('ul', 'rows'));
     ids.forEach(function (id) {
       var li = add(ul, el('li', 'row'));
@@ -158,31 +178,44 @@
     var base = noParentIds();
     buildFilters(question('noparent'), route, base);
     if (!base.length) { add(dom.list, emptyLine(question('noparent').empty)); return 0; }
-    var ids = base.filter(function (id) { return passes(id, route); });
+    var kept = base.filter(function (id) { return passes(id, route); });
     var keys = activeFilters(route, question('noparent'));
-    if (!ids.length) { add(dom.list, filteredEmpty(route, keys)); return 0; }
+    var ids = ownerOnly(kept, route.owner);
+    if (!ids.length) { add(dom.list, filteredEmpty(route, keys, '', kept.length > 0)); return 0; }
     add(dom.list, grouped(ids));
     return ids.length;
   }
-  function bodyBroken() {
-    var entries = brokenEntries();
+  function bodyBroken(route) {
+    var all = brokenEntries();
+    var entries = ownerEntries(all, route.owner);
     if (deliveryUnavailable()) {
       add(dom.list, el('p', 'notice', 'Delivery diagnostics were unavailable: delivery mapping incomplete. Broken pointers are listed below.'));
     }
-    if (!entries.length) { add(dom.list, emptyLine(question('broken').empty)); return 0; }
+    if (!entries.length) {
+      if (all.length) { add(dom.list, filteredEmpty(route, [], '', true)); }
+      else { add(dom.list, emptyLine(question('broken').empty)); }
+      return 0;
+    }
     var ul = add(dom.list, el('ul', 'rows'));
     entries.forEach(function (entry) { add(ul, brokenRow(entry)); });
     return entries.length;
   }
   function bodySearch(route) {
     var want = route.search.toLowerCase();
-    var ids = searchIndex().filter(function (entry) {
+    var all = searchIndex().filter(function (entry) {
       return entry.slug.indexOf(want) !== -1 || entry.heading.indexOf(want) !== -1;
     }).map(function (entry) { return entry.id; });
+    var ids = ownerOnly(all, route.owner);
     if (!ids.length) {
       var box = add(dom.list, el('div', 'empty'));
-      add(box, el('p', '', 'Nothing matches the search "' + route.search + '".'));
-      add(box, clearControl('Clear search', { search: '' }, function () { return dom.search; }));
+      if (all.length) {
+        add(box, el('p', '', 'Nothing matches the search "' + route.search + '" ' +
+          (route.owner === OWNER_NONE ? 'with no owner recorded' : 'for ' + ownerWords(route.owner)) + '.'));
+        add(box, clearControl('Clear owner', { owner: '' }, function () { return dom.search; }));
+      } else {
+        add(box, el('p', '', 'Nothing matches the search "' + route.search + '".'));
+        add(box, clearControl('Clear search', { search: '' }, function () { return dom.search; }));
+      }
       return 0;
     }
     add(dom.list, rows(ids));
@@ -236,6 +269,8 @@
       dom.listSort.textContent = summary.sort;
       count = BODIES[q.key](route);
     }
+    dom.listOwner.textContent = escapeDisplay(ownerLine(route.owner));
+    dom.listOwner.hidden = route.owner === '';
     shownCount = count;
     var noun = route.search !== '' ? ['result', 'results'] : q.noun;
     dom.listCount.textContent = count === null ? 'Count unavailable' : plural(count, noun);

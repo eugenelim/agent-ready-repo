@@ -8,6 +8,8 @@
 .title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); }
 .page-title { display: inline-flex; align-items: center; gap: var(--s-2); }
 .search { display: flex; flex-direction: row; align-items: center; gap: var(--s-1); flex: 1 1 16rem; max-width: 32rem; margin-left: auto; position: relative; }
+.owner-pick { display: flex; flex-direction: row; align-items: center; gap: var(--s-2); min-width: 0; max-width: 100%; }
+.owner-pick select { min-width: 0; max-width: min(100%, 18rem); }
 .search label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .search .control { width: 100%; height: 2.25rem; padding-left: 2.1rem; }
 #meta { margin: var(--s-1) 0 0; }
@@ -62,6 +64,10 @@ code.value { padding: 0.05rem 0.35rem; border-width: 1px; border-style: solid; }
 .c-tag { display: block; margin: var(--s-1) 0 0; }
 .c-context .value { overflow-wrap: normal; white-space: nowrap; }
 .c-context .value.wrap { overflow-wrap: anywhere; white-space: normal; }
+/* The owner cell is the last grid item: with several columns it takes the full row below the other cells. */
+.c-owner { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; }
+/* The owner line under the list title and the empty-state text repeat the chosen owner, so they wrap a long value inside the zone. */
+.owner-line, .empty { min-width: 0; overflow-wrap: anywhere; }
 .tree-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: start; }
 .tree-row > .row-link { grid-template-columns: minmax(0, 1fr); align-items: baseline; }
 .tree-row > .subtree { grid-column: 1 / -1; padding-left: var(--s-5); }
@@ -192,6 +198,8 @@ code.prompt { flex: 1 1 16rem; min-width: 0; padding: var(--s-2) var(--s-3); bor
   .rail { display: block; }
   .question-list { display: block; }
   .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
+  /* The rail sets the row's height here; a short list card keeps its own height instead of stretching to it. */
+  .worklist { align-self: start; }
   .q-count { min-width: 2.25rem; }
 }
 /* From 120rem the name cell stops growing so the state stays near the name. */
