@@ -2266,6 +2266,7 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
+  {path = "docs/specs/catalogue-spec-site/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S3 — the catalogue specification on the docs site, at draft/", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-manifest-schema/spec.md"}]},
 ]
 shipped = [
   {path = "docs/specs/catalogue-manifest-schema/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S2 — a schema for the catalogue release archive manifest", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-spec-manifest/spec.md"}]},
