@@ -1,7 +1,7 @@
 # Plan: The catalogue specification on the docs site, at draft/
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tools/build-site.py` (generation pass order, `--clean`, `--dry-run`, sibling loading at ~1413); `tools/schema_field_reference.py` (`render_page`, `field_rows`, the Wave 6 generator to reuse) and `tools/test_schema_field_reference.py`; `tools/catalogue/check_contract_parity.py:25-41` (path-loading the manifest loader); `docs-site/src/build-a-catalogue-nav.json` and `tools/test_build_a_catalogue_nav.py`; `.github/workflows/pages.yml` and `tools/test-pages-workflow.py`; `web/src/test/rendered-output.test.ts`
 
 ## Approach

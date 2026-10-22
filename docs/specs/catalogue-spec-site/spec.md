@@ -1,12 +1,12 @@
 ---
 slug: catalogue-spec-site
 title: "The catalogue specification on the docs site, at draft/ (RFC-0109 S3)"
-status: Implementing
+status: Shipped
 ---
 
 # Spec: The catalogue specification on the docs site, at draft/
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D2, D3 (`draft/` path and `$id` rule), D6, D8 slice S3, OQ1, and its [errata](../../rfc/0109-catalogue-specification-publication.md#errata)
@@ -79,18 +79,18 @@ no released versions yet.
 
 ## Acceptance Criteria
 
-- [ ] After `python tools/build-site.py`, every `member` row of `contracts/catalogue-spec.toml` has exactly one page source under `docs-site/src/content/docs/spec/catalogue/draft/` and one raw file at `docs-site/public/spec/catalogue/draft/<file name>`. No `bundled` or `vendored` row has either.
-- [ ] Each generated page source sets a `slug` of `spec/catalogue/draft/<page name>`, where the page name is the file name with dots replaced by hyphens, so no page route equals a raw file path.
-- [ ] Each draft JSON raw file is byte-identical to its `contracts/` source except for one span: the value of the existing top-level `"$id"` member is replaced by `https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/draft/<file name>`. A member without a top-level `$id` gains the line `  "$id": "<that URL>",` directly after its opening `{` line, and no other byte changes. Each TOML raw file is byte-identical to its source.
-- [ ] Each JSON member page carries the field table `tools/schema_field_reference.py` produces for that schema, and its narrative reference link, which the table's conditional-rules marker points at, targets the member's raw file. Each TOML member page shows the file's contents and links its raw file, and `adapter.toml`'s page links the `adapter.schema.json` page.
-- [ ] The `pack.schema.json` and `skill.schema.json` member pages link Wave 6's `reference/pack-toml` and `reference/skill-frontmatter` pages, which remain unchanged.
-- [ ] The draft overview page lists every member with its page and raw-file link; names `agentbundle catalogue lint`, `verify` and `package` as the checks; says which checks live only in code, naming the `CAT-V-ARC-*` archive checks and the `JOURNEY.md` validator; links the `JOURNEY.md` format guide as informative; links the starter catalogue `agentbundle catalogue init` writes; and states that `draft/` changes with every merge and is not a release.
-- [ ] `/docs/spec/catalogue/` lists zero released versions and links `draft/`. `/docs/spec/catalogue/index.json` is `{"releases": []}`.
-- [ ] Build a Catalogue's "Contract and schema reference" group lists "Catalogue specification (draft)" first, linking `spec/catalogue/draft`, and keeps its three existing entries. The tab set and `rail.ts` are unchanged.
-- [ ] `pages.yml` lists `contracts/**` and every new generator source in both its `push` and `pull_request` path filters, and `tools/test-pages-workflow.py` requires them.
-- [ ] A rendered-output check over the real build fails unless every member's page and raw file are served under `/agent-ready-repo/docs/spec/catalogue/draft/`, and every draft JSON raw file's `$id` names its own served URL.
-- [ ] `python tools/build-site.py --clean` deletes both generated spec trees before its pass regenerates them, so a stale file planted in either tree is gone afterwards and the section is present again. `--dry-run` writes nothing.
-- [ ] RFC-0109 gains an errata entry recording OQ1 as settled by this spec and the Approver's withdrawal of the S3 validation run.
+- [x] After `python tools/build-site.py`, every `member` row of `contracts/catalogue-spec.toml` has exactly one page source under `docs-site/src/content/docs/spec/catalogue/draft/` and one raw file at `docs-site/public/spec/catalogue/draft/<file name>`. No `bundled` or `vendored` row has either.
+- [x] Each generated page source sets a `slug` of `spec/catalogue/draft/<page name>`, where the page name is the file name with dots replaced by hyphens, so no page route equals a raw file path.
+- [x] Each draft JSON raw file is byte-identical to its `contracts/` source except for one span: the value of the existing top-level `"$id"` member is replaced by `https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/draft/<file name>`. A member without a top-level `$id` gains the line `  "$id": "<that URL>",` directly after its opening `{` line, and no other byte changes. Each TOML raw file is byte-identical to its source.
+- [x] Each JSON member page carries the field table `tools/schema_field_reference.py` produces for that schema, and its narrative reference link, which the table's conditional-rules marker points at, targets the member's raw file. Each TOML member page shows the file's contents and links its raw file, and `adapter.toml`'s page links the `adapter.schema.json` page.
+- [x] The `pack.schema.json` and `skill.schema.json` member pages link Wave 6's `reference/pack-toml` and `reference/skill-frontmatter` pages, which remain unchanged.
+- [x] The draft overview page lists every member with its page and raw-file link; names `agentbundle catalogue lint`, `verify` and `package` as the checks; says which checks live only in code, naming the `CAT-V-ARC-*` archive checks and the `JOURNEY.md` validator; links the `JOURNEY.md` format guide as informative; links the starter catalogue `agentbundle catalogue init` writes; and states that `draft/` changes with every merge and is not a release.
+- [x] `/docs/spec/catalogue/` lists zero released versions and links `draft/`. `/docs/spec/catalogue/index.json` is `{"releases": []}`.
+- [x] Build a Catalogue's "Contract and schema reference" group lists "Catalogue specification (draft)" first, linking `spec/catalogue/draft`, and keeps its three existing entries. The tab set and `rail.ts` are unchanged.
+- [x] `pages.yml` lists `contracts/**` and every new generator source in both its `push` and `pull_request` path filters, and `tools/test-pages-workflow.py` requires them.
+- [x] A rendered-output check over the real build fails unless every member's page and raw file are served under `/agent-ready-repo/docs/spec/catalogue/draft/`, and every draft JSON raw file's `$id` names its own served URL.
+- [x] `python tools/build-site.py --clean` deletes both generated spec trees before its pass regenerates them, so a stale file planted in either tree is gone afterwards and the section is present again. `--dry-run` writes nothing.
+- [x] RFC-0109 gains an errata entry recording OQ1 as settled by this spec and the Approver's withdrawal of the S3 validation run.
 
 ## Follow-ons
 
