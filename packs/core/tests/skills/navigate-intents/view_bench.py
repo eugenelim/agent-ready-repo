@@ -50,6 +50,7 @@ MAX_HEAP_BYTES = 1_024 * 1024 * 1024
 _POINTER_LINE = re.compile(
     r"^(- \*\*(?:Slug|Parent intent|Brief|Discovery|Related intents|Superseded by):\*\*)(.*)$"
 )
+_OWNER_LINE = re.compile(r"^\s*[-*]?\s*\**Owner:")
 _COMMENT = re.compile(r"<!--.*?-->")
 _TOKEN = re.compile(
     r"(?P<path>[A-Za-z0-9._/-]*\.md)"
@@ -91,7 +92,17 @@ def rewrite_text(text: str, tag: str) -> str:
     for line in text.split("\n"):
         m = _POINTER_LINE.match(line)
         out.append(m.group(1) + _rewrite_value(m.group(2), tag) if m else line)
-    return "\n".join(out)
+    return "\n".join(_with_owner(out))
+
+
+def _with_owner(lines: list[str]) -> list[str]:
+    """Give a record with no ``Owner:`` line in its preamble a placeholder one after its first line."""
+    for line in lines:
+        if line.startswith("## "):
+            break
+        if _OWNER_LINE.match(line):
+            return lines
+    return [lines[0], "- **Owner:** bench-owner", *lines[1:]]
 
 
 def build_corpus(dest: pathlib.Path, copies: int, source: pathlib.Path) -> None:

@@ -141,3 +141,95 @@
   - The navigate-intents suite without the browser file: 1135 passed, 6 skipped.
   - `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py` are clean.
   - The controller re-ran 51 of the layout, escape and context checks, and they passed.
+
+## T8
+
+- **Commit:** `aa8e4f2d3256a0b2cd1e2a81490f149a1148a924`, the final code commit. Every figure below was taken at it. The working tree also held the bench change below and the scripts and screens in this directory. The controller dispatches the CI workflows and the `experience-reviewer` pass; AC-0029's review disposition is recorded separately.
+- **Machine:** shared, load average about 31 at the start of the bench.
+
+### AC-0027: scale benchmark with an owner in every record
+
+Command: `python3.13 packs/core/tests/skills/navigate-intents/view_bench.py --source . --counts 1 10 25 50`. The bench's generator copied records unchanged, and 46 of this repository's 786 records (tombstones) carry no `Owner:` line. A minimal bench change (`_with_owner` in `view_bench.py`) now inserts `- **Owner:** bench-owner` after the first line of any record with none; a check over a 1-copy corpus found all 786 records carry an owner. Thresholds are the export spec's AC-0066: at most 104,857,600 bytes, startup at most 3,000 ms, search at most 300 ms, heap at most 1,024 MiB. Every corpus meets every threshold.
+
+| copies | outstanding available | default rows | file bytes | startup ms | search ms | heap MiB | meets all |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | yes | 28 | 776,823 | 21 | 30 | 6 | yes |
+| 10 | no (resource_limit, limit files) | 0 | 5,357,704 | 67 | 80 | 20 | yes |
+| 25 | no (resource_limit, limit files) | 0 | 13,160,676 | 171 | 91 | 42 | yes |
+| 50 | no (resource_limit, limit files) | 0 | 26,165,632 | 221 | 94 | 88 | yes |
+
+- `outstanding` is unavailable from 10 copies up (`resource_limit`, files), as in the export's own benchmark and the earlier slices; the default list is then empty.
+
+### AC-0028: the real export
+
+Commands: `python3.13 packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py export --root . --destination <tmp>` (756,878 bytes, no readiness), then `python3.13 -I docs/specs/intent-view-record-owners/notes/ac0028_owner_counts.py <export.html>`. The script reads the page in headless Chromium (viewport 1280 wide) and computes the same figures from the payload by the spec's terms. "What can I work on next?" rows are the page's row links. "Browse all intents" rows are row links without a context tag after "Expand all" and the closed disclosure are opened; the header count (170 intents under Any owner) matches.
+
+Option count: 26 on the page and 26 from the script. Result: `agree`.
+
+| option | page next | script next | page browse | script browse |
+| --- | --- | --- | --- | --- |
+| Any owner | 28 | 28 | 170 | 170 |
+| @eugenelim | 0 | 0 | 0 | 0 |
+| Core maintainer | 0 | 0 | 0 | 0 |
+| Core work-intake maintainers | 0 | 0 | 0 | 0 |
+| Core work-intake maintainers; RFC-0083 Approver for removal | 0 | 0 | 1 | 1 |
+| Documentation maintainers | 0 | 0 | 0 | 0 |
+| eugenelim | 15 | 15 | 162 | 162 |
+| eugenelim, Platform Core maintainer | 5 | 5 | 0 | 0 |
+| example-user | 0 | 0 | 0 | 0 |
+| experience-design maintainers | 0 | 0 | 0 | 0 |
+| maintainer | 0 | 0 | 0 | 0 |
+| maintainers | 0 | 0 | 0 | 0 |
+| mubeen-acn | 0 | 0 | 0 | 0 |
+| Platform Core | 2 | 2 | 0 | 0 |
+| Platform Core (`ini-002`) | 1 | 1 | 0 | 0 |
+| Platform Core maintainer | 0 | 0 | 5 | 5 |
+| Product documentation maintainers | 0 | 0 | 1 | 1 |
+| Product Engineering maintainers | 0 | 0 | 0 | 0 |
+| project-maintainer | 0 | 0 | 0 | 0 |
+| repository maintainer | 0 | 0 | 0 | 0 |
+| Repository maintainers | 1 | 1 | 0 | 0 |
+| Repository maintainers (`ini-002`) | 2 | 2 | 1 | 1 |
+| Repository maintainers (`ini-003`) | 1 | 1 | 0 | 0 |
+| Repository maintainers (`ini-009`) | 1 | 1 | 0 | 0 |
+| unassigned | 0 | 0 | 0 | 0 |
+| No owner recorded | 0 | 0 | 0 | 0 |
+agree
+
+### AC-0029: screenshots
+
+Command: `python3.13 -I docs/specs/intent-view-record-owners/notes/screenshots.py <export.html> docs/specs/intent-view-record-owners/notes/screens`, over the same export, with a Playwright viewport (asserted `innerWidth` equals the width). Heights 900, 900, 1000 and 1400 for widths 320, 1280, 1680 and 2560. Owners chosen (most non-context rows, leaving out the dominant `eugenelim`):
+
+- next: rows by owner, top three [('k:eugenelim', 15), ('k:eugenelim, platform core maintainer', 5), ('k:platform core', 2)]
+- browse: rows by owner, top three [('k:eugenelim', 162), ('k:platform core maintainer', 5), ('k:core work-intake maintainers; rfc-0083 approver for removal', 1)]
+- roadmap: rows by owner, top three [('k:eugenelim', 21), ('k:platform core maintainer', 1), ('k:@eugenelim', 0)]
+
+SHA-256 of each file in `notes/screens/`:
+
+```
+6aefbac8695edda586fe3f7547a79e509bf7f492fe5672dd9529d3f1810f3b85 browse-1280-dark.png
+d59e4dfb9bd0641ba1e551d8afbb15cac67c63f26a6ab5e6c812356d4bf8e60e browse-1280-light.png
+d886cc9c57feda10a5393e89bbd1c1a7cbc4e4c11845097debb7899fce7165a9 browse-1680-dark.png
+dc39c5cef903d30ee5fb2dfc455b34fbbaea594b9c8ca14355d69cdababf720e browse-1680-light.png
+85909f8eae6f30cc0eb0c9ecdac1176322b3ec2fc7e34a4915650c850daba118 browse-2560-dark.png
+b54b09b655a422cdf7aac0c5c73c5219630d55af6ac4fc69eb51a10679f024b5 browse-2560-light.png
+01ac2991db27314da56a98476342f24b233cad72ace94bc2d20404025d4af36f browse-320-dark.png
+1669de6d6a63a738ec1b107e547fd4ebc91f80fbde1c210895f87509b3840e8c browse-320-light.png
+abaf6a5cfad10e091c7ba7096acf70bcc86dbb449ee73a43a3ddbd7a41c8b18f next-1280-dark.png
+1b4ce777264159cab244ff5de6e7f317e4664a86791cac49a2e6c71e7537b1bf next-1280-light.png
+58300b1cb41b0db087a61c91ae1a525702dbddb18fda7b066c0a0440c40898db next-1680-dark.png
+88099804012131f5c98f4f0ab45ba0ffb6f7ca2fc0cac6743d3ae3646bd218bf next-1680-light.png
+9eed530b04f0fcafd807b51930ced164eb09508c69b363a73c6f8fe008136ea4 next-2560-dark.png
+ee92e9812a455a5282e143c986d492c87bafcea3628b7c2c4aa4213089829c7a next-2560-light.png
+326d8ab78e401f4157553ebfd4e386ad3026a04028ae7515e4c11a9c2375f7ad next-320-dark.png
+967a4501f442064820fdd2a3d688bf7fcaf72e032283f8d775d13317c6fb7f24 next-320-light.png
+74ea10086b5d5a740086562fce7cd0164eaef1cbed1c9264809c1405087b007b roadmap-1280-dark.png
+5bfd6007143b39c85098a15ff5936dd6dcae8321f10894a770f727f66bf660ee roadmap-1280-light.png
+68f967209ee6b09cab4edc805c3925239a713e5208e7d05868c69b0eeb32d548 roadmap-1680-dark.png
+17e68230e243fdb0b6c1bf0fad141ad15275753d7d0ff24be290a6ade51e12ba roadmap-1680-light.png
+9e1f40489a39441829e76de25b15f8931792140468712cc066e6710a3bde0b13 roadmap-2560-dark.png
+8714b94d738db119176c47db02a0cbe772552f38b27d664151f93c392e2f19c1 roadmap-2560-light.png
+04c9ed7648c27cd3da93b009ca02b1a72ad831cc33d91879e52fbd841e78ff8a roadmap-320-dark.png
+6c1d904d3361bcbc551b73f60adeda21159526f827797590e7277bf8c6010793 roadmap-320-light.png
+```
+- The T8 measurements ran against `29007336b`. The later commit `aa8e4f2d3` changes only tests, `SKILL.md` and the guide. It leaves the view code and the payload untouched. So the bench, the counts and the screenshots still describe the final code.
