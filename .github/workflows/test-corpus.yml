@@ -123,9 +123,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest -r tools/requirements.txt
           python -m pip install './packages/credbroker[crypto]'
-          # test_catalogue_spec_contract_loads.py runs `python -m agentbundle` in a
-          # subprocess with PYTHONPATH stripped, to prove a command reads its own
-          # bundled contracts. Only an installed package satisfies that.
+          # A roster suite runs `python -m agentbundle` in a subprocess with
+          # PYTHONPATH stripped, to prove a command reads its own bundled
+          # contracts. Only an installed package satisfies that.
           python -m pip install -e ./packages/agentbundle
 
       # Fail closed BEFORE the target rather than letting suites skip inside it.
