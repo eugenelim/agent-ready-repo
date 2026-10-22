@@ -887,6 +887,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_catalogue_spec_contract_loads.py
 
+      # catalogue-manifest-schema: the published JSON Schema and the archive
+      # verifier must accept and reject the same manifests. Placed ABOVE the bulk
+      # tests/ step for named failure attribution.
+      - name: pytest catalogue manifest schema parity (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_catalogue_manifest_schema_parity.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

@@ -659,6 +659,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest catalogue specification contract loads (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest catalogue manifest schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest package pytest pythonpath (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest shaping-review contracts (roster-owned)":
@@ -1032,6 +1034,7 @@ _GATE_MAIN_CHECKS = (
     "pytest capture-rename guide contract (roster-owned)",
     "pytest execution-supervisor emitted-record parity (roster-owned)",
     "pytest catalogue specification contract loads (roster-owned)",
+    "pytest catalogue manifest schema parity (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
     "pytest portable-catalogue-authentication packaging (roster-owned)",
