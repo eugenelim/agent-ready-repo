@@ -1,7 +1,7 @@
 # Plan: Catalogue specification manifest and bundled-only contract loading
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0109 D1 and S1; `tools/catalogue/sync_contract_inventory.py` and `tools/catalogue/check_contract_parity.py` (the generator and gate being re-based; the gate already loads the generator by explicit path); `build/main.py::_read_bundled` (the shared bundled reader most sites already use); `catalogue_tooling/index_generator.py::_bundled_toml` (an existing bundled-only, fail-closed loader to match); `tools/test_contract_parity.py` (the PR-gated suite the tool tests join); `tests/roster/` plus `tests/AGENTS.md` (roster placement obligations)
 
 ## Approach
