@@ -116,12 +116,16 @@ ul.rm-sub { margin-left: var(--s-4); border-left-width: 1px; border-left-style: 
   .rm-progress { grid-template-columns: var(--rm-bar) minmax(0, 1fr); grid-template-areas: "bar pct" "words words"; width: var(--rm-prog); }
   .row-link.rm-link { grid-template-rows: auto 1fr; }
   .row-link.rm-link > .c-state, .row-link.rm-link > .rm-progress { grid-row: 1 / span 2; align-self: start; }
+  .row-link.rm-link > .c-state { grid-column: 2; }
+  .row-link.rm-link > .rm-progress { grid-column: 3; }
   .row-link.rm-link > .c-owner { grid-column: 1; grid-row: 2; align-self: start; }
 }
 /* A tree row needs less beside its name than a roadmap row, so it takes the three tracks sooner. */
 @container (min-width: 36rem) {
   .tree-row > .row-link { grid-template-columns: max(5rem, calc(var(--name-w) - var(--tr-in))) 8.5rem minmax(0, 1fr); grid-template-rows: auto 1fr; }
   .tree-row > .row-link > .c-state, .tree-row > .row-link > .c-context { grid-row: 1 / span 2; align-self: start; }
+  .tree-row > .row-link > .c-state { grid-column: 2; }
+  .tree-row > .row-link > .c-context { grid-column: 3; }
   .tree-row > .row-link > .c-owner { grid-column: 1; grid-row: 2; align-self: start; }
 }
 .detail { padding: var(--s-4) var(--s-5) var(--s-5); min-width: 0; overscroll-behavior: contain; scrollbar-gutter: stable; }
@@ -192,6 +196,8 @@ code.prompt { flex: 1 1 16rem; min-width: 0; padding: var(--s-2) var(--s-3); bor
   .row-link { grid-template-columns: minmax(10rem, 1fr) 8.5rem minmax(12rem, 1fr); }
   :not(.tree-row) > .row-link:not(.rm-link) { grid-template-rows: auto 1fr; }
   :not(.tree-row) > .row-link:not(.rm-link) > .c-state, :not(.tree-row) > .row-link:not(.rm-link) > .c-context { grid-row: 1 / span 2; align-self: start; }
+  :not(.tree-row) > .row-link:not(.rm-link) > .c-state { grid-column: 2; }
+  :not(.tree-row) > .row-link:not(.rm-link) > .c-context { grid-column: 3; }
   :not(.tree-row) > .row-link:not(.rm-link) > .c-owner { grid-column: 1; grid-row: 2; align-self: start; }
 }
 /* Six tabs in four lists stay on one row from 66rem: the links shrink and wrap their names instead. */
