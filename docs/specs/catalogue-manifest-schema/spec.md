@@ -1,12 +1,12 @@
 ---
 slug: catalogue-manifest-schema
 title: "A schema for the catalogue release archive manifest (RFC-0109 S2)"
-status: Implementing
+status: Shipped
 ---
 
 # Spec: A schema for the catalogue release archive manifest
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D1 (membership) and D5 (the archive manifest schema), with its [2026-10-21 errata entry](../../rfc/0109-catalogue-specification-publication.md#errata) on the boolean `schema` check
@@ -76,18 +76,18 @@ descriptor provenance evidence, and says what each one does and does not prove.
 
 ## Acceptance Criteria
 
-- [ ] `contracts/catalogue-manifest.schema.json` exists, declares `"$schema": "https://json-schema.org/draft/2020-12/schema"`, and is a `member` row in `contracts/catalogue-spec.toml`.
-- [ ] Every manifest that `catalogue package` writes for the starter catalogue from `catalogue init`, and for a catalogue with one pack and one profile, validates against the schema with no error.
-- [ ] A schema-1 manifest, a manifest whose `packs[]` items carry only `name` and `version`, a manifest whose `profiles[]` items are plain strings, and a manifest with no `profiles` key each validate with no error.
-- [ ] Each malformed manifest in the verifier's existing CAT-V-ARC-019 shape table, and each CAT-V-ARC-011 case (missing or non-string `bundle`, `release` or `generated_at`; non-list `files` or `packs`; `schema` absent or not 1 or 2), fails schema validation.
-- [ ] For every manifest in the two criteria above, plus `schema: true`, `schema: 1.0` and `schema: 3`, validity under a standard draft 2020-12 validator equals the absence of CAT-V-ARC-011 and CAT-V-ARC-019 diagnostics from the verifier's manifest check.
-- [ ] Under the package's validator, the same equality holds for every case except `schema: 1.0`, which the package's validator rejects and the verifier accepts.
-- [ ] `catalogue verify` on a written archive whose manifest has `schema: true` reports CAT-V-ARC-011, and on one whose manifest has `schema: 1.0` reports no CAT-V-ARC-011.
-- [ ] The schema's top-level `description` states that it checks shape only, that a valid manifest is neither archive verification nor evidence of who published it, and that origin is established only by `catalogue verify --sha256-file` with a sidecar, or a signature, obtained through a separately authenticated channel.
-- [ ] A manifest carrying an extra top-level key, and pack and profile items carrying extra keys, validate against the schema.
-- [ ] `docs/guides/reference/catalogue-archive.md` no longer calls the sidecar or channel descriptor "the provenance evidence". It states that they prove only that the bytes arrived intact, that origin needs a sidecar or signature obtained through a separately authenticated channel, and that a schema-valid manifest is not evidence of origin. It links the schema.
-- [ ] The parity gate and `sync_contract_inventory.py --check` pass, with `catalogue-manifest.schema.json` in `public-contracts.txt` and a byte-identical `_data/` copy.
-- [ ] `agentbundle --version` reports `0.55.0`.
+- [x] `contracts/catalogue-manifest.schema.json` exists, declares `"$schema": "https://json-schema.org/draft/2020-12/schema"`, and is a `member` row in `contracts/catalogue-spec.toml`.
+- [x] Every manifest that `catalogue package` writes for the starter catalogue from `catalogue init`, and for a catalogue with one pack and one profile, validates against the schema with no error.
+- [x] A schema-1 manifest, a manifest whose `packs[]` items carry only `name` and `version`, a manifest whose `profiles[]` items are plain strings, and a manifest with no `profiles` key each validate with no error.
+- [x] Each malformed manifest in the verifier's existing CAT-V-ARC-019 shape table, and each CAT-V-ARC-011 case (missing or non-string `bundle`, `release` or `generated_at`; non-list `files` or `packs`; `schema` absent or not 1 or 2), fails schema validation.
+- [x] For every manifest in the two criteria above, plus `schema: true`, `schema: 1.0` and `schema: 3`, validity under a standard draft 2020-12 validator equals the absence of CAT-V-ARC-011 and CAT-V-ARC-019 diagnostics from the verifier's manifest check.
+- [x] Under the package's validator, the same equality holds for every case except `schema: 1.0`, which the package's validator rejects and the verifier accepts.
+- [x] `catalogue verify` on a written archive whose manifest has `schema: true` reports CAT-V-ARC-011, and on one whose manifest has `schema: 1.0` reports no CAT-V-ARC-011.
+- [x] The schema's top-level `description` states that it checks shape only, that a valid manifest is neither archive verification nor evidence of who published it, and that origin is established only by `catalogue verify --sha256-file` with a sidecar, or a signature, obtained through a separately authenticated channel.
+- [x] A manifest carrying an extra top-level key, and pack and profile items carrying extra keys, validate against the schema.
+- [x] `docs/guides/reference/catalogue-archive.md` no longer calls the sidecar or channel descriptor "the provenance evidence". It states that they prove only that the bytes arrived intact, that origin needs a sidecar or signature obtained through a separately authenticated channel, and that a schema-valid manifest is not evidence of origin. It links the schema.
+- [x] The parity gate and `sync_contract_inventory.py --check` pass, with `catalogue-manifest.schema.json` in `public-contracts.txt` and a byte-identical `_data/` copy.
+- [x] `agentbundle --version` reports `0.55.0`.
 
 ## Follow-ons
 

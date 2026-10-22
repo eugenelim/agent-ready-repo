@@ -2266,9 +2266,9 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 
 ["ini-007".work]
 active  = [
-  {path = "docs/specs/catalogue-manifest-schema/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S2 — a schema for the catalogue release archive manifest", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-spec-manifest/spec.md"}]},
 ]
 shipped = [
+  {path = "docs/specs/catalogue-manifest-schema/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S2 — a schema for the catalogue release archive manifest", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-spec-manifest/spec.md"}]},
   {path = "docs/specs/catalogue-spec-manifest/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S1 — catalogue specification manifest and bundled-only contract loading", needs = []},
   {path = "docs/specs/catalogue-wave6-technical-docs-ia/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/catalogue-wave6-technical-docs-ia.md"}, summary = "Catalogue Wave 6 — one Build a Catalogue docs tab carrying the ten RFC-0076 D9 routes, two docs-home routes, and pack.toml and SKILL.md field references generated from the schemas", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/documentation-entry-navigation/spec.md"}]},
   {path = "docs/specs/catalogue-init-packageable/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/catalogue-wave5-release-integrity/notes/verification-ledger.md"}, summary = "catalogue init writes a root AGENTS.md marker and CLAUDE.md shim so a blank catalogue packages and verifies with no hand edits; a bad package include entry reports CAT-PKG-001", needs = []},

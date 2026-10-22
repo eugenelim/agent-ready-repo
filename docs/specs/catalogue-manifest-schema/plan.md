@@ -1,7 +1,7 @@
 # Plan: A schema for the catalogue release archive manifest
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0109 D5; `catalogue_tooling/archive.py` `_check_manifest_schema`, `_check_manifest_shape`, `_check_unit_entry_fields` (the accepted shape); `catalogue_tooling/package.py` `_generate_manifest` (what is written); `build/validate.py` (the in-house validator's keyword set); `contracts/catalogue-index.schema.json` (an existing member schema's conventions); `packages/agentbundle/tests/unit/test_catalogue_archive_unit_digests.py` `_SHAPES` (the verifier's malformed-shape table)
 
 ## Approach
