@@ -80,6 +80,10 @@
         draft: 'Draft and other open states', broken: 'Broken', stale: 'Stale', done: 'Closed states' };
       row(markEl(key, words[key]), MARKS[key].help);
     });
+    if (readinessChecked()) {
+      READINESS_KEY.forEach(function (t) { row(markEl(t[0], t[1]), t[2]); });
+      row(el('span', 'label-group', 'Workspace finding'), FINDING_HELP);
+    }
     GROUP_ORDER.forEach(function (key) {
       row(el('span', 'label-group', own(GROUP_LABELS, key)), own(GROUP_HELP, key));
     });

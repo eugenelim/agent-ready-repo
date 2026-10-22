@@ -46,6 +46,9 @@ def _load(path: pathlib.Path, module_name: str) -> Any:
     return module
 
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from navigate_intents_fixture_builders import HOSTILE_NEEDLES, outside_data_block  # noqa: E402
+
 nav = _load(_SCRIPTS / "navigate_intents.py", "core_navigate_intents_export_html_nav")
 view = nav._load_view_mod()
 
@@ -162,19 +165,8 @@ def test_page_has_no_banned_elements_attributes_or_urls(mixed_html: str) -> None
 def test_hostile_strings_stay_inside_the_data_block(hostile_html: str) -> None:
     block = _DATA_BLOCK.search(hostile_html)
     assert block is not None
-    outside = hostile_html.replace(block.group(1), "")
-    for needle in (
-        "</script><script>",
-        "<img src=x",
-        "onerror",
-        "javascript:",
-        '"><svg',
-        "alert(1)",
-        "\u2028",
-        "\u2029",
-        "\u202e",
-        "\u200f",
-    ):
+    outside = outside_data_block(hostile_html)
+    for needle in HOSTILE_NEEDLES:
         assert needle not in outside, needle
     raw = block.group(1)
     for char in "<>&\u2028\u2029":

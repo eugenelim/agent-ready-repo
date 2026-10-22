@@ -54,7 +54,7 @@ _DATA_BLOCK = re.compile(
 )
 _KEYS = [
     "schema", "scope", "provenance", "summary", "records", "outstanding",
-    "nodes", "edges", "source_links", "dependencies",
+    "nodes", "edges", "source_links", "dependencies", "readiness",
 ]
 
 # Corpora on which a whole-operation failure applies: no payload exists.
@@ -343,6 +343,7 @@ def test_main_ok_object_and_exit_zero(
         "path": str(written),
         "bytes": written.stat().st_size,
         "scope": {"from": None},
+        "readiness": {"checked": False, "reason": "not_requested"},
     }
 
 
@@ -623,4 +624,7 @@ def test_other_members_equal_the_golden_recorded_before_dependencies(
     shutil.copytree(_FIXTURES / corpus, root)
     payload, _ = _exported(capsys, root, tmp_path / "out")
     payload["provenance"].pop("generated_at")
-    assert {k: _digest(v) for k, v in payload.items() if k != "dependencies"} == _GOLDEN[corpus]
+    digests = {
+        k: _digest(v) for k, v in payload.items() if k not in ("dependencies", "readiness")
+    }
+    assert digests == _GOLDEN[corpus]

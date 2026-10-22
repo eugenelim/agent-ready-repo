@@ -53,6 +53,7 @@
     recordIds.forEach(function (id) {
       depEntriesOf(id).forEach(function (entry) { list.push(entry); });
     });
+    workspaceEntries().forEach(function (entry) { list.push(entry); });
     return list.sort(function (a, b) { return byName(a.holder, b.holder); });
   }
   // A dependency fault is held by its source, a cycle by each member; only an intent with a
@@ -71,6 +72,7 @@
     if (key === 'browse') { return recordIds.length; }
     if (key === 'broken') { return brokenEntries().length; }
     if (key === 'roadmap') { return capabilityRecordIds().length; }
+    if (key === 'next' && readinessChecked()) { return readinessRowCount(); }
     if (deliveryUnavailable()) { return null; }
     if (key === 'next') { return startableIds().length; }
     if (key === 'capabilities') { return capabilityIds().length; }

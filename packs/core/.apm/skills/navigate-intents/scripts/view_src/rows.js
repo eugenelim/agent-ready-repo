@@ -23,11 +23,13 @@
   }
 
   // The context is a string, or a node when part of it needs its own element (a diagnostic code).
-  function rowLink(id, mark, context) {
+  // A non-empty tag sits inside the name's cell, so it wraps under the name and stays in the link.
+  function rowLink(id, mark, context, tag) {
     var a = el('a', 'row-link');
     a.setAttribute('href', hashFor({ node: id }));
     a.setAttribute('data-node', id);
-    add(a, el('span', 'c-name', displayName(id)));
+    var name = add(a, el('span', 'c-name', displayName(id)));
+    if (tag) { add(name, el('span', 'note-inline c-tag', tag)); }
     var state = add(a, el('span', 'c-state'));
     add(state, mark);
     if (isStr(context)) {
@@ -48,13 +50,14 @@
   // earlier batches land.
   var ROW_BATCH = 150;
   var listGeneration = 0;
-  function rows(ids) {
+  function rows(ids, build) {
+    var make = build || itemRow;
     var ul = el('ul', 'rows');
     var generation = listGeneration;
     function fill(from) {
       if (generation !== listGeneration) { return; }
       var end = Math.min(ids.length, from + ROW_BATCH);
-      for (var i = from; i < end; i++) { add(ul, itemRow(ids[i])); }
+      for (var i = from; i < end; i++) { add(ul, make(ids[i])); }
       if (end < ids.length) { setTimeout(function () { fill(end); }, 0); }
     }
     fill(0);

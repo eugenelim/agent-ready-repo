@@ -49,6 +49,8 @@ fixtures/
 │                          a `javascript:` value, attribute-breaking quotes, a line separator
 │                          (the derivation reads lines with `splitlines`, so a separator ends
 │                          its value and cannot reach the payload), and bidirectional controls
+├── hostile_workspace/     readiness bridge (AC-0038): a hostile `workspace.toml` copied over `mixed` and read by the real
+│                          `workspace-status`; hostile strings in every free-text field and `ref`, and a path with markup
 └── negative/              (one corpus per refused-edge state and integrity code)
     ├── dangling/          AC-0007: Parent intent: names no live intent
     ├── retired_target/    AC-0007: Parent intent: names a tombstone
