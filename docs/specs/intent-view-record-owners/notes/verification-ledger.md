@@ -207,30 +207,31 @@ Command: `python3.13 -I docs/specs/intent-view-record-owners/notes/screenshots.p
 SHA-256 of each file in `notes/screens/`:
 
 ```
-31fbaf7fe970bd627bde71fdfdb03fc51776b52a65738225f4ab6b3f0af1d7c2 browse-1280-dark.png
-9b9152e9c7cff2ec4ef0ecb6b94a69b45a6248456056c543e22a92bed0fc5e87 browse-1280-light.png
-e4fee24718c93e2b4d694c91c5e09d102c911ff0341bc29f2654bbed894ea25e browse-1680-dark.png
-9411c18066d40a0c8c192d20d5a8ccd4087e08f12c3328c39fc7686911b72832 browse-1680-light.png
-7798cbde4ee7f1d09c8eaf5e12ff2be4e8db35272df119c2b92855c0d180fe0b browse-2560-dark.png
-efab5ae03be15425defd80795ae4d74af3fcd30a3bde236caaa8e6376a224bc1 browse-2560-light.png
-0fc035a61966e754ceda0a1d2126414fdda45005534303328d1a78f0fcff8ad9 browse-320-dark.png
-efe49569bd054ac486495c76628fa22ba108d877ec24a8224b1296eff2ae348c browse-320-light.png
-46b241e6022b218145c1a9866f8ae6c5912890f329141a181d027a67e347b69b next-1280-dark.png
-9e1bfee6910d70e2042676ee7a611714c2fa82dc136ea9f2831a5864899ad397 next-1280-light.png
-e1fc3e4793dd6ab3ae7d1cd530e6144800ecce818341a8de799af1dae0625311 next-1680-dark.png
-d3c5410857ece2e44e29eee1bf61b693d77cf27ca81493d04afa4a8b542ca567 next-1680-light.png
-b7eb52c348c64b640a75061390ba65e86f56a1dbc49c76ad572f85e9a3541265 next-2560-dark.png
-77492fdd0918b7e74b5365cd510fae6d127d03cfc06a8aa179cc9c9248168393 next-2560-light.png
-58d1d1f61f16f363928f7dff5f26bb477cba64cfd6b42f1104a387171cad386d next-320-dark.png
-b906aa668aea4e5e95d53bb925342544f2b0055c07d7ba42d22f3ae165f53cb1 next-320-light.png
-fbb80f1482b4d97071a9dd0cc7d95cbb78e183664f9610a8a0f3354b1b023a66 roadmap-1280-dark.png
-e215db526c45f6a04e6da74ee3da1e55c79a167596a4fd830c956aeb38a1c3f0 roadmap-1280-light.png
-0fc53e1fe6890f8d279b61154fdaf6d3d1b011358d29b0962ced74309bae1efb roadmap-1680-dark.png
-20c7c411e2c30ecf80651f046dccbfb8ce4d1808d865aa5bf8ace96ec4df12da roadmap-1680-light.png
-f5756088daf1a452987cc1677f64de8a12c3f96dd4e388d79ede0260d2dca7ec roadmap-2560-dark.png
-f5573f03c3e6bbd017c6a93d2760b2a5f8efd6ab0ae8383cc389aa57c89b076e roadmap-2560-light.png
-d9c3d6015be489a85b4950db172a3b8f9f482247c9a9f8b5a7508ee9f3359f6c roadmap-320-dark.png
-95179f048fbb95e68875bdb01e78a24de619e483ea2fe62980f30163e9ce00ac roadmap-320-light.png
+b2ff7df635538d29e95589674e62f78ce2e21eae2d79dde693c0a010b257b882 browse-1280-dark.png
+76f2e4bf2892cd6c4858b0061e5b9d3ef1ab4d6528adbbe2735ebb0ba673d1cd browse-1280-light.png
+30f2538bac2c066e1e3abfea46b791a243b57854c3f82723fb614cbae31b9600 browse-1680-dark.png
+03d44d9cc0a30e09169812dddb15cccec858e6de4cd5704bc55dd8d98e150427 browse-1680-light.png
+a0295dc62958b28de0066a7106c14ea5e8737adb13662411f962bd1e8da13f4e browse-2560-dark.png
+e7d6c9673e0d5669ba308f801acaeaba8ec5eb4cc7b62152b24b3d7705103ae4 browse-2560-light.png
+df2a935bc903e8d7fd7387ffa6e866431536909f8da89c3afc5458289c432112 browse-320-dark.png
+6556ffd535171b761872fb4f1e953d35096eb205855e4072bdb10a13f349593b browse-320-light.png
+79654dff37b5f403f7c0bff91dd4cc152ad1df45f40c0996af187dd198e612fd next-1280-dark.png
+ae48a27fbdc48d031ddef18a4b5a4d22c172023e6ea9f95635fcb16bef05eaff next-1280-light.png
+1e969b8a7b09049def9a56a7b767dfacf0c8cfa610e3c6c1eff14a9ed562da1f next-1680-dark.png
+b0f246da66659086228ef36d7be301881d885dabf4f53a82034c3d99dfc6bdc5 next-1680-light.png
+3f79dc004bcef1ade4eafc32fa1d62e46cfb0a47f6176351d4f91ea5ad2d1f6f next-2560-dark.png
+fdfa476bb70aecf711dfe9c8dddb8d2c2738be71b90c1d21b05539effea0905a next-2560-light.png
+91f020ab84c429078e3533368fbc1796376a9cd6ab7a6e0a87c38d9ca1eb8405 next-320-dark.png
+39ad38f148ceb8297bd28d34ecfff5114f663f4265f3cb514f370ea1c8e9aadd next-320-light.png
+676234a41a4860441a5f54657edc1ac9847d465e5d41f26ee67d5c8e5bd690fe roadmap-1280-dark.png
+9cbfc45c4e3c2877cdc7ed87c62602f60f219abcae2a9aba2dd9accc7314ffa1 roadmap-1280-light.png
+2e1c415a82b1d9a80cb944ac2645e07b11a1946c830c892f7f8cde5d626ea1b9 roadmap-1680-dark.png
+bbe50e6bd2cb35288ac47ee62acb3cdef3b1a917ca6ba0c32d653508ae90ff71 roadmap-1680-light.png
+af658427502774afc9f26e0e15821d6ecc898846416659764b5b6fbbefa8bd4a roadmap-2560-dark.png
+f5c0cb627defcac379bfc892ee79c9a09aa6e97d7fbcb23d3319a52a01c9944e roadmap-2560-light.png
+d38d07552c3bc7da74f09af9e4189a1d502bff6f064fb4a96ead15be6eda7618 roadmap-320-dark.png
+8c51ee21e560c1a88b1ec32ef7a85f5a5586946e047c4c75d9969a972e76ffaa roadmap-320-light.png
 ```
 - The 24 images were recaptured from an export of `845ea3fba` plus the owner-cell layout fix in `view.css` (the owner now sits in the name column under the name at every multi-column width). The first set showed the owner cell drifting toward the next row, and the detail zone caught mid-fade. The script now uses reduced motion and scrolls to the top before each capture, so the header shows the Owner control and the owner line. The same states and owners were chosen as before.
 - The T8 measurements ran against `29007336b`. The later commit `aa8e4f2d3` changes only tests, `SKILL.md` and the guide. It leaves the view code and the payload untouched. So the bench, the counts and the screenshots still describe the final code.
+- On 2026-10-22, after the round-2 reviews, the 24 screenshots were recaptured from a fresh export at the final view code. The pointer now moves off the list before each capture, so no row keeps a hover band, and each row cell now names its grid column explicitly. The hashes above are from this recapture.

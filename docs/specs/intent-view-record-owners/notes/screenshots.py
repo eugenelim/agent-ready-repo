@@ -72,6 +72,7 @@ with sync_playwright() as pw:
                 prepare(page, QUESTIONS[state], value)
                 assert page.evaluate("() => window.innerWidth") == width
                 page.evaluate("() => window.scrollTo(0, 0)")  # the header shows the Owner control and the owner line
+                page.mouse.move(0, 0)  # no row keeps a hover band from the clicks above
                 page.screenshot(path=str(out / f"{state}-{width}-{theme}.png"))
                 ctx.close()
     browser.close()
