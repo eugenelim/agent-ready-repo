@@ -25,7 +25,6 @@ The profile **id** is the filename stem, not a manifest field; it must match
 
 from __future__ import annotations
 
-import json
 import re
 import sys
 from dataclasses import dataclass
@@ -38,8 +37,6 @@ except ModuleNotFoundError:  # pragma: no cover - 3.10 fallback if ever needed
 
 # Same grammar as pack names and ``install._PACK_NAME_RE``.
 PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-
-_HERE = Path(__file__).resolve().parent
 
 
 class ProfileError(Exception):
@@ -64,17 +61,6 @@ class Profile:
     scope: str
     description: str
     packs: tuple[str, ...]
-
-
-def _schema_path() -> Path:
-    """Locate the bundled ``_data/profile.schema.json``.
-
-    Unlike ``pack.schema.json`` (which also ships to ``contracts/`` as an
-    adopter-facing contract), the profile schema is internal and lives only at
-    ``_data/`` — it ships with both the editable checkout and the zipapp. The
-    caller surfaces a clear error if it is ever absent.
-    """
-    return _HERE.parent / "_data" / "profile.schema.json"
 
 
 def profiles_dir(catalogue_dir: Path) -> Path:
@@ -104,14 +90,13 @@ def _parse_and_validate(profile_id: str, toml_path: Path) -> Profile:
         raise ProfileError(f"profile {profile_id!r}: invalid TOML: {exc}") from exc
 
     # In-house validator (no jsonschema dependency), same one validate.py uses.
+    from agentbundle.build.main import _load_bundled_json
     from agentbundle.build.validate import validate as validate_instance
 
-    schema_path = _schema_path()
-    if not schema_path.exists():
-        raise ProfileError(
-            f"profile.schema.json not found at {schema_path}"
-        )
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    try:
+        schema = _load_bundled_json("profile.schema.json")
+    except (OSError, ValueError) as exc:
+        raise ProfileError(str(exc)) from exc
     errors = validate_instance(raw, schema)
     if errors:
         raise ProfileError(f"profile {profile_id!r}: schema error — {errors[0]}")

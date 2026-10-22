@@ -5,7 +5,9 @@ specs — they're the published interface this catalogue exposes to consumers
 (APM, Claude Code plugins, the `agentbundle` CLI, future adopters).
 
 **Authority model:** `contracts/` is the canonical authored source for all
-contracts listed below. `packages/agentbundle/agentbundle/_data/` carries
+contracts listed below. Membership in the catalogue specification, and each
+contract's role (member, bundled or vendored), is declared in
+[`catalogue-spec.toml`](catalogue-spec.toml); the sections below follow it. `packages/agentbundle/agentbundle/_data/` carries
 byte-identical copies only of contracts explicitly marked **yes** in the CLI
 data column; repository-public contracts marked **no** remain authoritative here
 without implying a second CLI copy. AGENTS.md and README files carry concise
@@ -14,31 +16,54 @@ disagree, `contracts/` is authoritative.
 
 ## Files
 
+### Specification members
+
 | File | What it pins | CLI data |
 | --- | --- | --- |
+| `pack.schema.json` | JSON Schema for per-pack `pack.toml` manifests | yes |
+| `catalogue.schema.json` | JSON Schema for `catalogue.toml` manifests | yes |
+| `profile.schema.json` | JSON Schema for profile TOML files | yes |
+| `skill.schema.json` | JSON Schema for skill frontmatter and body | yes |
+| `skill-manifest.schema.json` | JSON Schema for skill manifest files | yes |
+| `target-vocab.toml` | Vocabulary constraint for adapter target names | yes |
+| `catalogue-index.schema.json` | JSON Schema for the generated neutral catalogue index | yes |
 | `adapter.toml` | Per-IDE adapter contract: every (primitive × adapter) projection rule | yes |
 | `adapter.schema.json` | JSON Schema for `adapter.toml`'s shape | yes |
+
+### Bundled, not members
+
+| File | What it pins | CLI data |
+| --- | --- | --- |
+| `marketplace-entry.schema.json` | JSON Schema for one generated marketplace entry | yes |
+| `plugin-manifest.schema.json` | JSON Schema for `.claude-plugin/plugin.json` | yes |
+| `plugin-manifest.derived.schema.json` | Derived schema for `.claude-plugin/plugin.json` after adapter-rule merge | yes |
 | `distribution-routes.toml` | Package-route identity, layout, projector, capability, marketplace, and lifecycle concerns | yes |
 | `distribution-routes.schema.json` | Closed JSON Schema for the versioned distribution-route contract | yes |
 | `agent-plugin-extension-namespaces.toml` | Agent Plugins reverse-domain extension allocations and lifecycle state | yes |
 | `agent-plugin-extension-namespaces.schema.json` | Closed schema for extension namespace allocations | yes |
+| `guide.schema.json` | JSON Schema for guide frontmatter | yes |
+| `jsonschema/knowledge-captured-observation.schema.json` | Captured project-knowledge observation envelope | yes |
+
+### Vendored
+
+| File | What it pins | CLI data |
+| --- | --- | --- |
 | `vendor/agent-plugins/1.0.0/plugin.schema.json` | Immutable upstream Agent Plugins 1.0.0 manifest schema | yes |
 | `vendor/agent-plugins/1.0.0/mcp.schema.json` | Immutable upstream Agent Plugins 1.0.0 MCP schema, reserved for Phase 1B behavior | yes |
+
+### Vendored notices
+
+| File | What it pins | CLI data |
+| --- | --- | --- |
 | `vendor/agent-plugins/1.0.0/LICENSE.md` | Upstream licence notice governing the vendored schemas | yes |
 | `vendor/agent-plugins/1.0.0/PROVENANCE.md` | Upstream commit, paths, blob identities, schema IDs, and offline-use boundary | yes |
-| `pack.schema.json` | JSON Schema for per-pack `pack.toml` manifests | yes |
-| `plugin-manifest.schema.json` | JSON Schema for `.claude-plugin/plugin.json` | yes |
-| `plugin-manifest.derived.schema.json` | Derived schema for `.claude-plugin/plugin.json` after adapter-rule merge | yes |
-| `catalogue.schema.json` | JSON Schema for `catalogue.toml` manifests | yes |
-| `profile.schema.json` | JSON Schema for profile TOML files | yes |
-| `catalogue-index.schema.json` | JSON Schema for the generated neutral catalogue index | yes |
-| `marketplace-entry.schema.json` | JSON Schema for one generated marketplace entry | yes |
-| `guide.schema.json` | JSON Schema for guide frontmatter | yes |
-| `skill.schema.json` | JSON Schema for skill frontmatter and body | yes |
-| `skill-manifest.schema.json` | JSON Schema for skill manifest files | yes |
-| `target-vocab.toml` | Vocabulary constraint for adapter target names | yes |
+
+### Repository only
+
+| File | What it pins | CLI data |
+| --- | --- | --- |
+| `catalogue-spec.toml` | The catalogue specification manifest: every contract file the specification names, each with one role (`member`, `bundled` or `vendored`) | no |
 | `REGISTRY.md` | Backward spec pointers for contracts whose format carries no `x-spec` key | no |
-| `jsonschema/knowledge-captured-observation.schema.json` | Captured project-knowledge observation envelope | yes |
 | `jsonschema/loop-run-event.schema.json` | One `.loop-run/events.jsonl` line the work-loop engine writes per FSM transition | no |
 | `jsonschema/loop-cohort-wave-decision.schema.json` | Read-only pre-dispatch verdict and refusal envelopes emitted by `loop-cohort wave-decision` | no |
 | `jsonschema/delivery-lifecycle-record.schema.json` | Git-tracked delivery lifecycle record | no |

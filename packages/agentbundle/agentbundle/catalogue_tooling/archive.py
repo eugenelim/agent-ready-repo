@@ -433,10 +433,10 @@ def _check_marketplace_entries(
             raise ValueError("marketplace member is not a regular file")
         payload = json.loads(fobj.read().decode("utf-8"))
 
-        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.main import _load_bundled_json
         from agentbundle.catalogue_tooling.verify import _validate_marketplace_entries
 
-        entry_schema = json.loads(_read_bundled("marketplace-entry.schema.json"))
+        entry_schema = _load_bundled_json("marketplace-entry.schema.json")
     except Exception as exc:
         return [_err(
             "CAT-V-ARC-017",

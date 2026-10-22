@@ -539,26 +539,24 @@ class LintPackVocabTests(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_missing_vocab_file_fails_loud(self) -> None:
-        """When neither the --packs-dir walk nor the module-ancestor
-        fallback finds the vocab file, cmd_lint_packs exits non-zero
-        with a stderr line naming the config file. We patch
-        `_VOCAB_RELPATH` to a sentinel filename that exists nowhere so
-        both walks fail deterministically."""
+        """A missing bundled vocab file makes cmd_lint_packs exit non-zero
+        with a stderr line naming `_data/target-vocab.toml`."""
         from unittest.mock import patch
 
-        from agentbundle.build import lint_packs as lp_module
-        sentinel = Path("contracts/__nonexistent_target_vocab__.toml")
+        def _missing(name: str) -> str:
+            raise FileNotFoundError(f"bundled contract missing: _data/{name}")
+
         with tempfile.TemporaryDirectory() as tmp:
             packs_dir = Path(tmp) / "isolated" / "packs"
             packs_dir.mkdir(parents=True)
             _write_minimal_pack(packs_dir / "p", name="p")
             args = argparse.Namespace(packs_dir=str(packs_dir))
             buf = io.StringIO()
-            with patch.object(lp_module, "_VOCAB_RELPATH", sentinel), \
+            with patch("agentbundle.build.main._read_bundled", _missing), \
                     redirect_stderr(buf):
                 rc = cmd_lint_packs(args)
         self.assertEqual(rc, 1)
-        self.assertIn("target-vocab.toml", buf.getvalue())
+        self.assertIn("_data/target-vocab.toml", buf.getvalue())
 
     def test_skill_name_multiline_refused(self) -> None:
         """A folded `name:` in frontmatter must be refused — same
@@ -603,10 +601,9 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertIn("agent/valid-agent", ml_findings[0])
 
     def test_loader_bundled_fallback_succeeds(self) -> None:
-        """An out-of-tree packs directory uses the engine's bundled vocab."""
+        """The zero-argument loader reads the engine's bundled vocab."""
         from agentbundle.build.lint_packs import _load_target_vocab
-        with tempfile.TemporaryDirectory() as tmp:
-            vocab, err = _load_target_vocab(Path(tmp))
+        vocab, err = _load_target_vocab()
         self.assertIsNone(err, err)
         self.assertIsNotNone(vocab)
         self.assertEqual(vocab["target"]["kiro"]["name-max-length"], 64)
@@ -635,23 +632,24 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertEqual(len(desc_findings), 1, findings)
 
     def _run_with_bad_vocab(self, body: str) -> tuple[int, str]:
-        """Helper for refusal-branch coverage. Materialises an
-        isolated tree with a controlled `target-vocab.toml`, invokes
-        `cmd_lint_packs` against a minimal pack inside that tree, and
-        returns `(rc, stderr_text)`. The explicit `--packs-dir` walk
-        finds the tmp vocab first, so the module-ancestor fallback
-        doesn't shadow the bad config under test."""
+        """Helper for refusal-branch coverage. Patches the bundled reader to
+        return `body` for `target-vocab.toml`, invokes `cmd_lint_packs`
+        against a minimal pack, and returns `(rc, stderr_text)`."""
+        from unittest.mock import patch
+
+        def _fake(name: str) -> str:
+            if name == "target-vocab.toml":
+                return body
+            raise FileNotFoundError(name)
+
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "isolated"
-            packs_dir = root / "packs"
+            packs_dir = Path(tmp) / "isolated" / "packs"
             packs_dir.mkdir(parents=True)
             _write_minimal_pack(packs_dir / "p", name="p")
-            vocab_dir = root / "contracts"
-            vocab_dir.mkdir(parents=True)
-            (vocab_dir / "target-vocab.toml").write_text(body, encoding="utf-8", newline="\n")
             args = argparse.Namespace(packs_dir=str(packs_dir))
             buf = io.StringIO()
-            with redirect_stderr(buf):
+            with patch("agentbundle.build.main._read_bundled", _fake), \
+                    redirect_stderr(buf):
                 rc = cmd_lint_packs(args)
             return rc, buf.getvalue()
 
@@ -725,30 +723,48 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertGreater(len(relpaths), 1)
 
     def test_inconsistent_name_pattern_fails_loud(self) -> None:
-        """A target-vocab.toml whose targets carry different name-pattern
-        values must be refused by the loader."""
+        """A vocab whose targets carry different name-pattern values must
+        be refused by the loader."""
+        rc, stderr = self._run_with_bad_vocab(
+            '[target.alpha]\nname-pattern = "^[a-z][a-z0-9-]*$"\n'
+            'description-max-length = 1024\n'
+            '[target.beta]\nname-pattern = "^[A-Z][A-Z0-9-]*$"\n'
+            'description-max-length = 1024\n'
+        )
+        self.assertEqual(rc, 1)
+        self.assertIn("name-pattern", stderr)
+
+    def test_planted_contracts_vocab_is_ignored(self) -> None:
+        """A `contracts/target-vocab.toml` in the catalogue or its parent
+        never replaces the bundled vocab."""
+        from agentbundle.build.main import _read_bundled
+
+        planted = re.sub(
+            r"name-max-length\s*=\s*\d+",
+            "name-max-length = 4",
+            _read_bundled("target-vocab.toml"),
+        )
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "isolated"
-            packs_dir = root / "packs"
+            parent = Path(tmp) / "parent"
+            catalogue = parent / "cat"
+            packs_dir = catalogue / "packs"
             packs_dir.mkdir(parents=True)
-            _write_minimal_pack(packs_dir / "p", name="p")
-            vocab_dir = root / "contracts"
-            vocab_dir.mkdir(parents=True)
-            (vocab_dir / "target-vocab.toml").write_text(
-                '[target.alpha]\nname-pattern = "^[a-z][a-z0-9-]*$"\n'
-                'description-max-length = 1024\n'
-                '[target.beta]\nname-pattern = "^[A-Z][A-Z0-9-]*$"\n'
-                'description-max-length = 1024\n',
+            for folder in (catalogue, parent):
+                (folder / "contracts").mkdir()
+                (folder / "contracts" / "target-vocab.toml").write_text(
+                    planted, encoding="utf-8", newline="\n"
+                )
+            pack = packs_dir / "p"
+            _write_minimal_pack(pack, name="p")
+            skill_dir = pack / ".apm" / "skills" / "longername"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                "---\nname: longername\ndescription: short.\n---\nBody.\n",
                 encoding="utf-8",
                 newline="\n",
             )
-            args = argparse.Namespace(packs_dir=str(packs_dir))
             buf = io.StringIO()
             with redirect_stderr(buf):
-                rc = cmd_lint_packs(args)
-        self.assertEqual(rc, 1)
-        self.assertIn("name-pattern", buf.getvalue())
-
-
-if __name__ == "__main__":  # pragma: no cover
-    sys.exit(unittest.main())
+                rc = cmd_lint_packs(argparse.Namespace(packs_dir=str(packs_dir)))
+        self.assertEqual(rc, 0, buf.getvalue())
+        self.assertEqual(buf.getvalue(), "")

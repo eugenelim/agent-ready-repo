@@ -18,7 +18,7 @@ Three checks, applied to every pack under a `--packs-dir`:
      exceed the strictest `description-max-length`. Multi-line YAML
      descriptions (`>`, `|`, continuation lines) are refused outright
      rather than mis-parsed. Constraints come from
-     `contracts/target-vocab.toml` — see
+     the bundled `_data/target-vocab.toml`.
 
 The lint is Python-only so it runs on every CI platform without
 shelling out, and it is wired into `make build` / `make build-self` /
@@ -44,11 +44,6 @@ from agentbundle.safety import PathJailError, assert_portable_name
 # their content.
 _PACK_SUBTREES = ("seeds", ".apm")
 
-# Path to the sibling vocab file, relative to a repo root. The loader
-# walks up from a caller-supplied start until an ancestor contains
-# this relative path.
-_VOCAB_RELPATH = Path("contracts/target-vocab.toml")
-
 # Sentinel returned by `_extract_frontmatter_fields` when a key's
 # value position is `>`, `|`, or empty (signaling a folded / nested
 # block). The metadata checks translate this into a finding
@@ -57,7 +52,7 @@ _MULTILINE = object()
 
 
 class Constraints(NamedTuple):
-    """Strictest-cap snapshot of `contracts/target-vocab.toml`.
+    """Strictest-cap snapshot of the bundled `_data/target-vocab.toml`.
 
     `binding_targets` keys (`"description_max"`, `"name_max"`,
     `"name_pattern"`) carry the ASCII-sorted list of targets enforcing
@@ -71,53 +66,31 @@ class Constraints(NamedTuple):
     binding_targets: dict[str, list[str]]
 
 
-def _walk_up_for_vocab(start: Path) -> Path | None:
-    cursor = start.resolve()
-    while True:
-        possible = cursor / _VOCAB_RELPATH
-        if possible.is_file():
-            return possible
-        if cursor.parent == cursor:
-            return None
-        cursor = cursor.parent
+def _load_target_vocab() -> tuple[dict | None, str | None]:
+    """Load the bundled `_data/target-vocab.toml`; no other source is tried.
 
+    Returns `(vocab_dict, None)` on success, `(None, err)` when the bundled
+    copy is missing, unreadable or malformed. `err` names the file."""
+    # Imported here so a patch of `agentbundle.build.main._read_bundled`
+    # reaches this call; `agentbundle.build.main` as an attribute of the
+    # package is rebound to the CLI function.
+    from agentbundle.build.main import _read_bundled
 
-def _load_target_vocab(start: Path) -> tuple[dict | None, str | None]:
-    """Walk up from `start` looking for `contracts/target-vocab.toml`;
-    then fall back to the bundled engine copy. This keeps the gate working when
-    an adopter points `--packs-dir` at a tree outside the repo and when the
-    engine runs from an installed artifact. Returns `(vocab_dict, None)` on
-    success, `(None, err)` when both sources fail or the file is malformed."""
-    candidate = _walk_up_for_vocab(start)
-    source = str(candidate) if candidate is not None else None
-    text = candidate.read_text(encoding="utf-8") if candidate is not None else None
-    if text is None:
-        try:
-            from importlib.resources import files
-
-            resource = files("agentbundle").joinpath(
-                f"_data/{_VOCAB_RELPATH.name}"
-            )
-            if resource.is_file():
-                source = str(resource)
-                text = resource.read_text(encoding="utf-8")
-        except (FileNotFoundError, ModuleNotFoundError):
-            pass
-    if text is None:
+    try:
+        text = _read_bundled("target-vocab.toml")
+    except (OSError, UnicodeDecodeError) as exc:
         return None, (
-            "lint-packs: target-vocab.toml not found (walked up from "
-            f"{start} and checked bundled package data; expected "
-            f"{_VOCAB_RELPATH.as_posix()} or _data/{_VOCAB_RELPATH.name})"
+            f"lint-packs: cannot read bundled _data/target-vocab.toml: {exc}"
         )
     try:
         raw = tomllib.loads(text)
     except tomllib.TOMLDecodeError as exc:
-        return None, f"lint-packs: failed to parse {source}: {exc}"
+        return None, f"lint-packs: failed to parse _data/target-vocab.toml: {exc}"
     targets = raw.get("target")
     if not isinstance(targets, dict) or not targets:
         return None, (
-            f"lint-packs: {source} has no [target.<name>] tables — "
-            f"the metadata gate has no constraints to apply"
+            "lint-packs: _data/target-vocab.toml has no [target.<name>] tables — "
+            "the metadata gate has no constraints to apply"
         )
     return raw, None
 
@@ -499,14 +472,14 @@ def lint_pack(
         from agentbundle.build import route_lookup
         from agentbundle.build.hook_wiring_rules import claude_projection_paths
         from agentbundle.build.main import (
+            _load_bundled_toml,
             _load_distribution_route_contract,
-            _read_bundled,
         )
         from agentbundle.build.projections.plugin_hooks import compile_plugin_hooks
 
         contract_data = contract
         if contract_data is None:
-            contract_data = tomllib.loads(_read_bundled("adapter.toml"))
+            contract_data = _load_bundled_toml("adapter.toml")
         try:
             route_data = _load_distribution_route_contract()
             route_declarations = route_lookup.read_route_declarations(route_data)
@@ -597,7 +570,7 @@ def cmd_lint_packs(args: argparse.Namespace) -> int:
     if not packs_dir.exists():
         print(f"lint-packs: packs-dir not found: {packs_dir}", file=sys.stderr)
         return 1
-    vocab, err = _load_target_vocab(packs_dir)
+    vocab, err = _load_target_vocab()
     if err is not None:
         print(err, file=sys.stderr)
         print(

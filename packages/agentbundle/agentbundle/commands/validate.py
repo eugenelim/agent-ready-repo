@@ -18,7 +18,6 @@ Usage (wired by cli.py):
 
 from __future__ import annotations
 
-import json
 import sys
 import tomllib
 from pathlib import Path
@@ -51,20 +50,8 @@ def valid_recipes() -> frozenset[str]:
     return _NON_ROUTE_RECIPES | frozenset(default_recipes())
 
 
-# Location of pack.schema.json relative to the repo root.  The schema is
-# bundled in contracts/ and is also bundled at
-# agentbundle/_data/pack.schema.json for zipapp use.
+# pack.schema.json ships at agentbundle/_data/pack.schema.json.
 _HERE = Path(__file__).resolve().parent
-
-
-def _schema_path() -> Path:
-    """Locate pack.schema.json — bundled copy preferred, dev fallback."""
-    bundled = _HERE.parent / "_data" / "pack.schema.json"
-    if bundled.exists():
-        return bundled
-    # Dev fallback: walk up from agentbundle/ package to repo root.
-    repo_root = _HERE.parent.parent.parent.parent
-    return repo_root / "contracts" / "pack.schema.json"
 
 
 def _conformance_fixtures_dir() -> Path:
@@ -142,15 +129,13 @@ def run(args) -> int:
         return gate
 
     # ── 3. Schema validation ──────────────────────────────────────────────
-    schema_path = _schema_path()
-    if not schema_path.exists():
-        print(
-            f"validate: pack.schema.json not found at {schema_path}",
-            file=sys.stderr,
-        )
-        return 1
+    from agentbundle.build.main import _load_bundled_json
 
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    try:
+        schema = _load_bundled_json("pack.schema.json")
+    except (OSError, ValueError) as exc:
+        print(f"validate: {exc}", file=sys.stderr)
+        return 1
 
     # Import validate_instance from F-build (library-first).
     from agentbundle.build.validate import validate as validate_instance
@@ -509,17 +494,9 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
     truth; no module-level cache so a test-time swap is visible
     immediately.
     """
-    from agentbundle.build.contract import load as load_contract
+    from agentbundle.build.main import _load_bundled_toml
 
-    here = Path(__file__).resolve().parent
-    bundled = here.parent / "_data" / "adapter.toml"
-    if bundled.exists():
-        contract_path = bundled
-    else:
-        contract_path = here.parent.parent.parent.parent / "contracts" / "adapter.toml"
-        if not contract_path.exists():
-            return None, None
-    contract = load_contract(contract_path)
+    contract = _load_bundled_toml("adapter.toml")
     adapters = contract.get("adapter", {})
     # Prefer the kiro-ide block (v0.9+); fall back to kiro alias (older contracts).
     kiro = adapters.get("kiro-ide") or adapters.get("kiro") or {}
@@ -544,22 +521,11 @@ def _load_adapter_contract() -> dict:
     ``_kiro_ide_hook_vocabularies`` — the contract file is the source of
     truth; no module-level cache so a test-time swap is visible.
 
-    Returns an empty dict when neither the bundled nor the dev-checkout
-    path exists (keeps the enumeration rail a no-op rather than crashing).
+    A missing or unparsable bundled copy raises; no other source is tried.
     """
-    from agentbundle.build.contract import load as load_contract
+    from agentbundle.build.main import _load_bundled_toml
 
-    here = Path(__file__).resolve().parent
-    bundled = here.parent / "_data" / "adapter.toml"
-    if bundled.exists():
-        contract_path = bundled
-    else:
-        contract_path = (
-            here.parent.parent.parent.parent / "contracts" / "adapter.toml"
-        )
-        if not contract_path.exists():
-            return {}
-    return load_contract(contract_path)
+    return _load_bundled_toml("adapter.toml")
 
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:
@@ -577,7 +543,6 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
     resolved scope is user (so a Copilot-bearing pack at
     ``default-scope = "repo"`` admits cleanly).
     """
-    import tomllib
 
     from agentbundle.scope import (
         shipped_adapters_from_contract,
@@ -613,10 +578,10 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
         if user_eligible and name not in user_capable:
             # Read the bundled contract version once so the message
             # tracks the v0.7 bump without per-spec edits.
-            from agentbundle.build.main import _read_bundled
+            from agentbundle.build.main import _load_bundled_toml
 
             cv = (
-                tomllib.loads(_read_bundled("adapter.toml"))
+                _load_bundled_toml("adapter.toml")
                 .get("contract", {})
                 .get("version", "?")
             )

@@ -51,6 +51,7 @@ the spec corpus disagree.
 | `contracts/adapter.toml` | `docs/specs/distribution-route-contract/` |
 | `contracts/adapter.toml` | `docs/specs/enriched-pack-manifest/` |
 | `contracts/agent-plugin-extension-namespaces.toml` | `docs/specs/portable-agent-plugin-projection/` |
+| `contracts/catalogue-spec.toml` | `docs/specs/catalogue-spec-manifest/` |
 | `contracts/distribution-routes.toml` | `docs/specs/distribution-route-contract/` |
 | `contracts/distribution-routes.toml` | `docs/specs/distribution-route-registry/` |
 | `contracts/distribution-routes.toml` | `docs/specs/portable-agent-plugin-projection/` |

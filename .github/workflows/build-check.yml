@@ -878,6 +878,15 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_agentbundle_governance_markers.py
 
+      # catalogue-spec-manifest: lint, verify, package and index run in fresh
+      # subprocesses under a file-open recorder, and every contract they read
+      # must come from the bundled copy. It reads contracts/ and packages/, above
+      # the sdist, so it cannot live in the package suite. Placed ABOVE the bulk
+      # tests/ step, which also collects it, for named failure attribution.
+      - name: pytest catalogue specification contract loads (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_catalogue_spec_contract_loads.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |

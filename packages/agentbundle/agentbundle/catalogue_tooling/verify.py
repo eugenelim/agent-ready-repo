@@ -117,9 +117,9 @@ def _info(code: str, message: str, pack: str | None = None, path: str | None = N
 
 def _load_bundled_json(name: str) -> dict:
     """Load a JSON contract through the package's zipapp-safe reader."""
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_json as _load
 
-    return json.loads(_read_bundled(name))
+    return _load(name)
 
 
 def _path_is_junction(path: Path) -> bool:
@@ -220,8 +220,8 @@ def _step_pack_schema(
 
     try:
         schema = _load_bundled_json("pack.schema.json")
-    except (OSError, ValueError):
-        return []
+    except (OSError, ValueError) as exc:
+        return [_err("CAT-V-003", f"bundled contract unavailable: _data/pack.schema.json: {exc}")]
 
     diags: list[Diagnostic] = []
     for pack_dir in sorted(packs_dir.iterdir()):
@@ -1291,7 +1291,7 @@ def _step_plugin_manifests(
         return []
 
     try:
-        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.main import _load_bundled_json
         from agentbundle.build.validate import validate as _validate_manifest
     except ImportError:
         return []
@@ -1306,7 +1306,7 @@ def _step_plugin_manifests(
     # never a quiet pass.
     def _load(name: str) -> dict | None:
         try:
-            return json.loads(_read_bundled(name))
+            return _load_bundled_json(name)
         except Exception as exc:
             diags.append(_err(
                 "CAT-V-013",

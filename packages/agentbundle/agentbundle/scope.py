@@ -27,7 +27,6 @@ This module is import-cheap (no I/O at import time) so the CLI's
 
 from __future__ import annotations
 
-import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable
 
@@ -254,9 +253,9 @@ def _load_bundled_contract() -> dict:
     `Path(__file__).parent` — `__file__` inside a zipapp isn't a real
     filesystem path and `Path.read_text()` raises NotADirectoryError.
     """
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    return tomllib.loads(_read_bundled("adapter.toml"))
+    return _load_bundled_toml("adapter.toml")
 
 
 def shipped_adapters_from_contract() -> tuple[str, ...]:

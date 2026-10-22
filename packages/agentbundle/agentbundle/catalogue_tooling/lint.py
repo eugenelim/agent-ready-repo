@@ -201,22 +201,11 @@ def _sort_key(d: Diagnostic) -> tuple:
     return (d.pack or "", d.path or "", d.line or 0, d.col or 0, d.code)
 
 
-def _load_pack_schema() -> dict | None:
-    try:
-        from importlib.resources import files
-        resource = files("agentbundle").joinpath("_data/pack.schema.json")
-        if resource.is_file():
-            return json.loads(resource.read_text(encoding="utf-8"))
-    except Exception:
-        pass
-    here = Path(__file__).resolve()
-    schema_path = here.parents[1] / "_data" / "pack.schema.json"
-    if schema_path.exists():
-        try:
-            return json.loads(schema_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return None
+def _load_pack_schema() -> dict:
+    """Return the bundled pack schema, or raise when it is missing or unparsable."""
+    from agentbundle.build.main import _load_bundled_json
+
+    return _load_bundled_json("pack.schema.json")
 
 
 def _parse_frontmatter(text: str) -> dict[str, str] | None:
@@ -1695,14 +1684,15 @@ class _PackRules:
         pt = self._get_pack_toml()
         if pt is None:
             return []
-        schema = _load_pack_schema()
-        if schema is None:
+        try:
+            schema = _load_pack_schema()
+        except (OSError, ValueError) as exc:
             return [_diag(
                 DiagnosticCode.CAT_L006,
-                Severity.WARN,
-                "pack.schema.json not found; skipping schema validation",
+                Severity.ERROR,
+                f"cannot load bundled _data/pack.schema.json: {exc}",
                 pack=self._name,
-                remediation="Ensure pack.schema.json is bundled with agentbundle.",
+                remediation="Reinstall agentbundle so _data/pack.schema.json is present.",
             )]
         from agentbundle.build.validate import validate
         errors = validate(pt, schema)
