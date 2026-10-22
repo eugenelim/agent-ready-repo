@@ -1,7 +1,7 @@
 # Plan: Intent view readiness bridge
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0108 D3; `packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py` `run_export`, `build_view_payload`, `_build_cli_parser` and the `_load_view_mod` loader pattern (a co-located module loaded by path under a unique name); `scripts/intent_view.py` `_SCRIPT_PARTS` and `data_block_json`; `view_src/lists.js` `startableIds` and `brokenEntries`, `view_src/list-bodies.js` `bodyNext` and `brokenRow`; `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py` `_canonical_projection` and `_canonical_failure_payload` (the input's producer), and `workspace_status_engine.py` `_FINDING_NEXT_ACTIONS`; tests `test_independence.py` `test_workspace_toml_absent_present_unreadable_give_identical_results`, `view_browser_checks.py` `_export`, `_rewrite` and `Opened`. Deviation: the export gains its first non-Git input, standard input, under the checks of spec AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011 and AC-0012.
 
 ## Approach

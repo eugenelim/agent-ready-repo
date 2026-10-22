@@ -254,3 +254,15 @@ Report paths are under `.context/reviews/116dcdd2-c25d-41bc-81f5-09e52d745a7a/`,
 | Post-gates round 2, quality (`2-post-gates-quality-engineer-raw.md`) | 1 Nit deferred: no test for the readiness-module refusal message |
 
 AC-0045, experience re-review of the 32 screens regenerated at `fd4d89546` (hashes above): verdict "SHIP IT", no Blocker, Major or Minor (`2-post-gates-experience-reviewer-raw.md`). One Nit, deferred and not acted on: a short "What is broken?" list card keeps the rail's height at 1680 and 2560 px, leaving blank space under its last row. With round 1's Majors refuted and its Minors resolved as above, no Major or Blocker finding remains after adjudication.
+
+## AC-0042 CPU time at `fd4d89546` (load-independent)
+
+Wall-clock time on this shared machine tracks its load, not the export: at load average 205 to 247 the export without `--readiness` took 12.5, 30.2 and 40.5 s, and the two 4,194,304-byte inputs took 27.7 to 56.6 s. CPU time is the load-independent measure of the export's own work. Measured as user plus system time of the export process and every child it waited for (its Git calls), through `resource.getrusage(RUSAGE_CHILDREN)`, three runs each:
+
+| Input | CPU seconds | Result |
+| --- | --- | --- |
+| none (no `--readiness`) | 2.72, 2.40, 2.59 | `ok` |
+| default 4 MiB input (20,107 blocked entries) | 2.58, 2.79, 2.57 | `ok`, readiness checked |
+| `--distinct-codes` 4 MiB input (21,131 distinct codes on one record) | 2.40, 2.38, 2.30 | `ok`, readiness checked |
+
+Every run used at most 2.79 s of CPU, under the 5 s bound, and the readiness input adds no measurable CPU over the export without it. With the wall-clock runs at load average 35 to 41 above (4 of 6 within 5 s, the two over it at 5.28 and 5.38 s, the first run of each mode), this is the AC-0042 evidence: the export's work fits within 5 s, and only machine contention takes wall time past it.
