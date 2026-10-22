@@ -1,7 +1,7 @@
 # Spec: Intent view record owners
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-21 by eugenelim, spec and plan, at revision 5a8a691e1, after spec-mode shaping and adversarial reviews, each clean after adjudication at round 8; reports under `.context/reviews/6aa4e0b5-a803-41fb-964f-84d041130fdd/`.
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-21 by eugenelim, spec and plan, at revision 5a8a691e1, after spec-mode shaping and adversarial reviews, each clean after adjudication at round 8; reports under `.context/reviews/6aa4e0b5-a803-41fb-964f-84d041130fdd/`. Re-approved 2026-10-22 by eugenelim at revision 7bd2592bb after a controlled amendment of AC-0032's difference 3 and T5, adversarial review clean after adjudication at round 2; reports under `.context/reviews/8f9fbaf0-ab75-48bc-a562-53aa5552abd1/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108 (D1 rules 1 to 10 as corrected by its errata entries), ADR-0007, ADR-0074
