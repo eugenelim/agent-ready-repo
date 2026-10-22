@@ -59,7 +59,7 @@ python3 <skill-dir>/scripts/navigate_intents.py query \
 
 ### record
 
-Returns all recorded fields for one intent: its node id, path, `Level:`, `Kind:`, and exact `Status:`; its resolved or refused parent edge; its child intents; the related intents it writes (`related_written_here`) and the intents that write it as related (`related_written_elsewhere`); the briefs and specs placed under it; and the delivery resolver's (the component that matches briefs and specs to their covering intents) relations and diagnostics for it.
+Returns all recorded fields for one intent: its node id, path, `Level:`, `Kind:`, exact `Status:`, and `owner`; its resolved or refused parent edge; its child intents; the related intents it writes (`related_written_here`) and the intents that write it as related (`related_written_elsewhere`); the briefs and specs placed under it; and the delivery resolver's (the component that matches briefs and specs to their covering intents) relations and diagnostics for it.
 
 ```bash
 python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
@@ -100,7 +100,7 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
 
 ### search
 
-Filters live intents by level, kind, exact status, parentless status, or a text match. Pass selectors as a JSON object with one or more of the keys `level`, `kind`, `exact_status`, `parentless`, and `text`. The `text` selector matches the slug or the first `# ` heading, case-insensitively. An unknown key returns an error instead of silently ignoring it. If the result is too large, add selectors to narrow it.
+Filters live intents by level, kind, exact status, parentless status, owner, or a text match. Pass selectors as a JSON object with one or more of the keys `level`, `kind`, `exact_status`, `parentless`, `owner`, and `text`. The `text` selector matches the slug or the first `# ` heading, case-insensitively. The `owner` selector matches an intent's `Owner:` header, ignoring the case of A to Z and repeated spaces or tabs; `""` matches intents with no owner recorded. An unknown key returns an error instead of silently ignoring it. If the result is too large, add selectors to narrow it.
 
 ```bash
 python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
@@ -112,7 +112,7 @@ python3 <skill-dir>/scripts/navigate_intents.py query --root <repo-root> \
 
 `outstanding` returns every intent, brief, and spec in a non-terminal state. A terminal state (such as Fulfilled or Archived) means the work is done. An item is outstanding when its leading status word is not terminal.
 
-Each item is placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. Each item carries its ancestor chain up to a root. A terminal ancestor is included in the chain and marked `terminal`. Each spec placement names the pointer field (`Brief:` or `Discovery:`) and, where the delivery resolver found one, the relation type. A spec placed by both `Brief:` and `Discovery:` appears under both its parent brief and its parent intent.
+Each item is placed under its parent intent. Items with no resolved parent appear at the end in a `(no parent)` group. Each item carries its ancestor chain up to a root. A terminal ancestor is included in the chain and marked `terminal`. Each spec placement names the pointer field (`Brief:` or `Discovery:`) and, where the delivery resolver found one, the relation type. A spec placed by both `Brief:` and `Discovery:` appears under both its parent brief and its parent intent. Every item carries `owner`, the record's first `Owner:` header value as written, or empty when it has none; text output does not show it.
 
 In text output, a terminal ancestor that places an outstanding item prints as a context line ending `· (terminal ancestor)`. That line is not itself outstanding.
 
@@ -211,9 +211,11 @@ The page opens on six questions, each a link in the page's nav, grouped by the j
 
 A search box in the header covers intents, briefs, and specs.
 
+An **Owner** control beside it narrows every question, and the search, to one owner. Owners that differ only in letter case or spacing count as one. Pick "No owner recorded" to find records with no `Owner:` header. The choice stays when you switch question. Under an owner, Browse and Capability progress keep other owners' parents visible as rows marked "context", and the numbers inside a row (open counts, closed tallies and progress) still count all the work beneath it.
+
 The **Dependencies** part of a detail panel lists "A waits for B" lines for the picked intent. **Show** chooses prerequisites, dependents, or both, and **Steps** chooses how far to follow them. Problems are listed below the lines and in "What is broken?". The part says it does not decide whether work can start, and the Key explains its marks.
 
-Each row leads with the human name, shows its state as a word plus a shape inside a pale tinted label (so colour is never the only cue), and carries a context tag. A **Key** opens on demand to explain the marks.
+Each row leads with the human name, shows its state as a word plus a shape inside a pale tinted label (so colour is never the only cue), and carries a context tag, then ends with the record's owner, or "No owner recorded". A **Key** opens on demand to explain the marks.
 
 Selecting a row opens a detail panel: the state line; a **Next step** that says in plain words what to do and why, with a ready-to-paste prompt where a skill can start the work (see [The hand-over prompt](#the-hand-over-prompt)); what is open beneath the item; what is broken; where it sits in the graph; a **Dependencies** part; a link to its source file; and collapsed record details with the header facts, including two "Depends on" groups. A broken entry shows as a tinted callout with its diagnostic text in monospace. The layout changes at narrow and wide widths, the page works from the keyboard, and light and dark follow your system. Hover and selection fade briefly, and the detail fades in as it changes; if your system asks for reduced motion, the page does not move at all.
 

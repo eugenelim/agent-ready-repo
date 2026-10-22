@@ -6,6 +6,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108 (as corrected by its 2026-10-16 and 2026-10-17 errata entries)
 - **Amended in part by:** [intent-view-readiness-handover](../intent-view-readiness-handover/spec.md) — its criterion 0004 and its Ask-first "Any change to the payload, a `query` output, or any derivation", as that spec's `Amends:` line states.
+- **Amended in part by:** [intent-view-record-owners](../intent-view-record-owners/spec.md) — criteria 0004, 0005, 0007, 0012, 0019, 0025, 0030, 0031, 0032, 0033, 0034, 0035, 0036, 0038, 0041, 0049 and 0053, its Always-do on building from the payload, and its Ask-first rules on the payload and on controls beyond Show, Group, Expand all and Collapse all, as that spec's `Amends:` line states.
 - **Amends:** [intent-view-session-start](../intent-view-session-start/spec.md), by criterion:
   - 0001 (five destinations, their order, counts and list header) — replaced by AC-0001 to AC-0004 and AC-0050;
   - 0007 (sort keys) — extended by AC-0010 for the new question and by AC-0052 for Browse under each Group choice and under filters; 0008 (empty lines) — extended by AC-0011;

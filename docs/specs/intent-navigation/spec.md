@@ -3,6 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-08 by eugenelim, spec and plan together, after a converged spec-mode shaping review and a clean adjudicated adversarial review (six rounds; reports under `.context/reviews/c586f715-e2c3-4e84-9f20-427ddf196e44/`).
 - **Amended in part by:** [related-intents-field](../related-intents-field/spec.md) — criteria AC-0003, AC-0007, AC-0016, AC-0017, AC-0071, AC-0072, and AC-0076, for the `Related intents:` field only; and [intent-node-headings](../intent-node-headings/spec.md) — criterion AC-0015, for the heading `search` matches.
+- **Amended in part by:** [intent-view-record-owners](../intent-view-record-owners/spec.md) — criteria 0015, 0072 and 0076 for the `owner` field and `search` selector, and its Ask-first "Changing the query schema…", as that spec's `Amends:` line states.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0103, ADR-0112, ADR-0007, ADR-0074
