@@ -1174,6 +1174,18 @@ def test_search_owner_selector_matches_readme_ac0005() -> None:
         assert [e["id"] for e in result["intents"]] == helpers._id_list(ids), value
 
 
+def test_search_non_owner_selectors_match_readme_ids() -> None:
+    """Each non-owner selector row in the README returns exactly the intent ids it states."""
+    _skip_if_module_absent()
+    helpers = _load_readme_helpers()
+    rows = helpers._owners_readme_tables(_FIXTURE_OWNERS)["Non-owner selector table"]
+    assert rows
+    for selector, value, ids in rows:
+        result, code = _query(_FIXTURE_OWNERS, *_selectors({selector: json.loads(value)}))
+        assert code == 0, selector
+        assert [e["id"] for e in result["intents"]] == helpers._id_list(ids), selector
+
+
 @pytest.mark.parametrize("value", [1, None, ["a"], True])
 def test_search_owner_selector_non_string_is_invalid_ac0005(value: object) -> None:
     """A non-string owner selector returns invalid_selector."""

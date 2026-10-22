@@ -6426,7 +6426,7 @@ def test_owner_key_helper_agrees_with_the_readme() -> None:
     assert {k for _l, k in options if k} == keys - {""}
     for label, key in options:
         if key:
-            assert _owner_key(label) == key or label.strip() != label or "  " in label, label
+            assert _owner_key(label) == key, label
     assert _owner_key("Édith Team") == "Édith team"
     assert _owner_key("Team  Two") == _owner_key("TEAM TWO") == "team two"
 
@@ -6656,7 +6656,7 @@ def _check_flat_against_any(
     assert any_["line"] is None, where
     assert got["title"] == any_["title"], where
     if want_rows:
-        assert got["empty"] == [] or any_["empty"] != [] or got["rows"], (where, label)
+        assert got["empty"] == [], (where, label)
         return "narrowed" if len(want_rows) < len(any_["rows"]) else "same"
     return "empty"
 
@@ -7195,8 +7195,6 @@ def test_owner_filtered_browse_equals_search_with_owner_ac_0016(
                     found = _owner_search_ids(payload, selectors, value)
                     want = model.by_name(i for i in found if show == "all" or (i in model.open) == (show == "open"))
                     where = (name, filters, show, label)
-                    if show == "all" and name == "owners":
-                        assert set(want) == set(found), where
                     if want:
                         assert _ids(page) == want, where
                         assert page.locator("#list .tree, #list details, #list .context-only, #list .ctx-tag").count() == 0
@@ -7330,7 +7328,9 @@ def test_owner_roadmap_general_rule_ac_0018_0019_0013_0020_0021_0022(
     assert states >= 20
     # The README's scoped export lists no capability under Owner-One or owner-two.
     item = opener(scoped)
-    for choice in ("Owner-One", "owner-two"):
+    empty_choices = _readme_helpers()._id_list(dict(_owners_tables()["Scoping"])["Empty scoped Browse choices"])
+    assert empty_choices
+    for choice in empty_choices:
         _choose(item, "roadmap", owner=dict(_page_options(item.page))[choice])
         assert item.page.locator("#list a.row-link").count() == 0 and item.page.locator("#list .rm-section").count() == 0
         _choose(item, "browse", owner=dict(_page_options(item.page))[choice])
@@ -7360,16 +7360,6 @@ def test_owner_browse_and_roadmap_announce_title_and_count_ac_0017(opener: Any, 
 _README_FILTERS = {"level": "capability", "kind": "outcome", "status": "Withdrawn"}  # the README's filter values
 _QUESTION_FILTERS = {"noparent": ("type", "level"), "browse": ("level", "kind", "status")}
 _FILTER_WORDS = {"type": "type", "level": "level", "kind": "kind", "status": "status"}
-_ADMITTED = (
-    "1 rows that are not matching records (8: the start tag with its row)",
-    "2 context tag text",
-    "3 counts that differ, and the detail pane's list summary",
-    "4 subtree toggle text that differs",
-    "5 the owner line",
-    "6 a subheading holding no row link",
-    "7 the narrowed empty state",
-    "9 the control's selected option (no text node)",
-)
 
 
 def _diff_routes(unavailable: bool, search: str) -> list[dict[str, str]]:
@@ -7429,11 +7419,9 @@ def _toggles(tokens: list[dict[str, Any]]) -> dict[str, tuple[str, ...]]:
 
 
 def _remainder(
-    any_doc: dict[str, Any], own_doc: dict[str, Any], *, skip: frozenset[str] = frozenset()
+    any_doc: dict[str, Any], own_doc: dict[str, Any]
 ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
     """Both pages' text nodes, in order, with only the differences AC-0032 admits taken out.
-
-    *skip* names admitted differences to leave in, so a check can prove each one is needed.
     """
     keep = {r["node"] for r in own_doc["rows"]}
     context_before = {r["node"] for r in any_doc["rows"] if r["tag"] is not None}  # context under Show already
@@ -7450,19 +7438,19 @@ def _remainder(
         for t in doc["tokens"]:
             cat = t["cat"]
             if cat == "row":
-                if is_any and t["key"] not in keep and "1" not in skip:
+                if is_any and t["key"] not in keep:
                     continue  # 1 (and 8, the start tag, which sits inside its row)
-                if not is_any and t["sub"] == "ctxtag" and t["key"] not in context_before and "2" not in skip:
+                if not is_any and t["sub"] == "ctxtag" and t["key"] not in context_before:
                     continue  # 2: a context row the owner choice adds
-                if t["sub"] == "toggle" and t["key"] in toggle_differs and "4" not in skip:
+                if t["sub"] == "toggle" and t["key"] in toggle_differs:
                     continue  # 4
-            elif cat in counts and (cat, t["key"]) in count_differs and "3" not in skip:
+            elif cat in counts and (cat, t["key"]) in count_differs:
                 continue  # 3
-            elif cat == "ownerline" and not is_any and "5" not in skip:
+            elif cat == "ownerline" and not is_any:
                 continue  # 5
-            elif cat == "head" and is_any and t["key"] not in own_heads and "6" not in skip:
+            elif cat == "head" and is_any and t["key"] not in own_heads:
                 continue  # 6
-            elif cat == "empty" and not is_any and emptied and "7" not in skip:
+            elif cat == "empty" and not is_any and emptied:
                 continue  # 7
             out.append((cat + ":" + t["sub"], t["t"]))
         return out
@@ -7509,6 +7497,16 @@ def _check_pair(
         assert int(own_count[0].split(" ")[0]) == plain, (where, label, own_count)
     else:
         assert own_count == any_count, (where, label)
+    # AC-0020: the current question's rail count is that same number, or stays unknown. Browse has no rail count,
+    # and the rail count ignores a filter or a search, so it is compared only on the question's unfiltered list.
+    own_rail = [t["t"] for t in own_doc["tokens"] if t["cat"] == "qcount" and t["key"] == route["q"]]
+    any_rail = [t["t"] for t in any_doc["tokens"] if t["cat"] == "qcount" and t["key"] == route["q"]]
+    if route["q"] != "browse" and set(route) == {"q"}:
+        assert own_rail and any_rail, (where, label, own_rail, any_rail)
+        if any_rail[0][0].isdigit():
+            assert own_rail[0].split(" ")[0] == str(plain), (where, label, own_rail, plain)
+        else:
+            assert own_rail == any_rail, (where, label, own_rail, any_rail)
     # The line, and the empty state.
     line = [t["t"] for t in own_doc["tokens"] if t["cat"] == "ownerline"]
     assert line == [_owner_line(label, value)], (where, label, line)
@@ -7524,7 +7522,7 @@ def _check_pair(
 
 
 def _differential_sweep(
-    item: Opened, payload: dict[str, Any], choices: list[tuple[str, str]], name: str, search: str, *, skip: frozenset[str] = frozenset()
+    item: Opened, payload: dict[str, Any], choices: list[tuple[str, str]], name: str, search: str
 ) -> dict[str, int]:
     """Each owner choice's page against the Any owner page, over every route, with all rows open."""
     unavailable = payload["outstanding"].get("available") is False
@@ -7538,7 +7536,7 @@ def _differential_sweep(
             own_doc = _read_doc(item)
             where = f"{name} {route}"
             assert item.page.locator("#owner").input_value() == value, (where, label)
-            a, b = _remainder(any_doc, own_doc, skip=skip)
+            a, b = _remainder(any_doc, own_doc)
             assert a == b, (where, label, _first_difference(a, b))
             _check_pair(payload, route, any_doc, own_doc, label, value, where)
             stats["states"] += 1

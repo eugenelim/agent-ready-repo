@@ -257,7 +257,8 @@ the system light or dark theme.
 
 Every row ends with its record's owner ("Owner: <value>", or "No owner
 recorded").  An Owner control in the header narrows every question and the
-search to one owner, matched ignoring letter case and repeated spaces; it is
+search to one owner, matched ignoring the case of A to Z and treating any run
+of spaces or tabs as one space; it is
 kept when you switch question.  Under an owner, "Browse all intents" and
 "Capability progress" keep other owners' parents as marked context rows, and
 the numbers inside a row (open counts, closed tallies, progress) still count

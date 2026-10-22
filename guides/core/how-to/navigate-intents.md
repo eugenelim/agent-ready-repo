@@ -211,7 +211,7 @@ The page opens on six questions, each a link in the page's nav, grouped by the j
 
 A search box in the header covers intents, briefs, and specs.
 
-An **Owner** control beside it narrows every question, and the search, to one owner. Owners that differ only in letter case or spacing count as one. Pick "No owner recorded" to find records with no `Owner:` header. The choice stays when you switch question. Under an owner, Browse and Capability progress keep other owners' parents visible as rows marked "context", and the numbers inside a row (open counts, closed tallies and progress) still count all the work beneath it.
+An **Owner** control beside it narrows every question, and the search, to one owner. Owners that differ only in the case of the letters A to Z, or in runs of spaces and tabs, count as one; other letters, such as É and é, stay distinct. Pick "No owner recorded" to find records with no `Owner:` header. The choice stays when you switch question. Under an owner, Browse and Capability progress keep other owners' parents visible as rows marked "context", and the numbers inside a row (open counts, closed tallies and progress) still count all the work beneath it.
 
 The **Dependencies** part of a detail panel lists "A waits for B" lines for the picked intent. **Show** chooses prerequisites, dependents, or both, and **Steps** chooses how far to follow them. Problems are listed below the lines and in "What is broken?". The part says it does not decide whether work can start, and the Key explains its marks.
 
