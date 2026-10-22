@@ -43,7 +43,8 @@ and needs a security-reviewer pass.
   `delivery/` lag rule, and the step order. This plan adds two steps:
   - the open-attempt check, before core `next` step 1;
   - recording the manifest in the supervisor store whenever core step 4 issues
-    or re-issues a worker request.
+    or re-issues a worker, `run-gates`, or `regenerate` request, and when the
+    supervisor launches a red proof or scratch receipt with no attempt open.
 
 ## Construction tests
 
@@ -104,7 +105,8 @@ and needs a security-reviewer pass.
   trailers, as core reads them; replace refs and graft files are never honored.
   An attempt's report is recorded in the store, so a rebase does not reopen it.
 - **Supervisor store.** `<pinned Git directory>/agentbundle-supervisor/<run id>/`
-  holds the pinned digests, manifests, refusal records, and made-commit ids.
+  holds the pinned digests, manifests, refusal records, recorded regenerate
+  source digests, and made-commit ids.
   Residue derives only from its refusal records, so deleting core's caches
   neither clears residue nor loses a manifest or a pin.
 - **Bytecode.** Each entry point sets `sys.dont_write_bytecode = True` and
@@ -113,13 +115,17 @@ and needs a security-reviewer pass.
 - **Regeneration.** Only when `HEAD` holds `packs/core/.apm/skills/work-loop/`,
   the supervisor computes digests of that source's bytes. It emits `regenerate`
   when review readiness holds and those digests differ from the installed
-  skill's. While the request is open, entry points accept either the pinned
-  digests or the source digests. It admits the result only on a match, then
-  re-pins.
-- **First pin.** The admitted `start` that finds no pin record for its run
-  computes the pinned digests from the installed bytes before loading any
-  sibling and writes them to the supervisor store. Every other entry point, and
-  any later `start` for the run, compares against that record (T4).
+  skill's, and records them in the supervisor store as it issues the request.
+  While the request is open, entry points accept either the pinned digests or
+  those recorded source digests. It admits the result only when every file of
+  the installed skill equals the source at `HEAD`, then re-pins.
+- **First pin.** The admitted `start` that finds no pin record for its run,
+  when its store already holds its made-commit record and its supervisor
+  commits are only its first approval and terminal steps, computes the pinned digests from the installed bytes before loading any
+  sibling and writes them to the supervisor store after the approval commit
+  lands. Every other entry point, and any later `start` for the run, compares
+  against that record; a run admitted before pinning shipped is never pinned
+  (T4).
 - **Windows Job Object.** The process is created by `CreateProcessW` with
   `CREATE_SUSPENDED | CREATE_NEW_PROCESS_GROUP | EXTENDED_STARTUPINFO_PRESENT`.
   A `STARTUPINFOEX` attribute list carries `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`,
@@ -227,13 +233,26 @@ Owned by: T1, T2, T3, T4, T5.
     are deleted. The first admitted `start` records the pins, and a second
     `start` neither overwrites nor accepts a differing record. After admission,
     a missing or malformed pin record gives `supervisor-changed`. A malicious `.pyc` never runs.
+    A run admitted before pinning shipped is refused `supervisor-changed`,
+    `start` included, even with only its first approval. A run directory with no
+    pin record refuses every verb but `start` on its own spec, until that run's
+    `start` pins it; that spec's `start` ignores one whose approval never
+    reached `HEAD`, and other specs are not blocked by it.
+    An installed-file edit during spec A's open attempt, or one spec A's attempt
+    was refused for and has not cleared, is refused on spec B. A crash while
+    creating a store directory leaves no spec-less directory. A case-variant
+    `<spec-dir>` is refused on every host.
   - **VI-5032 (AC-0016):** after readiness, with the pack source edited, exactly
     one `regenerate` is emitted, admitted, and re-pinned. A mismatched install is
-    refused.
+    refused, and so is an install whose non-pinned files (such as `SKILL.md`)
+    differ from the source. With the installed skill tracked in the work tree, `next` answers
+    `uncommitted-changes` after the admission and converges once the controller
+    commits the regenerated skill; a committed skill that differs from the
+    admitted one is refused `supervisor-changed`.
   - **VI-5033 (AC-0017):** under `untrusted` with no attestation, there is no
-    `run-gates` request and no red-proof or scratch launch, and a
-    `human-decision` is emitted.
-- **Done when:** VI-5030 through VI-5033 pass, and security-reviewer returns clean.
+    `run-gates` or `regenerate` request and no red-proof or scratch launch, and
+    a `human-decision` is emitted.
+- **Done when:** VI-5030 through VI-5033 pass, the changelog line says a run admitted before this release is refused and must be started over, and security-reviewer returns clean.
 
 ### T5: Results assert only their kind's facts, under recorded grants
 
@@ -274,5 +293,7 @@ Owned by: T1, T2, T3, T4, T5.
 - 2026-10-20: plan approved by eugenelim
 - 2026-10-20: spec approved by eugenelim
 - 2026-10-20: plan approved by eugenelim
+- 2026-10-21: spec approved by eugenelim
+- 2026-10-21: plan approved by eugenelim
 - 2026-10-21: spec approved by eugenelim
 - 2026-10-21: plan approved by eugenelim

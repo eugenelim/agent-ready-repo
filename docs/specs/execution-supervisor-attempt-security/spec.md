@@ -102,14 +102,19 @@ that leaves open.
   from.
 - **Supervisor store.** `<pinned Git directory>/agentbundle-supervisor/<run id>/`,
   outside the worktree and outside every cache core calls deletable. It holds
-  the pinned digests, each issuance's manifest, each refusal record, and the ids
-  of the commits the supervisor made.
-- **Pinned digests.** The sha256 digests of the installed supervisor modules,
-  `supervisor-policy.json`, and `review-rules.json`. They are held only in the
+  the pinned digests, each issuance's manifest, each refusal record, the source
+  digests recorded when a `regenerate` request is issued, and the ids of the
+  commits the supervisor made.
+- **Pinned digests.** The sha256 digests of every file under the installed
+  skill's `scripts/` except `__pycache__`, and of `supervisor-policy.json` and
+  `review-rules.json`. They are held only in the
   supervisor store, recorded once by the controller-run admitted `start`, and
   replaced only by the AC-0016 re-pin. When no pin record exists for the run,
   that `start` computes them from the installed bytes, without importing a
-  sibling, and records them; it is the only entry point that may do so.
+  sibling, and records them; it is the only entry point that may do so, and
+  only for a run whose store already holds its made-commit record and whose
+  supervisor commits are its first approval and terminal steps. A run admitted
+  before pinning shipped has no store and is never pinned.
 - **Git control state.** The resolved Git directory and common directory pinned
   at admission; the worktree's `.git` gitfile; `commondir`; `refs/replace/`;
   `info/`; `objects/info/alternates`; `hooks/`; every repository and worktree
@@ -120,12 +125,18 @@ that leaves open.
   `assess-finding` request.
 - **Manifest.** Path, size, and sha256 of every trusted file and Git control
   state file, excluding `__pycache__` directories, recorded in the supervisor
-  store each time `next` issues or re-issues a worker request after any residue
-  has cleared, and never re-recorded while that issuance is open. The
+  store each time `next` issues or re-issues a worker, `run-gates`, or
+  `regenerate` request after any residue has cleared, and each time the
+  supervisor launches a red proof or scratch receipt with no attempt open; it
+  is never re-recorded while that issuance is open. The
   supervisor's caches — the journal, `run.json`, locks,
   `security-events.jsonl`, and `.loop-run/` — are not covered.
-- **Open attempt.** An issuance of a worker request that has not been reported,
-  refused, or superseded.
+- **Open attempt.** An issuance that records a manifest — a worker, `run-gates`,
+  or `regenerate` request, or a red proof or scratch receipt the supervisor
+  launches with no attempt open — that has not been reported, refused, or
+  superseded. A launch-owned attempt closes when its launch ends and the
+  post-run check completes; a refusal clears only against the refused
+  issuance's own manifest.
 - **Out-of-helper config read.** A `git config` read that runs no configured
   code, passes the pinned `--git-dir`, runs with the `git` row's environment
   from the Launch grants table, and serves exactly one of two purposes: the
@@ -233,24 +244,37 @@ Launched code, pinning, and trust
   launches or the controller reports — gates, scratch receipts, and red proofs —
   trusted files, Git control state, and `delivery/` are checked again before any
   commit, and a difference refuses the result.
-- [ ] **AC-0014.** Every supervisor entry point compares the installed supervisor
-  modules, `supervisor-policy.json`, and `review-rules.json` with the pinned
-  digests read from the supervisor store before importing any sibling (the
+- [ ] **AC-0014.** Every supervisor entry point compares the installed pinned
+  files with the pinned digests read from the supervisor store before importing any sibling (the
   admitted `start` that records them, per the definition, excepted) — or, while
-  a `regenerate` request is open, with digests computed from the pack source's
-  bytes at `HEAD` without importing it — and refuses with `supervisor-changed`
-  on a mismatch.
+  a `regenerate` request is open, with the digests the supervisor recorded from
+  the pack source's bytes at `HEAD` when it issued that request — and refuses
+  with `supervisor-changed` on a mismatch. It also refuses, on every spec, when
+  the installed pinned files differ from the pins of any run whose store holds
+  an open attempt, or a refused issuance whose residue has not cleared. Each
+  run's store directory appears with its spec record already in it; a run
+  directory with no spec record refuses every spec until it is removed. While a run's store directory has no pin record, every entry point
+  except `start` refuses `supervisor-changed` on that spec, until that run's
+  `start` records its pins; that spec's `start` ignores such a directory when
+  none of its made-commit ids is reachable from `HEAD`, judged through the
+  hardened helper. A `<spec-dir>` whose case differs from the tracked path is
+  refused as a usage error before any sibling loads.
 - [ ] **AC-0015.** A bytecode file placed beside a pinned module is never
   executed.
 - [ ] **AC-0016.** When `HEAD` holds the Core pack's work-loop source, review
   readiness holds, and the installed skill differs from that source, `next`
   emits one `regenerate` request; its result is exempt from the manifest for the
-  installed skill only, and is admitted only when the installed skill's digests
-  equal those the supervisor computes from that source, which it then pins.
-  Without that source at `HEAD`, no `regenerate` is emitted.
+  installed skill only, and is admitted only when every file of the installed
+  skill directory equals that source, after which the supervisor pins it.
+  Without that source at `HEAD`, no `regenerate` is emitted. When the installed
+  skill is tracked in the work tree, the controller commits the regenerated
+  skill; until it does, `next` answers `uncommitted-changes`, and the next
+  issuance first confirms that the committed installed skill equals what was
+  admitted, and refuses `supervisor-changed` when it does not.
 - [ ] **AC-0017.** Under an `untrusted` code-trust classification with no Slice 1
-  verified containment, `next` emits no `run-gates` request and the supervisor
-  launches no red proof or scratch receipt; `next` emits a `human-decision`
+  verified containment, `next` emits no `run-gates` or `regenerate` request and
+  the supervisor launches no red proof or scratch receipt; `next` emits a
+  `human-decision`
   naming re-approval as `trusted` or supplying containment.
 
 Result facts and grants

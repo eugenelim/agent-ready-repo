@@ -90,3 +90,49 @@ The owner (eugenelim) directed that the deferred review nits be worked:
 - **Kill-on-close in the contract.** AC-0021 now states that the Job Object ends every member when its last handle closes. That a supervisor crash then leaves no launched descendant is an inference from this flag and the job handle being unnamed and non-inheritable; no test ends the supervisor and checks for survivors. The plan's Windows Job Object design already sets `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, and the T1 suite's `test_child_is_in_a_kill_on_close_job_without_breakaway` already asserts the flag on a real Windows host.
 - **`Owned by:` names T5.** T5 also changes the LLD's surfaces (`_supervisor_git.py`, `_supervisor_loop.py`), so the LLD's owner list includes it.
 - **T3 also touched `_supervisor_admission.py`.** T3 is complete, and a completed task's section is not edited by amendment, so this is recorded here instead: T3 builds `ws.attempts` and calls `guard("start")` in `_supervisor_admission.py`, the admission path AC-0004 requires.
+
+## T4: Owner decisions on the review of pinning and the untrusted gate (2026-10-21)
+
+The owner (eugenelim) settled two points from the T4 review:
+
+1. **Which issuances are attempts.** AC-0013 needs a baseline for code the supervisor launches, so a `run-gates` request, a `regenerate` request, and a red proof or scratch receipt launched with no attempt open each record a manifest and count as an open attempt, as worker requests do. A trusted-file edit by anyone while one of them is open is therefore attempt residue. The source digests a `regenerate` is checked against are the ones the supervisor records from the pack source at `HEAD` when it issues the request, because an entry point can read no Git object before its pin check; `report` recomputes them from `HEAD` and admits only an exact match. The spec's Manifest and Open attempt definitions and AC-0014 are amended to match.
+2. **A regenerate with the installed skill tracked in the work tree.** The regenerated skill is a working-tree change the supervisor does not commit, so after the `regenerate` is admitted `next` answers `uncommitted-changes` until the controller commits it. AC-0016 states this step, and VI-5032 covers the tracked-install case.
+
+T4 changed two existing core tests, each keeping what it asserts:
+
+- `test_supervisor_admission.py`: the helper `_start` takes a code-trust value, and the interrupted-start test starts `trusted`, because an `untrusted` start with stubs now answers a human decision (AC-0017) instead of a `write-stub` request.
+- `test_supervisor_commit.py::test_a_malformed_record_is_one_json_refusal`: the damaged approval line keeps the run's own id, because a line naming an unpinned run is refused `supervisor-changed` first; the test still asserts `malformed-record`.
+
+The pre-import pin check runs before any sibling can load, so it writes its `security-event.v1` line by hand in the shape `_security_events.py` defines, not through that module; this is where AC-0014's "before importing any sibling" and the rule to reuse Slice 1 primitives for events meet.
+
+## T4: Owner decisions on the second review round (2026-10-21)
+
+The owner (eugenelim) settled two more points:
+
+1. **Runs admitted before pinning shipped.** Such a run has a supervisor store (its made-commit list) but no pin record, so every entry point refuses it, and its unpinned store directory also blocks every other spec in the worktree. A controller-run `start --repin-legacy-run` pins it from the installed bytes, writes a `security-event.v1` line, and only acts when the run's store has made-commit ids and no pin record; it never overwrites or accepts a differing pin record. The release note names this path and the worktree-wide refusal.
+2. **The `regenerate` exemption is no wider than what admission checks.** Admission compares every file of the installed skill directory with the pack source at `HEAD`, not only the pinned modules and policy files, and when the installed skill is tracked in the work tree the next issuance first confirms that the committed installed skill equals what was admitted.
+
+This entry also supersedes the scope of the 2026-10-20 decision on the made-commit list: that list now applies during every open attempt as the amended Open attempt definition names them, so a rebase during an open `run-gates`, `regenerate`, or supervisor launch is refused and converges only outside an open attempt (AC-0012).
+
+## T4: Owner re-decision on runs admitted before pinning (2026-10-21)
+
+The second-round decision rested on a wrong premise: no released Core version writes the supervisor store, which first ships with this spec, so a run admitted by Core 3.1.14 or earlier has committed approvals and no store at all, and `start --repin-legacy-run` could not reach it. The supervisor is dark (no skill invokes it), so no adopter holds such a run in practice. The owner (eugenelim) therefore withdrew the legacy re-pin: there is no recovery path, and a run admitted by an earlier release is refused `supervisor-changed` on its own spec and must be started over. The release note says so.
+
+A run store directory with no pin record exists only in the window between the first admission's made-commit write and its pin write, and after a crash inside that window. While it stands, every entry point except `start` refuses `supervisor-changed` on its own spec, which the directory records when it is created; that run's `start` records the pins and lifts it. AC-0014 states this.
+
+## T4: Owner decisions on the fourth review round (2026-10-21)
+
+The owner (eugenelim) settled two scope questions:
+
+1. **The pin check guards the whole worktree.** Every entry point, on every spec, refuses `supervisor-changed` when the installed supervisor files differ from the pins of any run whose store holds an open attempt, so a worker's edit during spec A's attempt cannot run, or be pinned, under spec B.
+2. **The untrusted gate covers `regenerate`.** Under an `untrusted` classification with no verified containment, `next` emits no `regenerate` request and answers the same `human-decision` as for gates.
+
+The same round also settles, without an owner choice: the pinned file set is every file under the installed `scripts/` except `__pycache__`, plus the two policy files; a first pin needs the run's store to already hold its made-commit record, so a released run (no store) is refused even when it stopped after its first approval; each store directory records its spec when created, so an unpinned run directory blocks only its own spec, and that spec's `start` ignores (not deletes) one none of whose made-commit ids is reachable from `HEAD`, judged through the hardened helper because no `git` call may run outside it before the pin check; and a `<spec-dir>` whose case differs from the tracked path is refused. T4 also changed `_supervisor_admission.py` (the first-pin call and the code-trust re-approval), which its Touches line omits.
+
+## T4: Owner decisions on the closing review round (2026-10-21)
+
+The owner (eugenelim) chose to fix all three closing-round findings:
+
+1. **A refusal keeps guarding other specs.** A run whose latest issuance is refused and not yet cleared guards every spec as an open attempt does, so an installed-file edit that a launch or worker attempt was refused for cannot run, or be pinned, under another spec while its residue stands.
+2. **A store directory is never visible without its spec record.** The supervisor builds a new run's store directory under a temporary name with its spec record inside, then renames it into place, so no crash leaves a spec-less directory. A spec-less run directory can only come from tampering; it refuses every spec, fail closed, and is lifted only by removing it.
+3. **The case-variant check runs on every host.** The VI-5031 case-variant test asserts the exact refusal on case-sensitive and case-insensitive filesystems alike.
