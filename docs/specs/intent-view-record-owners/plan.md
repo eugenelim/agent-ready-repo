@@ -164,12 +164,12 @@ The control is a native `select` with a visible `label`, so it needs no ARIA of 
 
 **Depends on:** T4 (the readiness export in AC-0032's check needs T4's rebase onto the readiness bridge)
 
-**Touches:** `packs/core/.apm/skills/navigate-intents/scripts/view_src/browse.js`, `roadmap.js`, `owners.js`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`
+**Touches:** `packs/core/.apm/skills/navigate-intents/scripts/view_src/browse.js`, `roadmap.js`, `owners.js`, `detail-render.js`, `packs/core/tests/skills/navigate-intents/view_browser_checks.py`
 
 **Tests:**
 - `no stub (mode)`: scripted browser check.
 - Browser checks decide AC-0015, AC-0018 and AC-0019 against the README's per-choice expectations. Each also checks the general rule over every Group and Show choice, against the Python reading of the payload.
-- A browser check decides AC-0032's list-summary clause. Under each README owner choice on the `owners` export, and on the readiness export, it checks every question's "In this list: …" line, with no row picked, against the line a Python reading of the payload computes over the shown row links only. Where the list shows none, it checks that the line is absent.
+- A browser check decides AC-0032's list-summary clause. On each of the four exports AC-0032 names, under that export's owner choices as AC-0032 states them, it checks every question's "In this list: …" line, with no row picked, against the line a Python reading of the payload computes over the shown row links only. Where the list shows none, it checks that the line is absent.
 - One differential browser check decides AC-0032. It renders each pair of pages named there, the "Any owner" page and the owner-choice page, and walks both documents' text nodes in order. It removes only the differences AC-0032 admits, then asserts that what remains is equal. The scoped export uses `--from` with the README's capability. The unavailable export reuses the shipped `_incomplete` delivery-provider seam (`view_browser_checks.py`, the `hostile_incomplete` export) on the `owners` corpus. The readiness export is the one T4 builds.
 - A browser check decides AC-0016 by comparing the flat filtered list with `run_query` `search` over the same fixture, using the filter selectors plus `owner`.
 - The shipped tree-and-roadmap checks for its criteria 0030 to 0036 still pass under "Any owner".
