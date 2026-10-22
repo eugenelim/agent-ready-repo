@@ -19,6 +19,8 @@ import hashlib
 import importlib.util
 import os
 import re
+import secrets
+import shutil
 import stat
 import sys
 import tempfile
@@ -212,21 +214,49 @@ class GitPort:
         return {w for w in words if _COMMIT_ID_RE.fullmatch(w)}
 
     def ensure_store(self, run_id: str) -> Path:
-        """The run's store directory, created with a ``spec`` file naming this spec.
+        """The run's store directory, born whole with a ``spec`` file naming this spec.
 
-        Written when the directory is first created, before anything else is, so a
-        run that never pinned can be tied to its spec without reading Git.
+        A new directory is built under a temporary sibling name (which no run id
+        matches), its spec record written inside, and then renamed into place, so a
+        crash never leaves a run directory without its spec record. When another
+        process won the rename, or the directory already stood, its spec record is
+        verified instead.
         """
-        directory = ensure_directory(self.hardened.pins.git_dir, self._store_rel(run_id))
-        record = directory / "spec"
-        if not os.path.lexists(record):
-            cm = sibling("_confined_mutation.py")
+        relative = self._store_rel(run_id)
+        git_dir = self.hardened.pins.git_dir
+        base = ensure_directory(git_dir, relative.rsplit("/", 1)[0])
+        final = base / run_id
+        if not os.path.lexists(final):
+            temp = base / f".tmp-{run_id}-{secrets.token_hex(8)}"
+            temp.mkdir(mode=0o755)
             try:
-                cm.confined_create(directory, record, self.spec_rel.encode("utf-8"))
-            except cm.MutationDenied as exc:
-                if exc.denial_code != "denied-already-exists":
+                cm = sibling("_confined_mutation.py")
+                cm.confined_create(temp, temp / "spec", self.spec_rel.encode("utf-8"))
+                kill_point("store-built")
+                temp.rename(final)
+            except Exception:
+                # A process kill leaves the temporary directory, which is harmless:
+                # no run id matches its name.
+                shutil.rmtree(temp, ignore_errors=True)
+                if not os.path.lexists(final):  # not a lost race: another process won it
                     raise
+        directory = ensure_directory(git_dir, relative)
+        self._verify_store_spec(directory)
         return directory
+
+    def _verify_store_spec(self, directory: Path) -> None:
+        """Refuse a store directory whose spec record is absent or names another spec."""
+        fs = sibling("_file_safety.py")
+        try:
+            data = fs.read_confined_regular_file(directory, directory / "spec", max_bytes=4096)
+        except (fs.UnsafeContentError, OSError) as exc:
+            raise SupervisorGitError(
+                "denied-store-spec", f"the run's store has no readable spec record: {exc}"
+            ) from exc
+        if bytes(data).decode("utf-8", "replace") != self.spec_rel:
+            raise SupervisorGitError(
+                "denied-store-spec", "the run's store records another spec"
+            )
 
     def record_made(self, run_id: str, sha: str) -> None:
         """Append *sha* to the run's made-commit list, before the commit can become HEAD."""

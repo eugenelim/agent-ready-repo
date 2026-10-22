@@ -23,9 +23,9 @@ Before it loads any sibling script, every verb hashes the installed supervisor
 files, compares them with the digests the first admitted ``start`` pinned in the
 supervisor store under the Git directory, and refuses ``supervisor-changed`` on
 a difference. It also refuses when the installed files differ from the pins of any
-run in the worktree whose store holds an open attempt, and when <spec-dir> names a
-directory by other than its on-disk case. It also keeps bytecode files from loading
-or being written.
+run in the worktree whose store holds an open attempt or an uncleared refusal, and
+when <spec-dir> names a directory by other than its on-disk case. It also keeps
+bytecode files from loading or being written.
 
 Standard library only; it loads only its sibling scripts. Python 3.11+.
 """
@@ -280,8 +280,12 @@ def _pin(store: Path, run_id: str) -> tuple[str, dict[str, str]] | None:
     return record["spec"], _digest_map(record, "digests", path)
 
 
-def _open_issuance(store: Path) -> dict[str, Any] | None:
-    """The run's latest issuance record while it is open, with no mark of its own."""
+def _latest_issuance(store: Path, *, standing: bool) -> dict[str, Any] | None:
+    """The run's latest issuance record while it is open, with no mark of its own.
+
+    With *standing*, an issuance refused and not yet cleared counts too: its residue
+    stands until the run's own ``next`` clears it.
+    """
     attempts = store / "attempts"
     try:
         names = {p.name for p in attempts.iterdir()}
@@ -292,7 +296,10 @@ def _open_issuance(store: Path) -> dict[str, Any] | None:
     recorded = sorted(n[:6] for n in names if re.fullmatch(r"\d{6}\.json", n))
     if not recorded:
         return None
-    if any(recorded[-1] + mark in names for mark in (".superseded", ".reported", ".refused.json")):
+    last = recorded[-1]
+    if any(last + mark in names for mark in (".superseded", ".reported")):
+        return None
+    if last + ".refused.json" in names and not (standing and last + ".cleared" not in names):
         return None
     data = _read_plain(attempts / f"{recorded[-1]}.json", _MAX_SOURCE_BYTES)
     try:
@@ -302,6 +309,11 @@ def _open_issuance(store: Path) -> dict[str, Any] | None:
     if not isinstance(issued, dict):
         raise _malformed(attempts / f"{recorded[-1]}.json")
     return issued
+
+
+def _open_issuance(store: Path) -> dict[str, Any] | None:
+    """The run's latest issuance record while it is open, with no mark of its own."""
+    return _latest_issuance(store, standing=False)
 
 
 def _regeneration_open(store: Path, request_id: str) -> bool:
@@ -385,11 +397,12 @@ def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, 
     The runs come from the supervisor store, whose pin records name their spec, so a
     deleted or damaged working copy of the approvals hides nothing. The installed
     files must match the pins of the spec's own runs and of every run in the
-    worktree whose store holds an open attempt, so an edit made during one spec's
-    attempt cannot run, or be pinned, under another. A run with no valid pin record
-    refuses every verb but ``start``, the one that may record it, on the spec its
-    store records, unless that spec's ``start`` marked it an orphan; a directory that
-    records no spec refuses on every spec, and a damaged record refuses them all.
+    worktree whose store holds an open attempt or a refusal not yet cleared, so an
+    edit made during one spec's attempt cannot run, or be pinned, under another.
+    A run with no valid pin record refuses every verb but ``start``, the one that may
+    record it, on the spec its store records, unless that spec's ``start`` marked it an
+    orphan; a directory that records no spec refuses on every spec, and a damaged
+    record refuses them all.
     The first admission has no run yet and pins the files itself.
     """
     spec = _clean_spec(spec_dir)
@@ -413,16 +426,21 @@ def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, 
     for name in names:
         store = base / name
         pinned = _pin(store, name)
+        recorded = _recorded_spec(store)
+        if recorded is None:
+            # A store directory is built whole, spec record included, so one without
+            # it was tampered with; it refuses every spec until it is removed.
+            raise _PinRefused(f"run {name} records no spec", unverifiable=True)
         if pinned is None:
-            if verb != "start":
-                recorded = _recorded_spec(store)
-                if recorded is None:
-                    raise _PinRefused(f"run {name} records no spec", unverifiable=True)
-                if recorded == spec and _read_plain(store / ORPHAN_FILE, 16) is None:
-                    raise _PinRefused(f"run {name} has no pin record", unverifiable=True)
+            if (
+                verb != "start"
+                and recorded == spec
+                and _read_plain(store / ORPHAN_FILE, 16) is None
+            ):
+                raise _PinRefused(f"run {name} has no pin record", unverifiable=True)
             continue
         known.add(name)
-        if pinned[0] == spec or _open_issuance(store) is not None:
+        if pinned[0] == spec or _latest_issuance(store, standing=True) is not None:
             guarded.append((store, name, pinned[1]))
     working = _working_run_id(root, spec)
     if working is not None and working not in known and verb != "start":

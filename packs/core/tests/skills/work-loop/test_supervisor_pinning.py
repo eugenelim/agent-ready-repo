@@ -47,6 +47,7 @@ def _helper(name: str) -> ModuleType:
 
 h = _helper("supervisor_harness")
 sup = _helper("supervisor_support")
+pytestmark = sup.INTEGRATION  # every test here drives real Git
 
 SPEC = h.SPEC_DIR
 SKILL = sup.SCRIPTS.parent
@@ -476,10 +477,10 @@ Path({target!r}).write_text("# written by a test file\\n", encoding="utf-8")
 _GATE_TEST = "def test_gate():\n    assert True\n"
 
 
-def _with_conftest(repo: Path) -> None:
-    """An earlier task's ``conftest.py`` that writes this repository's ``plan.md``."""
+def _with_conftest(repo: Path, target: Path | None = None) -> None:
+    """An earlier task's ``conftest.py`` that writes *target*, by default this repository's ``plan.md``."""
     (repo / "conftest.py").write_text(
-        _CONFTEST.format(target=str(repo / SPEC / "plan.md")), encoding="utf-8"
+        _CONFTEST.format(target=str(target or repo / SPEC / "plan.md")), encoding="utf-8"
     )
     (repo / "test_gate.py").write_text(_GATE_TEST, encoding="utf-8")
     h.git(repo, "add", "-A")
@@ -1061,15 +1062,15 @@ def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
 def test_a_case_variant_spec_dir_is_refused_before_any_sibling_loads(
     pinned_template: Path, tmp_path: Path
 ) -> None:
+    """The variant is only an argument: the tree holds the tracked case alone, on every host."""
     repo = _copy_repo(pinned_template, tmp_path)
     variant = SPEC.upper()
-    if not (repo / variant).exists():
-        pytest.skip("this filesystem is case-sensitive, so a case variant is a different path")
+    assert variant != SPEC and (repo / SPEC).is_dir()
     skill = _copy_skill(tmp_path / "skill")
     marker = tmp_path / "sibling-ran"
     _append(skill / "scripts" / "_supervisor_git.py", f"\nopen({str(marker)!r}, 'w').close()\n")
     code, out = _run(_load_cli(skill), repo, "status", variant)
-    assert code in (1, 2), out
+    assert code == 2 and out["error"] == "usage" and "case" in out["detail"], (code, out)
     assert not marker.exists(), "a sibling loaded for a case-variant spec path"
 
 
@@ -1100,3 +1101,125 @@ def test_the_pinned_file_set_is_the_same_in_the_script_and_the_source_digests(
         for rel in entry
     )
     assert not any("__pycache__" in rel.split("/") for rel in entry)
+
+
+# ── closing review round ────────────────────────────────────────────────────
+
+_STUB_PLAN = sup.plan(
+    sup.task(
+        "T1",
+        "Calculator answers",
+        tests="- **VI-1:** the calculator test.\n\n"
+        f'  ```stub path=test_calc.py run="{sup.PYTHON} -m pytest -q -p no:cacheprovider '
+        '{path}" red-exit=1\n'
+        "  def test_answer():\n      import calc\n      assert calc.answer() == 42\n  ```",
+    )
+)
+_INSTALLED = "scripts/install-pr-template.py"
+
+
+def test_a_launch_refused_for_an_installed_file_edit_guards_other_specs_until_it_clears(
+    tmp_path: Path,
+) -> None:
+    skill = _copy_skill(tmp_path / "skill")
+    cli = _load_cli(skill)
+    edited = skill / _INSTALLED
+    original = edited.read_bytes()
+    repo = h.make_repo(tmp_path, plan=_STUB_PLAN)
+    _with_conftest(repo, edited)  # the supervisor's red proof runs it and rewrites the install
+    _add_other_spec(repo)
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    with _via(cli):
+        assert h.start(repo)[0] == 0
+        request = h.run_cli(repo, "next", SPEC)[1]["request"]
+        assert request["kind"] == "write-stub"
+        code, out = controller.report(controller.work(request))
+        assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
+        assert edited.read_bytes() != original, "the launched code did not edit the install"
+        runs, head = _run_dirs(repo), _head(repo)
+        for argv in (("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+            code, out = h.run_cli(repo, *argv)
+            assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
+        assert _run_dirs(repo) == runs, "spec B recorded a run or pins under the edited install"
+        assert _head(repo) == head
+        edited.write_bytes(original)
+        (repo / "conftest.py").write_text("", encoding="utf-8")
+        h.git(repo, "add", "-A")
+        h.git(repo, "commit", "-q", "-m", "the conftest no longer edits the install")
+        # Restored paths alone do not lift the refusal; A's own next clears it.
+        assert h.run_cli(repo, "next", SPEC)[0] in (0, 1)
+        code, out = h.run_cli(repo, "start", _OTHER, *_start_args()[2:])
+        assert code == 0 and out["status"] == "admitted", out
+
+
+def test_a_worker_attempt_refused_at_report_guards_other_specs(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _open_attempt_repo(pinned_template, tmp_path)
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    request = h.run_cli(repo, "next", SPEC)[1]["request"]  # the open attempt's own request
+    result = controller.work(request)
+    (repo / SPEC / "plan.md").write_text("# written by the worker\n", encoding="utf-8")
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
+    skill = _copy_skill(tmp_path / "skill")
+    _append(skill / "scripts" / "_supervisor_commit.py", "\n# edited while the refusal stands\n")
+    cli = _load_cli(skill)
+    runs, head = _run_dirs(repo), _head(repo)
+    for argv in (("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+        code, out = _run(cli, repo, *argv)
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
+    assert _run_dirs(repo) == runs and _head(repo) == head
+
+
+def _kill_at(point: str) -> Any:
+    def hook(name: str) -> None:
+        if name == point:
+            raise h.Crash(name)
+
+    h.commit_module.set_kill_hook(hook)
+    return h.commit_module.set_kill_hook
+
+
+def test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothing(
+    tmp_path: Path,
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _add_other_spec(repo)
+    reset = _kill_at("store-built")
+    try:
+        with pytest.raises(h.Crash):
+            h.start(repo)
+    finally:
+        reset(None)
+    base = repo / ".git" / "agentbundle-supervisor"
+    assert not [p for p in base.iterdir() if p.name.startswith("run-")], "a run directory appeared"
+    assert not [p for p in base.iterdir() if p.name.startswith("run-")]
+    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
+    assert h.run_cli(repo, "next", _OTHER)[0] == 0
+    code, out = h.start(repo)
+    assert code == 0 and out["status"] == "admitted", out
+
+
+def test_a_store_directory_is_born_with_its_spec_record(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    spec = _store(repo) / "spec"
+    assert spec.read_text("utf-8") == SPEC
+    if os.name == "posix":
+        assert spec.stat().st_mode & 0o777 == 0o600
+
+
+def test_a_run_directory_without_a_spec_record_refuses_every_spec_until_removed(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    _add_other_spec_early(repo)
+    tampered = repo / ".git" / "agentbundle-supervisor" / "run-0123456789abcdef"
+    tampered.mkdir()
+    for argv in (("next", SPEC), ("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+        code, out = h.run_cli(repo, *argv)
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
+    tampered.rmdir()
+    assert h.run_cli(repo, "next", SPEC)[0] == 0
+    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0

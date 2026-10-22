@@ -42,6 +42,7 @@ def _helper(name: str) -> ModuleType:
 
 h = _helper("supervisor_harness")
 sup = _helper("supervisor_support")
+pytestmark = sup.INTEGRATION  # every test here drives real Git
 
 SPEC = h.SPEC_DIR
 REVIEW_PLAN = sup.plan(

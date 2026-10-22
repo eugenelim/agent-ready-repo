@@ -38,6 +38,7 @@ def _helper(name: str) -> ModuleType:
 
 h = _helper("supervisor_harness")
 sup = _helper("supervisor_support")
+pytestmark = sup.INTEGRATION  # every test here drives real Git
 
 posix_only = pytest.mark.skipif(sys.platform == "win32", reason="marker scripts are POSIX shell")
 
