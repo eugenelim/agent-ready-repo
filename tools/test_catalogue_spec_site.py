@@ -197,3 +197,26 @@ def test_real_manifest_page_count_equals_member_count(tmp_path: Path) -> None:
     for p in (public / "spec/catalogue/draft").glob("*.json"):
         assert json.loads(p.read_bytes())["$id"] == URL + p.name
     assert re.search(r"^slug: ", pages[0].read_text(), re.M)
+
+
+def test_overview_carries_ac6_phrases_and_one_section_per_member(tmp_path: Path) -> None:
+    contracts = ROOT / "contracts"
+    content = tmp_path / "content"
+    css.generate(content, tmp_path / "public", contracts_dir=contracts)
+    text = (content / "spec/catalogue/draft/index.md").read_text(encoding="utf-8")
+    for phrase in (
+        "agentbundle catalogue lint",
+        "agentbundle catalogue verify",
+        "agentbundle catalogue package",
+        "CAT-V-ARC",
+        "JOURNEY.md",
+        "agentbundle catalogue init",
+        "`draft/`",
+        "not a release",
+        "/guides/_shared/reference/pack-journey-format/",
+        "/guides/_shared/how-to/create-a-catalogue/",
+    ):
+        assert phrase in text, phrase
+    headings = set(re.findall(r"^## (.+)$", text, re.M))
+    for row in css.members(contracts):
+        assert css.page_name(Path(row.path).name) in headings

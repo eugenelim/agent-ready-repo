@@ -7,7 +7,10 @@ Applies to `docs-site/`. Inherits the root `AGENTS.md`. Scope-specific deltas on
 `docs-site/` is the technical documentation site. `tools/build-site.py` generates
 much of `src/content/docs/` from `guides/**` and `packs/**`, and the field
 references under `src/content/docs/reference/` from `contracts/pack.schema.json`
-and `contracts/skill.schema.json`; edit sources, not generated content. Package manifests own dependency versions.
+and `contracts/skill.schema.json`. `tools/catalogue_spec_site.py` generates the
+catalogue specification section (`src/content/docs/spec/` and `public/spec/`)
+from `contracts/catalogue-spec.toml`; its hand-written prose is
+`spec-src/catalogue/overview.md`. Edit sources, not generated content. Package manifests own dependency versions.
 
 ## Build
 
