@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.55.0] — 2026-10-21
+
+### Added
+
+- A bundled contract, `catalogue-manifest.schema.json`, describes the shape of
+  the release archive manifest. It is listed in `public-contracts.txt`, and
+  `catalogue contracts list`, `show`, and `export` expose it. It checks shape
+  only. It is not evidence of integrity or origin.
+- The archive guide states what proves where an archive came from.
+
+### Changed
+
+- `catalogue verify` rejects a boolean `schema` value in
+  `catalogue-manifest.json` with `CAT-V-ARC-011`. Integer-valued numbers such
+  as `1.0` are still accepted.
+
 ## [0.54.0] — 2026-10-21
 
 ### Changed

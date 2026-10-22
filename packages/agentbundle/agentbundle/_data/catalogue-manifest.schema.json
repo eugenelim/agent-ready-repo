@@ -1,0 +1,62 @@
+{
+  "x-spec": "docs/specs/catalogue-manifest-schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "catalogue-manifest.schema.json",
+  "title": "Catalogue archive manifest",
+  "description": "Shape of the catalogue-manifest.json that `agentbundle catalogue package` writes into a catalogue archive. This schema describes shape only. A manifest that is valid against it is neither archive verification (the archive's bytes, digests and members are checked by `agentbundle catalogue verify`) nor evidence of who published the archive. Origin is established only by `catalogue verify --sha256-file` with a sidecar, or by a signature, obtained through a separately authenticated channel. Objects stay open: extra keys are allowed. The writer also emits keys this schema does not type because the verifier does not check them: source_revision, minimum_agentbundle_version, catalogue_name, catalogue_display_name and marketplace_digest (each may be null or a string), adapter_contract_version and pack_schema_version.",
+  "type": "object",
+  "required": ["schema", "bundle", "release", "generated_at", "files", "packs"],
+  "properties": {
+    "schema": {
+      "description": "Manifest schema version, 1 or 2. The package's validator rejects an integer-valued number such as 1.0 that standard JSON Schema validators and `catalogue verify` accept.",
+      "type": "integer",
+      "enum": [1, 2]
+    },
+    "bundle": {"type": "string"},
+    "release": {"type": "string"},
+    "generated_at": {"type": "string"},
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {"type": "string"},
+          "sha256": {"type": "string"}
+        }
+      }
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version"],
+        "properties": {
+          "name": {"type": "string"},
+          "version": {"type": "string"},
+          "path": {"type": "string"},
+          "digest": {"type": "string"}
+        },
+        "if": {"required": ["digest"]},
+        "then": {"required": ["path"]}
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "if": {"type": "string"},
+        "else": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {"type": "string"},
+            "path": {"type": "string"},
+            "digest": {"type": "string"}
+          },
+          "if": {"required": ["digest"]},
+          "then": {"required": ["path"]}
+        }
+      }
+    }
+  }
+}

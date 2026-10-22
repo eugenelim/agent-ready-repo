@@ -29,6 +29,7 @@ disagree, `contracts/` is authoritative.
 | `catalogue-index.schema.json` | JSON Schema for the generated neutral catalogue index | yes |
 | `adapter.toml` | Per-IDE adapter contract: every (primitive × adapter) projection rule | yes |
 | `adapter.schema.json` | JSON Schema for `adapter.toml`'s shape | yes |
+| `catalogue-manifest.schema.json` | JSON Schema for the `catalogue-manifest.json` inside a catalogue archive (shape only) | yes |
 
 ### Bundled, not members
 

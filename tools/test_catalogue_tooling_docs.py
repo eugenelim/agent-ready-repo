@@ -117,6 +117,21 @@ class GuideDocsTest(unittest.TestCase):
             " resolution is NOT supported",
         )
 
+    def test_archive_guide_provenance_limits(self):
+        p = REPO_ROOT / "docs/guides/reference/catalogue-archive.md"
+        text = " ".join(p.read_text(encoding="utf-8").split())
+        self.assertNotIn("the provenance evidence", text)
+        for phrase in (
+            "prove only that the bytes arrived intact",
+            "a sidecar, or a signature, that you obtained through a separately authenticated channel",
+            "is not evidence of origin",
+            "(../../../contracts/catalogue-manifest.schema.json)",
+        ):
+            self.assertIn(phrase, text)
+        self.assertTrue(
+            (p.parent / "../../../contracts/catalogue-manifest.schema.json").resolve().is_file()
+        )
+
     def test_guide_uses_canonical_commands(self):
         old_patterns = (
             "agentbundle.build lint-packs",

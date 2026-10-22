@@ -302,7 +302,7 @@ def _check_manifest_schema(manifest: object) -> list[Diagnostic]:
         )]
     diags: list[Diagnostic] = []
     schema = manifest.get("schema")
-    if schema not in (1, 2):
+    if isinstance(schema, bool) or schema not in (1, 2):
         diags.append(_err("CAT-V-ARC-011", f"manifest schema must be 1 or 2, got {schema!r}"))
     for field in ("bundle", "release", "generated_at"):
         if not isinstance(manifest.get(field), str):

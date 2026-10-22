@@ -43,6 +43,10 @@ path = "adapter.schema.json"
 role = "member"
 
 [[contract]]
+path = "catalogue-manifest.schema.json"
+role = "member"
+
+[[contract]]
 path = "marketplace-entry.schema.json"
 role = "bundled"
 
