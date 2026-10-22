@@ -12,7 +12,7 @@ A catalogue holds these parts, each checked against one member contract below:
 - A `catalogue-index` file when the catalogue is published as an index.
 - A `catalogue-manifest.json` inside a catalogue archive.
 
-The [starter catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/) that `agentbundle catalogue init` writes shows a working layout.
+The [starter catalogue](https://github.com/eugenelim/agent-ready-repo/tree/main/packages/agentbundle/agentbundle/_data/catalogue-scaffold) that `agentbundle catalogue init` writes shows a working layout. [Create a catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/) walks through running it.
 
 ## How a catalogue is checked
 
@@ -22,11 +22,11 @@ Three commands check a catalogue:
 - `agentbundle catalogue verify` checks the catalogue as a whole.
 - `agentbundle catalogue package` builds the archive and its manifest.
 
-Two checks live only in code and have no schema here: the `CAT-V-ARC-*` archive checks, and the `JOURNEY.md` validator. The [JOURNEY.md format guide](/agent-ready-repo/docs/guides/_shared/reference/pack-journey-format/) describes that file. It is informative, not part of this specification.
+Two checks live only in code and have no schema here. The archive checks confirm that a packaged archive matches its own manifest, with every file present and every digest correct; their IDs start with `CAT-V-ARC-`. The `JOURNEY.md` validator checks a pack's journey file. The [JOURNEY.md format guide](/agent-ready-repo/docs/guides/_shared/reference/pack-journey-format/) describes that file. It is informative, not part of this specification.
 
 ## Member contracts
 
-Each section below says what one contract is for. The field tables on each page state the rules, and the raw file is the source of truth.
+Each section below says what one contract is for. A JSON member's page has a field table, a TOML member's page shows the whole file, and the raw file is the source of truth.
 
 ## pack-schema-json
 

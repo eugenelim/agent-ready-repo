@@ -181,11 +181,13 @@ def generate(
         if overview_src.is_file()
         else "# Catalogue specification (draft)"
     )
-    table = ["", "## Member contracts", "", "| File | Page |", "| --- | --- |"]
+    table = ["", "## All member files", "", "| File | Page | Raw file |", "| --- | --- | --- |"]
     for row in rows:
         file_name = Path(row.path).name
+        raw_href = f"{SITE_BASE}spec/catalogue/draft/{file_name}"
         table.append(
-            f"| `{file_name}` | [{page_name(file_name)}]({_routes(page_name(file_name))}) |"
+            f"| `{file_name}` | [{page_name(file_name)}]({_routes(page_name(file_name))})"
+            f" | [{file_name}]({raw_href}) |"
         )
     draft = _frontmatter(
         "Catalogue specification (draft)",

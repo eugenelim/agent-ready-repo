@@ -215,8 +215,12 @@ def test_overview_carries_ac6_phrases_and_one_section_per_member(tmp_path: Path)
         "not a release",
         "/guides/_shared/reference/pack-journey-format/",
         "/guides/_shared/how-to/create-a-catalogue/",
+        "/_data/catalogue-scaffold",
     ):
         assert phrase in text, phrase
-    headings = set(re.findall(r"^## (.+)$", text, re.M))
+    headings = re.findall(r"^## (.+)$", text, re.M)
+    assert len(headings) == len(set(headings)), headings
     for row in css.members(contracts):
-        assert css.page_name(Path(row.path).name) in headings
+        file_name = Path(row.path).name
+        assert css.page_name(file_name) in headings
+        assert f"]({css.SITE_BASE}spec/catalogue/draft/{file_name})" in text, file_name
