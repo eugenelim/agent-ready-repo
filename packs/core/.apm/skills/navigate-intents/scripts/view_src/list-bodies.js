@@ -62,13 +62,14 @@
     return b;
   }
   // byOwner: the list has rows under Any owner with these filters and none under the owner choice,
-  // so the description ends with the owner and Clear filters also sets Any owner.
+  // so the description ends with the owner (and leaves out the Show words) and Clear filters also
+  // sets Any owner.
   function filteredEmpty(route, keys, show, byOwner) {
     var box = el('div', 'empty');
     var parts = keys.length ? [describeFilters(route, keys)] : [];
     if (byOwner) { parts.push(ownerWords(route.owner)); }
     add(box, el('p', '', 'Nothing matches ' + parts.join(', ') +
-      (show ? ' among ' + show + ' items' : '') + '.'));
+      (show && !byOwner ? ' among ' + show + ' items' : '') + '.'));
     var over = {};
     FILTER_KEYS.forEach(function (k) { over[k] = ''; });
     if (byOwner) { over.owner = ''; }

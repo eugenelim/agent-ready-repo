@@ -215,26 +215,33 @@
     if (!recordIds.length) { add(dom.list, emptyLine(q.empty)); return 0; }
     var show = deliveryUnavailable() ? '' : route.show;
     var group = route.group;
-    var match = function (id) {
+    var byShow = function (id) {
       return show === '' || (show === 'open') === isOpen(id);
     };
+    // A Browse match meets the Show choice and the owner choice.
+    var match = function (id) { return byShow(id) && ownerMatches(id, route.owner); };
+    var narrowed = show !== '' || route.owner !== '';
     var keys = activeFilters(route, q);
-    var ctx = { kids: null, match: match, shown: null, auto: show !== '', counts: !deliveryUnavailable(),
+    var ctx = { kids: null, match: match, shown: null, auto: narrowed, counts: !deliveryUnavailable(),
       openers: [], tally: new Map() };
     add(dom.tools, browseBar(show, group, ctx, keys.length > 0));
     var matching = recordIds.filter(function (id) { return passes(id, route) && match(id); });
+    // Rows the list would hold under Any owner, so an owner choice that empties it says so.
+    var byOwner = route.owner !== '' &&
+      recordIds.some(function (id) { return passes(id, route) && byShow(id); });
     if (keys.length) {
-      if (!matching.length) { add(dom.list, filteredEmpty(route, keys, show)); return 0; }
+      if (!matching.length) { add(dom.list, filteredEmpty(route, keys, show, byOwner)); return 0; }
       add(dom.list, rows(matching.sort(byName)));
       return matching.length;
     }
     if (!matching.length) {
+      if (byOwner) { add(dom.list, filteredEmpty(route, keys, show, true)); return 0; }
       add(dom.list, emptyLine(show === 'open' ? 'No intent is an open item.' : 'No intent is done.'));
       return 0;
     }
     var tree = group === 'capability' ? capabilityTree() : hierarchyTree();
     ctx.kids = tree.kids;
-    // A row is shown when it matches or a row beneath it in the grouping is shown.
+    // A row is shown when it is a Browse match or a row beneath it in the grouping is shown.
     var memo = new Map();
     ctx.shown = function (id) {
       var known = memo.get(id);

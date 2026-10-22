@@ -72,12 +72,11 @@
   function ownerEntries(entries, choice) {
     return choice === '' ? entries : entries.filter(function (e) { return ownerMatches(e.holder, choice); });
   }
-  // A rail count: the row links its list shows under the owner choice. The roadmap and Browse
-  // narrow with context rows, so their counts are not yet narrowed here.
+  // A rail count: the row links its list shows under the owner choice that are not context rows.
   function questionCount(key, owner) {
-    if (key === 'browse') { return recordIds.length; }
+    if (key === 'browse') { return ownerOnly(recordIds, owner).length; }
     if (key === 'broken') { return ownerEntries(brokenEntries(), owner).length; }
-    if (key === 'roadmap') { return capabilityRecordIds().length; }
+    if (key === 'roadmap') { return ownerOnly(capabilityRecordIds(), owner).length; }
     if (key === 'next' && readinessChecked()) { return readinessRowCount(owner); }
     if (deliveryUnavailable()) { return null; }
     if (key === 'next') { return ownerOnly(startableIds(), owner).length; }

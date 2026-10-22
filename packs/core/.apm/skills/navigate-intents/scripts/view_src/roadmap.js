@@ -139,20 +139,28 @@
     return null;
   }
 
-  function capabilityRow(id, nested) {
+  // listed: whether a capability is a matching record or holds a listed nested capability.
+  function capabilityRow(id, nested, listed, owner) {
     var li = el('li', 'row rm-row');
+    var context = !ownerMatches(id, owner);
+    if (context) { li.classList.add('context-only'); }
     var a = add(li, el('a', 'row-link rm-link'));
     a.setAttribute('href', hashFor({ node: id }));
     a.setAttribute('data-node', id);
-    add(a, el('span', 'c-name', displayName(id)));
+    var name = add(a, el('span', 'c-name', displayName(id)));
+    if (context) {
+      text(name, ' ');
+      add(name, el('span', 'ctx-tag', 'context')).setAttribute('aria-hidden', 'true');
+      add(name, el('span', 'visually-hidden', 'shown for context'));
+    }
     add(add(a, el('span', 'c-state')), stateMark(id));
     add(a, progressEl(id));
     add(a, ownerCell(id));
     if (current !== null && current.node === id) { a.setAttribute('aria-current', 'true'); }
-    var inside = (nested.get(id) || []).sort(byName);
+    var inside = (nested.get(id) || []).sort(byName).filter(listed);
     if (inside.length) {
       var sub = add(li, el('ul', 'rows rm-sub'));
-      inside.forEach(function (c) { add(sub, capabilityRow(c, nested)); });
+      inside.forEach(function (c) { add(sub, capabilityRow(c, nested, listed, owner)); });
     }
     return li;
   }
@@ -162,7 +170,7 @@
     return ids.reduce(function (n, id) { return n + 1 + capabilitiesIn(nested.get(id) || [], nested); }, 0);
   }
 
-  function bodyRoadmap() {
+  function bodyRoadmap(route) {
     var ids = capabilityRecordIds();
     if (!ids.length) { add(dom.list, emptyLine(question('roadmap').empty)); return 0; }
     add(dom.list, el('p', 'note rm-legend', LEGEND + generatedText(data.provenance.generated_at)
@@ -174,8 +182,22 @@
       if (above !== null) { addTo(nested, above, id); return; }
       addTo(sections, nearestUp(id, 'product-strategy') || '', id);
     });
+    // A capability is listed when it matches the owner choice or a capability nested beneath it is
+    // listed; progress numbers below still read the whole corpus.
+    var memo = new Map();
+    var listed = function (id) {
+      var known = memo.get(id);
+      if (known === undefined) {
+        memo.set(id, false);
+        known = ownerMatches(id, route.owner) || (nested.get(id) || []).some(listed);
+        memo.set(id, known);
+      }
+      return known;
+    };
     var strategies = Array.from(sections.keys()).filter(function (k) { return k !== ''; }).sort(byName);
     if (sections.has('')) { strategies.push(''); }
+    strategies = strategies.filter(function (k) { return sections.get(k).some(listed); });
+    if (!strategies.length) { add(dom.list, filteredEmpty(route, [], '', true)); return 0; }
     strategies.forEach(function (strategy) {
       var section = add(dom.list, el('section', 'rm-section'));
       var head = add(section, el('div', 'rm-head'));
@@ -191,7 +213,9 @@
         }
       }
       var ul = add(section, el('ul', 'rows'));
-      sections.get(strategy).sort(byName).forEach(function (c) { add(ul, capabilityRow(c, nested)); });
+      sections.get(strategy).sort(byName).filter(listed).forEach(function (c) {
+        add(ul, capabilityRow(c, nested, listed, route.owner));
+      });
     });
-    return ids.length;
+    return ownerOnly(ids, route.owner).length;
   }

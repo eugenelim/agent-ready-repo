@@ -123,9 +123,4 @@
     if (q.key !== 'next') { return q; }
     return Object.assign({}, q, { title: CHECKED_NEXT.title, lead: CHECKED_NEXT.lead, sort: CHECKED_NEXT.sort });
   }
-  function readinessSummary() {
-    return 'In this list: ' + nonZero(readinessGroups().map(function (g) {
-      return [g.ids.length, [g.head.toLowerCase(), g.head.toLowerCase()]];
-    })) + '.';
-  }
 

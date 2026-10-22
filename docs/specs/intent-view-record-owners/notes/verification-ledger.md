@@ -95,3 +95,33 @@
 - T5's differential check, `test_owner_narrowing_is_the_only_difference_ac_0032`, found one text node that AC-0032 does not admit: the detail pane's "In this list: …" summary, which `listSummary` in `detail-render.js` builds. It counts the unnarrowed list but disappears when the owner choice leaves no row. This was the only residual difference in 588 page pairs: 16 states across the `owners`, `scoped` and `readiness` exports.
 - Owner decision on 2026-10-22 by eugenelim: under an owner choice, the summary follows the narrowed list and is absent when no row link is left. AC-0032's admitted difference 3 is amended to say so, and T5 gains a check of the summary's value.
 - Completed tasks are untouched: T1 at `7de8b4a7a`, T2 at `dde88be7f`, T3 at `d15a372b4` and T4 at `e5f106e4f`, as this ledger records under each task.
+
+## T5
+
+- Implemented by an `implementer` subagent under the AC-0032 amendment, re-approved at `7bd2592bb`.
+  - **Browse.** A Browse match is the Show match and `ownerMatches` together. Non-matching ancestors stay as context rows, and subtrees open on render whenever Show or the owner choice narrows.
+  - **Roadmap.** A capability is listed when it matches or holds a listed nested capability. Non-matching listed capabilities show "context" and "shown for context". Sections with no listed capability are hidden.
+  - **List summary.** `listSummary` counts only the shown rows, which meets difference 3. `readinessSummary()` in `readiness.js` had no caller left, so it was deleted.
+  - The readiness export's status input is now ready = [bravo] and blocked = [golf (owner-one), charlie (owner-two)]. "What is broken?" therefore holds findings from both owners.
+- **Differential check.** `test_owner_narrowing_is_the_only_difference_ac_0032` runs over the `owners`, `scoped`, `unavailable` and `readiness` exports. It covers 716 page states: 128 Any-owner pages and 588 owner pairs. It strips only the differences AC-0032 admits. Leaving any one of those differences unstripped makes the check fail, with residual counts from 54 to 2398.
+- **Red proofs.** Each was a temporary mutation, restored byte-identical:
+
+  | Mutation | Checks that failed |
+  |---|---|
+  | Browse ignores the owner | 4 |
+  | Context tag removed | the README check and the general rule |
+  | Roadmap section shown with no listed capability | 2 |
+  | Nested capability not listed | 2 |
+  | Roadmap rail count left unnarrowed | 1 |
+  | Capabilities summary unnarrowed | `owners` |
+  | Next summary unnarrowed | `owners` and `scoped` |
+  | Checked-readiness summary unnarrowed | `readiness` |
+  | Broken summary unnarrowed | `readiness` (expected "2 workspace findings") |
+
+  The broken-summary check stayed green until the readiness export held findings from two owners.
+- **Gates**
+  - Full `view_browser_checks.py`: 473 passed in 322s, none skipped.
+  - In two earlier full runs, a record-details wait timed out once each. It did not happen again, and the 59 record and detail tests passed on a targeted rerun.
+  - The navigate-intents suite without the browser file, under `-n 4`: 1134 passed and 6 skipped.
+  - `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py` are clean.
+  - The controller re-ran the AC-0032 checks: 10 passed.
