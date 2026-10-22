@@ -218,7 +218,7 @@ def test_overview_carries_ac6_phrases_and_one_section_per_member(tmp_path: Path)
         "/_data/catalogue-scaffold",
     ):
         assert phrase in text, phrase
-    headings = re.findall(r"^## (.+)$", text, re.M)
+    headings = re.findall(r"^#{2,3} (.+)$", text, re.M)
     assert len(headings) == len(set(headings)), headings
     for row in css.members(contracts):
         file_name = Path(row.path).name

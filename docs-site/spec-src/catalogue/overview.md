@@ -22,48 +22,48 @@ Three commands check a catalogue:
 - `agentbundle catalogue verify` checks the catalogue as a whole.
 - `agentbundle catalogue package` builds the archive and its manifest.
 
-Two checks live only in code and have no schema here. The archive checks confirm that a packaged archive matches its own manifest, with every file present and every digest correct; their IDs start with `CAT-V-ARC-`. The `JOURNEY.md` validator checks a pack's journey file. The [JOURNEY.md format guide](/agent-ready-repo/docs/guides/_shared/reference/pack-journey-format/) describes that file. It is informative, not part of this specification.
+Two sets of checks live only in code and have no schema here. The archive checks confirm that a packaged archive is safe to unpack and matches its manifest exactly, with no missing or extra files and every digest, or file fingerprint, correct; their IDs start with `CAT-V-ARC-`. The `JOURNEY.md` validator checks a pack's journey file. The [JOURNEY.md format guide](/agent-ready-repo/docs/guides/_shared/reference/pack-journey-format/) describes that file. It is informative, not part of this specification.
 
 ## Member contracts
 
 Each section below says what one contract is for. A JSON member's page has a field table, a TOML member's page shows the whole file, and the raw file is the source of truth.
 
-## pack-schema-json
+### pack-schema-json
 
 Describes the `pack.toml` file that gives a pack its metadata and adapter settings.
 
-## catalogue-schema-json
+### catalogue-schema-json
 
 Describes the `catalogue.toml` file that configures a catalogue.
 
-## profile-schema-json
+### profile-schema-json
 
 Describes a profile, a named bundle of packs that installs together.
 
-## skill-schema-json
+### skill-schema-json
 
 Describes the frontmatter at the top of a `SKILL.md` file.
 
-## skill-manifest-schema-json
+### skill-manifest-schema-json
 
 Describes the manifest that lists a skill's files.
 
-## target-vocab-toml
+### target-vocab-toml
 
 Lists the per-target limits and patterns that pack metadata is checked against.
 
-## catalogue-index-schema-json
+### catalogue-index-schema-json
 
 Describes the neutral index that lists a catalogue's packs for tools that read a catalogue without installing it.
 
-## adapter-toml
+### adapter-toml
 
 Lists how each kind of content projects into each supported agent tool.
 
-## adapter-schema-json
+### adapter-schema-json
 
 Describes the shape of `adapter.toml`.
 
-## catalogue-manifest-schema-json
+### catalogue-manifest-schema-json
 
 Describes the `catalogue-manifest.json` that `agentbundle catalogue package` writes into an archive. It covers shape only.
