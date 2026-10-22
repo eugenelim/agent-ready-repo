@@ -78,7 +78,7 @@ def _load_target_vocab() -> tuple[dict | None, str | None]:
 
     try:
         text = _read_bundled("target-vocab.toml")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         return None, (
             f"lint-packs: cannot read bundled _data/target-vocab.toml: {exc}"
         )

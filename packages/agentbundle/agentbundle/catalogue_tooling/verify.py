@@ -220,8 +220,8 @@ def _step_pack_schema(
 
     try:
         schema = _load_bundled_json("pack.schema.json")
-    except (OSError, ValueError):
-        return []
+    except (OSError, ValueError) as exc:
+        return [_err("CAT-V-003", f"bundled contract unavailable: _data/pack.schema.json: {exc}")]
 
     diags: list[Diagnostic] = []
     for pack_dir in sorted(packs_dir.iterdir()):

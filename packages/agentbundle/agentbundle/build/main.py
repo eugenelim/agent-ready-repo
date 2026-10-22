@@ -159,6 +159,18 @@ def _read_bundled(name: str) -> str:
     return resource.read_text(encoding="utf-8")
 
 
+def _load_bundled_toml(name: str) -> dict:
+    """Parse a packaged TOML file; no other source is tried.
+
+    A missing, undecodable or unparsable copy raises `ValueError` (or
+    `FileNotFoundError` when absent) whose message names `_data/<name>`.
+    """
+    try:
+        return tomllib.loads(_read_bundled(name))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError(f"bundled contract unreadable: _data/{name}: {exc}") from exc
+
+
 CONTRACT_PATH = _bundled_path("adapter.toml")
 ROUTE_CONTRACT_PATH = _bundled_path("distribution-routes.toml")
 ROUTE_SCHEMA_PATH = _bundled_path("distribution-routes.schema.json")

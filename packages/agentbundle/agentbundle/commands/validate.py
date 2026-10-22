@@ -503,9 +503,9 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
     truth; no module-level cache so a test-time swap is visible
     immediately.
     """
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    contract = _load_bundled_toml("adapter.toml")
     adapters = contract.get("adapter", {})
     # Prefer the kiro-ide block (v0.9+); fall back to kiro alias (older contracts).
     kiro = adapters.get("kiro-ide") or adapters.get("kiro") or {}
@@ -532,9 +532,9 @@ def _load_adapter_contract() -> dict:
 
     A missing or unparsable bundled copy raises; no other source is tried.
     """
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    return tomllib.loads(_read_bundled("adapter.toml"))
+    return _load_bundled_toml("adapter.toml")
 
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:

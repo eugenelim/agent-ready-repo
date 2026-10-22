@@ -31,7 +31,10 @@ def _read_bundled_adapter_toml_text() -> str:
 
 
 def _read_spec_version() -> str:
-    data = tomllib.loads(_read_bundled_adapter_toml_text())
+    try:
+        data = tomllib.loads(_read_bundled_adapter_toml_text())
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError(f"bundled contract unreadable: _data/adapter.toml: {exc}") from exc
     return data["contract"]["version"]
 
 

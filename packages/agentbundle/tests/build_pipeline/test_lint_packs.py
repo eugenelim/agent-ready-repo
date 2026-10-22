@@ -756,10 +756,10 @@ class LintPackVocabTests(unittest.TestCase):
                 )
             pack = packs_dir / "p"
             _write_minimal_pack(pack, name="p")
-            skill_dir = pack / ".apm" / "skills" / "longer-name"
+            skill_dir = pack / ".apm" / "skills" / "longername"
             skill_dir.mkdir(parents=True)
             (skill_dir / "SKILL.md").write_text(
-                "---\nname: longer-name\ndescription: short.\n---\nBody.\n",
+                "---\nname: longername\ndescription: short.\n---\nBody.\n",
                 encoding="utf-8",
                 newline="\n",
             )

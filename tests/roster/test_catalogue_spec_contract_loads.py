@@ -146,7 +146,7 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> dict[str, list[str]]:
         ],
         "lint": ["catalogue", "lint", "--root", str(cat)],
         "verify": ["catalogue", "verify", "--root", str(cat)],
-        "index": ["catalogue", "index", "--root", str(cat), "--dry-run"],
+        "index": ["catalogue", "index", str(cat), "--dry-run"],
     }
     results: dict[str, list[str]] = {}
     for name, argv in commands.items():
@@ -156,13 +156,14 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> dict[str, list[str]]:
             _plant(cat / "contracts", rows)
         out = parent / f"{name}.json"
         run_env = {**env, "RECORDER_ARGV": json.dumps(argv), "RECORDER_OUT": str(out)}
-        subprocess.run(
+        run = subprocess.run(
             [sys.executable, "-c", _RECORDER],
             capture_output=True,
             text=True,
             env=run_env,
             cwd=parent,
         )
+        assert run.returncode == 0, f"{name} exited {run.returncode}: {run.stdout}{run.stderr}"
         assert out.is_file(), f"{name} recorded nothing"
         results[name] = json.loads(out.read_text(encoding="utf-8"))
     return results
@@ -173,9 +174,25 @@ def _reads(recorded: dict[str, list[str]], command: str) -> list[str]:
     return [p for p in recorded[command] if _is_contract_read(p, rows)]
 
 
-@pytest.mark.parametrize("command", ["lint", "verify", "package", "index"])
-def test_each_command_reads_a_contract(recorded, command: str) -> None:
-    assert _reads(recorded, command), f"{command} recorded no contract read"
+# Contracts each command genuinely loads, beyond `adapter.toml` (which the
+# package reads at import, so every command records it).
+EXPECTED_READS: dict[str, set[str]] = {
+    "lint": {"catalogue.schema.json"},
+    "index": {"catalogue-index.schema.json"},
+    "verify": {"catalogue.schema.json", "pack.schema.json"},
+    "package": {"catalogue.schema.json", "pack.schema.json"},
+}
+
+
+@pytest.mark.parametrize("command", sorted(EXPECTED_READS))
+def test_each_command_reads_its_contracts(recorded, command: str) -> None:
+    names = {
+        Path(p).relative_to(_DATA).as_posix()
+        for p in _reads(recorded, command)
+        if Path(p).is_relative_to(_DATA)
+    }
+    missing = EXPECTED_READS[command] - names
+    assert not missing, f"{command} did not read {sorted(missing)}; read {sorted(names)}"
 
 
 @pytest.mark.parametrize("command", ["lint", "verify", "package", "index"])

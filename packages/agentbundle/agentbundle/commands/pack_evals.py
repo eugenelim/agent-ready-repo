@@ -167,11 +167,11 @@ class ClaudeCodeDetector:
         # Lazy import so the pure functions above (and their unit tests) do
         # not require agentbundle to be importable.
         from agentbundle.build.adapters.claude_code import project
-        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.main import _load_bundled_toml
 
         # `catalogue_root` is accepted for callers; the contract is the
         # bundled copy whatever the catalogue holds.
-        contract = tomllib.loads(_read_bundled("adapter.toml"))
+        contract = _load_bundled_toml("adapter.toml")
         project(pack_path, contract, output_root)
 
     def run_and_parse(
