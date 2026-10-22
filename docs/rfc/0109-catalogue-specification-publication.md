@@ -362,3 +362,7 @@ The [survey](../product/research/catalogue-spec-publication-survey.md) covers te
 - [x] The correction entries for RFC-0003 and RFC-0076 land in the acceptance pull request.
 - [ ] OQ1 settled in the S3 spec.
 - [ ] The S3 validation run is recorded with zero lookups outside the site, or the gaps are fixed before S4.
+
+## Errata
+
+- **2026-10-21, eugenelim (Approver) — S2 tightens one verifier check.** The verifier accepted any value Python treats as equal to 1 or 2 for the archive manifest's `schema` field, including the boolean `true`. The Approver chose not to publish a schema that admits a boolean there. `catalogue verify` now also rejects a boolean `schema` with CAT-V-ARC-011, and keeps accepting integer-valued numbers such as `1.0`, which draft 2020-12 treats as integers. The schema in D5 therefore states what the verifier accepts after this one change. This supersedes "states exactly what the verifier accepts today" in D5 and "D5 adds a schema and changes no verifier behaviour" in § Trust analysis, for that field only. Recorded in [`catalogue-manifest-schema`](../specs/catalogue-manifest-schema/spec.md).
