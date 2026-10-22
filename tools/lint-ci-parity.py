@@ -1639,6 +1639,10 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED(
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),
+    'tools/test_catalogue_spec_site.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
     'tools/test_browser_gate_subset.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest site build + link rewriting"

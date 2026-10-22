@@ -34,6 +34,9 @@ on:
       - 'tools/test_browser_gate_subset.py'
       - 'tools/test-pages-workflow.py'
       - 'tools/pack_scope.py'
+      - 'contracts/**'
+      - 'tools/catalogue_spec_site.py'
+      - 'tools/catalogue/sync_contract_inventory.py'
       - '.github/workflows/pages.yml'
   pull_request:
     branches: [main]
@@ -66,6 +69,9 @@ on:
       - 'tools/test_browser_gate_subset.py'
       - 'tools/test-pages-workflow.py'
       - 'tools/pack_scope.py'
+      - 'contracts/**'
+      - 'tools/catalogue_spec_site.py'
+      - 'tools/catalogue/sync_contract_inventory.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
