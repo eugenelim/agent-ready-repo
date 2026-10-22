@@ -5,7 +5,7 @@ Usage, from the repository root:
 
     work-supervisor.py start <spec-dir> --intent code|spec-plan \\
         --code-trust trusted|untrusted --authority-ref owner[:<hex>] \\
-        --review-authority-ref plan-reviewer[:<hex>] [--repin-legacy-run]
+        --review-authority-ref plan-reviewer[:<hex>]
     work-supervisor.py next <spec-dir>
     work-supervisor.py report <spec-dir> <result.json>
     work-supervisor.py status <spec-dir> [--json] [--check]
@@ -448,7 +448,6 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     start.add_argument("--authority-ref", required=True)
     start.add_argument("--review-authority-ref", required=True)
-    start.add_argument("--repin-legacy-run", action="store_true")
     verbs.add_parser("next").add_argument("spec_dir")
     report = verbs.add_parser("report")
     report.add_argument("spec_dir")
@@ -564,7 +563,6 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     statelock = commit.sibling("_statelock.py")
     workspace = admission.Workspace(root, spec_rel)
     workspace.attempts.installed = installed
-    workspace.attempts.repin_legacy = bool(getattr(args, "repin_legacy_run", False))
     try:
         workspace.attempts.check_pins(args.verb)
         if args.verb == "start":

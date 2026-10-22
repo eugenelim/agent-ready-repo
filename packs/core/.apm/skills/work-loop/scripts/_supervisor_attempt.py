@@ -198,8 +198,6 @@ class Attempts:
         # The digests of the installed supervisor files, hashed before any sibling
         # loaded; ``None`` when a caller drives the modules without the entry point.
         self.installed: dict[str, str] | None = None
-        # Whether this ``start`` was asked to pin a run admitted before pinning shipped.
-        self.repin_legacy = False
         ws.git.hardened.control_check = self._control_check
 
     # ── reading files ───────────────────────────────────────────────────────
@@ -791,14 +789,7 @@ class Attempts:
             return
         run_id = approvals[0]["run_id"]
         pinned = self._pin_record(run_id)
-        if pinned is not None and verb == "start" and self.repin_legacy:
-            raise _refusal(
-                "repin-refused", "the run already has a pin record, which is never replaced"
-            )
         if pinned is None:
-            if verb == "start" and self.repin_legacy and self.ws.git.made_commits(run_id):
-                self._repin_legacy(run_id)
-                return
             commits = self.ws.git.supervisor_commits(run_id)
             if (
                 verb == "start"
@@ -812,28 +803,6 @@ class Attempts:
             raise _refusal(
                 "supervisor-changed", "the installed supervisor differs from its pinned digests"
             )
-
-    def _repin_legacy(self, run_id: str) -> None:
-        """Pin a run admitted before pinning shipped from the installed bytes, and log it."""
-        events = sibling("_security_events.py")
-        try:
-            events.emit_security_event(
-                self.ws.local.security_sink(),
-                events.SecurityEvent(
-                    schema_version=1,
-                    operation_id=events.make_operation_id(),
-                    correlation_id=self.ws.spec_rel,
-                    event_type="supervisor-repin",
-                    outcome="allowed",
-                    reason_code="legacy-run-repinned",
-                    timestamp=self.ws.clock(),
-                ),
-            )
-        except events.AuditSinkUnavailable as exc:
-            raise _unverifiable(
-                "supervisor-changed", "the re-pin cannot be logged, so the run is not re-pinned"
-            ) from exc
-        self.pin(run_id)
 
     def pin(self, run_id: str) -> None:
         """Record the installed digests once the run's first approval has landed.
@@ -858,8 +827,9 @@ class Attempts:
         """Whether *rel*, relative to a skill directory, is a pinned file."""
         if rel in _POLICY_FILES:
             return True
-        head, _, name = rel.rpartition("/")
-        return head == "scripts" and bool(name)
+        parts = rel.split("/")
+        nested = parts[0] == "scripts" and _PRUNED not in parts
+        return nested and len(parts) > 1 and bool(parts[-1])
 
     def _blobs_at_head(self, prefix: str, *, pinned_only: bool) -> dict[str, bytes] | None:
         """The bytes of each file under *prefix* at ``HEAD``; ``None`` when there are none."""

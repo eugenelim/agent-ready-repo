@@ -115,8 +115,9 @@ def _start_args(trust: str = "trusted") -> list[str]:
 def _digests(skill: Path) -> dict[str, str]:
     """The pinned digests as the spec defines them: modules, policy, and rules."""
     found = {
-        f"scripts/{p.name}": hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in sorted((skill / "scripts").glob("*.py"))
+        p.relative_to(skill).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in sorted((skill / "scripts").rglob("*"))
+        if p.is_file() and "__pycache__" not in p.relative_to(skill).parts
     }
     for name in ("supervisor-policy.json", "review-rules.json"):
         found[name] = hashlib.sha256((skill / name).read_bytes()).hexdigest()
@@ -826,48 +827,85 @@ def test_the_pin_event_is_never_written_to_a_special_file(tmp_path: Path) -> Non
         os.close(reader)
 
 
-# ── legacy runs: start --repin-legacy-run ───────────────────────────────────
+# ── runs admitted before pinning shipped ────────────────────────────────────
 
 
-def _legacy(regenerating: Path, tmp_path: Path) -> tuple[Path, Path, ModuleType]:
-    """A run admitted before pinning shipped: made-commit ids, and no pin record."""
-    repo, skill, cli = _regen_copy(regenerating, tmp_path)
-    assert (_store(repo) / "made-commits").read_text("utf-8").split()
-    _pins(repo).unlink()
-    return repo, skill, cli
-
-
-def test_a_legacy_run_is_refused_until_it_is_repinned_by_the_flag(
+def test_a_run_admitted_before_pinning_is_refused_and_blocks_no_other_spec(
     regenerating: Path, tmp_path: Path
 ) -> None:
-    repo, skill, cli = _legacy(regenerating, tmp_path)
+    """The released state: committed approvals, work commits, and no supervisor store at all."""
+    repo, _skill, cli = _regen_copy(regenerating, tmp_path)
+    shutil.rmtree(repo / ".git" / "agentbundle-supervisor")
+    approvals = (repo / SPEC / "delivery" / "approvals.jsonl").read_text("utf-8").splitlines()
+    assert approvals and h.git(repo, "ls-files", f"{SPEC}/delivery/approvals.jsonl").strip()
+    head = _head(repo)
     for argv in (("next", SPEC), tuple(_start_args())):
         code, out = _run(cli, repo, *argv)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
-    assert not _pins(repo).exists()
-    code, out = _run(cli, repo, *_start_args(), "--repin-legacy-run")
-    assert code == 0, out
-    record = json.loads(_pins(repo).read_text("utf-8"))
-    assert record["digests"] == _digests(skill) and record["spec"] == SPEC
-    repinned = [e for e in _events(repo) if e["reason_code"] == "legacy-run-repinned"]
-    assert len(repinned) == 1 and repinned[0]["outcome"] == "allowed", _events(repo)
-    assert repinned[0]["schema_version"] == 1
-    assert _run(cli, repo, "next", SPEC)[0] == 0
-
-
-@pytest.mark.parametrize("record", ["identical", "differing"])
-def test_the_repin_flag_never_overwrites_or_accepts_an_existing_record(
-    regenerating: Path, tmp_path: Path, record: str
-) -> None:
-    repo, _skill, cli = _regen_copy(regenerating, tmp_path)
-    if record == "differing":
-        data = json.loads(_pins(repo).read_text("utf-8"))
-        data["digests"]["scripts/_supervisor_loop.py"] = "0" * 64
-        _pins(repo).write_text(json.dumps(data), "utf-8")
-    before = _pins(repo).read_bytes()
-    head = _head(repo)
-    code, out = _run(cli, repo, *_start_args(), "--repin-legacy-run")
-    assert code == 1 and out["refusal"]["code"] in ("supervisor-changed", "repin-refused"), out
-    assert _pins(repo).read_bytes() == before
+    assert not (repo / ".git" / "agentbundle-supervisor").exists()
     assert _head(repo) == head
-    assert not [e for e in _events(repo) if e["reason_code"] == "legacy-run-repinned"]
+    # The flag that once recovered such a run no longer exists.
+    assert _run(cli, repo, *_start_args(), "--repin-legacy-run")[0] == 2
+    # An unrelated spec in the same worktree is not blocked by it.
+    other = "docs/specs/other"
+    shutil.copytree(repo / SPEC, repo / other, ignore=shutil.ignore_patterns(".supervisor", "delivery"))
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "an unrelated spec")
+    code, out = _run(cli, repo, "start", other, *_start_args()[2:])
+    assert code == 0 and out["status"] == "admitted", out
+    assert _run(cli, repo, "next", other)[0] == 0
+    assert _run(cli, repo, "next", SPEC)[1]["refusal"]["code"] == "supervisor-changed"
+
+
+def test_an_unpinned_run_directory_blocks_another_spec_until_its_start_pins(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    other = "docs/specs/other"
+    shutil.copytree(repo / SPEC, repo / other, ignore=shutil.ignore_patterns(".supervisor", "delivery"))
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "a second spec")
+    code, out = h.run_cli(repo, "start", other, *_start_args()[2:])
+    assert code == 0 and out["status"] == "admitted", out
+    pins = sorted((repo / ".git" / "agentbundle-supervisor").glob("run-*/pins.json"))
+    first = next(p for p in pins if json.loads(p.read_text("utf-8"))["spec"] == SPEC)
+    first.unlink()  # the first run's directory now has no pin record
+    code, out = h.run_cli(repo, "next", other)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert not first.exists()
+    code, out = h.run_cli(repo, *_start_args())  # that run's own start pins it
+    assert code == 0, out
+    assert first.exists()
+    assert h.run_cli(repo, "next", other)[0] == 0
+
+
+_NESTED = "scripts/extra/x.py"
+
+
+def test_a_nested_script_is_pinned_and_in_the_regenerated_source_digests(tmp_path: Path) -> None:
+    skill = _copy_skill(tmp_path / "skill")
+    nested = skill / _NESTED
+    nested.parent.mkdir()
+    nested.write_text("VALUE = 1\n", "utf-8")
+    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
+    _publish_source(repo, skill)
+    controller = _SourceEditor(repo, tmp_path / "effects.log")
+    cli = _load_cli(skill)
+    with _via(cli):
+        assert h.start(repo)[0] == 0
+        assert _NESTED in json.loads(_pins(repo).read_text("utf-8"))["digests"]
+        for _ in range(12):
+            code, payload = h.run_cli(repo, "next", SPEC)
+            assert code == 0, payload
+            request = payload["request"]
+            if request["kind"] == "regenerate":
+                break
+            assert controller.report(controller.work(request))[0] == 0
+        else:
+            raise AssertionError("no regenerate request")
+        assert _NESTED in json.loads((_store(repo) / "regenerate.json").read_text("utf-8"))["source"]
+        shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+        code, out = h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(request))
+        assert code == 0 and out == {"admitted": "regenerate"}, out
+        new = json.loads(_pins(repo).read_text("utf-8"))["digests"]
+        assert _NESTED in new and new == _digests(skill)
