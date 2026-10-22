@@ -43,3 +43,21 @@
   - Full `view_browser_checks.py`: 329 passed in 300s, none skipped. The controller re-ran the whole suite after the moved assertions.
   - The navigate-intents suite without the browser file: 541 passed, 4 skipped.
   - Clean: `make lint-ruff lint-mypy`, `lint-pack-test-boundary.py` and `check_view_base_parity.py`.
+
+## Rebase onto the readiness bridge
+
+- On 2026-10-22 the branch was rebased onto `origin/main` at `d291eefe1`, which holds the readiness bridge (#1602) and core 3.1.15. Three conflicts were resolved:
+  - `workspace.toml`: the readiness bridge had moved to `shipped`, so only this spec stays in the queue.
+  - The golden-payload test now strips both `readiness` and `owner` before hashing.
+  - `view.css` and `view_browser_checks.py`: both sides had added rules and tests, and all of them were kept.
+- Gates after the rebase:
+  - Full `view_browser_checks.py`: 448 passed in 484s, none skipped.
+  - The navigate-intents suite without the browser file, plus the copies and close-work suites, under `-n auto`: 1542 passed, 6 skipped, 17 failed, 2 errors. Every failure was a Git-dependent export test, refused with `invalid_destination` ("cannot confirm the work trees…") while 10 workers ran Git at once.
+  - The same failing files, run serially: `test_export_payload.py`, `test_export_publication.py`, `test_export_source_links.py` and `test_export_html.py` gave 172 passed and 2 skipped; `test_export_readiness.py` gave 595 passed. The failures come from parallel load on Git, not from this change.
+
+## Owner-directed fixes to the readiness bridge's deferred Nits
+
+- Added at the owner's request on 2026-10-22. These are outside this spec's criteria.
+- **Readiness-module refusal message.** `test_an_unloadable_readiness_module_refuses_and_writes_nothing` in `test_export_readiness.py` pins `resolver_unavailable` with "readiness module is unavailable", and checks that no file is written. Mutation proof: with the message changed to "view module is unavailable", the test failed, 1 of 1; with the message restored from Git, it passed.
+- **Short list card at rail widths.** From 90rem, `view.css` now sets `.worklist { align-self: start; }`, so a short "What is broken?" card keeps its own height instead of stretching to the rail. `test_a_short_list_card_keeps_its_own_height_beside_the_rail[1680, 2560]` checks two things: the card is shorter than the rail, and the card ends within 48px of its last child. Mutation proof: without the rule, 2 of 2 failed; with it, 2 of 2 passed.
+- Left as the owner decided: the Blocked-row codes still wrap at 1280 and 1680px, and the start tag keeps its quiet style.

@@ -196,6 +196,8 @@ code.prompt { flex: 1 1 16rem; min-width: 0; padding: var(--s-2) var(--s-3); bor
   .rail { display: block; }
   .question-list { display: block; }
   .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
+  /* The rail sets the row's height here; a short list card keeps its own height instead of stretching to it. */
+  .worklist { align-self: start; }
   .q-count { min-width: 2.25rem; }
 }
 /* From 120rem the name cell stops growing so the state stays near the name. */

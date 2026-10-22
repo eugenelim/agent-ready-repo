@@ -2049,6 +2049,27 @@ def test_ac_0033_wide_is_rail_list_detail(opener: Any, exports: dict[str, pathli
         assert abs(page.evaluate("document.documentElement.scrollWidth") - width) <= 0
 
 
+@pytest.mark.parametrize("width", [1680, 2560])
+def test_a_short_list_card_keeps_its_own_height_beside_the_rail(
+    opener: Any, exports: dict[str, pathlib.Path], width: int
+) -> None:
+    """At rail widths, a short "What is broken?" card ends below its last child, not at the rail's foot."""
+    page = opener(exports["mixed"], width=width).page
+    page.evaluate("location.hash = 'q=broken'")
+    page.wait_for_function("() => document.getElementById('list-title').textContent.length > 0")
+    gap = page.evaluate(
+        """() => {
+          const card = document.querySelector('.worklist');
+          const last = card.lastElementChild;
+          const rail = document.querySelector('nav').getBoundingClientRect();
+          const c = card.getBoundingClientRect();
+          return { below: c.bottom - last.getBoundingClientRect().bottom, card: c.height, rail: rail.height };
+        }"""
+    )
+    assert gap["card"] < gap["rail"], gap
+    assert gap["below"] <= 48, gap
+
+
 _FOCUS_INFO = """() => {
   const e = document.activeElement;
   if (!e || e === document.body) return null;
