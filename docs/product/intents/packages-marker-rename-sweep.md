@@ -1,9 +1,12 @@
 # Pinned packages governance markers are renamed consistently
 
 - **Slug:** `packages-marker-rename-sweep`
-- **Status:** Draft
+- **Status:** Fulfilled
 - **Level:** feature
 - **Owner:** eugenelim
+- **Accepted:** 2026-10-21 by eugenelim, after a cold intent-mode shaping review returned no MALFORMED token
+- **Fulfilled:** 2026-10-21 eugenelim: delivered by PR #1596 (commit `1a2e49add`, agentbundle 0.53.2). Both `commands/install.py` `pre-RFC-0012 dist-tree` messages now read `legacy dist-tree`, and the seven `tests/unit/test_install_inband_detection.py` assertions changed with them. The `--emit-install-routes` local-scope refusal states its rule, and its assertion lost the `or` branch. `tests/roster/test_agentbundle_governance_markers.py` now fails on any governance marker in shipped source. The intent has no decomposition, so the closure check had no descendants to wait on.
+- **Shaping-reviewed:** 2026-10-21
 - **Governed by:** [spec/packages-governance-marker-sweep AC5](../../specs/packages-governance-marker-sweep/spec.md)
 
 ## Outcome
@@ -26,9 +29,15 @@ Phase-1 of the `packages/` marker sweep left runtime messages and their verbatim
 - **BLOCKER:** The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC. This applies at commit time.
 - Unblocks when: picked up — no dependency.
 
+## Non-goals
+
+- No exit code, refusal order or install behaviour changes. Only message wording and the assertions that pin it change.
+- The legacy dist-tree layout on disk is not renamed or migrated. Only the words that name it in messages change.
+- Historical entries in `packages/agentbundle/CHANGELOG.md` keep their original wording.
+
 ## Assumptions
 
-- None.
+- **Riskiest assumption:** an adopter who met the old `pre-RFC-0012 dist-tree` wording still recognises the same layout under the new `legacy dist-tree` wording. If that is false, someone with a legacy tree misreads the `--force will REMOVE` warning. Check: the warning still names the pack and the files it removes, so the layout is identified by its contents rather than by the label.
 
 ## Source
 
