@@ -7,7 +7,8 @@
     - `_process_safety.py`: POSIX `killpg` tree-kill, and refusal when that is
       missing. It enforces cwd, environment, executable pin, timeouts, and
       output bounds, but not write roots or network.
-    - `_security_capability.intersect_grants`.
+    - `_security_capability.intersect_grants` — consumed by Slice 1's
+      containment path, not by a supervisor launch in this slice.
     - `_security_events.py`.
     - `_containment.py`, whose `launch_untrusted` refuses unless containment is
       verified.
@@ -30,7 +31,7 @@
 3. **T3, attempt checks and residue:** the manifest, the open-attempt checks in
    `next` and `report`, and residue.
 4. **T4, launched-code checks, pinning, regeneration, and the untrusted gate.**
-5. **T5, result acceptance and grants.**
+5. **T5, result acceptance and the bounded git environment.**
 
 Every task changes `.apm/`, bumps the Core patch version with a changelog line,
 and needs a security-reviewer pass.
@@ -69,8 +70,11 @@ and needs a security-reviewer pass.
   directories.
   - **Environment:** the helper sets `GIT_CONFIG_NOSYSTEM=1` and an empty
     `GIT_CONFIG_GLOBAL`, and clears every other `GIT_*` variable apart from
-    `GIT_INDEX_FILE` for the private index.
-  - **Flags:**
+    `GIT_INDEX_FILE` for the private index. The out-of-helper config read takes
+    the second form in the spec's Launch grants section, which is the single
+    statement of both; this bullet does not restate it.
+  - **Flags:** not exhaustive; the helper also pins
+    `core.attributesFile` to the null device.
     - `--no-replace-objects`;
     - `-c core.hooksPath=<empty temp dir>`;
     - `-c core.fsmonitor=false`;
@@ -254,11 +258,11 @@ Owned by: T1, T2, T3, T4, T5.
     a `human-decision` is emitted.
 - **Done when:** VI-5030 through VI-5033 pass, the changelog line says a run admitted before this release is refused and must be started over, and security-reviewer returns clean.
 
-### T5: Results assert only their kind's facts, under recorded grants
+### T5: Results assert only their kind's facts, under a bounded git environment
 
-- **Depends on:** T3, spec:execution-supervisor-core/T5, spec:execution-supervisor-core/T7, spec:execution-supervisor-review-gate/T2
-- **Spec behavior:** AC-0017 (the `implement-task` clause), AC-0018, AC-0019, AC-0020; TDD.
-- **Touches:** `_supervisor_loop.py`; `_supervisor_tdd.py`; `_supervisor_git.py`; `docs/architecture/runtime-security-primitives.md`; Core manifests and changelog
+- **Depends on:** T3, T4, spec:execution-supervisor-core/T5, spec:execution-supervisor-core/T7, spec:execution-supervisor-review-gate/T2
+- **Spec behavior:** AC-0017 (the `implement-task` clause), AC-0018, AC-0020; TDD.
+- **Touches:** `_supervisor_loop.py`; `_supervisor_tdd.py` (the red-proof launch returns to its merge-base form, and all three projections of `_supervisor_launch.py` go with it); `test_supervisor_results.py`; `test_supervisor_tdd.py`; `test_supervisor_pinning.py`; `test_supervisor_git.py`; `.github/workflows/catalogue-tooling-ci-gates.yml` (registering the new suite); `docs/architecture/runtime-security-primitives.md`; the changelog fragment; Core manifests
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-5040 (AC-0018):** one fixture per Result acceptance row. It includes
@@ -268,9 +272,20 @@ Owned by: T1, T2, T3, T4, T5.
   - **VI-5042 (AC-0017):** under `untrusted` with no attestation, a task with
     no stubs gets no `implement-task` request, and the same `human-decision`
     as `run-gates` is emitted.
-  - **VI-5041 (AC-0019, AC-0020):** each launch kind's `safe-process.v1` record
-    holds its table row. A probe child sees only the allowlisted variables.
-- **Done when:** VI-5040 through VI-5042 pass, the architecture review is recorded, and security-reviewer returns clean.
+  - **VI-5041 (AC-0020):** a helper `git` child's environment is exactly the
+    helper form — the base set with the helper's own `GIT_CONFIG_NOSYSTEM=1`
+    and empty `GIT_CONFIG_GLOBAL` — and an ambient `GIT_SSH_COMMAND`,
+    `GIT_EXTERNAL_DIFF`, and `GIT_CONFIG_COUNT` reach no child. An out-of-helper
+    config read is exactly the read form: the host's own values for the
+    config-location names it set, with no value imposed, so a host
+    `GIT_CONFIG_NOSYSTEM` absent stays absent.
+  - **VI-5043 (AC-0013):** VI-5030's and VI-5031's planted conftest records that
+    it executed, and each test fails when that record is missing, so neither can
+    pass while its attack is disarmed.
+  - **VI-5044 (AC-0009, AC-0010):** a filter defined at system scope and used by
+    an attributes file is refused at admission, and a system-scope filter runs
+    in no helper call.
+- **Done when:** VI-5040 through VI-5044 pass; the architecture page and the changelog fragment carry no claim that a `red-proof` or `scratch` launch is routed through the primitive, records a grant, or runs with a bounded environment, and the page's tables match the spec's; no reference to AC-0019 survives outside the spec's Follow-ons and this plan's ledger; the architecture review is recorded; and security-reviewer returns clean.
 
 ## Rollout
 
@@ -303,3 +318,5 @@ Owned by: T1, T2, T3, T4, T5.
 - 2026-10-21: plan approved by eugenelim
 - 2026-10-22: spec approved by eugenelim
 - 2026-10-22: plan approved by eugenelim
+- 2026-10-23: spec approved by eugenelim
+- 2026-10-23: plan approved by eugenelim
