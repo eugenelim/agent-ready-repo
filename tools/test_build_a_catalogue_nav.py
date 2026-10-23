@@ -30,7 +30,7 @@ build_site = _load("build_site", ROOT / "tools" / "build-site.py")
 sfr = _load("schema_field_reference", ROOT / "tools" / "schema_field_reference.py")
 
 
-SPEC_DRAFT_SLUG = "spec/catalogue/draft"
+SPEC_LATEST_LINK = "/spec/catalogue/latest/"
 
 
 def _nav() -> dict:
@@ -68,7 +68,7 @@ def _guide_routes() -> set[str]:
 
 
 def _known_routes() -> set[str]:
-    return _guide_routes() | {p["slug"] for p in sfr.PAGES} | {SPEC_DRAFT_SLUG}
+    return _guide_routes() | {p["slug"] for p in sfr.PAGES} | {SPEC_LATEST_LINK.strip("/")}
 
 
 def test_top_level_labels_match_d9_tree():
@@ -78,12 +78,12 @@ def test_top_level_labels_match_d9_tree():
     assert labels == _d9_labels()
 
 
-def test_contract_group_leads_with_the_draft_specification():
-    """Catalogue spec site AC-8: the draft spec is the group's first item."""
+def test_contract_group_leads_with_the_latest_specification():
+    """Catalogue spec release AC 17: the group's first item links latest/."""
     group = next(i for i in _nav()["items"] if i["label"] == "Contract and schema reference")
     assert group["items"][0] == {
-        "label": "Catalogue specification (draft)",
-        "slug": SPEC_DRAFT_SLUG,
+        "label": "Catalogue specification",
+        "link": SPEC_LATEST_LINK,
     }
     assert len(group["items"]) == 4
 
@@ -99,7 +99,7 @@ def test_every_slug_resolves():
 def test_every_link_path_resolves():
     known = _known_routes()
     links = [e["link"] for e in _entries(_nav()) if "link" in e]
-    assert len(links) == 2
+    assert len(links) == 3
     for link in links:
         path = link.split("#", 1)[0].strip("/")
         assert path in known, link

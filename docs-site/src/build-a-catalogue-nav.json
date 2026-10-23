@@ -93,8 +93,8 @@
       "label": "Contract and schema reference",
       "items": [
         {
-          "label": "Catalogue specification (draft)",
-          "slug": "spec/catalogue/draft"
+          "label": "Catalogue specification",
+          "link": "/spec/catalogue/latest/"
         },
         {
           "label": "pack.toml fields",

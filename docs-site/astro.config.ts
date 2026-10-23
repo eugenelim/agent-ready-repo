@@ -3,9 +3,18 @@ import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import sidebarConfig from './src/sidebar-config.json';
 import buildACatalogueNav from './src/build-a-catalogue-nav.json';
+import { existsSync, readFileSync } from 'node:fs';
 import { visit } from 'unist-util-visit';
 import { rehypeScrollableTables } from './src/plugins/rehype-scrollable-tables';
 import { rehypeChatTurns } from './src/plugins/rehype-chat-turns';
+
+// `latest/` redirect targets of the catalogue specification. tools/build-site.py
+// writes this map (base-relative key -> base-absolute value) so a new release
+// repoints `latest/` with no edit here. An absent file means no release yet.
+const specLatestRedirectsPath = new URL('./src/generated/spec-latest-redirects.json', import.meta.url);
+const specLatestRedirects: Record<string, string> = existsSync(specLatestRedirectsPath)
+  ? JSON.parse(readFileSync(specLatestRedirectsPath, 'utf-8'))
+  : {};
 
 // Remark plugin: transform ```mermaid blocks to a plain HTML placeholder
 // before Expressive Code processes them. EC never sees language-mermaid;
@@ -45,6 +54,7 @@ export default defineConfig({
     '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
     '/guides/_shared/explanation/the-three-loops/':
       '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
+    ...specLatestRedirects,
   },
   // `unified({...})` is the registration astro 7 asks for. The legacy
   // `markdown.remarkPlugins`/`rehypePlugins` keys are deprecated, and astro's
