@@ -1,7 +1,9 @@
 # Route the lenses a design's shape and workload require
 
 - **Slug:** `architect-design-conditional-overlays`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Accepted:** 2026-09-20 eugenelim, intent owner: reconstructed from commit e86cf1b3a6, which set this intent's `Status: Accepted`; no separate acceptance note was written at the time.
+- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec architect-design-shape-overlay, is Shipped per close-work's closure check; the intent's own cited claims were not independently re-validated. Its validation hook ran on 2026-09-20 and could not decide: the paired comparison could not separate the overlay from author run-to-run variance at n=1, so whether routed lenses add load-bearing material rather than bulk is still unsettled and owed to the gate-calibration intent.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Decomposed:** 2026-09-20 spec

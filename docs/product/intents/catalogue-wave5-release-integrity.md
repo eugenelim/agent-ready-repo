@@ -1,7 +1,8 @@
 # Catalogue release integrity
 
 - **Slug:** `catalogue-wave5-release-integrity`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec catalogue-wave5-release-integrity, is Shipped per close-work's closure check; the intent's own cited claims were not independently re-validated, and its validation hook — observing whether 3 of 5 publishers or adopters use the unit-level difference to make or explain a release decision — remains to-validate.
 - **Accepted:** 2026-10-02 by eugenelim, lifecycle owner. Basis: explicit owner direction to refresh, de-risk, and apply the needed reviews; the recorded de-risking verdict survived, and intent-mode review of this revision produced no malformed findings.
 - **Level:** feature
 - **Owner:** eugenelim

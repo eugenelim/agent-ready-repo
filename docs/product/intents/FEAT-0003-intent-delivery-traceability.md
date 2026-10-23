@@ -2,6 +2,7 @@
 
 - **Slug:** `intent-delivery-traceability` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Fulfilled
+- **Accepted:** 2026-10-07 eugenelim, intent owner: reconstructed from commit 1fe67e8f4, which set this intent's `Status: Accepted`; no separate acceptance note was written at the time.
 - **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec intent-delivery-traceability, is Shipped per close-work's closure check; the delivery resolver over this repository returns a complete snapshot with no diagnostics and 29 resolved relations (23 direct-delivery, 6 coordinated-delivery), so the eight missing direct mappings and the six-spec projection mismatch recorded at decomposition are cleared; AC-0001, AC-0007 and AC-0010 are superseded in part by RFC-0106 D2 and owned by the Shipped typed-discovery-pointers spec.
 - **Level:** feature
 - **Owner:** eugenelim
