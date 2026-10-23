@@ -1,7 +1,8 @@
 # The catalogue specification manifest: every contract file the agentbundle
 # catalogue specification names, each with one role (member, bundled or
-# vendored). public-contracts.txt is generated from the member and bundled rows.
-release = []
+# vendored). public-contracts.txt is generated from the member and bundled rows,
+# catalogue-members.txt from the JSON-schema member rows. Each [[release]] row
+# freezes one snapshot under releases/catalogue/ and never changes once published.
 
 [spec]
 name = "agentbundle catalogue specification"
@@ -91,3 +92,23 @@ upstream = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 path = "vendor/agent-plugins/1.0.0/mcp.schema.json"
 role = "vendored"
 upstream = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+
+[[release]]
+version = "0.1"
+date = "2026-10-23"
+adapter_contract = "0.18"
+
+[release.members]
+"pack.schema.json" = "cc69f0996231dfe8e161a4fe7d843a884fea104d02de83cb20d1f861e1965355"
+"catalogue.schema.json" = "0f38013ef8aed2ac93e230acf7d62cc9b9788acff4cddc46ac963e3b0aa69320"
+"profile.schema.json" = "866a4ac64665eb6eb606b5c331f16b297dff2f83417be2dc20f7dc6e86dfd6ab"
+"skill.schema.json" = "2f4407b31c3ba789ba0230bc871b77e4298459c48c54daafacc7e041c25c670c"
+"skill-manifest.schema.json" = "c29f13d122d3a1edd1bb35eb7bd4121b891b677403e738c35046ae6f4ecafdaf"
+"target-vocab.toml" = "a6e7d8fefca88976ae78b7835ac8ed0c2e4512dcc2e1c9cc8da2f5905f1d17f9"
+"catalogue-index.schema.json" = "afac6146770043af394c64f4ca540146186941a7c11b5d520d1c14c9a2cf386a"
+"adapter.toml" = "dd617d5f8fd641685271418beabdc744a6d28b65fccb55969c235ebcc904a235"
+"adapter.schema.json" = "b7809c1294f65f082853ab6036f7ceb6b9b2806b8f77f9e9fa6f4ab4b9ea1ae4"
+"catalogue-manifest.schema.json" = "5a0d9eeeae5b8c79570b3b2822de4e2c5a9f2bd844ff16b0755119db781cc9ea"
+
+[release.pages]
+"overview.md" = "462f52f95a623f5abd2d762d3a32c8ee9eda743475ffa620f378e5e167185ca0"

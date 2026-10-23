@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/catalogue.schema.json",
+  "title": "CatalogueConfig",
+  "description": "JSON Schema for catalogue.toml — ini-005 Bucket 3 configuration layer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "catalogue", "distribution"],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "description": "Schema version — must be 1.",
+      "enum": [1]
+    },
+    "pack-defaults": {
+      "type": "object",
+      "description": "Per-pack configuration defaults baked into install-defaults.toml at build time.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      }
+    },
+    "catalogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "display-name",
+        "description",
+        "minimum-agentbundle-version",
+        "paths",
+        "build",
+        "package"
+      ],
+      "properties": {
+        "user-dir": {
+          "type": "string",
+          "description": "User-scope pack directory root (must start with ~/). Defaults to ~/.agentbundle when absent."
+        },
+        "name": {
+          "type": "string",
+          "description": "Safe identifier — [A-Za-z0-9][A-Za-z0-9_-]*.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_\\-]*$"
+        },
+        "display-name": {
+          "type": "string",
+          "description": "Human-readable catalogue name."
+        },
+        "description": {
+          "type": "string",
+          "description": "One-line description of the catalogue."
+        },
+        "minimum-agentbundle-version": {
+          "type": "string",
+          "description": "Minimum agentbundle version required to use this catalogue."
+        },
+        "owner": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "description": "Display/ownership metadata — not a registry publisher identity.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Display name of the catalogue owner (team, org, or individual)."
+            }
+          }
+        },
+        "paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["packs", "profiles", "marketplace", "build-output"],
+          "properties": {
+            "packs": {
+              "type": "string",
+              "description": "Relative path to the packs directory."
+            },
+            "profiles": {
+              "type": "string",
+              "description": "Relative path to the profiles directory."
+            },
+            "contracts": {
+              "type": "string",
+              "description": "Relative path to the contracts directory. Optional — when absent AgentBundle uses its bundled schemas."
+            },
+            "marketplace": {
+              "type": "string",
+              "description": "Relative path to the marketplace.json file."
+            },
+            "build-output": {
+              "type": "string",
+              "description": "Relative path for build output."
+            }
+          }
+        },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recipes", "self-host", "claude-plugin-branch", "marketplace-description"],
+          "properties": {
+            "recipes": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Build recipe IDs or relative .toml paths."
+            },
+            "self-host": {
+              "type": "boolean",
+              "description": "Whether to generate self-host install-defaults.toml."
+            },
+            "claude-plugin-branch": {
+              "type": "string",
+              "description": "Branch name for claude-plugin publishing."
+            },
+            "marketplace-description": {
+              "type": "string",
+              "description": "Description for marketplace.json."
+            }
+          }
+        },
+        "package": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["include"],
+          "properties": {
+            "include": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Pack paths to include in a packaged archive. Empty list means include all packs."
+            },
+            "required": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Required root-level file paths. Overrides the default LICENSE-APACHE / LICENSE-MIT constraint when set. Absent or empty means use the default requirement."
+            }
+          }
+        }
+      }
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agentbundle"],
+      "properties": {
+        "agentbundle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "preferred-adapter",
+            "artifactory"
+          ],
+          "properties": {
+            "install-defaults-output": {
+              "type": "string",
+              "description": "Relative path for generated install-defaults.toml. Optional — absent for external catalogues that do not vendor AgentBundle."
+            },
+            "preferred-adapter": {
+              "type": "string",
+              "description": "Default adapter hint written to install-defaults.toml."
+            },
+            "default-source": {
+              "type": "string",
+              "description": "Default catalogue source URI (git+https:// or local path). Optional — absent for newly initialized independent catalogues."
+            },
+            "artifactory": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["enabled"],
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Whether the Artifactory bootstrap is active."
+                },
+                "base-url": {
+                  "type": "string",
+                  "description": "Artifactory base URL (https:// only, required when enabled)."
+                },
+                "repository": {
+                  "type": "string",
+                  "description": "Artifactory repository name (required when enabled)."
+                },
+                "bundle": {
+                  "type": "string",
+                  "description": "Catalogue bundle name (required when enabled)."
+                },
+                "channel": {
+                  "type": "string",
+                  "description": "Artifactory channel name (required when enabled = true)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

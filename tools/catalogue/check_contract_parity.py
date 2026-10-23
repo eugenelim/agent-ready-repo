@@ -9,6 +9,7 @@ every contract file and its role. This gate enforces, from that manifest:
       itself, has a manifest row.
   (4) contracts/README.md lists each member, bundled and vendored row under its
       own role heading, and no repository-only or notice path is a manifest row.
+  (5) catalogue-members.txt lists exactly the manifest's JSON-schema member rows.
 
 Usage:
   python3 tools/catalogue/check_contract_parity.py   # exits 0 ok / 1 fail
@@ -42,6 +43,7 @@ def _load_generator():
 _generator = _load_generator()
 load_manifest = _generator.load_manifest
 _render = _generator._render
+_render_members = _generator._render_members
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _CONTRACTS = _REPO_ROOT / "contracts"
@@ -119,6 +121,7 @@ def main(
     try:
         rows = load_manifest(contracts_dir)
         expected_inventory = _render(contracts_dir)
+        expected_members = _render_members(contracts_dir)
     except _generator.ManifestError as exc:
         print(f"check_contract_parity: FAIL - {exc}", file=sys.stderr)
         return 1
@@ -139,6 +142,13 @@ def main(
         actual_inventory = ""
     if actual_inventory != expected_inventory:
         failures.append("  DIFFER: public-contracts.txt inventory is stale")
+
+    try:
+        actual_members = (data_dir / "catalogue-members.txt").read_text(encoding="utf-8")
+    except FileNotFoundError:
+        actual_members = ""
+    if actual_members != expected_members:
+        failures.append("  DIFFER: catalogue-members.txt does not list the JSON-schema members")
 
     failures += _unlisted_top_level(contracts_dir, rows)
     failures += _readme_role_mismatches(readme, rows)
