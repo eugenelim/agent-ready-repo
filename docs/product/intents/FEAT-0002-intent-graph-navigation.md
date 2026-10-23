@@ -1,7 +1,8 @@
 # Intent graph navigation
 
 - **Slug:** `intent-graph-navigation` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-10-22 eugenelim: all 16 descendants terminal — the delivery brief Shipped (Cut-closed 2026-10-22) and its 15 specs Shipped, per close-work's closure check; the intent's own cited claims were not independently re-validated.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app

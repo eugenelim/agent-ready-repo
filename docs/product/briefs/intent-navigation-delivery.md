@@ -3,7 +3,8 @@
 - **Slug:** `intent-navigation-delivery`
 - **Received:** 2026-10-08
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Executing
+- **Status:** Shipped
+- **Cut-closed:** 2026-10-22 All 15 slices confirmed Shipped; see § Spec map.
 - **Ready confirmed:** 2026-10-08 by the repository owner, after a clean independent delivery-brief shaping review of revision `481476b67b4971e4a8161c414f2980339bda90fb`. Review evidence: `.context/reviews/c701093f-3a4c-4acb-9c5b-ea9268ab7ea8/2-shaping-reviewer-raw.md`.
 - **Slices confirmed:** 2026-10-08 by the repository owner: slices 1 to 8, materialized as the Spec map's specs. Any material edit before the next Ready re-shapes the affected specs in the same change. Amended 2026-10-12 by the repository owner: slices 9, 10 and 11 added and slice 8 re-fitted, in the order 9, 10, 8, 11, after a clean independent delivery-brief shaping review of revision `bf268a0de309fc72`. Amended 2026-10-16 by the repository owner: slice 11 split into 11a (hand-over prompt) and 11b (readiness bridge), and slices 12 (source parts and refined style) and 13 (tree, roadmap and owners) added, in the order 12, 13, 11a, 11b.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0002-intent-graph-navigation.md`](../intents/FEAT-0002-intent-graph-navigation.md), re-decomposed to this brief by the owner on 2026-10-08.
