@@ -246,6 +246,10 @@ def build_check(args: argparse.Namespace) -> int:
             "check-contract-parity",
             "tools", "catalogue", "check_contract_parity.py",
         ),
+        _script_step(
+            "check-spec-version",
+            "tools", "catalogue", "check_spec_version.py",
+        ),
         _pytest_step(
             "test-lint-spec-status",
             "packs", "core", "tests", "skills", "work-loop", "test_lint_spec_status.py",
