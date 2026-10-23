@@ -1,7 +1,8 @@
 # Catalogue technical documentation architecture
 
 - **Slug:** `catalogue-wave6-technical-docs-ia`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec catalogue-wave6-technical-docs-ia, is Shipped per close-work's closure check; the intent's own cited claims were not independently re-validated, and its validation hook — paired task-based navigation tests with 5 catalogue authors and evaluators against the current-site baseline — remains to-validate.
 - **Accepted:** 2026-10-02 by eugenelim, lifecycle owner. Basis: explicit owner direction to refresh, de-risk, and apply the needed reviews; the recorded de-risking verdict survived, and intent-mode review of this revision produced no malformed findings.
 - **Level:** feature
 - **Owner:** eugenelim

@@ -1,7 +1,8 @@
 # Gate JavaScript shipped in pack skills
 
 - **Slug:** `pack-javascript-ci-workflow`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec pack-javascript-ci-workflow, is Shipped per close-work's closure check; the intent declares no validation hook. JavaScript SAST coverage and Dependabot wiring stay owned elsewhere, as that spec's follow-ons record.
 - **Accepted:** 2026-10-02 by eugenelim, lifecycle owner. Basis: explicit owner approval after the remote, path-scoped workflow constraint was incorporated and the resulting intent completed an independent intent-mode shaping review with no malformed findings.
 - **Level:** feature
 - **Owner:** eugenelim
