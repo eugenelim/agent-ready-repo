@@ -144,7 +144,9 @@ def test_manifest_repository_rows_match_the_specification() -> None:
         "vendor/agent-plugins/1.0.0/plugin.schema.json",
     ]
     assert len(rows) == 21
-    assert "release = []" in (REPO_ROOT / "contracts" / "catalogue-spec.toml").read_text()
+    releases, corrections = _generator().load_releases(REPO_ROOT / "contracts")
+    assert [row.version for row in releases] == ["0.1"]
+    assert corrections == []
 
 
 _REJECTIONS = [
@@ -277,6 +279,7 @@ def _tree(tmp_path: Path) -> tuple[Path, Path, Path]:
     for name in ("a.schema.json", "b.toml"):
         shutil.copyfile(contracts / name, data / name)
     (data / "public-contracts.txt").write_text("a.schema.json\nb.toml\n", encoding="utf-8")
+    (data / "catalogue-members.txt").write_text("a.schema.json\n", encoding="utf-8")
     readme = tmp_path / "README.md"
     readme.write_text(_README_TEXT, encoding="utf-8")
     return contracts, data, readme
@@ -366,3 +369,319 @@ def test_parity_rejects_a_non_manifest_path_under_members(
     tree[2].write_text(text, encoding="utf-8")
     code, err = _run(tree, capsys)
     assert code == 1 and "zzz.json under 'Specification members' is not a member row" in err
+
+
+# --- release and correction rows -------------------------------------------
+
+_HEX = "a" * 64
+_HEX2 = "b" * 64
+
+
+def _release(version: str = "0.1", members: str | None = None, pages: str | None = None) -> str:
+    members = (
+        members if members is not None else f'"a.schema.json" = "{_HEX}"\n"b.toml" = "{_HEX}"'
+    )
+    pages = pages if pages is not None else f'"overview.md" = "{_HEX}"'
+    return (
+        f'\n[[release]]\nversion = "{version}"\ndate = "2026-10-23"\n'
+        f'adapter_contract = "0.18"\n[release.members]\n{members}\n[release.pages]\n{pages}\n'
+    )
+
+
+def _correction(
+    supersedes: str = "0.1",
+    date: str = "2026-11-01",
+    version: str = "0.1",
+    pages: str | None = None,
+    extra: str = "",
+) -> str:
+    pages = pages if pages is not None else f'"overview.md" = "{_HEX2}"'
+    return (
+        f'\n[[correction]]\nversion = "{version}"\ndate = "{date}"\nnote = "typo"\n'
+        f'supersedes = "{supersedes}"\n{extra}[correction.pages]\n{pages}\n'
+    )
+
+
+def _released(tmp_path: Path, rows: str, versions: tuple[str, ...] = ("0.1",)) -> Path:
+    """A fixture whose manifest is `rows` appended after two member rows, snapshots staged."""
+    contracts = _fixture(
+        tmp_path,
+        "release = []\n".replace("release = []\n", "") + _row("a.schema.json") + _row("b.toml"),
+    )
+    for version in versions:
+        snap = contracts / "releases" / "catalogue" / version
+        (snap / "sub").mkdir(parents=True)
+        for name in ("a.schema.json", "b.toml", "overview.md"):
+            (snap / name).write_text("x", encoding="utf-8")
+    manifest = contracts / "catalogue-spec.toml"
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(
+        text + rows if "[[release]]" in rows else "release = []\n" + text, encoding="utf-8"
+    )
+    return contracts
+
+
+def _load(tmp_path: Path, rows: str, versions: tuple[str, ...] = ("0.1",)):
+    return _generator().load_releases(_released(tmp_path, rows, versions))
+
+
+def test_release_row_keeps_members_and_pages_separate(tmp_path: Path) -> None:
+    releases, corrections = _load(tmp_path, _release())
+    (row,) = releases
+    assert (row.version, row.date, row.adapter_contract) == ("0.1", "2026-10-23", "0.18")
+    assert set(row.members) == {"a.schema.json", "b.toml"}
+    assert set(row.pages) == {"overview.md"}
+    assert corrections == []
+
+
+@pytest.mark.parametrize(
+    ("rows", "needle"),
+    [
+        pytest.param(
+            _release(members=f'"a.schema.json" = "{_HEX}"'),
+            "lacks a digest for b.toml",
+            id="missing-member-digest",
+        ),
+        pytest.param(
+            _release(
+                members=f'"a.schema.json" = "{_HEX}"\n"b.toml" = "{_HEX}"\n"zz.json" = "{_HEX}"'
+            ),
+            "zz.json",
+            id="unknown-path",
+        ),
+        pytest.param(
+            _release(members=f'"a.schema.json" = 5\n"b.toml" = "{_HEX}"'),
+            "digest",
+            id="non-string",
+        ),
+        pytest.param(_release(version="0.1.2"), "MAJOR.MINOR", id="bad-version"),
+        pytest.param(_release(version="../x"), "MAJOR.MINOR", id="version-escape"),
+        pytest.param(
+            _release(version="0.01") + _release(),
+            "duplicate of release row",
+            id="numeric-duplicate",
+        ),
+        pytest.param(
+            _release(pages=f'"overview.md" = "{_HEX}"\n"./a.schema.json" = "{_HEX}"'),
+            "share key",
+            id="members-pages-alias",
+        ),
+    ],
+)
+def test_release_row_rejections_name_the_row(tmp_path: Path, rows: str, needle: str) -> None:
+    generator = _generator()
+    contracts = _released(tmp_path, rows, ("0.1", "0.01"))
+    with pytest.raises(generator.ManifestError, match=r"release row \d") as info:
+        generator.load_releases(contracts)
+    assert needle in str(info.value)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "/etc/passwd",
+        "../a.schema.json",
+        "sub\\\\a.schema.json",
+        "C:a.schema.json",
+        "sub",
+        "missing.md",
+    ],
+)
+@pytest.mark.parametrize("table", ["members", "pages"])
+def test_release_path_keys_are_confined_to_the_snapshot(
+    tmp_path: Path, key: str, table: str
+) -> None:
+    generator = _generator()
+    entry = f'"{key}" = "{_HEX}"'
+    rows = (
+        _release(members=entry + f'\n"a.schema.json" = "{_HEX}"')
+        if table == "members"
+        else _release(pages=entry)
+    )
+    contracts = _released(tmp_path, rows)
+    with pytest.raises(generator.ManifestError, match=r"release row 0 \(0\.1\)"):
+        generator.load_releases(contracts)
+
+
+def test_release_path_outside_snapshot_root_is_rejected(tmp_path: Path) -> None:
+    generator = _generator()
+    contracts = _released(tmp_path, _release(pages=f'"overview.md" = "{_HEX}"'))
+    (contracts / "outside.md").write_text("x", encoding="utf-8")
+    rows = _release(pages=f'"overview.md" = "{_HEX}"\n"../outside.md" = "{_HEX}"')
+    manifest = contracts / "catalogue-spec.toml"
+    manifest.write_text(manifest.read_text().split("[[release]]")[0] + rows, encoding="utf-8")
+    with pytest.raises(generator.ManifestError, match="outside.md"):
+        generator.load_releases(contracts)
+
+
+def test_version_ordering_is_numeric() -> None:
+    generator = _generator()
+    assert generator.version_key("0.10") > generator.version_key("0.9")
+    assert generator.version_key("0.01") == generator.version_key("0.1")
+
+
+def test_latest_release_ignores_corrections(tmp_path: Path) -> None:
+    generator = _generator()
+    contracts = _released(
+        tmp_path,
+        _release("0.9") + _release("0.10") + _correction(version="0.9", supersedes="0.9"),
+        ("0.9", "0.10"),
+    )
+    releases, _ = generator.load_releases(contracts)
+    assert generator.latest_release(releases).version == "0.10"
+
+
+@pytest.mark.parametrize(
+    ("rows", "needle"),
+    [
+        pytest.param(
+            _correction(extra=f'members = {{"a.schema.json" = "{_HEX}"}}\n'),
+            "members",
+            id="members-table",
+        ),
+        pytest.param(
+            _correction(pages=f'"a.schema.json" = "{_HEX}"'),
+            "not a release page source",
+            id="outside-pages",
+        ),
+        pytest.param(_correction(version="0.2"), "no release row", id="unknown-version"),
+        pytest.param(_correction(supersedes="2020-01-01"), "dangling", id="dangling"),
+        pytest.param(
+            _correction() + _correction(date="2026-11-02"),
+            "duplicated supersedes",
+            id="duplicated",
+        ),
+        pytest.param(
+            _correction(supersedes="2026-11-02")
+            + _correction(supersedes="2026-11-01", date="2026-11-02"),
+            "not rooted",
+            id="cyclic",
+        ),
+    ],
+)
+def test_correction_row_rejections(tmp_path: Path, rows: str, needle: str) -> None:
+    generator = _generator()
+    contracts = _released(tmp_path, _release() + rows)
+    with pytest.raises(generator.ManifestError) as info:
+        generator.load_releases(contracts)
+    assert needle in str(info.value)
+
+
+def test_correction_without_supersedes_is_rejected(tmp_path: Path) -> None:
+    generator = _generator()
+    row = _correction().replace('supersedes = "0.1"\n', "")
+    with pytest.raises(generator.ManifestError, match="supersedes"):
+        generator.load_releases(_released(tmp_path, _release() + row))
+
+
+def test_governing_correction_is_the_chain_head_whatever_the_order(tmp_path: Path) -> None:
+    generator = _generator()
+    first = _correction()
+    second = _correction(supersedes="2026-11-01", date="2026-11-02")
+    for rows in (first + second, second + first):
+        releases, corrections = generator.load_releases(
+            _released(tmp_path / str(len(rows) + rows.index("2026-11-02")), _release() + rows)
+        )
+        assert generator.governing_correction(corrections, "0.1").date == "2026-11-02"
+
+
+def test_correction_with_in_set_pages_is_accepted(tmp_path: Path) -> None:
+    _, corrections = _load(tmp_path, _release() + _correction())
+    assert [row.supersedes for row in corrections] == ["0.1"]
+
+
+def test_release_rejection_label_is_caller_supplied() -> None:
+    generator = _generator()
+    with pytest.raises(generator.ManifestError, match="release row 3 .0.9."):
+        generator._check_path(0, "nope", REPO_ROOT, "release row 3 (0.9)")
+
+
+def test_inventory_member_set_comes_from_the_shared_predicate(tmp_path: Path) -> None:
+    generator = _generator()
+    source = GENERATOR_TOOL.read_text(encoding="utf-8")
+    assert source.count('endswith(".json")') == 1
+    contracts = _fixture(tmp_path, "release = []\n" + _row("a.schema.json") + _row("b.toml"))
+    assert generator._render_members(contracts) == "a.schema.json\n"
+    (contracts / "c.schema.json").write_text("{}", encoding="utf-8")
+    manifest = contracts / "catalogue-spec.toml"
+    manifest.write_text(manifest.read_text() + _row("c.schema.json"), encoding="utf-8")
+    assert generator._render_members(contracts) == "a.schema.json\nc.schema.json\n"
+
+
+def test_real_members_inventory_is_the_json_schema_members() -> None:
+    generator = _generator()
+    listed = (
+        (INVENTORY.with_name("catalogue-members.txt")).read_text(encoding="utf-8").splitlines()
+    )
+    derived = [row.data_name for row in generator.json_schema_members(REPO_ROOT / "contracts")]
+    assert sorted(listed) == sorted(derived) and len(listed) == 8
+    assert "adapter.toml" not in listed and "target-vocab.toml" not in listed
+
+
+@pytest.mark.parametrize("content", ["", "a.schema.json\nextra.json\n", "b.toml\n"])
+def test_parity_rejects_a_drifted_members_inventory(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], content: str
+) -> None:
+    tree = _tree(tmp_path)
+    (tree[1] / "catalogue-members.txt").write_text(content, encoding="utf-8")
+    code, err = _run(tree, capsys)
+    assert code == 1 and "catalogue-members.txt" in err
+
+
+def test_parity_rejects_a_reordered_members_inventory(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    tree = _tree(tmp_path)
+    contracts = tree[0]
+    (contracts / "c.schema.json").write_text("{}", encoding="utf-8")
+    manifest = contracts / "catalogue-spec.toml"
+    manifest.write_text(manifest.read_text() + _row("c.schema.json"), encoding="utf-8")
+    shutil.copyfile(contracts / "c.schema.json", tree[1] / "c.schema.json")
+    (tree[1] / "public-contracts.txt").write_text(
+        "a.schema.json\nb.toml\nc.schema.json\n", encoding="utf-8"
+    )
+    (tree[1] / "catalogue-members.txt").write_text(
+        "c.schema.json\na.schema.json\n", encoding="utf-8"
+    )
+    code, err = _run(tree, capsys)
+    assert code == 1 and "catalogue-members.txt" in err
+
+
+def test_real_snapshot_matches_the_release_row() -> None:
+    generator = _generator()
+    contracts = REPO_ROOT / "contracts"
+    (row,) = generator.load_releases(contracts)[0]
+    snap = generator.snapshot_dir(contracts, row.version)
+    assert len(row.members) == 10
+    for table in (row.members, row.pages):
+        for name, digest in table.items():
+            assert generator.sha256_of(snap / name) == digest
+    assert set(row.pages) == {
+        p.name for p in (REPO_ROOT / "docs-site" / "spec-src" / "catalogue").iterdir()
+    }
+    on_disk = {p.relative_to(snap).as_posix() for p in snap.rglob("*") if p.is_file()}
+    assert on_disk == set(row.members) | set(row.pages)
+    for name in row.members:
+        assert (snap / name).read_bytes() == (
+            contracts / name
+        ).read_bytes() or name == "adapter.toml"
+
+
+def test_overview_is_final_before_the_snapshot_and_reads_right_at_both_paths() -> None:
+    text = (REPO_ROOT / "docs-site" / "spec-src" / "catalogue" / "overview.md").read_text(
+        encoding="utf-8"
+    )
+    lowered = text.lower()
+    assert "draft of the" not in lowered and "is the draft" not in lowered
+    assert "no released version" not in lowered
+    for needle in (
+        "pin a versioned url",
+        "latest/",
+        "draft/",
+        "record each digest in your own repository",
+        "`_data/` copy in the matching pypi wheel",
+        "`agentbundle-v*` tag",
+        "vendor the file",
+        "same deploy",
+    ):
+        assert needle in lowered, needle
