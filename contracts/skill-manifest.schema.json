@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "skill-manifest.schema.json",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/skill-manifest.schema.json",
   "type": "object",
   "required": ["id", "name", "version", "description"],
   "additionalProperties": false,
