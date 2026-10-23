@@ -116,6 +116,15 @@ def load_manifest(contracts_dir: Path) -> list[ContractRow]:
     return rows
 
 
+def json_schema_members(contracts_dir: Path = _CONTRACTS) -> list[ContractRow]:
+    """The manifest's member rows whose path ends in `.json`, in manifest order."""
+    return [
+        row
+        for row in load_manifest(contracts_dir)
+        if row.role == "member" and row.path.endswith(".json")
+    ]
+
+
 def _render(contracts_dir: Path = _CONTRACTS) -> str:
     """Sorted `_data/` names of the member and bundled rows, one per line."""
     names = sorted(row.data_name for row in load_manifest(contracts_dir) if row.role != "vendored")
