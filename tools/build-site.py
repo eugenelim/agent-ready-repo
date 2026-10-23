@@ -2167,7 +2167,9 @@ def main() -> None:
         print(f"  {_relpath(page)}")
 
     print("build-site: generating the catalogue specification section …")
-    for page in _spec_site.generate(SITE_DOCS, SITE_PUBLIC, dry_run=args.dry_run):
+    for page in _spec_site.generate(
+        SITE_DOCS, SITE_PUBLIC, dry_run=args.dry_run, redirects_path=_spec_site.REDIRECTS_PATH
+    ):
         print(f"  {_relpath(page)}")
 
     print("build-site: projecting released changelog highlights …")
