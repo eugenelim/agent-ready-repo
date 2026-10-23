@@ -250,6 +250,10 @@ def build_check(args: argparse.Namespace) -> int:
             "check-spec-version",
             "tools", "catalogue", "check_spec_version.py",
         ),
+        _script_step(
+            "check-release-immutability",
+            "tools", "catalogue", "check_release_immutability.py",
+        ),
         _pytest_step(
             "test-lint-spec-status",
             "packs", "core", "tests", "skills", "work-loop", "test_lint_spec_status.py",

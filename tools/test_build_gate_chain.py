@@ -827,6 +827,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/catalogue/pre_pr_catalogue.py",
     "tools/catalogue/check_contract_parity.py",
     "tools/catalogue/check_spec_version.py",
+    "tools/catalogue/check_release_immutability.py",
     "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
     ".claude/skills/work-loop/scripts/lint-spec-status.py",
     "packs/core/tests/skills/work-loop/test_lint_graph_pointers.py",
