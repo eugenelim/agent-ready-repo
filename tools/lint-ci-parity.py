@@ -200,8 +200,16 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "carries one hard gate — the rehype plugin suite, whose local counterpart "
         "is `make test` (npm run test:plugins --prefix docs-site) and whose "
         "presence, ordering and path filters are pinned by "
-        "tools/test-pages-workflow.py, run from the required gate-main. It blocks "
-        "the deploy, not the merge: this workflow is not a required context.",
+        "tools/test-pages-workflow.py, run from the required gate-main. It carries "
+        "a SECOND hard gate — RFC-0109 check 3's rendered half, "
+        "tools/check-deployed-release-parity.py, which compares the built "
+        "catalogue-spec members against the DEPLOYED index fetched from the live "
+        "site; it needs the live index and a site build, so it has no local "
+        "counterpart, its suite is tools/test_check_deployed_release_parity.py, and "
+        "its presence, ordering and path filters are pinned by the same "
+        "tools/test-pages-workflow.py. "
+        "Both gates block the deploy, not the merge: this workflow is not a "
+        "required context.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":
