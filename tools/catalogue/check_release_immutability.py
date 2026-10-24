@@ -41,6 +41,7 @@ _MANIFEST = "contracts/catalogue-spec.toml"
 _RELEASES = "contracts/releases/catalogue"
 _SHA = re.compile(r"^[0-9a-f]{40}([0-9a-f]{24})?$")
 _REF = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._/-]*$")
+_VERSION = re.compile(r"^[0-9]+\.[0-9]+$")
 _DEFAULT_BASE = "main"
 
 
@@ -146,9 +147,19 @@ def _rows(data: dict) -> tuple[dict[str, object], dict[tuple[str, str], object]]
 
 
 def _anchor_manifest(root: Path, anchor: str) -> dict:
+    """The manifest as the anchor held it; `{}` only when the anchor has no manifest.
+
+    Absence is established by listing the path in the anchor's tree, never inferred
+    from a failed read: an unreadable anchor must stop the check, not pass it.
+    """
+    listing = _git(root, "ls-tree", "--name-only", anchor, "--", _MANIFEST)
+    if listing.returncode != 0:
+        raise AnchorError(f"cannot list the anchor tree: {listing.stderr.decode().strip()}")
+    if not listing.stdout.strip():
+        return {}  # the manifest was absent at the anchor, so nothing was released
     out = _git(root, "show", f"{anchor}:{_MANIFEST}")
     if out.returncode != 0:
-        return {}  # the manifest did not exist then, so nothing was released
+        raise AnchorError(f"cannot read the anchor manifest: {out.stderr.decode().strip()}")
     return tomllib.loads(out.stdout.decode("utf-8"))
 
 
@@ -156,6 +167,9 @@ def _snapshot_files(root: Path, anchor: str, version: str) -> list[str]:
     """Snapshot-relative paths under `version` at the anchor."""
     prefix = f"{_RELEASES}/{version}/"
     out = _git(root, "ls-tree", "-r", "--name-only", anchor, "--", prefix)
+    if out.returncode != 0:
+        detail = out.stderr.decode().strip()
+        raise AnchorError(f"cannot list snapshot {version} at the anchor: {detail}")
     return [line[len(prefix) :] for line in out.stdout.decode().splitlines() if line]
 
 
@@ -185,6 +199,8 @@ def compare(root: Path, anchor: str) -> list[str]:
 
     corrections = list(new_corrections.values())
     for version, old in old_releases.items():
+        if not _VERSION.match(version):
+            raise AnchorError(f"anchor release version {version!r} is not MAJOR.MINOR")
         for rel in _snapshot_files(root, anchor, version):
             failures += _compare_file(root, anchor, version, old, rel, corrections)
     return failures

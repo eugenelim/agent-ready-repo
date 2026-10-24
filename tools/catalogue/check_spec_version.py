@@ -2,9 +2,9 @@
 """Check 2 of the catalogue release gate: member `$id`s agree with the releases.
 
 Every JSON-schema member's `$id` must name one version V. When the member bytes
-equal the latest release's snapshot, V must be that latest release. When they
-differ, V must be an unreleased version that has no snapshot yet. Fix a failure
-by running `tools/catalogue/rewrite_member_ids.py --version <V>`.
+equal the latest release's snapshot (all members, TOML included), V must be that
+latest release. When they differ, V must be an unreleased version that has no
+snapshot yet. Fix a failure by running `tools/catalogue/rewrite_member_ids.py --version <V>`.
 
 Usage:
   python3 tools/catalogue/check_spec_version.py   # exits 0 ok / 1 fail
@@ -74,10 +74,12 @@ def check(contracts_dir: Path = _CONTRACTS) -> list[str]:
     releases, _ = _generator.load_releases(contracts_dir)
     latest = _generator.latest_release(releases)
     released = {row.version for row in releases}
+    # Compare every snapshotted member (the TOML ones too), not only those with a `$id`.
     unchanged = latest is not None and all(
         (snap := _generator.snapshot_dir(contracts_dir, latest.version) / name).is_file()
-        and snap.read_bytes() == (contracts_dir / name).read_bytes()
-        for name in names
+        and (live := contracts_dir / name).is_file()
+        and snap.read_bytes() == live.read_bytes()
+        for name in latest.members
     )
     if unchanged and latest is not None:
         if version != latest.version:

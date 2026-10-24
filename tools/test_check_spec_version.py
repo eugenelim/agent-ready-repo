@@ -61,6 +61,16 @@ def test_bytes_differ_with_latest_id_fails(tree: Path, capsys: pytest.CaptureFix
     assert "rewrite_member_ids.py" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("name", ["adapter.toml", "target-vocab.toml"])
+def test_toml_member_drift_with_latest_id_fails(
+    tree: Path, name: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tree / name
+    path.write_bytes(path.read_bytes() + b"# drift\n")
+    assert check.main(contracts_dir=tree) == 1
+    assert "member bytes differ from the latest release" in capsys.readouterr().err
+
+
 def test_bytes_differ_with_unreleased_id_passes(tree: Path) -> None:
     path = tree / "pack.schema.json"
     path.write_bytes(path.read_bytes().replace(b'"title"', b'"title" ', 1))

@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -68,14 +69,26 @@ class Repo:
 
     def __init__(self, root: Path) -> None:
         self.root = root
+        # No ambient config or hooks: the fixture must behave the same on every machine.
+        (root.parent / "no-hooks").mkdir(exist_ok=True)
+        self.env = {
+            **os.environ,
+            "GIT_CONFIG_GLOBAL": str(root.parent / "absent-gitconfig"),
+            "GIT_CONFIG_SYSTEM": str(root.parent / "absent-gitconfig"),
+        }
         self.git("init", "-q", "-b", "main")
         self.git("config", "user.email", "t@example.invalid")
         self.git("config", "user.name", "t")
         self.git("config", "commit.gpgsign", "false")
+        self.git("config", "core.hooksPath", str(root.parent / "no-hooks"))
 
     def git(self, *args: str) -> str:
         out = subprocess.run(
-            ["git", "-C", str(self.root), *args], capture_output=True, text=True, check=True
+            ["git", "-C", str(self.root), *args],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=self.env,
         )
         return out.stdout.strip()
 
@@ -374,3 +387,42 @@ def test_other_anchors_are_not_marked_self_consistency(repo: Repo) -> None:
     code, out = repo.pr(_base(repo))
     assert code == 0, out
     assert "event=pull_request" in out and "self-consistency" not in out
+
+
+_BOGUS_ANCHOR = "1" * 40
+
+
+def test_unreadable_anchor_manifest_raises_instead_of_reading_as_empty(repo: Repo) -> None:
+    with pytest.raises(check.AnchorError, match="cannot list the anchor tree"):
+        check._anchor_manifest(repo.root, _BOGUS_ANCHOR)
+
+
+def test_unreadable_anchor_snapshot_listing_raises_instead_of_reading_as_empty(
+    repo: Repo,
+) -> None:
+    with pytest.raises(check.AnchorError, match="cannot list snapshot 0.1"):
+        check._snapshot_files(repo.root, _BOGUS_ANCHOR, "0.1")
+
+
+def test_a_manifest_absent_at_the_anchor_is_established_and_passes(tmp_path: Path) -> None:
+    (tmp_path / "r").mkdir()
+    r = Repo(tmp_path / "r")
+    r.write("README", "x")
+    base = r.commit("before the manifest")
+    r.manifest(_release())
+    r.snapshot()
+    r.commit("first release")
+    assert check._anchor_manifest(r.root, base) == {}
+    code, out = r.pr(base)
+    assert code == 0, out
+
+
+def test_an_anchor_version_that_is_not_major_minor_is_refused(tmp_path: Path) -> None:
+    (tmp_path / "r").mkdir()
+    r = Repo(tmp_path / "r")
+    r.manifest(_release("0.1/../x"))
+    r.write("contracts/releases/catalogue/0.1/../x/m.json", _MEMBER)
+    base = r.commit("odd version")
+    r.commit("head")
+    code, out = r.pr(base)
+    assert code == 1 and "not MAJOR.MINOR" in out

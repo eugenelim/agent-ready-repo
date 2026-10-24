@@ -136,7 +136,10 @@ def check_bundle(contracts_dir: Path, data_dir: Path) -> tuple[str, dict[str, st
     if len(set(members.values())) != len(members):
         raise GateError(f"release {version} members collide after reducing to base names")
     schemas = {base for base in members.values() if base.endswith(".json")}
-    if len(inventory) != len(set(inventory)) or set(inventory) != schemas:
+    repeated = sorted({base for base in inventory if inventory.count(base) > 1})
+    if repeated:
+        raise GateError(f"bundled inventory lists {repeated} more than once")
+    if set(inventory) != schemas:
         raise GateError(
             "bundled inventory does not list exactly the JSON-schema members of "
             f"release {version}: extra {sorted(set(inventory) - schemas)}, "

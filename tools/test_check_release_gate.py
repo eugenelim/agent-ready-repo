@@ -66,7 +66,7 @@ def make_tree(
     for name in members:
         (contracts / name).write_bytes(members[name])
     if snapshot is not None:
-        snap = contracts / "releases" / "catalogue" / VERSION
+        snap = contracts / "releases" / "catalogue" / (row_version or VERSION)
         snap.mkdir(parents=True)
         for name, content in snapshot.items():
             (snap / name).write_bytes(content)
@@ -110,6 +110,12 @@ def gate(contracts: Path, data: Path, url: str) -> int:
     return mod.run(contracts, data, url=url, opener=parity.build_opener())
 
 
+def fails_with(capsys, contracts, data, url, message):
+    """Run the gate, require exit 1, and require the failure to name `message`."""
+    assert gate(contracts, data, url) == 1
+    assert message in capsys.readouterr().err
+
+
 def test_matching_bundle_and_index_pass(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     with stub(body=index_for()) as url:
@@ -117,7 +123,7 @@ def test_matching_bundle_and_index_pass(tmp_path, capsys):
     assert "OK" in capsys.readouterr().out
 
 
-def test_version_is_read_from_the_bundled_member_ids(tmp_path):
+def test_version_is_read_from_the_bundled_member_ids(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     assert mod.read_version(data, SCHEMAS) == VERSION
     (data / "a.schema.json").write_bytes(schema("a.schema.json", "0.2"))
@@ -127,17 +133,17 @@ def test_version_is_read_from_the_bundled_member_ids(tmp_path):
     assert mod.read_version(data, SCHEMAS) == "0.2"
     # With V = 0.2 there is no row, so the gate fails on the missing row.
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "no release row for 0.2")
 
 
-def test_compared_set_is_the_row_member_keys_not_the_inventory(tmp_path):
+def test_compared_set_is_the_row_member_keys_not_the_inventory(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     _, digests = mod.check_bundle(contracts, data)
     assert set(digests) == set(MEMBERS)  # includes the non-JSON member the inventory omits
     # A differing non-JSON member, invisible to the inventory, still fails.
     (data / "vocab.toml").write_bytes(b"x = 2\n")
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "bundled vocab.toml differs")
 
 
 def test_pages_table_is_not_compared(tmp_path):
@@ -152,13 +158,14 @@ def test_pages_table_is_not_compared(tmp_path):
 def test_no_snapshot_for_v_fails(tmp_path, capsys):
     contracts, data = make_tree(tmp_path, snapshot=None)
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        # The manifest loader rejects a row whose snapshot is absent before the gate's own arm.
+        fails_with(capsys, contracts, data, url, "release rows unusable")
 
 
-def test_no_release_row_for_v_fails(tmp_path):
+def test_no_release_row_for_v_fails(tmp_path, capsys):
     contracts, data = make_tree(tmp_path, row_version="0.2")
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "no release row for 0.1")
 
 
 def test_bundled_bytes_differing_from_snapshot_fail(tmp_path, capsys):
@@ -169,11 +176,11 @@ def test_bundled_bytes_differing_from_snapshot_fail(tmp_path, capsys):
     assert "differs" in capsys.readouterr().err
 
 
-def test_a_member_absent_from_the_bundle_fails(tmp_path):
+def test_a_member_absent_from_the_bundle_fails(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     (data / "vocab.toml").unlink()
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "bundled member missing: _data/vocab.toml")
 
 
 def test_deployed_index_not_listing_v_fails(tmp_path, capsys):
@@ -182,46 +189,54 @@ def test_deployed_index_not_listing_v_fails(tmp_path, capsys):
         assert gate(contracts, data, url) == 1
     assert "does not list" in capsys.readouterr().err
     with stub(body=b'{"releases": []}') as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "does not list")
 
 
-def test_deployed_digest_differing_fails(tmp_path):
+def test_deployed_digest_differing_fails(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     with stub(body=index_for({**MEMBERS, "vocab.toml": b"x = 9\n"})) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "member digests for 0.1 differ")
 
 
-@pytest.mark.parametrize("status,body", [
-    (404, b"nope"), (204, b""), (200, b""), (200, b"<html>"), (200, b'{"other": []}'),
-    (200, b'{"releases": "x"}'), (200, b"[]"),
+@pytest.mark.parametrize("status,body,message", [
+    (404, b"nope", "HTTP 404"),
+    (204, b"", "answered HTTP 204"),
+    (200, b"", "not valid JSON"),
+    (200, b"<html>", "not valid JSON"),
+    (200, b'{"other": []}', "no `releases` key"),
+    (200, b'{"releases": "x"}', "is not an array"),
+    (200, b"[]", "no `releases` key"),
 ])
-def test_non_200_or_unacceptable_index_fails(tmp_path, status, body):
+def test_non_200_or_unacceptable_index_fails(tmp_path, capsys, status, body, message):
     contracts, data = make_tree(tmp_path)
     with stub(status=status, body=body) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, message)
 
 
-def test_unreachable_index_fails(tmp_path):
+def test_unreachable_index_fails(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     with stub() as url:
         pass
-    assert gate(contracts, data, url) == 1
+    fails_with(capsys, contracts, data, url, "deployed index unreachable")
 
 
-@pytest.mark.parametrize("inventory", [
-    "a.schema.json\n",                              # missing one
-    "a.schema.json\nb.schema.json\nvocab.toml\n",   # extra, non-JSON
-    "a.schema.json\nb.schema.json\nc.schema.json\n",  # extra unknown
-    "a.schema.json\na.schema.json\nb.schema.json\n",  # duplicate
-    "",                                             # empty
-    "\n\n",                                         # blank only
-    "a.schema.json\n..\n",                          # unreducible
-    "a.schema.json\nb.schema.json\n/\n",            # unreducible
+@pytest.mark.parametrize("inventory,message", [
+    ("a.schema.json\n", "missing ['b.schema.json']"),  # exactness arm: missing one
+    ("a.schema.json\nb.schema.json\nvocab.toml\n",
+     "bundled member unreadable: _data/vocab.toml"),    # a non-JSON name is read as JSON first
+    ("a.schema.json\nb.schema.json\nc.schema.json\n",
+     "bundled member missing: _data/c.schema.json"),    # an unknown name is not bundled
+    ("a.schema.json\na.schema.json\nb.schema.json\n",
+     "lists ['a.schema.json'] more than once"),         # exactness arm: duplicate
+    ("", "bundled inventory empty"),
+    ("\n\n", "bundled inventory empty"),
+    ("a.schema.json\n..\n", "does not reduce to a base file name"),
+    ("a.schema.json\nb.schema.json\n/\n", "does not reduce to a base file name"),
 ])
-def test_inventory_not_exactly_the_json_subset_fails(tmp_path, inventory):
+def test_inventory_not_exactly_the_json_subset_fails(tmp_path, capsys, inventory, message):
     contracts, data = make_tree(tmp_path, inventory=inventory)
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, message)
 
 
 def test_inventory_listing_directory_prefixed_names_reduces_to_base(tmp_path):
@@ -230,21 +245,21 @@ def test_inventory_listing_directory_prefixed_names_reduces_to_base(tmp_path):
         assert gate(contracts, data, url) == 0
 
 
-def test_absent_inventory_fails(tmp_path):
+def test_absent_inventory_fails(tmp_path, capsys):
     contracts, data = make_tree(tmp_path, inventory=None)
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "bundled member missing: _data/catalogue-members.txt")
 
 
-def test_unreadable_inventory_fails(tmp_path):
+def test_unreadable_inventory_fails(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     (data / "catalogue-members.txt").write_bytes(b"\xff\xfe\x00bad")
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "bundled inventory unreadable")
     (data / "catalogue-members.txt").unlink()
     (data / "catalogue-members.txt").mkdir()  # a directory, not a file
     with stub(body=index_for()) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "bundled member missing: _data/catalogue-members.txt")
 
 
 def test_fetch_is_checks_three_shared_implementation():
@@ -257,15 +272,15 @@ def test_fetch_is_checks_three_shared_implementation():
     assert "os.environ" not in src and "getenv" not in src and "import os" not in src  # no environment input
 
 
-def test_fetch_refuses_redirects(tmp_path):
+def test_fetch_refuses_redirects(tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     with stub(body=index_for()) as target, stub(status=302, location=target) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "refusing a 302 redirect")
         with pytest.raises(parity.ParityError, match="redirect"):
             parity.fetch_releases(url, parity.build_opener())
 
 
-def test_fetch_carries_timeout_and_ceiling(tmp_path):
+def test_fetch_carries_timeout_and_ceiling(tmp_path, capsys):
     seen: dict[str, object] = {}
 
     class Opener:
@@ -275,13 +290,14 @@ def test_fetch_carries_timeout_and_ceiling(tmp_path):
 
     contracts, data = make_tree(tmp_path)
     assert mod.run(contracts, data, url="https://example.invalid/", opener=Opener()) == 1  # type: ignore[arg-type]
+    assert "deployed index unreachable" in capsys.readouterr().err
     assert seen["timeout"] == 30
     padding = b" " * (parity.MAX_BODY_BYTES + 10)
     with stub(body=b'{"releases": []}' + padding) as url:
-        assert gate(contracts, data, url) == 1
+        fails_with(capsys, contracts, data, url, "byte ceiling")
 
 
-def test_https_proxy_is_ignored(monkeypatch, tmp_path):
+def test_https_proxy_is_ignored(monkeypatch, tmp_path, capsys):
     contracts, data = make_tree(tmp_path)
     with stub(body=index_for()) as proxy_url:
         monkeypatch.setenv("https_proxy", proxy_url.rsplit("/", 1)[0])
@@ -292,6 +308,7 @@ def test_https_proxy_is_ignored(monkeypatch, tmp_path):
         pass
     monkeypatch.setenv("https_proxy", "http://127.0.0.1:9")
     assert mod.run(contracts, data, url=dead, opener=opener) == 1
+    assert "deployed index unreachable" in capsys.readouterr().err
 
 
 def test_trust_anchor_ignores_cert_environment(monkeypatch, tmp_path):
