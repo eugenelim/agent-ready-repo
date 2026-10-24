@@ -1826,6 +1826,31 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'tools/test_rewrite_member_ids.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_spec_version.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_release_immutability.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_deployed_release_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_release_gate.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
     'tools/test_marketplace_envelope_parity.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "

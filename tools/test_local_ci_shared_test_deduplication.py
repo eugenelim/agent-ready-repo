@@ -401,6 +401,12 @@ FINAL_TOOL_BATCH = (
     # fires on no PR trigger, so while this was a Makefile-only line the
     # enumeration guard gated no pull request at all.
     "tools/test_gate_enumeration.py",
+    # Added with the catalogue specification release suites (RFC-0109 S4 T10).
+    "tools/test_rewrite_member_ids.py",
+    "tools/test_check_spec_version.py",
+    "tools/test_check_release_immutability.py",
+    "tools/test_check_deployed_release_parity.py",
+    "tools/test_check_release_gate.py",
 )
 
 WORKSPACE_STATUS_PAIR = SHARED_TESTS[3:]
@@ -1056,11 +1062,23 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # No line was added, removed or reordered. Prior pins were current:
 # `_effective_composition_errors()` over this Makefile with exactly that path
 # deleted returns no drift errors against `6cb1a71c…` and `9a13a0ba…`.
+# Bumped 2026-10-23 for the catalogue specification release suites (RFC-0109
+# S4 T10). Sole cause: five paths appended to the existing tools batch line
+# (the one anchored at `tools/test_contract_parity.py`), after
+# `tools/test_gate_enumeration.py` — `tools/test_rewrite_member_ids.py`,
+# `tools/test_check_spec_version.py`,
+# `tools/test_check_release_immutability.py`,
+# `tools/test_check_deployed_release_parity.py`,
+# `tools/test_check_release_gate.py` — mirrored in build-check.yml and in
+# FINAL_TOOL_BATCH. No line was added, removed or reordered. Prior pins were
+# current: `_effective_composition_errors()` over this Makefile with exactly
+# those five paths deleted returns no errors against `8e9fcfdf…` and
+# `861eb168…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "8e9fcfdf677e0aeb86f662976685a0cc841e26f3048b9167ab0587d91939fcb8"
+    "959545052c41d0212fa05d84d9354f21f6e75f32928ff7b5692b8fbe645bd75e"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "861eb168215265d9fab6f83da75f629cf4e2420575783088f1770b0f87c71c8d"
+    "eb37d527018a9231f62aec2d06bcda034de31710769526210e150aa39bba1ea1"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
