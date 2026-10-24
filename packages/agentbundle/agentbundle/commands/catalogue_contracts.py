@@ -15,6 +15,7 @@ from agentbundle.catalogue_tooling.contracts_inspector import (
     show_contract,
 )
 from agentbundle.safety import WriteError
+from agentbundle.version import catalogue_spec_version
 
 if TYPE_CHECKING:
     import argparse
@@ -31,8 +32,24 @@ def _run_list(args: argparse.Namespace) -> int:
     except ContractResourceError:
         print("error: bundled contract resources are unavailable", file=sys.stderr)
         return 1
+    try:
+        specification = catalogue_spec_version()
+    except (OSError, ValueError) as exc:
+        message = str(exc).replace("\n", " ")
+        print(
+            f"error: cannot report the catalogue specification version: {message}",
+            file=sys.stderr,
+        )
+        return 1
     if getattr(args, "format", "table") == "json":
-        print(json.dumps([dataclasses.asdict(contract) for contract in contracts]))
+        print(
+            json.dumps(
+                {
+                    "catalogue_specification": specification,
+                    "contracts": [dataclasses.asdict(contract) for contract in contracts],
+                }
+            )
+        )
         return 0
 
     rows = [("NAME", "KIND", "FILE")] + [
@@ -42,6 +59,7 @@ def _run_list(args: argparse.Namespace) -> int:
     widths = [max(len(row[column]) for row in rows) for column in range(3)]
     for row in rows:
         print(f"{row[0]:<{widths[0]}}  {row[1]:<{widths[1]}}  {row[2]}")
+    print(f"\nCatalogue specification {specification}")
     return 0
 
 

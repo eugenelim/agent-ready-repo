@@ -23,6 +23,7 @@ ALLOWED: tuple[tuple[str, str, int, str], ...] = (
     ("catalogue_tooling/config.py", "contracts", 1, "configuration key name"),
     ("catalogue_tooling/lint.py", "contracts", 2, "configuration key names"),
     ("cli.py", "contracts", 1, "CLI subcommand name"),
+    ("commands/catalogue_contracts.py", "contracts", 1, "JSON output key name"),
     ("build/self_host.py", "contracts/**", 1, "self-host input glob"),
 )
 
