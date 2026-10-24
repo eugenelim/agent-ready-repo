@@ -327,3 +327,23 @@ def test_trust_anchor_ignores_cert_environment(monkeypatch, tmp_path):
 
 def test_cli_takes_no_arguments(capsys):
     assert mod.main(["--url", "https://attacker.invalid/"]) == 2
+
+
+def test_inventory_listing_a_non_member_schema_hits_the_extra_arm(tmp_path, capsys):
+    """The `extra` direction of AC 11's exactness rule.
+
+    The other inventory cases die earlier -- a non-JSON or absent name fails in
+    `read_version` before the comparison -- so without this the `extra {...}`
+    branch is never reached by the suite. Here `z.schema.json` is bundled,
+    readable and carries a matching versioned `$id`, so the only thing wrong
+    with it is that the release row does not list it as a member.
+    """
+    extra = "z.schema.json"
+    bundled = {**MEMBERS, extra: schema(extra)}
+    contracts, data = make_tree(
+        tmp_path,
+        bundled=bundled,
+        inventory="\n".join([*SCHEMAS, extra]) + "\n",
+    )
+    with stub(body=index_for()) as url:
+        fails_with(capsys, contracts, data, url, f"extra ['{extra}']")

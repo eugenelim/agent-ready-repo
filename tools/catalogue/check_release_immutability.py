@@ -8,12 +8,15 @@ the pushed commit, chosen by the event that started the run:
   pull_request          merge base with the base branch (`origin/<base>`)
   push to main          the ref's pre-push value (`before` in the event
                         payload), so every commit in the push is measured
-  workflow_dispatch     the head commit's first parent -- the author's own
-                        commit, so the run proves self-consistency only
+  workflow_dispatch     refuses -- the only anchor available is the head
+                        commit's first parent, the author's own commit
   no / other event      merge base with `origin/main` (every local run)
 
-The check fails closed when the anchor cannot be resolved, or when a pre-push
-value is absent or is not an ancestor of the tip. A snapshot page-source edit
+The check fails closed when the anchor cannot be resolved or read, when a
+pre-push value is absent or is not an ancestor of the tip, and on
+`workflow_dispatch`, where a pass would be self-consistency evidence rather
+than a tamper check and could stand in for a pull-request or push run at a
+required status check. A snapshot page-source edit
 is admitted only when the path is a key of that release's `pages` table and
 the head's governing correction row carries the new bytes' digest.
 
@@ -166,11 +169,11 @@ def _anchor_manifest(root: Path, anchor: str) -> dict:
 def _snapshot_files(root: Path, anchor: str, version: str) -> list[str]:
     """Snapshot-relative paths under `version` at the anchor."""
     prefix = f"{_RELEASES}/{version}/"
-    out = _git(root, "ls-tree", "-r", "--name-only", anchor, "--", prefix)
+    out = _git(root, "ls-tree", "-r", "-z", "--name-only", anchor, "--", prefix)
     if out.returncode != 0:
         detail = out.stderr.decode().strip()
         raise AnchorError(f"cannot list snapshot {version} at the anchor: {detail}")
-    return [line[len(prefix) :] for line in out.stdout.decode().splitlines() if line]
+    return [line[len(prefix) :] for line in out.stdout.decode().split("\0") if line]
 
 
 def compare(root: Path, anchor: str) -> list[str]:
@@ -213,7 +216,12 @@ def _compare_file(
     path = root / _RELEASES / version / rel
     if path.is_symlink() or not path.is_file():
         return [f"  {where} was deleted"]
-    old_bytes = _git(root, "show", f"{anchor}:{_RELEASES}/{version}/{rel}").stdout
+    shown = _git(root, "show", f"{anchor}:{_RELEASES}/{version}/{rel}")
+    if shown.returncode != 0:
+        # Treated like the other two anchor reads: an unreadable anchor stops the
+        # check. Reading b"" here would admit an empty head file against nothing.
+        raise AnchorError(f"cannot read {where} at anchor {anchor}")
+    old_bytes = shown.stdout
     new_bytes = path.read_bytes()
     if new_bytes == old_bytes:
         return []
@@ -226,24 +234,19 @@ def _compare_file(
     return []
 
 
-def run(root: Path, env: Mapping[str, str]) -> tuple[list[str], str]:
-    """Failures and the one-line header naming the event and anchor measured."""
+def run(root: Path, env: Mapping[str, str]) -> tuple[list[str], str, bool]:
+    """Failures, the header naming the event and anchor, and whether it refuses."""
     event = env.get("GITHUB_EVENT_NAME") or "none"
     anchor, desc, self_only = pick_anchor(root, env)
     header = f"check_release_immutability: event={event} anchor={anchor} ({desc})"
-    if self_only:
-        header += (
-            "; self-consistency evidence only - the anchor is the author's own "
-            "commit, so this run is not a tamper check"
-        )
-    return compare(root, anchor), header
+    return compare(root, anchor), header, self_only
 
 
 def main(*, root: Path = _ROOT, env: Mapping[str, str] | None = None) -> int:
     """Print the verdict and return 0 or 1."""
     environ = os.environ if env is None else env
     try:
-        failures, header = run(root, environ)
+        failures, header, self_only = run(root, environ)
     except AnchorError as exc:
         event = environ.get("GITHUB_EVENT_NAME") or "none"
         print(f"check_release_immutability: FAIL - event={event}: {exc}", file=sys.stderr)
@@ -253,6 +256,20 @@ def main(*, root: Path = _ROOT, env: Mapping[str, str] | None = None) -> int:
         print("\n".join(failures), file=sys.stderr)
         print(
             "check_release_immutability: FAIL - a released row or snapshot changed",
+            file=sys.stderr,
+        )
+        return 1
+    if self_only:
+        # The only anchor available here is the author's own commit, so a pass
+        # would be self-consistency evidence, not a tamper check. Reporting
+        # success would let this run stand in for a pull-request or push run at
+        # a required status check, which is the substitution the refusal closes.
+        print(header, file=sys.stderr)
+        print(
+            "check_release_immutability: REFUSED - self-consistency evidence "
+            "only; no anchor outside the pushed commit exists on this event, so "
+            "this run cannot serve as the tamper check. Re-run it on a pull "
+            "request or a push to main.",
             file=sys.stderr,
         )
         return 1

@@ -69,7 +69,8 @@ class Repo:
 
     def __init__(self, root: Path) -> None:
         self.root = root
-        # No ambient config or hooks: the fixture must behave the same on every machine.
+        # No ambient config or hooks, for the fixture's own git AND for the
+        # subprocesses `check.main` spawns: the result must not depend on the machine.
         (root.parent / "no-hooks").mkdir(exist_ok=True)
         self.env = {
             **os.environ,
@@ -114,9 +115,21 @@ class Repo:
         import contextlib
         import io
 
+        # `check.main` runs in-process and its own `git` subprocesses inherit
+        # os.environ, so isolating only `Repo.git` would leave the code under
+        # test reading the developer's global config and hooks.
         out, err = io.StringIO(), io.StringIO()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            code = check.main(root=self.root, env=env)
+        saved = {k: os.environ.get(k) for k in ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM")}
+        os.environ.update({k: self.env[k] for k in saved})
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = check.main(root=self.root, env=env)
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
         return code, out.getvalue() + err.getvalue()
 
     def pr(self, base: str) -> tuple[int, str]:
@@ -331,7 +344,9 @@ def test_main_push_earlier_commit_mutation_fails(repo: Repo, tmp_path: Path) -> 
     # The tip's first parent already carries the mutation, so a first-parent
     # anchor would pass; the pre-push anchor must not.
     repo.git("update-ref", "refs/remotes/origin/main", before)
-    assert repo.run(GITHUB_EVENT_NAME="workflow_dispatch")[0] == 0
+    # The dispatch leg refuses outright, so it reports neither the pass a
+    # first-parent anchor would have given nor a tamper verdict.
+    assert repo.run(GITHUB_EVENT_NAME="workflow_dispatch")[0] == 1
     code, out = _push(repo, before, tmp_path)
     assert code == 1, out
 
@@ -377,7 +392,8 @@ def test_workflow_dispatch_takes_first_parent_and_says_so(repo: Repo) -> None:
     repo.write("a.txt", "a")
     repo.commit()
     code, out = repo.run(GITHUB_EVENT_NAME="workflow_dispatch")
-    assert code == 0, out
+    assert code == 1, out
+    assert "REFUSED" in out
     assert "event=workflow_dispatch" in out
     assert f"anchor={parent}" in out
     assert "self-consistency evidence only" in out
@@ -426,3 +442,17 @@ def test_an_anchor_version_that_is_not_major_minor_is_refused(tmp_path: Path) ->
     r.commit("head")
     code, out = r.pr(base)
     assert code == 1 and "not MAJOR.MINOR" in out
+
+
+def test_dispatch_can_never_report_success(repo: Repo) -> None:
+    """A clean tree still refuses on dispatch, so a green dispatched run cannot
+    stand in for the tamper check at a required status context. The same tree
+    passes on an event that has a real outside anchor, which shows the refusal
+    is the event's doing rather than a broken fixture."""
+    base = _base(repo)
+    repo.write("unrelated.txt", "x")
+    repo.commit("clean tip")
+    code, out = repo.run(GITHUB_EVENT_NAME="workflow_dispatch")
+    assert code == 1, out
+    assert "REFUSED" in out
+    assert repo.pr(base)[0] == 0
