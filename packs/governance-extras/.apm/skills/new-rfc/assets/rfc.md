@@ -7,7 +7,7 @@ and sibling-RFC references inline on first use. -->
 - **Approver:** <approver who signs off>
 - **Date opened:** YYYY-MM-DD
 - **Date closed:** <!-- filled at a terminal status -->
-- **Decision weight:** standard <!-- light | standard | heavy only. Consult work-loop's risk triggers; default standard. light: focused rationale, checklist, one adversarial pass. standard: full argument, research, backing, iterative review. heavy: standard plus applicable reversal/compatibility/trust analysis, security review, validation planning. -->
+- **Decision weight:** standard <!-- light | standard | heavy only. Use core's work-loop risk triggers when core is installed, otherwise these definitions; default standard. light: focused rationale, checklist, one adversarial pass. standard: full argument, research, backing, iterative review. heavy: standard plus applicable reversal/compatibility/trust analysis, security review, validation planning. -->
 - **Related:** <!-- ADRs, specs, prior RFCs -->
 
 ## Reviewer brief

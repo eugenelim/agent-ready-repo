@@ -529,7 +529,10 @@ def test_architecture_consumers_declare_portable_roles_and_modes() -> None:
     assert "current-architecture" in diagram
     assert "architecture-design" in diagram
     assert "decision-record" in adr
-    assert "semantic-surface-resolution.v1" in adr
+    # new-adr resolves decision-record itself and never consumes or claims the contract.
+    step_one = adr[adr.index("1. **Resolve the `decision-record`") : adr.index("2. Find the next number")]
+    assert "never claims a `semantic-surface-resolution.v1` result" in " ".join(step_one.split())
+    assert "Ask compatible Core" not in step_one
 
 
 def test_bounded_consumers_delegate_roles_without_reimplementing_resolution() -> None:
