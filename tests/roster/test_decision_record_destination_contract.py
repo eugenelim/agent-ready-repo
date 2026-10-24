@@ -216,3 +216,74 @@ def test_existing_adr_method_and_write_gate_remain() -> None:
         "## Lifecycle after acceptance",
     ):
         assert marker in source
+
+
+AC8_SURFACES = (
+    PACK / "README.md",
+    PACK / "DESIGN.md",
+    PACK / "JOURNEY.md",
+    PACK / "docs/index.md",
+    ROOT / "web/src/content/journeys/governance-extras.md",
+    ROOT / "profiles/full-ceremony.toml",
+    ROOT / "packs/core/docs/index.md",
+    *sorted((ROOT / "guides/governance-extras").rglob("*.md")),
+)
+
+
+def test_ac8_no_surface_states_governance_extras_requires_core() -> None:
+    """AC8 (a): no pack doc, journey or guide calls core required."""
+    forbidden = (
+        "requires `core`",
+        "requires core",
+        "depends on core",
+        "depends on it",
+        "install core first",
+        "dependency on `core` is required",
+        "core is a required dependency",
+        "governance-extras` and `catalogue-curation` list core as a required",
+        "compatible `core` installed",
+    )
+    for path in AC8_SURFACES:
+        text = _flat(path.read_text(encoding="utf-8")).lower()
+        for phrase in forbidden:
+            if path.name == "index.md" and path.parent.name == "docs" and path.parent.parent.name == "governance-extras":
+                # catalogue-curation legitimately requires core and governance-extras
+                text = text.replace("`catalogue-curation` requires both `core`", "")
+            assert phrase.lower() not in text, f"{path.relative_to(ROOT)}: {phrase!r}"
+
+
+def test_ac8_no_surface_describes_new_adr_consulting_core_or_stopping() -> None:
+    """AC8 (b): new-adr is not described as asking core or handing off."""
+    forbidden = (
+        "asks core where",
+        "through core before numbering",
+        "through compatible core",
+        "compatible core returns",
+        "portable `decision-record` handoff",
+        "portable handoff rather than simulated resolution",
+        "without compatible core",
+        "core offers the catalogue fallback",
+    )
+    for path in AC8_SURFACES:
+        text = _flat(path.read_text(encoding="utf-8")).lower()
+        for phrase in forbidden:
+            assert phrase not in text, f"{path.relative_to(ROOT)}: {phrase!r}"
+
+
+def test_ac8_new_rfc_guide_presents_core_pieces_as_conditional() -> None:
+    """AC8 (c): the how-to names core-installed use and the fallbacks."""
+    text = _flat((ROOT / "guides/governance-extras/how-to/new-rfc.md").read_text(encoding="utf-8"))
+
+    assert "risk triggers when `core` is installed" in text
+    assert "weight definitions in the RFC template itself" in text
+    assert "When `core` is installed, a fresh-context `adversarial-reviewer`" in text
+    assert "Without `core`, a fresh-context reviewer given only the RFC text" in text
+    assert "recorded in the receipt as self-review" in text
+
+
+def test_ac8_web_journey_no_longer_lists_core_as_prerequisite() -> None:
+    """AC8 (d): prerequisitePacks is empty in the journey and its site copy."""
+    for path in (PACK / "JOURNEY.md", ROOT / "web/src/content/journeys/governance-extras.md"):
+        front = path.read_text(encoding="utf-8").split("---")[1]
+        assert "prerequisitePacks: []" in front, path
+        assert "prerequisitePacks:\n  - core" not in front, path

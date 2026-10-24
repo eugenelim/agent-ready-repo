@@ -22,4 +22,4 @@ See the README for the complete manifest table.
 
 ## How it relates to other packs
 
-Requires `core` (the build loop these RFC-based decisions ultimately feed). `catalogue-curation` requires both `core` and `governance-extras` — it uses the RFC skill to create a traceable intake record every time a new primitive is assimilated into the catalogue.
+Installs and works without `core`; `core` is a recommended companion (the build loop these RFC-based decisions ultimately feed). `catalogue-curation` requires both `core` and `governance-extras` — it uses the RFC skill to create a traceable intake record every time a new primitive is assimilated into the catalogue.

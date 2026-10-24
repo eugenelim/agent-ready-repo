@@ -30,4 +30,4 @@ See the README for the complete manifest table.
 
 ## How it relates to other packs
 
-Core is the foundation every other pack builds on. `governance-extras` and `catalogue-curation` list core as a required dependency. `atlassian`, `architect`, `desk-research`, and `experience-design` are complementary user-scope packs that work alongside core without depending on it.
+Core is the foundation every other pack builds on. `catalogue-curation` lists core as a required dependency; `governance-extras` lists it as a recommended companion and works without it. `atlassian`, `architect`, `desk-research`, and `experience-design` are complementary user-scope packs that work alongside core without depending on it.
