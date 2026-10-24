@@ -85,6 +85,7 @@ __all__ = [
     "status",
     "commit_terminal",
     "untrusted_blocked",
+    "accept_facts",
 ]
 
 PRODUCER_CLASS = "work-supervisor"
@@ -301,8 +302,9 @@ class Action:
 def untrusted_blocked(state: State) -> bool:
     """True when the run is ``untrusted`` and the host supplies no verified containment.
 
-    The supervisor then launches no repository code and issues no ``run-gates`` or
-    ``regenerate`` request: no gate, red proof, scratch receipt, or regeneration.
+    The supervisor then launches no repository code and issues no ``implement-task``,
+    ``run-gates``, or ``regenerate`` request: no task, gate, red proof, scratch
+    receipt, or regeneration.
     """
     if state.latest["code_trust"] != "untrusted":
         return False
@@ -319,8 +321,8 @@ def untrusted_decision(ws: Workspace, state: State) -> Action:
             state,
             "untrusted-code",
             "The run's code trust is untrusted and this host supplies no verified "
-            "containment, so the supervisor will not run gates, red proofs, scratch "
-            "receipts, or a regeneration of the installed skill. Re-approve the run as "
+            "containment, so the supervisor will not run tasks, gates, red proofs, "
+            "scratch receipts, or a regeneration of the installed skill. Re-approve the run as "
             "trusted with an owner authority reference (start --code-trust trusted), or "
             "supply verified containment.",
         ),
@@ -592,6 +594,41 @@ def _validate_result(result: object) -> dict[str, Any]:
     return result
 
 
+# The facts each request kind's result may assert (the Result acceptance table).
+_RESULT_FACTS: dict[str, frozenset[str]] = {
+    "implement-task": frozenset({"gate"}),
+    "write-stub": frozenset(),
+    "review-role": frozenset({"report", "selection"}),
+    "assess-finding": frozenset({"assessment"}),
+    "run-gates": frozenset({"gate", "criteria"}),
+    "external-effect": frozenset({"effect"}),
+    "effect-query": frozenset({"effect"}),
+    "regenerate": frozenset(),
+    "human-decision": frozenset({"decision"}),
+}
+_RESULT_ENVELOPE = frozenset({"schema_version", "request_id", "run_id", "kind"})
+
+
+def accept_facts(result: dict[str, Any]) -> None:
+    """Refuse a result that asserts a fact its request kind's row does not list.
+
+    An unknown kind asserts nothing. Runs before any state is read or written.
+    """
+    kind = result["kind"]
+    allowed = _RESULT_FACTS.get(kind)
+    if allowed is None:
+        raise Refusal(
+            "result-kind-refused", "controller", f"a {kind!r} result is not a request kind"
+        )
+    extra = sorted(set(result) - _RESULT_ENVELOPE - allowed)
+    if extra:
+        raise Refusal(
+            "result-fact-refused",
+            "controller",
+            f"a {kind} result may not assert: " + ", ".join(extra),
+        )
+
+
 def _refuse_protected_change(ws: Workspace, state: State) -> list[str]:
     """Return the change set, refusing one that touches the spec directory or a cited record."""
     changed = ws.git.change_set()
@@ -612,6 +649,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
     effects = _supervisor("_supervisor_effects.py")
     readiness = _supervisor("_supervisor_readiness.py")
     checked = _validate_result(result)
+    accept_facts(checked)
     with ws.run_lock():
         ws.attempts.guard("report")
         state = derive(ws)

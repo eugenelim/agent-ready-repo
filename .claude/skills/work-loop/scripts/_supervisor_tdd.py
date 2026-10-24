@@ -91,6 +91,8 @@ def task_action(ws: Any, state: Any, task: dict[str, Any]) -> Any:
                 stubs=_stub_view(task),
             ),
         )
+    if _loop.untrusted_blocked(state):
+        return _loop.untrusted_decision(ws, state)
     attempt = state.attempt(task)
     return _loop.Action(
         "request",

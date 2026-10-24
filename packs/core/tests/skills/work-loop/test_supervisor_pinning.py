@@ -473,14 +473,26 @@ def test_no_regenerate_without_the_pack_source_at_head(tmp_path: Path) -> None:
 _CONFTEST = """from pathlib import Path
 
 Path({target!r}).write_text("# written by a test file\\n", encoding="utf-8")
+Path({marker!r}).write_text("ran", encoding="utf-8")
 """
 _GATE_TEST = "def test_gate():\n    assert True\n"
 
 
+def _marker(repo: Path) -> Path:
+    """Where the planted conftest records that it executed, beside the repository."""
+    return repo.parent / "conftest-ran.marker"
+
+
 def _with_conftest(repo: Path, target: Path | None = None) -> None:
-    """An earlier task's ``conftest.py`` that writes *target*, by default this repository's ``plan.md``."""
+    """An earlier task's ``conftest.py`` that writes *target*, by default this repository's ``plan.md``.
+
+    It also writes a marker file, so a test can fail when the conftest never ran.
+    """
     (repo / "conftest.py").write_text(
-        _CONFTEST.format(target=str(target or repo / SPEC / "plan.md")), encoding="utf-8"
+        _CONFTEST.format(
+            target=str(target or repo / SPEC / "plan.md"), marker=str(_marker(repo))
+        ),
+        encoding="utf-8",
     )
     (repo / "test_gate.py").write_text(_GATE_TEST, encoding="utf-8")
     h.git(repo, "add", "-A")
@@ -529,6 +541,7 @@ def test_a_conftest_that_writes_plan_md_during_a_red_proof_is_refused(tmp_path: 
     head = _head(repo)
     code, out = controller.report(result)
     assert code == 1, out
+    assert _marker(repo).exists(), "the planted conftest never ran during the red proof"
     _assert_refused_and_never_adopted(repo, out, head)
 
 
@@ -543,6 +556,7 @@ def test_a_conftest_that_writes_plan_md_during_a_gate_run_is_refused(tmp_path: P
     assert request["kind"] == "run-gates"
     result = controller.work(request)
     assert _pytest(repo, "test_gate.py") == 0
+    assert _marker(repo).exists(), "the planted conftest never ran during the gate run"
     assert "written by a test file" in (repo / SPEC / "plan.md").read_text("utf-8")
     head = _head(repo)
     code, out = controller.report(result)
@@ -577,17 +591,18 @@ def test_untrusted_trust_never_issues_run_gates_and_re_approval_clears_it(
     tdd = h.cli._supervisor("_supervisor_tdd.py")
     monkeypatch.setattr(tdd, "observe", _no_launch)
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
-    assert h.run_cli(repo, *_start_args("untrusted"))[0] == 0
+    assert h.run_cli(repo, *_start_args("trusted"))[0] == 0
     controller = h.Controller(repo, tmp_path / "effects.log")
     request = h.run_cli(repo, "next", SPEC)[1]["request"]
     assert request["kind"] == "implement-task"
     assert controller.report(controller.work(request))[0] == 0
+    assert h.run_cli(repo, *_start_args("untrusted"))[0] == 0
     code, out = h.run_cli(repo, "next", SPEC)
     request = out["request"]
     assert code == 0 and request["kind"] == "human-decision", out
     assert request["reason"] == "untrusted-code"
     code, out = h.run_cli(repo, *_start_args("trusted"))
-    assert code == 0 and out["status"] == "admitted" and out["sequence"] == 2, out
+    assert code == 0 and out["status"] == "admitted" and out["sequence"] == 3, out
     request = h.run_cli(repo, "next", SPEC)[1]["request"]
     assert request["kind"] == "run-gates"
 

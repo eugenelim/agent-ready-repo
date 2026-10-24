@@ -439,3 +439,138 @@ def test_a_path_that_cannot_be_stated_is_an_unverifiable_control_check(tmp_path:
 
 def test_a_named_path_that_does_not_exist_is_a_verified_mismatch(tmp_path: Path) -> None:
     assert _git_module._same(tmp_path / "missing", tmp_path) is False
+
+
+# ── VI-5041: a git child's environment is exactly one of the two forms ──────
+
+_BASE_ENV = ("PATH", "HOME", "LANG", "TMPDIR")
+_WINDOWS_ENV = ("SYSTEMROOT", "TEMP", "TMP", "PATHEXT", "COMSPEC")
+_CONFIG_LOCATION = ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_CONFIG_NOSYSTEM", "XDG_CONFIG_HOME")
+_WINDOWS_LOCATION = ("USERPROFILE", "HOMEDRIVE", "HOMEPATH")
+
+
+def _record_children(monkeypatch: pytest.MonkeyPatch) -> list[tuple[list[str], dict[str, str]]]:
+    """Wrap the one process launcher so each git child's argv and environment is kept."""
+    seen: list[tuple[list[str], dict[str, str]]] = []
+    real = _git_module._launch
+
+    def _recording(argv: list[str], **kwargs: Any) -> Any:
+        seen.append((list(argv), dict(kwargs["env"])))
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(_git_module, "_launch", _recording)
+    return seen
+
+
+def _base_from_host() -> dict[str, str]:
+    names = _BASE_ENV + (_WINDOWS_ENV if os.name == "nt" else ())
+    return {name: os.environ[name] for name in names if name in os.environ}
+
+
+def _set_ambient(monkeypatch: pytest.MonkeyPatch, script: str) -> None:
+    monkeypatch.setenv("GIT_SSH_COMMAND", script)
+    monkeypatch.setenv("GIT_EXTERNAL_DIFF", script)
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.sshCommand")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", script)
+
+
+def test_a_helper_call_carries_exactly_the_helper_form(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    (repo / "README.md").write_text("base\nmore\n", encoding="utf-8")
+    ws = h.workspace(repo)
+    _set_ambient(monkeypatch, str(tmp_path / "never-run"))
+    seen = _record_children(monkeypatch)
+    with h.git_identity():
+        ws.git.change_set()
+        ws.git.run("diff", "HEAD")
+        ws.git.run("log", "-1")
+        ws.git.build_commit(
+            run_id=RUN, step="probe:env", operation="replan", paths=["README.md"]
+        )
+    helper_calls = [env for argv, env in seen if "--show-scope" not in argv]
+    assert len(helper_calls) >= 4
+    expected = {**_base_from_host(), "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": ""}
+    for env in helper_calls:
+        # A call that uses the private index additionally carries GIT_INDEX_FILE.
+        assert {k: v for k, v in env.items() if k != "GIT_INDEX_FILE"} == expected, env
+    assert "GIT_INDEX_FILE" in {k for env in helper_calls for k in env}, "no private-index call seen"
+
+
+@pytest.mark.parametrize("host_sets_nosystem", [False, True])
+def test_an_out_of_helper_config_read_carries_exactly_the_hosts_location_values(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, host_sets_nosystem: bool) -> None:
+    repo = h.make_repo(tmp_path)
+    ws = h.workspace(repo)
+    system = tmp_path / "system.gitconfig"
+    system.write_text("[user]\n\tname = System Name\n", encoding="utf-8")
+    for name in _CONFIG_LOCATION:
+        monkeypatch.delitem(h.GIT_ENV, name, raising=False)
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", str(system))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    if host_sets_nosystem:
+        monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    _set_ambient(monkeypatch, str(tmp_path / "never-run"))
+    seen = _record_children(monkeypatch)
+    entries = ws.git.hardened.config_entries()
+    reads = [env for argv, env in seen if "--show-scope" in argv]
+    assert len(reads) == 1
+    names = _CONFIG_LOCATION + (_WINDOWS_LOCATION if os.name == "nt" else ())
+    expected = {
+        **_base_from_host(),
+        **{name: os.environ[name] for name in names if name in os.environ},
+    }
+    assert reads[0] == expected
+    assert ("GIT_CONFIG_NOSYSTEM" in reads[0]) is host_sets_nosystem
+    assert "GIT_CONFIG_GLOBAL" not in reads[0]
+    # The read resolves the host's system file unless the host itself hid it.
+    sees_system = any(e.key == "user.name" and e.scope == "system" for e in entries)
+    assert sees_system is not host_sets_nosystem
+
+
+# ── VI-5044: a system-scope filter is refused and never runs ────────────────
+
+
+def _system_filter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A system-scope filter that leaves a marker; the host reads system config."""
+    marks = tmp_path / "marks"
+    marks.mkdir()
+    clean = _script(tmp_path, "system-filter", marks, "cat\n")
+    system = tmp_path / "system.gitconfig"
+    system.write_text(f'[filter "sys"]\n\tclean = {clean}\n', encoding="utf-8")
+    monkeypatch.delitem(h.GIT_ENV, "GIT_CONFIG_NOSYSTEM")
+    monkeypatch.delenv("GIT_CONFIG_NOSYSTEM", raising=False)
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", str(system))
+    return marks
+
+
+@posix_only
+def test_start_refuses_a_system_filter_that_an_attributes_file_uses(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    marks = _system_filter(tmp_path, monkeypatch)
+    _attributes(repo, "root", "*.bin filter=sys -text")
+    code, out = h.start(repo)
+    assert code == 1, out
+    assert _refusal(out)["code"] == "unsupported-git-config"
+    assert "filter.sys" in _refusal(out)["detail"]
+    assert sorted(p.name for p in marks.iterdir()) == []
+
+
+@posix_only
+def test_a_system_filter_runs_in_no_helper_call(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    marks = _system_filter(tmp_path, monkeypatch)
+    (repo / ".gitattributes").write_text("* filter=sys\n", encoding="utf-8")
+    (repo / "new.txt").write_text("new\n", encoding="utf-8")
+    ws = h.workspace(repo)
+    with h.git_identity():
+        assert "new.txt" in ws.git.change_set()
+        assert ws.git.build_commit(
+            run_id=RUN, step="probe:sys", operation="replan", paths=[".gitattributes", "new.txt"]
+        ) is not None
+        ws.git.run("diff", "HEAD~1", "HEAD")
+    assert sorted(p.name for p in marks.iterdir()) == []
