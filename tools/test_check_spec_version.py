@@ -83,3 +83,33 @@ def test_three_consumers_share_one_member_set() -> None:
     assert expected
     assert {Path(r.path).name for r in rewrite._load_inventory().json_schema_members(_REAL)} == expected
     assert {Path(r.path).name for r in check._generator.json_schema_members(_REAL)} == expected
+
+
+def test_member_added_since_the_release_fails(
+    tree: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A member row the latest release does not list must not count as equal to it.
+
+    Without the set comparison the live tree "equals" release 0.1, so the new
+    member's `$id` may name 0.1 -- a URL that release will never serve, because
+    the served set comes from the release row. Check 4 then reds the same tree
+    at tag time, after the one-way door. This is the falsification case for the
+    symmetry conjunct; deleting it from the check must turn this test red.
+    """
+    name = "extra.schema.json"
+    (tree / name).write_text(
+        '{\n  "$schema": "https://json-schema.org/draft/2020-12/schema",\n'
+        '  "$id": "https://eugenelim.github.io/agent-ready-repo'
+        '/docs/spec/catalogue/0.1/extra.schema.json"\n}\n'
+    )
+    manifest = tree / "catalogue-spec.toml"
+    manifest.write_text(
+        manifest.read_text().replace(
+            '[[contract]]\npath = "pack.schema.json"\nrole = "member"',
+            f'[[contract]]\npath = "{name}"\nrole = "member"\n\n'
+            '[[contract]]\npath = "pack.schema.json"\nrole = "member"',
+            1,
+        )
+    )
+    assert check.main(contracts_dir=tree) == 1
+    assert "rewrite_member_ids.py" in capsys.readouterr().err
