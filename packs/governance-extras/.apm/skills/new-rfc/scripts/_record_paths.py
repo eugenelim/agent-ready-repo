@@ -46,6 +46,7 @@ from __future__ import annotations
 import errno
 import os
 import stat
+import unicodedata
 from pathlib import Path
 
 
@@ -340,8 +341,10 @@ _MAX_PATH_CHARS = 1000
 
 
 def _has_control(value: str) -> bool:
-    """Return True when *value* holds a control character (C0 or DEL)."""
-    return any(ord(c) <= 31 or ord(c) == 127 for c in value)
+    """Return True when *value* holds a Unicode Cc character, U+2028 or U+2029."""
+    return any(
+        unicodedata.category(c) == "Cc" or c in "\u2028\u2029" for c in value
+    )
 
 
 def _check_input(value: object, label: str, *, single: bool) -> list[str]:
@@ -385,6 +388,8 @@ def _final_path(path: Path) -> str:
         raise EntryRefused(f"resolved path longer than {_MAX_PATH_CHARS} characters")
     if _has_control(text):
         raise EntryRefused("resolved path contains a control character")
+    # Enforces the UTF-8 output rule: a path that cannot be encoded (for
+    # example a surrogate-escaped name) is refused here, not at print time.
     text.encode("utf-8")
     return text
 
@@ -437,9 +442,12 @@ def _confine_directory(root: Path | str, relative: str) -> tuple[Path, Path]:
             current = nxt
         else:
             raise EntryRefused(f"{segment}: not a directory")
-    if current == resolved_root or not current.is_relative_to(resolved_root):
+    # Containment is decided on the resolved location, not on path text, so a
+    # junction, reparse point or swapped component cannot pass.
+    resolved = current.resolve(strict=False)
+    if resolved == resolved_root or not resolved.is_relative_to(resolved_root):
         raise EntryRefused("path does not resolve strictly inside the root")
-    return resolved_root, current
+    return resolved_root, resolved
 
 
 def confine_destination(
@@ -481,6 +489,7 @@ def confine_destination(
     except (EntryRefused, EntryAbsent):
         raise
     except (OSError, RuntimeError, ValueError, UnicodeError) as exc:
+        # RuntimeError: older Pythons raise it for a symlink loop in resolve().
         raise EntryRefused(f"cannot confine path: {exc}") from exc
 
 
@@ -498,4 +507,5 @@ def confine_root_file(root: Path | str, name: str) -> str:
     except (EntryRefused, EntryAbsent):
         raise
     except (OSError, RuntimeError, ValueError, UnicodeError) as exc:
+        # RuntimeError: older Pythons raise it for a symlink loop in resolve().
         raise EntryRefused(f"cannot confine path: {exc}") from exc

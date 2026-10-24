@@ -64,6 +64,7 @@ def test_existing_directory_accepted(root: Path) -> None:
 def test_missing_directory_accepted(root: Path) -> None:
     assert helper.confine_destination(root, "docs/new/deep") == str(
         root.resolve() / "docs/new/deep")
+    assert not (root / "docs/new").exists()
 
 
 def test_in_root_prefix_symlink_accepted_and_resolved(root: Path) -> None:
@@ -76,6 +77,12 @@ def test_in_root_prefix_symlink_accepted_and_resolved(root: Path) -> None:
 def test_new_file_good_name_accepted(root: Path) -> None:
     got = helper.confine_destination(root, "docs/adr", new_file="0001-x.md")
     assert got == str((root / "docs/adr").resolve() / "0001-x.md")
+    assert not (root / "docs/adr/0001-x.md").exists()
+
+
+def test_new_file_in_missing_directory_creates_nothing(root: Path) -> None:
+    helper.confine_destination(root, "docs/new", new_file="0001-x.md")
+    assert not (root / "docs/new").exists()
 
 
 def test_read_file_regular_accepted(root: Path) -> None:
@@ -95,7 +102,7 @@ def test_root_file_regular_accepted(root: Path) -> None:
 @pytest.mark.parametrize("relative", [
     "/abs/path", "C:/x", "c:rel", "docs\\adr", "docs/a\tb", "docs/a\nb",
     "", "docs//adr", "docs/./adr", "docs/../adr", "..", ".", "docs/",
-    "a" * 1001,
+    "a" * 1001, "docs/a\u0085b", "docs/a\u2028b", "docs/a\u2029b", "docs/a\x7fb",
 ])
 def test_bad_relative_refused(root: Path, relative: str) -> None:
     with pytest.raises(helper.EntryRefused):
@@ -160,18 +167,59 @@ def test_root_not_a_directory_refused(tmp_path: Path) -> None:
         helper.confine_destination(tmp_path / "missing", "docs")
 
 
-def test_junction_or_second_link_kind_skips_cleanly(root: Path) -> None:
+def _junction(link: Path, target: Path) -> None:
     if sys.platform != "win32":
         pytest.skip("junctions exist only on Windows")
-    target = root / "docs"
-    junction = root / "junc"
     result = subprocess.run(
-        ["cmd", "/c", "mklink", "/J", str(junction), str(target)],
+        ["cmd", "/c", "mklink", "/J", str(link), str(target)],
         capture_output=True)
     if result.returncode != 0:
         pytest.skip("cannot make a junction here")
+
+
+def test_in_root_junction_resolves_to_its_target(root: Path) -> None:
+    _junction(root / "junc", root / "docs")
     assert helper.confine_destination(root, "junc/adr") == str(
         (root / "docs/adr").resolve())
+
+
+def test_escaping_junction_refused(root: Path, tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    (outside / "adr").mkdir(parents=True)
+    _junction(root / "junc", outside)
+    with pytest.raises(helper.EntryRefused):
+        helper.confine_destination(root, "junc/adr")
+
+
+def test_component_that_resolves_outside_is_caught_by_resolved_containment(
+    root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """lstat reports a plain directory, yet the resolved location escapes.
+
+    A junction or a component swapped after the walk looks like this; only
+    the closing resolved-path containment can refuse it.
+    """
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    real_lstat = os.lstat
+    swapped = root.resolve() / "docs" / "adr"
+
+    def fake_lstat(path: object, *args: object, **kwargs: object) -> os.stat_result:
+        if Path(str(path)) == swapped:
+            return real_lstat(root / "docs")  # a directory by lstat
+        return real_lstat(path, *args, **kwargs)  # type: ignore[arg-type]
+
+    real_resolve = Path.resolve
+
+    def fake_resolve(self: Path, strict: bool = False) -> Path:
+        if self == swapped:
+            return outside
+        return real_resolve(self, strict=strict)
+
+    monkeypatch.setattr(helper.os, "lstat", fake_lstat)
+    monkeypatch.setattr(Path, "resolve", fake_resolve)
+    with pytest.raises(helper.EntryRefused):
+        helper.confine_destination(root, "docs/adr")
 
 
 # --- new-file ---------------------------------------------------------------
@@ -190,6 +238,7 @@ def test_new_file_existing_symlink_refused(root: Path) -> None:
 
 @pytest.mark.parametrize("name", [
     "x.txt", "x", ".md", "a/b.md", "../x.md", "x\\y.md", "x\n.md", "",
+    "x\u0085.md", "x\u2028.md", "x\u2029.md",
 ])
 def test_new_file_bad_name_refused(root: Path, name: str) -> None:
     with pytest.raises(helper.EntryRefused):
@@ -305,6 +354,30 @@ def test_cli_newline_in_resolved_path_refused(tmp_path: Path, capsys: pytest.Cap
     code, out, err = _run(capsys, str(repo), "alias/adr")
     assert (code, out) == (2, "")
     assert err.count("\n") == 1 and "Traceback" not in err
+
+
+def test_cli_non_utf8_argument_refused_with_empty_stdout(root: Path) -> None:
+    script = str(SCRIPTS / "confine-destination.py")
+    for argv in ([str(root), "docs/\udcff"], [str(root), "docs/adr", "--new-file", "\udcff.md"]):
+        try:
+            result = subprocess.run([sys.executable, script, *argv], capture_output=True)
+        except (UnicodeEncodeError, OSError):
+            pytest.skip("this platform cannot pass a non-UTF-8 argument")
+        assert result.returncode == 2 and result.stdout == b""
+        assert b"Traceback" not in result.stderr
+
+
+def test_cli_run_creates_nothing_under_scripts_dir(root: Path, tmp_path: Path) -> None:
+    import shutil
+
+    scripts = tmp_path / "scripts"
+    shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__"))
+    before = sorted(str(p.relative_to(scripts)) for p in scripts.rglob("*"))
+    for argv in ([str(root), "docs/adr"], [str(root), "../x"],
+                 [str(root), "--root-file", "nope"]):
+        subprocess.run([sys.executable, str(scripts / "confine-destination.py"), *argv],
+                       capture_output=True, text=True)
+    assert sorted(str(p.relative_to(scripts)) for p in scripts.rglob("*")) == before
 
 
 def test_cli_subprocess_exit_codes(root: Path) -> None:

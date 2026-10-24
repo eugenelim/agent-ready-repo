@@ -113,6 +113,20 @@ def test_ac12_every_path_is_proven_and_used_verbatim() -> None:
         "Confine each with the directory form before listing it",
     ):
         assert phrase in step, phrase
+    flat = _flat(source)
+    assert "`<skill-dir>` is the canonicalized directory containing this `SKILL.md`" in flat
+    assert "Never resolve the script against the working directory" in flat
+    assert "python3 scripts/confine-destination.py" not in source
+    for line in source.splitlines():
+        if "confine-destination.py <root>" in line:
+            assert "python3 <skill-dir>/scripts/confine-destination.py <root>" in line, line
+    for phrase in (
+        "reaches the script as exactly one literal argument",
+        "discrete argument vector",
+        "single-quoted literal",
+        "A value the adapter cannot represent safely is refused with zero effects",
+    ):
+        assert phrase in flat, phrase
     scan = _flat(source[source.index("7. **Preview and confirm") : source.index("8. **On confirmation")])
     assert "only after `confine-destination.py --read-file` passes" in scan
     assert "skipped, never read" in scan
@@ -134,7 +148,19 @@ def test_ac10_write_reproves_confinement_and_uses_printed_lines() -> None:
     ):
         assert phrase in step, phrase
     source = _flat(SKILL.read_text(encoding="utf-8"))
-    assert "the `--new-file` line from step 8's check, verbatim" in source
+    assert "re-run both step-7 checks for the final folder and title" in step
+    preview = _flat(
+        SKILL.read_text(encoding="utf-8")[
+            SKILL.read_text(encoding="utf-8").index("7. **Preview and confirm") :
+            SKILL.read_text(encoding="utf-8").index("8. **On confirmation")
+        ]
+    )
+    # Step 7 runs both checks before it shows the preview, and shows their lines.
+    assert preview.index("--new-file <NNNN-title.md>") < preview.index("Then show the author")
+    assert preview.index("run both checks") < preview.index("Then show the author")
+    assert "printed lines of the directory check and the `--new-file` check below, verbatim" in preview
+    assert "A refusal of either has zero effects and no preview" in preview
+    assert "step 8's check" not in source
     assert "the `--new-file` line written, verbatim" in source
 
 
@@ -148,6 +174,7 @@ def test_ac6_new_rfc_core_references_are_conditional_with_fallbacks() -> None:
         "core's `work-loop` risk triggers when core is installed",
         "the template's own `light` / `standard` / `heavy` definitions",
         "Dispatch `adversarial-reviewer` when core is installed",
+        "When core is installed, dispatch `security-reviewer` for a security boundary or trust model",
         "a fresh-context reviewer given only the RFC text and the same adversarial",
         "record it in the receipt as self-review",
         "When core is installed, hand follow-on work to its `work-intake` / `workspace-status`",
@@ -155,6 +182,7 @@ def test_ac6_new_rfc_core_references_are_conditional_with_fallbacks() -> None:
     ):
         assert phrase in skill, phrase
     assert "owning core workflow" not in skill
+    assert ". Dispatch `security-reviewer`" not in skill
     assert "Use core's work-loop risk triggers when core is installed, otherwise these definitions" in template
     assert "Consult work-loop's risk triggers" not in template
 
@@ -197,7 +225,9 @@ def test_ac11_core_handoffs_are_declared_integrations() -> None:
         assert entry["consumers"] == ["skill:new-rfc"], integration_id
         assert provider in entry["providers"], integration_id
         assert entry["fallback"].startswith("If core is absent"), integration_id
-    assert "listing" not in core["decision-weight-triggers"]["fallback"]
+    weight_fallback = core["decision-weight-triggers"]["fallback"]
+    assert "listing" not in weight_fallback
+    assert "template's own light, standard and heavy definitions" in weight_fallback
     assert "completion receipt" in core["follow-on-queue-registration"]["fallback"]
     assert "self-review" in core["rfc-review"]["fallback"]
 
@@ -245,10 +275,10 @@ def test_ac8_no_surface_states_governance_extras_requires_core() -> None:
     )
     for path in AC8_SURFACES:
         text = _flat(path.read_text(encoding="utf-8")).lower()
+        if path.name == "index.md" and path.parent.name == "docs" and path.parent.parent.name == "governance-extras":
+            # catalogue-curation legitimately requires core and governance-extras
+            text = text.replace("`catalogue-curation` requires both `core`", "")
         for phrase in forbidden:
-            if path.name == "index.md" and path.parent.name == "docs" and path.parent.parent.name == "governance-extras":
-                # catalogue-curation legitimately requires core and governance-extras
-                text = text.replace("`catalogue-curation` requires both `core`", "")
             assert phrase.lower() not in text, f"{path.relative_to(ROOT)}: {phrase!r}"
 
 
@@ -287,3 +317,21 @@ def test_ac8_web_journey_no_longer_lists_core_as_prerequisite() -> None:
         front = path.read_text(encoding="utf-8").split("---")[1]
         assert "prerequisitePacks: []" in front, path
         assert "prerequisitePacks:\n  - core" not in front, path
+
+
+def test_ac8_first_value_prerequisites_do_not_name_core() -> None:
+    """AC8: pack.toml first-value metadata does not make core a prerequisite."""
+    manifest = tomllib.loads(MANIFEST.read_text(encoding="utf-8"))
+    prerequisites = manifest["pack"]["first-value"]["prerequisites"]
+    assert prerequisites
+    assert all("core" not in item.lower() for item in prerequisites), prerequisites
+
+
+def test_hostile_values_eval_requires_one_literal_argument() -> None:
+    """A new-adr eval covers a hostile output_dir or filename."""
+    evals = json.loads(ADR_EVALS.read_text(encoding="utf-8"))["evals"]
+    hostile = [e for e in evals if "$(" in e["prompt"] and "output_dir" in e["prompt"]]
+    assert hostile, "no hostile output_dir eval"
+    text = json.dumps(hostile)
+    assert "exactly one literal argument" in text
+    assert "command substitution" in text
