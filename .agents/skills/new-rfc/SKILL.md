@@ -177,8 +177,8 @@ implementation review for a reversible, time-bounded trial with exit criteria.
      *where options are enumerated*; at most three owned open questions; no item both
      decided and open; references resolve.
    - Dispatch `adversarial-reviewer` when core is installed; light gets one pass,
-     standard/heavy re-run until clean. Dispatch `security-reviewer` for a security
-     boundary or trust model. Without core, dispatch a fresh-context reviewer given
+     standard/heavy re-run until clean. When core is installed, dispatch
+     `security-reviewer` for a security boundary or trust model. Without core, dispatch a fresh-context reviewer given
      only the RFC text and the same adversarial (and, when warranted, security)
      brief; when the host has no subagents, run an inline adversarial and security
      pass and record it in the receipt as self-review.

@@ -65,14 +65,34 @@ If any of these checks fail, push back rather than proceeding.
    effects.
 
    **Prove every path before use.** Each repository path read or written in
-   steps 1 to 8 first passes `scripts/confine-destination.py`, then is used
-   only as the single absolute line the check printed, verbatim:
+   steps 1 to 8 first passes the installed skill's own
+   `<skill-dir>/scripts/confine-destination.py`, then is used only as the
+   single absolute line the check printed, verbatim. `<skill-dir>` is the
+   canonicalized directory containing this `SKILL.md`, with symlinks resolved.
+   Require the script to be a regular file whose resolved path stays beneath
+   the canonical `<skill-dir>/scripts/`; otherwise stop before launching Python.
+   Never resolve the script against the working directory or a
+   repository-local `scripts/` folder, and never send the `<skill-dir>`
+   placeholder itself to a runtime.
+
+   **One literal argument per value.** Wherever a template below shows
+   `<root>`, `<relative-dir>`, `<record.md>`, `<NNNN-title.md>` or a printed
+   line, the value (from configuration, guidance, a filename, or the request)
+   reaches the script as exactly one literal argument. Use a discrete argument
+   vector where the host offers one, for example
+   `["python3", "<skill-dir>/scripts/confine-destination.py", "<root>", "<relative-dir>"]`,
+   so `$()`, backticks, quotes, spaces and variable-shaped text are never
+   expanded by a shell. If only a shell string is available, use a
+   single-quoted literal on POSIX or PowerShell and refuse a value containing a
+   single quote. On cmd.exe, use a double-quoted value and refuse one
+   containing `"`, `%` or `!`. A value the adapter cannot represent safely is
+   refused with zero effects.
 
    ```bash
-   python3 scripts/confine-destination.py <root> --root-file agentbundle-layout.toml
-   python3 scripts/confine-destination.py <root> <relative-dir>
-   python3 scripts/confine-destination.py <root> <relative-dir> --read-file <record.md>
-   python3 scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
+   python3 <skill-dir>/scripts/confine-destination.py <root> --root-file agentbundle-layout.toml
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --read-file <record.md>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
    ```
 
    Exit 0 with exactly one stdout line is proof. Exit 3 with empty stdout means
@@ -251,12 +271,21 @@ If any of these checks fail, push back rather than proceeding.
    token none of them use, surface the tokens already in use and require an
    explicit answer confirming the new one before continuing — coining an area
    is a deliberate act, not a typo, so it needs its own confirmation rather
-   than riding the general preview below. Then show the author, in the
-   conversation:
+   than riding the general preview below. Then run both checks for the final
+   folder and title, before showing anything:
+
+   ```bash
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
+   ```
+
+   A refusal of either has zero effects and no preview. Then show the author,
+   in the conversation:
    - the **identifier** — `ADR-NNNN`;
    - the **status** — `Proposed`;
-   - the **target path** — the `--new-file` line from step 8's check, verbatim,
-     plus its repo-relative form;
+   - the **directory line** and the **target path** — the printed lines of the
+     directory check and the `--new-file` check below, verbatim, plus the
+     target's repo-relative form;
    - the **index path** that will gain a row, built from the directory line;
    - a **content preview** of the drafted ADR.
 
@@ -264,11 +293,11 @@ If any of these checks fail, push back rather than proceeding.
    update its index before the author confirms.**
 
 8. **On confirmation, write.** Immediately before creating any directory or
-   file, run both checks for the final folder and title:
+   file, re-run both step-7 checks for the final folder and title:
 
    ```bash
-   python3 scripts/confine-destination.py <root> <relative-dir>
-   python3 scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
    ```
 
    A refusal of either has zero effects. Create the directory (if needed) at the

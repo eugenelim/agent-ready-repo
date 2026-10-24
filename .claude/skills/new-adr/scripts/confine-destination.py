@@ -30,7 +30,14 @@ def _load_helper() -> ModuleType:
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load {path}")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Loading must not write a __pycache__ next to the script: a refusal has
+    # no filesystem effect.
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
     return module
 
 
@@ -60,8 +67,10 @@ def _parse(argv: list[str]) -> tuple[str, str | None, dict[str, str]]:
 
 def main(argv: list[str]) -> int:
     """Run the check; return the process exit code."""
-    for stream in (sys.stdout, sys.stderr):
-        stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    # A refusal message may quote a non-UTF-8 argument; never fail printing it.
+    sys.stderr.reconfigure(  # type: ignore[union-attr]
+        encoding="utf-8", errors="backslashreplace")
     try:
         helper = _load_helper()
         root, relative, options = _parse(argv)
