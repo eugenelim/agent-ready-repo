@@ -906,6 +906,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-build-check-workflow.py",
     "tools/test-ci-security-workflow.py",
     "tools/test-codeql-workflow.py",
+    "tools/test-release-agentbundle-workflow.py",
     "tools/assert-sast-chain-reachable.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",

@@ -213,10 +213,15 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":
-        "Release workflow. It carries one hard gate — RFC-0082's "
-        "export-boundary check — whose local counterpart is `make test` "
+        "Release workflow. It carries two hard gates. The first is RFC-0082's "
+        "export-boundary check, whose local counterpart is `make test` "
         "(tools/test_check_artifact_contents.py) and whose presence in the "
-        "workflow is pinned by test_the_gate_step_is_actually_invoked. "
+        "workflow is pinned by test_the_gate_step_is_actually_invoked. The "
+        "second is RFC-0109's check 4, tools/catalogue/check_release_gate.py in "
+        "the tag-only release-gate job that both publish jobs need; it needs the "
+        "live deployed index, so it has no local counterpart, its suite is "
+        "tools/test_check_release_gate.py, and its job, tag condition and "
+        "publish-needs edges are pinned by tools/test-release-agentbundle-workflow.py. "
         "Everything else here is release plumbing.",
     "release-credbroker.yml": "Release workflow, not a gate.",
     "release-jsonl-otlp-exporter.yml": "Release workflow, not a gate.",

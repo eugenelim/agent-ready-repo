@@ -640,6 +640,12 @@ def build_check(args: argparse.Namespace) -> int:
             "test-codeql-workflow",
             "tools", "test-codeql-workflow.py",
         ),
+        # RFC-0109 D7 check 4 only gates a release if its job is tag-only and
+        # both publish jobs need it; this posture test pins that wiring.
+        _script_step(
+            "test-release-agentbundle-workflow",
+            "tools", "test-release-agentbundle-workflow.py",
+        ),
         # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
         # ADR-0086, so nothing else would notice it being deleted or made
         # unreachable. Skips cleanly where `make` is absent.
