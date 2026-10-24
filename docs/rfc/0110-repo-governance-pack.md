@@ -1,10 +1,10 @@
 # RFC-0110: Widen governance-extras into repository governance and rename it repo-governance
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-10-23
-- **Date closed:**
+- **Date closed:** 2026-10-24
 - **Decision weight:** heavy (renaming a released 1.x pack breaks the name adopters install it by, another pack depends on it, and two new stages write agent-guidance and review-authority files; heavy adds a compatibility analysis, a security review and a validation plan to the normal RFC checks)
 - **Related:** [RFC-0091](0091-right-size-rfc-governance.md) (lists the decisions that need the strongest route an adopter has), [ADR-0038](../adr/0038-rename-design-craft-pack-to-experience.md) (an earlier pack rename), [governance-extras-without-core](../specs/governance-extras-without-core/spec.md) (shipped in PR #1609: the pack installs and works without core)
 
