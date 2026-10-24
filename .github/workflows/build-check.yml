@@ -894,6 +894,15 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_catalogue_manifest_schema_parity.py
 
+      # The governance-extras confinement check loads the shipped helper and CLI
+      # from the pack tree and decides AC3 of governance-extras-without-core.
+      # It lives under tests/roster because the pack must not test itself with
+      # a path above its own tree. Sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it, so a failure is attributed here.
+      - name: pytest governance-extras standalone (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_confine_destination.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
