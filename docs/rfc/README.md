@@ -110,3 +110,4 @@
 | 0107 | [Verb-mode shaping and intake skills, with a slice handover across repositories](0107-verb-mode-shaping-and-intake-with-slice-handover.md) | Accepted | 2026-10-10 | 2026-10-10 |
 | 0108 | [One usability-first standard and shared style for skill-emitted HTML views](0108-skill-html-view-standard.md) | Accepted | 2026-10-12 | 2026-10-12 |
 | 0109 | [Publish the agentbundle catalogue specification as a versioned site section with stable schema URLs](0109-catalogue-specification-publication.md) | Accepted | 2026-10-21 | 2026-10-21 |
+| 0110 | [Widen governance-extras into repository governance and rename it repo-governance](0110-repo-governance-pack.md) | Accepted | 2026-10-23 | 2026-10-24 |
