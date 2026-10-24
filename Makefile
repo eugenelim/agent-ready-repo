@@ -715,7 +715,12 @@ $(PYTHON) -m pytest \
 	tools/test_pack_test_compatibility.py \
 	tools/test_check_distribution_route_decisions.py \
 	tools/test_route_branch_guard.py \
-	tools/test_gate_enumeration.py -q
+	tools/test_gate_enumeration.py \
+	tools/test_rewrite_member_ids.py \
+	tools/test_check_spec_version.py \
+	tools/test_check_release_immutability.py \
+	tools/test_check_deployed_release_parity.py \
+	tools/test_check_release_gate.py -q
 # The identity derivation is what catches the SILENT hazard — a subject module
 # bound to the wrong path, or a sys.path mutation added to a class member.
 # Collection-only characterization cannot see either, and at ~2s this is the

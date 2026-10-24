@@ -33,6 +33,8 @@ on:
       # the line above is: an edit that disables the check must trigger a run.
       - 'tools/test_browser_gate_subset.py'
       - 'tools/test-pages-workflow.py'
+      - 'tools/check-deployed-release-parity.py'
+      - 'tools/test_check_deployed_release_parity.py'
       - 'tools/pack_scope.py'
       - 'contracts/**'
       - 'tools/catalogue_spec_site.py'
@@ -68,6 +70,8 @@ on:
       - 'tools/test_check_rendered_site_links.py'
       - 'tools/test_browser_gate_subset.py'
       - 'tools/test-pages-workflow.py'
+      - 'tools/check-deployed-release-parity.py'
+      - 'tools/test_check_deployed_release_parity.py'
       - 'tools/pack_scope.py'
       - 'contracts/**'
       - 'tools/catalogue_spec_site.py'
@@ -216,6 +220,15 @@ jobs:
 
       - name: Check rendered internal links
         run: python3 tools/check-rendered-site-links.py --build-dir build
+
+      # RFC-0109 D7 check 3, rendered half. Anchors on the DEPLOYED catalogue
+      # index fetched from the live site, outside this repository, so a change
+      # that rewrites a released member and its in-checkout record together
+      # still fails. It decides skip-or-run itself from GITHUB_EVENT_NAME and
+      # GITHUB_REF (skip only on a non-main workflow_dispatch), so this step
+      # carries no `if:`. Needs the docs build, and must precede the upload.
+      - name: Check built release members against the deployed index
+        run: python3 tools/check-deployed-release-parity.py --build-dir build
 
       # Rendered-output assertions (single <h1> per page, summary reaches the
       # page as meta description + deck, every table in a focusable scroll

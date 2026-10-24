@@ -1,7 +1,7 @@
 {
   "x-spec": "docs/specs/catalogue-wave4-semantic-contracts-index",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalogue-index.schema.json",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/catalogue-index.schema.json",
   "title": "Neutral catalogue index",
   "type": "object",
   "additionalProperties": false,

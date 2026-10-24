@@ -78,7 +78,8 @@ class TestListSubcommand:
         assert stderr == ""
         lines = stdout.splitlines()
         assert lines[0].split() == ["NAME", "KIND", "FILE"]
-        assert [tuple(line.split()) for line in lines[1:] if line.strip()] == [
+        assert lines[-1].startswith("Catalogue specification ")
+        assert [tuple(line.split()) for line in lines[1:-2] if line.strip()] == [
             (contract.name, contract.kind, contract.file)
             for contract in list_bundled_contracts()
         ]
@@ -89,7 +90,9 @@ class TestListSubcommand:
         )
         assert code == 0
         assert stderr == ""
-        document = json.loads(stdout)
+        envelope = json.loads(stdout)
+        assert set(envelope) == {"catalogue_specification", "contracts"}
+        document = envelope["contracts"]
         assert [
             (item["name"], item["kind"], item["file"]) for item in document
         ] == [

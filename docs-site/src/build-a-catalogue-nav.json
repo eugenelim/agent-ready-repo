@@ -93,8 +93,8 @@
       "label": "Contract and schema reference",
       "items": [
         {
-          "label": "Catalogue specification (draft)",
-          "slug": "spec/catalogue/draft"
+          "label": "Catalogue specification",
+          "link": "/spec/catalogue/latest/"
         },
         {
           "label": "pack.toml fields",
@@ -107,6 +107,55 @@
         {
           "label": "catalogue.toml format",
           "slug": "guides/_reference/catalogue-format"
+        },
+        {
+          "label": "Catalogue specification 0.1",
+          "items": [
+            {
+              "label": "Overview",
+              "slug": "spec/catalogue/0.1"
+            },
+            {
+              "label": "pack.schema.json",
+              "slug": "spec/catalogue/0.1/pack-schema-json"
+            },
+            {
+              "label": "catalogue.schema.json",
+              "slug": "spec/catalogue/0.1/catalogue-schema-json"
+            },
+            {
+              "label": "profile.schema.json",
+              "slug": "spec/catalogue/0.1/profile-schema-json"
+            },
+            {
+              "label": "skill.schema.json",
+              "slug": "spec/catalogue/0.1/skill-schema-json"
+            },
+            {
+              "label": "skill-manifest.schema.json",
+              "slug": "spec/catalogue/0.1/skill-manifest-schema-json"
+            },
+            {
+              "label": "target-vocab.toml",
+              "slug": "spec/catalogue/0.1/target-vocab-toml"
+            },
+            {
+              "label": "catalogue-index.schema.json",
+              "slug": "spec/catalogue/0.1/catalogue-index-schema-json"
+            },
+            {
+              "label": "adapter.toml",
+              "slug": "spec/catalogue/0.1/adapter-toml"
+            },
+            {
+              "label": "adapter.schema.json",
+              "slug": "spec/catalogue/0.1/adapter-schema-json"
+            },
+            {
+              "label": "catalogue-manifest.schema.json",
+              "slug": "spec/catalogue/0.1/catalogue-manifest-schema-json"
+            }
+          ]
         }
       ]
     },

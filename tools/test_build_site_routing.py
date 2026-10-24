@@ -871,6 +871,8 @@ def _generator_fixture(tmp_path):
         dest = tmp_path / "contracts" / row["path"]
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(repo / "contracts" / row["path"], dest)
+    # Release rows are validated against their snapshot on every manifest load.
+    shutil.copytree(repo / "contracts" / "releases", tmp_path / "contracts" / "releases")
     overview = tmp_path / "docs-site" / "spec-src" / "catalogue" / "overview.md"
     overview.parent.mkdir(parents=True)
     shutil.copy2(repo / "docs-site" / "spec-src" / "catalogue" / "overview.md", overview)

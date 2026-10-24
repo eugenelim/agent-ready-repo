@@ -246,6 +246,14 @@ def build_check(args: argparse.Namespace) -> int:
             "check-contract-parity",
             "tools", "catalogue", "check_contract_parity.py",
         ),
+        _script_step(
+            "check-spec-version",
+            "tools", "catalogue", "check_spec_version.py",
+        ),
+        _script_step(
+            "check-release-immutability",
+            "tools", "catalogue", "check_release_immutability.py",
+        ),
         _pytest_step(
             "test-lint-spec-status",
             "packs", "core", "tests", "skills", "work-loop", "test_lint_spec_status.py",
@@ -631,6 +639,12 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "test-codeql-workflow",
             "tools", "test-codeql-workflow.py",
+        ),
+        # RFC-0109 D7 check 4 only gates a release if its job is tag-only and
+        # both publish jobs need it; this posture test pins that wiring.
+        _script_step(
+            "test-release-agentbundle-workflow",
+            "tools", "test-release-agentbundle-workflow.py",
         ),
         # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
         # ADR-0086, so nothing else would notice it being deleted or made

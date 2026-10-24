@@ -200,15 +200,28 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "carries one hard gate — the rehype plugin suite, whose local counterpart "
         "is `make test` (npm run test:plugins --prefix docs-site) and whose "
         "presence, ordering and path filters are pinned by "
-        "tools/test-pages-workflow.py, run from the required gate-main. It blocks "
-        "the deploy, not the merge: this workflow is not a required context.",
+        "tools/test-pages-workflow.py, run from the required gate-main. It carries "
+        "a SECOND hard gate — RFC-0109 check 3's rendered half, "
+        "tools/check-deployed-release-parity.py, which compares the built "
+        "catalogue-spec members against the DEPLOYED index fetched from the live "
+        "site; it needs the live index and a site build, so it has no local "
+        "counterpart, its suite is tools/test_check_deployed_release_parity.py, and "
+        "its presence, ordering and path filters are pinned by the same "
+        "tools/test-pages-workflow.py. "
+        "Both gates block the deploy, not the merge: this workflow is not a "
+        "required context.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":
-        "Release workflow. It carries one hard gate — RFC-0082's "
-        "export-boundary check — whose local counterpart is `make test` "
+        "Release workflow. It carries two hard gates. The first is RFC-0082's "
+        "export-boundary check, whose local counterpart is `make test` "
         "(tools/test_check_artifact_contents.py) and whose presence in the "
-        "workflow is pinned by test_the_gate_step_is_actually_invoked. "
+        "workflow is pinned by test_the_gate_step_is_actually_invoked. The "
+        "second is RFC-0109's check 4, tools/catalogue/check_release_gate.py in "
+        "the tag-only release-gate job that both publish jobs need; it needs the "
+        "live deployed index, so it has no local counterpart, its suite is "
+        "tools/test_check_release_gate.py, and its job, tag condition and "
+        "publish-needs edges are pinned by tools/test-release-agentbundle-workflow.py. "
         "Everything else here is release plumbing.",
     "release-credbroker.yml": "Release workflow, not a gate.",
     "release-jsonl-otlp-exporter.yml": "Release workflow, not a gate.",
@@ -1809,6 +1822,31 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "(RFC-0082)"
         ),
     'tools/test_contract_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_rewrite_member_ids.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_spec_version.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_release_immutability.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_deployed_release_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_release_gate.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"

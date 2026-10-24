@@ -75,6 +75,10 @@ REQUIRED_PATHS = (
     "contracts/**",
     "tools/catalogue_spec_site.py",
     "tools/catalogue/sync_contract_inventory.py",
+    # RFC-0109 check 3, rendered half: the script and its suite, listed so an
+    # edit that disables the check triggers a run.
+    "tools/check-deployed-release-parity.py",
+    "tools/test_check_deployed_release_parity.py",
 )
 # What `test:plugins` must actually BE. An explicit path fails closed when the suite
 # moves; a glob exits 0 with `tests 0`, and so does `true`.
@@ -89,6 +93,12 @@ EXPECTED_PLUGIN_SCRIPT = (
     " src/components/shared-chrome.test.ts"
 )
 PACKAGE_JSON = "docs-site/package.json"
+
+# RFC-0109 check 3, rendered half. By statement equality like the gates below;
+# the script decides skip-or-run from the event and ref itself, so the step may
+# carry no `if:` (a step-level predicate could read the ref alone).
+PARITY_CMD = "python3 tools/check-deployed-release-parity.py --build-dir build"
+PARITY_AFTER_STEP = "Build docs site"
 
 # ── spec/site-browser-quality-gate ──────────────────────────────────────────
 # The deterministic browser subset. Pinned here rather than in a sibling file
@@ -352,6 +362,23 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         check("browser-gate-after-docs-build", gate_after != -1 and i > gate_after)
         check("browser-gate-before-upload", before != -1 and i < before)
 
+    # Check 3's rendered half: the deployed-index parity step.
+    parity_owners = [i for i, s in enumerate(steps)
+                     if [ln.strip() for ln in _run_body(s).splitlines() if ln.strip()]
+                     == [PARITY_CMD]]
+    check("parity-present", len(parity_owners) == 1)
+    if parity_owners:
+        i = parity_owners[0]
+        step = steps[i]
+        check("parity-no-continue-on-error", not _has_key(step, "continue-on-error"))
+        check("parity-no-if", not _has_key(step, "if"))
+        check("parity-no-cwd", not _has_key(step, "working-directory"))
+        check("parity-no-shell", not _has_key(step, "shell"))
+        p_after = names.index(PARITY_AFTER_STEP) if PARITY_AFTER_STEP in names else -1
+        before = names.index(BEFORE_STEP) if BEFORE_STEP in names else -1
+        check("parity-after-docs-build", p_after != -1 and i > p_after)
+        check("parity-before-upload", before != -1 and i < before)
+
     on_blk = _on_block(text)
     check("on-block-present", bool(on_blk))
     # Parsed PER TRIGGER, not counted. An occurrence count over the whole `on:` block
@@ -473,6 +500,31 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: _relocate_named(t, GATE_TEST_CMD, "Aggregate content", after=False)),
     ("browser-gate-after-upload", "browser-gate-before-upload",
      lambda t: _relocate_named(t, GATE_TEST_CMD, BEFORE_STEP, after=True)),
+    ("drop-parity-step", "parity-present",
+     lambda t: re.sub(r"      - name: [^\n]*\n        run: " + re.escape(PARITY_CMD) + r"\n",
+                      "", t, count=1)),
+    ("advisory-parity", "parity-no-continue-on-error",
+     lambda t: t.replace(f"        run: {PARITY_CMD}\n",
+                         f"        continue-on-error: true\n        run: {PARITY_CMD}\n")),
+    ("conditional-parity", "parity-no-if",
+     lambda t: t.replace(f"        run: {PARITY_CMD}\n",
+                         f"        if: github.ref == 'refs/heads/main'\n        run: {PARITY_CMD}\n")),
+    ("cwd-parity", "parity-no-cwd",
+     lambda t: t.replace(f"        run: {PARITY_CMD}\n",
+                         f"        working-directory: tools\n        run: {PARITY_CMD}\n")),
+    ("shell-parity", "parity-no-shell",
+     lambda t: t.replace(f"        run: {PARITY_CMD}",
+                         f"        shell: cat {{0}}\n        run: {PARITY_CMD}")),
+    ("swallow-parity-exit", "parity-present",
+     lambda t: t.replace(f"        run: {PARITY_CMD}", f"        run: {PARITY_CMD} || true")),
+    ("parity-before-docs-build", "parity-after-docs-build",
+     lambda t: _relocate_named(t, PARITY_CMD, "Aggregate content", after=False)),
+    ("parity-after-upload", "parity-before-upload",
+     lambda t: _relocate_named(t, PARITY_CMD, BEFORE_STEP, after=True)),
+    ("drop-parity-script-filter", "path-filter[tools/check-deployed-release-parity.py]",
+     lambda t: t.replace("      - 'tools/check-deployed-release-parity.py'\n", "", 1)),
+    ("drop-parity-test-filter", "path-filter[tools/test_check_deployed_release_parity.py]",
+     lambda t: t.replace("      - 'tools/test_check_deployed_release_parity.py'\n", "", 1)),
     ("drop-web-filter", "path-filter[web/**]",
      lambda t: t.replace("      - 'web/**'\n", "", 1)),
     ("drop-guides-filter", "path-filter[guides/**]",

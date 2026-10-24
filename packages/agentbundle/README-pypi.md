@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.56.0
+
+`agentbundle --version` and `catalogue contracts list` now report the catalogue
+specification version. **Breaking:** `catalogue contracts list --format json`
+now prints an object, `{"catalogue_specification": "<version>", "contracts":
+[...]}`, instead of a bare array. Read the `contracts` key for the rows.
+
 ## What's new in 0.55.0
 
 A new bundled contract, `catalogue-manifest.schema.json`, describes the shape

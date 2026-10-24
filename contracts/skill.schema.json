@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "skill.schema.json",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/skill.schema.json",
   "title": "SkillFrontmatter",
   "description": "JSON Schema for SKILL.md frontmatter — the closed key set enforced by agentbundle catalogue lint --deep.",
   "type": "object",
