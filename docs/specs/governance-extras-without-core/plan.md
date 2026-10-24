@@ -1,7 +1,7 @@
 # Plan: Governance-extras without core
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** core's `packs/core/.apm/skills/work-intake/scripts/surface_resolver.py` `_resolve_repository_locator`, `_validate_existing_symlink_chain`, `_validate_repository_path` and `_requires_convention_confirmation` (the rules this pack reproduces, not imports); the pack's own `_record_paths.py` and its by-path loader in `next-ordinal.py`; `index-records.py`'s existing symlink refusal and create-and-replace index write; desk-research's in-skill layout resolution and its `references/agentbundle-layout.md` (the analogue); `[pack.layout.repo]` in `packs/architect/pack.toml`; construction path `packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py`, `tests/roster/test_decision_record_destination_contract.py`, `tests/roster/test_index_records.py`, `tests/conformance/test_pack_layout_declared_section.py`.
 
 > **Plan contract:** this is the implementation strategy. `Touches`, `Tests` and
