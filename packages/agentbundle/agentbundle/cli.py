@@ -34,7 +34,7 @@ import sys
 from typing import Sequence
 
 from agentbundle.scope import LEGAL_SCOPES
-from agentbundle.version import CLI_VERSION, SPEC_VERSION
+from agentbundle.version import CLI_VERSION, SPEC_VERSION, catalogue_spec_version
 
 # Path-bearing argparse-attribute names. The set is curated rather than
 # "every string attribute" so a future flag carrying a content string
@@ -153,7 +153,38 @@ class _VerbAwareSubParsersAction(argparse._SubParsersAction):
 
 
 def _version_string() -> str:
-    return f"agentbundle {CLI_VERSION} (spec {SPEC_VERSION})"
+    """Build the `--version` text; reads the bundled catalogue members."""
+    return (
+        f"agentbundle {CLI_VERSION} (spec {SPEC_VERSION}, "
+        f"catalogue specification {catalogue_spec_version()})"
+    )
+
+
+class _LazyVersionAction(argparse.Action):
+    """`--version` that builds its text when the flag fires, not at parser build."""
+
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str = argparse.SUPPRESS,
+        default: str = argparse.SUPPRESS,
+        help: str | None = None,
+    ) -> None:
+        super().__init__(option_strings, dest=dest, default=default, nargs=0, help=help)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: str | None = None,
+    ) -> None:
+        try:
+            text = _version_string()
+        except (OSError, ValueError) as exc:
+            parser.exit(1, f"error: cannot report the catalogue specification version: {exc}\n")
+        sys.stdout.write(text + "\n")
+        parser.exit()
 
 
 def _shipped_adapters_choices() -> tuple[str, ...]:
@@ -184,8 +215,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.register("action", "parsers", _VerbAwareSubParsersAction)
     parser.add_argument(
         "--version",
-        action="version",
-        version=_version_string(),
+        action=_LazyVersionAction,
+        help="show the CLI, adapter contract and catalogue specification versions",
     )
 
     # Use _VerbAwareParser for every subparser so the forbidden-flag

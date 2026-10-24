@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.56.0] — 2026-10-23
+
+### Added
+
+- `agentbundle --version` and `catalogue contracts list` report the catalogue
+  specification version the bundled contracts carry. The version is read when
+  the report runs, so a malformed bundled contract fails only those two
+  reports.
+
+### Changed
+
+- **Breaking.** `catalogue contracts list --format json` prints an object,
+  `{"catalogue_specification": "<version>", "contracts": [...]}`, not a bare
+  array. The rows under `contracts` are the ones the array held. Read
+  `contracts` instead of the top-level array.
+
 ## [0.55.0] — 2026-10-21
 
 ### Added
