@@ -27,8 +27,9 @@ PACKS_DIR = REPO_ROOT / "packs"
 # Repo-only packs (allowed-scopes = ["repo"]) with adapter-contract v0.8
 # (core is v0.12 — bumped by copilot-full-parity / copilot-skills-and-web).
 REPO_ONLY_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
-# Addon packs that declare a required dep on core ^0.1.
-CORE_DEP_PACKS = ("governance-extras", "monorepo-extras")
+# Addon packs that declare a required dep on core ^3.0. governance-extras is
+# absent: it names core only as a recommended companion (asserted below).
+CORE_DEP_PACKS = ("monorepo-extras",)
 
 # Every pack shipping a `credentialed: true` skill declares a required dep on
 # `credential-brokers` — the pack that ships the `credbroker` floor and the
@@ -53,7 +54,7 @@ def _load(pack_name: str) -> dict:
 
 @pytest.mark.parametrize("pack_name", CORE_DEP_PACKS)
 def test_addon_manifests_carry_required_dependency(pack_name):
-    """Addon packs (governance-extras, monorepo-extras) declare
+    """Addon packs (monorepo-extras) declare
     `[[pack.dependencies.required]]` against `core` with the `^3.0`
     caret-minor range (bumped from ^0.1 → ^1.0 when core
     hit 1.0.0, then ^1.0 → ^2.0 when core hit 2.0.0, then ^2.0 → ^3.0
@@ -79,6 +80,17 @@ def test_addon_manifests_carry_required_dependency(pack_name):
         '{catalogue="agent-ready-repo", pack="core", version="^3.0"} not found; '
         f"got {required!r}"
     )
+
+
+def test_governance_extras_declares_core_only_as_recommended():
+    """governance-extras works without core: core is a recommended companion
+    and no required dependency exists."""
+    dependencies = _load("governance-extras")["pack"]["dependencies"]
+    assert not dependencies.get("required"), dependencies
+    recommended = dependencies.get("recommended")
+    assert recommended == [
+        {"catalogue": "agent-ready-repo", "pack": "core", "version": "^3.0"}
+    ], recommended
 
 
 @pytest.mark.parametrize(
