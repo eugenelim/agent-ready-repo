@@ -25,6 +25,15 @@ bare name.  Entry points used by the sibling record-directory scripts:
     Refuses hard links (st_nlink > 1).
     Raises EntryRefused on a confinement failure and OSError on a read failure.
 
+  confine_destination(root, relative, new_file=None, read_file=None) -> str
+    Confines a repository-relative destination directory (or a new or existing
+    file inside it) to the repository root and returns the absolute, fully
+    resolved path the caller must use verbatim.  Raises EntryRefused on a
+    refusal and EntryAbsent when a named read_file does not exist.
+
+  confine_root_file(root, name) -> str
+    The same check for an existing regular file directly under the root.
+
 Derives confinement semantics from
 packs/core/.apm/skills/work-loop/scripts/file_safety.py: O_NOFOLLOW on the
 final component (and on parent directories when the platform supports dir_fd),
@@ -37,11 +46,16 @@ from __future__ import annotations
 import errno
 import os
 import stat
+import unicodedata
 from pathlib import Path
 
 
 class EntryRefused(Exception):
     """An entry was refused by the confinement checks."""
+
+
+class EntryAbsent(Exception):
+    """A named file does not exist in a directory that passed every rule."""
 
 
 class CandidateEntry:
@@ -321,3 +335,182 @@ def read_confined(
             os.close(parent_fd)
         if fd >= 0:
             os.close(fd)
+
+
+_MAX_PATH_CHARS = 1000
+
+
+# Line/paragraph separators and bidirectional formatting characters
+# (U+202A-U+202E, U+2066-U+2069), which can disguise a path when displayed.
+_BIDI_AND_SEPARATORS = "\u2028\u2029\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069"
+
+
+def _has_control(value: str) -> bool:
+    """Return True when *value* holds a Unicode Cc character, U+2028, U+2029 or a bidi override."""
+    return any(
+        unicodedata.category(c) == "Cc" or c in _BIDI_AND_SEPARATORS for c in value
+    )
+
+
+def _check_input(value: object, label: str, *, single: bool) -> list[str]:
+    """Validate one input string against the segment grammar; return its segments.
+
+    Raises:
+        EntryRefused: the string is not 1-1000 characters, starts with ``/``,
+            carries a drive prefix, a backslash or a control character, or has
+            an empty, ``.`` or ``..`` segment (or, when *single*, any ``/``).
+    """
+    if not isinstance(value, str) or not 1 <= len(value) <= _MAX_PATH_CHARS:
+        raise EntryRefused(f"{label}: must be 1-{_MAX_PATH_CHARS} characters")
+    if value.startswith("/"):
+        raise EntryRefused(f"{label}: absolute path")
+    if len(value) >= 2 and value[1] == ":" and value[0].isalpha():
+        raise EntryRefused(f"{label}: drive-letter path")
+    if "\\" in value:
+        raise EntryRefused(f"{label}: backslash")
+    if _has_control(value):
+        raise EntryRefused(f"{label}: control character")
+    segments = value.split("/")
+    if single and len(segments) != 1:
+        raise EntryRefused(f"{label}: must be a single path segment")
+    if any(seg in ("", ".", "..") for seg in segments):
+        raise EntryRefused(f"{label}: empty, '.' or '..' segment")
+    return segments
+
+
+def _resolve_root(root: Path | str) -> Path:
+    """Return the strictly resolved root, which must be a directory."""
+    resolved = Path(root).resolve(strict=True)
+    if not resolved.is_dir():
+        raise EntryRefused("root is not a directory")
+    return resolved
+
+
+def _final_path(path: Path) -> str:
+    """Validate and return the string form of the final resolved path."""
+    text = str(path)
+    if len(text) > _MAX_PATH_CHARS:
+        raise EntryRefused(f"resolved path longer than {_MAX_PATH_CHARS} characters")
+    if _has_control(text):
+        raise EntryRefused("resolved path contains a control character")
+    # Enforces the UTF-8 output rule: a path that cannot be encoded (for
+    # example a surrogate-escaped name) is refused here, not at print time.
+    text.encode("utf-8")
+    return text
+
+
+def _check_existing_file(directory: Path, name: str) -> Path:
+    """Return directory/name when it is a regular, singly linked, non-symlink file.
+
+    Raises:
+        EntryAbsent: the name does not exist.
+        EntryRefused: it exists but is a symlink, hard-linked or not regular.
+    """
+    candidate = directory / name
+    try:
+        info = os.lstat(candidate)
+    except FileNotFoundError as exc:
+        raise EntryAbsent(name) from exc
+    if stat.S_ISLNK(info.st_mode):
+        raise EntryRefused(f"{name}: symlink")
+    if not stat.S_ISREG(info.st_mode):
+        raise EntryRefused(f"{name}: not a regular file")
+    if info.st_nlink != 1:
+        raise EntryRefused(f"{name}: hard link not allowed")
+    return candidate
+
+
+def _confine_directory(root: Path | str, relative: str) -> tuple[Path, Path]:
+    """Return ``(resolved_root, candidate_directory)`` for a relative directory."""
+    segments = _check_input(relative, "relative path", single=False)
+    resolved_root = _resolve_root(root)
+    current = resolved_root
+    for index, segment in enumerate(segments):
+        final = index == len(segments) - 1
+        nxt = current / segment
+        try:
+            info = os.lstat(nxt)
+        except FileNotFoundError:
+            # Nothing further exists, so no further link can redirect the walk.
+            current = nxt.joinpath(*segments[index + 1:])
+            break
+        if stat.S_ISLNK(info.st_mode):
+            if final:
+                raise EntryRefused(f"{segment}: final component is a symlink")
+            target = nxt.resolve(strict=True)
+            if not target.is_relative_to(resolved_root):
+                raise EntryRefused(f"{segment}: symlink resolves outside the root")
+            if not target.is_dir():
+                raise EntryRefused(f"{segment}: not a directory")
+            current = target
+        elif stat.S_ISDIR(info.st_mode):
+            current = nxt
+        else:
+            raise EntryRefused(f"{segment}: not a directory")
+    # Containment is decided on the resolved location, not on path text, so a
+    # junction, reparse point or swapped component cannot pass.
+    resolved = current.resolve(strict=False)
+    if resolved == resolved_root or not resolved.is_relative_to(resolved_root):
+        raise EntryRefused("path does not resolve strictly inside the root")
+    return resolved_root, resolved
+
+
+def confine_destination(
+    root: Path | str,
+    relative: str,
+    new_file: str | None = None,
+    read_file: str | None = None,
+) -> str:
+    """Confine *relative* under *root* and return the resolved absolute path.
+
+    Returns the directory, or with *new_file* or *read_file* the file inside
+    it.  Every in-root prefix symlink is replaced by its target.  Only stats
+    and resolves; writes nothing.
+
+    Raises:
+        EntryRefused: any rule fails, or the path cannot be resolved.
+        EntryAbsent: *read_file* names a file that does not exist.
+    """
+    try:
+        if new_file is not None and read_file is not None:
+            raise EntryRefused("new_file and read_file are exclusive")
+        _, directory = _confine_directory(root, relative)
+        result = directory
+        if new_file is not None:
+            _check_input(new_file, "new file name", single=True)
+            if not new_file.endswith(".md") or new_file == ".md":
+                raise EntryRefused("new file name must end in .md")
+            try:
+                os.lstat(directory / new_file)
+            except FileNotFoundError:
+                pass
+            else:
+                raise EntryRefused(f"{new_file}: already exists")
+            result = directory / new_file
+        elif read_file is not None:
+            _check_input(read_file, "file name", single=True)
+            result = _check_existing_file(directory, read_file)
+        return _final_path(result)
+    except (EntryRefused, EntryAbsent):
+        raise
+    except (OSError, RuntimeError, ValueError, UnicodeError) as exc:
+        # RuntimeError: older Pythons raise it for a symlink loop in resolve().
+        raise EntryRefused(f"cannot confine path: {exc}") from exc
+
+
+def confine_root_file(root: Path | str, name: str) -> str:
+    """Return the resolved path of an existing regular file directly under *root*.
+
+    Raises:
+        EntryRefused: the name or the file fails a rule, or cannot be resolved.
+        EntryAbsent: the file does not exist.
+    """
+    try:
+        _check_input(name, "file name", single=True)
+        resolved_root = _resolve_root(root)
+        return _final_path(_check_existing_file(resolved_root, name))
+    except (EntryRefused, EntryAbsent):
+        raise
+    except (OSError, RuntimeError, ValueError, UnicodeError) as exc:
+        # RuntimeError: older Pythons raise it for a symlink loop in resolve().
+        raise EntryRefused(f"cannot confine path: {exc}") from exc

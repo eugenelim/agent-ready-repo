@@ -8,7 +8,7 @@ kind: tutorial
 # Your first governance session
 
 **What you'll build:** A confirmed ADR file in this tutorial's selected `docs/adr/` fallback, recorded through the `new-adr` skill's destination and preview-confirm write gates.
-**Prerequisites:** `agentbundle` on PATH, a repo with compatible `core` installed, and write access to the decision-record destination you confirm.
+**Prerequisites:** `agentbundle` on PATH, a repo you can write to, and write access to the decision-record destination you confirm.
 **Time:** About fifteen minutes.
 
 In fifteen minutes you'll install the `governance-extras` pack, use `new-adr` to record one architectural decision, and see the preview-confirm write gate in action — the step where you read exactly what will land in your repo and where, before confirming the write.
@@ -23,9 +23,9 @@ This is a tutorial — it leads. For the full `new-adr` procedure, see [How to r
 
 - `agentbundle` on your PATH. The [install agentbundle](../../_shared/how-to/install-agentbundle.md#install-from-a-clone) guide covers the one-time setup.
 - A repo you can work in. This tutorial deliberately accepts `docs/adr/` when
-  Core offers the catalogue fallback; if your repository declares a custom
+  `new-adr` offers it as the fallback; if your repository declares a custom
   decision-record location, use that location instead.
-- The `core` pack installed at repo scope. `governance-extras` depends on it; the installer will tell you if it's missing.
+- Nothing else. `core` is optional; install it if you want `new-rfc` to use its risk triggers, queue and reviewer agents.
 
 ## Install governance-extras at repo scope
 

@@ -36,8 +36,11 @@ configuration file, or fetching external locators.
 Architecture and governance workflows consume that boundary by semantic role,
 not by catalogue filename. Proposed or future design requests
 `architecture-design`; the implemented system and accepted boundary changes
-request `current-architecture`; ADRs or equivalent records request
-`decision-record`. These roles remain independent of product truth, user
+request `current-architecture`; ADRs or equivalent records are the
+`decision-record` role. `new-adr` resolves `decision-record` inside the skill,
+in the same precedence order and with its own bundled confinement check, and
+does not call the shared resolver. Other roles and callers (`init-project`,
+`generate-iac`, Architect) still consume the shared resolver. All roles remain independent of product truth, user
 documentation, and product or release history. Architect and governance own the
 artifact methods after resolution; work intake owns only the shared repository
 destination result.

@@ -8,7 +8,7 @@ This pack provides the RFC mechanism itself, so it has no upstream RFC of its ow
 
 ## TL;DR
 
-`governance-extras` installs the governance layer on top of `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and convention edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and the dependency on `core` is required. ADRs resolve the portable `decision-record` role through Core before numbering or indexing, so adopter policy and established custom/external destinations win; `docs/adr/` remains the catalogue fallback. RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
+`governance-extras` installs the governance layer for a repository, with or without `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and convention edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and `core` is a recommended companion, not a requirement. `new-adr` resolves its own decision-record destination before numbering or indexing, so adopter policy and established custom/external destinations win; `docs/adr/` remains a fallback offered only with confirmation. RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
 
 ---
 
@@ -78,18 +78,19 @@ Every skill in this pack that writes a file — `new-rfc`, `new-adr` — shows y
 
 The file is not created until you confirm. This is not optional behavior or a flag — it is the structural shape of every write skill in the pack.
 
-For `new-adr`, semantic destination resolution happens before the identifier,
-ordinal scan, filename, or sibling index is selected. Compatible Core returns
-`semantic-surface-resolution.v1`; the skill consumes its role, locators,
-evidence, capability, confinement, revision, confirmations, and independent
-authority facts unchanged. The precedence is explicit destination, declared
-policy/configuration, established repository convention, established external
-destination, ambiguity, then absence. Mandatory policy rejects a conflicting
-explicit destination. Without compatible Core, the skill renders a portable
-`decision-record` handoff and stops; human confirmation can correct its
-evidence but cannot authorize a repository write or invent a second resolver.
-External locators remain external, and every terminal or unsafe outcome has zero
-ordinal, index, directory, or file effects.
+For `new-adr`, destination resolution happens inside the skill before the
+identifier, ordinal scan, filename, or sibling index is selected. The skill
+applies one precedence order: explicit destination, declared
+policy/configuration (the `[adr] output_dir` entry of `agentbundle-layout.toml`,
+which the install seeds as `docs/adr` when that file already exists),
+established repository convention, established external destination, ambiguity,
+then absence. Mandatory policy rejects a conflicting explicit destination. A
+bundled check, `confine-destination.py`, proves the folder and the new file
+stay inside the repository, and a refusal from it cannot be overridden by any
+confirmation. `docs/adr/` is offered as a fallback only with the user's
+confirmation. External locators remain external, and every terminal or unsafe
+outcome has zero ordinal, index, directory, or file effects. No Core is
+consulted.
 
 ### Why it exists
 
@@ -133,16 +134,22 @@ The reason is structural: governance records are inherently project-specific. An
 
 Installing governance-extras at user scope would make every skill write to a user-global location — which is the wrong place for records whose meaning depends on the project they govern.
 
-### Why core is a required dependency
+### Why core is an optional companion
 
 `governance-extras` writes RFCs to the repository RFC surface, ADRs to the
-resolved `decision-record` destination, and conventions to
-whichever artifact owns each rule; the catalogue seed paths are only fallbacks. These
-surfaces only have meaning after `core` has scaffolded the repo structure. An
-RFC in a repo with no governance surface, no agreed conventions, and no
-established work loop is documentation in search of a process.
+resolved `decision-record` destination, and conventions to whichever artifact
+owns each rule. None of that needs `core` to have scaffolded anything, so the
+pack installs and runs on its own; `core` is declared as a recommended
+dependency at `^3.0` and as optional integrations.
 
-The dependency is version-pinned at `^0.1` — a soft floor that allows `core` to evolve without blocking governance-extras updates, while ensuring the basic scaffold is in place. The dependency is enforced at install time.
+When `core` is installed, `new-rfc` gains three hand-offs: `work-loop`'s risk
+triggers to pick the RFC's decision weight, `work-intake` and `workspace-status`
+to register follow-on work in the queue, and the `adversarial-reviewer` and
+`security-reviewer` agents for the review gate. Without `core`, each has a
+fallback: the template's own `light` / `standard` / `heavy` definitions, a
+follow-on list in the completion receipt, and a fresh-context reviewer given
+only the RFC text (or an inline pass recorded as self-review when the host has
+no subagents). `new-adr` uses none of them.
 
 ---
 

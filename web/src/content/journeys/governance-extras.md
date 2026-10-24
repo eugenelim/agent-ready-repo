@@ -6,8 +6,7 @@ start_state: read-only
 end_state: confirmed-write
 scope: repo
 tagline: "decisions committed, proposals structured, conventions tracked."
-prerequisitePacks:
-  - core
+prerequisitePacks: []
 contract:
   useItWhen: "A cross-cutting change, architectural decision, or working-convention update needs a structured paper trail that survives personnel changes."
   youType: "Propose a change to how we handle this."
@@ -21,7 +20,7 @@ contract:
     - review-rfc-draft
     - decide-rfc
     - merge-accepted-adr
-whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. Before an ADR receives an ordinal or index, new-adr resolves the portable decision-record role through compatible Core so adopter policy and established custom or external destinations win; older or absent capability produces confirmation or a portable handoff rather than simulated resolution. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. Conventions evolve through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
+whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. Before an ADR receives an ordinal or index, new-adr resolves the decision-record destination itself, with or without core, so adopter policy and established custom or external destinations win; with no stronger destination it offers docs/adr/ and writes only after you confirm. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. Conventions evolve through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
 skills:
   - name: new-rfc
     description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives, with optional supporting-practice capture only after the written draft passes every mandatory check."

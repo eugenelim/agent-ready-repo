@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "1.0.2"
+version = "1.0.3"
 description = "Write the RFC, record the ADR, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -23,13 +23,23 @@ version = "0.8"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
-# Enforced at install time against the
-# union of both scopes' state files. Schema field already declared in
-# the pack manifest schema; no new field is introduced.
-[[pack.dependencies.required]]
+# Core is an optional companion: governance-extras installs and runs without it.
+# When core is present, new-rfc hands off to its work-loop, work-intake,
+# workspace-status and reviewer agents (see the integrations below); when absent,
+# each hand-off names its own fallback.
+[[pack.dependencies.recommended]]
 catalogue = "agent-ready-repo"
 pack = "core"
 version = "^3.0"
+
+# Consolidated pack layout: the repo-scope default for the [adr] section of an
+# adopter-owned `agentbundle-layout.toml`. The install seeds it by append-if-exists
+# and never creates the file. The value is the folder that holds the ADRs
+# directly, not a base for per-effort folders. No `[pack.layout.user]`: ADRs are
+# per-repo (see the skill's references/agentbundle-layout.md).
+[pack.layout.repo]
+section    = "adr"
+output_dir = "docs/adr"
 
 # Pack activation evals: the Tier-A activation-eval
 # coverage allowlist. Each listed skill ships evals/eval_queries.json and is
@@ -59,7 +69,7 @@ email = "eugenelim@users.noreply.github.com"
 [pack.first-value]
 audience-posture = "mixed"
 surfaces         = ["claude-code"]
-prerequisites    = ["core pack installed at repo scope"]
+prerequisites    = ["a git repository"]
 verification     = "Run navigate-decisions with operation summary and confirm it reports ADR and RFC counts without error."
 recovery         = "If navigate-decisions fails, confirm governance-extras is installed at repo scope; check that docs/adr/ and docs/rfc/ exist in your repo."
 level-b          = true
@@ -114,3 +124,36 @@ providers = ["skill:architect-design", "skill:architect-review"]
 when      = "An architect design or review artifact is available and shapes the technical decisions captured in the RFC."
 purpose   = "Feed an architect design or review output into the RFC drafting workflow as a typed input artifact."
 fallback  = "If architect is absent, new-rfc proceeds without the architecture design proposal and notes the gap."
+
+[[pack.integrations]]
+id        = "decision-weight-triggers"
+pack      = "core"
+kind      = "augment"
+role      = "Decision-weight risk triggers"
+consumers = ["skill:new-rfc"]
+providers = ["skill:work-loop"]
+when      = "core is installed and new-rfc classifies the decision weight of an RFC under authorship."
+purpose   = "Reuse work-loop's risk triggers to choose between light, standard and heavy decision weight."
+fallback  = "If core is absent, new-rfc uses the template's own light, standard and heavy definitions to choose the decision weight."
+
+[[pack.integrations]]
+id        = "follow-on-queue-registration"
+pack      = "core"
+kind      = "handoff"
+role      = "Follow-on queue registration"
+consumers = ["skill:new-rfc"]
+providers = ["skill:work-intake", "skill:workspace-status"]
+when      = "core is installed and an RFC names follow-on work that belongs in the work queue."
+purpose   = "Register follow-on work through work-intake and surface it through workspace-status."
+fallback  = "If core is absent, new-rfc lists the follow-ons in the completion receipt and registers nothing."
+
+[[pack.integrations]]
+id        = "rfc-review"
+pack      = "core"
+kind      = "review"
+role      = "RFC review"
+consumers = ["skill:new-rfc"]
+providers = ["agent:adversarial-reviewer", "agent:security-reviewer"]
+when      = "core is installed and an RFC draft reaches its pre-handoff review."
+purpose   = "Review the RFC with core's adversarial and security reviewer agents."
+fallback  = "If core is absent, new-rfc dispatches a fresh-context reviewer given only the RFC text and the same brief, or runs an inline adversarial and security pass recorded in the completion receipt as self-review when the host has no subagents."

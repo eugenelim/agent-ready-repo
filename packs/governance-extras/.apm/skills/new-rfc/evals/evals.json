@@ -172,6 +172,18 @@
         "Treats a `NNNN-notes/` folder or a `NNNN-<slug>-research.md` sibling as a companion sharing its RFC's ordinal, not a collision",
         "Does not claim the helper reserves or holds a number"
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "Core is not installed in this repository. My RFC draft is ready for its pre-handoff review. Run the review.",
+      "expected_output": "The skill does not look for or require core's work-loop, adversarial-reviewer or security-reviewer. It dispatches a fresh-context reviewer given only the RFC text and the same adversarial brief (plus a security brief when the RFC touches a security boundary or trust model). When the host has no subagents it runs an inline adversarial and security pass instead and records it in the completion receipt as self-review. Decision weight comes from the template's own light, standard and heavy definitions, and any follow-on work is listed in the completion receipt rather than registered in a queue.",
+      "assertions": [
+        "Does not stop, refuse, or hand off because core is not installed",
+        "Uses a fresh-context reviewer given only the RFC text and the same brief, or an inline adversarial and security pass when the host has no subagents",
+        "Records an inline pass in the completion receipt as self-review",
+        "Chooses the decision weight from the template's own light, standard and heavy definitions",
+        "Lists follow-on work in the completion receipt instead of registering it in a queue"
+      ]
     }
   ]
 }

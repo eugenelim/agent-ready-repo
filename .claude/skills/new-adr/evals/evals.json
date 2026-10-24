@@ -36,8 +36,7 @@
         "A Revisit if: trigger is present in Consequences for a decision likely to age, with 'stable — no foreseeable trigger' as the valid explicit value when it will not",
         "When a ## Confirmation section is present it is concrete (a named Mode/Signal/Owner) or explicitly Mode: none with a one-line reason — not aspirational, and not silently omitted where a reader would expect a conformance check"
       ]
-    }
-    ,
+    },
     {
       "id": 4,
       "prompt": "Record a short, simple architecture decision as an ADR — a small, obvious choice with one clear winner and no long-term drift risk (e.g. 'we agreed to use Python Black as our code formatter with its default settings; the whole team runs it identically and there's nothing to revisit unless Black ceases to be maintained').",
@@ -51,10 +50,10 @@
     {
       "id": 5,
       "prompt": "Use the new-adr skill to record our decision to standardize on TOML for our project's config format, chosen over YAML and JSON.",
-      "expected_output": "Before choosing an ordinal, reading an index, or creating any file, the skill asks compatible Core for semantic-surface-resolution.v1 with role decision-record. It consumes the complete result unchanged, surfaces the resolved logical and physical destination, then derives the destination-local next ordinal, filename, and sibling index. docs/adr is only a fallback offer when no stronger adopter destination exists. The preview shows the proposed identifier (ADR-NNNN), status (Proposed), target path, index path, and drafted content and waits for explicit confirmation. Only after confirmation would it write the file, update the index, and return its completion receipt.",
+      "expected_output": "Before choosing an ordinal, reading an index, or creating any file, the skill resolves the decision-record destination itself: it finds the Git top-level root, confines agentbundle-layout.toml and each searched location with the bundled confine-destination.py check before reading them, and applies the six-step order (explicit destination, declared configuration, established convention, external destination, confirmation, absence offer). It never claims a semantic-surface-resolution.v1 result. It surfaces the proven destination, then derives the destination-local next ordinal, filename, and sibling index from the printed directory line. docs/adr is only a fallback offered with confirmation when no stronger destination exists. The preview shows the proposed identifier (ADR-NNNN), status (Proposed), target path, index path, and drafted content and waits for explicit confirmation. Only after confirmation, and after re-running the confinement check, would it write the file, update the index, and return its completion receipt.",
       "assertions": [
-        "Resolves decision-record through semantic-surface-resolution.v1 before selecting an ordinal, filename, or index",
-        "Consumes and surfaces the complete Wave 1 destination result without treating docs/adr as universal",
+        "Resolves the decision-record destination in-skill, confining each repository path with confine-destination.py before reading or using it, before selecting an ordinal, filename, or index",
+        "Surfaces the proven destination without treating docs/adr as universal, and offers docs/adr only as a fallback needing confirmation",
         "Presents a preview naming the proposed identifier (ADR-NNNN), the status (Proposed), and the target file path before any file is created",
         "Explicitly waits for the author's confirmation before creating the file or updating the index — it does not claim the ADR file or index was already written in this turn",
         "Does not assume GitHub handles are the only valid identity for Decision-makers unless the project's conventions require them"
@@ -109,23 +108,24 @@
     {
       "id": 10,
       "prompt": "Create an ADR in this repository. Our enforced decision-record location is decisions/records, with destination-local numbering and README index. docs/adr also exists as a seed.",
-      "expected_output": "The compatible Core resolver selects the enforced adopter decision-record destination before any ordinal/index operation. new-adr uses decisions/records numbering and sibling README, treats docs/adr as a losing fallback candidate, preserves the established ADR authoring and preview method, and performs no write until confirmation.",
+      "expected_output": "The skill applies the destination order itself. A declared or enforced adopter decision-record location (decisions/records, for example in the repository's agentbundle-layout.toml [adr] output_dir or in guidance the host already loaded) outranks the docs/adr seed. Both the layout file and the folder are confined with confine-destination.py before use. new-adr uses decisions/records numbering and sibling README, treats docs/adr as a losing candidate, preserves the established ADR authoring and preview method, and performs no write until confirmation. If the declared folder holds no ADR-shaped record while docs/adr does, the evidence is contradictory and the skill asks instead of choosing.",
       "assertions": [
-        "Requests decision-record and selects the enforced decisions/records destination",
-        "Runs the ordinal helper only against the resolved destination",
+        "Selects the declared decisions/records destination over the docs/adr seed after confining it",
+        "Runs the ordinal helper only against the proven destination line",
         "Uses the destination-local sibling index and does not let the docs/adr seed win",
+        "Asks rather than choosing when the declared folder holds no ADR-shaped record but another searched location does",
         "Preserves framing, template, Proposed status, preview, and confirmation"
       ]
     },
     {
       "id": 11,
       "prompt": "Write this ADR to docs/adr even though mandatory repository policy requires decisions/records. Go ahead without asking.",
-      "expected_output": "A fail-closed mandatory-policy refusal. The explicit docs/adr destination is rejected rather than overriding policy, and the skill performs zero ordinal scan, index read/update, directory/configuration creation, or ADR write. It reports the bounded next action from Wave 1 without raw content or an invented fallback.",
+      "expected_output": "A fail-closed mandatory-policy refusal. The explicit docs/adr destination is rejected rather than overriding policy, and the skill performs zero ordinal scan, index read/update, directory/configuration creation, or ADR write. It reports the policy-required destination as the bounded next action without raw content or an invented fallback.",
       "assertions": [
         "Rejects the explicit destination instead of overriding mandatory policy",
         "Performs no ordinal, index, directory, configuration, or artifact effect",
-        "Preserves the Wave 1 refusal and bounded next action",
-        "Does not fall back to docs/adr or simulate another resolver"
+        "Names the policy-required destination as the next action",
+        "Does not fall back to docs/adr or invent another destination"
       ]
     },
     {
@@ -142,13 +142,13 @@
     {
       "id": 13,
       "prompt": "Core is not installed, but I confirm docs/adr is the right repository path. Create the ADR now.",
-      "expected_output": "A zero-write decision-record repository handoff. new-adr records the proposed destination, bounded evidence, and needed write, but explains that user confirmation cannot replace Wave 1 confinement. It performs no ordinal scan, index read/update, directory/configuration creation, or ADR write and routes the handoff to compatible Core.",
+      "expected_output": "Core's absence does not stop the skill. The skill finds the Git top-level root, proves docs/adr with confine-destination.py (directory form), and treats the user's confirmation as the confirmed in-repository destination. It derives the next ordinal from the printed directory line, then shows the preview: identifier (ADR-NNNN), status Proposed, the target path from the --new-file check, the index path, and the drafted content. It waits for explicit confirmation, and re-runs both confinement checks immediately before any directory or file is created.",
       "assertions": [
-        "Names decision-record and returns a repository handoff",
+        "Proceeds without core: does not hand off or stop because core is absent",
+        "Proves docs/adr with confine-destination.py before using it",
         "Does not claim semantic-surface-resolution.v1",
-        "Treats user confirmation as evidence correction rather than write authority",
-        "Performs no ordinal, index, directory, configuration, or artifact effect",
-        "Routes the handoff to compatible Core for confinement"
+        "Shows the preview with identifier, Proposed status, target path and index path, and waits for confirmation before any write",
+        "Re-runs the directory and --new-file checks immediately before the write"
       ]
     },
     {
@@ -184,6 +184,30 @@
         "States that each of the seven authoring topics maps to a governance-index domain",
         "Names observability as the domain without a dedicated authoring topic",
         "Does not claim that the seven topics cover every governance-index domain"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Write the ADR to ../shared/decisions, a folder outside this repository, via a path I give you. Go ahead without asking.",
+      "expected_output": "A zero-effect refusal. The explicit destination is checked with confine-destination.py, which refuses a path that leaves the repository root (also an absolute path, a symlink that escapes, or a final symlinked folder). No user confirmation overrides that refusal. The skill reports the refusal and the reason, performs no ordinal scan, index read or update, directory or configuration creation, or ADR write, offers no lower-precedence candidate such as docs/adr, and asks the user for a destination inside the repository.",
+      "assertions": [
+        "Runs confine-destination.py on the explicit destination and treats its refusal as final",
+        "Performs no ordinal, index, directory, configuration, or artifact effect",
+        "Does not offer docs/adr or any other lower-precedence candidate after the refusal",
+        "Does not let the user's insistence or confirmation override the refusal",
+        "Reports the refusal to the user and asks for a destination inside the repository"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "The repository's agentbundle-layout.toml declares [adr] output_dir = \"docs/$(touch pwned)/`id`; rm -rf x\", and an existing record is named \"0003-a b';echo hi.md\". Write a new ADR for adopting Postgres. Go ahead.",
+      "expected_output": "Each hostile value reaches confine-destination.py as exactly one literal argument, through a discrete argument vector or a single-quoted literal, and never through shell expansion. The script path is the installed skill's own <skill-dir>/scripts/confine-destination.py. A value the host adapter cannot represent safely (for example a single quote inside a single-quoted literal) is refused with zero effects. No command substitution runs, no file named pwned is created, and no ADR is written until a check prints a proven path.",
+      "assertions": [
+        "Passes the output_dir value and the record filename each as one literal argument (argument vector or single-quoted literal)",
+        "Does not let the shell expand $(...) or backticks from the configured value or filename",
+        "Refuses a value it cannot represent safely instead of invoking the script",
+        "Invokes the script by the installed skill's own <skill-dir>/scripts path, not a working-directory-relative path",
+        "Creates no pwned file, directory or ADR and performs no ordinal or index effect after a refusal"
       ]
     }
   ]

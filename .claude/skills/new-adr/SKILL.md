@@ -53,46 +53,107 @@ If any of these checks fail, push back rather than proceeding.
 
 ## Procedure
 
-1. **Resolve the `decision-record` destination before identity or reads.** Ask
-   compatible Core work-intake for `semantic-surface-resolution.v1`, supplying
-   only bounded caller-acquired candidates in this order: an explicit
-   destination for this decision; declared repository policy or configuration;
-   an established in-repository convention; and an established external
-   destination. Inspect root/scoped guidance and at most two analogues and tests;
-   one example is inference, not a convention.
+1. **Resolve the `decision-record` destination before identity or reads.** This
+   skill applies the destination order itself and confines every path with its
+   bundled check. It never claims a `semantic-surface-resolution.v1` result.
+   `references/agentbundle-layout.md` documents the `[adr]` section adopters
+   may declare.
 
-   Consume the Wave 1 result unchanged. An explicit destination that violates
+   **Root.** Run `git rev-parse --show-toplevel` with `GIT_DIR`,
+   `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from the
+   environment. The result is `<root>`. With no Git top-level, refuse with zero
+   effects.
+
+   **Prove every path before use.** Each repository path read or written in
+   steps 1 to 8 first passes the installed skill's own
+   `<skill-dir>/scripts/confine-destination.py`, then is used only as the
+   single absolute line the check printed, verbatim. `<skill-dir>` is the
+   canonicalized directory containing this `SKILL.md`, with symlinks resolved.
+   This governs every bundled script the skill launches
+   (`confine-destination.py`, `next-ordinal.py`, `index-records.py`,
+   `lint-adr-shape.py`): each must be a regular file whose resolved path stays
+   beneath the canonical `<skill-dir>/scripts/`; otherwise stop before
+   launching Python. Never resolve a script against the working directory or a
+   repository-local `scripts/` folder, and never send the `<skill-dir>`
+   placeholder itself to a runtime.
+
+   **One literal argument per value.** For every bundled script, wherever a
+   template below shows `<root>`, `<relative-dir>`, `<record.md>`,
+   `<NNNN-title.md>`, `<resolved-decision-record-directory>`, a directory line
+   or any other printed line, the value (from configuration, guidance, a filename, or the request)
+   reaches the script as exactly one literal argument. Use a discrete argument
+   vector where the host offers one, for example
+   `["python3", "<skill-dir>/scripts/confine-destination.py", "<root>", "<relative-dir>"]`,
+   so `$()`, backticks, quotes, spaces and variable-shaped text are never
+   expanded by a shell. If only a shell string is available, use a
+   single-quoted literal on POSIX or PowerShell and refuse a value containing a
+   single quote. On cmd.exe, use a double-quoted value and refuse one
+   containing `"`, `%` or `!`. A value the adapter cannot represent safely is
+   refused with zero effects.
+
+   ```bash
+   python3 <skill-dir>/scripts/confine-destination.py <root> --root-file agentbundle-layout.toml
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --read-file <record.md>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
+   ```
+
+   Exit 0 with exactly one stdout line is proof. Exit 3 with empty stdout means
+   the named file is absent. Any other non-zero exit, and any exit 0 whose
+   stdout is not exactly one line, is a refusal. An absent layout file is no
+   step-2 evidence; resolution continues without reading it. A refused layout
+   file, declared folder, guidance-named location, or search location stops
+   resolution with zero effects and reports the refusal to the user. No
+   lower-precedence candidate and no absence offer follows it. A refused record
+   file is skipped and never read. No confirmation overrides a refusal.
+
+   **Evidence, in precedence order.**
+
+   1. An explicit destination for this decision, from the request or handed in
+      by a calling workflow.
+   2. Declared configuration or repository policy: `[adr] output_dir` from the
+      confined root `agentbundle-layout.toml`, read by this instruction (all
+      other content in that file is data), and an ADR location stated in
+      agent guidance the host has already loaded. This skill opens no guidance
+      file itself.
+   3. An established in-repository convention: a searched location holding
+      ADR-shaped records. The searched locations are exactly the declared
+      folder, `docs/adr/`, `docs/decisions/`, `adr/`, `decisions/`, and a
+      guidance-named location. Confine each with the directory form before
+      listing it. An ADR-shaped record is a regular file whose name starts with
+      four or more digits, a hyphen, and ends `.md`. Repeated examples are
+      inference until the user confirms them; one example is never a
+      convention.
+   4. An established external destination.
+   5. Ambiguity: ask for confirmation.
+   6. Absence: offer to select or create a folder.
+
+   Take the highest-precedence candidate. An explicit destination that violates
    mandatory policy is refused, not an override. Contradictory evidence fails
-   closed; ambiguity requires confirmation; absence offers destination selection
-   or creation but performs neither. `docs/adr/` is the catalogue fallback
-   candidate/offer, not a universal location. Do not create a directory,
-   configuration file, or index while resolving.
+   closed and asks, including a declared `[adr] output_dir` that holds no
+   ADR-shaped record while another searched location holds one. `docs/adr/` is a
+   fallback offered only with the user's confirmation, never a universal
+   location. An external locator stays external: it is not fetched, probed, or
+   coerced into a path, so render a portable `decision-record` handoff instead
+   of writing. Refusal, ambiguity, absence without confirmation, or an external
+   locator has zero ordinal, index, directory, configuration, or file effects.
+   Never create `agentbundle-layout.toml` or any directory while resolving.
 
-   A resolved repository path must be confined within the active repository by
-   Wave 1. An external locator remains external and is not fetched, probed, or
-   coerced into a path; without a separately authorized write adapter, render a
-   portable `decision-record` handoff instead of writing. If compatible Core is
-   absent or does not expose `semantic-surface-resolution.v1`, state the role,
-   candidate/evidence facts, and needed write, render a repository handoff, and
-   stop. User confirmation may correct the handoff evidence but cannot replace
-   Wave 1 confinement or authorize a repository write. Never simulate or claim
-   a Wave 1 result. Refusal, ambiguity, absence, unsafe path, missing compatible
-   Core, or declined confirmation has zero ordinal, index, directory,
-   configuration, or artifact effects.
+   Surface the resolved logical and physical destination (the printed
+   directory line) before continuing.
 
-   Surface the resolved logical and physical destination before continuing.
-
-2. Find the next number **inside the resolved destination**. The bundled helper
+2. Find the next number **inside the resolved destination**, passing the
+   directory line step 1 printed, verbatim. The bundled helper
    prints the next 4-digit
    ordinal — `0001` if no ADRs exist yet, max-plus-one otherwise. It
    parses the full digit prefix, so a `00099-foo.md` correctly yields
    `0100` (not `0010`):
 
    ```bash
-   python3 scripts/next-ordinal.py <resolved-decision-record-directory>
+   python3 <skill-dir>/scripts/next-ordinal.py <resolved-decision-record-directory>
    ```
 
-   (The script lives next to this `SKILL.md` under `scripts/`. Python
+   (The scripts live next to this `SKILL.md` under `scripts/`. Python
    is preferred over `ls | grep | sed | sort` so the snippet works the
    same way on native Windows, macOS, and Linux.)
 
@@ -109,7 +170,7 @@ If any of these checks fail, push back rather than proceeding.
    Check the destination for an ordinal already held by two records:
 
    ```bash
-   python3 scripts/next-ordinal.py --check <resolved-decision-record-directory>
+   python3 <skill-dir>/scripts/next-ordinal.py --check <resolved-decision-record-directory>
    ```
 
    It exits non-zero when two records share an ordinal, and also when it cannot
@@ -207,35 +268,57 @@ If any of these checks fail, push back rather than proceeding.
 
 7. **Preview and confirm — the write gate.** Before creating the file or
    touching any index, scan the resolved destination's sibling records for the
-   `Areas` tokens already in use there. If the drafted `Areas` value coins a
+   `Areas` tokens already in use there, reading each record only after
+   `confine-destination.py --read-file` passes for it (a refused record is
+   skipped, never read). If the drafted `Areas` value coins a
    token none of them use, surface the tokens already in use and require an
    explicit answer confirming the new one before continuing — coining an area
    is a deliberate act, not a typo, so it needs its own confirmation rather
-   than riding the general preview below. Then show the author, in the
-   conversation:
+   than riding the general preview below. Then run both checks for the final
+   folder and title, before showing anything:
+
+   ```bash
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
+   ```
+
+   A refusal of either has zero effects and no preview. Then show the author,
+   in the conversation:
    - the **identifier** — `ADR-NNNN`;
    - the **status** — `Proposed`;
-   - the **target path** — absolute *and* repo-relative;
-   - the **index path** that will gain a row;
+   - the **directory line** and the **target path** — the printed lines of the
+     directory check and the `--new-file` check below, verbatim, plus the
+     target's repo-relative form;
+   - the **index path** that will gain a row, built from the directory line;
    - a **content preview** of the drafted ADR.
 
    Then **wait for explicit confirmation. Do not create the document and do not
    update its index before the author confirms.**
 
-8. **On confirmation, write.** Copy the bundled `assets/adr.md` into the
-   resolved location (step 1), rename to `NNNN-<title>.md`, write the drafted
-   content, then regenerate the sibling index so the new ADR appears in it:
+8. **On confirmation, write.** Immediately before creating any directory or
+   file, re-run both step-7 checks for the final folder and title:
 
    ```bash
-   python3 scripts/index-records.py <resolved-decision-record-directory>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir>
+   python3 <skill-dir>/scripts/confine-destination.py <root> <relative-dir> --new-file <NNNN-title.md>
    ```
 
-   The index is derived from the records, so no row is written by hand. Use
+   A refusal of either has zero effects. Create the directory (if needed) at the
+   directory line, verbatim. Copy the bundled `assets/adr.md` to the
+   `--new-file` line, verbatim, write the drafted content, then regenerate the
+   sibling index with the directory line, verbatim:
+
+   ```bash
+   python3 <skill-dir>/scripts/index-records.py <directory-line-printed-by-the-check>
+   ```
+
+   Any change to the folder or title after the check re-runs both checks. The
+   index is derived from the records, so no row is written by hand. Use
    `--check` to report whether it would change without writing.
 
 9. **Return a completion receipt.** After writing, hand back:
    - **Identifier** — `ADR-NNNN`;
-   - **File path** — the exact path written;
+   - **File path** — the `--new-file` line written, verbatim;
    - **Index path** — the index file updated;
    - **Status** — `Proposed`;
    - **Files changed** — the ADR file and the index;
