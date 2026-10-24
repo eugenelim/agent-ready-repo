@@ -201,13 +201,7 @@ def test_component_that_resolves_outside_is_caught_by_resolved_containment(
     """
     outside = tmp_path / "outside"
     outside.mkdir()
-    real_lstat = os.lstat
     swapped = root.resolve() / "docs" / "adr"
-
-    def fake_lstat(path: object, *args: object, **kwargs: object) -> os.stat_result:
-        if Path(str(path)) == swapped:
-            return real_lstat(root / "docs")  # a directory by lstat
-        return real_lstat(path, *args, **kwargs)  # type: ignore[arg-type]
 
     real_resolve = Path.resolve
 
@@ -216,7 +210,6 @@ def test_component_that_resolves_outside_is_caught_by_resolved_containment(
             return outside
         return real_resolve(self, strict=strict)
 
-    monkeypatch.setattr(helper.os, "lstat", fake_lstat)
     monkeypatch.setattr(Path, "resolve", fake_resolve)
     with pytest.raises(helper.EntryRefused):
         helper.confine_destination(root, "docs/adr")
@@ -243,6 +236,17 @@ def test_new_file_existing_symlink_refused(root: Path) -> None:
 def test_new_file_bad_name_refused(root: Path, name: str) -> None:
     with pytest.raises(helper.EntryRefused):
         helper.confine_destination(root, "docs/adr", new_file=name)
+
+
+@pytest.mark.parametrize("char", [
+    "\u202a", "\u202b", "\u202c", "\u202d", "\u202e",
+    "\u2066", "\u2067", "\u2068", "\u2069",
+])
+def test_bidi_formatting_character_refused(root: Path, char: str) -> None:
+    with pytest.raises(helper.EntryRefused):
+        helper.confine_destination(root, f"docs/a{char}b")
+    with pytest.raises(helper.EntryRefused):
+        helper.confine_destination(root, "docs/adr", new_file=f"x{char}.md")
 
 
 # --- read-file and root-file ------------------------------------------------
@@ -373,10 +377,11 @@ def test_cli_run_creates_nothing_under_scripts_dir(root: Path, tmp_path: Path) -
     scripts = tmp_path / "scripts"
     shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__"))
     before = sorted(str(p.relative_to(scripts)) for p in scripts.rglob("*"))
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"}
     for argv in ([str(root), "docs/adr"], [str(root), "../x"],
                  [str(root), "--root-file", "nope"]):
         subprocess.run([sys.executable, str(scripts / "confine-destination.py"), *argv],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, env=env)
     assert sorted(str(p.relative_to(scripts)) for p in scripts.rglob("*")) == before
 
 

@@ -1,6 +1,7 @@
 """Construction tests for portable decision-record destination ordering."""
 
 import json
+import re
 import tomllib
 from pathlib import Path
 
@@ -48,7 +49,7 @@ def test_decision_record_resolution_precedes_ordinal_and_filename() -> None:
     filename_at = source.index("3. Pick a kebab-case filename title")
 
     assert resolve_at < ordinal_at < filename_at
-    assert "python3 scripts/next-ordinal.py <resolved-decision-record-directory>" in source
+    assert "python3 <skill-dir>/scripts/next-ordinal.py <resolved-decision-record-directory>" in source
     assert "passing the directory line step 1 printed, verbatim" in _flat(source)
 
 
@@ -115,8 +116,10 @@ def test_ac12_every_path_is_proven_and_used_verbatim() -> None:
         assert phrase in step, phrase
     flat = _flat(source)
     assert "`<skill-dir>` is the canonicalized directory containing this `SKILL.md`" in flat
-    assert "Never resolve the script against the working directory" in flat
+    assert "Never resolve a script against the working directory" in flat
     assert "python3 scripts/confine-destination.py" not in source
+    bare = re.findall(r"python3?\s+(?!<skill-dir>/)\S*scripts/\S+", source)
+    assert not bare, bare
     for line in source.splitlines():
         if "confine-destination.py <root>" in line:
             assert "python3 <skill-dir>/scripts/confine-destination.py <root>" in line, line
