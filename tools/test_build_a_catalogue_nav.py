@@ -67,8 +67,26 @@ def _guide_routes() -> set[str]:
     return routes
 
 
+def _release_routes() -> set[str]:
+    """The index and member page routes of every release row in the manifest."""
+    inventory = _load("sync_contract_inventory", ROOT / "tools" / "catalogue" / "sync_contract_inventory.py")
+    releases, _ = inventory.load_releases(ROOT / "contracts")
+    routes: set[str] = set()
+    for row in releases:
+        routes.add(f"spec/catalogue/{row.version}")
+        routes |= {
+            f"spec/catalogue/{row.version}/{Path(key).name.replace('.', '-')}" for key in row.members
+        }
+    return routes
+
+
 def _known_routes() -> set[str]:
-    return _guide_routes() | {p["slug"] for p in sfr.PAGES} | {SPEC_LATEST_LINK.strip("/")}
+    return (
+        _guide_routes()
+        | {p["slug"] for p in sfr.PAGES}
+        | {SPEC_LATEST_LINK.strip("/")}
+        | _release_routes()
+    )
 
 
 def test_top_level_labels_match_d9_tree():
@@ -85,7 +103,13 @@ def test_contract_group_leads_with_the_latest_specification():
         "label": "Catalogue specification",
         "link": SPEC_LATEST_LINK,
     }
-    assert len(group["items"]) == 4
+    assert len(group["items"]) == 5  # latest/, three references, then the 0.1 release group
+
+
+def test_every_release_has_its_pages_in_the_tab():
+    """A release page left out of the nav would land the reader in the Docs tab."""
+    slugs = {e["slug"] for e in _entries(_nav()) if "slug" in e}
+    assert _release_routes() <= slugs
 
 
 def test_every_slug_resolves():

@@ -111,4 +111,4 @@ adapter_contract = "0.18"
 "catalogue-manifest.schema.json" = "5a0d9eeeae5b8c79570b3b2822de4e2c5a9f2bd844ff16b0755119db781cc9ea"
 
 [release.pages]
-"overview.md" = "462f52f95a623f5abd2d762d3a32c8ee9eda743475ffa620f378e5e167185ca0"
+"overview.md" = "4ec4c000de4ef3317be069fe805227f2fe2f2beee4d74f30e14c07ff8adc8e0b"

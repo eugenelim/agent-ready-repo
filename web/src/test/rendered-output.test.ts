@@ -549,9 +549,11 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     ).toEqual(['Docs', 'CLI', 'Packs', 'Build a Catalogue']);
   });
 
-  // A generated redirect page: a meta refresh and nothing else.
-  const isRedirectStub = (path: string): boolean =>
-    readFileSync(path, 'utf-8').includes('http-equiv="refresh"');
+  // The generated `latest/` redirect stubs, which carry no sidebar. Keyed on the
+  // known paths, not on page text: a page that merely mentions a refresh must
+  // still be asserted.
+  const REDIRECT_STUBS = new Set(['/agent-ready-repo/docs/spec/catalogue/latest/']);
+  const isRedirectStub = (href: string): boolean => REDIRECT_STUBS.has(href);
 
   // spec/catalogue-wave6-technical-docs-ia AC-0003 and AC-0004.
   it('AC-0003/AC-0004: Build a Catalogue keeps all 21 former links and shares none with other tabs', () => {
@@ -582,7 +584,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
         continue;
       }
       // The specification's `latest/` entry is a redirect stub, which has no sidebar.
-      if (isRedirectStub(built)) continue;
+      if (isRedirectStub(href)) continue;
       const links = sidebarLinks(doc(built));
       const optional = links.find((l) => l.label === 'Optional pack integrations')?.href;
       const pkg = links.find((l) => l.label === 'Package a release')?.href;
@@ -652,7 +654,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
           failures.push(`${href}: listed in a tab but no built page`);
           continue;
         }
-        if (isRedirectStub(built)) continue;
+        if (isRedirectStub(href)) continue;
         const frag = mainFragment(built);
         const prev = frag.querySelector('a[rel="prev"]')?.getAttribute('href');
         const next = frag.querySelector('a[rel="next"]')?.getAttribute('href');
