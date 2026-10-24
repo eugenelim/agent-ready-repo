@@ -165,7 +165,7 @@ that leaves open.
 | `write-stub` | Nothing; the supervisor computes the change set and runs the red proof | Refused |
 | `review-role` | One `review-report.v1` bound to the requested subject, or a selection record | Refused |
 | `assess-finding` | One finding assessment for the requested finding | Refused |
-| `run-gates` | Gate commands, exit codes, and output digests | Refused |
+| `run-gates` | The gate outcome — its commands, exit codes, and output digests — and the criteria outcomes the readiness reader requires | Refused |
 | `external-effect`, `effect-query` | Presence, absence, or unknowability, whether the attempt has ended, and the effect receipt | Refused |
 | `regenerate` | Completion only; the supervisor computes the new digests | Refused |
 | `human-decision` | The decision and its authority reference | Refused |
@@ -405,7 +405,12 @@ is not in that set: AC-0020 bounds its environment.
 
 A `red-proof` or `scratch` launch also times out its direct child only, so a
 process that child leaves behind outlives AC-0013's post-run check: a write by
-that survivor lands after the check, or is attributed to the next attempt.
+that survivor lands after the check, or is attributed to the next attempt. On
+Windows the consequence is worse than a late write. The launch captures output,
+and on a timeout CPython kills the direct child and then waits on the pipes
+without a deadline, so a descendant holding the inherited handles blocks the
+launch indefinitely: the red-proof budget is not honoured, and the run lock is
+held past the stale window another supervisor process may claim it after.
 
 A red proof also rests on the stub's exit code alone. A worker can therefore
 declare a `run` line that cannot start, which exits on the code a red stub

@@ -262,7 +262,7 @@ Owned by: T1, T2, T3, T4, T5.
 
 - **Depends on:** T3, T4, spec:execution-supervisor-core/T5, spec:execution-supervisor-core/T7, spec:execution-supervisor-review-gate/T2
 - **Spec behavior:** AC-0017 (the `implement-task` clause), AC-0018, AC-0020; TDD.
-- **Touches:** `_supervisor_loop.py`; `_supervisor_tdd.py` (the red-proof launch returns to its merge-base form, and all three projections of `_supervisor_launch.py` go with it); `test_supervisor_results.py`; `test_supervisor_tdd.py`; `test_supervisor_pinning.py`; `test_supervisor_git.py`; `.github/workflows/catalogue-tooling-ci-gates.yml` (registering the new suite); `docs/architecture/runtime-security-primitives.md`; the changelog fragment; Core manifests
+- **Touches:** `_supervisor_loop.py`; `_supervisor_tdd.py` (the red-proof launch returns to its merge-base form, and all three projections of `_supervisor_launch.py` go with it); `test_supervisor_results.py`; `test_supervisor_pinning.py`; `test_supervisor_git.py`; `.github/workflows/catalogue-tooling-ci-gates.yml` (registering the new suite); `docs/architecture/runtime-security-primitives.md`; the changelog fragment; Core manifests
 - **Verification mode:** TDD
 - **Tests:**
   - **VI-5040 (AC-0018):** one fixture per Result acceptance row. It includes
@@ -282,9 +282,12 @@ Owned by: T1, T2, T3, T4, T5.
   - **VI-5043 (AC-0013):** VI-5030's and VI-5031's planted conftest records that
     it executed, and each test fails when that record is missing, so neither can
     pass while its attack is disarmed.
-  - **VI-5044 (AC-0009, AC-0010):** a filter defined at system scope and used by
-    an attributes file is refused at admission, and a system-scope filter runs
-    in no helper call.
+  - **VI-5044 (AC-0009):** a filter defined at system scope and used by an
+    attributes file is refused at admission, and the helper drops
+    `GIT_CONFIG_SYSTEM` so a system-scope filter is unreachable from a helper
+    call. It does not prove AC-0010's hardened `GIT_CONFIG_NOSYSTEM=1`: removing
+    that value leaves this item green. VI-5041's helper-form case is that
+    control's proof, and fails when the value is removed.
 - **Done when:** VI-5040 through VI-5044 pass; the architecture page and the changelog fragment carry no claim that a `red-proof` or `scratch` launch is routed through the primitive, records a grant, or runs with a bounded environment, and the page's tables match the spec's; no reference to AC-0019 survives outside the spec's Follow-ons and this plan's ledger; the architecture review is recorded; and security-reviewer returns clean.
 
 ## Rollout

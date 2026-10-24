@@ -1,7 +1,9 @@
 """Launched code is checked, the supervisor is pinned, and untrusted code is gated.
 
 VI-5030 (AC-0013), VI-5031 (AC-0014, AC-0015), VI-5032 (AC-0016), VI-5033
-(AC-0017). Refusals that end before any sibling loads cost no Git call, so the
+(AC-0017), VI-5043 (AC-0013). VI-5043 is the marker every planted conftest
+writes. The refusal assertions already fail when the conftest never runs, so
+the marker names that cause instead of leaving it to be inferred. Refusals that end before any sibling loads cost no Git call, so the
 pin cases drive ``main`` on a copy of the installed skill; the regeneration
 cases share one template repository that stops at the issued request.
 """
@@ -468,7 +470,7 @@ def test_no_regenerate_without_the_pack_source_at_head(tmp_path: Path) -> None:
     assert h.workspace(repo).attempts.source_digests() is None
 
 
-# ── VI-5030: launched code ──────────────────────────────────────────────────
+# ── VI-5030, with VI-5043's marker: launched code ───────────────────────────
 
 _CONFTEST = """from pathlib import Path
 
@@ -541,6 +543,8 @@ def test_a_conftest_that_writes_plan_md_during_a_red_proof_is_refused(tmp_path: 
     head = _head(repo)
     code, out = controller.report(result)
     assert code == 1, out
+    # VI-5043: names the disarm directly. The refusal assertion above already
+    # fails when the conftest never runs, so this is the clearer diagnosis.
     assert _marker(repo).exists(), "the planted conftest never ran during the red proof"
     _assert_refused_and_never_adopted(repo, out, head)
 
@@ -556,6 +560,7 @@ def test_a_conftest_that_writes_plan_md_during_a_gate_run_is_refused(tmp_path: P
     assert request["kind"] == "run-gates"
     result = controller.work(request)
     assert _pytest(repo, "test_gate.py") == 0
+    # VI-5043: as above, for the gate-run path.
     assert _marker(repo).exists(), "the planted conftest never ran during the gate run"
     assert "written by a test file" in (repo / SPEC / "plan.md").read_text("utf-8")
     head = _head(repo)

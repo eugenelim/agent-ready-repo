@@ -250,9 +250,11 @@ line-ending and `core.excludesFile` settings, and turns off hooks, fsmonitor,
 external diff, textconv, replace refs, signing, and every filter that
 repository config defines. Before each call it reads the work tree's `.git`
 entry and `commondir` and refuses if they no longer name the directories pinned
-at admission, or if `info/grafts` exists. The only `git` calls outside it are
-two config reads that run no configured code: the effective config at
-admission, and the commit identity once per run. `start` refuses with
+at admission, or if `info/grafts` exists. The `git` calls outside it are
+two config reads that run no configured code — the effective config at
+admission, and the commit identity once per run — and the Git-directory
+discovery each invocation starts with. All three carry the helper's own
+environment and fixed flags. `start` refuses with
 `unsupported-git-config` when repository config sets a code-running key, or
 when any config scope defines a filter that an attributes file uses.
 
@@ -291,7 +293,7 @@ lists, and refuses the rest before reading any state:
 | `write-stub` | None; the supervisor computes the change set and runs the red proof |
 | `review-role` | One review report or a selection record |
 | `assess-finding` | One finding assessment |
-| `run-gates` | Gate commands, exit codes, and output digests |
+| `run-gates` | Gate outcome and criteria outcomes |
 | `external-effect`, `effect-query` | The effect outcome and receipt |
 | `regenerate` | None |
 | `human-decision` | The decision and its authority reference |
@@ -310,20 +312,13 @@ next launch loads. They run with the supervisor's own environment inherited
 whole and a timeout on the direct child only, which does not reach that child's
 descendants.
 
-`git` is unrouted because the primitive redacts every environment value from the
-output it returns, which would alter Git's data output: `HOME` prefixes a normal
-repository path and the helper parses git's stdout everywhere. The helper's
-stdin-bearing calls have no route either. The hardened helper does bound the
-child environment itself, in two forms. A helper call sees `PATH`, `HOME`,
-`LANG`, and `TMPDIR` — plus `SYSTEMROOT`, `TEMP`, `TMP`, `PATHEXT`, and
-`COMSPEC` on Windows — with the helper's own `GIT_CONFIG_NOSYSTEM=1` and empty
-`GIT_CONFIG_GLOBAL`, and `GIT_INDEX_FILE` when the call uses the private index.
-An out-of-helper config read sees the same base set and forwards whichever of
-`GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM`, `GIT_CONFIG_NOSYSTEM`, and
-`XDG_CONFIG_HOME` the host set, each with the host's value, plus `USERPROFILE`,
-`HOMEDRIVE`, and `HOMEPATH` on Windows. That read imposes no value of its own,
-because forcing `GIT_CONFIG_NOSYSTEM=1` would hide the system scope the
-admission scan must inspect.
+`git` is unrouted because the primitive redacts every environment value from
+the output it returns, which would alter Git's data output: `HOME` prefixes a
+normal repository path and the helper parses git's stdout everywhere. The
+helper's stdin-bearing calls have no route either. The hardened helper does
+bound the child environment itself, in two forms — one for a helper call and
+one for an out-of-helper config read. The spec's Launch grants section is their
+single statement; AC-0020 is checked against it.
 
 **What needs verified containment.** Write roots and network denial are neither
 recorded nor enforced today. The post-run check of trusted files is the only
