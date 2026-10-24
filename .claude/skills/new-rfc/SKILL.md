@@ -1,6 +1,6 @@
 ---
 name: new-rfc
-description: Use this skill when the user asks to propose, draft, or open an RFC, update the rules, amend the charter, change our principles, or change the convention for something; also use it for follow-on RFC artifacts after acceptance. Triggers on "RFC", "propose a change to...", "let's get input on...", "draft a proposal", "create the follow-on specs for RFC-NNNN", "generate ADRs for the accepted RFC", and "implement the follow-on work from an RFC". Do NOT use for a settled architectural decision (use `new-adr`, including a superseding ADR), or for a standalone settled feature spec (use `new-spec`).
+description: Use this skill when the user asks to propose, draft, or open an RFC, update the rules, amend the charter, change our principles, or change the convention for something; also use it for follow-on RFC artifacts after acceptance. Triggers on "RFC", "propose a change to...", "let's get input on...", "draft a proposal", "create the follow-on specs for RFC-NNNN", "generate ADRs for the accepted RFC", and "implement the follow-on work from an RFC". Do NOT use for a settled architectural decision (use `new-adr`, including a superseding ADR), or for a standalone settled feature spec (use core's `new-spec` when core is installed, otherwise a spec in the repository's own spec format).
 metadata:
   boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
@@ -62,12 +62,14 @@ implementation review for a reversible, time-bounded trial with exit criteria.
    - Does an adequate existing RFC or decision already resolve it? If so, select
      `reuse`, `amend`, or `reference`, report the selected route once and return.
    - Is a cheaper correct artifact sufficient? Route a settled durable choice to an
-     ADR; a settled bounded feature to a spec; routine work to a PR; tracked work to
+     ADR; a settled bounded feature to a spec (core's `new-spec` when core is installed, otherwise a spec in the repository's own spec format); routine work to a PR; tracked work to
      an issue; a remaining architecture choice to `architect-design`; and reversible
      work to a reversible, time-bounded trial with exit criteria. Report the selected
      route once and return.
    - Only a warranted RFC continues. Choose `light`, `standard`, or `heavy` by
-     consulting `work-loop`'s risk triggers; do not reproduce those triggers here.
+     consulting core's `work-loop` risk triggers when core is installed (do not
+     reproduce those triggers here); without core, use the template's own `light` /
+     `standard` / `heavy` definitions.
 
    Every return above has no RFC effect. Do not resolve an ordinal, create a directory
    or index, choose a target, or draft body text.
@@ -96,8 +98,9 @@ implementation review for a reversible, time-bounded trial with exit criteria.
 
 3. **Guided shape/intake — offer, don't force.** Infer a clear request; otherwise ask
    only outcome, scope, and risk. Pick `light`, `standard`, or `heavy` by consulting
-   `work-loop`'s risk triggers. Default to `standard` when unsure and confirm the
-   frame without forcing a questionnaire.
+   core's `work-loop` risk triggers when core is installed, otherwise the template's
+   own `light` / `standard` / `heavy` definitions. Default to `standard` when unsure
+   and confirm the frame without forcing a questionnaire.
 
 4. **Research + de-risk checkpoint — gated.** Do not create an RFC or write body text
    before the author signs off on findings in chat. For each decision, inspect relevant
@@ -173,8 +176,12 @@ implementation review for a reversible, time-bounded trial with exit criteria.
    - Complete YES/NO: Approver named; every decision recommended; do-nothing present
      *where options are enumerated*; at most three owned open questions; no item both
      decided and open; references resolve.
-   - Dispatch `adversarial-reviewer`; light gets one pass, standard/heavy re-run until
-     clean. Dispatch `security-reviewer` for a security boundary or trust model.
+   - Dispatch `adversarial-reviewer` when core is installed; light gets one pass,
+     standard/heavy re-run until clean. Dispatch `security-reviewer` for a security
+     boundary or trust model. Without core, dispatch a fresh-context reviewer given
+     only the RFC text and the same adversarial (and, when warranted, security)
+     brief; when the host has no subagents, run an inline adversarial and security
+     pass and record it in the receipt as self-review.
    - Run a fresh-reader readability review only when the proposal coins vocabulary, relies
      on sibling RFCs a reader may not know, or addresses adopters/contributors who did not
      draft it. Give that reader only the RFC text; gloss unresolved terms it reports.
@@ -221,7 +228,7 @@ implementation review for a reversible, time-bounded trial with exit criteria.
 
    At the gate, discard noise and route normative content first. For each
    admitted observation, discover the optional public `project-knowledge`
-   skill from core, construct the strict published request, and invoke
+   skill when core is installed, construct the strict published request, and invoke
    `project-knowledge --capture`. Supply `contract_version`, `lesson`, `kind`,
    `project_scope`, `competency_facets`, `destination_hint`, `producer`,
    `semantic_gate`, `provenance`, `freshness_anchor`, `observed_at`, and
@@ -267,8 +274,9 @@ implementation review for a reversible, time-bounded trial with exit criteria.
 
 ## After acceptance
 
-Hand follow-on work to core's `work-intake` / `workspace-status` for queue registration;
-do not implement queue logic here. Follow-on artifacts may include ADRs, specs where
+When core is installed, hand follow-on work to its `work-intake` / `workspace-status`
+for queue registration; do not implement queue logic here. Without core, list the
+follow-ons in the completion receipt and register nothing. Follow-on artifacts may include ADRs, specs where
 warranted, convention edits, migrations, and guides. Acceptance records a decision; it
 does not make every artifact mandatory.
 When an RFC covers multiple journey phases, each phase ships its guide with the capability,
@@ -295,5 +303,6 @@ Errata entry naming the superseding RFC.
 - Treating research-answerable questions as bare open questions.
 - Replacing decision-ready options and trade-offs with a list of names.
 - Padding the body with transcripts, matrices, or review logs instead of the argument.
-- Recreating queue state here instead of handing it to its owning core workflow.
-- Moving Errata/Amendments rules to a core-seeded document.
+- Recreating queue state here instead of handing it to the queue workflow when core is
+  installed, or instead of listing follow-ons in the receipt when it is not.
+- Moving Errata/Amendments rules out of this skill into a seeded document.
