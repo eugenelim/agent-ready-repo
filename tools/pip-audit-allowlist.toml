@@ -76,7 +76,7 @@
 # The vehicle's bound. An entry naming a package outside this list is a tool
 # error. Widening it is therefore a visible edit, reviewed on its own terms —
 # this repository has no CODEOWNERS file, so this is the available control.
-allowed_packages = ["pyjwt", "mcp"]
+allowed_packages = ["pyjwt", "mcp", "opentelemetry-api"]
 
 # The reachability premise every entry below relies on, stated once so each
 # `reason` can say which part of it carries that advisory. Two distributions in
@@ -110,6 +110,31 @@ Verified 2026-10-15; the finding and call paths are recorded in ADR-0146.
 """
 unblocked_when = """
 A Semgrep release permits mcp>=1.30.0 (or 2.2.0), and tools/requirements-sast.txt
+allows that release. pip-audit then stops reporting this id and the gate exits 2
+naming this entry for removal.
+"""
+
+# opentelemetry-api reaches the closure only through Semgrep, which declares
+# `opentelemetry-api~=1.37.0`, so no pin here can reach the fixed 1.45.1.
+[[allow]]
+id       = "CVE-2026-114603"
+package  = "opentelemetry-api"
+fixed_in = "1.45.1"
+reason   = """
+Unbounded tracestate parsing: `TraceState.from_header` does not bound the header
+it is given, so a caller that passes an attacker-supplied `tracestate` can be
+made to consume memory and CPU without limit.
+On the extract path that function is reached only when the carrier has a
+`tracestate` key. Semgrep's one `propagate.extract` call, in
+`semgrep/telemetry.py`, does not take a carrier from a peer: it builds
+`{"traceparent": ...}` from the two `SEMGREP_TRACE_PARENT_*` environment
+variables, so there is no `tracestate` to parse. That call is also guarded on
+both variables being set, and `make sast` sets neither. The gate runs Semgrep as
+a CLI scanner over local paths, starts no server, and receives no header.
+Verified 2026-10-24; the finding and call paths are recorded in ADR-0147.
+"""
+unblocked_when = """
+A Semgrep release permits opentelemetry-api>=1.45.1, and tools/requirements-sast.txt
 allows that release. pip-audit then stops reporting this id and the gate exits 2
 naming this entry for removal.
 """
