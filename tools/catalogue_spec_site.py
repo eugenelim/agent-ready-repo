@@ -174,6 +174,8 @@ def _release_outputs(
         if overview_src.is_file()
         else f"# Catalogue specification {version}"
     )
+    # The shared overview body also serves draft/, so the release date is added here.
+    prose = f"Released on {release.date}.\n\n{prose}"
     table = ["", "## All member files", "", "| File | Page | Raw file |", "| --- | --- | --- |"]
     for file_name in _file_names(release):
         raw_href = f"{SITE_BASE}spec/catalogue/{version}/{file_name}"
@@ -230,7 +232,8 @@ def generate(
             f"- [Latest (currently {newest})]({SITE_BASE}spec/catalogue/latest/)",
             *(
                 f"- [Release {r.version}]({SITE_BASE}spec/catalogue/{r.version}/)"
-                f" ({r.date}, adapter contract {r.adapter_contract})"
+                f" ({r.date}, [adapter contract]({_routes('adapter-toml', r.version)})"
+                f" {r.adapter_contract})"
                 for r in releases
             ),
         ]
@@ -274,8 +277,8 @@ def generate(
     if releases:
         newest = releases[0]
         snap = _inventory.snapshot_dir(contracts_dir, newest.version)
-        for file_name in _file_names(newest):
-            outputs.append((raw_dir / "latest" / file_name, (snap / file_name).read_bytes()))
+        for key in newest.members:
+            outputs.append((raw_dir / "latest" / Path(key).name, (snap / key).read_bytes()))
         # Keys are base-relative (Astro adds the base to a key); values are
         # base-absolute (a value is emitted as written). Composed separately.
         redirects = {"/spec/catalogue/latest/": f"{SITE_BASE}spec/catalogue/{newest.version}/"}

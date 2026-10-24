@@ -1,12 +1,12 @@
 This page introduces the agentbundle catalogue specification. A catalogue is a repository that publishes packs and profiles for agents to install. The specification is the set of contract files below, and a catalogue is checked against them.
 
-The specification is published in versions. A released version, such as `0.1/`, never changes once published. The `draft/` section tracks `main` and changes with every merge, so it is not a release. The `latest/` section points at the newest release.
+The specification is published in [versions](/agent-ready-repo/docs/spec/catalogue/). A released version, such as `0.1/`, never changes once published. The `draft/` section tracks `main` and changes with every merge, so it is not a release. The `latest/` section points at the newest release.
 
 ## Protect yourself as an adopter
 
-The files and the `index.json` that lists their SHA-256 digests (file fingerprints) come from the same deploy. A digest therefore proves the files match the index, not that either is untampered. To protect yourself:
+The site publishes [`index.json`](/agent-ready-repo/docs/spec/catalogue/index.json), a list of the files in each release. Each entry carries a SHA-256 digest, which is a file fingerprint: a short code that changes when the file changes. The files and `index.json` come from the same deploy, meaning one publish of this site. A digest therefore proves the files match the index, not that either is untampered. To protect yourself:
 
-- Pin a versioned URL, such as `0.1/`, rather than `latest/` or `draft/`, which move.
+- Pin a versioned URL, such as [`0.1/`](/agent-ready-repo/docs/spec/catalogue/), rather than `latest/` or `draft/`, which move.
 - Record each digest in your own repository, so a later change is visible.
 - Cross-check a digest against the `_data/` copy in the matching PyPI wheel of `agentbundle`, or against the snapshot at the matching `agentbundle-v*` tag, which come from a different source than the site.
 - Vendor the file, meaning copy it into your own repository, so you depend on no live URL.
