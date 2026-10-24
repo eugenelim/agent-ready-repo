@@ -69,15 +69,18 @@ If any of these checks fail, push back rather than proceeding.
    `<skill-dir>/scripts/confine-destination.py`, then is used only as the
    single absolute line the check printed, verbatim. `<skill-dir>` is the
    canonicalized directory containing this `SKILL.md`, with symlinks resolved.
-   Require the script to be a regular file whose resolved path stays beneath
-   the canonical `<skill-dir>/scripts/`; otherwise stop before launching Python.
-   Never resolve the script against the working directory or a
+   This governs every bundled script the skill launches
+   (`confine-destination.py`, `next-ordinal.py`, `index-records.py`,
+   `lint-adr-shape.py`): each must be a regular file whose resolved path stays
+   beneath the canonical `<skill-dir>/scripts/`; otherwise stop before
+   launching Python. Never resolve a script against the working directory or a
    repository-local `scripts/` folder, and never send the `<skill-dir>`
    placeholder itself to a runtime.
 
-   **One literal argument per value.** Wherever a template below shows
-   `<root>`, `<relative-dir>`, `<record.md>`, `<NNNN-title.md>` or a printed
-   line, the value (from configuration, guidance, a filename, or the request)
+   **One literal argument per value.** For every bundled script, wherever a
+   template below shows `<root>`, `<relative-dir>`, `<record.md>`,
+   `<NNNN-title.md>`, `<resolved-decision-record-directory>`, a directory line
+   or any other printed line, the value (from configuration, guidance, a filename, or the request)
    reaches the script as exactly one literal argument. Use a discrete argument
    vector where the host offers one, for example
    `["python3", "<skill-dir>/scripts/confine-destination.py", "<root>", "<relative-dir>"]`,
@@ -147,10 +150,10 @@ If any of these checks fail, push back rather than proceeding.
    `0100` (not `0010`):
 
    ```bash
-   python3 scripts/next-ordinal.py <resolved-decision-record-directory>
+   python3 <skill-dir>/scripts/next-ordinal.py <resolved-decision-record-directory>
    ```
 
-   (The script lives next to this `SKILL.md` under `scripts/`. Python
+   (The scripts live next to this `SKILL.md` under `scripts/`. Python
    is preferred over `ls | grep | sed | sort` so the snippet works the
    same way on native Windows, macOS, and Linux.)
 
@@ -167,7 +170,7 @@ If any of these checks fail, push back rather than proceeding.
    Check the destination for an ordinal already held by two records:
 
    ```bash
-   python3 scripts/next-ordinal.py --check <resolved-decision-record-directory>
+   python3 <skill-dir>/scripts/next-ordinal.py --check <resolved-decision-record-directory>
    ```
 
    It exits non-zero when two records share an ordinal, and also when it cannot
@@ -306,7 +309,7 @@ If any of these checks fail, push back rather than proceeding.
    sibling index with the directory line, verbatim:
 
    ```bash
-   python3 scripts/index-records.py <directory-line-printed-by-the-check>
+   python3 <skill-dir>/scripts/index-records.py <directory-line-printed-by-the-check>
    ```
 
    Any change to the folder or title after the check re-runs both checks. The

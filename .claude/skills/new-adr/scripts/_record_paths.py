@@ -340,10 +340,15 @@ def read_confined(
 _MAX_PATH_CHARS = 1000
 
 
+# Line/paragraph separators and bidirectional formatting characters
+# (U+202A-U+202E, U+2066-U+2069), which can disguise a path when displayed.
+_BIDI_AND_SEPARATORS = "\u2028\u2029\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069"
+
+
 def _has_control(value: str) -> bool:
-    """Return True when *value* holds a Unicode Cc character, U+2028 or U+2029."""
+    """Return True when *value* holds a Unicode Cc character, U+2028, U+2029 or a bidi override."""
     return any(
-        unicodedata.category(c) == "Cc" or c in "\u2028\u2029" for c in value
+        unicodedata.category(c) == "Cc" or c in _BIDI_AND_SEPARATORS for c in value
     )
 
 
