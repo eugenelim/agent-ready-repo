@@ -406,7 +406,7 @@ def _released(tmp_path: Path, rows: str, versions: tuple[str, ...] = ("0.1",)) -
     """A fixture whose manifest is `rows` appended after two member rows, snapshots staged."""
     contracts = _fixture(
         tmp_path,
-        "release = []\n".replace("release = []\n", "") + _row("a.schema.json") + _row("b.toml"),
+        _row("a.schema.json") + _row("b.toml"),
     )
     for version in versions:
         snap = contracts / "releases" / "catalogue" / version
@@ -416,7 +416,8 @@ def _released(tmp_path: Path, rows: str, versions: tuple[str, ...] = ("0.1",)) -
     manifest = contracts / "catalogue-spec.toml"
     text = manifest.read_text(encoding="utf-8")
     manifest.write_text(
-        text + rows if "[[release]]" in rows else "release = []\n" + text, encoding="utf-8"
+        (text + rows) if "[[release]]" in rows else ("release = []\n" + text),
+        encoding="utf-8",
     )
     return contracts
 
@@ -662,9 +663,7 @@ def test_real_snapshot_matches_the_release_row() -> None:
     on_disk = {p.relative_to(snap).as_posix() for p in snap.rglob("*") if p.is_file()}
     assert on_disk == set(row.members) | set(row.pages)
     for name in row.members:
-        assert (snap / name).read_bytes() == (
-            contracts / name
-        ).read_bytes() or name == "adapter.toml"
+        assert (snap / name).read_bytes() == (contracts / name).read_bytes()
 
 
 def test_overview_is_final_before_the_snapshot_and_reads_right_at_both_paths() -> None:
