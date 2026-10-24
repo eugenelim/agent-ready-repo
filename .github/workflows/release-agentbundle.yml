@@ -340,8 +340,27 @@ jobs:
           diff contracts/catalogue.schema.json \
               packages/agentbundle/agentbundle/_data/catalogue.schema.json
 
+  # Check 4 (RFC-0109 D7) — the CLI must not ship a specification version the
+  # site does not serve. Tag-only; both publish jobs depend on it. It reads the
+  # DEPLOYED index, so a tag pushed before the Pages deploy fails here by design.
+  release-gate:
+    name: "Check 4 — specification version is deployed"
+    needs: [build-and-smoke]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.11"
+
+      - name: Bundled specification bytes equal the snapshot and the deployed index
+        run: python3 tools/catalogue/check_release_gate.py
+
   publish-pypi:
-    needs: [build-and-smoke, pre-release-gates]
+    needs: [build-and-smoke, pre-release-gates, release-gate]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     environment: pypi
@@ -358,7 +377,7 @@ jobs:
           packages-dir: dist/
 
   publish-artifactory:
-    needs: [build-and-smoke]
+    needs: [build-and-smoke, release-gate]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
