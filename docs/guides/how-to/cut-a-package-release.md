@@ -323,3 +323,105 @@ agentbundle depends on credbroker: `packages/agentbundle/pyproject.toml` declare
 `agentbundle catalogue sync --package credbroker` is an adopter command that
 writes into a target repository's `packages/credbroker/`. It is not a release
 step in this repository.
+
+## Cut the next catalogue specification version
+
+The catalogue specification has its own version, `MAJOR.MINOR`, such as `0.1`. It
+is separate from the `agentbundle` version. Each release is frozen: its members
+keep one `$id` for good, and the site serves it at a fixed URL. This section
+covers cutting the next one, `N.M` below.
+
+### Files that move together
+
+| File or path | What changes |
+| --- | --- |
+| `contracts/*.json` and the `_data/` copies | `python3 tools/catalogue/rewrite_member_ids.py --version N.M` moves every member `$id` to `N.M` |
+| `contracts/releases/catalogue/N.M/` | The new snapshot: a byte copy of every member file and every page source, such as `overview.md` |
+| `contracts/catalogue-spec.toml` | A new `[[release]]` row |
+| `packages/agentbundle/` version files | The version bump, because the `_data/` copies changed. Follow "Release agentbundle" above |
+
+Never edit a file under an older `contracts/releases/catalogue/<MAJOR.MINOR>/`
+directory to cut a new version. A released member file is never corrected. A new
+version supersedes it.
+
+### Steps before merge
+
+1. Edit the member files and page sources for the new version.
+2. Run `python3 tools/catalogue/rewrite_member_ids.py --version N.M`. It changes
+   only the `$id` value, adds a missing `$id` or `$schema` line, and changes
+   nothing on a second run.
+3. Copy the members and page sources into
+   `contracts/releases/catalogue/N.M/`. Keep the file names the same.
+4. Compute a SHA-256 for each copied file, for example
+   `shasum -a 256 contracts/releases/catalogue/N.M/*`.
+5. Add the release row to `contracts/catalogue-spec.toml`. It has these fields:
+   - `version`: `"N.M"`, in `MAJOR.MINOR` form.
+   - `date`: the date you author the row.
+   - `adapter_contract`: the version in `contracts/adapter.toml`.
+   - `[release.members]`: one digest per member file, keyed by its path inside
+     the snapshot.
+   - `[release.pages]`: one digest per page source, keyed the same way.
+
+   The two tables are keyed separately. A path may appear in only one of them.
+   The loader rejects a row that breaks this, and rejects a duplicate version.
+6. Run `python3 tools/catalogue/sync_contract_inventory.py --write`, then
+   `python3 tools/catalogue/check_contract_parity.py`.
+7. Run `python3 tools/catalogue/check_spec_version.py`. It fails when a member
+   `$id` and the releases disagree, and its message names the rewrite command.
+8. Run `python3 tools/catalogue/check_release_immutability.py`. It fails when a
+   released row, snapshot path or member digest from the base branch changed.
+9. Open the PR with an `Engine-Change-RFC:` trailer, as in "Release agentbundle".
+
+### Merge, let Pages deploy, then tag
+
+Keep this order.
+
+1. Merge to `main`.
+2. Wait for the Pages deploy to finish. The deployed
+   `/docs/spec/catalogue/index.json` must list `N.M`.
+3. Push the `agentbundle-v*` tag, as in "Tag the merge commit".
+
+Check 4 (`tools/catalogue/check_release_gate.py`) runs in the tag-push run. It
+fetches the deployed index and fails when `N.M` is not there with the same member
+digests as the bundled bytes. A tag pushed before the deploy finishes therefore
+fails check 4. That is the intended safe failure: the CLI must not ship a version
+the site does not serve yet. Do not work around it. Wait for the deploy, then
+rerun the failed job with `gh run rerun <run-id> --failed`.
+
+### Correct a released page
+
+A correction row is the only sanctioned way to change a released page source,
+such as a typo in `overview.md`. It never touches a member file.
+
+1. Edit the page source under `contracts/releases/catalogue/<MAJOR.MINOR>/`.
+2. Compute its new SHA-256.
+3. Append a `[[correction]]` row to `contracts/catalogue-spec.toml`:
+
+   ```toml
+   [[correction]]
+   version = "0.1"
+   date = "YYYY-MM-DD"
+   note = "Fix a typo in overview.md."
+   supersedes = "0.1"
+
+   [correction.pages]
+   "overview.md" = "<new sha-256>"
+   ```
+
+   - `version` names an existing release row.
+   - `date` must differ from every other correction date for that version.
+   - `note` says what changed.
+   - `pages` holds new digests for page sources the release row already lists.
+     It has no `members` table. The loader rejects a correction row that has one.
+   - `supersedes` names what this row replaces. For the first correction of a
+     version, write the version string, such as `"0.1"`. For a later one, write
+     the `date` of the correction it replaces.
+
+The governing row for a version is the head of its `supersedes` chain: the
+correction that no other correction supersedes. Row order in the file does not
+matter. The chain must start at the release, have no repeated link, and have no
+link that points at nothing. The loader rejects a chain that breaks these rules.
+
+Check 3 accepts a page-source edit only when the path is a key of that release's
+`pages` table and the governing correction row carries the new bytes' digest.
+Run `python3 tools/catalogue/check_release_immutability.py` before you push.
