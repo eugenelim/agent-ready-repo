@@ -43,8 +43,8 @@ REVIEWER = "plan-reviewer:0123456789ab"
 
 
 def _start(repo: Path, *, intent: str = "code", authority: str = OWNER,
-           reviewer: str = REVIEWER) -> tuple[int, dict]:
-    return h.run_cli(repo, "start", h.SPEC_DIR, "--intent", intent, "--code-trust", "untrusted",
+           reviewer: str = REVIEWER, trust: str = "untrusted") -> tuple[int, dict]:
+    return h.run_cli(repo, "start", h.SPEC_DIR, "--intent", intent, "--code-trust", trust,
                      "--authority-ref", authority, "--review-authority-ref", reviewer)
 
 
@@ -99,7 +99,7 @@ def test_interrupted_start_leaves_no_partial_line_and_reruns(tmp_path: Path, poi
     h.commit_module.set_kill_hook(hook)
     try:
         with pytest.raises(h.Crash):
-            _start(repo)
+            _start(repo, trust="trusted")
     finally:
         h.commit_module.set_kill_hook(None)
     for line in _approval_lines(repo):
@@ -108,7 +108,7 @@ def test_interrupted_start_leaves_no_partial_line_and_reruns(tmp_path: Path, poi
     committed = h.workspace(repo).git.show(f"{h.SPEC_DIR}/delivery/approvals.jsonl") or b""
     assert not working.exists() or committed.startswith(working.read_bytes())
     assert not (repo / h.SPEC_DIR / ".supervisor" / "journal.jsonl").exists()
-    code, out = _start(repo)
+    code, out = _start(repo, trust="trusted")
     assert code == 0, out
     code, payload = h.run_cli(repo, "next", h.SPEC_DIR)
     assert code == 0 and payload["request"]["kind"] != "human-decision"

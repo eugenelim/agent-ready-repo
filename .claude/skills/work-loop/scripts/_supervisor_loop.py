@@ -72,11 +72,21 @@ def _supervisor(filename: str) -> ModuleType:
 _commit = _supervisor("_supervisor_commit.py")
 _admission = _supervisor("_supervisor_admission.py")
 _projector = _supervisor("_supervisor_projector.py")
+_attempt = _supervisor("_supervisor_attempt.py")
 Refusal = _admission.Refusal
 Workspace = _admission.Workspace
 sibling = _commit.sibling
 
-__all__ = ["State", "derive", "next_request", "report", "status", "commit_terminal"]
+__all__ = [
+    "State",
+    "derive",
+    "next_request",
+    "report",
+    "status",
+    "commit_terminal",
+    "untrusted_blocked",
+    "accept_facts",
+]
 
 PRODUCER_CLASS = "work-supervisor"
 SCHEMA_VERSION = 1
@@ -289,6 +299,36 @@ class Action:
     detail: dict[str, Any] = field(default_factory=dict)
 
 
+def untrusted_blocked(state: State) -> bool:
+    """True when the run is ``untrusted`` and the host supplies no verified containment.
+
+    The supervisor then launches no repository code and issues no ``implement-task``,
+    ``run-gates``, or ``regenerate`` request: no task, gate, red proof, scratch
+    receipt, or regeneration.
+    """
+    if state.latest["code_trust"] != "untrusted":
+        return False
+    containment = _supervisor("_containment.py")
+    return not containment.report_host_containment_axes().get("verified_sandbox")
+
+
+def untrusted_decision(ws: Workspace, state: State) -> Action:
+    """The ``human-decision`` that asks for trust or containment before code runs."""
+    return Action(
+        "request",
+        human_decision(
+            ws,
+            state,
+            "untrusted-code",
+            "The run's code trust is untrusted and this host supplies no verified "
+            "containment, so the supervisor will not run tasks, gates, red proofs, "
+            "scratch receipts, or a regeneration of the installed skill. Re-approve the run as "
+            "trusted with an owner authority reference (start --code-trust trusted), or "
+            "supply verified containment.",
+        ),
+    )
+
+
 def _first_incomplete(state: State) -> tuple[dict[str, Any] | None, bool]:
     """The first incomplete task whose dependencies are complete, and whether any is incomplete."""
     complete_ids = {t["task_id"] for t in state.tasks if state.is_complete(t)}
@@ -355,7 +395,17 @@ def decide(ws: Workspace, state: State) -> Action:
         # A rules or selection defect: the stage stays unsatisfied and names its code.
         return Action("refusal", refusal=exc)
     if action is not None:
-        return action
+        gates = action.request is not None and action.request["kind"] == "run-gates"
+        return untrusted_decision(ws, state) if gates and untrusted_blocked(state) else action
+    source = ws.attempts.pending_regeneration()
+    if source is not None:
+        if untrusted_blocked(state):
+            return untrusted_decision(ws, state)
+        return Action(
+            "request",
+            make_request(ws, state, "regenerate", _attempt.regenerate_request_id(source)),
+            detail={"source_digests": source},
+        )
     for name in state.finish_effects:
         action = effects.effect_action(ws, state, name, scope="finish", task=None)
         if action is not None:
@@ -500,11 +550,13 @@ def _act(ws: Workspace, state: State) -> tuple[State, Action]:
 def next_request(ws: Workspace) -> dict[str, Any]:
     """The ``next`` verb: the current request, a refusal, or terminal."""
     with ws.run_lock():
+        ws.attempts.guard("next")
         state, refusal = _prepare(ws)
         if refusal is not None:
             state.refusal = refusal
             return {"refusal": refusal.as_dict(), "run": _write_status(ws, state, None)}
         state, action = _act(ws, state)
+        ws.attempts.issue(state, action)
         status = _write_status(ws, state, action)
         if action.kind == "refusal" and action.refusal is not None:
             return {"refusal": action.refusal.as_dict(), "run": status}
@@ -542,6 +594,41 @@ def _validate_result(result: object) -> dict[str, Any]:
     return result
 
 
+# The facts each request kind's result may assert (the Result acceptance table).
+_RESULT_FACTS: dict[str, frozenset[str]] = {
+    "implement-task": frozenset({"gate"}),
+    "write-stub": frozenset(),
+    "review-role": frozenset({"report", "selection"}),
+    "assess-finding": frozenset({"assessment"}),
+    "run-gates": frozenset({"gate", "criteria"}),
+    "external-effect": frozenset({"effect"}),
+    "effect-query": frozenset({"effect"}),
+    "regenerate": frozenset(),
+    "human-decision": frozenset({"decision"}),
+}
+_RESULT_ENVELOPE = frozenset({"schema_version", "request_id", "run_id", "kind"})
+
+
+def accept_facts(result: dict[str, Any]) -> None:
+    """Refuse a result that asserts a fact its request kind's row does not list.
+
+    An unknown kind asserts nothing. Runs before any state is read or written.
+    """
+    kind = result["kind"]
+    allowed = _RESULT_FACTS.get(kind)
+    if allowed is None:
+        raise Refusal(
+            "result-kind-refused", "controller", f"a {kind!r} result is not a request kind"
+        )
+    extra = sorted(set(result) - _RESULT_ENVELOPE - allowed)
+    if extra:
+        raise Refusal(
+            "result-fact-refused",
+            "controller",
+            f"a {kind} result may not assert: " + ", ".join(extra),
+        )
+
+
 def _refuse_protected_change(ws: Workspace, state: State) -> list[str]:
     """Return the change set, refusing one that touches the spec directory or a cited record."""
     changed = ws.git.change_set()
@@ -552,6 +639,7 @@ def _refuse_protected_change(ws: Workspace, state: State) -> list[str]:
             "controller",
             "the attempt changed trusted files: " + ", ".join(protected),
         )
+    ws.attempts.check_change_set(state, changed)
     return changed
 
 
@@ -561,7 +649,9 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
     effects = _supervisor("_supervisor_effects.py")
     readiness = _supervisor("_supervisor_readiness.py")
     checked = _validate_result(result)
+    accept_facts(checked)
     with ws.run_lock():
+        ws.attempts.guard("report")
         state = derive(ws)
         if state.refusal is not None:
             raise state.refusal
@@ -573,6 +663,9 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         if checked["kind"] in ("external-effect", "effect-query"):
             _refuse_protected_change(ws, state)
             outcome = effects.report_effect(ws, state, checked)
+        elif checked["kind"] == "regenerate":
+            ws.attempts.admit_regeneration(checked)
+            outcome = "regenerate"
         else:
             action = decide(ws, state)
             current = action.request if action.kind == "request" else None
@@ -612,6 +705,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     "controller",
                     f"a {kind} result is not admitted through report",
                 )
+        ws.attempts.close(checked)
         after = derive(ws)
         ws.local.reconcile_events(after.run_id, after.commits)
         return {"admitted": outcome}

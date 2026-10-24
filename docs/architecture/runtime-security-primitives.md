@@ -224,3 +224,103 @@ primitive.
 | Primitive and broker cutover | `agentbundle` security maintainers |
 | Adapter trust classification | Owning adapter maintainer with security reviewer approval |
 | Rollback authorization | Security maintainer on call; rollback cannot select a weaker guarantee than the declared adapter trust class |
+
+## 11. Execution supervisor controls
+
+The execution supervisor (`work-supervisor.py` and its `_supervisor_*.py`
+modules) assumes a worker attempt may write files directly. It is a host
+subagent that these controls never contain. They catch naive writes to trusted
+files, Git control state, and `delivery/`, and nothing more. A deliberate
+worker acts with the supervisor's own authority. Network denial and write roots
+for processes the supervisor launches are enforced only under verified
+containment (§2).
+
+**Windows process branch.** On Windows the process primitive creates the child
+suspended and assigns it to a Job Object before it runs. The job denies
+breakaway and ends every member when its last handle closes. The child inherits
+only its three standard-stream handles. A timeout ends the job, so no
+descendant survives. Any failure to create, configure, or assign the job
+refuses with `denied-job-object` and ends the process. The launcher also
+refuses a batch script, an NTFS stream name, and a UNC or device path. POSIX
+behavior is unchanged.
+
+**Git hardening.** Every supervisor `git` call goes through one helper
+(`_supervisor_git.py`). It ignores system and global config, carries only the
+line-ending and `core.excludesFile` settings, and turns off hooks, fsmonitor,
+external diff, textconv, replace refs, signing, and every filter that
+repository config defines. Before each call it reads the work tree's `.git`
+entry and `commondir` and refuses if they no longer name the directories pinned
+at admission, or if `info/grafts` exists. The `git` calls outside it are
+two config reads that run no configured code — the effective config at
+admission, and the commit identity once per run — and the Git-directory
+discovery each invocation starts with. All three carry the helper's own
+environment and fixed flags. `start` refuses with
+`unsupported-git-config` when repository config sets a code-running key, or
+when any config scope defines a filter that an attributes file uses.
+
+**Attempt checks and residue.** Each time the supervisor issues a worker,
+`run-gates`, or `regenerate` request, or launches a red proof or scratch receipt
+with no attempt open, it records a manifest (path, size, sha256) of the trusted
+files and Git control state in its store, `<git dir>/agentbundle-supervisor/<run id>/`.
+Trusted files are the spec, the plan, every cited record, and the installed
+skill. Every later `next` and `report` compares against the manifest first. A
+difference refuses the attempt, leaves `attempt-residue` naming each path until
+the paths are restored, and is never committed. During an attempt, `HEAD` may
+move only through commits the store lists as the supervisor's. After each
+supervisor-launched run of repository code the check runs again before any
+commit. Residue lives in the store, so deleting the journal, `run.json`, or
+the local security log clears nothing.
+
+**Pinning and regeneration.** The first admitted `start` records the sha256 of
+every installed `scripts/` file and of the two policy files in the store. Every
+entry point compares them before it imports a sibling and refuses
+`supervisor-changed` on a mismatch, and each sets no-bytecode so a planted
+`.pyc` never runs. A run with an open or uncleared refused attempt guards every
+spec in the work tree. When `HEAD` holds the Core work-loop source and the
+installed skill differs, `next` emits one `regenerate` request. The supervisor
+admits it only when every installed file equals that source, then re-pins.
+
+**Untrusted code.** Under an `untrusted` classification with no verified
+containment, the supervisor launches no red proof or scratch receipt, emits no
+`implement-task`, `run-gates`, or `regenerate` request, and asks for a human decision.
+
+**Result acceptance.** `report` admits only the facts a request kind's row
+lists, and refuses the rest before reading any state:
+
+| Request kind | Facts admitted |
+| --- | --- |
+| `implement-task` | The controller-run gate outcome only; the supervisor computes the change set |
+| `write-stub` | None; the supervisor computes the change set and runs the red proof |
+| `review-role` | One review report or a selection record |
+| `assess-finding` | One finding assessment |
+| `run-gates` | Gate outcome and criteria outcomes |
+| `external-effect`, `effect-query` | The effect outcome and receipt |
+| `regenerate` | None |
+| `human-decision` | The decision and its authority reference |
+
+An extra fact refuses `result-fact-refused`. An unknown kind refuses
+`result-kind-refused`.
+
+**Launch grants.** No supervisor launch goes through the process primitive, so
+none records a `safe-process.v1` record or a `security-capability.v1` grant. The
+spec's Launch grants table states the rows each kind will adopt; adopting them
+is owned by `supervisor-launch-routing-for-plan-authored-commands`.
+
+`red-proof` and `scratch` are unrouted because the interpreter a plan-authored
+command names cannot be pinned without letting the launched code decide what the
+next launch loads. They run with the supervisor's own environment inherited
+whole and a timeout on the direct child only, which does not reach that child's
+descendants.
+
+`git` is unrouted because the primitive redacts every environment value from
+the output it returns, which would alter Git's data output: `HOME` prefixes a
+normal repository path and the helper parses git's stdout everywhere. The
+helper's stdin-bearing calls have no route either. The hardened helper does
+bound the child environment itself, in two forms — one for a helper call and
+one for an out-of-helper config read. The spec's Launch grants section is their
+single statement; AC-0020 is checked against it.
+
+**What needs verified containment.** Write roots and network denial are neither
+recorded nor enforced today. The post-run check of trusted files is the only
+detection of a write, and a descendant that outlives an exempt launch can write
+after it.

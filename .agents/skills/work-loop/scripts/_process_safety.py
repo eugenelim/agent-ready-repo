@@ -210,6 +210,20 @@ _IS_WINDOWS: Final[bool] = os.name == "nt"
 _WINDOWS_SCRIPT_SUFFIXES: Final[frozenset[str]] = frozenset({".bat", ".cmd"})
 
 
+def _is_unsafe_windows_path(executable: str) -> bool:
+    """True for a stream name, or a UNC or device path, which a Windows launch refuses.
+
+    Any ``:`` other than a drive letter's names an NTFS stream, which the
+    batch-file judgement cannot see through; a path starting with two slashes
+    is a network share or a device namespace, whose bytes can change between
+    the identity check and the launch.
+    """
+    if executable.startswith(("\\\\", "//", "\\/", "/\\")):
+        return True
+    has_drive = len(executable) >= 2 and executable[1] == ":" and executable[0].isalpha()
+    return ":" in (executable[2:] if has_drive else executable)
+
+
 def _is_windows_script(executable: str) -> bool:
     """True when Windows would start *executable* through a command interpreter.
 
@@ -230,6 +244,7 @@ _HANDLE_FLAG_INHERIT: Final[int] = 0x00000001
 _PROC_THREAD_ATTRIBUTE_HANDLE_LIST: Final[int] = 0x00020002
 _JOB_OBJECT_EXTENDED_LIMIT_INFORMATION: Final[int] = 9
 _JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: Final[int] = 0x00002000
+_WAIT_OBJECT_0: Final[int] = 0x00000000
 _WAIT_TIMEOUT: Final[int] = 0x00000102
 _RESUME_FAILED: Final[int] = 0xFFFFFFFF
 
@@ -439,10 +454,12 @@ def _run_in_job(
         if _JOB_ASSIGN_FAULT is not None:
             assigned = assigned and _JOB_ASSIGN_FAULT()
         if not assigned:
-            k32.TerminateProcess(process_info.hProcess, 1)
-            k32.WaitForSingleObject(process_info.hProcess, 5000)
+            ended = (bool(k32.TerminateProcess(process_info.hProcess, 1))
+                     and k32.WaitForSingleObject(process_info.hProcess, 5000) == _WAIT_OBJECT_0)
             raise refuse("denied-job-object",
-                         "the process could not be assigned to its Job Object; it was ended")
+                         "the process could not be assigned to its Job Object; "
+                         + ("it was ended" if ended
+                            else "it was left suspended and could not be confirmed ended"))
         if k32.ResumeThread(process_info.hThread) == _RESUME_FAILED:
             k32.TerminateJobObject(job, 1)
             raise refuse("denied-launch-failed", "the suspended process could not be resumed")
@@ -1370,6 +1387,13 @@ def _launch_safe_process_unguarded(
             "launch refused to avoid orphan children",
         )
 
+    if _IS_WINDOWS and _is_unsafe_windows_path(spec_dict["executable"]):
+        _emit_event(audit_sink, op_id, corr_id, "denied", PROCESS_DENY_REASON)
+        raise ProcessDenied(
+            "denied-launch-failed",
+            "a stream name or a UNC or device path cannot be launched; use a local absolute path",
+        )
+
     # Windows starts a batch file through cmd.exe, which reinterprets the
     # command line; only native images may be launched there.
     if _IS_WINDOWS and _is_windows_script(spec_dict["executable"]):
@@ -1599,10 +1623,18 @@ def _launch_safe_process_unguarded(
 
         try:
             if _IS_WINDOWS:
-                raw_stdout, raw_stderr, overflowed, _settled, _exit_code = _run_in_job(
-                    argv_list, _exec_path, env, cwd_str, stdin_input,
-                    spec_dict["process_tree_timeout_s"], hard_cap, _deny,
-                )
+                try:
+                    raw_stdout, raw_stderr, overflowed, _settled, _exit_code = _run_in_job(
+                        argv_list, _exec_path, env, cwd_str, stdin_input,
+                        spec_dict["process_tree_timeout_s"], hard_cap, _deny,
+                    )
+                except ProcessDenied:
+                    raise
+                except Exception:
+                    # Mirrors the POSIX mapping: a stored denial and a stable
+                    # code, with no exception text leaked.
+                    _deny()
+                    raise ProcessDenied("denied-launch-failed", "process launch failed") from None
             else:
                 try:
                     proc = subprocess.Popen(
@@ -1741,11 +1773,12 @@ def _launch_safe_process_unguarded(
             if proc is not None:
                 _end_group()
                 _close_pipes_and_reap(proc, _DRAIN_TIMEOUT_S)
-                if not isinstance(exc, Exception):
-                    # An interrupt is not a refusal, but the allowed launch still
-                    # gets a terminal event; best effort, so the interrupt propagates.
-                    with contextlib.suppress(Exception):
-                        _deny()
+            if (proc is not None or _IS_WINDOWS) and not isinstance(exc, Exception):
+                # An interrupt is not a refusal, but the allowed launch still
+                # gets a terminal event; best effort, so the interrupt propagates.
+                # On Windows the job's own cleanup has already ended the tree.
+                with contextlib.suppress(Exception):
+                    _deny()
             raise
 
     finally:

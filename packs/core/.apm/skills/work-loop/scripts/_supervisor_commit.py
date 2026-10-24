@@ -19,12 +19,14 @@ import hashlib
 import importlib.util
 import os
 import re
+import secrets
+import shutil
 import stat
-import subprocess
 import sys
 import tempfile
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 
@@ -38,33 +40,12 @@ __all__ = [
 ]
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
-GIT_TIMEOUT_S = 60.0
 _MAX_DELIVERY_BYTES = 64 * 1024 * 1024
 
-# Variables that could point Git at another repository, index, or object store,
-# or reinterpret the pathspecs this module passes.
-_GIT_OVERRIDE_VARS = frozenset({
-    "GIT_DIR",
-    "GIT_WORK_TREE",
-    "GIT_INDEX_FILE",
-    "GIT_OBJECT_DIRECTORY",
-    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-    "GIT_COMMON_DIR",
-    "GIT_NAMESPACE",
-    "GIT_GLOB_PATHSPECS",
-    "GIT_NOGLOB_PATHSPECS",
-    "GIT_ICASE_PATHSPECS",
-    "GIT_LITERAL_PATHSPECS",
-    "GIT_REPLACE_REF_BASE",
-    "GIT_GRAFT_FILE",
-})
 _TRAILER_VALUE_RE = re.compile(r"[\x21-\x7e][\x20-\x7e]{0,511}")
-_FALLBACK_IDENTITY = {
-    "GIT_AUTHOR_NAME": "work-supervisor",
-    "GIT_AUTHOR_EMAIL": "work-supervisor@localhost.invalid",
-    "GIT_COMMITTER_NAME": "work-supervisor",
-    "GIT_COMMITTER_EMAIL": "work-supervisor@localhost.invalid",
-}
+_MAX_MADE_BYTES = 16 * 1024 * 1024
+_RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
+_COMMIT_ID_RE = re.compile(r"[0-9a-f]{40,64}")
 
 _KILL_HOOK: Callable[[str], None] | None = None
 
@@ -79,14 +60,6 @@ def kill_point(name: str) -> None:
     """Mark a crash boundary. A no-op unless a test installed a hook."""
     if _KILL_HOOK is not None:
         _KILL_HOOK(name)
-
-
-class SupervisorGitError(Exception):
-    """A Git operation failed or Git state is not what the supervisor wrote."""
-
-    def __init__(self, code: str, message: str = "") -> None:
-        super().__init__(message or code)
-        self.code = code
 
 
 @dataclass(frozen=True)
@@ -136,6 +109,9 @@ def supervisor_module(filename: str) -> ModuleType:
         sys.dont_write_bytecode = previous
     return module
 
+
+_git = supervisor_module("_supervisor_git.py")
+SupervisorGitError = _git.SupervisorGitError
 
 _SIBLINGS: dict[str, ModuleType] = {}
 
@@ -189,7 +165,7 @@ class GitPort:
         self.spec_rel = spec_rel
         self.delivery_rel = f"{spec_rel}/delivery"
         self.clock = clock
-        self._identity: dict[str, str] | None = None
+        self.hardened = _git.HardenedGit(root)
         # Read-only lookups are cached for one invocation, which holds the run
         # lock; only this port's own HEAD move invalidates the HEAD-relative ones.
         self._head: str | None = None
@@ -200,39 +176,96 @@ class GitPort:
 
     # ── process boundary ────────────────────────────────────────────────────
 
-    def _env(self, extra: dict[str, str] | None = None) -> dict[str, str]:
-        env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
-        env.update({"GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C"})
-        if extra:
-            env.update(extra)
-        return env
-
     def run(
         self,
         *args: str,
         env: dict[str, str] | None = None,
         stdin: bytes | None = None,
         check: bool = True,
+        literal_pathspecs: bool = False,
     ) -> bytes:
-        """Run ``git <args>`` in the repository and return stdout bytes."""
+        """Run ``git <args>`` through the hardened helper and return stdout bytes."""
+        return self.hardened.run(
+            *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs
+        )
+
+    # ── the commits the supervisor made ─────────────────────────────────────
+
+    def _store_rel(self, run_id: str) -> str:
+        """The run's store directory, relative to the Git directory; the run id is checked here."""
+        if not _RUN_ID_RE.fullmatch(run_id):
+            raise SupervisorGitError("denied-invalid-run-id", "the run id is not a run id")
+        return f"agentbundle-supervisor/{run_id}"
+
+    def _store_dir(self, run_id: str) -> Path:
+        return self.hardened.pins.git_dir / self._store_rel(run_id)
+
+    def made_commits(self, run_id: str) -> set[str]:
+        """Ids of the commits this run's supervisor built, from the store in the Git directory."""
+        path = self._store_dir(run_id) / "made-commits"
+        if not os.path.lexists(path):
+            return set()
+        fs = sibling("_file_safety.py")
         try:
-            result = subprocess.run(
-                ["git", *args],
-                cwd=str(self.root),
-                env=self._env(env),
-                input=stdin,
-                capture_output=True,
-                check=False,
-                timeout=GIT_TIMEOUT_S,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise SupervisorGitError("denied-git-unavailable", f"git {args[0]}: {exc}") from exc
-        if check and result.returncode != 0:
-            detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
+            data = fs.read_confined_regular_file(path.parent, path, max_bytes=_MAX_MADE_BYTES)
+        except fs.UnsafeContentError as exc:
+            raise SupervisorGitError("denied-unsafe-path", f"made-commits: {exc}") from exc
+        words = bytes(data).decode("ascii", "replace").split()
+        return {w for w in words if _COMMIT_ID_RE.fullmatch(w)}
+
+    def ensure_store(self, run_id: str) -> Path:
+        """The run's store directory, born whole with a ``spec`` file naming this spec.
+
+        A new directory is built under a temporary sibling name (which no run id
+        matches), its spec record written inside, and then renamed into place, so a
+        crash never leaves a run directory without its spec record. When another
+        process won the rename, or the directory already stood, its spec record is
+        verified instead.
+        """
+        relative = self._store_rel(run_id)
+        git_dir = self.hardened.pins.git_dir
+        base = ensure_directory(git_dir, relative.rsplit("/", 1)[0])
+        final = base / run_id
+        if not os.path.lexists(final):
+            temp = base / f".tmp-{run_id}-{secrets.token_hex(8)}"
+            temp.mkdir(mode=0o755)
+            try:
+                cm = sibling("_confined_mutation.py")
+                cm.confined_create(temp, temp / "spec", self.spec_rel.encode("utf-8"))
+                kill_point("store-built")
+                temp.rename(final)
+            except Exception:
+                # A process kill leaves the temporary directory, which is harmless:
+                # no run id matches its name.
+                shutil.rmtree(temp, ignore_errors=True)
+                if not os.path.lexists(final):  # not a lost race: another process won it
+                    raise
+        directory = ensure_directory(git_dir, relative)
+        self._verify_store_spec(directory)
+        return directory
+
+    def _verify_store_spec(self, directory: Path) -> None:
+        """Refuse a store directory whose spec record is absent or names another spec."""
+        fs = sibling("_file_safety.py")
+        try:
+            data = fs.read_confined_regular_file(directory, directory / "spec", max_bytes=4096)
+        except (fs.UnsafeContentError, OSError) as exc:
             raise SupervisorGitError(
-                "denied-git-failed", f"git {args[0]} failed: {detail[-1] if detail else ''}"
+                "denied-store-spec", f"the run's store has no readable spec record: {exc}"
+            ) from exc
+        if bytes(data).decode("utf-8", "replace") != self.spec_rel:
+            raise SupervisorGitError(
+                "denied-store-spec", "the run's store records another spec"
             )
-        return result.stdout
+
+    def record_made(self, run_id: str, sha: str) -> None:
+        """Append *sha* to the run's made-commit list, before the commit can become HEAD."""
+        directory = self.ensure_store(run_id)
+        cm = sibling("_confined_mutation.py")
+        path = directory / "made-commits"
+        if not os.path.lexists(path):
+            cm.confined_create(directory, path, b"")
+        cm.confined_append(directory, path, f"{sha}\n".encode("ascii"), max_bytes=_MAX_MADE_BYTES)
 
     def text(self, *args: str, **kwargs: object) -> str:
         return self.run(*args, **kwargs).decode("utf-8", "replace")  # type: ignore[arg-type]
@@ -301,7 +334,7 @@ class GitPort:
 
     def supervisor_commits(self, run_id: str) -> list[Commit]:
         """Supervisor commits of *run_id* reachable from HEAD, oldest first."""
-        if not re.fullmatch(r"run-[0-9a-f]{16}", run_id):
+        if not _RUN_ID_RE.fullmatch(run_id):
             raise SupervisorGitError("denied-invalid-run-id", "run id is malformed")
         key = (run_id, self.head())
         if key in self._commits:
@@ -377,12 +410,16 @@ class GitPort:
     def _private_index(self) -> GitPort._PrivateIndex:
         return GitPort._PrivateIndex(self)
 
-    def _commit_env(self) -> dict[str, str]:
-        if self._identity is None:
-            probe = self.run("var", "GIT_COMMITTER_IDENT", check=False)
-            self._identity = {} if probe.strip() else dict(_FALLBACK_IDENTITY)
-        when = self.clock()
-        return {**self._identity, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}
+    @staticmethod
+    def _stamp(when: str) -> str:
+        """A commit timestamp, ``<epoch> <offset>``, from the clock's RFC 3339 text."""
+        moment = datetime.fromisoformat(when.replace("Z", "+00:00"))
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=UTC)
+        offset = moment.utcoffset()
+        minutes = int(offset.total_seconds() // 60) if offset is not None else 0
+        sign = "-" if minutes < 0 else "+"
+        return f"{int(moment.timestamp())} {sign}{abs(minutes) // 60:02d}{abs(minutes) % 60:02d}"
 
     def build_commit(
         self,
@@ -429,7 +466,8 @@ class GitPort:
                     "-A",
                     "--pathspec-from-file=-",
                     "--pathspec-file-nul",
-                    env={**env, "GIT_LITERAL_PATHSPECS": "1"},
+                    env=env,
+                    literal_pathspecs=True,
                     stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in path_list),
                 )
             for name, extra in sorted((appends or {}).items()):
@@ -441,9 +479,16 @@ class GitPort:
             tree = self.text("write-tree", env=env).strip()
         message = f"work-supervisor: {operation}{(' ' + summary) if summary else ''}\n\n"
         message += "".join(f"{k}: {v}\n" for k, v in all_trailers.items())
+        name, email = self.hardened.commit_identity()
+        stamp = self._stamp(self.clock())
+        body = (
+            f"tree {tree}\nparent {old}\nauthor {name} <{email}> {stamp}\n"
+            f"committer {name} <{email}> {stamp}\n\n{message}"
+        )
         new = self.text(
-            "commit-tree", tree, "-p", old, env=self._commit_env(), stdin=message.encode("utf-8")
+            "hash-object", "-t", "commit", "-w", "--stdin", stdin=body.encode("utf-8")
         ).strip()
+        self.record_made(run_id, new)
         kill_point("commit-built")
         try:
             self.run("update-ref", "-m", f"work-supervisor: {step}", "HEAD", new, old)
@@ -478,7 +523,7 @@ class GitPort:
             "--pathspec-from-file=-",
             "--pathspec-file-nul",
             "HEAD",
-            env={"GIT_LITERAL_PATHSPECS": "1"},
+            literal_pathspecs=True,
             stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in sorted(set(paths))),
         )
 

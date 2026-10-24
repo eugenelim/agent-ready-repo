@@ -56,7 +56,7 @@ STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "
 # Kill points in the uninterrupted run: 13 steps x (built, moved, synced, event),
 # 11 journal appends, and 1 effect dispatch. The reviewer-selection exchange is
 # one of those steps and one of those appends.
-BOUNDARIES = 64
+BOUNDARIES = 65
 
 
 class Recorder:
@@ -283,12 +283,13 @@ def test_supervisor_commit_during_a_live_lease(baseline: dict[str, Any], tmp_pat
     edited: list[bool] = []
 
     def between(c: h.Controller, request: dict[str, Any], phase: str) -> None:
-        if phase == "worked" and _first("implement-task", "Release")(request) and not edited:
+        # Between attempts: an edit made while the attempt is open counts against it.
+        if phase == "reported" and _first("implement-task", "Release")(request) and not edited:
             spec = c.repo / h.SPEC_DIR / "spec.md"
             spec.write_text(spec.read_text("utf-8").replace(
                 "that answers.", "that answers quickly."), "utf-8")
             _, again = h.run_cli(c.repo, "next", h.SPEC_DIR)
-            edited.append(again["request"]["request_id"] == request["request_id"])
+            edited.append("request" in again)
 
     run = run_variant(tmp_path, between=between)
     assert edited == [True]

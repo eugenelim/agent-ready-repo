@@ -1,6 +1,6 @@
 # Spec: Execution supervisor attempt security
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144
@@ -21,7 +21,7 @@
 
 ## Outcome
 
-Platform Core maintainers get a supervisor that refuses a worker attempt when the worker changed a file the supervisor trusts, touched Git control state, or asserted facts its request kind cannot carry, that never adopts such a change by any path, and that launches its own processes with recorded grants and whole-tree termination on every supported platform. Success is that no naive-forgery fixture reaches a supervisor commit or a task projection, while honest attempts, supervisor commits, and core's crash corpus still pass.
+Platform Core maintainers get a supervisor that refuses a worker attempt when the worker changed a file the supervisor trusts, touched Git control state, or asserted facts its request kind cannot carry, that never adopts such a change by any path, that bounds what a `git` child's environment carries, and that ends a Windows process tree whole through a breakaway-denied Job Object. Ending a process tree whole on every platform belongs to the Slice 1 primitive, which no launch here is routed through; an exempt launch times out its direct child only. Recording a launch grant is deferred; the Launch grants table records the rows and names the intent that owns adopting them. Success is that no naive-forgery fixture reaches a supervisor commit or a task projection, while honest attempts, supervisor commits, and core's crash corpus still pass. A stub command that never starts is outside that claim: see Accepted Risk.
 
 ## What Changes
 
@@ -34,8 +34,9 @@ Platform Core maintainers get a supervisor that refuses a worker attempt when th
 ## Scope and Non-goals
 
 This spec owns worker-attempt validation, residue, Git hardening, supervisor
-pinning and regeneration, per-request-kind result acceptance, launch-grant
-recording, the untrusted-code launch gate, and Windows process control. It
+pinning and regeneration, per-request-kind result acceptance, the bounded
+`git` child environment, the untrusted-code launch gate, and Windows process
+control. It
 extends `execution-supervisor-core`, whose request kinds, change set,
 `delivery/` lag rule, and step order it uses, and consumes Slice 1's security
 primitives.
@@ -61,18 +62,22 @@ that leaves open.
 
 - Fail closed: an unverifiable check refuses with a stable code and a
   `security-event.v1` line in `<spec>/.supervisor/security-events.jsonl`.
-- Reuse Slice 1 primitives for grants, events, confinement, and containment.
+- Reuse Slice 1 primitives for events, confinement, and containment. Grants and
+  the safe-process launch route are the stated exception while the Launch grants
+  rows are unadopted; the hardened helper builds the `git` child's environment
+  itself, as AC-0020 requires.
 - Get a security-reviewer pass on each task's diff before merge.
 
 ### Ask first
 
-- Widening any launch grant in the Launch grants table.
+- Widening any launch grant in the Launch grants table, adding a launch kind,
+  or launching a new kind with no grant at all.
 - Accepting any additional security risk.
 
 ### Never do
 
-- Run a supervisor `git` command outside the hardened helper, except the
-  commit-identity read the plan names.
+- Run a supervisor `git` command outside the hardened helper, except an
+  out-of-helper config read.
 - Fall back to a single-process kill on Windows.
 - Add a dependency outside the Python standard library.
 
@@ -88,8 +93,9 @@ that leaves open.
 - **Launched code, pinning, and trust (AC-0013, AC-0014, AC-0015, AC-0016, AC-0017):**
   TDD with a test file that writes a trusted file, an edited installed module,
   a planted bytecode file, a regeneration, and untrusted-trust fixtures.
-- **Result facts and grants (AC-0018, AC-0019, AC-0020):** TDD over the Result
-  acceptance and Launch grants tables.
+- **Result facts (AC-0018):** TDD over the Result acceptance table.
+- **Bounded git environment (AC-0020):** TDD over the `git` row's Environment
+  column, for both the helper and the out-of-helper config read.
 - **Windows (AC-0021, AC-0022, AC-0023, AC-0024):** TDD on the Windows CI job.
 - **POSIX regression (AC-0025):** the existing safe-process suite on POSIX CI.
 
@@ -102,8 +108,19 @@ that leaves open.
   from.
 - **Supervisor store.** `<pinned Git directory>/agentbundle-supervisor/<run id>/`,
   outside the worktree and outside every cache core calls deletable. It holds
-  each issuance's manifest, each refusal record, and the ids of the commits the
-  supervisor made.
+  the pinned digests, each issuance's manifest, each refusal record, the source
+  digests recorded when a `regenerate` request is issued, and the ids of the
+  commits the supervisor made.
+- **Pinned digests.** The sha256 digests of every file under the installed
+  skill's `scripts/` except `__pycache__`, and of `supervisor-policy.json` and
+  `review-rules.json`. They are held only in the
+  supervisor store, recorded once by the controller-run admitted `start`, and
+  replaced only by the AC-0016 re-pin. When no pin record exists for the run,
+  that `start` computes them from the installed bytes, without importing a
+  sibling, and records them; it is the only entry point that may do so, and
+  only for a run whose store already holds its made-commit record and whose
+  supervisor commits are its first approval and terminal steps. A run admitted
+  before pinning shipped has no store and is never pinned.
 - **Git control state.** The resolved Git directory and common directory pinned
   at admission; the worktree's `.git` gitfile; `commondir`; `refs/replace/`;
   `info/`; `objects/info/alternates`; `hooks/`; every repository and worktree
@@ -114,12 +131,24 @@ that leaves open.
   `assess-finding` request.
 - **Manifest.** Path, size, and sha256 of every trusted file and Git control
   state file, excluding `__pycache__` directories, recorded in the supervisor
-  store each time `next` issues or re-issues a worker request after any residue
-  has cleared, and never re-recorded while that issuance is open. The
+  store each time `next` issues or re-issues a worker, `run-gates`, or
+  `regenerate` request after any residue has cleared, and each time the
+  supervisor launches a red proof or scratch receipt with no attempt open; it
+  is never re-recorded while that issuance is open. The
   supervisor's caches — the journal, `run.json`, locks,
   `security-events.jsonl`, and `.loop-run/` — are not covered.
-- **Open attempt.** An issuance of a worker request that has not been reported,
-  refused, or superseded.
+- **Open attempt.** An issuance that records a manifest — a worker, `run-gates`,
+  or `regenerate` request, or a red proof or scratch receipt the supervisor
+  launches with no attempt open — that has not been reported, refused, or
+  superseded. A launch-owned attempt closes when its launch ends and the
+  post-run check completes; a refusal clears only against the refused
+  issuance's own manifest.
+- **Out-of-helper config read.** A `git config` read that runs no configured
+  code, passes the pinned `--git-dir`, runs with the `git` row's environment
+  from the Launch grants table, and serves exactly one of two purposes: the
+  admission read of the effective config for the carried settings and for the
+  filter definitions AC-0009 checks, or the once-per-run commit-identity read
+  of `user.name` and `user.email`. No other `git` call qualifies.
 - **Code-running Git setting.** Any configured key whose value Git runs as a
   program or command, including `filter.*.clean`, `filter.*.smudge`,
   `filter.*.process`, `diff.*.textconv`, `diff.*.command`, `diff.external`,
@@ -132,10 +161,11 @@ that leaves open.
 
 | Request kind (from `execution-supervisor-core`) | Facts the result may assert | Everything else |
 | --- | --- | --- |
-| `implement-task`, `write-stub` | None; the supervisor computes the change set | Refused |
+| `implement-task` | The controller-run gate outcome only; the supervisor computes the change set | Refused |
+| `write-stub` | Nothing; the supervisor computes the change set and runs the red proof | Refused |
 | `review-role` | One `review-report.v1` bound to the requested subject, or a selection record | Refused |
 | `assess-finding` | One finding assessment for the requested finding | Refused |
-| `run-gates` | Gate commands, exit codes, and output digests | Refused |
+| `run-gates` | The gate outcome — its commands, exit codes, and output digests — and the criteria outcomes the readiness reader requires | Refused |
 | `external-effect`, `effect-query` | Presence, absence, or unknowability, whether the attempt has ended, and the effect receipt | Refused |
 | `regenerate` | Completion only; the supervisor computes the new digests | Refused |
 | `human-decision` | The decision and its authority reference | Refused |
@@ -147,10 +177,53 @@ that leaves open.
 | --- | --- | --- | --- |
 | `red-proof` | Execution root minus trusted files and the Git directory | Not granted | `PATH`, `HOME`, `LANG`, `TMPDIR`; on Windows also `SYSTEMROOT`, `TEMP`, `TMP`, `PATHEXT`, `COMSPEC` |
 | `scratch` | The temporary worktree | Not granted | As `red-proof` |
-| `git` | The pinned Git and common directories, the execution root, and a scratch worktree's own Git directory | Not granted | As `red-proof`, plus `GIT_CONFIG_NOSYSTEM`, `GIT_CONFIG_GLOBAL`, and `GIT_INDEX_FILE` |
+| `git` | The pinned Git and common directories, the execution root, and a scratch worktree's own Git directory | Not granted | Two forms, below |
 
-Without Slice 1 verified containment, write roots and network denial are
-recorded, not enforced; AC-0013 detects trusted-file writes after the run.
+A `git` child's environment has two forms, and this is their single statement;
+AC-0020 requires it and everything else refers here rather than restating it.
+
+- **A helper call** carries the base set, and the helper itself sets
+  `GIT_CONFIG_NOSYSTEM=1` and an empty `GIT_CONFIG_GLOBAL` so no user or system
+  config is read at all. `GIT_INDEX_FILE` is carried only when the call uses the
+  private index.
+- **An out-of-helper config read** carries the base set, and forwards whichever
+  of `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM`, `GIT_CONFIG_NOSYSTEM` and
+  `XDG_CONFIG_HOME` the host set, each with the host's own value, plus
+  `USERPROFILE`, `HOMEDRIVE` and `HOMEPATH` on Windows. The helper imposes no
+  value of its own here. That is the point of the form: this read exists to see
+  the user's effective config, so forcing `GIT_CONFIG_NOSYSTEM=1` would hide the
+  system scope AC-0009 must inspect, and forwarding `GIT_CONFIG_SYSTEM`
+  unchanged makes the read resolve the same system file the host would.
+
+The base set is `PATH`, `HOME`, `LANG`, `TMPDIR`, plus `SYSTEMROOT`, `TEMP`,
+`TMP`, `PATHEXT` and `COMSPEC` on Windows. Every other variable the supervisor
+holds, `GIT_*` included, is dropped from both forms.
+
+Each column is adopted per launch kind, not as a whole. A `git` launch carries
+its row's Environment column today: the hardened helper builds that environment
+itself. No launch carries a Recorded write root or a `safe-process.v1` record,
+because none is routed through the Slice 1 primitive. `red-proof` and `scratch`
+carry nothing: each keeps the launch mechanism it has at the merge-base with
+`main` when this spec's first task starts — a timeout on the direct child, and
+the supervisor's own environment inherited whole. That timeout does not reach
+the child's descendants, so a process the stub leaves behind can outlive the
+run. The exemption is of the launch mechanism only: the attempt manifest and
+AC-0013's post-run check still run before and after every `red-proof` and
+`scratch` launch, as T4 left them, though a surviving descendant can write after
+that check.
+
+`red-proof` and `scratch` are unrouted because the interpreter a plan-authored
+command names cannot yet be pinned without handing the launched code a say in
+what the next launch loads. `git` is unrouted because the primitive redacts
+every environment value from the output it returns: `HOME` prefixes a normal
+repository path, so git's own paths would come back rewritten before the
+supervisor parses them, and the helper's stdin-bearing calls have no route at
+all. All three are owned by
+[`supervisor-launch-routing-for-plan-authored-commands`](../../product/intents/supervisor-launch-routing-for-plan-authored-commands.md).
+
+Even once a row is adopted, write roots and network denial would be recorded
+and not enforced without Slice 1 verified containment; AC-0013 detects
+trusted-file writes after the run.
 
 ### Criteria
 
@@ -198,18 +271,22 @@ Git hardening
   setting, when repository or worktree config sets a code-running Git setting,
   or when global or system config defines a filter that any attributes file Git
   reads for the worktree uses.
-- [ ] **AC-0010.** Every supervisor `git` invocation other than the
-  commit-identity read runs through one helper that ignores system and global
-  config apart from carried line-ending and `core.excludesFile` settings, turns
+- [ ] **AC-0010.** Every supervisor `git` invocation other than an
+  out-of-helper config read runs through one helper that ignores system and
+  global config apart from carried line-ending and `core.excludesFile` settings,
+  turns
   off commit and tag signing, disables hooks, fsmonitor, external diff,
   textconv, and replace refs, and first verifies Git control state by direct
-  file reads.
+  file reads: against the open attempt's manifest when one exists, and
+  otherwise against the Git and common directories pinned at admission.
 - [ ] **AC-0011.** A planted hook, fsmonitor command, filter driver, textconv
   driver, external diff, signing command, or config include runs nothing during
   any supervisor `git` call.
-- [ ] **AC-0012.** A commit substituted through `refs/replace/`, a graft, a
-  packed ref, or a rewritten gitfile or `commondir` is never read as a
-  supervisor commit.
+- [ ] **AC-0012.** A commit substituted through `refs/replace/` or a graft is
+  never read as a supervisor commit. During an open attempt, neither is a commit
+  reached through a packed-ref move or a rewritten gitfile or `commondir`.
+  Outside an open attempt, the supervisor reads its commits by their trailers,
+  so a rebase that preserves their messages still converges.
 
 Launched code, pinning, and trust
 
@@ -217,38 +294,55 @@ Launched code, pinning, and trust
   launches or the controller reports — gates, scratch receipts, and red proofs —
   trusted files, Git control state, and `delivery/` are checked again before any
   commit, and a difference refuses the result.
-- [ ] **AC-0014.** Every supervisor entry point compares the installed supervisor
-  modules, `supervisor-policy.json`, and `review-rules.json` with the pinned
-  digests before importing any sibling — or, while a `regenerate` request is
-  open, with digests computed from the pack source's bytes at `HEAD` without
-  importing it — and refuses with `supervisor-changed` on a mismatch.
+- [ ] **AC-0014.** Every supervisor entry point compares the installed pinned
+  files with the pinned digests read from the supervisor store before importing any sibling (the
+  admitted `start` that records them, per the definition, excepted) — or, while
+  a `regenerate` request is open, with the digests the supervisor recorded from
+  the pack source's bytes at `HEAD` when it issued that request — and refuses
+  with `supervisor-changed` on a mismatch. It also refuses, on every spec, when
+  the installed pinned files differ from the pins of any run whose store holds
+  an open attempt, or a refused issuance whose residue has not cleared. Each
+  run's store directory appears with its spec record already in it; a run
+  directory with no spec record refuses every spec until it is removed. While a run's store directory has no pin record, every entry point
+  except `start` refuses `supervisor-changed` on that spec, until that run's
+  `start` records its pins; that spec's `start` ignores such a directory when
+  none of its made-commit ids is reachable from `HEAD`, judged through the
+  hardened helper. A `<spec-dir>` whose case differs from the tracked path is
+  refused as a usage error before any sibling loads.
 - [ ] **AC-0015.** A bytecode file placed beside a pinned module is never
   executed.
 - [ ] **AC-0016.** When `HEAD` holds the Core pack's work-loop source, review
   readiness holds, and the installed skill differs from that source, `next`
   emits one `regenerate` request; its result is exempt from the manifest for the
-  installed skill only, and is admitted only when the installed skill's digests
-  equal those the supervisor computes from that source, which it then pins.
-  Without that source at `HEAD`, no `regenerate` is emitted.
+  installed skill only, and is admitted only when every file of the installed
+  skill directory equals that source, after which the supervisor pins it.
+  Without that source at `HEAD`, no `regenerate` is emitted. When the installed
+  skill is tracked in the work tree, the controller commits the regenerated
+  skill; until it does, `next` answers `uncommitted-changes`, and the next
+  issuance first confirms that the committed installed skill equals what was
+  admitted, and refuses `supervisor-changed` when it does not.
 - [ ] **AC-0017.** Under an `untrusted` code-trust classification with no Slice 1
-  verified containment, `next` emits no `run-gates` request and the supervisor
-  launches no red proof or scratch receipt; `next` emits a `human-decision`
+  verified containment, `next` emits no `implement-task`, `run-gates`, or
+  `regenerate` request and the supervisor launches no red proof or scratch
+  receipt; `next` emits a
+  `human-decision`
   naming re-approval as `trusted` or supplying containment.
 
-Result facts and grants
+Result facts and the git environment
 
 - [ ] **AC-0018.** Every row of the Result acceptance table returns its stated
   result.
-- [ ] **AC-0019.** Every process the supervisor launches runs through the Slice 1
-  safe-process primitive with its launch kind's grant from the Launch grants
-  table recorded in its `safe-process.v1` record.
-- [ ] **AC-0020.** A launched process's environment holds only its row's
-  allowlisted variables.
+- [ ] **AC-0020.** A `git` child's environment is exactly one of the two forms
+  the Launch grants section states, by name and by value: a helper call carries
+  the hardened values the helper sets, an out-of-helper config read carries the
+  host's own values for the config-location names, and every other variable the
+  supervisor holds, `GIT_*` included, is dropped from both.
 
 Windows
 
 - [ ] **AC-0021.** On Windows, a launched process is created suspended, assigned
-  to a Job Object that denies breakaway, and only then resumed.
+  to a Job Object that denies breakaway and ends every member when its last
+  handle closes, and only then resumed.
 - [ ] **AC-0022.** On Windows, any failure to create, configure, or assign the
   Job Object refuses the launch with `denied-job-object` and ends the process.
 - [ ] **AC-0023.** On Windows, a timeout terminates the job explicitly, and no
@@ -265,13 +359,21 @@ POSIX
 
 ## Follow-ons
 
-none
+- eugenelim: [`docs/product/intents/supervisor-launch-routing-for-plan-authored-commands.md`](../../product/intents/supervisor-launch-routing-for-plan-authored-commands.md)
+  — route the supervisor's launches through the Slice 1 primitive and record a
+  grant. AC-0019 was removed from this spec's criteria on 2026-10-23 and belongs
+  to that intent, which carries all three launch kinds and the measured obstacle
+  for each.
+- eugenelim: [`docs/product/intents/red-proof-discriminates-a-stub-that-ran.md`](../../product/intents/red-proof-discriminates-a-stub-that-ran.md)
+  — make a red proof rest on evidence the stub ran rather than on its exit code
+  alone. Observed during this slice, with the four gaps in the obvious repair
+  written up.
 
 ## Terminal Intent
 
 `code` — implement the attempt checks, residue, Git hardening, pinning and
-regeneration, grants, the untrusted launch gate, and the Windows Job Object
-branch.
+regeneration, the bounded `git` child environment, the untrusted launch gate,
+and the Windows Job Object branch.
 
 ## Accepted Risk
 
@@ -283,11 +385,42 @@ the network. The attempt checks catch naive writes to trusted files, Git control
 state, and `delivery/` only. A naive worker's writes to ignored files elsewhere
 in the execution root, and to the supervisor's local caches (the journal,
 `run.json`, `security-events.jsonl`, and `.loop-run/`), are not caught; the
-caches carry no authority, so such writes can mislead status displays only.
-Network denial and write roots for supervisor-launched processes are enforced
-only under Slice 1 verified containment. The Platform Core decision-maker
-accepted the deliberate-worker portion of this risk on 2026-10-12 and the
-naive-worker portion on 2026-10-12.
+caches carry no authority over a decision: a refusal and its residue are held
+in the supervisor store outside the work tree, so deleting a cache cannot admit
+a refused attempt. The store itself is not protected by anything in this slice —
+it sits under the pinned Git directory, which the Git control state definition
+does not enumerate, and an unconfined `red-proof` child can rewrite a record
+there. Its integrity rests on the deliberate-worker acceptance below, not on a
+control here. What a deletion does destroy is the local audit trail — the
+`security-events.jsonl` record that a denial happened — which is repudiation,
+not a misleading display.
+
+Network denial and write roots for supervisor-launched processes are not
+recorded at all in this slice, and would be enforced only under Slice 1 verified
+containment even once they are. A `red-proof` or `scratch` child runs the
+worker's own stub command over a scratch copy of `HEAD` plus the worker's
+overlay, with the supervisor's whole environment — including any credential the
+host exported to it — and with nothing denying its network egress. A `git` child
+is not in that set: AC-0020 bounds its environment.
+
+A `red-proof` or `scratch` launch also times out its direct child only, so a
+process that child leaves behind outlives AC-0013's post-run check: a write by
+that survivor lands after the check, or is attributed to the next attempt. On
+Windows the consequence is worse than a late write. The launch captures output,
+and on a timeout CPython kills the direct child and then waits on the pipes
+without a deadline, so a descendant holding the inherited handles blocks the
+launch indefinitely: the red-proof budget is not honoured, and the run lock is
+held past the stale window another supervisor process may claim it after.
+
+A red proof also rests on the stub's exit code alone. A worker can therefore
+declare a `run` line that cannot start, which exits on the code a red stub
+declares, and earn a red proof with no failing test behind it; the `Success`
+sentence above excludes that case. Both residuals were measured in this slice,
+are owned by the two entries under Follow-ons, and were accepted by the Platform
+Core decision-maker on 2026-10-23.
+
+The Platform Core decision-maker accepted the deliberate-worker portion of this
+risk on 2026-10-12 and the naive-worker portion on 2026-10-12.
 
 ## Assumptions
 

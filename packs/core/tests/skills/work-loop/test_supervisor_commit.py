@@ -90,13 +90,34 @@ def _first_request(repo: Path) -> dict[str, Any]:
     return payload["request"]
 
 
-def test_a_foreign_delivery_edit_is_refused_by_next_and_report(tmp_path: Path) -> None:
+def _forge_approvals(repo: Path) -> None:
+    approvals = repo / SPEC / "delivery" / "approvals.jsonl"
+    approvals.write_text(approvals.read_text("utf-8").replace("owner", "forged"), "utf-8")
+
+
+def test_a_foreign_delivery_edit_during_an_open_attempt_is_residue(tmp_path: Path) -> None:
+    # The attempt check runs before core's own refusal, as the spec's attempt rules require.
     repo, _ws, _run = _started(tmp_path)
     controller = h.Controller(repo, tmp_path / "effects.log")
     request = _first_request(repo)
     result = controller.work(request)
-    approvals = repo / SPEC / "delivery" / "approvals.jsonl"
-    approvals.write_text(approvals.read_text("utf-8").replace("owner", "forged"), "utf-8")
+    _forge_approvals(repo)
+    head = h.git(repo, "rev-parse", "HEAD")
+    code, refused = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue"
+    code, refused = controller.report(result)
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue"
+    assert h.git(repo, "rev-parse", "HEAD") == head
+
+
+def test_a_foreign_delivery_edit_with_no_open_attempt_is_refused_by_next_and_report(
+    tmp_path: Path,
+) -> None:
+    repo, _ws, _run = _started(tmp_path)
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = controller.work(_first_request(repo))
+    assert controller.report(result)[0] == 0  # the attempt is reported, so none is open
+    _forge_approvals(repo)
     head = h.git(repo, "rev-parse", "HEAD")
     code, refused = h.run_cli(repo, "next", SPEC)
     assert code == 1 and refused["refusal"]["code"] == "foreign-delivery-edit"
@@ -124,9 +145,10 @@ def test_a_git_failure_is_one_json_refusal(tmp_path: Path) -> None:
 
 
 def test_a_malformed_record_is_one_json_refusal(tmp_path: Path) -> None:
-    repo, _ws, _run = _started(tmp_path)
+    repo, _ws, run_id = _started(tmp_path)
     approvals = repo / SPEC / "delivery" / "approvals.jsonl"
-    approvals.write_text('{"run_id": "run-0000000000000000"}\n', "utf-8")
+    # The line keeps the run's own id: a line naming an unpinned run is refused earlier.
+    approvals.write_text(f'{{"run_id": "{run_id}"}}\n', "utf-8")
     h.git(repo, "commit", "-qam", "damage the approval line")
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 1 and payload["refusal"]["code"] == "malformed-record"
@@ -156,11 +178,14 @@ def test_returning_to_earlier_spec_content_is_a_new_replan(tmp_path: Path) -> No
     repo, _ws, _run = _started(tmp_path)
     spec = repo / SPEC / "spec.md"
     original = spec.read_text("utf-8")
+    controller = h.Controller(repo, tmp_path / "effects.log")
     for text in (original.replace("that answers.", "that answers fast."), original):
         spec.write_text(text, "utf-8")
         code, payload = h.run_cli(repo, "next", SPEC)
         assert code == 0 and payload["request"]["kind"] != "human-decision", payload
         assert h.git(repo, "status", "--porcelain", "--", f"{SPEC}/spec.md") == ""
+        # Report the attempt: a spec edit is made between attempts, never during one.
+        assert controller.report(controller.work(payload["request"]))[0] == 0
     spec.write_text(original.replace("that answers.", "that answers fast."), "utf-8")
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 0 and h.git(repo, "status", "--porcelain", "--", f"{SPEC}/spec.md") == ""

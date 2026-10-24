@@ -277,15 +277,16 @@ def test_amendment_and_second_start_keep_run_facts(tmp_path: Path) -> None:
             if r["entry"] == "receipt"] == receipts
 
 
-@pytest.mark.parametrize(("rel", "old", "new", "code_expected"), [
-    (ADR, "Callers need an answer.", "Callers need a better answer.", "protected-path-changed"),
-    (ADR, "The calculator answers 42.", "The calculator answers 7.", "authority-changed"),
-    (f"{SPEC}/spec.md", "calculator that answers.", "calculator that sings.",
-     "protected-path-changed"),
-    (f"{SPEC}/plan.md", "Build it.", "Build it fast.", "protected-path-changed"),
+# The attempt check refuses a worker edit to a trusted file first, so core's own
+# protected-path refusal stays as the second line of defence.
+@pytest.mark.parametrize(("rel", "old", "new"), [
+    (ADR, "Callers need an answer.", "Callers need a better answer."),
+    (ADR, "The calculator answers 42.", "The calculator answers 7."),
+    (f"{SPEC}/spec.md", "calculator that answers.", "calculator that sings."),
+    (f"{SPEC}/plan.md", "Build it.", "Build it fast."),
 ])
 def test_worker_edit_to_a_trusted_file_is_refused_before_any_commit(
-        tmp_path: Path, rel: str, old: str, new: str, code_expected: str) -> None:
+        tmp_path: Path, rel: str, old: str, new: str) -> None:
     repo, controller = _through_calculator(tmp_path)
     _, payload = _next(repo)
     request = payload["request"]
@@ -293,7 +294,7 @@ def test_worker_edit_to_a_trusted_file_is_refused_before_any_commit(
     _edit(repo / rel, old, new)
     head = h.git(repo, "rev-parse", "HEAD")
     code, refused = controller.report(result)
-    assert code == 1 and refused["refusal"]["code"] == code_expected
+    assert code == 1 and refused["refusal"]["code"] == "attempt-refused"
     assert h.git(repo, "rev-parse", "HEAD") == head
 
 
