@@ -74,12 +74,24 @@ def check(contracts_dir: Path = _CONTRACTS) -> list[str]:
     releases, _ = _generator.load_releases(contracts_dir)
     latest = _generator.latest_release(releases)
     released = {row.version for row in releases}
-    # Compare every snapshotted member (the TOML ones too), not only those with a `$id`.
-    unchanged = latest is not None and all(
-        (snap := _generator.snapshot_dir(contracts_dir, latest.version) / name).is_file()
-        and (live := contracts_dir / name).is_file()
-        and snap.read_bytes() == live.read_bytes()
-        for name in latest.members
+    # Symmetric on purpose. Comparing only the release row's keys would let a
+    # member added to the manifest since the release count as "equal to" that
+    # release, so its `$id` could name a version whose snapshot will never serve
+    # it -- green here and red at tag time, where check 4 compares the two sets.
+    live_members = {
+        Path(row.path).name
+        for row in _generator.load_manifest(contracts_dir)
+        if row.role == "member"
+    }
+    unchanged = (
+        latest is not None
+        and live_members == set(latest.members)
+        and all(
+            (snap := _generator.snapshot_dir(contracts_dir, latest.version) / name).is_file()
+            and (live := contracts_dir / name).is_file()
+            and snap.read_bytes() == live.read_bytes()
+            for name in latest.members
+        )
     )
     if unchanged and latest is not None:
         if version != latest.version:

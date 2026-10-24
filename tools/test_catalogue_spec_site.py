@@ -398,3 +398,18 @@ def test_real_release_overview_is_not_the_draft(tmp_path: Path) -> None:
     assert "not that either is untampered" in text
     for row in css.members(ROOT / "contracts"):
         assert f"{css.SITE_BASE}spec/catalogue/0.1/{Path(row.path).name})" in text
+
+
+def test_release_date_is_on_the_released_overview_and_not_on_draft(tmp_path: Path) -> None:
+    """The release date reaches the frozen page from the generator.
+
+    The one narrative source serves both paths, so it cannot carry the date
+    itself; only the released pass may add it, and the draft page must stay
+    free of it.
+    """
+    content = tmp_path / "content"
+    css.generate(content, tmp_path / "public", contracts_dir=ROOT / "contracts")
+    released = (content / "spec" / "catalogue" / "0.1" / "index.md").read_text()
+    draft = (content / "spec" / "catalogue" / "draft" / "index.md").read_text()
+    assert "Released on 2026-10-23." in released
+    assert "Released on" not in draft
