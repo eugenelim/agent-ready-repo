@@ -6,7 +6,7 @@
 - **Date opened:** 2026-10-23
 - **Date closed:**
 - **Decision weight:** heavy (renaming a released 1.x pack breaks the name adopters install it by, another pack depends on it, and two new stages write agent-guidance and review-authority files; heavy adds a compatibility analysis, a security review and a validation plan to the normal RFC checks)
-- **Related:** [RFC-0091](0091-right-size-rfc-governance.md) (lists the decisions that need the strongest route an adopter has), [ADR-0038](../adr/0038-rename-design-craft-pack-to-experience.md) (an earlier pack rename), [PR #1609](https://github.com/eugenelim/agent-ready-repo/pull/1609) (open: makes this pack installable without core)
+- **Related:** [RFC-0091](0091-right-size-rfc-governance.md) (lists the decisions that need the strongest route an adopter has), [ADR-0038](../adr/0038-rename-design-craft-pack-to-experience.md) (an earlier pack rename), [governance-extras-without-core](../specs/governance-extras-without-core/spec.md) (shipped in PR #1609: the pack installs and works without core)
 
 A few terms used throughout:
 
@@ -43,7 +43,7 @@ What is missing:
 - a way to turn decisions into checks;
 - a way to notice decisions that have gone stale.
 
-The name `governance-extras` describes none of that. "Extras" also implies an add-on to core, which stops being true once PR #1609 merges.
+The name `governance-extras` describes none of that. "Extras" also implies an add-on to core, which stopped being true when PR #1609 made it work without core.
 
 | ID | Question | Recommendation | Why | Decide by | Reviewer action |
 | --- | --- | --- | --- | --- | --- |
@@ -76,7 +76,7 @@ Three gaps follow:
 **Goals:**
 
 - One pack answers who decides, how to decide, what was decided, whether it is followed, and whether it is still current.
-- The pack keeps working with or without core, once PR #1609 merges.
+- The pack keeps working with or without core.
 - The name says what the pack does.
 
 **Non-goals:**
