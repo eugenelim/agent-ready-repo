@@ -351,3 +351,28 @@ Each check runs in the follow-on spec for its stage, before that stage ships.
 - **Stage 5 spec:** the `navigate-decisions` `health` operation.
 - **Stage 1 spec:** the governance-model skill.
 - **Stage 4 spec:** the decision-to-check skill.
+
+## Errata
+
+- **2026-10-25 (Approver: eugenelim) — stage 4 is cut, and stages 1, 2 and 5 ship as modes.**
+  - Stage 4, enforce, is cut with no follow-on. The pack proposes no checks,
+    `AGENT_RULES.md` rows, lint rules or fitness tests. D1's pack covers four stages,
+    the stage-4 trust-model rules and validation check no longer apply, and the
+    stage-4 spec is not written.
+  - D5's "one skill or operation per stage" is met by modes, so the pack adds no new
+    skill:
+    - stage 2 is a read-only `route` mode on `navigate-decisions`;
+    - stage 5 is the read-only `health` mode on `navigate-decisions`, as already stated;
+    - stage 1 is a `governance` mode on `new-rfc`, because `new-rfc` already owns charter
+      and rule changes and RFC-0091 routes governance-model changes there.
+  - `navigate-decisions` stays read-only. Stage 1 is the only writing stage, so its
+    spec adds the confined write operation to `file_safety`.
+  - D6's order becomes: rename, then stage 2, stage 5, and stage 1.
+- **2026-10-25 (Approver: eugenelim) — the rename's "only" lists admit the text and tests D3 itself requires.**
+  - D3's completion check also admits the migration text in the changelog and the
+    `repo-governance` README, the rename hint's tests and fixtures, and live records about
+    the rename: its delivery brief, spec and plan.
+  - D6's "names, paths, versions and the not-found message only" and the "Rename churn"
+    risk also admit the map-lookup and hint code, that migration text, and the tests,
+    fixtures, eval updates and release notes the change needs.
+  - The rename spec holds the exact exception list.
