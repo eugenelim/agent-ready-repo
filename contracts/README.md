@@ -65,6 +65,8 @@ disagree, `contracts/` is authoritative.
 | --- | --- | --- |
 | `catalogue-spec.toml` | The catalogue specification manifest: every contract file the specification names, each with one role (`member`, `bundled` or `vendored`) | no |
 | `REGISTRY.md` | Backward spec pointers for contracts whose format carries no `x-spec` key | no |
+| `renames/pack-renames.toml` | Retired pack names mapped to the packs that replaced them; the CLI reads it to hint at a rename | no |
+| `renames/pack-renames.schema.json` | JSON Schema for `renames/pack-renames.toml` | no |
 | `jsonschema/loop-run-event.schema.json` | One `.loop-run/events.jsonl` line the work-loop engine writes per FSM transition | no |
 | `jsonschema/loop-cohort-wave-decision.schema.json` | Read-only pre-dispatch verdict and refusal envelopes emitted by `loop-cohort wave-decision` | no |
 | `jsonschema/delivery-lifecycle-record.schema.json` | Git-tracked delivery lifecycle record | no |

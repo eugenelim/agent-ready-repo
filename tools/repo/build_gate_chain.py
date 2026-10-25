@@ -728,6 +728,11 @@ def build_check(args: argparse.Namespace) -> int:
             "pack-dependency-declaration self-test",
             "tools", "test-lint-pack-dependency-declaration.py",
         ),
+        _script_step("pack-renames", "tools", "lint-pack-renames.py"),
+        _script_step(
+            "pack-renames self-test",
+            "tools", "test-lint-pack-renames.py",
+        ),
         _script_step(
             "generated-path-ownership",
             "tools", "lint-generated-path-ownership.py",
