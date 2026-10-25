@@ -99,6 +99,7 @@ The Status column is derived from each spec; it is not hand-edited.
 
 | Spec | Status |
 | --- | --- |
+| `workspace-retirement` | <auto> |
 
 ## Governance references (optional)
 
