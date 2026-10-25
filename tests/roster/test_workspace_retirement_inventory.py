@@ -1483,7 +1483,15 @@ def workflow_wiring_violations(text: str) -> list[str]:
         for n in range(step_start, -1, -1)
         if _indent(lines[n]) == 2 and lines[n].rstrip().endswith(":")
     )
-    for line in lines[job_start + 1 : step_start]:
+    job_end = next(
+        (
+            n
+            for n in range(step_start, len(lines))
+            if lines[n].strip() and _indent(lines[n]) <= 2 and n > job_start
+        ),
+        len(lines),
+    )
+    for line in lines[job_start + 1 : job_end]:
         if _indent(line) == 4 and line.strip().startswith("continue-on-error:"):
             problems.append("the step's job carries continue-on-error")
         if _indent(line) == 4 and line.strip().startswith("if:"):
@@ -1516,6 +1524,11 @@ jobs:
         (("  pull_request:\n", "  push:\n"), "pull_request"),
         (("    branches: [main]\n", "    paths: [docs/**]\n"), "paths"),
         (("    runs-on:", "    if: false\n    runs-on:"), "job carries an if"),
+        (("        run: echo hi\n", "        run: echo hi\n    if: false\n"), "job carries an if"),
+        (
+            (f"run: {_STEP_RUN}\n", f"run: {_STEP_RUN}\n    continue-on-error: true\n"),
+            "job carries continue-on-error",
+        ),
         ((f'if: "{_ROSTER_IF}"', "if: false"), "not the roster condition"),
         (
             (f"run: {_STEP_RUN}\n", f"run: {_STEP_RUN}\n        continue-on-error: true\n"),
@@ -1529,3 +1542,8 @@ def test_ac0017_wiring_rules(change: tuple[str, str], problem: str) -> None:
     broken = _GOOD_WORKFLOW.replace(*change)
     found = workflow_wiring_violations(broken)
     assert len(found) == 1 and problem in found[0], found
+
+
+def test_ac0017_quoted_on_key_is_read() -> None:
+    assert workflow_wiring_violations(_GOOD_WORKFLOW.replace("on:\n", '"on":\n', 1)) == []
+    assert workflow_wiring_violations("jobs: {}\n") == ["workflow has no top-level `on:` block"]
