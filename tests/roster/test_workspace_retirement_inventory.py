@@ -402,6 +402,11 @@ _LITERAL_FACTS = (
     "entry position",
     "spec registration as brief coverage evidence",
     "behavior outside tracked files",
+    "entry.slug",
+    "entry.intent",
+    "entry.type",
+    "entry.source (string form)",
+    "entry.needs (string form)",
 )
 _COVERAGE_FACT = "spec registration as brief coverage evidence"
 _SCHEMA_PATH = "contracts/jsonschema/workspace-entry.schema.json"
@@ -1152,6 +1157,11 @@ _FIXTURE_FACTS = [
     "entry position",
     _COVERAGE_FACT,
     "behavior outside tracked files",
+    "entry.slug",
+    "entry.intent",
+    "entry.type",
+    "entry.source (string form)",
+    "entry.needs (string form)",
 ]
 _REMOVAL = "behavior outside tracked files"
 _REMOVAL_LINK = "[RFC 1 errata](../../rfc/0001-fixture.md#errata)"
@@ -1272,6 +1282,12 @@ def test_ac0011_fact_without_row(tmp_path: Path) -> None:
     found = _record_check(tmp_path, _without(_base_rows(), "entry.summary"))
     _only(found, "AC-0011")
     assert found[0].subject == "entry.summary"
+
+
+def test_ac0011_legacy_entry_key_without_row(tmp_path: Path) -> None:
+    rows = _without(_base_rows(), "entry.slug")
+    found = _record_check(tmp_path, rows)
+    assert [(v.criterion, v.subject) for v in found] == [("AC-0011", "entry.slug")]
 
 
 def test_ac0011_allof_only_property_is_not_required(tmp_path: Path) -> None:
