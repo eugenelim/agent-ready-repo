@@ -3,8 +3,7 @@
 
 ``check_repository`` applies the spec's inventory rules (AC-0001 to AC-0009,
 AC-0019, AC-0021) to a repository root and returns every violation tagged with
-its criterion. The record rules (AC-0010 to AC-0016) belong to task T2 and
-plug in at ``check_record``. Standard library only; the check reads the
+its criterion. The record rules (AC-0010 to AC-0016) are applied by ``check_record``. Standard library only; the check reads the
 repository and writes nothing.
 """
 
@@ -388,9 +387,241 @@ def _historical_violations(repo: _Repo, path: str) -> list[Violation]:
     return found
 
 
+_RECORD_HEADINGS = ("Disposition", "Equivalence", "Compatibility closure", "Certification")
+_COLUMNS = ("Fact", "Category", "Home", "Owner", "Authority")
+_CATEGORIES = frozenset({
+    "canonical artifact metadata",
+    "derived state",
+    "externally owned projection",
+    "temporary migration state",
+    "deliberate removal",
+})
+_LITERAL_FACTS = (
+    "entry position",
+    "spec registration as brief coverage evidence",
+    "behavior outside tracked files",
+)
+_COVERAGE_FACT = "spec registration as brief coverage evidence"
+_SCHEMA_PATH = "contracts/jsonschema/workspace-entry.schema.json"
+_REGISTRY_PATH = "workspace.toml"
+_HEADING = re.compile(r"^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$")
+_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]*)\)")
+_ROW_SEPARATOR = re.compile(r"^:?-+:?$")
+_INITIATIVE = re.compile(r"ini-[0-9]+")
+
+
+def _fact_text(cell: str) -> str:
+    """The spec's Fact text: the text with backtick code-span markers removed."""
+    return cell.replace("`", "").strip()
+
+
+def _headings(text: str) -> list[tuple[int, int, str]]:
+    """(line index, level, heading text) for each heading outside a code fence."""
+    found: list[tuple[int, int, str]] = []
+    fence = False
+    for index, line in enumerate(text.splitlines()):
+        if line.lstrip().startswith(("```", "~~~")):
+            fence = not fence
+        elif not fence and (m := _HEADING.match(line)):
+            found.append((index, len(m.group(1)), m.group(2)))
+    return found
+
+
+def _slug(heading: str) -> str:
+    """GitHub heading slug: lowercase, keep letters, digits, ``_``, space, ``-``."""
+    return re.sub(r"[^\w \-]", "", heading.lower()).replace(" ", "-")
+
+
+def _section(text: str, headings: list[tuple[int, int, str]], at: int) -> str:
+    """Text under ``headings[at]`` up to the next heading of the same or higher level."""
+    lines = text.splitlines()
+    start, level, _ = headings[at]
+    end = len(lines)
+    for index, other_level, _ in headings[at + 1 :]:
+        if other_level <= level:
+            end = index
+            break
+    return "\n".join(lines[start + 1 : end])
+
+
+def _schema_facts(props: Any, prefix: str) -> set[str]:
+    """Properties reached through ``properties`` keys alone, joined by ``.``."""
+    facts: set[str] = set()
+    if not isinstance(props, dict):
+        return facts
+    for name, sub in props.items():
+        facts.add(f"{prefix}{name}")
+        if isinstance(sub, dict) and "properties" in sub:
+            facts |= _schema_facts(sub["properties"], f"{prefix}{name}.")
+    return facts
+
+
+def _registry_facts(table: dict[str, Any], prefix: tuple[str, ...]) -> set[str]:
+    """Every key path of the registry, stopping at array values."""
+    facts: set[str] = set()
+    for key, value in table.items():
+        parts = prefix + (key,)
+        if len(parts) == 1 and _INITIATIVE.fullmatch(key):
+            parts = ("<initiative>",)
+        facts.add(".".join(parts))
+        if isinstance(value, dict):
+            facts |= _registry_facts_under(value, parts)
+    return facts
+
+
+def _registry_facts_under(table: dict[str, Any], parts: tuple[str, ...]) -> set[str]:
+    facts: set[str] = set()
+    for key, value in table.items():
+        child = parts + (key,)
+        facts.add(".".join(child))
+        if isinstance(value, dict):
+            facts |= _registry_facts_under(value, child)
+    return facts
+
+
+def _fact_set(root: Path) -> tuple[set[str], list[Violation]]:
+    """The AC-0011 fact set for ``root``, plus any input problem found reading it."""
+    problems: list[Violation] = []
+    facts = set(_LITERAL_FACTS)
+    try:
+        schema = json.loads((root / _SCHEMA_PATH).read_text(encoding="utf-8"))
+        facts |= _schema_facts(schema.get("properties"), "entry.")
+        for name, definition in (schema.get("$defs") or {}).items():
+            if isinstance(definition, dict):
+                facts |= _schema_facts(definition.get("properties"), f"{name}.")
+    except (OSError, UnicodeDecodeError, ValueError, AttributeError) as exc:
+        problems.append(Violation("INPUT", _SCHEMA_PATH, f"cannot read the schema: {exc}"))
+    try:
+        registry = tomllib.loads((root / _REGISTRY_PATH).read_text(encoding="utf-8"))
+        facts |= _registry_facts(registry, ())
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        problems.append(Violation("INPUT", _REGISTRY_PATH, f"cannot read the registry: {exc}"))
+    return facts, problems
+
+
+def _split_row(line: str) -> list[str]:
+    cells = re.split(r"(?<!\\)\|", line.strip())
+    if cells and cells[0] == "":
+        cells = cells[1:]
+    if cells and cells[-1].strip() == "":
+        cells = cells[:-1]
+    return [c.replace("\\|", "|").strip() for c in cells]
+
+
+def _disposition_rows(section: str) -> tuple[list[dict[str, str]], str | None]:
+    """The Disposition table's rows keyed by column, or (rows, reason) when unusable."""
+    table = [ln for ln in section.splitlines() if ln.lstrip().startswith("|")]
+    if not table:
+        return [], "no Markdown table"
+    header = [_fact_text(c) for c in _split_row(table[0])]
+    missing = [c for c in _COLUMNS if c not in header]
+    if missing:
+        return [], f"table lacks column(s) {', '.join(missing)}"
+    rows = []
+    for line in table[1:]:
+        cells = _split_row(line)
+        if cells and all(_ROW_SEPARATOR.match(c) for c in cells):
+            continue
+        cells += [""] * (len(header) - len(cells))
+        rows.append({name: cells[i] for i, name in enumerate(header)})
+    return rows, None
+
+
+def _removal_violations(root: Path, record: Path, fact: str, authority: str) -> list[Violation]:
+    """AC-0014 and AC-0015 for one ``deliberate removal`` row."""
+    where = f"Disposition row {fact!r}"
+    links = _LINK.findall(authority)
+    if len(links) != 1:
+        return [Violation("AC-0014", where, f"Authority holds {len(links)} links, needs exactly one")]
+    target, _, anchor = links[0].partition("#")
+    root_real = root.resolve()
+    try:
+        resolved = (record.parent / target).resolve()
+        relative = resolved.relative_to(root_real).as_posix()
+    except (ValueError, OSError):
+        return [Violation("AC-0014", where, f"link {links[0]!r} leaves the repository")]
+    if not relative.startswith(("docs/rfc/", "docs/adr/")):
+        return [Violation("AC-0014", where, f"{relative} is not under docs/rfc/ or docs/adr/")]
+    try:
+        if (root / relative).is_symlink() or not resolved.is_file():
+            raise OSError("not a regular file")
+        body = resolved.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return [Violation("AC-0014", where, f"cannot read {relative}: {exc}")]
+    status = _status_value(body)
+    if status is None or _leading_word(status) != "Accepted":
+        return [Violation("AC-0014", where, f"{relative} status {status!r} is not Accepted")]
+    heads = _headings(body)
+    for at, (_, _, title) in enumerate(heads):
+        if _slug(title) == anchor and fact in _fact_text(_section(body, heads, at)):
+            return []
+    return [
+        Violation(
+            "AC-0015",
+            where,
+            f"no heading in {relative} slugs to {anchor!r} with a section naming the Fact",
+        )
+    ]
+
+
+def _coverage_violation(root: Path, home: str) -> Violation | None:
+    """AC-0016 for the coverage row's Home cell."""
+    text = _fact_text(_LINK.sub(lambda m: f" {m.group(1)} ", home))
+    if text == "nothing":
+        return None
+    tracked = set(_Repo(root).tracked)
+    for token in re.split(r"[\s,;]+", text):
+        if token.strip(".,;:()").partition("#")[0] in tracked:
+            return None
+    return Violation(
+        "AC-0016",
+        f"Disposition row {_COVERAGE_FACT!r}",
+        "Home names no tracked path and is not exactly `nothing`",
+    )
+
+
 def check_record(root: Path, record: Path) -> list[Violation]:
-    """Seam for task T2: the record rules AC-0010 to AC-0016. Not implemented here."""
-    return []
+    """Apply AC-0010 to AC-0016 to the record at ``record`` for the repository ``root``."""
+    try:
+        text = record.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return [Violation("AC-0010", str(record), f"cannot read the record: {exc}")]
+    violations: list[Violation] = []
+    heads = _headings(text)
+    top = [(i, t) for i, level, t in heads if level == 2]
+    if tuple(t for _, t in top) != _RECORD_HEADINGS:
+        violations.append(
+            Violation(
+                "AC-0010",
+                str(record),
+                f"`##` headings are {[t for _, t in top]}, need {list(_RECORD_HEADINGS)}",
+            )
+        )
+    disposition = next((at for at, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Disposition"), None)
+    if disposition is None:
+        return violations + [Violation("AC-0011", str(record), "no `## Disposition` section")]
+    rows, problem = _disposition_rows(_section(text, heads, disposition))
+    if problem is not None:
+        return violations + [Violation("AC-0011", "Disposition", problem)]
+    facts, inputs = _fact_set(root)
+    violations += inputs
+    present = {_fact_text(r["Fact"]) for r in rows}
+    for fact in sorted(facts - present):
+        violations.append(Violation("AC-0011", fact, "fact set member has no Disposition row"))
+    for row in rows:
+        fact = _fact_text(row["Fact"])
+        where = f"Disposition row {fact!r}"
+        for column in ("Home", "Owner"):
+            if not _fact_text(row[column]):
+                violations.append(Violation("AC-0012", where, f"{column} is empty"))
+        category = _fact_text(row["Category"])
+        if category not in _CATEGORIES:
+            violations.append(Violation("AC-0013", where, f"Category {category!r} is not one of five"))
+        if category == "deliberate removal":
+            violations += _removal_violations(root, record, fact, row["Authority"])
+        if fact == _COVERAGE_FACT and (bad := _coverage_violation(root, row["Home"])) is not None:
+            violations.append(bad)
+    return violations
 
 
 def check_repository(
@@ -471,7 +702,7 @@ def _run(
     drop_files: tuple[str, ...] = (),
     inventory_text: str | None = None,
 ) -> list[Violation]:
-    """Build a tiny git repo, write inventory and brief outside it, run the check."""
+    """Build a tiny git repo, write inventory and brief outside it, run the inventory rules."""
     root = tmp_path / "repo"
     root.mkdir()
     subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
@@ -491,7 +722,7 @@ def _run(
     )
     brief = tmp_path / "brief.md"
     brief.write_text(_BRIEF, encoding="utf-8")
-    return check_repository(root, inventory, tmp_path / "retirement-record.md", brief)
+    return check_inventory(root, inventory, brief)
 
 
 def _tags(violations: list[Violation]) -> set[str]:
@@ -520,7 +751,7 @@ def test_ac0001_missing_inventory(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
     brief = tmp_path / "brief.md"
     brief.write_text(_BRIEF, encoding="utf-8")
-    found = check_repository(root, tmp_path / "nope.toml", tmp_path / "rec.md", brief)
+    found = check_inventory(root, tmp_path / "nope.toml", brief)
     _only(found, "AC-0001")
 
 
@@ -578,9 +809,7 @@ def test_ac0004_non_utf8_file_is_outside_scanned_set(tmp_path: Path) -> None:
     subprocess.run(
         ["git", "-C", str(tmp_path / "repo"), "add", "-A"], check=True, capture_output=True
     )
-    again = check_repository(
-        tmp_path / "repo", tmp_path / "inventory.toml", tmp_path / "r.md", tmp_path / "brief.md"
-    )
+    again = check_inventory(tmp_path / "repo", tmp_path / "inventory.toml", tmp_path / "brief.md")
     assert again == []
 
 
@@ -847,10 +1076,333 @@ def test_terminal_sets_come_from_closure_terminality() -> None:
 
 
 @pytest.mark.skipif(
-    not DEFAULT_INVENTORY.exists(),
-    reason="expected to fail until T3 creates docs/specs/workspace-retirement/inventory.toml",
+    not (DEFAULT_INVENTORY.exists() and DEFAULT_RECORD.exists()),
+    reason="expected to fail until T3 and T4 create the inventory and the record",
 )
 def test_real_repository_passes_every_rule() -> None:
     """AC-0018 / AC-0022: the same check on this checkout, no arguments."""
     found = check_repository()
     assert found == [], "\n".join(str(v) for v in found)
+
+
+@pytest.mark.skipif(
+    not DEFAULT_RECORD.exists(),
+    reason="expected to fail until T4 creates docs/specs/workspace-retirement/retirement-record.md",
+)
+def test_real_record_passes_the_record_rules() -> None:
+    found = check_record(_REPO, DEFAULT_RECORD)
+    assert found == [], "\n".join(str(v) for v in found)
+
+
+@pytest.mark.skipif(
+    not DEFAULT_INVENTORY.exists(),
+    reason="expected to fail until T3 creates docs/specs/workspace-retirement/inventory.toml",
+)
+def test_real_inventory_passes_the_inventory_rules() -> None:
+    found = check_inventory(_REPO, DEFAULT_INVENTORY, DEFAULT_BRIEF)
+    assert found == [], "\n".join(str(v) for v in found)
+
+
+# ───────────────────────────── record rule fixtures ──────────────────────────────
+
+_REC_PATH = "docs/specs/workspace-retirement/retirement-record.md"
+_RFC_PATH = "docs/rfc/0001-fixture.md"
+_RFC_ACCEPTED = (
+    "# RFC 1\n\n- **Status:** Accepted (2026-01-01)\n\n"
+    "## Errata\n\n- 2026-01-02: dropped behavior outside tracked files.\n\n"
+    "## Where next_queue lives\n\nSection about `behavior outside tracked files` here.\n\n"
+    "### Sub\n\nnested text\n\n## Other\n\nunrelated\n"
+)
+_FIXTURE_SCHEMA = {
+    "properties": {
+        "path": {"$ref": "#/$defs/p"},
+        "summary": {"type": "string"},
+        "nested": {"properties": {"inner": {"type": "string"}}},
+    },
+    "allOf": [{"properties": {"only_in_allof": {"type": "string"}}}],
+    "$defs": {
+        "source": {
+            "properties": {"mode": {"enum": ["a"]}, "tracker": {"properties": {"id": {}}}},
+            "allOf": [{"if": {"properties": {"mode": {"const": "a"}}}}],
+        },
+        "p": {"type": "string"},
+    },
+}
+_FIXTURE_REGISTRY = '["ini-099"]\nname = "x"\n[ini-099.work]\nactive = []\n[backlog]\nopen = []\n'
+_FIXTURE_FACTS = [
+    "entry.path",
+    "entry.summary",
+    "entry.nested",
+    "entry.nested.inner",
+    "source.mode",
+    "source.tracker",
+    "source.tracker.id",
+    "<initiative>",
+    "<initiative>.name",
+    "<initiative>.work",
+    "<initiative>.work.active",
+    "backlog",
+    "backlog.open",
+    "entry position",
+    _COVERAGE_FACT,
+    "behavior outside tracked files",
+]
+_REMOVAL = "behavior outside tracked files"
+_REMOVAL_LINK = "[RFC 1 errata](../../rfc/0001-fixture.md#errata)"
+
+
+def _base_rows() -> list[dict[str, str]]:
+    rows = []
+    for fact in _FIXTURE_FACTS:
+        row = {
+            "Fact": f"`{fact}`",
+            "Category": "canonical artifact metadata",
+            "Home": "`somewhere`",
+            "Owner": "slice 9",
+            "Authority": "",
+        }
+        if fact == _REMOVAL:
+            row["Category"] = "deliberate removal"
+            row["Authority"] = _REMOVAL_LINK
+        if fact == _COVERAGE_FACT:
+            row["Home"] = "nothing"
+        rows.append(row)
+    return rows
+
+
+def _render_record(
+    rows: list[dict[str, str]],
+    headings: tuple[str, ...] = _RECORD_HEADINGS,
+    columns: tuple[str, ...] = _COLUMNS,
+) -> str:
+    table = ["| " + " | ".join(columns) + " |", "| " + " | ".join("---" for _ in columns) + " |"]
+    table += ["| " + " | ".join(r[c] for c in columns) + " |" for r in rows]
+    out = []
+    for heading in headings:
+        out.append(f"## {heading}\n")
+        if heading == "Disposition":
+            out.append("\n".join(table) + "\n")
+    return "\n".join(out)
+
+
+def _record_check(
+    tmp_path: Path,
+    rows: list[dict[str, str]] | None = None,
+    *,
+    record_text: str | None = None,
+    schema: dict[str, Any] | None = None,
+    registry: str = _FIXTURE_REGISTRY,
+    extra_files: dict[str, str] | None = None,
+) -> list[Violation]:
+    """Build a git repo holding schema, registry, an RFC, and a record; run the record rules."""
+    root = tmp_path / "repo"
+    root.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+    files = {
+        _SCHEMA_PATH: json.dumps(_FIXTURE_SCHEMA if schema is None else schema),
+        _REGISTRY_PATH: registry,
+        _RFC_PATH: _RFC_ACCEPTED,
+        _REC_PATH: _render_record(_base_rows() if rows is None else rows)
+        if record_text is None
+        else record_text,
+    }
+    files.update(extra_files or {})
+    for rel, body in files.items():
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "add", "-A"], check=True, capture_output=True)
+    return check_record(root, root / _REC_PATH)
+
+
+def _with(rows: list[dict[str, str]], fact: str, **changes: str) -> list[dict[str, str]]:
+    return [{**r, **changes} if _fact_text(r["Fact"]) == fact else r for r in rows]
+
+
+def _without(rows: list[dict[str, str]], fact: str) -> list[dict[str, str]]:
+    return [r for r in rows if _fact_text(r["Fact"]) != fact]
+
+
+def test_record_clean_fixture_passes(tmp_path: Path) -> None:
+    assert _record_check(tmp_path) == []
+
+
+def test_fact_set_follows_properties_keys_only(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    _record_check(tmp_path)
+    facts, problems = _fact_set(root)
+    assert problems == []
+    assert facts == set(_FIXTURE_FACTS)
+    assert not any("only_in_allof" in f for f in facts)
+
+
+def test_ac0010_missing_heading(tmp_path: Path) -> None:
+    text = _render_record(_base_rows(), headings=_RECORD_HEADINGS[:3])
+    _only(_record_check(tmp_path, record_text=text), "AC-0010")
+
+
+def test_ac0010_headings_out_of_order(tmp_path: Path) -> None:
+    order = ("Disposition", "Compatibility closure", "Equivalence", "Certification")
+    _only(_record_check(tmp_path, record_text=_render_record(_base_rows(), order)), "AC-0010")
+
+
+def test_ac0010_extra_heading(tmp_path: Path) -> None:
+    text = _render_record(_base_rows(), _RECORD_HEADINGS + ("Appendix",))
+    _only(_record_check(tmp_path, record_text=text), "AC-0010")
+
+
+def test_ac0010_heading_in_code_fence_is_ignored(tmp_path: Path) -> None:
+    text = _render_record(_base_rows()) + "\n```\n## Not a heading\n```\n"
+    assert _record_check(tmp_path, record_text=text) == []
+
+
+def test_ac0010_missing_record_file(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    _only(check_record(root, root / "nope.md"), "AC-0010")
+
+
+def test_ac0011_fact_without_row(tmp_path: Path) -> None:
+    found = _record_check(tmp_path, _without(_base_rows(), "entry.summary"))
+    _only(found, "AC-0011")
+    assert found[0].subject == "entry.summary"
+
+
+def test_ac0011_allof_only_property_is_not_required(tmp_path: Path) -> None:
+    assert _record_check(tmp_path) == []  # base rows carry no `entry.only_in_allof`
+
+
+def test_ac0011_defs_property_without_definition_name(tmp_path: Path) -> None:
+    rows = _with(_base_rows(), "source.mode", Fact="`mode`")
+    found = _record_check(tmp_path, rows)
+    _only(found, "AC-0011")
+    assert found[0].subject == "source.mode"
+
+
+def test_ac0011_initiative_table_written_by_its_name(tmp_path: Path) -> None:
+    rows = _with(_base_rows(), "<initiative>.name", Fact="`ini-099.name`")
+    found = _record_check(tmp_path, rows)
+    _only(found, "AC-0011")
+    assert found[0].subject == "<initiative>.name"
+
+
+def test_ac0011_registry_key_without_row(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _without(_base_rows(), "backlog.open")), "AC-0011")
+
+
+def test_ac0011_literal_fact_without_row(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _without(_base_rows(), "entry position")), "AC-0011")
+
+
+def test_ac0011_table_missing_a_column(tmp_path: Path) -> None:
+    text = _render_record(_base_rows(), columns=("Fact", "Category", "Home", "Owner"))
+    _only(_record_check(tmp_path, record_text=text), "AC-0011")
+
+
+def test_ac0011_no_table(tmp_path: Path) -> None:
+    text = "".join(f"## {h}\n\n" for h in _RECORD_HEADINGS)
+    _only(_record_check(tmp_path, record_text=text), "AC-0011")
+
+
+def test_ac0012_empty_home(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _with(_base_rows(), "entry.path", Home="")), "AC-0012")
+
+
+def test_ac0012_empty_owner(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _with(_base_rows(), "entry.path", Owner="")), "AC-0012")
+
+
+def test_ac0013_sixth_category(tmp_path: Path) -> None:
+    rows = _with(_base_rows(), "entry.path", Category="archived state")
+    _only(_record_check(tmp_path, rows), "AC-0013")
+
+
+def _removal(authority: str) -> list[dict[str, str]]:
+    return _with(_base_rows(), _REMOVAL, Authority=authority)
+
+
+def test_ac0014_link_to_draft_rfc(tmp_path: Path) -> None:
+    draft = _RFC_ACCEPTED.replace("Accepted (2026-01-01)", "Draft")
+    found = _record_check(tmp_path, extra_files={_RFC_PATH: draft})
+    _only(found, "AC-0014")
+
+
+def test_ac0014_two_links(tmp_path: Path) -> None:
+    both = f"{_REMOVAL_LINK} {_REMOVAL_LINK}"
+    _only(_record_check(tmp_path, _removal(both)), "AC-0014")
+
+
+def test_ac0014_no_link(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _removal("see the RFC")), "AC-0014")
+
+
+def test_ac0014_link_outside_rfc_and_adr(tmp_path: Path) -> None:
+    files = {"docs/notes/n.md": _RFC_ACCEPTED}
+    rows = _removal("[n](../../notes/n.md#errata)")
+    _only(_record_check(tmp_path, rows, extra_files=files), "AC-0014")
+
+
+def test_ac0014_link_that_escapes_the_repository(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _removal("[x](../../../../../etc/hosts#errata)")), "AC-0014")
+
+
+def test_ac0014_missing_target(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _removal("[x](../../rfc/9999-none.md#errata)")), "AC-0014")
+
+
+def test_ac0014_adr_target_passes(tmp_path: Path) -> None:
+    files = {"docs/adr/0001-x.md": _RFC_ACCEPTED}
+    rows = _removal("[a](../../adr/0001-x.md#errata)")
+    assert _record_check(tmp_path, rows, extra_files=files) == []
+
+
+def test_ac0015_section_does_not_name_the_fact(tmp_path: Path) -> None:
+    rows = _removal("[RFC 1](../../rfc/0001-fixture.md#other)")
+    _only(_record_check(tmp_path, rows), "AC-0015")
+
+
+def test_ac0015_anchor_without_a_heading(tmp_path: Path) -> None:
+    rows = _removal("[RFC 1](../../rfc/0001-fixture.md#missing)")
+    _only(_record_check(tmp_path, rows), "AC-0015")
+
+
+def test_ac0015_link_without_an_anchor(tmp_path: Path) -> None:
+    _only(_record_check(tmp_path, _removal("[RFC 1](../../rfc/0001-fixture.md)")), "AC-0015")
+
+
+def test_ac0015_underscore_heading_keeps_the_underscore(tmp_path: Path) -> None:
+    good = _removal("[RFC 1](../../rfc/0001-fixture.md#where-next_queue-lives)")
+    assert _record_check(tmp_path, good) == []
+    bad = _removal("[RFC 1](../../rfc/0001-fixture.md#where-next-queue-lives)")
+    _only(_record_check(tmp_path / "again", bad), "AC-0015")
+
+
+def test_ac0015_section_includes_subsections_and_stops_at_same_level(tmp_path: Path) -> None:
+    rfc = _RFC_ACCEPTED.replace("nested text", "nested `behavior outside tracked files`")
+    rfc = rfc.replace("Section about `behavior outside tracked files` here.", "no mention")
+    rows = _removal("[RFC 1](../../rfc/0001-fixture.md#where-next_queue-lives)")
+    assert _record_check(tmp_path, rows, extra_files={_RFC_PATH: rfc}) == []
+    stops = rfc.replace("nested `behavior outside tracked files`", "none").replace(
+        "unrelated", "behavior outside tracked files"
+    )
+    _only(_record_check(tmp_path / "b", rows, extra_files={_RFC_PATH: stops}), "AC-0015")
+
+
+def test_ac0016_prose_home(tmp_path: Path) -> None:
+    rows = _with(_base_rows(), _COVERAGE_FACT, Home="the brief lint reads it")
+    _only(_record_check(tmp_path, rows), "AC-0016")
+
+
+def test_ac0016_tracked_path_home(tmp_path: Path) -> None:
+    rows = _with(_base_rows(), _COVERAGE_FACT, Home="`workspace.toml` and prose")
+    assert _record_check(tmp_path, rows) == []
+
+
+def test_ac0016_untracked_path_home(tmp_path: Path) -> None:
+    rows = _with(_base_rows(), _COVERAGE_FACT, Home="`tools/missing.py`")
+    _only(_record_check(tmp_path, rows), "AC-0016")
+
+
+def test_ac0016_nothing_in_backticks_passes(tmp_path: Path) -> None:
+    rows = _with(_base_rows(), _COVERAGE_FACT, Home="`nothing`")
+    assert _record_check(tmp_path, rows) == []
