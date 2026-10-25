@@ -58,6 +58,12 @@ consumer = "this inventory, whose patterns name the registry, part of the retire
 owner = "none"
 
 [[row]]
+pattern = "docs/specs/workspace-retirement/retirement-record.md"
+class = "record"
+consumer = "the retirement record: names every registry fact and its home"
+owner = "none"
+
+[[row]]
 pattern = ".claude/agents/adversarial-reviewer.md"
 class = "projection"
 consumer = "generated Claude Code projection of the adversarial-reviewer agent"
