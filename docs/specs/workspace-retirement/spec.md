@@ -1,6 +1,6 @@
 # Spec: Workspace retirement record
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-25 by eugenelim, spec and plan, after spec-mode shaping review clean at commit `afd0f78a1` and adversarial spec review clean at the same commit; review records under `.context/reviews/workspace-retirement-spec/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
