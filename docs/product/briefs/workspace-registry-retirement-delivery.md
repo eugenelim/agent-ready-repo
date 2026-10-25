@@ -3,7 +3,7 @@
 - **Slug:** `workspace-registry-retirement-delivery`
 - **Received:** 2026-10-25
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Ready
+- **Status:** Executing
 - **Cut-closed:** <!-- Required before Status: Shipped, refused while Status: Draft. -->
 - **Ready confirmed:** 2026-10-25 by the repository owner, after a clean independent delivery-brief shaping review of git blob `1af95a54bf2decb6ece31d7c3a4acb866e1f1e69`.
 - **Slices confirmed:** 2026-10-25 by the repository owner: candidate slices 1 to 9, in the order listed. Slice 1 is materialized first, because its inventory settles questions the later slices depend on; each later slice is materialized as a spec when it is picked up.
