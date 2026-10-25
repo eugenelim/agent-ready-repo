@@ -1,11 +1,11 @@
 ---
 title: "Record a decision"
 summary: "Write down a decision, or propose one for debate, so the next person can find out why."
-pack: governance-extras
+pack: repo-governance
 kind: how-to
-uses: [governance-extras]
+uses: [repo-governance]
 aliases:
-  - guides/governance-extras/how-to/navigate-decisions
+  - guides/repo-governance/how-to/navigate-decisions
 ---
 
 # Record a decision

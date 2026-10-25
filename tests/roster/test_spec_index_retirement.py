@@ -95,14 +95,14 @@ def test_the_governance_seeds_are_what_the_generator_writes() -> None:
 
     spec = importlib.util.spec_from_file_location(
         "index_records_seedcheck",
-        ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py")
+        ROOT / "packs/repo-governance/.apm/skills/new-adr/scripts/index-records.py")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
 
     empty = pathlib.Path(tempfile.mkdtemp())
     for kind in ("adr", "rfc"):
-        seed = ROOT / f"packs/governance-extras/seeds/docs/{kind}/README.md"
+        seed = ROOT / f"packs/repo-governance/seeds/docs/{kind}/README.md"
         assert seed.read_text(encoding="utf-8") == module.render(empty, record_type=kind), (
             f"{seed} differs from generator output; an adopter's first run would rewrite it"
         )
@@ -112,7 +112,7 @@ def test_governance_guides_name_both_generated_indexes() -> None:
     """AC34a: the guidance the generated files no longer carry lives here.
 
     Was the retired conventions document and its seed. `adr/` and `rfc/` are
-    seeded by governance-extras, so its how-to guides are where an author meets
+    seeded by repo-governance, so its how-to guides are where an author meets
     the rule that those indexes are generated.
 
     Each guide states the rule for the index its own author regenerates. An ADR
@@ -120,8 +120,8 @@ def test_governance_guides_name_both_generated_indexes() -> None:
     other's index asserted an obligation neither guide owes.
     """
     for relative, name in (
-        ("guides/governance-extras/how-to/new-adr.md", "adr/README.md"),
-        ("guides/governance-extras/how-to/new-rfc.md", "rfc/README.md"),
+        ("guides/repo-governance/how-to/new-adr.md", "adr/README.md"),
+        ("guides/repo-governance/how-to/new-rfc.md", "rfc/README.md"),
     ):
         body = (ROOT / relative).read_text(encoding="utf-8")
         assert f"The `{name}` index is generated" in body, f"{relative} lost {name}"

@@ -1,4 +1,4 @@
-# Governance Extras
+# Repository Governance
 
 Your agent can write the RFC for a proposed change, record the ADR for a decision, and look up what your repository has already decided.
 
@@ -8,7 +8,7 @@ You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) fir
 
 ```bash
 cd path/to/your-repo
-agentbundle install --pack governance-extras
+agentbundle install --pack repo-governance
 ```
 
 ## What your agent can do
@@ -28,7 +28,7 @@ agentbundle install --pack governance-extras
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Core is optional: `new-adr` picks the decision-record folder itself, and [Core](../core/README.md) adds work-loop risk triggers, the follow-on queue and reviewer agents to `new-rfc` when it is installed. [Desk Research](../desk-research/README.md) and [Architect](../architect/README.md) can feed an RFC. See [Record a decision](../../guides/governance-extras/how-to/new-adr.md) and [Write an RFC](../../guides/governance-extras/how-to/new-rfc.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Core is optional: `new-adr` picks the decision-record folder itself, and [Core](../core/README.md) adds work-loop risk triggers, the follow-on queue and reviewer agents to `new-rfc` when it is installed. [Desk Research](../desk-research/README.md) and [Architect](../architect/README.md) can feed an RFC. See [Record a decision](../../guides/repo-governance/how-to/new-adr.md) and [Write an RFC](../../guides/repo-governance/how-to/new-rfc.md).
 
 ## Questions
 
@@ -42,4 +42,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Details
 
-Scope: repo (default) · Version: 1.0.3 · Source: [packs/governance-extras](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/governance-extras)
+Scope: repo (default) · Version: 1.0.3 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)

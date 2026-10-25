@@ -124,7 +124,7 @@ def test_rfc_gate_uses_public_typed_capture_and_same_gate_receipts() -> None:
 def test_instructed_producer_version_is_decoupled_from_the_pack_release() -> None:
     """The gate must instruct a contract identifier, not the pack release.
 
-    Instructing the shipped release made every governance-extras bump a prose
+    Instructing the shipped release made every repo-governance bump a prose
     edit here, and recorded a release number in a field whose job is to say
     which producer contract emitted the observation — free text the schema
     never parses and no consumer branches on. Asserting the literal, and that

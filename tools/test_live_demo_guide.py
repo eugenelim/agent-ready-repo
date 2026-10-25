@@ -97,7 +97,7 @@ class LiveDemoGuideTests(unittest.TestCase):
         )
         self.assert_contains_all(
             mapping,
-            ("governance-extras", "product-strategy", "Experience Design"),
+            ("repo-governance", "product-strategy", "Experience Design"),
         )
 
     def test_every_track_has_executable_beat_fields(self) -> None:

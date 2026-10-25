@@ -5,10 +5,10 @@ Verification mode: scripted Chrome check (from plan.md T7).
 
 These tests require Playwright with Chromium and are skipped cleanly when
 Playwright is not installed. They are NEVER run in CI by default; dispatch
-manually with: pytest packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py
+manually with: pytest packs/repo-governance/tests/skills/navigate-decisions/browser_checks.py
 
 Run command (from repo root, requires `playwright install chrome`):
-    python3 -m pytest packs/governance-extras/tests/skills/navigate-decisions/browser_checks.py -v
+    python3 -m pytest packs/repo-governance/tests/skills/navigate-decisions/browser_checks.py -v
 
 Spec: docs/specs/decision-navigation/spec.md (AC-0008, AC-0010, AC-0025, AC-0026, AC-0027)
 """
@@ -41,7 +41,7 @@ def _load_module(name: str, path: pathlib.Path) -> object:
 
 
 EXPLORER = _load_module(
-    "governance_extras_explorer_browser",
+    "repo_governance_explorer_browser",
     SCRIPTS / "explorer.py",
 )
 

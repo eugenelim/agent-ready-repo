@@ -51,7 +51,7 @@ ARCHITECT_EVALS = {
         ROOT / "packs/architect/.apm/skills/architect-diagram/evals/evals.json"
     ),
 }
-NEW_ADR_SOURCE = ROOT / "packs/governance-extras/.apm/skills/new-adr/SKILL.md"
+NEW_ADR_SOURCE = ROOT / "packs/repo-governance/.apm/skills/new-adr/SKILL.md"
 PORTABLE_CONSUMER_SOURCES = {
     "work-intake": ROOT / "packs/core/.apm/skills/work-intake/SKILL.md",
     "init-project": ROOT / "packs/core/.apm/skills/init-project/SKILL.md",
@@ -250,7 +250,7 @@ def test_installed_agents_projection_executes_the_same_boundary_contract() -> No
             ROOT / ".agents/skills/adapt-to-project/SKILL.md",
         ),
         (
-            ROOT / "packs/governance-extras/.apm/skills/new-adr/SKILL.md",
+            ROOT / "packs/repo-governance/.apm/skills/new-adr/SKILL.md",
             ROOT / ".agents/skills/new-adr/SKILL.md",
         ),
     )

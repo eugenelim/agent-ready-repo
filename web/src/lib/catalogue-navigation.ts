@@ -43,7 +43,7 @@ export const catalogueOutcomes: readonly CatalogueOutcome[] = [
       'Take a brief or spec through implementation, mechanical gates, independent review, and a human merge decision.',
     cataloguePromise:
       'Move a brief or spec through implementation, mechanical gates, independent review, and a human merge decision.',
-    packs: ['core', 'governance-extras', 'monorepo-extras', 'code-intelligence'],
+    packs: ['core', 'repo-governance', 'monorepo-extras', 'code-intelligence'],
     flagship: true,
   },
   {
@@ -95,7 +95,7 @@ export const catalogueOutcomes: readonly CatalogueOutcome[] = [
     packs: [
       'catalogue-curation',
       'agent-skill-engineering',
-      'governance-extras',
+      'repo-governance',
       'product-documentation',
     ],
   },

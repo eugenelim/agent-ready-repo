@@ -26,8 +26,8 @@ PACKS_DIR = REPO_ROOT / "packs"
 
 # Repo-only packs (allowed-scopes = ["repo"]) with adapter-contract v0.8
 # (core is v0.12 — bumped by copilot-full-parity / copilot-skills-and-web).
-REPO_ONLY_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
-# Addon packs that declare a required dep on core ^3.0. governance-extras is
+REPO_ONLY_PACKS = ("core", "repo-governance", "user-guide-diataxis", "monorepo-extras")
+# Addon packs that declare a required dep on core ^3.0. repo-governance is
 # absent: it names core only as a recommended companion (asserted below).
 CORE_DEP_PACKS = ("monorepo-extras",)
 
@@ -83,9 +83,9 @@ def test_addon_manifests_carry_required_dependency(pack_name):
 
 
 def test_governance_extras_declares_core_only_as_recommended():
-    """governance-extras works without core: core is a recommended companion
+    """repo-governance works without core: core is a recommended companion
     and no required dependency exists."""
-    dependencies = _load("governance-extras")["pack"]["dependencies"]
+    dependencies = _load("repo-governance")["pack"]["dependencies"]
     assert not dependencies.get("required"), dependencies
     recommended = dependencies.get("recommended")
     assert recommended == [

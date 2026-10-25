@@ -36,7 +36,7 @@ docsUrl: /docs/guides/monorepo-extras/
 packUrl: /packs/monorepo-extras/
 relatedJourneys:
   - core
-  - governance-extras
+  - repo-governance
 ---
 
 ### 1. Name and describe the new package

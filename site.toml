@@ -14,7 +14,7 @@ promoted_guides = [
 
 [[groups]]
 label = "Foundation"
-packs = ["core", "governance-extras"]
+packs = ["core", "repo-governance"]
 
 [[groups]]
 label = "Agent workflows"
@@ -113,8 +113,8 @@ dir = "figma"
 label = "Figma"
 
 [[guide_groups]]
-dir = "governance-extras"
-label = "Governance Extras"
+dir = "repo-governance"
+label = "Repository Governance"
 
 [[guide_groups]]
 dir = "monorepo-extras"

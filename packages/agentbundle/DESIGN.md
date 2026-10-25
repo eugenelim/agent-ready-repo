@@ -415,7 +415,7 @@ Deterministic: same source + adapter + contract → same output.
 | `lint` | Validate `catalogue.toml`, `pack.toml`(s), and source files against schema + business rules |
 | `verify` | Check a built dist tree matches the source |
 | `build` | Produce a distributable dist tree |
-| `self-host` | Project core packs (+ governance-extras) into the repo's own workspace |
+| `self-host` | Project core packs (+ repo-governance) into the repo's own workspace |
 | `package` | Bundle into a distributable `catalogue+https://` tarball |
 | `sync-defaults` | Regenerate `install-defaults.toml` from `catalogue.toml` |
 

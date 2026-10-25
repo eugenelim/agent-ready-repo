@@ -1,6 +1,6 @@
-# Governance Extras Pack — Design Document
+# Repository Governance Pack — Design Document
 
-Living design reference for the governance-extras pack. Records the philosophy, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
+Living design reference for the repo-governance pack. Records the philosophy, invariants, and key decisions so the reasoning survives beyond individual PRs and applies when extending or replacing any skill.
 
 This pack provides the RFC mechanism itself, so it has no upstream RFC of its own.
 
@@ -8,7 +8,7 @@ This pack provides the RFC mechanism itself, so it has no upstream RFC of its ow
 
 ## TL;DR
 
-`governance-extras` installs the governance layer for a repository, with or without `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and convention edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and `core` is a recommended companion, not a requirement. `new-adr` resolves its own decision-record destination before numbering or indexing, so adopter policy and established custom/external destinations win; `docs/adr/` remains a fallback offered only with confirmation. RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
+`repo-governance` installs the governance layer for a repository, with or without `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and convention edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and `core` is a recommended companion, not a requirement. `new-adr` resolves its own decision-record destination before numbering or indexing, so adopter policy and established custom/external destinations win; `docs/adr/` remains a fallback offered only with confirmation. RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
 
 ---
 
@@ -35,7 +35,7 @@ This creates a class of repeated failure:
 2. **Overbuilding around an outdated constraint.** A decision made under a specific constraint ("we chose this because we were on AWS Lambda at the time") accumulates downstream assumptions. When the constraint changes, no one knows which decisions were contingent on it.
 3. **Cargo-culting patterns.** Without rationale, a convention looks arbitrary. Teams follow it for the wrong reasons or abandon it without realizing the cost.
 
-`governance-extras` addresses this by making the paper trail a first-class product of the development loop. An RFC is written before cross-cutting work begins; an ADR is written after a decision is made. Both are committed to the repo, versioned alongside the code they govern.
+`repo-governance` addresses this by making the paper trail a first-class product of the development loop. An RFC is written before cross-cutting work begins; an ADR is written after a decision is made. Both are committed to the repo, versioned alongside the code they govern.
 
 ### Decisions outlive their authors
 
@@ -128,15 +128,15 @@ This mirrors the `adversarial-reviewer`'s role in core's build loop: the value o
 
 ### Why governance is per-project
 
-`governance-extras` installs at repo scope only. This is not a configuration option — `allowed-scopes = ["repo"]` is declared in `pack.toml`.
+`repo-governance` installs at repo scope only. This is not a configuration option — `allowed-scopes = ["repo"]` is declared in `pack.toml`.
 
 The reason is structural: governance records are inherently project-specific. An ADR recording why this project uses Postgres is not useful in a different project. An RFC proposing a change to this project's A shared convention governs only this project. Unlike `architect` (whose method is portable across projects) or `desk-research` (whose methodology applies regardless of project), governance records carry the context of a specific project's history, constraints, and team decisions.
 
-Installing governance-extras at user scope would make every skill write to a user-global location — which is the wrong place for records whose meaning depends on the project they govern.
+Installing repo-governance at user scope would make every skill write to a user-global location — which is the wrong place for records whose meaning depends on the project they govern.
 
 ### Why core is an optional companion
 
-`governance-extras` writes RFCs to the repository RFC surface, ADRs to the
+`repo-governance` writes RFCs to the repository RFC surface, ADRs to the
 resolved `decision-record` destination, and conventions to whichever artifact
 owns each rule. None of that needs `core` to have scaffolded anything, so the
 pack installs and runs on its own; `core` is declared as a recommended

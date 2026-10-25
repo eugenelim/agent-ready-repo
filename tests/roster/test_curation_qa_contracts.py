@@ -69,7 +69,7 @@ def test_pack_proposal_uses_canonical_rfc_workflow() -> None:
     assert "Principles 2-4" not in normalized
     assert "Principles 2–4" not in normalized
     assert "all three extra gates" not in body
-    assert "Depends on `core` + `governance-extras`" not in body
+    assert "Depends on `core` + `repo-governance`" not in body
 
     shell_reference = " ".join(
         (

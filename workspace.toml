@@ -853,10 +853,10 @@ open = [
   # can satisfy, and core declares no dependency on any of them. Verified
   # 2026-09-14: seeded `docs/CHARTER.md` orders an RFC for charter revisions and
   # seeded `docs/product/roadmap.md` orders one for substantive roadmap changes,
-  # while `docs/rfc/` is seeded by governance-extras and appears in no core
+  # while `docs/rfc/` is seeded by repo-governance and appears in no core
   # install path. Seeded `docs/architecture/README.md` and
   # `docs/product/README.md` link to `./adr/`, `./rfc/` and `./guides/`;
-  # governance-extras seeds the first two as auto-generated indexes and no pack
+  # repo-governance seeds the first two as auto-generated indexes and no pack
   # seeds the third, nor `docs/GOVERNANCE.md`, `docs/product/personas.md` or
   # `docs/product/release-checklist.md`. An adopter installing core alone
   # receives a charter mandating a process it cannot learn and READMEs pointing
@@ -898,7 +898,7 @@ open = [
   # while measuring whether an ADR `Area` field would duplicate the index's `domains:`
   # key. (1) IS CLOSED, and only (2) and (3) keep this entry open.
   # (1) FIXED 2026-09-24 by `b59becf26` (#1436), an ancestor of HEAD.
-  # `packs/governance-extras/.apm/skills/new-adr/references/infra-decisions.md:4-6`
+  # `packs/repo-governance/.apm/skills/new-adr/references/infra-decisions.md:4-6`
   # claimed its seven infra-mode topics "correspond to" the `generate-iac`
   # governance-index domains while the manifest carries eight. The seven/eight
   # split is deliberate -- seven authoring topics, eight index domains, both
@@ -911,7 +911,7 @@ open = [
   # (2) The manifest says `generate-iac` "reads this manifest at Stage 0 and
   # adds any missing domain rows"; it does not. That skill
   # only bootstraps the whole file when no index exists, and never names the eight domains.
-  # The same unimplemented claim is repeated in `guides/governance-extras/how-to/
+  # The same unimplemented claim is repeated in `guides/repo-governance/how-to/
   # governance-index.md` and in accepted RFC-0065, so nothing in the repository ever writes
   # a domain row. Fix is to delete the claim or implement it -- an owner call, because
   # RFC-0065 is accepted and the manifest is adopter-owned. (3) `reconcile-iac`'s
@@ -920,7 +920,7 @@ open = [
   # not a domain at all; the skill labels the map "heuristic". Nothing is blocked: the
   # infra loop works for the six mapped domains. Unblock: an owner decision on (2), since
   # deleting versus implementing that claim changes whether (3) is a gap or by design.
-  {path = "packs/governance-extras/seeds/governance/manifest.example.yaml", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token. The third defect, infra-decisions.md's false seven-to-eight correspondence claim, was fixed by b59becf26 on 2026-09-24", needs = []},
+  {path = "packs/repo-governance/seeds/governance/manifest.example.yaml", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token. The third defect, infra-decisions.md's false seven-to-eight correspondence claim, was fixed by b59becf26 on 2026-09-24", needs = []},
   {path = "docs/product/intents/CAP-0008-loop-telemetry-governance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Keep the shipped loop telemetry contract and the future INI-005 vocabulary truthful without inventing sender or endpoint work", needs = []},
   {path = "docs/product/intents/FEAT-0015-loop-telemetry-event-vocabulary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/research/loop-telemetry-event-derivability.md"}, summary = "Reconcile ecosystem-overview.md's eight loop-telemetry event names with the six the work-loop can actually emit, rather than adding events to match the vocabulary", needs = []},
   {path = "docs/specs/loop-telemetry-export/notes/verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Decide whether a waived work-loop base-freshness check should leave a durable marker on the run, so a later reader can tell a verified base from one accepted on authority", needs = []},

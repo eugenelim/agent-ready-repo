@@ -1,6 +1,6 @@
 [pack]
 name = "iac-terraform"
-version = "0.1.12"
+version = "0.2.0"
 description = "Describe the infrastructure you want; get Terraform you would be willing to review. Cloud-agnostic, gated on a written decision, and it stops at the plan — applying is still yours."
 readme = "README.md"
 display_name = "IaC (Terraform)"
@@ -24,9 +24,9 @@ version = "^3.0"
 
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
-pack = "governance-extras"
+pack = "repo-governance"
 # Requires the governance-index template, `new-adr` infrastructure mode, and
-# extension-contract convention introduced in governance-extras 0.9; all three
+# extension-contract convention introduced in repo-governance 0.9; all three
 # are unchanged in 0.10, which retired the `update-conventions` skill this pack
 # never used (RFC-0091), and unchanged in 0.11, which made ADR metadata
 # mechanically checkable (RFC-0102). This pack delegates ADR authoring to
@@ -35,8 +35,8 @@ pack = "governance-extras"
 # contract change here; `new-adr/references/infra-decisions.md` and infra mode
 # are untouched by that release. 1.0 replaced the read-only `rfc-status` skill,
 # which this pack never used, with `navigate-decisions`; `new-adr` and the
-# governance-index template are unchanged. Bumped so the range admits the major.
-version = "^1.0"
+# governance-index template are unchanged. Bumped so the range admits the major. 2.0 renames the pack from its former name; the skills are unchanged.
+version = "^2.0"
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
@@ -51,6 +51,6 @@ email = "eugenelim@users.noreply.github.com"
 [pack.first-value]
 audience-posture = "technical"
 surfaces         = ["claude-code"]
-prerequisites    = ["core pack installed", "governance-extras pack installed", "terraform or opentofu CLI in PATH"]
+prerequisites    = ["core pack installed", "repo-governance pack installed", "terraform or opentofu CLI in PATH"]
 verification     = "Run generate-iac on a simple resource description and confirm .tf files are generated."
-recovery         = "Verify terraform is in PATH (run terraform version); confirm governance-extras is installed at repo scope."
+recovery         = "Verify terraform is in PATH (run terraform version); confirm repo-governance is installed at repo scope."

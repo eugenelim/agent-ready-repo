@@ -1,6 +1,6 @@
 """First-install snapshot test (the 2026-05-25 amendment, item (e)).
 
-For each pack with seeds (`core`, `governance-extras`, `monorepo-extras`),
+For each pack with seeds (`core`, `repo-governance`, `monorepo-extras`),
 this test runs
 `agentbundle scaffold` against the real pack into a fresh tempdir
 and verifies two contracts that together close the seed scaffold
@@ -79,7 +79,7 @@ SENTINEL_RE = re.compile(
 MARKDOWN_LINK_RE = re.compile(r"\]\(([^)]+)\)")
 URI_SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
 
-PACKS_WITH_SEEDS = ("core", "governance-extras", "monorepo-extras")
+PACKS_WITH_SEEDS = ("core", "repo-governance", "monorepo-extras")
 # user-guide-diataxis (0.3.0) is a deprecated compat shim with no seeds.
 # product-documentation has no seeds by design (Diátaxis as page contract, not scaffold).
 

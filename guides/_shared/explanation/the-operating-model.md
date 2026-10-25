@@ -24,7 +24,7 @@ Start at the stage your work is in. A bug fix starts at Build it.
 | Build it | Write the spec, build, run the checks, review | `core` | Merge |
 | Ship it | Deploy to a throwaway environment, test it, watch it run | `release-engineering` | Ship to production |
 
-Some packs help at any stage: `code-intelligence` to learn what the code does, `governance-extras` to record a decision, `product-documentation` to document what shipped, and `atlassian`, `github`, `linear`, and `figma` to connect your team's tools.
+Some packs help at any stage: `code-intelligence` to learn what the code does, `repo-governance` to record a decision, `product-documentation` to document what shipped, and `atlassian`, `github`, `linear`, and `figma` to connect your team's tools.
 
 ## Decide what to build
 

@@ -9,7 +9,7 @@ Every test that calls intent_graph must fail ONLY because the module is absent
 errors, and no fixture-shape failures are acceptable red states in T1.
 
 Module loaded by path following the loader precedent in
-packs/governance-extras/tests/skills/navigate-decisions/test_query_contract.py
+packs/repo-governance/tests/skills/navigate-decisions/test_query_contract.py
 and packs/core/tests/skills/close-work/test_closure_terminality.py.
 """
 

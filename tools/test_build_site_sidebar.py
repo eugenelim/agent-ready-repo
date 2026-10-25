@@ -301,7 +301,7 @@ CONTROL_TITLES = {
         "Authenticate Jira and Confluence with an SSO web session",
     "guides/frontend-engineering/reference/frontend-engineering.md":
         "Frontend Engineering Pack",
-    "guides/governance-extras/how-to/new-adr.md":
+    "guides/repo-governance/how-to/new-adr.md":
         "Record a decision",
 }
 # guide-title-clarity AC5 (and AC6 for the de-baselined subset): every

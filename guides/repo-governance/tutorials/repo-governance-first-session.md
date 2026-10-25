@@ -1,7 +1,7 @@
 ---
 title: Your first governance session
 summary: Install the governance pack and record one reviewed architecture decision through its confirmation gate.
-pack: governance-extras
+pack: repo-governance
 kind: tutorial
 ---
 
@@ -11,7 +11,7 @@ kind: tutorial
 **Prerequisites:** `agentbundle` on PATH, a repo you can write to, and write access to the decision-record destination you confirm.
 **Time:** About fifteen minutes.
 
-In fifteen minutes you'll install the `governance-extras` pack, use `new-adr` to record one architectural decision, and see the preview-confirm write gate in action — the step where you read exactly what will land in your repo and where, before confirming the write.
+In fifteen minutes you'll install the `repo-governance` pack, use `new-adr` to record one architectural decision, and see the preview-confirm write gate in action — the step where you read exactly what will land in your repo and where, before confirming the write.
 
 ```text
 Use the new-adr skill to record our decision to use TOML for workspace coordination.
@@ -27,12 +27,12 @@ This is a tutorial — it leads. For the full `new-adr` procedure, see [How to r
   decision-record location, use that location instead.
 - Nothing else. `core` is optional; install it if you want `new-rfc` to use its risk triggers, queue and reviewer agents.
 
-## Install governance-extras at repo scope
+## Install repo-governance at repo scope
 
 Open your agent (Claude Code or equivalent) in the repo you'll work in, then run:
 
 ```bash
-agentbundle install --pack governance-extras --scope repo
+agentbundle install --pack repo-governance --scope repo
 ```
 
 The pack lands in your agent's skills directory with three skills: `new-adr`, `new-rfc`, and `navigate-decisions`.
@@ -138,7 +138,7 @@ git commit -m "docs(adr): record decision to use TOML for workspace coordination
 
 ## Recovery
 
-**Verification fails in Step 2.** Confirm `governance-extras` is installed at repo scope (confirm the `navigate-decisions` skill is present in your agent's skills directory). If the directory is absent, re-run the install. Also confirm `docs/rfc/` and `docs/adr/` exist — the skills expect them; the seed creates them on install, but if the install was partial you may need to re-run.
+**Verification fails in Step 2.** Confirm `repo-governance` is installed at repo scope (confirm the `navigate-decisions` skill is present in your agent's skills directory). If the directory is absent, re-run the install. Also confirm `docs/rfc/` and `docs/adr/` exist — the skills expect them; the seed creates them on install, but if the install was partial you may need to re-run.
 
 **Wrong path shown in Step 6.** Say "cancel" before confirming. The skill stops. Re-run with a corrected prompt if needed.
 
@@ -155,7 +155,7 @@ Then start a new session with a revised prompt.
 
 ## What you did
 
-You installed `governance-extras`, verified it, invoked `new-adr` with the starter prompt, read the decision frame, reviewed the full ADR content and target path, and confirmed the write. You now know where the file lands, what it contains, and how to stop the write at any point before confirming.
+You installed `repo-governance`, verified it, invoked `new-adr` with the starter prompt, read the decision frame, reviewed the full ADR content and target path, and confirmed the write. You now know where the file lands, what it contains, and how to stop the write at any point before confirming.
 
 The pack ships two more skills — `new-rfc` (for proposals whose direction is still open) and `navigate-decisions` (for querying and exploring the ADR and RFC corpus).
 

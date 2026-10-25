@@ -370,7 +370,7 @@
           "basis": "observed-practice",
           "observations": [
             "packs/desk-research/.claude-plugin/plugin.json",
-            "packs/governance-extras/.claude-plugin/plugin.json"
+            "packs/repo-governance/.claude-plugin/plugin.json"
           ],
           "applicability_limit": "This guidance is an observed practice from the 23 packs in the catalogue that developed this pack and ship a package manifest, censused on 2026-08-31. It is not established beyond that population.",
           "revalidation_trigger": "Revalidate when the package-manifest census changes or a claim is promoted to doctrine."

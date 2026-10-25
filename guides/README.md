@@ -40,7 +40,7 @@ Work moves through four stages, and most work skips one or two. Find your stage,
 - [Fix a bug](core/how-to/bug-fix.md) finds the cause and fixes it with the smallest change.
 - [Review a pull request](core/how-to/review-someone-elses-pr.md) gets an independent review.
 - [Build a page or component](frontend-engineering/how-to/page-screen-contract.md) checks accessibility, states, and layout.
-- [Record a decision](governance-extras/how-to/new-adr.md) writes down why.
+- [Record a decision](repo-governance/how-to/new-adr.md) writes down why.
 - [Write the docs](product-documentation/how-to/write-a-guide.md) documents a shipped feature.
 
 **Ship it**
@@ -123,9 +123,9 @@ Next: [P4 · Decide together](#p4--decide-together--15-hours).
 
 **Prerequisite:** P1. **For:** tech lead, architect. **Stage:** any. Decisions get written down wherever they are made.
 
-1. [The governance index](governance-extras/how-to/governance-index.md) shows whether you need an RFC, an ADR, or a spec.
-2. [Propose an RFC](governance-extras/how-to/new-rfc.md)
-3. [Record an ADR](governance-extras/how-to/new-adr.md)
+1. [The governance index](repo-governance/how-to/governance-index.md) shows whether you need an RFC, an ADR, or a spec.
+2. [Propose an RFC](repo-governance/how-to/new-rfc.md)
+3. [Record an ADR](repo-governance/how-to/new-adr.md)
 
 An RFC or ADR is written from the artifacts of P2: an intent, a decision brief, a research survey, or an architecture concept.
 
@@ -166,7 +166,7 @@ This release and reporting stage takes the build through its human ship gate.
 
 - **Decide what to build:** [`desk-research`](desk-research/), then [`product-strategy`](product-strategy/), then [`product-engineering`](product-engineering/).
 - **Design the product and system:** [`experience-design`](experience-design/), [`architect`](architect/), [`contracts`](contracts/), and [`frontend-engineering`](frontend-engineering/).
-- **Build and review software:** [`core`](core/), with [`code-intelligence`](code-intelligence/), [`governance-extras`](governance-extras/), and [`monorepo-extras`](monorepo-extras/).
+- **Build and review software:** [`core`](core/), with [`code-intelligence`](code-intelligence/), [`repo-governance`](repo-governance/), and [`monorepo-extras`](monorepo-extras/).
 - **Provision and release safely:** [`iac-terraform`](iac-terraform/), then [`release-engineering`](release-engineering/).
 - **Work with team systems and evidence:** [`atlassian`](atlassian/), [`github`](github/), [`linear`](linear/), [`figma`](figma/), [`converters`](converters/), and [`credential-brokers`](credential-brokers/).
 - **Document what ships:** [`product-documentation`](product-documentation/).
@@ -189,7 +189,7 @@ Each pack has its own guide home with a short list of its job pages.
 - [`figma`](figma/): read a Figma file.
 - [`frontend-engineering`](frontend-engineering/): build and check a page or component.
 - [`github`](github/): bring GitHub work into the repository.
-- [`governance-extras`](governance-extras/): record decisions and proposals.
+- [`repo-governance`](repo-governance/): record decisions and proposals.
 - [`iac-terraform`](iac-terraform/): change infrastructure with review.
 - [`linear`](linear/): bring Linear work into the repository.
 - [`monorepo-extras`](monorepo-extras/): scaffold a new package.

@@ -148,7 +148,7 @@ SKILLS: dict[str, list[str]] = {
     "adapt-to-project":             ["status-list", "table", "key-value", "narrative"],
     "new-spec":                     ["key-value"],
     "bug-fix":                      ["diff", "table"],
-    # governance-extras
+    # repo-governance
     "navigate-decisions":           ["table"],
     "new-adr":                      ["key-value"],
     "new-rfc":                      ["key-value"],

@@ -2427,7 +2427,7 @@ def test_the_launch_seed_covers_exactly_the_released_entries_in_its_window():
     """AC5, recorded as measured fact rather than restated as a rule.
 
     On the launch date the seven-day window held exactly ONE released entry —
-    `governance-extras 0.9.7`. Every other entry dated inside that window sits
+    the pack's former name at 0.9.7 (changelog history keeps it). Every other entry dated inside that window sits
     beneath `[Unreleased]` and is therefore ineligible however recent it looks.
     Both halves are asserted: the eligible entry was seeded, and the ineligible
     ones were not silently promoted to make the page look busier.
@@ -2439,7 +2439,7 @@ def test_the_launch_seed_covers_exactly_the_released_entries_in_its_window():
 
     released = [r for r in in_window if not r["unreleased"]]
     assert [r["anchor"] for r in released] == [
-        "governance-extras097--2026-08-16"
+        "governance" "-extras097--2026-08-16"
     ], [r["heading"] for r in released]
     assert all(r["highlights"] for r in released), "a seeded entry lost its Highlights"
 

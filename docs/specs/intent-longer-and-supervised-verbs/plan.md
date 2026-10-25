@@ -111,7 +111,7 @@ Owned by: T1, T2, T3, T7, T8, T9
     2026-10-11 `--check` already reported five unrelated skills as drifted:
     `agent-skill-engineering`'s `author-or-update-agent-skill` and
     `review-or-optimize-agent-skill`, Core's `explain-diff`, `experience-design`'s
-    `information-architecture`, and `governance-extras`' `navigate-decisions`. T4 to T6
+    `information-architecture`, and `repo-governance`' `navigate-decisions`. T4 to T6
     are committed before T7 runs `--write`. Just before `--write`, T7 lists the paths
     `--check` reports other than `intent/SKILL.md` and `initiative/SKILL.md`. If that
     list is not exactly those five `SKILL.md` files, T7 stops and asks the owner.

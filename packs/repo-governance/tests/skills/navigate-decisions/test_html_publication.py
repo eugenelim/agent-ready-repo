@@ -44,11 +44,11 @@ def _load_module(name: str, path: pathlib.Path) -> object:
 
 
 NAV = _load_module(
-    "governance_extras_navigate_decisions_pub",
+    "repo_governance_navigate_decisions_pub",
     SCRIPTS / "navigate_decisions.py",
 )
 EXPLORER = _load_module(
-    "governance_extras_explorer_pub",
+    "repo_governance_explorer_pub",
     SCRIPTS / "explorer.py",
 )
 

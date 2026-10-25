@@ -41,7 +41,7 @@ Controls which packs are installed by default when an adopter runs `agentbundle 
 
 ```toml
 [catalogue.install-defaults]
-packs    = ["core", "governance-extras"]
+packs    = ["core", "repo-governance"]
 adapters = ["claude-code"]
 ```
 

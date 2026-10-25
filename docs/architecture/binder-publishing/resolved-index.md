@@ -87,7 +87,7 @@ convention and lives in the plan. v1 emits no `figures` key at all.
       "metadata": {
         "kind": "rfc",
         "status": { "raw": "Accepted", "normalized": "current" },
-        "producer": "governance-extras",
+        "producer": "repo-governance",
         "subject": ["payments-migration"],
         "metadata-source": "sidecar"
       },

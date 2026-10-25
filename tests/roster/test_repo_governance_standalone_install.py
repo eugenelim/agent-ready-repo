@@ -1,4 +1,4 @@
-"""governance-extras installs without core and seeds its layout section safely.
+"""repo-governance installs without core and seeds its layout section safely.
 
 Drives the real `agentbundle install` against the real pack in this repository,
 into a temporary repository where core is not installed.
@@ -14,7 +14,7 @@ from agentbundle.cli import _build_parser
 from agentbundle.commands.install import run
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-MANIFEST = REPO_ROOT / "packs" / "governance-extras" / "pack.toml"
+MANIFEST = REPO_ROOT / "packs" / "repo-governance" / "pack.toml"
 
 
 def _install(output: Path) -> int:
@@ -23,7 +23,7 @@ def _install(output: Path) -> int:
             "install",
             str(REPO_ROOT),
             "--pack",
-            "governance-extras",
+            "repo-governance",
             "--output",
             str(output),
             "--emit-install-routes",

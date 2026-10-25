@@ -8,7 +8,7 @@ kind: tutorial
 # Your first skill
 
 **What you'll build:** A standard-compliant skill with valid frontmatter, shaped body, activation evals, output-quality evals, and all four lint gates passing — ready for PR review.
-**Prerequisites:** `agentbundle`, `core`, `governance-extras`, and `catalogue-curation` packs installed; a clear idea of what the skill does and one situation where using it would be wrong.
+**Prerequisites:** `agentbundle`, `core`, `repo-governance`, and `catalogue-curation` packs installed; a clear idea of what the skill does and one situation where using it would be wrong.
 **Time:** 60–90 minutes.
 
 **Goal:** write one standard-compliant skill from scratch and land it in the catalogue.
@@ -20,7 +20,7 @@ This is the main journey. The side journey — bringing in skills and repos from
 This tutorial introduces each standard at the point where it applies; the standards file is where you verify the full picture before opening your PR.
 
 **Prerequisites:**
-- `agentbundle`, `core`, `governance-extras`, and `catalogue-curation` packs installed
+- `agentbundle`, `core`, `repo-governance`, and `catalogue-curation` packs installed
 - A clear pair in hand: what this skill does, and one situation where using it would be the wrong choice
 
 ---

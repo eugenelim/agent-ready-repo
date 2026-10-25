@@ -1,14 +1,14 @@
 ---
 title: How to propose a cross-cutting change (RFC)
 summary: Produce and progress a researched RFC for a cross-cutting, prior-decision, or consensus-requiring change.
-pack: governance-extras
+pack: repo-governance
 kind: how-to
 ---
 
 # How to propose a cross-cutting change (RFC)
 
 **Use this when:** A change's direction is still unresolved and more than one owner has to agree, or you want a proposal circulated — plus the reserved categories below, which take this route even with one owner.
-**Prerequisites:** `governance-extras` pack installed. A `docs/rfc/` directory
+**Prerequisites:** `repo-governance` pack installed. A `docs/rfc/` directory
 and web search are needed only after the artifact checkpoint selects an RFC —
 see [Prerequisites](#prerequisites) below.
 **Result:** The cheapest adequate route. When an RFC is warranted, a scaffolded,
@@ -42,7 +42,7 @@ If you're recording a decision that's already settled, see [how to record a deci
 ## Prerequisites
 
 :::note
-**Pack:** `governance-extras`. `new-rfc` does not ship in `core`. Verify with `ls .claude/skills/new-rfc/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `governance-extras` first.
+**Pack:** `repo-governance`. `new-rfc` does not ship in `core`. Verify with `ls .claude/skills/new-rfc/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `repo-governance` first.
 :::
 
 - A working `docs/rfc/` directory. The skill creates one if it's missing, but the home for the file matters — the lifecycle rules above only apply to RFCs at this path.
@@ -230,7 +230,7 @@ An accepted RFC is rarely the last artifact. It points at concrete follow-on wor
 
 The RFC's job is done once the follow-on artifacts exist. It stays as history.
 
-A published RFC can still need a correction later — a spec finds a gap, a later RFC reframes a decision. You record it *inside* the RFC (never by editing the frozen body), under an `## Errata` section for a Frozen RFC or `## Amendments` for an in-flight one, following the `new-rfc` skill's [Recording corrections (Errata / Amendments)](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) convention — append-only, with an optional two-layer current-state-over-audit-trail structure once corrections accumulate. The skill is the canonical home for the rules; this guide just points at it.
+A published RFC can still need a correction later — a spec finds a gap, a later RFC reframes a decision. You record it *inside* the RFC (never by editing the frozen body), under an `## Errata` section for a Frozen RFC or `## Amendments` for an in-flight one, following the `new-rfc` skill's [Recording corrections (Errata / Amendments)](../../../packs/repo-governance/.apm/skills/new-rfc/SKILL.md) convention — append-only, with an optional two-layer current-state-over-audit-trail structure once corrections accumulate. The skill is the canonical home for the rules; this guide just points at it.
 
 ## Pitfalls
 
@@ -279,8 +279,8 @@ turn its concrete decisions into ADRs, specs, or convention changes.
 
 - [How to record a decision (ADR)](new-adr.md) — the inverse skill; use it when the discussion is done.
 - [How to plan and execute non-trivial work](../../core/how-to/plan-and-execute-non-trivial-work.md) — what an accepted RFC's feature follow-on looks like.
-- [The core pack as a system](../../core/explanation/core-pack.md) — where governance-extras fits relative to `core`.
-- [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure, including the research-phase gating rules.
+- [The core pack as a system](../../core/explanation/core-pack.md) — where repo-governance fits relative to `core`.
+- [`new-rfc` skill](../../../packs/repo-governance/.apm/skills/new-rfc/SKILL.md) — authoritative procedure, including the research-phase gating rules.
 - [§ The RFC lifecycle](#the-rfc-lifecycle) — the lifecycle, filename rule, and when-to / when-not-to.
 - [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes) — living vs. frozen vs. governance, and why RFCs sit in their own bucket.
 

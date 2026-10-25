@@ -1,11 +1,11 @@
 ---
-title: "`governance-extras` — guides"
+title: "`repo-governance` — guides"
 summary: Choose the governed workflow for proposing a cross-cutting change, recording a decision, or updating repository conventions.
-pack: governance-extras
+pack: repo-governance
 kind: explanation
 ---
 
-# `governance-extras` — guides
+# `repo-governance` — guides
 
 These guides help you record decisions and propose cross-cutting changes so the next person can find out why.
 
@@ -18,4 +18,4 @@ These guides help you record decisions and propose cross-cutting changes so the 
 - [How to propose a cross-cutting change (RFC)](how-to/new-rfc.md) — Write and progress a researched RFC for a change that needs consensus.
 - [How to set up a governance index](how-to/governance-index.md) — Map domains to the decision records and standards contributors need.
 - [How to define an extension contract](how-to/extension-contract.md) — Document an extension hook's shape, guarantees, and owner.
-- [Your first governance session](tutorials/governance-extras-first-session.md) — Install the pack and record one reviewed decision.
+- [Your first governance session](tutorials/repo-governance-first-session.md) — Install the pack and record one reviewed decision.

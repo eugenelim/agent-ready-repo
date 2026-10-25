@@ -51,7 +51,7 @@ The assimilation ledger records what was surveyed, what was adopted, and what wa
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
 | core | repo | current | `work-loop`, `new-spec`, governance gate |
-| governance-extras | repo | current | RFC tooling, spec mechanisms |
+| repo-governance | repo | current | RFC tooling, spec mechanisms |
 | catalogue-curation | repo | current | `assimilate-repo`, `assimilate-primitive`, `propose-catalogue-pack` |
 
 **Setup:**

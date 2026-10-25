@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "packs/core/.apm/skills/close-work/scripts/file_safety.py"
 MIRROR = (
     REPO_ROOT
-    / "packs/governance-extras/.apm/skills/navigate-decisions/scripts/file_safety.py"
+    / "packs/repo-governance/.apm/skills/navigate-decisions/scripts/file_safety.py"
 )
 
 

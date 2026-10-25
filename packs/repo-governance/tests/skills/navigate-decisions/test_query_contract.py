@@ -45,13 +45,13 @@ SCRIPTS = HERE.parents[2] / ".apm/skills/navigate-decisions/scripts"
 FIXTURE = HERE / "fixtures/mixed"
 _CHAIN_DIR = HERE / "fixtures" / "lineage-chain"
 SPEC = importlib.util.spec_from_file_location(
-    "governance_extras_navigate_decisions", SCRIPTS / "navigate_decisions.py"
+    "repo_governance_navigate_decisions", SCRIPTS / "navigate_decisions.py"
 )
 NAV = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(NAV)
 
 _EXPLORER_SPEC = importlib.util.spec_from_file_location(
-    "governance_extras_explorer_qc", SCRIPTS / "explorer.py"
+    "repo_governance_explorer_qc", SCRIPTS / "explorer.py"
 )
 EXPLORER = importlib.util.module_from_spec(_EXPLORER_SPEC)
 _EXPLORER_SPEC.loader.exec_module(EXPLORER)

@@ -1,14 +1,14 @@
 ---
 title: "How to set up a governance index"
 summary: "Create a YAML index that maps architectural domains to the decision records and standards contributors need to load."
-pack: governance-extras
+pack: repo-governance
 kind: how-to
 ---
 
 # How to set up a governance index
 
 **Use this when:** You need a single YAML manifest mapping architectural domains to their ADRs and standards files so agents and contributors load only the relevant files.
-**Prerequisites:** `governance-extras` installed and at least one accepted ADR — see [Prerequisites](#prerequisites) below.
+**Prerequisites:** `repo-governance` installed and at least one accepted ADR — see [Prerequisites](#prerequisites) below.
 **Result:** A committed governance index at the location established for the resolved `decision-record` destination; `docs/governance-index.yaml` is the catalogue fallback.
 
 A governance index is a single YAML manifest that maps each architectural
@@ -22,12 +22,12 @@ Use the new-adr skill to write an ADR for adding a governance index.
 
 The convention is tool-neutral — it works for any governed repo, not just
 Terraform/IaC work. The `generate-iac` skill reads it at Stage 0 when the
-`iac-terraform` pack is installed; the `governance-extras` pack ships the
+`iac-terraform` pack is installed; the `repo-governance` pack ships the
 template.
 
 ## Prerequisites
 
-- `governance-extras` installed (ships the `seeds/governance/manifest.example.yaml`
+- `repo-governance` installed (ships the `seeds/governance/manifest.example.yaml`
   template).
 - At least one accepted record in the repository's resolved `decision-record`
   destination. The index is a pointer structure — if no records exist yet, the

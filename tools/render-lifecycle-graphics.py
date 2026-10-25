@@ -716,7 +716,7 @@ def render_full() -> str:
     chips = [("code-intelligence", "what the code really does"),
              ("frontend-engineering", "UI work"), ("iac-terraform", "infrastructure plans"),
              ("atlassian · github · linear · figma", "your team's tools"),
-             ("converters", "files into text"), ("governance-extras", "write a decision down"),
+             ("converters", "files into text"), ("repo-governance", "write a decision down"),
              ("product-documentation", "document what shipped")]
     nat = [max(width_of(n, 11.5, mono=True), width_of(d, 12)) + 28 for n, d in chips]
     extra = (w_ - 2 * m - 40 - 10 * (len(chips) - 1) - sum(nat)) / len(chips)

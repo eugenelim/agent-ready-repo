@@ -107,7 +107,7 @@ exist:
   `experience-design`, `architect`, `contracts`, `core`, and
   `release-engineering`. Packs used in any lane — the trackers, `converters`,
   `code-intelligence`, `frontend-engineering`, `iac-terraform`,
-  `governance-extras`, `product-documentation` — are listed once, with the
+  `repo-governance`, `product-documentation` — are listed once, with the
   moment each is reached for, on the three-loops page. A marker on each of them
   would force a lane that isn't true.
 - **Three-loops explanation.** Its ASCII handoff chain is replaced by the full

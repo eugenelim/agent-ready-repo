@@ -11,7 +11,7 @@ cd path/to/your-repo
 agentbundle install --pack iac-terraform
 ```
 
-You also need [Core](../core/README.md), [Governance Extras](../governance-extras/README.md), and the `terraform` or `tofu` command on your path.
+You also need [Core](../core/README.md), [Repository Governance](../repo-governance/README.md), and the `terraform` or `tofu` command on your path.
 
 ## What your agent can do
 
@@ -28,7 +28,7 @@ You also need [Core](../core/README.md), [Governance Extras](../governance-extra
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Install [Core](../core/README.md) and [Governance Extras](../governance-extras/README.md) first. AWS, GCP, and Databricks are validated. Azure and other providers are marked experimental. See [Change infrastructure](../../guides/iac-terraform/README.md) and [Release Engineering](../release-engineering/README.md) for shipping the change.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Install [Core](../core/README.md) and [Repository Governance](../repo-governance/README.md) first. AWS, GCP, and Databricks are validated. Azure and other providers are marked experimental. See [Change infrastructure](../../guides/iac-terraform/README.md) and [Release Engineering](../release-engineering/README.md) for shipping the change.
 
 ## Questions
 
@@ -42,4 +42,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Details
 
-Scope: repo (default) · Version: 0.1.12 · Source: [packs/iac-terraform](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/iac-terraform)
+Scope: repo (default) · Version: 0.2.0 · Source: [packs/iac-terraform](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/iac-terraform)

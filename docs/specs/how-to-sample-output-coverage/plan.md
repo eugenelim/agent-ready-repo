@@ -105,7 +105,7 @@ review.
 
 **Mode:** goal-based check plus manual documentation review
 
-**Touches:** `guides/desk-research/how-to/**`, `guides/github/how-to/**`, `guides/governance-extras/how-to/**`, `guides/linear/how-to/**`, `guides/monorepo-extras/how-to/**`
+**Touches:** `guides/desk-research/how-to/**`, `guides/github/how-to/**`, `guides/repo-governance/how-to/**`, `guides/linear/how-to/**`, `guides/monorepo-extras/how-to/**`
 
 **Tests:** exact-path C audit; request/response, source, success-cue, and safety
 review.

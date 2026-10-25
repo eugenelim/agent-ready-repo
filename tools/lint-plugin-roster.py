@@ -45,7 +45,7 @@ GATE = "lint-plugin-roster"
 NOT_PUBLISHED = frozenset({
     "catalogue-curation",
     "core",
-    "governance-extras",
+    "repo-governance",
     "iac-terraform",
     "monorepo-extras",
     "release-engineering",

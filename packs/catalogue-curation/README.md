@@ -28,7 +28,7 @@ agentbundle install --pack catalogue-curation
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. It installs at repo scope only and needs no other pack. Pair it with [Agent Skill Engineering](../agent-skill-engineering/README.md) to write skills, and [Governance Extras](../governance-extras/README.md) for the RFCs it produces. Guides: [Import and curate skills](../../guides/catalogue-curation/how-to/survey-a-repo.md) and [Author and compile an OKF bundle](../../guides/catalogue-curation/how-to/author-an-okf-bundle.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. It installs at repo scope only and needs no other pack. Pair it with [Agent Skill Engineering](../agent-skill-engineering/README.md) to write skills, and [Repository Governance](../repo-governance/README.md) for the RFCs it produces. Guides: [Import and curate skills](../../guides/catalogue-curation/how-to/survey-a-repo.md) and [Author and compile an OKF bundle](../../guides/catalogue-curation/how-to/author-an-okf-bundle.md).
 
 ## Questions
 

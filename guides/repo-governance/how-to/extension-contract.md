@@ -1,7 +1,7 @@
 ---
 title: How to define an extension contract
 summary: Document an intentional extension hook’s shape, guarantees, exclusions, ownership, and verification method.
-pack: governance-extras
+pack: repo-governance
 kind: how-to
 ---
 

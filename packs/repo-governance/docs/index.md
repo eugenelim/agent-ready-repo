@@ -1,4 +1,4 @@
-# Governance Extras
+# Repository Governance
 
 > A repo-scope pack of three skills that give teams a structured, traceable workflow for proposing changes, recording architectural decisions, and navigating the decision corpus.
 
@@ -22,4 +22,4 @@ See the README for the complete manifest table.
 
 ## How it relates to other packs
 
-Installs and works without `core`; `core` is a recommended companion (the build loop these RFC-based decisions ultimately feed). `catalogue-curation` requires both `core` and `governance-extras` — it uses the RFC skill to create a traceable intake record every time a new primitive is assimilated into the catalogue.
+Installs and works without `core`; `core` is a recommended companion (the build loop these RFC-based decisions ultimately feed). `catalogue-curation` requires both `core` and `repo-governance` — it uses the RFC skill to create a traceable intake record every time a new primitive is assimilated into the catalogue.

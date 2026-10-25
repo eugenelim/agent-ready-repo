@@ -59,7 +59,7 @@ docsUrl: /docs/guides/product-documentation/
 packUrl: /packs/product-documentation/
 relatedJourneys:
   - core
-  - governance-extras
+  - repo-governance
 ---
 
 ### 1. Describe what you need

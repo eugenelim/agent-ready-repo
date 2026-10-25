@@ -88,7 +88,7 @@ You need:
    ```
 
    Copy the full field set (licence, links, maintainers) from a first-party
-   manifest like `packs/governance-extras/pack.toml` — the four tables above are
+   manifest like `packs/repo-governance/pack.toml` — the four tables above are
    the ones that matter: the scope this guide assumes, and the `core` dependency
    the profile in step 4 relies on.
 

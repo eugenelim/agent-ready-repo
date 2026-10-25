@@ -89,7 +89,7 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
   1. Open file-based formats: [`catalogue-format.md`](../../../guides/_shared/reference/catalogue-format.md), [`skill-authoring-standards.md`](../../../guides/_shared/reference/skill-authoring-standards.md), and `contracts/pack.schema.json`, `skill.schema.json`, and `profile.schema.json`.
   2. Versioned contracts: [`contracts/README.md`](../../../contracts/README.md) and [`contracts/REGISTRY.md`](../../../contracts/REGISTRY.md).
   3. Deterministic verification and packaging: [`catalogue-ci-contract.md`](../../../guides/_shared/reference/catalogue-ci-contract.md), which states the archive is deterministic for the same source content.
-  4. Human gates: the governance-extras [`new-rfc`](../../../guides/governance-extras/how-to/new-rfc.md) and [`new-adr`](../../../guides/governance-extras/how-to/new-adr.md) guides and [the core pack explanation](../../../guides/core/explanation/core-pack.md).
+  4. Human gates: the repo-governance [`new-rfc`](../../../guides/repo-governance/how-to/new-rfc.md) and [`new-adr`](../../../guides/repo-governance/how-to/new-adr.md) guides and [the core pack explanation](../../../guides/core/explanation/core-pack.md).
   5. Source ownership: [`create-a-catalogue.md`](../../../guides/_shared/how-to/create-a-catalogue.md), "Publish your own packs and profiles".
   6. Adapter projection: [`adapter-support.md`](../../../guides/_shared/reference/adapter-support.md) and `contracts/adapter.toml`.
   7. Release integrity: [`catalogue-ci-contract.md`](../../../guides/_shared/reference/catalogue-ci-contract.md), covering `--force` and `--compare`.

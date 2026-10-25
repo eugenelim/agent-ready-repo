@@ -28,4 +28,4 @@ See the README for the complete manifest table.
 
 ## How it relates to other packs
 
-No required pack dependencies. Research outputs frequently feed `governance-extras` (to inform an RFC) or `architect` (to ground a design document). The `product-strategy` pack uses research methodology as the foundation for market analysis and competitive intelligence workflows.
+No required pack dependencies. Research outputs frequently feed `repo-governance` (to inform an RFC) or `architect` (to ground a design document). The `product-strategy` pack uses research methodology as the foundation for market analysis and competitive intelligence workflows.

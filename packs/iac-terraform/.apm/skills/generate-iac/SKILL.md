@@ -83,7 +83,7 @@ plan-based drift audit via `reconcile-iac`.
   - **First-time use (no governance index exists for the resolved destination):**
     offer to bootstrap one according to that destination's established index
     convention, using the template from
-    `governance-extras/seeds/governance/manifest.example.yaml`. For a confined
+    `repo-governance/seeds/governance/manifest.example.yaml`. For a confined
     repository destination, inspect only the resolved decision-record surface;
     do not assume `docs/adr/`. For an external destination, use only bounded
     content already acquired through a separately approved adapter. Without an
@@ -94,7 +94,7 @@ plan-based drift audit via `reconcile-iac`.
     directory creation and before any Terraform write.
 - **Never invent a decision record.** If an intent conflicts with an existing
   ADR, or no ADR covers a material decision, stop and surface it — draft a new
-  ADR via `governance-extras`' `new-adr` (infra mode); do not silently resolve.
+  ADR via `repo-governance`' `new-adr` (infra mode); do not silently resolve.
 - **Never hardcode a cloud.** The target cloud is always an input; provider,
   backend, and module choices resolve from `references/providers/<cloud>.md`.
 - **Vocabulary firewall at Stage 1 (SPECIFY).** `spec.md` names only generic
@@ -226,7 +226,7 @@ This skill **references** `core`'s depth rather than re-stating it:
   `operational-safety` modules, inlined by the orchestrator
 - IaC/deploy-config misconfiguration review → `core`'s `security-checklists`
   (`config-misconfig` module), mandatory and non-skippable on infra work
-- ADR authoring → `governance-extras`' `new-adr` (infra mode)
+- ADR authoring → `repo-governance`' `new-adr` (infra mode)
 
 ## Reviewers (reused from `core` — zero new agents)
 

@@ -43,7 +43,7 @@ docsUrl: /docs/guides/product-documentation/
 packUrl: /packs/product-documentation/
 relatedJourneys:
   - core
-  - governance-extras
+  - repo-governance
 ---
 
 > **Deprecated.** This journey is preserved so existing `/journeys/user-guide-diataxis/` links continue to resolve. The canonical journey is [product-documentation](../../journeys/product-documentation/).
