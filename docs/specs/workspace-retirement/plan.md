@@ -133,7 +133,7 @@ Owned by: T1
 
 **Done when:** the real-repository record tests pass, and the errata entry carries the Approver's sign-off.
 
-### T5: Wiring and FEAT-0034
+### T5: Wiring, lifecycle memberships, and FEAT-0034
 
 **Depends on:** T3, T4
 
@@ -141,12 +141,28 @@ Owned by: T1
 
 **Tests:**
 - Criteria: AC-0017, AC-0022.
-- With no arguments, `test_workspace_retirement_inventory.py` runs the real-repository check on the checkout as one collected test. A goal-based run adds an unrowed, non-exempt file, `tools/planted_mention.py`, that mentions `workspace.toml` to a scratch clone and confirms the step fails.
 - Add the build-check step "pytest workspace retirement inventory (roster-owned)" next to the brief-lifecycle step. Register it in `tools/lint-ci-parity.py` with `LOCAL("test-after-build-check")`.
 - `python3 tools/lint-ci-parity.py` passes.
+- With no arguments, `test_workspace_retirement_inventory.py` runs the real-repository check on the checkout as collected tests with no skip condition, so a missing or unreadable inventory, record, or brief fails the step with its AC-0001, AC-0010, or input violation. A goal-based run adds an unrowed, non-exempt file, `tools/planted_mention.py`, that mentions `workspace.toml` to a scratch clone and confirms the step fails.
+- Every `docs/specs/<slug>` literal in the new roster test is listed in `.workspace-prune-protected.toml`, and `tests/roster/test_two_sided_prune_closure_invariant.py` passes.
+- While this spec is `Implementing`, its `workspace.toml` entry sits in `work.active` and the parent brief is `Status: Executing` with its entry in `brief_queue.executing`. `lint-brief-coverage.py` passes, and `workspace-status` reports no finding for either path.
 - Answer FEAT-0034's two open questions with links to the `reads_order` rows and the Disposition rows.
 
-**Done when:** the wiring test passes, `lint-ci-parity` passes, and FEAT-0034 § Unresolved questions links both answers.
+**Done when:** the wiring test passes; the real-repository tests collect with no skip condition; the planted-mention run fails the step; `lint-ci-parity`, the prune-closure roster test, and `lint-brief-coverage.py` pass; `workspace-status` reports no finding for the spec or brief path; and FEAT-0034 § Unresolved questions links both answers.
+
+### T6: Legacy entry facts in the record
+
+**Depends on:** T5
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0011, AC-0018.
+- The fact-set function adds the five legacy literals AC-0011's last bullet names, and a fixture record missing the `entry.slug` row reports AC-0011 naming `entry.slug` and nothing else.
+- The real record carries a Disposition row for each of the five, with a Category, Home, and Owner.
+- A legacy key classed `deliberate removal` has its Fact text added to the RFC-0106 errata entry under a fresh Approver sign-off (spec Ask-first) before its row lands.
+
+**Done when:** the fixture test reds before the fact-set change and passes after, the real-repository record test passes, and any text added to the errata entry carries the Approver's sign-off.
 
 ## Rollout
 
@@ -162,3 +178,5 @@ Owned by: T1
 
 - 2026-10-25: spec approved by eugenelim
 - 2026-10-25: plan approved by eugenelim
+- 2026-10-25: spec amendment approved by eugenelim (Never-do rule admits the lifecycle moves the spec's status forces; AC-0011 fact set adds five legacy entry keys)
+- 2026-10-25: plan amendment approved by eugenelim (T5 reopened and rewritten; T6 added)

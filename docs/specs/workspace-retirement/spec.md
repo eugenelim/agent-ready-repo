@@ -1,7 +1,7 @@
 # Spec: Workspace retirement record
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-25 by eugenelim, spec and plan, after spec-mode shaping review clean at commit `afd0f78a1` and adversarial spec review clean at the same commit; review records under `.context/reviews/workspace-retirement-spec/`.
+- **Approved:** 2026-10-25 by eugenelim, spec and plan; re-approved the same day after a controlled amendment (Never-do rule admits forced lifecycle moves; AC-0011 adds five legacy entry keys; T5 reopened; T6 added), clean on spec-mode shaping and adversarial review of the amendment; review records under `.context/reviews/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, the four retirement gates and the one retirement specification), RFC-0106 (D1, its responsibility table and the contracts to amend; D3, where residual facts live), RFC-0055 (errata entries on an Accepted RFC)
@@ -68,7 +68,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Change how any registry reader or writer behaves. This slice records; later slices change behavior.
 - Add a dependency. The check uses the Python 3.11 standard library only, including `tomllib`.
 - Add a top-level directory, or put the inventory anywhere but this spec's directory.
-- Edit `workspace.toml` beyond this spec's own registration entry.
+- Edit `workspace.toml` beyond the lifecycle moves this spec's own status forces, where "forces" means `lint-brief-coverage.py` or `workspace-status`'s canonical reconciliation reports a finding without the move: this spec's own entry moved between collections, and the parent brief's entry moved together with the brief's `Status:` line, in either direction, each with the comment lines that annotate that entry and no other, where they sit directly above the entry or directly above the opening line of the collection that holds it.
 
 ## Testing Strategy
 
@@ -108,7 +108,8 @@ Each criterion from AC-0001 to AC-0016, AC-0019, and AC-0021 is a rule the check
 - [ ] **AC-0011.** § Disposition holds a Markdown table with the columns Fact, Category, Home, Owner, and Authority, and, for each member of the fact set, a row whose Fact text equals it. The fact set is:
   - every property of `contracts/jsonschema/workspace-entry.schema.json` reached through `properties` keys alone, not through `allOf`, `anyOf`, `oneOf`, `if`, `then`, or `not`, written `entry.<property>` for a top-level property and `<definition>.<property>` for a property of a `$defs` member, with nested object properties joined by `.`;
   - every key of this repository's `workspace.toml`, joined by `.`, stopping at a key whose value is an array, with each top-level table whose name matches `ini-[0-9]+` written `<initiative>`;
-  - `entry position`, `spec registration as brief coverage evidence`, and `behavior outside tracked files`.
+  - `entry position`, `spec registration as brief coverage evidence`, and `behavior outside tracked files`;
+  - the legacy entry keys the schema does not reach: `entry.slug`, `entry.intent`, `entry.type`, `entry.source (string form)`, and `entry.needs (string form)`.
 - [ ] **AC-0012.** Every Disposition row has a non-empty Home and a non-empty Owner.
 - [ ] **AC-0013.** Every Disposition row's Category is one of RFC-0105 D3's five: `canonical artifact metadata`, `derived state`, `externally owned projection`, `temporary migration state`, or `deliberate removal`.
 - [ ] **AC-0014.** Every `deliberate removal` row's Authority cell holds one Markdown link that, resolved from the record's own directory, names a file under `docs/rfc/` or `docs/adr/` whose `- **Status:**` leading word is `Accepted`.
