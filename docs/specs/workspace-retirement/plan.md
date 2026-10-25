@@ -1,7 +1,7 @@
 # Plan: Workspace retirement record
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0105 D3.
   - RFC-0106 D1's responsibility table and § Errata.
@@ -159,3 +159,6 @@ Owned by: T1
 - **The check could block unrelated work.** A new mention outside every inventoried skill or spec directory needs one exact row per file. That includes an intent or brief that discusses the registry beyond its source locator. A new spec directory that discusses it costs one directory row. Dropping the last mention from a file, or renaming or deleting it, fails until its row is edited or removed, and each later slice of the brief hits that case. A status change to terminal does not fail the check for an exact row, because an exactly named path stays scanned. Archiving a Shipped spec does fail it: the directory becomes exempt, so its `docs/specs/<feature>/*` row governs nothing until the archiving change deletes that row. The slice that owns a row removes it when that slice ships. Either failure names the file and the inventory path.
 
 ## Changelog
+
+- 2026-10-25: spec approved by eugenelim
+- 2026-10-25: plan approved by eugenelim

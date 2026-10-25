@@ -1,6 +1,7 @@
 # Spec: Workspace retirement record
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-25 by eugenelim, spec and plan, after spec-mode shaping review clean at commit `afd0f78a1` and adversarial spec review clean at the same commit; review records under `.context/reviews/workspace-retirement-spec/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, the four retirement gates and the one retirement specification), RFC-0106 (D1, its responsibility table and the contracts to amend; D3, where residual facts live), RFC-0055 (errata entries on an Accepted RFC)
