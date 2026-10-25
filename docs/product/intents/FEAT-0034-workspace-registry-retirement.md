@@ -53,8 +53,10 @@ eugenelim (owner) settled three questions before decomposition.
 
 ## Unresolved questions
 
-- Whether array order carries priority anywhere beyond the known index-based join and the `next_queue` and `next_shape` suggestions. The consumer inventory settles it.
-- Whether any accepted sibling contract beyond the five RFC-0106 D1 names requires an amendment or superseding authority before its workspace writer or dependency behavior can change. The consumer inventory settles it.
+None open. The [retirement record](../../specs/workspace-retirement/spec.md) answered both questions this intent carried into decomposition on 2026-10-25.
+
+- **Where list order is read.** Seven consumers read registry array order, each marked `reads_order = true` in the [inventory](../../specs/workspace-retirement/inventory.toml): the `workspace-status` skill and its packaged engine copy (`next_queue`, `next_shape`), `work-loop`'s argless first-ready start, the `navigate-intents` readiness bridge, the `workspace-status-next-actions` spec, and two core guides that tell a reader to take the first ready item. The `entry position` row of the record's [Disposition](../../specs/workspace-retirement/retirement-record.md#disposition) removes it under the RFC-0106 errata entry of 2026-10-25.
+- **Which other contracts need amending.** Beyond the five RFC-0106 D1 names, the inventory's `contract` rows name every live artifact that states a current registry rule: further RFCs and ADRs, Shipped and live spec directories, intents, and briefs, each with the brief slice that amends it as its owner.
 
 ## Cascading intent impacts
 

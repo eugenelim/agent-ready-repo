@@ -3,7 +3,9 @@
 
 ``check_repository`` applies the spec's inventory rules (AC-0001 to AC-0009,
 AC-0019, AC-0021) to a repository root and returns every violation tagged with
-its criterion. The record rules (AC-0010 to AC-0016) are applied by ``check_record``. Standard library only; the check reads the
+its criterion. ``check_record`` applies the record rules (AC-0010 to AC-0016),
+and ``workflow_wiring_violations`` checks that build-check runs this file on
+every pull request (AC-0017). Standard library only; the check reads the
 repository and writes nothing.
 """
 
@@ -532,7 +534,9 @@ def _removal_violations(root: Path, record: Path, fact: str, authority: str) -> 
     where = f"Disposition row {fact!r}"
     links = _LINK.findall(authority)
     if len(links) != 1:
-        return [Violation("AC-0014", where, f"Authority holds {len(links)} links, needs exactly one")]
+        return [
+            Violation("AC-0014", where, f"Authority holds {len(links)} links, needs exactly one")
+        ]
     target, _, anchor = links[0].partition("#")
     root_real = root.resolve()
     try:
@@ -597,7 +601,9 @@ def check_record(root: Path, record: Path) -> list[Violation]:
                 f"`##` headings are {[t for _, t in top]}, need {list(_RECORD_HEADINGS)}",
             )
         )
-    disposition = next((at for at, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Disposition"), None)
+    disposition = next(
+        (at for at, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Disposition"), None
+    )
     if disposition is None:
         return violations + [Violation("AC-0011", str(record), "no `## Disposition` section")]
     rows, problem = _disposition_rows(_section(text, heads, disposition))
@@ -616,7 +622,9 @@ def check_record(root: Path, record: Path) -> list[Violation]:
                 violations.append(Violation("AC-0012", where, f"{column} is empty"))
         category = _fact_text(row["Category"])
         if category not in _CATEGORIES:
-            violations.append(Violation("AC-0013", where, f"Category {category!r} is not one of five"))
+            violations.append(
+                Violation("AC-0013", where, f"Category {category!r} is not one of five")
+            )
         if category == "deliberate removal":
             violations += _removal_violations(root, record, fact, row["Authority"])
         if fact == _COVERAGE_FACT and (bad := _coverage_violation(root, row["Home"])) is not None:
@@ -1406,3 +1414,118 @@ def test_ac0016_untracked_path_home(tmp_path: Path) -> None:
 def test_ac0016_nothing_in_backticks_passes(tmp_path: Path) -> None:
     rows = _with(_base_rows(), _COVERAGE_FACT, Home="`nothing`")
     assert _record_check(tmp_path, rows) == []
+
+
+# ---------------------------------------------------------------------------
+# AC-0017: the check runs on every pull request, unconditionally.
+# ---------------------------------------------------------------------------
+
+_WORKFLOW = _REPO / ".github/workflows/build-check.yml"
+_STEP_RUN = "python -m pytest tests/roster/test_workspace_retirement_inventory.py"
+_ROSTER_IF = "!cancelled() && steps.python.conclusion == 'success'"
+
+
+def _indent(line: str) -> int:
+    """Return the count of leading spaces on ``line``."""
+    return len(line) - len(line.lstrip(" "))
+
+
+def workflow_wiring_violations(text: str) -> list[str]:
+    """Return every AC-0017 problem in a workflow's text, read line by line.
+
+    PyYAML is not a standard-library module, so the check reads the block
+    structure from indentation: the ``on:`` block, the job holding the step,
+    and the step's own keys.
+    """
+    lines = text.splitlines()
+    problems: list[str] = []
+    on_at = next((n for n, line in enumerate(lines) if line.rstrip() in ("on:", '"on":')), None)
+    if on_at is None:
+        return ["workflow has no top-level `on:` block"]
+    on_block = []
+    for line in lines[on_at + 1 :]:
+        if line.strip() and _indent(line) == 0:
+            break
+        on_block.append(line)
+    if not any(line.strip() == "pull_request:" for line in on_block):
+        problems.append("workflow does not trigger on pull_request")
+    if any(line.strip().startswith(("paths:", "paths-ignore:")) for line in on_block):
+        problems.append("workflow trigger carries a paths or paths-ignore filter")
+
+    run_at = [n for n, line in enumerate(lines) if line.strip() == f"run: {_STEP_RUN}"]
+    if len(run_at) != 1:
+        return problems + [f"expected one step running `{_STEP_RUN}`, found {len(run_at)}"]
+    run = run_at[0]
+    step_start = next(n for n in range(run, -1, -1) if lines[n].lstrip().startswith("- "))
+    step_indent = _indent(lines[step_start]) + 2
+    step_end = next(
+        (
+            n
+            for n in range(run + 1, len(lines))
+            if lines[n].strip() and _indent(lines[n]) < step_indent
+        ),
+        len(lines),
+    )
+    step = [lines[step_start][: step_indent - 2] + "  " + lines[step_start].lstrip()[2:]]
+    step += lines[step_start + 1 : step_end]
+    keys = {
+        line.strip().split(":", 1)[0]: line.strip().split(":", 1)[1].strip().strip('"')
+        for line in step
+        if _indent(line) == step_indent and ":" in line
+    }
+    if "continue-on-error" in keys:
+        problems.append("the step carries continue-on-error")
+    if "if" in keys and keys["if"] != _ROSTER_IF:
+        problems.append(f"the step's if: is {keys['if']!r}, not the roster condition")
+
+    job_start = next(
+        n
+        for n in range(step_start, -1, -1)
+        if _indent(lines[n]) == 2 and lines[n].rstrip().endswith(":")
+    )
+    for line in lines[job_start + 1 : step_start]:
+        if _indent(line) == 4 and line.strip().startswith("continue-on-error:"):
+            problems.append("the step's job carries continue-on-error")
+        if _indent(line) == 4 and line.strip().startswith("if:"):
+            problems.append("the step's job carries an if:")
+    return problems
+
+
+def test_ac0017_real_workflow_runs_the_check_on_every_pull_request() -> None:
+    assert workflow_wiring_violations(_WORKFLOW.read_text(encoding="utf-8")) == []
+
+
+_GOOD_WORKFLOW = f"""on:
+  pull_request:
+    branches: [main]
+jobs:
+  gate-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: other
+        run: echo hi
+      - name: pytest workspace retirement inventory (roster-owned)
+        if: "{_ROSTER_IF}"
+        run: {_STEP_RUN}
+"""
+
+
+@pytest.mark.parametrize(
+    ("change", "problem"),
+    [
+        (("  pull_request:\n", "  push:\n"), "pull_request"),
+        (("    branches: [main]\n", "    paths: [docs/**]\n"), "paths"),
+        (("    runs-on:", "    if: false\n    runs-on:"), "job carries an if"),
+        ((f'if: "{_ROSTER_IF}"', "if: false"), "not the roster condition"),
+        (
+            (f"run: {_STEP_RUN}\n", f"run: {_STEP_RUN}\n        continue-on-error: true\n"),
+            "continue-on-error",
+        ),
+        ((f"run: {_STEP_RUN}\n", "run: true\n"), "expected one step"),
+    ],
+)
+def test_ac0017_wiring_rules(change: tuple[str, str], problem: str) -> None:
+    assert workflow_wiring_violations(_GOOD_WORKFLOW) == []
+    broken = _GOOD_WORKFLOW.replace(*change)
+    found = workflow_wiring_violations(broken)
+    assert len(found) == 1 and problem in found[0], found
