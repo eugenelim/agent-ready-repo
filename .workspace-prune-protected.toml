@@ -58,6 +58,8 @@ protected = [
   "docs/specs/exact",
   "docs/specs/example",
   "docs/specs/execution-supervisor-core",
+  "docs/specs/f",
+  "docs/specs/feat",
   "docs/specs/file",
   "docs/specs/foo",
   "docs/specs/foo-bar",
@@ -86,6 +88,7 @@ protected = [
   "docs/specs/not-a-real-spec",
   "docs/specs/not-chosen",
   "docs/specs/ok",
+  "docs/specs/old",
   "docs/specs/old-alpha",
   "docs/specs/open",
   "docs/specs/other",
@@ -124,5 +127,6 @@ protected = [
   "docs/specs/verification-ledger",
   "docs/specs/work-intake-migration-docs",
   "docs/specs/work-item-capture",
+  "docs/specs/workspace-retirement",
   "docs/specs/x",
 ]

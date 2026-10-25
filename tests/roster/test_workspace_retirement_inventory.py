@@ -763,6 +763,16 @@ def test_ac0001_missing_inventory(tmp_path: Path) -> None:
     _only(found, "AC-0001")
 
 
+def test_input_missing_brief(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+    inventory = tmp_path / "inventory.toml"
+    inventory.write_text(_render_inventory(_BASE_ROWS), encoding="utf-8")
+    found = check_inventory(root, inventory, tmp_path / "nope-brief.md")
+    assert "INPUT" in _tags(found), [str(v) for v in found]
+
+
 def test_ac0001_empty_consumer(tmp_path: Path) -> None:
     rows = [_row("notes.txt", "guide", consumer="")]
     _only(_run(tmp_path, {"notes.txt": _MENTION}, rows), "AC-0001")
@@ -1083,29 +1093,17 @@ def test_terminal_sets_come_from_closure_terminality() -> None:
     assert module.is_brief_terminal("Shipped")
 
 
-@pytest.mark.skipif(
-    not (DEFAULT_INVENTORY.exists() and DEFAULT_RECORD.exists()),
-    reason="expected to fail until T3 and T4 create the inventory and the record",
-)
 def test_real_repository_passes_every_rule() -> None:
     """AC-0018 / AC-0022: the same check on this checkout, no arguments."""
     found = check_repository()
     assert found == [], "\n".join(str(v) for v in found)
 
 
-@pytest.mark.skipif(
-    not DEFAULT_RECORD.exists(),
-    reason="expected to fail until T4 creates docs/specs/workspace-retirement/retirement-record.md",
-)
 def test_real_record_passes_the_record_rules() -> None:
     found = check_record(_REPO, DEFAULT_RECORD)
     assert found == [], "\n".join(str(v) for v in found)
 
 
-@pytest.mark.skipif(
-    not DEFAULT_INVENTORY.exists(),
-    reason="expected to fail until T3 creates docs/specs/workspace-retirement/inventory.toml",
-)
 def test_real_inventory_passes_the_inventory_rules() -> None:
     found = check_inventory(_REPO, DEFAULT_INVENTORY, DEFAULT_BRIEF)
     assert found == [], "\n".join(str(v) for v in found)
