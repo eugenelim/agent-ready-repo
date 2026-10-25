@@ -81,12 +81,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 Terms used below:
 
 - **Mention.** A line that contains `workspace.toml`, `workspace-status`, or `workspace_status`.
-- **Exempt path.** A typed file whose status is terminal; a file at any depth under a `docs/specs/<feature>/` directory whose `spec.md` status is terminal; or a typed file, or a file at any depth under a `docs/specs/<feature>/` directory, in which every mention is a provenance line. A provenance line matches `^\s*-\s*(\*\*)?Locator:(\*\*)?\s`. A path that a row's `pattern` names exactly is never exempt.
+- **Exempt path.** A brief whose status is terminal; a file at any depth under a `docs/specs/<feature>/` directory whose `spec.md` status is `Archived`; or a typed file, or a file at any depth under a `docs/specs/<feature>/` directory, in which every mention is a provenance line. A provenance line matches `^\s*-\s*(\*\*)?Locator:(\*\*)?\s`. A path that a row's `pattern` names exactly is never exempt. A Shipped spec's directory and a finished intent are not exempt, because each can still state a current registry rule.
 - **Scanned set.** Every path `git ls-files` lists whose bytes decode as UTF-8, that holds a mention, and that is not an exempt path.
 - **Governing row.** For a path, the first row in `inventory.toml` file order whose `pattern` matches the path under `fnmatch.fnmatchcase`.
 - **Typed file.** A path matching `docs/product/intents/*.md` is an intent, `docs/product/briefs/*.md` a brief, and `docs/specs/*/spec.md` a spec. Its status is the leading word of its first `- **Status:**` line.
 - **Classes.** `reader`, `writer`, `projection`, `fixture`, `seed`, `guide`, and `promise` are RFC-0105 D3 gate 1's consumer kinds. `contract` is a governance record or live artifact that states a current registry rule, and `workspace.toml` itself. `record` is a file in this spec's own directory. `historical` is a frozen record outside the exempt paths that states no current rule, such as a package changelog or an Accepted RFC that only cites the registry.
 - **Skill directory.** A directory that holds a `SKILL.md`; a directory under `.claude/` or `.agents/` with the same final segment as one; or `packs/<pack>/tests/skills/<skill>` where `packs/<pack>/.apm/skills/<skill>` is one.
+- **Spec directory.** A `docs/specs/<feature>` directory that holds a `spec.md`.
 - **Fact text.** A Fact cell or a section's text with backtick code-span markers removed.
 - **Slice numbers.** The numbers of the numbered items under the brief's `## Delivery slices` heading.
 
@@ -96,11 +97,11 @@ Each criterion from AC-0001 to AC-0016, AC-0019, and AC-0021 is a rule the check
 - [ ] **AC-0002.** Every row's `class` is one of the ten classes.
 - [ ] **AC-0003.** Every row's `owner` is a slice number, or the string `none`. Only `historical` and `record` rows may carry `none`.
 - [ ] **AC-0004.** Every path in the scanned set has a governing row.
-- [ ] **AC-0005.** A row whose `pattern` holds `*`, `?`, or `[` has a `pattern` of the form `<prefix>/*`, where `<prefix>` holds no wildcard character and is a skill directory, and a `class` other than `historical` and `record`. Every other row's `pattern` is an exact path.
+- [ ] **AC-0005.** A row whose `pattern` holds `*`, `?`, or `[` has a `pattern` of the form `<prefix>/*`, where `<prefix>` holds no wildcard character and is either a skill directory, with a `class` other than `historical` and `record`, or a spec directory, with a `class` of `contract` or `historical`. Every other row's `pattern` is an exact path.
 - [ ] **AC-0019.** Every `record` row's `pattern` starts with `docs/specs/workspace-retirement/`.
 - [ ] **AC-0006.** Every row is the governing row of at least one path in the scanned set.
 - [ ] **AC-0007.** Every `projection` row carries a `source` string equal to the `pattern` of a row that is not `projection`. Every path in the scanned set that starts with `.claude/` or `.agents/` has a `projection` governing row.
-- [ ] **AC-0008.** No typed file whose governing row is `historical` has a status outside its type's terminal set, as `close-work`'s `closure_terminality` decides it. A typed file with no `- **Status:**` line under a `historical` row also fails.
+- [ ] **AC-0008.** No path whose governing row is `historical` is a typed file with a status outside its type's terminal set, as `close-work`'s `closure_terminality` decides it, or a file under a spec directory whose `spec.md` status is outside the spec terminal set. A typed file with no `- **Status:**` line under a `historical` row also fails.
 - [ ] **AC-0009.** The governing row of `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py` has a `consumer` containing `readiness bridge`.
 - [ ] **AC-0010.** `retirement-record.md` has exactly four `##` headings, in this order: `Disposition`, `Equivalence`, `Compatibility closure`, `Certification`.
 - [ ] **AC-0011.** § Disposition holds a Markdown table with the columns Fact, Category, Home, Owner, and Authority, and, for each member of the fact set, a row whose Fact text equals it. The fact set is:
@@ -114,7 +115,7 @@ Each criterion from AC-0001 to AC-0016, AC-0019, and AC-0021 is a rule the check
 - [ ] **AC-0016.** The Home cell of the `spec registration as brief coverage evidence` row names at least one path, resolved from the repository root, that `git ls-files` lists, or is exactly `nothing`.
 - [ ] **AC-0017.** `.github/workflows/build-check.yml` triggers on `pull_request`, and holds a step that runs `python -m pytest tests/roster/test_workspace_retirement_inventory.py`. Neither the step nor its job carries `continue-on-error:`. The job carries no `if:`, and the step's `if:`, when present, is exactly `!cancelled() && steps.python.conclusion == 'success'`, the condition its neighbouring roster steps use. The workflow carries no `paths` or `paths-ignore` filter.
 - [ ] **AC-0021.** The governing row of each contract RFC-0106 D1 names is a `contract` row: `docs/rfc/0064-ini-001-ai-native-ecosystem.md`, `docs/product/AGENTS.md`, `docs/product/intents/FEAT-0005-lifecycle-and-closure.md`, `docs/product/intents/FEAT-0001-intent-identity-and-registration.md`, and `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`.
-- [ ] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, and AC-0021 to the checked-out repository on every run. On a checkout where one tracked file that no row governs mentions `workspace.toml`, that step fails.
+- [ ] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, and AC-0021 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
 - [ ] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, and AC-0021.
 
 ## Follow-ons
