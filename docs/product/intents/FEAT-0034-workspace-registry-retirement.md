@@ -8,8 +8,8 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:workspace-coordination-reorganization
 - **De-risked:** 2026-10-08
-- **Shaping-reviewed:** 2026-10-08
-- **Decomposed:** no
+- **Shaping-reviewed:** 2026-10-25
+- **Decomposed:** 2026-10-25 brief
 
 ## Outcome
 
@@ -43,13 +43,18 @@ The feature must preserve the parent's two inherited constraints: any replacemen
 
 - Platform Core maintainer. Accountable for the inventory, per-fact decisions, equivalence evidence, and certification that all four retirement gates passed.
 
+## Owner decisions, 2026-10-25
+
+eugenelim (owner) settled three questions before decomposition.
+
+1. **Priority is an optional header field on the item.** An item with no priority field has no priority. The field exists so a sync to a delivery tracker can send this repository's own priority. It never decides readiness, dispatch, or order of work. This applies [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D3. A dependency stays `Depends on:` on the waiting item, under the same decision.
+2. **No compatibility seam.** After its replacement ships, no shipped skill other than the repair reads the old `workspace.toml` shape. A reader may still refuse unmigrated content and name the repair, so blocking never lapses. Adopters upgrade by running the repair in a session, which moves their registry content into headers and per-item files. That repair is how RFC-0105 D3's fourth gate closes for legacy entries. Behavior that lives only outside tracked files is not carried over. Each such removal still needs accepted authority under RFC-0105 D3, recorded in the retirement spec. Upgrade notes are the notice, not the authority.
+3. **`workspace-status` shrinks to the repair, then retires.** Its orientation job moves to `navigate-intents`, and its dispatch job moves to `work-loop`. The repair stays as long as adopters need it. A later release retires the skill name cleanly under RFC-0067.
+
 ## Unresolved questions
 
-- Which accepted artifact or external projection owns human priority and dependency choices after the registry retires. [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D3 answers it: a dependency is `Depends on:` on the waiting item, and any human priority is a header field on the item.
-- Whether any external adopter depends on behavior not visible in tracked repository files.
-- Whether array order carries priority anywhere beyond the known index-based join and `next_queue` projection.
-- Which legacy records require a temporary compatibility seam, and what evidence closes it.
-- Which accepted sibling contracts require an amendment or superseding authority before their workspace writer or dependency behavior can change.
+- Whether array order carries priority anywhere beyond the known index-based join and the `next_queue` and `next_shape` suggestions. The consumer inventory settles it.
+- Whether any accepted sibling contract beyond the five RFC-0106 D1 names requires an amendment or superseding authority before its workspace writer or dependency behavior can change. The consumer inventory settles it.
 
 ## Cascading intent impacts
 
@@ -59,7 +64,7 @@ This retirement changes the future owner of coordination behavior; it does not m
 - [Intent identity and registration](FEAT-0001-intent-identity-and-registration.md) currently renames an intent and its workspace path reference together. That lockstep write remains required during compatibility, then disappears only when the registry path ceases to be operative.
 - [Single-ladder migration](FEAT-0004-single-ladder-migration.md) depends on initiative-free registration today. Its end state must instead use canonical intent parentage and artifact lifecycle, with any workspace registration treated as transitional compatibility rather than the new ladder's authority.
 - [Lifecycle and closure](FEAT-0005-lifecycle-and-closure.md) is Accepted and currently assigns a terminal registration move to `close-work`. This feature cannot silently rewrite that contract. The retirement specification must preserve the writer during compatibility, then cite accepted authority for its amendment or removal when canonical lifecycle no longer needs a workspace collection move.
-- [External tracker projection](CAP-0004-external-tracker-projection.md) and its children consume dependency, priority, and observation state that may currently be joined through workspace entries. State disposition must name the canonical or external owner before the registry stops supplying those joins.
+- [External tracker projection](CAP-0004-external-tracker-projection.md) and its children consume dependency, priority, and observation state that may currently be joined through workspace entries. State disposition must name the canonical or external owner before the registry stops supplying those joins. Under the 2026-10-25 owner decisions, a sync reads priority from the item's optional priority field and dependencies from `Depends on:`.
 
 Frozen records and completed intents that name `workspace.toml` only as their historical source remain unchanged. Operative guides, routes, manifests, tests, and current intent contracts move only when the four retirement gates prove their replacement.
 
@@ -237,11 +242,32 @@ The specification this intent decomposes into owns the comparison's implementati
 
 ## Shaping review
 
-The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`, the text before this binding note. Adding the note is nonmaterial.
+The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`. A third isolated intent-mode review completed cleanly on 2026-10-25 after the owner decisions and the decomposition were added, at git blob `3e1458113de342b7a1b16d434b451ef484dfc33b`, the text before this sentence. Adding these binding sentences is nonmaterial.
 
 ## Decomposition
 
-None yet. The bet survived `de-risk-intent` on 2026-10-08; `decompose-intent` is next and must carry the constraints in the De-risk record.
+**2026-10-25, eugenelim (owner): one coordinating brief, [`workspace-registry-retirement-delivery`](../briefs/workspace-registry-retirement-delivery.md).** The brief owns the proposed slices, their order, and their confirmation. This section records why the cut has this shape.
+
+### Why a brief and not one spec
+
+RFC-0105 D3 asks for one retirement specification holding the inventory, the disposition record, the equivalence evidence, and the closure checklist. That record is one slice. The work it governs is not. Each residual fact class (dependency edges, captured items, priority) ships and tests on its own. Each registry writer stops in its own release, once the contract that requires it is amended (C5). One spec would bundle several one-way doors into one change.
+
+### How the cut is shaped
+
+- **By fact class, then by writer.** The fact-class slices come first: dependency edges on the waiting item (C1), captured items in their own files with shaping-item routing (C2), the priority field, and removal of the first-in-list suggestions (C3). Each ships with its replacement in place. The writer slices follow, one per artifact type: intents and briefs, then spec dispatch. `close-work`'s collection moves stop with each type's registration, as RFC-0106 D1 requires, so closure has no slice of its own. A type's writer stops only after every responsibility its entries feed has a replacement, under RFC-0106 D1. Dispatch goes last because it is the only switch with no desk evidence yet.
+- **Each slice adds its step to the repair.** No compatibility seam means the repair is the migration. A slice that moves a fact class also adds that move to the repair and runs it on this repository first. There is no separate migration slice to drift from the readers.
+- **Blocking moves in one step.** The dependency slice switches the canonical reconciliation from `needs` to `Depends on:` and carries the blocking equivalence cases. Unmigrated `needs` content makes it refuse and name the repair, so a dependency never lapses between slices.
+- **The registry comparison is its own slice.** The two-week trial in § Validation hook needs it before any registration stops.
+- **Deletion is the last slice.** It waits for the trial and the dispatch replay to pass, and for every operative reference, seed, and manifest to be moved.
+
+### Branches considered and dropped
+
+- **A standalone migration tool slice.** Dropped. Under the no-seam decision it would duplicate each fact class's reader, and one of the two would drift.
+- **Folding suggestion removal (C3) into the dispatch slice.** Dropped. RFC-0106 D1 lists suggestions as fed by intent and brief entries, so intent and brief registration could not stop until dispatch shipped.
+- **Removing the `navigate-intents` readiness bridge here.** Dropped. The bridge is `navigate-intents`' behavior, which this intent does not own. The readiness hand-over spec gives its re-pointing to that owner, in the release where dispatch moves.
+- **A tracker-projection slice for priority.** Not cut here. This intent defines the field and its reader. [External tracker projection](CAP-0004-external-tracker-projection.md) owns reading it during a sync.
+
+No ranking step applies, because dependencies already order the slices. No tracker projection is selected.
 
 ## Source
 

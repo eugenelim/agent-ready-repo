@@ -2402,7 +2402,9 @@ executing = [
 # `intent-identity-and-registration`; it consumes whichever form has landed.
 ready = [
 ]
-draft = []
+draft = [
+  { path = "docs/product/briefs/workspace-registry-retirement-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0034-workspace-registry-retirement.md" }, summary = "Coordinate repository work from the artifacts themselves: move dependencies, captured items, and priority into headers and per-item files, stop each registry writer with its contract amendment, and retire workspace.toml", needs = [] },
+]
 # Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
 # the brief's `Status: Shipped` and `Cut-closed:` record.
 shipped = [
