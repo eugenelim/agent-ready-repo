@@ -2,7 +2,7 @@
 
 ## Disposition
 
-Each fact the registry holds has one row: where it lives after retirement, who owns the move, and, for a removal, the accepted authority. The fact set is computed from `contracts/jsonschema/workspace-entry.schema.json`, `workspace.toml`, and three named behaviors. Owner is the slice of the [delivery brief](../../product/briefs/workspace-registry-retirement-delivery.md) that finishes the move.
+Each fact the registry holds has one row: where it lives after retirement, who owns the move, and, for a removal, the accepted authority. The fact set is the one [AC-0011](spec.md) defines: the entry schema's properties, the registry's keys, three named behaviors, and five legacy entry keys the schema does not reach. Owner is the slice of the [delivery brief](../../product/briefs/workspace-registry-retirement-delivery.md) that finishes the move.
 
 | Fact | Category | Home | Owner | Authority |
 | --- | --- | --- | --- | --- |

@@ -94,31 +94,31 @@ Terms used below:
 
 Each criterion from AC-0001 to AC-0016, AC-0019, and AC-0021 is a rule the check enforces: given an input that breaks it, the check fails and names the offending path, row, or fact.
 
-- [ ] **AC-0001.** `inventory.toml` parses with `tomllib` and holds a non-empty array of tables named `row`. Each row has a non-empty string `pattern`, a `class`, a non-empty string `consumer`, and an `owner`. A row may carry a boolean `reads_order`.
-- [ ] **AC-0002.** Every row's `class` is one of the ten classes.
-- [ ] **AC-0003.** Every row's `owner` is a slice number, or the string `none`. Only `historical` and `record` rows may carry `none`.
-- [ ] **AC-0004.** Every path in the scanned set has a governing row.
-- [ ] **AC-0005.** A row whose `pattern` holds `*`, `?`, or `[` has a `pattern` of the form `<prefix>/*`, where `<prefix>` holds no wildcard character and is either a skill directory, with a `class` other than `historical` and `record`, or a spec directory, with a `class` of `contract` or `historical`. Every other row's `pattern` is an exact path.
-- [ ] **AC-0019.** Every `record` row's `pattern` starts with `docs/specs/workspace-retirement/`.
-- [ ] **AC-0006.** Every row is the governing row of at least one path in the scanned set.
-- [ ] **AC-0007.** Every `projection` row carries a `source` string equal to the `pattern` of a row that is not `projection`. Every path in the scanned set that starts with `.claude/` or `.agents/` has a `projection` governing row.
-- [ ] **AC-0008.** No path whose governing row is `historical` is a typed file with a status outside its type's terminal set, as `close-work`'s `closure_terminality` decides it, or a file under a spec directory whose `spec.md` status is outside the spec terminal set. A typed file with no `- **Status:**` line under a `historical` row also fails.
-- [ ] **AC-0009.** The governing row of `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py` has a `consumer` containing `readiness bridge`.
-- [ ] **AC-0010.** `retirement-record.md` has exactly four `##` headings, in this order: `Disposition`, `Equivalence`, `Compatibility closure`, `Certification`.
-- [ ] **AC-0011.** § Disposition holds a Markdown table with the columns Fact, Category, Home, Owner, and Authority, and, for each member of the fact set, a row whose Fact text equals it. The fact set is:
+- [x] **AC-0001.** `inventory.toml` parses with `tomllib` and holds a non-empty array of tables named `row`. Each row has a non-empty string `pattern`, a `class`, a non-empty string `consumer`, and an `owner`. A row may carry a boolean `reads_order`.
+- [x] **AC-0002.** Every row's `class` is one of the ten classes.
+- [x] **AC-0003.** Every row's `owner` is a slice number, or the string `none`. Only `historical` and `record` rows may carry `none`.
+- [x] **AC-0004.** Every path in the scanned set has a governing row.
+- [x] **AC-0005.** A row whose `pattern` holds `*`, `?`, or `[` has a `pattern` of the form `<prefix>/*`, where `<prefix>` holds no wildcard character and is either a skill directory, with a `class` other than `historical` and `record`, or a spec directory, with a `class` of `contract` or `historical`. Every other row's `pattern` is an exact path.
+- [x] **AC-0019.** Every `record` row's `pattern` starts with `docs/specs/workspace-retirement/`.
+- [x] **AC-0006.** Every row is the governing row of at least one path in the scanned set.
+- [x] **AC-0007.** Every `projection` row carries a `source` string equal to the `pattern` of a row that is not `projection`. Every path in the scanned set that starts with `.claude/` or `.agents/` has a `projection` governing row.
+- [x] **AC-0008.** No path whose governing row is `historical` is a typed file with a status outside its type's terminal set, as `close-work`'s `closure_terminality` decides it, or a file under a spec directory whose `spec.md` status is outside the spec terminal set. A typed file with no `- **Status:**` line under a `historical` row also fails.
+- [x] **AC-0009.** The governing row of `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py` has a `consumer` containing `readiness bridge`.
+- [x] **AC-0010.** `retirement-record.md` has exactly four `##` headings, in this order: `Disposition`, `Equivalence`, `Compatibility closure`, `Certification`.
+- [x] **AC-0011.** § Disposition holds a Markdown table with the columns Fact, Category, Home, Owner, and Authority, and, for each member of the fact set, a row whose Fact text equals it. The fact set is:
   - every property of `contracts/jsonschema/workspace-entry.schema.json` reached through `properties` keys alone, not through `allOf`, `anyOf`, `oneOf`, `if`, `then`, or `not`, written `entry.<property>` for a top-level property and `<definition>.<property>` for a property of a `$defs` member, with nested object properties joined by `.`;
   - every key of this repository's `workspace.toml`, joined by `.`, stopping at a key whose value is an array, with each top-level table whose name matches `ini-[0-9]+` written `<initiative>`;
   - `entry position`, `spec registration as brief coverage evidence`, and `behavior outside tracked files`;
   - the legacy entry keys the schema does not reach: `entry.slug`, `entry.intent`, `entry.type`, `entry.source (string form)`, and `entry.needs (string form)`.
-- [ ] **AC-0012.** Every Disposition row has a non-empty Home and a non-empty Owner.
-- [ ] **AC-0013.** Every Disposition row's Category is one of RFC-0105 D3's five: `canonical artifact metadata`, `derived state`, `externally owned projection`, `temporary migration state`, or `deliberate removal`.
-- [ ] **AC-0014.** Every `deliberate removal` row's Authority cell holds one Markdown link that, resolved from the record's own directory, names a file under `docs/rfc/` or `docs/adr/` whose `- **Status:**` leading word is `Accepted`.
-- [ ] **AC-0015.** That link's anchor equals the GitHub heading slug of a heading in the target file, and the row's Fact text appears in the Fact text of the section under that heading, up to the next heading of the same or a higher level.
-- [ ] **AC-0016.** The Home cell of the `spec registration as brief coverage evidence` row names at least one path, resolved from the repository root, that `git ls-files` lists, or is exactly `nothing`.
-- [ ] **AC-0017.** `.github/workflows/build-check.yml` triggers on `pull_request`, and holds a step that runs `python -m pytest tests/roster/test_workspace_retirement_inventory.py`. Neither the step nor its job carries `continue-on-error:`. The job carries no `if:`, and the step's `if:`, when present, is exactly `!cancelled() && steps.python.conclusion == 'success'`, the condition its neighbouring roster steps use. The workflow carries no `paths` or `paths-ignore` filter.
-- [ ] **AC-0021.** The governing row of each contract RFC-0106 D1 names is a `contract` row: `docs/rfc/0064-ini-001-ai-native-ecosystem.md`, `docs/product/AGENTS.md`, `docs/product/intents/FEAT-0005-lifecycle-and-closure.md`, `docs/product/intents/FEAT-0001-intent-identity-and-registration.md`, and `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`.
-- [ ] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, and AC-0021 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
-- [ ] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, and AC-0021.
+- [x] **AC-0012.** Every Disposition row has a non-empty Home and a non-empty Owner.
+- [x] **AC-0013.** Every Disposition row's Category is one of RFC-0105 D3's five: `canonical artifact metadata`, `derived state`, `externally owned projection`, `temporary migration state`, or `deliberate removal`.
+- [x] **AC-0014.** Every `deliberate removal` row's Authority cell holds one Markdown link that, resolved from the record's own directory, names a file under `docs/rfc/` or `docs/adr/` whose `- **Status:**` leading word is `Accepted`.
+- [x] **AC-0015.** That link's anchor equals the GitHub heading slug of a heading in the target file, and the row's Fact text appears in the Fact text of the section under that heading, up to the next heading of the same or a higher level.
+- [x] **AC-0016.** The Home cell of the `spec registration as brief coverage evidence` row names at least one path, resolved from the repository root, that `git ls-files` lists, or is exactly `nothing`.
+- [x] **AC-0017.** `.github/workflows/build-check.yml` triggers on `pull_request`, and holds a step that runs `python -m pytest tests/roster/test_workspace_retirement_inventory.py`. Neither the step nor its job carries `continue-on-error:`. The job carries no `if:`, and the step's `if:`, when present, is exactly `!cancelled() && steps.python.conclusion == 'success'`, the condition its neighbouring roster steps use. The workflow carries no `paths` or `paths-ignore` filter.
+- [x] **AC-0021.** The governing row of each contract RFC-0106 D1 names is a `contract` row: `docs/rfc/0064-ini-001-ai-native-ecosystem.md`, `docs/product/AGENTS.md`, `docs/product/intents/FEAT-0005-lifecycle-and-closure.md`, `docs/product/intents/FEAT-0001-intent-identity-and-registration.md`, and `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`.
+- [x] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, and AC-0021 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
+- [x] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, and AC-0021.
 
 ## Follow-ons
 
