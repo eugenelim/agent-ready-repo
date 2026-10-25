@@ -23,7 +23,7 @@
 
 ## Outcome
 
-The Platform Core maintainer gets one record that names every operative consumer of `workspace.toml` and `workspace-status`, and the home of every fact the registry holds, as RFC-0105 D3's first two gates require. Success is that a pull request fails its own check when it adds a registry mention that is neither in a finished intent, brief, or spec nor a source locator, in a file no inventory row names, or when it adds a registry fact with no named home.
+The Platform Core maintainer gets one record that names every operative consumer of `workspace.toml` and `workspace-status`, and the home of every fact the registry holds, as RFC-0105 D3's first two gates require. Success is that a pull request fails its own check when it adds a registry mention that is neither in a finished brief or an Archived spec nor a source locator, in a file no inventory row names, or when it adds a registry fact with no named home.
 
 ## What Changes
 
@@ -52,7 +52,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Always do
 
-- Give each consumer the narrowest row AC-0005 allows. A row that names a whole skill directory is the widest a live consumer gets.
+- Give each consumer the narrowest row AC-0005 allows. A row that names a whole skill or spec directory is the widest a consumer gets.
 - Run the inventory check locally before pushing a change to the inventory or the record.
 - Link a removal row only to a section that already names its Fact. The RFC-0106 errata entry follows Ask-first.
 
