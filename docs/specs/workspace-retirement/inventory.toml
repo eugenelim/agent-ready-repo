@@ -2660,6 +2660,12 @@ consumer = "completion receipts that satisfy dependency edges in the workspace-s
 owner = 2
 
 [[row]]
+pattern = "docs/specs/depends-on-headers/*"
+class = "contract"
+consumer = "Depends on: header edges on the waiting item, the unmigrated needs refusal, and the needs-to-header repair"
+owner = 2
+
+[[row]]
 pattern = "docs/specs/design-handoff-read/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
