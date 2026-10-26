@@ -175,7 +175,7 @@ skill, except the rename.
 | --- | --- |
 | `repo-governance-rename` | Shipped |
 | `navigate-decisions-route` | Shipped |
-| `navigate-decisions-health` | Draft |
+| `navigate-decisions-health` | Shipped |
 | `new-rfc-governance` | Draft |
 
 ## Governance references (optional)

@@ -1,7 +1,7 @@
 # Plan: navigate-decisions health mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness rule, pack-test boundary, UTF-8 stream rule); `docs/specs/decision-navigation/spec.md` fixes `decision-navigation.query.v1` at five operations, so `health` is a sibling subcommand like `export`; `navigate_decisions.py` `_admit_corpus` and `_parse_record_text` are the corpus path health reuses; `packs/repo-governance/tests/skills/navigate-decisions/test_query_contract.py` (module loaded by unique name) and `test_skill_instructions.py` (section-sliced content pins) are the construction paths; `docs/specs/navigate-decisions-route/notes/verification-ledger.md` is the activation and behaviour-run precedent. Uncertainty: whether a fourth mode in the description holds the trigger rate, which only T6 can show.
 
 > **Plan contract:** this is the implementation strategy. It may change

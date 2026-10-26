@@ -1,6 +1,6 @@
 # Spec: navigate-decisions health mode
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0110 (with its 2026-10-25 errata)
@@ -180,76 +180,76 @@ Terms used below:
 
 ### The health command
 
-- [ ] **AC-0001.** The health result carries `schema` `decision-navigation.health.v1`, `status` `ok`, today as `YYYY-MM-DD`, and the count of accepted ADRs.
-- [ ] **AC-0002.** `query --operation` accepts exactly `summary`, `search`, `record`, `lineage` and `context`, and a `decision-navigation.query.v1` request whose operation is `health` is refused with code `unknown_operation`.
-- [ ] **AC-0003.** When corpus admission fails, the health result carries `status` `error` with the same error code `query` reports for that corpus, and no findings.
-- [ ] **AC-0004.** A `--today` value that is not a real `YYYY-MM-DD` date yields `status` `error` with code `invalid_today` and no findings.
-- [ ] **AC-0005.** The health result lists every accepted ADR exactly once with its trigger class, and lists no ADR that is not accepted.
-- [ ] **AC-0006.** Each `due` item names its ADR, the passed date mentions in its trigger text, and the cleaned excerpt of its trigger text.
-- [ ] **AC-0007.** A date mention whose last day is today is not passed, and one whose last day is the day before today is passed.
-- [ ] **AC-0008.** Each form of date mention in the Terms is recognised, and a digit run joined to a letter, digit, `_` or `-`, such as `ADR-2024` or `20261`, is not a date mention.
-- [ ] **AC-0009.** Each `version` item names its ADR and the version mentions in its trigger text, and `gemini-2.5-flash-lite` and `D1.2` hold no version mention.
-- [ ] **AC-0010.** The trigger text comes only from the `Consequences` section. A `Revisit if:` line in any other section does not change an ADR's trigger class.
-- [ ] **AC-0011.** A trigger in the blank-line-then-list form, and one that wraps over several lines, are each read whole, so a date on a later line makes the ADR `due`.
-- [ ] **AC-0012.** Each header citation is listed once with the superseded ADR, its successors and the citing record.
-- [ ] **AC-0013.** A superseded ADR's identifier in a citing record's body, in a successor's header, in a `Supersedes` or `Supersedes in part` field, or in a header that also names a successor, yields no header citation.
-- [ ] **AC-0014.** Each path candidate with probe result `missing` is listed once as a signal item with its ADR.
-- [ ] **AC-0015.** No path candidate with probe result `present` is listed as missing or invalid.
-- [ ] **AC-0016.** Each path candidate with probe result `invalid` is listed once with its ADR and its cleaned form, and never as missing.
-- [ ] **AC-0017.** A candidate through a symbolic link is `invalid`, including a link whose target does not exist and a link whose target is inside the repository.
-- [ ] **AC-0018.** A backtick candidate that starts with `/`, `~` or a drive letter, holds `\` or a control character, or has a `..` segment, is `invalid`, including when the file it would name exists.
-- [ ] **AC-0019.** A Markdown link target is resolved from the ADR's directory, so `0001-notes/data.md` in `docs/adr/0001-x.md` is probed as `docs/adr/0001-notes/data.md`, `../rfc/0001-y.md` is probed as `docs/rfc/0001-y.md`, and `../../../outside.md` is `invalid`.
-- [ ] **AC-0020.** The repository root, and each directory on a rooted candidate's path, is checked by the co-located `file_safety.py`'s `validate_confined_directory`, and accepted by it, before any entry inside it is inspected. A refusal makes the candidate `invalid`.
-- [ ] **AC-0021.** The health command opens, executes, imports or reads no path candidate.
-- [ ] **AC-0047.** No filesystem call during probing names a candidate that is invalid by the lexical rule or leaves the repository root, including the backtick spans `/etc/passwd`, `//host/share/x.md` and `../../outside.md` and the link target `../../../outside.md` in `docs/adr/`. Every path the probe inspects for a candidate, or passes to the confinement helper, is the repository root joined with a prefix of the checked form's segments. Only the helper's own resolution of the root and the root's ancestors is outside this rule.
-- [ ] **AC-0048.** A component whose inspection fails with a permission error or a name-too-long error is reported `invalid`, never `missing` or `present`.
-- [ ] **AC-0052.** The health command opens no file for writing, appending or creating, anywhere on the filesystem.
-- [ ] **AC-0045.** A FIFO named as a signal path is reported `invalid`, and the health command returns.
-- [ ] **AC-0022.** The health result gives the count of unlocated signal items and of present signal items, and lists no unlocated item as missing or invalid.
-- [ ] **AC-0023.** The health result gives the count of accepted ADRs with no `Confirmation` section, and their identifiers.
-- [ ] **AC-0024.** No reported text holds a character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs` in any channel the health command writes: the stdout result, including its `error` object, and stderr.
-- [ ] **AC-0046.** No reported text in the health result, title and path included, is longer than 161 code points, and no missing path is cut.
-- [ ] **AC-0050.** When the UTF-8 bytes of the health result as printed on stdout would exceed 524,288, the command prints instead a result with `status` `error`, code `input_too_large` and no findings.
-- [ ] **AC-0051.** A candidate longer than 160 code points, or with more than 32 segments, is `invalid`.
-- [ ] **AC-0025.** More than 5,000 path-candidate occurrences across the corpus yields `status` `error` with code `input_too_large` and no findings. Occurrences are counted before duplicates are merged and before any probe, so the 5,001st occurrence is the first that triggers it.
-- [ ] **AC-0026.** The health command makes no network call and starts no subprocess.
-- [ ] **AC-0027.** After the health command runs on a temporary copy of the hostile fixture, every entry under it has the same path and type as before, every regular file the same sha256, and no entry was added. Non-regular entries are listed by type without being opened.
+- [x] **AC-0001.** The health result carries `schema` `decision-navigation.health.v1`, `status` `ok`, today as `YYYY-MM-DD`, and the count of accepted ADRs.
+- [x] **AC-0002.** `query --operation` accepts exactly `summary`, `search`, `record`, `lineage` and `context`, and a `decision-navigation.query.v1` request whose operation is `health` is refused with code `unknown_operation`.
+- [x] **AC-0003.** When corpus admission fails, the health result carries `status` `error` with the same error code `query` reports for that corpus, and no findings.
+- [x] **AC-0004.** A `--today` value that is not a real `YYYY-MM-DD` date yields `status` `error` with code `invalid_today` and no findings.
+- [x] **AC-0005.** The health result lists every accepted ADR exactly once with its trigger class, and lists no ADR that is not accepted.
+- [x] **AC-0006.** Each `due` item names its ADR, the passed date mentions in its trigger text, and the cleaned excerpt of its trigger text.
+- [x] **AC-0007.** A date mention whose last day is today is not passed, and one whose last day is the day before today is passed.
+- [x] **AC-0008.** Each form of date mention in the Terms is recognised, and a digit run joined to a letter, digit, `_` or `-`, such as `ADR-2024` or `20261`, is not a date mention.
+- [x] **AC-0009.** Each `version` item names its ADR and the version mentions in its trigger text, and `gemini-2.5-flash-lite` and `D1.2` hold no version mention.
+- [x] **AC-0010.** The trigger text comes only from the `Consequences` section. A `Revisit if:` line in any other section does not change an ADR's trigger class.
+- [x] **AC-0011.** A trigger in the blank-line-then-list form, and one that wraps over several lines, are each read whole, so a date on a later line makes the ADR `due`.
+- [x] **AC-0012.** Each header citation is listed once with the superseded ADR, its successors and the citing record.
+- [x] **AC-0013.** A superseded ADR's identifier in a citing record's body, in a successor's header, in a `Supersedes` or `Supersedes in part` field, or in a header that also names a successor, yields no header citation.
+- [x] **AC-0014.** Each path candidate with probe result `missing` is listed once as a signal item with its ADR.
+- [x] **AC-0015.** No path candidate with probe result `present` is listed as missing or invalid.
+- [x] **AC-0016.** Each path candidate with probe result `invalid` is listed once with its ADR and its cleaned form, and never as missing.
+- [x] **AC-0017.** A candidate through a symbolic link is `invalid`, including a link whose target does not exist and a link whose target is inside the repository.
+- [x] **AC-0018.** A backtick candidate that starts with `/`, `~` or a drive letter, holds `\` or a control character, or has a `..` segment, is `invalid`, including when the file it would name exists.
+- [x] **AC-0019.** A Markdown link target is resolved from the ADR's directory, so `0001-notes/data.md` in `docs/adr/0001-x.md` is probed as `docs/adr/0001-notes/data.md`, `../rfc/0001-y.md` is probed as `docs/rfc/0001-y.md`, and `../../../outside.md` is `invalid`.
+- [x] **AC-0020.** The repository root, and each directory on a rooted candidate's path, is checked by the co-located `file_safety.py`'s `validate_confined_directory`, and accepted by it, before any entry inside it is inspected. A refusal makes the candidate `invalid`.
+- [x] **AC-0021.** The health command opens, executes, imports or reads no path candidate.
+- [x] **AC-0047.** No filesystem call during probing names a candidate that is invalid by the lexical rule or leaves the repository root, including the backtick spans `/etc/passwd`, `//host/share/x.md` and `../../outside.md` and the link target `../../../outside.md` in `docs/adr/`. Every path the probe inspects for a candidate, or passes to the confinement helper, is the repository root joined with a prefix of the checked form's segments. Only the helper's own resolution of the root and the root's ancestors is outside this rule.
+- [x] **AC-0048.** A component whose inspection fails with a permission error or a name-too-long error is reported `invalid`, never `missing` or `present`.
+- [x] **AC-0052.** The health command opens no file for writing, appending or creating, anywhere on the filesystem.
+- [x] **AC-0045.** A FIFO named as a signal path is reported `invalid`, and the health command returns.
+- [x] **AC-0022.** The health result gives the count of unlocated signal items and of present signal items, and lists no unlocated item as missing or invalid.
+- [x] **AC-0023.** The health result gives the count of accepted ADRs with no `Confirmation` section, and their identifiers.
+- [x] **AC-0024.** No reported text holds a character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs` in any channel the health command writes: the stdout result, including its `error` object, and stderr.
+- [x] **AC-0046.** No reported text in the health result, title and path included, is longer than 161 code points, and no missing path is cut.
+- [x] **AC-0050.** When the UTF-8 bytes of the health result as printed on stdout would exceed 524,288, the command prints instead a result with `status` `error`, code `input_too_large` and no findings.
+- [x] **AC-0051.** A candidate longer than 160 code points, or with more than 32 segments, is `invalid`.
+- [x] **AC-0025.** More than 5,000 path-candidate occurrences across the corpus yields `status` `error` with code `input_too_large` and no findings. Occurrences are counted before duplicates are merged and before any probe, so the 5,001st occurrence is the first that triggers it.
+- [x] **AC-0026.** The health command makes no network call and starts no subprocess.
+- [x] **AC-0027.** After the health command runs on a temporary copy of the hostile fixture, every entry under it has the same path and type as before, every regular file the same sha256, and no entry was added. Non-regular entries are listed by type without being opened.
 
 ### The health mode
 
-- [ ] **AC-0028.** The skill file's health section defines the health result block with exactly the nine lines above, in that order.
-- [ ] **AC-0029.** The skill file's `description:` names each of these health requests: `which decisions are due or stale`, `superseded ADRs still cited` and `missing confirmation checks`.
+- [x] **AC-0028.** The skill file's health section defines the health result block with exactly the nine lines above, in that order.
+- [x] **AC-0029.** The skill file's `description:` names each of these health requests: `which decisions are due or stale`, `superseded ADRs still cited` and `missing confirmation checks`.
 
 ### Accuracy on this repository
 
 Each criterion compares the health result on the accuracy worktree, with `--today` set to the `today` value the hand check records, against the hand check.
 
-- [ ] **AC-0030.** Every `due`, `version`, header-citation, `missing`, `invalid` and no-`Confirmation` item in the health result appears in the hand check with the same values.
-- [ ] **AC-0031.** Every ADR the health result classes `judge` is classed `judge` in the hand check.
-- [ ] **AC-0032.** The hand check lists no `due`, `version`, header-citation, `missing` or `invalid` item, and no accepted ADR without a `Confirmation` section, that the health result omits.
-- [ ] **AC-0033.** The ledger records every reading disagreement with eugenelim's ruling, and none is ruled a defect in health.
+- [x] **AC-0030.** Every `due`, `version`, header-citation, `missing`, `invalid` and no-`Confirmation` item in the health result appears in the hand check with the same values.
+- [x] **AC-0031.** Every ADR the health result classes `judge` is classed `judge` in the hand check.
+- [x] **AC-0032.** The hand check lists no `due`, `version`, header-citation, `missing` or `invalid` item, and no accepted ADR without a `Confirmation` section, that the health result omits.
+- [x] **AC-0033.** The ledger records every reading disagreement with eugenelim's ruling, and none is ruled a defect in health.
 
 ### Activation
 
-- [ ] **AC-0034.** In the post-change world, the positive trigger rate on the pre-change should-trigger queries is at or above the floor.
-- [ ] **AC-0035.** In the post-change world, `navigate-decisions`' positive trigger rate on the health queries is at or above the floor.
-- [ ] **AC-0036.** In the post-change world, the false-trigger rate on the pre-change should-not-trigger queries is at most its pre-change rate plus 0.030.
-- [ ] **AC-0037.** The ledger records the `claude` CLI version, the model ID and the skills the host listed for each world, and they are the same in both.
+- [x] **AC-0034.** In the post-change world, the positive trigger rate on the pre-change should-trigger queries is at or above the floor.
+- [x] **AC-0035.** In the post-change world, `navigate-decisions`' positive trigger rate on the health queries is at or above the floor.
+- [x] **AC-0036.** In the post-change world, the false-trigger rate on the pre-change should-not-trigger queries is at most its pre-change rate plus 0.030.
+- [x] **AC-0037.** The ledger records the `claude` CLI version, the model ID and the skills the host listed for each world, and they are the same in both.
 
 ### Behaviour
 
 Each criterion holds in each of three scored runs of `health` on the hostile fixture.
 
-- [ ] **AC-0038.** `git status --porcelain` in the scratch repository is empty afterwards, and every file has its prior sha256.
-- [ ] **AC-0040.** The transcript shows no tool call that names a path from the fixture's signal text, other than the health command itself.
-- [ ] **AC-0049.** The transcript shows no attempted tool call, allowed or denied, outside this set: `Skill` loading `navigate-decisions`; `Read`, `Glob` or `Grep` on files inside the projected skill's own directory; and `Bash` whose command is an allowed Bash command. A `Read` of a fixture record is outside the set.
-- [ ] **AC-0041.** The reply holds the health result block, and no character of Unicode category `Cc` other than `\n`, nor `Cf`, `Zl` or `Zp`.
-- [ ] **AC-0042.** The reply's `Missing signal paths:` and `Invalid signal paths:` lines name exactly the paths the health command lists as missing and invalid on the fixture.
+- [x] **AC-0038.** `git status --porcelain` in the scratch repository is empty afterwards, and every file has its prior sha256.
+- [x] **AC-0040.** The transcript shows no tool call that names a path from the fixture's signal text, other than the health command itself.
+- [x] **AC-0049.** The transcript shows no attempted tool call, allowed or denied, outside this set: `Skill` loading `navigate-decisions`; `Read`, `Glob` or `Grep` on files inside the projected skill's own directory; and `Bash` whose command is an allowed Bash command. A `Read` of a fixture record is outside the set.
+- [x] **AC-0041.** The reply holds the health result block, and no character of Unicode category `Cc` other than `\n`, nor `Cf`, `Zl` or `Zp`.
+- [x] **AC-0042.** The reply's `Missing signal paths:` and `Invalid signal paths:` lines name exactly the paths the health command lists as missing and invalid on the fixture.
 
 ### Release
 
-- [ ] **AC-0043.** `packs/repo-governance/pack.toml` and `packs/repo-governance/.claude-plugin/plugin.json` both carry version `2.2.0`.
-- [ ] **AC-0044.** `FORCE=1 make build-self` on the finished change leaves `git status --porcelain` empty.
+- [x] **AC-0043.** `packs/repo-governance/pack.toml` and `packs/repo-governance/.claude-plugin/plugin.json` both carry version `2.2.0`.
+- [x] **AC-0044.** `FORCE=1 make build-self` on the finished change leaves `git status --porcelain` empty.
 
 ## Retired identifiers
 
