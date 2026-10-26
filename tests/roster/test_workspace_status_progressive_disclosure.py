@@ -50,12 +50,12 @@ BODY_LINE_CEILING = 500
 # assertion message instructs; the other three scripts still hold their base bytes.
 # `workspace_status_engine.py` was re-pinned when the shaping route renamed to `intent`,
 # and again when blocking moved from `needs` to the `Depends on:` header. Both
-# `workspace_status.py` and the engine were re-pinned for the needs-to-header repair and again for its code-review corrections, and both for the captured-item listing, and the engine again for the captured-item switch and again for the file-based shaping guard.
+# `workspace_status.py` and the engine were re-pinned for the needs-to-header repair and again for its code-review corrections, and both for the captured-item listing, and the engine again for the captured-item switch and again for the file-based shaping guard, and both when the captured-item repair landed and its comments dropped spec citations.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "1be4c09fb4b77bbdc5af4ac6f9b654567bed889df4ed2bf0c7c4cc8fc522d632",
+        "1ab7930f70a891be7022c12f7959185b529a333d3aa287d98badfccd868e057b",
     "workspace_status_engine.py":
-        "93b1e7bb9c071ca4bf1d0d47b906f843ec61fbe27b842327509541efcbf06b26",
+        "362e76351287f1fe1ed17dd88b187cc9b37020b10fa5116f6cf8412bd66abd20",
     "workspace_status_prune.py":
         "88395b684b69af04b00694c830e79d72a4a3b3194fa72d276fb2763f3f28e95a",
     "workspace_mcp_server.py":

@@ -2437,7 +2437,7 @@ def _captured_record_text(
     header_lines: list[str],
     summary: str,
 ) -> str:
-    """The record in AC-0019's order; the summary sits under its own heading."""
+    """Render the record's fields in their fixed order; the summary sits under its own heading."""
     lines = [f"# {_captured_title(slug)}", "", f"- **Status:** {status}", f"- **Kind:** {kind}"]
     if type_ is not None:
         lines.append(f"- **Type:** {type_}")

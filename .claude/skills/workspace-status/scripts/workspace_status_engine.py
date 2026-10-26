@@ -3357,7 +3357,7 @@ _SHAPING_TYPE_ROUTES = {
     "design": "experience-status",
     "signal": "(signal — no action)",
 }
-# AC-0001's fields, in the order the first failing one is named.
+# The captured-item fields, in the order the first failing one is named.
 _CAPTURED_FIELD_ORDER = (
     ("status", "Status"),
     ("kind", "Kind"),
@@ -4072,7 +4072,7 @@ def _append_captured_lifecycle_findings(
     membership: WorkspaceMembership,
     metadata: ArtifactMetadata,
 ) -> None:
-    """AC-0007: a migrated captured membership against its record's `Status:`."""
+    """Check a migrated captured membership against its record's `Status:`."""
     entry = membership.entry
     collection = membership.collection
     if metadata.captured_kind != entry.kind:
