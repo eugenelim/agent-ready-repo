@@ -114,7 +114,13 @@ Most construction tests live under **Tasks** below.
 - **Classes are exclusive and ordered.** `due` first, because a passed date is
   the one fact health can decide. `version` before `scheduled`, because only a
   person can compare a version. This keeps `judge` prose-only by construction.
-- **Probe without opening.** Each rooted candidate is walked from the root one
+- **Link targets resolve before the lexical rule.** A Markdown link is relative to
+  its file, so `../rfc/x.md` from `docs/adr/` is an ordinary in-repository path.
+  It is joined to the ADR's directory and normalised with `posixpath.normpath`
+  first; only a result that leaves the root is invalid. A backtick span has no
+  base directory, so a `..` in it is invalid as written.
+- **Probe without opening.** The root passes `validate_confined_directory` once
+  before any probe. Each rooted candidate is then walked from the root one
   component at a time:
   - `os.lstat` the next component. Not found means `missing`.
   - A link or reparse point is `invalid`.
@@ -136,6 +142,12 @@ Most construction tests live under **Tasks** below.
   this repository's accepted ADRs, so the bound is far from normal use. It caps
   probe time on a hostile corpus. The per-file 2 MiB admission bound fires first
   only for one oversized file; many ordinary files reach the 5,000 bound.
+- **Error text is cleaned too.** Admission errors can carry a record's file name,
+  which a contributor controls. Health passes the `error` object's strings through
+  the same cleaner, and writes nothing else to stderr.
+- **Occurrences are bounded, findings are merged.** The 5,000 bound counts every
+  candidate occurrence, because each occurrence is work. Findings are then merged
+  per ADR and checked form, so a path a Signal names twice is listed once.
 - **Clean once, at output.** Every string taken from record text passes one
   `_clean_reported` function as the result is built, so no field can skip it. It
   removes categories `Cc`, `Cf`, `Zl`, `Zp`, `Co` and `Cs`, which covers every
@@ -205,9 +217,9 @@ Owned by: T1, T2, T6.
   the `claude` CLI version, the model ID and the skills the host listed.
 - Pre-change world, built from `git archive` of the pre-change commit's
   `packs/repo-governance/` into a temporary directory outside the repository:
-  - runs: `navigate-decisions`' 64 eval queries and the 15 health queries, three
-    runs each, with no errored run left in the scored set;
-  - the ledger records B, the floor, the pre-change false-trigger rate, and the
+  - runs: `navigate-decisions`' pre-change eval queries and the 15 health queries,
+    three runs each, with no errored run left in the scored set;
+  - the ledger records the pre-change query counts, B, the floor, the pre-change false-trigger rate, and the
     health queries' positive rate.
 
 **Approach:**
@@ -233,7 +245,7 @@ Owned by: T1, T2, T6.
 **Tests:** (TDD, in a new `test_health_contract.py` that loads the script by the
 unique module name `repo_governance_navigate_decisions_health`, and calls
 `main([...])` with captured stdout, so no interpreter is spawned)
-- One test per criterion AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026 and AC-0027, each over a small fixture record tree
+- One test per criterion AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0045 and AC-0046, each over a small fixture record tree
   built in `tmp_path` from strings, except where the hostile fixture is named.
   Every `due` and `scheduled` assertion passes an explicit `--today`.
 - AC-0002 asserts the `query` parser's `--operation` choices and `run_query`'s
@@ -245,11 +257,15 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
 - AC-0017 creates, in a temporary copy, a link to an existing file, a link to a
   missing file and a link to a directory, and a link as a middle component.
 - AC-0020 wraps the loaded `file_safety` module's `validate_confined_directory`
-  in a recording spy and asserts each directory prefix was passed to it before the
-  next component was inspected.
-- AC-0021 creates a FIFO with `os.mkfifo` (skipped where unavailable), and
-  monkeypatches `builtins.open`, `os.open` and `io.open` to record every path. It
-  asserts no path candidate was opened and the call returned.
+  and `os.lstat` in one recording spy, and asserts that the root and each
+  directory prefix were validated before any `lstat` of an entry inside them.
+- AC-0021 monkeypatches `builtins.open`, `os.open`, `io.open`, `os.scandir` and
+  `os.listdir` to record every path during the probe phase, and asserts no path
+  candidate appears.
+- AC-0045 creates a FIFO with `os.mkfifo` in a temporary copy (skipped where
+  unavailable) and asserts the call returns with it `invalid`.
+- AC-0024 also runs a corpus whose file name holds U+202E through a failing
+  admission, and checks the `error` object and captured stderr.
 - AC-0026 monkeypatches `subprocess.Popen` and `socket.socket` to raise.
 - AC-0027 hashes every file under a temporary copy of the hostile fixture before
   and after.
@@ -290,7 +306,7 @@ and `make lint-ruff lint-mypy` are green.
   - health writes nothing.
 - The route section and its pins are unchanged. The safety-controls bullet names
   `health` beside `route`.
-- `eval_queries.json` keeps its 64 prior entries unchanged and appends the 15
+- `eval_queries.json` keeps its prior entries unchanged and appends the 15
   health queries. Byte equality with `notes/health-queries.json` is checked in T6,
   so no pack test reads outside the pack.
 
@@ -367,7 +383,7 @@ ledger's T5 entry records the reviewers, shares, date and commit.
     skills match T1's;
   - the results go in `notes/activation-post-change.json`;
   - the ledger compares each rate with its bound, and states the resolution: one
-    run moves a 50-query rate by about 0.0067.
+    run moves a rate over n queries by 1/(3n), about 0.0067 for 50.
 - AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042, three scored runs on the hostile fixture:
   - each run is a headless `claude -p --permission-mode default --setting-sources
     project,local --strict-mcp-config` run in a fresh scratch Git repository

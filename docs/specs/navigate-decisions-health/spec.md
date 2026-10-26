@@ -82,7 +82,7 @@ the mode loads the skill at or above the brief's activation floor.
 
 ## Testing Strategy
 
-- **The health command (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025 and AC-0026):** TDD in the pack's query tests, against fixture record trees. Each rule has a fixture that the rule decides, and the hostile fixture carries instruction text, control and bidirectional characters, escaping paths, links and a FIFO.
+- **The health command (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0045 and AC-0046):** TDD in the pack's query tests, against fixture record trees. Each rule has a fixture that the rule decides, and the hostile fixture carries instruction text, control and bidirectional characters, escaping paths, links and a FIFO.
 - **Writes nothing (AC-0027):** TDD, a before-and-after listing with content hashes of the whole fixture tree.
 - **The health mode and description (AC-0028, AC-0029):** goal-based content pins in the pack's instruction tests, kept beside the existing route pins. The behaviour is agent instruction, so it is proved end to end by AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042.
 - **Accuracy on this repository (AC-0030, AC-0031, AC-0032 and AC-0033):** manual QA, by an independent hand check of `docs/adr/` and the `docs/rfc/` headers against this spec's Terms. Its record is diffed against the health command's output on the finished branch, with no model grading the diff.
@@ -91,7 +91,7 @@ the mode loads the skill at or above the brief's activation floor.
 - **Version and projection (AC-0043, AC-0044):** goal-based: parsed manifests and a no-diff `FORCE=1 make build-self`.
 - **RFC-0110 trust rules:**
   - rule 1 (record text is data) maps to AC-0038 and AC-0042;
-  - rule 4 and the stage-5 confinement rule map to AC-0016, AC-0017, AC-0018 and AC-0020;
+  - rule 4 and the stage-5 confinement rule map to AC-0016, AC-0017, AC-0018, AC-0020 and AC-0045;
   - the stage-5 text rule maps to AC-0024 and AC-0041;
   - "never runs checks" maps to AC-0021 and AC-0040;
   - rules 2, 3 and 5 govern writes, and `health` writes nothing (AC-0027, AC-0039).
@@ -139,8 +139,9 @@ Terms used below:
   - a backtick span is the text between a pair of single backticks on one line. Remove a trailing `::` and everything after it, then a trailing `:` followed by digits, optionally `-` and digits;
   - a link target is the text in `](…)` up to its first space. Targets with a URI scheme (`<letters>:`) and targets starting `#` are skipped. Remove a `#` or `?` and everything after it;
   - the result is a path candidate when it is not empty, holds no whitespace and none of `<`, `>`, `*`, `?`, `[`, `]`, `{`, `}`, `$` or `|`, and either holds `/` or ends with `.` and one to five ASCII letters or digits.
-- **A rooted candidate** is one that is invalid by the lexical rule below, or whose first `/`-separated segment equals the name of an entry directly under the repository root. Link targets are resolved first: lexically joined to the ADR's directory and normalised, and a result that leaves the repository root is invalid. A link target that names only a fragment is not a candidate. A candidate that is not rooted is **unlocated**.
-- **The lexical rule:** a candidate is invalid when it starts with `/`, `~` or a drive letter and `:`, holds `\`, a NUL or any character of Unicode category `Cc`, `Cf`, `Zl` or `Zp`, or has a `.` or `..` segment. A backtick candidate with an empty segment, other than one trailing `/`, is also invalid.
+- **The checked form** of a candidate is, for a backtick span, the candidate as written. For a link target, it is the target lexically joined to the ADR's directory and normalised, so `..` segments are resolved; a target that does not start with `/` and whose normalised form leaves the repository root is invalid.
+- **A rooted candidate** is one that is invalid, or whose checked form's first `/`-separated segment equals the name of an entry directly under the repository root. A candidate that is not rooted is **unlocated**.
+- **The lexical rule:** a candidate is invalid when its checked form starts with `/`, `~` or a drive letter and `:`, holds `\`, a NUL or any character of Unicode category `Cc`, `Cf`, `Zl` or `Zp`, or has a `.` or `..` segment. A backtick candidate with an empty segment, other than one trailing `/`, is also invalid.
 - **The probe result** of a rooted candidate is one of:
   - `invalid`: it fails the lexical rule; or a component on its path is a symbolic link, a reparse point, or neither a regular file nor a directory; or its last component is a regular file with more than one hard link;
   - `missing`: not invalid, and some component does not exist, or a component before the last is a regular file;
@@ -161,13 +162,14 @@ Terms used below:
 - **A health query** is an entry in `docs/specs/navigate-decisions-health/notes/health-queries.json`: 15 should-trigger queries asking whether decisions are due, stale, superseded but still cited, or missing their checks. None duplicates an existing eval query.
 - **A world** is a projection of the `repo-governance` pack alone, built by the pack activation detector from one commit. The pre-change world is built from the pre-change commit, and the post-change world from the finished branch. **The pre-change commit** is the commit SHA that the ledger records before any `SKILL.md` edit.
 - **A positive trigger rate** is the share of runs on a query set's should-trigger queries in which `navigate-decisions` fired. **A false-trigger rate** is the share of runs on its should-not-trigger queries in which it fired. Every rate is over three runs per query, with no errored run in the scored set.
-- **B** is the positive trigger rate on `navigate-decisions`' 50 pre-change should-trigger queries in the pre-change world. **The floor** is B − 0.030.
-- **The hand check** is a record in `docs/specs/navigate-decisions-health/notes/hand-check.json`, made by reviewers who apply these Terms to `docs/adr/` and the headers in `docs/rfc/` without the health command's code or output. It lists every accepted ADR's trigger class and dates, versions, header citations, rooted candidates with probe results, and whether it has a `Confirmation` section. It also lists **reading disagreements**: items where a reviewer reads a date, version, stale citation or check file that these Terms classify differently.
+- **The pre-change queries** are the entries in `navigate-decisions`' `evals/eval_queries.json` at the pre-change commit. The ledger records how many are should-trigger and should-not-trigger.
+- **B** is the positive trigger rate on the pre-change should-trigger queries in the pre-change world. **The floor** is B − 0.030.
+- **The hand check** is a record in `docs/specs/navigate-decisions-health/notes/hand-check.json`, made by reviewers who apply these Terms to `docs/adr/` and the headers in `docs/rfc/` without the health command's code or output. The reviewers are fresh agent sessions that have not seen that code or output: eugenelim ruled at the 2026-10-26 assumptions checkpoint that such an independent reading is the brief's hand check, and eugenelim rules on each reading disagreement. It lists every accepted ADR's trigger class and dates, versions, header citations, rooted candidates with probe results, and whether it has a `Confirmation` section. It also lists **reading disagreements**: items where a reviewer reads a date, version, stale citation or check file that these Terms classify differently.
 
 ### The health command
 
 - [ ] **AC-0001.** The health result carries `schema` `decision-navigation.health.v1`, `status` `ok`, today as `YYYY-MM-DD`, and the count of accepted ADRs.
-- [ ] **AC-0002.** The `query` subcommand's operations, and the operations `run_query` accepts, are exactly `summary`, `search`, `record`, `lineage` and `context`.
+- [ ] **AC-0002.** `query --operation` accepts exactly `summary`, `search`, `record`, `lineage` and `context`, and a query whose operation is `health` is refused with code `unknown_operation`.
 - [ ] **AC-0003.** When corpus admission fails, the health result carries `status` `error` with the same error code `query` reports for that corpus, and no findings.
 - [ ] **AC-0004.** A `--today` value that is not a real `YYYY-MM-DD` date yields `status` `error` with code `invalid_today` and no findings.
 - [ ] **AC-0005.** The health result lists every accepted ADR exactly once with its trigger class, and lists no ADR that is not accepted.
@@ -183,14 +185,16 @@ Terms used below:
 - [ ] **AC-0015.** No path candidate with probe result `present` is listed as missing or invalid.
 - [ ] **AC-0016.** Each path candidate with probe result `invalid` is listed once with its ADR and its cleaned form, and never as missing.
 - [ ] **AC-0017.** A candidate through a symbolic link is `invalid`, including a link whose target does not exist and a link whose target is inside the repository.
-- [ ] **AC-0018.** A candidate that starts with `/`, `~` or a drive letter, holds `\` or a control character, or has a `..` segment, is `invalid`, including when the file it would name exists.
-- [ ] **AC-0019.** A Markdown link target is resolved from the ADR's directory, so `0001-notes/data.md` in `docs/adr/0001-x.md` is probed as `docs/adr/0001-notes/data.md`.
-- [ ] **AC-0020.** Every directory on a rooted candidate's path is checked with the co-located `file_safety.py`'s `validate_confined_directory` before the next component is inspected.
-- [ ] **AC-0021.** The health command opens, executes, imports or reads no path candidate: a FIFO named as a signal path is reported `invalid` and the command returns.
+- [ ] **AC-0018.** A backtick candidate that starts with `/`, `~` or a drive letter, holds `\` or a control character, or has a `..` segment, is `invalid`, including when the file it would name exists.
+- [ ] **AC-0019.** A Markdown link target is resolved from the ADR's directory, so `0001-notes/data.md` in `docs/adr/0001-x.md` is probed as `docs/adr/0001-notes/data.md`, `../rfc/0001-y.md` is probed as `docs/rfc/0001-y.md`, and `../../../outside.md` is `invalid`.
+- [ ] **AC-0020.** The repository root, and each directory on a rooted candidate's path, passes the co-located `file_safety.py`'s `validate_confined_directory` before any entry inside it is inspected.
+- [ ] **AC-0021.** The health command opens, executes, imports or reads no path candidate.
+- [ ] **AC-0045.** A FIFO named as a signal path is reported `invalid`, and the health command returns.
 - [ ] **AC-0022.** The health result gives the count of unlocated candidates and lists none of them as missing or invalid.
 - [ ] **AC-0023.** The health result gives the count of accepted ADRs with no `Confirmation` section, and their identifiers.
-- [ ] **AC-0024.** No reported text in the health result holds a character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs`, and no excerpt is longer than 161 code points.
-- [ ] **AC-0025.** More than 5,000 path candidates across the corpus yields `status` `error` with code `input_too_large` and no findings. The count is taken before any probe, so the 5,001st candidate is the first that can trigger it.
+- [ ] **AC-0024.** No reported text holds a character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs` in any channel the health command writes: the stdout result, including its `error` object, and stderr.
+- [ ] **AC-0046.** No excerpt in the health result is longer than 161 code points.
+- [ ] **AC-0025.** More than 5,000 path-candidate occurrences across the corpus yields `status` `error` with code `input_too_large` and no findings. Occurrences are counted before duplicates are merged and before any probe, so the 5,001st occurrence is the first that triggers it.
 - [ ] **AC-0026.** The health command makes no network call and starts no subprocess.
 - [ ] **AC-0027.** After the health command runs on the hostile fixture, every file under the fixture tree has the same path, type and sha256 as before, and no file was added.
 
@@ -203,16 +207,16 @@ Terms used below:
 
 Each criterion compares the health result on the finished branch, with `--today` set to the date of the hand check, against the hand check.
 
-- [ ] **AC-0030.** Every `due`, `version`, header-citation, `missing` and `invalid` item in the health result appears in the hand check with the same values.
+- [ ] **AC-0030.** Every `due`, `version`, header-citation, `missing`, `invalid` and no-`Confirmation` item in the health result appears in the hand check with the same values.
 - [ ] **AC-0031.** Every ADR the health result classes `judge` is classed `judge` in the hand check.
 - [ ] **AC-0032.** The hand check lists no `due`, `version`, header-citation, `missing` or `invalid` item, and no accepted ADR without a `Confirmation` section, that the health result omits.
 - [ ] **AC-0033.** The ledger records every reading disagreement with eugenelim's ruling, and none is ruled a defect in health.
 
 ### Activation
 
-- [ ] **AC-0034.** In the post-change world, the positive trigger rate on `navigate-decisions`' 50 pre-change should-trigger queries is at or above the floor.
+- [ ] **AC-0034.** In the post-change world, the positive trigger rate on the pre-change should-trigger queries is at or above the floor.
 - [ ] **AC-0035.** In the post-change world, `navigate-decisions`' positive trigger rate on the health queries is at or above the floor.
-- [ ] **AC-0036.** In the post-change world, the false-trigger rate on `navigate-decisions`' 14 should-not-trigger queries is at most its pre-change rate plus 0.030.
+- [ ] **AC-0036.** In the post-change world, the false-trigger rate on the pre-change should-not-trigger queries is at most its pre-change rate plus 0.030.
 - [ ] **AC-0037.** The ledger records the `claude` CLI version, the model ID and the skills the host listed for each world, and they are the same in both.
 
 ### Behaviour
