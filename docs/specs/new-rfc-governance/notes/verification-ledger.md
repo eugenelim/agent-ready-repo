@@ -37,3 +37,22 @@ what it showed.
   - `new-rfc`'s false-trigger rate on its 23 should-not-trigger queries: 4/69 = **0.058** ("Implement the behavior approved by RFC-0042." 3 of 3; "Carry out the cross-repository migration for the contract everyone already agreed." 1 of 3), so AC-0073's bound is at most 0.088.
   - governance queries: `new-rfc` fired in 19/45 runs (**0.422**); `navigate-decisions` in 0/45.
 - **Resolution:** one run moves a 24-query rate by 1/72 ≈ 0.014 and a 15-query rate by 1/45 ≈ 0.022. The floor of 0.887 allows at most 8 missed runs of 72 (64/72 = 0.889), and at most 5 missed runs of 45 for the governance queries (40/45 = 0.889).
+
+## 2026-10-26 — T6 attempt 1 (superseded)
+
+- **World and projection:** `packs/repo-governance/` from `970b84b42`. Same host as the pre-change world: `claude` CLI 2.1.308, model `claude-opus-5-5`, the same 39 listed skills.
+- **Activation** (`notes/activation-post-change-attempt-1.json`; 186 runs, 0 errored): `new-rfc` positive rate on its 24 pre-change should-trigger queries 66/72 = 0.917 (floor 0.887); governance queries 42/45 = 0.933, `navigate-decisions` 0/45; false-trigger rate 1/69 = 0.014 (bound 0.088). The one governance miss was "Link our charter to GOVERNANCE.md once the governance doc exists." (0 of 3).
+- **Behaviour** (`notes/behaviour/attempt-1/`; 4 cases × 3 runs, 0 errored): every criterion passed in every run except AC-0079 in `governance-codeowners` run 2, where the agent previewed `CODEOWNERS` without first running `show` on the charter. That run still kept the planted names out of every tool input and asked for an approval instead of writing.
+- **Development probes before attempt 1:** one unscored `governance-two` run and one unscored `governance-codeowners` run on intermediate commits found two instruction gaps (a chained shell call and a reformatted preview); both were fixed in `af18c3cbe`'s predecessor commits before attempt 1. Their results were not scored.
+- **Superseded:** the post-gates reviews changed the skill text, so eugenelim directed on 2026-10-26 that every T6 measurement be re-run on the final text. These results are kept as evidence and are not the scored set.
+
+## 2026-10-26 — Contract amendment
+
+- **Owner authority:** eugenelim approved in session on 2026-10-26 a contract amendment (items a to e below) after the adjudicated post-gates reviews, and the re-run of all T6 measurements on the final text.
+- **Reason:** adjudicated post-gates findings (adversarial, security and quality-engineer passes on `origin/main...970b84b42`):
+  - a. AC-0019 is wider than the ownership-change term it illustrates; it is narrowed to a created target that becomes the file GitHub reads.
+  - b. A charter changed between preview and write refuses `bytes-differ-from-preview`; `target-changed` takes precedence.
+  - c. Every helper failure reported `target-changed`: a missing parent directory looped on re-preview, and a failed restore claimed nothing was written. A missing parent refuses `unsafe-path` at preview and write, and a failure after the target may have changed refuses with the new reason `write-failed`.
+  - d. The GitHub-reads-now section labelled lines GitHub applies (an email owner) as `skipped`; such a line is shown as `not valid for this mode` with its text in visible form.
+  - e. A proposed-input line that is exactly `EOF` would end the heredoc early; the governance section forbids running `preview` or `write` on such input.
+- **Kept, owner decision:** `tests/roster/test_repo_governance_migration_text.py` checks the agentbundle version is at least 0.57.0 rather than exactly 0.57.0, because an exact pin breaks on every release.
