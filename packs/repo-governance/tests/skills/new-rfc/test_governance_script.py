@@ -497,6 +497,13 @@ def test_ac_0012_visible_form_and_count(
     assert "\u200b" not in out and "\ufe0f" not in out and "\u3164" not in out
 
 
+def test_content_section_adds_no_blank_line_before_its_end_marker(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = preview_owners(capsys, repo, "/src/ @alice\n", "CODEOWNERS").out
+    assert section(out, "--- content ---", "--- end content ---") == ["/src/ @alice"]
+
+
 def test_ac_0012_show_block(
     repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

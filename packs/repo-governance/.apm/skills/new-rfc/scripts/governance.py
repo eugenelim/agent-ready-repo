@@ -35,6 +35,11 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 _file_safety_module: Any | None = None
 
 
+
+def _end_line(text: str) -> str:
+    """Return *text* ending in exactly the newline it needs before an end marker."""
+    return text if text.endswith("\n") or not text else text + "\n"
+
 def _get_file_safety() -> Any:
     """Load the co-located file_safety.py at most once and return it."""
     global _file_safety_module
@@ -438,7 +443,7 @@ def _show_block(target: str, raw: bytes | None) -> str:
     current = "absent" if raw is None else _digest(raw)
     return (
         f"GOVERNANCE CURRENT:\n- Target: {target}\n- Current: {current}\n"
-        f"- Characters made visible: {count}\n--- content ---\n{text}\n--- end content ---\n"
+        f"- Characters made visible: {count}\n--- content ---\n{_end_line(text)}--- end content ---\n"
     )
 
 
@@ -485,7 +490,7 @@ def _preview_block(
         f"- Approval required: {approval}", f"- Approved by: {approved}",
         f"- Characters made visible: {count}", *extra,
     ]
-    return "\n".join(head) + f"\n--- content ---\n{content}\n--- end content ---\n" + reads_now
+    return "\n".join(head) + f"\n--- content ---\n{_end_line(content)}--- end content ---\n" + reads_now
 
 
 # -- Command line ------------------------------------------------------------
