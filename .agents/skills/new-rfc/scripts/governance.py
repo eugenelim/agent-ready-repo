@@ -35,10 +35,10 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 _file_safety_module: Any | None = None
 
 
-
 def _end_line(text: str) -> str:
     """Return *text* ending in exactly the newline it needs before an end marker."""
     return text if text.endswith("\n") or not text else text + "\n"
+
 
 def _get_file_safety() -> Any:
     """Load the co-located file_safety.py at most once and return it."""
