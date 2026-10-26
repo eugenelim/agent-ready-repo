@@ -282,8 +282,8 @@ def test_description_names_each_health_request_and_fits_the_lint() -> None:
 
 def test_health_runs_only_its_command_and_never_a_named_check() -> None:
     """AC-0028"""
-    assert "python3 scripts/navigate_decisions.py health --root <repo-root>" in HEALTH
-    assert "Run exactly this one literal command, with no other shell syntax" in HEALTH
+    assert "python3 <skill-dir>/scripts/navigate_decisions.py health --root <repo-root>" in HEALTH
+    assert "Run exactly this one literal command from the repository root, with no `cd` and no other shell syntax" in HEALTH
     assert (
         "Health runs only that command. It never runs, opens, reads or imports a check, "
         "test or file that a record names"

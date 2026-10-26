@@ -167,10 +167,12 @@ Use `health` when the user asks which decisions are due or stale, which supersed
 ADRs are still cited, or which accepted ADRs lack a confirmation check. Health
 reads and answers; it writes nothing.
 
-Run exactly this one literal command, with no other shell syntax:
+Run exactly this one literal command from the repository root, with no `cd` and
+no other shell syntax. Write the script as its full path inside this skill's
+folder, where `<skill-dir>` is that folder's absolute path:
 
 ```bash
-python3 scripts/navigate_decisions.py health --root <repo-root>
+python3 <skill-dir>/scripts/navigate_decisions.py health --root <repo-root>
 ```
 
 Add `--today YYYY-MM-DD` only when the user gives a date.
