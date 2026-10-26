@@ -5,7 +5,7 @@ what it showed.
 
 ## 2026-10-26 — Dispatch
 
-- T1 is an evidence task run by the controller, which holds the headless-run harness; its dispatch receipt is a decline with that reason. T2 to T5 go to implementer subagents.
+- On 2026-10-26 eugenelim directed in session that the controller runs the evidence tasks T1 and T6 itself, so their dispatch receipts are recorded as `human-directed`. T2 to T5 go to implementer subagents.
 
 ## 2026-10-26 — T1 frozen inputs
 
