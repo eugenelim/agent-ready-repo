@@ -156,7 +156,7 @@ Each criterion from AC-0001 to AC-0032, from AC-0041 to AC-0043, and from AC-004
   - a source file whose own `Status:` breaks its collection's rule: a `defect` that is `Closed` in `backlog.open`; another kind whose status is not `Draft` in `backlog.open`; a status in `shaping_queue.backlog` or `shaping_queue.active` that is terminal for its kind, which is `Accepted` or `Fulfilled` for `intent`, `Complete` for `research`, and `Approved` for `design`; or a `defect` in `backlog.closed` that is not `Closed` with a `Resolution:` of `fixed`, `declined`, or `superseded`;
   - a slug still outside the captured-item file name grammar, or still equal to another captured item's slug, after AC-0018;
   - a slug that differs from the file stem of the source path when a spec's `(deferred: <anchor>)` marker names that stem;
-  - a record path that already holds a file whose bytes differ from the planned record;
+  - a membership whose record path already holds a file whose bytes differ from the planned record, which AC-0043 covers for a legacy captured entry;
   - a legacy captured entry with no `kind` whose `type` is `signal` or outside the shaping types;
   - an `intent` path that is not a live intent;
   - a `summary` holding a control character other than a line feed;
@@ -210,7 +210,7 @@ Each criterion from AC-0001 to AC-0032, from AC-0041 to AC-0043, and from AC-004
 ## Follow-ons
 
 - The brief's slice 3, continued as the `captured-item-registration-stop` spec once slice 5 ships: amend ADR-0053 D9, RFC-0063, and `work-intake`'s registration rule; stop every captured-item registration writer; and give a captured item of any kind a finding-free closed state that settles a dependency through its own `Status:` and `Resolution:` when it has no membership.
-- The owners of the `entry.needs (string form)` and `entry.source (string form)` Disposition rows: the legacy strings on the 26 slug-only entries stay in the registry, and the records this repair writes carry neither. Until then, a legacy entry's record that its owner later closes or extends differs from what AC-0043 derives, and `repair-plan` reports it on each run; that repeat is accepted.
+- The owners of the `entry.needs (string form)` and `entry.source (string form)` Disposition rows: the legacy strings on the 26 slug-only entries stay in the registry, and the records this repair writes carry neither. Until then, a legacy entry's record that its owner later closes or extends differs from what AC-0019 and AC-0020 derive, and `repair-plan` reports it on each run; that repeat is accepted.
 
 ## Assumptions
 
