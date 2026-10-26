@@ -3,8 +3,8 @@
 - **Slug:** `repo-governance-pack`
 - **Received:** 2026-10-25
 - **Owner:** eugenelim
-- **Status:** Executing
-- **Cut-closed:** <!-- Required before Status: Shipped, refused while Status: Draft. Replace with an ISO 8601 date then evidence once the cut is final. -->
+- **Status:** Shipped
+- **Cut-closed:** 2026-10-26 All four slices confirmed Shipped (#1614, #1616, #1617, #1618); stage 4 was cut by RFC-0110's 2026-10-25 erratum; see § Spec map.
 - **Source / provenance:** [RFC-0110](../../rfc/0110-repo-governance-pack.md) with its two 2026-10-25 errata (`sha256-bytes-v1:598d683510c1b9f3842065a6a03c9837e7cb312c484a67d26b86359ff10ac8b6`).
 
 ## Outcome
