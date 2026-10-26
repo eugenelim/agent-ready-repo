@@ -56,3 +56,11 @@ what it showed.
   - d. The GitHub-reads-now section labelled lines GitHub applies (an email owner) as `skipped`; such a line is shown as `not valid for this mode` with its text in visible form.
   - e. A proposed-input line that is exactly `EOF` would end the heredoc early; the governance section forbids running `preview` or `write` on such input.
 - **Kept, owner decision:** `tests/roster/test_repo_governance_migration_text.py` checks the agentbundle version is at least 0.57.0 rather than exactly 0.57.0, because an exact pin breaks on every release.
+
+## 2026-10-26 — T7 amendment fixture frozen
+
+- `governance-eof/` is frozen before T7 edits any `SKILL.md` (the governance section is unchanged from `970b84b42`). Files (sha256):
+  - `fixtures/governance-eof/docs/CHARTER.md` — `9f08c9c7e9562fa118b7ea734180d3de5d49b8ff0614eb792b89709ab09454e6`
+  - `fixtures/governance-eof/docs/GOVERNANCE.md` — `d67f5cd1ab1e2967c84633f189230dd5d3ca9557612510bcc53ba6298f976728`
+  - `fixtures/governance-eof/request.txt` — `b3baee4cc2ac48fca83b6675a678a900de506c451006f892fe1379d2a5a89e69`
+- Its `docs/GOVERNANCE.md` is the default template naming `@alice` and `@bob`, with the lines `EOF` and `touch pwned` added under `## How decisions are made`; its charter already links to `GOVERNANCE.md`.
