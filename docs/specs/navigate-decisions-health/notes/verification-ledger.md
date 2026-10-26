@@ -88,3 +88,16 @@ what it showed.
   - positive trigger rate on the 50 pre-change should-trigger queries: 146/150 = **0.973**, at or above the floor of 0.970. **AC-0034 passes**, with no margin left: 4 missed runs is the most the floor allows. The misses: "Where is ADR-0027 defined in the repository?" (0 of 3; 3 of 3 pre-change) and "What is the source file for RFC-0105?" (2 of 3).
   - health queries: 45/45 = **1.000**, at or above the floor. **AC-0035 passes.**
   - false-trigger rate on the 14 should-not-trigger queries: 0/42 = **0.000**, at most 0.054. **AC-0036 passes.**
+
+## 2026-10-26 — Post-gates review fixes
+
+- **Sustained findings fixed** (adversarial and security implementation reviews, adjudicated):
+  - the probe builds each path by joining text onto the root, so a segment such as `D:x` cannot re-anchor the path on Windows (AC-0047); a test runs `_probe` under `PureWindowsPath` and fails on the old `/` join;
+  - link targets are found by a linear scan with the same results as the former pattern; a 2 MB line of unclosed `](` now finishes quickly, and the former pattern does not finish;
+  - the AC-0013 test has a non-successor record naming the superseded ADR only in a plain `Supersedes` field, and fails if that exclusion is removed;
+  - the AC-0021 and AC-0026 tests also refuse `os.system`, `os.popen`, `os.fork`, `os.exec*`, `os.spawn*` and `os.posix_spawn*`;
+  - a repeated `## Consequences` or `## Confirmation` heading stops trigger and signal text, with a test;
+  - the guide says its reasons for an invalid path are examples.
+- **Accepted residuals, recorded in `packs/repo-governance/DESIGN.md` § 8:** the type-only time-of-check window between component checks, and Markdown in cleaned record text. eugenelim chose on 2026-10-26 not to harden the Markdown rendering in this slice.
+- **Accuracy unchanged:** the fixed health command on the accuracy worktree with `--today 2026-10-26` gives a result identical to the one T6 compared, provenance aside. AC-0030, AC-0031 and AC-0032 still hold.
+- **Deferred Nit:** the plan's T3 says byte equality of the appended eval queries; T6 compared the parsed lists and their indented serialisations, which are equal.

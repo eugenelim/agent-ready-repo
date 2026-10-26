@@ -461,6 +461,7 @@ def test_header_citation_exclusions(tmp_path):
             7: adr(7, extra="## Context\n\nBody cites ADR-0003 only.\n\n"),
             8: adr(8, status="Proposed", header="- **Related:** ADR-0003\n"),
             9: adr(9, header="- **Related:** ADR-00031 and xADR-0003\n"),
+            10: adr(10, header="- **Supersedes:** ADR-0003\n"),
         },
     )
     assert run_health(root)["superseded_citations"] == []
@@ -592,6 +593,7 @@ def test_no_candidate_is_opened_listed_or_executed(tmp_path, monkeypatch):
     """AC-0021: no candidate is opened, listed, imported or read during probing."""
     root = copy_hostile(tmp_path)
     spy = ProbeSpy(monkeypatch)
+    refuse_process_starts(monkeypatch)
     before = set(sys.modules)
     assert run_health(root)["status"] == "ok"
     opened = [(k, p) for k, p, _, _ in spy.events
@@ -824,14 +826,83 @@ def test_bound_is_checked_before_probing(tmp_path, monkeypatch):
     assert run_health(root)["error"]["code"] == "input_too_large"
 
 
-def test_no_network_or_subprocess(tmp_path, monkeypatch):
-    """AC-0026: health starts no subprocess and opens no socket."""
+def refuse_process_starts(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every standard-library way to start a process or run a file raise."""
     def refuse(*a: Any, **k: Any) -> Any:
         raise AssertionError("forbidden call")
 
     monkeypatch.setattr(subprocess, "Popen", refuse)
+    names = [n for n in dir(os) if n in {"system", "popen", "fork", "forkpty", "startfile"}
+             or n.startswith(("exec", "spawn", "posix_spawn"))]
+    for name in names:
+        monkeypatch.setattr(os, name, refuse)
+
+
+def test_no_network_or_subprocess(tmp_path, monkeypatch):
+    """AC-0026: health starts no subprocess or process and opens no socket."""
+    def refuse(*a: Any, **k: Any) -> Any:
+        raise AssertionError("forbidden call")
+
+    refuse_process_starts(monkeypatch)
     monkeypatch.setattr(socket, "socket", refuse)
     assert run_health(copy_hostile(tmp_path))["status"] == "ok"
+
+
+def test_probe_join_never_reanchors_on_windows(monkeypatch):
+    """AC-0047: a drive-carrying segment stays under the root under Windows path rules."""
+    seen: list[str] = []
+    last = {"name": ""}
+
+    class DirStat:
+        st_mode = stat.S_IFDIR | 0o755
+        st_file_attributes = 0
+        st_nlink = 1
+
+    class Helper:
+        @staticmethod
+        def validate_confined_directory(root: Any, path: Any) -> None:
+            return None
+
+    def fake_lstat(path: Any) -> Any:
+        seen.append(str(path))
+        if str(path).endswith(last["name"]):
+            raise FileNotFoundError(path)
+        return DirStat()
+
+    monkeypatch.setattr(NAV, "Path", pathlib.PureWindowsPath)
+    monkeypatch.setattr(NAV.os, "lstat", fake_lstat)
+    root = pathlib.PureWindowsPath("X:/repo")
+    for checked in ("docs/D:secret.txt", "docs/adr/D:evil.md", "docs/C:/w.md"):
+        seen.clear()
+        last["name"] = checked.rstrip("/").split("/")[-1]
+        assert NAV._probe(Helper(), root, checked) == ("missing", None)
+        assert seen and all(pathlib.PureWindowsPath(p).drive == "X:" for p in seen), seen
+        assert all(p.startswith("X:\\repo") for p in seen), seen
+
+
+def test_link_target_scan_is_linear_on_hostile_text(tmp_path):
+    """AC-0025: a 2 MB signal line of unclosed link openers is scanned quickly."""
+    import time
+    hostile = "](" * 1_000_000
+    root = make_corpus(tmp_path, [adr(consequences=revisit("x"), confirmation=signal(hostile))])
+    start = time.monotonic()
+    res = run_health(root)
+    assert res["status"] == "ok"
+    assert time.monotonic() - start < 20
+
+
+def test_repeated_sections_do_not_join_text(tmp_path):
+    """AC-0010, AC-0014: trigger and signal text stop at a repeated section heading."""
+    text = (
+        "# ADR-0001: T\n\n- **Status:** Accepted\n\n"
+        "## Consequences\n\n**Revisit if:** soon\n## Consequences\n2020-01-01\n\n"
+        "## Confirmation\n\n- **Signal:** `tools/a.py`\n## Confirmation\n`tools/b.py`\n"
+    )
+    root = make_corpus(tmp_path, [text])
+    (root / "tools").mkdir()
+    res = run_health(root)
+    assert [t["class"] for t in res["triggers"]] == ["judge"]
+    assert {m["path"] for m in res["signal_paths"]["missing"]} == {"tools/a.py"}
 
 
 def test_health_writes_nothing(tmp_path):

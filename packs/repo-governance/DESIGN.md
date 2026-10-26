@@ -204,6 +204,8 @@ The read-only `route` mode follows the same rule. Its reuse check calls the quer
 
 The read-only `health` mode follows the same rule. It reads records through the confined helpers, probes the paths a Confirmation signal names without opening them, runs none of the checks a record names, and writes nothing. It replies with a fixed result block: due triggers, versions to compare, superseded ADRs still cited, missing and invalid signal paths, the count with no Confirmation, and the items that need a person to judge.
 
+Two residual limits are accepted. The probe walks a path one component at a time, so a directory swapped for a link by a concurrent writer between checks could make one later `lstat` report the type of a path outside the repository; nothing is opened, and only someone who can already write the tree can do it. Record text is cleaned of control and hidden-direction characters but not of Markdown, so an excerpt can still hold backticks or link syntax that a Markdown-rendering host would display.
+
 ### ADR and RFC separation
 
 ADR and RFC are distinct artifact types with separate shapes, admission rules, and lifecycle values. The navigator admits them together as one corpus but never flattens their differences. Every record carries its `kind`, its exact lifecycle `raw_value` (including missing, unfamiliar, or qualified values), and its `source` path. Missing a `**Status:**` field yields the missing-state marker; any present value is admitted as-is. The navigator never normalizes lifecycle values across kinds or invents a single current-version answer across partial supersession scopes.

@@ -1884,7 +1884,6 @@ _VERSION_RE = re.compile(
 _URI_SCHEME_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]+:")
 _LINE_SUFFIX_RE = re.compile(r":[0-9]+(?:-[0-9]+)?$")
 _BACKTICK_SPAN_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
-_LINK_TARGET_RE = re.compile(r"\]\(([^)\n]*)\)")
 _CANDIDATE_BAD_RE = re.compile(r"[\s<>*?\[\]{}$|]")
 _CANDIDATE_EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,5}$")
 _DRIVE_RE = re.compile(r"[A-Za-z]:")
@@ -1922,12 +1921,19 @@ def _status_word(rec: dict[str, Any]) -> str | None:
 
 
 def _section_lines(lines: list[str], name: str) -> list[str] | None:
-    """Return the lines of every ``## name`` section, or None when absent."""
+    """Return the lines of every ``## name`` section, or None when absent.
+
+    A repeated section keeps its heading line between the joined parts, so
+    trigger and signal text, which stop at a line starting ``## ``, never run
+    from one section into the next.
+    """
     found = False
     out: list[str] = []
     inside = False
     for line in lines:
         if line == f"## {name}":
+            if found:
+                out.append(line)
             found = inside = True
             continue
         if line.startswith("## "):
@@ -2102,8 +2108,10 @@ def _signal_text(confirmation: list[str]) -> list[str]:
         if norm(confirmation[i]).startswith("**Signal"):
             block = [confirmation[i]]
             j = i + 1
-            while j < len(confirmation) and not norm(confirmation[j]).startswith(
-                ("**Mode", "**Signal", "**Owner")
+            while (
+                j < len(confirmation)
+                and not confirmation[j].startswith("## ")
+                and not norm(confirmation[j]).startswith(("**Mode", "**Signal", "**Owner"))
             ):
                 block.append(confirmation[j])
                 j += 1
@@ -2121,6 +2129,27 @@ def _is_candidate(text: str) -> bool:
     return "/" in text or _CANDIDATE_EXT_RE.search(text) is not None
 
 
+def _link_targets(signal: str) -> list[str]:
+    r"""Return the text of each ``](…)`` in signal text, up to its first ``)``.
+
+    A linear scan: it gives the same targets as the pattern ``\]\(([^)\n]*)\)``,
+    whose backtracking is quadratic on a long line of ``](`` with no ``)``.
+    """
+    out: list[str] = []
+    for line in signal.split("\n"):
+        pos = 0
+        while True:
+            start = line.find("](", pos)
+            if start < 0:
+                break
+            end = line.find(")", start + 2)
+            if end < 0:
+                break
+            out.append(line[start + 2 : end])
+            pos = end + 1
+    return out
+
+
 def _extract_candidates(signal: str, adr_dir: str) -> list[tuple[str, bool]]:
     """Return (checked form, is_link) per candidate occurrence in signal text."""
     out: list[tuple[str, bool]] = []
@@ -2131,8 +2160,8 @@ def _extract_candidates(signal: str, adr_dir: str) -> list[tuple[str, bool]]:
             continue
         if _is_candidate(span):
             out.append((span, False))
-    for m in _LINK_TARGET_RE.finditer(signal):
-        target = m.group(1).split(" ", 1)[0]
+    for raw in _link_targets(signal):
+        target = raw.split(" ", 1)[0]
         if target.startswith("#") or _URI_SCHEME_RE.match(target):
             continue
         target = re.split(r"[#?]", target, maxsplit=1)[0]
@@ -2183,7 +2212,9 @@ def _probe(fs: Any, root: Path, checked: str) -> tuple[str, str | None]:
     segs = _segments(checked)
     current = root
     for idx, seg in enumerate(segs):
-        current = current / seg
+        # Text join, not ``/``: on Windows a segment such as ``D:x`` would
+        # otherwise replace the root and send the lstat off the repository.
+        current = Path(f"{current}{os.sep}{seg}")
         last = idx == len(segs) - 1
         try:
             st = os.lstat(current)
