@@ -269,8 +269,9 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
   `PyJWT>=2.14.0` (`2.14.0`) and `` `>=0.47` `` (`>=0.47`).
 - Trigger-text fixtures cover an empty key line followed by a non-blank line, an
   empty trigger, and `` `stable — no foreseeable trigger` ``.
-- Candidate fixtures cover a backtick URL (skipped) and a backtick span and link
-  that merge into one signal item.
+- Candidate fixtures cover a backtick URL and `git+ssh:` span (skipped), `cli.py:247`
+  and `foo.py::test` (stripped to `cli.py` and `foo.py`), `C:/x.md` (invalid), and
+  a backtick span and link that merge into one signal item.
 - AC-0017 creates, in a temporary copy, a link to an existing file, a link to a
   missing file and a link to a directory, and a link as a middle component.
 - AC-0020 wraps the loaded `file_safety` module's `validate_confined_directory`
