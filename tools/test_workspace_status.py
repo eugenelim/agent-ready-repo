@@ -87,6 +87,17 @@ def write_spec(root: Path, slug: str, status: str = "Draft") -> None:
     p.write_text(body, encoding="utf-8")
 
 
+def write_captured_item(root: Path, slug: str, item_type: str | None) -> None:
+    """Plant `docs/product/captured/<slug>.md`, typed when `item_type` is given."""
+    p = root / "docs" / "product" / "captured" / f"{slug}.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    type_line = f"- **Type:** {item_type}\n" if item_type else ""
+    p.write_text(
+        f"# Item: {slug}\n\n- **Status:** Open\n- **Kind:** design\n{type_line}",
+        encoding="utf-8",
+    )
+
+
 # ── AC2a: Multiple active initiatives ────────────────────────────────────────
 
 def case_multiple_active_initiatives() -> None:
@@ -1112,73 +1123,49 @@ def case_strategy_prefix_gap() -> None:
 def case_shaping_item_guard() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Guard Test"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".shaping_queue]
-            active  = [
-              {slug = "needs-shaping",    type = "shape"},
-              {slug = "needs-research",   type = "research"},
-              {slug = "needs-strategy",   type = "strategy"},
-              {slug = "needs-design",     type = "design"},
-            ]
-            backlog = [
-              {slug = "backlog-signal",   type = "signal"},
-            ]
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
+        for slug, item_type in [
+            ("needs-shaping", "shape"),
+            ("needs-research", "research"),
+            ("needs-strategy", "strategy"),
+            ("needs-design", "design"),
+            ("backlog-signal", "signal"),
+            ("not-a-shaping-item", None),
+        ]:
+            write_captured_item(root, slug, item_type)
+        cooled: frozenset[Path] = frozenset()
 
-        expect(check_shaping_guard("needs-shaping", initiatives) == "intent",
+        expect(check_shaping_guard(root, "needs-shaping", cooled) == "intent",
                "[AC3f] shape → intent")
-        expect(check_shaping_guard("needs-research", initiatives) == "desk-research-project-start",
+        expect(check_shaping_guard(root, "needs-research", cooled) == "desk-research-project-start",
                "[AC3f] research → desk-research-project-start")
-        expect(check_shaping_guard("needs-strategy", initiatives) == "frame-situation",
+        expect(check_shaping_guard(root, "needs-strategy", cooled) == "frame-situation",
                "[AC3f] strategy → frame-situation")
-        expect(check_shaping_guard("needs-design", initiatives) == "experience-status",
+        expect(check_shaping_guard(root, "needs-design", cooled) == "experience-status",
                "[AC3f] design → experience-status")
-        expect(check_shaping_guard("backlog-signal", initiatives) == "(signal — no action)",
+        expect(check_shaping_guard(root, "backlog-signal", cooled) == "(signal — no action)",
                "[AC3f] signal → no-action marker")
-        expect(check_shaping_guard("not-a-shaping-item", initiatives) is None,
-               "[AC3f] non-shaping spec → None (not guarded)")
+        expect(check_shaping_guard(root, "not-a-shaping-item", cooled) is None,
+               "[AC3f] record with no Type → None (not guarded)")
+        expect(check_shaping_guard(root, "no-such-file", cooled) is None,
+               "[AC3f] absent record → None (not guarded)")
 
 
 # ── AC3f ext: shaping guard — paused initiative and top-level backlog ─────────
 
-def case_shaping_guard_paused_initiative() -> None:
-    """Paused initiative's shaping items must NOT be guarded (filter: status == "active" only)."""
+def case_shaping_guard_cooled_record() -> None:
+    """A cooled record is not guarded, and its body is not opened."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Paused Initiative"
-            status = "paused"
-            milestone = "M1"
-            ["ini-001".shaping_queue]
-            active  = [{slug = "paused-shape", type = "shape"}]
-            backlog = []
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
+        write_captured_item(root, "cooled-shape", "shape")
+        cooled = frozenset({(root / "docs/product/captured/cooled-shape.md").resolve()})
 
-        result = check_shaping_guard("paused-shape", initiatives)
+        result = check_shaping_guard(root, "cooled-shape", cooled)
         expect(result is None,
-               f"[AC3f-paused] paused initiative shaping item → None (not guarded),"
-               f" got {result!r}")
+               f"[AC3f-cooled] cooled record → None (not guarded), got {result!r}")
 
 
-def case_shaping_guard_top_level_backlog() -> None:
-    """Top-level [backlog].open typed entries must be checked by check_shaping_guard."""
+def case_shaping_guard_ignores_registry_entries() -> None:
+    """A typed registry entry with no record is not a shaping item (the file is the source)."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_workspace(root, """
@@ -1187,7 +1174,7 @@ def case_shaping_guard_top_level_backlog() -> None:
             status = "active"
             milestone = "M1"
             ["ini-001".shaping_queue]
-            active  = []
+            active  = [{slug = "queue-shape", type = "shape"}]
             backlog = []
             ["ini-001".work]
             active  = []
@@ -1200,28 +1187,51 @@ def case_shaping_guard_top_level_backlog() -> None:
               {slug = "top-research", type = "research"},
             ]
         """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        top_backlog = extract_top_level_backlog(ws)
+        cooled: frozenset[Path] = frozenset()
+        for slug in ("queue-shape", "top-shape", "top-research", "not-here"):
+            result = check_shaping_guard(root, slug, cooled)
+            expect(result is None,
+                   f"[AC3f-registry] registry entry {slug!r} without a record → None, got {result!r}")
 
-        # Without top_level_backlog parameter → not guarded (shows the gap the param fills)
-        expect(check_shaping_guard("top-shape", initiatives) is None,
-               "[AC3f-toplevel] top-level backlog item → None without top_level_backlog param")
+        # Top-level extraction still feeds the status JSON, so it still works.
+        top_backlog = extract_top_level_backlog(parse_workspace(root / "workspace.toml"))
+        expect([e.slug for e in top_backlog] == ["top-shape", "top-research"],
+               f"[AC3f-registry] extract_top_level_backlog unchanged, got {top_backlog!r}")
 
-        # With top_level_backlog parameter → correctly routed
-        result = check_shaping_guard("top-shape", initiatives, top_level_backlog=top_backlog)
-        expect(result == "intent",
-               f"[AC3f-toplevel] top-level shape → intent, got {result!r}")
 
-        result2 = check_shaping_guard("top-research", initiatives, top_level_backlog=top_backlog)
-        expect(result2 == "desk-research-project-start",
-               f"[AC3f-toplevel] top-level research → desk-research-project-start,"
-               f" got {result2!r}")
+def case_shaping_guard_refuses_invalid_and_unreadable() -> None:
+    """An invalid or unreadable record refuses with its own finding."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        directory = root / "docs/product/captured"
+        directory.mkdir(parents=True)
+        (directory / "bad-type.md").write_text(
+            "# Item\n\n- **Status:** Open\n- **Kind:** design\n- **Type:** bogus\n",
+            encoding="utf-8",
+        )
+        outside = root / "outside.md"
+        outside.write_text("# Item\n", encoding="utf-8")
+        (directory / "linked.md").symlink_to(outside)
+        cooled: frozenset[Path] = frozenset()
 
-        # Non-shaping slug → still None
-        result3 = check_shaping_guard("not-here", initiatives, top_level_backlog=top_backlog)
-        expect(result3 is None,
-               f"[AC3f-toplevel] non-shaping slug → None, got {result3!r}")
+        invalid = check_shaping_guard(root, "bad-type", cooled)
+        expect(isinstance(invalid, _engine_mod.ShapingGuardRefusal)
+               and invalid.finding.code == "invalid_captured_item",
+               f"[AC3f-refuse] invalid record → invalid_captured_item refusal, got {invalid!r}")
+        unreadable = check_shaping_guard(root, "linked", cooled)
+        expect(isinstance(unreadable, _engine_mod.ShapingGuardRefusal)
+               and unreadable.finding.code == "unreadable_artifact",
+               f"[AC3f-refuse] unreadable record → unreadable_artifact refusal, got {unreadable!r}")
+
+
+def case_shaping_guard_slug_outside_grammar() -> None:
+    """A slug outside the file name grammar is not guarded."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_captured_item(root, "x", "shape")
+        for slug in ("../x", "Bad_Name"):
+            expect(check_shaping_guard(root, slug, frozenset()) is None,
+                   f"[AC3f-grammar] {slug!r} → None")
 
 
 def case_extract_repo_backlog_preserves_declared_display_data() -> None:
@@ -1856,44 +1866,23 @@ def case_research_type_filter() -> None:
 # ── F1b: untyped backlog entries not treated as shaping ───────────────────────
 
 def case_untyped_backlog_not_shaping() -> None:
-    """Untyped [backlog].open entries (build backlog) are NOT routed as shaping work."""
+    """A record with no Type (a build item) does not trigger the shaping guard."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Active"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = []
+        write_captured_item(root, "build-item", None)
+        write_captured_item(root, "typed-shape", "shape")
+        cooled: frozenset[Path] = frozenset()
 
-            [backlog]
-            open = [
-              {slug = "build-item",  source = "spec/x AC1"},
-              {slug = "typed-shape", type   = "shape"},
-            ]
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        inits = extract_initiatives(ws)
-        top_backlog = extract_top_level_backlog(ws)
-
-        # Untyped build-backlog entry must not trigger the shaping guard
-        r = check_shaping_guard("build-item", inits, top_level_backlog=top_backlog)
+        r = check_shaping_guard(root, "build-item", cooled)
         expect(
             r is None,
-            f"[F1b] untyped build backlog entry → None (not shaping), got {r!r}",
+            f"[F1b] untyped record → None (not shaping), got {r!r}",
         )
 
-        # Explicitly typed shape entry must still route correctly
-        r2 = check_shaping_guard("typed-shape", inits, top_level_backlog=top_backlog)
+        r2 = check_shaping_guard(root, "typed-shape", cooled)
         expect(
             r2 == "intent",
-            f"[F1b] typed shape entry → intent, got {r2!r}",
+            f"[F1b] typed shape record → intent, got {r2!r}",
         )
 
 
@@ -2284,27 +2273,13 @@ def case_work_loop_slug_normalization() -> None:
     # End-to-end: normalization + shaping guard
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Active"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".shaping_queue]
-            active  = [{slug = "my-feature", type = "shape"}]
-            backlog = []
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        inits = extract_initiatives(ws)
+        write_captured_item(root, "my-feature", "shape")
 
-        # All these raw paths should route to the same shaping entry
+        # All these raw paths should route to the same captured-item file
         for raw in ["docs/specs/my-feature/", "docs/specs/my-feature",
                     "spec/my-feature", "my-feature"]:
             slug = normalize_for_shaping_guard(raw)
-            result = check_shaping_guard(slug, inits)
+            result = check_shaping_guard(root, slug, frozenset())
             expect(result == "intent",
                    f"[normalize+guard] {raw!r} → slug={slug!r} → {result!r} (want 'intent')")
 
@@ -3400,8 +3375,10 @@ CASES = [
     ("AC2p deferred_backlog_anchors", case_deferred_backlog_anchors),
     ("KD-08 strategy_prefix_gap", case_strategy_prefix_gap),
     ("AC3f shaping_item_guard", case_shaping_item_guard),
-    ("AC3f shaping_guard_paused_initiative", case_shaping_guard_paused_initiative),
-    ("AC3f shaping_guard_top_level_backlog", case_shaping_guard_top_level_backlog),
+    ("AC3f shaping_guard_cooled_record", case_shaping_guard_cooled_record),
+    ("AC3f shaping_guard_ignores_registry_entries", case_shaping_guard_ignores_registry_entries),
+    ("AC3f shaping_guard_refuses_invalid_and_unreadable", case_shaping_guard_refuses_invalid_and_unreadable),
+    ("AC3f shaping_guard_slug_outside_grammar", case_shaping_guard_slug_outside_grammar),
     ("repo backlog display projection", case_extract_repo_backlog_preserves_declared_display_data),
     ("AC3g type2_cleanup_ownership", case_type2_cleanup_ownership),
     ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),

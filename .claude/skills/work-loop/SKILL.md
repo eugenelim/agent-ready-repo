@@ -194,11 +194,15 @@ If `workspace.toml` is present, read it and Surface an orientation block:
      requirements from comments, summaries, list order, or surrounding prose.
 
 Then apply the **Shaping-item guard** when a workspace-resolved or supplied slug
-exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Check all active
-initiatives' `[shaping_queue].active`, `.backlog`, and `[backlog].open` typed
-entries for a slug match. On match, stop: "This is a `[shape]` item (`type =
-<subtype>`); use `<skill>` — `work-loop` is for build items only."
-(shape→`intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
+exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Match it against
+`captured.items` in the `workspace-status` status output. When the matching item
+has a non-null `routes_to`, stop: "This is a shaping item (`Type: <type>`); use
+`<skill>` — `work-loop` is for build items only." (`routes_to` names the skill:
+shape→`intent`; research→`desk-research-project-start`;
+strategy→`frame-situation`; design→`experience-status`.) A `signal` item →
+"Monitoring signal — `work-loop` is for build items only." When the matching
+item is `invalid` or `unreadable`, stop and surface its finding from
+`captured.findings`. Otherwise continue.
 
 After orientation, route by invocation shape. **Order matters: an explicit
 current request is decided before the workspace-dispatch branches, which exist

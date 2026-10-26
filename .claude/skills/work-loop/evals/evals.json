@@ -1379,6 +1379,19 @@
         "Gives `validate ... --kind record` for the persisted file",
         "Says only the `<round>-record.md` name is accepted for a record"
       ]
+    },
+    {
+      "id": "step0-shaping-item-guard-captured-item-file",
+      "prompt": "You are starting work-loop on `docs/specs/pricing-research/`. The `workspace-status` status output lists a `captured.items` entry for slug `pricing-research` with `type` \"research\" and `routes_to` \"desk-research-project-start\". What does Step 0 do?",
+      "files": [],
+      "expected_output": "Stop at the Shaping-item guard. Derive the slug `pricing-research`, match it against `captured.items`, and see a non-null `routes_to`. Reply: \"This is a shaping item (`Type: research`); use `desk-research-project-start` — `work-loop` is for build items only.\" Do not proceed to PLAN. If the matching item were `invalid` or `unreadable`, stop and surface its finding from `captured.findings` instead; with no matching item or a null `routes_to`, continue.",
+      "assertions": [
+        "Response stops rather than proceeding to PLAN",
+        "Response matches the slug against `captured.items` from the workspace-status output",
+        "Response routes to `desk-research-project-start` because `routes_to` is non-null",
+        "Response says work-loop is for build items only",
+        "Response does not consult a registry shaping queue or backlog list for the match"
+      ]
     }
   ]
 }

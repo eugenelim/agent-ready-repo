@@ -5742,7 +5742,7 @@ def get_active_specs(initiatives: list[Initiative]) -> list[tuple[str, str]]:
 # ── work-loop shaping-item guard helper ──────────────────────────────────────
 
 # Explicitly recognised shaping types. Only entries with one of these types
-# in [backlog].open are treated as shaping work by check_shaping_guard.
+# in [backlog].open feed the `shaping.top_level_backlog` status key.
 # Untyped entries (ordinary build-backlog items) are excluded.
 _SHAPING_TYPES: frozenset[str] = frozenset(
     {"shape", "research", "strategy", "signal", "design"}
@@ -5808,39 +5808,40 @@ def extract_top_level_backlog(workspace: dict) -> list[ShapingEntry]:
     return entries
 
 
-_SHAPING_TYPE_TO_SKILL: dict[str, str] = {
-    "shape":    "intent",
-    "research": "desk-research-project-start",
-    "strategy": "frame-situation",
-    "design":   "experience-status",
-    "signal":   "(signal — no action)",
-}
+@dataclasses.dataclass(frozen=True)
+class ShapingGuardRefusal:
+    """The guard's refusal: the captured-item file named an invalid or unreadable record.
+
+    `finding` is that file's own `invalid_captured_item` or `unreadable_artifact`
+    finding, so the caller surfaces it rather than guessing at the slug.
+    """
+
+    finding: RoutingFinding
 
 
 def check_shaping_guard(
-    spec_slug: str,
-    initiatives: list[Initiative],
-    top_level_backlog: list[ShapingEntry] | None = None,
-) -> str | None:
-    """Return the routing skill if spec_slug is in a shaping queue; None otherwise.
+    root: Path, slug: str, cooled: frozenset[Path]
+) -> str | ShapingGuardRefusal | None:
+    """Guard a slug against shaping work, reading only its captured-item file.
 
-    work-loop checks this guard at Step 0 (SKILL.md §0 step 2). Checks:
-      - active initiatives' [shaping_queue].active and .backlog
-      - top-level [backlog].open typed entries (pass via extract_top_level_backlog)
-
-    Only active initiatives are checked; paused/closed/complete initiatives are skipped.
-    If the spec is a shaping item, work-loop stops and suggests the appropriate skill.
+    Returns the routed skill when `docs/product/captured/<slug>.md` is a valid,
+    non-cooled file with a `Type:` line, a `ShapingGuardRefusal` carrying the
+    file's finding when it is invalid or unreadable, and `None` when it is valid
+    with no `Type:`, cooled, or absent. A slug outside the file name grammar
+    returns `None` with no file opened. No registry entry is read.
     """
-    for ini in initiatives:
-        if ini.status != "active":
-            continue
-        for entry in ini.shaping.active + ini.shaping.backlog:
-            if entry.slug == spec_slug:
-                return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "intent")
-    for entry in (top_level_backlog or []):
-        if entry.slug == spec_slug:
-            return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "intent")
-    return None
+    name = f"{slug}.md"
+    if _CAPTURED_FILE_RE.fullmatch(name) is None:
+        return None
+    relative = f"{_CAPTURED_DIR}/{name}"
+    # lexists, not exists: a dangling link is present, and reads as unreadable.
+    if not os.path.lexists(root / relative):
+        return None
+    item, finding = read_captured_item(root, name, cooled)
+    if finding is not None:
+        return ShapingGuardRefusal(finding)
+    routed = item.get("routes_to")
+    return routed if isinstance(routed, str) else None
 
 
 def normalize_for_shaping_guard(raw_path: str) -> str:

@@ -1,7 +1,7 @@
 """Construction tests for the captured-item file reader and listing.
 
 Spec: docs/specs/captured-item-files/spec.md (AC-0001, AC-0002, AC-0003,
-AC-0004, AC-0041, AC-0005, AC-0006). Verification mode: TDD.
+AC-0004, AC-0041, AC-0005, AC-0006, AC-0014, AC-0015). Verification mode: TDD.
 
 Each test plants one case in a ``tmp_path`` repository and asserts the one
 outcome it expects.
@@ -470,3 +470,88 @@ def test_captured_object_survives_a_failed_reconciliation(tmp_path: Path) -> Non
 def test_captured_object_is_empty_for_an_absent_directory(tmp_path: Path) -> None:
     _workspace(tmp_path)
     assert _status(tmp_path)["captured"] == {"items": [], "findings": []}
+
+
+# AC-0014, AC-0015: the shaping-item guard ----------------------------------
+
+_NO_COOLED: frozenset[Path] = frozenset()
+
+
+def _guard(root: Path, slug: str, cooled: frozenset[Path] = _NO_COOLED):
+    return ENGINE.check_shaping_guard(root, slug, cooled)
+
+
+@pytest.mark.parametrize(
+    ("shaping_type", "skill"),
+    [
+        ("shape", "intent"),
+        ("research", "desk-research-project-start"),
+        ("strategy", "frame-situation"),
+        ("design", "experience-status"),
+        ("signal", "(signal — no action)"),
+    ],
+)
+def test_guard_routes_each_shaping_type(
+    tmp_path: Path, shaping_type: str, skill: str
+) -> None:
+    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, f"- **Type:** {shaping_type}"))
+    assert _guard(tmp_path, "item") == skill
+
+
+def test_guard_ignores_a_record_with_no_type(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND))
+    assert _guard(tmp_path, "item") is None
+
+
+def test_guard_refuses_an_invalid_record_with_its_finding(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, "- **Type:** bogus"))
+    refusal = _guard(tmp_path, "item")
+    assert isinstance(refusal, ENGINE.ShapingGuardRefusal)
+    finding = refusal.finding
+    assert (finding.code, finding.path) == ("invalid_captured_item", f"{DIR}/item.md")
+    assert finding == ENGINE.read_captured_item(tmp_path, "item.md", _NO_COOLED)[1]
+
+
+def test_guard_refuses_an_unreadable_record_with_its_finding(tmp_path: Path) -> None:
+    target = tmp_path / "elsewhere.md"
+    target.write_text(_record(OPEN, KIND, "- **Type:** shape"), encoding="utf-8")
+    (tmp_path / DIR).mkdir(parents=True)
+    (tmp_path / DIR / "item.md").symlink_to(target)
+    refusal = _guard(tmp_path, "item")
+    assert isinstance(refusal, ENGINE.ShapingGuardRefusal)
+    assert (refusal.finding.code, refusal.finding.path) == (
+        "unreadable_artifact", f"{DIR}/item.md",
+    )
+
+
+def test_guard_ignores_a_cooled_record(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, "- **Type:** shape"))
+    cooled = frozenset({(tmp_path / DIR / "item.md").resolve()})
+    assert _guard(tmp_path, "item", cooled) is None
+
+
+def test_guard_ignores_a_missing_file(tmp_path: Path) -> None:
+    assert _guard(tmp_path, "item") is None
+
+
+@pytest.mark.parametrize("slug", ["../x", "Bad_Name", "", "a/b", "-x"])
+def test_guard_opens_no_file_for_a_slug_outside_the_grammar(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, slug: str
+) -> None:
+    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, "- **Type:** shape"))
+    opened: list[object] = []
+    real_open = os.open
+    monkeypatch.setattr(
+        os, "open", lambda *a, **k: (opened.append(a[0]), real_open(*a, **k))[1]
+    )
+    assert _guard(tmp_path, slug) is None
+    assert opened == []
+
+
+def test_guard_does_not_match_a_registry_entry_without_a_record(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "workspace.toml").write_text(
+        '[backlog]\nopen = [{slug = "item", type = "shape"}]\n', encoding="utf-8"
+    )
+    assert _guard(tmp_path, "item") is None
