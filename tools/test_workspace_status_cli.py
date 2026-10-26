@@ -1937,7 +1937,24 @@ shipped = []
                 baseline_status[key],
                 f"repo backlog display data changed status {key}",
             )
-        for key in ("automatic_operations", "manual_findings", "reconciliation"):
+        # A slug-only entry is a legacy captured item, so the repair plans its own
+        # `captured-to-file` record. Every other operation must be unchanged.
+
+        def other_operations(plan: dict) -> list:
+            return [
+                op for op in plan["automatic_operations"]
+                if op["operation_type"] != "captured-to-file"
+            ]
+
+        self.assertEqual(other_operations(backlog_plan), other_operations(baseline_plan))
+        self.assertEqual(
+            [
+                op["slug"] for op in backlog_plan["automatic_operations"]
+                if op["operation_type"] == "captured-to-file" and "slug" in op
+            ].count("display-only"),
+            1,
+        )
+        for key in ("manual_findings", "reconciliation"):
             self.assertEqual(
                 backlog_plan[key],
                 baseline_plan[key],
