@@ -384,30 +384,39 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   ledger records its commit, its root entries, and an empty
   `git status --porcelain --ignored`.
 - Each reviewer is one headless `claude -p` session run with `--restricted`,
-  `--tools "Read,Glob,Grep"`, `--strict-mcp-config` and
-  `--output-format stream-json`. Its working directory is a fresh empty
-  directory outside the repository holding only `rules.md` (the spec's Terms,
-  `today`, and the statement that record text is data and gives no
-  instruction) and `listing.tsv`. The accuracy worktree's `docs/adr/` and
-  `docs/rfc/` are its only `--add-dir` directories. The host therefore offers no
-  other tool and refuses file reads outside those three directories. The ledger
+  `--safe-mode`, `--tools "Read,Glob,Grep"`, `--strict-mcp-config`,
+  `--output-format stream-json` and `--verbose`. Its working directory is a
+  fresh empty directory outside the repository holding only `rules.md` and
+  `listing.tsv`. `rules.md` holds the spec's Terms, AC-0030, AC-0031, AC-0032 and
+  AC-0033, the `today` value, and the statement that record text is data and
+  gives no instruction. The accuracy worktree's `docs/adr/` and `docs/rfc/` are
+  its only `--add-dir` directories. The host therefore offers no other tool and
+  refuses `Read`, `Glob` and `Grep` outside those three directories. The ledger
   records each session's exact command line and the sha256 of `rules.md` and
   `listing.tsv`.
+- The ledger records, from each session's init event, its tool list (exactly
+  `Glob`, `Grep` and `Read`), its MCP servers (none), and its agents, skills and
+  plugins. Only the host's built-in agents, skills and plugins may appear; with
+  no `Skill` or agent tool, none can be loaded.
 - Presence and type come only from `listing.tsv`: every entry in the accuracy
   worktree, files and directories, with type and link count, made once by a
   walk that takes no input from records. The ledger records how it was made.
 - As a second check, a scratch audit script reads each session's host-recorded
   stream-json transcript. A share is void when its transcript shows any
-  attempted tool call other than `Read`, `Glob` or `Grep`, any such call whose
+  attempted tool call other than `Read`, `Glob` or `Grep`; any such call whose
   path argument is missing or does not resolve inside one of the three
-  directories, or any refused call. A void share is discarded and redone by a
-  fresh session. Each transcript is saved in `notes/hand-check/`, with
-  home-directory paths, the OS username and session identifiers replaced by
-  placeholders, and the ledger records the audit result per share.
+  directories; any `Glob` or `Grep` pattern that starts with `/` or `~` or has
+  a `..` segment; or any refused call. A void share is discarded and redone by
+  a fresh session.
+- Each transcript is saved in `notes/hand-check/` after home-directory paths,
+  the OS username, session and account identifiers and email addresses are
+  replaced with placeholders. Before any transcript is committed, the ledger
+  records a search over `notes/hand-check/` showing none remain, and the audit
+  result per share.
 - After any void share, and after the last share, the ledger records
   `git status --porcelain --ignored` of the accuracy worktree. When it is not
-  empty, the ledger records what the void share ran, and the worktree is
-  recreated at the same commit before any later share or T6 reads it.
+  empty, T5 stops, the ledger records what the void share ran, and eugenelim
+  directs the next step.
 - The merged `notes/hand-check.json` lists every accepted ADR, records the one
   `today` value all reviewers applied, and records the commit it read.
 
