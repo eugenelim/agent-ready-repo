@@ -115,7 +115,7 @@ Terms used below:
 - **A decision record** is an ADR or an RFC.
 - **A handle** is a platform handle such as `@user` or `@org/team`. **A role** is a named function such as "platform maintainers".
 - **The pre-change commit** is the commit SHA that T1 records in the ledger before any `SKILL.md` edit.
-- **The route tag of a reply** is found by parsing its route result block. The `Route:` value is lowercased, and backticks, `*`, `_` and commas are removed. A leading `a `, `an ` or `the ` is removed. The value is cut at the first `(`, `;`, `:` or ` — `, then trimmed. The value carries a tag when it equals one of the tag's forms, or starts with one followed by a space:
+- **The route tag of a reply** is found by parsing its route result block. The `Route:` value is lowercased, and backticks, `*`, `_` and commas are removed. A leading `a `, `an ` or `the ` is removed. The value is cut at the first `(`, `;`, `:` or ` — `, then trimmed, and trailing `.` characters are removed. The value carries a tag when it equals one of the tag's forms, or starts with one followed by a space:
   - `skip`: `skip`
   - `reuse`: `reuse`
   - `amend`: `amend`
