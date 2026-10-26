@@ -87,3 +87,7 @@ The branch was rebuilt on `5cec6ac3e` (#1614), which added three specs carrying 
 - 2026-10-26: AC-0015: this slice's engine over the migrated tree against the base engine over the tree the repair read: canonical ready, active, and blocked paths, canonical findings by code and path, legacy work ready and blocked lists, and shaping lists all equal.
 - 2026-10-26: AC-0017: `navigate-intents query --operation dependencies` over the 17 migrated intents reports no fault-state diagnostic.
 - 2026-10-26: `core` 3.1.19 → 3.1.20 (main had released 3.1.19); changelog fragment `64d96e94`.
+
+## GATES
+
+- 2026-10-26: `make lint-ruff lint-mypy` pass. `packs/core/tests`, `tools`, `tests/roster`, and the MCP tool suite pass apart from failures that fail identically at `origin/main` `5cec6ac3e` (checked in a clone outside the repository): `tests/roster/test_catalogue_spec_contract_loads.py`, `test_portable_catalogue_authentication_packaging.py`, `test_work_loop_root_validation.py`, `tools/test_check_artifact_contents.py::test_real_sdist_carries_and_executes_complete_engine_suite`, `tools/test_managed_child.py`, `tools/test_release_check.py`. They are pre-existing and environment-bound; the spec's Never-do rule keeps `workspace.toml` backlog entries out of this change, so they are listed here and in the pull request instead.
