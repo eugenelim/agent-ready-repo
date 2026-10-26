@@ -714,6 +714,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest workspace retirement inventory (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest depends-on headers instructions (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual-target guide excerpt (roster-owned)":
@@ -1093,6 +1095,7 @@ _GATE_MAIN_CHECKS = (
     "pytest loop-cohort wave-decision contract (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",
+    "pytest depends-on headers instructions (roster-owned)",
     "pytest closure guide surface (roster-owned)",
     "pytest visual-target guide excerpt (roster-owned)",
     "pytest visual-target release surface (roster-owned)",

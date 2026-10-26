@@ -704,6 +704,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_workspace_retirement_inventory.py
 
+      # AC-0016 and AC-0018 of depends-on-headers: no shipped instruction or
+      # guide teaches a registry `needs` edge, and each named instruction site
+      # names the `Depends on:` header. Roster-owned because it reads `guides/`.
+      - name: pytest depends-on headers instructions (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_depends_on_headers_instructions.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a
