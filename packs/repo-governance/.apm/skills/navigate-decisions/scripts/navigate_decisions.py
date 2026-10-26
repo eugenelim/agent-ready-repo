@@ -12,13 +12,16 @@ operation; partial truth is never returned.
 from __future__ import annotations
 
 import argparse
+import calendar
 import importlib.util
 import json
 import os
+import posixpath
 import re
 import stat as _stat
 import sys
-from datetime import UTC, datetime
+import unicodedata
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -1845,6 +1848,575 @@ def run_query(root: Any, query: dict[str, Any]) -> dict[str, Any]:
     return _error(env, code="unknown_operation", message=f"unhandled operation: {operation!r}")
 
 
+# ── Health ───────────────────────────────────────────────────────────────────
+#
+# Read-only health report over the admitted corpus.  Record text is data: a
+# path named in a record is only ever lstat-ed, never opened, listed, imported
+# or executed.  Nothing here writes, spawns a process or uses the network.
+
+HEALTH_SCHEMA = "decision-navigation.health.v1"
+_MAX_PATH_OCCURRENCES = 5000
+_MAX_REPORTED_CODEPOINTS = 160
+_MAX_PATH_SEGMENTS = 32
+_REMOVED_CATEGORIES = frozenset({"Cc", "Cf", "Zl", "Zp", "Co", "Cs"})
+
+_MONTHS = (
+    "January", "February", "March", "April", "May", "June", "July",
+    "August", "September", "October", "November", "December",
+)
+_MONTH_RE = "(" + "|".join(_MONTHS) + ")"
+# Each date form: (compiled regex anchored with .match, builder -> last day).
+_DATE_FORMS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})"),
+    re.compile(r"([0-9]{4})-([0-9]{2})"),
+    re.compile(_MONTH_RE + r" ([0-9]{1,2}), ([0-9]{4})"),
+    re.compile(r"([0-9]{1,2}) " + _MONTH_RE + r" ([0-9]{4})"),
+    re.compile(_MONTH_RE + r" ([0-9]{4})"),
+    re.compile(r"Q([1-4]) ([0-9]{4})"),
+    re.compile(r"([0-9]{4})"),
+)
+_DATE_EDGE_RE = re.compile(r"[\w-]")
+_VERSION_RE = re.compile(
+    r"(?<![A-Za-z0-9_.\-])"
+    r"(?:(?:v|>=|<=|==|~=|\^)?[0-9]+(?:\.[0-9]+)+\+?(?![0-9])(?![._\-][A-Za-z0-9])"
+    r"|v[0-9]+(?![A-Za-z0-9_.]))"
+)
+_URI_SCHEME_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]+:")
+_LINE_SUFFIX_RE = re.compile(r":[0-9]+(?:-[0-9]+)?$")
+_BACKTICK_SPAN_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
+_LINK_TARGET_RE = re.compile(r"\]\(([^)\n]*)\)")
+_CANDIDATE_BAD_RE = re.compile(r"[\s<>*?\[\]{}$|]")
+_CANDIDATE_EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,5}$")
+_DRIVE_RE = re.compile(r"[A-Za-z]:")
+_TODAY_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+
+
+def _clean_reported(value: Any, *, cut: bool = True) -> str:
+    """Return the cleaned form of text taken from a record or an error.
+
+    Joins lines with one space, removes every character of category Cc, Cf,
+    Zl, Zp, Co or Cs, and (unless ``cut`` is False) cuts to 160 code points,
+    adding an ellipsis when it cut.
+    """
+    text = " ".join(str(value).replace("\r\n", "\n").split("\n"))
+    text = "".join(
+        ch for ch in text if unicodedata.category(ch) not in _REMOVED_CATEGORIES
+    )
+    if cut and len(text) > _MAX_REPORTED_CODEPOINTS:
+        return text[:_MAX_REPORTED_CODEPOINTS] + "…"
+    return text
+
+
+def _record_lines(text: str) -> list[str]:
+    """Split on ``\\n`` and drop one ``\\r`` directly before each ``\\n``."""
+    lines = text.split("\n")
+    return [ln[:-1] if ln.endswith("\r") and i < len(lines) - 1 else ln
+            for i, ln in enumerate(lines)]
+
+
+def _status_word(rec: dict[str, Any]) -> str | None:
+    """Return the first whitespace-separated word of a record's lifecycle."""
+    raw = rec["lifecycle"]["raw_value"]
+    words = raw.split() if isinstance(raw, str) else []
+    return words[0] if words else None
+
+
+def _section_lines(lines: list[str], name: str) -> list[str] | None:
+    """Return the lines of every ``## name`` section, or None when absent."""
+    found = False
+    out: list[str] = []
+    inside = False
+    for line in lines:
+        if line == f"## {name}":
+            found = inside = True
+            continue
+        if line.startswith("## "):
+            inside = False
+            continue
+        if inside:
+            out.append(line)
+    return out if found else None
+
+
+def _is_blank(line: str) -> bool:
+    return line.strip() == ""
+
+
+def _trigger_text(consequences: list[str]) -> str:
+    """Extract an ADR's trigger text from its Consequences lines ('' if none)."""
+    for idx, line in enumerate(consequences):
+        for prefix in ("**Revisit if:**", "- **Revisit if:**"):
+            if line.startswith(prefix):
+                rest = _strip_trailing_comment(line[len(prefix):]).strip()
+                return _collect_trigger(consequences, idx + 1, rest)
+    return ""
+
+
+def _collect_trigger(lines: list[str], nxt: int, rest: str) -> str:
+    """Apply the three trigger-text forms to the lines after the key line."""
+    stops = ("#", "- **", "**")
+    parts: list[str] = []
+    if rest:
+        parts.append(rest)
+        for line in lines[nxt:]:
+            if _is_blank(line) or line.startswith(stops):
+                break
+            parts.append(line)
+    elif nxt < len(lines) and _is_blank(lines[nxt]):
+        for line in lines[nxt + 1:]:
+            if line.startswith("- ") or (
+                line.startswith((" ", "\t")) and not _is_blank(line)
+            ):
+                parts.append(line)
+            else:
+                break
+    else:
+        for line in lines[nxt:]:
+            if _is_blank(line) or line.startswith(stops):
+                break
+            parts.append(line)
+    text = " ".join(parts)
+    return text if text.strip() else ""
+
+
+def _last_day(m: re.Match[str], form: int) -> date | None:
+    """Return the form's last day for match ``m``, or None when not real."""
+    g = m.groups()
+    try:
+        if form == 0:
+            return date(int(g[0]), int(g[1]), int(g[2]))
+        if form == 1:
+            y, mo = int(g[0]), int(g[1])
+            return date(y, mo, calendar.monthrange(y, mo)[1]) if 1 <= mo <= 12 else None
+        if form == 2:
+            return date(int(g[2]), _MONTHS.index(g[0]) + 1, int(g[1]))
+        if form == 3:
+            return date(int(g[2]), _MONTHS.index(g[1]) + 1, int(g[0]))
+        if form == 4:
+            y, mo = int(g[1]), _MONTHS.index(g[0]) + 1
+            return date(y, mo, calendar.monthrange(y, mo)[1])
+        if form == 5:
+            y, mo = int(g[1]), int(g[0]) * 3
+            return date(y, mo, calendar.monthrange(y, mo)[1])
+        year = int(g[0])
+        return date(year, 12, 31) if 1900 <= year <= 2099 else None
+    except ValueError:
+        return None
+
+
+def _date_mentions(text: str) -> list[tuple[str, date]]:
+    """Return date mentions (as written, last day), leftmost-longest."""
+    out: list[tuple[str, date]] = []
+    pos = 0
+    while pos < len(text):
+        if pos > 0 and _DATE_EDGE_RE.match(text[pos - 1]):
+            pos += 1
+            continue
+        best: tuple[int, date] | None = None
+        for form, rx in enumerate(_DATE_FORMS):
+            m = rx.match(text, pos)
+            if m is None:
+                continue
+            end = m.end()
+            if end < len(text) and _DATE_EDGE_RE.match(text[end]):
+                continue
+            day = _last_day(m, form)
+            if day is not None and (best is None or end > best[0]):
+                best = (end, day)
+        if best is None:
+            pos += 1
+            continue
+        out.append((text[pos:best[0]], best[1]))
+        pos = best[0]
+    return out
+
+
+def _version_mentions(text: str) -> list[str]:
+    """Return version mentions in order."""
+    return [m.group(0) for m in _VERSION_RE.finditer(text)]
+
+
+def _trigger_class(text: str, today: date) -> tuple[str, list[str], list[str]]:
+    """Return (class, date strings to report, version mentions) for a trigger."""
+    if not text:
+        return "none", [], []
+    dates = _date_mentions(text)
+    versions = _version_mentions(text)
+    passed = [s for s, day in dates if day < today]
+    if passed:
+        return "due", list(dict.fromkeys(passed)), versions
+    all_dates = list(dict.fromkeys(s for s, _ in dates))
+    if versions:
+        return "version", all_dates, versions
+    if dates:
+        return "scheduled", all_dates, versions
+    plain = text
+    if len(plain) >= 2 and plain.startswith("`") and plain.endswith("`"):
+        plain = plain[1:-1]
+    plain = plain.casefold()
+    if plain == "stable" or plain.startswith(
+        ("stable ", "stable—", "stable-", "stable:")
+    ):
+        return "stable", [], versions
+    return "judge", [], versions
+
+
+def _header_parts(lines: list[str]) -> tuple[str, str]:
+    """Return (whole header text, header text without Supersedes fields)."""
+    header: list[str] = []
+    for line in lines[1:]:
+        if line.startswith("## "):
+            break
+        header.append(line)
+    kept: list[str] = []
+    skipping = False
+    for line in header:
+        split = _split_header_field_line(line)
+        if split is not None:
+            skipping = split[0] in ("Supersedes", "Supersedes in part")
+        elif not line or line.startswith(("- **", ">", "#", "**")):
+            skipping = False
+        if not skipping:
+            kept.append(line)
+    return "\n".join(header), "\n".join(kept)
+
+
+def _successors(rec: dict[str, Any]) -> list[str]:
+    """Return ids named in a record's ``Superseded by`` field(s)."""
+    ids: list[str] = []
+    for field in rec["header_field_list"]:
+        if field["label"] == "Superseded by":
+            ids.extend(_TOKEN_RE.findall(field["raw_value"]))
+    return sorted(set(ids))
+
+
+def _signal_text(confirmation: list[str]) -> list[str]:
+    """Return each Signal item's text (lines joined with ``\\n``)."""
+    def norm(line: str) -> str:
+        s = line.lstrip(" ")
+        return s[2:] if s.startswith("- ") else s
+
+    items: list[str] = []
+    i = 0
+    while i < len(confirmation):
+        if norm(confirmation[i]).startswith("**Signal"):
+            block = [confirmation[i]]
+            j = i + 1
+            while j < len(confirmation) and not norm(confirmation[j]).startswith(
+                ("**Mode", "**Signal", "**Owner")
+            ):
+                block.append(confirmation[j])
+                j += 1
+            items.append("\n".join(block))
+            i = j
+        else:
+            i += 1
+    return items
+
+
+def _is_candidate(text: str) -> bool:
+    """Apply the path-candidate shape rule to an extracted string."""
+    if not text or _CANDIDATE_BAD_RE.search(text):
+        return False
+    return "/" in text or _CANDIDATE_EXT_RE.search(text) is not None
+
+
+def _extract_candidates(signal: str, adr_dir: str) -> list[tuple[str, bool]]:
+    """Return (checked form, is_link) per candidate occurrence in signal text."""
+    out: list[tuple[str, bool]] = []
+    for m in _BACKTICK_SPAN_RE.finditer(signal):
+        span = m.group(1).split("::", 1)[0]
+        span = _LINE_SUFFIX_RE.sub("", span)
+        if _URI_SCHEME_RE.match(span):
+            continue
+        if _is_candidate(span):
+            out.append((span, False))
+    for m in _LINK_TARGET_RE.finditer(signal):
+        target = m.group(1).split(" ", 1)[0]
+        if target.startswith("#") or _URI_SCHEME_RE.match(target):
+            continue
+        target = re.split(r"[#?]", target, maxsplit=1)[0]
+        if _is_candidate(target):
+            out.append((posixpath.normpath(posixpath.join(adr_dir, target)), True))
+    return out
+
+
+def _segments(path: str) -> list[str]:
+    """Split on ``/``, ignoring one trailing ``/``."""
+    return (path[:-1] if path.endswith("/") else path).split("/")
+
+
+def _lexical_reason(checked: str, is_link: bool) -> str | None:
+    """Return the invalid reason under the lexical rule, or None when valid."""
+    if is_link and (checked == ".." or checked.startswith("../")):
+        return "outside-root"
+    if checked.startswith(("/", "~")) or _DRIVE_RE.match(checked):
+        return "lexical"
+    if "\\" in checked or "\x00" in checked:
+        return "lexical"
+    if any(unicodedata.category(ch) in _REMOVED_CATEGORIES for ch in checked):
+        return "lexical"
+    segs = _segments(checked)
+    if any(s in (".", "..") for s in segs):
+        return "lexical"
+    if not is_link and any(s == "" for s in segs):
+        return "lexical"
+    if len(checked) > _MAX_REPORTED_CODEPOINTS or len(segs) > _MAX_PATH_SEGMENTS:
+        return "too-long"
+    return None
+
+
+def _is_link_like(st: os.stat_result) -> bool:
+    """True for a symbolic link or a Windows reparse point."""
+    attrs = getattr(st, "st_file_attributes", 0)
+    return _stat.S_ISLNK(st.st_mode) or bool(attrs & 0x400)
+
+
+def _probe(fs: Any, root: Path, checked: str) -> tuple[str, str | None]:
+    """Probe a lexically valid, rooted checked form without opening it.
+
+    Walks one component at a time from ``root`` with ``os.lstat``; each
+    directory is passed to ``validate_confined_directory`` before the walk
+    descends.  Only FileNotFoundError means absent.  Returns
+    ``(result, reason)`` with result ``present``, ``missing`` or ``invalid``.
+    """
+    segs = _segments(checked)
+    current = root
+    for idx, seg in enumerate(segs):
+        current = current / seg
+        last = idx == len(segs) - 1
+        try:
+            st = os.lstat(current)
+        except FileNotFoundError:
+            return "missing", None
+        except OSError:
+            return "invalid", "uninspectable"
+        if _is_link_like(st):
+            return "invalid", "link"
+        if _stat.S_ISDIR(st.st_mode):
+            try:
+                fs.validate_confined_directory(root, current)
+            except Exception:
+                return "invalid", "unconfined"
+            if last:
+                return "present", None
+            continue
+        if _stat.S_ISREG(st.st_mode):
+            if not last:
+                return "missing", None
+            if st.st_nlink > 1:
+                return "invalid", "hard-link"
+            return "present", None
+        return "invalid", "special"
+    return "present", None  # pragma: no cover - segs is never empty
+
+
+def _health_error(
+    root: Path,
+    records: dict[str, Any] | None,
+    code: str,
+    message: str,
+    limits: dict[str, Any] | None = None,
+    observed: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build an error health result with cleaned error strings."""
+    prov = _provenance(root, records)
+    prov["root"] = _clean_reported(prov["root"], cut=False)
+
+    def clean_map(m: dict[str, Any] | None) -> dict[str, Any]:
+        return {
+            _clean_reported(k): _clean_reported(v) if isinstance(v, str) else v
+            for k, v in (m or {}).items()
+        }
+
+    return {
+        "schema": HEALTH_SCHEMA,
+        "boundary": BOUNDARY_NOTICE,
+        "provenance": prov,
+        "status": "error",
+        "error": {
+            "code": _clean_reported(code),
+            "message": _clean_reported(message),
+            "limits": clean_map(limits),
+            "observed": clean_map(observed),
+        },
+    }
+
+
+def run_health(root: Any, today: str | None = None) -> dict[str, Any]:
+    """Build the ``decision-navigation.health.v1`` result for ``root``.
+
+    Args:
+        root: Repository root.
+        today: ``YYYY-MM-DD``, or None for the current UTC date.
+
+    Returns:
+        The health result, or an error result (``invalid_today``, an
+        admission error, or ``input_too_large``) with no findings.
+    """
+    root_path = Path(root) if not isinstance(root, Path) else root
+    if today is None:
+        today_date = datetime.now(UTC).date()
+    else:
+        try:
+            if not _TODAY_RE.fullmatch(today):
+                raise ValueError(today)
+            today_date = date(int(today[:4]), int(today[5:7]), int(today[8:]))
+        except ValueError:
+            return _health_error(
+                root_path, None, "invalid_today",
+                "--today must be a real date written YYYY-MM-DD",
+            )
+
+    admission = _admit_corpus(root_path)
+    if admission["error"]:
+        err = admission["error"]
+        return _health_error(
+            root_path, None, err["code"], err["message"],
+            err.get("limits"), err.get("observed"),
+        )
+    records: dict[str, dict[str, Any]] = admission["records"]
+    fs = _get_file_safety()
+
+    accepted_adrs = sorted(
+        (r for r in records.values()
+         if r["kind"] == "ADR" and _status_word(r) == "Accepted"),
+        key=lambda r: r["id"],
+    )
+
+    triggers: list[dict[str, Any]] = []
+    no_conf: list[str] = []
+    occurrences: list[tuple[str, str, bool]] = []  # (adr id, checked, is_link)
+    for rec in accepted_adrs:
+        lines = _record_lines(rec["raw_text"])
+        consequences = _section_lines(lines, "Consequences") or []
+        text = _trigger_text(consequences)
+        cls, dates, versions = _trigger_class(text, today_date)
+        triggers.append({
+            "id": rec["id"],
+            "title": _clean_reported(rec["title"]),
+            "class": cls,
+            "dates": [_clean_reported(d) for d in dates],
+            "versions": [_clean_reported(v) for v in versions],
+            "excerpt": _clean_reported(text),
+        })
+        confirmation = _section_lines(lines, "Confirmation")
+        if confirmation is None:
+            no_conf.append(rec["id"])
+            continue
+        adr_dir = posixpath.dirname(rec["source"])
+        for signal in _signal_text(confirmation):
+            for checked, is_link in _extract_candidates(signal, adr_dir):
+                occurrences.append((rec["id"], checked, is_link))
+
+    if len(occurrences) > _MAX_PATH_OCCURRENCES:
+        return _health_error(
+            root_path, records, "input_too_large",
+            "too many path candidates in signal text",
+            {"max_path_candidates": _MAX_PATH_OCCURRENCES},
+            {"path_candidates": len(occurrences)},
+        )
+
+    citations = _header_citations(records)
+
+    merged: dict[tuple[str, str], bool] = {}
+    for adr, checked, is_link in occurrences:
+        merged.setdefault((adr, checked), is_link)
+
+    missing: list[dict[str, str]] = []
+    invalid: list[dict[str, str]] = []
+    present_count = 0
+    unlocated_count = 0
+    root_names, root_ok = _root_entry_names(fs, root_path)
+    for (adr, checked), is_link in sorted(merged.items()):
+        reason = _lexical_reason(checked, is_link)
+        if reason is not None:
+            invalid.append({"id": adr, "path": _clean_reported(checked),
+                            "reason": reason})
+            continue
+        if root_ok and _segments(checked)[0] not in root_names:
+            unlocated_count += 1
+            continue
+        if not root_ok:
+            invalid.append({"id": adr, "path": _clean_reported(checked),
+                            "reason": "unconfined"})
+            continue
+        result, why = _probe(fs, root_path, checked)
+        if result == "missing":
+            missing.append({"id": adr, "path": _clean_reported(checked)})
+        elif result == "invalid":
+            invalid.append({"id": adr, "path": _clean_reported(checked),
+                            "reason": why or "unconfined"})
+        else:
+            present_count += 1
+
+    prov = _provenance(root_path, records)
+    prov["root"] = _clean_reported(prov["root"], cut=False)
+    return {
+        "schema": HEALTH_SCHEMA,
+        "boundary": BOUNDARY_NOTICE,
+        "provenance": prov,
+        "status": "ok",
+        "today": today_date.isoformat(),
+        "accepted_adr_count": len(accepted_adrs),
+        "triggers": triggers,
+        "superseded_citations": citations,
+        "signal_paths": {
+            "missing": missing,
+            "invalid": invalid,
+            "present_count": present_count,
+            "unlocated_count": unlocated_count,
+        },
+        "no_confirmation": {"count": len(no_conf), "ids": no_conf},
+    }
+
+
+def _root_entry_names(fs: Any, root: Path) -> tuple[set[str], bool]:
+    """Validate ``root`` once and list its entry names with one scandir.
+
+    Returns ``(names, ok)``; ``ok`` is False when the root is refused or
+    cannot be listed, so callers fail closed rather than treat paths as absent.
+    """
+    try:
+        fs.validate_confined_directory(root, root)
+        with os.scandir(root) as it:
+            return {e.name for e in it}, True
+    except Exception:
+        return set(), False
+
+
+def _header_citations(records: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """List superseded ADRs still named in an accepted record's header."""
+    out: list[dict[str, Any]] = []
+    superseded = sorted(
+        (r for r in records.values()
+         if r["kind"] == "ADR" and _status_word(r) == "Superseded"),
+        key=lambda r: r["id"],
+    )
+    accepted = sorted(
+        (r for r in records.values() if _status_word(r) == "Accepted"),
+        key=lambda r: r["id"],
+    )
+    headers = {
+        r["id"]: _header_parts(_record_lines(r["raw_text"])) for r in accepted
+    }
+    for s in superseded:
+        succ = _successors(s)
+        word = re.compile(r"\b" + re.escape(s["id"]) + r"\b")
+        succ_res = [re.compile(r"\b" + re.escape(x) + r"\b") for x in succ]
+        for r in accepted:
+            if r["id"] == s["id"] or r["id"] in succ:
+                continue
+            whole, kept = headers[r["id"]]
+            if not word.search(kept):
+                continue
+            if any(rx.search(whole) for rx in succ_res):
+                continue
+            out.append({"superseded": s["id"], "successors": succ,
+                        "cited_by": r["id"]})
+    return out
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 
@@ -1951,6 +2523,15 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="JSON",
         help="JSON array of caller assertion dicts to embed in the HTML.",
     )
+
+    h = sub.add_parser(
+        "health",
+        help="Read-only decision health report (decision-navigation.health.v1).",
+    )
+    h.add_argument("--root", required=True, metavar="DIR",
+                   help="Repository root directory.")
+    h.add_argument("--today", metavar="YYYY-MM-DD", default=None,
+                   help="Date to judge against; defaults to today in UTC.")
     return parser
 
 
@@ -1984,6 +2565,19 @@ def main(argv: list[str] | None = None) -> int:
         result = run_query(root, query)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result.get("status") == "ok" else 1
+
+    if args.command == "health":
+        health = run_health(Path(args.root).resolve(), args.today)
+        text = json.dumps(health, indent=2, ensure_ascii=False)
+        if len((text + "\n").encode("utf-8")) > _MAX_RESULT_BYTES:
+            health = _health_error(
+                Path(args.root).resolve(), None, "input_too_large",
+                "health result exceeds the stdout size limit",
+                {"max_result_bytes": _MAX_RESULT_BYTES}, {},
+            )
+            text = json.dumps(health, indent=2, ensure_ascii=False)
+        print(text)
+        return 0 if health.get("status") == "ok" else 1
 
     if args.command == "export":
         # Load explorer by path — same discipline as file_safety loader.
