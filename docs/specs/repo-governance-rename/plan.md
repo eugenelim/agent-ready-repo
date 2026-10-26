@@ -1,7 +1,7 @@
 # Plan: Rename governance-extras to repo-governance with an installer rename hint
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0110 § D3, § Trust model (D3 block) and its Errata; `commands/upgrade.py` `_unusable_stored_source_refusal` (the refuse-with-placeholder precedent the hint follows); `tools/lint-pack-dependency-declaration.py` with `tools/test-lint-pack-dependency-declaration.py` and its `tools/repo/build_gate_chain.py:725-729` wiring (the lint precedent); ADR-0038 commit `be5ba458c` (the prior pack rename's file set).
 
 > **Plan contract:** this is the implementation strategy. It may change
