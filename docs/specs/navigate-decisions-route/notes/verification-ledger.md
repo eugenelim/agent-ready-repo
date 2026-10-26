@@ -20,3 +20,15 @@ what it showed.
 
 - Commit `20645fd06`. The `Consulted` check is lint finding `ADR-S016`. The handle and role sentence in `new-adr` step 4 reads: "A handle is a platform handle such as `@user` or `@org/team`, and a role is a named function such as \"platform maintainers\"."
 - The implementer wrote the lint code before its tests, not red-first; the tests were added in the same commit.
+
+## 2026-10-26 — T1 pre-change world
+
+- **World:** `packs/repo-governance/` from the pre-change commit `5cec6ac3e`, extracted with `git archive` into a temporary directory outside the repository, projected with the unchanged `ClaudeCodeDetector.project`. Each query ran three times through the unchanged `run_and_parse` (`claude -p <query> --output-format stream-json --verbose --allowed-tools Skill`), six parallel jobs, each with its own copy of the projection.
+- **Host:** `claude` CLI 2.1.308, model `claude-opus-5-5`. The host listed 39 skills: the three `repo-governance` skills plus the same user-scope and built-in skills in every run (full list in `activation-pre-change.json`).
+- **Queries:** 111 — `navigate-decisions`' 49 eval queries, `new-rfc`'s 47 and the 15 route queries. 333 runs, 0 errored; no re-run round was needed.
+- **Results** (`notes/activation-pre-change.json`):
+  - `navigate-decisions` positive trigger rate on its 35 should-trigger queries: 105/105 = **1.000**. So **B = 1.000** and **the floor = 0.970**.
+  - `navigate-decisions` false-trigger rate on its 14 should-not-trigger queries: 0/42 = **0.000**, so AC-0034's bound is at most 0.030.
+  - `new-rfc` positive trigger rate on its 24 should-trigger queries: 68/72 = **0.944**, so AC-0035's bound is at least 0.914.
+  - Route queries: `navigate-decisions` fired in 3/45 runs (**0.067**), `new-rfc` in 2/45 (**0.044**), and no skill in 39/45.
+- **Resolution:** one run moves a 35-query rate by 1/105 ≈ 0.0095 and a 15-query rate by 1/45 ≈ 0.022. At B = 1.000 the floor of 0.970 allows at most 3 missed runs of 105, and at most 1 missed run of 45 for the route queries.
