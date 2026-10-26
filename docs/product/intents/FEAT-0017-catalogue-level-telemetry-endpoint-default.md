@@ -7,6 +7,7 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** none
+- **Depends on:** intent:credential-pack-defaults-projection
 
 ## Outcome
 

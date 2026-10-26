@@ -8,6 +8,7 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:work-loop-delivery-efficiency
+- **Depends on:** spec:acceptance-criteria-set-construction
 
 ## Outcome
 

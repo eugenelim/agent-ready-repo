@@ -6,6 +6,7 @@
 - **Owner:** eugenelim
 - **Parent intent:** capability:catalogue-trust-and-adoption
 - **Governed by:** [RFC-0076 § Wave-to-decision mapping — Wave 9](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
+- **Depends on:** spec:catalogue-wave2-pack-integrations, intent:catalogue-wave5-release-integrity, intent:catalogue-wave7-marketing-evaluator, spec:documentation-entry-navigation
 
 ## Outcome
 

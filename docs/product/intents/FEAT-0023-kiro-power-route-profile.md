@@ -7,6 +7,7 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:first-class-distribution-routes
+- **Depends on:** intent:codex-plugin-route
 
 ## Outcome
 

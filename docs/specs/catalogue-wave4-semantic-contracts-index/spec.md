@@ -10,6 +10,7 @@ status: Shipped
 - **Constrained by:** [RFC-0076 D7](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) (neutral catalogue index); D6 integration-view fields (parallel Wave 2 provides data; Wave 4 indexes it when present)
 - **Contract:** `contracts/catalogue-index.schema.json` (new, this wave); `contracts/pack.schema.json` (read-only); `contracts/` (no other schema changes)
 - **Shape:** new public contract + new CLI command + JOURNEY.md convention + engine change to `_data/`
+- **Depends on:** spec:catalogue-wave1-contract-convergence, spec:catalogue-verifier-correctness
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

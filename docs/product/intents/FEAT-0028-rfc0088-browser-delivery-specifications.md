@@ -8,6 +8,7 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:rfc0088-browser-follow-on-specs
 - **Governed by:** [RFC-0088 follow-on release gates](../../rfc/0088-web-pilot-foundation.md)
+- **Depends on:** intent:rfc0088-exposure-and-privacy-anchoring, intent:rfc0088-signing-and-cost-observations
 
 ## Outcome
 

@@ -12,6 +12,7 @@ status: Shipped
 - **Constrained by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D2, D3 (`draft/` path and `$id` rule), D6, D8 slice S3, OQ1, and its [errata](../../rfc/0109-catalogue-specification-publication.md#errata)
 - **Contract:** none
 - **Shape:** ui
+- **Depends on:** spec:catalogue-manifest-schema
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

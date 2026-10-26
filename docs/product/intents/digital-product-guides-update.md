@@ -12,6 +12,7 @@
 - **De-risked:** no
 - **Shaping-reviewed:** no
 - **Decomposed:** no
+- **Depends on:** intent:cross-pack-experience-eval
 
 ## Outcome
 

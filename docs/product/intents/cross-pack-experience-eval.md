@@ -12,6 +12,7 @@
 - **De-risked:** no
 - **Shaping-reviewed:** no
 - **Decomposed:** no
+- **Depends on:** intent:product-strategy-adoption-doctrine, intent:product-engineering-shaping-doctrine, spec:xd-skill-boundaries, intent:xd-design-system-foundations, intent:xd-ia-archetypes-objects, intent:xd-state-reviewer-doctrine, spec:frontend-engineering-doctrine-update
 
 ## Outcome
 

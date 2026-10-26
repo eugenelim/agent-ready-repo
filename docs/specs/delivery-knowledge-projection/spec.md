@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/delivery/` (canonical delivery bundle; Slice 3 adds `delivery-fact-feed.v1` and `knowledge-observation.v1`)
 - **Shape:** integration
+- **Depends on:** spec:acceptance-authority-and-evidence, spec:structured-review-boundary
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

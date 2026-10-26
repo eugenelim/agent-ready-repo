@@ -7,6 +7,7 @@
 - **Discovery:** opportunity:governance-item-record-routing
 - **Related:** docs/specs/work-item-promotion-handoff/spec.md — owns the drain this route is reached from and the hold that shipping this route discharges
 - **Constrained by:** docs/product/intents/FEAT-0008-governance-item-record-routing.md § Outcome — the measure is fixed at a record with a named decider, and no criterion here may read reach-and-action as tested
+- **Depends on:** spec:work-item-promotion-handoff
 
 ## Objective
 

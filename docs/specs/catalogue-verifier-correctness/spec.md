@@ -6,6 +6,7 @@
 - **Constrained by:** [RFC-0076](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) (portable verifier is D1/D2 infrastructure); [catalogue-wave2-pack-integrations](../catalogue-wave2-pack-integrations/spec.md) (step 19 defines integration-verification scope)
 - **Gated on:** [catalogue-wave2-pack-integrations](../catalogue-wave2-pack-integrations/spec.md) (Shipped — step 19 establishes final pipeline scope)
 - **Shape:** service (correctness fix; no new public interface; existing `agentbundle catalogue verify` surface is unchanged; engine change to verify.py and commands/install.py — installer grammar expanded to match verifier)
+- **Depends on:** spec:catalogue-wave2-pack-integrations, spec:catalogue-wave3-enterprise-authoring-discovery
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

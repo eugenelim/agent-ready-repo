@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** capability
 - **Owner:** eugenelim
+- **Depends on:** spec:project-knowledge-research-integrations
 
 ## Outcome
 

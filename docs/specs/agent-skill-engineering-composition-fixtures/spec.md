@@ -11,6 +11,7 @@
 - **Contract:** none — the semantic provider request/response contract is
   untouched.
 - **Shape:** mixed
+- **Depends on:** spec:agent-skill-engineering-composition-floors
 
 > **Hard dependency.** This slice depends on the composition floors slice, whose
 > portable floors are the corpus the two fixtures grade against. That dependency

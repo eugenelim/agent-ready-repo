@@ -12,6 +12,7 @@
 - **Brief:** none
 - **Discovery:** none
 - **Constrained by:** docs/specs/work-item-capture/spec.md — the record this tier validates is written under the contract that spec settles. That spec ships without this tier; `docs/specs/work-item-capture/spec.md` § D10's merge-path disclosure and `docs/specs/work-item-capture/spec.md` § D6's stored-path set are the two surfaces this one must not contradict.
+- **Depends on:** spec:work-item-capture
 
 > **Contract tier.** `## Decisions this spec makes, and what it still owes`
 > is **contract**, on the same footing as Acceptance Criteria: the two-check

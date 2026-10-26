@@ -6,6 +6,7 @@
 - **Owner:** eugenelim
 - **Scale:** app
 - **Parent intent:** capability:nontechnical-pack-first-value-rollout
+- **Depends on:** spec:portfolio-pack-first-value-contract
 
 ## Outcome
 

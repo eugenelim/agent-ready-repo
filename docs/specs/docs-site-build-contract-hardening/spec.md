@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:site-ci-contract-closure
 
 > **Spec contract:** this document defines what done means. The implementing
 > change matches this spec or updates it before merge.

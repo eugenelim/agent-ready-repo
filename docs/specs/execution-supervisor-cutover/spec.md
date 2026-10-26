@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/jsonschema/loop-run-event.schema.json` (consumed unchanged); `contracts/jsonschema/loop-cohort-wave-decision.schema.json` (retired); `execution-supervisor-core`'s `run.json` fields (consumed)
 - **Shape:** mixed
+- **Depends on:** spec:delivery-knowledge-projection, spec:execution-supervisor-core, spec:execution-supervisor-attempt-security, spec:execution-supervisor-review-gate
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

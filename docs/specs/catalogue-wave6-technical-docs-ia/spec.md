@@ -7,6 +7,7 @@
 - **Discovery:** intent:catalogue-wave6-technical-docs-ia
 - **Contract:** none — this spec reads `contracts/pack.schema.json` and `contracts/skill.schema.json` and changes neither.
 - **Shape:** ui
+- **Depends on:** spec:catalogue-wave4-semantic-contracts-index, spec:documentation-entry-navigation
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

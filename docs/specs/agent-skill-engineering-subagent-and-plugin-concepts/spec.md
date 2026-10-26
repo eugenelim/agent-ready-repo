@@ -13,6 +13,7 @@
   state reporting and the provider response-contract change it needs belong to
   the `3c-r` row in this spec's brief, which depends on this slice.
 - **Shape:** mixed
+- **Depends on:** spec:agent-skill-engineering-composition-floors
 
 > **Hard dependency.** The composition-floors slice is Shipped. These concepts
 > live on the topics it admitted; the taxonomy carries no leaf of its own for

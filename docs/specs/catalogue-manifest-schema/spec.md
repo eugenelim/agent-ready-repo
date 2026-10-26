@@ -12,6 +12,7 @@ status: Shipped
 - **Constrained by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D1 (membership) and D5 (the archive manifest schema), with its [2026-10-21 errata entry](../../rfc/0109-catalogue-specification-publication.md#errata) on the boolean `schema` check
 - **Contract:** `contracts/catalogue-manifest.schema.json`
 - **Shape:** data
+- **Depends on:** spec:catalogue-spec-manifest
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

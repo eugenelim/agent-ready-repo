@@ -4,6 +4,7 @@
 - **Received:** 2026-09-02
 - **Owner:** Repository maintainers (`ini-002`)
 - **Status:** Draft
+- **Depends on:** brief:policy-arrival-validator
 
 ## Outcome
 

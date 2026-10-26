@@ -12,6 +12,7 @@
 - **De-risked:** no
 - **Shaping-reviewed:** no
 - **Decomposed:** no
+- **Depends on:** spec:xd-skill-boundaries, intent:xd-ia-archetypes-objects
 
 ## Outcome
 
