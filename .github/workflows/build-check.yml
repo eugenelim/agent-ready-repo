@@ -697,6 +697,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_brief_lifecycle_single_home.py
 
+      # AC-0017 and AC-0022 of workspace-retirement: every pull request checks
+      # that each file mentioning the workspace registry has an inventory row
+      # and that every registry fact has a home in the retirement record.
+      - name: pytest workspace retirement inventory (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_workspace_retirement_inventory.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a
