@@ -109,6 +109,10 @@ _FINDING_NEXT_ACTIONS = {
     "invalid_captured_item": (
         "Fix the named field of that captured-item file, then rerun reconciliation."
     ),
+    "unmigrated_captured_item": (
+        "Run workspace-status repair-plan to move this captured item into its "
+        "own file under docs/product/captured/."
+    ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
     "unregistered_work": "Register or reconcile the canonical entry explicitly.",
@@ -364,6 +368,10 @@ class ArtifactMetadata:
     resolution: str | None = None
     authority_status: dict[str, object] | None = None
     authority_error: str | None = None
+    # Set only for a migrated captured membership, from its record: the record's
+    # `Kind:`, or the one finding an invalid or unreadable record gives.
+    captured_kind: str | None = None
+    captured_finding: RoutingFinding | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1746,6 +1754,13 @@ def canonical_repository_identity(
                 path=entry.path, kind=entry.kind, status=None, exists=True
             )
             status_fingerprint = _COOLED_IDENTITY_MARKER
+        elif _captured_membership_form(entry.path) == "unmigrated":
+            # An unmigrated captured item's file is never opened: its identity
+            # comes from its membership and a constant marker.
+            metadata = ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True
+            )
+            status_fingerprint = _UNMIGRATED_IDENTITY_MARKER
         else:
             metadata = _metadata_from_root(root, entry)
             status_fingerprint = None
@@ -2112,6 +2127,7 @@ _COOLING_MODULE_CALLABLES = ("load_record", "is_due")
 # Stands in for a cooled artifact's status fingerprint. The identity must still
 # change when a workspace entry changes, and must not depend on a body this run
 # may not read.
+_UNMIGRATED_IDENTITY_MARKER = "unmigrated"
 _COOLED_IDENTITY_MARKER = "cooled"
 
 # Every attribute _cooling_projection reads off an accepted record. A record
@@ -2439,14 +2455,72 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
     )
 
 
+def _captured_membership_form(path: str | None) -> str | None:
+    """Classify a canonical membership's path from the path alone, opening nothing.
+
+    `None` is a path that is not a captured-item reference; `migrated` names a
+    captured-item file directly in the captured-item directory; anything else
+    that is a captured-item reference is `unmigrated`.
+    """
+    if path is None or not _is_captured_item_reference(path):
+        return None
+    directory, _, name = path.rpartition("/")
+    if directory == _CAPTURED_DIR and _CAPTURED_FILE_RE.fullmatch(name):
+        return "migrated"
+    return "unmigrated"
+
+
+def _captured_record_metadata(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata:
+    """Metadata for a migrated captured membership, read from its record."""
+    path = entry.path or ""
+    artifact_path = _confined_artifact_path(root, path)
+    if artifact_path is None:
+        return ArtifactMetadata(
+            path=path, kind=entry.kind, status=None, exists=False,
+            readable=False, invalid_path=True,
+        )
+    presence = _path_presence(artifact_path)
+    if presence == "missing":
+        return ArtifactMetadata(path=path, kind=entry.kind, status=None, exists=False)
+    if presence == "unreadable":
+        return ArtifactMetadata(
+            path=path, kind=entry.kind, status=None, exists=True, readable=False
+        )
+    # Not cooled by construction: every caller skips a cooled membership first.
+    item, finding = read_captured_item(root, path.rpartition("/")[2], frozenset())
+    if finding is not None:
+        return ArtifactMetadata(
+            path=path, kind=entry.kind, status=None, exists=True,
+            readable=finding.code != "unreadable_artifact",
+            captured_finding=finding,
+        )
+    return ArtifactMetadata(
+        path=path, kind=entry.kind, status=item["status"], exists=True,
+        resolution=item["resolution"], captured_kind=item["kind"],
+    )
+
+
 def _artifact_metadata(
     _workspace: dict,
     entry: WorkspaceEntry,
     root: Path | None,
+    *,
+    registered: bool = True,
 ) -> ArtifactMetadata | None:
-    if root is not None:
-        return _metadata_from_root(root, entry)
-    return None
+    """Read an artifact's metadata. `registered` is False for a dependency probe.
+
+    A registered, non-cooled captured membership reads from its record when
+    migrated and is not opened at all when unmigrated.
+    """
+    if root is None:
+        return None
+    if registered:
+        form = _captured_membership_form(entry.path)
+        if form == "unmigrated":
+            return None
+        if form == "migrated":
+            return _captured_record_metadata(root, entry)
+    return _metadata_from_root(root, entry)
 
 
 def _metadata_from_membership(membership: WorkspaceMembership) -> ArtifactMetadata | None:
@@ -2874,6 +2948,8 @@ def _dependency_metadata_safety_finding(
     metadata: ArtifactMetadata | None,
     root: Path | None,
 ) -> RoutingFinding | None:
+    if metadata is not None and metadata.captured_finding is not None:
+        return metadata.captured_finding
     if metadata is not None and metadata.invalid_path:
         return _finding("invalid_artifact_path", path, "dependency path")
     if metadata is None or not metadata.exists:
@@ -2930,6 +3006,15 @@ def _dependency_is_satisfied(
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
 ) -> tuple[bool, RoutingFinding | None]:
+    if (
+        dep.type != "cross-repo"
+        and any(
+            _captured_membership_form(match.entry.path) == "unmigrated"
+            for match in by_path.get(dep.path, [])
+        )
+        and not (root is not None and _confined_artifact_path(root, dep.path) in cooled)
+    ):
+        return False, _finding("unsatisfied_dependency", dep.path, "captured item unmigrated")
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
     # Fail closed when a brief's child scope is unknown. A cooled child may
@@ -2996,7 +3081,7 @@ def _dependency_is_satisfied(
             summary="dependency probe",
             needs=[],
         )
-        metadata = _artifact_metadata(workspace, probe, root)
+        metadata = _artifact_metadata(workspace, probe, root, registered=False)
         safety_finding = _dependency_metadata_safety_finding(
             dep.path, dep.kind, metadata, root
         )
@@ -3024,7 +3109,7 @@ def _dependency_is_satisfied(
             summary="dependency probe",
             needs=[],
         )
-        metadata = _artifact_metadata(workspace, probe, root)
+        metadata = _artifact_metadata(workspace, probe, root, registered=False)
     safety_finding = _dependency_metadata_safety_finding(
         dep.path, dep.kind, metadata, root
     )
@@ -3982,6 +4067,39 @@ def _append_impossible_transition(
         findings.append(_finding("impossible_transition", entry.path, detail))
 
 
+def _append_captured_lifecycle_findings(
+    findings: list[RoutingFinding],
+    membership: WorkspaceMembership,
+    metadata: ArtifactMetadata,
+) -> None:
+    """AC-0007: a migrated captured membership against its record's `Status:`."""
+    entry = membership.entry
+    collection = membership.collection
+    if metadata.captured_kind != entry.kind:
+        findings.append(_finding("impossible_transition", entry.path, "captured kind"))
+    elif metadata.status == "Closed" and collection in {
+        "backlog.open",
+        "shaping_queue.backlog",
+        "shaping_queue.active",
+    }:
+        findings.append(
+            _finding("impossible_transition", entry.path, "captured status is Closed")
+        )
+    elif collection == "backlog.closed":
+        if entry.kind != "defect":
+            findings.append(
+                _finding("impossible_transition", entry.path, "closed backlog kind")
+            )
+        elif metadata.status != "Closed" or metadata.resolution not in {
+            "fixed",
+            "declined",
+            "superseded",
+        }:
+            findings.append(
+                _finding("impossible_transition", entry.path, "closed defect status")
+            )
+
+
 def _append_lifecycle_findings(
     findings: list[RoutingFinding],
     membership: WorkspaceMembership,
@@ -3989,6 +4107,9 @@ def _append_lifecycle_findings(
 ) -> None:
     entry = membership.entry
     collection = membership.collection
+    if metadata.captured_kind is not None:
+        _append_captured_lifecycle_findings(findings, membership, metadata)
+        return
     if collection == "backlog.open":
         if entry.kind == "defect":
             if metadata.status == "Closed":
@@ -4177,6 +4298,15 @@ def _structural_findings(
         # as a `provenance_mismatch`, which is how a cooled defect came to
         # block its own live dependants.
         return findings
+    if _captured_membership_form(entry.path) == "unmigrated":
+        # Judged from the path alone: the file is never opened.
+        findings.append(
+            _finding("unmigrated_captured_item", entry.path, "captured item unmigrated")
+        )
+        return findings
+    if metadata is not None and metadata.captured_finding is not None:
+        findings.append(metadata.captured_finding)
+        return findings
     if metadata is not None and metadata.invalid_path:
         findings.append(_finding("invalid_artifact_path", entry.path, "artifact path"))
         return findings
@@ -4185,6 +4315,12 @@ def _structural_findings(
         return findings
     if not metadata.readable:
         findings.append(_finding("unreadable_artifact", entry.path, "artifact is unreadable"))
+        return findings
+    if metadata.captured_kind is not None:
+        # A record carries no provenance, plan, or authority block: only the
+        # lifecycle rule applies.
+        if not skip_status_lifecycle:
+            _append_lifecycle_findings(findings, membership, metadata)
         return findings
     if metadata.authority_error is not None:
         findings.append(
@@ -4249,6 +4385,7 @@ def _header_edges_by_path(
         membership for membership in memberships
         if membership.entry.path is not None
         and not _membership_is_cooled(membership, root, cooled)
+        and _captured_membership_form(membership.entry.path) != "unmigrated"
     ]
     if not waiting:
         return {}

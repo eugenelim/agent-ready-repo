@@ -70,6 +70,10 @@ _KNOWN_FINDINGS: dict[str, str] = {
     "invalid_captured_item": (
         "Fix the named field of that captured-item file, then rerun reconciliation."
     ),
+    "unmigrated_captured_item": (
+        "Run workspace-status repair-plan to move this captured item into its "
+        "own file under docs/product/captured/."
+    ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
     "unregistered_work": "Register or reconcile the canonical entry explicitly.",

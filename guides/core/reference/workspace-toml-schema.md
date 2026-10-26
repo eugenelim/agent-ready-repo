@@ -363,6 +363,7 @@ finding identifier as a path only after confirming it is one.
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
 | `invalid_captured_item` | A captured-item file breaks its field grammar. | Fix the named field of that captured-item file, then rerun reconciliation. |
+| `unmigrated_captured_item` | A captured item is registered at a path outside `docs/product/captured/`. | Run workspace-status repair-plan to move this captured item into its own file under docs/product/captured/. |
 | `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
 | `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
 | `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |

@@ -1,6 +1,6 @@
 """Frozen outcomes of the captured-item cases, written in today's shape.
 
-Spec: docs/specs/captured-item-files/spec.md (AC-0007, AC-0009, AC-0010, AC-0042).
+Spec: docs/specs/captured-item-files/spec.md (AC-0007 to AC-0013, AC-0042, AC-0045).
 Verification mode: TDD, paired fixtures.
 
 Each case is one repository in today's shape: the captured item's registry entry
@@ -8,6 +8,10 @@ points at a note outside ``docs/product/captured/``, and a dependent spec names
 the item in a ``Depends on:`` header. The outcome of the engine at commit
 ``ce30822a0`` (finding codes and paths, and ``dispatch_by_path``
 dispatchability) is frozen in ``fixtures/captured-item-files/expected.json``.
+
+Since the switch, today's shape is refused with ``unmigrated_captured_item``, so the
+frozen file is the reference the migrated form and the cooled cases are compared
+with. The recorder still has to be run against the ``ce30822a0`` engine.
 
 To re-record, check that commit out as a ``git worktree`` so its sibling modules
 are that commit's, then run this file with
@@ -17,10 +21,12 @@ the tests assert that the current engine reproduces the recorded file.
 """
 from __future__ import annotations
 
+import builtins
 import dataclasses
 import importlib.util
 import json
 import os
+import pathlib
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -114,16 +120,20 @@ def _record(delivery_id: str, locator: str) -> str:
     )
 
 
-def _note_path(name: str) -> str:
-    return f"docs/backlog/{name}.md"
+OLD_DIR = "docs/backlog"
+NEW_DIR = "docs/product/captured"
+
+
+def _note_path(name: str, migrated: bool = False) -> str:
+    return f"{NEW_DIR if migrated else OLD_DIR}/{name}.md"
 
 
 def _lifecycle_case(
     case_id: str, kind: str, status: str | None, table: str, name: str,
-    resolution: str | None = None,
+    resolution: str | None = None, migrated: bool = False,
 ) -> Case:
-    """A captured note and its membership, with no dependent."""
-    path = _note_path(name)
+    """A captured note (or record, when ``migrated``) and its membership."""
+    path = _note_path(name, migrated)
     collection = table.split(".", 1)[1]
     return Case(
         case_id, {path: _note(kind, status, resolution)},
@@ -134,10 +144,11 @@ def _lifecycle_case(
 def _dependent_case(
     case_id: str, kind: str, status: str | None, table: str, name: str,
     dispatchable: bool, resolution: str | None = None, cooled: bool = False,
+    migrated: bool = False,
 ) -> Case:
     """A spec whose header names a captured note held in ``table``."""
-    base = _lifecycle_case(case_id, kind, status, table, name, resolution)
-    path = _note_path(name)
+    base = _lifecycle_case(case_id, kind, status, table, name, resolution, migrated)
+    path = _note_path(name, migrated)
     files = dict(base.files)
     if cooled:
         files[f"docs/lifecycle/{name}.json"] = _record(name, path)
@@ -147,49 +158,74 @@ def _dependent_case(
     )
 
 
-def _build_cases() -> list[Case]:
+# T1 cases whose old shape already has a lifecycle finding. Their record cannot
+# say what the old note said (`Draft` and `Approved` are not record statuses), so
+# they have no migrated form: AC-0007's conflict cases below cover them.
+_NO_MIGRATED_FORM = frozenset({
+    "defect-closed-in-open",
+    "design-approved-in-open",
+    "design-approved-in-shaping-backlog",
+    "defect-open-in-closed",
+    "depends-on-design-approved",
+})
+
+
+def _build_cases(migrated: bool = False) -> list[Case]:
+    """T1's cases in today's shape, or in their migrated form (a record)."""
     cases: list[Case] = []
-    # Lifecycle cases: the note alone, in today's shape.
-    cases.append(_lifecycle_case("defect-no-status-open", "defect", None, "backlog.open", "d-nostatus"))
-    cases.append(_lifecycle_case("defect-closed-in-open", "defect", "Closed", "backlog.open", "d-closed-open", "fixed"))
+    if migrated:
+        def status_of(old: str | None, table: str) -> str | None:
+            return "Closed" if table == "backlog.closed" else "Open"
+    else:
+        def status_of(old: str | None, table: str) -> str | None:
+            return old
+
+    def life(case_id: str, kind: str, status: str | None, table: str, name: str,
+             resolution: str | None = None) -> None:
+        cases.append(_lifecycle_case(
+            case_id, kind, status_of(status, table), table, name, resolution, migrated,
+        ))
+
+    def dep(case_id: str, kind: str, status: str | None, table: str, name: str,
+            dispatchable: bool, resolution: str | None = None,
+            cooled: bool = False) -> None:
+        cases.append(_dependent_case(
+            case_id, kind, status_of(status, table), table, name, dispatchable,
+            resolution, cooled, migrated,
+        ))
+
+    # Lifecycle cases: the note alone.
+    life("defect-no-status-open", "defect", None, "backlog.open", "d-nostatus")
+    life("defect-closed-in-open", "defect", "Closed", "backlog.open", "d-closed-open", "fixed")
     for status in ("Draft", "Approved"):
         low = status.lower()
-        cases.append(_lifecycle_case(f"design-{low}-in-open", "design", status, "backlog.open", f"g-{low}-open"))
-        cases.append(_lifecycle_case(f"design-{low}-in-shaping-backlog", "design", status, "shaping_queue.backlog", f"g-{low}-shaping"))
-    cases.append(_lifecycle_case("defect-open-in-closed", "defect", "Open", "backlog.closed", "d-open-closed"))
+        life(f"design-{low}-in-open", "design", status, "backlog.open", f"g-{low}-open")
+        life(f"design-{low}-in-shaping-backlog", "design", status, "shaping_queue.backlog", f"g-{low}-shaping")
+    life("defect-open-in-closed", "defect", "Open", "backlog.closed", "d-open-closed")
     for resolution in ("fixed", "declined", "superseded"):
-        cases.append(_lifecycle_case(
-            f"defect-closed-{resolution}", "defect", "Closed", "backlog.closed",
-            f"d-{resolution}", resolution,
-        ))
+        life(f"defect-closed-{resolution}", "defect", "Closed", "backlog.closed",
+             f"d-{resolution}", resolution)
     # AC-0009, AC-0010: dependencies on non-cooled captured items.
     for status in ("Draft", "Approved"):
         low = status.lower()
-        cases.append(_dependent_case(
-            f"depends-on-design-{low}", "design", status, "backlog.open", f"g-dep-{low}", False,
-        ))
+        dep(f"depends-on-design-{low}", "design", status, "backlog.open", f"g-dep-{low}", False)
     for resolution in ("fixed", "declined", "superseded"):
-        cases.append(_dependent_case(
-            f"depends-on-defect-{resolution}", "defect", "Closed", "backlog.closed",
-            f"d-dep-{resolution}", resolution == "fixed", resolution,
-        ))
+        dep(f"depends-on-defect-{resolution}", "defect", "Closed", "backlog.closed",
+            f"d-dep-{resolution}", resolution == "fixed", resolution)
     # AC-0042: dependencies on cooled captured items.
-    cases.append(_dependent_case(
-        "depends-on-cooled-defect-closed-member", "defect", "Closed", "backlog.closed",
-        "d-cooled-member", True, "fixed", cooled=True,
-    ))
-    cases.append(_dependent_case(
-        "depends-on-cooled-defect-no-closed-member", "defect", "Open", "backlog.open",
-        "d-cooled-loose", False, cooled=True,
-    ))
-    cases.append(_dependent_case(
-        "depends-on-cooled-design", "design", "Draft", "backlog.open",
-        "g-cooled", True, cooled=True,
-    ))
+    dep("depends-on-cooled-defect-closed-member", "defect", "Closed", "backlog.closed",
+        "d-cooled-member", True, "fixed", cooled=True)
+    dep("depends-on-cooled-defect-no-closed-member", "defect", "Open", "backlog.open",
+        "d-cooled-loose", False, cooled=True)
+    dep("depends-on-cooled-design", "design", "Draft", "backlog.open",
+        "g-cooled", True, cooled=True)
+    if migrated:
+        cases = [case for case in cases if case.case_id not in _NO_MIGRATED_FORM]
     return cases
 
 
 CASES = _build_cases()
+MIGRATED_CASES = _build_cases(migrated=True)
 
 
 def _write_repo(root: Path, case: Case) -> None:
@@ -270,12 +306,267 @@ def test_record_expectations(tmp_path: Path) -> None:
     pytest.skip("recorded expected.json from the engine in use")
 
 
+def _migrated(text: str) -> str:
+    """The recorded outcome with each old path mapped to its record path."""
+    return text.replace(OLD_DIR, NEW_DIR)
+
+
+def _expected_for(case_id: str, *, migrated: bool) -> dict[str, Any]:
+    outcome = _expected()[case_id]
+    if not migrated:
+        return outcome
+    return json.loads(_migrated(json.dumps(outcome)))
+
+
+def _captured_paths(case: Case) -> list[str]:
+    return [
+        path for path in case.files
+        if path.startswith((OLD_DIR + "/", NEW_DIR + "/"))
+    ]
+
+
+def _make_unreadable(root: Path, relative: str) -> None:
+    """Replace a file with a directory: present, but never readable as a file."""
+    target = root / relative
+    target.unlink()
+    target.mkdir()
+
+
+@pytest.fixture
+def opens(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Every path the process opens through the stdlib's open calls."""
+    seen: list[str] = []
+    real_builtin, real_os, real_path = builtins.open, os.open, pathlib.Path.open
+
+    def note(target: object) -> None:
+        if isinstance(target, (str, bytes, os.PathLike)):
+            seen.append(os.fsdecode(target))
+
+    def spy_builtin(file, *args, **kwargs):  # type: ignore[no-untyped-def]
+        note(file)
+        return real_builtin(file, *args, **kwargs)
+
+    def spy_os(path, *args, **kwargs):  # type: ignore[no-untyped-def]
+        note(path)
+        return real_os(path, *args, **kwargs)
+
+    def spy_path(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        note(self)
+        return real_path(self, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", spy_builtin)
+    monkeypatch.setattr(os, "open", spy_os)
+    monkeypatch.setattr(pathlib.Path, "open", spy_path)
+    return seen
+
+
+def _opened(opens: list[str], relative: str) -> bool:
+    return any(path.endswith("/" + relative) for path in opens)
+
+
+def _expected_old_shape(case: Case, cooled: bool) -> dict[str, Any]:
+    """AC-0011, AC-0013: a non-cooled old shape is refused, a cooled one is not."""
+    if cooled:
+        return _expected()[case.case_id]
+    path = _captured_paths(case)[0]
+    findings = [["unmigrated_captured_item", path]]
+    dispatchable = {path: False}
+    if case.depends_on is not None:
+        findings.append(["unsatisfied_dependency", path])
+        dispatchable[WAITER] = False
+    return {"findings": sorted(findings), "dispatchable": dict(sorted(dispatchable.items()))}
+
+
 @pytest.mark.skipif(_RECORD, reason="recording")
 @pytest.mark.parametrize("case", CASES, ids=[case.case_id for case in CASES])
-def test_old_shape_reproduces_the_frozen_outcome(tmp_path: Path, case: Case) -> None:
-    """AC-0007, AC-0009, AC-0010, AC-0042: today's shape gives the recorded outcome."""
-    assert _observe_case(tmp_path, case) == _expected()[case.case_id]
+def test_old_shape_is_refused_unless_cooled(tmp_path: Path, case: Case) -> None:
+    """AC-0011, AC-0013, AC-0045: today's shape gives `unmigrated_captured_item`.
 
+    A cooled one gives T1's outcome with its file unreadable.
+    """
+    cooled = bool(case.cooled)
+    _write_repo(tmp_path, case)
+    if cooled:
+        _make_unreadable(tmp_path, case.cooled[0])
+    assert observe(tmp_path) == _expected_old_shape(case, cooled)
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+def test_unmigrated_finding_names_the_repair(tmp_path: Path) -> None:
+    """AC-0011: the finding's next action names `workspace-status repair-plan`."""
+    case = CASES[0]
+    _write_repo(tmp_path, case)
+    workspace = ENGINE.parse_workspace(tmp_path / "workspace.toml")
+    cooled, _ = ENGINE._resolve_cooled_state(tmp_path)
+    found = [
+        f for f in ENGINE.run_canonical_reconciliation(workspace, tmp_path, cooled).findings
+        if f.code == "unmigrated_captured_item"
+    ]
+    assert [f.path for f in found] == [_captured_paths(case)[0]]
+    assert "workspace-status repair-plan" in found[0].next_action
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize(
+    "case", MIGRATED_CASES, ids=[case.case_id for case in MIGRATED_CASES]
+)
+def test_migrated_form_gives_the_frozen_outcome(tmp_path: Path, case: Case) -> None:
+    """AC-0007, AC-0009, AC-0010, AC-0042: a record gives T1's codes and dispatchability.
+
+    A cooled record is made unreadable to show it is not opened.
+    """
+    _write_repo(tmp_path, case)
+    if case.cooled:
+        _make_unreadable(tmp_path, case.cooled[0])
+    assert observe(tmp_path) == _expected_for(case.case_id, migrated=True)
+
+
+def _conflict_case(case_id: str, kind: str, status: str, table: str,
+                   resolution: str | None = None) -> Case:
+    return _lifecycle_case(case_id, kind, status, table, "conflict", resolution, True)
+
+
+CONFLICTS = [
+    # (case, the T1 case with the same conflict, or None)
+    (_conflict_case("closed-record-in-open", "defect", "Closed", "backlog.open", "fixed"),
+     "defect-closed-in-open"),
+    (_conflict_case("closed-record-in-shaping-backlog", "design", "Closed",
+                    "shaping_queue.backlog"), None),
+    (_conflict_case("closed-record-in-shaping-active", "design", "Closed",
+                    "shaping_queue.active"), None),
+    (_conflict_case("open-record-in-closed", "defect", "Open", "backlog.closed"),
+     "defect-open-in-closed"),
+]
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize(
+    "case,frozen", CONFLICTS, ids=[case.case_id for case, _ in CONFLICTS]
+)
+def test_status_conflicts_give_impossible_transition(
+    tmp_path: Path, case: Case, frozen: str | None
+) -> None:
+    """AC-0007: a `Closed` record in an open collection or an `Open` one in closed."""
+    got = _observe_case(tmp_path, case)
+    path = _captured_paths(case)[0]
+    assert got["findings"] == [["impossible_transition", path]]
+    assert got["dispatchable"] == {path: False}
+    if frozen is not None:
+        # The same conflict in today's shape gave the same code, not dispatchable.
+        old = _expected()[frozen]
+        assert [code for code, _ in old["findings"]] == ["impossible_transition"]
+        assert list(old["dispatchable"].values()) == [False]
+
+
+def _single_record_case(kind: str, text: str | None) -> Case:
+    path = _note_path("single", True)
+    files = {} if text is None else {path: text}
+    return Case(
+        "single", files, (("backlog", "open", _entry(path, kind)),),
+    )
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+def test_kind_mismatch_gives_one_finding(tmp_path: Path) -> None:
+    """AC-0007: the record's `Kind:` differs from the membership's `kind`."""
+    path = _note_path("single", True)
+    case = _single_record_case("defect", _note("design", "Open"))
+    assert _observe_case(tmp_path, case)["findings"] == [["impossible_transition", path]]
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+def test_invalid_record_gives_only_its_finding(tmp_path: Path) -> None:
+    """AC-0008: an invalid record gives its `invalid_captured_item` and nothing else."""
+    path = _note_path("single", True)
+    text = "# Broken\n\n- **Status:** Maybe\n- **Kind:** defect\n"
+    case = _single_record_case("defect", text)
+    assert _observe_case(tmp_path, case)["findings"] == [["invalid_captured_item", path]]
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+def test_unreadable_record_gives_only_its_finding(tmp_path: Path) -> None:
+    """AC-0008: an unreadable record gives its `unreadable_artifact` and nothing else."""
+    path = _note_path("single", True)
+    case = _single_record_case("defect", _note("defect", "Open"))
+    _write_repo(tmp_path, case)
+    # A symlink is a file the reader refuses to follow.
+    (tmp_path / path).unlink()
+    (tmp_path / path).symlink_to(tmp_path / "workspace.toml")
+    assert observe(tmp_path)["findings"] == [["unreadable_artifact", path]]
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+def test_missing_record_is_a_missing_artifact(tmp_path: Path) -> None:
+    """A registered record that does not exist keeps `missing_artifact`."""
+    path = _note_path("single", True)
+    case = _single_record_case("defect", None)
+    assert _observe_case(tmp_path, case)["findings"] == [["missing_artifact", path]]
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize(
+    "case",
+    [case for case in CASES if not case.cooled],
+    ids=[case.case_id for case in CASES if not case.cooled],
+)
+def test_unmigrated_file_is_never_opened(
+    tmp_path: Path, opens: list[str], case: Case
+) -> None:
+    """AC-0012: no read site opens an unmigrated path, and its header gives no edge."""
+    path = _captured_paths(case)[0]
+    files = dict(case.files)
+    # An edge planted in the unmigrated file must not be read.
+    files[path] += f"- **Depends on:** {OLD_DIR}/planted-edge.md\n"
+    planted = dataclasses.replace(case, files=files)
+    _write_repo(tmp_path, planted)
+    workspace = ENGINE.parse_workspace(tmp_path / "workspace.toml")
+    cooled, _ = ENGINE._resolve_cooled_state(tmp_path)
+    opens.clear()
+    canonical = ENGINE.run_canonical_reconciliation(workspace, tmp_path, cooled)
+    ENGINE.canonical_repository_identity(workspace, canonical, tmp_path)
+    if case.depends_on is not None:
+        assert _opened(opens, WAITER)  # the spy sees reads
+    assert not _opened(opens, path)
+    assert path not in canonical.header_edges
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+def test_dependency_on_unmigrated_path_is_unsatisfied(tmp_path: Path) -> None:
+    """AC-0013: a spec naming an unmigrated path gives `unsatisfied_dependency`."""
+    case = next(case for case in CASES if case.case_id == "depends-on-defect-fixed")
+    _write_repo(tmp_path, case)
+    workspace = ENGINE.parse_workspace(tmp_path / "workspace.toml")
+    cooled, _ = ENGINE._resolve_cooled_state(tmp_path)
+    canonical = ENGINE.run_canonical_reconciliation(workspace, tmp_path, cooled)
+    reasons = [
+        f.detail for f in canonical.findings if f.code == "unsatisfied_dependency"
+    ]
+    assert reasons == ["captured item unmigrated"]
+    assert canonical.dispatch_by_path[WAITER].dispatchable is False
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize(
+    "case",
+    [case for case in CASES if case.cooled],
+    ids=[case.case_id for case in CASES if case.cooled],
+)
+def test_cooled_captured_file_is_never_opened(
+    tmp_path: Path, opens: list[str], case: Case
+) -> None:
+    """AC-0042, AC-0045: a cooled file, migrated or not, is not opened."""
+    for form in (case, MIGRATED_BY_ID[case.case_id]):
+        root = tmp_path / ("new" if form is not case else "old")
+        _write_repo(root, form)
+        opens.clear()
+        workspace = ENGINE.parse_workspace(root / "workspace.toml")
+        cooled, _ = ENGINE._resolve_cooled_state(root)
+        canonical = ENGINE.run_canonical_reconciliation(workspace, root, cooled)
+        ENGINE.canonical_repository_identity(workspace, canonical, root)
+        assert not _opened(opens, form.cooled[0])
+
+
+MIGRATED_BY_ID = {case.case_id: case for case in MIGRATED_CASES}
 
 @pytest.mark.skipif(_RECORD, reason="recording")
 def test_frozen_outcomes_match_case_meaning() -> None:
