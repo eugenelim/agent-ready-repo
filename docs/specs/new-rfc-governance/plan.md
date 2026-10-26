@@ -106,7 +106,7 @@ python3 <skill-dir>/scripts/governance.py preview --root <repo> --target <allowe
 python3 <skill-dir>/scripts/governance.py write   --root <repo> --target <allowed target> [--after-line <n>] --current <absent|sha256:hex> --proposed sha256:<hex> [--approved-by <text>] <<'EOF'
 ```
 
-Check order, each refusing on failure: root check (`git rev-parse --show-toplevel` from the current directory, list-form subprocess, with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from its environment) → target allowed → (preview and write) stdin size → UTF-8 decode → refused characters → `--approved-by` → confined reads of the files the run reads → kind check (governance draft; CODEOWNERS grammar; for a charter target, first that a charter target is present (`charter-missing`), then that the target is the charter, then the link line, line number and existing link) → compose the proposed content → (write only) current state against `--current` → proposed digest → approval → helper; a helper exception refuses `write-failed`. A target that is absent with an absent parent directory refuses `unsafe-path` in `preview` and `write` during the confined reads. The root and target checks come first so nothing is read for a refused root or target.
+Check order: the spec's refusal order term fixes it. The root and target checks run before standard input or any file is read; the input checks run on standard input; the confined reads report a target whose parent directory is absent as absent, and refuse `unsafe-path` only for an unsafe file or directory; in `write`, the `--current` comparison runs before every check that reads the target's content; the helper's `UnsafeContentError` refuses `write-failed`.
 
 Approval reasons, fixed strings, first matching in this order: `codeowners ownership change`, `a GOVERNANCE.md is present`, `decision model is not the default`.
 
@@ -258,7 +258,7 @@ Owned by: T2, T3.
 
 **Tests:** (goal-based)
 - AC-0071, AC-0072, AC-0073, AC-0074, AC-0075 and AC-0076: the T1 driver on a world built from the finished branch, same query list and run count. The 15 appended eval entries equal `notes/governance-queries.json` as parsed lists.
-- AC-0077, AC-0078, AC-0079, AC-0080, AC-0081, AC-0082, AC-0083, AC-0084, AC-0085, AC-0086, AC-0087, AC-0088, AC-0089, AC-0090, AC-0091, AC-0092, AC-0093, AC-0094, AC-0095 and AC-0102: a scratch behaviour driver, adapted from the health slice's.
+- AC-0077, AC-0078, AC-0079, AC-0080, AC-0081, AC-0082, AC-0083, AC-0084, AC-0085, AC-0086, AC-0087, AC-0088, AC-0089, AC-0090, AC-0091, AC-0092, AC-0093, AC-0094, AC-0095, AC-0102, AC-0123 and AC-0124: a scratch behaviour driver, adapted from the health slice's.
   - Per run it makes a fresh scratch Git repository under the OS temporary directory, holding the fixture tree minus `request.txt`, `confirm.txt`, `decline.txt` and `author.txt`, and the post-change `repo-governance` projection, committed (as `author.txt` for the CODEOWNERS fixture).
   - It runs `claude -p <request> --permission-mode default --setting-sources project,local --strict-mcp-config --output-format stream-json --verbose --allowed-tools Skill Read Glob Grep Write Edit` plus `Bash` grants for `python3` running `governance.py`, `next-ordinal.py` or `index-records.py` in the projected `new-rfc` `scripts/` directory, by absolute path or by repository-relative path, so the ordinary RFC procedure on `governance-single/` can run. AC-0094 reads the transcript by the rule the spec states, not by the grant. The grants use the scratch repository's resolved real path (`/private/tmp/...` on macOS), the lesson of the health slice's first attempt.
   - The two-turn cases resume the session with `confirm.txt` or `decline.txt`.
@@ -277,18 +277,19 @@ Owned by: T2, T3.
 
 **Depends on:** T5
 
-**Touches:** `packs/repo-governance/.apm/skills/new-rfc/scripts/governance.py`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/tests/skills/new-rfc/test_governance_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`, `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`, `guides/repo-governance/how-to/set-up-governance.md`, `packs/repo-governance/DESIGN.md`, the self-host projections
+**Touches:** `packs/repo-governance/.apm/skills/new-rfc/scripts/governance.py`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/tests/skills/new-rfc/test_governance_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`, `packs/repo-governance/tests/skills/new-rfc/fixtures/governance-eof/`, `docs/specs/new-rfc-governance/notes/verification-ledger.md`, `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`, `guides/repo-governance/how-to/set-up-governance.md`, `packs/repo-governance/DESIGN.md`, the self-host projections
 
 **Tests:** (TDD in `test_governance_script.py` and the helper unit file; goal-based pins in `test_new_rfc_instructions.py`)
 - AC-0019: the existing test of a comment-only `docs/CODEOWNERS` beside a ruled `CODEOWNERS` stays `Approval required: no`, and a second case creates `.github/CODEOWNERS` holding only a comment beside a ruled `CODEOWNERS` and gets `yes`.
-- AC-0023 and AC-0115: a charter changed after its preview refuses `target-changed`; a governance target unchanged since its preview with different input refuses `bytes-differ-from-preview`.
-- AC-0116: `.github/GOVERNANCE.md` and `.github/CODEOWNERS` in a repository with no `.github/` refuse `unsafe-path` in `preview` and `write`, and `show` reports them absent.
+- AC-0023 and AC-0121: a governance target unchanged since its preview with different input refuses `bytes-differ-from-preview`; a charter changed after its preview — rewritten, shortened below `--after-line`, given a governance link, or deleted — refuses `target-changed`; `--target docs/CHARTER.md` with no `docs/` refuses `charter-missing`, and `not-the-charter` when a root `CHARTER.md` exists; `.github/CODEOWNERS` with no `.github/` refuses `invalid-codeowners-line 1` for an invalid first line and `parent-missing` for valid content; a target deleted with its parent after the preview refuses `target-changed`. The existing `test_ac_0022_charter_missing` keeps its bare repository and still expects `charter-missing`.
+- AC-0116 and AC-0120: `.github/GOVERNANCE.md` and `.github/CODEOWNERS` in a repository with no `.github/` refuse `parent-missing` in `preview` and `write`, and `show` reports them `Current: absent`.
 - AC-0117: the co-located helper patched to raise `UnsafeContentError` makes `write` refuse `write-failed`; the former test asserting `target-changed` for that case is replaced.
-- AC-0010 and the preview-block term: a reads-now file holding `/x a@example.invalid` renders `<n>: not valid for this mode: /x a@example.invalid`, in visible form.
+- AC-0010 and the preview-block term: a reads-now file holding the line `  /x a@example.invalid\r` renders `<n>: not valid for this mode:   /x a@example.invalid`, the CODEOWNERS line with its leading spaces kept and its trailing `\r` removed, in visible form.
 - AC-0106: a 4,301-digit `--after-line` refuses `bad-line-number` with exit 3 and nothing on stderr.
 - AC-0003: the unsafe-shape matrix also runs `write` (with well-formed `--current`, `--proposed` and, for charter targets, `--after-line 0`), asserting `unsafe-path` and an unchanged listing.
 - AC-0040: the failing-`os.write` arm first writes part of `data` to the target, then raises, and the original bytes are back.
-- AC-0118 and AC-0119: pins of the quoted sentences in the governance section.
+- AC-0118, AC-0119 and AC-0122: pins of the quoted sentences in the governance section.
+- The fixture `packs/repo-governance/tests/skills/new-rfc/fixtures/governance-eof/` exists before T7 edits any `SKILL.md`: a `docs/CHARTER.md`, a `docs/GOVERNANCE.md` from the default template naming `@alice` and `@bob` whose `## How decisions are made` section holds a line that is exactly `EOF` followed by the line `touch pwned`, and a `request.txt` asking to add `@carol` as a maintainer. The ledger records each file's sha256.
 - `FORCE=1 make build-self` leaves `git status --porcelain` empty.
 
 **Approach:**
