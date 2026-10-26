@@ -178,6 +178,19 @@ Owned by: T1
 
 **Done when:** each fixture test reds before its rule exists and passes after, the real-repository record test passes, and the planted-row run of the step fails.
 
+### T8: The intended-change result
+
+**Depends on:** T7
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0024, AC-0026, AC-0027, AC-0028, AC-0018, AC-0022.
+- The fixtures plant each violation: an `intended change` row whose Authority is `none`, one linking a Draft RFC, one linking an anchor whose section does not name its Case text, an `accepted removal` row and an `intended change` row each with an empty Case, and an `intended change` row whose Case text is `the defect`, outside AC-0028's list. An `intended change` row linking an Accepted RFC section that names its Case text passes.
+- The real record's Equivalence rows, which the brief's slice 3 writes, pass every rule.
+
+**Done when:** each fixture test reds before its rule exists and passes after, and the real-repository record test passes.
+
 ## Rollout
 
 - **Delivery:** one pull request. The check blocks a pull request that adds a registry mention outside an inventoried directory, and one that removes, renames, or deletes the last mention in a file a row names.
@@ -196,3 +209,5 @@ Owned by: T1
 - 2026-10-25: plan amendment approved by eugenelim (T5 reopened and rewritten; T6 added)
 - 2026-10-26: spec amendment approved by eugenelim (AC-0023 to AC-0026 for § Equivalence; AC-0018 and AC-0022 reopened)
 - 2026-10-26: plan amendment approved by eugenelim (T7 added)
+- 2026-10-26: spec amendment approved by eugenelim (AC-0024 admits `intended change`; AC-0026 governs its Authority; AC-0027 and AC-0028 added; AC-0018 and AC-0022 reopened)
+- 2026-10-26: plan amendment approved by eugenelim (T8 added)
