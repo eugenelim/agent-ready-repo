@@ -191,7 +191,7 @@ def test_old_pack_directories_are_gone() -> None:
 
 
 def test_pack_manifest_and_plugin_manifest_carry_the_new_name() -> None:
-    """AC-0001: parsed pack.toml and plugin.json name the pack and version 2.1.0."""
+    """AC-0001: parsed pack.toml and plugin.json name the pack and version 2.2.0."""
     pack = tomllib.loads(
         (REPO_ROOT / "packs" / NEW_NAME / "pack.toml").read_text(encoding="utf-8")
     )["pack"]
@@ -202,10 +202,10 @@ def test_pack_manifest_and_plugin_manifest_carry_the_new_name() -> None:
     )
     assert (pack["name"], pack["version"], pack["display_name"]) == (
         NEW_NAME,
-        "2.1.0",
+        "2.2.0",
         "Repository Governance",
     )
-    assert (plugin["name"], plugin["version"]) == (NEW_NAME, "2.1.0")
+    assert (plugin["name"], plugin["version"]) == (NEW_NAME, "2.2.0")
 
 
 def test_iac_terraform_requires_the_renamed_pack() -> None:
@@ -220,7 +220,7 @@ def test_iac_terraform_requires_the_renamed_pack() -> None:
 
 
 def test_full_ceremony_profile_installs_the_renamed_pack(tmp_path: Path) -> None:
-    """AC-0003: the profile install into an empty repository exits 0 and records 2.1.0."""
+    """AC-0003: the profile install into an empty repository exits 0 and records 2.2.0."""
     args = _build_parser().parse_args([
         "install",
         str(REPO_ROOT),
@@ -234,4 +234,4 @@ def test_full_ceremony_profile_installs_the_renamed_pack(tmp_path: Path) -> None
 
     rows = load_state(tmp_path / ".agentbundle-state.toml").rows_for_pack(NEW_NAME)
     assert rows, "install recorded no state naming repo-governance"
-    assert {ps.installed_version for ps in rows.values()} == {"2.1.0"}
+    assert {ps.installed_version for ps in rows.values()} == {"2.2.0"}

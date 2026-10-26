@@ -1,0 +1,434 @@
+{
+ "accepted": {
+  "health": 144,
+  "hand": 144,
+  "matched": 144,
+  "health_only": [],
+  "hand_only": []
+ },
+ "due": {
+  "health": 1,
+  "hand": 1,
+  "matched": 1,
+  "health_only": [],
+  "hand_only": []
+ },
+ "version": {
+  "health": 8,
+  "hand": 8,
+  "matched": 8,
+  "health_only": [],
+  "hand_only": []
+ },
+ "scheduled": {
+  "health": 0,
+  "hand": 0,
+  "matched": 0,
+  "health_only": [],
+  "hand_only": []
+ },
+ "stable": {
+  "health": 0,
+  "hand": 0,
+  "matched": 0,
+  "health_only": [],
+  "hand_only": []
+ },
+ "judge": {
+  "health": 135,
+  "hand": 135,
+  "matched": 135,
+  "health_only": [],
+  "hand_only": []
+ },
+ "none": {
+  "health": 0,
+  "hand": 0,
+  "matched": 0,
+  "health_only": [],
+  "hand_only": []
+ },
+ "due_dates": {
+  "health": 1,
+  "hand": 1,
+  "matched": 1,
+  "health_only": [],
+  "hand_only": []
+ },
+ "versions": {
+  "health": 8,
+  "hand": 8,
+  "matched": 8,
+  "health_only": [],
+  "hand_only": []
+ },
+ "citations": {
+  "health": 5,
+  "hand": 5,
+  "matched": 5,
+  "health_only": [],
+  "hand_only": []
+ },
+ "missing": {
+  "health": 3,
+  "hand": 3,
+  "matched": 3,
+  "health_only": [],
+  "hand_only": []
+ },
+ "invalid": {
+  "health": 0,
+  "hand": 0,
+  "matched": 0,
+  "health_only": [],
+  "hand_only": []
+ },
+ "no_confirmation": {
+  "health": 57,
+  "hand": 57,
+  "matched": 57,
+  "health_only": [],
+  "hand_only": []
+ },
+ "counts": {
+  "present_health": 39,
+  "present_hand": 39,
+  "unlocated_health": 28,
+  "unlocated_hand": 28,
+  "no_confirmation_count_health": 57
+ },
+ "reading_disagreements": [
+  {
+   "id": "ADR-0016",
+   "note": "Plain reading sees two version references here: 'Gemini 3' and the '2.5' inside `gemini-2.5-flash-lite`. The Terms find neither. '2.5' comes straight after '-' and is followed by '-flash', a word joined by '-', so the first version form excludes it. 'Gemini 3' has no 'v' and is a single digit run, so neither form matches. Result: no version mention, class judge rather than version."
+  },
+  {
+   "id": "ADR-0018",
+   "note": "Plain reading treats 'an annual standards refresh' as a recurring date-based trigger. The trigger text holds no date mention under the Terms, so the class is judge, not scheduled."
+  },
+  {
+   "id": "ADR-0027",
+   "note": "`assets/adr.md` reads as a path relative to the new-adr skill directory, but the Terms resolve it from the repository root, so it is unlocated rather than checked."
+  },
+  {
+   "id": "ADR-0032",
+   "note": "`lens-genai-agentic.md` is a skill reference file (one copy in each of two skills), but the Terms make it an unlocated bare filename."
+  },
+  {
+   "id": "ADR-0035",
+   "note": "`lens-serverless.md` is a skill reference file, but the Terms make it an unlocated bare filename."
+  },
+  {
+   "id": "ADR-0036",
+   "note": "The test file most likely sits in a package's own tests tree (e.g. under packages/agentbundle/). The Terms resolve it from the repository root, where tests/unit is absent, so it counts as missing."
+  },
+  {
+   "id": "ADR-0037",
+   "note": "The trigger contains the word 'stable' but does not start with it, so it is judge, not stable."
+  },
+  {
+   "id": "ADR-0039",
+   "note": "The source breaks 'derived-ownership' across a line. The join rule adds a space, giving 'derived- ownership'; a plain reading has no space."
+  },
+  {
+   "id": "ADR-0039",
+   "note": "`v0.3` is a state-schema version rather than a software release. The class is version either way."
+  },
+  {
+   "id": "ADR-0040",
+   "note": "`.agents/skills/` names an adapter install prefix in adopters' repos, not this repo's file. It resolves present only because this repo has its own .agents/skills."
+  },
+  {
+   "id": "ADR-0041",
+   "note": "`evals/evals.json` is relative to the new-adr skill directory, but the Terms make it unlocated."
+  },
+  {
+   "id": "ADR-0044",
+   "note": "The continuation lines are indented two spaces. The Terms join lines with one space but don't say to strip each line's leading space, so the literal text keeps runs of three spaces. A plain reading uses single spaces: '...provable autonomy predicate... under a new harness...'."
+  },
+  {
+   "id": "ADR-0048",
+   "note": "`ledger.toml` and `last-synced.toml` are runtime state files under ~/.agentbundle/, not repo paths. They are unlocated as the Terms decide. `<run-id>/`, `sources/<source-hash>/` and `content-hashes[]` are excluded as candidates by their characters."
+  },
+  {
+   "id": "ADR-0049",
+   "note": "`json.dump` is a Python function, not a path. The Terms treat it as a path candidate because it ends in '.dump'."
+  },
+  {
+   "id": "ADR-0049",
+   "note": "`build/lint_packs.py` most likely sits inside a package (e.g. packages/agentbundle/...). The Terms resolve it from the root, where 'build' is absent, so it is unlocated rather than missing."
+  },
+  {
+   "id": "ADR-0049",
+   "note": "`.write_text` is not a candidate: after its only '.', 'write_text' is not 1 to 5 letters or digits. `*.schema.json` is excluded by the '*'."
+  },
+  {
+   "id": "ADR-0051",
+   "note": "The Decision summary also has a 'Revisit if' line with different wording (line 28). The Terms take only the Consequences one (line 83). `tomllib.loads()` and `tomli.loads()` end in ')' and contain no '/', so they are not path candidates."
+  },
+  {
+   "id": "ADR-0053",
+   "note": "'v1' matches the second version form ('v' plus digits, space on both sides), so the class is version. Read plainly, 'D4's v1 exclusion' means the pack's first-release scope, not a software version, and a person would class this trigger judge."
+  },
+  {
+   "id": "ADR-0054",
+   "note": "The signal's backtick spans (`grep -rn \"check-workspace\"`, `git ls-files`, `adversarial-reviewer`) are not path candidates: the first two contain whitespace, and the third has no '/' and no file extension."
+  },
+  {
+   "id": "ADR-0055",
+   "note": "The 'Consequences:' paragraph inside the Decision section is not a section. The Terms use the '## Consequences' section."
+  },
+  {
+   "id": "ADR-0061",
+   "note": "Read plainly, the first clause has already fired: the 2026-09-28 erratum says the `pending_transition` schema shipped in core 2.27.1. The trigger has no date mention, so the Terms class it judge, not due."
+  },
+  {
+   "id": "ADR-0068",
+   "note": "'ACP v1' names a protocol version, so the plain reading agrees with class version. The trigger does not depend on a version being reached, though: it fires if v1 itself is redefined."
+  },
+  {
+   "id": "ADR-0070",
+   "note": "Trigger form: the 'Revisit if' rest is empty and the next line is blank, so the trigger is the '- ' and indented lines after it. They are joined verbatim: the leading '- ' is kept and so are the continuation indents, which leaves three spaces at each join. The Decision summary has a different two-clause 'Revisit if'; the Terms ignore it."
+  },
+  {
+   "id": "ADR-0070",
+   "note": "Version: the text says 'git ≥2.5'. '≥' is not one of the allowed prefixes, so the mention is '2.5' alone; the plain reading is a minimum git version. '`:162-165`' has no dots, so it is not a version, and 162 and 165 are outside 1900–2099, so they are not dates."
+  },
+  {
+   "id": "ADR-0070",
+   "note": "Check files: read plainly, `plan.md` is docs/specs/local-scope-install/plan.md (named in References), `info/exclude` is the git-internal .git/info/exclude, and `install.py` is the engine's install module. The Terms mark all three unlocated because their first segment is not an entry directly under the root."
+  },
+  {
+   "id": "ADR-0072",
+   "note": "The ADR has a '## Verification' section but no '## Confirmation' section, so the Terms count it as having no Confirmation."
+  },
+  {
+   "id": "ADR-0073",
+   "note": "The trigger text also takes in the 'Reverse the decision if' sentences on the following lines, which the plain reading treats as a separate list. 'six months' is not a date form. The ADR says the review is 'scheduled rather than event-driven', but the trigger has no date mention, so the Terms do not class it scheduled."
+  },
+  {
+   "id": "ADR-0075",
+   "note": "The signal text stops at the '- **Owner:**' line. The second mentions of `tools/` and `packages/agentbundle/tests/` after it, and the `docs/rfc/0082-notes/` link, are outside the signal text."
+  },
+  {
+   "id": "ADR-0076",
+   "note": "`spec.md` / `plan.md` in the Signal are generic artifact names, not repository paths. The Terms make them unlocated candidates, which matches the plain reading that they are not checkable file citations, so this is not a defect."
+  },
+  {
+   "id": "ADR-0076",
+   "note": "The Decision summary carries a `- **Revisit if:**` line too, but only the Consequences line counts. The two texts are the same here."
+  },
+  {
+   "id": "ADR-0078",
+   "note": "Generic `spec.md` / `plan.md` names are treated as unlocated candidates. The plain reading agrees that they cite no specific file."
+  },
+  {
+   "id": "ADR-0079",
+   "note": "Errata dated 2026-08-12 say Confirmation is satisfied and cite `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`. That text is outside the Confirmation section, so it is not signal text and creates no item."
+  },
+  {
+   "id": "ADR-0081",
+   "note": "The Consequences trigger is longer than the Decision summary's `Revisit if`. The Terms use the Consequences one."
+  },
+  {
+   "id": "ADR-0082",
+   "note": "The Consequences trigger differs from the Decision summary trigger, which mentions an external capture service. The Terms take the Consequences line."
+  },
+  {
+   "id": "ADR-0083",
+   "note": "The record has no `## Confirmation` section. Its body names pinned versions (`mermaid@11.16.1`, `lodash@4.17.11`), but none appear in the trigger text, so the class is judge, not version. 'j695' in the GHSA id is not a bare year: it touches a letter."
+  },
+  {
+   "id": "ADR-0084",
+   "note": "The trigger is a `- **Revisit if:**` bullet. Its continuation line starts with two spaces. I joined the lines with one space after dropping the indent; if the indent is kept, the join holds extra spaces."
+  },
+  {
+   "id": "ADR-0084",
+   "note": "A body line mentions 'the `Revisit if` trigger' but does not start with the marker, so it is not the trigger line."
+  },
+  {
+   "id": "ADR-0084",
+   "note": "`bandit` in the Signal is not a candidate: no '/' and no extension."
+  },
+  {
+   "id": "ADR-0086",
+   "note": "No `## Confirmation` section. The trigger is on the last lines of the file, so it ends at EOF rather than at a blank line."
+  },
+  {
+   "id": "ADR-0087",
+   "note": "No `## Confirmation` section. The body names 'git 2.50.1', but it is not in the trigger, so the class is not version."
+  },
+  {
+   "id": "ADR-0088",
+   "note": "No `## Confirmation` section."
+  },
+  {
+   "id": "ADR-0089",
+   "note": "Stale citation: the plain reading is that this eval moved or the pack was renamed, since `.agents/skills/new-rfc/evals/evals.json` exists in the listing. The Terms judge the path as written, so it is `missing`. This is a stale record, not a health defect."
+  },
+  {
+   "id": "ADR-0090",
+   "note": "'1.0.0' and '1.1.0' appear in Context and Alternatives but not in the trigger, so they do not make the class version."
+  },
+  {
+   "id": "ADR-0091",
+   "note": "Signal backtick spans `components-only`, `unsupported` and `runtime-verified` have no '/' and no extension, so they are not candidates."
+  },
+  {
+   "id": "ADR-0094",
+   "note": "Signal text stops at the `**Owner` line, so the `**Residual:**` bullet's `tools/repo/worktree_hygiene.py` is not a signal item. `make lint-editable-install` holds whitespace, so it is not a candidate."
+  },
+  {
+   "id": "ADR-0096",
+   "note": "'GNU Make 3.81' is in Alternatives, not the trigger, so the class is not version."
+  },
+  {
+   "id": "ADR-0100",
+   "note": "The Decision summary trigger lists five numbered conditions, including the N/N−1 support window 'expires', and differs from the Consequences trigger. The Terms take the Consequences line."
+  },
+  {
+   "id": "ADR-0100",
+   "note": "The `**Revisit trigger:**` lines in Decision subsections do not count as trigger text."
+  },
+  {
+   "id": "ADR-0100",
+   "note": "A '2026-08-28 Erratum' says one per-decision trigger has already fired. That is a plain-reading 'due' signal, but its date is not in the trigger text, so the class is judge."
+  },
+  {
+   "id": "ADR-0100",
+   "note": "'0.4' and '0.5' are versions in D10, outside the trigger."
+  },
+  {
+   "id": "ADR-0106",
+   "note": "`.git` in the Signal is a repository-spelling suffix the identity tests exercise, not a check file; the Terms still make it a path candidate (ends with '.' and 1-5 letters), and it resolves to the root `.git` file, so it is reported present."
+  },
+  {
+   "id": "ADR-0108",
+   "note": "2026-09-10 is the date a trigger already fired and was answered, not a revisit deadline; a plain reading finds nothing overdue, but the Terms class any passed date mention as `due`."
+  },
+  {
+   "id": "ADR-0108",
+   "note": "`scripts/` plainly means the `new-spec` skill's own scripts directory, not a root path; under the Terms it is unlocated."
+  },
+  {
+   "id": "ADR-0112",
+   "note": "`build_gate_chain.py` plainly names tools/repo/build_gate_chain.py (cited with that path elsewhere in the ADR); under the Terms the bare name is unlocated, not checked."
+  },
+  {
+   "id": "ADR-0116",
+   "note": "The backticked link text and the link target name the same dataset file; plain reading sees one present file, but the Terms give two signal items, one unlocated (backtick, as written) and one present (link, joined to docs/adr)."
+  },
+  {
+   "id": "ADR-0117",
+   "note": "`lint-adr-shape.py docs/adr` plainly names the lint script, but the span holds whitespace so it is not a path candidate."
+  },
+  {
+   "id": "ADR-0120",
+   "note": "`semantic-surface-resolution.v1` plainly carries a contract version (v1), but `v1` is preceded by '.', so neither version form matches; the Terms class it `judge`, not `version`."
+  },
+  {
+   "id": "ADR-0126",
+   "note": "The Consequences trigger (line 112) is used, not the summary line (line 20), which words it differently ('the split forces' vs 'a forced split produces')."
+  },
+  {
+   "id": "ADR-0126",
+   "note": "The continuation line keeps its two leading spaces because the Terms only strip surrounding whitespace from the first line, so the joined text has three spaces before 'halves'."
+  },
+  {
+   "id": "ADR-0126",
+   "note": "`SKILL.md` and `pack.toml` are generic per-pack names that a plain reading would resolve inside each pack; the Terms class them as unlocated."
+  },
+  {
+   "id": "ADR-0126",
+   "note": "`work-intake` is not a candidate (no '/' and no extension)."
+  },
+  {
+   "id": "ADR-0127",
+   "note": "The paragraph after the Owner line (that no lint exists yet) and the References paths are outside the signal text, so the signal yields no items."
+  },
+  {
+   "id": "ADR-0128",
+   "note": "The signal also names a 'construction test' and a 'handoff corpus test' with no paths, so they yield no candidates."
+  },
+  {
+   "id": "ADR-0131",
+   "note": "The version is read as '2.14.0', not '>=2.14.0': the '>=' prefix is preceded by the letter 'T' of 'PyJWT', so a prefixed match fails, and the bare match starts after '=' and is allowed."
+  },
+  {
+   "id": "ADR-0131",
+   "note": "The trigger comes from the Consequences section (4 clauses), not the summary (3 clauses)."
+  },
+  {
+   "id": "ADR-0131",
+   "note": "The signal text runs on through the '- **Residual:**' bullet up to '- **Owner:**', because only Mode, Signal or Owner end it."
+  },
+  {
+   "id": "ADR-0131",
+   "note": "`2.9.0` and `2.14.0` are version numbers, not paths, but the Terms make them unlocated path candidates."
+  },
+  {
+   "id": "ADR-0131",
+   "note": "`fixed_in` is not a candidate."
+  },
+  {
+   "id": "ADR-0132",
+   "note": "The Consequences trigger differs from the summary one ('more than three dispositions…'); the Terms take Consequences."
+  },
+  {
+   "id": "ADR-0132",
+   "note": "The real assertions, including `tests/roster/`, are in the paragraph after the Owner line, which is outside the signal text, so it yields no items."
+  },
+  {
+   "id": "ADR-0133",
+   "note": "`tools/test-run-pip-audit-gate.py` appears only in the paragraph after Owner, so it is not signal text."
+  },
+  {
+   "id": "ADR-0133",
+   "note": "`ACTION:` is not a candidate (it starts with a URI scheme and has no '/' or extension)."
+  },
+  {
+   "id": "ADR-0139",
+   "note": "The continuation lines keep their two leading spaces (same Term reading as ADR-0126)."
+  },
+  {
+   "id": "ADR-0140",
+   "note": "'0107' in 'RFC-0107' touches '-', and 107 is outside 1900–2099, so it is no date mention."
+  },
+  {
+   "id": "ADR-0143",
+   "note": "The signal is a nested bullet list with no backticks or links; `pages.yml` sits on the Owner line, outside the signal text."
+  },
+  {
+   "id": "ADR-0144",
+   "note": "`review-report.v1` is a record-schema name, not a file, but it is a candidate under the Terms."
+  },
+  {
+   "id": "ADR-0144",
+   "note": "`work-supervisor.py` really lives under the work-loop skill's `scripts/`; the Terms do not resolve it, so it is unlocated."
+  },
+  {
+   "id": "ADR-0146",
+   "note": "The span `tools/run-pip-audit-gate.py tools/requirements-sast.txt` contains whitespace, so it is no candidate; a plain reading would check both paths."
+  },
+  {
+   "id": "ADR-0146",
+   "note": "The summary has no Revisit line; the trigger comes from Consequences."
+  },
+  {
+   "id": "ADR-0147",
+   "note": "The span `tools/run-pip-audit-gate.py tools/requirements-sast.txt` contains whitespace, so it is no candidate (same as ADR-0146)."
+  },
+  {
+   "id": "ADR-0148",
+   "note": "`Dependency receipts:` contains whitespace, so it is no candidate; `close-work` and `depends-on-headers` have no '/' or extension."
+  },
+  {
+   "id": "citations",
+   "note": "RFC-0050's Related field says itself that 'ADR-0023 is superseded in this session', but it does not name ADR-0042 anywhere in its header (ADR-0042 first appears at line 32). By the Term it is still a header citation. Someone reading for meaning might call it an acknowledged supersession, not a stale citation."
+  },
+  {
+   "id": "citations",
+   "note": "ADR-0061's header names ADR-0125 in its 'Superseded in part' field. That field is not 'Supersedes' or 'Supersedes in part', so the field exclusion does not apply. ADR-0061 is excluded only because the same line also names the successor ADR-0144."
+  }
+ ]
+}

@@ -1,0 +1,2053 @@
+{
+ "host": {
+  "cli_version": "2.1.308 (Claude Code)",
+  "model": "claude-opus-5-5",
+  "skills": [
+   "anthropic-skills:docx",
+   "anthropic-skills:google-workspace",
+   "anthropic-skills:import-memory",
+   "anthropic-skills:morning",
+   "anthropic-skills:pdf",
+   "anthropic-skills:pptx",
+   "anthropic-skills:skill-creator",
+   "anthropic-skills:xlsx",
+   "batch",
+   "claude-api",
+   "code-review",
+   "dataviz",
+   "debug",
+   "design",
+   "design-sync",
+   "doctor",
+   "fewer-permission-prompts",
+   "loop",
+   "navigate-decisions",
+   "new-adr",
+   "new-rfc",
+   "plugin-authoring",
+   "run",
+   "run-skill-generator",
+   "simplify",
+   "update-config",
+   "vartifact",
+   "vask",
+   "verify",
+   "vflow",
+   "vkb",
+   "vopen",
+   "vrefer",
+   "vsearch",
+   "vself",
+   "vspawn",
+   "vspawn-tree",
+   "vstat",
+   "vtell"
+  ]
+ },
+ "pack": "repo-governance",
+ "runs_per_query": 3,
+ "results": [
+  {
+   "query": "rfc status",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show me the current RFC landscape",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What RFCs are open right now?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "How many RFCs are in draft?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Give me an RFC dashboard",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Any RFC candidates in the findings register?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What RFC candidates do we have queued?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show me which RFCs are active and which are accepted",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "rfc report",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What governance work is in flight?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "How many roadmap intents do we have?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show me ADR-0001",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Look up RFC-0105",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Which ADRs are accepted?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What supersedes RFC-0042?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What is ADR-0027 about?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Find decisions about authentication",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Give me a summary of all ADRs and RFCs",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What decisions do we have on record?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "How many accepted ADRs are there?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show me all withdrawn RFCs",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Trace the lineage of ADR-0050",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What does ADR-0010 supersede?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Which record superseded RFC-0020?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show me the decisions that supersede ADR-0030",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show me the context for ADR-0015",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What guidance is broader than ADR-0001?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Which decisions provide broader context for RFC-0099?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Where is ADR-0027 defined in the repository?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What is the source file for RFC-0105?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What constraints does RFC-0099 impose?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Are there any decisions that constrain our microservice architecture?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Generate an offline HTML explorer of our ADRs and RFCs",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Export the decision corpus to an HTML file",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Create an offline decision explorer I can share with reviewers",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Draft a new RFC for adopting trunk-based development",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Record the decision to use Postgres as an ADR",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What should I work on next?",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Update the conventions file",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Write a spec for the new caching feature",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show the work queue from workspace.toml",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Fix the bug in the RFC template",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Create an ADR for our API versioning decision",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Write an RFC for the new caching feature",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Revise RFC-0099 to reflect its new accepted status",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Show me the intent hierarchy",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What is the status of FEAT-0029?",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "List all intents in the roadmap",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What intents depend on FEAT-0030?",
+   "should_trigger": false,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Should our move to gRPC be recorded as an ADR or proposed as an RFC?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "How should we decide whether to split the billing service in two?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Which record does the decision to drop Python 3.9 support need?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Who should I consult before we change the caching strategy?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Is replacing our message broker a one-way door?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Do I need an RFC, an ADR, or just a PR to rename our internal config keys?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Help me work out the right way to decide on a new deployment approach.",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What is the right decision path for adopting a monorepo build tool?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Before we pick a feature-flag vendor, who needs to weigh in?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Is switching our primary database reversible, and what should we write down?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Has this already been decided somewhere: should services share a logging library?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Route this decision for me: moving CI from Jenkins to GitHub Actions.",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "What is the minimum process to decide on retiring the v1 API?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "How do we decide on a new code ownership model across teams?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "Which artifact fits our plan to trial a new linter for two weeks?",
+   "should_trigger": true,
+   "set": "navigate-decisions-eval",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "which of our ADRs are due for review",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "check the health of our architecture decisions",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "are any decisions past their revisit date",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "which ADRs have a Revisit if trigger that has already passed?",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "find decisions that are out of date and need another look",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "is anything still pointing at a superseded ADR",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "which accepted records still cite decisions that were replaced",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "do the confirmation checks our ADRs name actually exist in the repo",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "find ADRs whose Confirmation signal points at a missing test or lint file",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "how many ADRs have no Confirmation section",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "decision health report please",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "are our decision records still current?",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "list stale or drifting architecture decisions",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "which decisions need a person to judge whether their revisit trigger has fired",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  },
+  {
+   "query": "audit the ADR corpus for decisions that have come due",
+   "should_trigger": true,
+   "set": "health",
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ],
+   "rounds": 1
+  }
+ ]
+}
