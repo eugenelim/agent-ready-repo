@@ -91,3 +91,11 @@ The branch was rebuilt on `5cec6ac3e` (#1614), which added three specs carrying 
 ## GATES
 
 - 2026-10-26: `make lint-ruff lint-mypy` pass. `packs/core/tests`, `tools`, `tests/roster`, and the MCP tool suite pass apart from failures that fail identically at `origin/main` `5cec6ac3e` (checked in a clone outside the repository): `tests/roster/test_catalogue_spec_contract_loads.py`, `test_portable_catalogue_authentication_packaging.py`, `test_work_loop_root_validation.py`, `tools/test_check_artifact_contents.py::test_real_sdist_carries_and_executes_complete_engine_suite`, `tools/test_managed_child.py`, `tools/test_release_check.py`. They are pre-existing and environment-bound; the spec's Never-do rule keeps `workspace.toml` backlog entries out of this change, so they are listed here and in the pull request instead.
+
+## Amendment 3 — 2026-10-26
+
+<a id="amendment-3"></a>
+
+- **Trigger.** The post-gates adversarial review, adjudicated, found that `repair-plan` refuses two fail-closed cases AC-0020 does not list: a waiting path that more than one canonical membership names, and every edge when the cooled state cannot be read. (A third, a waiting item with no preamble field line, is fixed in code instead: the repair adds the header line.)
+- **Proposal, for the owner.** AC-0020 names both refusals.
+- **Completed evidence (rebuilt branch).** T1 `e97f40f24`; T2 `0aece085c`; T3 `6f170fe0e`; T4 `b8cc9613a`; T5 `f7cac8949`; T6 `f54d2cc06`; T7 `d3885d8ae`.
