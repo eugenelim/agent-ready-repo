@@ -1527,8 +1527,11 @@ _WL_FINISH_END = r'Conventional commit format'
 # unchanged.
 # Moved 2026-10-11: the shaping-item guard line names `intent` instead of
 # the retired skill name. The engine mapping moved with it; ownership is unchanged.
+# Moved for captured-item-files: the shaping-item guard paragraph matches
+# `captured.items` instead of the registry shaping lists. The engine guard
+# moved with it (`check_shaping_guard` reads the captured-item file).
 _WORK_LOOP_CONTRACT_HASH = (
-    "9c56676392af3423c147803af6b04647ab3235d916cf7e6d5bc3350f5e67def2"
+    "c3c4129cc7197fc16252dc3787a8c1aad91afb2aa7730024854e5cd1a5cc39c4"
 )
 # Reconciled 2026-08-21: the finish-time lint now resolves from the installed
 # skill directory. Status ownership is unchanged, so the engine needs no edit.
