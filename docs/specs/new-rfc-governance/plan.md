@@ -1,7 +1,7 @@
 # Plan: new-rfc governance mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness rule, pack-test boundary); `packages/AGENTS.md` and `packages/AGENTS.local.md` (version bump, no internal ordinals in source, `Engine-Change-RFC` trailer); `tests/AGENTS.md` (a new roster test needs a named CI step, a `lint-ci-parity` entry, and a prune-protected entry only when it names a `docs/specs/` path); `packages/agentbundle/agentbundle/build/self_host.py` `_runtime_projections` and `_library_mirrors` (core's close-work copy is the `file_safety` source); `packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py` `_get_file_safety` (the co-located-copy loader to reuse); `packs/repo-governance/tests/skills/navigate-decisions/test_health_contract.py` (script-contract test shape); `docs/specs/navigate-decisions-health/notes/verification-ledger.md` (activation and behaviour precedent). Uncertainty: whether a broader `new-rfc` description holds its trigger rate, which only T6 can show.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -106,7 +106,7 @@ python3 <skill-dir>/scripts/governance.py preview --root <repo> --target <allowe
 python3 <skill-dir>/scripts/governance.py write   --root <repo> --target <allowed target> [--after-line <n>] --current <absent|sha256:hex> --proposed sha256:<hex> [--approved-by <text>] <<'EOF'
 ```
 
-Check order, each refusing on failure: root check (`git rev-parse --show-toplevel` from the current directory, list-form subprocess, with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from its environment) → target allowed → (preview and write) stdin size → UTF-8 decode → refused characters → `--approved-by` → confined reads of the files the run reads → kind check (governance draft; CODEOWNERS grammar; for a charter target, first that a charter target is present (`charter-missing`), then that the target is the charter, then the link line, line number and existing link) → compose the proposed content → (write only) proposed digest → current state against `--current` → approval → helper. The root and target checks come first so nothing is read for a refused root or target.
+Check order, each refusing on failure: root check (`git rev-parse --show-toplevel` from the current directory, list-form subprocess, with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from its environment) → target allowed → (preview and write) stdin size → UTF-8 decode → refused characters → `--approved-by` → confined reads of the files the run reads → kind check (governance draft; CODEOWNERS grammar; for a charter target, first that a charter target is present (`charter-missing`), then that the target is the charter, then the link line, line number and existing link) → compose the proposed content → (write only) current state against `--current` → proposed digest → approval → helper; a helper exception refuses `write-failed`. A target that is absent with an absent parent directory refuses `unsafe-path` in `preview` and `write` during the confined reads. The root and target checks come first so nothing is read for a refused root or target.
 
 Approval reasons, fixed strings, first matching in this order: `codeowners ownership change`, `a GOVERNANCE.md is present`, `decision model is not the default`.
 
@@ -252,7 +252,7 @@ Owned by: T2, T3.
 
 ### T6: The post-change world and the behaviour runs meet their criteria
 
-**Depends on:** T5
+**Depends on:** T5, T7
 
 **Touches:** `docs/specs/new-rfc-governance/notes/`
 
@@ -272,6 +272,31 @@ Owned by: T2, T3.
 **Effects:** none
 
 **Done when:** the ledger records a pass for every criterion named in `Tests`, and the raw files are committed.
+
+### T7: The amended script, helper tests and governance text meet the amended criteria
+
+**Depends on:** T5
+
+**Touches:** `packs/repo-governance/.apm/skills/new-rfc/scripts/governance.py`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/tests/skills/new-rfc/test_governance_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`, `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`, `guides/repo-governance/how-to/set-up-governance.md`, `packs/repo-governance/DESIGN.md`, the self-host projections
+
+**Tests:** (TDD in `test_governance_script.py` and the helper unit file; goal-based pins in `test_new_rfc_instructions.py`)
+- AC-0019: the existing test of a comment-only `docs/CODEOWNERS` beside a ruled `CODEOWNERS` stays `Approval required: no`, and a second case creates `.github/CODEOWNERS` holding only a comment beside a ruled `CODEOWNERS` and gets `yes`.
+- AC-0023 and AC-0115: a charter changed after its preview refuses `target-changed`; a governance target unchanged since its preview with different input refuses `bytes-differ-from-preview`.
+- AC-0116: `.github/GOVERNANCE.md` and `.github/CODEOWNERS` in a repository with no `.github/` refuse `unsafe-path` in `preview` and `write`, and `show` reports them absent.
+- AC-0117: the co-located helper patched to raise `UnsafeContentError` makes `write` refuse `write-failed`; the former test asserting `target-changed` for that case is replaced.
+- AC-0010 and the preview-block term: a reads-now file holding `/x a@example.invalid` renders `<n>: not valid for this mode: /x a@example.invalid`, in visible form.
+- AC-0106: a 4,301-digit `--after-line` refuses `bad-line-number` with exit 3 and nothing on stderr.
+- AC-0003: the unsafe-shape matrix also runs `write` (with well-formed `--current`, `--proposed` and, for charter targets, `--after-line 0`), asserting `unsafe-path` and an unchanged listing.
+- AC-0040: the failing-`os.write` arm first writes part of `data` to the target, then raises, and the original bytes are back.
+- AC-0118 and AC-0119: pins of the quoted sentences in the governance section.
+- `FORCE=1 make build-self` leaves `git status --porcelain` empty.
+
+**Approach:**
+- The Refusals paragraph says every refusal except `write-failed` means nothing was written, and the Read-first step says to run `show` on the charter before drafting anything; neither sentence is pinned.
+
+**Effects:** none
+
+**Done when:** every check named in `Tests` passes, `python3 -m pytest packs/repo-governance/tests/skills/new-rfc packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py -q` passes, and `make lint-ruff lint-mypy` is green.
 
 ## Rollout
 
