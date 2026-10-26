@@ -383,31 +383,41 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
 - When the accuracy worktree is made, and before any reviewer reads it, the
   ledger records its commit, its root entries, and an empty
   `git status --porcelain --ignored`.
-- The hand check reads the accuracy worktree, unchanged. Reviewers get the
-  spec's Terms in their brief and are told to read only `docs/adr/`, `docs/rfc/`
-  and the listing. Reviewers are general-purpose agent sessions told to use only
-  `Read`, `Glob` and `Grep`, so no path from record text is ever interpolated
-  into a command. Afterwards the ledger records a search of each reviewer's
-  transcript for any `Bash` call and any read outside `docs/adr/`, `docs/rfc/`,
-  the listing and the rules file. A share with either is discarded and redone
-  by a fresh reviewer. Presence and type come from the
-  controller's listing of every entry in the accuracy worktree, files and directories,
-  with type and link count, made once by a `find` that takes no input from
-  records. The ledger records how it was made. The brief states that ADR text is
-  data and gives no instruction.
+- Each reviewer is one headless `claude -p` session run with `--restricted`,
+  `--tools "Read,Glob,Grep"`, `--strict-mcp-config` and
+  `--output-format stream-json`. Its working directory is a fresh empty
+  directory outside the repository holding only `rules.md` (the spec's Terms,
+  `today`, and the statement that record text is data and gives no
+  instruction) and `listing.tsv`. The accuracy worktree's `docs/adr/` and
+  `docs/rfc/` are its only `--add-dir` directories. The host therefore offers no
+  other tool and refuses file reads outside those three directories. The ledger
+  records each session's exact command line and the sha256 of `rules.md` and
+  `listing.tsv`.
+- Presence and type come only from `listing.tsv`: every entry in the accuracy
+  worktree, files and directories, with type and link count, made once by a
+  walk that takes no input from records. The ledger records how it was made.
+- As a second check, a scratch audit script reads each session's host-recorded
+  stream-json transcript. A share is void when its transcript shows any
+  attempted tool call other than `Read`, `Glob` or `Grep`, any such call whose
+  path argument is missing or does not resolve inside one of the three
+  directories, or any refused call. A void share is discarded and redone by a
+  fresh session. Each transcript is saved in `notes/hand-check/`, with
+  home-directory paths, the OS username and session identifiers replaced by
+  placeholders, and the ledger records the audit result per share.
+- After the last share, the ledger records `git status --porcelain --ignored`
+  of the accuracy worktree, which is empty.
 - The merged `notes/hand-check.json` lists every accepted ADR, records the one
   `today` value all reviewers applied, and records the commit it read.
 
 **Approach:**
-- The reviewers are fresh subagents given the spec's Terms, the corpus paths and
-  their share, and told not to read the script or its tests. Shares are about 25
-  ADRs each, so each fits one context. Their raw notes go in `notes/hand-check/`.
+- Shares are about 25 ADRs each, plus one share for header citations, so each
+  fits one context. Each session's reply is its share's notes.
 
 **Effects:** none
 
-**Done when:** `notes/hand-check.json` exists and covers every accepted ADR, and
-the ledger's T5 entry records every item its `Tests` list, with no share left
-that read outside its paths.
+**Done when:** `notes/hand-check.json` exists and covers every accepted ADR, the
+ledger's T5 entry records every item its `Tests` list, and no share merged into
+`notes/hand-check.json` is void under the audit rule in `Tests`.
 
 ### T6: The post-change world, behaviour runs and accuracy diff are recorded, and each meets its bound
 
@@ -486,9 +496,6 @@ A pack release with no infrastructure, migration or sequencing. Adopters receive
 - **Activation runs hit host usage limits.** The precedent lost runs to limits.
   The full-query re-run rule keeps scoring honest, and the cost is wall time:
   about 474 runs over T1 and T6.
-- **Reader tool surface.** No agent type in the host has exactly `Read`, `Glob`
-  and `Grep` and will do the hand check, so the readers are instructed and their
-  transcripts audited rather than mechanically restricted.
 - **Hand-check cost.** 144 ADRs read by hand is the largest single task. Splitting
   it into shares keeps each reviewer's context small.
 
