@@ -9,12 +9,7 @@
 - **Contract:** none — the Digital Experience Contract template is pack content,
   not a `contracts/` artifact.
 - **Shape:** mixed
-- **Depends on:** recorded canonically as this spec's `needs` edge in
-  `workspace.toml` under `["ini-003".work]`, and stated here only in prose: the
-  three artifacts this spec makes the packs agree about only have addresses once
-  `design-output-addressing` ships. The frontend *read* of those artifacts is a
-  third spec, `design-handoff-read`, independent of this one; this spec names the
-  artifacts in both journeys and does not read them.
+- **Depends on:** spec:design-output-addressing <!-- the three artifacts this spec makes the packs agree about only have addresses once `design-output-addressing` ships. The frontend *read* of those artifacts is a third spec, `design-handoff-read`, independent of this one; this spec names the artifacts in both journeys and does not read them. -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
