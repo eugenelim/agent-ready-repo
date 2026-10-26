@@ -88,7 +88,7 @@ Owned by: T3
 
 Owned by: T5
 
-- Apply order is the records first, then one atomic `workspace.toml` write. A record cut short by a crash inside its own write is a regular file with other bytes; the rerun reports it as a manual finding naming the path, the owner removes it, and the next rerun finishes. The repair never deletes a file. An interrupted run leaves records whose bytes the rerun re-derives exactly, because no source has changed; it keeps them and finishes. A record path occupied by anything else refuses its operation.
+- Apply order is the records first, then one atomic `workspace.toml` write. A record cut short by a crash inside its own write is a regular file with other bytes; the rerun reports it as a manual finding naming the path, under AC-0021 for a membership and AC-0043 for a legacy entry, the owner removes it, and the next rerun finishes. The repair never deletes a file. An interrupted run leaves records whose bytes the rerun re-derives exactly, because no source has changed; it keeps them and finishes. A record path occupied by anything else refuses its operation.
 - A record path whose parent directory is absent is created through the same segment check, re-checked after creation, so a symlinked `docs/product/` or `docs/product/captured/` refuses the operation.
 - The writer lock is the shared `.workspace-repair.lock` the intake transaction uses, taken before any precondition check. Agent writers that create records without the lock are caught by the exclusive create, which refuses rather than overwrites.
 
@@ -172,12 +172,12 @@ Owned by: T2
   - the record text for a file-backed defect, a design note carrying `Depends on:`, a legacy entry with `intent` and `summary`, a legacy entry with `type = "shape"` and no `kind`, and a closed defect with its `Resolution:`;
   - a summary holding `\n- **Type:** strategy` lines, which stay under `## Summary` and do not route the guard, and a summary holding an escape character, which is a manual finding;
   - one manual finding per AC-0021 case, including an `Approved` design note in `backlog.open` and in `shaping_queue.backlog` and a membership with typed `needs`, whose plan also holds its `needs-to-header` operation;
-  - an AC-0043 finding for a legacy `type = "shape"` entry whose slug names a record with no `Type:`, one with an extra `Detail:`, and one that is invalid;
+  - an AC-0043 finding for a legacy `type = "shape"` entry whose slug names a record with no `Type:`, one with an extra `Detail:`, one that is invalid, and one cut short inside its `## Summary`;
   - a `canonical_failed` workspace yielding no operation and no finding;
   - a byte comparison of `workspace.toml` outside the changed `path` values, and every source file byte-identical after apply;
   - each AC-0026 refusal: an edited `source_path` with a matching SHA-256, an edited `record_path`, an edited `slug`, an edited `entry_locator`, and an edited `record_text`, each with `plan_id` recomputed; a changed source; a changed registry; and a membership cooled after planning;
   - each AC-0027, AC-0046, and AC-0047 refusal: a record path created as a file with other bytes after planning, a symlink planted at the record path, a hard-linked record holding the planned bytes, a symlinked `docs/product`, and a symlinked record directory;
-  - an interrupted apply after the first record write, followed by a clean rerun that writes the same records; and a record cut short inside its write, which the rerun reports as a manual finding naming it and which finishes once the file is removed;
+  - an interrupted apply after the first record write, followed by a clean rerun that writes the same records; and a membership record and a legacy record each cut short inside its write, which the rerun reports under AC-0021 and AC-0043 in turn, naming the path, and which finishes once the file is removed;
   - a plan holding both a `needs-to-header` and a `captured-to-file` operation, each writing only what its own contract allows;
   - `captured_equal` false when a record is edited by hand after the write, and the copied edges keyed by record path on both sides;
   - an oversized slug and a source path with a control character, each echoed as an empty string while the plan file holds it whole; a receipt token with a control character and a malformed SHA-256, each echoed empty, and a valid SHA-256 and registry fingerprint printed in full; and a record text printed as one escaped JSON string.
