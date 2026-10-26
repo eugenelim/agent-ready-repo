@@ -1,7 +1,7 @@
 [pack]
 name = "repo-governance"
-version = "2.1.0"
-description = "Write the RFC, record the ADR, route a decision to the right record, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
+version = "2.3.0"
+description = "Write the RFC, record the ADR, route a decision to the right record, check decision health, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Repository Governance"
 license = "Apache-2.0 OR MIT"

@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.58.0
+
+The shared file-safety helper gains `write_confined_regular_file`, which creates
+or updates a file inside a root without following links and restores the
+original bytes if a write fails.
+
 ## What's new in 0.57.0
 
 `install` and `upgrade` now print the steps to move to a renamed pack when the
