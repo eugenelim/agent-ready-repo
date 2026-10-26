@@ -565,7 +565,7 @@ def test_identity_never_reads_a_linked_record(
     ))
     (repo / path).unlink()
     if linked == "symlink":
-        target = tmp_path / "elsewhere.md"
+        target = repo / "docs" / "linked-target.md"
         target.write_text(_note("defect", "Open"), encoding="utf-8")
         (repo / path).symlink_to(target)
     else:
@@ -605,7 +605,8 @@ def test_reconciliation_never_reads_a_linked_record(
     ))
     (repo / path).unlink()
     if linked == "symlink":
-        target = tmp_path / "elsewhere.md"
+        target = repo / "docs" / "linked-target.md"
+        target.write_text("", encoding="utf-8")
         (repo / path).symlink_to(target)
     else:
         target = repo / cooled_path
@@ -616,6 +617,64 @@ def test_reconciliation_never_reads_a_linked_record(
     reads.clear()
     observe(repo)
     assert not any(b"SECRET-EDGE" in chunk for chunk in reads)
+
+
+def _non_member_link_repo(tmp_path: Path, linked: str) -> tuple[Path, str, Path]:
+    """A waiter naming a captured-item path no membership holds, linked to a file.
+
+    The link target is in the repository: a symlink to a plain file, or a hard
+    link to a cooled artifact. Returns the repository, the path, and the target.
+    """
+    path = _note_path("loose", True)
+    cooled_path = _note_path("cooled-note")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    cooled_case = _dependent_case(
+        "cooled", "defect", "Open", "backlog.open", "cooled-note", False, cooled=True
+    )
+    _write_repo(repo, dataclasses.replace(cooled_case, depends_on=path))
+    (repo / path).parent.mkdir(parents=True, exist_ok=True)
+    if linked == "symlink":
+        target = repo / "docs" / "linked-target.md"
+        target.write_text("", encoding="utf-8")
+        (repo / path).symlink_to(target)
+    else:
+        target = repo / cooled_path
+        os.link(target, repo / path)
+    target.write_text(
+        _note("defect", "Open") + "- **Detail:** SECRET-NON-MEMBER\n", encoding="utf-8"
+    )
+    return repo, path, target
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
+def test_kind_lookup_never_reads_a_linked_non_member_file(
+    tmp_path: Path, reads: list[bytes], linked: str
+) -> None:
+    """A header item naming a non-member captured-item file reads it only as a confined file."""
+    repo, _path, _target = _non_member_link_repo(tmp_path, linked)
+    reads.clear()
+    result = observe(repo)
+    assert not any(b"SECRET-NON-MEMBER" in chunk for chunk in reads)
+    assert ["unreadable_artifact", WAITER] in result["findings"]
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
+def test_satisfaction_probe_never_reads_a_linked_non_member_file(
+    tmp_path: Path, reads: list[bytes], linked: str
+) -> None:
+    """The unregistered probe of a captured-item path reads it only as a confined file."""
+    repo, path, _target = _non_member_link_repo(tmp_path, linked)
+    probe = ENGINE.WorkspaceEntry(
+        path=path, kind="defect", source=ENGINE.SourceRecord(mode="repo-origin"),
+        summary="dependency probe", needs=[],
+    )
+    reads.clear()
+    metadata = ENGINE._artifact_metadata({}, probe, repo, registered=False)
+    assert metadata is not None and metadata.exists and not metadata.readable
+    assert not any(b"SECRET-NON-MEMBER" in chunk for chunk in reads)
 
 
 @pytest.mark.skipif(_RECORD, reason="recording")

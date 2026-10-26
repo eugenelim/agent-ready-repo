@@ -13,6 +13,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import pathlib
 import stat
 import sys
 from pathlib import Path
@@ -1336,21 +1337,46 @@ def renamed_pair(root: Path, extra_files: dict[str, str]) -> Path:
     )
 
 
-def test_a_cooled_spec_is_not_opened_and_refuses_each_renamed_slug(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+@pytest.fixture
+def reads(monkeypatch: pytest.MonkeyPatch) -> list[bytes]:
+    """Every chunk `os.read` and `Path.read_text` return."""
+    seen: list[bytes] = []
+    real_read, real_text = os.read, pathlib.Path.read_text
+
+    def spy_read(fd: int, length: int) -> bytes:
+        chunk = real_read(fd, length)
+        seen.append(chunk)
+        return chunk
+
+    def spy_text(self: pathlib.Path, *args: Any, **kwargs: Any) -> str:
+        text = real_text(self, *args, **kwargs)
+        seen.append(text.encode("utf-8"))
+        return text
+
+    monkeypatch.setattr(os, "read", spy_read)
+    monkeypatch.setattr(pathlib.Path, "read_text", spy_text)
+    return seen
+
+
+def test_a_cooled_spec_is_never_read_and_refuses_each_renamed_slug(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], reads: list[bytes]
 ) -> None:
     spec = "docs/specs/z/spec.md"
     repo = renamed_pair(tmp_path, {
-        spec: spec_text("z", "- AC (deferred: ledger)\n"),
+        spec: spec_text("z", "- AC (deferred: ledger)\n- SECRET-COOLED-SPEC\n"),
         "docs/lifecycle/z.json": lifecycle_record("z", spec),
     })
-    (repo / spec).chmod(0)
-    try:
-        data = plan(repo, capsys)
-    finally:
-        (repo / spec).chmod(0o644)
+    data = plan(repo, capsys)
     assert captured_ops(data) == []
-    assert reasons(data).count("deferral-anchors-unread") == 2
+    assert reasons(data) == ["deferral-anchors-unread"] * 2
+    # Other scans of the repository read specs; the anchor scan alone must not.
+    cooled, _findings = WS._engine._resolve_cooled_state(repo)
+    reads.clear()
+    anchors, unread = WS._deferral_anchors(repo, cooled)
+    assert not any(b"SECRET-COOLED-SPEC" in chunk for chunk in reads)
+    assert "ledger" not in anchors and unread == (spec,)
+    assert all(f["unread_paths"] == [spec] for f in captured_findings(data))
+    assert all(f["unread_paths"] == [spec] for f in captured_findings(plan_file(repo)))
 
 
 def unreadable_spec_cases(root: Path, case: str) -> Path:
@@ -1386,22 +1412,20 @@ def test_a_slug_equal_to_its_stem_still_migrates_when_the_anchors_are_incomplete
     assert captured_findings(data) == []
 
 
-def test_a_cooled_memberships_header_refuses_each_membership_operation(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+def test_a_cooled_memberships_header_is_never_read_and_refuses_nothing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], reads: list[bytes]
 ) -> None:
     cooled = f"{NOTES}/cooled.md"
     repo = make_repo(
-        tmp_path, {f"{NOTES}/n.md": note(), cooled: note()},
+        tmp_path,
+        {f"{NOTES}/n.md": note(), cooled: note(extra="- **Depends on:** spec:SECRET-COOLED-HEADER")},
         open_=[entry(f"{NOTES}/n.md"), entry(cooled)],
     )
     write(repo, "docs/lifecycle/cooled.json", lifecycle_record("cooled", cooled))
-    (repo / cooled).chmod(0)
-    try:
-        data = plan(repo, capsys)
-    finally:
-        (repo / cooled).chmod(0o644)
-    assert captured_ops(data) == []
-    assert reasons(data) == ["dependency-headers-unread"]
+    data = plan(repo, capsys)
+    assert [op["source_path"] for op in captured_ops(data)] == [f"{NOTES}/n.md"]
+    assert captured_findings(data) == []
+    assert not any(b"SECRET-COOLED-HEADER" in chunk for chunk in reads)
 
 
 def test_an_unreadable_memberships_file_refuses_each_other_membership_operation(
@@ -1419,6 +1443,70 @@ def test_an_unreadable_memberships_file_refuses_each_other_membership_operation(
         f"{NOTES}/n.md": "dependency-headers-unread",
         f"{NOTES}/m.md": "source-unreadable",
     }
+    [refused] = [f for f in captured_findings(data) if f["spec_path"] == f"{NOTES}/n.md"]
+    assert refused["unread_paths"] == [f"{NOTES}/m.md"]
+    assert "unread_paths" not in next(
+        f for f in captured_findings(data) if f["spec_path"] == f"{NOTES}/m.md"
+    )
+
+
+def test_an_unread_path_is_echoed_under_the_repository_path_grammar(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    odd = f"{NOTES}/odd name.md"
+    repo = make_repo(
+        tmp_path, {f"{NOTES}/n.md": note(), odd: note()},
+        open_=[entry(f"{NOTES}/n.md"), entry(odd)],
+    )
+    os.link(repo / odd, tmp_path / "second-link")
+    printed = plan(repo, capsys)
+    [refused] = [
+        f for f in captured_findings(printed) if f["reason"] == "dependency-headers-unread"
+    ]
+    assert refused["unread_paths"] == [""]
+    [filed] = [
+        f for f in captured_findings(plan_file(repo)) if f["reason"] == "dependency-headers-unread"
+    ]
+    assert filed["unread_paths"] == [odd]
+
+
+def test_an_unlistable_specs_directory_is_named_in_the_finding(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = unreadable_spec_cases(tmp_path, "unlistable-specs")
+    data = plan(repo, capsys)
+    assert {tuple(f["unread_paths"]) for f in captured_findings(data)} == {("docs/specs",)}
+
+
+def test_a_hard_linked_spec_is_named_in_the_finding(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = unreadable_spec_cases(tmp_path, "hard-linked-spec")
+    data = plan(repo, capsys)
+    assert {tuple(f["unread_paths"]) for f in captured_findings(data)} == {
+        ("docs/specs/z/spec.md",)
+    }
+
+
+def test_a_failed_directory_flush_never_reports_an_applied_repair_as_unapplied(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = one_defect(tmp_path)
+    data = plan(repo, capsys)
+    real_open = os.open
+
+    def refuse_directories(path: Any, flags: int, *args: Any, **kwargs: Any) -> int:
+        if Path(path).is_dir():
+            raise PermissionError(13, "cannot open a directory")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", refuse_directories)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert result["applied"] is True
+    [op] = captured_ops(data)
+    assert (repo / op["record_path"]).read_text(encoding="utf-8") == op["record_text"]
+    assert f'path = "{op["record_path"]}"' in (repo / "workspace.toml").read_text(encoding="utf-8")
 
 
 def test_apply_makes_records_and_the_registry_durable_in_order(

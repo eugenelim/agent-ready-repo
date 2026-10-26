@@ -1141,7 +1141,16 @@ def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monke
             seen.append(entry.path)
         return real(root_arg, entry)
 
+    real_record = engine._captured_record_metadata
+
+    def probe_record(root_arg, entry):
+        """A captured-item file's probe reads through its record reader."""
+        if entry.path == DEFECT_PATH:
+            seen.append(entry.path)
+        return real_record(root_arg, entry)
+
     monkeypatch.setattr(engine, "_metadata_from_root", probe)
+    monkeypatch.setattr(engine, "_captured_record_metadata", probe_record)
     engine.run_canonical_reconciliation(
         engine.parse_workspace(control / "workspace.toml"), control
     )

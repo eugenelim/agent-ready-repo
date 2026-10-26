@@ -2522,6 +2522,14 @@ def _artifact_metadata(
             return None
         if form == "migrated":
             return _captured_record_metadata(root, entry)
+    elif entry.path.startswith(f"{_CAPTURED_DIR}/"):
+        # A probe of a file in the captured-item directory is a confined read too.
+        if _captured_membership_form(entry.path) == "migrated":
+            return _captured_record_metadata(root, entry)
+        if os.path.lexists(root / entry.path) and _migration_file_bytes(root, entry.path) is None:
+            return ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True, readable=False
+            )
     return _metadata_from_root(root, entry)
 
 
@@ -3779,7 +3787,14 @@ def _resolve_header_item(
     kind = ""
     if captured_file not in cooled:
         try:
-            text = captured_file.read_text(encoding="utf-8", errors="replace")
+            if item.startswith(f"{_CAPTURED_DIR}/"):
+                # A file in the captured-item directory is read only as a confined file.
+                content = _migration_file_bytes(root, item)
+                if content is None:
+                    raise OSError(item)
+                text = content.decode("utf-8", errors="replace")
+            else:
+                text = captured_file.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return None, _header_finding(
                 "unreadable_artifact", waiting_path, "captured item unreadable", item

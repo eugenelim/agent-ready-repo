@@ -2524,36 +2524,36 @@ def _registry_fingerprint(item: _CapturedItem) -> str:
 
 def _deferral_anchors(
     root: Path, cooled: frozenset[Path]
-) -> tuple[frozenset[str], bool]:
-    """Every `(deferred: <anchor>)` a spec carries, and whether every spec was read.
+) -> tuple[frozenset[str], tuple[str, ...]]:
+    """Every `(deferred: <anchor>)` a spec carries, and each path that was not read.
 
     A cooled spec is never opened. A spec that could not be read, or a
-    `docs/specs` that could not be listed, makes the answer incomplete.
+    `docs/specs` that could not be listed, is named among the unread paths.
     """
     if not os.path.lexists(root / "docs/specs"):
-        return frozenset(), True
+        return frozenset(), ()
     specs = _engine.confine_migration_path(root, "docs/specs")
     if specs is None:
-        return frozenset(), False
+        return frozenset(), ("docs/specs",)
     try:
         names = sorted(entry.name for entry in os.scandir(specs) if entry.is_dir())
     except OSError:
-        return frozenset(), False
+        return frozenset(), ("docs/specs",)
     anchors: set[str] = set()
-    complete = True
+    unread: list[str] = []
     for name in names:
         relative = f"docs/specs/{name}/spec.md"
         if not os.path.lexists(root / relative):
             continue
         if _engine._confined_artifact_path(root, relative) in cooled:
-            complete = False
+            unread.append(relative)
             continue
         data = _engine._migration_file_bytes(root, relative)
         if data is None:
-            complete = False
+            unread.append(relative)
             continue
         anchors.update(_CAPTURED_DEFERRED_RE.findall(data.decode("utf-8", errors="replace")))
-    return frozenset(anchors), complete
+    return frozenset(anchors), tuple(unread)
 
 
 def _dependency_items_by_path(
@@ -2562,7 +2562,7 @@ def _dependency_items_by_path(
     """Each path a dependency item names, with the memberships that name it.
 
     Also returns the paths of the memberships whose own header could not be
-    read; a cooled membership's file is never opened.
+    read. A cooled membership's file is never opened and names nothing.
     """
     named: dict[str, set[str]] = {}
     unread: set[str] = set()
@@ -2573,7 +2573,6 @@ def _dependency_items_by_path(
         if path is None:
             continue
         if _engine._membership_is_cooled(membership, root, cooled):
-            unread.add(path)
             continue
         if not os.path.lexists(root / path):
             continue
@@ -2590,10 +2589,14 @@ def _dependency_items_by_path(
     return named, frozenset(unread)
 
 
-def _captured_finding(item: _CapturedItem, reason: str, slug: str = "") -> dict:
+def _captured_finding(
+    item: _CapturedItem, reason: str, slug: str = "", unread_paths: tuple[str, ...] = ()
+) -> dict:
     record_path = f"{_engine._CAPTURED_DIR}/{slug}.md" if slug else ""
     named = item.path or (item.raw.get("slug", "") if isinstance(item.raw, dict) else "")
+    extra = {"unread_paths": list(unread_paths)} if unread_paths else {}
     return {
+        **extra,
         "finding_type": _CAPTURED_FINDING_TYPE,
         "spec_path": item.path,
         "spec_status": "",
@@ -2716,9 +2719,10 @@ def _plan_captured_items(root: Path, workspace_bytes: bytes) -> _CapturedPlan:
             outcome = _plan_legacy_item(context, item)
         else:
             outcome = _plan_membership_item(context, item)
-        if isinstance(outcome, str):
+        if isinstance(outcome, (str, tuple)):
+            reason, unread = (outcome, ()) if isinstance(outcome, str) else outcome
             findings.append(_captured_finding(
-                item, outcome, item.final if _captured_slug_valid(item.final) else ""
+                item, reason, item.final if _captured_slug_valid(item.final) else "", unread
             ))
         elif outcome is not None:
             operations.append(outcome)
@@ -2810,7 +2814,7 @@ def _plan_membership_item(context: dict, item: _CapturedItem):
     if named.get(path, set()) - {path}:
         return "source-is-dependency-target"
     if unread_headers - {path}:
-        return "dependency-headers-unread"
+        return "dependency-headers-unread", tuple(sorted(unread_headers - {path}))
     if _source_status_conflict(item.collection, item.kind, text):
         return "status-conflict"
     common = _plan_common_fields(context, item)
@@ -2819,12 +2823,12 @@ def _plan_membership_item(context: dict, item: _CapturedItem):
     if context["anchors"] is None:
         context["anchors"] = _deferral_anchors(root, context["cooled"])
     stem = PurePosixPath(path.rsplit("/", 1)[-1]).stem
-    anchors, anchors_complete = context["anchors"]
+    anchors, unread_specs = context["anchors"]
     if item.final != stem:
         if stem in anchors:
             return "deferral-anchor"
-        if not anchors_complete:
-            return "deferral-anchors-unread"
+        if unread_specs:
+            return "deferral-anchors-unread", unread_specs
     status = "Closed" if item.collection == "backlog.closed" else "Open"
     resolution = (
         _engine._parse_preamble_fields(text).get("resolution") if status == "Closed" else None
@@ -2966,6 +2970,22 @@ def _echo_captured_operation(op: dict) -> dict:
     return item
 
 
+_REPOSITORY_PATH_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
+
+
+def _echo_repository_path(path: object) -> str:
+    """A path that is `/`-separated plain segments, or `""`."""
+    if not isinstance(path, str) or len(path) > 200:
+        return ""
+    parts = path.split("/")
+    if any(
+        part in (".", "..") or _REPOSITORY_PATH_SEGMENT_RE.fullmatch(part) is None
+        for part in parts
+    ):
+        return ""
+    return path
+
+
 def _echo_captured_finding(finding: dict) -> dict:
     item = dict(finding)
     item["spec_path"] = _echo_reference(finding.get("spec_path"))
@@ -2974,6 +2994,8 @@ def _echo_captured_finding(finding: dict) -> dict:
     item["list_name"] = _echo_collection(finding.get("list_name"))
     item["ini_slug"] = _public_ini_slug(finding.get("ini_slug"), allow_empty=True)
     item["entry_index"] = _echo_index(finding.get("entry_index"))
+    if "unread_paths" in finding:
+        item["unread_paths"] = [_echo_repository_path(p) for p in finding["unread_paths"]]
     named = item["spec_path"] or item["slug"]
     item["finding_id"] = (
         f"type{_CAPTURED_FINDING_TYPE}:{item['ini_slug']}:{item['list_name']}:"
@@ -3448,8 +3470,15 @@ def _migration_load_ledger(root: Path) -> tuple[dict[str, object] | None, str | 
 
 
 def _fsync_directory(directory: Path) -> None:
-    """Flush a directory's entries so a created or renamed file survives a crash."""
-    directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    """Flush a directory's entries so a created or renamed file survives a crash.
+
+    Where a directory cannot be opened for a flush, such as on Windows, the
+    flush is skipped: the file or rename it follows has already landed.
+    """
+    try:
+        directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    except OSError:
+        return
     try:
         os.fsync(directory_fd)
     finally:
