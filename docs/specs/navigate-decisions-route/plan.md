@@ -224,7 +224,9 @@ Owned by: T1, T5.
 - One pin per criterion for AC-0001 and AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0044, AC-0045, AC-0046, AC-0047, AC-0049, AC-0050 and AC-0053, each reading only the
   route section, sliced by heading, and asserting the exact sentence T2 writes.
 - AC-0002 asserts the absence of each listed step-0 phrase over the whole `TEXT`.
-- AC-0047's pin asserts the same handle and role sentence as AC-0023's pin.
+- AC-0047's pin reads `new-adr/SKILL.md` step 4 inside the pack, takes the
+  handle-and-role sentence AC-0023 pins, and asserts the route section contains
+  it verbatim.
 - AC-0003 asserts the seven line prefixes in order inside one fenced block.
 - AC-0018 and AC-0019 read the frontmatter `description:`.
 - The existing four tests stay green.
