@@ -1,7 +1,7 @@
 # Plan: new-rfc governance mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness rule, pack-test boundary); `packages/AGENTS.md` and `packages/AGENTS.local.md` (version bump, no internal ordinals in source, `Engine-Change-RFC` trailer); `tests/AGENTS.md` (a new roster test needs a named CI step, a `lint-ci-parity` entry, and a prune-protected entry only when it names a `docs/specs/` path); `packages/agentbundle/agentbundle/build/self_host.py` `_runtime_projections` and `_library_mirrors` (core's close-work copy is the `file_safety` source); `packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py` `_get_file_safety` (the co-located-copy loader to reuse); `packs/repo-governance/tests/skills/navigate-decisions/test_health_contract.py` (script-contract test shape); `docs/specs/navigate-decisions-health/notes/verification-ledger.md` (activation and behaviour precedent). Uncertainty: whether a broader `new-rfc` description holds its trigger rate, which only T6 can show.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -326,3 +326,5 @@ Owned by: T2, T3.
 
 - 2026-10-26: spec approved by eugenelim
 - 2026-10-26: plan approved by eugenelim
+- 2026-10-26: amended spec approved by eugenelim
+- 2026-10-26: amended plan approved by eugenelim
