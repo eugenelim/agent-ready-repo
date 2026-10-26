@@ -336,3 +336,47 @@ def test_in_root_symlinked_spec_is_read_by_the_command(tmp_path: Path) -> None:
     )
     escaping = [r for r in doc["refusals"] if r["code"] == "path-escapes-root"]
     assert not escaping, f"no path escaped the root, yet: {escaping}"
+
+
+def test_header_only_depends_on_blocks_retirement_as_needed_by(tmp_path: Path) -> None:
+    """A Shipped spec named only as `spec:<slug>` in a live waiting item's
+    `Depends on:` line is held back by `needed-by`, with the waiting item named."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    _write_clean_fixture(root)
+    waiting = _spec_dir(root, "waiter")
+    waiter_path = "/".join(("docs", "specs", "waiter", "spec.md"))
+    waiting.mkdir(parents=True)
+    (waiting / "spec.md").write_text(
+        "# Spec: Waiter\n\n- **Status:** Draft\n- **Depends on:** spec:alpha\n",
+        encoding="utf-8",
+    )
+    (root / "workspace.toml").write_text(
+        _workspace_entry("alpha")
+        + "[[ini-001.work.queue]]\n"
+        + f'path = "{waiter_path}"\n'
+        + 'kind = "spec"\n'
+        + 'source = {mode = "repo-origin"}\n'
+        + 'summary = "Waiter"\n'
+        + "needs = []\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(root), "commit", "-q", "-m", "waiter",
+         "--date=2020-01-02T00:00:00Z"],
+        check=True,
+        env={**os.environ, "GIT_COMMITTER_DATE": "2020-01-02T00:00:00Z"},
+    )
+
+    result = _invoke(root)
+    assert result.returncode == 0, result.stderr.decode("utf-8", errors="replace")
+    doc = json.loads(result.stdout)
+    alpha = next(c for c in doc["candidates"] if c["slug"] == "alpha")
+    codes = {reason["code"]: reason for reason in alpha["held_back_by"]}
+    assert alpha["eligible"] is False
+    assert "needed-by" in codes
+    assert any(
+        waiter_path in entry
+        for entry in codes["needed-by"]["declared_by"]
+    )

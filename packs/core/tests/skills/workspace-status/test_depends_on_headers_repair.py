@@ -735,3 +735,129 @@ def test_long_coordination_receipt_is_carried_whole_and_migrated(
     code, result = apply(repo, capsys)
     assert code == 0 and result["edges_equal"] is True, result
     assert line in (repo / WAITER).read_text(encoding="utf-8")
+
+
+# ── T8: code-review corrections ──────────────────────────────────────────────
+
+
+def header_items(text: str) -> list[str]:
+    """The `Depends on:` items the engine reads from ``text``, in order."""
+    items: list[str] = []
+    for name, value, _wrapped in WS._engine._header_field_lines(text):
+        if name == "depends on":
+            items.extend(WS._engine._split_items(value))
+    return items
+
+
+@pytest.mark.parametrize(
+    "depends_line",
+    [
+        "- **Depends on:** <!-- note --> spec:peer\n",
+        "- **Depends on:** spec:peer <!-- a --> <!-- b -->\n",
+        "- **Depends on:** <!-- a --> spec:peer <!-- b -->\n",
+        "- **Depends on:** spec:peer <!-- open\nclosed -->\n",
+    ],
+)
+def test_extending_a_line_that_carries_a_comment_keeps_every_item(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], depends_line: str
+) -> None:
+    waiter = spec_text("waiter", extra=depends_line + "- **Owner:** someone\n")
+    repo = make_repo(
+        tmp_path,
+        [entry(WAITER, needs=needs(local("spec", PEER), local("spec", OTHER)))],
+        {**basic_files(), WAITER: waiter},
+    )
+    plan(repo, capsys)
+    code, result = apply(repo, capsys)
+    assert code == 0 and result["edges_equal"] is True, result
+    text = (repo / WAITER).read_text(encoding="utf-8")
+    assert header_items(text) == ["spec:peer", "spec:other"]
+    assert "- **Owner:** someone\n" in text
+    rerun = WS._insert_header_items(text, ["spec:peer", "spec:other"], [])
+    assert rerun == (text, False)
+    assert needs_ops(plan(repo, capsys)) == []
+    assert (repo / WAITER).read_text(encoding="utf-8") == text
+
+
+def test_waiting_item_without_a_field_line_gains_its_depends_on_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    waiter = "# Spec: waiter\n\nProse only, no field line.\n\n## Outcome\n\nbody\n"
+    repo = make_repo(
+        tmp_path,
+        [entry(WAITER, needs=needs(local("spec", PEER)))],
+        {**basic_files(), WAITER: waiter},
+    )
+    data = plan(repo, capsys)
+    [op] = needs_ops(data)
+    assert op["operation_type"] == "needs-to-header"
+    assert needs_findings(data) == []
+    code, result = apply(repo, capsys)
+    assert code == 0 and result["edges_equal"] is True, result
+    text = (repo / WAITER).read_text(encoding="utf-8")
+    assert text.startswith("# Spec: waiter\n\n- **Depends on:** spec:peer\n")
+    assert text.index("- **Depends on:**") < text.index("## Outcome")
+    assert header_items(text) == ["spec:peer"]
+    assert "needs = [{" not in (repo / "workspace.toml").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("operation", ["needs-to-header", "needs-drop-cooled"])
+def test_apply_refuses_every_needs_operation_when_cooling_becomes_unreadable(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], operation: str
+) -> None:
+    repo = cooled_repo(tmp_path / "repo")
+    plan(repo, capsys)
+    # A lifecycle directory that links outside the root cannot be trusted.
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    lifecycle = repo / "docs" / "lifecycle"
+    for child in lifecycle.iterdir():
+        child.unlink()
+    lifecycle.rmdir()
+    lifecycle.symlink_to(outside, target_is_directory=True)
+    before = snapshot(repo)
+    _code, result = apply(repo, capsys)
+    reasons = {item["path"]: item for item in result["per_operation"]}
+    path = WAITER if operation == "needs-drop-cooled" else OTHER
+    assert reasons[path]["applied"] is False
+    assert reasons[path]["reason"] == "cooling_state_unavailable"
+    assert snapshot(repo) == before
+    assert (repo / "workspace.toml").read_text(encoding="utf-8").count("needs = [{") == 2
+
+
+@pytest.mark.parametrize("cooled", [False, True], ids=["live", "cooled"])
+def test_plan_refuses_a_waiting_path_two_memberships_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], cooled: bool
+) -> None:
+    edges = needs(local("spec", PEER))
+    repo = make_repo(
+        tmp_path,
+        [entry(WAITER, needs=edges)],
+        basic_files(),
+        shipped=[entry(WAITER, needs=edges)],
+    )
+    if cooled:
+        write(repo, "docs/lifecycle/cooled.json", lifecycle_record("cooled", WAITER))
+    data = plan(repo, capsys)
+    assert [op for op in data["automatic_operations"] if op["waiting_path"] == WAITER] == []
+    assert needs_ops(data) == []
+    reasons = {finding["reason"] for finding in needs_findings(data)}
+    assert reasons == {"duplicate-membership"}
+
+
+def test_plan_refuses_every_edge_when_cooling_state_cannot_be_read(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = cooled_repo(tmp_path / "repo")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    lifecycle = repo / "docs" / "lifecycle"
+    for child in lifecycle.iterdir():
+        child.unlink()
+    lifecycle.rmdir()
+    lifecycle.symlink_to(outside, target_is_directory=True)
+    data = plan(repo, capsys)
+    assert needs_ops(data) == []
+    findings = needs_findings(data)
+    assert {finding["spec_path"] for finding in findings} == {WAITER, OTHER}
+    assert {finding["reason"] for finding in findings} == {"cooling-state-unavailable"}

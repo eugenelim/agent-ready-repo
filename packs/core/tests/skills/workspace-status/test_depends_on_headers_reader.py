@@ -662,3 +662,36 @@ def test_index_is_built_once_and_reused(tmp_path: Path) -> None:
     index = ENGINE.build_resolution_index(tmp_path)
     assert index.briefs == {"partner": (f"{BRIEFS}/partner.md",)}
     assert not index.briefs_unreadable and not index.intents_unreadable
+
+
+# ── T8: a dependency finding's path obeys AC-0028's bound ────────────────────
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        "spec:" + "a" * 300,
+        "docs/product/notes/" + "b" * 300 + ".md",
+    ],
+    ids=["oversized-typed", "oversized-captured"],
+)
+def test_oversized_dependency_path_is_withheld_and_the_code_kept(
+    tmp_path: Path, item: str
+) -> None:
+    import tomllib
+
+    _write(tmp_path, WAITER, _waiter(_depends(item)))
+    _write(tmp_path, "docs/specs/waiter/plan.md", "# Plan\n")
+    workspace = tomllib.loads(
+        '["ini-001"]\nname = "F"\nstatus = "active"\nmilestone = "m1"\n\n'
+        '["ini-001".work]\n'
+        f'queue = [{{path = "{WAITER}", kind = "spec", source = {{mode = "repo-origin"}}, '
+        'summary = "w", needs = []}]\nactive = []\nshipped = []\n'
+    )
+    result = ENGINE.run_canonical_reconciliation(workspace, tmp_path)
+    findings = result.dispatch_by_path[WAITER].findings
+    missing = [f for f in findings if f.code == "missing_dependency"]
+    assert len(missing) == 1, [(f.code, f.path) for f in findings]
+    assert all(len(f.path) <= 200 for f in findings)
+    assert item not in {f.path for f in findings}
+    assert missing[0].path == ""

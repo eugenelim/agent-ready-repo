@@ -2337,7 +2337,11 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
             readable=False,
             invalid_path=True,
         )
-    if not artifact_path.exists():
+    try:
+        present = artifact_path.exists()
+    except OSError:  # a name the filesystem cannot hold names no file
+        present = False
+    if not present:
         return ArtifactMetadata(path=entry.path, kind=entry.kind, status=None, exists=False)
     try:
         text = artifact_path.read_text(encoding="utf-8", errors="replace")
@@ -4160,7 +4164,13 @@ def evaluate_dispatch(
             cooled_scope_unknown=cooled_scope_unknown,
         )
         if not satisfied and finding is not None:
-            findings.append(finding)
+            # The path came from a header item, so it is bounded like any other
+            # echoed value: a failing path loses its content, not its code.
+            findings.append(
+                dataclasses.replace(
+                    finding, path=_bounded_finding_identifier(finding.path)
+                )
+            )
     dispatchable = (
         entry.kind == "spec"
         and membership.collection == "work.queue"

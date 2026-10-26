@@ -1802,8 +1802,8 @@ def _needs_manual_finding(membership, reason: str, target: str = "") -> dict:
 
 
 def _preamble_anchor_ok(text: str) -> bool:
-    """True when the preamble has a `- **Field:**` line to anchor a header on."""
-    return _insert_header_items(text, [], []) is not None and not any(
+    """True when no header line is followed by an indented line the engine drops."""
+    return not any(
         wrapped for _name, _value, wrapped in _engine._header_field_lines(text)
     )
 
@@ -1884,11 +1884,12 @@ def _insert_header_items(
     text: str,
     items: list[str],
     receipts: list[tuple[str, list[str]]],
-) -> tuple[str, bool] | None:
+) -> tuple[str, bool]:
     """Add `items` and `receipts` to the preamble, skipping those already there.
 
-    Returns `(new text, changed)`, or `None` when the preamble has no
-    `- **Field:**` line to anchor on. Only the lines it adds or extends change.
+    Returns `(new text, changed)`. Only the lines it adds or extends change. A
+    preamble with no `- **Field:**` line gains them after its `# ` title and the
+    blank line that follows it, or at the top when it has no title.
     """
     lines = text.splitlines(keepends=True)
     clean = list(_engine._iter_preamble_lines(text))
@@ -1915,8 +1916,6 @@ def _insert_header_items(
                     present_receipts.add(tokens[0])
             if words and words[0].lower() != "none":
                 last_receipts = position
-    if last_field is None:
-        return None
     new_items = [item for item in items if item not in present_items]
     new_receipts = [
         f"{reference} {' '.join(tokens)}"
@@ -1929,9 +1928,14 @@ def _insert_header_items(
     def extend(position: int, additions: list[str]) -> None:
         body = lines[position].rstrip("\r\n")
         terminator = lines[position][len(body):]
-        cut = body.find("<!--")
-        head, tail = (body, "") if cut == -1 else (body[:cut].rstrip(), " " + body[cut:])
-        lines[position] = f"{head}, {', '.join(additions)}{tail}{terminator}"
+        comments = [m.group(0) for m in _engine._HTML_COMMENT_RE.finditer(body)]
+        head = _engine._HTML_COMMENT_RE.sub("", body)
+        opened = head.find("<!--")
+        if opened != -1:  # a comment that closes on a later line
+            comments.append(head[opened:])
+            head = head[:opened]
+        tail = "".join(f" {comment}" for comment in comments)
+        lines[position] = f"{head.rstrip()}, {', '.join(additions)}{tail}{terminator}"
 
     added: list[str] = []
     if new_items:
@@ -1944,7 +1948,18 @@ def _insert_header_items(
             extend(last_receipts, new_receipts)
         else:
             added.append(f"- **Dependency receipts:** {', '.join(new_receipts)}")
-    if added:
+    eol = "\r\n" if "\r\n" in text else "\n"
+    if added and last_field is None:
+        at = 0
+        if lines and lines[0].startswith("# "):
+            at = 1
+            if len(lines) > 1 and not lines[1].strip():
+                at = 2
+        if at and not lines[at - 1].endswith(("\n", "\r")):
+            lines[at - 1] += eol
+        block = [line + eol for line in added]
+        lines[at:at] = block
+    elif added and last_field is not None:
         end = last_field
         while (
             end + 1 < len(clean)
@@ -1952,7 +1967,6 @@ def _insert_header_items(
             and lines[end + 1].strip()
         ):
             end += 1
-        eol = "\r\n" if "\r\n" in text else "\n"
         if lines[end].endswith(("\n", "\r")):
             lines[end + 1:end + 1] = [line + eol for line in added]
         else:
@@ -2040,8 +2054,11 @@ def _apply_needs_operations(
     root: Path, doc, workspace_bytes: bytes, operations: list[dict]
 ) -> tuple[list[dict], int, dict]:
     """Apply the needs operations: waiting files first, then clear `needs` in `doc`."""
-    memberships, cooled, _findings, index, kinds = _needs_membership_context(
+    memberships, cooled, cooling_findings, index, kinds = _needs_membership_context(
         root, workspace_bytes
+    )
+    cooling_unavailable = any(
+        finding.code == "cooling_state_unavailable" for finding in cooling_findings
     )
     member_paths = frozenset(
         m.entry.path for m in memberships if m.entry.path is not None
@@ -2060,6 +2077,9 @@ def _apply_needs_operations(
         def refuse(reason: str, shown: str = shown) -> None:
             per_op.append({"path": shown, "applied": False, "reason": reason})
 
+        if cooling_unavailable:
+            refuse("cooling_state_unavailable")
+            continue
         matches = [m for m in memberships if m.entry.path == path]
         if len(matches) != 1:
             refuse("waiting_path_not_membership")
@@ -2124,7 +2144,6 @@ def _apply_needs_operations(
             [reference for reference, _ in derived],
             [(reference, tokens) for reference, tokens in derived if tokens is not None],
         )
-        assert inserted is not None
         new_text, changed = inserted
         if changed:
             try:
