@@ -224,14 +224,14 @@ owner = 8
 [[row]]
 pattern = "docs/adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md"
 class = "contract"
-consumer = "ADR-0103: the completion receipt close-work writes and workspace-status reads"
+consumer = "ADR-0103: the completion receipt close-work writes and workspace-status reads; D6 names the registry edge as the carrier, and ADR-0148 supersedes that D6 in part"
 owner = 2
 
 [[row]]
 pattern = "docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md"
 class = "contract"
 consumer = "ADR-0110: a cooled spec declares its child scope on its workspace.toml entry"
-owner = 2
+owner = 8
 
 [[row]]
 pattern = "docs/adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md"
@@ -506,13 +506,13 @@ owner = 9
 [[row]]
 pattern = "docs/product/intents/CAP-0004-external-tracker-projection.md"
 class = "contract"
-consumer = "CAP-0004: tracker dependencies recorded as workspace.toml needs edges"
+consumer = "CAP-0004: tracker dependencies recorded in the waiting child Depends on: header; the file still names workspace.toml in its research history"
 owner = 2
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0002-intent-graph-navigation.md"
 class = "contract"
-consumer = "FEAT-0002: intent Depends on edges that defer to workspace.toml needs entries"
+consumer = "FEAT-0002: states the waiting item Depends on: header as the dependency edge home, and still names workspace.toml for the readiness bridge and the registry retirement"
 owner = 2
 
 [[row]]
@@ -824,7 +824,7 @@ owner = "none"
 [[row]]
 pattern = "docs/product/workspace-toml-deps.md"
 class = "guide"
-consumer = "reference for the inline needs dependency notation on workspace.toml queue entries"
+consumer = "reference for the Depends on: header form of a dependency edge; legacy needs forms are repair input only"
 owner = 2
 
 [[row]]
@@ -1401,12 +1401,6 @@ consumer = "pack test asserting that shipped content does not cite workspace.tom
 owner = 9
 
 [[row]]
-pattern = "packs/architect/DESIGN.md"
-class = "guide"
-consumer = "architect pack design note: a workspace.toml needs entry only orders work"
-owner = 2
-
-[[row]]
 pattern = "packs/atlassian/tests/pack/test_bridge_declaration.py"
 class = "fixture"
 consumer = "pack test that lists workspace.toml among the artifacts the bridge must not touch"
@@ -1542,13 +1536,13 @@ owner = 9
 pattern = "tests/roster/test_cooling_brief_child_scope_closure.py"
 class = "fixture"
 consumer = "roster test test_cooling_brief_child_scope_closure.py that exercises the registry consumers of its feature"
-owner = 2
+owner = 8
 
 [[row]]
 pattern = "tests/roster/test_cooling_scope_closure.py"
 class = "fixture"
 consumer = "roster test test_cooling_scope_closure.py that exercises the registry consumers of its feature"
-owner = 2
+owner = 8
 
 [[row]]
 pattern = "tests/roster/test_credential_broker_contract_docs.py"
@@ -1566,7 +1560,7 @@ owner = 9
 pattern = "tests/roster/test_dependency_scoped_completion_receipts.py"
 class = "fixture"
 consumer = "roster test test_dependency_scoped_completion_receipts.py that exercises the registry consumers of its feature"
-owner = 2
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_github_refresh_processor.py"
@@ -2608,8 +2602,8 @@ owner = "none"
 [[row]]
 pattern = "docs/specs/cooling-brief-child-scope-closure/*"
 class = "contract"
-consumer = "cooled-brief child scope and provenance checks in the workspace-status engine"
-owner = 2
+consumer = "frozen record: cooled-brief child scope reads source.parent, a registry fact kept until spec registration stops"
+owner = 8
 
 [[row]]
 pattern = "docs/specs/cooling-untrusted-input-refusals/*"
@@ -2656,13 +2650,25 @@ owner = "none"
 [[row]]
 pattern = "docs/specs/dependency-scoped-completion-receipts/*"
 class = "contract"
-consumer = "completion receipts that satisfy dependency edges in the workspace-status engine"
-owner = 2
+consumer = "frozen record: completion receipt shape on a registry needs edge, whose schema field stays as repair input until the registry retires"
+owner = 9
 
 [[row]]
 pattern = "docs/specs/depends-on-headers/*"
 class = "contract"
 consumer = "Depends on: header edges on the waiting item, the unmigrated needs refusal, and the needs-to-header repair"
+owner = 2
+
+[[row]]
+pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
+class = "contract"
+consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces"
+owner = 2
+
+[[row]]
+pattern = "tests/roster/test_depends_on_headers_instructions.py"
+class = "fixture"
+consumer = "roster test that no shipped instruction teaches a registry needs edge and that each instruction site names the Depends on: header"
 owner = 2
 
 [[row]]
