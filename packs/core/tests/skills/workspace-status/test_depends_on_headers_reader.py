@@ -728,3 +728,27 @@ def test_an_unsearchable_parent_reads_as_unreadable_not_missing(tmp_path: Path) 
         target.parent.chmod(0o755)
     assert metadata is not None
     assert (metadata.exists, metadata.readable) == (True, False)
+
+
+def test_a_waiting_item_under_an_unsearchable_directory_is_unreadable(tmp_path: Path) -> None:
+    import os
+
+    if os.name == "nt" or os.geteuid() == 0:
+        pytest.skip("needs POSIX permissions enforced for the current user")
+    waiting = tmp_path / "docs" / "specs" / "waiter" / "spec.md"
+    waiting.parent.mkdir(parents=True)
+    waiting.write_text("- **Status:** Draft\n- **Depends on:** spec:alpha\n", encoding="utf-8")
+    index = ENGINE.build_resolution_index(tmp_path)
+    waiting.parent.chmod(0)
+    try:
+        header = ENGINE.read_header_dependencies(
+            tmp_path,
+            "docs/specs/waiter/spec.md",
+            index=index,
+            membership_kinds={},
+            cooled=frozenset(),
+        )
+    finally:
+        waiting.parent.chmod(0o755)
+    assert header.dependencies == ()
+    assert [f.code for f in header.findings] == ["unreadable_artifact"]

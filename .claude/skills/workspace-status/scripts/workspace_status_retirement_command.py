@@ -188,14 +188,25 @@ def _append_blocker(
         reasons.append(item)
 
 
+def _unreadable_input(waiting_path: str, detail: str) -> str:
+    """Name the input behind one reader `unreadable_artifact` finding."""
+    reason, _, item = detail.partition(": ")
+    if reason == "dependency directory unreadable" and item:
+        return "docs/product/briefs" if item.startswith("brief:") else "docs/product/intents"
+    if reason == "captured item unreadable" and item:
+        return item
+    return waiting_path
+
+
 def _header_needed_by(
     root: Path, workspace: dict
 ) -> tuple[dict[str, list[str]], list[str]]:
     """Map each spec slug to the live waiting items whose header names it.
 
     Edges come from each waiting item's `Depends on:` line through the engine's
-    reader. The second value lists waiting items whose header could not be read:
-    such a header could name any spec, so the caller refuses for every slug.
+    reader. The second value lists every input the reader could not read,
+    named as itself: the waiting item, a dependency directory, or a captured
+    item. Any of them could hide an edge, so the caller refuses for every slug.
     """
     memberships = [
         membership
@@ -206,15 +217,16 @@ def _header_needed_by(
     unreadable: list[str] = []
     headers = engine._header_edges_by_path(memberships, root, frozenset())
     for waiting_path, header in headers.items():
-        if any(finding.code == "unreadable_artifact" for finding in header.findings):
-            unreadable.append(waiting_path)
+        for finding in header.findings:
+            if finding.code == "unreadable_artifact":
+                unreadable.append(_unreadable_input(waiting_path, finding.detail))
         for dependency in header.dependencies:
             slug = candidates._slug_from_spec_path(dependency.path)
             if dependency.kind == "spec" and slug is not None:
                 needed_by.setdefault(slug, []).append(
                     f"{waiting_path} depends on {dependency.path}"
                 )
-    return needed_by, sorted(unreadable)
+    return needed_by, sorted(set(unreadable))
 
 
 def retirement_candidates_document(

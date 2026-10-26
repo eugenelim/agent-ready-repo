@@ -427,3 +427,83 @@ def test_unreadable_waiting_header_refuses_every_slug(tmp_path: Path) -> None:
     assert any(
         r["code"] == "input-unreadable" and "alpha" in r["suppresses"] for r in refusals
     )
+
+
+def _waiter_fixture(root: Path, depends_on: str) -> tuple[Path, str]:
+    """A registered waiting spec whose header names `depends_on`; alpha stays
+    out of the registry so `inbound-cited` cannot hide a missing edge."""
+    _write_clean_fixture(root)
+    waiting = _spec_dir(root, "waiter")
+    waiter_path = "/".join(("docs", "specs", "waiter", "spec.md"))
+    waiting.mkdir(parents=True)
+    (waiting / "spec.md").write_text(
+        f"# Spec: Waiter\n\n- **Status:** Draft\n- **Depends on:** {depends_on}\n",
+        encoding="utf-8",
+    )
+    (root / "workspace.toml").write_text(
+        "[[ini-001.work.queue]]\n"
+        + f'path = "{waiter_path}"\n'
+        + 'kind = "spec"\n'
+        + 'source = {mode = "repo-origin"}\n'
+        + 'summary = "Waiter"\n'
+        + "needs = []\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(root), "commit", "-q", "-m", "waiter",
+         "--date=2020-01-02T00:00:00Z"],
+        check=True,
+        env={**os.environ, "GIT_COMMITTER_DATE": "2020-01-02T00:00:00Z"},
+    )
+    return waiting, waiter_path
+
+
+def _needs_posix_permissions() -> None:
+    if os.name == "nt" or os.geteuid() == 0:
+        pytest.skip("needs POSIX permissions enforced for the current user")
+
+
+def test_unsearchable_waiting_directory_refuses_every_slug(tmp_path: Path) -> None:
+    """A waiting spec under a directory that cannot be searched is unreadable,
+    not missing, on every supported Python, so the run refuses for every slug."""
+    _needs_posix_permissions()
+    root = tmp_path / "repo"
+    root.mkdir()
+    waiting, waiter_path = _waiter_fixture(root, "spec:alpha")
+    waiting.chmod(0)
+    try:
+        result = _invoke(root)
+    finally:
+        waiting.chmod(0o755)
+    doc = json.loads(result.stdout)
+    alpha = next(c for c in doc["candidates"] if c["slug"] == "alpha")
+    assert alpha["eligible"] is False
+    assert any(
+        r["code"] == "input-unreadable" and r.get("path") == waiter_path
+        and "alpha" in r["suppresses"]
+        for r in doc["refusals"]
+    )
+
+
+def test_unreadable_captured_item_is_named_in_the_refusal(tmp_path: Path) -> None:
+    """A readable waiting item whose captured-item dependency cannot be read is
+    refused naming that captured item, not the waiting item."""
+    _needs_posix_permissions()
+    root = tmp_path / "repo"
+    root.mkdir()
+    notes = root / "docs" / "notes"
+    notes.mkdir(parents=True)
+    captured = notes / "thing.md"
+    captured.write_text("# Thing\n\n- **Kind:** defect\n", encoding="utf-8")
+    _waiter_fixture(root, "docs/notes/thing.md")
+    captured.chmod(0)
+    try:
+        result = _invoke(root)
+    finally:
+        captured.chmod(0o644)
+    doc = json.loads(result.stdout)
+    unreadable = [r for r in doc["refusals"] if r["code"] == "input-unreadable"]
+    assert any(r.get("path") == "docs/notes/thing.md" for r in unreadable)
+    waiter_path = "/".join(("docs", "specs", "waiter", "spec.md"))
+    assert all(r.get("path") != waiter_path for r in unreadable)

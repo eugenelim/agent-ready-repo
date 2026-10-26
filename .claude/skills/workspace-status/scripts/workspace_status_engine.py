@@ -2327,6 +2327,23 @@ def _resolved_provenance_parent(
     return _normalized_brief_pointer(normalized)
 
 
+def _path_presence(path: Path) -> str:
+    """Return `present`, `missing`, or `unreadable` for one confined path.
+
+    `Path.exists()` swallows every `OSError` on newer interpreters, which would
+    report a file under an unsearchable directory as missing. `stat` raises on
+    every supported version, so only an absent name or one the filesystem
+    cannot hold reads as missing; any other failure is an unreadable artifact.
+    """
+    try:
+        path.stat()
+    except OSError as exc:
+        if exc.errno in (errno.ENOENT, errno.ENOTDIR, errno.ENAMETOOLONG, errno.EINVAL):
+            return "missing"
+        return "unreadable"
+    return "present"
+
+
 def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata | None:
     artifact_path = _confined_artifact_path(root, entry.path)
     if artifact_path is None:
@@ -2338,21 +2355,16 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
             readable=False,
             invalid_path=True,
         )
-    try:
-        present = artifact_path.exists()
-    except OSError as exc:
-        # Only a name the filesystem cannot hold names no file; any other
-        # failure is an artifact that exists but cannot be read.
-        if exc.errno not in (errno.ENAMETOOLONG, errno.EINVAL):
-            return ArtifactMetadata(
-                path=entry.path,
-                kind=entry.kind,
-                status=None,
-                exists=True,
-                readable=False,
-            )
-        present = False
-    if not present:
+    presence = _path_presence(artifact_path)
+    if presence == "unreadable":
+        return ArtifactMetadata(
+            path=entry.path,
+            kind=entry.kind,
+            status=None,
+            exists=True,
+            readable=False,
+        )
+    if presence == "missing":
         return ArtifactMetadata(path=entry.path, kind=entry.kind, status=None, exists=False)
     try:
         text = artifact_path.read_text(encoding="utf-8", errors="replace")
@@ -3335,14 +3347,20 @@ def read_header_dependencies(
     unconfined waiting item contributes nothing here: reconciliation reports it.
     """
     waiting_file = _confined_artifact_path(root, waiting_path)
-    if waiting_file is None or waiting_file in cooled or not waiting_file.exists():
+    if waiting_file is None or waiting_file in cooled:
         return HeaderDependencies((), ())
+    presence = _path_presence(waiting_file)
+    if presence == "missing":
+        return HeaderDependencies((), ())
+    unreadable = HeaderDependencies(
+        (), (_header_finding("unreadable_artifact", waiting_path, "waiting item unreadable"),)
+    )
+    if presence == "unreadable":
+        return unreadable
     try:
         text = waiting_file.read_text(encoding="utf-8", errors="replace")
     except OSError:
-        return HeaderDependencies(
-            (), (_header_finding("unreadable_artifact", waiting_path, "waiting item unreadable"),)
-        )
+        return unreadable
     return header_dependencies_from_text(
         root,
         waiting_path,
@@ -3481,7 +3499,14 @@ def _resolve_header_item(
     if member_kind:
         return (member_kind, item, ""), None
     captured_file = _confined_artifact_path(root, item)
-    if captured_file is None or not captured_file.exists():
+    if captured_file is None:
+        return ("", item, ""), None
+    captured_presence = _path_presence(captured_file)
+    if captured_presence == "unreadable":
+        return None, _header_finding(
+            "unreadable_artifact", waiting_path, "captured item unreadable", item
+        )
+    if captured_presence == "missing":
         return ("", item, ""), None
     kind = ""
     if captured_file not in cooled:

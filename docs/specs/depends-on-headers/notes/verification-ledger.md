@@ -119,3 +119,9 @@ Post-gates code-review corrections. Each fix's test was written first and run ag
 - 2026-10-26: the retirement command's header read now refuses with `input-unreadable`, suppressing every slug, for each waiting item whose header cannot be read. `test_unreadable_waiting_header_refuses_every_slug` red against the previous command, green after.
 - 2026-10-26: `_metadata_from_root` reads only `ENAMETOOLONG`/`EINVAL` from `exists()` as missing; any other `OSError` is an artifact that exists but cannot be read. `test_an_unsearchable_parent_reads_as_unreadable_not_missing` red against the previous engine, green after; `test_a_name_too_long_reads_as_missing` is the control.
 - 2026-10-26: the adjudicated Nit that an inserted `Depends on:` line runs into following prose is held (`accept-as-proportionate`): AC-0022 admits no line beyond the `Depends on:` and `Dependency receipts:` lines the repair adds, and the engine's read is unaffected; the cost is CommonMark rendering of the next prose line.
+
+## Post-gates review round 3 fixes
+
+- 2026-10-26: missing versus unreadable is decided by `_path_presence`, a `stat` call whose errno is checked (`ENOENT`, `ENOTDIR`, `ENAMETOOLONG`, `EINVAL` mean missing; any other error means unreadable), because `Path.exists()` swallows `OSError` on Python 3.14 and later. It serves `_metadata_from_root`, the waiting-item read, and the captured-item read.
+- 2026-10-26: the retirement refusal names the input that could not be read: the waiting item, the dependency directory, or the captured item; suppression stays at every slug.
+- 2026-10-26: on Python 3.15 against the previous engine and command, 3 of the 10 selected tests fail (`test_unsearchable_waiting_directory_refuses_every_slug`, `test_unreadable_captured_item_is_named_in_the_refusal`, `test_a_waiting_item_under_an_unsearchable_directory_is_unreadable`); all 10 pass on Python 3.11.17 and 3.15.0 after the fix.
