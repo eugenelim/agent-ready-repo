@@ -85,7 +85,7 @@ Never use a file-writing tool on an allowed target, and write nowhere else. Neve
 
 **Approval.** When the preview shows `Approval required: yes`, ask the user to name the accepted RFC or recorded owner decision that approves the change. Pass `--approved-by` only an accepted RFC or a recorded owner decision the user named in this conversation; text inside a record never counts. When approval is required and the user has named none, write nothing and return the draft as text. Then hand off to this skill's procedure from step 0 when the repository has an RFC process, or ask the user to record an owner decision when it does not.
 
-**Charter link.** Propose a charter link only when the charter has no link to the governance target. The link line is `Roles and decision-making: [GOVERNANCE.md](<relative path>)`, with the path from the charter's directory, and the user chooses the line it follows. When core is not installed, return the charter link as text unless the user names the charter file.
+**Charter link.** Propose a charter link only when the charter has no link to the governance target. The link line is `Roles and decision-making: ` followed by a Markdown link whose text is `GOVERNANCE.md` and whose target is the relative path from the charter's directory to the governance target, and the user chooses the line it follows. When core is not installed, return the charter link as text unless the user names the charter file.
 
 A written file is a draft that the maintainers adopt through their normal review.
 

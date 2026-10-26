@@ -63,7 +63,7 @@ The preview says `Approval required: yes` when a `GOVERNANCE.md` already exists,
 
 ## Link it from your charter
 
-When your charter has no link to `GOVERNANCE.md`, the agent can propose one line, `Roles and decision-making: [GOVERNANCE.md](<relative path>)`. You choose the line it follows. If you have no charter file, or core is not installed and you name none, the agent gives you the line as text.
+When your charter has no link to `GOVERNANCE.md`, the agent can propose one line: `Roles and decision-making: ` followed by a Markdown link to your `GOVERNANCE.md`, relative to the charter. You choose the line it follows. If you have no charter file, or core is not installed and you name none, the agent gives you the line as text.
 
 ## CODEOWNERS
 

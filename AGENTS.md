@@ -155,8 +155,7 @@ External quality gate: none declared.
 - Filesystem confinement: `agentbundle.catalogue_tooling.file_safety`—
   `validate_confined_directory`, `list_confined_regular_files`,
   `read_confined_regular_file`, `sha256_confined_regular_file`, and
-  `write_confined_regular_file`; violations
-  raise `UnsafeContentError`.
+  `write_confined_regular_file`; violations raise `UnsafeContentError`.
 - Outbound HTTP: no blessed helper is declared.
 
 ## Scoped instructions
