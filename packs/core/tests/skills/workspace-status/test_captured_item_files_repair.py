@@ -1509,6 +1509,27 @@ def test_a_failed_directory_flush_never_reports_an_applied_repair_as_unapplied(
     assert f'path = "{op["record_path"]}"' in (repo / "workspace.toml").read_text(encoding="utf-8")
 
 
+def test_a_failed_directory_fsync_never_reports_an_applied_repair_as_unapplied(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = one_defect(tmp_path)
+    data = plan(repo, capsys)
+    real_fsync = os.fsync
+
+    def refuse_directory_fsync(fd: int) -> None:
+        if stat.S_ISDIR(os.fstat(fd).st_mode):
+            raise OSError(22, "directory fsync unsupported")
+        real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", refuse_directory_fsync)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert result["applied"] is True
+    [op] = captured_ops(data)
+    assert (repo / op["record_path"]).read_text(encoding="utf-8") == op["record_text"]
+    assert f'path = "{op["record_path"]}"' in (repo / "workspace.toml").read_text(encoding="utf-8")
+
+
 def test_apply_makes_records_and_the_registry_durable_in_order(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:

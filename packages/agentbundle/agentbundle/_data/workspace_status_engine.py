@@ -2522,8 +2522,14 @@ def _artifact_metadata(
             return None
         if form == "migrated":
             return _captured_record_metadata(root, entry)
-    elif entry.path.startswith(f"{_CAPTURED_DIR}/"):
+    elif _names_captured_dir(entry.path):
         # A probe of a file in the captured-item directory is a confined read too.
+        # Another spelling of the directory would reach the same file on a
+        # case-insensitive filesystem and miss the cooled check, so it is refused.
+        if not entry.path.startswith(f"{_CAPTURED_DIR}/"):
+            return ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True, readable=False
+            )
         if _captured_membership_form(entry.path) == "migrated":
             return _captured_record_metadata(root, entry)
         if os.path.lexists(root / entry.path) and _migration_file_bytes(root, entry.path) is None:
@@ -3325,6 +3331,11 @@ def build_resolution_index(
     )
 
 
+def _names_captured_dir(path: str) -> bool:
+    """Whether `path` lies in the captured-item directory under any letter case."""
+    return path.casefold().startswith(f"{_CAPTURED_DIR}/")
+
+
 def _is_captured_item_reference(item: str) -> bool:
     parts = item.split("/")
     if any(
@@ -3787,9 +3798,14 @@ def _resolve_header_item(
     kind = ""
     if captured_file not in cooled:
         try:
-            if item.startswith(f"{_CAPTURED_DIR}/"):
-                # A file in the captured-item directory is read only as a confined file.
-                content = _migration_file_bytes(root, item)
+            if _names_captured_dir(item):
+                # A file in the captured-item directory is read only as a confined
+                # file, and only under the directory's own spelling.
+                content = (
+                    _migration_file_bytes(root, item)
+                    if item.startswith(f"{_CAPTURED_DIR}/")
+                    else None
+                )
                 if content is None:
                     raise OSError(item)
                 text = content.decode("utf-8", errors="replace")

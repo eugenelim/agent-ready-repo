@@ -619,20 +619,25 @@ def test_reconciliation_never_reads_a_linked_record(
     assert not any(b"SECRET-EDGE" in chunk for chunk in reads)
 
 
-def _non_member_link_repo(tmp_path: Path, linked: str) -> tuple[Path, str, Path]:
+def _non_member_link_repo(
+    tmp_path: Path, linked: str, spelling: str = "canonical"
+) -> tuple[Path, str, Path]:
     """A waiter naming a captured-item path no membership holds, linked to a file.
 
     The link target is in the repository: a symlink to a plain file, or a hard
-    link to a cooled artifact. Returns the repository, the path, and the target.
+    link to a cooled artifact. Returns the repository, the path as named, and the
+    target. A case-variant spelling names the same file on a case-insensitive
+    filesystem.
     """
     path = _note_path("loose", True)
+    named = path if spelling == "canonical" else "D" + path[1:]
     cooled_path = _note_path("cooled-note")
     repo = tmp_path / "repo"
     repo.mkdir()
     cooled_case = _dependent_case(
         "cooled", "defect", "Open", "backlog.open", "cooled-note", False, cooled=True
     )
-    _write_repo(repo, dataclasses.replace(cooled_case, depends_on=path))
+    _write_repo(repo, dataclasses.replace(cooled_case, depends_on=named))
     (repo / path).parent.mkdir(parents=True, exist_ok=True)
     if linked == "symlink":
         target = repo / "docs" / "linked-target.md"
@@ -644,16 +649,17 @@ def _non_member_link_repo(tmp_path: Path, linked: str) -> tuple[Path, str, Path]
     target.write_text(
         _note("defect", "Open") + "- **Detail:** SECRET-NON-MEMBER\n", encoding="utf-8"
     )
-    return repo, path, target
+    return repo, named, target
 
 
 @pytest.mark.skipif(_RECORD, reason="recording")
 @pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
+@pytest.mark.parametrize("spelling", ["canonical", "case-variant"])
 def test_kind_lookup_never_reads_a_linked_non_member_file(
-    tmp_path: Path, reads: list[bytes], linked: str
+    tmp_path: Path, reads: list[bytes], linked: str, spelling: str
 ) -> None:
     """A header item naming a non-member captured-item file reads it only as a confined file."""
-    repo, _path, _target = _non_member_link_repo(tmp_path, linked)
+    repo, _path, _target = _non_member_link_repo(tmp_path, linked, spelling)
     reads.clear()
     result = observe(repo)
     assert not any(b"SECRET-NON-MEMBER" in chunk for chunk in reads)
@@ -662,11 +668,12 @@ def test_kind_lookup_never_reads_a_linked_non_member_file(
 
 @pytest.mark.skipif(_RECORD, reason="recording")
 @pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
+@pytest.mark.parametrize("spelling", ["canonical", "case-variant"])
 def test_satisfaction_probe_never_reads_a_linked_non_member_file(
-    tmp_path: Path, reads: list[bytes], linked: str
+    tmp_path: Path, reads: list[bytes], linked: str, spelling: str
 ) -> None:
     """The unregistered probe of a captured-item path reads it only as a confined file."""
-    repo, path, _target = _non_member_link_repo(tmp_path, linked)
+    repo, path, _target = _non_member_link_repo(tmp_path, linked, spelling)
     probe = ENGINE.WorkspaceEntry(
         path=path, kind="defect", source=ENGINE.SourceRecord(mode="repo-origin"),
         summary="dependency probe", needs=[],

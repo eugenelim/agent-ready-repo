@@ -3472,8 +3472,9 @@ def _migration_load_ledger(root: Path) -> tuple[dict[str, object] | None, str | 
 def _fsync_directory(directory: Path) -> None:
     """Flush a directory's entries so a created or renamed file survives a crash.
 
-    Where a directory cannot be opened for a flush, such as on Windows, the
-    flush is skipped: the file or rename it follows has already landed.
+    Where a directory cannot be opened or flushed, such as on Windows or on a
+    filesystem without directory fsync, the flush is skipped: the file or rename
+    it follows has already landed, so it is never reported as unapplied.
     """
     try:
         directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
@@ -3481,6 +3482,8 @@ def _fsync_directory(directory: Path) -> None:
         return
     try:
         os.fsync(directory_fd)
+    except OSError:
+        pass
     finally:
         os.close(directory_fd)
 
