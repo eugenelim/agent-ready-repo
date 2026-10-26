@@ -11,6 +11,13 @@ Execution observations recorded during the build. The spec and plan stay pinned;
 - 2026-10-25: reader and resolution index, commit `155f213d8`; 64 reader tests red before, green after; workspace-status pack suite 344 passed, 1 skipped.
 - 2026-10-25: a cooled intent cannot be indexed by slug, because its body is never opened and its lifecycle record carries only locators (`contracts/jsonschema/delivery-lifecycle-record.schema.json`). A typed reference to a cooled intent is therefore a missing target, which blocks, where a `needs` edge to it was satisfied by the lifecycle record. No live edge targets a cooled intent. The difference goes into the RFC-0106 errata entry (T7) as a recorded removal, for the Approver's signature.
 
+## T3
+
+- 2026-10-25: blocking moves to the header, commits `80399c5d8` (engine, `navigate-intents` table, eval fixtures, equivalence suite) and `6d59e6b67` (suite migration). The cooled brief cases' `needs`-form outcome, recorded from the engine at `1f9c27342` run from a `git worktree` of that commit, is in `fixtures/depends-on-headers/expected-cooled-brief.json`: both the `Slug:`-equals-stem case and the no-`Slug:` case were satisfied (no finding, waiting item dispatchable), and the header form reproduces it.
+- Behaviors that changed with the switch, each pinned by a migrated assertion: a brief reference into a directory holding an unreadable or escaping entry is `unreadable_artifact` (AC-0027), where the `needs` edge gave `invalid_artifact_path`; a coordination receipt on a non-brief reference is `invalid_dependency`; a receipt with a missing or extra token is `invalid_dependency` at the waiting item, where a malformed `needs` receipt discarded the entry; a registry edge whose `path` differs from its `containing_brief`, and a `needs` kind that disagrees with the registered kind, have no header form and stay `unmigrated_needs` (AC-0020 refuses them in the repair).
+- `queue-to-shipped` still moves an entry that carries `needs`: `_repair_entry_eligibility` admits `unmigrated_needs` beside `impossible_transition` and `unapproved_spec`, because the move leaves the `needs` array untouched.
+- Red until a later task, at base and now: `test_workspace_status_projection.py::test_t4_repair_determinism_projection_and_release_surface` (SKILL.md and the schema guide need rows for `invalid_dependency` and `unmigrated_needs`, T5); `test_two_sided_prune_closure_invariant.py::test_pack_delivery_contract_is_complete_and_version_increased` (core version bump, T6).
+
 ## Amendment 1 — 2026-10-25
 
 <a id="amendment-1"></a>
