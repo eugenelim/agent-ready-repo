@@ -320,27 +320,36 @@ is green.
   - the ledger compares each rate with its bound, and states the resolution: one
     run moves a 35-query rate by about 0.0095.
 - AC-0036, AC-0037, AC-0038, AC-0051 and AC-0052, run for each behaviour fixture three times:
-  - each run is a headless `claude -p --permission-mode acceptEdits` run in a fresh
-    scratch Git repository outside this repository. Its allowed tools include
-    running `scripts/navigate_decisions.py`;
+  - each run is a headless `claude -p --permission-mode default --setting-sources
+    project,local --strict-mcp-config` run in a fresh scratch Git repository
+    outside this repository. Its allowed tools are exactly `Skill`, `Read`,
+    `Glob`, `Grep` and a `Bash` grant for `python3` running the projected
+    `scripts/navigate_decisions.py query` only, so every other tool is denied;
   - the scratch repository holds the post-change projection and the fixture's
     `docs/adr/`, committed, and the prompt is the fixture's `request.txt`;
   - the driver applies the spec's scored-run, route-tag and consult-set rules. It
-    records `git status --porcelain` and every write-capable tool call in the
-    transcript;
-  - the ledger states that a write made by a shell command outside the scratch
-    repository, other than the script's `export`, is not detected;
+    records `git status --porcelain`, every write-capable tool call in the
+    transcript, and a before-and-after listing of every file in the scratch
+    repository, `.git/` and ignored paths included;
+  - the ledger records the run flags and states that a write outside the scratch
+    repository by the one granted command is not detected;
   - transcripts are saved in `notes/behaviour/`.
 - AC-0039, AC-0040 and AC-0041, run for each seam request:
   - runs in a scratch repository seeded from `fixtures/route-seam/`, with the
     post-change `repo-governance` and `core` projections;
-  - three scored route runs, each asking for `navigate-decisions route`;
+  - three scored route runs, each asking for `navigate-decisions route`, with the
+    behaviour runs' flags and tool set;
   - three counted work-loop runs, each asking what core's work loop would do with
-    the request, and to write nothing. A run where `work-loop` did not load is
+    the request, and to write nothing, with the same flags and exactly `Skill`,
+    `Read`, `Glob` and `Grep`. A run where `work-loop` did not load is
     recorded and replaced, up to nine attempts per request;
   - the driver applies the route-tag rule and records the skills each run fired;
   - the ledger tabulates both answers and the contradiction verdict per pair;
   - transcripts are saved in `notes/seam/`.
+- Before any transcript is committed, home-directory paths are replaced with
+  `<home>`, the OS username with `<user>`, and session IDs, account identifiers
+  and email addresses with placeholders. The ledger records a search over
+  `notes/` showing none remain.
 
 **Approach:**
 - Any failed bound stops the task with the numbers. The spec's Ask-first rule then

@@ -54,7 +54,7 @@ same request.
 | Current architecture | `DESIGN.md` § 7 item 6 and § 8 describe `navigate-decisions` as read-only lookups | `packs/repo-governance/DESIGN.md` | pack owner | the read-only invariant names `route` | `route` is described as reading through the query script and writing nothing |
 | Decision rationale | Already recorded | RFC-0110 and its errata | — | — | none further |
 | Release history | `repo-governance` releases 2.1.0 | `docs/product/changelog.d/` fragment | release owner | the fragment passes `tools/changelog.py` validation | fragment present, with its `Highlights` disposition decided |
-| Validation evidence | The brief's activation and seam metrics are measured here | `docs/specs/navigate-decisions-route/notes/verification-ledger.md`, plus raw run files beside it (repository-durable) | spec owner | baseline, floor, post-change rates, behaviour runs, seam table | the ledger records every result AC-0026, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0048, AC-0051, AC-0052 and AC-0054 name |
+| Validation evidence | The brief's activation and seam metrics are measured here | `docs/specs/navigate-decisions-route/notes/verification-ledger.md`, plus redacted raw run files beside it (repository-durable) | spec owner | baseline, floor, post-change rates, behaviour runs, seam table | the ledger records every result AC-0026, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0048, AC-0051, AC-0052 and AC-0054 name |
 | Reusable learning | none | — | — | — | — |
 
 ## Agent Rules
