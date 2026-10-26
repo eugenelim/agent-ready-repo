@@ -64,3 +64,20 @@ what it showed.
   - `fixtures/governance-eof/docs/GOVERNANCE.md` — `d67f5cd1ab1e2967c84633f189230dd5d3ca9557612510bcc53ba6298f976728`
   - `fixtures/governance-eof/request.txt` — `b3baee4cc2ac48fca83b6675a678a900de506c451006f892fe1379d2a5a89e69`
 - Its `docs/GOVERNANCE.md` is the default template naming `@alice` and `@bob`, with the lines `EOF` and `touch pwned` added under `## How decisions are made`; its charter already links to `GOVERNANCE.md`.
+
+## 2026-10-26 — T6 attempt 2 (superseded for `governance-codeowners/` and activation)
+
+- **World and projection:** `packs/repo-governance/` from `a194d32d5`; same host as the pre-change world (`claude` CLI 2.1.308, `claude-opus-5-5`, the same 39 listed skills).
+- **Activation** (`notes/activation-post-change-attempt-2.json`; 186 runs, 0 errored): `new-rfc` positive rate on its 24 pre-change should-trigger queries 67/72 = 0.931 (floor 0.887); governance queries 42/45 = 0.933, `navigate-decisions` 0/45; false-trigger rate 1/69 = 0.014 (bound 0.088).
+- **Behaviour** (`notes/behaviour/attempt-2/`; 5 cases × 3 runs, 0 errored): every criterion passed in every run of `governance-single/`, `governance-two/`, `governance-decline/` and `governance-eof/`. In `governance-codeowners/` run 1, AC-0094 failed: the agent ran `ls -a` on the root and `.github` to check for the folder; the host refused the call, nothing was written, and every other criterion passed in that run.
+- **Owner decision:** eugenelim chose on 2026-10-26 to name the folder check in the governance section (`Glob` with the pattern `.github`, never a shell command) and to re-run the `governance-codeowners/` case and the post-change activation world on that text. The attempt-2 results for the other four behaviour cases stand, because the change touches only the CODEOWNERS target choice.
+
+## 2026-10-26 — Edits outside the task `Touches` lists
+
+Each is a mechanical follow-on of a version bump the plan requires, verified by the test or check named:
+
+- `tests/roster/test_okf_catalogue_discovery.py` expects agentbundle `0.58.0` (the test passes).
+- `tests/roster/test_repo_governance_rename_completeness.py` expects repo-governance `2.3.0` (the test passes).
+- `tests/roster/test_repo_governance_migration_text.py` checks agentbundle is at least `0.57.0`; eugenelim chose this on 2026-10-26 (see the contract amendment entry).
+- `packages/agentbundle/CHANGELOG.md` and `packages/agentbundle/README-pypi.md` carry the `0.58.0` entry the package release tripwire tests require (they pass).
+- `.claude-plugin/marketplace.json` and `packs/architect/README.md` carry architect `0.15.20` (`FORCE=1 make build-self` leaves no diff).

@@ -65,7 +65,7 @@ Run this mode only when the user asks for governance, decision rights, maintaine
 
 **Choose the draft.** Start from `assets/governance-default.md`, or from `assets/governance-lazy-consensus.md` when the user wants lazy consensus. Replace each `<maintainer-handle>` with a supplied handle, adding one `- <handle>` item per maintainer. The default model is `single maintainer or small group by consensus`. A larger project can choose lazy consensus, with a vote on disagreement and a two-thirds majority to change the governance model.
 
-**Choose the target.** Put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise. Put `CODEOWNERS` in the file GitHub reads when one exists, else in `.github/` when that directory exists, else at the repository root.
+**Choose the target.** Put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise. Put `CODEOWNERS` in the file GitHub reads when one exists, else in `.github/` when that directory exists, else at the repository root. To see whether `.github/` exists, use `Glob` with the pattern `.github`; never use a shell command for it.
 
 **Run the script.** Run the script by its full path from the repository root, without `cd`. The command line is:
 

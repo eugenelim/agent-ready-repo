@@ -182,3 +182,10 @@ def test_governance_runs_only_the_script_one_command_at_a_time() -> None:
 def test_governance_shows_the_preview_block_as_printed() -> None:
     section = GOVERNANCE
     assert "Show it exactly as the script printed it, in one fenced block, before asking." in section
+
+
+def test_governance_checks_for_the_github_folder_with_glob() -> None:
+    assert (
+        "To see whether `.github/` exists, use `Glob` with the pattern `.github`; never use a shell "
+        "command for it." in GOVERNANCE
+    )
