@@ -378,6 +378,16 @@ def test_different_recorded_source_for_old_pack_and_dependent(tmp_path):
     assert text.count("move between catalogues") == 2
 
 
+@pytest.mark.parametrize("recorded", ["git+https://[bad/x", "git+https://ex\x00ample.test/o/r"])
+def test_unparseable_recorded_source_prints_move_sentence_without_raising(tmp_path, recorded):
+    cat = catalogue(tmp_path, packs={DEP: DEP_TOML})
+    rows = {(OLD, "claude-code"): recorded, (DEP, "claude-code"): recorded}
+    lines = hint(cat, inst(rows)).lines
+    assert sum("move between catalogues" in ln for ln in lines) == 2
+    assert not any("\x00" in ln for ln in lines)
+    assert any(ln.startswith("  3. agentbundle upgrade --pack iac-terraform") for ln in lines)
+
+
 @pytest.mark.parametrize("recorded", [None, "", "agent-ready-repo"])
 def test_no_recorded_source(tmp_path, recorded):
     cat = catalogue(tmp_path, packs={DEP: DEP_TOML})

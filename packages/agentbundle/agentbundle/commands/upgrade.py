@@ -748,6 +748,7 @@ def _run_source_version_preflight(
     scope: str,
     root: Path,
     user_config: object | None = None,
+    root_arg: str = ".",
 ) -> tuple[list, dict]:
     """Phase 1 preflight: source resolution and version classification.
 
@@ -861,6 +862,7 @@ def _run_source_version_preflight(
                     source=cs,
                     installed=Installed.from_state(state),  # type: ignore[arg-type]
                     command="upgrade",
+                    target_root=None if root_arg == "." else root_arg,
                 ).lines
             continue
         row.pack_dir = pack_dir
@@ -999,12 +1001,15 @@ def _run_preflight(
     scope: str,
     root: Path,
     user_config: UserConfig | None,
+    root_arg: str = ".",
 ) -> tuple[list, dict]:
     """Full two-phase preflight: source/version + render/path-jail.
 
     Returns ``(rows, source_resolution_map)``.
     """
-    rows, source_resolution_map = _run_source_version_preflight(state, scope, root, user_config)
+    rows, source_resolution_map = _run_source_version_preflight(
+        state, scope, root, user_config, root_arg
+    )
 
     for row in rows:
         if row.status != "upgrade-available":
@@ -1479,7 +1484,9 @@ def _run_all(args: argparse.Namespace, root: Path, *, _rows_out: list | None = N
         return _return(0, [])
 
     user_config = getattr(args, "_user_config", None)
-    rows, source_resolution_map = _run_preflight(state, args.scope, root, user_config)  # type: ignore[attr-defined]
+    rows, source_resolution_map = _run_preflight(  # type: ignore[attr-defined]
+        state, args.scope, root, user_config, args.root
+    )
 
     rows_sorted = sorted(rows, key=lambda r: (r.canonical_source or "", r.pack, r.adapter))
     _assign_pre_apply_outcomes(rows_sorted, dry_run=args.dry_run)
@@ -1519,30 +1526,38 @@ def _print_rename_hint_instead(args: argparse.Namespace, pack_name: str) -> bool
     ``False`` on any other outcome, including a failed resolution, so the
     caller prints today's refusal unchanged.
     """
+    import contextlib
+    import io
+
     from agentbundle.pack_renames import hint_for_root
 
+    # Resolution layers write diagnostics to stderr. Hold them: with no hint the
+    # refusal must stay byte for byte what it is today, so they are dropped.
+    held = io.StringIO()
     try:
-        catalogue_uri = resolve_catalogue_uri(args)
-        if catalogue_uri.startswith(("catalogue+https://", "archive+https://")):
-            from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+        with contextlib.redirect_stderr(held):
+            catalogue_uri = resolve_catalogue_uri(args)
+            if catalogue_uri.startswith(("catalogue+https://", "archive+https://")):
+                from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
 
-            catalogue_dir = fetch_catalogue_archive_with_provenance(catalogue_uri).path
-        else:
-            catalogue_dir = resolve_catalogue(catalogue_uri)
-        if _locate_pack(catalogue_dir, pack_name) is not None:
-            return False
-        hint = hint_for_root(
-            pack_name,
-            catalogue_dir=catalogue_dir,
-            source=catalogue_uri,
-            root=Path(args.root).resolve(),
-            root_arg=args.root,
-            command="upgrade",
-        )
+                catalogue_dir = fetch_catalogue_archive_with_provenance(catalogue_uri).path
+            else:
+                catalogue_dir = resolve_catalogue(catalogue_uri)
+            if _locate_pack(catalogue_dir, pack_name) is not None:
+                return False
+            hint = hint_for_root(
+                pack_name,
+                catalogue_dir=catalogue_dir,
+                source=catalogue_uri,
+                root=Path(args.root).resolve(),
+                root_arg=args.root,
+                command="upgrade",
+            )
     except Exception:  # any failure keeps today's refusal
         return False
     if not hint.lines:
         return False
+    sys.stderr.write(held.getvalue())
     print("\n".join(hint.lines), file=sys.stderr)
     return True
 

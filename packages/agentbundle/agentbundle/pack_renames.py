@@ -231,8 +231,12 @@ def _source_sentence(pack: str, recorded: str | None, reporting: str) -> str | N
     if _no_recorded_source(recorded):
         return f"Installed pack '{pack}' has no recorded source."
     assert recorded is not None
-    canonical = canonicalize_source(recorded)
-    if canonical is not None and canonical == canonicalize_source(reporting):
+    try:
+        canonical = canonicalize_source(recorded)
+        same = canonical is not None and canonical == canonicalize_source(reporting)
+    except Exception:  # an unparseable source counts as a source that differs
+        same = False
+    if same:
         return None
     return (
         f"This step is a move between catalogues: '{pack}' was installed "
@@ -384,17 +388,18 @@ def hint_for_root(
     is not carried into the steps, because it names the working directory.
     An unreadable state yields no hint.
     """
-    from agentbundle.config import ConfigError, load_state
+    from agentbundle.config import load_state
 
     try:
         state = load_state(root / ".agentbundle-state.toml")
-    except ConfigError:
+        installed = Installed.from_state(state)
+    except Exception:  # fail closed: undecodable, unreadable, too deep or malformed
         return NO_HINT
     return build_rename_hint(
         name,
         catalogue_dir=catalogue_dir,
         source=source,
-        installed=Installed.from_state(state),
+        installed=installed,
         command=command,
         target_root=None if root_arg == "." else root_arg,
         explicit_adapter=explicit_adapter,

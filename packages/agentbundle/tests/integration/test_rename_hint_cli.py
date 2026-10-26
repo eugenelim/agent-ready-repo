@@ -28,6 +28,7 @@ from tests._rename_fixtures import (
     DEP,
     MAP_BREAKERS,
     OLD,
+    SKIP_NO_LINKS,
     post_rename_catalogue,
     pre_rename_catalogue,
 )
@@ -403,6 +404,25 @@ def test_failed_git_fetch_keeps_refusal(repo_two, monkeypatch, capsys, guard):
     assert err == multi_adapter_refusal({"claude-code": "1.0.3", "cursor": "1.0.3"})
 
 
+def test_invalid_settings_source_keeps_refusal_byte_for_byte(
+    repo_two, capsys, guard, monkeypatch
+):
+    """AC-0035: resolution diagnostics from the pre-check never leak into the refusal."""
+    import agentbundle.commands.upgrade as upgrade_module
+    from agentbundle.user_config import _user_config_path
+
+    cfg = _user_config_path()
+    cfg.parent.mkdir(parents=True, exist_ok=True)
+    cfg.write_text('[settings]\nsource = "ftp://invalid.example.test/x"\n', encoding="utf-8")
+    argv = ("upgrade", "--pack", OLD, "--root", str(repo_two))
+    with monkeypatch.context() as patch:
+        patch.setattr(upgrade_module, "_print_rename_hint_instead", lambda *_a: False)
+        baseline_code, _o, baseline = run_cli(capsys, *argv)
+    code, _out, err = run_cli(capsys, *argv)
+    assert (code, err) == (baseline_code, baseline)
+    assert err.endswith(multi_adapter_refusal({"claude-code": "1.0.3", "cursor": "1.0.3"}))
+
+
 def _break(name: str):
     def make(templates: Templates, tmp_path: Path) -> str:
         cat = copy_tree(templates.post, tmp_path / "broken")
@@ -537,11 +557,15 @@ CASES = {
     "unsafe-target-root-bidi": _case_unsafe_root("r‮"),
     "unsafe-target-root-newline": _case_unsafe_root("r\nx"),
     "invalid-map": _case_map("invalid-invalid-toml"),
-    "symlinked-map": _case_map("symlinked-map" if "symlinked-map" in MAP_BREAKERS else "oversized"),
+    "symlinked-map": _case_map("symlinked-map"),
 }
+CASE_PARAMS = [
+    pytest.param(case_id, marks=SKIP_NO_LINKS if case_id == "symlinked-map" else ())
+    for case_id in sorted(CASES)
+]
 
 
-@pytest.mark.parametrize("case_id", sorted(CASES))
+@pytest.mark.parametrize("case_id", CASE_PARAMS)
 @pytest.mark.parametrize("command", ["install", "upgrade"])
 def test_not_found_point_refusals(case_id, command, templates, repo, tmp_path, capsys, guard):
     case = CASES[case_id](templates, tmp_path, repo)
@@ -560,17 +584,15 @@ def test_not_found_point_refusals(case_id, command, templates, repo, tmp_path, c
     assert tree(case.repo) == before
 
 
-@pytest.mark.parametrize("case_id", sorted(CASES))
+@pytest.mark.parametrize("case_id", CASE_PARAMS)
 def test_all_row_reports_pack_not_found_without_hint(
     case_id, templates, repo, tmp_path, capsys, guard
 ):
-    if case_id.startswith("unsafe-target-root"):
-        pytest.skip("upgrade --all passes no target root to the hint")
     case = CASES[case_id](templates, tmp_path, repo)
-    set_sources(repo, {OLD: case.catalogue, DEP: case.catalogue})
-    before = tree(repo)
+    set_sources(case.repo, {OLD: case.catalogue, DEP: case.catalogue})
+    before = tree(case.repo)
     code, out, err = run_cli(
-        capsys, "upgrade", "--all", "--scope", "repo", "--root", str(repo),
+        capsys, "upgrade", "--all", "--scope", "repo", "--root", str(case.repo),
         "--format", "json", "--dry-run",
     )
     assert code == 1
@@ -579,7 +601,45 @@ def test_all_row_reports_pack_not_found_without_hint(
     assert rows[OLD]["status_reason"] == "pack-not-found"
     assert "rename_hint" not in rows[OLD]
     assert "renamed to" not in out + err
-    assert tree(repo) == before
+    assert tree(case.repo) == before
+
+
+def _undecodable_state(path: Path) -> None:
+    path.unlink()
+    path.write_bytes(b"\xff\xfe\x00 not utf-8 \xc3\x28")
+
+
+def _directory_state(path: Path) -> None:
+    path.unlink()
+    path.mkdir()
+
+
+@pytest.mark.parametrize("breaker", [_undecodable_state, _directory_state])
+def test_unreadable_state_gives_no_hint_and_no_traceback(
+    breaker, repo, templates, capsys, guard
+):
+    """install --pack; `upgrade --pack` reads the state before its not-found point."""
+    breaker(repo / ".agentbundle-state.toml")
+    code, _out, err = run_cli(
+        capsys, "install", "--pack", OLD, "--output", str(repo), str(templates.post)
+    )
+    assert code == 1
+    assert "Traceback" not in err
+    assert "renamed to" not in err
+    assert not_found("install", str(templates.post)) in err
+
+
+@pytest.mark.parametrize("breaker", [_undecodable_state, _directory_state])
+def test_hint_for_root_fails_closed_on_unreadable_state(breaker, repo, templates):
+    from agentbundle.pack_renames import hint_for_root
+
+    breaker(repo / ".agentbundle-state.toml")
+    result = hint_for_root(
+        OLD, catalogue_dir=templates.post, source=str(templates.post),
+        root=repo, root_arg=str(repo), command="upgrade",
+    )
+    assert not result.lines
+    assert not result.refusal
 
 
 # ---------------------------------------------------------------------------
@@ -594,7 +654,7 @@ def test_all_table_carries_hint(shape, repo, capsys):
         capsys, "upgrade", "--all", "--scope", "repo", "--root", str(repo)
     )
     assert code == 1
-    expected = hint_lines("upgrade", canonicalize_source(shape.source) or "")
+    expected = hint_lines("upgrade", canonicalize_source(shape.source) or "", root=str(repo))
     for line in expected:
         assert f"  {line}" in out.splitlines()
     assert tree(repo) == before
@@ -612,7 +672,7 @@ def test_all_json_rename_hint_on_renamed_row_only(shape, repo, capsys):
     assert doc["schema_version"] == 1
     rows = {r["pack"]: r for r in doc["rows"]}
     assert rows[OLD]["rename_hint"] == hint_lines(
-        "upgrade", canonicalize_source(shape.source) or ""
+        "upgrade", canonicalize_source(shape.source) or "", root=str(repo)
     )
     assert rows[OLD]["status_reason"] == "pack-not-found"
     assert "rename_hint" not in rows[DEP]
