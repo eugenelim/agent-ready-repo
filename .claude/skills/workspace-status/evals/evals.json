@@ -504,6 +504,36 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 19,
+      "prompt": "Run repair-plan on this workspace to see how its captured items would move into their own files",
+      "expected_output": "The agent invokes the workspace-status repair-plan subcommand and reports two automatic captured-to-file operations: docs/product/captured/flaky-export.md for the defect registered at docs/product/notes/flaky-export.md, and docs/product/captured/pricing-gap.md for the slug-only entry pricing-gap, whose Kind is intent because its type is strategy. It reports each record path and says the plan only names the records and the path changes, so nothing is written until repair-apply runs on a plan the user confirms. It does not modify workspace.toml or the note.",
+      "assertions": [
+        "Invokes repair-plan rather than editing workspace.toml or writing a record directly",
+        "Reports a captured-to-file operation for docs/product/captured/flaky-export.md",
+        "Reports a captured-to-file operation for docs/product/captured/pricing-gap.md with Kind intent",
+        "Says nothing is written until repair-apply runs on a confirmed plan",
+        "Does not modify workspace.toml or the note"
+      ],
+      "files": [
+        "evals/files/captured-to-file/workspace.toml",
+        "evals/files/captured-to-file/docs/product/notes/flaky-export.md"
+      ],
+      "expect": {
+        "produces": [
+          ".workspace-repair-plan.json"
+        ],
+        "output_contains": [
+          "captured-to-file",
+          "docs/product/captured/flaky-export.md",
+          "pricing-gap"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
+      }
     }
   ]
 }

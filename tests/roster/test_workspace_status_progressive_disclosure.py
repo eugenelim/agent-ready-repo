@@ -53,7 +53,7 @@ BODY_LINE_CEILING = 500
 # `workspace_status.py` and the engine were re-pinned for the needs-to-header repair and again for its code-review corrections, and both for the captured-item listing, and the engine again for the captured-item switch and again for the file-based shaping guard.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "1cd6383538474658b09660ad6b7b1cdb5d6319142ff20197a00c49773668e93c",
+        "1be4c09fb4b77bbdc5af4ac6f9b654567bed889df4ed2bf0c7c4cc8fc522d632",
     "workspace_status_engine.py":
         "93b1e7bb9c071ca4bf1d0d47b906f843ec61fbe27b842327509541efcbf06b26",
     "workspace_status_prune.py":
