@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 from urllib.request import url2pathname
 
 from agentbundle.scope import LEGAL_SCOPES
@@ -605,6 +605,40 @@ def _parse_adapter_row(
     )
 
 
+def url_is_credential_bearing(parsed: SplitResult) -> bool:
+    """True when a parsed remote URL carries user-info or a credential term.
+
+    This is rules 6 and 7 of :func:`canonicalize_source`: ``@`` in the
+    netloc, or a credential substring in a query key or in the fragment.
+    """
+    from urllib.parse import parse_qsl
+
+    if "@" in parsed.netloc:
+        return True
+    for key, _val in parse_qsl(parsed.query):
+        if any(cred in key.lower() for cred in _CREDENTIAL_SUBSTRINGS):
+            return True
+    return any(cred in parsed.fragment.lower() for cred in _CREDENTIAL_SUBSTRINGS)
+
+
+def source_is_credential_bearing(value: str) -> bool:
+    """True when :func:`canonicalize_source` rejects *value* for credentials.
+
+    Local paths and ``file://`` sources are never credential-bearing. A value
+    :func:`urlsplit` cannot parse counts as bearing, because
+    :func:`canonicalize_source` cannot record it either.
+    """
+    if _WIN_DRIVE_RE.match(value):
+        return False
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return True
+    if not parsed.scheme or parsed.scheme == "file":
+        return False
+    return url_is_credential_bearing(parsed)
+
+
 def canonicalize_source(value: str | None) -> str | None:
     """Normalize a pack source URI to a canonical, credential-free form.
 
@@ -659,16 +693,8 @@ def canonicalize_source(value: str | None) -> str | None:
         except OSError:
             return None
 
-    # Rule 6 — user-info in netloc
-    if "@" in parsed.netloc:
-        return None
-
-    # Rule 7 — credential substrings in query or fragment
-    from urllib.parse import SplitResult, parse_qsl
-    for key, _val in parse_qsl(parsed.query):
-        if any(cred in key.lower() for cred in _CREDENTIAL_SUBSTRINGS):
-            return None
-    if any(cred in parsed.fragment.lower() for cred in _CREDENTIAL_SUBSTRINGS):
+    # Rules 6-7 — user-info, or a credential term in the query or fragment
+    if url_is_credential_bearing(parsed):
         return None
 
     # Rule 8 — normalize scheme + netloc to lowercase; strip trailing slash
