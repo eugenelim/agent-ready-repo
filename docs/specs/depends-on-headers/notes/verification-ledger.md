@@ -76,3 +76,14 @@ This run was on the branch's first base, `1f9c27342`. The branch was rebuilt on 
 - 2026-10-26: AC-0022 goal-based run. In `git clone --local` of HEAD at `.context/s7`, one Equivalence row's Evidence was replaced by the untracked `tests/untracked-planted.py`, then `python -m pytest tests/roster/test_workspace_retirement_inventory.py -q` ran there. Result: 2 failed, 111 passed; both failures are real-repository tests (`test_real_repository_passes_every_rule`, `test_real_record_passes_the_record_rules`) reporting `AC-0025: Equivalence row 'the coordination receipt': Evidence names no tracked path`. `--collect-only -k real` lists the four real-repository tests, and `-rs` reports no skip. The clone was removed.
 - 2026-10-26: `retirement-record.md` § Equivalence holds twelve rows, one per AC-0014 case: eight `reproduced` (authority `none`) and four `accepted removal` linking RFC-0106 § Errata. Nine Disposition Home cells were corrected as the spec's Ask-first allows; no other Disposition cell changed.
 - 2026-10-26: the released `core` 3.1.19 changelog fragment (`bb02c266-...`) mentions the registry and left AC-0004 red in the real-repository tests; it is rowed `historical` like the earlier fragment `d72c4440-...`.
+
+## T6
+
+The branch was rebuilt on `5cec6ac3e` (#1614), which added three specs carrying typed `needs`; the migration was rerun there. The backup of the first branch is local, at `backup/depends-on-headers-pre-rebase`; commit ids cited above as completed evidence name that branch's commits, whose content the rebuilt branch carries unchanged.
+
+- 2026-10-26: before-capture ran `workspace_status.py status --root .` from a `git worktree` of `1f9c27342` (removed afterwards) over the tree the repair read: canonical ready 0, active 3, blocked 31, findings 69.
+- 2026-10-26: `repair-plan`: 81 `needs-to-header` operations, 117 registry edges (95 `spec:`, 16 `intent:`, 4 `brief:`, 2 `capability:`), no refusal, no `needs-drop-cooled`; plan sha256 `70a07be6c1473e4fa8fb6d203c1b1f3f96f702721c9606ad0d003bbcc763e642`, plan_id `987256eb790f4f42…`. The owner confirmed this exact plan.
+- 2026-10-26: `repair-apply --yes`: 81 applied, `header_edges_before` 1, `registry_edges` 117, `dropped_cooled` 0, `header_edges_after` 117, `edges_equal` true. No registry entry carries typed `needs` afterwards (AC-0012).
+- 2026-10-26: AC-0015: this slice's engine over the migrated tree against the base engine over the tree the repair read: canonical ready, active, and blocked paths, canonical findings by code and path, legacy work ready and blocked lists, and shaping lists all equal.
+- 2026-10-26: AC-0017: `navigate-intents query --operation dependencies` over the 17 migrated intents reports no fault-state diagnostic.
+- 2026-10-26: `core` 3.1.19 → 3.1.20 (main had released 3.1.19); changelog fragment `64d96e94`.
