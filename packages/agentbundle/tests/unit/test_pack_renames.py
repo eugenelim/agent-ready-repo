@@ -874,7 +874,7 @@ def _shell(name: str) -> str | None:
 def test_placeholder_steps_are_shell_syntax_errors(tmp_path, shell):
     exe = _shell(shell)
     if exe is None:
-        pytest.skip(f"{shell} not installed")
+        pytest.skip("zsh -n probe skipped: zsh is absent on this runner")
     for step in _placeholder_steps(tmp_path):
         done = subprocess.run(
             [exe, "-n", "-c", step], capture_output=True, text=True, check=False

@@ -225,7 +225,7 @@ wc -l packs/product-engineering/.apm/skills/frame-situation/SKILL.md
 
 Note: `make build-self` still runs as a drift check (confirms no unexpected
 change to self-host projection), but does **not** project this skill — the PE
-pack is user-scope (`_DEFAULT_SELF_HOST_PACKS` = core / repo-governance /
+pack is user-scope (`_DEFAULT_SELF_HOST_PACKS` = core / governance-extras /
 user-guide-diataxis; `product-engineering` excluded). `lint-seeds` is
 irrelevant (this skill ships no seeds). `lint-agent-artifacts.py` covers
 projected packs only, not user-scope packs; adopter-cleanliness is verified

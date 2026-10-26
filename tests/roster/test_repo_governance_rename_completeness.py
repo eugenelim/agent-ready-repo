@@ -48,7 +48,11 @@ ADMITTED_PATHS = frozenset({
     "packages/agentbundle/tests/build_pipeline/fixtures/README.md",
     "packages/agentbundle/tests/build_pipeline/test_end_to_end_build.py",
     "docs/product/briefs/repo-governance-pack.md",
+    # Digest-pinned golden fixture; its test forbids regeneration.
+    "packs/core/tests/skills/work-loop/fixtures/corpus/001-recorded/plan.md",
 })
+INVENTORY = "docs/specs/workspace-retirement/inventory.toml"
+FROZEN_SPEC_DIR = "docs/specs/" + OLD_NAME + "-without-core/"
 ADMITTED_PREFIXES = (
     FIXTURE_DIR + "packs/" + OLD_NAME + "/",
     "docs/product/research/plan-evolution-experiments/",
@@ -112,6 +116,10 @@ def _is_admitted(rel: str) -> bool:
         return True
     if rel in ("docs/adr/README.md", "docs/rfc/README.md"):
         return _index_rows_are_frozen(rel)
+    if rel == INVENTORY:
+        return _inventory_lines_reference_frozen_spec(
+            (REPO_ROOT / rel).read_text(encoding="utf-8")
+        )
     if rel == "workspace.toml":
         return _workspace_lines_are_registrations()
     return _is_frozen(rel)
@@ -131,6 +139,11 @@ def _index_rows_are_frozen(rel: str) -> bool:
         if _status(REPO_ROOT / "docs" / kind / link.group(1)) not in FROZEN_RECORD_STATUSES:
             return False
     return True
+
+
+def _inventory_lines_reference_frozen_spec(text: str) -> bool:
+    """Every line naming the old pack references the frozen spec directory."""
+    return all(FROZEN_SPEC_DIR in line for line in text.splitlines() if OLD_NAME in line)
 
 
 def _workspace_lines_are_registrations() -> bool:
@@ -161,6 +174,14 @@ def test_no_unclassified_path_names_the_old_pack() -> None:
     """AC-0025: every remaining hit is frozen, a fixture, or an admitted exception."""
     offenders = [rel for rel in _grep_hits() if not _is_admitted(rel)]
     assert offenders == [], "live paths still name the old pack:\n" + "\n".join(offenders)
+
+
+def test_inventory_with_a_stray_live_line_is_not_admitted() -> None:
+    """AC-0025: one live line naming the old pack in the inventory fails the check."""
+    frozen = f'pattern = "{FROZEN_SPEC_DIR}*"'
+    stray = f'pattern = "packs/{OLD_NAME}/pack.toml"'
+    assert _inventory_lines_reference_frozen_spec(frozen)
+    assert not _inventory_lines_reference_frozen_spec(frozen + "\n" + stray)
 
 
 def test_old_pack_directories_are_gone() -> None:
