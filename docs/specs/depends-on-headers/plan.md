@@ -1,7 +1,7 @@
 # Plan: Dependency edges on the waiting item
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and D3; RFC-0105 D3; RFC-0103 D1; ADR-0103 D6; ADR-0074.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`: `_parse_dependency`, `_dependency_is_satisfied`, `_dependency_cycles`, `_brief_child_spec_states`, `evaluate_dispatch`, `run_canonical_reconciliation`, `_parse_preamble_fields`, `_confined_artifact_path`, `canonical_result_identity`, and the legacy `classify_entries` family.
