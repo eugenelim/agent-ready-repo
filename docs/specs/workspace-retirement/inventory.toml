@@ -2812,7 +2812,7 @@ owner = "none"
 [[row]]
 pattern = "docs/specs/repo-governance-rename/*"
 class = "contract"
-consumer = "rename contract: repo-governance keeps workspace-status as an optional integration"
+consumer = "rename contract: AC-0025 admits workspace.toml lines that register docs/product/briefs/repo-governance-pack.md or this spec"
 owner = 9
 
 [[row]]

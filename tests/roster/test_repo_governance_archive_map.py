@@ -35,4 +35,4 @@ def test_archive_carries_the_map_unchanged(tmp_path: Path) -> None:
         assert len(names) == 1, tar.getnames()[:20]
         member = tar.extractfile(names[0])
         assert member is not None
-        assert member.read() == (REPO_ROOT / MAP).read_bytes()
+        assert member.read() == (clean / MAP).read_bytes()
