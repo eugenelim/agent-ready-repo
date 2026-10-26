@@ -4401,10 +4401,29 @@ def _header_edges_by_path(
     for membership in waiting:
         path = membership.entry.path
         assert path is not None
-        if path not in headers:
-            headers[path] = read_header_dependencies(
-                root, path, index=index, membership_kinds=kinds, cooled=cooled
+        if path in headers:
+            continue
+        if _captured_membership_form(path) == "migrated":
+            # A captured record is read only as a confined file, so a link or a
+            # hard link to a cooled body is never opened; its lifecycle check
+            # already reports it unreadable.
+            content = _migration_file_bytes(root, path)
+            headers[path] = (
+                HeaderDependencies((), ())
+                if content is None
+                else header_dependencies_from_text(
+                    root,
+                    path,
+                    content.decode("utf-8", errors="replace"),
+                    index=index,
+                    membership_kinds=kinds,
+                    cooled=cooled,
+                )
             )
+            continue
+        headers[path] = read_header_dependencies(
+            root, path, index=index, membership_kinds=kinds, cooled=cooled
+        )
     return headers
 
 

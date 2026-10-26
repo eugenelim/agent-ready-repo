@@ -55,7 +55,7 @@ BACKEND_DIGESTS = {
     "workspace_status.py":
         "e10a0049a0adc5a1dde731d9c5e6dbd75870c391601ee894836a4b1c04e74823",
     "workspace_status_engine.py":
-        "a7b1ca0ae533272ef5701169e268f3716602cd6db9dfa4c0e1791030f4476bb8",
+        "9c89ee2e7332ddf1fe4735de9a1447b94a806f054f5b38f441620817391eb370",
     "workspace_status_prune.py":
         "88395b684b69af04b00694c830e79d72a4a3b3194fa72d276fb2763f3f28e95a",
     "workspace_mcp_server.py":

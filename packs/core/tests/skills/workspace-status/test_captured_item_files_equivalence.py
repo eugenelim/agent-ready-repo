@@ -585,6 +585,40 @@ def test_identity_never_reads_a_linked_record(
 
 
 @pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
+def test_reconciliation_never_reads_a_linked_record(
+    tmp_path: Path, reads: list[bytes], linked: str
+) -> None:
+    """The header read of a migrated record goes through the confined reader too."""
+    path = _note_path("single", True)
+    cooled_path = _note_path("cooled-note")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    cooled_case = _dependent_case(
+        "cooled", "defect", "Open", "backlog.open", "cooled-note", False, cooled=True
+    )
+    single = _single_record_case("defect", _note("defect", "Open"))
+    _write_repo(repo, dataclasses.replace(
+        single,
+        files={**single.files, **cooled_case.files},
+        extras=single.extras + cooled_case.extras,
+    ))
+    (repo / path).unlink()
+    if linked == "symlink":
+        target = tmp_path / "elsewhere.md"
+        (repo / path).symlink_to(target)
+    else:
+        target = repo / cooled_path
+        os.link(target, repo / path)
+    target.write_text(
+        _note("defect", "Open") + "- **Depends on:** spec:SECRET-EDGE\n", encoding="utf-8"
+    )
+    reads.clear()
+    observe(repo)
+    assert not any(b"SECRET-EDGE" in chunk for chunk in reads)
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
 def test_missing_record_is_a_missing_artifact(tmp_path: Path) -> None:
     """A registered record that does not exist keeps `missing_artifact`."""
     path = _note_path("single", True)
