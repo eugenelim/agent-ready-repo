@@ -559,10 +559,20 @@ def _run(args: argparse.Namespace) -> int:
 
     pack_dir = _locate_pack(catalogue_dir, pack_name)
     if pack_dir is None:
-        print(
+        from agentbundle.pack_renames import hint_for_root, print_not_found
+
+        print_not_found(
             f"install: pack {pack_name!r} not found in catalogue at {catalogue_dir}; "
             "expected packs/<pack>/ or <catalogue>/<pack>/",
-            file=sys.stderr,
+            hint_for_root(
+                pack_name,
+                catalogue_dir=catalogue_dir,
+                source=catalogue_uri,
+                root=output_root,
+                root_arg=args.output,
+                command="install",
+                explicit_adapter=cli_adapter,
+            ),
         )
         return 1
     try:

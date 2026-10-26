@@ -662,6 +662,7 @@ class _BulkRow:
     installed_version: str | None = None
     available_version: str | None = None
     pack_toml: dict | None = None
+    rename_hint: tuple[str, ...] = ()  # hint lines when the pack was renamed
 
     # set during preflight (render/path-jail phase)
     _projection: dict | None = None      # dict[str, bytes] | None
@@ -851,6 +852,16 @@ def _run_source_version_preflight(
         if pack_dir is None:
             row.status = "unknown"
             row.status_reason = "pack-not-found"
+            if scope == "repo":
+                from agentbundle.pack_renames import Installed, build_rename_hint
+
+                row.rename_hint = build_rename_hint(
+                    row.pack,
+                    catalogue_dir=cat_dir,
+                    source=cs,
+                    installed=Installed.from_state(state),  # type: ignore[arg-type]
+                    command="upgrade",
+                ).lines
             continue
         row.pack_dir = pack_dir
         row.catalogue_dir = cat_dir
@@ -1258,6 +1269,7 @@ def _build_json_doc(
             "status_reason": row.status_reason,
             "outcome": row.outcome,
             "direct_route": row.direct_route,
+            **({"rename_hint": list(row.rename_hint)} if row.rename_hint else {}),
         })
 
     total = len(rows)
@@ -1342,6 +1354,8 @@ def _print_plan_table(
         )
         if row.direct_route:
             print(f"  direct route: {row.direct_route}")
+        for hint_line in row.rename_hint:
+            print(f"  {hint_line}")
 
 
 def _confirm_or_abort(rows: list) -> None:
@@ -1496,6 +1510,41 @@ def _run_all(args: argparse.Namespace, root: Path, *, _rows_out: list | None = N
 
     rc = _apply_all(rows_sorted, state, state_path, root, args, source_resolution_map)
     return _return(rc, rows_sorted)
+
+
+def _print_rename_hint_instead(args: argparse.Namespace, pack_name: str) -> bool:
+    """Print the rename hint in place of the multi-adapter refusal, if one applies.
+
+    Only called when every row of *pack_name* came from a catalogue. Returns
+    ``False`` on any other outcome, including a failed resolution, so the
+    caller prints today's refusal unchanged.
+    """
+    from agentbundle.pack_renames import hint_for_root
+
+    try:
+        catalogue_uri = resolve_catalogue_uri(args)
+        if catalogue_uri.startswith(("catalogue+https://", "archive+https://")):
+            from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance
+
+            catalogue_dir = fetch_catalogue_archive_with_provenance(catalogue_uri).path
+        else:
+            catalogue_dir = resolve_catalogue(catalogue_uri)
+        if _locate_pack(catalogue_dir, pack_name) is not None:
+            return False
+        hint = hint_for_root(
+            pack_name,
+            catalogue_dir=catalogue_dir,
+            source=catalogue_uri,
+            root=Path(args.root).resolve(),
+            root_arg=args.root,
+            command="upgrade",
+        )
+    except Exception:  # any failure keeps today's refusal
+        return False
+    if not hint.lines:
+        return False
+    print("\n".join(hint.lines), file=sys.stderr)
+    return True
 
 
 def run(args: argparse.Namespace) -> int:
@@ -1673,6 +1722,10 @@ def run(args: argparse.Namespace) -> int:
     elif len(_rows) == 1:
         target_adapter = next(iter(_rows))
     elif len(_rows) > 1:
+        if not direct_rows and effective_scope == "repo" and _print_rename_hint_instead(
+            args, pack_name
+        ):
+            return 1
         rendered_rows = ", ".join(
             f"{adapter} ({'—' if row.source_kind in {'skill', 'pack'} else row.installed_version})"
             for adapter, row in sorted(_rows.items())
@@ -1777,10 +1830,19 @@ def run(args: argparse.Namespace) -> int:
     # ── Locate pack dir ───────────────────────────────────────────────────────
     pack_dir = _locate_pack(catalogue_dir, pack_name)
     if pack_dir is None:
-        print(
+        from agentbundle.pack_renames import hint_for_root, print_not_found
+
+        print_not_found(
             f"upgrade: pack {pack_name!r} not found in catalogue at {catalogue_dir}; "
             "expected packs/<pack>/ or <catalogue>/<pack>/",
-            file=sys.stderr,
+            hint_for_root(
+                pack_name,
+                catalogue_dir=catalogue_dir,
+                source=catalogue_uri,
+                root=Path(args.root).resolve(),
+                root_arg=args.root,
+                command="upgrade",
+            ),
         )
         return 1
 

@@ -21,6 +21,19 @@ from agentbundle.pack_renames import (
     build_rename_hint,
 )
 
+from tests._rename_fixtures import (
+    BAD_MAPS,
+    DEP,
+    DEP_TOML,
+    GOOD_MAP,
+    NEW,
+    OLD,
+    PLAIN_TOML,
+    REPORTING,
+    SKIP_NO_LINKS,
+    catalogue,
+)
+
 
 def make_catalogue(
     tmp_path: Path, *, renames: list[tuple[str, str]], packs: list[str]
@@ -50,48 +63,6 @@ def test_hint_names_new_pack(tmp_path):
 # ---------------------------------------------------------------------------
 # Fixtures and helpers (everything is built under tmp_path)
 # ---------------------------------------------------------------------------
-
-OLD = "governance-extras"
-NEW = "repo-governance"
-GOOD_MAP = f'schema = 1\n\n[[rename]]\nfrom = "{OLD}"\nto = "{NEW}"\n'
-DEP = 'iac-terraform'
-DEP_TOML = (
-    '[pack]\nname = "iac-terraform"\n\n[[pack.dependencies.required]]\n'
-    'pack = "repo-governance"\nversion = "^2.0"\n'
-)
-PLAIN_TOML = '[pack]\nname = "x"\n'
-REPORTING = "git+https://example.test/org/repo"
-NOT_FOUND = "pack 'governance-extras' not found"  # stands in for today's message
-SKIP_NO_LINKS = pytest.mark.skipif(
-    not hasattr(os, "symlink") or sys.platform == "win32", reason="needs symlinks"
-)
-
-
-def catalogue(
-    tmp_path: Path,
-    *,
-    map_text: str | None = GOOD_MAP,
-    packs: dict[str, str] | None = None,
-    root_layout: tuple[str, ...] = (),
-    with_target: bool = True,
-) -> Path:
-    """A fixture catalogue; *packs* maps name to its pack.toml text."""
-    cat = tmp_path / "cat"
-    cat.mkdir()
-    if map_text is not None:
-        (cat / "contracts" / "renames").mkdir(parents=True)
-        (cat / "contracts" / "renames" / "pack-renames.toml").write_text(
-            map_text, encoding="utf-8"
-        )
-    all_packs = dict(packs or {})
-    if with_target:
-        all_packs.setdefault(NEW, PLAIN_TOML)
-    for name, text in all_packs.items():
-        base = cat if name in root_layout else cat / "packs"
-        (base / name).mkdir(parents=True)
-        (base / name / "pack.toml").write_text(text, encoding="utf-8")
-    return cat
-
 
 def inst(rows: dict[tuple[str, str], str | None] | None = None) -> Installed:
     return Installed(dict(rows or {}))
@@ -492,25 +463,6 @@ def test_unsafe_source_with_map_not_renaming_this_pack(tmp_path):
 # ---------------------------------------------------------------------------
 # AC-0022, AC-0027: the map
 # ---------------------------------------------------------------------------
-
-BAD_MAPS = {
-    "invalid-toml": "schema = = 1",
-    "non-utf8": b"\xff\xfe\xfa",
-    "deep": "a = " + "[" * 1000,
-    "rename-string": 'schema = 1\nrename = "x"\n',
-    "from-int": 'schema = 1\n[[rename]]\nfrom = 1\nto = "repo-governance"\n',
-    "missing-schema": f'[[rename]]\nfrom = "{OLD}"\nto = "{NEW}"\n',
-    "schema-2": f'schema = 2\n[[rename]]\nfrom = "{OLD}"\nto = "{NEW}"\n',
-    "bad-from-name": 'schema = 1\n[[rename]]\nfrom = "Bad_Name"\nto = "repo-governance"\n',
-    "bad-name-elsewhere": (
-        f'schema = 1\n[[rename]]\nfrom = "{OLD}"\nto = "{NEW}"\n'
-        '[[rename]]\nfrom = "-bad"\nto = "repo-governance"\n'
-    ),
-    "foreign-target": f'schema = 1\n[[rename]]\nfrom = "{OLD}"\nto = "not-here"\n',
-    "extra-key": f'schema = 1\n[[rename]]\nfrom = "{OLD}"\nto = "{NEW}"\nx = 1\n',
-    "empty": "",
-}
-
 
 @pytest.mark.parametrize("label", sorted(BAD_MAPS))
 def test_invalid_map_gives_no_hint(tmp_path, label):

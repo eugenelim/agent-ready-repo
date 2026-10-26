@@ -366,3 +366,48 @@ def build_rename_hint(
         lines.extend(chunk[:-1])
         lines.append(f"  {number}. {chunk[-1]}")
     return RenameHint(lines=tuple(lines))
+
+
+def hint_for_root(
+    name: str,
+    *,
+    catalogue_dir: Path,
+    source: str,
+    root: Path,
+    root_arg: str,
+    command: str,
+    explicit_adapter: str | None = None,
+) -> RenameHint:
+    """Build the hint reading the repo-scope state under *root*.
+
+    ``root_arg`` is the raw ``--root`` or ``--output`` value. The default ``.``
+    is not carried into the steps, because it names the working directory.
+    An unreadable state yields no hint.
+    """
+    from agentbundle.config import ConfigError, load_state
+
+    try:
+        state = load_state(root / ".agentbundle-state.toml")
+    except ConfigError:
+        return NO_HINT
+    return build_rename_hint(
+        name,
+        catalogue_dir=catalogue_dir,
+        source=source,
+        installed=Installed.from_state(state),
+        command=command,
+        target_root=None if root_arg == "." else root_arg,
+        explicit_adapter=explicit_adapter,
+    )
+
+
+def print_not_found(message: str, hint: RenameHint) -> None:
+    """Print the hint in place of *message*, or *message* then the refusal."""
+    import sys
+
+    if hint.lines:
+        print("\n".join(hint.lines), file=sys.stderr)
+        return
+    print(message, file=sys.stderr)
+    if hint.refusal:
+        print(hint.refusal, file=sys.stderr)
