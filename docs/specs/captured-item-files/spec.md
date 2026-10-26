@@ -58,7 +58,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Always do
 
 - Open every captured-item file, source file, and directory listing through confinement checks that refuse what AC-0004, AC-0041, and AC-0021's source bullet refuse, write every record as AC-0027 requires, and never open a cooled artifact's body.
-- Keep each dependency satisfaction rule as it is, apart from AC-0013's refusal; AC-0009, AC-0010, and AC-0042 state the kept rules for captured items.
+- Keep each dependency satisfaction rule as it is, apart from AC-0013's refusal; AC-0009, AC-0010, AC-0042, and AC-0045 state the kept rules for captured items.
 - Regenerate the packaged copies with `make build-self`, bump each changed pack's version, and carry the `Engine-Change-RFC: 0106` trailer on every commit that edits an engine source.
 - Run the repair on this repository only as `repair-plan`, then the owner's confirmation of that exact plan, then `repair-apply`.
 
@@ -75,13 +75,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Let the reconciliation, the `captured` listing, or the shaping-item guard open the file at an unmigrated captured membership's path.
 - Change `navigate-intents`, except to add this spec's two finding codes to the readiness bridge's pinned copy of the `workspace-status` finding table, which that bridge's parity test requires.
 - Add a dependency, a skill, a module outside the two `workspace-status` scripts and their packaged copies, or a top-level directory. `tomlkit` stays confined to `repair-apply`, as `packs/core/AGENTS.md` declares.
-- Let the repair write any file other than `workspace.toml`, its writer lock, its plan file, and the records it creates. Edit no source file by hand, except removing from this repository's one design note the dependency lines the repair copied into its record, after `repair-apply`.
+- Let a `captured-to-file` operation write any file other than `workspace.toml`, the writer lock, the plan file, its record, and that record's temporary file. Edit no source file by hand, except removing from this repository's one design note the dependency lines the repair copied into its record, after `repair-apply`.
 - Edit `workspace.toml` beyond the repair's `path` rewrites, its header comment on where a captured item's entry points, adding and moving this spec's own entry, and the parent brief's entry moved together with its `Status:` line.
 
 ## Testing Strategy
 
 - **Reader, listing, and confinement (AC-0001, AC-0002, AC-0003, AC-0004, AC-0041, AC-0005, AC-0006): TDD.** Each is a rule over one file's preamble or one directory listing, so a fixture with one planted case reds each test before the rule exists.
-- **Lifecycle, satisfaction, and refusal (AC-0007, AC-0008, AC-0009, AC-0010, AC-0042, AC-0011, AC-0012, AC-0013): TDD, paired fixtures.** Each case is written once in today's shape and once migrated; the outcome of today's shape is recorded from the engine at commit `ce30822a0` as a frozen expectation.
+- **Lifecycle, satisfaction, and refusal (AC-0007, AC-0008, AC-0009, AC-0010, AC-0042, AC-0011, AC-0012, AC-0013, AC-0045): TDD, paired fixtures.** Each case is written once in today's shape and once migrated; the outcome of today's shape is recorded from the engine at commit `ce30822a0` as a frozen expectation.
 - **Guard (AC-0014, AC-0015): TDD.** One planted file per case.
 - **Repair (AC-0016, AC-0043, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0030, AC-0031, AC-0032): TDD over fixture repositories**, including an interrupted apply and a rerun.
 - **This repository's migration (AC-0033, AC-0034, AC-0035, AC-0036): goal-based.** The repair runs here once, and the `status` output and spec-status lint of the tree it read are compared with the tree it left.
@@ -101,9 +101,9 @@ Terms used below. Preamble, field value, live intent, canonical membership, capt
 - **Cooled.** In the cooled set the engine reads from the repository's lifecycle records, never from the registry.
 - **Base slug.** For a legacy captured entry, its `slug`. For an unmigrated membership, its source file's name without its last extension, lowercased, with each run of characters outside `[a-z0-9]` replaced by one `-` and leading and trailing `-` removed. For a migrated membership, both its file's slug and the base slug its record's `Detail:` path would give as a source.
 - **Confined file.** A path with no symbolic link in any segment that names a regular file inside the repository with exactly one link, and whose identity is the same when it is opened as when it was checked.
-- **Echo rule.** In a finding, and in `repair-plan` or `repair-apply` output, each value is judged on its own against its position's grammar: a path against the captured-item reference grammar, a slug against the captured-item file name grammar, `Status:`, `Kind:`, `Type:`, and `Resolution:` against their value sets, and `Parent intent:` against the typed-reference grammar. A value appears verbatim only when it matches, has at most 200 characters, and holds no control character; otherwise it appears as an empty string. A record's full text and a summary are free text: they appear whole, as JSON strings in which every control character and every non-ASCII character is escaped.
+- **Echo rule.** In a finding, and in `repair-plan` or `repair-apply` output, each value is judged on its own against its position's grammar: a path against the captured-item reference grammar, a slug against the captured-item file name grammar, `Status:`, `Kind:`, `Type:`, and `Resolution:` against their value sets, `Parent intent:` against the typed-reference grammar, a dependency item against the typed-reference or captured-item reference grammar, a receipt token against the token rules the `depends-on-headers` spec's AC-0004 sets for its position, a SHA-256 or registry fingerprint against `[0-9a-f]{64}` with its existing prefix, a collection against the collection names, and an entry position against a non-negative integer; a header edge is judged part by part as its waiting path, item, and receipt. A value appears verbatim only when it matches, has at most 200 characters, and holds no control character; otherwise it appears as an empty string. A record's full text and a summary are free text: they appear whole, as JSON strings in which every control character and every non-ASCII character is escaped.
 
-Each criterion from AC-0001 to AC-0032 and from AC-0041 to AC-0043 is a rule the engine or the repair enforces. Given an input that breaks one about a single file or entry, the result names that file's path or that entry's slug under the echo rule.
+Each criterion from AC-0001 to AC-0032, from AC-0041 to AC-0043, and AC-0045 is a rule the engine or the repair enforces. Given an input that breaks one about a single file or entry, the result names that file's path or that entry's slug under the echo rule.
 
 **Reader and listing**
 
@@ -130,9 +130,10 @@ Each criterion from AC-0001 to AC-0032 and from AC-0041 to AC-0043 is a rule the
 - [ ] **AC-0009.** A dependency on a non-cooled migrated captured membership of kind `defect` is satisfied exactly when the membership is in `backlog.closed` and its file is valid, `Closed`, and `Resolution: fixed`.
 - [ ] **AC-0010.** A dependency on a non-cooled migrated captured membership of any other kind is not satisfied.
 - [ ] **AC-0042.** A dependency on a cooled migrated captured membership is satisfied, without any part of its file being opened, exactly when its kind is not `defect` or it is a `defect` whose membership is in `backlog.closed`.
-- [ ] **AC-0011.** An unmigrated captured membership gets an `unmigrated_captured_item` finding naming its path. Its next action names `workspace-status repair-plan` when the membership is not cooled, and, when it is cooled, writing its record at `docs/product/captured/<slug>.md` by hand and pointing the entry's `path` at it.
+- [ ] **AC-0011.** A non-cooled unmigrated captured membership gets an `unmigrated_captured_item` finding naming its path, whose next action names `workspace-status repair-plan`. A cooled unmigrated captured membership gets no such finding.
 - [ ] **AC-0012.** The reconciliation opens no part of the file at an unmigrated captured membership's path: not for its lifecycle, its provenance, its routing identity, or its `Depends on:` header.
-- [ ] **AC-0013.** A dependency item that names an unmigrated captured membership's path gives `unsatisfied_dependency` and is not satisfied.
+- [ ] **AC-0013.** A dependency item that names a non-cooled unmigrated captured membership's path gives `unsatisfied_dependency` and is not satisfied.
+- [ ] **AC-0045.** A dependency item that names a cooled unmigrated captured membership's path gives the result it gives at commit `ce30822a0`, without any part of that file being opened.
 
 **The shaping-item guard**
 
@@ -141,14 +142,13 @@ Each criterion from AC-0001 to AC-0032 and from AC-0041 to AC-0043 is a rule the
 
 **The repair**
 
-- [ ] **AC-0016.** `repair-plan` emits one `captured-to-file` operation for each non-cooled unmigrated captured membership, and for each legacy captured entry whose slug names no captured-item file, unless AC-0021 or AC-0022 refuses it.
-- [ ] **AC-0043.** `repair-plan` reports a manual finding naming a legacy captured entry, and emits no operation for it, when its slug names a captured-item file whose preamble field values differ from those AC-0019 and AC-0020 derive for it.
+- [ ] **AC-0016.** `repair-plan` emits one `captured-to-file` operation for each non-cooled unmigrated captured membership, and nothing for a cooled one, and for each legacy captured entry whose slug names no captured-item file, unless AC-0021 or AC-0022 refuses it.
+- [ ] **AC-0043.** `repair-plan` reports a manual finding naming a legacy captured entry, and emits no operation for it, when its slug names a captured-item file that is invalid, is unreadable, or whose preamble does not hold exactly the fields AC-0019 and AC-0020 derive for it, with exactly their values; a field the derivation does not give counts as a difference.
 - [ ] **AC-0017.** Each `captured-to-file` operation names its record path, the record's full text, and its entry's collection and position; a membership's operation also names its source path, the source file's SHA-256, its registry fingerprint, and the `Depends on:` and `Dependency receipts:` items it copies.
 - [ ] **AC-0018.** A record's slug is its entry's base slug. When an unmigrated membership's base slug is empty or equals a base slug of any other captured item at migration, it is prefixed with `<d>-`, where `<d>` is the name of the directory above `notes/` when the source's parent directory is `notes/`, and the source's parent directory otherwise.
 - [ ] **AC-0019.** The record holds, in this order: a `# ` title of its slug with each `-` as a space and the first letter capitalized; `Status:` `Open`, or `Closed` for an entry in `backlog.closed`; `Kind:`; `Type:` when the entry is a legacy captured entry whose `type` is a shaping type; `Resolution:` copied from the source file when the status is `Closed`; `Parent intent:` when the entry carries an `intent` path; `Detail:` naming the source path for a membership; copies of the source's `Depends on:` and `Dependency receipts:` lines; and then, when the entry has a `summary`, a `## Summary` heading followed by the summary.
 - [ ] **AC-0020.** The record's `Kind:` is the entry's `kind`. For a legacy captured entry with no `kind` it is `defect` when the entry has no `type`, `intent` for `shape` or `strategy`, `research` for `research`, and `design` for `design`. The `Parent intent:` value is the typed reference, by intent kind and `Slug:`, of the live intent at the entry's `intent` path.
 - [ ] **AC-0021.** `repair-plan` reports a manual finding naming the entry, and emits no operation for it, for each of these:
-  - a cooled membership;
   - a source file that is missing, unreadable, outside the repository, or not a confined file;
   - a source path that more than one canonical membership names, or that a dependency item of another canonical membership names;
   - a membership whose `kind` is not `defect`, `design`, `research`, or `intent`;
@@ -163,10 +163,10 @@ Each criterion from AC-0001 to AC-0032 and from AC-0041 to AC-0043 is a rule the
   - a planned record that the reader would not read back as valid with exactly the field values AC-0019 and AC-0020 derive.
 - [ ] **AC-0022.** When the canonical findings hold `invalid_workspace` or `configuration_mismatch`, `repair-plan` emits no `captured-to-file` operation and no AC-0021 or AC-0043 finding.
 - [ ] **AC-0024.** `repair-apply`, given a confirmed plan, writes each operation's record, and then sets each migrated membership's `path` to its record path in one `workspace.toml` write.
-- [ ] **AC-0025.** `repair-apply` changes no byte of `workspace.toml` outside the `path` values it sets, and writes no file other than `workspace.toml`, its writer lock, and the records its operations name.
+- [ ] **AC-0025.** For its `captured-to-file` operations, `repair-apply` changes no byte of `workspace.toml` outside the `path` values they set, and writes no file other than `workspace.toml`, the writer lock, and the records they name with their temporary files. A `needs-to-header` operation in the same plan writes what the `depends-on-headers` spec allows it.
 - [ ] **AC-0026.** Under the shared writer lock, `repair-apply` refuses an operation, changing nothing for it, when its record path, source path, slug, entry, record text, or copied items differ from the values re-derived from the current registry and files; when the source file's SHA-256 or the registry fingerprint no longer matches the plan; or when the membership is now cooled or the cooled state cannot be read.
-- [ ] **AC-0027.** `repair-apply` creates a record only by an exclusive create that fails when any entry exists at the path, at a record path with no symbolic link in any segment, inside a `docs/product/captured/` that is a directory inside the repository when checked after any directory creation. A record path that already holds a confined file with exactly the planned bytes is left as it is. Any other record path, including one the exclusive create finds occupied, refuses the operation, changing nothing for it.
-- [ ] **AC-0028.** After an interrupted `repair-apply`, a rerun of `repair-plan` and `repair-apply` finishes the migration with the same records.
+- [ ] **AC-0027.** `repair-apply` makes a record visible at its record path only with its full planned bytes: it writes them to a temporary file in the same directory, whose name the captured-item file name grammar excludes, and links that file into place by an operation that fails when any entry exists at the record path. It does so only at a record path with no symbolic link in any segment, inside a `docs/product/captured/` that is a directory inside the repository when checked after any directory creation. A record path that already holds a confined file with exactly the planned bytes is left as it is. Any other record path, including one the exclusive create finds occupied, refuses the operation, changing nothing for it.
+- [ ] **AC-0028.** After an interrupted `repair-apply`, a rerun of `repair-plan` and `repair-apply` finishes the migration with the same records, and leaves no temporary file this repair named.
 - [ ] **AC-0030.** `repair-apply` reports the captured items at migration it read, each as its slug, `kind`, and source path or `null`; each record it wrote or kept, read back as its slug and every field AC-0019 writes; and the header edges of every copied line as read from the source and as read back from the record, each keyed by its record path.
 - [ ] **AC-0031.** `repair-apply` exits non-zero when any record reads back with a field value that differs from its planned value, or when the header edges read from a source differ from those read back from its record.
 - [ ] **AC-0032.** Every value `repair-plan` and `repair-apply` print follows the echo rule. The plan file holds every value unredacted, it is the surface the owner confirms, and AC-0031's comparisons use the unredacted values.
@@ -191,6 +191,7 @@ Each criterion from AC-0001 to AC-0032 and from AC-0041 to AC-0043 is a rule the
 
 - [ ] **AC-0038.** Each of these files names `docs/product/captured/`, and no fenced `toml` block in it holds a `path` value other than one under `docs/product/captured/`, a `docs/specs/<d>/spec.md` path, or a path under `docs/product/briefs/` or `docs/product/intents/`:
   - `packs/core/.apm/skills/work-intake/SKILL.md`;
+  - `packs/core/.apm/skills/work-loop/SKILL.md`;
   - `packs/core/.apm/skills/work-loop/references/pre-flight-failures.md`;
   - `packs/product-strategy/.apm/skills/run-okr-cascade/SKILL.md`;
   - `packs/product-strategy/.apm/skills/run-okr-cascade/references/cross-pack-routing.md`;
