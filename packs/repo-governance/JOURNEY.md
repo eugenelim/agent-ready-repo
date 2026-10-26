@@ -22,7 +22,7 @@ contract:
 whatChanges: "After installing repo-governance, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. Before an ADR receives an ordinal or index, new-adr resolves the decision-record destination itself, with or without core, so adopter policy and established custom or external destinations win; with no stronger destination it offers docs/adr/ and writes only after you confirm. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. Conventions evolve through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
 skills:
   - name: new-rfc
-    description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives, with optional supporting-practice capture only after the written draft passes every mandatory check."
+    description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives. Its governance mode drafts GOVERNANCE.md, CODEOWNERS or a charter link from supplied handles and writes only after you confirm the exact preview. Optional supporting-practice capture only after the written draft passes every mandatory check."
     humanTouches: 3
   - name: new-adr
     description: "Records an architectural decision with two critique tracks and optional supporting-practice capture only when the decision-maker accepts it."
@@ -85,6 +85,7 @@ relatedJourneys:
 | `navigate-decisions route` | Read-only: pick the record a decision needs, with a door verdict |
 | `navigate-decisions health` | Read-only: list decisions that are due, stale, or missing a check |
 | `new-rfc`              | Propose a cross-cutting change through a structured RFC        |
+| `new-rfc governance`   | Draft GOVERNANCE.md, CODEOWNERS or a charter link; written only after you confirm the exact preview |
 | `new-adr`              | Record an architectural decision with critique tracks          |
 
 ---

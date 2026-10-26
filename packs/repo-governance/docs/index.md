@@ -8,7 +8,7 @@ Without a formal decision record, teams capture choices in Slack threads, PR des
 
 ## What it is
 
-**Skills (3):** `new-rfc` (draft and shepherd a proposal through the RFC lifecycle, including generating follow-on specs for an Accepted RFC), `new-adr` (capture a decision, its context, and the alternatives considered), `navigate-decisions` (read-only query and offline HTML export for ADR and RFC lifecycle, lineage, guidance context, and exact record detail; its read-only `route` mode picks the record a decision needs, gives an advisory door verdict, and names whom to consult; its read-only `health` mode lists due or stale decisions, superseded ADRs still cited, and missing confirmation checks).
+**Skills (3):** `new-rfc` (draft and shepherd a proposal through the RFC lifecycle, including generating follow-on specs for an Accepted RFC; its `governance` mode drafts a `GOVERNANCE.md`, a `CODEOWNERS` file or a charter link from supplied handles and writes only after the user confirms the exact preview), `new-adr` (capture a decision, its context, and the alternatives considered), `navigate-decisions` (read-only query and offline HTML export for ADR and RFC lifecycle, lineage, guidance context, and exact record detail; its read-only `route` mode picks the record a decision needs, gives an advisory door verdict, and names whom to consult; its read-only `health` mode lists due or stale decisions, superseded ADRs still cited, and missing confirmation checks).
 
 No subagents. Installs RFC and ADR file templates plus seed READMEs for `docs/rfc/` and `docs/adr/`.
 
