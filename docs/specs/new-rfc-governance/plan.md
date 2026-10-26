@@ -35,7 +35,7 @@ live in one place that every pack copy shares.
 Order follows from two facts. Activation inputs must be frozen before any `SKILL.md`
 edit, so T1 runs first. The script needs the helper, so T2 lands before T3. The
 riskiest part is the helper: it is a new write primitive in a module mirrored
-byte-for-byte into eleven pack copies and two package copies, so one defect ships
+byte-for-byte into ten pack copies and two package copies today, so one defect ships
 everywhere. It is built test-first and reviewed on its own commit.
 
 ## Constraints
@@ -62,7 +62,7 @@ Most construction tests live under **Tasks** below.
 | --- | --- | --- | --- |
 | User promise — `guides/repo-governance/how-to/set-up-governance.md` | T5 | guide file, listed in `guides/repo-governance/README.md` | AC-0062 green; its preview block matches the script's line order |
 | Current product truth — pack `README.md`, `JOURNEY.md`, `docs/index.md` | T5 | each names `governance` | each says it writes only after confirmation |
-| Current architecture — `packs/repo-governance/DESIGN.md` § 3 and § 7 | T5 | invariants name the script, the allowlist, the confined write and the agent-mediated residual | read as a whole, no stale "every write skill" claim |
+| Current architecture — `packs/repo-governance/DESIGN.md` § 3 and § 7 | T5 | invariants name the script, the allowlist, the confined write and both accepted residuals | read as a whole, no stale "every write skill" claim |
 | Maintainer procedure — root `AGENTS.md` blessed-helpers list | T2 | AC-0045 pin | AC-0045 green |
 | Release history — `docs/product/changelog.d/` fragments | T2, T5 | fragments for `agentbundle` 0.58.0, `core` 3.1.21, `architect` 0.15.20 (T2) and `repo-governance` 2.3.0 (T5) | `tools/changelog.py` validation passes |
 | Validation evidence — `docs/specs/new-rfc-governance/notes/` | T1, T6 | ledger, frozen queries, raw activation and behaviour files | the ledger records a result for every activation and behaviour criterion |
@@ -72,7 +72,7 @@ Most construction tests live under **Tasks** below.
 ### Design decisions
 
 - **One script, three subcommands, stdin for bytes.** `show` lets the agent see current content through the confined read, in visible form, so it never needs a raw read of an authority file. `preview` and `write` read the proposed input from standard input, so the bytes never pass through a temporary file that would itself be a write outside the allowlist. The agent pipes the same quoted heredoc to both; `write` checks the digest against `--proposed` (AC-0023).
-- **The script composes the charter edit.** For a charter target the agent supplies only the link line and `--after-line`; the script inserts it into the bytes it read. The agent never reproduces charter bytes, and the line's fixed form leaves no room for other prose (AC-0022, AC-0104, AC-0105, AC-0106, AC-0028).
+- **The script composes the charter edit.** For a charter target the agent supplies only the link line and `--after-line`; the script inserts it into the bytes it read from the target, which must be the charter (AC-0110). The agent never reproduces charter bytes, and the line's fixed form leaves no room for other prose (AC-0022, AC-0104, AC-0105, AC-0106, AC-0028).
 - **`write` is stateless.** It recomputes every check from its own reads and arguments, and takes the previewed state only as `--current` and `--proposed`. There is no preview token file. The helper re-compares the digest on the opened descriptor (AC-0027, AC-0039), so a change between the script's read and the helper's open is still caught.
 - **The binding control outside the agent is the host's per-call prompt.** Because the agent supplies every `write` argument, a steered agent could write bytes it never previewed. The pack therefore never ships a standing permission for `write` (AC-0060, AC-0062), and `DESIGN.md` records the residual.
 - **Fixed allowlist anchored to the working tree.** D4 permits writing a file the user names; the mode is narrower and only ever writes the eight allowed targets, under a root that must be the top level of the Git working tree holding the current directory (AC-0001, AC-0103).
@@ -80,7 +80,7 @@ Most construction tests live under **Tasks** below.
 - **Fail closed on backslashes.** GitHub's documentation does not say how it reads `\` in a pattern, so a pattern holding one is refused rather than previewed in a way GitHub might read differently (AC-0007).
 - **Ownership change by what GitHub reads.** Comments and blank lines are not ownership; the ordered (pattern, owners) list is, because GitHub applies the last match. The comparison covers the target's own list, which file GitHub reads, and that file's list, so creating a file that shadows another is caught (AC-0019). A file the grammar cannot parse makes every write an ownership change, which fails toward needing approval.
 - **The model marker line.** Templates carry `- **Decision model:** <value>`; the script reads it to decide whether approval is required. A draft can claim the default model while describing another; the preview the user confirms is the control for that, and the marker makes the common case mechanical.
-- **Two size bounds.** Proposed input is at most 64 KiB, a size a person can review in a preview (AC-0002). Current files are read up to 3,000,000 bytes, under GitHub's own CODEOWNERS load limit (AC-0005).
+- **Two size bounds.** Proposed input is at most 64 KiB, a size a person can review in a preview (AC-0002). Current files are read up to 2,999,999 bytes, under GitHub's own CODEOWNERS load limit (AC-0005).
 - **In-place write on the compared descriptor.** The helper opens an existing target read-write, hashes it, and writes on the same descriptor, satisfying general rule 5 literally. A temporary-file-and-rename would replace the inode after the comparison. A throwaway probe on 2026-10-26 (macOS, Python 3.14) confirmed the mechanism: a dir-fd `O_RDWR | O_NOFOLLOW` open, read, `lseek`, write and `ftruncate` kept the inode; `O_CREAT | O_EXCL | O_NOFOLLOW` refused a dangling link with `EEXIST`; and a FIFO opened with `O_NONBLOCK` returned at once and failed the regular-file check.
 
 Owned by: T2, T3, T4.
@@ -94,7 +94,7 @@ Owned by: T2, T3, T4.
 3. Create branch (`expect_sha256 is None`): `os.open(leaf, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK, 0o644, dir_fd=parent_fd)`. `O_EXCL` fails on anything present, a dangling link included. `fstat` the descriptor and validate it with `_validate_regular_file_stat`, then write all bytes with a loop that continues after a short write and fails on a zero-byte write, then `fsync`. On any failure after the create, `os.stat(leaf, dir_fd=parent_fd, follow_symlinks=False)`; when its `(st_dev, st_ino)` equals the descriptor's, `os.unlink(leaf, dir_fd=parent_fd)`; then raise `UnsafeContentError`.
 4. Update branch: `os.stat(leaf, dir_fd=parent_fd, follow_symlinks=False)`, `_validate_regular_file_stat`, then `os.open(leaf, O_RDWR | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK, dir_fd=parent_fd)`; `fstat` again and compare `(st_dev, st_ino)`. Read the whole file from the descriptor and compare its sha256 to `expect_sha256`. Then `lseek(0)`, the write loop, `ftruncate(len(data))`, `fsync`. On `OSError` in any of those, `lseek(0)`, write the original bytes, `ftruncate(len(original))`, `fsync`, then raise `UnsafeContentError`.
 5. Absent target in the update branch, or any mismatch, raises `UnsafeContentError` with a fixed message naming only the relative path.
-6. Without descriptor-walk support: `validate_confined_directory` on the parent; for an update, `lstat` before, `os.open` by path with the same flags and the identity comparison after; for a create, `os.open` by path with `O_EXCL`, then check that `path.resolve(strict=True)` is inside `root.resolve()` and that `os.stat(path, follow_symlinks=False)` matches the descriptor's identity, else unlink only when the identity matches, and raise. Tests reach this branch by monkeypatching `_supports_descriptor_walk` to return `False`.
+6. Without descriptor-walk support: `validate_confined_directory` on the parent; for an update, `lstat` before, `os.open` by path with the same flags and the identity comparison after; for a create, `os.open` by path with `O_EXCL`, then, before writing any byte, check that `path.resolve(strict=True)` is inside `root.resolve()` and that `os.stat(path, follow_symlinks=False)` matches the descriptor's identity; else unlink only when the identity matches, and raise. Tests reach this branch by monkeypatching `_supports_descriptor_walk` to return `False`.
 
 `governance.py` command line:
 
@@ -106,7 +106,7 @@ python3 <skill-dir>/scripts/governance.py write   --root <repo> --target <allowe
 
 Check order, each refusing on failure: root check (`git rev-parse --show-toplevel` from the current directory, list-form subprocess, with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from its environment) → target allowed → (preview and write) stdin size → UTF-8 decode → refused characters → `--approved-by` → confined reads of the files the run reads → kind check (governance draft, CODEOWNERS grammar, charter link line, line number, existing link) → compose the proposed content → (write only) proposed digest → current state against `--current` → approval → helper. The root and target checks come first so nothing is read for a refused root or target.
 
-Approval reasons, fixed strings, first matching in this order: `codeowners ownership change`, `another GOVERNANCE.md is present`, `decision model is not the default`.
+Approval reasons, fixed strings, first matching in this order: `codeowners ownership change`, `a GOVERNANCE.md is present`, `decision model is not the default`.
 
 The handle grammar as regular expressions (`re.fullmatch`, ASCII only): user `[A-Za-z0-9](?:-?[A-Za-z0-9])*` with length 1–39; team `[A-Za-z0-9][A-Za-z0-9_-]{0,99}`. Tokens split with `re.split(r"[ \t]+", line.strip(" \t"))`.
 
@@ -123,6 +123,7 @@ Owned by: T4.
 ### Failure, edge cases & resilience
 
 - A failed restore after a failed in-place write still raises, and the target may then be damaged. The preview block shows the full current digest so the user can recover from Git.
+- On a platform without descriptor-relative opening, a parent swapped for a link between the parent check and the create can leave an empty file outside the repository; no data is written to it, and the spec's Assumptions record the residual.
 - A concurrent writer between the helper's hash and its write is not detected; this is the same accepted local-writer window as the read helpers.
 - More than one CODEOWNERS file present: the preview names which one GitHub reads and lists the others; it does not refuse.
 - Current content holding a hidden code point that is not refused (for example U+200B) appears in `show` in visible form, so the agent cannot reproduce it in an amendment; the preview then shows the changed bytes and the user decides.
@@ -162,15 +163,16 @@ Owned by: T2, T3.
 **Touches:** `packs/core/.apm/skills/close-work/scripts/file_safety.py`, every other copy, `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`, `tests/roster/test_new_rfc_governance_surfaces.py`, `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`, `AGENTS.md`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `packs/architect/pack.toml`, `packs/architect/.claude-plugin/plugin.json`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `docs/product/changelog.d/`
 
 **Tests:** (TDD in `packages/agentbundle/tests/unit/test_catalogue_tooling_file_safety.py`, against `tmp_path`, importing `agentbundle.catalogue_tooling.file_safety`)
-- One test per helper criterion AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042. Symbolic-link and FIFO cases skip where the platform lacks them.
+- One test per helper criterion AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042 and AC-0111. Symbolic-link and FIFO cases skip where the platform lacks them.
   - AC-0036 is parametrised over its eight target shapes.
   - AC-0037 runs the FIFO case under a one-second timeout.
   - AC-0038 monkeypatches the module's `os.fstat` to return a different inode on the post-open call.
   - AC-0039 wraps `os.read` and `os.write` to record descriptors and asserts the read and written descriptor are equal.
   - AC-0040 is parametrised over a failing `os.write`, `os.ftruncate` and `os.fsync`, and asserts the original bytes are back.
+  - AC-0111 makes the restore's write fail too and asserts `UnsafeContentError`.
   - AC-0041 fails the create's write and asserts the target is absent; a second case swaps the leaf for another file before the cleanup and asserts that file survives.
   - AC-0042 makes `os.write` write one byte per call, and a second case returns 0.
-- AC-0043 and AC-0109: the same tests re-run with `_supports_descriptor_walk` patched to return `False`, plus a case where `Path.resolve` reports a path outside `root` after the create.
+- AC-0043 and AC-0109: the same tests re-run with `_supports_descriptor_walk` patched to return `False`, plus a case where `Path.resolve` reports a path outside `root` after the create, asserting no `os.write` call happened and `UnsafeContentError` was raised.
 - AC-0044: `tests/roster/test_new_rfc_governance_surfaces.py` lists copies with `git ls-files` under `packs/` and `packages/agentbundle/agentbundle/` for `file_safety.py` and `_file_safety.py`, asserts at least 13 are found, and asserts each equals the source's bytes.
 - AC-0045: the same roster file pins the name in root `AGENTS.md`'s confinement entry.
 - AC-0097, AC-0098 and AC-0099: the parsed manifests carry the stated versions.
@@ -190,13 +192,15 @@ Owned by: T2, T3.
 **Touches:** `packs/repo-governance/.apm/skills/new-rfc/scripts/governance.py`, `packs/repo-governance/.apm/skills/new-rfc/scripts/file_safety.py`, `packs/repo-governance/tests/skills/new-rfc/test_governance_script.py`
 
 **Tests:** (TDD in `test_governance_script.py`; the module loaded under a unique name per `packs/AGENTS.md`; cases call `main(argv, stdin_bytes, cwd)` in-process against a `tmp_path` repository made with `git init`, and one smoke case runs the script as a subprocess under `LC_ALL=C`)
-- One test per criterion AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0103, AC-0104, AC-0105, AC-0106 and AC-0107.
+- One test per criterion AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0103, AC-0104, AC-0105, AC-0106, AC-0107 and AC-0110.
   - AC-0001 runs from a directory in a second repository; AC-0001 and AC-0103 pass a stdin object that fails the test if read.
   - AC-0002 passes 65,537 bytes.
   - AC-0003 builds, for each file the run reads, a `docs` symbolic link, a file symbolic link, a hard link and a FIFO.
   - AC-0012 includes U+200B, U+FE0F, U+3164 and an unassigned code point.
   - AC-0013 feeds input, a current file and `--approved-by` each holding a distinctive marker, captures stdout and stderr, and asserts where each marker appears.
   - AC-0019 creates `.github/CODEOWNERS` holding only a comment beside a root `CODEOWNERS` holding `* @owners`.
+  - AC-0110 has both charter targets present and targets `CHARTER.md`.
+  - AC-0028 also covers a charter whose last line has no trailing `\n`.
   - AC-0026 compares the file listing of the root before and after.
 - AC-0005: a test patches the co-located module's `read_confined_regular_file` to record calls; a scan of the script's source finds no `open(`, `read_bytes`, `read_text` or `os.open`.
 - AC-0027: a test patches the co-located helper and asserts the `expect_sha256` it receives.
