@@ -659,3 +659,10 @@ def test_fallback_create_writes_nothing_when_path_resolves_outside_root(
     monkeypatch.undo()
     assert writes == []
     assert not target.exists()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
+def test_create_makes_an_owner_only_file(tmp_path: Path) -> None:
+    target = tmp_path / "GOVERNANCE.md"
+    file_safety.write_confined_regular_file(tmp_path, target, b"x", expect_sha256=None)
+    assert stat.S_IMODE(target.stat().st_mode) & 0o077 == 0

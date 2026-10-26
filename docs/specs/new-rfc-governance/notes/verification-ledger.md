@@ -118,3 +118,8 @@ Each is a mechanical follow-on of a version bump the plan requires, verified by 
 
 - Parsed manifests: `repo-governance` 2.3.0 (AC-0096), `core` 3.1.21 (AC-0097), `architect` 0.15.20 (AC-0098) in both `pack.toml` and `plugin.json`; `agentbundle` 0.58.0 in `pyproject.toml` and `version.py` (AC-0099).
 - `FORCE=1 make build-self` on the finished change leaves `git status --porcelain` empty (AC-0100).
+
+## 2026-10-26 — Create mode
+
+- **Observation:** CodeQL's `py/overly-permissive-file` rule flagged the helper's create mode `0o644` (the plan's Design names it) in every copy of `file_safety.py`.
+- **Owner decision:** eugenelim chose on 2026-10-26 to create files owner-only, `0o600`. Git does not track read bits, so a committed `GOVERNANCE.md` or `CODEOWNERS` checks out with normal permissions for other clones. A unit test asserts a created file has no group or other permission bits; every copy was re-synced and the roster digest pin updated.

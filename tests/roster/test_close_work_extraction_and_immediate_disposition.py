@@ -52,12 +52,13 @@ EXPECTED_SCHEMA_SHA256 = (
 #      materialising walk.
 #   3. `write_confined_regular_file` added the confined create-or-update write
 #      operation; it is a new function, so every existing signature is unchanged.
+#      It creates files owner-only (0o600).
 #
 # close-work's single call site now passes `max_files` and `max_entries` by
 # keyword (`_confined_target_set` in close_work.py), asserted structurally by
 # `test_materialising_walk_carries_both_preflight_bounds` in the pack suite.
 EXPECTED_FILE_SAFETY_SHA256 = (
-    "c8cd2edbc70fb35fc5c3388679539df9612999d76278a4a2eed7f5200653c71e"
+    "3db9afd1dc6c5f1de4fef8f7b0ffd3974f28b8d6903960833bbd13be0381a376"
 )
 
 

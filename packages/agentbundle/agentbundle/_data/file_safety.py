@@ -529,9 +529,9 @@ def _create_confined_file(
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _write_open_flags()
     try:
         if parent_fd is None:
-            descriptor = os.open(path, flags, 0o644)
+            descriptor = os.open(path, flags, 0o600)
         else:
-            descriptor = os.open(leaf, flags, 0o644, dir_fd=parent_fd)
+            descriptor = os.open(leaf, flags, 0o600, dir_fd=parent_fd)
     except OSError as exc:
         raise UnsafeContentError(
             f"target cannot be created safely: {relative}"
