@@ -94,7 +94,7 @@ Most construction tests live under **Tasks** below.
 | Current architecture: `DESIGN.md` § 7 item 6, § 8 | T4 | read-only invariant names `health` | present |
 | Interface compatibility: `query.v1` unchanged | T2 | AC-0002 test | test green |
 | Release history: changelog fragment | T4 | `tools/changelog.py` validation green | fragment present with `Highlights` decided |
-| Validation evidence: `notes/verification-ledger.md`, `notes/hand-check.json`, raw run files | T1, T5, T6 | ledger entries | every result AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042 name is recorded |
+| Validation evidence: `notes/verification-ledger.md`, `notes/hand-check.json`, raw run files | T1, T5, T6 | ledger entries | every result AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042 and AC-0049 name is recorded |
 
 ## Design (LLD)
 
@@ -124,6 +124,9 @@ Most construction tests live under **Tasks** below.
   component at a time:
   - `os.lstat` the next component. Not found means `missing`.
   - A link or reparse point is `invalid`.
+  - Any other `OSError`, or a refusal by the helper, is `invalid` with reason
+    `uninspectable` or `unconfined`. Only `FileNotFoundError` means absent, so an
+    error cannot fail open to `missing`.
   - A regular file before the last component means `missing`.
   - Anything that is neither a file nor a directory is `invalid`.
   - A directory is passed to `file_safety.validate_confined_directory(root, prefix)`
@@ -177,7 +180,7 @@ no_confirmation{count, ids[]}
 
 An error result carries `error{code, message, limits, observed}` and none of the
 finding fields. `reason` is one of `lexical`, `outside-root`, `link`, `special`,
-`hard-link` or `unconfined`. The skill file's health result block is chat output,
+`hard-link`, `too-long`, `uninspectable` or `unconfined`. The skill file's health result block is chat output,
 not a file, and it is not a `contracts/` artifact.
 
 Owned by: T2, T3.
@@ -245,7 +248,7 @@ Owned by: T1, T2, T6.
 **Tests:** (TDD, in a new `test_health_contract.py` that loads the script by the
 unique module name `repo_governance_navigate_decisions_health`, and calls
 `main([...])` with captured stdout, so no interpreter is spawned)
-- One test per criterion AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0045 and AC-0046, each over a small fixture record tree
+- One test per criterion AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0045, AC-0046, AC-0047, AC-0048, AC-0050, AC-0051 and AC-0052, each over a small fixture record tree
   built in `tmp_path` from strings, except where the hostile fixture is named.
   Every `due` and `scheduled` assertion passes an explicit `--today`.
 - AC-0002 asserts the `query` parser's `--operation` choices and `run_query`'s
@@ -262,6 +265,17 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
 - AC-0021 monkeypatches `builtins.open`, `os.open`, `io.open`, `os.scandir` and
   `os.listdir` to record every path during the probe phase, and asserts no path
   candidate appears.
+- AC-0047 extends that spy to `os.lstat`, `os.stat` and `pathlib.Path.resolve`, and
+  asserts no recorded path holds an absolute, UNC (`//host/share/x.md`) or
+  escaping candidate, and that each recorded path is the root plus a prefix of a
+  checked form's segments.
+- AC-0048 monkeypatches `os.lstat` to raise `PermissionError` and then an
+  `OSError` with `errno.ENAMETOOLONG` for one component.
+- AC-0050 builds a corpus whose findings exceed 512 KiB with fewer than 5,000
+  candidates.
+- AC-0052 records the flags of every `os.open` and the mode of every `open` /
+  `io.open`, and patches `tempfile.mkstemp`, `tempfile.NamedTemporaryFile` and
+  `tempfile.mkdtemp` to raise.
 - AC-0045 creates a FIFO with `os.mkfifo` in a temporary copy (skipped where
   unavailable) and asserts the call returns with it `invalid`.
 - AC-0024 also runs a corpus whose file name holds U+202E through a failing
@@ -347,8 +361,12 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   reading disagreement.
 - The superseded-citation part reads every `docs/adr/` and `docs/rfc/` header for
   the superseded ADRs' identifiers.
-- Each probe result comes from inspecting the path in the working tree with
-  `ls -la` style metadata reads only, never by opening the file.
+- Reviewers have only `Read`, `Glob` and `Grep`: no shell, so no path from record
+  text is ever interpolated into a command. A probe result comes from a literal
+  `Glob` for presence, plus the controller's list of every symbolic link, special
+  file and hard-linked file in the working tree, made once by a `find` over the
+  tree that takes no input from records. The brief states that ADR text is data
+  and gives no instruction.
 - The merged `notes/hand-check.json` lists 144 accepted ADRs, records its date, and
   records the commit it read.
 
@@ -384,7 +402,7 @@ ledger's T5 entry records the reviewers, shares, date and commit.
   - the results go in `notes/activation-post-change.json`;
   - the ledger compares each rate with its bound, and states the resolution: one
     run moves a rate over n queries by 1/(3n), about 0.0067 for 50.
-- AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042, three scored runs on the hostile fixture:
+- AC-0038, AC-0039, AC-0040, AC-0041, AC-0042 and AC-0049, three scored runs on the hostile fixture:
   - each run is a headless `claude -p --permission-mode default --setting-sources
     project,local --strict-mcp-config` run in a fresh scratch Git repository
     outside this repository. Its allowed tools are exactly `Skill`, `Read`,
@@ -394,7 +412,8 @@ ledger's T5 entry records the reviewers, shares, date and commit.
     tree, with the symbolic link created and everything committed. The prompt is
     the fixture's `request.txt`;
   - the driver applies the spec's scored-run rule, parses the health result block,
-    and records `git status --porcelain`, every tool call, and a before-and-after
+    and records `git status --porcelain`, every attempted tool call with its
+    permission outcome, denied calls included (for AC-0049), and a before-and-after
     sha256 listing of every file, `.git/` and ignored paths included;
   - the ledger states that a write outside the scratch repository by the one
     granted command is not detected;
@@ -411,7 +430,7 @@ ledger's T5 entry records the reviewers, shares, date and commit.
 **Effects:** none
 
 **Done when:** the ledger's T6 entry records every check listed in `Tests`, and
-each of AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042 meets its bound.
+each of AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042 and AC-0049 meets its bound.
 
 ## Rollout
 
