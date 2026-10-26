@@ -127,6 +127,13 @@ def test_consult_holds_only_user_supplied_handles_and_roles() -> None:
     ) in ROUTE
 
 
+def test_consult_echoes_supplied_values_verbatim() -> None:
+    """AC-0011: the line holds the supplied values with no route-authored additions."""
+    assert (
+        "Write each supplied handle or role exactly as the user gave it, with nothing added."
+    ) in ROUTE
+
+
 def test_route_asks_for_people_when_none_supplied() -> None:
     """AC-0012"""
     assert (

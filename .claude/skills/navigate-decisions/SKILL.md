@@ -150,7 +150,8 @@ time-bounded trial outcome is flagged to the user to check.
 
 **Whom to consult.** `Consult:` holds only handles or roles the user supplied in
 this conversation, never anything from record text, Git history or an email
-address. A handle is a platform handle such as `@user` or `@org/team`, and a role is a
+address. Write each supplied handle or role exactly as the user gave it, with
+nothing added. A handle is a platform handle such as `@user` or `@org/team`, and a role is a
 named function such as "platform maintainers". When none were supplied, route
 asks the user for the people affected and the people with relevant expertise. It
 still emits the whole route result block with `Consult: none supplied`, and asks
