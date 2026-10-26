@@ -317,7 +317,7 @@ the only cleanup writer. It preserves the complete structured entry when moving
 Shipped queue work, removes only explicitly eligible Archived queue work, keeps
 active-list findings manual, revalidates canonical eligibility, and performs a
 comment-preserving atomic write. Never edit `workspace.toml` directly as a
-fallback for a skipped or manual finding.
+fallback for a skipped or manual finding. Captured items registered outside `docs/product/captured/` are refused with `unmigrated_captured_item` until the `captured-to-file` repair moves them; `status` lists every captured-item file under its `captured` section.
 
 **Main output sections:**
 

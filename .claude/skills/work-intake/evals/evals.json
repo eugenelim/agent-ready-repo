@@ -505,6 +505,18 @@
         "Stops at the tombstone instead of following recursively",
         "Does not reveal successor file content"
       ]
+    },
+    {
+      "id": "remember-captured-item-writes-its-own-file",
+      "prompt": "Remember this non-intent finding for later: the nightly export drops rows with empty names. It is a defect; the context lives in docs/specs/exports/notes/empty-names.md.",
+      "expected_output": "The agent writes docs/product/captured/export-drops-empty-names.md with Status: Open, Kind: defect, and Detail: pointing at the context note, puts the summary under ## Summary, and then registers that file path as the entry's path.",
+      "assertions": [
+        "Writes the captured-item file under docs/product/captured/ before registering",
+        "Writes Status: Open and Kind: defect as preamble lines, each once",
+        "Writes Detail: with the context-owning note's path",
+        "Puts the summary under a ## Summary heading, not in the preamble",
+        "Registers the captured-item file path, not the context note"
+      ]
     }
   ]
 }

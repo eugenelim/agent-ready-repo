@@ -29,6 +29,13 @@ is read-only at the tracker boundary. Local refresh decisions and any supported
 remote coordination action are separate effects; the latter needs its own
 fresh exact confirmation.
 
+A remembered item that is not an intent is written as its own file at
+`docs/product/captured/<slug>.md`, with `Status:`, `Kind:`, and the optional
+`Type:`, `Resolution:`, `Parent intent:`, and `Detail:` lines and its summary under
+`## Summary`. Its index entry's `path` is that file. A captured item registered
+at any other path is reported as unmigrated; `workspace-status repair-plan`
+moves it.
+
 Former legacy workspace entries surface as `unsupported_legacy` findings and
 are never dispatchable. Rewrite each in canonical form by hand. Migration
 tooling (`repair-plan --migration-selection`, `repair-apply`, `repair-rollback`)

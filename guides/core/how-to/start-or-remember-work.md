@@ -84,6 +84,24 @@ workspace-status
 
 Use the status result to see what is ready, blocked, active, or recently done.
 
+## Remember work for later
+
+To park something that is not an intent, such as a defect or a research question, say:
+
+```text
+Remember this for later: the nightly export drops rows with an empty name.
+```
+
+Core writes the item as its own file under `docs/product/captured/`, then registers that file's path in `workspace.toml`.
+
+If your repository already registered captured items at other paths, upgrade `core` and run the repair once:
+
+```text
+workspace-status repair-plan
+```
+
+The plan lists every captured item it will move, with each record's text. Read it, confirm that exact plan file, and then run `workspace-status repair-apply --yes`. The repair writes one record per item, points each entry at its record, and compares the items before and after. Until you run it, `status` reports `unmigrated_captured_item` for each such item.
+
 ## State and skill reference
 
 The routing skill is `work-intake` when you need to invoke or debug it. See

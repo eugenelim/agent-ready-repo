@@ -131,6 +131,28 @@ adjacent comments, summaries, or workspace-only fields. If the context cannot
 fit that shape, materialize the context-owning artifact first and point to it.
 An entry that this workflow creates or updates adopts the terse form.
 
+A remembered item that is not an intent is a captured item, and it lives in its
+own file at `docs/product/captured/<slug>.md`, where `<slug>` is lowercase
+letters, digits, and single hyphens. Write that file first, then register its
+path as the entry's `path`. Never register a captured item at any other path. The
+file starts with a `# ` title, then these preamble lines, each at most once:
+
+- `Status:` `Open` or `Closed` (required)
+- `Kind:` `defect`, `design`, `research`, or `intent` (required)
+- `Type:` one of `shape`, `research`, `strategy`, `design`, or `signal`, when the
+  item is a shaping item
+- `Resolution:` `fixed`, `declined`, or `superseded`, present exactly when a
+  defect is `Closed`
+- `Parent intent:` a typed reference such as `intent:<slug>`, when the item
+  belongs to an intent
+- `Detail:` the repository-relative path of the note that owns the context, when
+  one exists
+
+The one-line summary goes under a `## Summary` heading after the preamble, so
+summary text can never add or replace a field. A `Depends on:` line, when the
+item has hard dependencies, sits in the preamble. Do not stop registering the
+entry: the file holds the item's own state, and the entry still indexes it.
+
 For a separated follow-on from an amended spec, materialize the follow-on's
 owning artifact before registration. The follow-on's current state changes in
 that artifact; the workspace entry only indexes it. Do not leave an open AC
@@ -270,7 +292,7 @@ shippability, verifiability, durability needs, and cited defect evidence:
 | Explicit bounded direct-light start | none | none | `work-loop` |
 | Bounded work needing durability or elevated assurance | spec | current durable path | `new-spec` |
 | Coherent multi-slice or cross-repository outcome | brief | current brief path | `author-delivery-brief create` or `continue` |
-| Remember for later | current intent/capture path | non-dispatchable | none |
+| Remember for later | intent path, or a captured-item file for anything that is not an intent | non-dispatchable | none |
 | Cited regression or defect evidence | defect | ready only after canonical context exists | `bug-fix` |
 | Incomplete or ambiguous input | current named-gap behavior | non-dispatchable | none |
 

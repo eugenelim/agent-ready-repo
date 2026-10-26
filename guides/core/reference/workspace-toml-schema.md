@@ -426,6 +426,32 @@ intended behavior. Closed defect contexts record exactly one resolution:
 Defects stay in the repository-level backlog. They are routed to the bug-fix
 workflow, not directly to implementation queue dispatch.
 
+### The captured-item file
+
+A remembered item that is not an intent lives in its own file at
+`docs/product/captured/<slug>.md`, where `<slug>` is lowercase letters, digits,
+and single hyphens. A defect is one kind of captured item. Its registry entry
+points at that file, not at the note that holds the context. The file starts
+with a `# ` title and then these preamble lines, each at most once:
+
+| Field | Values |
+| --- | --- |
+| `Status:` (required) | `Open` or `Closed` |
+| `Kind:` (required) | `defect`, `design`, `research`, or `intent` |
+| `Type:` | a shaping type: `shape`, `research`, `strategy`, `design`, or `signal` |
+| `Resolution:` | `fixed`, `declined`, or `superseded`; present exactly when a defect is `Closed` |
+| `Parent intent:` | a typed reference of kind `intent`, `outcome`, `opportunity`, or `capability` |
+| `Detail:` | the repository-relative path of the note that owns the context |
+
+The summary goes under a `## Summary` heading after the preamble, where it can
+never add or replace a field. A file that breaks these rules gives an
+`invalid_captured_item` finding. A captured item registered at any other path
+gives `unmigrated_captured_item` until `workspace-status repair-plan` moves it.
+
+```toml
+{ path = "docs/product/captured/export-drops-empty-names.md", kind = "defect", source = { mode = "repo-origin" }, summary = "Nightly export drops rows with an empty name", needs = [] }
+```
+
 ## Legacy Forms
 
 Ordinary reconciliation does not accept legacy shapes as compatibility entries.
