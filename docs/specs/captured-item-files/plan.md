@@ -17,7 +17,7 @@ Freeze first. T1 records, from the engine at commit `ce30822a0`, the outcome of 
 ## Constraints
 
 - Standard library only in the engine (ADR-0074). `tomlkit` stays inside `repair-apply`, under the Tier 1 declaration in `packs/core/AGENTS.md`.
-- Every read of a captured-item file, a source file, or the directory goes through `_confined_artifact_path` or a confined listing. Every repair write goes through `confine_migration_path(..., require_file=...)` and the identity checks of `_migration_file_bytes`. A cooled artifact's body is never opened.
+- Every read of a captured-item file or a source file goes through the engine's identity-checked reader, `confine_migration_path` with `_migration_file_bytes`, which refuses a link in any segment, requires a regular singly linked file, opens with `O_NOFOLLOW`, and checks identity before and after. The directory listing checks every segment of `docs/product/captured` the same way. `_confined_artifact_path` and `_confined_briefs_path` follow links and are not used for these reads. A record is created with `O_CREAT | O_EXCL | O_NOFOLLOW`. A cooled artifact's body is never opened.
 - `make build-self` reprojects the engine and `workspace_status.py` into `packages/agentbundle/agentbundle/_data/`. Packaged copies are never hand-edited.
 - An engine-source commit carries `Engine-Change-RFC: 0106`, as `tools/lint-catalogue-curation-guard.py` enforces.
 - `core`, `product-strategy`, `product-engineering`, and `architect` each take one patch bump in `pack.toml` and `.claude-plugin/plugin.json`, and each changed skill's eval harness gains or updates a case (`packs/AGENTS.md`).
@@ -60,9 +60,9 @@ Owned by: T2, T5
 <the registry entry's summary>
 ```
 
-- A record written by the repair carries only the fields AC-0019 lists. The summary sits under its own `## Summary` heading, so it is outside the preamble and can never add or replace a field. A writer may add body sections; the reader reads the preamble only.
+- A record written by the repair carries only the fields AC-0019 lists, with the source's dependency lines copied, not moved: the repair never writes a source file, so an interruption can never leave an edge in neither place. The summary sits under its own `## Summary` heading, so it is outside the preamble and can never add or replace a field. A writer may add body sections; the reader reads the preamble only.
 - A field appears once. `_parse_preamble_fields` keeps the first value, so the grammar check counts field lines itself through `_iter_preamble_lines`.
-- `Detail:` is a pointer to context the item does not own. The reconciliation never reads it; only `captured-detail-cleanup` planning follows it.
+- `Detail:` is a pointer to context the item does not own. The reconciliation never reads it; the planner uses it only to compute a migrated membership's second base slug. After migration the source's copied dependency lines are inert, because the source is no longer any membership's path; `mutate.md` tells an adopter they may delete them.
 
 ### Interfaces & contracts
 
@@ -70,7 +70,7 @@ Owned by: T2, T4, T5
 
 - `status` gains a top-level `captured` object: `{"items": [...], "findings": [...]}`. It is built from the directory listing and the cooled set only, never from the parsed registry, and it is emitted even when `canonical_failed` holds. `reconcile` and the MCP status tool carry the same object.
 - `check_shaping_guard(root, slug, cooled)` replaces the registry form. It returns the routed skill, a refusal carrying the file's finding, or `None`. `work-loop` applies the same rule by matching the slug in `captured.items`: `routes_to` routes, `invalid` or `unreadable` stops, anything else continues. No new subcommand is needed.
-- `repair-plan` adds operations of type `captured-to-file` and `captured-detail-cleanup` to `automatic_operations`. A `captured-to-file` operation carries `operation_type`, `record_path`, `record_text`, `entry_locator` (collection and entry index), and, for a membership, `source_path`, `source_sha256`, `registry_fingerprint`, `depends_on_items`, and `receipt_items`, or, for a legacy captured entry, `slug`. A `captured-detail-cleanup` operation carries `operation_type`, `source_path`, `source_sha256`, and `removed_lines`. `_VALID_OPERATION_TYPES` admits both; plan building, `_validate_plan_structure`, and `_apply_operations` dispatch on them as they do for `needs-to-header`.
+- `repair-plan` adds operations of type `captured-to-file` to `automatic_operations`, each carrying `operation_type`, `record_path`, `record_text`, `entry_locator` (collection and entry index), and, for a membership, `source_path`, `source_sha256`, `registry_fingerprint`, `depends_on_items`, and `receipt_items`, or, for a legacy captured entry, `slug`. `_VALID_OPERATION_TYPES` admits it; plan building, `_validate_plan_structure`, and `_apply_operations` dispatch on it as they do for `needs-to-header`. A membership whose entry still carries typed `needs` gets a `needs-to-header` operation and an AC-0021 manual finding in the same plan, so the edges reach the source's header first and a later run copies them.
 - `repair-apply` returns `captured_before`, `captured_after`, `header_edges_before`, `header_edges_after`, and `captured_equal`, and exits 1 when `captured_equal` is false.
 
 ### Behavior & rules
@@ -78,24 +78,26 @@ Owned by: T2, T4, T5
 Owned by: T3
 
 - **Lifecycle reads the record.** For a migrated captured membership, `_artifact_metadata` reads the record, and `_append_lifecycle_findings` applies AC-0007's `Open`/`Closed` rule in place of today's `Draft` rule for non-defect kinds in `backlog.open` and the per-kind terminal set in the shaping queues. A defect's `backlog.closed` rule, `Closed` with `fixed`, `declined`, or `superseded`, is unchanged.
-- **Satisfaction is unchanged.** `_TERMINAL_STATUS_BY_KIND` and the defect branch of `_dependency_is_satisfied` stay as they are. A record's `Open`/`Closed` vocabulary never meets a non-defect kind's terminal set, and a `Closed` non-defect is a lifecycle finding in every collection that admits it, so a non-defect captured item never satisfies a dependency, exactly as today, where a non-terminal status blocks and a terminal one is a lifecycle finding.
-- **The refusal skips three read sites.** An unmigrated captured membership is skipped by `_artifact_metadata`, by the identity pass in `canonical_repository_identity` (which calls `_metadata_from_root`), and by `_header_edges_by_path`. Each dependency on its path reports `unsatisfied_dependency` with reason `captured item unmigrated`.
+- **Satisfaction is unchanged.** `_TERMINAL_STATUS_BY_KIND`, the defect branch of `_dependency_is_satisfied`, and its cooled branch stay as they are. A non-cooled non-defect captured item never satisfies a dependency, exactly as today, where a non-terminal status blocks and a terminal one is a lifecycle finding that structurally blocks the path. A cooled one is satisfied without a read, as today.
+- **The refusal skips three read sites, and only those.** The retirement-candidate scan in `workspace_status_retirement_candidates.py` reads tracked text files for citations, not for a captured item's status or kind, and is unchanged.
+- **Read sites.** An unmigrated captured membership is skipped by `_artifact_metadata`, by the identity pass in `canonical_repository_identity` (which calls `_metadata_from_root`), and by `_header_edges_by_path`. Each dependency on its path reports `unsatisfied_dependency` with reason `captured item unmigrated`.
 - **Legacy entries.** Legacy captured entries keep `unsupported_legacy`. The registry is not rewritten for them; their record is found by slug.
-- **Slugs are fixed by the whole set.** The planner computes every captured item at migration's slug in one pass before it emits any operation: legacy and migrated slugs first, then each unmigrated membership's derived slug, prefixed when it collides with any of them. A rerun after an interruption sees the same set and assigns the same slugs.
+- **Slugs are fixed by the whole set.** The planner computes every captured item at migration's base slugs in one pass before it emits any operation, and prefixes an unmigrated membership's slug when its base slug collides with any other base slug. A migrated membership contributes its record's slug and its `Detail:` source's base slug, so a membership refused after its twin migrated still collides on the rerun and keeps its prefix.
+- **Status conflicts are read from the source.** The planner reads the source's own `Status:` and applies AC-0021's collection rules to it, which are the rules the engine at `ce30822a0` applied, because the switched engine no longer reads an unmigrated file and so reports no such finding itself.
 
 ### Failure, edge cases & resilience
 
 Owned by: T5
 
-- Apply order is the record first, then one atomic `workspace.toml` write, then each source file's line removal by atomic replace. Before the registry write, an interrupted run leaves a record whose bytes the rerun re-derives exactly, because the source is unchanged; it keeps the record and finishes. After the registry write, the membership is migrated, and the source's leftover lines are removed by a `captured-detail-cleanup` operation, whose evidence is the registry's migrated `path` together with the record's `Detail:` and the subset rule of AC-0023, never the record alone.
-- A record path whose parent directory is absent is created through the same confinement check, re-checked after creation, so a symlinked `docs/product/` or `docs/product/captured/` refuses the operation.
-- The writer lock is the shared `.workspace-repair.lock` the intake transaction uses, taken before any precondition check, so an intake write and a repair never interleave.
+- Apply order is the records first, then one atomic `workspace.toml` write. An interrupted run leaves records whose bytes the rerun re-derives exactly, because no source has changed; it keeps them and finishes. A record path occupied by anything else refuses its operation.
+- A record path whose parent directory is absent is created through the same segment check, re-checked after creation, so a symlinked `docs/product/` or `docs/product/captured/` refuses the operation.
+- The writer lock is the shared `.workspace-repair.lock` the intake transaction uses, taken before any precondition check. Agent writers that create records without the lock are caught by the exclusive create, which refuses rather than overwrites.
 
 ### Dependencies & integration
 
 Owned by: T2
 
-- The listing and record reads use the engine's own confinement helpers, tightened to refuse a linked or multiply linked entry as `_confined_briefs_path` does for briefs. The blessed `agentbundle.catalogue_tooling.file_safety` helpers live in the `agentbundle` package, which a standalone skill script cannot import (ADR-0074), so the engine keeps its own stdlib equivalents.
+- The listing and record reads use the engine's identity-checked reader. The blessed `agentbundle.catalogue_tooling.file_safety` helpers live in the `agentbundle` package, which a standalone skill script cannot import (ADR-0074), and `confine_migration_path` with `_migration_file_bytes` is the engine's stdlib equivalent of `read_confined_regular_file`.
 
 ## Tasks
 
@@ -106,8 +108,8 @@ Owned by: T2
 **Mode:** TDD
 
 **Tests:**
-- Criteria: AC-0007, AC-0009, AC-0010.
-- `packs/core/tests/skills/workspace-status/test_captured_item_files_equivalence.py` builds one `tmp_path` repository per case in today's shape: a defect note with no status, and one `Closed`, in `backlog.open`; a design note `Draft`, and one `Approved`, in `backlog.open` and in `shaping_queue.backlog`; a closed defect with each resolution, and a defect note `Open`, in `backlog.closed`; and a spec depending on the `Draft` design note, on the `Approved` one, and on each closed defect.
+- Criteria: AC-0007, AC-0009, AC-0010, AC-0042.
+- `packs/core/tests/skills/workspace-status/test_captured_item_files_equivalence.py` builds one `tmp_path` repository per case in today's shape: a defect note with no status, and one `Closed`, in `backlog.open`; a design note `Draft`, and one `Approved`, in `backlog.open` and in `shaping_queue.backlog`; a closed defect with each resolution, and a defect note `Open`, in `backlog.closed`; a spec depending on the `Draft` design note, on the `Approved` one, and on each closed defect; and a spec depending on a cooled defect with and without a `backlog.closed` membership and on a cooled design note.
 - A recorder behind `--record-expectations` writes `fixtures/captured-item-files/expected.json` from the engine at `ce30822a0`, run from a `git worktree` of that commit, holding each case's finding codes and paths and `dispatch_by_path` dispatchability. It is committed on its own.
 - Without the flag, the test asserts the old shape still reproduces `expected.json` on the unchanged engine.
 
@@ -120,9 +122,9 @@ Owned by: T2
 **Mode:** TDD
 
 **Tests:**
-- Criteria: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006.
+- Criteria: AC-0001, AC-0002, AC-0003, AC-0004, AC-0041, AC-0005, AC-0006.
 - `test_captured_item_files_reader.py` plants one case per AC-0001 rule: each field missing, repeated, and out of set; `Resolution:` on an open defect and missing on a closed one; a `Parent intent:` that is a `spec:` reference; a `Detail:` with a `..` segment; a field hidden in a comment or a fence, which does not count; a field line under `## Summary`, which does not count; and a valid record with every optional field.
-- Listing cases: an absent directory; a `README.md` and a `Bad_Name.md`, both ignored; a cooled file made unreadable, listed as cooled with no read; a symlinked `docs/product/captured`; a symlinked entry, a hard-linked entry, and a directory named like a record, each `unreadable: true`; an invalid entry, `invalid: true`; and the same tree under two different registries, giving equal `captured` objects.
+- Listing cases: an absent directory; a `README.md` and a `Bad_Name.md`, both ignored; a cooled file made unreadable, listed as cooled with no read; a symlinked `docs/product/captured` and a symlinked `docs/product`; a symlinked entry, a hard-linked entry, a directory named like a record, and an entry swapped for a link between its check and its open, each `unreadable: true`; an invalid entry, `invalid: true`; and the same tree under two different registries, giving equal `captured` objects.
 
 **Done when:** each reader test reds before its rule exists and passes after.
 
@@ -133,9 +135,9 @@ Owned by: T2
 **Mode:** TDD
 
 **Tests:**
-- Criteria: AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013.
-- `test_captured_item_files_equivalence.py` adds the migrated form of each T1 case whose old shape has no lifecycle finding: the record in `docs/product/captured/` with `Open` for open-collection items and `Closed` with the same resolution for closed defects. Each asserts T1's finding codes and dispatchability. AC-0007's three conflict cases, a `Closed` record in `backlog.open` and in `shaping_queue.backlog` and an `Open` record in `backlog.closed`, each assert `impossible_transition`, matching the T1 finding for the same conflict in today's shape.
-- Each old-shape T1 case becomes an `unmigrated_captured_item` assertion with its next action. A spy over the engine's file opens asserts that no reconciliation opens the unmigrated path, across `_artifact_metadata`, `canonical_repository_identity`, and `_header_edges_by_path`; a planted `Depends on:` line on the unmigrated file contributes no edge. A spec depending on an unmigrated path asserts `unsatisfied_dependency`.
+- Criteria: AC-0007, AC-0008, AC-0009, AC-0010, AC-0042, AC-0011, AC-0012, AC-0013.
+- `test_captured_item_files_equivalence.py` adds the migrated form of each T1 case whose old shape has no lifecycle finding: the record in `docs/product/captured/` with `Open` for open-collection items and `Closed` with the same resolution for closed defects. Each asserts T1's finding codes and dispatchability, including the three cooled cases, with the record made unreadable to show it is not opened. AC-0007's three conflict cases, a `Closed` record in `backlog.open` and in `shaping_queue.backlog` and an `Open` record in `backlog.closed`, each assert `impossible_transition`, matching the T1 finding for the same conflict in today's shape.
+- Each old-shape T1 case becomes an `unmigrated_captured_item` assertion with its next action, and a cooled one asserts the hand-written-record next action. A spy over the engine's file opens asserts that no reconciliation opens the unmigrated path, across `_artifact_metadata`, `canonical_repository_identity`, and `_header_edges_by_path`; a planted `Depends on:` line on the unmigrated file contributes no edge. A spec depending on an unmigrated path asserts `unsatisfied_dependency`.
 - A membership-kind mismatch, an invalid record, and an unreadable record in `backlog.open` each assert their one finding.
 - `navigate-intents`' `_KNOWN_FINDINGS` in `intent_readiness.py` gains `unmigrated_captured_item` and `invalid_captured_item` with the engine's sentences, and `test_readiness_vocabulary_matches_workspace_status` passes.
 - The suites the survey found move their captured memberships into `docs/product/captured/` with a record: `tools/test_workspace_status_cli.py`, `tools/test_workspace_status.py`, `packages/agentbundle/tests/test_workspace_mcp_tools.py`, `packs/core/tests/skills/workspace-status/`, `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py`, `packs/core/tests/pack/fixtures/work-intake-contracts/`, and the roster suites `test_dependency_scoped_completion_receipts.py`, `test_status_projection_and_context_exclusion.py`, and `test_two_sided_prune_closure_invariant.py`. The eval fixtures `workspace-status/evals/files/target/` and `cooled-path-collision/` move the same way. An assertion that pins the old reading becomes an `unmigrated_captured_item` assertion. The suites and the skills' eval suites pass.
@@ -163,19 +165,22 @@ Owned by: T2
 **Mode:** TDD
 
 **Tests:**
-- Criteria: AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0032.
+- Criteria: AC-0016, AC-0043, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0030, AC-0031, AC-0032.
 - `test_captured_item_files_repair.py` runs `repair-plan` and `repair-apply` over fixture repositories. It asserts:
   - the operation fields, with `repair-plan` leaving every byte outside its plan file unchanged;
-  - the slug rule over `verification-ledger.md` twice, `follow-ons.md` three times, `manifest.example.yaml`, a stem that is all punctuation, and a membership whose stem equals a legacy entry's slug, including that the same slugs come back on a rerun after the legacy record exists;
+  - the slug rule over `verification-ledger.md` twice, `follow-ons.md` three times, `manifest.example.yaml`, a stem that is all punctuation, and a membership whose stem equals a legacy entry's slug;
+  - the same slugs on a rerun after the legacy record exists, and after one of two colliding memberships migrated and the other was refused;
   - the record text for a file-backed defect, a design note carrying `Depends on:`, a legacy entry with `intent` and `summary`, a legacy entry with `type = "shape"` and no `kind`, and a closed defect with its `Resolution:`;
   - a summary holding `\n- **Type:** strategy` lines, which stay under `## Summary` and do not route the guard, and a summary holding an escape character, which is a manual finding;
-  - one manual finding per AC-0021 case, and a `canonical_failed` workspace yielding no operation and no finding;
-  - a byte comparison of `workspace.toml` outside the changed `path` values and of each source file outside the removed lines;
+  - one manual finding per AC-0021 case, including an `Approved` design note in `backlog.open` and in `shaping_queue.backlog` and a membership with typed `needs`, whose plan also holds its `needs-to-header` operation;
+  - an AC-0043 finding for a legacy `type = "shape"` entry whose slug names a record with no `Type:`;
+  - a `canonical_failed` workspace yielding no operation and no finding;
+  - a byte comparison of `workspace.toml` outside the changed `path` values, and every source file byte-identical after apply;
   - each AC-0026 refusal: an edited `source_path` with a matching SHA-256, an edited `record_path`, an edited `slug`, an edited `entry_locator`, and an edited `record_text`, each with `plan_id` recomputed; a changed source; a changed registry; and a membership cooled after planning;
-  - each AC-0027 and AC-0029 refusal: a record path created as a file with other bytes after planning, a hard-linked record holding the planned bytes, a symlinked record directory, a hard-linked source, and a symlinked source segment;
-  - an interrupted apply after the record write and before the registry write, and one after the registry write and before the source edit, each followed by a clean rerun that leaves no item held twice;
-  - `captured_equal` false when a record is edited by hand after the write;
-  - an oversized slug and a source path with a control character, each echoed as an empty string while the plan file holds it whole.
+  - each AC-0027 refusal: a record path created as a file with other bytes after planning, a hard-linked record holding the planned bytes, a symlinked `docs/product`, and a symlinked record directory;
+  - an interrupted apply after the first record write, followed by a clean rerun that writes the same records;
+  - `captured_equal` false when a record is edited by hand after the write, and the copied edges keyed by record path on both sides;
+  - an oversized slug and a source path with a control character, each echoed as an empty string while the plan file holds it whole, and a record text printed as one escaped JSON string.
 
 **Done when:** the repair tests pass.
 
@@ -186,9 +191,9 @@ Owned by: T2
 **Mode:** goal-based
 
 **Tests:**
-- Criteria: AC-0038, AC-0039.
-- `tests/roster/test_captured_item_files_instructions.py` asserts AC-0038's closed file list, its directory phrase, and its `toml` path rule, and AC-0039's two lines.
-- `work-intake` SKILL.md's remember route and Terse workspace capture name the record and its fields; `references/lifecycle-index.md` follows. `run-okr-cascade` writes each gap as a record with `Kind: intent` and `Type: strategy` and registers that path. `frame-situation` and `diverge-solutions` suggest registering through `work-intake`, which writes the record with `Detail:` naming the shaping artifact, and their examples follow. The architect guide's design-record entry points at a record. Each changed skill's eval cases follow.
+- Criteria: AC-0038, AC-0044, AC-0039.
+- `tests/roster/test_captured_item_files_instructions.py` asserts AC-0038's closed file list, its directory phrase, and its `toml` path rule, AC-0044's slug-only rule, and AC-0039's two lines.
+- `work-intake` SKILL.md's remember route and Terse workspace capture name the record and its fields; `references/lifecycle-index.md` follows. `run-okr-cascade` writes each gap as a record with `Kind: intent` and `Type: strategy` and registers that path. `frame-situation` and `diverge-solutions` suggest registering through `work-intake`, which writes the record with `Detail:` naming the shaping artifact, and their examples follow. `work-loop`'s pre-flight failure capture writes a record and registers its path. The architect guide's design-record entry points at a record. Each changed skill's eval cases follow.
 - `mutate.md`, `workspace-status` SKILL.md, `guides/core/reference/workspace-toml-schema.md`, and `guides/core/how-to/start-or-remember-work.md` describe the file, the refusal, and the repair. The anchor hash in `tools/test_workspace_status.py` is updated in the same commit as any SKILL.md §1 to §5 text.
 - `test_workspace_retirement_inventory.py` passes, with one `docs/specs/captured-item-files/*` contract row at owner 3.
 
@@ -203,7 +208,7 @@ Owned by: T2
 **Tests:**
 - Criteria: AC-0033, AC-0034, AC-0035, AC-0036.
 - Capture `status` and the resolved deferral anchors of `lint-spec-status.py` with the engine at `ce30822a0` as the construction test says. Run `repair-plan`, and ask the owner to confirm the exact plan, including all 77 slugs and the 26 assigned kinds (spec Ask-first). Run `repair-apply`, and record `captured_equal`, the edge sets, and the AC-0035 and AC-0036 comparisons in `notes/verification-ledger.md`.
-- Update `workspace.toml`'s header comment on where a captured item's entry points.
+- Remove the copied `Depends on:` line from `docs/product/design/portfolio-outcome-entry-surfaces.md` by hand, and update `workspace.toml`'s header comment on where a captured item's entry points.
 - `make build-self`, the four version bumps, and the changelog fragment. This spec's `workspace.toml` entry and Spec map row are added at approval, before any capture, so both trees hold them. `lint-brief-coverage.py` passes.
 
 **Done when:** `captured_equal` is true, the AC-0035 and AC-0036 comparisons pass, and the ledger records them.
@@ -225,7 +230,7 @@ Owned by: T2
 
 - **Delivery:** one pull request. The reader, the refusal, the repair, the writers, and this repository's migration ship together, so no captured item is refused on a tree that has not been migrated.
 - **Adopters:** after upgrading `core`, a captured item registered outside `docs/product/captured/` is reported with `unmigrated_captured_item`, which names `repair-plan`. One confirmed `repair-apply` moves them all. A captured item is never dispatchable, so the refusal stops no build work.
-- **Reversal:** revert the pull request. The migration is tracked-file edits, so the revert restores the registry paths and the moved line and removes the records together.
+- **Reversal:** revert the pull request. The migration is tracked-file edits, so the revert restores the registry paths and the design note's dependency line and removes the records together.
 
 ## Risks
 
