@@ -102,6 +102,7 @@ def test_search_term_comes_only_from_the_request() -> None:
 def test_selector_is_json_encoded_one_literal_argument_or_refused() -> None:
     """AC-0008"""
     assert "Build the selector value by JSON encoding the term" in ROUTE
+    assert "JSON-encode with every non-ASCII character escaped as `\\uXXXX`." in ROUTE
     assert "exactly one literal argument" in ROUTE
     assert "When the shell cannot quote the value safely, refuse it" in ROUTE
 

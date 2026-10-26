@@ -283,25 +283,34 @@ def _is_hostile_consulted_char(ch: str) -> bool:
     return unicodedata.category(ch) in {"Cc", "Zl", "Zp"} or ord(ch) in _CONSULTED_BAD_EXPLICIT
 
 
-def _consulted_raw_lines(text: str) -> list[str]:
-    """Return the raw ``Consulted`` value lines, or [] when the field is absent.
+_CONSULTED_KEY_RE = re.compile(r"^(?:- )?\*\*Consulted:\*\*")
 
-    Reads the decoded text split on ``\n`` only (one ``\r`` before each
-    ``\n`` removed), not ``splitlines()``, so U+2028, U+2029, U+000B and
-    U+0085 stay inside the value instead of ending a line.  The value is the
-    key line plus, only when the key line carries nothing once its HTML
-    comment is removed, the continuation lines of Form 1 or Form 2.
+
+def _consulted_raw_lines(text: str) -> list[str]:
+    """Return every raw ``Consulted`` value line before the first ``##`` heading.
+
+    Reads the decoded text split on ``\n`` only, not ``splitlines()``, so
+    U+2028, U+2029, U+000B and U+0085 stay inside the value instead of ending
+    a line.  A trailing ``\r`` is removed only from elements a ``\n`` follows,
+    so a lone ``\r`` at end of file stays and is flagged.  Each key line is
+    found by prefix match; when its same-line value is empty once the HTML
+    comment and whitespace are removed, that key line's own Form 1 or Form 2
+    continuation lines are taken too.  Repeated key lines are all scanned.
     """
-    lines = [ln[:-1] if ln.endswith("\r") else ln for ln in text.split("\n")]
+    parts = text.split("\n")
+    last = len(parts) - 1
+    lines = [ln[:-1] if i < last and ln.endswith("\r") else ln
+             for i, ln in enumerate(parts)]
+    found: list[str] = []
     for i, line in enumerate(lines):
         if line.startswith("## "):
-            return []
-        m = _META_FIELD_RE.match(line)
-        if m and m.group(1) == "Consulted":
-            if _strip_comment(m.group(2)):
-                return [line]
-            return [line, *_continuation_lines(lines, i)[0]]
-    return []
+            break
+        m = _CONSULTED_KEY_RE.match(line)
+        if m:
+            found.append(line)
+            if not _strip_comment(line[m.end():]):
+                found.extend(_continuation_lines(lines, i)[0])
+    return found
 
 
 def _parse(path: Path, text: str) -> _Record:

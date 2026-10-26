@@ -1674,3 +1674,34 @@ def test_s016_accepts_crlf_file_with_clean_value(tmp_path):
     found, code = _s016(tmp_path, "- **Consulted:** @org/team\n", crlf=True)
     assert not found
     assert code == 0
+
+
+def test_s016_scans_every_repeated_consulted_key(tmp_path):
+    found, _ = _s016(tmp_path, "- **Consulted:** @a\n- **Consulted:** @b\u202ec\n")
+    assert found
+
+
+def test_s016_flags_lone_cr_at_end_of_file(tmp_path):
+    """A key line ends the file, so no heading precedes it and no "\\n" follows."""
+    d = tmp_path / "adr"
+    d.mkdir()
+    text = "# ADR-0001: T\n\n- **Status:** Accepted\n- **Consulted:** @a\r"
+    (d / "0001-a.md").write_bytes(text.encode("utf-8"))
+    _, out, err = _run(d)
+    assert "ADR-S016" in _extract_codes(out + err)
+
+
+def test_s016_ignores_continuation_of_a_key_line_with_a_value(tmp_path):
+    found, _ = _s016(tmp_path, "- **Consulted:** @a\n  - @b\u202ec\n")
+    assert not found
+
+
+def test_s016_pass_is_linear_on_repeated_comment_openers(tmp_path):
+    import time
+
+    body = "- **Consulted:** " + "<!-- " * 8000 + "\n"
+    text = "# ADR-0001: T\n\n" + body
+    lint = _load_lint()
+    start = time.perf_counter()
+    lint._consulted_raw_lines(text)
+    assert time.perf_counter() - start < 2

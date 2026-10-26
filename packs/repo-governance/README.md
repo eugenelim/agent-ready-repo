@@ -56,4 +56,4 @@ CLIs older than 0.57.0 print plain "not found" for the old name, so use these st
 
 ## Details
 
-Scope: repo (default) · Version: 2.0.0 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)
+Scope: repo (default) · Version: 2.1.0 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)
