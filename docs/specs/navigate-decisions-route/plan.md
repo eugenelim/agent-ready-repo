@@ -250,7 +250,8 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
 - AC-0025 (TDD, in `tests/skills/new-adr/test_lint_adr_shape.py`):
   - fixture ADRs whose `Consulted` holds U+202E, U+0007, U+2028, U+2029, U+000B or
     U+0085 each yield the new finding;
-  - a fixture whose `Consulted` continuation line holds U+202E yields the finding;
+  - a fixture whose `Consulted` key line is empty and whose indented (Form 1)
+    continuation line holds U+202E yields the finding;
   - conforming fixtures yield none: a CRLF file, a `Consulted` value holding
     U+0009, and a role name holding U+200C;
   - a conforming fixture whose `Consulted` holds
