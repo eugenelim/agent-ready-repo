@@ -1,7 +1,7 @@
 # Spec: Captured items in their own files
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-26 by eugenelim, spec and plan, after spec-stage shaping, adversarial, and security reviews over seven rounds ending clean; review records under `.context/reviews/captured-item-files-spec-20261026T0431/`.
+- **Approved:** 2026-10-26 by eugenelim, spec and plan, after spec-stage shaping, adversarial, and security reviews over seven rounds ending clean; review records under `.context/reviews/captured-item-files-spec-20261026T0431/`. Re-approved 2026-10-26 by eugenelim after controlled amendment 1 (`notes/verification-ledger.md` § Amendment 1: AC-0037's Case-cell rule), clean on adversarial review of the amendment apart from one deferred nit.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, a captured item's own file with `Status:`, `Kind:`, and `Type:` lines and the migration's kind assignment; D1, the shaping-item guard's replacement and the rule that a writer stops only with its contract), RFC-0105 (D3, the behavioral-equivalence gate), RFC-0103 (D1, the typed `Parent intent:` reference), ADR-0053 (D9, OKR gaps routed to `frame-situation` by their `strategy` type), ADR-0074 (standard-library skill scripts)
@@ -180,7 +180,7 @@ Each criterion from AC-0001 to AC-0032, from AC-0041 to AC-0043, and from AC-004
 - [ ] **AC-0034.** On this repository at the implementing pull request's head commit, every captured membership is migrated and the `captured` object holds no finding.
 - [ ] **AC-0035.** On this repository, `workspace-status status` over the tree after `repair-apply` reports the same `canonical.ready`, `canonical.active`, and `canonical.blocked` paths, and the same canonical findings by code, as the engine at commit `ce30822a0` reports over the tree the repair read, with each finding on a migrated membership's old path appearing on its new one.
 - [ ] **AC-0036.** On this repository, every `(deferred: <anchor>)` marker that `lint-spec-status.py` resolves over the tree the repair read also resolves over the tree it left.
-- [ ] **AC-0037.** `docs/specs/workspace-retirement/retirement-record.md` § Equivalence holds one row for each of these cases, its Case cell being the case's name up to any colon, under the criteria the amended `workspace-retirement` spec states for that section:
+- [ ] **AC-0037.** `docs/specs/workspace-retirement/retirement-record.md` § Equivalence holds one row for each of these cases, its Case cell being the case's name up to the first colon outside a code span, under the criteria the amended `workspace-retirement` spec states for that section:
   - the captured-item file migration;
   - the captured-item lifecycle status;
   - the captured-item dependency;

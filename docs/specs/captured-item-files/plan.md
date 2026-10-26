@@ -242,3 +242,5 @@ Owned by: T2
 
 - 2026-10-26: spec approved by eugenelim
 - 2026-10-26: plan approved by eugenelim
+- 2026-10-26: spec amendment approved by eugenelim (amendment 1: AC-0037's Case cell is cut at the first colon outside a code span)
+- 2026-10-26: plan amendment approved by eugenelim (amendment 1: no task change; T8 resumes)
