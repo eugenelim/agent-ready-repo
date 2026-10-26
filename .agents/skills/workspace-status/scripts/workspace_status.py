@@ -3104,7 +3104,7 @@ def _write_record(root: Path, record_path: str, data: bytes) -> str:
         raise _CapturedRefusal("record_directory_unsafe")
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
     try:
-        descriptor = os.open(target, flags, 0o644)
+        descriptor = os.open(target, flags, 0o600)
     except FileExistsError:
         raise _CapturedRefusal("record_path_occupied") from None
     except OSError:

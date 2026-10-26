@@ -1236,7 +1236,7 @@ def test_write_record_creates_exclusively_without_following_a_link(
         s for s in seen if s[0].endswith("captured/r.md") and s[1] & os.O_CREAT
     ]
     assert flags & os.O_EXCL and flags & os.O_CREAT and flags & os.O_NOFOLLOW
-    assert flags & os.O_WRONLY and mode == 0o644
+    assert flags & os.O_WRONLY and mode == 0o600
     assert (tmp_path / CAPTURED / "r.md").read_bytes() == PAYLOAD
 
 
