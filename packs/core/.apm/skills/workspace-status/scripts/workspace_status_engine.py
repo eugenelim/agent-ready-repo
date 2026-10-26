@@ -106,6 +106,9 @@ _FINDING_NEXT_ACTIONS = {
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
     "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
+    "invalid_captured_item": (
+        "Fix the named field of that captured-item file, then rerun reconciliation."
+    ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
     "unregistered_work": "Register or reconcile the canonical entry explicitly.",
@@ -3249,6 +3252,184 @@ def _echoable_reference(item: str) -> str:
     ):
         return ""
     return _bounded_finding_identifier(item)
+
+
+# The captured-item file grammar and the listing of its directory. A captured
+# item is one file in `_CAPTURED_DIR`; its preamble fields say what it is. The
+# listing is built from the directory and the cooled set only, never from the
+# registry, so two registries over one tree give one listing.
+_CAPTURED_DIR = "docs/product/captured"
+_CAPTURED_FILE_RE = re.compile(r"[a-z0-9][a-z0-9-]*\.md")
+_CAPTURED_STATUSES = frozenset({"Open", "Closed"})
+_CAPTURED_KINDS = frozenset({"defect", "design", "research", "intent"})
+_CAPTURED_RESOLUTIONS = frozenset({"fixed", "declined", "superseded"})
+_CAPTURED_PARENT_KINDS = frozenset({"intent", "outcome", "opportunity", "capability"})
+# Each shaping type routes to a skill, in the order the spec lists them.
+_SHAPING_TYPE_ROUTES = {
+    "shape": "intent",
+    "research": "desk-research-project-start",
+    "strategy": "frame-situation",
+    "design": "experience-status",
+    "signal": "(signal — no action)",
+}
+# AC-0001's fields, in the order the first failing one is named.
+_CAPTURED_FIELD_ORDER = (
+    ("status", "Status"),
+    ("kind", "Kind"),
+    ("type", "Type"),
+    ("resolution", "Resolution"),
+    ("parent intent", "Parent intent"),
+    ("detail", "Detail"),
+)
+
+
+@dataclasses.dataclass(frozen=True)
+class CapturedListing:
+    """The `captured` object: one entry per file, and the findings they give."""
+
+    items: list[dict[str, Any]]
+    findings: tuple[RoutingFinding, ...]
+
+
+def _captured_field_value(raw: str, name: str) -> str:
+    """A preamble field's value: backticks off once, first word for `Kind`."""
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == "`" and value[-1] == "`":
+        value = value[1:-1].strip()
+    if name == "kind":
+        words = value.split()
+        value = words[0] if words else ""
+    return value
+
+
+def parse_captured_item(text: str) -> tuple[dict[str, str | None] | None, str | None]:
+    """Check one captured-item file's preamble against the grammar.
+
+    Returns `(fields, None)` when valid and `(None, <first failing field>)`
+    otherwise. Field lines are counted here through `_iter_preamble_lines`,
+    because `_parse_preamble_fields` keeps only the first value of a repeat.
+    """
+    values: dict[str, list[str]] = {}
+    for line in _iter_preamble_lines(text):
+        match = _HEADER_FIELD_RE.match(line)
+        if match:
+            name = match.group("name").strip().lower()
+            values.setdefault(name, []).append(
+                _captured_field_value(match.group("value"), name)
+            )
+
+    def single(name: str) -> str | None:
+        found = values.get(name, [])
+        return found[0] if len(found) == 1 else None
+
+    status, kind = single("status"), single("kind")
+    for key, label in _CAPTURED_FIELD_ORDER:
+        found = values.get(key, [])
+        value = single(key)
+        if len(found) > 1:
+            return None, label
+        if key == "status" and value not in _CAPTURED_STATUSES:
+            return None, label
+        if key == "kind" and value not in _CAPTURED_KINDS:
+            return None, label
+        if key == "type" and found and value not in _SHAPING_TYPE_ROUTES:
+            return None, label
+        if key == "resolution":
+            required = kind == "defect" and status == "Closed"
+            if required != bool(found) or (
+                found and value not in _CAPTURED_RESOLUTIONS
+            ):
+                return None, label
+        if key == "parent intent" and found:
+            typed = _TYPED_REFERENCE_RE.fullmatch(value or "")
+            if typed is None or typed.group("kind") not in _CAPTURED_PARENT_KINDS:
+                return None, label
+        if key == "detail" and found and not _is_captured_item_reference(value or ""):
+            return None, label
+    return {
+        "status": status,
+        "kind": kind,
+        "type": single("type"),
+        "resolution": single("resolution"),
+        "parent_intent": single("parent intent"),
+        "detail": single("detail"),
+    }, None
+
+
+def _captured_finding(code: str, path: str, field: str = "") -> RoutingFinding:
+    """A finding that echoes `path` only when it fits the reference grammar."""
+    return _finding(code, _echoable_reference(path), field)
+
+
+def read_captured_item(
+    root: Path, name: str, cooled: frozenset[Path]
+) -> tuple[dict[str, Any], RoutingFinding | None]:
+    """List one captured-item file, `name` being a name in the file grammar.
+
+    A cooled file is never opened. Any other is read through the identity-checked
+    reader, so a link, a non-regular file, or a swap between check and open is
+    unreadable and none of its content is used.
+    """
+    relative = f"{_CAPTURED_DIR}/{name}"
+    entry: dict[str, Any] = {"path": relative, "slug": name.removesuffix(".md")}
+    if _confined_artifact_path(root, relative) in cooled:
+        return {**entry, "cooled": True}, None
+    content = _migration_file_bytes(root, relative)
+    try:
+        text = content.decode("utf-8") if content is not None else None
+    except UnicodeDecodeError:
+        text = None
+    if text is None:
+        return (
+            {**entry, "unreadable": True},
+            _captured_finding("unreadable_artifact", relative),
+        )
+    fields, failing = parse_captured_item(text)
+    if fields is None:
+        return (
+            {**entry, "invalid": True},
+            _captured_finding("invalid_captured_item", relative, failing or ""),
+        )
+    routed = fields["type"]
+    return {
+        **entry,
+        "status": fields["status"],
+        "kind": fields["kind"],
+        "type": routed,
+        "routes_to": _SHAPING_TYPE_ROUTES[routed] if routed else None,
+        "resolution": fields["resolution"],
+        "parent_intent": fields["parent_intent"],
+        "detail": fields["detail"],
+    }, None
+
+
+def list_captured_items(root: Path, cooled: frozenset[Path]) -> CapturedListing:
+    """List the captured-item directory, one entry per captured-item file."""
+    unreadable = CapturedListing(
+        [], (_captured_finding("unreadable_artifact", _CAPTURED_DIR),)
+    )
+    directory = confine_migration_path(root, _CAPTURED_DIR)
+    if directory is None:
+        return unreadable
+    try:
+        if not os.path.lexists(directory):
+            return CapturedListing([], ())
+        if not stat.S_ISDIR(directory.lstat().st_mode):
+            return unreadable
+        names = sorted(
+            entry.name for entry in directory.iterdir()
+            if _CAPTURED_FILE_RE.fullmatch(entry.name)
+        )
+    except OSError:
+        return unreadable
+    items: list[dict[str, Any]] = []
+    findings: list[RoutingFinding] = []
+    for name in names:
+        item, finding = read_captured_item(root, name, cooled)
+        items.append(item)
+        if finding is not None:
+            findings.append(finding)
+    return CapturedListing(items, tuple(findings))
 
 
 def _header_finding(

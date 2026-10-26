@@ -457,6 +457,23 @@ def _canonical_finding_dict(f) -> dict:
     }
 
 
+def _captured_projection(root: Path, cooled: frozenset[Path]) -> dict:
+    """The `captured` object, from the directory listing and cooled set only."""
+    listing = _engine.list_captured_items(root, cooled)
+    findings = []
+    for found in listing.findings:
+        item = {
+            "code": found.code,
+            "path": found.path,
+            "dispatchable": found.dispatchable,
+            "next_action": found.next_action,
+        }
+        if found.code == "invalid_captured_item":
+            item["field"] = found.detail
+        findings.append(item)
+    return {"items": listing.items, "findings": findings}
+
+
 def _canonical_failure_payload(mode: str, code: str = "configuration_mismatch") -> dict:
     next_actions = {
         "configuration_mismatch": (
@@ -1069,6 +1086,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
         },
     }
     if mode in {"status", "reconcile"}:
+        output["captured"] = _captured_projection(root, result.cooled)
         cooling = _cooling_projection(result)
         unreadable = cooling.pop("_unreadable")
         output["cooling"] = cooling
@@ -4092,7 +4110,15 @@ def main(argv: list[str] | None = None) -> int:
                 f"workspace-status: {code}: {type(exc).__name__}",
                 file=sys.stderr,
             )
-        _emit(_canonical_failure_payload(subcommand, code))
+        payload = _canonical_failure_payload(subcommand, code)
+        if subcommand in {"status", "reconcile"}:
+            # The listing never reads the registry, so a failed registry
+            # still gets the same `captured` object.
+            with contextlib.suppress(Exception):
+                payload["captured"] = _captured_projection(
+                    root, _engine._resolve_cooled_state(root)[0]
+                )
+        _emit(payload)
         return 2
 
 

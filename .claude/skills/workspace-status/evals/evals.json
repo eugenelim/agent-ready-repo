@@ -474,6 +474,36 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 18,
+      "prompt": "workspace status",
+      "expected_output": "The agent invokes the workspace-status backend and reports the captured items listed from docs/product/captured/: flaky-export (a defect) and pricing-gap (an intent routed to frame-situation) are listed, and broken-item is reported with an invalid_captured_item finding whose field is Kind. It tells the user to fix the Kind field of docs/product/captured/broken-item.md, and does not modify any file.",
+      "assertions": [
+        "Lists flaky-export and pricing-gap as captured items",
+        "Reports pricing-gap as routed to frame-situation",
+        "Reports docs/product/captured/broken-item.md with an invalid_captured_item finding naming the Kind field",
+        "Tells the user to fix the Kind field of that file",
+        "Does not modify the workspace"
+      ],
+      "files": [
+        "evals/files/captured-items/workspace.toml",
+        "evals/files/captured-items/docs/product/captured/flaky-export.md",
+        "evals/files/captured-items/docs/product/captured/pricing-gap.md",
+        "evals/files/captured-items/docs/product/captured/broken-item.md"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "invalid_captured_item",
+          "broken-item",
+          "frame-situation"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:"
+        ]
+      }
     }
   ]
 }
