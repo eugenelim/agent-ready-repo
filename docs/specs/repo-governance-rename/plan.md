@@ -279,3 +279,5 @@ Owned by: T2, T3.
 
 - 2026-10-25: spec approved by eugenelim
 - 2026-10-25: plan approved by eugenelim
+- 2026-10-25: spec amendment (No recorded source covers a non-text value) approved by eugenelim
+- 2026-10-25: amended plan approved by eugenelim

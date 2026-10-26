@@ -102,7 +102,7 @@ Terms used below:
 - **A printable source** is a non-empty source with no unsafe character, no user-info and no query. Its fragment is empty, or, for an `archive+https` source only, exactly `sha256=` followed by 64 lowercase hexadecimal digits.
 - **The credential-free form** of a source is that source with its user-info, query and fragment removed and its unsafe characters escaped.
 - **Credential-bearing** describes a source that `canonicalize_source` in `config.py` rejects for user-info or for a credential term in a query key or the fragment.
-- **No recorded source** means the recorded source is missing, empty, or the legacy value `agent-ready-repo`, which `upgrade --all` already treats as absent.
+- **No recorded source** means the recorded source is missing, empty, not text, or the legacy value `agent-ready-repo`.
 - **Two sources differ** when the pack does not have no recorded source, and `canonicalize_source` does not return the same non-`None` value for its recorded source and for the reporting source.
 - **A pack directory** in a catalogue is found as the installer's `_locate_pack` finds it: `packs/<name>` first, then `<name>` at the catalogue root. A name "is a pack in the catalogue" when one of those holds a `pack.toml`.
 - **The installed state the hint reads** is the target repository's repo-scope state, whatever `--scope` the reporting command was given. `governance-extras`, `repo-governance` and `iac-terraform` each declare `allowed-scopes = ["repo"]`, so no other scope can hold them.
