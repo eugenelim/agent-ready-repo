@@ -404,8 +404,10 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   fresh session. Each transcript is saved in `notes/hand-check/`, with
   home-directory paths, the OS username and session identifiers replaced by
   placeholders, and the ledger records the audit result per share.
-- After the last share, the ledger records `git status --porcelain --ignored`
-  of the accuracy worktree, which is empty.
+- After any void share, and after the last share, the ledger records
+  `git status --porcelain --ignored` of the accuracy worktree. When it is not
+  empty, the ledger records what the void share ran, and the worktree is
+  recreated at the same commit before any later share or T6 reads it.
 - The merged `notes/hand-check.json` lists every accepted ADR, records the one
   `today` value all reviewers applied, and records the commit it read.
 
