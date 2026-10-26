@@ -18,11 +18,12 @@ agentbundle install --pack repo-governance
 - Record an ADR: the decision, the alternatives rejected, and the consequences. It links back to the RFC that led to it.
 - Look up ADRs and RFCs by lifecycle state, supersession lineage, and references.
 - Export the decision record as an offline HTML view.
+- Set up governance: draft a `GOVERNANCE.md`, a `CODEOWNERS` file or a charter link from the handles you supply, and write it only after you confirm the exact preview.
 - Amend an accepted RFC with a short signed correction, without reopening it.
 
 ## Skills
 
-- **`new-rfc`** — Proposes a change as a structured RFC and previews it before writing.
+- **`new-rfc`** — Proposes a change as a structured RFC and previews it before writing. Its `governance` mode drafts a `GOVERNANCE.md`, a `CODEOWNERS` file or a charter link from handles you supply, and writes only after you confirm the exact preview. See [Set up governance](../../guides/repo-governance/how-to/set-up-governance.md).
 - **`new-adr`** — Records a decision as an ADR in the repository's decision-record location.
 - **`navigate-decisions`** — Reads the ADR and RFC corpus: landscape, lineage, references, and detail. Its read-only `route` mode says which record a decision needs, whether it is a one-way door, and whom to consult; it writes nothing. Its read-only `health` mode lists due or stale decisions, superseded ADRs still cited, and missing confirmation checks; it runs none of the checks and writes nothing.
 
@@ -56,4 +57,4 @@ CLIs older than 0.57.0 print plain "not found" for the old name, so use these st
 
 ## Details
 
-Scope: repo (default) · Version: 2.2.0 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)
+Scope: repo (default) · Version: 2.3.0 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)

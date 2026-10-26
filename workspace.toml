@@ -241,6 +241,8 @@ active  = [
   {path = "docs/specs/execution-supervisor-attempt-security/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Refuse worker attempts that touch the control plane, harden supervisor git calls, pin the supervisor, and end Windows process trees through a Job Object", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-26 as repo-governance 2.3.0 / agentbundle 0.58.0 / core 3.1.21 / architect 0.15.20: slice 4 of repo-governance-pack, the new-rfc governance mode.
+  {path = "docs/specs/new-rfc-governance/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repo-governance-pack.md", parent = "docs/product/briefs/repo-governance-pack.md"}, summary = "Add a governance mode to new-rfc that drafts GOVERNANCE.md and CODEOWNERS under the RFC-0110 trust model, with a confined file_safety write", needs = []},
   # Shipped 2026-10-26 as repo-governance 2.2.0: slice 3 of repo-governance-pack, the read-only health mode.
   {path = "docs/specs/navigate-decisions-health/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repo-governance-pack.md", parent = "docs/product/briefs/repo-governance-pack.md"}, summary = "Add a read-only health mode to navigate-decisions that reports due, superseded and drifting decisions", needs = []},
   # Shipped 2026-10-26 as repo-governance 2.1.0: slice 2 of repo-governance-pack, the read-only route mode.
@@ -557,8 +559,6 @@ shipped = [
   {path = "docs/specs/code-intelligence-golden-composition-example/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md", revision = "working-tree-2026-10-04"}, summary = "Show one complete Wicked Estate composition without making its provider-specific shape normative", needs = []},
 ]
 queue   = [
-  # Four confirmed slices of repo-governance-pack, 2026-10-25, in RFC-0110 D6 order as amended.
-  {path = "docs/specs/new-rfc-governance/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repo-governance-pack.md", parent = "docs/product/briefs/repo-governance-pack.md"}, summary = "Add a governance mode to new-rfc that drafts GOVERNANCE.md and CODEOWNERS under the RFC-0110 trust model, with a confined file_safety write", needs = []},
   # Slice 4 of acceptance-centered-work-loop delivers through four specs under ADR-0144; only the cutover moves authority.
   {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
   {path = "docs/specs/native-provider-selection-validation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0032-native-provider-selection-validation.md", revision = "working-tree-2026-10-04"}, summary = "Run a blind human validation that can survive, reframe, or leave inconclusive the native-provider selection bet", needs = []},
