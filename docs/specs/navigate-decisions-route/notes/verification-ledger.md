@@ -14,3 +14,9 @@ what it showed.
   - `fixtures/route-seam/` holds ADR-0001 (shared logging library), ADR-0002 (Redis sessions), RFC-0001 (retry behaviour) and an RFC index, so the repository has an RFC process.
   - Fixture paths are under `packs/repo-governance/tests/skills/navigate-decisions/`. All three parse through `navigate_decisions.py` with status `ok`; a `text` search for `payments module` on the hostile fixture returns ADR-0001.
 - **ADR lint at the pre-change commit:** `notes/adr-lint-pre-change.txt` — 147 read, 0 refused, 0 unreadable, 0 findings, exit 0.
+- **Dispatch:** on 2026-10-26 eugenelim directed in session that the controller runs the evidence tasks T1 and T5 itself, so their dispatch receipts are recorded as `human-directed`. T2, T3 and T4 go to implementer subagents.
+
+## 2026-10-26 — T3 implemented
+
+- Commit `20645fd06`. The `Consulted` check is lint finding `ADR-S016`. The handle and role sentence in `new-adr` step 4 reads: "A handle is a platform handle such as `@user` or `@org/team`, and a role is a named function such as \"platform maintainers\"."
+- The implementer wrote the lint code before its tests, not red-first; the tests were added in the same commit.
