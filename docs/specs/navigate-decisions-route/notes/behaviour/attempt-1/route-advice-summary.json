@@ -1,0 +1,88 @@
+{
+ "request": "Use the navigate-decisions route mode: how should we decide on replacing our job queue? Consult @platform-team and security reviewers.",
+ "flags": [
+  "--permission-mode",
+  "default",
+  "--setting-sources",
+  "project,local",
+  "--strict-mcp-config",
+  "--output-format",
+  "stream-json",
+  "--verbose"
+ ],
+ "tools": "Skill Read Glob Grep + Bash(python3 <scratch>/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query:*)",
+ "runs": [
+  {
+   "run": 1,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 <tmp>/route-scratch-efd2j4dk/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-efd2j4dk --operation search --selectors '[{\"text\": \"job queue\"}]'",
+    "python3 <tmp>/route-scratch-efd2j4dk/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-efd2j4dk --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "RFC",
+   "route_tag": "RFC",
+   "consult_value": "@platform-team (platform owners), security reviewers (security review of the new trust boundary)",
+   "consult_set": [
+    "@platform-team (platform owners)",
+    "security reviewers (security review of the new trust boundary)"
+   ],
+   "block_found": true
+  },
+  {
+   "run": 2,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 <tmp>/route-scratch-mqb1yvl0/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-mqb1yvl0 --operation search --selectors '[{\"text\": \"job queue\"}]'",
+    "python3 <tmp>/route-scratch-mqb1yvl0/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-mqb1yvl0 --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "RFC",
+   "route_tag": "RFC",
+   "consult_value": "@platform-team (platform owners), security reviewers (security and trust review)",
+   "consult_set": [
+    "@platform-team (platform owners)",
+    "security reviewers (security and trust review)"
+   ],
+   "block_found": true
+  },
+  {
+   "run": 3,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 <tmp>/route-scratch-u341wrem/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-u341wrem --operation search --selectors '[{\"text\": \"job queue\"}]'",
+    "python3 <tmp>/route-scratch-u341wrem/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-u341wrem --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "RFC",
+   "route_tag": "RFC",
+   "consult_value": "@platform-team (platform owners), security reviewers (trust boundary and data handling of the new queue)",
+   "consult_set": [
+    "@platform-team (platform owners)",
+    "security reviewers (trust boundary and data handling of the new queue)"
+   ],
+   "block_found": true
+  }
+ ]
+}
