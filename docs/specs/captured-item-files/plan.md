@@ -17,7 +17,7 @@ Freeze first. T1 records, from the engine at commit `ce30822a0`, the outcome of 
 ## Constraints
 
 - Standard library only in the engine (ADR-0074). `tomlkit` stays inside `repair-apply`, under the Tier 1 declaration in `packs/core/AGENTS.md`.
-- Every read of a captured-item file or a source file goes through the engine's identity-checked reader, `confine_migration_path` with `_migration_file_bytes`, which refuses a link in any segment, requires a regular singly linked file, opens with `O_NOFOLLOW`, and checks identity before and after. The directory listing checks every segment of `docs/product/captured` the same way. `_confined_artifact_path` and `_confined_briefs_path` follow links and are not used for these reads. A record is created with `O_CREAT | O_EXCL | O_NOFOLLOW`. A cooled artifact's body is never opened.
+- Every read of a captured-item file or a source file goes through the engine's identity-checked reader, `confine_migration_path` with `_migration_file_bytes`, which refuses a link in any segment, requires a regular singly linked file, opens with `O_NOFOLLOW`, and checks identity before and after. The directory listing checks every segment of `docs/product/captured` the same way. `_confined_artifact_path` and `_confined_briefs_path` follow links and are not used for these reads. A record is created at its final path with `O_CREAT | O_EXCL | O_NOFOLLOW`, after the segment check of its directory. A cooled artifact's body is never opened.
 - `make build-self` reprojects the engine and `workspace_status.py` into `packages/agentbundle/agentbundle/_data/`. Packaged copies are never hand-edited.
 - An engine-source commit carries `Engine-Change-RFC: 0106`, as `tools/lint-catalogue-curation-guard.py` enforces.
 - `core`, `product-strategy`, `product-engineering`, and `architect` each take one patch bump in `pack.toml` and `.claude-plugin/plugin.json`, and each changed skill's eval harness gains or updates a case (`packs/AGENTS.md`).
@@ -79,8 +79,7 @@ Owned by: T3
 
 - **Lifecycle reads the record.** For a migrated captured membership, `_artifact_metadata` reads the record, and `_append_lifecycle_findings` applies AC-0007's `Open`/`Closed` rule in place of today's `Draft` rule for non-defect kinds in `backlog.open` and the per-kind terminal set in the shaping queues. A defect's `backlog.closed` rule, `Closed` with `fixed`, `declined`, or `superseded`, is unchanged.
 - **Satisfaction is unchanged.** `_TERMINAL_STATUS_BY_KIND`, the defect branch of `_dependency_is_satisfied`, and its cooled branch stay as they are. A non-cooled non-defect captured item never satisfies a dependency, exactly as today, where a non-terminal status blocks and a terminal one is a lifecycle finding that structurally blocks the path. A cooled one is satisfied without a read, as today.
-- **The refusal skips three read sites, and only those.** The retirement-candidate scan in `workspace_status_retirement_candidates.py` reads tracked text files for citations, not for a captured item's status or kind, and is unchanged.
-- **Read sites.** A non-cooled unmigrated captured membership is skipped by `_artifact_metadata`, by the identity pass in `canonical_repository_identity` (which calls `_metadata_from_root`), and by `_header_edges_by_path`. Each dependency on its path reports `unsatisfied_dependency` with reason `captured item unmigrated`. A cooled one is already never opened, and dependencies on it keep today's cooled branch.
+- **Read sites.** The retirement-candidate scan in `workspace_status_retirement_candidates.py` reads tracked text files for citations, not for a captured item's status or kind, and is unchanged. A non-cooled unmigrated captured membership is skipped by `_artifact_metadata`, by the identity pass in `canonical_repository_identity` (which calls `_metadata_from_root`), and by `_header_edges_by_path`. Each dependency on its path reports `unsatisfied_dependency` with reason `captured item unmigrated`. A cooled one is already never opened, and dependencies on it keep today's cooled branch.
 - **Legacy entries.** Legacy captured entries keep `unsupported_legacy`. The registry is not rewritten for them; their record is found by slug.
 - **Slugs are fixed by the whole set.** The planner computes every captured item at migration's base slugs in one pass before it emits any operation, and prefixes an unmigrated membership's slug when its base slug collides with any other base slug. A migrated membership contributes its record's slug and its `Detail:` source's base slug, so a membership refused after its twin migrated still collides on the rerun and keeps its prefix.
 - **Status conflicts are read from the source.** The planner reads the source's own `Status:` and applies AC-0021's collection rules to it, which are the rules the engine at `ce30822a0` applied, because the switched engine no longer reads an unmigrated file and so reports no such finding itself.
@@ -89,7 +88,7 @@ Owned by: T3
 
 Owned by: T5
 
-- Each record is written to `.<slug>.md.tmp` beside it, flushed, linked to the record path with `os.link`, which fails when the path exists, and the temporary name unlinked; a rerun unlinks a temporary file this repair named that it finds left over. Apply order is the records first, then one atomic `workspace.toml` write. An interrupted run leaves records whose bytes the rerun re-derives exactly, because no source has changed; it keeps them and finishes. A record path occupied by anything else refuses its operation.
+- Apply order is the records first, then one atomic `workspace.toml` write. A record cut short by a crash inside its own write is a regular file with other bytes; the rerun reports it as a manual finding naming the path, the owner removes it, and the next rerun finishes. The repair never deletes a file. An interrupted run leaves records whose bytes the rerun re-derives exactly, because no source has changed; it keeps them and finishes. A record path occupied by anything else refuses its operation.
 - A record path whose parent directory is absent is created through the same segment check, re-checked after creation, so a symlinked `docs/product/` or `docs/product/captured/` refuses the operation.
 - The writer lock is the shared `.workspace-repair.lock` the intake transaction uses, taken before any precondition check. Agent writers that create records without the lock are caught by the exclusive create, which refuses rather than overwrites.
 
@@ -165,7 +164,7 @@ Owned by: T2
 **Mode:** TDD
 
 **Tests:**
-- Criteria: AC-0016, AC-0043, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0030, AC-0031, AC-0032.
+- Criteria: AC-0016, AC-0043, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0024, AC-0025, AC-0026, AC-0027, AC-0046, AC-0047, AC-0028, AC-0030, AC-0031, AC-0032.
 - `test_captured_item_files_repair.py` runs `repair-plan` and `repair-apply` over fixture repositories. It asserts:
   - the operation fields, with `repair-plan` leaving every byte outside its plan file unchanged;
   - the slug rule over `verification-ledger.md` twice, `follow-ons.md` three times, `manifest.example.yaml`, a stem that is all punctuation, and a membership whose stem equals a legacy entry's slug;
@@ -177,11 +176,11 @@ Owned by: T2
   - a `canonical_failed` workspace yielding no operation and no finding;
   - a byte comparison of `workspace.toml` outside the changed `path` values, and every source file byte-identical after apply;
   - each AC-0026 refusal: an edited `source_path` with a matching SHA-256, an edited `record_path`, an edited `slug`, an edited `entry_locator`, and an edited `record_text`, each with `plan_id` recomputed; a changed source; a changed registry; and a membership cooled after planning;
-  - each AC-0027 refusal: a record path created as a file with other bytes after planning, a hard-linked record holding the planned bytes, a symlinked `docs/product`, and a symlinked record directory;
-  - an interrupted apply after the first record write, and one between the temporary write and the link, each followed by a clean rerun that writes the same records and leaves no temporary file;
+  - each AC-0027, AC-0046, and AC-0047 refusal: a record path created as a file with other bytes after planning, a symlink planted at the record path, a hard-linked record holding the planned bytes, a symlinked `docs/product`, and a symlinked record directory;
+  - an interrupted apply after the first record write, followed by a clean rerun that writes the same records; and a record cut short inside its write, which the rerun reports as a manual finding naming it and which finishes once the file is removed;
   - a plan holding both a `needs-to-header` and a `captured-to-file` operation, each writing only what its own contract allows;
   - `captured_equal` false when a record is edited by hand after the write, and the copied edges keyed by record path on both sides;
-  - an oversized slug and a source path with a control character, each echoed as an empty string while the plan file holds it whole; a receipt token with a control character and a malformed SHA-256, each echoed empty; and a record text printed as one escaped JSON string.
+  - an oversized slug and a source path with a control character, each echoed as an empty string while the plan file holds it whole; a receipt token with a control character and a malformed SHA-256, each echoed empty, and a valid SHA-256 and registry fingerprint printed in full; and a record text printed as one escaped JSON string.
 
 **Done when:** the repair tests pass.
 
