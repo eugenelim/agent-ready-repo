@@ -156,3 +156,17 @@ def test_opening_paragraph_names_governance_mode_ac_0101() -> None:
     opening = SKILL.read_text(encoding="utf-8").split("# Skill: new-rfc", 1)[1]
     first = opening.strip().split("\n\n", 1)[0]
     assert "`governance` mode" in first
+
+
+def test_governance_runs_only_the_script_one_command_at_a_time() -> None:
+    section = GOVERNANCE
+    assert (
+        "In this mode run no shell command other than the script, and give each script call its own "
+        "command, never joined to another with `;`, `&&` or a pipe." in section
+    )
+    assert "Use `Glob`, not the shell, to see which files and directories exist." in section
+
+
+def test_governance_shows_the_preview_block_as_printed() -> None:
+    section = GOVERNANCE
+    assert "Show it exactly as the script printed it, in one fenced block, before asking." in section

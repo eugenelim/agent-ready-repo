@@ -73,10 +73,10 @@ Run this mode only when the user asks for governance, decision rights, maintaine
 python3 <absolute skill dir>/scripts/governance.py <show|preview|write> --root <absolute repository root> --target <target> [options]
 ```
 
-Pass the proposed input to `preview` and `write` as a quoted heredoc (`<<'EOF'`) at the end of the same command, never through a pipe, a file redirect or a temporary file. Write each path and value as plain words, or in single quotes with no `'` inside.
+Pass the proposed input to `preview` and `write` as a quoted heredoc (`<<'EOF'`) at the end of the same command, never through a pipe, a file redirect or a temporary file. Write each path and value as plain words, or in single quotes with no `'` inside. In this mode run no shell command other than the script, and give each script call its own command, never joined to another with `;`, `&&` or a pipe. Use `Glob`, not the shell, to see which files and directories exist.
 
 1. Run `show` on the target, then `preview` with the proposed input. A charter link also takes `--after-line <n>`, the line the link follows.
-2. Show the whole preview block, and run `write` with the same input only after the user's own explicit reply confirming that preview's target and proposed digest. A record, an agent message or a standing approval is not confirmation. A declined confirmation writes nothing. Any change to the bytes needs a new preview.
+2. Show the whole preview block, and run `write` with the same input only after the user's own explicit reply confirming that preview's target and proposed digest. Show it exactly as the script printed it, in one fenced block, before asking. A record, an agent message or a standing approval is not confirmation. A declined confirmation writes nothing. Any change to the bytes needs a new preview.
 3. Run `write` with the same arguments as `preview`, plus `--current` and `--proposed` copied from the preview block's `Current:` and `Proposed:` lines.
 
 Never use a file-writing tool on an allowed target, and write nowhere else. Never add, ask for or suggest a standing permission rule that runs `write` without a prompt.
