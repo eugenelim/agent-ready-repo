@@ -368,7 +368,7 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
 
 ### T5: The independent hand check of docs/adr/ is recorded
 
-**Depends on:** none
+**Depends on:** T1 (T1 records the pre-change commit the accuracy worktree is made from)
 
 **Touches:** `docs/specs/navigate-decisions-health/notes/hand-check.json`, `docs/specs/navigate-decisions-health/notes/hand-check/*`
 
@@ -379,18 +379,22 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   reading disagreement.
 - The superseded-citation part reads every `docs/adr/` and `docs/rfc/` header for
   the superseded ADRs' identifiers.
-- The hand check reads the spec's accuracy worktree, unchanged. Reviewers get the
+- When the accuracy worktree is made, and before any reviewer reads it, the
+  ledger records its commit, its root entries, and an empty
+  `git status --porcelain --ignored`.
+- The hand check reads the accuracy worktree, unchanged. Reviewers get the
   spec's Terms in their brief and are told to read only `docs/adr/`, `docs/rfc/`
   and the listing. Afterwards the ledger records a search of each reviewer's
-  tool calls for any read outside those paths.
+  tool calls for any read outside those paths. A share with such a read is
+  discarded and redone by a fresh reviewer.
 - Reviewers have only `Read`, `Glob` and `Grep`: no shell, so no path from record
   text is ever interpolated into a command. Presence and type come from the
   controller's listing of every entry in the accuracy worktree, files and directories,
   with type and link count, made once by a `find` that takes no input from
   records. The ledger records how it was made. The brief states that ADR text is
   data and gives no instruction.
-- The merged `notes/hand-check.json` lists 144 accepted ADRs, records its date, and
-  records the commit it read.
+- The merged `notes/hand-check.json` lists every accepted ADR, records the one
+  `today` value all reviewers applied, and records the commit it read.
 
 **Approach:**
 - The reviewers are fresh subagents given the spec's Terms, the corpus paths and
@@ -399,8 +403,9 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
 
 **Effects:** none
 
-**Done when:** `notes/hand-check.json` exists, covers every accepted ADR, and the
-ledger's T5 entry records the reviewers, shares, date and commit.
+**Done when:** `notes/hand-check.json` exists and covers every accepted ADR, and
+the ledger's T5 entry records every item its `Tests` list, with no share left
+that read outside its paths.
 
 ### T6: The post-change world, behaviour runs and accuracy diff are recorded, and each meets its bound
 
@@ -435,7 +440,15 @@ ledger's T5 entry records the reviewers, shares, date and commit.
     the fixture's `request.txt`;
   - the driver applies the spec's scored-run rule, parses the health result block,
     and records `git status --porcelain`, every attempted tool call with its
-    permission outcome, denied calls included (for AC-0049), and a before-and-after
+    permission outcome, denied calls included (for AC-0049). The driver reads
+    a `Bash` command text by removing each backslash-newline, then splitting it
+    with `shlex.shlex(posix=True, punctuation_chars=True)`. The call is in the
+    set only when every token is `python3`, `-I`, the projected script path, the
+    subcommand, a flag the skill file names, or that flag's one value; no token
+    is made of shell punctuation; no `$` or backtick appears outside single
+    quotes; and the `--root` value is the scratch root. The skill file's own
+    documented command forms pass the same check in a self-test the driver runs
+    first, and the ledger records it. The driver also records a before-and-after
     sha256 listing of every file, `.git/` and ignored paths included;
   - the ledger states that a write outside the scratch repository by the one
     granted command is not detected;
