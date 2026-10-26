@@ -66,3 +66,8 @@ leaves it untouched and writes the shipped text beside it as `docs/adr/README.up
 
 - Review round 3 (adversarial, adjudicated) sustained that the code treats a non-text recorded source as "no recorded source" while the spec Term listed only missing, empty or `agent-ready-repo`, and that the Term's claim of matching `upgrade --all` was false (`upgrade --all` treats only a missing source and the legacy value as absent).
 - The owner (eugenelim) approved on 2026-10-25 amending the Term to: "No recorded source means the recorded source is missing, empty, not text, or the legacy value `agent-ready-repo`.", removing the `upgrade --all` equivalence clause. No acceptance criterion, task or behaviour changes; the code and tests already implement the amended Term.
+
+## 2026-10-26 — Contract amendment: AC-0025 admits a pinned golden fixture and a frozen-record path
+
+- PR #1614 CI (merged with main at 1f9c27342) showed two files that must keep the old pack name: the digest-pinned golden fixture `packs/core/tests/skills/work-loop/fixtures/corpus/001-recorded/plan.md` (its test forbids regeneration) and the path `docs/specs/governance-extras-without-core/*` in the live `docs/specs/workspace-retirement/inventory.toml`, which names a frozen shipped spec directory.
+- The owner (eugenelim) approved on 2026-10-26 adding two AC-0025 categories: digest-pinned golden fixtures whose tests forbid regeneration, and references to the path of a frozen record whose own name contains the old pack name. The completeness test admits exactly those two files by explicit path.
