@@ -118,12 +118,12 @@ Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026
 - [x] **AC-0016.** The Home cell of the `spec registration as brief coverage evidence` row names at least one path, resolved from the repository root, that `git ls-files` lists, or is exactly `nothing`.
 - [x] **AC-0017.** `.github/workflows/build-check.yml` triggers on `pull_request`, and holds a step that runs `python -m pytest tests/roster/test_workspace_retirement_inventory.py`. Neither the step nor its job carries `continue-on-error:`. The job carries no `if:`, and the step's `if:`, when present, is exactly `!cancelled() && steps.python.conclusion == 'success'`, the condition its neighbouring roster steps use. The workflow carries no `paths` or `paths-ignore` filter.
 - [x] **AC-0021.** The governing row of each contract RFC-0106 D1 names is a `contract` row: `docs/rfc/0064-ini-001-ai-native-ecosystem.md`, `docs/product/AGENTS.md`, `docs/product/intents/FEAT-0005-lifecycle-and-closure.md`, `docs/product/intents/FEAT-0001-intent-identity-and-registration.md`, and `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`.
-- [ ] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
-- [ ] **AC-0023.** § Equivalence holds a Markdown table with the columns Case, Slice, Result, Evidence, and Authority, with at least one row.
-- [ ] **AC-0024.** Every Equivalence row's Slice is a slice number, and its Result is `reproduced` or `accepted removal`.
-- [ ] **AC-0025.** Every Equivalence row's Evidence cell names at least one path, resolved from the repository root, that `git ls-files` lists.
-- [ ] **AC-0026.** Every `accepted removal` row's Authority cell meets AC-0014 and AC-0015, with the row's Case text in place of the row's Fact text; the section side of AC-0015 is unchanged. Every `reproduced` row's Authority cell is exactly `none`.
-- [ ] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026.
+- [x] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
+- [x] **AC-0023.** § Equivalence holds a Markdown table with the columns Case, Slice, Result, Evidence, and Authority, with at least one row.
+- [x] **AC-0024.** Every Equivalence row's Slice is a slice number, and its Result is `reproduced` or `accepted removal`.
+- [x] **AC-0025.** Every Equivalence row's Evidence cell names at least one path, resolved from the repository root, that `git ls-files` lists.
+- [x] **AC-0026.** Every `accepted removal` row's Authority cell meets AC-0014 and AC-0015, with the row's Case text in place of the row's Fact text; the section side of AC-0015 is unchanged. Every `reproduced` row's Authority cell is exactly `none`.
+- [x] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026.
 
 ## Follow-ons
 
