@@ -4,7 +4,7 @@
 ``check_repository`` applies the spec's inventory rules (AC-0001 to AC-0009,
 AC-0019, AC-0021) to a repository root and returns every violation tagged with
 its criterion. ``check_record`` applies the record rules (AC-0010 to AC-0016,
-AC-0023 to AC-0026),
+AC-0023 to AC-0028),
 and ``workflow_wiring_violations`` checks that build-check runs this file on
 every pull request (AC-0017). Standard library only; the check reads the
 repository and writes nothing.
@@ -393,7 +393,12 @@ def _historical_violations(repo: _Repo, path: str) -> list[Violation]:
 _RECORD_HEADINGS = ("Disposition", "Equivalence", "Compatibility closure", "Certification")
 _COLUMNS = ("Fact", "Category", "Home", "Owner", "Authority")
 _EQ_COLUMNS = ("Case", "Slice", "Result", "Evidence", "Authority")
-_RESULTS = frozenset({"reproduced", "accepted removal"})
+_RESULTS = frozenset({"reproduced", "accepted removal", "intended change"})
+_INTENDED_CASES = frozenset({
+    "entries that carry no kind",
+    "a captured-item file that carries a Type: line",
+    "matches nothing else",
+})
 _CATEGORIES = frozenset({
     "canonical artifact metadata",
     "derived state",
@@ -605,7 +610,7 @@ def _coverage_violation(root: Path, home: str) -> Violation | None:
 
 
 def _equivalence_violations(root: Path, record: Path, text: str, heads: Any) -> list[Violation]:
-    """AC-0023 to AC-0026 for the record's ``## Equivalence`` section."""
+    """AC-0023 to AC-0028 for the record's ``## Equivalence`` section."""
     at = next((i for i, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Equivalence"), None)
     if at is None:
         return [Violation("AC-0023", str(record), "no `## Equivalence` section")]
@@ -630,15 +635,19 @@ def _equivalence_violations(root: Path, record: Path, text: str, heads: Any) -> 
     for row in rows:
         case = _fact_text(row["Case"])
         where = f"Equivalence row {case!r}"
+        if not case:
+            violations.append(Violation("AC-0027", where, "Case text is empty"))
         if not re.fullmatch(r"[0-9]+", _fact_text(row["Slice"])):
             violations.append(Violation("AC-0024", where, "Slice is not a slice number"))
         result = _fact_text(row["Result"])
         if result not in _RESULTS:
-            violations.append(Violation("AC-0024", where, f"Result {result!r} is not one of two"))
+            violations.append(Violation("AC-0024", where, f"Result {result!r} is not one of three"))
         evidence = _fact_text(row["Evidence"])
         if not any(t.strip(".,;:()").partition("#")[0] in tracked for t in re.split(r"[\s,;]+", evidence)):
             violations.append(Violation("AC-0025", where, "Evidence names no tracked path"))
-        if result == "accepted removal":
+        if result == "intended change" and case and case not in _INTENDED_CASES:
+            violations.append(Violation("AC-0028", where, "Case text is not on the intended-change list"))
+        if result in ("accepted removal", "intended change"):
             violations += _removal_violations(
                 root, record, case, row["Authority"], where=where, criteria=("AC-0026", "AC-0026")
             )
@@ -1522,7 +1531,7 @@ def test_ac0016_nothing_in_backticks_passes(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC-0023 to AC-0026: § Equivalence.
+# AC-0023 to AC-0028: § Equivalence.
 # ---------------------------------------------------------------------------
 
 
@@ -1597,6 +1606,63 @@ def test_ac0026_case_text_is_case_sensitive(tmp_path: Path) -> None:
 
 def test_ac0026_reproduced_row_with_an_authority(tmp_path: Path) -> None:
     _only(_eq_check(tmp_path, _eq_with(0, Authority=_REMOVAL_LINK)), "AC-0026")
+
+
+_INTENDED_CASE = "matches nothing else"
+_INTENDED_RFC_PATH = "docs/rfc/0003-intended.md"
+_INTENDED_LINK = "[RFC 3 D1](../../rfc/0003-intended.md#d1--the-guard)"
+_INTENDED_RFC = (
+    "# RFC 3\n\n- **Status:** Accepted (2026-01-01)\n\n"
+    "## D1 \u2014 the guard\n\nThe limit: `matches nothing else` is intended.\n"
+)
+
+
+def _intended_row(**changes: str) -> dict[str, str]:
+    row = {
+        "Case": f"`{_INTENDED_CASE}`",
+        "Slice": "3",
+        "Result": "intended change",
+        "Evidence": f"`{_REC_PATH}`",
+        "Authority": _INTENDED_LINK,
+    }
+    return {**row, **changes}
+
+
+def _intended_check(tmp_path: Path, row: dict[str, str], rfc: str = _INTENDED_RFC) -> list[Violation]:
+    rows = [*_base_equivalence(), row]
+    return _eq_check(tmp_path, rows, extra_files={_INTENDED_RFC_PATH: rfc})
+
+
+def test_ac0024_intended_change_row_passes(tmp_path: Path) -> None:
+    assert _intended_check(tmp_path, _intended_row()) == []
+
+
+def test_ac0026_intended_change_with_authority_none(tmp_path: Path) -> None:
+    _only(_intended_check(tmp_path, _intended_row(Authority="none")), "AC-0026")
+
+
+def test_ac0026_intended_change_links_a_draft_rfc(tmp_path: Path) -> None:
+    draft = _INTENDED_RFC.replace("Accepted (2026-01-01)", "Draft")
+    _only(_intended_check(tmp_path, _intended_row(), draft), "AC-0026")
+
+
+def test_ac0026_intended_change_section_lacks_the_case_text(tmp_path: Path) -> None:
+    rfc = _INTENDED_RFC.replace("matches nothing else", "something unrelated")
+    _only(_intended_check(tmp_path, _intended_row(), rfc), "AC-0026")
+
+
+def test_ac0027_accepted_removal_with_an_empty_case(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, _eq_with(1, Case="")), "AC-0027")
+
+
+def test_ac0027_intended_change_with_an_empty_case(tmp_path: Path) -> None:
+    _only(_intended_check(tmp_path, _intended_row(Case="")), "AC-0027")
+
+
+def test_ac0028_intended_change_outside_the_list(tmp_path: Path) -> None:
+    rfc = _INTENDED_RFC.replace("matches nothing else", "the defect")
+    row = _intended_row(Case="`the defect`")
+    _only(_intended_check(tmp_path, row, rfc), "AC-0028")
 
 
 # ---------------------------------------------------------------------------
