@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.57.0
+
+`install` and `upgrade` now print the steps to move to a renamed pack when the
+catalogue renamed the one you asked for. The `governance-extras` pack is now
+`repo-governance`. CLIs older than 0.57.0 print plain "not found", so the steps
+are also in the `repo-governance` pack README and the changelog.
+
 ## What's new in 0.56.0
 
 `agentbundle --version` and `catalogue contracts list` now report the catalogue

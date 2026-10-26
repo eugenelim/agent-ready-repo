@@ -30,6 +30,20 @@ agentbundle install --pack repo-governance
 
 Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Core is optional: `new-adr` picks the decision-record folder itself, and [Core](../core/README.md) adds work-loop risk triggers, the follow-on queue and reviewer agents to `new-rfc` when it is installed. [Desk Research](../desk-research/README.md) and [Architect](../architect/README.md) can feed an RFC. See [Record a decision](../../guides/repo-governance/how-to/new-adr.md) and [Write an RFC](../../guides/repo-governance/how-to/new-rfc.md).
 
+## Migrating from governance-extras
+
+This pack was named `governance-extras` before 2.0.0, and `iac-terraform` 0.2.0 requires it. To move over, run these steps from the repository that has the old pack installed:
+
+```text
+1. agentbundle uninstall --pack governance-extras --scope repo
+2. agentbundle install --pack repo-governance --scope repo --adapter claude-code git+https://github.com/eugenelim/agent-ready-repo
+3. agentbundle upgrade --pack iac-terraform --scope repo git+https://github.com/eugenelim/agent-ready-repo
+```
+
+Replace `claude-code` with the adapter your `governance-extras` is installed for.
+
+CLIs older than 0.57.0 print plain "not found" for the old name, so use these steps with them. From 0.57.0, `install` and `upgrade` print the same steps.
+
 ## Questions
 
 **Is an RFC a decision?** No. It is the case for one. The ADR records the decision once it is made.
@@ -42,4 +56,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Details
 
-Scope: repo (default) · Version: 1.0.3 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)
+Scope: repo (default) · Version: 2.0.0 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)

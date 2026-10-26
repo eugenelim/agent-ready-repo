@@ -35,6 +35,9 @@ FIXTURE_DIR = "packages/agentbundle/tests/build_pipeline/fixtures/"
 ADMITTED_PATHS = frozenset({
     "contracts/renames/pack-renames.toml",
     "packages/agentbundle/CHANGELOG.md",
+    "packages/agentbundle/README-pypi.md",
+    "packages/agentbundle/tests/_rename_fixtures.py",
+    "tests/roster/test_repo_governance_migration_text.py",
     "packs/repo-governance/README.md",
     "packages/agentbundle/tests/unit/test_pack_renames.py",
     "packages/agentbundle/tests/integration/test_rename_hint_cli.py",

@@ -6,6 +6,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.57.0] — 2026-10-25
+
+### Added
+
+- When `install` or `upgrade` is asked for a pack that the catalogue renamed,
+  it prints the steps that move you to the new pack in place of the plain
+  not-found message. The catalogue carries the rename in
+  `contracts/renames/pack-renames.toml`.
+
+### Changed
+
+- **Breaking, for adopters of the `governance-extras` pack.** The pack is now
+  `repo-governance` 2.0.0, and `iac-terraform` 0.2.0 requires it. To move over,
+  run these steps from the repository that has the pack installed:
+
+  ```text
+  1. agentbundle uninstall --pack governance-extras --scope repo
+  2. agentbundle install --pack repo-governance --scope repo --adapter claude-code git+https://github.com/eugenelim/agent-ready-repo
+  3. agentbundle upgrade --pack iac-terraform --scope repo git+https://github.com/eugenelim/agent-ready-repo
+  ```
+
+  Replace `claude-code` with the adapter your `governance-extras` is installed for.
+
+  CLIs older than 0.57.0 print plain "not found" for the old name, so use the
+  steps above or the `repo-governance` pack README.
+
 ## [0.56.0] — 2026-10-23
 
 ### Added
