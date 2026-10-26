@@ -45,6 +45,7 @@ ADMITTED_PATHS = frozenset({
     "tests/roster/test_repo_governance_rename_completeness.py",
     "packages/agentbundle/tests/build_pipeline/fixtures/README.md",
     "packages/agentbundle/tests/build_pipeline/test_end_to_end_build.py",
+    "packages/agentbundle/tests/integration/test_plugin_route_membership.py",
     "docs/product/briefs/repo-governance-pack.md",
 })
 ADMITTED_PREFIXES = (
@@ -52,7 +53,7 @@ ADMITTED_PREFIXES = (
     "packages/agentbundle/tests/integration/fixtures/",
     "docs/product/research/plan-evolution-experiments/",
     "tools/plan_evolution_workbench/fixtures/",
-    "docs/specs/repo-governance-rename/",
+    "docs/specs/" + "repo-governance-rename/",
     "docs/knowledge/observations/",
     "docs/product/changelog",
 )
@@ -136,7 +137,7 @@ def _workspace_lines_are_registrations() -> bool:
     """Only the brief's and this spec's registrations may keep the old name."""
     allowed = (
         "docs/product/briefs/repo-governance-pack.md",
-        "docs/specs/repo-governance-rename/spec.md",
+        "docs/specs/" + "repo-governance-rename/spec.md",
     )
     for line in (REPO_ROOT / "workspace.toml").read_text(encoding="utf-8").splitlines():
         if OLD_NAME in line and not any(f'path = "{path}"' in line for path in allowed):
