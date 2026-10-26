@@ -71,7 +71,7 @@ Most construction tests live under **Tasks** below.
 
 ### Design decisions
 
-- **One script, three subcommands, stdin for bytes.** `show` lets the agent see current content through the confined read, in visible form, so it never needs a raw read of an authority file. `preview` and `write` read the proposed input from standard input, so the bytes never pass through a temporary file that would itself be a write outside the allowlist. The agent pipes the same quoted heredoc to both; `write` checks the digest against `--proposed` (AC-0023).
+- **One script, three subcommands, stdin for bytes.** `show` lets the agent see current content through the confined read, in visible form, so it never needs a raw read of an authority file. `preview` and `write` read the proposed input from standard input, so the bytes never pass through a temporary file that would itself be a write outside the allowlist. The agent passes the same quoted heredoc to both, on the same command line, never through a pipe, a file redirect or a temporary file; `write` checks the digest against `--proposed` (AC-0023).
 - **The script composes the charter edit.** For a charter target the agent supplies only the link line and `--after-line`; the script inserts it into the bytes it read from the target, which must be the charter (AC-0110). The agent never reproduces charter bytes, and the line's fixed form leaves no room for other prose (AC-0022, AC-0104, AC-0105, AC-0106, AC-0028).
 - **`write` is stateless.** It recomputes every check from its own reads and arguments, and takes the previewed state only as `--current` and `--proposed`. There is no preview token file. The helper re-compares the digest on the opened descriptor (AC-0027, AC-0039), so a change between the script's read and the helper's open is still caught.
 - **The binding control outside the agent is the host's per-call prompt.** Because the agent supplies every `write` argument, a steered agent could write bytes it never previewed. The pack therefore never ships a standing permission for `write` (AC-0060, AC-0062), and `DESIGN.md` records the residual.
@@ -102,8 +102,8 @@ Owned by: T2, T3, T4.
 
 ```text
 python3 <skill-dir>/scripts/governance.py show    --root <repo> --target <allowed target>
-python3 <skill-dir>/scripts/governance.py preview --root <repo> --target <allowed target> [--after-line <n>] [--approved-by <text>] < proposed-input
-python3 <skill-dir>/scripts/governance.py write   --root <repo> --target <allowed target> [--after-line <n>] --current <absent|sha256:hex> --proposed sha256:<hex> [--approved-by <text>] < proposed-input
+python3 <skill-dir>/scripts/governance.py preview --root <repo> --target <allowed target> [--after-line <n>] [--approved-by <text>] <<'EOF'
+python3 <skill-dir>/scripts/governance.py write   --root <repo> --target <allowed target> [--after-line <n>] --current <absent|sha256:hex> --proposed sha256:<hex> [--approved-by <text>] <<'EOF'
 ```
 
 Check order, each refusing on failure: root check (`git rev-parse --show-toplevel` from the current directory, list-form subprocess, with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from its environment) → target allowed → (preview and write) stdin size → UTF-8 decode → refused characters → `--approved-by` → confined reads of the files the run reads → kind check (governance draft; CODEOWNERS grammar; for a charter target, first that a charter target is present (`charter-missing`), then that the target is the charter, then the link line, line number and existing link) → compose the proposed content → (write only) proposed digest → current state against `--current` → approval → helper. The root and target checks come first so nothing is read for a refused root or target.
@@ -215,7 +215,7 @@ Owned by: T2, T3.
 
 **Effects:** none
 
-**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc -q` passes, `python3 tools/lint-pack-test-boundary.py` and `python3 tools/lint-ci-parity.py` pass, and `make lint-ruff lint-mypy` is green.
+**Done when:** every check named in `Tests` passes, `python3 -m pytest packs/repo-governance/tests/skills/new-rfc -q` passes, and `make lint-ruff lint-mypy` is green.
 
 ### T4: The governance mode, its templates, description and evals are in place, and their pins pass
 
@@ -224,7 +224,7 @@ Owned by: T2, T3.
 **Touches:** `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/.apm/skills/new-rfc/assets/governance-default.md`, `packs/repo-governance/.apm/skills/new-rfc/assets/governance-lazy-consensus.md`, `packs/repo-governance/.apm/skills/new-rfc/evals/eval_queries.json`, `packs/repo-governance/.apm/skills/new-rfc/evals/evals.json`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`
 
 **Tests:** (goal-based, content pins in `test_new_rfc_instructions.py`, which already normalises whitespace into `TEXT`)
-- One pin per criterion AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054, AC-0055, AC-0056, AC-0057, AC-0058, AC-0059, AC-0060, AC-0061, AC-0063, AC-0064, AC-0065, AC-0066, AC-0067 and AC-0113, each reading only the governance section, sliced by heading, and asserting the sentence the criterion quotes.
+- One pin per criterion AC-0046, AC-0047, AC-0048, AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054, AC-0055, AC-0056, AC-0057, AC-0058, AC-0059, AC-0060, AC-0061, AC-0063, AC-0064, AC-0065, AC-0066, AC-0067, AC-0113 and AC-0114, each reading only the governance section, sliced by heading, and asserting the sentence the criterion quotes.
 - AC-0068, AC-0069 and AC-0108 load each asset and run the script's governance-draft function before and after replacing `<maintainer-handle>`.
 - AC-0070 reads the frontmatter `description:`; AC-0101 reads the paragraph under `# Skill: new-rfc`.
 - The existing tests in the file, and step 0's existing pins in `test_precreate_checkpoint.py`, stay green.
