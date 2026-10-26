@@ -1,7 +1,7 @@
 # Plan: Captured items in their own files
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and D3; RFC-0105 D3; RFC-0103 D1; ADR-0053 D9; ADR-0074.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`: `_parse_preamble_fields`, `_iter_preamble_lines`, `_artifact_metadata`, `_append_lifecycle_findings`, `_dependency_is_satisfied`, `_resolve_header_item`, `build_resolution_index`, `_confined_artifact_path`, `check_shaping_guard`, and `run_canonical_reconciliation`.
