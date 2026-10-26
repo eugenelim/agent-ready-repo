@@ -617,6 +617,7 @@ class TestFSMStateMerge:
 
 def _edge_workspace(tmp_path: Path, *, header: bool) -> Path:
     """A queued spec waiting on an open spec, as a header edge or a `needs` entry."""
+    tmp_path.mkdir(parents=True)
     need = (
         '{type = "local", kind = "spec", path = "docs/specs/target/spec.md"}'
         if not header
