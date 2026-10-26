@@ -813,11 +813,7 @@ def test_ac_0104_charter_already_links(
         root.mkdir()
         run_git(["init", "-q"], root)
         put(root, charter, body)
-        link = (
-            "Roles and decision-making: [GOVERNANCE.md](GOVERNANCE.md)"
-            if charter == "docs/CHARTER.md" else
-            "Roles and decision-making: [GOVERNANCE.md](GOVERNANCE.md)"
-        )
+        link = "Roles and decision-making: [GOVERNANCE.md](GOVERNANCE.md)"
         for sub in ("preview", "write"):
             extra = ["--current", sha(body), "--proposed", sha(link)] if sub == "write" else []
             result = call(capsys, root, sub, charter, "--after-line", "1", *extra,
