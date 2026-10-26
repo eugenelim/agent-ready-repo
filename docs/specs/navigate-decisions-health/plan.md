@@ -415,7 +415,8 @@ that read outside its paths.
 
 **Tests:** (goal-based, and manual QA for AC-0033)
 - AC-0030, AC-0031 and AC-0032: the finished branch's health command runs on the
-  accuracy worktree, with `--today` equal to the hand check's date. A scratch diff script compares its
+  accuracy worktree, with `--today` equal to the `today` value the hand check
+  records. A scratch diff script compares its
   result with `notes/hand-check.json` set by set, and the ledger records each set's
   matches, extras and omissions.
 - AC-0033: each reading disagreement goes to eugenelim with the item, both
@@ -440,15 +441,19 @@ that read outside its paths.
     the fixture's `request.txt`;
   - the driver applies the spec's scored-run rule, parses the health result block,
     and records `git status --porcelain`, every attempted tool call with its
-    permission outcome, denied calls included (for AC-0049). The driver reads
-    a `Bash` command text by removing each backslash-newline, then splitting it
-    with `shlex.shlex(posix=True, punctuation_chars=True)`. The call is in the
-    set only when every token is `python3`, `-I`, the projected script path, the
-    subcommand, a flag the skill file names, or that flag's one value; no token
-    is made of shell punctuation; no `$` or backtick appears outside single
-    quotes; and the `--root` value is the scratch root. The skill file's own
-    documented command forms pass the same check in a self-test the driver runs
-    first, and the ledger records it. The driver also records a before-and-after
+    permission outcome, denied calls included (for AC-0049). The driver checks
+    each `Bash` command text against the spec's allowed-Bash-command grammar
+    with one anchored regular expression built from the literal S and R, and
+    never parses it as shell. The driver's scratch paths use only ASCII
+    letters, digits, `_`, `.`, `/` and `-`. Before the runs, a self-test
+    instantiates every `health` and `query` command form the skill file documents, replacing
+    `<repo-root>` and `<repository>` with R, `scripts/navigate_decisions.py`
+    with S, `<term>` with `x`, any record placeholder with `ADR-0001`, and an
+    optional `[--today YYYY-MM-DD]` both left out and as `--today 2026-10-26`.
+    Each form must match. Should-fail cases must not match: `R#;rm -rf x`,
+    `&& echo x`, `> /tmp/x`, `$(echo x)`, a `--root` of another directory, a
+    `--today ~` value and an `--id ../../x` value. The self-test result is
+    recorded in the ledger. The driver also records a before-and-after
     sha256 listing of every file, `.git/` and ignored paths included;
   - the ledger states that a write outside the scratch repository by the one
     granted command is not detected;
