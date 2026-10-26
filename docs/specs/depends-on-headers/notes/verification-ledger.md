@@ -112,3 +112,10 @@ Post-gates code-review corrections. Each fix's test was written first and run ag
 - 2026-10-26: planted breaks of the two existing `repair-plan` refusals. Command: `python -m pytest packs/core/tests/skills/workspace-status/test_depends_on_headers_repair.py -q -k "two_memberships or cannot_be_read"`.
   - Break A, the duplicate check moved after the cooled branch in `_build_needs_operations`: `1 failed, 2 passed` — `test_plan_refuses_a_waiting_path_two_memberships_name[cooled]` failed (a `needs-drop-cooled` operation appeared). Reverted; 3 passed.
   - Break B, `cooling_unavailable = False` in place of the `cooling_state_unavailable` check: `1 failed, 2 passed` — `test_plan_refuses_every_edge_when_cooling_state_cannot_be_read` failed (operations appeared and no finding). Reverted; 3 passed.
+- 2026-10-26: owner scope decision: the never-open-a-cooled-body rule binds the reconciliation and repair readers only, not the retirement-candidates command, which already reads tracked files without a cooling filter.
+
+## Post-gates review round 2 fixes
+
+- 2026-10-26: the retirement command's header read now refuses with `input-unreadable`, suppressing every slug, for each waiting item whose header cannot be read. `test_unreadable_waiting_header_refuses_every_slug` red against the previous command, green after.
+- 2026-10-26: `_metadata_from_root` reads only `ENAMETOOLONG`/`EINVAL` from `exists()` as missing; any other `OSError` is an artifact that exists but cannot be read. `test_an_unsearchable_parent_reads_as_unreadable_not_missing` red against the previous engine, green after; `test_a_name_too_long_reads_as_missing` is the control.
+- 2026-10-26: the adjudicated Nit that an inserted `Depends on:` line runs into following prose is held (`accept-as-proportionate`): AC-0022 admits no line beyond the `Depends on:` and `Dependency receipts:` lines the repair adds, and the engine's read is unaffected; the cost is CommonMark rendering of the next prose line.

@@ -188,11 +188,14 @@ def _append_blocker(
         reasons.append(item)
 
 
-def _header_needed_by(root: Path, workspace: dict) -> dict[str, list[str]]:
+def _header_needed_by(
+    root: Path, workspace: dict
+) -> tuple[dict[str, list[str]], list[str]]:
     """Map each spec slug to the live waiting items whose header names it.
 
     Edges come from each waiting item's `Depends on:` line through the engine's
-    reader; a cooled item is never opened, and none is cooled here.
+    reader. The second value lists waiting items whose header could not be read:
+    such a header could name any spec, so the caller refuses for every slug.
     """
     memberships = [
         membership
@@ -200,15 +203,18 @@ def _header_needed_by(root: Path, workspace: dict) -> dict[str, list[str]]:
         if membership.entry.path is not None
     ]
     needed_by: dict[str, list[str]] = {}
+    unreadable: list[str] = []
     headers = engine._header_edges_by_path(memberships, root, frozenset())
     for waiting_path, header in headers.items():
+        if any(finding.code == "unreadable_artifact" for finding in header.findings):
+            unreadable.append(waiting_path)
         for dependency in header.dependencies:
             slug = candidates._slug_from_spec_path(dependency.path)
             if dependency.kind == "spec" and slug is not None:
                 needed_by.setdefault(slug, []).append(
                     f"{waiting_path} depends on {dependency.path}"
                 )
-    return needed_by
+    return needed_by, sorted(unreadable)
 
 
 def retirement_candidates_document(
@@ -371,7 +377,9 @@ def retirement_candidates_document(
 
     # Registry `needs` no longer carries edges: only its shape is still checked.
     _, bad_needs = candidates.build_needed_by_index(workspace or {})
-    needed_by = _header_needed_by(root, workspace or {})
+    needed_by, unreadable_headers = _header_needed_by(root, workspace or {})
+    for waiting_path in unreadable_headers:
+        refuse("input-unreadable", waiting_path)
     inflight, bad_collections = candidates.build_inflight_index(workspace or {})
     for source in sorted(bad_needs):
         refuse("needs-shape-unrecognised", "workspace.toml", declared_at=source)

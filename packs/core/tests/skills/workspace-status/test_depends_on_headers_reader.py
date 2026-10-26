@@ -695,3 +695,36 @@ def test_oversized_dependency_path_is_withheld_and_the_code_kept(
     assert all(len(f.path) <= 200 for f in findings)
     assert item not in {f.path for f in findings}
     assert missing[0].path == ""
+
+
+def _metadata_for(root: Path, path: str, kind: str = "spec"):
+    entry = ENGINE.WorkspaceEntry(
+        path=path,
+        kind=kind,
+        source=ENGINE.SourceRecord(mode="repo-origin"),
+        summary="probe",
+        needs=[],
+    )
+    return ENGINE._metadata_from_root(root, entry)
+
+
+def test_a_name_too_long_reads_as_missing(tmp_path: Path) -> None:
+    metadata = _metadata_for(tmp_path, "docs/specs/" + "a" * 300 + "/spec.md")
+    assert metadata is not None and metadata.exists is False
+
+
+def test_an_unsearchable_parent_reads_as_unreadable_not_missing(tmp_path: Path) -> None:
+    import os
+
+    if os.name == "nt" or os.geteuid() == 0:
+        pytest.skip("needs POSIX permissions enforced for the current user")
+    target = tmp_path / "docs" / "specs" / "locked" / "spec.md"
+    target.parent.mkdir(parents=True)
+    target.write_text("- **Status:** Approved\n", encoding="utf-8")
+    target.parent.chmod(0)
+    try:
+        metadata = _metadata_for(tmp_path, "docs/specs/locked/spec.md")
+    finally:
+        target.parent.chmod(0o755)
+    assert metadata is not None
+    assert (metadata.exists, metadata.readable) == (True, False)

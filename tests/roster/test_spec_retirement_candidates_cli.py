@@ -380,3 +380,50 @@ def test_header_only_depends_on_blocks_retirement_as_needed_by(tmp_path: Path) -
         waiter_path in entry
         for entry in codes["needed-by"]["declared_by"]
     )
+
+
+def test_unreadable_waiting_header_refuses_every_slug(tmp_path: Path) -> None:
+    """An untracked waiting item whose header cannot be read could name any
+    spec, so the run refuses for every slug instead of reading no edges."""
+    if os.name == "nt" or os.geteuid() == 0:
+        pytest.skip("needs POSIX permissions enforced for the current user")
+    root = tmp_path / "repo"
+    root.mkdir()
+    _write_clean_fixture(root)
+    waiting = _spec_dir(root, "waiter")
+    waiter_path = "/".join(("docs", "specs", "waiter", "spec.md"))
+    waiting.mkdir(parents=True)
+    (waiting / "spec.md").write_text(
+        "# Spec: Waiter\n\n- **Status:** Draft\n- **Depends on:** spec:alpha\n",
+        encoding="utf-8",
+    )
+    (root / "workspace.toml").write_text(
+        _workspace_entry("alpha")
+        + "[[ini-001.work.queue]]\n"
+        + f'path = "{waiter_path}"\n'
+        + 'kind = "spec"\n'
+        + 'source = {mode = "repo-origin"}\n'
+        + 'summary = "Waiter"\n'
+        + "needs = []\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(root), "add", "workspace.toml"], check=True)
+    subprocess.run(
+        ["git", "-C", str(root), "commit", "-q", "-m", "registry",
+         "--date=2020-01-02T00:00:00Z"],
+        check=True,
+        env={**os.environ, "GIT_COMMITTER_DATE": "2020-01-02T00:00:00Z"},
+    )
+    (waiting / "spec.md").chmod(0)
+    try:
+        result = _invoke(root)
+    finally:
+        (waiting / "spec.md").chmod(0o644)
+    assert result.returncode == 0, result.stderr.decode("utf-8", errors="replace")
+    doc = json.loads(result.stdout)
+    alpha = next(c for c in doc["candidates"] if c["slug"] == "alpha")
+    assert alpha["eligible"] is False
+    refusals = [r for r in doc["refusals"] if r.get("path") == waiter_path]
+    assert any(
+        r["code"] == "input-unreadable" and "alpha" in r["suppresses"] for r in refusals
+    )

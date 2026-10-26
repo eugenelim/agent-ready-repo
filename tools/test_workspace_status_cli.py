@@ -1389,7 +1389,7 @@ class CLIImportPurityTests(unittest.TestCase):
         "argparse", "dataclasses", "datetime", "hashlib", "importlib", "json",
         "math", "os", "pathlib", "re", "stat", "sys", "tempfile", "time", "tomllib",
         "typing", "unittest", "__future__", "collections", "functools", "secrets",
-        "itertools", "abc", "contextlib", "io", "shutil", "traceback",
+        "itertools", "abc", "contextlib", "io", "shutil", "traceback", "errno",
     })
 
     def _check_script(self, path: Path, allowed_extras: frozenset[str] = frozenset()) -> None:

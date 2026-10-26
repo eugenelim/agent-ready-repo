@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import errno
 import hashlib
 import importlib
 import importlib.util
@@ -2339,7 +2340,17 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
         )
     try:
         present = artifact_path.exists()
-    except OSError:  # a name the filesystem cannot hold names no file
+    except OSError as exc:
+        # Only a name the filesystem cannot hold names no file; any other
+        # failure is an artifact that exists but cannot be read.
+        if exc.errno not in (errno.ENAMETOOLONG, errno.EINVAL):
+            return ArtifactMetadata(
+                path=entry.path,
+                kind=entry.kind,
+                status=None,
+                exists=True,
+                readable=False,
+            )
         present = False
     if not present:
         return ArtifactMetadata(path=entry.path, kind=entry.kind, status=None, exists=False)
