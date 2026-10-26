@@ -752,3 +752,33 @@ def test_a_waiting_item_under_an_unsearchable_directory_is_unreadable(tmp_path: 
         waiting.parent.chmod(0o755)
     assert header.dependencies == ()
     assert [f.code for f in header.findings] == ["unreadable_artifact"]
+
+
+def test_an_unsearchable_product_directory_makes_brief_references_unreadable(
+    tmp_path: Path,
+) -> None:
+    import os
+
+    if os.name == "nt" or os.geteuid() == 0:
+        pytest.skip("needs POSIX permissions enforced for the current user")
+    briefs = tmp_path / "docs" / "product" / "briefs"
+    briefs.mkdir(parents=True)
+    (briefs / "partner.md").write_text("# Brief\n\n- **Slug:** `partner`\n", encoding="utf-8")
+    waiting = tmp_path / "docs" / "specs" / "waiter" / "spec.md"
+    waiting.parent.mkdir(parents=True)
+    waiting.write_text("- **Status:** Draft\n- **Depends on:** brief:partner\n", encoding="utf-8")
+    product = tmp_path / "docs" / "product"
+    product.chmod(0)
+    try:
+        index = ENGINE.build_resolution_index(tmp_path)
+        header = ENGINE.read_header_dependencies(
+            tmp_path,
+            "docs/specs/waiter/spec.md",
+            index=index,
+            membership_kinds={},
+            cooled=frozenset(),
+        )
+    finally:
+        product.chmod(0o755)
+    assert header.dependencies == ()
+    assert [f.code for f in header.findings] == ["unreadable_artifact"]

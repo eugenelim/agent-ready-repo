@@ -3153,7 +3153,7 @@ def _admitted_directory_names(root: Path, relative_dir: str) -> list[str] | None
     resolved location leaves the repository.
     """
     directory = root / relative_dir
-    if not directory.exists() and not directory.is_symlink():
+    if _path_presence(directory) == "missing" and not directory.is_symlink():
         return []
     try:
         root_resolved = root.resolve()
