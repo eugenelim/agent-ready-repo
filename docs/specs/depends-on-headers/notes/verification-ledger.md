@@ -48,3 +48,23 @@ Execution observations recorded during the build. The spec and plan stay pinned;
 - ADR-0148 drafted as `Proposed` with `Supersedes in part: ADR-0103 D6`. `lint-adr-shape.py` reports ADR-S010 twice, because ADR-0103 lacks the mirrored `Superseded in part: ADR-0148 D6`. The mirror is held as `.context/adr-0103-superseded-in-part-mirror.patch`, to apply with the Approver's acceptance; with it applied the lint is clean.
 - Inventory: `packs/architect/DESIGN.md` row removed (last registry mention gone); ADR-0110, the `cooling-brief-child-scope-closure` spec directory, and the two cooling roster tests re-owned to 8 (`source.parent`); the `dependency-scoped-completion-receipts` spec directory and its roster test re-owned to 9; ADR-0103, CAP-0004, FEAT-0002, and `workspace-toml-deps.md` stay at 2 with new consumer text; rows added for ADR-0148 and the new roster test.
 - No core version bump here (T6). `packs/architect/DESIGN.md` is outside `.apm/` and `seeds/`, so architect needs no bump.
+
+## T6, first run (superseded)
+
+This run was on the branch's first base, `1f9c27342`. The branch was rebuilt on `5cec6ac3e` (#1614), and the migration was rerun there; see § T6 below.
+
+- 2026-10-26: normalized the four Shipped specs' `Depends on:` lines (commit before the repair); `status` then reported no `invalid_dependency`.
+- 2026-10-26: before-capture ran `workspace_status.py status --root .` from a `git worktree` of `1f9c27342` at `.context/base-1f9c273` (removed afterwards) over the tree the repair read: canonical ready 0, active 3, blocked 28, findings 65.
+- 2026-10-26: `repair-plan`: 78 `needs-to-header` operations, 113 registry edges (91 `spec:`, 16 `intent:`, 4 `brief:`, 2 `capability:`), no refusal, no `needs-drop-cooled`; plan sha256 `96c83cab88117652164097e6fd80b4981900dcf11c703df0fee940961c5da8fb`, plan_id `f479cc64b9d06018…`. The owner confirmed this exact plan.
+- 2026-10-26: `repair-apply --yes`: 78 applied, `header_edges_before` 1, `registry_edges` 113, `dropped_cooled` 0, `header_edges_after` 113, `edges_equal` true. No registry entry carries typed `needs` afterwards.
+- 2026-10-26: AC-0015 comparison, this slice's engine over the migrated tree against the base engine over the tree the repair read: canonical ready, active, and blocked paths, canonical findings by code and path, legacy work ready and blocked lists, and shaping lists all equal.
+- 2026-10-26: AC-0017: `navigate-intents query --operation dependencies` over the 17 migrated intents reports no fault-state diagnostic; `spec:` items are `outside_scope`.
+- 2026-10-26: `core` 3.1.18 → 3.1.19 in `pack.toml` and `.claude-plugin/plugin.json`; changelog fragment `bb02c266`; `make build-self` clean.
+
+## Amendment 2 — 2026-10-26
+
+<a id="amendment-2"></a>
+
+- **Trigger.** T7's review of the drafted RFC-0106 errata entry found that the cooled captured item without a membership (recorded under "For T7") has no case in AC-0014 and no row in T7, and that the cooled-waiting-item removal fails open: a live member of a cycle through a cooled item can become dispatchable, because the cooled item's edges are not read and its own dependency on the cooled item counts as satisfied.
+- **Owner decision.** eugenelim, 2026-10-26, in session: add the cooled captured item without a membership to AC-0014 and the errata entry, and keep the cooled-waiting-item removal with its effect stated plainly.
+- **Completed evidence.** T1 `80c39a40f`; T2 `155f213d8`; T3 `80399c5d8`, `6d59e6b67`; T4 `4f4e4e4c0`; T5 `e3770947f`, `a41742e44`; T6 `3078c3857`, `8ba2210ab`.
