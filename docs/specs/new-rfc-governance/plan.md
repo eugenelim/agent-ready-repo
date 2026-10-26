@@ -106,7 +106,7 @@ python3 <skill-dir>/scripts/governance.py preview --root <repo> --target <allowe
 python3 <skill-dir>/scripts/governance.py write   --root <repo> --target <allowed target> [--after-line <n>] --current <absent|sha256:hex> --proposed sha256:<hex> [--approved-by <text>] < proposed-input
 ```
 
-Check order, each refusing on failure: root check (`git rev-parse --show-toplevel` from the current directory, list-form subprocess, with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from its environment) → target allowed → (preview and write) stdin size → UTF-8 decode → refused characters → `--approved-by` → confined reads of the files the run reads → kind check (governance draft; CODEOWNERS grammar; for a charter target, first that the target is the charter, then the link line, line number and existing link) → compose the proposed content → (write only) proposed digest → current state against `--current` → approval → helper. The root and target checks come first so nothing is read for a refused root or target.
+Check order, each refusing on failure: root check (`git rev-parse --show-toplevel` from the current directory, list-form subprocess, with `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and `GIT_INDEX_FILE` removed from its environment) → target allowed → (preview and write) stdin size → UTF-8 decode → refused characters → `--approved-by` → confined reads of the files the run reads → kind check (governance draft; CODEOWNERS grammar; for a charter target, first that a charter target is present (`charter-missing`), then that the target is the charter, then the link line, line number and existing link) → compose the proposed content → (write only) proposed digest → current state against `--current` → approval → helper. The root and target checks come first so nothing is read for a refused root or target.
 
 Approval reasons, fixed strings, first matching in this order: `codeowners ownership change`, `a GOVERNANCE.md is present`, `decision model is not the default`.
 
@@ -177,6 +177,7 @@ Owned by: T2, T3.
 - AC-0043 and AC-0109: the same tests re-run with `_supports_descriptor_walk` patched to return `False`, plus a case where `Path.resolve` reports a path outside `root` after the create, asserting no `os.write` call happened and `UnsafeContentError` was raised.
 - AC-0044: `tests/roster/test_new_rfc_governance_surfaces.py` lists copies with `git ls-files` under `packs/` and `packages/agentbundle/agentbundle/` for `file_safety.py` and `_file_safety.py`, asserts at least 13 are found, and asserts each equals the source's bytes.
 - AC-0045: the same roster file pins the name in root `AGENTS.md`'s confinement entry.
+- `.github/workflows/build-check.yml` has a named step running `tests/roster/test_new_rfc_governance_surfaces.py`, above the bulk roster step, and `python3 tools/lint-ci-parity.py` passes.
 - AC-0097, AC-0098 and AC-0099: the parsed manifests carry the stated versions.
 - `tests/roster/test_close_work_extraction_and_immediate_disposition.py`'s `EXPECTED_FILE_SAFETY_SHA256` holds the new digest, with one provenance entry naming the write operation, and the test passes.
 
@@ -186,7 +187,7 @@ Owned by: T2, T3.
 
 **Effects:** none
 
-**Done when:** every test named in `Tests` passes, the existing file_safety mirror tests pass, and `make lint-ruff lint-mypy` is green.
+**Done when:** every check named in `Tests` passes, the existing file_safety mirror tests pass, and `make lint-ruff lint-mypy` is green.
 
 ### T3: The governance script enforces every script criterion
 
@@ -207,13 +208,12 @@ Owned by: T2, T3.
   - AC-0026 compares the file listing of the root before and after.
 - AC-0005: a test patches the co-located module's `read_confined_regular_file` to record calls; a scan of the script's source finds no `open(`, `read_bytes`, `read_text` or `os.open`.
 - AC-0027: a test patches the co-located helper and asserts the `expect_sha256` it receives.
+- Gating, each part checked: `.github/workflows/build-check.yml` has a step whose command runs `python -m pytest packs/repo-governance/tests/skills/new-rfc/`; the `Makefile` `run-test-suite` define has a line running that directory; `tools/lint-pack-test-boundary.py`'s `_NO_RUNNER` has no `packs/repo-governance/tests/skills/new-rfc` key; `tools/lint-ci-parity.py` holds a suite disposition for the directory beside the navigate-decisions one, and `_LOCAL_STEP_DISPOSITION` and `_GATE_MAIN_CHECKS` entries for the new step; and `python3 tools/lint-pack-test-boundary.py` and `python3 tools/lint-ci-parity.py` pass.
 
 **Approach:**
 - Load the co-located `file_safety.py` the way `navigate_decisions.py` `_get_file_safety` does. The new copy is byte-identical to the source, so T2's roster test covers it.
 
 **Effects:** none
-
-- Gating: `packs/repo-governance/tests/skills/new-rfc/` runs on every pull request through a named `build-check.yml` step and in `make test` through the `run-test-suite` define; its `_NO_RUNNER` entry in `tools/lint-pack-test-boundary.py` is gone; `tools/lint-ci-parity.py` carries its suite and step dispositions; and both lints pass.
 
 **Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc -q` passes, `python3 tools/lint-pack-test-boundary.py` and `python3 tools/lint-ci-parity.py` pass, and `make lint-ruff lint-mypy` is green.
 
@@ -241,7 +241,7 @@ Owned by: T2, T3.
 **Touches:** `guides/repo-governance/how-to/set-up-governance.md`, `guides/repo-governance/README.md`, `tests/roster/test_new_rfc_governance_surfaces.py`, `packs/repo-governance/README.md`, `packs/repo-governance/JOURNEY.md`, `packs/repo-governance/DESIGN.md`, `packs/repo-governance/docs/index.md`, `packs/repo-governance/pack.toml`, `packs/repo-governance/.claude-plugin/plugin.json`, `docs/product/changelog.d/`, the self-host projections
 
 **Tests:** (goal-based)
-- AC-0062: a pin in `test_new_rfc_instructions.py` is not possible, because pack tests may not read above the pack; the pin lives in `tests/roster/test_new_rfc_governance_surfaces.py` beside AC-0044 and AC-0045.
+- AC-0062: a pin in `tests/roster/test_new_rfc_governance_surfaces.py`.
 - AC-0096: a check in `tests/roster/test_new_rfc_governance_surfaces.py` that parsed `pack.toml` and `plugin.json` carry `2.3.0`.
 - AC-0100: `FORCE=1 make build-self` then `git status --porcelain` is empty.
 - `tools/changelog.py` validation passes on the new fragment, and a check in `tests/roster/test_new_rfc_governance_surfaces.py` that the guide's preview block holds the preview-block line prefixes in order, from a list in the test, so it reads no `docs/specs/` path.
@@ -260,7 +260,7 @@ Owned by: T2, T3.
 - AC-0071, AC-0072, AC-0073, AC-0074, AC-0075 and AC-0076: the T1 driver on a world built from the finished branch, same query list and run count. The 15 appended eval entries equal `notes/governance-queries.json` as parsed lists.
 - AC-0077, AC-0078, AC-0079, AC-0080, AC-0081, AC-0082, AC-0083, AC-0084, AC-0085, AC-0086, AC-0087, AC-0088, AC-0089, AC-0090, AC-0091, AC-0092, AC-0093, AC-0094, AC-0095 and AC-0102: a scratch behaviour driver, adapted from the health slice's.
   - Per run it makes a fresh scratch Git repository under the OS temporary directory, holding the fixture tree minus `request.txt`, `confirm.txt`, `decline.txt` and `author.txt`, and the post-change `repo-governance` projection, committed (as `author.txt` for the CODEOWNERS fixture).
-  - It runs `claude -p <request> --permission-mode default --setting-sources project,local --strict-mcp-config --output-format stream-json --verbose --allowed-tools Skill Read Glob Grep Write Edit` plus `Bash` grants for `python3` running a script in the projected `new-rfc` `scripts/` directory by its absolute path, so the ordinary RFC procedure's `next-ordinal.py` and `index-records.py` are allowed. The grants use the scratch repository's resolved real path (`/private/tmp/...` on macOS), the lesson of the health slice's first attempt.
+  - It runs `claude -p <request> --permission-mode default --setting-sources project,local --strict-mcp-config --output-format stream-json --verbose --allowed-tools Skill Read Glob Grep Write Edit` plus `Bash` grants for `python3` running `governance.py`, `next-ordinal.py` or `index-records.py` in the projected `new-rfc` `scripts/` directory, by absolute path or by repository-relative path, so the ordinary RFC procedure on `governance-single/` can run. AC-0094 reads the transcript by the rule the spec states, not by the grant. The grants use the scratch repository's resolved real path (`/private/tmp/...` on macOS), the lesson of the health slice's first attempt.
   - The two-turn cases resume the session with `confirm.txt` or `decline.txt`.
   - It records tool calls, skills fired, the file listing before the run and after each turn, and whether each run errored.
 - The ledger records each result with counted and errored-run counts. Transcripts are redacted of home paths, the OS username, temporary-directory prefixes, UUID-shaped identifiers and email addresses other than the fixture placeholder.

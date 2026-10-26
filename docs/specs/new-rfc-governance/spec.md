@@ -159,6 +159,7 @@ Terms used below:
   - for codeowners only: `--- GitHub reads now ---`, one line per rule line of the file GitHub reads before the write, as `<line number>: <pattern> → <owners joined by a space, or (no owners)>` for a valid rule line and `<line number>: skipped` for one that is not valid, then `--- as GitHub reads it ---`, the same for the target's proposed rule lines, then `--- end ---`
 - **A refusal** is exit status 3 with one stdout line `refused: <reason>`, where `<reason>` is one of `root-not-worktree`, `target-not-allowed`, `unsafe-path`, `too-large`, `not-utf8`, `refused-character`, `invalid-codeowners-line <n>`, `governance-draft-incomplete`, `charter-missing`, `charter-already-links`, `not-a-link-line`, `bad-line-number`, `not-the-charter`, `bytes-differ-from-preview`, `target-changed`, `approval-required`, `invalid-approval`.
 - **A behaviour run** is one headless session (one or two turns) on a fixture. It is **errored** when its transcript has no assistant message or ends in an API error result; an errored run is re-run and not counted. Every other run counts, and a counted run in which `new-rfc` did not load fails every criterion of its case.
+- **An allowed script call** is a `Bash` command that is one `python3` invocation, with no `cd` and no `;`, `&`, `|`, backtick, `$(`, `>` or `<` other than one quoted heredoc (`<<'DELIM'`) carrying the proposed input, whose script argument, resolved against the scratch repository root when relative, is the projected `new-rfc` skill's `scripts/governance.py`.
 - **The file listing** of a scratch repository is the sha256 of every file under it, `.git/` and ignored paths included.
 - **A positive trigger rate** is the share of runs on a query set's should-trigger queries in which the named skill fired. **A false-trigger rate** is the share of runs on should-not-trigger queries in which it fired. Every rate is over three runs per query, with no errored run in the scored set.
 - **B** is `new-rfc`'s positive trigger rate on its 24 pre-change should-trigger queries in the pre-change world. **The floor** is B − 0.030.
@@ -181,7 +182,7 @@ Terms used below:
 - [ ] **AC-0009.** For a codeowners target, the preview block's as-GitHub-reads-it section holds one line per rule line of the proposed content, in file order, and none for comment or blank lines.
 - [ ] **AC-0010.** For a codeowners target, the preview block's GitHub-reads-now section holds one line per rule line of the file GitHub reads before the write, in file order, rendered as the preview-block term states.
 - [ ] **AC-0011.** For a codeowners target, the `GitHub reads:`, `Also present:` and `Rules with no owners:` lines state the file GitHub reads after the write, the other present codeowners targets, and the count of proposed rule lines with no owners.
-- [ ] **AC-0012.** The preview and show blocks render their content sections in visible form, and their `Characters made visible:` count equals the number of code points the visible form replaced in the `--- content ---` section alone.
+- [ ] **AC-0012.** The preview and show blocks render their content sections in visible form, and their `Characters made visible:` count equals the number of code points the visible form replaced in the `--- content ---` and `--- GitHub reads now ---` sections.
 - [ ] **AC-0013.** Text from the proposed input, a file the run reads, or `--approved-by` reaches stdout only inside a show or preview block's content, GitHub-reads-now and as-GitHub-reads-it sections and its `Approved by:` line, always in visible form, and never reaches stderr or a refusal line.
 - [ ] **AC-0014.** `show` and `preview` write no file.
 - [ ] **AC-0015.** `Approval required:` is `yes` exactly when approval is required.
@@ -287,7 +288,7 @@ The fixtures are in `packs/repo-governance/tests/skills/new-rfc/fixtures/`. Each
 - [ ] **AC-0091.** In each run on `governance-decline/`, whose second turn is the fixture's `decline.txt`, the file listing after the second turn equals the one before the run.
 - [ ] **AC-0092.** In each run on `governance-decline/`, the transcript of the first turn shows the script's `preview` subcommand run on a governance target.
 - [ ] **AC-0093.** In each run on `governance-two/` and `governance-decline/`, the second turn is the only point at which the transcript shows the script's `write` subcommand run.
-- [ ] **AC-0094.** In each run on every fixture, the transcript shows no tool call outside the harness's allowed set: `Skill`, `Read`, `Glob`, `Grep`, `Write`, `Edit`, and `Bash` running `python3` on a script in the projected `new-rfc` skill's `scripts/` directory by its absolute path.
+- [ ] **AC-0094.** In each run on `governance-codeowners/`, `governance-two/` and `governance-decline/`, every tool call is `Skill`, `Read`, `Glob`, `Grep`, `Write`, `Edit`, or a `Bash` call that is an allowed script call.
 - [ ] **AC-0095.** The ledger records, for each behaviour case, the counted-run count, the errored-run count and the result of each criterion above.
 
 ### Release
