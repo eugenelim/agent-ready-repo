@@ -25,6 +25,7 @@ ALLOWED: tuple[tuple[str, str, int, str], ...] = (
     ("cli.py", "contracts", 1, "CLI subcommand name"),
     ("commands/catalogue_contracts.py", "contracts", 1, "JSON output key name"),
     ("build/self_host.py", "contracts/**", 1, "self-host input glob"),
+    ("pack_renames.py", "contracts", 1, "fixed rename-map path read from the reporting catalogue"),
 )
 
 

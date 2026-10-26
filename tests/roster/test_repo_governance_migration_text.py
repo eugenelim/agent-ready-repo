@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
+import importlib.util
 import re
-import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "packages" / "agentbundle"))
-sys.path.insert(0, str(REPO / "packages" / "agentbundle" / "tests"))
+from agentbundle.pack_renames import Installed, build_rename_hint
+from agentbundle.version import CLI_VERSION
 
-import _rename_fixtures as fx  # noqa: E402
-from agentbundle.pack_renames import Installed, build_rename_hint  # noqa: E402
-from agentbundle.version import CLI_VERSION  # noqa: E402
+REPO = Path(__file__).resolve().parents[2]
+_FIXTURES = REPO / "packages" / "agentbundle" / "tests" / "_rename_fixtures.py"
+_spec = importlib.util.spec_from_file_location("_rename_fixtures", _FIXTURES)
+assert _spec is not None and _spec.loader is not None
+fx = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(fx)
 
 SOURCE = "git+https://github.com/eugenelim/agent-ready-repo"
 SENTENCE = (

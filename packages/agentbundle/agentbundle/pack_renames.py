@@ -227,7 +227,7 @@ def _no_recorded_source(recorded: str | None) -> bool:
 
 
 def _source_sentence(pack: str, recorded: str | None, reporting: str) -> str | None:
-    """The AC-0016, AC-0017 and AC-0028 sentence for one step, if any."""
+    """The move-between-catalogues or no-recorded-source sentence for one step, if any."""
     if _no_recorded_source(recorded):
         return f"Installed pack '{pack}' has no recorded source."
     assert recorded is not None

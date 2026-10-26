@@ -11,6 +11,7 @@
 # This list is defense in depth; it is not what makes a deletion safe.
 
 protected = [
+  "docs/specs/repo-governance-rename",
   "docs/specs/acceptance-authority-and-evidence",
   "docs/specs/delivery-knowledge-projection",
   "docs/specs/design-handoff-read",
