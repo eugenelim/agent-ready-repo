@@ -39,7 +39,7 @@ audit-verified tuple `kind: how-to`, A present, C absent.
 - `guides/core/how-to/start-or-remember-work.md`
 - `guides/desk-research/how-to/research-pipelines.md`
 - `guides/github/how-to/intake-a-github-milestone-as-a-brief.md`
-- `guides/governance-extras/how-to/extension-contract.md`
+- `guides/repo-governance/how-to/extension-contract.md`
 - `guides/linear/how-to/linear-brief-intake-and-sync.md`
 - `guides/monorepo-extras/how-to/scaffold-a-new-package.md`
 - `guides/product-engineering/how-to/frame-a-product-vision.md`

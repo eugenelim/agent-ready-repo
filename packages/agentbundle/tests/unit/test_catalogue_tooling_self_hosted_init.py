@@ -56,7 +56,7 @@ def _make_source(tmp_path: Path, packs: list[str] | None = None) -> Path:
     )
     packs_dir = source / "packs"
     packs_dir.mkdir()
-    for name in packs or ["core", "governance-extras"]:
+    for name in packs or ["core", "repo-governance"]:
         p = packs_dir / name
         p.mkdir()
         (p / "pack.toml").write_text(
@@ -175,10 +175,10 @@ def _run_self_hosted_cli(
 # ---------------------------------------------------------------------------
 
 def test_select_packs_all(tmp_path: Path) -> None:
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     packs = select_packs(source, None)
     assert "core" in packs
-    assert "governance-extras" in packs
+    assert "repo-governance" in packs
     assert "catalogue-curation" not in packs
 
 
@@ -190,7 +190,7 @@ def test_select_packs_excludes_tooling(tmp_path: Path) -> None:
 
 
 def test_select_packs_explicit_filter(tmp_path: Path) -> None:
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     packs = select_packs(source, ["core"])
     assert packs == ["core"]
 
@@ -772,13 +772,13 @@ def test_ownership_state_schema3_fields(tmp_path: Path) -> None:
 
 def test_stale_path_removed_on_rerun(tmp_path: Path) -> None:
     """A file from a previous run not in the new plan is removed."""
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     cfg = _base_cfg(tmp_path, source)
     result1 = init_self_hosted(cfg)
     assert result1.ok
-    assert (cfg.target / "packs" / "governance-extras" / "pack.toml").exists()
+    assert (cfg.target / "packs" / "repo-governance" / "pack.toml").exists()
 
-    # Second run: only core pack (governance-extras removed from source).
+    # Second run: only core pack (repo-governance removed from source).
     src2_parent = tmp_path / "src2parent"
     src2_parent.mkdir()
     source2 = _make_source(src2_parent, packs=["core"])
@@ -790,7 +790,7 @@ def test_stale_path_removed_on_rerun(tmp_path: Path) -> None:
     )
     result2 = init_self_hosted(cfg2)
     assert result2.ok
-    assert not (cfg.target / "packs" / "governance-extras" / "pack.toml").exists()
+    assert not (cfg.target / "packs" / "repo-governance" / "pack.toml").exists()
     assert (cfg.target / "packs" / "core" / "pack.toml").exists()
 
 
@@ -798,19 +798,19 @@ def test_user_modified_file_not_removed_on_rerun(tmp_path: Path) -> None:
     """A stale file modified by the user (sha256 mismatch) is skipped with a warning."""
     import json  # noqa: F401
 
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     cfg = _base_cfg(tmp_path, source)
     result1 = init_self_hosted(cfg)
     assert result1.ok
 
-    # User modifies governance-extras/pack.toml.
-    gov_path = cfg.target / "packs" / "governance-extras" / "pack.toml"
+    # User modifies repo-governance/pack.toml.
+    gov_path = cfg.target / "packs" / "repo-governance" / "pack.toml"
     gov_path.write_text(
-        "[pack]\nname = \"governance-extras\"\nversion = \"user-edit\"\n",
+        "[pack]\nname = \"repo-governance\"\nversion = \"user-edit\"\n",
         encoding="utf-8",
     )
 
-    # Second run: only core (governance-extras is stale but user-modified).
+    # Second run: only core (repo-governance is stale but user-modified).
     src2_parent = tmp_path / "src2parent"
     src2_parent.mkdir()
     source2 = _make_source(src2_parent, packs=["core"])
@@ -1644,7 +1644,7 @@ def test_bare_run_records_resolved_selections(tmp_path: Path) -> None:
     assert init_self_hosted(cfg).ok
     recipe = _read_state(cfg.target)["recipe"]
 
-    assert recipe["packs"] == ["core", "governance-extras"]
+    assert recipe["packs"] == ["core", "repo-governance"]
     assert recipe["profiles"] == ["alternate", "default"]
 
 
@@ -1873,7 +1873,7 @@ def test_recorded_recipe_survives_a_bare_rerun(tmp_path: Path) -> None:
         ("owner_email", "flag@example.com", "flag@example.com"),
         ("preferred_adapter", "gemini", "gemini"),
         ("repository_url", "https://example.com/flag", "https://example.com/flag"),
-        ("packs", ["governance-extras"], ["governance-extras"]),
+        ("packs", ["repo-governance"], ["repo-governance"]),
         ("profiles", ["default"], ["default"]),
     ],
 )
@@ -2155,7 +2155,7 @@ def test_recorded_selection_requires_source_name_membership(
 
     assert result.ok
     assert any(f"recorded {field}" in item for item in result.diagnostics)
-    assert sorted(result.selected_packs) == ["core", "governance-extras"]
+    assert sorted(result.selected_packs) == ["core", "repo-governance"]
     assert sorted(result.selected_profiles) == ["alternate", "default"]
     assert all("../../elsewhere" not in item for item in result.diagnostics)
 

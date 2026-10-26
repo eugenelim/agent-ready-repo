@@ -8,7 +8,7 @@
 > and feature contracts. Replace this banner with **CURRENT** only after the
 > shipped behavior and its verification agree with this model.
 
-The current baseline is [Governance Extras design](../../packs/governance-extras/DESIGN.md):
+The current baseline is [Repository Governance design](../../packs/repo-governance/DESIGN.md):
 `navigate-decisions` is a read-only skill that queries the admitted ADR and RFC
 corpus and exports a self-contained offline HTML explorer, while `new-adr` and
 `new-rfc` own separate authoring flows. This architecture replaced the earlier

@@ -8,7 +8,7 @@ kind: tutorial
 # Assimilate an external subagent
 
 **What you'll build:** One external subagent definition adopted into the catalogue — OWASP AST-reviewed with subagent-specific emphasis, shaped to catalogue convention, and verified.
-**Prerequisites:** The `catalogue-curation` pack installed (requires `core` + `governance-extras`); read [Skill standards](../explanation/skill-standards.md), especially Standard 3.
+**Prerequisites:** The `catalogue-curation` pack installed (requires `core` + `repo-governance`); read [Skill standards](../explanation/skill-standards.md), especially Standard 3.
 **Time:** 30–45 minutes.
 
 **Goal:** bring one external subagent definition into the catalogue safely, with the right security emphasis.
@@ -18,7 +18,7 @@ By the end you'll have seen how a subagent assimilation differs from a skill ass
 When assimilating a subagent, Standard 3 applies with the most weight of any primitive type.
 A subagent has no frontmatter to validate — the body is the entire security surface.
 
-You need the `catalogue-curation` pack installed (it requires `core` + `governance-extras`).
+You need the `catalogue-curation` pack installed (it requires `core` + `repo-governance`).
 
 ## 1. How a subagent differs from a skill
 

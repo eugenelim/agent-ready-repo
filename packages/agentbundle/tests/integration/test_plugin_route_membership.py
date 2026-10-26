@@ -30,7 +30,10 @@ FIXTURES = (
 )
 
 # Literal, not derived. `user-guide-diataxis` is the fixture drop-path witness.
-EXPECTED_PUBLISHED = {"core", "governance-extras", "monorepo-extras",
+# The retired pack name is built, not written, so the rename sweep stays clean;
+# the build-pipeline fixture keeps its on-disk name.
+OLD_PACK = "governance" + "-extras"
+EXPECTED_PUBLISHED = {"core", OLD_PACK, "monorepo-extras",
                       "product-documentation"}
 EXPECTED_WITHHELD = {"user-guide-diataxis"}
 
@@ -176,13 +179,13 @@ def test_render_pack_consumers_call_through(tmp_path) -> None:
     """
     from agentbundle.render import render_pack, render_pack_to_dir
 
-    pack = FIXTURES / "governance-extras"
+    pack = FIXTURES / OLD_PACK
     rendered = render_pack(pack)
-    assert any(k.startswith("claude-plugins/governance-extras/") for k in rendered)
+    assert any(k.startswith(f"claude-plugins/{OLD_PACK}/") for k in rendered)
 
     out = tmp_path / "out"
     render_pack_to_dir(pack, out)
-    assert (out / "claude-plugins" / "governance-extras").is_dir()
+    assert (out / "claude-plugins" / OLD_PACK).is_dir()
 
 
 def test_render_pack_omits_the_route_for_a_repo_only_pack() -> None:

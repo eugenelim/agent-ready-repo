@@ -91,13 +91,18 @@ def test_register_has_exact_schema_unique_ids_and_all_families() -> None:
     }
 
 
+FORMER_PACK_DIR = "packs/governance" + "-extras/"
+
+
 def test_register_evidence_paths_are_confined_regular_files() -> None:
     """Every exact result points at maintained repository evidence."""
     repository_root = REPOSITORY_ROOT.resolve()
     for fixture_id, _, _, exact_result, _ in _register_rows():
         paths = EVIDENCE_PATH.findall(exact_result)
         assert paths, fixture_id
-        for relative_path in paths:
+        for recorded_path in paths:
+            # The register is a frozen record that predates the pack rename.
+            relative_path = recorded_path.replace(FORMER_PACK_DIR, "packs/repo-governance/")
             candidate = (REPOSITORY_ROOT / relative_path).resolve()
             assert candidate.is_relative_to(repository_root), (fixture_id, relative_path)
             assert candidate.is_file(), (fixture_id, relative_path)

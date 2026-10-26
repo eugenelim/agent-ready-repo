@@ -87,7 +87,7 @@ claude plugin marketplace add eugenelim/agent-ready-repo
 claude plugin install desk-research@agent-ready-repo
 ```
 
-**The plugin route is user-scope only.** A plugin lives in your global cache, so the marketplace carries only packs whose `allowed-scopes` admits `user`. Repo-scoped packs install with `agentbundle`: `core`, `catalogue-curation`, `governance-extras`, `iac-terraform`, `monorepo-extras`, `release-engineering`, `user-guide-diataxis`.
+**The plugin route is user-scope only.** A plugin lives in your global cache, so the marketplace carries only packs whose `allowed-scopes` admits `user`. Repo-scoped packs install with `agentbundle`: `core`, `catalogue-curation`, `repo-governance`, `iac-terraform`, `monorepo-extras`, `release-engineering`, `user-guide-diataxis`.
 
 ## After the install
 

@@ -859,7 +859,7 @@
       "exception": null
     },
     {
-      "pack": "governance-extras",
+      "pack": "repo-governance",
       "skill": "new-adr",
       "families": [
         "artifact-template-producer"
@@ -867,7 +867,7 @@
       "exception": null
     },
     {
-      "pack": "governance-extras",
+      "pack": "repo-governance",
       "skill": "new-rfc",
       "families": [
         "artifact-template-producer"
@@ -875,7 +875,7 @@
       "exception": null
     },
     {
-      "pack": "governance-extras",
+      "pack": "repo-governance",
       "skill": "navigate-decisions",
       "families": [
         "orientation-read-model",

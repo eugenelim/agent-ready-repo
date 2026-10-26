@@ -9,10 +9,10 @@ categories = ["governance", "tooling"]
 keywords = ["catalogue", "assimilate", "compile-okf", "okf"]
 
 # A catalogue-operator pack — meta-tooling for growing the catalogue,
-# one meta-level above governance-extras. Repo-only ceremony; ships instance
+# one meta-level above repo-governance. Repo-only ceremony; ships instance
 # content (not a placeholder scaffold), so lint-seeds stays off.
 # 0.2.0: removed export-catalogue skill (superseded by agentbundle catalogue init
-# --preset self-hosted); removed hard deps on core and governance-extras — skills
+# --preset self-hosted); removed hard deps on core and repo-governance — skills
 # now operate portably against the target catalogue's own contracts.
 
 [pack.adapter-contract]

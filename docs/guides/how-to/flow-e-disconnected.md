@@ -54,7 +54,7 @@ The extracted layout contains:
 /opt/company/agentbundle/catalogues/engineering/
   packs/
     core/
-    governance-extras/
+    repo-governance/
     ...
   .claude-plugin/marketplace.json  # only when Claude projection is included
 ```

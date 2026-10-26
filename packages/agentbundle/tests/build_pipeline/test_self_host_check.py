@@ -615,7 +615,7 @@ class AgentsMdCompositionTests(unittest.TestCase):
             )
             _seed_pack_with_skill(
                 packs_dir,
-                "governance-extras",
+                "repo-governance",
                 "governance-skill",
                 "governance skill description",
             )
@@ -1172,7 +1172,7 @@ class SeedProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name, fname in [("core", "spec.md"), ("governance-extras", "rfc.md")]:
+            for name, fname in [("core", "spec.md"), ("repo-governance", "rfc.md")]:
                 pack = packs_dir / name
                 (pack / "seeds" / "docs" / "_templates").mkdir(parents=True)
                 (pack / "seeds" / "docs" / "_templates" / fname).write_text(
@@ -1199,7 +1199,7 @@ class SeedProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name, content in [("core", "v1\n"), ("governance-extras", "v2\n")]:
+            for name, content in [("core", "v1\n"), ("repo-governance", "v2\n")]:
                 pack = packs_dir / name
                 (pack / "seeds").mkdir(parents=True)
                 (pack / "seeds" / "AGENTS.md").write_text(content, encoding="utf-8", newline="\n")
@@ -1227,7 +1227,7 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
             filename = "line\nbreak\r\x1b.md"
-            for name, content in (("core", "one\n"), ("governance-extras", "two\n")):
+            for name, content in (("core", "one\n"), ("repo-governance", "two\n")):
                 pack = packs_dir / name
                 (pack / "seeds").mkdir(parents=True)
                 (pack / "seeds" / filename).write_text(content, encoding="utf-8")
@@ -1268,7 +1268,7 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir.mkdir()
             for name, content in [
                 ("core", "# golden path A\n"),
-                ("governance-extras", "# golden path B\n"),
+                ("repo-governance", "# golden path B\n"),
             ]:
                 pack = packs_dir / name
                 (pack / "seeds" / "docs" / "architecture").mkdir(parents=True)
@@ -1336,7 +1336,7 @@ class MarketplaceAggregationTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name in ("core", "governance-extras"):
+            for name in ("core", "repo-governance"):
                 pack = packs_dir / name
                 (pack / ".claude-plugin").mkdir(parents=True)
                 (pack / ".claude-plugin" / "plugin.json").write_text(
@@ -1359,7 +1359,7 @@ class MarketplaceAggregationTests(unittest.TestCase):
             self.assertTrue(mp.exists())
             payload = json.loads(mp.read_text(encoding="utf-8"))
             names = {entry["name"] for entry in payload["plugins"]}
-            self.assertEqual(names, {"core", "governance-extras"})
+            self.assertEqual(names, {"core", "repo-governance"})
             self.assertEqual(payload["owner"], {"name": "eugenelim"})
 
     def test_a_repo_only_pack_is_not_aggregated(self) -> None:

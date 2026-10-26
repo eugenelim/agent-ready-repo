@@ -44,7 +44,7 @@ A new team crosses them in six phases.
 | 2 · Shape | Turn a signal into a ratified intent | `desk-research`, `product-engineering`, `architect` (`inception` profile) | user | `product-engineering/`, `architect/`, `desk-research/` |
 | 3 · Hand over | Admit the intent as repository work | `core` — `intake-intent` | repo | **none** (see G-1) |
 | 4 · Build | Spec, plan, execute, gate, review, merge | `core` — `new-spec`, `work-loop` | repo | `core/how-to/plan-and-execute-non-trivial-work.md` |
-| 5 · Govern | Circulate cross-cutting change; record settled decisions | `governance-extras` — `new-rfc`, `new-adr` | repo | `governance-extras/how-to/` |
+| 5 · Govern | Circulate cross-cutting change; record settled decisions | `repo-governance` — `new-rfc`, `new-adr` | repo | `repo-governance/how-to/` |
 | 6 · Release / report | Validate deployed; report engagement | `release-engineering`; `atlassian`/`linear`/`github` | repo | `release-engineering/how-to/run-a-release.md` |
 
 **There is no one-command whole-lifecycle install.** `[high]` The three profiles
@@ -54,7 +54,7 @@ split across scopes and none includes release:
 | --- | --- | --- |
 | `inception` | user | `desk-research`, `product-engineering`, `architect` |
 | `solution-architect` | user | `architect`, `desk-research`, `contracts` |
-| `full-ceremony` | repo | `core`, `governance-extras`, `product-documentation`, `monorepo-extras` |
+| `full-ceremony` | repo | `core`, `repo-governance`, `product-documentation`, `monorepo-extras` |
 
 `release-engineering`, `product-strategy`, `experience-design`,
 `frontend-engineering`, and `iac-terraform` are in no profile and must be
@@ -155,15 +155,15 @@ layout before the first shaping run.
 | --- | --- | --- | --- | --- |
 | Charter | `core` (seed) | `init-project` / `adapt-to-project` | always, as a living doc | none — living |
 | Spec + plan | `core` | `new-spec` | any full-mode risk trigger | `Draft → Approved → Implementing → Shipped`; `Archived` |
-| ADR | `governance-extras` | `new-adr` | a settled cross-cutting decision with a real trade-off | `Proposed → Accepted \| Rejected`; then `Deprecated \| Superseded` |
-| RFC | `governance-extras` | `new-rfc` | unresolved consequential direction, multi-owner circulation, reserved-boundary change | `Draft → Open → FCP → Accepted \| Rejected \| Withdrawn`; `Experimental` optional |
+| ADR | `repo-governance` | `new-adr` | a settled cross-cutting decision with a real trade-off | `Proposed → Accepted \| Rejected`; then `Deprecated \| Superseded` |
+| RFC | `repo-governance` | `new-rfc` | unresolved consequential direction, multi-owner circulation, reserved-boundary change | `Draft → Open → FCP → Accepted \| Rejected \| Withdrawn`; `Experimental` optional |
 
 RFCs fan out after acceptance: architecture decisions become ADRs, concrete
 behavior becomes specs, convention changes edit `docs/CONVENTIONS.md`.
 
 `[moderate]` **G-3. RFCs and ADRs are not documented as consumers of shaping
 output.** The owner's pattern sources RFC and ADR content from artifacts produced
-by the three upstream packs. `guides/governance-extras/how-to/new-rfc.md` and
+by the three upstream packs. `guides/repo-governance/how-to/new-rfc.md` and
 `new-adr.md` do not name an intent, a decision brief, a research survey, or an
 architecture concept as an input. `desk-research` is the exception: it ships
 `how-to/run-a-research-project-into-an-rfc.md`, which is the only documented
@@ -358,7 +358,7 @@ row is an invitation to invent.
 | U4 | 5 · tracker | **new** `guides/_shared/how-to/project-slices-to-a-tracker.md` | T-1: the owner's position is unreachable | Promote `tracker-projection.md` to an adopter guide; add the missing GitHub and Jira Software columns; state plainly that export is manual in v1 | `decompose-intent/references/tracker-projection.md` (verbatim table + the one-way rule) | M |
 | U5 | 5 · tracker | `_shared/how-to/choose-a-tracker-integration.md`, `_shared/reference/tracker-vocabulary.md` | T-2: both lead with intake | Add the outbound direction as the *default* and reframe intake as the brownfield entry; link U4 | U4, plus each `*-refresh` skill's permitted-action list | S |
 | U6 | 2 · shape | `guides/architect/` (11 files) | G: no architect guide mentions `workspace.toml` | Add a "register the artifact" step showing a `kind = "design"` entry that a brief or spec can declare in `needs` | `core/reference/workspace-toml-schema.md:79,184,248` | S |
-| U7 | 4 · govern | `governance-extras/how-to/new-rfc.md`, `new-adr.md` | G-3: shaping output is not named as an input | Add an "Inputs" section naming intent, decision brief, research survey, architecture concept | `desk-research/how-to/run-a-research-project-into-an-rfc.md` — the shipped template | S |
+| U7 | 4 · govern | `repo-governance/how-to/new-rfc.md`, `new-adr.md` | G-3: shaping output is not named as an input | Add an "Inputs" section naming intent, decision brief, research survey, architecture concept | `desk-research/how-to/run-a-research-project-into-an-rfc.md` — the shipped template | S |
 | U8 | all | `journey_validator.py`, `contracts/`, 14 `JOURNEY.md`, the docs and tests | A has no slot in the contract schema | Add `youType` (the literal first utterance) to the `contract:` block as **optional**, then back-fill 14 packs. The contract is closed — `journey_validator.py:69-75` rejects unknown fields — so this touches the validator, the authoring standard, the generator, and its tests, and a required field would break external packs | the 64 skills that already carry a quoted trigger | M |
 | U9 | all | the 33 guides in the instrument's harvest table | 48 guides name a skill but show no input | Mechanical pass: lift each skill's phrase into a chat-input fence | the harvest table printed by `tools/audit-guide-affordances.py` | M |
 | U10 | 2–4 | 17 tutorials | B **0/17** | Give each tutorial one worked input — the actual answers a reader gives to the elicitation, not a description of them | `architect/how-to/diagram-a-system.md` is the 5/5 exemplar | M |
@@ -480,7 +480,7 @@ Each was confirmed against the file. These are wrong, not merely thin.
 | --- | --- | --- |
 | D8 | `atlassian/how-to/crawl-and-publish-confluence.md`, `measure-flow-and-dora-metrics.md` | linked `../reference/atlassian-skills.md`; the file is at `../atlassian-skills.md` |
 | D9 | `core/explanation/role-journeys.md` | six journey-map links dropped the `docs/` segment |
-| D10 | `core/how-to/plan-and-execute-non-trivial-work.md`, `governance-extras/how-to/new-adr.md`, `new-rfc.md` | eleven links to `../../../CONVENTIONS.md`; the file is at `docs/CONVENTIONS.md` |
+| D10 | `core/how-to/plan-and-execute-non-trivial-work.md`, `repo-governance/how-to/new-adr.md`, `new-rfc.md` | eleven links to `../../../CONVENTIONS.md`; the file is at `docs/CONVENTIONS.md` |
 
 All three were already broken at HEAD and are unrelated to the uplift; they were
 corrected because they sit in files this change touches.

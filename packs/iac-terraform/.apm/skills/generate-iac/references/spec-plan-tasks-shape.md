@@ -21,7 +21,7 @@ traceability requirement.
 | Credential mechanism | ADR-NNNN-creds | OIDC preferred; no static creds |
 
 Create ADRs using the `new-adr` skill with `mode: infra` (see
-`governance-extras` pack, `new-adr/references/infra-decisions.md`).
+`repo-governance` pack, `new-adr/references/infra-decisions.md`).
 
 ## Plan task shape
 

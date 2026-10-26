@@ -900,7 +900,7 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
 
     # Now run the Claude-plugins writer for a different pack.
     plugin_root, plugin_data, _, _ = pack_root_factory(
-        name="governance-extras",
+        name="repo-governance",
         version="0.5.0",
         allowed_scopes=["repo"],
         opt_in_at=["local"],
@@ -908,7 +908,7 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
     local_settings = project_dir / ".claude" / "settings.local.json"
     local_settings.parent.mkdir(parents=True, exist_ok=True)
     local_settings.write_text(
-        json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8", newline="\n"
+        json.dumps({"enabledPlugins": ["repo-governance"]}), encoding="utf-8", newline="\n"
     )  # noqa: E501
 
     env = _make_env(
@@ -920,7 +920,7 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
     data = _read_marker(marker_path)
     names = {e["name"] for e in data.get("packs-installed", [])}
     assert "core" in names, "CLI-seeded entry was dropped"
-    assert "governance-extras" in names, "Claude-plugins entry is missing"
+    assert "repo-governance" in names, "Claude-plugins entry is missing"
 
     by_name = {e["name"]: e for e in data["packs-installed"]}
     # Pre-seeded CLI entry must still carry install-route = "cli".
@@ -928,7 +928,7 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
         "CLI entry install-route was overwritten by the Claude-plugins writer"
     )
     # New Claude-plugins entry must carry install-route = "claude-plugins".
-    assert by_name["governance-extras"].get("install-route") == "claude-plugins", (
+    assert by_name["repo-governance"].get("install-route") == "claude-plugins", (
         "New Claude-plugins entry does not carry install-route = 'claude-plugins'"
     )
 

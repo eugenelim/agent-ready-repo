@@ -106,7 +106,7 @@ contents:
 - **Content shape**, declared by which directories are populated. The
   `core` pack is the only one with a full `.apm/` set (skills, agents,
   hooks, hook-wiring, commands); the other repo-only packs
-  (`governance-extras`, `user-guide-diataxis`, `monorepo-extras`) ship
+  (`repo-governance`, `user-guide-diataxis`, `monorepo-extras`) ship
   `.apm/skills/` plus `seeds/` and nothing else. User-scope packs
   (`converters`, `atlassian`, `figma`, `contracts`) ship `.apm/skills/`
   only. A repo-only pack omitting `seeds/` or `.apm/hooks/` is fine —

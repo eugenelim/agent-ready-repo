@@ -300,6 +300,18 @@ def recorded_uses() -> tuple[tuple[str, str], ...]:
     return tuple(uses)
 
 
+# The recorded notes are frozen and keep the pack's former name. Its guides
+# moved when the pack was renamed, so map the recorded path to the live one.
+_FORMER_GUIDES = "guides/governance" + "-extras/"
+
+
+def _live_path(recorded: str) -> str:
+    """Return the live path for a path recorded before the pack rename."""
+    if recorded.startswith(_FORMER_GUIDES):
+        return "guides/repo-governance/" + recorded[len(_FORMER_GUIDES) :]
+    return recorded
+
+
 def unresolved_uses() -> tuple[str, ...]:
     """Return a diagnostic line per recorded use that does not resolve.
 
@@ -312,12 +324,13 @@ def unresolved_uses() -> tuple[str, ...]:
     # two replacements. Iterate the distinct pairs and carry the count.
     use_counts = Counter(recorded_uses())
     failures: list[str] = []
-    for consumer, anchor in use_counts:
+    for recorded_consumer, anchor in use_counts:
+        consumer = _live_path(recorded_consumer)
         row = mapping.get(anchor)
         if row is None:
             failures.append(f"{consumer} -> {anchor}: no anchor-map row")
             continue
-        destination = row["destination"]
+        destination = _live_path(row["destination"])
         heading = row["heading"]
         if not heading:
             failures.append(
@@ -338,7 +351,7 @@ def unresolved_uses() -> tuple[str, ...]:
             continue
         failures.extend(
             _replacement_failures(
-                consumer, anchor, destination, heading, use_counts[(consumer, anchor)]
+                consumer, anchor, destination, heading, use_counts[(recorded_consumer, anchor)]
             )
         )
     return tuple(failures)
@@ -997,8 +1010,8 @@ def test_pack_layout_states_the_source_of_truth_split() -> None:
     assert not absent, f"docs/architecture/pack-layout.md omits: {absent}"
 
 
-NEW_ADR_GUIDE = REPO_ROOT / "guides/governance-extras/how-to/new-adr.md"
-NEW_RFC_GUIDE = REPO_ROOT / "guides/governance-extras/how-to/new-rfc.md"
+NEW_ADR_GUIDE = REPO_ROOT / "guides/repo-governance/how-to/new-adr.md"
+NEW_RFC_GUIDE = REPO_ROOT / "guides/repo-governance/how-to/new-rfc.md"
 SEED_CHARTER = REPO_ROOT / "packs/core/seeds/docs/CHARTER.md"
 
 RFC_LIFECYCLE_STATES = ("Draft", "Open", "Final Comment Period", "Accepted", "Withdrawn")

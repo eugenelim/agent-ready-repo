@@ -32,7 +32,7 @@ Core directly.
 
 Do not add a pack for atmosphere:
 
-- Use `governance-extras` only when the desired artifact is an RFC, ADR, or
+- Use `repo-governance` only when the desired artifact is an RFC, ADR, or
   conventions change—not merely because a pilot has controls.
 - Use `product-strategy` when the open question is upstream strategy and the
   desired artifact is a PRFAQ, market analysis, or OKR cascade—not as a
@@ -234,7 +234,7 @@ evidence, architecture, and conventions.
 the named owner can adjudicate its control language.
 
 **Narrate:** enterprise depth comes from evidence, ownership, and traceability;
-it does not silently activate `governance-extras`.
+it does not silently activate `repo-governance`.
 
 **Stop if:** the brief is unstructured raw intake, no domain owner is present,
 or a policy claim cannot be shown to participants.

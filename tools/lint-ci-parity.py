@@ -674,9 +674,9 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest catalogue manifest schema parity (roster-owned)":
         LOCAL("test-after-build-check"),
-    # governance-extras confinement check: a roster file, collected by the
+    # repo-governance confinement check: a roster file, collected by the
     # pytest tests/ -q run inside test-after-build-check.
-    "pytest governance-extras standalone (roster-owned)":
+    "pytest repo-governance standalone (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest package pytest pythonpath (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -1054,7 +1054,7 @@ _GATE_MAIN_CHECKS = (
     "pytest execution-supervisor emitted-record parity (roster-owned)",
     "pytest catalogue specification contract loads (roster-owned)",
     "pytest catalogue manifest schema parity (roster-owned)",
-    "pytest governance-extras standalone (roster-owned)",
+    "pytest repo-governance standalone (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
     "pytest portable-catalogue-authentication packaging (roster-owned)",
@@ -1316,7 +1316,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
-    'packs/governance-extras/tests/skills/navigate-decisions/':
+    'packs/repo-governance/tests/skills/navigate-decisions/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
             "the build gate chain step `test-navigate-decisions`, which this lint does not trace."

@@ -55,7 +55,7 @@ status, field content or count from it — a copy would be a second home for
 another artifact's state, and the date would record only when the copy was made,
 not whether it still holds. Open them.
 
-- **The two record types.** `packs/governance-extras/.apm/skills/new-adr/` and
+- **The two record types.** `packs/repo-governance/.apm/skills/new-adr/` and
   `.../new-rfc/`. Read each template for its lifecycle vocabulary and for the
   field naming who answers — those two facts are what make a held question
   answerable, and they differ between the two.

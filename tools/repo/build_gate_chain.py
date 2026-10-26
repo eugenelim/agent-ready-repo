@@ -285,7 +285,7 @@ def build_check(args: argparse.Namespace) -> int:
         # Runs the projected copy, which is the artifact adopters also run.
         _pytest_step(
             "test-next-ordinal",
-            "packs", "governance-extras", "tests", "skills", "new-adr",
+            "packs", "repo-governance", "tests", "skills", "new-adr",
             "test_next_ordinal.py",
         ),
         _script_step(
@@ -304,7 +304,7 @@ def build_check(args: argparse.Namespace) -> int:
         # Runs the projected copy so the built artifact is what the gate exercises.
         _pytest_step(
             "test-lint-adr-shape",
-            "packs", "governance-extras", "tests", "skills", "new-adr",
+            "packs", "repo-governance", "tests", "skills", "new-adr",
             "test_lint_adr_shape.py",
         ),
         _script_step(
@@ -316,7 +316,7 @@ def build_check(args: argparse.Namespace) -> int:
         # docs/specs/decision-navigation). Runs the pack suite directly.
         _pytest_step(
             "test-navigate-decisions",
-            "packs", "governance-extras", "tests", "skills", "navigate-decisions",
+            "packs", "repo-governance", "tests", "skills", "navigate-decisions",
         ),
         _script_step(
             "check-rfc-index",
@@ -727,6 +727,11 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "pack-dependency-declaration self-test",
             "tools", "test-lint-pack-dependency-declaration.py",
+        ),
+        _script_step("pack-renames", "tools", "lint-pack-renames.py"),
+        _script_step(
+            "pack-renames self-test",
+            "tools", "test-lint-pack-renames.py",
         ),
         _script_step(
             "generated-path-ownership",

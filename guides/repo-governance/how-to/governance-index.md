@@ -1,0 +1,117 @@
+---
+title: "How to set up a governance index"
+summary: "Create a YAML index that maps architectural domains to the decision records and standards contributors need to load."
+pack: repo-governance
+kind: how-to
+---
+
+# How to set up a governance index
+
+**Use this when:** You need a single YAML manifest mapping architectural domains to their ADRs and standards files so agents and contributors load only the relevant files.
+**Prerequisites:** `repo-governance` installed and at least one accepted ADR — see [Prerequisites](#prerequisites) below.
+**Result:** A committed governance index at the location established for the resolved `decision-record` destination; `docs/governance-index.yaml` is the catalogue fallback.
+
+A governance index is a single YAML manifest that maps each architectural
+decision domain to the ADR(s) and standard file(s) that bind it. An agent
+(or a new team member) reads the index first and loads only the 2–3 files it
+points to, rather than scanning the whole resolved decision-record surface.
+
+```text
+Use the new-adr skill to write an ADR for adding a governance index.
+```
+
+The convention is tool-neutral — it works for any governed repo, not just
+Terraform/IaC work. The `generate-iac` skill reads it at Stage 0 when the
+`iac-terraform` pack is installed; the `repo-governance` pack ships the
+template.
+
+## Prerequisites
+
+- `repo-governance` installed (ships the `seeds/governance/manifest.example.yaml`
+  template).
+- At least one accepted record in the repository's resolved `decision-record`
+  destination. The index is a pointer structure — if no records exist yet, the
+  index will have placeholder numbers until you create them.
+- A writable repository destination. An established external destination stays
+  external and needs its own approved adapter or an already-acquired portable
+  handoff; this local-file recipe does not probe or mutate it.
+
+## Copy the template
+
+```bash
+cp .claude/skills/new-adr/../../../seeds/governance/manifest.example.yaml \
+   <resolved-governance-index-path>
+```
+
+Or ask the agent: "Bootstrap a governance index from my existing ADRs."
+
+The `generate-iac` skill will also offer to bootstrap the index on first use
+if none exists.
+
+## Fill in your ADR numbers
+
+Replace each `ADR-NNNN` placeholder with the actual ADR number that covers
+that domain. Use the `new-adr` skill to create any missing ADRs (see
+[how to record a decision](new-adr.md)).
+
+For IaC-specific domains (`state`, `layout`, `iam`, `tagging`, `networking`,
+`pipeline_auth`, `remediation`), the `new-adr` infra mode gives you the right
+framing question for each.
+
+## Add standard references
+
+The `standards:` field lists paths relative to your repo root. These are the
+canonical standards documents that apply to the domain. For IaC work, the
+`iac-terraform` pack's references (e.g. `terraform-standard.md`) are loaded
+by the agent — you do not need to list pack-internal references here. List only
+your repo's *own* standard files.
+
+```yaml
+domains:
+  tagging:
+    question: "What tags/labels are mandatory on every resource?"
+    adrs: [ADR-<NNNN>]
+    standards: [docs/standards/tagging.md]
+```
+
+## Commit the index
+
+Use the index convention established for the resolved decision-record
+destination. If none exists, explicitly confirm the offered catalogue fallback
+or another policy-permitted location before creating it. Commit it as a normal
+PR. The governance index is a living document; update the `adrs:` list when a
+new ADR supersedes an old one.
+
+## Adding a new domain
+
+Add a new domain row when:
+- A new category of architectural decision emerges that no existing row covers.
+- You extend a pack's standards with a repo-specific standard (e.g. a custom
+  tagging standard that overrides the pack default).
+
+Add the row yourself in the index. The `generate-iac` skill reads an existing
+index during Stage 0; if no governance index exists, it offers to bootstrap
+one, but it does not add domain rows to an existing index.
+
+## Optional lint
+
+You can add a CI check that reads the index and verifies each referenced local
+ADR exists under the resolved repository destination using that destination's
+established filename convention. In the catalogue fallback, an entry reading
+`ADR-<NNNN>` matches `docs/adr/<NNNN>-*.md`. This prevents stale references
+after renumbering without treating the fallback path as universal. The lint is
+optional — the manifest's value is primarily read-time speed, not compile-time
+enforcement.
+
+## Relationship to `new-adr`
+
+The governance index is the *consumer* of `new-adr`'s output — it references
+ADR numbers, never ADR content. The index is authored once (or updated as the
+architecture evolves); individual ADRs are authored by `new-adr` for each new
+decision. See [how to record a decision](new-adr.md).
+
+## What you have now
+
+You have a governance index at the resolved decision-record destination, or at
+the confirmed fallback `docs/governance-index.yaml`. Keep its ADR references
+current as decisions are accepted or superseded.

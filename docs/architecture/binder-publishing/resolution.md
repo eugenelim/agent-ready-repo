@@ -20,7 +20,7 @@
    Hand-writing one sidecar per artifact is not a migration path, so Phase 2 also
    ships **`binder sidecar init <path>...`**: it writes a stub sidecar per file
    with `kind` and `producer` inferred from the path (`docs/rfc/` → `kind = "rfc"`,
-   `producer = "governance-extras"`), the source H1 as `title`, and `status` and
+   `producer = "repo-governance"`), the source H1 as `title`, and `status` and
    `subject` left blank for a human. It never overwrites an existing sidecar and
    never touches the source. Without it, the honest answer to "how is richer
    metadata adopted" would be "by hand, per file, forever."
@@ -223,7 +223,7 @@ docs/rfc/0091-payments-migration.md
   required       yes
   label          "RFC-0091: Payments migration"  (from recipe; source title was
                  "RFC-0091: Payments migration to the ledger service")
-  metadata       kind=rfc  status=Accepted → current  producer=governance-extras
+  metadata       kind=rfc  status=Accepted → current  producer=repo-governance
                  (source: sidecar docs/rfc/0091-payments-migration.md.binder.toml)
   order          base index 0; weight 0; no constraints; final position 1
   staged as      docs/008-docs-rfc-0091-payments-migration.md   (chapter 8)

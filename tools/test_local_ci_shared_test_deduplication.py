@@ -1001,11 +1001,11 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # exploration line removed returns an empty error list, so this supersedes live
 # values rather than a pin that had already gone stale.
 # Bumped 2026-10-06 for spec/decision-navigation, which appends one
-# `run-test-suite` line so the governance-extras `navigate-decisions` suite
+# `run-test-suite` line so the repo-governance `navigate-decisions` suite
 # runs under `make test`.
 # (1) Sole cause: `git diff origin/main -- Makefile` is one added line and
 # none removed or reordered — `$(PYTHON) -m pytest
-# packs/governance-extras/tests/skills/navigate-decisions/ -q`, after the
+# packs/repo-governance/tests/skills/navigate-decisions/ -q`, after the
 # `design-system` line. It is a new pytest process, so it takes plan index 40
 # in each plan (standalone 75 -> 76, composed 74 -> 75), and deleting exactly
 # that line from the new plans recomputes `ce75814f…` and `4ab0b073…` — the
@@ -1074,11 +1074,13 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # current: `_effective_composition_errors()` over this Makefile with exactly
 # those five paths deleted returns no errors against `8e9fcfdf…` and
 # `861eb168…`.
+# Re-pinned for the pack rename: the navigate-decisions suite path changed, no
+# line was added, removed or reordered.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "959545052c41d0212fa05d84d9354f21f6e75f32928ff7b5692b8fbe645bd75e"
+    "611639cfb369fbf5ad0361f686d0a22986503bf61e6433e2865fb082c4ab1f8a"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "eb37d527018a9231f62aec2d06bcda034de31710769526210e150aa39bba1ea1"
+    "38091777be8ad65cf551fe1533b522c9b03e3f5dc721332a5a9d160f02a5dea7"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

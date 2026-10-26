@@ -58,6 +58,7 @@ the spec corpus disagree.
 | `contracts/distribution-routes.toml` | `docs/specs/portable-agent-plugin-projection/` |
 | `contracts/vendor/agent-plugins/1.0.0/LICENSE.md` | `docs/specs/portable-agent-plugin-projection/` |
 | `contracts/vendor/agent-plugins/1.0.0/PROVENANCE.md` | `docs/specs/portable-agent-plugin-projection/` |
+| `contracts/renames/pack-renames.toml` | `docs/specs/repo-governance-rename/` |
 | `contracts/delivery` | `docs/specs/acceptance-authority-and-evidence/` |
 | `contracts/delivery` | `docs/specs/delivery-knowledge-projection/` |
 | `contracts/delivery` | `docs/specs/execution-supervisor-attempt-security/` |

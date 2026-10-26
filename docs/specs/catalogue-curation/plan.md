@@ -21,7 +21,7 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 **Integration tests:**
 - End-to-end `assimilate-primitive` dry run: ingest a fixture skill → lands under a pack's `.apm/skills/` → `build-self --dry-run` clean.
 - `export-catalogue --mode white-label` against a fixture target: passes on a clean tree, **fails** on a seeded upstream-URL/email/slug/owner leak (the fail-closed red case).
-- Two-hop dependency: install `catalogue-curation` resolves with `governance-extras` present, fails without it.
+- Two-hop dependency: install `catalogue-curation` resolves with `repo-governance` present, fails without it.
 
 **Manual verification:** one real `assimilate-repo` run against a small local repo, confirming ledger resume after an interrupt.
 
@@ -47,7 +47,7 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 - Export is **fail-closed**: verify hard-fails on any surviving anchor (mode-aware), dangling symlink, non-blank source. Ledger is idempotent + resumable + worktree-concurrent-safe (append-only, stable-identity keys). Guard path-gate fails safe (blocks protected-tree writes absent the exemption carrier). Traces to: export + ledger + guard ACs.
 
 ### Dependencies & integration
-- Depends on `core` + `governance-extras` (first pack-on-non-core dep). Integrates with the self-host recipe (one include entry) and the `pre-pr`/`build-check` gate. No external/runtime deps. Traces to: scaffolding + guard ACs.
+- Depends on `core` + `repo-governance` (first pack-on-non-core dep). Integrates with the self-host recipe (one include entry) and the `pre-pr`/`build-check` gate. No external/runtime deps. Traces to: scaffolding + guard ACs.
 
 ## Tasks
 
@@ -57,7 +57,7 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 **Tests:**
 - `lint-packs` + `validate` pass; `self --dry-run` succeeds; `build-self` no drift.
 **Approach:**
-- Author `pack.toml` (deps on core + governance-extras), `plugin.json`, `README.md`, empty `.apm/skills/` dirs; add to `self-host.toml` include; confirm absent from profiles.
+- Author `pack.toml` (deps on core + repo-governance), `plugin.json`, `README.md`, empty `.apm/skills/` dirs; add to `self-host.toml` include; confirm absent from profiles.
 **Done when:** pack registers, projects, and `make build-self` is drift-clean.
 
 ### T2: Transform manifest + ledger schema helpers
@@ -125,7 +125,7 @@ Build the pack skeleton first (registration + wiring), then the two shared contr
 **Depends on:** T1
 **Touches:** packages/agentbundle/**/tests/**
 **Tests:**
-- Install resolves with `governance-extras` present; fails the dependency gate without it.
+- Install resolves with `repo-governance` present; fails the dependency gate without it.
 **Approach:**
 - Add the regression test alongside existing dependency-gate tests.
 **Done when:** both cases assert correctly.

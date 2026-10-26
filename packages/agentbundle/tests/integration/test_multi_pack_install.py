@@ -46,11 +46,11 @@ Per-adapter projection geometry:
     these by directory name, exactly like ``.claude/skills/<name>/`` etc.
     Hooks stay under ``.github/hooks/``. Copilot's ``allowed-prefixes.repo``
     is now ``[.agents/skills/, .github/skills/, .github/agents/, .github/hooks/]``.
-    Both Direction A (force install governance-extras) and Direction B (force
+    Both Direction A (force install repo-governance) and Direction B (force
     install core) therefore run at all shipped adapters.
 
 Catalogue source: the live ``packs/`` tree in this repo. ``core`` and
-``governance-extras`` are the canonical repo-only pair (governance
+``repo-governance`` are the canonical repo-only pair (governance
 depends on core); ``architect`` and ``atlassian`` are the canonical
 user-scope pair (workspace-agnostic, default-scope=user).
 """
@@ -78,7 +78,7 @@ def _fixture_catalogue(tmp_path):
         tmp_path / "catalogue",
         packs=(
             "core",
-            "governance-extras",
+            "repo-governance",
             "architect",
             "credential-brokers",
             "atlassian",
@@ -108,7 +108,7 @@ def _shipped_adapters() -> tuple[str, ...]:
 _SHIPPED_ADAPTERS: tuple[str, ...] = _shipped_adapters()
 
 
-# Adapters at which an orphan-scan over governance-extras's primitives
+# Adapters at which an orphan-scan over repo-governance's primitives
 # (skills only — new-rfc, new-adr, update-conventions) finds something.
 # Includes copilot since copilot skills and web landed: its `skill`
 # projection is now a first-class `.github/skills/<name>/` directory tree,
@@ -161,7 +161,7 @@ def _isolate_home_and_caches(tmp_path, monkeypatch):
     once-per-process detection sets.
 
     Why HOME isolation runs for every test (not just user-scope):
-    governance-extras declares ``[[pack.dependencies.required]]``, so
+    repo-governance declares ``[[pack.dependencies.required]]``, so
     installing it at any scope routes through the dependency gate,
     which unions ``repo_state ∪ user_state``. The user_state is
     loaded from ``Path('~').expanduser() / '.agentbundle/state.toml'``
@@ -305,7 +305,7 @@ def _drop_pack_from_state(adopter: Path, pack_name: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Repo-scope pressure matrix (core + governance-extras), per adapter
+# Repo-scope pressure matrix (core + repo-governance), per adapter
 # ---------------------------------------------------------------------------
 
 
@@ -313,7 +313,7 @@ def _drop_pack_from_state(adopter: Path, pack_name: str) -> None:
 def test_install_core_then_governance_extras_accumulates_repo_state(
     tmp_path, adapter,
 ):
-    """S1: install core, then governance-extras; state has both rows;
+    """S1: install core, then repo-governance; state has both rows;
     both packs' files land at the adapter-specific projection path;
     the second install does NOT refuse and does NOT require --force.
 
@@ -328,20 +328,20 @@ def test_install_core_then_governance_extras_accumulates_repo_state(
     rc1, _, err1 = _install_pack_at_adapter("core", adopter, adapter)
     assert rc1 == 0, f"core install at {adapter} failed: {err1}"
 
-    rc2, _, err2 = _install_pack_at_adapter("governance-extras", adopter, adapter)
+    rc2, _, err2 = _install_pack_at_adapter("repo-governance", adopter, adapter)
     assert rc2 == 0, (
-        f"governance-extras install after core at {adapter} must succeed "
+        f"repo-governance install after core at {adapter} must succeed "
         f"without --force; stderr: {err2}"
     )
 
     state = _state(adopter, scope="repo")
-    assert _packs_in_state(state) >= {"core", "governance-extras"}, (
+    assert _packs_in_state(state) >= {"core", "repo-governance"}, (
         f"state.toml at {adapter} missing one of the packs after both "
         f"installs: {sorted(_packs_in_state(state))}"
     )
 
     # Adapter-specific spot-check: work-loop is core's load-bearing
-    # skill; new-rfc is governance-extras's. The path depends on the
+    # skill; new-rfc is repo-governance's. The path depends on the
     # adapter's projection layout — sourced from _skill_path().
     work_loop_path = adopter / _skill_path(adapter, "work-loop")
     new_rfc_path = adopter / _skill_path(adapter, "new-rfc")
@@ -350,7 +350,7 @@ def test_install_core_then_governance_extras_accumulates_repo_state(
         f"{work_loop_path.relative_to(adopter)}"
     )
     assert new_rfc_path.exists(), (
-        f"governance-extras's new-rfc skill missing at {adapter}'s "
+        f"repo-governance's new-rfc skill missing at {adapter}'s "
         f"expected path {new_rfc_path.relative_to(adopter)}"
     )
 
@@ -359,9 +359,9 @@ def test_install_core_then_governance_extras_accumulates_repo_state(
 def test_governance_extras_first_refuses_then_succeeds_after_core(
     tmp_path, adapter,
 ):
-    """S2: governance-extras → core → governance-extras at every adapter.
+    """S2: repo-governance → core → repo-governance at every adapter.
 
-    Pins the dependency rail (governance-extras requires core ^0.1).
+    Pins the dependency rail (repo-governance requires core ^0.1).
     The dep gate consults state.toml (union of repo + user) and is
     adapter-agnostic, but running it at every adapter catches a
     regression where one adapter's resolver short-circuits before
@@ -370,9 +370,9 @@ def test_governance_extras_first_refuses_then_succeeds_after_core(
     adopter = tmp_path / "adopter"
     adopter.mkdir()
 
-    rc1, _, err1 = _install_pack_at_adapter("governance-extras", adopter, adapter)
+    rc1, _, err1 = _install_pack_at_adapter("repo-governance", adopter, adapter)
     assert rc1 != 0, (
-        f"governance-extras must refuse without core in state at {adapter}"
+        f"repo-governance must refuse without core in state at {adapter}"
     )
     assert "requires 'core'" in err1, (
         f"unexpected refusal message at {adapter}: {err1!r}"
@@ -381,9 +381,9 @@ def test_governance_extras_first_refuses_then_succeeds_after_core(
     rc2, _, err2 = _install_pack_at_adapter("core", adopter, adapter)
     assert rc2 == 0, f"core install at {adapter} failed: {err2}"
 
-    rc3, _, err3 = _install_pack_at_adapter("governance-extras", adopter, adapter)
+    rc3, _, err3 = _install_pack_at_adapter("repo-governance", adopter, adapter)
     assert rc3 == 0, (
-        f"governance-extras must succeed at {adapter} once core's state "
+        f"repo-governance must succeed at {adapter} once core's state "
         f"row is present; stderr: {err3}"
     )
 
@@ -753,11 +753,11 @@ def _run_cross_pack_force_clobber_scenario(
 def test_force_orphan_cleanup_does_not_clobber_other_packs_files(
     tmp_path, monkeypatch, adapter_name,
 ):
-    """Direction A, per adapter: governance-extras ``--force`` must
+    """Direction A, per adapter: repo-governance ``--force`` must
     not unlink any of core's state-tracked files. Runs at **every** shipped
     adapter including copilot: copilot's
     skills now project as a `.github/skills/<name>/` directory tree that the
-    scanner matches by name, so governance-extras (skills-only) is scannable at
+    scanner matches by name, so repo-governance (skills-only) is scannable at
     copilot — no longer the vacuous case the old flat `.instructions.md`
     projection created. The copilot scanner behaviour is pinned separately in
     ``test_copilot_orphan_scan_finds_skills_and_hooks``."""
@@ -766,8 +766,8 @@ def test_force_orphan_cleanup_does_not_clobber_other_packs_files(
     _run_cross_pack_force_clobber_scenario(
         adopter, monkeypatch,
         adapter_name=adapter_name,
-        pre_installed=("core", "governance-extras"),
-        drop_and_force="governance-extras",
+        pre_installed=("core", "repo-governance"),
+        drop_and_force="repo-governance",
         protected="core",
     )
 
@@ -777,7 +777,7 @@ def test_force_orphan_cleanup_reverse_direction_does_not_clobber(
     tmp_path, monkeypatch, adapter_name,
 ):
     """Direction B (symmetric), per adapter: core ``--force`` must
-    not unlink any of governance-extras's state-tracked files.
+    not unlink any of repo-governance's state-tracked files.
 
     Runs at all four adapters — core ships hook files under
     ``tools/hooks/`` (a non-copilot-specific surface in every
@@ -798,7 +798,7 @@ def test_force_orphan_cleanup_reverse_direction_does_not_clobber(
     _run_cross_pack_force_clobber_scenario(
         adopter, monkeypatch,
         adapter_name=adapter_name,
-        pre_installed=("core", "governance-extras"),
+        pre_installed=("core", "repo-governance"),
         drop_and_force="core",
-        protected="governance-extras",
+        protected="repo-governance",
     )

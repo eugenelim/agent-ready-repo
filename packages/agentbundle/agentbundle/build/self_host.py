@@ -315,7 +315,7 @@ TARGET_PATHS = (
 _DEFAULT_SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
 _DEFAULT_SELF_HOST_PACKS: tuple[str, ...] = (
     "core",
-    "governance-extras",
+    "repo-governance",
     "product-documentation",
     "user-guide-diataxis",
 )

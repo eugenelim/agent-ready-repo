@@ -14,7 +14,7 @@ import urllib.parse
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py"
+SCRIPT = ROOT / "packs/repo-governance/.apm/skills/new-adr/scripts/index-records.py"
 
 
 def _load():
@@ -163,8 +163,8 @@ def test_a_record_without_status_warns_and_still_renders(tmp_path, capsys):
 FROZEN = ("docs/adr", "docs/rfc", "docs/specs", "agent-ready-repo", "eugenelim")
 
 _SHIPPED_COPIES = (
-    ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/index-records.py",
-    ROOT / "packs/governance-extras/.apm/skills/new-rfc/scripts/index-records.py",
+    ROOT / "packs/repo-governance/.apm/skills/new-adr/scripts/index-records.py",
+    ROOT / "packs/repo-governance/.apm/skills/new-rfc/scripts/index-records.py",
 )
 
 
@@ -488,8 +488,8 @@ def test_an_unreadable_index_target_is_named_not_a_traceback(tmp_path):
 
 
 _SHIPPED_HELPERS = (
-    ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/_record_paths.py",
-    ROOT / "packs/governance-extras/.apm/skills/new-rfc/scripts/_record_paths.py",
+    ROOT / "packs/repo-governance/.apm/skills/new-adr/scripts/_record_paths.py",
+    ROOT / "packs/repo-governance/.apm/skills/new-rfc/scripts/_record_paths.py",
 )
 
 
@@ -499,7 +499,7 @@ def test_the_two_shipped_generator_copies_stay_byte_identical():
     Nothing pinned it, so the divergence passed every gate: the frozen-literal
     check above runs each copy independently and never compares them. The
     sibling `next-ordinal.py` pair has carried this assertion for longer
-    (`packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py`), and
+    (`packs/repo-governance/tests/skills/new-adr/test_next_ordinal.py`), and
     the generator pair needs it for the same reason — one confinement change
     landing in one copy leaves the other reading records the old way.
     """

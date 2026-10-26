@@ -40,7 +40,7 @@ Subagents: `implementer`, `adversarial-reviewer`, `quality-engineer`, `security-
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. [Product Engineering](../product-engineering/README.md) hands shaped work in. [Governance Extras](../governance-extras/README.md) and [Release Engineering](../release-engineering/README.md) build on it. [GitHub](../github/README.md) hands records to `work-intake`. Guides: [Run the build loop](../../guides/core/how-to/start-the-work.md) and [Close work](../../guides/core/how-to/close-and-disposition-work.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. [Product Engineering](../product-engineering/README.md) hands shaped work in. [Repository Governance](../repo-governance/README.md) and [Release Engineering](../release-engineering/README.md) build on it. [GitHub](../github/README.md) hands records to `work-intake`. Guides: [Run the build loop](../../guides/core/how-to/start-the-work.md) and [Close work](../../guides/core/how-to/close-and-disposition-work.md).
 
 ## Questions
 

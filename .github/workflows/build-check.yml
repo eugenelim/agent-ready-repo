@@ -901,14 +901,14 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_catalogue_manifest_schema_parity.py
 
-      # The governance-extras confinement check loads the shipped helper and CLI
-      # from the pack tree and decides AC3 of governance-extras-without-core.
+      # The repo-governance confinement check loads the shipped helper and CLI
+      # from the pack tree and decides AC3 of repo-governance-without-core.
       # It lives under tests/roster because the pack must not test itself with
       # a path above its own tree. Sits ABOVE the carve-out step below, whose
       # `pytest tests/ -q` also collects it, so a failure is attributed here.
-      - name: pytest governance-extras standalone (roster-owned)
+      - name: pytest repo-governance standalone (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tests/roster/test_confine_destination.py tests/roster/test_governance_extras_standalone_install.py
+        run: python -m pytest tests/roster/test_confine_destination.py tests/roster/test_repo_governance_standalone_install.py tests/roster/test_repo_governance_rename_completeness.py tests/roster/test_repo_governance_migration_text.py tests/roster/test_repo_governance_archive_map.py
 
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
@@ -1223,7 +1223,7 @@ jobs:
 
       # curation QA + RFC template: the accelerator-pack admission rule spans
       # docs/CHARTER.md and packs/catalogue-curation, and the RFC template
-      # guard's natural pack home (packs/governance-extras/tests/skills/
+      # guard's natural pack home (packs/repo-governance/tests/skills/
       # new-rfc) is declared unrun in lint-pack-test-boundary's _NO_RUNNER.
       # Both are therefore roster-owned, and CI does not auto-discover roster
       # tests, so keep them explicit.

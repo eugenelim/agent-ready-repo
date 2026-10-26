@@ -1268,8 +1268,8 @@ _NO_RUNNER = {
     "packs/atlassian/tests/skills/jira-team-status":
         "run by tools/check-atlassian-phase3-readiness.py, which no workflow invokes",
     "packs/figma/tests/skills/figma": "never gated",
-    "packs/governance-extras/tests/skills/new-adr": "never gated",
-    "packs/governance-extras/tests/skills/new-rfc": "never gated",
+    "packs/repo-governance/tests/skills/new-adr": "never gated",
+    "packs/repo-governance/tests/skills/new-rfc": "never gated",
 }
 
 

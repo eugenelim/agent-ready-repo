@@ -1,4 +1,4 @@
-"""AC3: the governance-extras confinement check accepts only in-root targets.
+"""AC3: the repo-governance confinement check accepts only in-root targets.
 
 Roster-owned: it loads the shipped helper and CLI by path from the pack tree.
 """
@@ -14,7 +14,7 @@ from types import ModuleType
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPTS = REPO / "packs/governance-extras/.apm/skills/new-adr/scripts"
+SCRIPTS = REPO / "packs/repo-governance/.apm/skills/new-adr/scripts"
 
 
 def _load(name: str, path: Path) -> ModuleType:

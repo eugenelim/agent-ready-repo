@@ -75,7 +75,7 @@ already carry `Triggers on` keep it while gaining the quoted example.
 - `packs/figma/.apm/skills/figma/SKILL.md`
 - `packs/github/.apm/skills/github-brief-intake/SKILL.md`
 - `packs/github/.apm/skills/github-refresh/SKILL.md`
-- `packs/governance-extras/.apm/skills/rfc-status/SKILL.md`
+- `packs/repo-governance/.apm/skills/rfc-status/SKILL.md`
 - `packs/linear/.apm/skills/linear/SKILL.md`
 - `packs/linear/.apm/skills/linear-brief-intake/SKILL.md`
 - `packs/product-documentation/.apm/skills/author-product-docs/SKILL.md`
@@ -97,7 +97,7 @@ These top-level manifest versions are the release baselines for AC8:
 | `desk-research` | `1.1.7` |
 | `figma` | `0.3.3` |
 | `github` | `0.2.3` |
-| `governance-extras` | `0.10.5` |
+| `repo-governance` | `0.10.5` |
 | `linear` | `0.3.3` |
 | `product-documentation` | `0.1.1` |
 | `product-engineering` | `0.13.9` |

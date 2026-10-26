@@ -72,6 +72,7 @@ _EXPECTED_SKIP_REASONS = tuple(
         r"^POSIX concurrency test$",
         r"^Windows-only$",
         r"^hardcoded POSIX /tmp path$",
+        r"^zsh -n probe skipped: zsh is absent on this runner$",
         r"^no seed primitives in core fixture; skip$",
         r"^case-insensitive filesystem cannot hold both spellings$",
         # The mirror of the entry above: that one skips where the filesystem

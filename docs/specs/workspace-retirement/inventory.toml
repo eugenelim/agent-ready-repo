@@ -1178,7 +1178,7 @@ owner = 9
 reads_order = true
 
 [[row]]
-pattern = "guides/governance-extras/tutorials/governance-extras-first-session.md"
+pattern = "guides/repo-governance/tutorials/repo-governance-first-session.md"
 class = "guide"
 consumer = "guide telling readers to run workspace-status or read workspace.toml"
 owner = 9
@@ -1485,15 +1485,15 @@ consumer = "core pack test and fixtures that read the workspace-status engine an
 owner = 9
 
 [[row]]
-pattern = "packs/governance-extras/DESIGN.md"
+pattern = "packs/repo-governance/DESIGN.md"
 class = "guide"
-consumer = "governance-extras design: optional core integration with work-intake and workspace-status"
+consumer = "repo-governance design: optional core integration with work-intake and workspace-status"
 owner = 9
 
 [[row]]
-pattern = "packs/governance-extras/pack.toml"
+pattern = "packs/repo-governance/pack.toml"
 class = "promise"
-consumer = "governance-extras manifest declaring workspace-status as an optional provider"
+consumer = "repo-governance manifest declaring workspace-status as an optional provider"
 owner = 9
 
 [[row]]
@@ -1575,7 +1575,7 @@ consumer = "roster test test_github_refresh_processor.py that exercises the regi
 owner = 3
 
 [[row]]
-pattern = "tests/roster/test_governance_extras_standalone_install.py"
+pattern = "tests/roster/test_repo_governance_standalone_install.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
 owner = 9
@@ -1597,6 +1597,12 @@ pattern = "tests/roster/test_linear_refresh_processor.py"
 class = "fixture"
 consumer = "roster test test_linear_refresh_processor.py that exercises the registry consumers of its feature"
 owner = 3
+
+[[row]]
+pattern = "tests/roster/test_repo_governance_rename_completeness.py"
+class = "fixture"
+consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_packaged_runtime_closure.py"
@@ -1998,13 +2004,13 @@ consumer = "status skill that routes full queue questions to workspace-status"
 owner = 9
 
 [[row]]
-pattern = "packs/governance-extras/.apm/skills/navigate-decisions/*"
+pattern = "packs/repo-governance/.apm/skills/navigate-decisions/*"
 class = "fixture"
 consumer = "navigate-decisions eval query that must not trigger on workspace.toml"
 owner = 9
 
 [[row]]
-pattern = "packs/governance-extras/.apm/skills/new-rfc/*"
+pattern = "packs/repo-governance/.apm/skills/new-rfc/*"
 class = "guide"
 consumer = "new-rfc hand-off of follow-on work to the optional work-intake and workspace-status"
 owner = 9
@@ -2144,14 +2150,14 @@ pattern = ".claude/skills/navigate-decisions/*"
 class = "projection"
 consumer = "generated .claude projection of the navigate-decisions skill"
 owner = 9
-source = "packs/governance-extras/.apm/skills/navigate-decisions/*"
+source = "packs/repo-governance/.apm/skills/navigate-decisions/*"
 
 [[row]]
 pattern = ".agents/skills/navigate-decisions/*"
 class = "projection"
 consumer = "generated .agents projection of the navigate-decisions skill"
 owner = 9
-source = "packs/governance-extras/.apm/skills/navigate-decisions/*"
+source = "packs/repo-governance/.apm/skills/navigate-decisions/*"
 
 [[row]]
 pattern = ".claude/skills/navigate-intents/*"
@@ -2172,14 +2178,14 @@ pattern = ".claude/skills/new-rfc/*"
 class = "projection"
 consumer = "generated .claude projection of the new-rfc skill"
 owner = 9
-source = "packs/governance-extras/.apm/skills/new-rfc/*"
+source = "packs/repo-governance/.apm/skills/new-rfc/*"
 
 [[row]]
 pattern = ".agents/skills/new-rfc/*"
 class = "projection"
 consumer = "generated .agents projection of the new-rfc skill"
 owner = 9
-source = "packs/governance-extras/.apm/skills/new-rfc/*"
+source = "packs/repo-governance/.apm/skills/new-rfc/*"
 
 [[row]]
 pattern = ".claude/skills/new-spec/*"
@@ -2802,6 +2808,12 @@ pattern = "docs/specs/governance-guides-cleanup/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
+
+[[row]]
+pattern = "docs/specs/repo-governance-rename/*"
+class = "contract"
+consumer = "rename contract: AC-0025 admits workspace.toml lines that register docs/product/briefs/repo-governance-pack.md or this spec"
+owner = 9
 
 [[row]]
 pattern = "docs/specs/graph-well-formed-authoring/*"

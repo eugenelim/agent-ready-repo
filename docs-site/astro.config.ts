@@ -170,7 +170,7 @@ export default defineConfig({
                 { label: 'Fix a bug', slug: 'guides/core/how-to/bug-fix' },
                 { label: 'Review a pull request', slug: 'guides/core/how-to/review-someone-elses-pr' },
                 { label: 'Build a page or component', slug: 'guides/frontend-engineering/how-to/page-screen-contract' },
-                { label: 'Record a decision', slug: 'guides/governance-extras/how-to/new-adr' },
+                { label: 'Record a decision', slug: 'guides/repo-governance/how-to/new-adr' },
                 { label: 'Write the docs', slug: 'guides/product-documentation/how-to/write-a-guide' },
               ],
             },

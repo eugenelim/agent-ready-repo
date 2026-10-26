@@ -105,10 +105,10 @@ ROUTING_SCENARIOS = (
         "Governance installed: “Draft an RFC for this unresolved consequential direction.”",
         "`new-rfc` directly; no intent required",
         ((
-            "packs/governance-extras/.apm/skills/new-rfc/SKILL.md",
+            "packs/repo-governance/.apm/skills/new-rfc/SKILL.md",
             ("unresolved consequential direction",),
         ),),
-        "packs/governance-extras",
+        "packs/repo-governance",
     ),
     RoutingScenario(
         "R6",

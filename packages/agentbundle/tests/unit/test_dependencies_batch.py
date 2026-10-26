@@ -17,7 +17,7 @@ from agentbundle.config import PackState, State
 def _pack_requiring_core() -> dict:
     return {
         "pack": {
-            "name": "governance-extras",
+            "name": "repo-governance",
             "version": "0.1.2",
             "dependencies": {
                 "required": [
@@ -74,7 +74,7 @@ def test_dep_in_state_still_satisfies_with_batch_param():
         _pack_requiring_core(),
         repo_state=state,
         user_state=_empty(),
-        also_installing={"governance-extras"},
+        also_installing={"repo-governance"},
     )  # must not raise
 
 
@@ -92,7 +92,7 @@ def test_dep_on_disk_at_unsatisfying_version_fails_even_if_in_batch():
             _pack_requiring_core(),
             repo_state=state,
             user_state=_empty(),
-            also_installing={"core", "governance-extras"},
+            also_installing={"core", "repo-governance"},
         )
     assert "core" in str(exc.value)
 

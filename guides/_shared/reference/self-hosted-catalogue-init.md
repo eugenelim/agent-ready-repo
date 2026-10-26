@@ -104,7 +104,7 @@ agentbundle catalogue init my-catalogue \
   --preset self-hosted \
   --source /path/to/source \
   --pack core \
-  --pack governance-extras \
+  --pack repo-governance \
   --profile engineering
 ```
 
@@ -203,7 +203,7 @@ instead of syncing everything:
 
 ```bash
 # Only these packs (repeatable)
-agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --pack core --pack governance-extras
+agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --pack core --pack repo-governance
 
 # Only this profile
 agentbundle catalogue sync my-catalogue --source /path/to/source-catalogue --profile engineering

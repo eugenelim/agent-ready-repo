@@ -82,7 +82,7 @@ Most construction tests live under the per-task `Tests:` subsections below. Cros
 
 **Tests:**
 - **pack.toml shape:** `agentbundle validate packs/converters/` exits zero; `pack.toml` content matches [RFC-0007 § `pack.toml`](../../rfc/0007-user-scope-converter-pack.md#packtoml) verbatim (modulo cosmetic whitespace).
-- **plugin.json shape:** `packs/converters/.claude-plugin/plugin.json` structurally matches `packs/governance-extras/.claude-plugin/plugin.json` (same fields; substituted name and description).
+- **plugin.json shape:** `packs/converters/.claude-plugin/plugin.json` structurally matches `packs/repo-governance/.claude-plugin/plugin.json` (same fields; substituted name and description).
 - **Build emission:** `make build PACKS_DIR=packs` emits `dist/claude-plugins/converters/` and `dist/apm/converters/` and aggregates the converters entry into `dist/claude-plugins/marketplace.json`.
 - **Scrub re-check (catches T3-authored attribution leaks):** `rg -i --hidden '\bdropkit\b' packs/converters/` still exits non-zero after T3.
 - **AC7 disposition:** `markdown-to-html/package.json` exists (carried from source) and pins `marked` + `highlight.js`; SKILL.md text greps for the runtime install commands per AC7.
@@ -90,7 +90,7 @@ Most construction tests live under the per-task `Tests:` subsections below. Cros
 
 **Approach:**
 - Write `packs/converters/pack.toml` from the RFC-0007 § `pack.toml` block verbatim.
-- Write `packs/converters/.claude-plugin/plugin.json` modeled on the existing `governance-extras` plugin.json shape. Description avoids naming the source catalogue.
+- Write `packs/converters/.claude-plugin/plugin.json` modeled on the existing `repo-governance` plugin.json shape. Description avoids naming the source catalogue.
 - Add the one-line `.gitignore` recommendation to `markdown-to-html/SKILL.md` (close to the `npm install` step). Wording: `> Note: at repo scope, add \`.claude/skills/*/node_modules/\` to your project's \`.gitignore\` to avoid committing the npm install artifacts.`
 - Run `agentbundle validate packs/converters/` locally — must exit zero.
 - Run `make build PACKS_DIR=packs` — confirm dist artifacts.

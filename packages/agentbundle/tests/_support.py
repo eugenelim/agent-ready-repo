@@ -81,7 +81,7 @@ def materialize_catalogue(
         default_scope = "user" if user_scope else "repo"
         scopes = '["user", "repo"]' if user_scope else '["repo"]'
         dependencies = ""
-        if name == "governance-extras":
+        if name == "repo-governance":
             dependencies = """
 [[pack.dependencies.required]]
 catalogue = "fixture"
@@ -130,7 +130,7 @@ allowed-scopes = {scopes}{allowed_adapters}
                 "author-delivery-brief",
             )
             agents = ("quality-engineer",)
-        elif name == "governance-extras":
+        elif name == "repo-governance":
             skills = ("new-rfc", "new-adr", "update-conventions")
         elif name == "converters":
             skills = ("file-to-markdown", "markdown-to-html", "msg-to-markdown")
@@ -181,7 +181,7 @@ allowed-scopes = {scopes}{allowed_adapters}
     profile_defs = {
         "full-ceremony": (
             "repo",
-            ("core", "governance-extras", "product-documentation", "monorepo-extras"),
+            ("core", "repo-governance", "product-documentation", "monorepo-extras"),
         ),
         "solution-architect": (
             "user",

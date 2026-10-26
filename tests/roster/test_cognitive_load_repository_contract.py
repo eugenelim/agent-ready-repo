@@ -866,7 +866,7 @@ def _projected_files(root: Path) -> set[Path]:
 def test_self_host_skill_projections_match_their_canonical_sources() -> None:
     self_host_packs = (
         "core",
-        "governance-extras",
+        "repo-governance",
         "product-documentation",
         "catalogue-curation",
     )
