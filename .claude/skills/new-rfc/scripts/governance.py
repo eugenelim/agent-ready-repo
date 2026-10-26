@@ -443,7 +443,8 @@ def _show_block(target: str, raw: bytes | None) -> str:
     current = "absent" if raw is None else _digest(raw)
     return (
         f"GOVERNANCE CURRENT:\n- Target: {target}\n- Current: {current}\n"
-        f"- Characters made visible: {count}\n--- content ---\n{_end_line(text)}--- end content ---\n"
+        f"- Characters made visible: {count}\n--- content ---\n"
+        f"{_end_line(text)}--- end content ---\n"
     )
 
 
@@ -490,7 +491,8 @@ def _preview_block(
         f"- Approval required: {approval}", f"- Approved by: {approved}",
         f"- Characters made visible: {count}", *extra,
     ]
-    return "\n".join(head) + f"\n--- content ---\n{_end_line(content)}--- end content ---\n" + reads_now
+    body = f"\n--- content ---\n{_end_line(content)}--- end content ---\n"
+    return "\n".join(head) + body + reads_now
 
 
 # -- Command line ------------------------------------------------------------
