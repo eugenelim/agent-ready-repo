@@ -135,7 +135,7 @@ def test_canonical_backlog_entry_resolves_deferral_anchor(tmp_path: Path) -> Non
     workspace = tmp_path / "workspace.toml"
     workspace.write_text(
         "[backlog]\nopen = [\n"
-        '  {path = "docs/product/design/anchor-staleness.md", kind = "design", '
+        '  {path = "docs/product/captured/anchor-staleness.md", kind = "design", '
         'source = {mode = "repo-origin"}, summary = "s", needs = []},\n'
         "]\n",
         encoding="utf-8",
@@ -164,7 +164,7 @@ def test_unresolvable_anchor_still_hard_with_canonical_entries(tmp_path: Path) -
     workspace = tmp_path / "workspace.toml"
     workspace.write_text(
         "[backlog]\nopen = [\n"
-        '  {path = "docs/product/design/present.md", kind = "design", '
+        '  {path = "docs/product/captured/present.md", kind = "design", '
         'source = {mode = "repo-origin"}, summary = "s", needs = []},\n'
         "]\n",
         encoding="utf-8",

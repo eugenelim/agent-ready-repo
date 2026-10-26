@@ -1720,18 +1720,19 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
     non_spec_parent = workspace()
     non_spec_parent["ini-001"]["shaping_queue"]["backlog"].append(
         entry(
-            "docs/product/design/non-spec-parent.md",
+            "docs/product/captured/non-spec-parent.md",
             kind="design",
             parent="docs/product/intents/parent.md",
         )
     )
     write_artifact(
-        "docs/product/design/non-spec-parent.md",
-        status="Draft",
+        "docs/product/captured/non-spec-parent.md",
+        status="Open",
         parent="docs/product/intents/parent.md",
+        extra="- **Kind:** design\n",
     )
     non_spec_eval = mod.run_canonical_reconciliation(non_spec_parent, tmp_path).dispatch_by_path[
-        "docs/product/design/non-spec-parent.md"
+        "docs/product/captured/non-spec-parent.md"
     ]
     assert "invalid_artifact_path" not in {finding.code for finding in non_spec_eval.findings}
 
@@ -1764,24 +1765,35 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
     shaping_impossible = workspace()
     shaping_impossible["ini-001"]["shaping_queue"]["active"].append(
         entry(
-            "docs/product/design/approved.md",
+            "docs/product/captured/shaping-closed.md",
             kind="design",
             parent="docs/product/intents/parent.md",
         )
     )
+    # A `Closed` record is not a shaping item still being shaped (AC-0007).
+    write_artifact(
+        "docs/product/captured/shaping-closed.md",
+        status="Closed",
+        extra="- **Kind:** design\n",
+    )
     shaping_eval = mod.run_canonical_reconciliation(
         shaping_impossible, tmp_path
-    ).dispatch_by_path["docs/product/design/approved.md"]
+    ).dispatch_by_path["docs/product/captured/shaping-closed.md"]
     assert "impossible_transition" in {finding.code for finding in shaping_eval.findings}
 
     defect_lifecycle = {
         "backlog": {
-            "open": [entry("docs/product/defects/open.md", kind="defect", parent=None)],
-            "closed": [entry("docs/product/defects/closed.md", kind="defect", parent=None)],
+            "open": [entry("docs/product/captured/open.md", kind="defect", parent=None)],
+            "closed": [entry("docs/product/captured/closed.md", kind="defect", parent=None)],
         }
     }
-    write_artifact("docs/product/defects/open.md", status="Closed", resolution="fixed")
-    write_artifact("docs/product/defects/closed.md", status="Open")
+    write_artifact(
+        "docs/product/captured/open.md", status="Closed", resolution="fixed",
+        extra="- **Kind:** defect\n",
+    )
+    write_artifact(
+        "docs/product/captured/closed.md", status="Open", extra="- **Kind:** defect\n"
+    )
     defect_result = mod.run_canonical_reconciliation(defect_lifecycle, tmp_path)
     assert {
         finding.code
@@ -1900,14 +1912,22 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
             "open": [],
             "closed": [
                 entry("docs/specs/closed-spec/spec.md", parent=None),
-                entry("docs/product/defects/closed-fixed.md", kind="defect", parent=None),
-                entry("docs/product/defects/closed-unknown.md", kind="defect", parent=None),
+                entry("docs/product/captured/closed-fixed.md", kind="defect", parent=None),
+                entry("docs/product/captured/closed-unknown.md", kind="defect", parent=None),
             ],
         }
     }
     write_artifact("docs/specs/closed-spec/spec.md", status="Shipped", plan=True)
-    write_artifact("docs/product/defects/closed-fixed.md", status="Closed", resolution="fixed")
-    write_artifact("docs/product/defects/closed-unknown.md", status="Closed")
+    write_artifact(
+        "docs/product/captured/closed-fixed.md", status="Closed", resolution="fixed",
+        extra="- **Kind:** defect\n",
+    )
+    # A closed defect record with no `Resolution:` is an invalid record: it gives
+    # its own finding and no lifecycle finding (AC-0008).
+    write_artifact(
+        "docs/product/captured/closed-unknown.md", status="Closed",
+        extra="- **Kind:** defect\n",
+    )
     backlog_closed_result = mod.run_canonical_reconciliation(
         backlog_closed_restrictions, tmp_path
     )
@@ -1916,8 +1936,8 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         for path, evaluation in backlog_closed_result.dispatch_by_path.items()
     }
     assert "impossible_transition" in closed_codes["docs/specs/closed-spec/spec.md"]
-    assert not closed_codes["docs/product/defects/closed-fixed.md"]
-    assert "impossible_transition" in closed_codes["docs/product/defects/closed-unknown.md"]
+    assert not closed_codes["docs/product/captured/closed-fixed.md"]
+    assert closed_codes["docs/product/captured/closed-unknown.md"] == {"invalid_captured_item"}
 
 
 def test_t2_active_and_shipped_specs_validate_sibling_plan(tmp_path: Path) -> None:
@@ -2189,12 +2209,13 @@ def test_t2_collection_kind_and_brief_child_state_matrix(tmp_path: Path) -> None
         status: str,
         parent: str | None = None,
         plan: bool = False,
+        extra: str = "",
     ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
         parent_field = f"- **Brief:** {parent}\n" if parent is not None else ""
         path.write_text(
-            f"# Artifact\n\n- **Status:** {status}\n{parent_field}\n## Body\n",
+            f"# Artifact\n\n- **Status:** {status}\n{parent_field}{extra}\n## Body\n",
             encoding="utf-8",
         )
         if plan:
@@ -2254,17 +2275,24 @@ def test_t2_collection_kind_and_brief_child_state_matrix(tmp_path: Path) -> None
             "open": [
                 entry("docs/specs/open-draft/spec.md"),
                 entry("docs/product/intents/open-draft.md", kind="intent"),
-                entry("docs/product/research/open-draft.md", kind="research"),
-                entry("docs/product/design/open-draft.md", kind="design"),
+                entry("docs/product/captured/open-research.md", kind="research"),
+                entry("docs/product/captured/open-design.md", kind="design"),
                 entry("docs/product/briefs/open-draft.md", kind="brief"),
-                entry("docs/product/defects/open.md", kind="defect"),
+                entry("docs/product/captured/open-defect.md", kind="defect"),
             ],
             "closed": [],
         }
     }
     for item in valid_backlog_open["backlog"]["open"]:
-        status = "Open" if item["kind"] == "defect" else "Draft"
-        write_artifact(item["path"], status=status, plan=item["path"].endswith("/spec.md"))
+        captured = item["path"].startswith("docs/product/captured/")
+        # A captured item is an `Open` record; every other kind keeps `Draft`.
+        status = "Open" if captured else "Draft"
+        write_artifact(
+            item["path"],
+            status=status,
+            plan=item["path"].endswith("/spec.md"),
+            extra=f"- **Kind:** {item['kind']}\n" if captured else "",
+        )
     open_result = mod.run_canonical_reconciliation(valid_backlog_open, tmp_path)
     assert all(
         "impossible_transition" not in {finding.code for finding in evaluation.findings}
@@ -2811,7 +2839,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             "shaping_queue": {
                 "backlog": [
                     {
-                        "path": "docs/product/design/registered.md",
+                        "path": "docs/product/captured/registered.md",
                         "kind": "design",
                         "source": {"mode": "repo-origin"},
                         "summary": "Registered design",
@@ -2824,15 +2852,18 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
     }
     # A header edge takes its kind from the registered membership, so a kind
     # that disagrees with it cannot be written. What stays pinned is that the
-    # registered kind's own rule decides: `Complete` ends research, not a design.
+    # registered kind's own rule decides: an `Open` design record never settles a
+    # dependency (AC-0010).
     write_artifact(
         "docs/specs/ready/spec.md",
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
-        extra="- **Depends on:** docs/product/design/registered.md\n",
+        extra="- **Depends on:** docs/product/captured/registered.md\n",
     )
-    write_artifact("docs/product/design/registered.md", status="Complete")
+    write_artifact(
+        "docs/product/captured/registered.md", status="Open", extra="- **Kind:** design\n"
+    )
     kind_mismatch_result = mod.run_canonical_reconciliation(kind_mismatch_workspace, tmp_path)
     assert "unsatisfied_dependency" in {
         finding.code
@@ -2845,7 +2876,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         "ini-001": {
             "status": "active",
             "work": {
-                "queue": [ready_entry("defect", "docs/product/defects/closed-member.md")],
+                "queue": [ready_entry("defect", "docs/product/captured/closed-member.md")],
                 "active": [],
                 "shipped": [],
             },
@@ -2855,7 +2886,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             "open": [],
             "closed": [
                 {
-                    "path": "docs/product/defects/closed-member.md",
+                    "path": "docs/product/captured/closed-member.md",
                     "kind": "defect",
                     "source": {
                         "mode": "repo-origin",
@@ -2872,12 +2903,13 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
-        extra="- **Depends on:** docs/product/defects/closed-member.md\n",
+        extra="- **Depends on:** docs/product/captured/closed-member.md\n",
     )
     write_artifact(
-        "docs/product/defects/closed-member.md",
+        "docs/product/captured/closed-member.md",
         status="Closed",
         resolution="fixed",
+        extra="- **Kind:** defect\n",
     )
     defect_member_result = mod.run_canonical_reconciliation(defect_workspace, tmp_path)
     defect_member_codes = {

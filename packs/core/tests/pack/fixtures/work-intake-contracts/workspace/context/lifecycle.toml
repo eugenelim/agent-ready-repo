@@ -6,21 +6,21 @@ work_contract_cases = [
 [backlog]
 open = [
   { path = "docs/product/intents/unassigned-draft.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Unassigned draft intent.", needs = [] },
-  { path = "docs/product/defects/login-timeout.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Login times out before the intended retry window.", needs = [] },
+  { path = "docs/product/captured/login-timeout.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Login times out before the intended retry window.", needs = [] },
 ]
 closed = [
-  { path = "docs/product/defects/login-timeout-fixed.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Fixed timeout defect.", needs = [] },
-  { path = "docs/product/defects/login-timeout-declined.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Declined timeout defect.", needs = [] },
-  { path = "docs/product/defects/login-timeout-superseded.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Superseded timeout defect.", needs = [] },
+  { path = "docs/product/captured/login-timeout-fixed.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Fixed timeout defect.", needs = [] },
+  { path = "docs/product/captured/login-timeout-declined.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Declined timeout defect.", needs = [] },
+  { path = "docs/product/captured/login-timeout-superseded.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Superseded timeout defect.", needs = [] },
 ]
 
 ["ini-001".shaping_queue]
 backlog = [
   { path = "docs/product/intents/workspace-routing.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Define deterministic workspace routing.", needs = [] },
-  { path = "docs/product/research/workspace-routing-study.md", kind = "research", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Study routing failures.", needs = [] },
+  { path = "docs/product/captured/workspace-routing-study.md", kind = "research", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Study routing failures.", needs = [] },
 ]
 active = [
-  { path = "docs/product/design/workspace-routing.md", kind = "design", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Design routing surface.", needs = [{ type = "local", kind = "research", path = "docs/product/research/workspace-routing-study.md" }] },
+  { path = "docs/product/captured/workspace-routing.md", kind = "design", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Design routing surface.", needs = [{ type = "local", kind = "research", path = "docs/product/captured/workspace-routing-study.md" }] },
 ]
 
 ["ini-001".brief_queue]
@@ -45,7 +45,7 @@ cancelled = [
 
 ["ini-001".work]
 queue = [
-  { path = "docs/specs/queued-routing/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/executing-routing.md" }, summary = "Queued routing spec.", needs = [{ type = "local", kind = "design", path = "docs/product/design/workspace-routing.md" }] },
+  { path = "docs/specs/queued-routing/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/executing-routing.md" }, summary = "Queued routing spec.", needs = [{ type = "local", kind = "design", path = "docs/product/captured/workspace-routing.md" }] },
 ]
 active = [
   { path = "docs/specs/active-routing/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/executing-routing.md" }, summary = "Active routing spec.", needs = [] },
@@ -77,14 +77,14 @@ Opportunity = "Cold-start agents can choose the same route from committed files.
 Assumptions = ["Artifacts remain authoritative for requirements."]
 Source = "docs/product/intents/workspace-routing.md"
 
-[defect_artifacts."docs/product/defects/login-timeout.md"]
+[defect_artifacts."docs/product/captured/login-timeout.md"]
 expected_behavior = "Login honors the documented retry window."
 observed_behavior = "Login times out before the retry window."
 reproduction_evidence = "Run the login retry scenario."
 source = "docs/specs/login/spec.md"
 citation = "docs/specs/login/spec.md"
 
-[defect_artifacts."docs/product/defects/login-timeout-fixed.md"]
+[defect_artifacts."docs/product/captured/login-timeout-fixed.md"]
 expected_behavior = "Login honors the documented retry window."
 observed_behavior = "Login timed out before the retry window."
 error_signature = "TimeoutBeforeRetryWindow"
@@ -92,7 +92,7 @@ source = "docs/specs/login/spec.md"
 citation = "docs/specs/login/spec.md"
 resolution = "fixed"
 
-[defect_artifacts."docs/product/defects/login-timeout-declined.md"]
+[defect_artifacts."docs/product/captured/login-timeout-declined.md"]
 expected_behavior = "Login honors the documented retry window."
 observed_behavior = "Login timed out before the retry window."
 error_signature = "TimeoutBeforeRetryWindow"
@@ -100,7 +100,7 @@ source = "docs/specs/login/spec.md"
 citation = "docs/specs/login/spec.md"
 resolution = "declined"
 
-[defect_artifacts."docs/product/defects/login-timeout-superseded.md"]
+[defect_artifacts."docs/product/captured/login-timeout-superseded.md"]
 expected_behavior = "Login honors the documented retry window."
 observed_behavior = "Login timed out before the retry window."
 error_signature = "TimeoutBeforeRetryWindow"

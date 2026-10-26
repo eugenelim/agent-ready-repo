@@ -568,6 +568,7 @@ def test_cooled_captured_file_is_never_opened(
 
 MIGRATED_BY_ID = {case.case_id: case for case in MIGRATED_CASES}
 
+
 @pytest.mark.skipif(_RECORD, reason="recording")
 def test_frozen_outcomes_match_case_meaning() -> None:
     """Each recorded waiter dispatchability is the one its case says."""
