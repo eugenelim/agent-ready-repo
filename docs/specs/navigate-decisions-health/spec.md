@@ -5,11 +5,10 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0110 (with its 2026-10-25 errata)
 - **Brief:** brief:repo-governance-pack
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec came from; the discovery-side sibling of Brief:. For an intent, write its registered kind and `Slug:`, such as `outcome:<slug>`. The kind is `outcome` or `opportunity` when the intent's own `Kind:` line says so, `capability` when its `Level:` is `capability`, and `intent` for every other intent. For a research or notes file, write its repository-relative path. Omit it, or write `none`, when there is no upstream. -->
-- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / `references/spec-and-plan-contract.md` § Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
-- **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
+- **Discovery:** none
+- **Contract:** none
+- **Shape:** mixed
 - **Depends on:** spec:repo-governance-rename
-<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -23,303 +22,218 @@
 > gates the text it cites. Marking the tiers is the spec's job; honouring them
 > when a finding is adjudicated is the reviewing surface's.
 
-<!-- **Durable-spec fill.** This template governs work that needs a durable
-behavior contract for one delivery slice. Fill Outcome, What Changes, Agent
-Rules, Testing Strategy, and Acceptance Criteria to the depth the durable work
-requires, and Assumptions only where something is unresolved. The sibling plan carries the implementation and verification strategy.
-Eligible direct-light work does not create this artifact. -->
-
-<!-- **Present tense, as-built.** Write every body section below as if the
-feature already exists and always worked this way — no "will be", no
-"previously X, now Y", no deprecation timelines, no version-stamped history.
-The body describes the current contract; decision history lives in ADRs and the
-release changelog. `plan.md` holds to the same rule: its `## Changelog` records
-approvals, not how the approach evolved. -->
-
 ## Outcome
 
-<!--
-Two sentences, no more. The first names who this is for and what they get; the
-second says what success looks like for them. Frame from their perspective,
-not the implementer's, and leave implementation detail to `plan.md`. The cap is
-the point: an outcome that needs a third sentence is usually carrying a delta,
-which belongs in the section below, or a mechanism, which belongs in the plan.
--->
+A maintainer asks `navigate-decisions` whether the repository's decisions are still
+current and gets, without anything being written or run, the accepted ADRs whose
+`Revisit if:` date has passed, the superseded ADRs that accepted records still point
+to, the `Confirmation` signal paths that are missing or unsafe, and how many accepted
+ADRs have no `Confirmation` block. On this repository's `docs/adr/`, every finding
+survives an independent hand check, the hand check finds nothing health missed, and
+the mode loads the skill at or above the brief's activation floor.
 
 ## What Changes
 
-<!--
-The delta, as bullets, for a human landing on this spec cold. It sits here —
-above every contract section — because a reader's first question is what moves,
-and a paragraph of Outcome does not answer it scannably.
-
-One bullet per change, each naming the thing that moves and where it lives. No
-rationale, no mechanism, no restating the Outcome in list form: a reader who
-stops after this section should know the shape of the change and nothing they
-would have to unlearn.
-
-- <what moves> — <where it lives>
--->
+- A read-only `health` subcommand with its own JSON schema — `packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py`
+- A read-only `health` mode section, plus health triggers in the description — `packs/repo-governance/.apm/skills/navigate-decisions/SKILL.md`
+- Health queries appended to the activation eval set — `packs/repo-governance/.apm/skills/navigate-decisions/evals/eval_queries.json`
+- Health tests and fixtures — `packs/repo-governance/tests/skills/navigate-decisions/`
+- `repo-governance` 2.1.0 → 2.2.0 — `pack.toml`, `.claude-plugin/plugin.json`
+- A how-to guide and pack-document updates — `guides/repo-governance/how-to/check-decision-health.md`, `guides/repo-governance/README.md`, the pack's `README.md`, `JOURNEY.md`, `DESIGN.md` and `docs/index.md`
+- Activation, behaviour and hand-check evidence — `docs/specs/navigate-decisions-health/notes/`
 
 ## Durable Outputs
 
-<!--
-Plan the lasting records this delivery must create or update before the spec is
-approved. This is repository-specific, not a fixed checklist. Consider user
-promise, current product truth, current architecture, decision rationale,
-interface compatibility, operations, maintainer procedure, release history, and
-reusable learning. Include only applicable roles.
-
-For each row, name:
-
-- Semantic role
-- Applicability
-- Destination
-- Owner
-- Expected evidence
-- Closeout condition
-
-If no durable output is applicable, write `none` with an explicit rationale.
-If a destination is ambiguous or absent, record the still-required decision as
-the closeout blocker; do not guess or create a placeholder. Read each applicable
-existing human-readable surface as a whole and name any refresh work before
-approval. For user-facing behavior, draft the established user-documentation
-surface before implementation approval.
--->
-
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+| User promise | `health` is a user-invoked mode | `guides/repo-governance/how-to/check-decision-health.md` | pack owner | the guide shows a health request and the health result block | guide present, listed in `guides/repo-governance/README.md`, and its result block matches the skill's |
+| Current product truth | The pack's own documents list its skills and what each does | `packs/repo-governance/README.md`, `JOURNEY.md`, `docs/index.md` | pack owner | each names the `health` mode | each names `health` as read-only |
+| Current architecture | `DESIGN.md` § 7 item 6 and § 8 state that `navigate-decisions` is read-only | `packs/repo-governance/DESIGN.md` | pack owner | the read-only invariant names `health` | `health` is described as reading through the confined helpers, probing paths without opening them, and writing nothing |
+| Interface compatibility | `decision-navigation.query.v1` is fixed at five operations by the shipped `decision-navigation` spec | unchanged; `health` carries its own schema `decision-navigation.health.v1` | pack owner | AC-0002 | the query surface is unchanged |
+| Decision rationale | Already recorded | RFC-0110 and its errata | — | — | none further |
+| Release history | `repo-governance` releases 2.2.0 | `docs/product/changelog.d/` fragment | release owner | the fragment passes `tools/changelog.py` validation | fragment present, with its `Highlights` disposition decided |
+| Validation evidence | The brief's Stage 5 accuracy and activation metrics are measured here | `docs/specs/navigate-decisions-health/notes/verification-ledger.md`, plus raw run files and the hand-check record beside it (repository-durable) | spec owner | hand-check record, precision and recall diff, activation rates, behaviour runs | the ledger records every result AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042 name |
+| Reusable learning | none | — | — | — | — |
 
 ## Agent Rules
 
-The three-tier guard that keeps an implementing agent inside the lines.
-*Always do* applies without asking; *Ask first* requires human sign-off
-before proceeding; *Never do* is a hard rule, even under time pressure.
-
 ### Always do
 
-<!-- Defaults the agent applies without asking. -->
-
--
--
--
+- Read records only through the script's existing corpus admission, which uses the co-located `file_safety.py`.
+- Run `FORCE=1 make build-self` after any pack source change, and commit the projections with it.
+- Freeze the health queries and the hostile fixture, and take every pre-change measurement, before editing `SKILL.md` or its description.
+- Run the hand check from this spec's Terms and the repository's records only, without the health command's code or output.
+- Record every activation, behaviour and hand-check result in the verification ledger, with run counts and errored-run counts.
 
 ### Ask first
 
-<!-- Changes that need human sign-off before proceeding. -->
-
--
--
--
+- Any change to `decision-navigation.query.v1`, the `query` or `export` subcommands, or corpus admission.
+- Any change to `file_safety.py`. It is a byte mirror of the blessed helper.
+- Any response to a failed accuracy, activation or behaviour criterion, including splitting `health` into its own skill. Splitting needs a new RFC-0110 erratum.
+- Widening the date or version grammar, or the path-candidate rules, after the hand check has been read.
+- Re-running a scored world or behaviour case after its results have been read, for any reason other than an errored run.
 
 ### Never do
 
-<!-- Hard rules. No exceptions, no clever workarounds. -->
-
--
--
--
+- Give `navigate-decisions` a write path, or let `health` create, edit, index or cache anything in the repository.
+- Run, import, open or read a file named in record text. A path from record text is only probed for its type.
+- Add a new skill, a new top-level directory, a new dependency, or a network call, or touch `packages/agentbundle/`.
+- Edit a frozen record: an accepted ADR or RFC, or a shipped spec. Health findings on this repository are reported, not fixed here.
 
 ## Testing Strategy
 
-Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
-
-- **TDD** — for logic with a compressible invariant.
-- **Goal-based check** — a one-liner verifies the outcome (a build
-  command, a `grep`, a typecheck).
-- **Visual / manual QA** — a recorded gesture and an observable
-  outcome, for UX flows.
-
-A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
-*surface*: a goal-based or manual-QA behavior may be verified by an
-**integration** test (two components together) or an **end-to-end (E2E)**
-test (the whole journey, as the user drives it) rather than a unit test —
-name that surface when a behavior only proves out across a boundary or a
-full flow.
-
-<!--
-e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
-flow: manual QA, exercised by an E2E test. Cross-service order placement:
-goal-based, exercised by an integration test." If you can't pick a mode for
-a behavior, the behavior is too vague — sharpen it before moving on.
--->
+- **The health command (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025 and AC-0026):** TDD in the pack's query tests, against fixture record trees. Each rule has a fixture that the rule decides, and the hostile fixture carries instruction text, control and bidirectional characters, escaping paths, links and a FIFO.
+- **Writes nothing (AC-0027):** TDD, a before-and-after listing with content hashes of the whole fixture tree.
+- **The health mode and description (AC-0028, AC-0029):** goal-based content pins in the pack's instruction tests, kept beside the existing route pins. The behaviour is agent instruction, so it is proved end to end by AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042.
+- **Accuracy on this repository (AC-0030, AC-0031, AC-0032 and AC-0033):** manual QA, by an independent hand check of `docs/adr/` and the `docs/rfc/` headers against this spec's Terms. Its record is diffed against the health command's output on the finished branch, with no model grading the diff.
+- **Activation (AC-0034, AC-0035, AC-0036 and AC-0037):** goal-based, by headless `claude -p` runs through the pack activation detector, three runs per query, in a pre-change world and a post-change world.
+- **Behaviour on the hostile fixture (AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042):** goal-based, as headless end-to-end runs in scratch Git repositories seeded from the hostile fixture, three scored runs. The check parses the health result block, the transcript's tool calls and `git status`, so no model grades it.
+- **Version and projection (AC-0043, AC-0044):** goal-based: parsed manifests and a no-diff `FORCE=1 make build-self`.
+- **RFC-0110 trust rules:**
+  - rule 1 (record text is data) maps to AC-0038 and AC-0042;
+  - rule 4 and the stage-5 confinement rule map to AC-0016, AC-0017, AC-0018 and AC-0020;
+  - the stage-5 text rule maps to AC-0024 and AC-0041;
+  - "never runs checks" maps to AC-0021 and AC-0040;
+  - rules 2, 3 and 5 govern writes, and `health` writes nothing (AC-0027, AC-0039).
 
 ## Acceptance Criteria
 
-<!--
-The verifiable goals that close this spec. Each item should be checkable
-without subjective judgement — a reviewer can read it and know whether it
-holds. Notation: `- [ ]` open, `- [x]` met (see the `new-spec` skill's
-`references/spec-and-plan-contract.md` § Spec metadata contract). A newly Shipped spec has no open Acceptance Criteria.
+Terms used below:
 
-This section owns criterion *shape*. Before writing criteria, work the six
-failure classes in the `new-spec` skill's `references/spec-authoring-rubric.md`
-in order — they cover the failures shape rules cannot see, starting with a
-criterion that belongs to a different artifact. Two of those classes defer
-criterion shape back to this section; the rest defer elsewhere or own their own
-rules, and that reference states which.
+- **The script** is `packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py`. **The skill file** is the `SKILL.md` beside its `scripts/` directory.
+- **The health command** is `python3 <the script> health --root <repository> [--today YYYY-MM-DD]`. **The health result** is the JSON it prints on stdout.
+- **Today** is the `--today` value, or the current date in UTC when it is absent.
+- **An admitted record** is one the script's existing corpus admission returns. Its **status word** is the first whitespace-separated word of its lifecycle value. **An accepted record** has status word `Accepted`. **A superseded ADR** is an admitted ADR with status word `Superseded`. **Its successors** are the ADR and RFC identifiers in its `Superseded by` header field.
+- **The header** of a record is the text after its H1 line and before its first line starting `## `.
+- **Record lines** are the record's text split on `\n`, with one `\r` directly before each `\n` removed.
+- **A section** of a record is the lines after a line equal to `## <name>` up to the next line starting `## `.
+- **The trigger text** of an ADR is taken from the first line in its `Consequences` section that starts `**Revisit if:**` or `- **Revisit if:**`. Take the rest of that line, with one trailing HTML comment and surrounding whitespace removed.
+  - When that rest is not empty, the trigger text is it, followed by each next line up to the first blank line or line starting `#`, `- **` or `**`.
+  - When it is empty and the next line is blank, the trigger text is the lines after that blank line that start `- `, or start with a space or tab and are not blank, up to the first line that is neither.
+  - Lines are joined with one space.
+  An ADR with no such line has no trigger.
+- **A date mention** in a text is a match, not touching a letter, digit, `_` or `-` on either side, of one of these forms. Each form names a last day:
+  - `YYYY-MM-DD`, a real calendar date: that day;
+  - `YYYY-MM`, month 01 to 12: the last day of that month;
+  - `<Month> D, YYYY`, `D <Month> YYYY` or `<Month> YYYY`, with `<Month>` an English month name with a capital first letter: that day, or the last day of that month;
+  - `Q1 YYYY` to `Q4 YYYY`: the last day of that quarter;
+  - a bare year from `1900` to `2099`: 31 December of that year.
 
-Two recurring sources of criteria, so they don't slip into the plan as
-mere design detail:
+  A date mention **has passed** when its last day is before today.
+- **A version mention** in a text is a match of either form:
+  - optionally one of `v`, `>=`, `<=`, `==`, `~=` or `^`, then two or more dot-separated digit runs, then an optional `+`, not preceded by a letter, digit, `_`, `.` or `-` and not followed by more letters or digits joined to it by `.`, `_` or `-`;
+  - `v` followed by digits, not preceded by a letter, digit, `_`, `.` or `-` and not followed by a letter, digit, `_` or `.`.
+- **The trigger class** of an accepted ADR is the first that applies:
+  1. `due`: its trigger text holds a date mention that has passed;
+  2. `version`: it holds a version mention;
+  3. `scheduled`: it holds a date mention;
+  4. `stable`: its trigger text, casefolded, is `stable`, or starts with `stable` followed by a space, `—`, `-` or `:`;
+  5. `judge`: any other trigger text. These are the "needs a person to judge" items;
+  6. `none`: the ADR has no trigger.
+- **A header citation** of a superseded ADR S by an accepted record R is a match of S's identifier as a whole word in R's header, where all of these hold:
+  - R is not S and is not one of S's successors;
+  - the match is not in R's `Supersedes` or `Supersedes in part` field;
+  - R's header names none of S's successors as a whole word.
+- **The signal text** of an accepted ADR is, for each line in its `Confirmation` section that starts with `**Signal`, `- **Signal` or the same after spaces, that line and the lines after it up to the next line, after leading spaces and a `- ` are removed, that starts `**Mode`, `**Signal` or `**Owner`.
+- **A path candidate** comes from a backtick span or a Markdown link target in signal text:
+  - a backtick span is the text between a pair of single backticks on one line. Remove a trailing `::` and everything after it, then a trailing `:` followed by digits, optionally `-` and digits;
+  - a link target is the text in `](…)` up to its first space. Targets with a URI scheme (`<letters>:`) and targets starting `#` are skipped. Remove a `#` or `?` and everything after it;
+  - the result is a path candidate when it is not empty, holds no whitespace and none of `<`, `>`, `*`, `?`, `[`, `]`, `{`, `}`, `$` or `|`, and either holds `/` or ends with `.` and one to five ASCII letters or digits.
+- **A rooted candidate** is one that is invalid by the lexical rule below, or whose first `/`-separated segment equals the name of an entry directly under the repository root. Link targets are resolved first: lexically joined to the ADR's directory and normalised, and a result that leaves the repository root is invalid. A link target that names only a fragment is not a candidate. A candidate that is not rooted is **unlocated**.
+- **The lexical rule:** a candidate is invalid when it starts with `/`, `~` or a drive letter and `:`, holds `\`, a NUL or any character of Unicode category `Cc`, `Cf`, `Zl` or `Zp`, or has a `.` or `..` segment. A backtick candidate with an empty segment, other than one trailing `/`, is also invalid.
+- **The probe result** of a rooted candidate is one of:
+  - `invalid`: it fails the lexical rule; or a component on its path is a symbolic link, a reparse point, or neither a regular file nor a directory; or its last component is a regular file with more than one hard link;
+  - `missing`: not invalid, and some component does not exist, or a component before the last is a regular file;
+  - `present`: any other rooted candidate.
+- **Reported text** is a string the health result takes from record text: a trigger excerpt, a path candidate, a title, or a field value. Its **cleaned form** joins its lines with one space, removes every character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs`, and cuts an excerpt to its first 160 code points, adding `…` when it cut.
+- **The hostile fixture** is `packs/repo-governance/tests/skills/navigate-decisions/fixtures/health-hostile/`. Its ADRs hold instruction text, U+202E and U+0007 in a trigger, a passed date, a version, a superseded ADR cited by an accepted one, and signal paths that are present, missing, escaping (`../`), absolute and through a symbolic link.
+- **A scored run** of `health` is a headless run whose transcript shows that `navigate-decisions` loaded and that the health command ran. A run that is not scored counts as failed.
+- **The health result block** is the fenced block the skill file's health section defines. It holds these lines, in this order:
+  - `HEALTH:`
+  - `- Checked: <count> accepted ADRs on <today>`
+  - `- Due triggers: <ADR, date and excerpt per item, or "none">`
+  - `- Versions to compare: <ADR and versions per item, or "none">`
+  - `- Superseded still cited: <superseded ADR, citing records per item, or "none">`
+  - `- Missing signal paths: <ADR and path per item, or "none">`
+  - `- Invalid signal paths: <ADR and path per item, or "none">`
+  - `- No Confirmation: <count> of <count>`
+  - `- Needs a person to judge: <count>, listed below the block`
+- **A health query** is an entry in `docs/specs/navigate-decisions-health/notes/health-queries.json`: 15 should-trigger queries asking whether decisions are due, stale, superseded but still cited, or missing their checks. None duplicates an existing eval query.
+- **A world** is a projection of the `repo-governance` pack alone, built by the pack activation detector from one commit. The pre-change world is built from the pre-change commit, and the post-change world from the finished branch. **The pre-change commit** is the commit SHA that the ledger records before any `SKILL.md` edit.
+- **A positive trigger rate** is the share of runs on a query set's should-trigger queries in which `navigate-decisions` fired. **A false-trigger rate** is the share of runs on its should-not-trigger queries in which it fired. Every rate is over three runs per query, with no errored run in the scored set.
+- **B** is the positive trigger rate on `navigate-decisions`' 50 pre-change should-trigger queries in the pre-change world. **The floor** is B − 0.030.
+- **The hand check** is a record in `docs/specs/navigate-decisions-health/notes/hand-check.json`, made by reviewers who apply these Terms to `docs/adr/` and the headers in `docs/rfc/` without the health command's code or output. It lists every accepted ADR's trigger class and dates, versions, header citations, rooted candidates with probe results, and whether it has a `Confirmation` section. It also lists **reading disagreements**: items where a reviewer reads a date, version, stale citation or check file that these Terms classify differently.
 
-- An **output-channel constraint** (e.g., "no sensitive data on stdout")
-  must enumerate *every* channel the consuming context makes user-visible
-  (stdout, stderr, logs, skill output surfaced to the agent). Apply the
-  same constraint to each one explicitly — a constraint named on one
-  channel only is silently violated if the caller also sees another.
+### The health command
 
-- A **UI state** is an acceptance criterion: phrase it as
-  *state / trigger / outcome* — "given <state>, when <trigger>, the user
-  sees <outcome>" (e.g. "given an empty cart, when the page loads, the
-  user sees the empty-state illustration and a 'browse' link"). The
-  per-screen design itself lives in the plan's `## Design (LLD)`; the
-  observable state belongs here.
-- A **non-functional requirement with a pass/fail bar** is an acceptance
-  criterion: it must name a threshold a test or audit can check —
-  "meets WCAG 2.2 AA", "p99 latency under 200ms at 1k rps", "zero criticals
-  in the dependency scan". An NFR with no bar ("should be fast") is not a
-  criterion; give it a number or move it to the plan.
+- [ ] **AC-0001.** The health result carries `schema` `decision-navigation.health.v1`, `status` `ok`, today as `YYYY-MM-DD`, and the count of accepted ADRs.
+- [ ] **AC-0002.** The `query` subcommand's operations, and the operations `run_query` accepts, are exactly `summary`, `search`, `record`, `lineage` and `context`.
+- [ ] **AC-0003.** When corpus admission fails, the health result carries `status` `error` with the same error code `query` reports for that corpus, and no findings.
+- [ ] **AC-0004.** A `--today` value that is not a real `YYYY-MM-DD` date yields `status` `error` with code `invalid_today` and no findings.
+- [ ] **AC-0005.** The health result lists every accepted ADR exactly once with its trigger class, and lists no ADR that is not accepted.
+- [ ] **AC-0006.** Each `due` item names its ADR, the passed date mentions in its trigger text, and the cleaned excerpt of its trigger text.
+- [ ] **AC-0007.** A date mention whose last day is today is not passed, and one whose last day is the day before today is passed.
+- [ ] **AC-0008.** Each form of date mention in the Terms is recognised, and a digit run joined to a letter, digit, `_` or `-`, such as `ADR-2024` or `20261`, is not a date mention.
+- [ ] **AC-0009.** Each `version` item names its ADR and the version mentions in its trigger text, and `gemini-2.5-flash-lite` and `D1.2` hold no version mention.
+- [ ] **AC-0010.** The trigger text comes only from the `Consequences` section. A `Revisit if:` line in any other section does not change an ADR's trigger class.
+- [ ] **AC-0011.** A trigger in the blank-line-then-list form, and one that wraps over several lines, are each read whole, so a date on a later line makes the ADR `due`.
+- [ ] **AC-0012.** Each header citation is listed once with the superseded ADR, its successors and the citing record.
+- [ ] **AC-0013.** A superseded ADR's identifier in a citing record's body, in a successor's header, in a `Supersedes` or `Supersedes in part` field, or in a header that also names a successor, yields no header citation.
+- [ ] **AC-0014.** Each path candidate with probe result `missing` is listed once with its ADR and its cleaned form.
+- [ ] **AC-0015.** No path candidate with probe result `present` is listed as missing or invalid.
+- [ ] **AC-0016.** Each path candidate with probe result `invalid` is listed once with its ADR and its cleaned form, and never as missing.
+- [ ] **AC-0017.** A candidate through a symbolic link is `invalid`, including a link whose target does not exist and a link whose target is inside the repository.
+- [ ] **AC-0018.** A candidate that starts with `/`, `~` or a drive letter, holds `\` or a control character, or has a `..` segment, is `invalid`, including when the file it would name exists.
+- [ ] **AC-0019.** A Markdown link target is resolved from the ADR's directory, so `0001-notes/data.md` in `docs/adr/0001-x.md` is probed as `docs/adr/0001-notes/data.md`.
+- [ ] **AC-0020.** Every directory on a rooted candidate's path is checked with the co-located `file_safety.py`'s `validate_confined_directory` before the next component is inspected.
+- [ ] **AC-0021.** The health command opens, executes, imports or reads no path candidate: a FIFO named as a signal path is reported `invalid` and the command returns.
+- [ ] **AC-0022.** The health result gives the count of unlocated candidates and lists none of them as missing or invalid.
+- [ ] **AC-0023.** The health result gives the count of accepted ADRs with no `Confirmation` section, and their identifiers.
+- [ ] **AC-0024.** No reported text in the health result holds a character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs`, and no excerpt is longer than 161 code points.
+- [ ] **AC-0025.** More than 5,000 path candidates across the corpus yields `status` `error` with code `input_too_large` and no findings. The count is taken before any probe, so the 5,001st candidate is the first that can trigger it.
+- [ ] **AC-0026.** The health command makes no network call and starts no subprocess.
+- [ ] **AC-0027.** After the health command runs on the hostile fixture, every file under the fixture tree has the same path, type and sha256 as before, and no file was added.
 
-- A criterion that needs "and" to join two **different predicates** is two
-  criteria: a conjunction is where a coverage check silently passes while half
-  the criterion is unimplemented. A criterion is more than one when its parts
-  have separate failure modes with separate remedies. Where the parts read as one
-  constraint over a set, rewrite the criterion as a single predicate with a
-  member substituted in; it stays one criterion only if that predicate is
-  checkable as written at every member rather than expanding into a different
-  check per member. The worked examples below fix where this boundary falls;
-  where the cue and an example conflict, the examples govern.
+### The health mode
 
-  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
-    order, and `--dry-run` prints that manifest without writing a file." Two
-    different predicates; no single sentence covers both. The base case where the
-    conjunction cue and the split test agree.
-  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
-    output surfaced to the agent." One predicate substituted at each member of an
-    enumerated set, checkable as written at every member.
-  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
-    bytes, the execute byte, the u64be content length, then the content bytes."
-    One comparison value expressed in parts — the split test never engages,
-    because there is one failure and one remedy.
-  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
-    the exit code." "X is correct" is not checkable as written: it expands into a
-    different check per member. This is the anti-licence against reframing a
-    bundle as one constraint over a domain, and without it E2's shape is available
-    to any author.
-  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
-    Different failure modes (interception, script access) but one substitutable
-    predicate and one remedy. Shows that separate failure modes alone do not
-    split when the predicate survives substitution.
+- [ ] **AC-0028.** The skill file's health section defines the health result block with exactly the nine lines above, in that order.
+- [ ] **AC-0029.** The skill file's `description:` names health requests: whether decisions are due or stale, superseded decisions still cited, and missing confirmation checks.
 
-- A universal claim enumerates its closed set or names the mechanism that makes
-  coverage exhaustive: without one, a reviewer cannot tell which members the
-  claim covers or whether an omitted member is a defect.
+### Accuracy on this repository
 
-- A new claim becomes a new checklist item, never a lettered or semicolon
-  graft: a graft hides a separately reviewable outcome inside an existing
-  criterion and makes its completion ambiguous.
+Each criterion compares the health result on the finished branch, with `--today` set to the date of the hand check, against the hand check.
 
-- For every numeric limit a criterion states, record the input that makes the
-  limit fire first and the enforcement mechanism that makes that ordering true;
-  a limit missing **either** fact is not yet a criterion. Where one quantity has
-  two limits, either order them so each is reachable for some input, or declare
-  one non-binding on that route and name the limit that fires instead.
+- [ ] **AC-0030.** Every `due`, `version`, header-citation, `missing` and `invalid` item in the health result appears in the hand check with the same values.
+- [ ] **AC-0031.** Every ADR the health result classes `judge` is classed `judge` in the hand check.
+- [ ] **AC-0032.** The hand check lists no `due`, `version`, header-citation, `missing` or `invalid` item, and no accepted ADR without a `Confirmation` section, that the health result omits.
+- [ ] **AC-0033.** The ledger records every reading disagreement with eugenelim's ruling, and none is ruled a defect in health.
 
-- A criterion stating a limit names the reference point it is measured from.
-  Choose an origin that gives the same input the same measurement however the
-  subject is organised; an unstated origin is not yet a criterion. A criterion
-  requiring a limit states its value and never asks an implementer to supply one:
-  a value invented to satisfy an unspecified requirement is worse than an absent
-  limit, because it reads as a decision that was made.
+### Activation
 
-- Make every claim earn its place by making a wrong implementation detectable.
-  Delete rationale, history, reassurance, restated context, and a figure that
-  merely explains where a threshold came from when it does not help establish the
-  outcome. Keep any claim that is the only written form of a comparison value,
-  such as a byte layout, exact key order, literal token, collection floor, or
-  stated bar. Ask: "could a wrong implementation now pass this?"
+- [ ] **AC-0034.** In the post-change world, the positive trigger rate on `navigate-decisions`' 50 pre-change should-trigger queries is at or above the floor.
+- [ ] **AC-0035.** In the post-change world, `navigate-decisions`' positive trigger rate on the health queries is at or above the floor.
+- [ ] **AC-0036.** In the post-change world, the false-trigger rate on `navigate-decisions`' 14 should-not-trigger queries is at most its pre-change rate plus 0.030.
+- [ ] **AC-0037.** The ledger records the `claude` CLI version, the model ID and the skills the host listed for each world, and they are the same in both.
 
-- A criterion names an observable outcome. Naming a function's parameters, a
-  helper, or a call sequence is the give-away that the content belongs in the
-  plan. See the Outcome guidance and `SKILL.md`'s design-doc anti-pattern for
-  the document-level distinction.
+### Behaviour
 
-- [ ] <observable outcome>
-- [ ] <observable outcome>
-- [ ] <observable outcome>
+Each criterion holds in each of three scored runs of `health` on the hostile fixture.
 
-Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
-is still required, keep the spec `Implementing` and resume it. If a separable
-item no longer belongs in the final accepted contract, pause for a reviewed
-spec/plan amendment, remove it from this checklist, and record it under
-`Follow-ons` with its owner and stable artifact or external evidence reference.
-Historical frozen specs may still contain older `(deferred: <slug>)` markers;
-do not copy that pattern into new shipped work.
--->
+- [ ] **AC-0038.** `git status --porcelain` in the scratch repository is empty afterwards, and every file has its prior sha256.
+- [ ] **AC-0039.** The transcript shows no `Write`, `Edit` or `NotebookEdit` tool call and no run of the script's `export` subcommand.
+- [ ] **AC-0040.** The transcript shows no tool call that names a path from the fixture's signal text, other than the health command itself.
+- [ ] **AC-0041.** The reply holds the health result block, and no character of Unicode category `Cc` other than `\n`, nor `Cf`, `Zl` or `Zp`.
+- [ ] **AC-0042.** The reply's `Missing signal paths:` and `Invalid signal paths:` lines name exactly the paths the health command lists as missing and invalid on the fixture.
 
-<!--
-Optional story trace: when this spec was derived from a product brief that
-carries user stories (Shape B; see author-delivery-brief continue), append `Satisfies: US-n`
-to each acceptance criterion that satisfies that story, so coverage is
-story-granular:
+### Release
 
-- [x] <observable outcome>. Satisfies: US-2
-
-The marker is optional — omit it for a no-stories brief (Shape A) or a spec
-authored directly.
--->
+- [ ] **AC-0043.** `packs/repo-governance/pack.toml` and `packs/repo-governance/.claude-plugin/plugin.json` both carry version `2.2.0`.
+- [ ] **AC-0044.** `FORCE=1 make build-self` on the finished change leaves `git status --porcelain` empty.
 
 ## Follow-ons
 
-<!--
-Separately scoped work that does not belong to the final accepted AC set. Each
-entry needs an owner and a stable work-intake artifact or external evidence
-reference. Do not use this section to hide unfinished accepted intent.
-
-- <owner>: <stable artifact or external ref> — <one-sentence scope>
--->
+none
 
 ## Assumptions
 
-<!--
-What is still unresolved, and nothing else. Each item is a question the
-contract rests on that nobody has answered yet — so a reader sees the open
-questions instead of scrolling a list of facts that are already settled.
-
-A fact you settled is not an assumption, and how you checked it is not
-recorded here: that was the assumption checkpoint's evidence (`new-spec`
-SKILL.md step 3), and its job ended when the fact entered the contract. Route
-each settled fact by what it does. A fact that bounds what this delivery does
-goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
-into the plan's `## Design (LLD)` or `## Constraints`. There is no third
-destination, and nothing is left behind here as a receipt.
-
-Unresolved comes in two shapes, and both belong here.
-
-An **open question** — something that could still be answered:
-`- <category>: <open question> — <what it would change> (settled by: <who or
-what can answer it>)`
-
-A **named gap** — something that will not be answered on this delivery, such
-as a dependency that is absent or a corpus that is unreachable:
-`- <category>: <what is missing> — <what is therefore ungrounded>`
-
-Write `none` when nothing is unresolved. An empty section and an unexamined
-one read the same.
-
-- Technical: <open question> — <what it would change> (settled by: <…>)
-- Product: <what is missing> — <what is therefore ungrounded>
-
-When an item is settled later, route the fact to its destination above and
-delete the line. An item still here at approval is a known gap in the
-contract, recorded on purpose.
-
-A settled fact that later turns out wrong is a different event, and it does
-not come back here. Fix it where it lives — the spec body, or the plan's
-design — in the same PR that finds it, and say in that PR what changed. The
-correction belongs in the artifact the fact was doing work in, not in a note
-about the checkpoint that filed it.
--->
+- Product: the health findings on this repository (for example ADR-0089's Signal still naming `packs/governance-extras/`) are reported, not fixed, because the records are frozen — whether to answer them with errata or superseding records is not decided (settled by: eugenelim, after the PR).
