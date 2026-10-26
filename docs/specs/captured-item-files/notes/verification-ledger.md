@@ -12,3 +12,7 @@ The tree the repair read is branch head `f8b614d587358fd2767d698031cbe696a08bd6c
 6. **Hand edits.** The copied `Depends on:` line was removed from `docs/product/design/portfolio-outcome-entry-surfaces.md`, and `workspace.toml`'s header comment now says where a captured item's entry points. `status` after these edits gives the same canonical result.
 
 The comparison scripts were scratch files under `.context/` and are not committed.
+
+## Amendment 1 — AC-0037's Case-cell rule, 2026-10-26
+
+AC-0037 named each Equivalence row's Case cell as "the case's name up to any colon". Read literally, that cuts `a captured-item file that carries a `Type:` line` at the colon inside the `Type:` code span, so the row's Case text would fall outside `workspace-retirement` AC-0028's closed list. Found by the adversarial review of the `workspace-retirement` amendment (`.context/reviews/retirement-amendment-slice3/adversarial-r3.md`), sustained by adjudication. The owner, eugenelim, approved a controlled amendment on 2026-10-26: the rule reads "up to the first colon outside a code span". No other text changes. Completed tasks T1 to T7 keep their evidence: T1 `775030cb9`, T2 `9b43d5a5d`, T3 `a27f6fa40`, T4 `29c34ead1`, T5 `977b25a74`, T6 `f8b614d58`, T7 `140bb7f5a`.
