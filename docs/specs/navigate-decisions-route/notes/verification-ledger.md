@@ -74,3 +74,14 @@ what it showed.
 - **AC-0040:** three route answers and three counted work-loop answers per request are recorded. **Passes.**
 - **AC-0041:** no pairing is a contradiction. **Passes.**
 - The seam evidence is from `e563793b5`; the later fix commit `f973b201e` adds one sentence to the route section (ASCII-escaped JSON for the search term) and changes no routing text.
+
+## 2026-10-26 — T5 post-change world, attempt 1
+
+- **World:** `packs/repo-governance/` from `e563793b5`, run by the T1 driver with the same 111 queries (the 15 route queries appended to `eval_queries.json` are byte-identical to `notes/route-queries.json`, checked by comparing the parsed lists), three runs each, five jobs. 333 runs, 0 errored.
+- **Host:** `claude` CLI 2.1.308, model `claude-opus-5-5`, the same 39 listed skills as the pre-change world (`host` objects equal). **AC-0048 and AC-0054 pass.**
+- **Results** (`notes/activation-post-change.json`):
+  - AC-0031: `navigate-decisions` on its 35 lookup queries 103/105 = **0.981**, floor 0.970. **Passes.** Both misses are "Where is ADR-0027 defined in the repository?", which fired no skill in 2 of 3 runs.
+  - AC-0032: `navigate-decisions` on the 15 route queries 45/45 = **1.000** (pre-change 0.067), floor 0.970. **Passes.**
+  - AC-0033: `new-rfc` fired on 0/45 route-query runs (pre-change 2/45 = 0.044).
+  - AC-0034: false-trigger rate 1/42 = **0.024** (pre-change 0.000; bound 0.030). **Passes.** The one false trigger is "List all intents in the roadmap" in one run.
+  - AC-0035: `new-rfc` on its 24 should-trigger queries 64/72 = **0.889** (pre-change 0.944; bound 0.914). **Fails** by 2 runs. "We need to choose compatibility terms for a breaking migration." went from 2/3 to 0/3 and "Reconsider the old storage decision; the replacement direction is still open." from 3/3 to 1/3; every lost run fired `navigate-decisions` instead. "Compare competing security trust models before we build the integration." fired no skill in all 6 runs across both worlds.
