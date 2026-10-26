@@ -48,12 +48,13 @@ BODY_LINE_CEILING = 500
 # re-pinned for `workspace_status.py` when the retirement-candidates subcommand was
 # wired into the dispatcher. That edit is deliberate and owns this digest, as the
 # assertion message instructs; the other three scripts still hold their base bytes.
-# `workspace_status_engine.py` was re-pinned when the shaping route renamed to `intent`.
+# `workspace_status_engine.py` was re-pinned when the shaping route renamed to `intent`,
+# and again when blocking moved from `needs` to the `Depends on:` header.
 BACKEND_DIGESTS = {
     "workspace_status.py":
         "2a661e24eca5ecb748bd43dac034be93baec824c39d9cd52692e142a0b2a23c8",
     "workspace_status_engine.py":
-        "2e74ec7013510343116a782bb63af172ab66208bbbf942b264f1abae248c170a",
+        "830581339fab4df4713dba32f6991ca0a8c276edf3dc522f114a1cad28ade212",
     "workspace_status_prune.py":
         "88395b684b69af04b00694c830e79d72a4a3b3194fa72d276fb2763f3f28e95a",
     "workspace_mcp_server.py":
