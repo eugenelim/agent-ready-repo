@@ -1,7 +1,7 @@
 # Spec: Dependency edges on the waiting item
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-25 by eugenelim, spec and plan, after clean spec-stage shaping, adversarial, and security reviews; review records under `.context/reviews/`.
+- **Approved:** 2026-10-25 by eugenelim, spec and plan, after clean spec-stage shaping, adversarial, and security reviews; review records under `.context/reviews/`. Re-approved 2026-10-25 by eugenelim after controlled amendment 1 (`notes/verification-ledger.md` § Amendment 1), clean on adversarial review of the amendment.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, `Depends on:` with RFC-0103 typed references on the waiting item; D1, a writer stops only with its contract), RFC-0105 (D3, the behavioral-equivalence gate), RFC-0103 (D1, the `<kind>:<slug>` reference and the refusal of an ambiguous name), ADR-0103 (the completion receipt's fields and outcome vocabulary), ADR-0074 (standard-library skill scripts)
@@ -35,7 +35,8 @@ A maintainer or agent records that one piece of work waits for another by editin
 - The migration of this repository's 113 typed `needs` edges into the headers of their 78 waiting files, and `needs = []` on those entries — `workspace.toml` and the waiting files.
 - Four registered Shipped specs' free-text `Depends on:` lines, normalized by hand to typed references.
 - The blocking equivalence record — `docs/specs/workspace-retirement/retirement-record.md` § Equivalence, by a controlled amendment of the `workspace-retirement` spec.
-- An RFC-0106 errata entry for the two behaviors that cannot be kept, the cooled waiting item's edges and the pruned captured item settled by a completion receipt, and a new ADR that supersedes ADR-0103 D6 in part, moving the receipt's carrier.
+- An RFC-0106 errata entry for the three behaviors that cannot be kept: the cooled waiting item's edges; the pruned captured item settled by a completion receipt; and the cooled target named by an unreadable slug, which is a cooled intent or a cooled brief whose `Slug:` differs from its file stem.
+- A new ADR that supersedes ADR-0103 D6 in part, moving the receipt's carrier.
 - Every live instruction that tells an author to write a `needs` edge or a receipt on one — the sites AC-0018 lists.
 
 ## Durable Outputs
@@ -45,7 +46,7 @@ A maintainer or agent records that one piece of work waits for another by editin
 | Interface compatibility: the header grammar authors write | Applicable: a new published preamble field pair | `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md` § Spec metadata contract, the spec template, and `guides/core/reference/workspace-toml-schema.md` § `needs` | Platform Core maintainer | The grammar text matches the terms and AC-0004; AC-0018 passes | Each surface names both fields and the repair |
 | User documentation: how an adopter moves their edges | Applicable: adopters upgrade by running the repair | `packs/core/.apm/skills/workspace-status/references/mutate.md` § Repair subcommands and `docs/product/workspace-toml-deps.md` | Platform Core maintainer | The `needs-to-header` operation and its confirmation are described | The text names the command, its confirmation, and its edge comparison |
 | Decision rationale: equivalence evidence | Applicable: RFC-0105 D3 gate 3 | `docs/specs/workspace-retirement/retirement-record.md` § Equivalence | Platform Core maintainer | The amended `workspace-retirement` check passes | Every case in AC-0014 has a row |
-| Decision rationale: removal authority for the cooled waiting item and the receipt-settled pruned captured item | Applicable: two behaviors are dropped | `docs/rfc/0106-stop-registering-derivable-work.md` § Errata | Platform Core maintainer, as RFC-0106 Approver | A dated entry naming both cases | Both Equivalence rows link it |
+| Decision rationale: removal authority for the cooled waiting item, the receipt-settled pruned captured item, and the cooled target named by an unreadable slug | Applicable: three behaviors are dropped | `docs/rfc/0106-stop-registering-derivable-work.md` § Errata | Platform Core maintainer, as RFC-0106 Approver | A dated entry naming all three cases | The three Equivalence rows link it |
 | Decision rationale: the receipt's carrier | Applicable: ADR-0103 D6 names the `workspace.toml` edge as the carrier, and ADR-0117 D3 admits errata only for a clarification | A new ADR under `docs/adr/` with `Supersedes in part: ADR-0103 D6`, mirrored by `Superseded in part` on ADR-0103, citing RFC-0106 D3 | Platform Core maintainer | The ADR is Accepted; `lint-adr-shape.py docs/adr` passes | Both supersession fields resolve |
 | Current product truth: contracts that say an edge is a `needs` entry | Applicable: inventory rows with owner 2 | ADR-0110, CAP-0004, FEAT-0002, `packs/architect/DESIGN.md`, `guides/architect/how-to/establish-reference-architecture.md`, and the `cooling-brief-child-scope-closure` and `dependency-scoped-completion-receipts` spec directories | Platform Core maintainer | Each states the header as the edge's home, or its inventory row moves to the slice that still owns its registry fact | `test_workspace_retirement_inventory.py` passes |
 | Maintainer procedure: where `close-work` keeps a receipt | Applicable: a live instruction changes | `packs/core/.apm/skills/close-work/SKILL.md` | Platform Core maintainer | AC-0018 passes | The instruction names `Dependency receipts:` |
@@ -74,7 +75,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Never do
 
-- Change `navigate-intents`.
+- Change `navigate-intents`, except to add this spec's new finding codes to the readiness bridge's pinned copy of the `workspace-status` finding table, which that bridge's parity test requires, as the brief's non-goals record.
 - Let any shipped reader other than the repair derive a dependency, satisfaction, or readiness from typed `needs` content.
 - Add a dependency, a skill, a module outside the two `workspace-status` scripts and their packaged copies, or a top-level directory. `tomlkit` stays confined to `repair-apply`, as `packs/core/AGENTS.md` declares.
 - Edit a frozen record beyond adding the repair's header lines to a waiting file and normalizing the four registered Shipped specs' existing `Depends on:` lines.
@@ -99,10 +100,10 @@ Terms used below:
 - **Slug.** One or more lowercase letters, digits, and hyphens, starting with a letter or digit.
 - **Field value.** A preamble field's value with a trailing HTML comment hidden and one pair of surrounding backticks stripped. A `Kind:` or `Level:` value is its first word.
 - **Live intent.** A file directly in `docs/product/intents/` whose name matches `^[A-Za-z0-9][A-Za-z0-9._-]*\.md$` and whose preamble has no `Tombstone:` field, the admission rule `navigate-intents` applies. Its **intent kind** is `outcome` or `opportunity` when its `Kind:` field value says so, `capability` when its `Level:` field value is `capability`, and `intent` otherwise.
-- **Typed reference.** `spec:<slug>`, `brief:<slug>`, or `<k>:<slug>` where `<k>` is `intent`, `outcome`, `opportunity`, or `capability`. Its **target** is, in turn: `docs/specs/<slug>/spec.md`, opened by its path with no directory listing; the brief under `docs/product/briefs/` whose `Slug:` field value is `<slug>`, or whose file stem is `<slug>` when its preamble was read and has no `Slug:`; or the live intent whose intent kind is `<k>` and whose `Slug:` field value is `<slug>`.
+- **Typed reference.** `spec:<slug>`, `brief:<slug>`, or `<k>:<slug>` where `<k>` is `intent`, `outcome`, `opportunity`, or `capability`. Its **target** is, in turn: `docs/specs/<slug>/spec.md`, opened by its path with no directory listing; the brief under `docs/product/briefs/` whose `Slug:` field value is `<slug>`, or whose file stem is `<slug>` when its preamble was read and has no `Slug:`, or when it is cooled; or the live intent whose intent kind is `<k>` and whose `Slug:` field value is `<slug>`.
 - **Captured-item reference.** A path of one or more `/`-separated segments, each matching `[A-Za-z0-9._-]+` and none `.` or `..`, that is not a `docs/specs/<d>/spec.md` file and lies outside `docs/product/briefs/` and `docs/product/intents/`. Its kind is the `kind` of the canonical membership at that path, or, when there is none, the `Kind:` field value of the file's own preamble. When no file and no membership exist at the path, it is a missing target at that path.
 - **Header edge.** A pair of a waiting item and one of its dependency items, together with that item's receipt from AC-0004 when it has one.
-- **Resolution index.** The listings of `docs/product/briefs/` and `docs/product/intents/` that typed brief and intent references resolve against, and the preamble of each entry it admits: in either directory, an entry whose name matches the Live intent name pattern. It ignores every other entry.
+- **Resolution index.** The listings of `docs/product/briefs/` and `docs/product/intents/` that typed brief and intent references resolve against, and the preamble of each admitted entry that is not cooled. It admits, in either directory, an entry whose name matches the Live intent name pattern. It ignores every other entry. It never opens a cooled entry: a cooled brief is admitted by its file stem alone, and a cooled intent is not admitted.
 
 Each criterion from AC-0001 to AC-0011 and from AC-0019 to AC-0031 is a rule the engine or the repair enforces. Given an input that breaks one about a single membership, the result names the waiting path and the offending item, as AC-0028 allows. AC-0029 names its workspace-level cause instead.
 
@@ -111,7 +112,7 @@ Each criterion from AC-0001 to AC-0011 and from AC-0019 to AC-0031 is a rule the
 - [ ] **AC-0003.** For each of these cases, a header edge gives the same finding codes and the same dispatchable result as the same edge written as a typed `needs` entry gave at commit `1f9c27342`. A typed reference with no target is treated as a missing target at `docs/specs/<slug>/spec.md` for a spec, and at the reference itself otherwise.
   - a spec, brief, or intent target that is terminal, and one that is not;
   - a defect target with a `backlog.closed` membership, one with a `backlog.open` membership, and one with no membership whose own `Kind:` line is `defect`;
-  - a cooled target;
+  - a cooled spec target, and a cooled brief target whose `Slug:` is its file stem, the cooled target named by an unreadable slug being the accepted removal AC-0014 records;
   - a brief target whose child scope is unknown;
   - a missing target, given as a typed reference and as a captured-item reference;
   - a missing typed target with a completion receipt whose outcome is `completed`, one whose outcome is `abandoned`, and one with an invalid value;
@@ -150,6 +151,7 @@ Each criterion from AC-0001 to AC-0011 and from AC-0019 to AC-0031 is a rule the
   - the defect;
   - the cooled dependency;
   - the cooled waiting item;
+  - the cooled target named by an unreadable slug: a cooled intent, or a cooled brief whose `Slug:` differs from its file stem;
   - the brief child scope;
   - the dependency cycle;
   - the unmigrated `needs` refusal;

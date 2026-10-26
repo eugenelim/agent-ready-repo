@@ -142,9 +142,11 @@ Owned by: T3, T4
 **Tests:**
 - Criteria: AC-0003, AC-0005, AC-0006, AC-0007, AC-0008.
 - `test_depends_on_headers_equivalence.py` adds the header form of every T1 case. Each asserts the T1 expectation's finding codes, dispatchability, and legacy lists, and its finding paths except where AC-0003 places a missing brief or intent target at the reference.
-- T1's `needs`-form assertion becomes, for each case, an `unmigrated_needs` assertion; `expected.json` stays the frozen record.
+- T1's `needs`-form assertion becomes, for each case, an `unmigrated_needs` assertion; `expected.json` stays the frozen record of T1's cases.
+- A cooled brief target case, which T1 does not hold, is added with its `needs`-form outcome recorded from the engine at commit `1f9c27342`, run from a `git worktree` of that commit, into the committed file `fixtures/depends-on-headers/expected-cooled-brief.json` beside `expected.json`, and its header form asserts that outcome.
 - A shaping-backlog intent case and an `explain` and MCP `blocking_needs` case cover AC-0008 beyond the work lists.
 - Editing a header item, a receipt, or a resolved target's `Slug:` changes `canonical_repository_identity`.
+- `navigate-intents`' `_KNOWN_FINDINGS` in `intent_readiness.py` gains `invalid_dependency` and `unmigrated_needs` with the engine's sentences, and `test_readiness_vocabulary_matches_workspace_status` passes.
 - An `unmigrated_needs` case pairs a satisfied `needs` edge with an empty header, and asserts the refusal and its next action.
 - The cooled-waiting-item case makes the waiting file unreadable, and asserts that no `unreadable_artifact` finding and no read occurs.
 - The existing suites under `packs/core/tests/skills/workspace-status/`, `tools/test_workspace_status.py`, and the roster suites listed in the anchors are migrated where they plant typed `needs` as dependency evidence. Each kept assertion moves to the header form. An assertion that pins the old reading of `needs` is replaced by an `unmigrated_needs` assertion.
@@ -221,8 +223,8 @@ Owned by: T3, T4
 **Tests:**
 - Criteria: AC-0014.
 - Amend `docs/specs/workspace-retirement/spec.md` and `plan.md` through the work-loop controlled-amendment path. Add criteria for § Equivalence: a table with columns Case, Slice, Result, Evidence, and Authority; Result is `reproduced` or `accepted removal`; Evidence names a path `git ls-files` lists; and an `accepted removal` row's Authority meets AC-0014's and AC-0015's link rules with Case text in place of Fact text. Extend `test_workspace_retirement_inventory.py` to enforce them, with one planted-violation fixture per rule.
-- Draft the RFC-0106 errata entry for the cooled waiting item and the pruned captured item settled by a completion receipt, and ask the Approver to sign its wording (spec Ask-first).
-- Write the ten Equivalence rows. Correct the nine Disposition Home cells the spec's Ask-first names (four `crossRepoNeed.*`, five `localNeed.receipt*`), to the waiting item's `Depends on:` and `Dependency receipts:` lines.
+- Draft the RFC-0106 errata entry for the cooled waiting item, the pruned captured item settled by a completion receipt, and the cooled target named by an unreadable slug (a cooled intent, or a cooled brief whose `Slug:` differs from its file stem), and ask the Approver to sign its wording (spec Ask-first).
+- Write the eleven Equivalence rows. Correct the nine Disposition Home cells the spec's Ask-first names (four `crossRepoNeed.*`, five `localNeed.receipt*`), to the waiting item's `Depends on:` and `Dependency receipts:` lines.
 
 **Done when:** the amended check passes against this repository, and the errata entry carries the Approver's sign-off.
 
@@ -242,3 +244,5 @@ Owned by: T3, T4
 
 - 2026-10-25: spec approved by eugenelim
 - 2026-10-25: plan approved by eugenelim
+- 2026-10-25: spec amendment approved by eugenelim (amendment 1: navigate-intents finding-table copy; cooled target named by an unreadable slug)
+- 2026-10-25: plan amendment approved by eugenelim (T3 and T7 tests extended for amendment 1)
