@@ -1,7 +1,7 @@
 # Plan: Rename governance-extras to repo-governance with an installer rename hint
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0110 § D3, § Trust model (D3 block) and its Errata; `commands/upgrade.py` `_unusable_stored_source_refusal` (the refuse-with-placeholder precedent the hint follows); `tools/lint-pack-dependency-declaration.py` with `tools/test-lint-pack-dependency-declaration.py` and its `tools/repo/build_gate_chain.py:725-729` wiring (the lint precedent); ADR-0038 commit `be5ba458c` (the prior pack rename's file set).
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -264,6 +264,19 @@ Owned by: T2, T3.
 
 **Done when:** `python3 -m pytest packages/agentbundle/tests/integration/test_rename_migration_e2e.py tests/roster/test_repo_governance_archive_map.py -q` passes.
 
+### T7: The rename stays complete after merging main, and pinned and frozen-record references keep the old name
+
+**Depends on:** T4
+
+**Touches:** packs/core/tests/skills/work-loop/fixtures/corpus/001-recorded/plan.md, docs/specs/workspace-retirement/inventory.toml, tests/roster/test_repo_governance_rename_completeness.py, tests/roster/test_repo_governance_archive_map.py, packages/agentbundle/tests/unit/test_pack_renames.py, tools/check-artifact-contents.py, tools/test_check_artifact_contents.py
+
+**Tests:**
+- AC-0025: `packs/core/tests/skills/work-loop/test_golden_fixtures.py::test_recomputed_digests_match_golden` passes with the golden fixture restored byte-for-byte to its pinned digest; the completeness test admits that one path, and admits `docs/specs/workspace-retirement/inventory.toml` only while every line naming the old pack references `docs/specs/governance-extras-without-core/`; every other line naming the old pack, `consumer` text included, is renamed to `repo-governance`, and `tests/roster/test_workspace_retirement_inventory.py` passes.
+- AC-0006: `test_repo_governance_archive_map.py` packages a clean copy of the tracked tree (`git archive HEAD`), so build artefacts such as `__pycache__` in the working tree cannot fail it.
+- AC-0031: the zsh probe's skip message is registered exactly in `tools/check-artifact-contents.py`'s expected-skip policy, with a matching case in `tools/test_check_artifact_contents.py`.
+
+**Done when:** those tests, `tools/test_check_artifact_contents.py` and `make lint-ruff lint-mypy` pass.
+
 ## Rollout
 
 - **Delivery:** big bang, in the release PR. The rename is a one-way door for adopters: rolling it back would need a second rename. The hint itself is reversible.
@@ -281,3 +294,5 @@ Owned by: T2, T3.
 - 2026-10-25: plan approved by eugenelim
 - 2026-10-25: spec amendment (No recorded source covers a non-text value) approved by eugenelim
 - 2026-10-25: amended plan approved by eugenelim
+- 2026-10-26: spec amendment (AC-0025 admits a pinned golden fixture and frozen-record path references) approved by eugenelim
+- 2026-10-26: amended plan (T7) approved by eugenelim

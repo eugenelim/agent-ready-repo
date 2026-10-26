@@ -1,6 +1,6 @@
 # Spec: Rename governance-extras to repo-governance with an installer rename hint
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0110 (with its 2026-10-25 errata)
@@ -186,12 +186,14 @@ Terms used below:
   - at the end, `repo-governance` 2.0.0 and `iac-terraform` 0.2.0 are installed and `governance-extras` is absent.
 - [x] **AC-0032.** The AC-0024 run, with the post-rename catalogue served as an `archive+https` release archive over HTTPS, prints steps whose source is that `archive+https` source with its `#sha256=` fragment, and those steps complete with the same end state.
 - [x] **AC-0029.** The AC-0024 run, with `iac-terraform` installed with no recorded source, ends in the same installed state and printed the AC-0017 sentence.
-- [x] **AC-0025.** `git grep -l governance-extras` on the finished change returns only paths in these categories:
+- [ ] **AC-0025.** `git grep -l governance-extras` on the finished change returns only paths in these categories:
   - files frozen under RFC-0110 D3's status rule;
   - the build-pipeline fixture under `packages/agentbundle/tests/build_pipeline/fixtures/packs/governance-extras/`, and files under `packages/agentbundle/tests/build_pipeline/` that load that fixture by name;
   - `docs/adr/README.md` and `docs/rfc/README.md`, where every matching line is the generated index row of a frozen record;
   - `workspace.toml` lines that register `docs/product/briefs/repo-governance-pack.md` or this spec;
   - evidence pinned to a recorded `baseline_commit`: `docs/product/research/plan-evolution-experiments/` and `tools/plan_evolution_workbench/fixtures/`;
+  - digest-pinned golden fixtures whose tests forbid regeneration: `packs/core/tests/skills/work-loop/fixtures/corpus/001-recorded/plan.md`;
+  - `docs/specs/workspace-retirement/inventory.toml`, where every matching line references the path of the frozen spec directory `docs/specs/governance-extras-without-core/`;
   - `contracts/renames/pack-renames.toml`;
   - the migration text in `packages/agentbundle/CHANGELOG.md`, the three changelog fragments and `packs/repo-governance/README.md`;
   - tests and fixtures of the hint, of the lint in AC-0007 and AC-0008, and of this criterion;
