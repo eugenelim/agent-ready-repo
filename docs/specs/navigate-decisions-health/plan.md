@@ -280,7 +280,7 @@ could pick it up and complete it without follow-up questions:
 decision the two fields around it do not show>
 - <the decision, and why this way>
 
-**Effects:** <optional: none | comma-separated effect names, unique in the plan>
+**Effects:** none
 
 **Done when:** <name a concrete observable — specific test green, gate
   passing, behaviour visible at <surface>. Never name `spec.md` or `plan.md` as
