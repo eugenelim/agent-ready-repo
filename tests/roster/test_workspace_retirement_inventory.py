@@ -3,7 +3,8 @@
 
 ``check_repository`` applies the spec's inventory rules (AC-0001 to AC-0009,
 AC-0019, AC-0021) to a repository root and returns every violation tagged with
-its criterion. ``check_record`` applies the record rules (AC-0010 to AC-0016),
+its criterion. ``check_record`` applies the record rules (AC-0010 to AC-0016,
+AC-0023 to AC-0026),
 and ``workflow_wiring_violations`` checks that build-check runs this file on
 every pull request (AC-0017). Standard library only; the check reads the
 repository and writes nothing.
@@ -391,6 +392,8 @@ def _historical_violations(repo: _Repo, path: str) -> list[Violation]:
 
 _RECORD_HEADINGS = ("Disposition", "Equivalence", "Compatibility closure", "Certification")
 _COLUMNS = ("Fact", "Category", "Home", "Owner", "Authority")
+_EQ_COLUMNS = ("Case", "Slice", "Result", "Evidence", "Authority")
+_RESULTS = frozenset({"reproduced", "accepted removal"})
 _CATEGORIES = frozenset({
     "canonical artifact metadata",
     "derived state",
@@ -534,13 +537,25 @@ def _disposition_rows(section: str) -> tuple[list[dict[str, str]], str | None]:
     return rows, None
 
 
-def _removal_violations(root: Path, record: Path, fact: str, authority: str) -> list[Violation]:
-    """AC-0014 and AC-0015 for one ``deliberate removal`` row."""
-    where = f"Disposition row {fact!r}"
+def _removal_violations(
+    root: Path,
+    record: Path,
+    fact: str,
+    authority: str,
+    *,
+    where: str | None = None,
+    criteria: tuple[str, str] = ("AC-0014", "AC-0015"),
+) -> list[Violation]:
+    """AC-0014 and AC-0015 for one ``deliberate removal`` row.
+
+    AC-0026 reuses it for an Equivalence row, with the Case text as ``fact``.
+    """
+    where = where or f"Disposition row {fact!r}"
+    first, second = criteria
     links = _LINK.findall(authority)
     if len(links) != 1:
         return [
-            Violation("AC-0014", where, f"Authority holds {len(links)} links, needs exactly one")
+            Violation(first, where, f"Authority holds {len(links)} links, needs exactly one")
         ]
     target, _, anchor = links[0].partition("#")
     root_real = root.resolve()
@@ -548,25 +563,25 @@ def _removal_violations(root: Path, record: Path, fact: str, authority: str) -> 
         resolved = (record.parent / target).resolve()
         relative = resolved.relative_to(root_real).as_posix()
     except (ValueError, OSError):
-        return [Violation("AC-0014", where, f"link {links[0]!r} leaves the repository")]
+        return [Violation(first, where, f"link {links[0]!r} leaves the repository")]
     if not relative.startswith(("docs/rfc/", "docs/adr/")):
-        return [Violation("AC-0014", where, f"{relative} is not under docs/rfc/ or docs/adr/")]
+        return [Violation(first, where, f"{relative} is not under docs/rfc/ or docs/adr/")]
     try:
         if (root / relative).is_symlink() or not resolved.is_file():
             raise OSError("not a regular file")
         body = resolved.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        return [Violation("AC-0014", where, f"cannot read {relative}: {exc}")]
+        return [Violation(first, where, f"cannot read {relative}: {exc}")]
     status = _status_value(body)
     if status is None or _leading_word(status) != "Accepted":
-        return [Violation("AC-0014", where, f"{relative} status {status!r} is not Accepted")]
+        return [Violation(first, where, f"{relative} status {status!r} is not Accepted")]
     heads = _headings(body)
     for at, (_, _, title) in enumerate(heads):
         if _slug(title) == anchor and fact in _fact_text(_section(body, heads, at)):
             return []
     return [
         Violation(
-            "AC-0015",
+            second,
             where,
             f"no heading in {relative} slugs to {anchor!r} with a section naming the Fact",
         )
@@ -589,6 +604,49 @@ def _coverage_violation(root: Path, home: str) -> Violation | None:
     )
 
 
+def _equivalence_violations(root: Path, record: Path, text: str, heads: Any) -> list[Violation]:
+    """AC-0023 to AC-0026 for the record's ``## Equivalence`` section."""
+    at = next((i for i, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Equivalence"), None)
+    if at is None:
+        return [Violation("AC-0023", str(record), "no `## Equivalence` section")]
+    table = [ln for ln in _section(text, heads, at).splitlines() if ln.lstrip().startswith("|")]
+    if not table:
+        return [Violation("AC-0023", "Equivalence", "no Markdown table")]
+    header = [_fact_text(c) for c in _split_row(table[0])]
+    missing = [c for c in _EQ_COLUMNS if c not in header]
+    if missing:
+        return [Violation("AC-0023", "Equivalence", f"table lacks column(s) {', '.join(missing)}")]
+    rows = []
+    for line in table[1:]:
+        cells = _split_row(line)
+        if cells and all(_ROW_SEPARATOR.match(c) for c in cells):
+            continue
+        cells += [""] * (len(header) - len(cells))
+        rows.append({name: cells[i] for i, name in enumerate(header)})
+    if not rows:
+        return [Violation("AC-0023", "Equivalence", "table has no rows")]
+    tracked = set(_Repo(root).tracked)
+    violations: list[Violation] = []
+    for row in rows:
+        case = _fact_text(row["Case"])
+        where = f"Equivalence row {case!r}"
+        if not re.fullmatch(r"[0-9]+", _fact_text(row["Slice"])):
+            violations.append(Violation("AC-0024", where, "Slice is not a slice number"))
+        result = _fact_text(row["Result"])
+        if result not in _RESULTS:
+            violations.append(Violation("AC-0024", where, f"Result {result!r} is not one of two"))
+        evidence = _fact_text(row["Evidence"])
+        if not any(t.strip(".,;:()").partition("#")[0] in tracked for t in re.split(r"[\s,;]+", evidence)):
+            violations.append(Violation("AC-0025", where, "Evidence names no tracked path"))
+        if result == "accepted removal":
+            violations += _removal_violations(
+                root, record, case, row["Authority"], where=where, criteria=("AC-0026", "AC-0026")
+            )
+        elif result == "reproduced" and _fact_text(row["Authority"]) != "none":
+            violations.append(Violation("AC-0026", where, "Authority of a reproduced row is not `none`"))
+    return violations
+
+
 def check_record(root: Path, record: Path) -> list[Violation]:
     """Apply AC-0010 to AC-0016 to the record at ``record`` for the repository ``root``."""
     try:
@@ -606,6 +664,7 @@ def check_record(root: Path, record: Path) -> list[Violation]:
                 f"`##` headings are {[t for _, t in top]}, need {list(_RECORD_HEADINGS)}",
             )
         )
+    violations += _equivalence_violations(root, record, text, heads)
     disposition = next(
         (at for at, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Disposition"), None
     )
@@ -1186,18 +1245,46 @@ def _base_rows() -> list[dict[str, str]]:
     return rows
 
 
+def _base_equivalence() -> list[dict[str, str]]:
+    return [
+        {
+            "Case": "`a reproduced case`",
+            "Slice": "2",
+            "Result": "reproduced",
+            "Evidence": f"`{_REC_PATH}`",
+            "Authority": "none",
+        },
+        {
+            "Case": f"`{_REMOVAL}`",
+            "Slice": "2",
+            "Result": "accepted removal",
+            "Evidence": f"`{_REC_PATH}`",
+            "Authority": _REMOVAL_LINK,
+        },
+    ]
+
+
+def _table(columns: tuple[str, ...], rows: list[dict[str, str]]) -> str:
+    lines = ["| " + " | ".join(columns) + " |", "| " + " | ".join("---" for _ in columns) + " |"]
+    lines += ["| " + " | ".join(r[c] for c in columns) + " |" for r in rows]
+    return "\n".join(lines) + "\n"
+
+
 def _render_record(
     rows: list[dict[str, str]],
     headings: tuple[str, ...] = _RECORD_HEADINGS,
     columns: tuple[str, ...] = _COLUMNS,
+    equivalence: str | None = None,
 ) -> str:
-    table = ["| " + " | ".join(columns) + " |", "| " + " | ".join("---" for _ in columns) + " |"]
-    table += ["| " + " | ".join(r[c] for c in columns) + " |" for r in rows]
     out = []
     for heading in headings:
         out.append(f"## {heading}\n")
         if heading == "Disposition":
-            out.append("\n".join(table) + "\n")
+            out.append(_table(columns, rows))
+        if heading == "Equivalence":
+            out.append(
+                _table(_EQ_COLUMNS, _base_equivalence()) if equivalence is None else equivalence
+            )
     return "\n".join(out)
 
 
@@ -1322,7 +1409,10 @@ def test_ac0011_table_missing_a_column(tmp_path: Path) -> None:
 
 
 def test_ac0011_no_table(tmp_path: Path) -> None:
-    text = "".join(f"## {h}\n\n" for h in _RECORD_HEADINGS)
+    text = _render_record([], headings=("Equivalence",)).replace(
+        "## Equivalence", "## Disposition\n\n## Equivalence"
+    )
+    text += "\n## Compatibility closure\n\n## Certification\n"
     _only(_record_check(tmp_path, record_text=text), "AC-0011")
 
 
@@ -1345,7 +1435,8 @@ def _removal(authority: str) -> list[dict[str, str]]:
 
 def test_ac0014_link_to_draft_rfc(tmp_path: Path) -> None:
     draft = _RFC_ACCEPTED.replace("Accepted (2026-01-01)", "Draft")
-    found = _record_check(tmp_path, extra_files={_RFC_PATH: draft})
+    text = _render_record(_base_rows(), equivalence=_table(_EQ_COLUMNS, _base_equivalence()[:1]))
+    found = _record_check(tmp_path, record_text=text, extra_files={_RFC_PATH: draft})
     _only(found, "AC-0014")
 
 
@@ -1428,6 +1519,84 @@ def test_ac0016_untracked_path_home(tmp_path: Path) -> None:
 def test_ac0016_nothing_in_backticks_passes(tmp_path: Path) -> None:
     rows = _with(_base_rows(), _COVERAGE_FACT, Home="`nothing`")
     assert _record_check(tmp_path, rows) == []
+
+
+# ---------------------------------------------------------------------------
+# AC-0023 to AC-0026: § Equivalence.
+# ---------------------------------------------------------------------------
+
+
+def _eq_check(
+    tmp_path: Path,
+    rows: list[dict[str, str]] | None = None,
+    *,
+    columns: tuple[str, ...] = _EQ_COLUMNS,
+    section: str | None = None,
+    extra_files: dict[str, str] | None = None,
+) -> list[Violation]:
+    body = section if section is not None else _table(columns, _base_equivalence() if rows is None else rows)
+    text = _render_record(_base_rows(), equivalence=body)
+    return _record_check(tmp_path, record_text=text, extra_files=extra_files)
+
+
+def _eq_with(index: int, **changes: str) -> list[dict[str, str]]:
+    rows = _base_equivalence()
+    rows[index] = {**rows[index], **changes}
+    return rows
+
+
+def test_ac0023_clean_equivalence_passes(tmp_path: Path) -> None:
+    assert _eq_check(tmp_path) == []
+
+
+def test_ac0023_no_table(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, section="Only prose here.\n"), "AC-0023")
+
+
+def test_ac0023_header_without_rows(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, []), "AC-0023")
+
+
+def test_ac0023_missing_authority_column(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, columns=_EQ_COLUMNS[:-1]), "AC-0023")
+
+
+def test_ac0024_slice_is_not_a_number(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, _eq_with(0, Slice="two")), "AC-0024")
+
+
+def test_ac0024_result_outside_the_two(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, _eq_with(0, Result="equivalent")), "AC-0024")
+
+
+def test_ac0025_evidence_names_an_untracked_path(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, _eq_with(0, Evidence="`tests/missing.py`")), "AC-0025")
+
+
+def test_ac0025_one_tracked_path_among_others_passes(tmp_path: Path) -> None:
+    rows = _eq_with(0, Evidence=f"`tests/missing.py`, `{_REC_PATH}`")
+    assert _eq_check(tmp_path, rows) == []
+
+
+def test_ac0026_accepted_removal_links_a_draft_rfc(tmp_path: Path) -> None:
+    draft = _RFC_ACCEPTED.replace("Accepted (2026-01-01)", "Draft")
+    link = "[RFC 2 errata](../../rfc/0002-draft.md#errata)"
+    rows = _eq_with(1, Authority=link)
+    _only(_eq_check(tmp_path, rows, extra_files={"docs/rfc/0002-draft.md": draft}), "AC-0026")
+
+
+def test_ac0026_section_does_not_contain_the_case_text(tmp_path: Path) -> None:
+    rows = _eq_with(1, Case="`a case the errata never names`")
+    _only(_eq_check(tmp_path, rows), "AC-0026")
+
+
+def test_ac0026_case_text_is_case_sensitive(tmp_path: Path) -> None:
+    rows = _eq_with(1, Case="`Behavior outside tracked files`")
+    _only(_eq_check(tmp_path, rows), "AC-0026")
+
+
+def test_ac0026_reproduced_row_with_an_authority(tmp_path: Path) -> None:
+    _only(_eq_check(tmp_path, _eq_with(0, Authority=_REMOVAL_LINK)), "AC-0026")
 
 
 # ---------------------------------------------------------------------------
