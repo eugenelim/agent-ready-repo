@@ -24,7 +24,7 @@ agentbundle install --pack repo-governance
 
 - **`new-rfc`** — Proposes a change as a structured RFC and previews it before writing.
 - **`new-adr`** — Records a decision as an ADR in the repository's decision-record location.
-- **`navigate-decisions`** — Reads the ADR and RFC corpus: landscape, lineage, references, and detail.
+- **`navigate-decisions`** — Reads the ADR and RFC corpus: landscape, lineage, references, and detail. Its read-only `route` mode says which record a decision needs, whether it is a one-way door, and whom to consult; it writes nothing.
 
 ## Works with
 
