@@ -45,3 +45,32 @@ what it showed.
 - **Owner decision:** eugenelim approved in session on 2026-10-26 widening the driver's grant to the `python3 -I` form of the same query command and re-running the advice case.
 - **Attempt 3** (projection of `e563793b5`; `notes/behaviour/attempt-3/`): all 3 runs scored; consult set `{@platform-team, security reviewers}` in all 3, equal to the supplied set; route tag `RFC`; no file changed and no write call. **AC-0038 passes.**
 - The hostile-record evidence is from `e5f9cd22c`, one sentence before the final route text; the added sentence concerns only the `Consult:` line.
+
+## 2026-10-26 — T5 seam runs
+
+- **Setup:** projection of `e563793b5` (`repo-governance` and `core`, merged) in a fresh scratch Git repository seeded from `fixtures/route-seam/` per run, with the behaviour runs' flags. Route runs: the behaviour tool set and the prompt "Use the navigate-decisions route mode: <request>". Work-loop runs: exactly `Skill Read Glob Grep` and the prompt "Using core's work-loop skill, say what the work loop would do with this request. Do not write or change anything. Request: <request>". Transcripts (redacted as for the behaviour runs; the same search finds nothing) are in `notes/seam/`, with every answer in `notes/seam/seam-summary.json`.
+- **Counts:** 36 route runs, all scored. 36 work-loop runs, all counted (`work-loop` loaded in every attempt; no replacement attempt was needed).
+- **AC-0039:** every route run carried its request's recorded tag. **Passes (36/36).**
+
+| Request | Expected | Route tags (3 runs) | Work-loop answer (all 3 counted runs) | Verdict |
+| --- | --- | --- | --- | --- |
+| S01 implement RFC-0001's retry behaviour | PR, reuse, reference | reuse ×3 | full mode; write a spec first, then build | no contradiction |
+| S02 settled PostgreSQL choice | ADR | ADR ×3 | declines; hands to `new-adr` | no contradiction |
+| S03 settled replacement of ADR-0002 | ADR | ADR ×3 | declines; hands to `new-adr` for a superseding ADR | no contradiction |
+| S04 open API-versioning direction, all owners | RFC | RFC ×3 | declines; hands to `new-rfc` | no contradiction |
+| S05 one maintainer, charter mission | RFC | RFC ×3 | declines; hands to `new-rfc` | no contradiction |
+| S06 one maintainer, who approves PRs | RFC | RFC ×3 | full mode; stops before building to ask who should approve | no contradiction (nearest miss) |
+| S07 propose a shared logging library | reuse, reference | reuse ×3 | declines; hands to `new-rfc` | no contradiction (nearest miss) |
+| S08 CSV export with acceptance criteria | spec | spec ×3 | hands to `new-spec`, then full mode | no contradiction |
+| S09 rename a private helper | PR | PR ×3 | direct-light, or declines as a trivial edit | no contradiction |
+| S10 track a test-runner upgrade | issue | issue ×3 | declines; hands to `work-intake` | no contradiction |
+| S11 orders-service architecture choice | architect-design | architect-design ×3 | declines; design must be chosen first | no contradiction |
+| S12 two-week linter trial | time-bounded trial | time-bounded trial ×3 | builds the linter setup in full mode; hands monitoring off | no contradiction |
+
+- **Nearest misses, graded by eugenelim in session on 2026-10-26 as not contradictions:**
+  - S07: route says `reuse` because ADR-0001 already decides the matter; the work loop builds nothing and hands the proposal to `new-rfc`, whose own step 0 would select reuse. No answer requires a new decision record before building.
+  - S06: route says `RFC`; the work loop starts no build and stops to ask a question, so it does not build without the record.
+  - Both show that core's work loop does not look for an existing decision before handing a proposal to `new-rfc`. That gap is in core, outside this slice.
+- **AC-0040:** three route answers and three counted work-loop answers per request are recorded. **Passes.**
+- **AC-0041:** no pairing is a contradiction. **Passes.**
+- The seam evidence is from `e563793b5`; the later fix commit `f973b201e` adds one sentence to the route section (ASCII-escaped JSON for the search term) and changes no routing text.
