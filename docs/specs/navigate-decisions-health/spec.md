@@ -163,7 +163,7 @@ Terms used below:
   - `- Invalid signal paths: <ADR and path per item, or "none">`
   - `- No Confirmation: <count> of <count>`
   - `- Needs a person to judge: <count>, listed below the block`
-- **An allowed Bash command** is a `Bash` command text that, after each backslash followed by a newline (with the spaces around them) is replaced by one space and the ends are trimmed, matches the whole of this grammar. Literal text is in backticks, single spaces separate parts, and no other text is allowed:
+- **An allowed Bash command** is a `Bash` command text that, after each backslash directly followed by a newline is deleted (as the shell deletes it, adding no space), each run of spaces and tabs is replaced by one space, and spaces and tabs only are removed from both ends, matches the whole of this grammar, with nothing before or after it. Literal text is in backticks, single spaces separate parts, and no other text is allowed:
   - `python3`, optionally `-I`, then S, then one of:
     - `health --root` R, optionally followed by `--today` and a `YYYY-MM-DD` date;
     - `query --root` R `--operation` and one of `summary`, `search`, `record`, `lineage` or `context`, followed by any of these at most once each, in any order: `--id` and an ADR or RFC identifier (`ADR-` or `RFC-` and four digits); `--direction` and `older`, `newer` or `both`; `--depth` and one digit from 1 to 4; `--selectors` or `--assertions` and a value in single quotes holding no `'` and no newline.

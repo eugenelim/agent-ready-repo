@@ -443,15 +443,16 @@ that read outside its paths.
     and records `git status --porcelain`, every attempted tool call with its
     permission outcome, denied calls included (for AC-0049). The driver checks
     each `Bash` command text against the spec's allowed-Bash-command grammar
-    with one anchored regular expression built from the literal S and R, and
-    never parses it as shell. The driver's scratch paths use only ASCII
+    with `re.fullmatch` on one regular expression built from the literal S and
+    R, and never parses it as shell. The driver's scratch paths use only ASCII
     letters, digits, `_`, `.`, `/` and `-`. Before the runs, a self-test
     instantiates every `health` and `query` command form the skill file documents, replacing
     `<repo-root>` and `<repository>` with R, `scripts/navigate_decisions.py`
     with S, `<term>` with `x`, any record placeholder with `ADR-0001`, and an
     optional `[--today YYYY-MM-DD]` both left out and as `--today 2026-10-26`.
     Each form must match. Should-fail cases must not match: `R#;rm -rf x`,
-    `&& echo x`, `> /tmp/x`, `$(echo x)`, a `--root` of another directory, a
+    `&& echo x`, `> /tmp/x`, `$(echo x)`, a word-joining `python3\` and newline
+    before S, a leading `\v`, a trailing newline, a `--root` of another directory, a
     `--today ~` value and an `--id ../../x` value. The self-test result is
     recorded in the ledger. The driver also records a before-and-after
     sha256 listing of every file, `.git/` and ignored paths included;
