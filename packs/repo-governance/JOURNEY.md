@@ -28,7 +28,7 @@ skills:
     description: "Records an architectural decision with two critique tracks and optional supporting-practice capture only when the decision-maker accepts it."
     humanTouches: 2
   - name: navigate-decisions
-    description: "Queries the ADR and RFC corpus for lifecycle, lineage, guidance context, and exact record detail. Exports a self-contained offline HTML explorer for human review."
+    description: "Queries the ADR and RFC corpus for lifecycle, lineage, guidance context, and exact record detail. Exports a self-contained offline HTML explorer for human review. Its read-only route mode says which record a decision needs, whether it is a one-way door, and whom to consult, and writes nothing."
     humanTouches: 0
 humanGates:
   - id: review-rfc-draft
@@ -82,6 +82,7 @@ relatedJourneys:
 | Say this               | What happens                                                   |
 |------------------------|----------------------------------------------------------------|
 | `navigate-decisions`   | Orient — ADR and RFC landscape, lifecycle, lineage, and detail |
+| `navigate-decisions route` | Read-only: pick the record a decision needs, with a door verdict |
 | `new-rfc`              | Propose a cross-cutting change through a structured RFC        |
 | `new-adr`              | Record an architectural decision with critique tracks          |
 

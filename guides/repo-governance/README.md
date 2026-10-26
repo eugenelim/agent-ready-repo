@@ -15,6 +15,7 @@ These guides help you record decisions and propose cross-cutting changes so the 
 
 ## More
 
+- [Route a decision](how-to/route-a-decision.md) — Ask which record a decision needs, whether it is a one-way door, and whom to consult. Writes nothing.
 - [How to propose a cross-cutting change (RFC)](how-to/new-rfc.md) — Write and progress a researched RFC for a change that needs consensus.
 - [How to set up a governance index](how-to/governance-index.md) — Map domains to the decision records and standards contributors need.
 - [How to define an extension contract](how-to/extension-contract.md) — Document an extension hook's shape, guarantees, and owner.

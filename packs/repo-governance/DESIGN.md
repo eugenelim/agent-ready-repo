@@ -190,7 +190,7 @@ These constraints must never be violated by any skill in this pack or any skill 
 
 5. **Adversarial critique track is not optional.** Every ADR produced by `new-adr` includes the adversarial critique — the strongest case against the decision. An ADR that omits the adversarial track is not complete.
 
-6. **`navigate-decisions` is read-only.** It never creates or modifies ADR files, RFC files, index entries, or any governance artifact. Its architecture is on-demand derivation from canonical records: it reads `docs/adr/` and `docs/rfc/` through the repository's blessed confined-filesystem helpers, derives a bounded query result or a self-contained offline HTML file, and leaves the canonical sources unchanged. Internal renderer, parser, payload, search, graph, and styling choices remain implementation decisions as long as the accepted behavior and safety contract holds. ADR and RFC authoring stays with `new-adr` and `new-rfc`; `navigate-decisions` does not take authoring work.
+6. **`navigate-decisions` is read-only.** It never creates or modifies ADR files, RFC files, index entries, or any governance artifact. Its architecture is on-demand derivation from canonical records: it reads `docs/adr/` and `docs/rfc/` through the repository's blessed confined-filesystem helpers, derives a bounded query result or a self-contained offline HTML file, and leaves the canonical sources unchanged. Internal renderer, parser, payload, search, graph, and styling choices remain implementation decisions as long as the accepted behavior and safety contract holds. Its read-only `route` mode answers which record a decision needs: it reads existing decisions only through the query script, replies with a result block, and writes nothing. ADR and RFC authoring stays with `new-adr` and `new-rfc`; `navigate-decisions` does not take authoring work.
 
 ---
 
@@ -199,6 +199,8 @@ These constraints must never be violated by any skill in this pack or any skill 
 ### Read-only and on-demand derivation
 
 `navigate-decisions` derives every result from canonical ADR and RFC records in `docs/adr/` and `docs/rfc/` at query time. It does not maintain a durable index or graph: every query discovers, admits, and reads the corpus fresh. Generated query results and offline HTML files are disposable projections; the canonical Markdown records remain the only authority.
+
+The read-only `route` mode follows the same rule. Its reuse check calls the query script's `search` and `record` operations, never opens a path named in record text, and writes nothing. It replies with a fixed result block: the record route, the reason, an advisory one-way or two-way door verdict, the handles and roles to consult, and the next step. `Consult` holds only handles and roles the user supplied, never an email address.
 
 ### ADR and RFC separation
 

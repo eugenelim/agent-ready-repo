@@ -38,6 +38,8 @@ For one record's fields, use an aligned key: value list, not a two-row table.
 
 ## When to invoke
 
+If the route is unclear, run `navigate-decisions route` first.
+
 Use an RFC for an unresolved consequential direction that more than one owner must
 agree, or when the user explicitly asks to circulate one. The strongest route the
 repository has is required for charter mission, scope, or foundational principles;

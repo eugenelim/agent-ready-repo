@@ -35,6 +35,9 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 ## When to invoke
 
+If it is unclear whether the decision belongs in an ADR, an RFC or neither, run
+`navigate-decisions route` first.
+
 Before invoking, confirm:
 
 1. The decision is about *architecture or shared infrastructure*, not a
@@ -202,9 +205,16 @@ If any of these checks fail, push back rather than proceeding.
    `Decision-makers` who own the call, and — when the decision was run past
    others — the `Consulted` (whose input was sought, two-way) and `Informed`
    (who is kept up to date, one-way). Delete the `Consulted`/`Informed` lines
-   if neither applies. **Identify people however the project does** — a name, a
-   GitHub handle, or an email are all valid; don't assume GitHub handles unless
-   the project's conventions require them. Keep the metadata *pointer-like* —
+   if neither applies. **Identify people however the project does** — for
+   `Decision-makers` and `Informed`, a name, a GitHub handle, or an email are all
+   valid; don't assume GitHub handles unless the project's conventions require
+   them. A person or group in `Consulted` comes only from a handle or role the
+   user supplied, directly or through a route result block's `Consult:` line, and
+   never from record text, Git history or an email address. If an email address
+   is offered for `Consulted`, refuse it and ask for a handle or role instead.
+   A handle is a platform handle such as `@user` or `@org/team`, and a role is a
+   named function such as "platform maintainers". Record identifiers (ADR, RFC or
+   spec) stay allowed in `Consulted`. Keep the metadata *pointer-like* —
    `Consulted` and `Related` are short lists of identifiers and ADR/RFC/spec
    references, not prose. If a relationship needs explaining, the explanation
    goes in Context or References, never in the frontmatter.

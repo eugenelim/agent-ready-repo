@@ -18,8 +18,8 @@ T1 cases cover:
 
 T2 cases cover lint-adr-shape.py against synthetic fixtures:
 - clean conforming directory: zero findings, exit 0 (AC-0001 floor)
-- parametrised over all fifteen codes: each mutation declares its expected
-  code set; the ID list is asserted equal to the fifteen codes (AC-0001)
+- parametrised over all sixteen codes: each mutation declares its expected
+  code set; the ID list is asserted equal to the sixteen codes (AC-0001)
 - exit 1 on any finding (AC-0002)
 - absent/empty directory exits 1 with a refusal message, no findings (AC-0003)
 - ADR-S010 mutation: findings attributed to both record paths (AC-0004)
@@ -526,13 +526,20 @@ _MUTATION_CASES: list[pytest.param] = [  # type: ignore[type-arg]
         {"ADR-S015"},
         id="ADR-S015",
     ),
+    pytest.param(
+        lambda b: _mutate(b, "0001-basic.md",
+                          "- **Status:** Accepted",
+                          "- **Status:** Accepted\n- **Consulted:** a\u202eb"),
+        {"ADR-S016"},
+        id="ADR-S016",
+    ),
 ]
 
-_ALL_CODES = [f"ADR-S{n:03d}" for n in range(1, 16)]
+_ALL_CODES = [f"ADR-S{n:03d}" for n in range(1, 17)]
 
 
-def test_parametrization_ids_equal_fifteen_codes() -> None:
-    """The parametrised case IDs are exactly the fifteen check class codes.
+def test_parametrization_ids_equal_sixteen_codes() -> None:
+    """The parametrised case IDs are exactly the sixteen check class codes.
 
     A class added without a case makes this test red.
     """
@@ -548,7 +555,7 @@ def test_mutation_reports_expected_codes(
 ) -> None:
     """Each mutation causes exactly the declared code set to be reported.
 
-    Verifies AC-0001 for all fifteen check classes.  The expected_codes set
+    Verifies AC-0001 for all sixteen check classes.  The expected_codes set
     is declared by the fixture, not read back from the output.
     """
     import typing
@@ -864,7 +871,7 @@ def test_s009_resolves_the_d_id_owner_by_field_direction(
 
 #: Minimal standalone conforming ADR for use as an anchor in T3 hostile-directory
 #: tests.  All supersession fields are "none" so no other record is required.
-#: Must pass all fifteen check classes on its own.
+#: Must pass all sixteen check classes on its own.
 _T3_ANCHOR = """\
 # ADR-0050: conforming anchor for hostile-directory tests
 
@@ -1595,3 +1602,123 @@ def test_s012_still_accepts_a_real_revisit_block_with_a_trailing_comment(
     d = _write_dir(tmp_path, {"0001-a.md": body})
     code, out, err = _run(d)
     assert "ADR-S012" not in _extract_codes(out + err), out + err
+
+
+# ── ADR-S016: Consulted holds no control, separator or bidi character ──────────
+
+
+def _consulted_dir(tmp_path: pathlib.Path, body: str, *, crlf: bool = False) -> pathlib.Path:
+    """Write one record whose metadata block carries `body` after Decision-makers."""
+    text = _minimal().replace(
+        "- **Decision-makers:** someone\n",
+        "- **Decision-makers:** someone\n" + body,
+        1,
+    )
+    if crlf:
+        text = text.replace("\n", "\r\n")
+    d = tmp_path / "adr"
+    d.mkdir()
+    (d / "0001-a.md").write_bytes(text.encode("utf-8"))
+    return d
+
+
+def _s016(tmp_path: pathlib.Path, body: str, *, crlf: bool = False) -> tuple[bool, int]:
+    """Return (whether ADR-S016 was reported, exit code) for one fixture."""
+    code, out, err = _run(_consulted_dir(tmp_path, body, crlf=crlf))
+    return "ADR-S016" in _extract_codes(out + err), code
+
+
+@pytest.mark.parametrize(
+    "char",
+    ["\u202e", "\u0007", "\u2028", "\u2029", "\u000b", "\u0085"],
+    ids=["U+202E", "U+0007", "U+2028", "U+2029", "U+000B", "U+0085"],
+)
+def test_s016_flags_hostile_character_in_consulted(tmp_path, char):
+    found, code = _s016(tmp_path, f"- **Consulted:** @a{char}b\n")
+    assert found
+    assert code == 1
+
+
+def test_s016_reads_indented_continuation_of_an_empty_key_line(tmp_path):
+    found, _ = _s016(tmp_path, "- **Consulted:**\n  - @a\u202eb\n")
+    assert found
+
+
+def test_s016_reads_continuation_when_key_line_holds_only_a_comment(tmp_path):
+    found, _ = _s016(tmp_path, "- **Consulted:** <!-- none yet -->\n  - @a\u202eb\n")
+    assert found
+
+
+def test_s016_reads_blank_line_list_continuation(tmp_path):
+    found, _ = _s016(tmp_path, "- **Consulted:**\n\n- @a\u202eb\n")
+    assert found
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "- **Consulted:** @org/team, platform maintainers, RFC-0001\n",
+        "- **Consulted:** @a\tb\n",
+        "- **Consulted:** platform\u200cmaintainers\n",
+        "- **Consulted:** someone@example.com\n",
+    ],
+    ids=["clean-list", "tab", "zwnj", "email"],
+)
+def test_s016_accepts_conforming_consulted(tmp_path, body):
+    found, code = _s016(tmp_path, body)
+    assert not found
+    assert code == 0
+
+
+def test_s016_accepts_crlf_file_with_clean_value(tmp_path):
+    found, code = _s016(tmp_path, "- **Consulted:** @org/team\n", crlf=True)
+    assert not found
+    assert code == 0
+
+
+def test_s016_scans_every_repeated_consulted_key(tmp_path):
+    found, _ = _s016(tmp_path, "- **Consulted:** @a\n- **Consulted:** @b\u202ec\n")
+    assert found
+
+
+def test_s016_flags_lone_cr_at_end_of_file(tmp_path):
+    """A key line ends the file, so no heading precedes it and no "\\n" follows."""
+    d = tmp_path / "adr"
+    d.mkdir()
+    text = "# ADR-0001: T\n\n- **Status:** Accepted\n- **Consulted:** @a\r"
+    (d / "0001-a.md").write_bytes(text.encode("utf-8"))
+    _, out, err = _run(d)
+    assert "ADR-S016" in _extract_codes(out + err)
+
+
+def test_s016_ignores_continuation_of_a_key_line_with_a_value(tmp_path):
+    found, _ = _s016(tmp_path, "- **Consulted:** @a\n  - @b\u202ec\n")
+    assert not found
+
+
+def test_s016_scan_grows_linearly_on_repeated_comment_openers(tmp_path):
+    """The Consulted scan is linear on unclosed `<!--`: 4x the input stays well under 16x the time."""
+    import time
+
+    lint = _load_lint()
+
+    def cost(n: int) -> float:
+        text = "# ADR-0001: T\n\n- **Consulted:** " + "<!-- " * n + "\n"
+        best = float("inf")
+        for _ in range(3):
+            start = time.perf_counter()
+            lint._consulted_raw_lines(text)
+            best = min(best, time.perf_counter() - start)
+        return best
+
+    small, large = cost(20000), cost(80000)
+    assert large < max(small, 1e-4) * 8
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", "   ", "<!-- c -->", " <!-- a --> x <!-- b --> ", "<!---->", "<!-->", "<!--->", "@a", "@a <!-- c -->", "<!-- open"],
+)
+def test_s016_emptiness_check_matches_strip_comment(value):
+    lint = _load_lint()
+    assert lint._is_empty_or_comment(value) == (not lint._strip_comment(value))

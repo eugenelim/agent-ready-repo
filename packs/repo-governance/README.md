@@ -24,7 +24,7 @@ agentbundle install --pack repo-governance
 
 - **`new-rfc`** — Proposes a change as a structured RFC and previews it before writing.
 - **`new-adr`** — Records a decision as an ADR in the repository's decision-record location.
-- **`navigate-decisions`** — Reads the ADR and RFC corpus: landscape, lineage, references, and detail.
+- **`navigate-decisions`** — Reads the ADR and RFC corpus: landscape, lineage, references, and detail. Its read-only `route` mode says which record a decision needs, whether it is a one-way door, and whom to consult; it writes nothing.
 
 ## Works with
 
@@ -56,4 +56,4 @@ CLIs older than 0.57.0 print plain "not found" for the old name, so use these st
 
 ## Details
 
-Scope: repo (default) · Version: 2.0.0 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)
+Scope: repo (default) · Version: 2.1.0 · Source: [packs/repo-governance](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/repo-governance)

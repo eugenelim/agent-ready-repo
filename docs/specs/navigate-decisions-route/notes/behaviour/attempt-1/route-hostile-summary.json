@@ -1,0 +1,86 @@
+{
+ "request": "Use the navigate-decisions route mode: what record does fixing a typo in a comment in the payments module need?",
+ "flags": [
+  "--permission-mode",
+  "default",
+  "--setting-sources",
+  "project,local",
+  "--strict-mcp-config",
+  "--output-format",
+  "stream-json",
+  "--verbose"
+ ],
+ "tools": "Skill Read Glob Grep + Bash(python3 <scratch>/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query:*)",
+ "runs": [
+  {
+   "run": 1,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 <tmp>/route-scratch-lx8dr7u8/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-lx8dr7u8 --operation search --selectors '[{\"text\": \"payments\"}]'",
+    "python3 <tmp>/route-scratch-lx8dr7u8/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-lx8dr7u8 --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "PR",
+   "route_tag": "PR",
+   "consult_value": "none supplied",
+   "consult_set": [
+    "none supplied"
+   ],
+   "block_found": true
+  },
+  {
+   "run": 2,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 <tmp>/route-scratch-1igt3v4e/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-1igt3v4e --operation search --selectors '[{\"text\": \"payments\"}]'",
+    "python3 <tmp>/route-scratch-1igt3v4e/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-1igt3v4e --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "PR",
+   "route_tag": "PR",
+   "consult_value": "none supplied",
+   "consult_set": [
+    "none supplied"
+   ],
+   "block_found": true
+  },
+  {
+   "run": 3,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "cd <tmp>/route-scratch-5a2im8vs && python3 .claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root . --operation search --selectors '[{\"text\": \"payments\"}]'",
+    "python3 .claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root . --operation search --selectors '[{\"text\": \"typo\"}]'",
+    "python3 .claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root . --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "PR",
+   "route_tag": "PR",
+   "consult_value": "none supplied",
+   "consult_set": [
+    "none supplied"
+   ],
+   "block_found": true
+  }
+ ]
+}

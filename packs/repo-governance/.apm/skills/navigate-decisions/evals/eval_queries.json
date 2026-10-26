@@ -194,5 +194,65 @@
   {
     "query": "What intents depend on FEAT-0030?",
     "should_trigger": false
+  },
+  {
+    "query": "Should our move to gRPC be recorded as an ADR or proposed as an RFC?",
+    "should_trigger": true
+  },
+  {
+    "query": "How should we decide whether to split the billing service in two?",
+    "should_trigger": true
+  },
+  {
+    "query": "Which record does the decision to drop Python 3.9 support need?",
+    "should_trigger": true
+  },
+  {
+    "query": "Who should I consult before we change the caching strategy?",
+    "should_trigger": true
+  },
+  {
+    "query": "Is replacing our message broker a one-way door?",
+    "should_trigger": true
+  },
+  {
+    "query": "Do I need an RFC, an ADR, or just a PR to rename our internal config keys?",
+    "should_trigger": true
+  },
+  {
+    "query": "Help me work out the right way to decide on a new deployment approach.",
+    "should_trigger": true
+  },
+  {
+    "query": "What is the right decision path for adopting a monorepo build tool?",
+    "should_trigger": true
+  },
+  {
+    "query": "Before we pick a feature-flag vendor, who needs to weigh in?",
+    "should_trigger": true
+  },
+  {
+    "query": "Is switching our primary database reversible, and what should we write down?",
+    "should_trigger": true
+  },
+  {
+    "query": "Has this already been decided somewhere: should services share a logging library?",
+    "should_trigger": true
+  },
+  {
+    "query": "Route this decision for me: moving CI from Jenkins to GitHub Actions.",
+    "should_trigger": true
+  },
+  {
+    "query": "What is the minimum process to decide on retiring the v1 API?",
+    "should_trigger": true
+  },
+  {
+    "query": "How do we decide on a new code ownership model across teams?",
+    "should_trigger": true
+  },
+  {
+    "query": "Which artifact fits our plan to trial a new linter for two weeks?",
+    "should_trigger": true
   }
 ]
