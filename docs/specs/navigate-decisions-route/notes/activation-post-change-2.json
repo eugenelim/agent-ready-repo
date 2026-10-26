@@ -1,0 +1,2689 @@
+{
+ "host": {
+  "model": "claude-opus-5-5",
+  "claude_code_version": "2.1.308",
+  "skills": [
+   "anthropic-skills:docx",
+   "anthropic-skills:google-workspace",
+   "anthropic-skills:import-memory",
+   "anthropic-skills:morning",
+   "anthropic-skills:pdf",
+   "anthropic-skills:pptx",
+   "anthropic-skills:skill-creator",
+   "anthropic-skills:xlsx",
+   "batch",
+   "claude-api",
+   "code-review",
+   "dataviz",
+   "debug",
+   "design",
+   "design-sync",
+   "doctor",
+   "fewer-permission-prompts",
+   "loop",
+   "navigate-decisions",
+   "new-adr",
+   "new-rfc",
+   "plugin-authoring",
+   "run",
+   "run-skill-generator",
+   "simplify",
+   "update-config",
+   "vartifact",
+   "vask",
+   "verify",
+   "vflow",
+   "vkb",
+   "vopen",
+   "vrefer",
+   "vsearch",
+   "vself",
+   "vspawn",
+   "vspawn-tree",
+   "vstat",
+   "vtell"
+  ]
+ },
+ "runs_per_query": 3,
+ "rerun_rounds": [
+  {
+   "round": 1,
+   "queries_with_errors": 0
+  }
+ ],
+ "unresolved_error_queries": [],
+ "results": [
+  {
+   "set": "nd",
+   "query": "rfc status",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show me the current RFC landscape",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What RFCs are open right now?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "How many RFCs are in draft?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Give me an RFC dashboard",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Any RFC candidates in the findings register?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What RFC candidates do we have queued?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show me which RFCs are active and which are accepted",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "rfc report",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What governance work is in flight?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "How many roadmap intents do we have?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show me ADR-0001",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Look up RFC-0105",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Which ADRs are accepted?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What supersedes RFC-0042?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What is ADR-0027 about?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Find decisions about authentication",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Give me a summary of all ADRs and RFCs",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What decisions do we have on record?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "How many accepted ADRs are there?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show me all withdrawn RFCs",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Trace the lineage of ADR-0050",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What does ADR-0010 supersede?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Which record superseded RFC-0020?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show me the decisions that supersede ADR-0030",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show me the context for ADR-0015",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What guidance is broader than ADR-0001?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Which decisions provide broader context for RFC-0099?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Where is ADR-0027 defined in the repository?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What is the source file for RFC-0105?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What constraints does RFC-0099 impose?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Are there any decisions that constrain our microservice architecture?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Generate an offline HTML explorer of our ADRs and RFCs",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Export the decision corpus to an HTML file",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Create an offline decision explorer I can share with reviewers",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Draft a new RFC for adopting trunk-based development",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Record the decision to use Postgres as an ADR",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What should I work on next?",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Update the conventions file",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Write a spec for the new caching feature",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show the work queue from workspace.toml",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Fix the bug in the RFC template",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Create an ADR for our API versioning decision",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Write an RFC for the new caching feature",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Revise RFC-0099 to reflect its new accepted status",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "Show me the intent hierarchy",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What is the status of FEAT-0029?",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "List all intents in the roadmap",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "nd",
+   "query": "What intents depend on FEAT-0030?",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Open an RFC to change code review across teams.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Write a proposal for moving every service to a shared logging library.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Get input on reversing our earlier decision to use REST.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Draft an RFC for adopting a new release process across packages.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Get the team's feedback on splitting the monorepo.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Circulate an RFC proposing we deprecate the v1 API for all consumers.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Propose a cross-cutting change to how we version packages.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Draft an RFC to introduce a new top-level architectural layer.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Circulate a proposal to change our incident-response policy.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Propose a change to our authentication approach and get sign-off before we build it.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "RFC-0067 was accepted; create the follow-on implementation specs.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Generate the follow-on ADRs for that accepted RFC.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "The RFC was just accepted; now draft the follow-on specs.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Change the convention for how we name test files.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Amend the charter to add observability as a first-class concern.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "We have competing designs for a stable public API; help us draft the proposal.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Change the charter mission to serve a different class of users.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Propose a new maintainer approval model.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "The teams dispute the contract between their services; circulate a proposal.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "We need to choose compatibility terms for a breaking migration.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Reconsider the old storage decision; the replacement direction is still open.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Compare competing security trust models before we build the integration.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Update the rules for who may approve production changes.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Change our principles around backward compatibility.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Record the decision to use Postgres; we have already chosen it.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Create a spec for the dashboard feature.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Write the ADR for our database choice; it is already decided.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "ADR this: we are going with Kafka.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Write a spec for the CSV export feature.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Spec out the new onboarding flow before we build it.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Fix this small bug in the parser.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Refactor the payments module to remove duplication.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Draft a tutorial on how to use the export API.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "This change only touches one package and breaks no interface; just open a PR.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Refactor the shared helpers across several packages without changing behavior.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Fix the incorrect public error message in the API.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Upgrade the logging dependency without changing our API.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Add a test helper that three packages can reuse.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Rename the top-level web directory without changing its meaning.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Reorganize the documentation so the guides are easier to find.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Fix a broken link in the conventions document.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Remove stale duplicated prose from the conventions.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Implement the behavior approved by RFC-0042.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-rfc"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Document the settled caching architecture in an ADR.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "new-adr"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Write the clear implementation spec for the reporting feature.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Implement the agreed authentication-boundary design with a security review.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "rfc",
+   "query": "Carry out the cross-repository migration for the contract everyone already agreed.",
+   "should_trigger": false,
+   "runs": [
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "vsearch"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Should our move to gRPC be recorded as an ADR or proposed as an RFC?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "How should we decide whether to split the billing service in two?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Which record does the decision to drop Python 3.9 support need?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Who should I consult before we change the caching strategy?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Is replacing our message broker a one-way door?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Do I need an RFC, an ADR, or just a PR to rename our internal config keys?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Help me work out the right way to decide on a new deployment approach.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "What is the right decision path for adopting a monorepo build tool?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Before we pick a feature-flag vendor, who needs to weigh in?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Is switching our primary database reversible, and what should we write down?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Has this already been decided somewhere: should services share a logging library?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions",
+      "vsearch"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Route this decision for me: moving CI from Jenkins to GitHub Actions.",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "What is the minimum process to decide on retiring the v1 API?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "How do we decide on a new code ownership model across teams?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  },
+  {
+   "set": "route",
+   "query": "Which artifact fits our plan to trial a new linter for two weeks?",
+   "should_trigger": true,
+   "runs": [
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    },
+    {
+     "skills_fired": [
+      "navigate-decisions"
+     ],
+     "error": null
+    }
+   ]
+  }
+ ]
+}

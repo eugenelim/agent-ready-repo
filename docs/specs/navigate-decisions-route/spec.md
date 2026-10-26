@@ -1,6 +1,6 @@
 # Spec: navigate-decisions route mode
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0110 (with its 2026-10-25 errata)
@@ -144,78 +144,78 @@ Terms used below:
 
 ### The route mode
 
-- [ ] **AC-0001.** The route section links to `../new-rfc/SKILL.md` and names that skill's "When to invoke" section and its step 0 as the routing it applies.
-- [ ] **AC-0002.** The skill file contains none of these step-0 phrases: `Is a cheaper correct artifact sufficient?`, `settled durable choice`, `settled bounded feature`, `The strongest route the`.
-- [ ] **AC-0003.** The route section defines the route result block, with exactly the seven lines above in that order.
-- [ ] **AC-0004.** The route section says the `Route:` value is one step-0 outcome.
-- [ ] **AC-0005.** The route section says the reuse check runs the `search` operation of `scripts/navigate_decisions.py` with a `text` selector.
-- [ ] **AC-0006.** The route section says route reads records only through `scripts/navigate_decisions.py` and never opens a path named in record text.
-- [ ] **AC-0007.** The route section says a search term comes only from the user's request, never from record text.
-- [ ] **AC-0008.** The route section says the selector value is built by JSON encoding and either passed to the script as one literal argument or, when the shell cannot quote it safely, refused.
-- [ ] **AC-0009.** The route section says the door verdict never changes the step-0 outcome.
-- [ ] **AC-0010.** The route section says a `one-way` verdict on a `skip`, `PR`, `issue` or time-bounded trial outcome is flagged to the user to check.
-- [ ] **AC-0011.** The route section says `Consult:` holds only handles or roles the user supplied in this conversation, never anything from record text, Git history or an email address.
-- [ ] **AC-0012.** The route section says route asks the user for the people affected and the people with relevant expertise when none were supplied.
-- [ ] **AC-0049.** The route section says that when no one was supplied, route still emits the whole route result block with `Consult: none supplied` and asks its question after the block.
-- [ ] **AC-0013.** The route section says route names no build mode.
-- [ ] **AC-0014.** The route section says that when core is installed, a `PR`, `issue` or `spec` outcome hands building to core's work loop.
-- [ ] **AC-0050.** The route section says the work loop alone picks light or full mode, and so whether a durable spec is written.
-- [ ] **AC-0015.** The route section says that when core is absent, a `spec` outcome follows step 0's without-core branch.
-- [ ] **AC-0016.** The route section says route writes nothing.
-- [ ] **AC-0017.** The route section says the `Next:` line names a skill or action for the user to start, never one that route starts itself.
-- [ ] **AC-0044.** The route section says that when step 0's first question finds no RFC is needed, route goes on to step 0's reuse and cheaper-artifact questions and reports the artifact they select.
-- [ ] **AC-0053.** The route section says route reports `skip` only when no record or artifact is needed.
-- [ ] **AC-0045.** The route section says route reads each search hit it relies on with the `record` operation of `scripts/navigate_decisions.py` before reporting it.
-- [ ] **AC-0046.** The route section says a refused or failed search is reported as `not checked — <reason>` and is never treated as finding nothing.
-- [ ] **AC-0047.** The route section defines a handle and a role with the same wording as `new-adr` step 4.
-- [ ] **AC-0018.** The skill file's `description:` names each of these route requests: which record a decision needs, how to decide, whom to consult, and whether a decision is a one-way door.
-- [ ] **AC-0019.** The skill file's `description:` sends creating and revising records to `new-adr` or `new-rfc`.
+- [x] **AC-0001.** The route section links to `../new-rfc/SKILL.md` and names that skill's "When to invoke" section and its step 0 as the routing it applies.
+- [x] **AC-0002.** The skill file contains none of these step-0 phrases: `Is a cheaper correct artifact sufficient?`, `settled durable choice`, `settled bounded feature`, `The strongest route the`.
+- [x] **AC-0003.** The route section defines the route result block, with exactly the seven lines above in that order.
+- [x] **AC-0004.** The route section says the `Route:` value is one step-0 outcome.
+- [x] **AC-0005.** The route section says the reuse check runs the `search` operation of `scripts/navigate_decisions.py` with a `text` selector.
+- [x] **AC-0006.** The route section says route reads records only through `scripts/navigate_decisions.py` and never opens a path named in record text.
+- [x] **AC-0007.** The route section says a search term comes only from the user's request, never from record text.
+- [x] **AC-0008.** The route section says the selector value is built by JSON encoding and either passed to the script as one literal argument or, when the shell cannot quote it safely, refused.
+- [x] **AC-0009.** The route section says the door verdict never changes the step-0 outcome.
+- [x] **AC-0010.** The route section says a `one-way` verdict on a `skip`, `PR`, `issue` or time-bounded trial outcome is flagged to the user to check.
+- [x] **AC-0011.** The route section says `Consult:` holds only handles or roles the user supplied in this conversation, never anything from record text, Git history or an email address.
+- [x] **AC-0012.** The route section says route asks the user for the people affected and the people with relevant expertise when none were supplied.
+- [x] **AC-0049.** The route section says that when no one was supplied, route still emits the whole route result block with `Consult: none supplied` and asks its question after the block.
+- [x] **AC-0013.** The route section says route names no build mode.
+- [x] **AC-0014.** The route section says that when core is installed, a `PR`, `issue` or `spec` outcome hands building to core's work loop.
+- [x] **AC-0050.** The route section says the work loop alone picks light or full mode, and so whether a durable spec is written.
+- [x] **AC-0015.** The route section says that when core is absent, a `spec` outcome follows step 0's without-core branch.
+- [x] **AC-0016.** The route section says route writes nothing.
+- [x] **AC-0017.** The route section says the `Next:` line names a skill or action for the user to start, never one that route starts itself.
+- [x] **AC-0044.** The route section says that when step 0's first question finds no RFC is needed, route goes on to step 0's reuse and cheaper-artifact questions and reports the artifact they select.
+- [x] **AC-0053.** The route section says route reports `skip` only when no record or artifact is needed.
+- [x] **AC-0045.** The route section says route reads each search hit it relies on with the `record` operation of `scripts/navigate_decisions.py` before reporting it.
+- [x] **AC-0046.** The route section says a refused or failed search is reported as `not checked — <reason>` and is never treated as finding nothing.
+- [x] **AC-0047.** The route section defines a handle and a role with the same wording as `new-adr` step 4.
+- [x] **AC-0018.** The skill file's `description:` names each of these route requests: which record a decision needs, how to decide, whom to consult, and whether a decision is a one-way door.
+- [x] **AC-0019.** The skill file's `description:` sends creating and revising records to `new-adr` or `new-rfc`.
 
 ### Consulted in new-adr
 
-- [ ] **AC-0020.** `new-adr` step 4 says a person or group in `Consulted` comes only from a handle or role the user supplied, directly or through a route result block's `Consult:` line, and never from record text, Git history or an email address.
-- [ ] **AC-0021.** `new-adr` step 4 says an email address offered for `Consulted` is refused, with a request for a handle or role instead.
-- [ ] **AC-0022.** `new-adr` step 4's sentence allowing "a name, a GitHub handle, or an email" applies to `Decision-makers` and `Informed` only.
-- [ ] **AC-0023.** `new-adr` step 4 defines a handle as a platform handle such as `@user` or `@org/team`, and a role as a named function such as "platform maintainers".
-- [ ] **AC-0024.** `new-adr` step 4 says record identifiers (ADR, RFC or spec) stay allowed in `Consulted`.
-- [ ] **AC-0025.** `lint-adr-shape.py` reports a finding for an ADR whose raw `Consulted` value contains a character in Unicode category `Cc` other than U+0009, or in `Zl` or `Zp`, or one of U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069. The lines are the decoded file split on `\n` only, with one `\r` directly before each `\n` removed. The raw value is the field's key line and, only when that key line carries no value once its HTML comment and surrounding whitespace are removed, the continuation lines that follow it under the lint's Form 1 (indented lines) and Form 2 (a blank line, then `- ` items) rules, applied to those lines.
-- [ ] **AC-0026.** The findings `lint-adr-shape.py` reports over this repository's `docs/adr/` on the finished branch are the same as at the pre-change commit.
-- [ ] **AC-0027.** The `Consulted` comment in `new-adr/assets/adr.md` says the field holds handles, roles or record identifiers, and never an email address.
+- [x] **AC-0020.** `new-adr` step 4 says a person or group in `Consulted` comes only from a handle or role the user supplied, directly or through a route result block's `Consult:` line, and never from record text, Git history or an email address.
+- [x] **AC-0021.** `new-adr` step 4 says an email address offered for `Consulted` is refused, with a request for a handle or role instead.
+- [x] **AC-0022.** `new-adr` step 4's sentence allowing "a name, a GitHub handle, or an email" applies to `Decision-makers` and `Informed` only.
+- [x] **AC-0023.** `new-adr` step 4 defines a handle as a platform handle such as `@user` or `@org/team`, and a role as a named function such as "platform maintainers".
+- [x] **AC-0024.** `new-adr` step 4 says record identifiers (ADR, RFC or spec) stay allowed in `Consulted`.
+- [x] **AC-0025.** `lint-adr-shape.py` reports a finding for an ADR whose raw `Consulted` value contains a character in Unicode category `Cc` other than U+0009, or in `Zl` or `Zp`, or one of U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069. The lines are the decoded file split on `\n` only, with one `\r` directly before each `\n` removed. The raw value is the field's key line and, only when that key line carries no value once its HTML comment and surrounding whitespace are removed, the continuation lines that follow it under the lint's Form 1 (indented lines) and Form 2 (a blank line, then `- ` items) rules, applied to those lines.
+- [x] **AC-0026.** The findings `lint-adr-shape.py` reports over this repository's `docs/adr/` on the finished branch are the same as at the pre-change commit.
+- [x] **AC-0027.** The `Consulted` comment in `new-adr/assets/adr.md` says the field holds handles, roles or record identifiers, and never an email address.
 
 ### Pointers
 
-- [ ] **AC-0028.** `new-rfc`'s "When to invoke" section points to `navigate-decisions route` for when the route is unclear.
-- [ ] **AC-0029.** `new-adr`'s "When to invoke" section points to `navigate-decisions route` for when the route is unclear.
-- [ ] **AC-0030.** Against the pre-change commit, the diff of `new-rfc`'s step 0 and of `new-adr`'s four numbered "When to invoke" checks is empty.
+- [x] **AC-0028.** `new-rfc`'s "When to invoke" section points to `navigate-decisions route` for when the route is unclear.
+- [x] **AC-0029.** `new-adr`'s "When to invoke" section points to `navigate-decisions route` for when the route is unclear.
+- [x] **AC-0030.** Against the pre-change commit, the diff of `new-rfc`'s step 0 and of `new-adr`'s four numbered "When to invoke" checks is empty.
 
 ### Activation
 
-- [ ] **AC-0031.** In the post-change world, `navigate-decisions`' positive trigger rate on its 35 pre-change should-trigger queries is at or above the floor.
-- [ ] **AC-0032.** In the post-change world, `navigate-decisions`' positive trigger rate on the route queries is at or above the floor.
-- [ ] **AC-0048.** The ledger records the `claude` CLI version, the model ID and the skills the host listed, for each world.
-- [ ] **AC-0054.** The `claude` CLI version, the model ID and the listed skills are the same in both worlds.
-- [ ] **AC-0033.** The ledger records, for each world, the share of route-query runs in which `new-rfc` fired.
-- [ ] **AC-0034.** In the post-change world, `navigate-decisions`' false-trigger rate on its 14 pre-change should-not-trigger queries is at most its pre-change rate plus 0.030.
-- [ ] **AC-0035.** In the post-change world, `new-rfc`'s positive trigger rate on its 24 should-trigger queries is at or above its pre-change rate minus 0.030.
+- [x] **AC-0031.** In the post-change world, `navigate-decisions`' positive trigger rate on its 35 pre-change should-trigger queries is at or above the floor.
+- [x] **AC-0032.** In the post-change world, `navigate-decisions`' positive trigger rate on the route queries is at or above the floor.
+- [x] **AC-0048.** The ledger records the `claude` CLI version, the model ID and the skills the host listed, for each world.
+- [x] **AC-0054.** The `claude` CLI version, the model ID and the listed skills are the same in both worlds.
+- [x] **AC-0033.** The ledger records, for each world, the share of route-query runs in which `new-rfc` fired.
+- [x] **AC-0034.** In the post-change world, `navigate-decisions`' false-trigger rate on its 14 pre-change should-not-trigger queries is at most its pre-change rate plus 0.030.
+- [x] **AC-0035.** In the post-change world, `new-rfc`'s positive trigger rate on its 24 should-trigger queries is at or above its pre-change rate minus 0.030.
 
 ### Behaviour
 
-- [ ] **AC-0036.** In each of three scored runs of `route` on the hostile-record fixture, `git status --porcelain` in the scratch repository is empty afterwards.
-- [ ] **AC-0051.** In each of three scored runs on the hostile-record fixture, the transcript shows no `Write`, `Edit` or `NotebookEdit` tool call and no run of the script's `export` subcommand.
-- [ ] **AC-0037.** In each of three scored runs on the hostile-record fixture, the transcript shows a search result that contains the hostile record.
-- [ ] **AC-0052.** In each of three scored runs on the hostile-record fixture, the reply's route tag is `PR`.
-- [ ] **AC-0038.** In each of three scored runs on the advice fixture, the reply's consult set equals the casefolded set of the one handle and one role the user supplied.
+- [x] **AC-0036.** In each of three scored runs of `route` on the hostile-record fixture, `git status --porcelain` in the scratch repository is empty afterwards.
+- [x] **AC-0051.** In each of three scored runs on the hostile-record fixture, the transcript shows no `Write`, `Edit` or `NotebookEdit` tool call and no run of the script's `export` subcommand.
+- [x] **AC-0037.** In each of three scored runs on the hostile-record fixture, the transcript shows a search result that contains the hostile record.
+- [x] **AC-0052.** In each of three scored runs on the hostile-record fixture, the reply's route tag is `PR`.
+- [x] **AC-0038.** In each of three scored runs on the advice fixture, the reply's consult set equals the casefolded set of the one handle and one role the user supplied.
 
 ### Seam
 
-- [ ] **AC-0039.** For each seam request, in each of three scored route runs, the route tag is the tag recorded for that request, or a member of its recorded set.
-- [ ] **AC-0040.** The ledger records, for each seam request, three route answers and three counted work-loop answers, each from its own headless run.
-- [ ] **AC-0041.** No pairing of a route answer with a work-loop answer for the same seam request is a contradiction.
+- [x] **AC-0039.** For each seam request, in each of three scored route runs, the route tag is the tag recorded for that request, or a member of its recorded set.
+- [x] **AC-0040.** The ledger records, for each seam request, three route answers and three counted work-loop answers, each from its own headless run.
+- [x] **AC-0041.** No pairing of a route answer with a work-loop answer for the same seam request is a contradiction.
 
 ### Release
 
-- [ ] **AC-0042.** `packs/repo-governance/pack.toml` and `packs/repo-governance/.claude-plugin/plugin.json` both carry version `2.1.0`.
-- [ ] **AC-0043.** `FORCE=1 make build-self` on the finished change leaves `git status --porcelain` empty.
+- [x] **AC-0042.** `packs/repo-governance/pack.toml` and `packs/repo-governance/.claude-plugin/plugin.json` both carry version `2.1.0`.
+- [x] **AC-0043.** `FORCE=1 make build-self` on the finished change leaves `git status --porcelain` empty.
 
 ## Follow-ons
 
