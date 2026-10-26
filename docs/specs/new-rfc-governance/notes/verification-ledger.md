@@ -93,3 +93,27 @@ Each is a mechanical follow-on of a version bump the plan requires, verified by 
 - **Finding (adversarial post-gates round 4):** `<folder>/*` misses a folder that holds only subfolders. A read-only probe on 2026-10-26 with `.github/workflows/ci.yml` as the only file: `Glob` with `.github/*` returned `No files found`, and with `.github/**/*` returned `.github/workflows/ci.yml`; in the flat layout `.github/**/*` returned `.github/workflow.yml`.
 - **Fix:** the governance section uses `<folder>/**/*`, such as `.github/**/*`.
 - The re-run started on `9c0bd1a3a` was stopped before it finished, and its partial results were discarded unread.
+
+## 2026-10-26 — T6 scored results
+
+- **Scored set:** the activation world and the `governance-codeowners/` case from attempt 3 on `249c7a814`; the `governance-single/`, `governance-two/`, `governance-decline/` and `governance-eof/` cases from attempt 2 on `a194d32d5`, which stand by eugenelim's decision because the later commits change only the CODEOWNERS folder check. The 15 governance entries appended to `eval_queries.json` equal `notes/governance-queries.json` as parsed lists.
+- **Host (AC-0074, AC-0075):** `claude` CLI 2.1.308, model `claude-opus-5-5`, the same 39 listed skills in the pre-change world and in attempt 3. **AC-0074 and AC-0075 pass.**
+- **Activation** (`notes/activation-post-change.json`; 186 runs, 0 errored, no re-run round):
+  - `new-rfc` positive rate on its 24 pre-change should-trigger queries: 66/72 = **0.917**, at or above the floor of 0.887. **AC-0071 passes.**
+  - governance queries: `new-rfc` 42/45 = **0.933**, at or above the floor; the one miss is "Link our charter to GOVERNANCE.md once the governance doc exists." (0 of 3). **AC-0072 passes.**
+  - `new-rfc` false-trigger rate on its 23 should-not-trigger queries: 0/69 = **0.000**, at most 0.088. **AC-0073 passes.**
+  - governance-query shares: `new-rfc` 0.422 before and 0.933 after; `navigate-decisions` 0/45 in both worlds. **AC-0076 passes.**
+- **Behaviour** (counted runs / errored runs): `governance-single/` 3/0, `governance-codeowners/` 3/0 (`notes/behaviour/attempt-3/`), `governance-two/` 3/0, `governance-decline/` 3/0, `governance-eof/` 3/0 (`notes/behaviour/attempt-2/`). `new-rfc` loaded in every counted run.
+  - AC-0077, AC-0078 pass in all 3 single runs.
+  - AC-0079, AC-0080, AC-0081, AC-0082, AC-0084 and AC-0085 pass in all 3 CODEOWNERS runs.
+  - AC-0083, AC-0086 and AC-0094 pass in every run of the CODEOWNERS, two-maintainer, decline and EOF cases.
+  - AC-0087, AC-0088, AC-0089, AC-0090, AC-0093 and AC-0102 pass in all 3 two-maintainer runs.
+  - AC-0091, AC-0092 and AC-0093 pass in all 3 decline runs.
+  - AC-0123 and AC-0124 pass in all 3 EOF runs.
+  - **AC-0095 passes** with this entry.
+- **Unscored check:** one run on a copy of `governance-codeowners/` whose `.github/` holds only `workflows/ci.yml` (`notes/behaviour/attempt-3-unscored-github-folder/`) previewed `.github/CODEOWNERS` with exactly the user's two rules and made no tool call outside the allowed set.
+- **Redaction:** transcripts have home paths, the OS username, temporary-directory prefixes, UUID-shaped identifiers and non-placeholder email addresses replaced; a search over `notes/` for the username, `/Users/`, `var/folders`, `/private/tmp` and the account email domain finds nothing.
+
+## 2026-10-26 — Release checks
+
+- Parsed manifests: `repo-governance` 2.3.0 (AC-0096), `core` 3.1.21 (AC-0097), `architect` 0.15.20 (AC-0098) in both `pack.toml` and `plugin.json`; `agentbundle` 0.58.0 in `pyproject.toml` and `version.py` (AC-0099).

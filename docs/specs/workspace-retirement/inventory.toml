@@ -3266,6 +3266,12 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
+pattern = "docs/specs/new-rfc-governance/*"
+class = "historical"
+consumer = "shipped spec whose behaviour transcripts quote the new-rfc skill text that names workspace-status"
+owner = "none"
+
+[[row]]
 pattern = "docs/specs/navigate-decisions-health/*"
 class = "historical"
 consumer = "shipped spec whose activation and hand-check evidence quotes eval queries and decision records that name workspace.toml"

@@ -131,21 +131,25 @@ def test_governance_section_pins_ac_0122() -> None:
     assert "`parent-missing` means the target's folder does not exist and this mode creates no folders: say so and offer a target whose folder exists." in GOVERNANCE
 
 
-def _asset(name: str) -> tuple[str, str]:
-    raw = (ASSETS / name).read_text(encoding="utf-8")
+DEFAULT_ASSET = ASSETS / "governance-default.md"
+LAZY_ASSET = ASSETS / "governance-lazy-consensus.md"
+
+
+def _asset(path: pathlib.Path) -> tuple[str, str]:
+    raw = path.read_text(encoding="utf-8")
     assert "<maintainer-handle>" in raw
     return raw, raw.replace("<maintainer-handle>", "@example-maintainer")
 
 
 def test_assets_are_governance_drafts_once_filled_ac_0068() -> None:
-    for name in ("governance-default.md", "governance-lazy-consensus.md"):
-        raw, filled = _asset(name)
+    for path in (DEFAULT_ASSET, LAZY_ASSET):
+        raw, filled = _asset(path)
         assert not GOV.is_governance_draft(raw)
         assert GOV.is_governance_draft(filled)
 
 
 def test_default_asset_uses_the_default_model_ac_0069() -> None:
-    _, filled = _asset("governance-default.md")
+    _, filled = _asset(DEFAULT_ASSET)
     assert GOV.decision_model(filled) == DEFAULT_MODEL
 
 
