@@ -1,0 +1,36 @@
+{
+  "brief-cooled-no-slug": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "brief-cooled-slug-is-stem": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  }
+}

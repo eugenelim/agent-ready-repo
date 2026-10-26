@@ -9,8 +9,16 @@ unchanged engine (commit ``1f9c27342``) is frozen in
 ``fixtures/depends-on-headers/expected.json``. A later task writes the same
 edge as a header, from the ``Case`` fields below, and must reproduce it.
 
-To re-record, run with ``DEPENDS_ON_HEADERS_RECORD=1`` set; the recorder must
-only run against an engine whose ``needs`` reading is unchanged.
+The header form of each case must reproduce that outcome, and the ``needs`` form
+under the current engine is refused as ``unmigrated_needs``. ``expected.json``
+stays the frozen record: it is never re-recorded.
+
+The cooled brief cases were not in that record. Their ``needs``-form outcome is
+recorded in ``fixtures/depends-on-headers/expected-cooled-brief.json`` from the
+engine at commit ``1f9c27342``, checked out as a ``git worktree`` so its sibling
+modules are that commit's. To re-record, run this file with
+``DEPENDS_ON_HEADERS_ENGINE=<worktree>/packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py``
+and ``DEPENDS_ON_HEADERS_RECORD_COOLED_BRIEF=1`` set.
 """
 from __future__ import annotations
 
@@ -18,6 +26,7 @@ import dataclasses
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -26,11 +35,17 @@ from typing import Any
 import pytest
 
 _PACK_ROOT = Path(__file__).resolve().parents[3]
-_ENGINE_PATH = (
-    _PACK_ROOT / ".apm/skills/workspace-status/scripts/workspace_status_engine.py"
+_SCRIPTS = _PACK_ROOT / ".apm/skills/workspace-status/scripts"
+_ENGINE_PATH = Path(
+    os.environ.get(
+        "DEPENDS_ON_HEADERS_ENGINE", _SCRIPTS / "workspace_status_engine.py"
+    )
 )
-_EXPECTED_PATH = Path(__file__).parent / "fixtures/depends-on-headers/expected.json"
-_RECORD = os.environ.get("DEPENDS_ON_HEADERS_RECORD") == "1"
+_STATUS_PATH = _SCRIPTS / "workspace_status.py"
+_FIXTURES = Path(__file__).parent / "fixtures/depends-on-headers"
+_EXPECTED_PATH = _FIXTURES / "expected.json"
+_COOLED_BRIEF_PATH = _FIXTURES / "expected-cooled-brief.json"
+_RECORD_COOLED_BRIEF = os.environ.get("DEPENDS_ON_HEADERS_RECORD_COOLED_BRIEF") == "1"
 _MODULE_NAME = "workspace_status_engine_depends_on_headers_equivalence"
 
 WAITER = "docs/specs/waiter/spec.md"
@@ -81,6 +96,10 @@ class Case:
     cooled: tuple[str, ...] = ()
     receipt: tuple[str, dict[str, str]] | None = None
     waiter_workspace_kind: str = "spec"
+    # The header form of a case whose `extras` carry a `needs` edge of their own.
+    header_extras: tuple[tuple[str, str, str], ...] | None = None
+    # `(path, reference)`: a second waiting item and the header edge it carries.
+    peer_header: tuple[str, str] | None = None
 
 
 def _entry(path: str, kind: str = "spec", *, parent: Any = _ABSENT, needs: str = "[]") -> str:
@@ -306,6 +325,8 @@ def _build_cases() -> list[Case]:
         needs=f"[{_local_need('spec', PEER)}]",
         files={**_waiter_files(), **peer_files},
         extras=(("work", "queue", _entry(PEER, needs=f"[{_local_need('spec', WAITER)}]")),),
+        header_extras=(("work", "queue", _entry(PEER)),),
+        peer_header=(PEER, "spec:waiter"),
     ))
     return cases
 
@@ -313,16 +334,41 @@ def _build_cases() -> list[Case]:
 CASES = _build_cases()
 
 
-def _write_repo(root: Path, case: Case) -> None:
-    """Write the case's files and a workspace.toml holding its edge."""
-    for rel, text in case.files.items():
+def _header_lines(case: Case) -> str:
+    """The waiting item's `Depends on:` line, and its receipt line when it has one."""
+    lines = f"- **Depends on:** {case.target}\n"
+    if case.receipt is not None:
+        kind, fields = case.receipt
+        tokens = list(fields.values())
+        lines += f"- **Dependency receipts:** {case.target} {kind} {' '.join(tokens)}\n"
+    return lines
+
+
+def _write_repo(root: Path, case: Case, form: str = "needs") -> None:
+    """Write the case's files and a workspace.toml holding its edge.
+
+    `form` is `needs` (a typed registry entry), `header` (the same edge in the
+    waiting item's header, with `needs = []`), or `bare` (no edge at all).
+    """
+    files = dict(case.files)
+    if form == "header":
+        files[case.waiting_path] += _header_lines(case)
+        if case.peer_header is not None:
+            peer_path, reference = case.peer_header
+            files[peer_path] += f"- **Depends on:** {reference}\n"
+    for rel, text in files.items():
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
+    extras = case.extras
+    if form != "needs" and case.header_extras is not None:
+        extras = case.header_extras
     tables: dict[tuple[str, str], list[str]] = {
-        ("work", "queue"): [_entry(case.waiting_path, needs=case.needs)],
+        ("work", "queue"): [
+            _entry(case.waiting_path, needs=case.needs if form == "needs" else "[]")
+        ],
     }
-    for table, name, rendered in case.extras:
+    for table, name, rendered in extras:
         tables.setdefault((table, name), []).append(rendered)
 
     def array(key: tuple[str, str]) -> str:
@@ -334,6 +380,8 @@ def _write_repo(root: Path, case: Case) -> None:
         'milestone = "m1"', "", '["ini-001".work]',
     ]
     lines += [f"{n} = {array(('work', n))}" for n in ("queue", "active", "shipped")]
+    lines += ["", '["ini-001".shaping_queue]']
+    lines += [f"{n} = {array(('shaping_queue', n))}" for n in ("active", "backlog")]
     lines += ["", '["ini-001".brief_queue]']
     lines += [
         f"{n} = {array(('brief_queue', n))}"
@@ -364,9 +412,9 @@ def observe(root: Path) -> dict[str, Any]:
     }
 
 
-def observe_case(tmp_path: Path, case: Case) -> dict[str, Any]:
+def observe_case(tmp_path: Path, case: Case, form: str = "needs") -> dict[str, Any]:
     """Build the case's repository under ``tmp_path`` and observe it."""
-    _write_repo(tmp_path, case)
+    _write_repo(tmp_path, case, form)
     return observe(tmp_path)
 
 
@@ -399,19 +447,280 @@ def test_every_case_has_a_named_meaning() -> None:
     assert set(ids) == set(_WAITER_DISPATCHABLE)
 
 
-def test_needs_form_reproduces_frozen_expectations(tmp_path: Path) -> None:
-    """Each `needs`-form case reproduces expected.json; the recorder rewrites it."""
-    observed = {
-        case.case_id: observe_case(tmp_path / case.case_id, case) for case in CASES
+def _expected() -> dict[str, Any]:
+    return json.loads(_EXPECTED_PATH.read_text(encoding="utf-8"))
+
+
+def _at_the_reference(case: Case, record: dict[str, Any]) -> dict[str, Any]:
+    """The frozen outcome, with a missing brief or intent target placed at its reference.
+
+    A typed reference with no target is a missing target at `docs/specs/<slug>/spec.md`
+    for a spec, and at the reference itself otherwise. Every other path is kept.
+    """
+    if not case.target.startswith(("brief:", "intent:")) or "missing" not in case.case_id:
+        return record
+    directory = BRIEF_DIR if case.target.startswith("brief:") else INTENT_DIR
+    needs_path = f"{directory}/{case.target.split(':', 1)[1]}.md"
+    return {
+        **record,
+        "findings": sorted(
+            [code, case.target if path == needs_path else path]
+            for code, path in record["findings"]
+        ),
     }
-    if _RECORD:
-        _EXPECTED_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _EXPECTED_PATH.write_text(
-            json.dumps(observed, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+
+
+@pytest.mark.parametrize("case", CASES, ids=[case.case_id for case in CASES])
+def test_header_form_reproduces_the_frozen_needs_outcome(
+    tmp_path: Path, case: Case
+) -> None:
+    """AC-0003, AC-0007: a header edge gives the finding codes, dispatchability and
+    legacy lists the same edge gave as a typed `needs` entry."""
+    observed = observe_case(tmp_path, case, "header")
+    assert observed == _at_the_reference(case, _expected()[case.case_id])
+
+
+@pytest.mark.parametrize("case", CASES, ids=[case.case_id for case in CASES])
+def test_needs_form_is_refused_and_decides_nothing(tmp_path: Path, case: Case) -> None:
+    """AC-0005: an entry still carrying `needs` is refused whatever the edge says.
+
+    The outcome is the no-edge outcome plus `unmigrated_needs` for each entry that
+    carries `needs`: the edge contributes no finding, no block, and no legacy need.
+    """
+    refused = observe_case(tmp_path / "needs", case, "needs")
+    bare = observe_case(tmp_path / "bare", case, "bare")
+    carriers = [case.waiting_path]
+    if case.case_id == "cycle-two-specs":
+        carriers.append(PEER)
+    assert refused["findings"] == sorted(
+        [*bare["findings"], *(["unmigrated_needs", path] for path in carriers)]
+    )
+    assert refused["dispatchable"][WAITER] is False
+    assert refused["legacy"] == bare["legacy"]
+
+
+def test_unmigrated_needs_names_the_repair_and_blocks_a_satisfied_edge(
+    tmp_path: Path,
+) -> None:
+    """AC-0005: a satisfied `needs` edge with an empty header is still refused."""
+    case = next(c for c in CASES if c.case_id == "spec-terminal")
+    assert _expected()["spec-terminal"]["dispatchable"][WAITER] is True
+    _write_repo(tmp_path, case, "needs")
+    workspace = ENGINE.parse_workspace(tmp_path / "workspace.toml")
+    result = ENGINE.run_canonical_reconciliation(workspace, tmp_path)
+    refusals = [f for f in result.findings if f.code == "unmigrated_needs"]
+    assert [f.path for f in refusals] == [WAITER]
+    assert "workspace-status repair-plan" in refusals[0].next_action
+    assert result.dispatch_by_path[WAITER].dispatchable is False
+
+
+# ── The cooled brief target (amendment 1) ─────────────────────────────────────
+
+_BRIEF_TARGET = f"{BRIEF_DIR}/target.md"
+
+
+def _cooled_brief_cases() -> list[Case]:
+    """A cooled brief target with `Slug:` equal to its stem, and one with no `Slug:`."""
+    cases = []
+    for case_id, slug_line in (
+        ("brief-cooled-slug-is-stem", "- **Slug:** target\n"),
+        ("brief-cooled-no-slug", ""),
+    ):
+        cases.append(_simple(
+            case_id, "brief", "brief:target", _BRIEF_TARGET,
+            {_BRIEF_TARGET: f"# Brief: target\n\n- **Status:** Draft\n{slug_line}",
+             "docs/lifecycle/target.json": _record("target", _BRIEF_TARGET)},
+            cooled=(_BRIEF_TARGET,),
+        ))
+    return cases
+
+
+COOLED_BRIEF_CASES = _cooled_brief_cases()
+
+
+def test_cooled_brief_needs_form_is_recorded_from_the_old_engine(tmp_path: Path) -> None:
+    """The recorder: run against the engine at commit 1f9c27342 to write the file."""
+    if not _RECORD_COOLED_BRIEF:
+        pytest.skip("set DEPENDS_ON_HEADERS_RECORD_COOLED_BRIEF=1 to record")
+    observed = {
+        case.case_id: observe_case(tmp_path / case.case_id, case, "needs")
+        for case in COOLED_BRIEF_CASES
+    }
+    _COOLED_BRIEF_PATH.write_text(
+        json.dumps(observed, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    pytest.skip("recorded expected-cooled-brief.json from the engine in use")
+
+
+@pytest.mark.parametrize(
+    "case", COOLED_BRIEF_CASES, ids=[case.case_id for case in COOLED_BRIEF_CASES]
+)
+def test_cooled_brief_header_form_reproduces_the_recorded_outcome(
+    tmp_path: Path, case: Case
+) -> None:
+    """AC-0003: a cooled brief admitted by its stem gives the `needs` outcome."""
+    recorded = json.loads(_COOLED_BRIEF_PATH.read_text(encoding="utf-8"))
+    assert observe_case(tmp_path, case, "header") == recorded[case.case_id]
+
+
+# ── AC-0008: the legacy view, explain, the MCP tools, and shaping ─────────────
+
+def _cli(root: Path, *args: str) -> dict[str, Any]:
+    done = subprocess.run(
+        [sys.executable, str(_STATUS_PATH), *args, "--root", str(root)],
+        check=False, capture_output=True, text=True,
+    )
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout)
+
+
+def test_explain_reports_a_header_edge_as_it_reported_the_needs_edge(
+    tmp_path: Path,
+) -> None:
+    """AC-0008: `explain` blocks on the header edge with the frozen finding codes."""
+    case = next(c for c in CASES if c.case_id == "spec-open")
+    _write_repo(tmp_path, case, "header")
+    item = _cli(tmp_path, "explain", "--item", "waiter")["explained_item"]
+    frozen_codes = [
+        code for code, path in _expected()["spec-open"]["findings"]
+    ]
+    assert item["classification"] == "blocked"
+    assert item["blocking_needs"] == frozen_codes == ["unsatisfied_dependency"]
+    # The bounded analysis the MCP tools read carries the same edge as the string
+    # a typed need showed.
+    legacy = ENGINE.analyze_bounded(tmp_path, autonomous_dispatch=True).blocked
+    assert [(c.entry.path, c.blocking_needs) for c in legacy] == [
+        (WAITER, ["unsupported-typed-need"])
+    ]
+
+
+def test_a_shaping_backlog_intent_edge_is_read_from_its_header(tmp_path: Path) -> None:
+    """AC-0008: a canonical intent in `shaping_queue.backlog` waits on its header.
+
+    The legacy shaping lists never held a canonical entry, so both forms leave
+    them empty; the edge is seen by the canonical reconciliation alone.
+    """
+    intent = f"{INTENT_DIR}/shaper.md"
+    entry = _entry(intent, "intent")
+    files = {
+        **_waiter_files(),
+        PEER: _spec_file("peer", "Approved"),
+        "docs/specs/peer/plan.md": "# Plan\n\n- **Status:** Approved\n",
+    }
+    outcomes = {}
+    for form in ("needs", "header"):
+        root = tmp_path / form
+        waiting = "# Intent: shaper\n\n- **Status:** Draft\n- **Slug:** shaper\n"
+        if form == "header":
+            waiting += "- **Depends on:** spec:peer\n"
+            entry = _entry(intent, "intent")
+        else:
+            entry = _entry(intent, "intent", needs=f"[{_local_need('spec', PEER)}]")
+        case = Case(
+            case_id="shaping", waiting_path=WAITER, target="spec:peer",
+            needs="[]", files={**files, intent: waiting},
+            extras=(("shaping_queue", "backlog", entry),),
         )
-        pytest.skip("recorded expected.json from the current engine")
-    expected = json.loads(_EXPECTED_PATH.read_text(encoding="utf-8"))
-    assert observed == expected
+        _write_repo(root, case, "bare")
+        status = ENGINE.analyze(root)
+        outcomes[form] = observe(root)
+        assert status.shaping_classifications == []
+    # What the engine at commit 1f9c27342 reported for the `needs` form of this
+    # case: the waiting intent not dispatchable, and its open target named.
+    assert outcomes["header"]["findings"] == [["unsatisfied_dependency", PEER]]
+    assert outcomes["header"]["dispatchable"][intent] is False
+    assert outcomes["needs"]["findings"] == [["unmigrated_needs", intent]]
+    assert outcomes["needs"]["dispatchable"][intent] is False
+
+
+# ── The routing identity ──────────────────────────────────────────────────────
+
+def _identity(root: Path) -> str:
+    workspace = ENGINE.parse_workspace(root / "workspace.toml")
+    cooled, _ = ENGINE._resolve_cooled_state(root)
+    canonical = ENGINE.run_canonical_reconciliation(workspace, root, cooled)
+    return ENGINE.canonical_repository_identity(workspace, canonical, root)
+
+
+def _edit(root: Path, rel: str, old: str, new: str) -> None:
+    path = root / rel
+    text = path.read_text(encoding="utf-8")
+    assert old in text, (rel, old)
+    path.write_text(text.replace(old, new), encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("case_id", "rel", "old", "new"),
+    [
+        ("spec-open", WAITER, "spec:target", "spec:other"),
+        (
+            "spec-missing-receipt-completed", WAITER,
+            "delivery-123 completed", "delivery-124 completed",
+        ),
+        ("brief-open", f"{BRIEF_DIR}/target.md", "Slug:** target", "Slug:** renamed"),
+    ],
+    ids=["header-item", "receipt", "target-slug"],
+)
+def test_editing_a_header_edge_changes_the_routing_identity(
+    tmp_path: Path, case_id: str, rel: str, old: str, new: str
+) -> None:
+    """The header edges, not the registry's `needs`, are fingerprinted."""
+    case = next(c for c in CASES if c.case_id == case_id)
+    _write_repo(tmp_path, case, "header")
+    before = _identity(tmp_path)
+    assert _identity(tmp_path) == before, "the identity is not stable"
+    _edit(tmp_path, rel, old, new)
+    assert _identity(tmp_path) != before
+
+
+# ── A cooled waiting item is never opened (AC-0006) ───────────────────────────
+
+def test_a_cooled_waiting_item_is_never_opened(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-0006: an unreadable cooled waiting file gives no finding, and no read.
+
+    The uncooled control with the same unreadable file does give
+    `unreadable_artifact`, so the absence is the cooling and not a quiet fixture.
+    """
+    case = next(c for c in CASES if c.case_id == "spec-open")
+    seen: list[str] = []
+    real = ENGINE.read_header_dependencies
+
+    def probe(root: Path, waiting_path: str, **kwargs: Any) -> Any:
+        seen.append(waiting_path)
+        return real(root, waiting_path, **kwargs)
+
+    monkeypatch.setattr(ENGINE, "read_header_dependencies", probe)
+    outcomes = {}
+    for label, cooled in (("control", False), ("cooled", True)):
+        root = tmp_path / label
+        _write_repo(root, case, "header")
+        if cooled:
+            (root / "docs/lifecycle").mkdir(parents=True)
+            (root / "docs/lifecycle/waiter.json").write_text(
+                _record("waiter", WAITER), encoding="utf-8"
+            )
+        (root / WAITER).chmod(0)
+        seen.clear()
+        try:
+            workspace = ENGINE.parse_workspace(root / "workspace.toml")
+            cooled_set, _ = ENGINE._resolve_cooled_state(root)
+            result = ENGINE.run_canonical_reconciliation(workspace, root, cooled_set)
+            outcomes[label] = (
+                {f.code for f in result.findings if f.path == WAITER},
+                WAITER in seen,
+                bool(cooled_set),
+            )
+        finally:
+            (root / WAITER).chmod(0o644)
+    if os.geteuid() == 0:
+        pytest.skip("a superuser reads a mode 0 file")
+    assert "unreadable_artifact" in outcomes["control"][0]
+    assert outcomes["control"][1] is True
+    assert outcomes["cooled"][2] is True, "the record did not cool the waiting item"
+    assert "unreadable_artifact" not in outcomes["cooled"][0]
+    assert outcomes["cooled"][1] is False
 
 
 def test_frozen_outcomes_match_case_names() -> None:

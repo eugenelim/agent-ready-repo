@@ -129,6 +129,10 @@ _FINDING_NEXT_ACTIONS = {
         "Rewrite the item as a typed reference or a captured-item path, "
         "or correct its receipt, in the waiting item's header."
     ),
+    "unmigrated_needs": (
+        "Move the entry's needs into the waiting item's Depends on: header "
+        "with workspace-status repair-plan, then repair-apply."
+    ),
     "invalid_receipt": (
         "Replace it with a reviewed receipt matching the pinned dependency."
     ),
@@ -386,6 +390,12 @@ class CanonicalWorkspaceResult:
     # each artifact by reading its body, which silently reopened every cooled
     # spec.md and plan.md on all four ordinary-orientation surfaces.
     cooled: frozenset[Path] = frozenset()
+    # Each non-cooled local membership's header edges, keyed by waiting path.
+    # They, not `entry.needs`, are what blocks and what the routing identity
+    # fingerprints.
+    header_edges: dict[str, tuple[Dependency, ...]] = dataclasses.field(
+        default_factory=dict
+    )
 
 
 @dataclasses.dataclass
@@ -1682,7 +1692,10 @@ def canonical_repository_identity(
         entry = membership.entry
         source = dataclasses.asdict(entry.source)
         needs = sorted(
-            (dataclasses.asdict(need) for need in entry.needs),
+            (
+                dataclasses.asdict(need)
+                for need in result.header_edges.get(entry.path or "", ())
+            ),
             key=lambda need: json.dumps(need, sort_keys=True),
         )
         entry_identity = entry.path
@@ -3009,12 +3022,15 @@ def _dependency_is_satisfied(
     return False, _finding("unsatisfied_dependency", dep.path, "dependency not terminal")
 
 
-def _dependency_cycles(memberships: list[WorkspaceMembership]) -> set[str]:
+def _dependency_cycles(
+    memberships: list[WorkspaceMembership],
+    header_edges: dict[str, tuple[Dependency, ...]],
+) -> set[str]:
     graph: dict[str, list[str]] = {}
     paths = {membership.entry.path for membership in memberships}
     for membership in memberships:
         graph[membership.entry.path] = [
-            dep.path for dep in membership.entry.needs
+            dep.path for dep in header_edges.get(membership.entry.path, ())
             if dep.type == "local" and dep.path in paths
         ]
     visiting: set[str] = set()
@@ -3972,6 +3988,75 @@ def _structural_findings(
     return findings
 
 
+def _header_edges_by_path(
+    memberships: list[WorkspaceMembership],
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> dict[str, HeaderDependencies]:
+    """Read each non-cooled local membership's header once, by waiting path.
+
+    A cooled membership is never opened and contributes no entry. Without a
+    root nothing can be read, so no edge exists.
+    """
+    if root is None:
+        return {}
+    waiting = [
+        membership for membership in memberships
+        if membership.entry.path is not None
+        and not _membership_is_cooled(membership, root, cooled)
+    ]
+    if not waiting:
+        return {}
+    index = build_resolution_index(root, cooled=cooled)
+    kinds = {
+        membership.entry.path: membership.entry.kind
+        for membership in memberships
+        if membership.entry.path is not None
+    }
+    headers: dict[str, HeaderDependencies] = {}
+    for membership in waiting:
+        path = membership.entry.path
+        assert path is not None
+        if path not in headers:
+            headers[path] = read_header_dependencies(
+                root, path, index=index, membership_kinds=kinds, cooled=cooled
+            )
+    return headers
+
+
+def _apply_header_edges_to_legacy_view(
+    initiatives: list[Initiative], workspace: dict, root: Path, cooled: frozenset[Path]
+) -> None:
+    """Show each header edge of a canonical membership as the string a typed
+    `needs` edge showed, and drop that entry's registry needs from this view.
+
+    The string never resolves, so the legacy lists treat a header edge exactly
+    as they treated a typed `needs` edge. Making it resolve would change
+    behavior outside the header switch.
+    """
+    memberships = [
+        membership
+        for membership in _extract_canonical_memberships(workspace)[0]
+        if membership.entry.path is not None
+    ]
+    if not memberships:
+        return
+    counts = {
+        path: len(header.dependencies)
+        for path, header in _header_edges_by_path(memberships, root, cooled).items()
+    }
+    canonical_paths = {membership.entry.path for membership in memberships}
+    for ini in initiatives:
+        for entry in (*ini.work.queue, *ini.work.active, *ini.work.shipped):
+            if entry.path in canonical_paths:
+                entry.needs = ["unsupported-typed-need"] * counts.get(entry.path, 0)
+        for shaping_entry in (*ini.shaping.active, *ini.shaping.backlog):
+            if shaping_entry.slug in canonical_paths:
+                shaping_entry.needs = (
+                    ["unsupported-typed-need"] * counts.get(shaping_entry.slug, 0)
+                )
+
+
 def evaluate_dispatch(
     membership: WorkspaceMembership,
     workspace: dict,
@@ -3985,8 +4070,13 @@ def evaluate_dispatch(
     cooled: frozenset[Path] = frozenset(),
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
+    header: HeaderDependencies | None = None,
 ) -> DispatchEvaluation:
-    """Evaluate the positive T2 dispatch predicate for one canonical membership."""
+    """Evaluate the positive T2 dispatch predicate for one canonical membership.
+
+    `header` holds the waiting item's dependency edges. `entry.needs` decides
+    nothing: a non-empty array only earns `unmigrated_needs`.
+    """
     entry = membership.entry
     if entry.path is None:
         return DispatchEvaluation(
@@ -4025,7 +4115,16 @@ def evaluate_dispatch(
             findings.append(_finding("invalid_artifact_path", entry.path, "spec path shape"))
         if metadata.status != "Approved":
             findings.append(_finding("unapproved_spec", entry.path, "spec is not Approved"))
-    for dep in entry.needs:
+    if entry.needs:
+        findings.append(_finding("unmigrated_needs", entry.path, "registry needs"))
+    for header_finding in (header.findings if header is not None else ()):
+        if header_finding.code == "unreadable_artifact" and any(
+            existing.code == header_finding.code and existing.path == header_finding.path
+            for existing in findings
+        ):
+            continue
+        findings.append(header_finding)
+    for dep in (header.dependencies if header is not None else ()):
         satisfied, finding = _dependency_is_satisfied(
             dep,
             workspace,
@@ -4158,7 +4257,9 @@ def run_canonical_reconciliation(
         _finding("duplicate_membership", path, "duplicate lifecycle entry")
         for path in sorted(parse_only_duplicate_paths)
     ]
-    cycle_paths = _dependency_cycles(local_memberships)
+    headers = _header_edges_by_path(local_memberships, root, cooled)
+    header_edges = {path: header.dependencies for path, header in headers.items()}
+    cycle_paths = _dependency_cycles(local_memberships, header_edges)
     brief_child_states, briefs_with_cooled_children, cooled_scope_unknown = (
         _brief_child_spec_states(
             local_memberships, workspace, root, cooled,
@@ -4215,6 +4316,10 @@ def run_canonical_reconciliation(
                 # which are still owed whatever the artifact's own state
                 # is.
                 cooled_membership_findings.extend(member_findings)
+        if membership_cooled and membership.entry.needs:
+            cooled_membership_findings.append(
+                _finding("unmigrated_needs", membership.entry.path, "registry needs")
+            )
     evaluations = [
         evaluate_dispatch(
             membership,
@@ -4229,6 +4334,7 @@ def run_canonical_reconciliation(
             cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
             cooled_scope_unknown=cooled_scope_unknown,
+            header=headers.get(membership.entry.path or ""),
         )
         for membership in memberships
         if not _membership_is_cooled(membership, root, cooled)
@@ -4252,6 +4358,7 @@ def run_canonical_reconciliation(
         findings=findings,
         evaluations=evaluations,
         dispatch_by_path=dispatch_by_path,
+        header_edges=header_edges,
     )
 
 
@@ -5014,6 +5121,7 @@ def analyze(
     else:
         workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
+    _apply_header_edges_to_legacy_view(initiatives, workspace, root, cooled)
 
     all_classifications: list[EntryClassification] = []
     all_shaping: list[ShapingClassification] = []
@@ -5082,6 +5190,7 @@ def analyze_bounded(
     workspace_path = root / "workspace.toml"
     workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
+    _apply_header_edges_to_legacy_view(initiatives, workspace, root, cooled)
 
     all_classifications: list[EntryClassification] = []
     all_shaping: list[ShapingClassification] = []
@@ -5512,7 +5621,14 @@ def _repair_entry_eligibility(
         blocking_codes = {
             finding.code for finding in [*eval_findings, *result_findings]
         }
-        if blocking_codes - {"impossible_transition", "unapproved_spec"}:
+        # A registry `needs` array travels with the moved entry untouched, so
+        # `unmigrated_needs` does not stop the move. The edge migration is its
+        # own repair.
+        if blocking_codes - {
+            "impossible_transition",
+            "unapproved_spec",
+            "unmigrated_needs",
+        }:
             return False, "type2-queue-canonical-blocked"
         # Defence in depth: canonical reconciliation already refuses dispatch
         # while a historical alias survives, but the repair seam also checks so

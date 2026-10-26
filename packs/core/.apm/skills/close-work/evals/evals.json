@@ -65,7 +65,10 @@
         "Uses the lifecycle record's published grammars for the other three fields",
         "Does not create a separate receipt store"
       ],
-      "files": ["evals/files/completion-receipt/workspace.toml"]
+      "files": [
+        "evals/files/completion-receipt/workspace.toml",
+        "evals/files/completion-receipt/docs/specs/dependant/spec.md"
+      ]
     },
     {
       "id": 11,

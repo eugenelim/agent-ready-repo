@@ -83,6 +83,14 @@ _KNOWN_FINDINGS: dict[str, str] = {
     "unsatisfied_dependency": "Complete or explicitly revise the dependency.",
     "missing_dependency": "Materialize or correct the dependency target.",
     "dependency_cycle": "Break the cycle through an explicit plan change.",
+    "invalid_dependency": (
+        "Rewrite the item as a typed reference or a captured-item path, "
+        "or correct its receipt, in the waiting item's header."
+    ),
+    "unmigrated_needs": (
+        "Move the entry's needs into the waiting item's Depends on: header "
+        "with workspace-status repair-plan, then repair-apply."
+    ),
     "invalid_receipt": ("Replace it with a reviewed receipt matching the pinned dependency."),
     "invalid_completion_receipt": (
         "Replace it with a valid reviewed completion receipt for that dependency."
