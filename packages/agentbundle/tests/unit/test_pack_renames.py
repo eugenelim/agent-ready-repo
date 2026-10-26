@@ -404,6 +404,17 @@ def test_no_recorded_source(tmp_path, recorded):
         assert lines[i + 1].startswith(prefix)
 
 
+@pytest.mark.parametrize("recorded", [5, ["a", "b"], {"k": "v"}, 1.5, True])
+def test_non_string_recorded_source_counts_as_no_recorded_source(tmp_path, recorded):
+    """Installed state is not type-checked, so any value must give a sentence, never an error."""
+    cat = catalogue(tmp_path, packs={DEP: DEP_TOML})
+    rows = {(OLD, "claude-code"): recorded, (DEP, "claude-code"): recorded}
+    lines = hint(cat, inst(rows)).lines
+    assert "Installed pack 'governance-extras' has no recorded source." in lines
+    assert "Installed pack 'iac-terraform' has no recorded source." in lines
+    assert not any("move between catalogues" in ln for ln in lines)
+
+
 def test_equivalent_local_recorded_source_is_same(tmp_path):
     cat = catalogue(tmp_path)
     rows = {(OLD, "claude-code"): cat.as_uri()}

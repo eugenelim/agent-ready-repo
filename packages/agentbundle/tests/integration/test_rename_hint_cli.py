@@ -89,6 +89,21 @@ def set_sources(repo: Path, sources: dict[str, str | None]) -> None:
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
+def set_raw_source(repo: Path, pack: str, literal: str) -> None:
+    """Write *literal* (raw TOML) as the recorded source of every row of *pack*."""
+    path = repo / ".agentbundle-state.toml"
+    out: list[str] = []
+    current: str | None = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        header = re.match(r"\[pack\.([^.\]]+)\.adapters\.[^.\]]+\]$", line)
+        if header:
+            current = header.group(1)
+        elif line.startswith("["):
+            current = None
+        out.append(f"source = {literal}" if current == pack and line.startswith("source = ") else line)
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
 def rename_adapter_row(repo: Path, pack: str, old: str, new: str) -> None:
     path = repo / ".agentbundle-state.toml"
     text = path.read_text(encoding="utf-8")
@@ -390,6 +405,59 @@ def test_failed_resolution_keeps_refusal(repo_two, tmp_path, capsys, guard):
     assert tree(repo_two) == before
 
 
+@pytest.mark.parametrize("literal", ["5", '["a", "b"]'])
+def test_non_string_recorded_source_prints_hint_without_traceback(
+    literal, repo, templates, capsys, guard
+):
+    """A recorded source of the wrong type is read as no recorded source."""
+    set_raw_source(repo, OLD, literal)
+    set_raw_source(repo, DEP, literal)
+    before = tree(repo)
+    code, _out, err = run_cli(
+        capsys, "install", "--pack", OLD, "--output", str(repo), str(templates.post)
+    )
+    assert code == 1
+    assert "Traceback" not in err
+    assert "Installed pack 'governance-extras' has no recorded source." in err
+    assert "Installed pack 'iac-terraform' has no recorded source." in err
+    assert tree(repo) == before
+
+
+def test_certificate_failure_never_retries_on_system_trust(
+    repo_two, monkeypatch, capsys, guard
+):
+    """AC-0035: the pre-check makes no widened-trust retry, so none is announced silently."""
+    import ssl
+    import urllib.error
+
+    import agentbundle.catalogue as catalogue_module
+
+    retried: list[str] = []
+    monkeypatch.setattr(
+        catalogue_module,
+        "retry_with_system_trust",
+        lambda *a, **k: retried.append("retry"),
+    )
+
+    def untrusted(*_a, **_k):
+        raise urllib.error.URLError(ssl.SSLCertVerificationError("self-signed certificate"))
+
+    monkeypatch.setattr(catalogue_module.urllib.request, "urlopen", untrusted)
+    # A store with anchors would otherwise make the classifier offer the retry.
+    system_trust = catalogue_module._system_trust_module()
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **_k: "ANCHORS")
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *_a, **_k: False)
+    monkeypatch.setattr(system_trust, "system_trust_disabled", lambda *_a, **_k: False)
+    before = tree(repo_two)
+    code, _out, err = run_cli(
+        capsys, "upgrade", "--pack", OLD, "--root", str(repo_two), GIT_SOURCE
+    )
+    assert retried == []
+    assert code == 1
+    assert err == multi_adapter_refusal({"claude-code": "1.0.3", "cursor": "1.0.3"})
+    assert tree(repo_two) == before
+
+
 def test_failed_git_fetch_keeps_refusal(repo_two, monkeypatch, capsys, guard):
     import agentbundle.catalogue as catalogue_module
 
@@ -409,8 +477,22 @@ def test_invalid_settings_source_keeps_refusal_byte_for_byte(
 ):
     """AC-0035: resolution diagnostics from the pre-check never leak into the refusal."""
     import agentbundle.commands.upgrade as upgrade_module
+    import agentbundle.source_defaults as source_defaults
     from agentbundle.user_config import _user_config_path
 
+    # Keep the real layer-2 diagnostic, but cut the layers below it (org
+    # bootstrap, editable detection, packaged default) so no install mode or cwd
+    # can reach a catalogue that renames OLD: the chain ends in an error.
+    real_resolve = source_defaults.resolve_default_source
+
+    calls: list[str | None] = []
+
+    def isolated(explicit=None, **kw):
+        calls.append(kw.get("config_source"))
+        kw.update(dist=None, read_org=lambda: None, read_packaged=lambda: None)
+        return real_resolve(explicit, **kw)
+
+    monkeypatch.setattr(source_defaults, "resolve_default_source", isolated)
     cfg = _user_config_path()
     cfg.parent.mkdir(parents=True, exist_ok=True)
     cfg.write_text('[settings]\nsource = "ftp://invalid.example.test/x"\n', encoding="utf-8")
@@ -419,6 +501,7 @@ def test_invalid_settings_source_keeps_refusal_byte_for_byte(
         patch.setattr(upgrade_module, "_print_rename_hint_instead", lambda *_a: False)
         baseline_code, _o, baseline = run_cli(capsys, *argv)
     code, _out, err = run_cli(capsys, *argv)
+    assert calls == ["ftp://invalid.example.test/x"]  # the pre-check ran the real layer
     assert (code, err) == (baseline_code, baseline)
     assert err.endswith(multi_adapter_refusal({"claude-code": "1.0.3", "cursor": "1.0.3"}))
 

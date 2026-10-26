@@ -46,7 +46,11 @@ if TYPE_CHECKING:
     from agentbundle.user_config import UserConfig
 
 from agentbundle import safety
-from agentbundle.catalogue import CatalogueError, resolve_catalogue
+from agentbundle.catalogue import (
+    CatalogueError,
+    resolve_catalogue,
+    system_trust_retry_blocked,
+)
 from agentbundle.catalogue_tooling.diagnostics import (
     DiagnosticCode,
     make_direct_diagnostic,
@@ -1532,10 +1536,14 @@ def _print_rename_hint_instead(args: argparse.Namespace, pack_name: str) -> bool
     from agentbundle.pack_renames import hint_for_root
 
     # Resolution layers write diagnostics to stderr. Hold them: with no hint the
-    # refusal must stay byte for byte what it is today, so they are dropped.
+    # refusal must stay byte for byte what it is today, so they are dropped. That
+    # would also drop the notice a widened-trust (system-anchor) retry announces,
+    # and a trust decision must never be made silently. So this lookup never
+    # retries on system anchors: a certificate failure is a resolution failure,
+    # no hint, and today's refusal.
     held = io.StringIO()
     try:
-        with contextlib.redirect_stderr(held):
+        with contextlib.redirect_stderr(held), system_trust_retry_blocked():
             catalogue_uri = resolve_catalogue_uri(args)
             if catalogue_uri.startswith(("catalogue+https://", "archive+https://")):
                 from agentbundle.https_catalogue import fetch_catalogue_archive_with_provenance

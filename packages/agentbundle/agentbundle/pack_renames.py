@@ -222,15 +222,16 @@ def _credential_free(source: str) -> str:
     return escape_rendered_value(text)
 
 
-def _no_recorded_source(recorded: str | None) -> bool:
-    return not recorded or recorded == _LEGACY_SOURCE
+def _no_recorded_source(recorded: object) -> bool:
+    """Missing, empty, legacy, or not a string: installed state is not type-checked."""
+    return not isinstance(recorded, str) or not recorded or recorded == _LEGACY_SOURCE
 
 
 def _source_sentence(pack: str, recorded: str | None, reporting: str) -> str | None:
     """The move-between-catalogues or no-recorded-source sentence for one step, if any."""
     if _no_recorded_source(recorded):
         return f"Installed pack '{pack}' has no recorded source."
-    assert recorded is not None
+    assert isinstance(recorded, str)
     try:
         canonical = canonicalize_source(recorded)
         same = canonical is not None and canonical == canonicalize_source(reporting)
