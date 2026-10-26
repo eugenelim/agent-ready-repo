@@ -965,8 +965,11 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
         # been repaired. The pointer now names ADR-0110. Only that line changed,
         # and a Status-line pointer is the one edit a frozen spec accepts, so the
         # frozen dependency this guard protects is intact.
+        # Re-pinned 2026-10-26: the workspace-status repair moved this spec's two
+        # registry `needs` edges onto one added `- **Depends on:**` preamble line.
+        # Only that line was added, and its edges are the ones the registry held.
         "docs/specs/status-projection-and-context-exclusion/spec.md": (
-            "5e113c58ace6fe524287c9d169e0417f088c5fa39744fb392c9e4eec8bbdb445"
+            "9f6210e8b69ea5e5c7b9e618bef8955031587151c80ebfca74eefbb2dde529b1"
         ),
         "docs/specs/status-projection-and-context-exclusion/plan.md": (
             "93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487"
