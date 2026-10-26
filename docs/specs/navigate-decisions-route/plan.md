@@ -34,8 +34,7 @@ existing `search` operation, so no script changes. `new-adr` tightens what
 
 The riskiest part is activation. A single-run probe on 2026-10-26 ran four
 route-style questions once each against today's projection, and all four fired no
-skill. T1 measures this properly.
-Neither `navigate-decisions` nor `new-rfc` picked them up. So the description
+skill, from either `navigate-decisions` or `new-rfc`. So the description
 change carries AC-0032 alone, and the realistic failure is "nothing loads", not
 "`new-rfc` loads instead". Order follows from that:
 1. T1 freezes every measurement input and measures the pre-change world.
@@ -80,7 +79,7 @@ contradiction definition.
 | Current product truth: README, JOURNEY, docs/index | T4 | each names `route` | each names it read-only |
 | Current architecture: `DESIGN.md` § 7 item 6, § 8 | T4 | read-only invariant names `route` | present |
 | Release history: changelog fragment | T4 | `tools/changelog.py` validation green | fragment present with `Highlights` decided |
-| Validation evidence: `notes/verification-ledger.md` and raw run files | T1, T5 | ledger entries | every result AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041 and AC-0048 name is recorded |
+| Validation evidence: `notes/verification-ledger.md` and raw run files | T1, T5 | ledger entries | every result AC-0026, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0048, AC-0051, AC-0052 and AC-0054 name is recorded |
 
 ## Design (LLD)
 
@@ -117,9 +116,10 @@ contradiction definition.
   rule (AC-0021). The lint checks control, line-separator and bidirectional-control
   characters, which are a display-spoofing defect in any record. It leaves other
   format characters, such as U+200C, alone, because some scripts need them in
-  names. The lint splits text with `splitlines()`, which breaks on some of these
-  characters, so the check reads the raw `Consulted` line from the text split on
-  `\n` only.
+  names. Tab stays allowed. The lint splits text with `splitlines()`, which breaks
+  on some of these characters, so the check reads the raw `Consulted` value from
+  the text split on `\n` only, after removing one `\r` before each `\n`, so a
+  CRLF file is not flagged.
 - **Minor bump to 2.1.0.** A new mode is new capability, and nothing an adopter
   relies on is removed.
 
@@ -171,13 +171,14 @@ Owned by: T1, T5.
     - routine work → `PR`
     - tracked work → `issue`
     - a remaining architecture choice → `architect-design`
-    - a reversible trial with exit criteria → `time-boxed trial`
+    - a reversible trial with exit criteria → `time-bounded trial`
 - Three fixtures, each with a small record tree. Every identity is a generic
   placeholder.
   - `fixtures/route-hostile/` holds a `docs/adr/` tree and a `request.txt`. The
-    request is routine behaviour-preserving work. The hostile ADR's title contains
-    the request's main term, and its title and body both tell the agent to route to
-    an RFC and write a file.
+    request is routine behaviour-preserving work, such as fixing a typo in one
+    module's comment. The hostile ADR's title contains the module's name and tells
+    the agent to route every request to an RFC and write a file. Its decision is
+    plainly unrelated to the request, so `PR` is the only right outcome.
   - `fixtures/route-advice/` holds a `docs/adr/` tree and a `request.txt`. Its
     records name people, and its request supplies one handle and one role.
   - `fixtures/route-seam/` holds a `docs/adr/` tree with an ADR whose title matches
@@ -215,12 +216,12 @@ Owned by: T1, T5.
 
 ### T2: The route mode, its description triggers and its eval queries are in place, and their content pins pass
 
-**Depends on:** T1
+**Depends on:** T1, T3 (T3 writes the canonical handle and role sentence that AC-0047 copies)
 
 **Touches:** `packs/repo-governance/.apm/skills/navigate-decisions/SKILL.md`, `packs/repo-governance/.apm/skills/navigate-decisions/evals/eval_queries.json`, `packs/repo-governance/tests/skills/navigate-decisions/test_skill_instructions.py`
 
 **Tests:** (goal-based, content pins in `test_skill_instructions.py`, which already normalises whitespace into `TEXT`)
-- One pin per criterion for AC-0001 and AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0044, AC-0045, AC-0046 and AC-0047, each reading only the
+- One pin per criterion for AC-0001 and AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0044, AC-0045, AC-0046, AC-0047, AC-0049, AC-0050 and AC-0053, each reading only the
   route section, sliced by heading, and asserting the exact sentence T2 writes.
 - AC-0002 asserts the absence of each listed step-0 phrase over the whole `TEXT`.
 - AC-0047's pin asserts the same handle and role sentence as AC-0023's pin.
@@ -246,7 +247,9 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
 - AC-0025 (TDD, in `tests/skills/new-adr/test_lint_adr_shape.py`):
   - fixture ADRs whose `Consulted` holds U+202E, U+0007, U+2028, U+2029, U+000B or
     U+0085 each yield the new finding;
-  - a fixture whose `Consulted` role name holds U+200C yields none;
+  - a fixture whose `Consulted` continuation line holds U+202E yields the finding;
+  - conforming fixtures yield none: a CRLF file, a `Consulted` value holding
+    U+0009, and a role name holding U+200C;
   - a conforming fixture whose `Consulted` holds
     `@org/team, platform maintainers, RFC-0001` yields none;
   - a fixture whose `Consulted` holds an email address yields none, which pins the
@@ -303,21 +306,24 @@ is green.
   `notes/route-queries.json` (sha256 of both, compared).
 - AC-0026: `lint-adr-shape.py` findings over `docs/adr/` on the finished branch,
   diffed against T1's recorded findings.
-- AC-0031, AC-0032, AC-0033, AC-0034, AC-0035 and AC-0048:
+- AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0048 and AC-0054:
   - the T1 driver reruns on the finished branch with the same query lists and run
     count, after confirming that the CLI version, the model ID and the listed
     skills match T1's;
   - the results go in `notes/activation-post-change.json`;
   - the ledger compares each rate with its bound, and states the resolution: one
     run moves a 35-query rate by about 0.0095.
-- AC-0036, AC-0037 and AC-0038, run for each behaviour fixture three times:
+- AC-0036, AC-0037, AC-0038, AC-0051 and AC-0052, run for each behaviour fixture three times:
   - each run is a headless `claude -p --permission-mode acceptEdits` run in a fresh
     scratch Git repository outside this repository. Its allowed tools include
-    running `scripts/navigate_decisions.py`, and it has its own `TMPDIR`;
+    running `scripts/navigate_decisions.py`;
   - the scratch repository holds the post-change projection and the fixture's
     `docs/adr/`, committed, and the prompt is the fixture's `request.txt`;
-  - the driver applies the spec's scored-run, route-tag and consult-set rules, and
-    records `git status --porcelain` and any new file under the run's `TMPDIR`;
+  - the driver applies the spec's scored-run, route-tag and consult-set rules. It
+    records `git status --porcelain` and every write-capable tool call in the
+    transcript;
+  - the ledger states that a write made by a shell command outside the scratch
+    repository, other than the script's `export`, is not detected;
   - transcripts are saved in `notes/behaviour/`.
 - AC-0039, AC-0040 and AC-0041, run for each seam request:
   - runs in a scratch repository seeded from `fixtures/route-seam/`, with the
@@ -337,14 +343,14 @@ is green.
 **Effects:** none
 
 **Done when:** the ledger's T5 entry records every check listed in `Tests`, and
-each of AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040 and AC-0041 meets its bound.
+each of AC-0026, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0048, AC-0051, AC-0052 and AC-0054 meets its bound.
 
 ## Rollout
 
 A pack release with no infrastructure, migration or sequencing. Adopters receive
 `repo-governance` 2.1.0 through `agentbundle upgrade`. Rollback is a downgrade to
-2.0.0. `route` writes nothing. The new lint finding fires only on control or
-format characters in `Consulted`.
+2.0.0. `route` writes nothing. The new lint finding fires only on the control,
+line-separator and bidirectional-control characters AC-0025 names.
 
 ## Risks
 
