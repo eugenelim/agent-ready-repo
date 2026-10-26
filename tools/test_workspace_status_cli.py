@@ -176,11 +176,19 @@ class _CliBase(unittest.TestCase):
         )
         (d / "plan.md").write_text(f"# Plan: {slug}\n", encoding="utf-8")
 
-    def _make_canonical_spec(self, root: Path, slug: str, status: str = "Approved") -> None:
+    def _make_canonical_spec(
+        self,
+        root: Path,
+        slug: str,
+        status: str = "Approved",
+        depends_on: str | None = None,
+    ) -> None:
+        """Write a canonical spec; `depends_on` becomes its `Depends on:` header."""
         d = root / "docs" / "specs" / slug
         d.mkdir(parents=True, exist_ok=True)
+        header = f"- **Depends on:** {depends_on}\n" if depends_on else ""
         (d / "spec.md").write_text(
-            f"# Spec: {slug}\n\n- **Status:** {status}\n- **Brief:** none\n",
+            f"# Spec: {slug}\n\n- **Status:** {status}\n- **Brief:** none\n{header}",
             encoding="utf-8",
         )
         (d / "plan.md").write_text(f"# Plan: {slug}\n", encoding="utf-8")
@@ -548,7 +556,7 @@ milestone = "M1"
 
 ["ini-001".work]
 queue = [
-  {path = "docs/specs/blocked/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "blocked", needs = [{type = "local", kind = "spec", path = "docs/specs/missing/spec.md"}]},
+  {path = "docs/specs/blocked/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "blocked", needs = []},
 ]
 active = [
   {path = "docs/specs/active/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "active", needs = []},
@@ -560,7 +568,7 @@ active = []
 backlog = []
 """
         )
-        self._make_canonical_spec(root, "blocked", "Approved")
+        self._make_canonical_spec(root, "blocked", "Approved", depends_on="spec:missing")
         self._make_canonical_spec(root, "active", "Implementing")
 
         active = _run_cli("explain", "--root", str(root), "--item", "active")
@@ -583,6 +591,38 @@ backlog = []
             "missing_dependency",
             {finding["code"] for finding in blocked_data["explained_item"]["findings"]},
         )
+
+    def test_explain_refuses_an_entry_still_carrying_needs(self) -> None:
+        root = self._write_workspace(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/blocked/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "blocked", needs = [{type = "local", kind = "spec", path = "docs/specs/missing/spec.md"}]},
+]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+"""
+        )
+        self._make_canonical_spec(root, "blocked", "Approved")
+
+        blocked = _run_cli("explain", "--root", str(root), "--item", "blocked")
+
+        self.assertEqual(blocked.returncode, 0, blocked.stderr)
+        item = json.loads(blocked.stdout)["explained_item"]
+        self.assertEqual(item["classification"], "blocked")
+        self.assertFalse(item["dispatchable"])
+        # The `needs` content decides nothing: only the refusal is reported.
+        self.assertEqual(item["blocking_needs"], ["unmigrated_needs"])
+        self.assertIn("workspace-status repair-plan", item["findings"][0]["next_action"])
 
     def test_explain_unsafe_selector_is_not_found_and_redacted(self) -> None:
         root = self._write_canonical_workspace()

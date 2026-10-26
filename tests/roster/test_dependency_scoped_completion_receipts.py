@@ -46,22 +46,29 @@ ENGINE = _load_module(ENGINE_PATH, "engine")
 CLOSE_WORK = _load_module(CLOSE_WORK_PATH, "close_work")
 
 
-def _write_spec(root: Path, path: str, status: str, *, plan: bool = False) -> None:
-    """Write the minimum artifact metadata used by workspace-status."""
+def _write_spec(
+    root: Path, path: str, status: str, *, plan: bool = False, header: str = ""
+) -> None:
+    """Write the minimum artifact metadata used by workspace-status.
+
+    `header` is extra preamble lines, such as a `Depends on:` line.
+    """
     artifact = root / path
     artifact.parent.mkdir(parents=True, exist_ok=True)
-    artifact.write_text(f"# Spec\n\n- **Status:** {status}\n", encoding="utf-8")
+    artifact.write_text(
+        f"# Spec\n\n- **Status:** {status}\n{header}", encoding="utf-8"
+    )
     if plan:
         (artifact.parent / "plan.md").write_text(
             "# Plan\n\n- **Status:** Approved\n", encoding="utf-8"
         )
 
 
-def _toml_value(value: object) -> str:
-    """Render a scalar fixture value, including one deliberate TOML date."""
-    if value == _UNQUOTED_DATE:
+def _token(value: object) -> str:
+    """Render a receipt value as a header token, including one bare date."""
+    if value is _UNQUOTED_DATE:
         return "2026-09-02"
-    return json.dumps(value)
+    return str(value)
 
 
 _UNQUOTED_DATE = object()
@@ -78,8 +85,6 @@ def _fixture(
     target_status: str | None = None,
 ) -> Path:
     """Build the receipt fixture; membership is the AC4/AC5 discriminator."""
-    _write_spec(tmp_path, DEPENDANT, "Approved", plan=True)
-    _write_spec(tmp_path, RECEIPTLESS_DEPENDENCY, "Shipped")
     if target_status is not None:
         _write_spec(tmp_path, PRUNED_DEPENDENCY, target_status)
     dependency_entry = (
@@ -98,20 +103,31 @@ def _fixture(
         receipt.pop(omit_receipt_field)
     if extra_receipt_field:
         receipt["unexpected"] = "value"
-    rendered_receipt = ", ".join(
-        f"{key} = {_toml_value(value)}" for key, value in receipt.items()
+    # The dependant's edges live in its own header: a `Depends on:` line and a
+    # `Dependency receipts:` line holding the receipt for the pruned target.
+    receipt_line = " ".join(
+        [
+            "spec:pruned-dependency",
+            "completion",
+            *(_token(receipt[key]) for key in RECEIPT_KEYS if key in receipt),
+        ]
     )
-    receipt_need = (
-        f'{{type = "local", kind = "spec", path = "{PRUNED_DEPENDENCY}", '
-        f"receipt = {{{rendered_receipt}}}}}"
+    if extra_receipt_field:
+        receipt_line += f" {_token(receipt['unexpected'])}"
+    _write_spec(
+        tmp_path,
+        DEPENDANT,
+        "Approved",
+        plan=True,
+        header=(
+            "- **Depends on:** spec:pruned-dependency, spec:receiptless-dependency\n"
+            f"- **Dependency receipts:** {receipt_line}\n"
+        ),
     )
-    receiptless_need = (
-        f'{{type = "local", kind = "spec", path = "{RECEIPTLESS_DEPENDENCY}"}}'
-    )
+    _write_spec(tmp_path, RECEIPTLESS_DEPENDENCY, "Shipped")
     dependant_entry = (
         f'{{path = "{DEPENDANT}", kind = "spec", '
-        'source = {mode = "repo-origin"}, summary = "dependant", '
-        f'needs = [{receipt_need}, {receiptless_need}]}}'
+        'source = {mode = "repo-origin"}, summary = "dependant", needs = []}'
     )
     workspace = "\n".join(
         [
@@ -580,6 +596,14 @@ def test_malformed_receipt_refuses_without_removing_entry(
     )
     assert DEPENDANT in {entry["path"] for entry in result["canonical"]["blocked"]}
     codes = _codes_for(result, PRUNED_DEPENDENCY)
+    if fixture_options.get("omit_receipt_field") or fixture_options.get(
+        "extra_receipt_field"
+    ):
+        # A receipt with the wrong token count is refused by the header reader
+        # at the waiting item, and gives no receipt to the dependency.
+        assert "invalid_dependency" in _codes_for(result, DEPENDANT)
+        assert "invalid_receipt" not in codes
+        return
     assert "invalid_completion_receipt" in codes
     assert "invalid_receipt" not in codes
 

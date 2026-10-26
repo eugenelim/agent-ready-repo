@@ -938,7 +938,6 @@ def test_t2_legacy_aliases_do_not_satisfy_dependent_work(tmp_path: Path) -> None
     mod = _load_engine()
 
     ready_path = "docs/specs/ready/spec.md"
-    blocked_dependency = "docs/specs/legacy-dependency/spec.md"
     workspace = {
         "ini-001": {
             "status": "active",
@@ -949,13 +948,7 @@ def test_t2_legacy_aliases_do_not_satisfy_dependent_work(tmp_path: Path) -> None
                         "kind": "spec",
                         "source": {"mode": "repo-origin"},
                         "summary": "Ready spec with legacy-only duplicate dependency.",
-                        "needs": [
-                            {
-                                "type": "local",
-                                "kind": "spec",
-                                "path": blocked_dependency,
-                            }
-                        ],
+                        "needs": [],
                     },
                     "spec/legacy-dependency",
                 ],
@@ -969,7 +962,8 @@ def test_t2_legacy_aliases_do_not_satisfy_dependent_work(tmp_path: Path) -> None
     spec_path.write_text(
         "# Spec\n\n"
         "- **Status:** Approved\n"
-        "- **Refresh conflict:** false\n\n"
+        "- **Refresh conflict:** false\n"
+        "- **Depends on:** spec:legacy-dependency\n\n"
         "## Body\n",
         encoding="utf-8",
     )
@@ -1423,16 +1417,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
                 "status": "active",
                 "work": {
                     "queue": [
-                        entry(
-                            "docs/specs/ready/spec.md",
-                            needs=[
-                                {
-                                    "type": "local",
-                                    "kind": "design",
-                                    "path": "docs/product/design/approved.md",
-                                },
-                            ],
-                        )
+                        entry("docs/specs/ready/spec.md")
                     ],
                     "active": [],
                     "shipped": [
@@ -1469,6 +1454,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         refresh_conflict: bool = False,
         plan: bool = False,
         resolution: str | None = None,
+        extra: str = "",
     ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1478,7 +1464,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         path.write_text(
             "# Artifact\n\n"
             f"- **Status:** {status}\n"
-            f"{parent_field}{refresh_field}{resolution_field}\n"
+            f"{parent_field}{refresh_field}{resolution_field}{extra}\n"
             "## Body\n",
             encoding="utf-8",
         )
@@ -1496,6 +1482,8 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
             status="Approved",
             parent="docs/product/briefs/parent.md",
             plan=True,
+            # The edge lives in the waiting item's header, as a captured item.
+            extra="- **Depends on:** docs/product/design/approved.md\n",
         )
         write_artifact(
             "docs/specs/shipped/spec.md",
@@ -1507,6 +1495,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
             "docs/product/design/approved.md",
             status="Approved",
             parent="docs/product/intents/parent.md",
+            extra="- **Kind:** design\n",
         )
         write_artifact(
             "docs/product/briefs/ready-without-specs.md",
@@ -1612,6 +1601,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
                 "docs/product/design/approved.md",
                 status="Draft",
                 parent="docs/product/intents/parent.md",
+                extra="- **Kind:** design\n",
             ),
             "unsatisfied_dependency",
         ),
@@ -1650,14 +1640,8 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
 
     cycle = workspace()
     cycle["ini-001"]["work"]["queue"] = [
-        entry(
-            "docs/specs/a/spec.md",
-            needs=[{"type": "local", "kind": "spec", "path": "docs/specs/b/spec.md"}],
-        ),
-        entry(
-            "docs/specs/b/spec.md",
-            needs=[{"type": "local", "kind": "spec", "path": "docs/specs/a/spec.md"}],
-        ),
+        entry("docs/specs/a/spec.md"),
+        entry("docs/specs/b/spec.md"),
     ]
     write_base_artifacts()
     write_artifact(
@@ -1665,12 +1649,14 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** spec:b\n",
     )
     write_artifact(
         "docs/specs/b/spec.md",
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** spec:a\n",
     )
     cycle_result = mod.run_canonical_reconciliation(cycle, tmp_path)
     assert {
@@ -2462,8 +2448,25 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             "kind": "spec",
             "source": source(),
             "summary": "Ready spec",
-            "needs": [{"type": "local", "kind": dep_kind, "path": dep_path}],
+            "needs": [],
         }
+
+    def header_ref(dep_kind: str, dep_path: str) -> str:
+        """The reference a header writes for a target: typed, or a captured path."""
+        stem = Path(dep_path).stem
+        if dep_kind == "spec":
+            return f"spec:{dep_path.split('/')[2]}"
+        if dep_kind in ("brief", "intent"):
+            return f"{dep_kind}:{stem}"
+        return dep_path
+
+    def target_extra(dep_kind: str, dep_path: str) -> str:
+        """The target's own preamble fields that make its reference resolve."""
+        if dep_kind == "intent":
+            return f"- **Slug:** {Path(dep_path).stem}\n"
+        if dep_kind in ("research", "design", "defect"):
+            return f"- **Kind:** {dep_kind}\n"
+        return ""
 
     def workspace(dep_kind: str, dep_path: str) -> dict:
         return {
@@ -2482,6 +2485,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         resolution: str | None = None,
         refresh_conflict: bool = False,
         plan: bool = False,
+        extra: str = "",
     ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -2491,7 +2495,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         path.write_text(
             "# Artifact\n\n"
             f"- **Status:** {status}\n"
-            f"{parent_field}{resolution_field}{refresh_field}\n"
+            f"{parent_field}{resolution_field}{refresh_field}{extra}\n"
             "## Body\n",
             encoding="utf-8",
         )
@@ -2512,6 +2516,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             status="Approved",
             parent="docs/product/briefs/parent.md",
             plan=True,
+            extra=f"- **Depends on:** {header_ref(dep_kind, dep_path)}\n",
         )
         write_artifact(
             dep_path,
@@ -2519,6 +2524,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             resolution=resolution,
             parent=parent,
             refresh_conflict=refresh_conflict,
+            extra=target_extra(dep_kind, dep_path),
         )
         result = mod.run_canonical_reconciliation(workspace(dep_kind, dep_path), tmp_path)
         return {
@@ -2630,6 +2636,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** spec:malformed-target-dep\n",
     )
     write_artifact("docs/specs/malformed-target-dep/spec.md", status="Shipped")
     malformed_target_dependency_result = mod.run_canonical_reconciliation(
@@ -2690,6 +2697,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             status="Approved",
             parent="docs/product/briefs/parent.md",
             plan=True,
+            extra=f"- **Depends on:** {header_ref('spec', dep_path)}\n",
         )
         write_artifact(dep_path, status="Shipped")
         nested_malformed_result = mod.run_canonical_reconciliation(
@@ -2739,6 +2747,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** brief:escaped-dep\n",
     )
     escaped_dep_target = tmp_path.parent / "escaped-dependency.md"
     escaped_dep_target.write_text("# Escaped\n\n- **Status:** Ready\n", encoding="utf-8")
@@ -2751,9 +2760,34 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
     escaped_dep_result = mod.run_canonical_reconciliation(
         workspace("brief", "docs/product/briefs/escaped-dep.md"), tmp_path
     )
+    # A brief that escapes the repository is an entry the resolution index
+    # admits and cannot read, so a reference into that directory is refused as
+    # unreadable and is never treated as a missing target.
+    escaped_dep_findings = escaped_dep_result.dispatch_by_path[
+        "docs/specs/ready/spec.md"
+    ].findings
+    assert "unreadable_artifact" in {finding.code for finding in escaped_dep_findings}
+    assert "missing_dependency" not in {finding.code for finding in escaped_dep_findings}
+    assert not escaped_dep_result.dispatch_by_path["docs/specs/ready/spec.md"].dispatchable
+
+    # A spec target is opened by its own path, so an escaping spec keeps the
+    # path refusal the brief form no longer reaches.
+    write_artifact(
+        "docs/specs/ready/spec.md",
+        status="Approved",
+        parent="docs/product/briefs/parent.md",
+        plan=True,
+        extra="- **Depends on:** spec:escaped-spec\n",
+    )
+    escaped_spec_path = tmp_path / "docs/specs/escaped-spec/spec.md"
+    escaped_spec_path.parent.mkdir(parents=True, exist_ok=True)
+    escaped_spec_path.symlink_to(escaped_dep_target)
+    escaped_spec_result = mod.run_canonical_reconciliation(
+        workspace("spec", "docs/specs/escaped-spec/spec.md"), tmp_path
+    )
     assert "invalid_artifact_path" in {
         finding.code
-        for finding in escaped_dep_result.dispatch_by_path[
+        for finding in escaped_spec_result.dispatch_by_path[
             "docs/specs/ready/spec.md"
         ].findings
     }
@@ -2768,13 +2802,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
                         "kind": "spec",
                         "source": source(),
                         "summary": "Ready spec",
-                        "needs": [
-                            {
-                                "type": "local",
-                                "kind": "research",
-                                "path": "docs/product/design/registered.md",
-                            }
-                        ],
+                        "needs": [],
                     }
                 ],
                 "active": [],
@@ -2794,11 +2822,15 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             },
         }
     }
+    # A header edge takes its kind from the registered membership, so a kind
+    # that disagrees with it cannot be written. What stays pinned is that the
+    # registered kind's own rule decides: `Complete` ends research, not a design.
     write_artifact(
         "docs/specs/ready/spec.md",
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** docs/product/design/registered.md\n",
     )
     write_artifact("docs/product/design/registered.md", status="Complete")
     kind_mismatch_result = mod.run_canonical_reconciliation(kind_mismatch_workspace, tmp_path)
@@ -2813,9 +2845,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         "ini-001": {
             "status": "active",
             "work": {
-                "queue": [
-                    ready_entry("defect", "docs/product/defects/closed-member.md")
-                ],
+                "queue": [ready_entry("defect", "docs/product/defects/closed-member.md")],
                 "active": [],
                 "shipped": [],
             },
@@ -2842,6 +2872,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** docs/product/defects/closed-member.md\n",
     )
     write_artifact(
         "docs/product/defects/closed-member.md",
@@ -2879,12 +2910,14 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
             "needs": needs or [],
         }
 
-    def write_spec(path: str, status: str, *, parent: str | None = None) -> None:
+    def write_spec(
+        path: str, status: str, *, parent: str | None = None, extra: str = ""
+    ) -> None:
         spec_path = tmp_path / path
         spec_path.parent.mkdir(parents=True, exist_ok=True)
         parent_field = f"- **Brief:** {parent}\n" if parent is not None else ""
         spec_path.write_text(
-            f"# Spec\n\n- **Status:** {status}\n{parent_field}\n## Body\n",
+            f"# Spec\n\n- **Status:** {status}\n{parent_field}{extra}\n## Body\n",
             encoding="utf-8",
         )
         (spec_path.parent / "plan.md").write_text("# Plan\n", encoding="utf-8")
@@ -2898,13 +2931,6 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
                         entry(
                             "docs/specs/ready/spec.md",
                             parent="docs/product/briefs/parent.md",
-                            needs=[
-                                {
-                                    "type": "local",
-                                    "kind": "spec",
-                                    "path": dep_entry["path"],
-                                }
-                            ],
                         )
                     ],
                     "active": [],
@@ -2918,12 +2944,6 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
                 "shaping_queue": {"backlog": [], "active": []},
             },
         }
-
-    write_spec(
-        "docs/specs/ready/spec.md",
-        "Approved",
-        parent="docs/product/briefs/parent.md",
-    )
 
     cases = [
         (
@@ -2942,8 +2962,11 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
         ("inactive_initiative", lambda dep: workspace_for(dep, initiative_status="paused")),
     ]
     for name, make_workspace in cases:
+        # A slug holds hyphens, never underscores, so the dependency's directory
+        # is the hyphenated finding code.
+        slug = name.replace("_", "-")
         dep = entry(
-            f"docs/specs/{name}/spec.md",
+            f"docs/specs/{slug}/spec.md",
             parent="docs/product/briefs/parent.md",
         )
         artifact_parent = (
@@ -2952,6 +2975,13 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
             else "docs/product/briefs/parent.md"
         )
         write_spec(dep["path"], "Shipped", parent=artifact_parent)
+        # The waiting item's own header names the dependency.
+        write_spec(
+            "docs/specs/ready/spec.md",
+            "Approved",
+            parent="docs/product/briefs/parent.md",
+            extra=f"- **Depends on:** spec:{slug}\n",
+        )
         result = mod.run_canonical_reconciliation(make_workspace(dep), tmp_path)
         ready_codes = {
             finding.code
@@ -2997,12 +3027,13 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         need.update(overrides)
         return need
 
-    def workspace(needs: list[dict] | None = None) -> dict:
+    def workspace(registry_needs: list[dict] | None = None) -> dict:
+        """The workspace; edges live in headers, so `needs` is normally empty."""
         return {
             "ini-001": {
                 "status": "active",
                 "work": {
-                    "queue": [entry("docs/specs/ready/spec.md", needs=needs)],
+                    "queue": [entry("docs/specs/ready/spec.md", needs=registry_needs)],
                     "active": [],
                     "shipped": [],
                 },
@@ -3024,20 +3055,46 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
             }
         }
 
-    def write_artifact(rel_path: str, *, status: str, parent: str | None = None) -> None:
+    def write_artifact(
+        rel_path: str, *, status: str, parent: str | None = None, extra: str = ""
+    ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
         parent_field = f"- **Brief:** {parent}\n" if parent is not None else ""
         path.write_text(
-            f"# Artifact\n\n- **Status:** {status}\n{parent_field}\n## Body\n",
+            f"# Artifact\n\n- **Status:** {status}\n{parent_field}{extra}\n## Body\n",
             encoding="utf-8",
         )
 
-    def write_spec() -> None:
+    def header_lines(needs: list[dict] | None) -> str:
+        """Write each cross-repo need as the header edge it is migrated to."""
+        refs: list[str] = []
+        receipts: list[str] = []
+        for need in needs or []:
+            path = str(need["path"])
+            ref = (
+                f"spec:{path.split('/')[2]}"
+                if path.startswith("docs/specs/")
+                else f"brief:{Path(path).stem}"
+            )
+            refs.append(ref)
+            receipts.append(
+                f"{ref} coordination {need['kind']} {need['receipt_id']} "
+                f"{need['accepted_revision']}"
+            )
+        if not refs:
+            return ""
+        return (
+            f"- **Depends on:** {', '.join(refs)}\n"
+            f"- **Dependency receipts:** {', '.join(receipts)}\n"
+        )
+
+    def write_spec(needs: list[dict] | None = None) -> None:
         write_artifact(
             "docs/specs/ready/spec.md",
             status="Approved",
             parent="docs/product/briefs/parent.md",
+            extra=header_lines(needs),
         )
         (tmp_path / "docs/specs/ready/plan.md").write_text("# Plan\n", encoding="utf-8")
 
@@ -3079,7 +3136,7 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         )
 
     def evaluate(needs: list[dict] | None, markdown: str | None) -> set[str]:
-        write_spec()
+        write_spec(needs)
         write_artifact(
             "docs/product/briefs/local-only.md",
             status="Ready",
@@ -3087,21 +3144,21 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         )
         if markdown is not None:
             write_brief(markdown)
-        result = mod.run_canonical_reconciliation(workspace(needs), tmp_path)
+        result = mod.run_canonical_reconciliation(workspace(), tmp_path)
         return {
             finding.code
             for finding in result.dispatch_by_path["docs/specs/ready/spec.md"].findings
         }
 
     assert "invalid_receipt" not in evaluate([cross_repo_need()], valid_brief())
-    write_spec()
+    write_spec([cross_repo_need()])
     write_artifact(
         "docs/product/briefs/local-only.md",
         status="Ready",
         parent="docs/product/intents/parent.md",
     )
     write_brief(valid_brief())
-    duplicate_brief_workspace = workspace([cross_repo_need()])
+    duplicate_brief_workspace = workspace()
     duplicate_brief_entry = {
         "path": brief_path,
         "kind": "brief",
@@ -3130,22 +3187,28 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         finding.code
         for finding in duplicate_brief_result.dispatch_by_path[brief_path].findings
     }
+    write_spec()
     local_only = mod.run_canonical_reconciliation(workspace(None), tmp_path)
     assert not local_only.dispatch_by_path["docs/product/briefs/local-only.md"].findings
 
-    non_brief_result = mod.run_canonical_reconciliation(
-        workspace(
-            [
-                cross_repo_need(
-                    kind="spec",
-                    path="docs/specs/not-a-brief/spec.md",
-                    containing_brief="docs/specs/not-a-brief/spec.md",
-                )
-            ]
-        ),
-        tmp_path,
+    # A coordination receipt applies to a brief reference only, so the same
+    # edge on a spec reference is refused at the waiting item.
+    write_spec(
+        [
+            cross_repo_need(
+                kind="spec",
+                path="docs/specs/not-a-brief/spec.md",
+                containing_brief="docs/specs/not-a-brief/spec.md",
+            )
+        ]
     )
-    assert "invalid_artifact_path" in {finding.code for finding in non_brief_result.findings}
+    non_brief_result = mod.run_canonical_reconciliation(workspace(), tmp_path)
+    assert "invalid_dependency" in {
+        finding.code
+        for finding in non_brief_result.dispatch_by_path[
+            "docs/specs/ready/spec.md"
+        ].findings
+    }
 
     invalid_cases: list[tuple[str, list[dict], str | None]] = [
         ("missing block", [cross_repo_need()], "# Brief\n\n- **Status:** Ready\n"),
@@ -3240,10 +3303,25 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
             + "\n```toml\n[[coordination_receipts]]\naccepted_revision = \"wrong-rev\"\n```",
         ),
     ]
+    # A header edge has one path, so a registry edge whose `path` differs from
+    # its `containing_brief` has no header form: it stays a registry entry, and
+    # is refused as unmigrated.
+    registry_only = {"path mismatch", "containing brief mismatch"}
     for name, needs, markdown in invalid_cases:
+        if name in registry_only:
+            write_spec()
+            write_brief(markdown)
+            refused = mod.run_canonical_reconciliation(workspace(needs), tmp_path)
+            assert "unmigrated_needs" in {
+                finding.code
+                for finding in refused.dispatch_by_path[
+                    "docs/specs/ready/spec.md"
+                ].findings
+            }, name
+            continue
         assert "invalid_receipt" in evaluate(needs, markdown), name
 
-    write_spec()
+    write_spec([cross_repo_need()])
     write_artifact(
         "docs/product/briefs/local-only.md",
         status="Ready",
@@ -3259,12 +3337,14 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         receipt_path.symlink_to(escaped_receipt)
     except OSError:
         pytest.skip("symlink creation is unavailable in this environment")
-    escaped_result = mod.run_canonical_reconciliation(workspace([cross_repo_need()]), tmp_path)
+    escaped_result = mod.run_canonical_reconciliation(workspace(), tmp_path)
     escaped_codes = {
         finding.code
         for finding in escaped_result.dispatch_by_path["docs/specs/ready/spec.md"].findings
     }
-    assert "invalid_artifact_path" in escaped_codes
+    # The escaping brief is an index entry that cannot be read, so the
+    # reference into that directory is refused as unreadable.
+    assert "unreadable_artifact" in escaped_codes
 
 
 def test_status_projects_refresh_authority_without_owned_fields(tmp_path: Path) -> None:
