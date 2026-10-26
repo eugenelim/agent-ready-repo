@@ -47,12 +47,10 @@ ADMITTED_PATHS = frozenset({
     "tests/roster/test_repo_governance_rename_completeness.py",
     "packages/agentbundle/tests/build_pipeline/fixtures/README.md",
     "packages/agentbundle/tests/build_pipeline/test_end_to_end_build.py",
-    "packages/agentbundle/tests/integration/test_plugin_route_membership.py",
     "docs/product/briefs/repo-governance-pack.md",
 })
 ADMITTED_PREFIXES = (
     FIXTURE_DIR + "packs/" + OLD_NAME + "/",
-    "packages/agentbundle/tests/integration/fixtures/",
     "docs/product/research/plan-evolution-experiments/",
     "tools/plan_evolution_workbench/fixtures/",
     "docs/specs/" + "repo-governance-rename/",
@@ -211,11 +209,8 @@ def test_full_ceremony_profile_installs_the_renamed_pack(tmp_path: Path) -> None
         str(tmp_path),
     ])
     assert run(args) == 0
-    recorded = [
-        p
-        for p in tmp_path.rglob("*")
-        if p.is_file() and NEW_NAME in p.read_text(encoding="utf-8", errors="ignore")
-    ]
-    state = [p for p in recorded if "state" in p.name or p.suffix in (".json", ".toml")]
-    assert state, "install recorded no state naming repo-governance"
-    assert any("2.0.0" in p.read_text(encoding="utf-8", errors="ignore") for p in state)
+    from agentbundle.config import load_state
+
+    rows = load_state(tmp_path / ".agentbundle-state.toml").rows_for_pack(NEW_NAME)
+    assert rows, "install recorded no state naming repo-governance"
+    assert {ps.installed_version for ps in rows.values()} == {"2.0.0"}
