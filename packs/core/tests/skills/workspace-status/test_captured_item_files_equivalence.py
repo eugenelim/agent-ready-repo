@@ -718,6 +718,7 @@ def test_a_cooled_captured_file_named_by_another_spelling_is_never_read(
     reads.clear()
     result = observe(tmp_path)
     assert not any(b"SECRET-COOLED" in chunk for chunk in reads)
+    assert ["unreadable_artifact", WAITER] in result["findings"]
     assert result["dispatchable"][WAITER] is False
 
 
