@@ -78,22 +78,35 @@ provides. Do not block artifact emission. Apply the same degrade if
 Artifact shape: frontmatter (`type: situation-framing`, `slug`, `signal`, `date`,
 `finding-type`, `shaping-entry`), then sections — Signal, Finding, Wardley
 Assessment table, Recommended Entry Point, Step 2 readiness (when absent),
-Suggested workspace.toml entry (TOML snippet + direction to register it through
-`work-intake`, or to add it by hand).
+Suggested captured item (record text, TOML entry, and direction to register it
+through `work-intake`).
 
-**6. Suggest workspace.toml entry.** Print a canonical five-field entry — `path`,
-`kind`, `source`, `summary`, `needs` — because a short `{slug, type}` entry is the
-legacy shape and is never dispatchable. Old shaping entries still appear in the
-information-only shaping lists until rewritten.
+**6. Suggest a captured item.** The suggestion is a captured-item record at
+`docs/product/captured/<slug>.md` whose `Detail:` names `situation-framing.md`,
+and the canonical five-field entry that registers that path. A short slug-and-type
+entry is the legacy shape and is never dispatchable. Old shaping entries still
+appear in the information-only shaping lists until rewritten.
 
-```toml
-{path = "<output_dir>/shaping/<slug>/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the finding in one line>", needs = []},
+```markdown
+# <Slug with spaces>
+
+- **Status:** Open
+- **Kind:** design
+- **Detail:** <output_dir>/shaping/<slug>/situation-framing.md
+
+## Summary
+
+<the finding in one line>
 ```
 
-Direct the user to register it through `work-intake`, which materializes the
-canonical artifact and writes the entry, or to add it to the
-`["ini-NNN".shaping_queue]` backlog by hand. Do **not** write to
-`workspace.toml`.
+```toml
+{path = "docs/product/captured/<slug>.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the finding in one line>", needs = []},
+```
+
+Direct the user to register it through `work-intake`, which writes the record
+and the entry in the `["ini-NNN".shaping_queue]` backlog. An entry added by hand
+must point at that record, not at `situation-framing.md`. Do **not** write to
+`workspace.toml` or to `docs/product/captured/`.
 
 ## Anti-patterns to refuse
 

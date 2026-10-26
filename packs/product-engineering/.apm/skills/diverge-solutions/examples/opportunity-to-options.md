@@ -3,7 +3,7 @@
 This example walks `diverge-solutions` from a free-form opportunity description
 (no step-2 artifact) through structured options to a recommendation and
 artifact. It demonstrates the degrade path (Step 2 readiness), the option
-schema, and the workspace.toml suggestion.
+schema, and the captured-item suggestion.
 
 ---
 
@@ -198,25 +198,42 @@ No `identify-opportunities` artifact was provided. Key bets may miss emotional
 and social JTBD dimensions. Running step 2 first would ground these before
 option selection.
 
-## Suggested workspace.toml entry
+## Suggested captured item
 
-Add to `[ini-NNN.shaping_queue]` backlog:
+Record at `docs/product/captured/pe-shaping-memory.md`: `Status: Open`,
+`Kind: design`, and `Detail: docs/product/shaping/pe-shaping-memory/solution-options.md`,
+with the chosen option under `## Summary`. Entry that registers it, for the
+`[ini-NNN.shaping_queue]` backlog:
 
 ```toml
-{path = "docs/product/shaping/pe-shaping-memory/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
+{path = "docs/product/captured/pe-shaping-memory.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
 ```
 
-Run `work-intake` or edit `workspace.toml` manually.
+Register through `work-intake`, which writes the record and the entry.
 ```
 
 ---
 
-## workspace.toml suggestion
+## Captured item suggestion
 
-Add to `[ini-NNN.shaping_queue]` backlog:
+The agent prints the record text:
 
-```toml
-{path = "docs/product/shaping/pe-shaping-memory/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
+```markdown
+# Pe shaping memory
+
+- **Status:** Open
+- **Kind:** design
+- **Detail:** docs/product/shaping/pe-shaping-memory/solution-options.md
+
+## Summary
+
+Shaping context is lost between sessions
 ```
 
-Run `work-intake` or edit `workspace.toml` manually.
+and the entry that registers it in the `[ini-NNN.shaping_queue]` backlog:
+
+```toml
+{path = "docs/product/captured/pe-shaping-memory.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
+```
+
+Register it through `work-intake`, which writes the record and the entry.
