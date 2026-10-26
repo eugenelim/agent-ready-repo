@@ -87,3 +87,9 @@ Each is a mechanical follow-on of a version bump the plan requires, verified by 
 - **Finding (adversarial post-gates round 3):** `Glob` with the bare pattern `.github` may miss an existing folder. A read-only probe on 2026-10-26 in a scratch directory holding `.github/workflow.yml` confirmed it: one `claude -p` session calling `Glob` with `.github` returned `No files found`, and one calling it with `.github/*` returned `.github/workflow.yml`.
 - **Fix:** the governance section states the `Glob`-not-shell rule once and adds that a folder exists when `Glob` with `<folder>/*`, such as `.github/*`, matches a file.
 - The re-run started on `0f160a465` was stopped before it finished, and its partial results were discarded unread. The `governance-codeowners/` case and the activation world re-run on the corrected text, as eugenelim directed.
+
+## 2026-10-26 — Folder check made recursive; re-run restarted
+
+- **Finding (adversarial post-gates round 4):** `<folder>/*` misses a folder that holds only subfolders. A read-only probe on 2026-10-26 with `.github/workflows/ci.yml` as the only file: `Glob` with `.github/*` returned `No files found`, and with `.github/**/*` returned `.github/workflows/ci.yml`; in the flat layout `.github/**/*` returned `.github/workflow.yml`.
+- **Fix:** the governance section uses `<folder>/**/*`, such as `.github/**/*`.
+- The re-run started on `9c0bd1a3a` was stopped before it finished, and its partial results were discarded unread.

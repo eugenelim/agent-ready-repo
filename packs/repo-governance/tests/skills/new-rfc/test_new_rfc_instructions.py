@@ -186,6 +186,6 @@ def test_governance_shows_the_preview_block_as_printed() -> None:
 
 def test_governance_checks_for_a_folder_with_a_glob_of_its_files() -> None:
     assert (
-        "A folder exists when `Glob` with the pattern `<folder>/*`, such as `.github/*`, matches a "
+        "A folder exists when `Glob` with the pattern `<folder>/**/*`, such as `.github/**/*`, matches a "
         "file." in GOVERNANCE
     )
