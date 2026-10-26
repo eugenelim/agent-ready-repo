@@ -14,9 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "packs/core/.apm/skills/close-work/scripts/file_safety.py"
 COPY_NAME = re.compile(r"(?:^|/)_?file_safety\.py$")
-# The spec requires 13 copies once the new-rfc skill vendors its own; until that
-# copy exists the count is 12.
-MINIMUM_COPIES = 12
+MINIMUM_COPIES = 13
 
 
 def _tracked_copies() -> list[str]:

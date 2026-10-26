@@ -702,6 +702,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest new-rfc governance surfaces (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest new-rfc governance script (pack suite)":
+        LOCAL("test-after-build-check"),
     "pytest navigate-decisions file_safety mirror (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest repair-round predicate parity (spec contract vs shipped guard)":
@@ -1091,6 +1093,7 @@ _GATE_MAIN_CHECKS = (
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
     "pytest new-rfc governance surfaces (roster-owned)",
+    "pytest new-rfc governance script (pack suite)",
     "pytest navigate-decisions file_safety mirror (roster-owned)",
     "pytest repair-round predicate parity (spec contract vs shipped guard)",
     "pytest spec-retirement candidate contract (roster-owned)",
@@ -1326,6 +1329,10 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
             "the build gate chain step `test-navigate-decisions`, which this lint does not trace."
+        ),
+    'packs/repo-governance/tests/skills/new-rfc/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest new-rfc governance script (pack suite)"
         ),
     'packs/core/tests/skills/explain-diff/':
         NO_PR_GATE(
