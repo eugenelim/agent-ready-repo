@@ -61,3 +61,8 @@ with `--yes` and no `--force`. Both fixture packs ship a `seeds/docs/adr/README.
 Seed survival: the Plan's risk did not occur. The uninstall keeps an adopter-edited seed, and the reinstall
 leaves it untouched and writes the shipped text beside it as `docs/adr/README.upstream.md`. The edited
 `README.md` still read `ADOPTER EDIT` after step 3. `test_recorded_pre_rename_archive_migrates` asserts both files.
+
+## 2026-10-25 — Contract amendment: "no recorded source" covers a non-text value
+
+- Review round 3 (adversarial, adjudicated) sustained that the code treats a non-text recorded source as "no recorded source" while the spec Term listed only missing, empty or `agent-ready-repo`, and that the Term's claim of matching `upgrade --all` was false (`upgrade --all` treats only a missing source and the legacy value as absent).
+- The owner (eugenelim) approved on 2026-10-25 amending the Term to: "No recorded source means the recorded source is missing, empty, not text, or the legacy value `agent-ready-repo`.", removing the `upgrade --all` equivalence clause. No acceptance criterion, task or behaviour changes; the code and tests already implement the amended Term.
