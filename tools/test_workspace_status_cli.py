@@ -2769,9 +2769,11 @@ backlog = []
         self.assertEqual(moved["kind"], "spec")
         self.assertEqual(moved["summary"], "Keep structured context")
         self.assertEqual(moved["source"]["mode"], "repo-origin")
-        self.assertEqual(
-            moved["needs"],
-            [{"type": "local", "kind": "spec", "path": "docs/specs/other/spec.md"}],
+        # The same plan migrates the entry's typed `needs` to the waiting item.
+        self.assertEqual(moved["needs"], [])
+        self.assertIn(
+            "- **Depends on:** spec:other",
+            (root / "docs/specs/inline-shipped/spec.md").read_text(encoding="utf-8"),
         )
 
     def test_repair_apply_revalidates_spec_status_before_replace(self) -> None:
