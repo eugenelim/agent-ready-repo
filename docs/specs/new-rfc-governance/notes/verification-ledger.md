@@ -117,3 +117,4 @@ Each is a mechanical follow-on of a version bump the plan requires, verified by 
 ## 2026-10-26 — Release checks
 
 - Parsed manifests: `repo-governance` 2.3.0 (AC-0096), `core` 3.1.21 (AC-0097), `architect` 0.15.20 (AC-0098) in both `pack.toml` and `plugin.json`; `agentbundle` 0.58.0 in `pyproject.toml` and `version.py` (AC-0099).
+- `FORCE=1 make build-self` on the finished change leaves `git status --porcelain` empty (AC-0100).
