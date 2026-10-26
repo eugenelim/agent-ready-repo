@@ -301,8 +301,11 @@ def test_ac_0003_unsafe_files_are_refused(
     if not make_shape(repo, rel, shape):
         pytest.skip("shape needs a directory")
     before = listing(repo)
-    for sub, stdin in (("show", b""), ("preview", b"# c\n" if "CODEOWNERS" in target else DRAFT.encode())):
-        extra = ["--after-line", "0"] if sub == "preview" and target.endswith("CHARTER.md") else []
+    proposal = b"# c\n" if "CODEOWNERS" in target else DRAFT.encode()
+    for sub, stdin in (("show", b""), ("preview", proposal), ("write", proposal)):
+        extra = ["--after-line", "0"] if sub != "show" and target.endswith("CHARTER.md") else []
+        if sub == "write":
+            extra += ["--current", "absent", "--proposed", sha(proposal)]
         result = call(capsys, repo, sub, target, *extra, stdin=stdin)
         assert result.refusal == "unsafe-path", (sub, result.out)
     assert listing(repo) == before
@@ -427,7 +430,17 @@ def test_ac_0010_reads_now_section(
     put(repo, "CODEOWNERS", "/other @z\n")
     out = preview_owners(capsys, repo, "/n @w\n").out
     assert section(out, "--- GitHub reads now ---", "--- as GitHub reads it ---") == [
-        "2: /a → @x", "3: skipped", "5: /c → (no owners)",
+        "2: /a → @x", "3: not valid for this mode: /b[ @y", "5: /c → (no owners)",
+    ]
+
+
+def test_ac_0010_invalid_line_keeps_leading_space_and_drops_one_trailing_cr(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, "CODEOWNERS", b"  /x a@example.invalid\r\n/ok @a\n")
+    out = preview_owners(capsys, repo, "/n @w\n").out
+    assert section(out, "--- GitHub reads now ---", "--- as GitHub reads it ---") == [
+        "1: not valid for this mode:   /x a@example.invalid", "2: /ok → @a",
     ]
 
 
@@ -454,6 +467,7 @@ def test_ac_0011_status_lines(
 def test_ac_0011_none_values(
     repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    (repo / "docs").mkdir()
     out = preview_owners(capsys, repo, "# nothing\n", "docs/CODEOWNERS").out
     assert field(out, "GitHub reads") == "docs/CODEOWNERS"
     assert field(out, "Also present") == "none"
@@ -683,6 +697,7 @@ def test_ac_0019_shadowing_file_is_an_ownership_change(
     repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     put(repo, "CODEOWNERS", "* @owners\n")
+    (repo / ".github").mkdir()
     out = call(capsys, repo, "preview", ".github/CODEOWNERS", stdin=b"# only a comment\n").out
     assert approval(out) == "yes — codeowners ownership change"
     assert field(out, "GitHub reads") == ".github/CODEOWNERS"
@@ -695,6 +710,7 @@ def test_ac_0019_other_changes(
     # a different rule list in the file GitHub reads
     assert approval(call(capsys, repo, "preview", "CODEOWNERS", stdin=b"* @other\n").out).startswith("yes")
     # an owned file that is not the one GitHub reads, written while a higher one exists
+    (repo / "docs").mkdir()
     put(repo, ".github/CODEOWNERS", "* @owners\n")
     quiet = call(capsys, repo, "preview", "docs/CODEOWNERS", stdin=b"# note\n").out
     assert approval(quiet) == "no"
@@ -949,7 +965,7 @@ def test_ac_0027_helper_receives_expect_sha256(
     ]
 
 
-def test_ac_0027_helper_failure_is_a_refusal(
+def test_ac_0117_helper_failure_refuses_write_failed(
     repo: pathlib.Path, monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -961,7 +977,7 @@ def test_ac_0027_helper_failure_is_a_refusal(
     monkeypatch.setattr(fs, "write_confined_regular_file", fail)
     result = call(capsys, repo, "write", "CODEOWNERS", "--current", "absent",
                   "--proposed", sha("# a\n"), "--approved-by", "owner", stdin=b"# a\n")
-    assert result.code == 3 and result.refusal == "target-changed"
+    assert result.code == 3 and result.refusal == "write-failed"
 
 
 @pytest.mark.parametrize("charter", ["# C\nline two\nline three\n", "# C\nno newline", "", "one"])
@@ -1055,3 +1071,207 @@ def test_ac_0031_utf8_output_under_the_c_locale(
         cwd=repo, env=env, capture_output=True, check=False,
     )
     assert shown.returncode == 0 and b"GOVERNANCE CURRENT:" in shown.stdout
+
+
+# --- amended refusal order, parent directories, long numbers ------------------
+
+UNSET = "sha256:" + "0" * 64
+
+
+def write_call(
+    capsys: pytest.CaptureFixture[str], root: pathlib.Path, target: str, stdin: bytes,
+    current: str = "absent", proposed: str | None = None, *extra: str,
+) -> Result:
+    """Run ``write`` with well-formed arguments."""
+    return call(capsys, root, "write", target, *extra, "--current", current,
+                "--proposed", proposed or sha(stdin), stdin=stdin)
+
+
+def test_ac_0116_and_ac_0120_missing_parent(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before = listing(repo)
+    for target, text in ((".github/GOVERNANCE.md", DRAFT), (".github/CODEOWNERS", "/a @b\n")):
+        shown = call(capsys, repo, "show", target)
+        assert shown.code == 0 and field(shown.out, "Current") == "absent"
+        assert call(capsys, repo, "preview", target, stdin=text.encode()).refusal == "parent-missing"
+        assert write_call(capsys, repo, target, text.encode()).refusal == "parent-missing"
+    assert listing(repo) == before
+    assert not (repo / ".github").exists()
+
+
+@pytest.mark.parametrize("sub", ["show", "preview", "write"])
+@pytest.mark.parametrize("shape", ["file", "dangling"])
+def test_ac_0125_and_ac_0003_unsafe_parent_component(
+    sub: str, shape: str, repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    if shape == "file":
+        put(repo, ".github", "not a directory\n")
+    else:
+        (repo / ".github").symlink_to(repo.parent / "no-such-dir")
+    proposal = b"/a @b\n"
+    extra = ["--current", "absent", "--proposed", sha(proposal)] if sub == "write" else []
+    result = call(capsys, repo, sub, ".github/CODEOWNERS", *extra, stdin=proposal)
+    assert result.refusal == "unsafe-path"
+    assert "absent" not in result.out
+
+
+def test_ac_0121_charter_cases_without_parent(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    link = LINK.encode()
+    assert call(capsys, repo, "preview", "docs/CHARTER.md", "--after-line", "0",
+                stdin=link).refusal == "charter-missing"
+    put(repo, "CHARTER.md", "# C\n")
+    assert call(capsys, repo, "preview", "docs/CHARTER.md", "--after-line", "0",
+                stdin=link).refusal == "not-the-charter"
+    assert call(capsys, repo, "preview", ".github/CODEOWNERS",
+                stdin=b"/bad[ @a\n").refusal == "invalid-codeowners-line 1"
+    assert call(capsys, repo, "preview", ".github/CODEOWNERS",
+                stdin=b"/a @a\n").refusal == "parent-missing"
+    assert call(capsys, repo, "preview", ".github/GOVERNANCE.md",
+                stdin=b"incomplete\n").refusal == "governance-draft-incomplete"
+
+
+def test_ac_0121_charter_changed_after_preview(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    original = "# C\nline two\n"
+    put(repo, "docs/CHARTER.md", original)
+    out = call(capsys, repo, "preview", "docs/CHARTER.md", "--after-line", "2", stdin=LINK.encode()).out
+    current, proposed = field(out, "Current"), field(out, "Proposed").split(" ")[0]
+
+    def attempt() -> str | None:
+        return call(capsys, repo, "write", "docs/CHARTER.md", "--after-line", "2",
+                    "--current", current, "--proposed", proposed, stdin=LINK.encode()).refusal
+
+    for change in (
+        lambda: put(repo, "docs/CHARTER.md", "# rewritten\nline two\n"),
+        lambda: put(repo, "docs/CHARTER.md", "# C\n"),
+        lambda: put(repo, "docs/CHARTER.md", original + "See [g](../GOVERNANCE.md)\n"),
+        lambda: (repo / "docs/CHARTER.md").unlink(),
+    ):
+        change()
+        assert attempt() == "target-changed"
+        put(repo, "docs/CHARTER.md", original)
+
+
+def test_ac_0121_target_deleted_with_its_parent_after_preview(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, ".github/GOVERNANCE.md", "x\n")
+    current = sha("x\n")
+    (repo / ".github/GOVERNANCE.md").unlink()
+    (repo / ".github").rmdir()
+    result = write_call(capsys, repo, ".github/GOVERNANCE.md", DRAFT.encode(), current)
+    assert result.refusal == "target-changed"
+
+
+@pytest.mark.parametrize("sub", ["preview", "write"])
+def test_ac_0121_adjacent_pairs_before_the_file_reads(
+    sub: str, repo: pathlib.Path, tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    extra = ["--current", "absent", "--proposed", UNSET] if sub == "write" else []
+    other = tmp_path / "other"
+    other.mkdir()
+    run_git(["init", "-q"], other)
+    # root-not-worktree / target-not-allowed
+    assert call(capsys, repo, sub, "nope", *extra, stdin=NoRead(), cwd=other).refusal == "root-not-worktree"
+    # target-not-allowed / too-large
+    assert call(capsys, repo, sub, "nope", *extra, stdin=b"x" * 65_537).refusal == "target-not-allowed"
+    # too-large / not-utf8
+    assert call(capsys, repo, sub, "GOVERNANCE.md", *extra, stdin=b"\xff" * 65_537).refusal == "too-large"
+    # not-utf8 / refused-character
+    assert call(capsys, repo, sub, "GOVERNANCE.md", *extra, stdin=b"\xff\x07").refusal == "not-utf8"
+    # refused-character / invalid-approval
+    assert call(capsys, repo, sub, "GOVERNANCE.md", *extra, "--approved-by", "",
+                stdin=b"\x07").refusal == "refused-character"
+    # invalid-approval / unsafe-path
+    (repo / "GOVERNANCE.md").symlink_to(repo.parent / "gone")
+    assert call(capsys, repo, sub, "GOVERNANCE.md", *extra, "--approved-by", "",
+                stdin=DRAFT.encode()).refusal == "invalid-approval"
+
+
+def test_ac_0121_unsafe_path_before_too_large_within_a_file(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, "GOVERNANCE.md", b"#" * 3_000_000)
+    os.link(repo / "GOVERNANCE.md", repo / "hard.md")
+    result = call(capsys, repo, "preview", "GOVERNANCE.md", stdin=DRAFT.encode())
+    assert result.refusal == "unsafe-path"
+
+
+def test_ac_0121_files_are_read_in_listing_order(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, "GOVERNANCE.md", b"#" * 3_000_000)
+    put(repo, "docs/real.md", "# C\n")
+    (repo / "docs/CHARTER.md").symlink_to(repo / "docs/real.md")
+    assert call(capsys, repo, "preview", "GOVERNANCE.md", stdin=DRAFT.encode()).refusal == "too-large"
+    (repo / "GOVERNANCE.md").write_bytes(b"ok\n")
+    assert call(capsys, repo, "preview", "GOVERNANCE.md", stdin=DRAFT.encode()).refusal == "unsafe-path"
+
+
+def test_ac_0121_last_file_unsafe_before_target_changed(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (repo / "CHARTER.md").symlink_to(repo / "elsewhere.md")
+    result = write_call(capsys, repo, "GOVERNANCE.md", DRAFT.encode(), sha("stale\n"))
+    assert result.refusal == "unsafe-path"
+
+
+def test_ac_0121_target_changed_before_each_kind_check(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    stale = sha("stale\n")
+    assert write_call(capsys, repo, "GOVERNANCE.md", b"incomplete\n", stale).refusal == "target-changed"
+    assert write_call(capsys, repo, "CODEOWNERS", b"/bad[ @a\n", stale).refusal == "target-changed"
+    put(repo, "docs/CHARTER.md", "# C\nSee [g](GOVERNANCE.md)\n")
+    result = call(capsys, repo, "write", "docs/CHARTER.md", "--after-line", "0",
+                  "--current", stale, "--proposed", UNSET, stdin=LINK.encode())
+    assert result.refusal == "target-changed"
+
+
+def test_ac_0121_inside_the_charter_kind_checks(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, "docs/CHARTER.md", "# C\nSee [g](GOVERNANCE.md)\n")
+    put(repo, "CHARTER.md", "# D\n")
+
+    def prev(target: str, text: bytes, *flag: str) -> str | None:
+        return call(capsys, repo, "preview", target, *flag, stdin=text).refusal
+
+    assert prev("CHARTER.md", b"not a link", "--after-line", "99") == "not-the-charter"
+    assert prev("docs/CHARTER.md", b"not a link", "--after-line", "99") == "not-a-link-line"
+    assert prev("docs/CHARTER.md", LINK.encode(), "--after-line", "99") == "bad-line-number"
+    assert prev("docs/CHARTER.md", LINK.encode(), "--after-line", "0") == "charter-already-links"
+
+
+def test_ac_0121_parent_missing_before_bytes_differ(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    result = write_call(capsys, repo, ".github/CODEOWNERS", b"/a @b\n", "absent", UNSET)
+    assert result.refusal == "parent-missing"
+
+
+def test_ac_0121_bytes_differ_before_approval_required(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, "CODEOWNERS", "/a @b\n")
+    result = write_call(capsys, repo, "CODEOWNERS", b"/a @c\n", sha("/a @b\n"), UNSET)
+    assert result.refusal == "bytes-differ-from-preview"
+    result = write_call(capsys, repo, "CODEOWNERS", b"/a @c\n", sha("/a @b\n"))
+    assert result.refusal == "approval-required"
+
+
+def test_ac_0106_very_long_after_line_is_a_refusal(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, "docs/CHARTER.md", "# C\n")
+    for sub in ("preview", "write"):
+        extra = ["--current", sha("# C\n"), "--proposed", UNSET] if sub == "write" else []
+        result = call(capsys, repo, sub, "docs/CHARTER.md", "--after-line", "9" * 4301,
+                      *extra, stdin=LINK.encode())
+        assert result.code == 3 and result.refusal == "bad-line-number"
+        assert result.err == ""

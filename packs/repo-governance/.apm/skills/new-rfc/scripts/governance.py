@@ -250,11 +250,14 @@ def is_ownership_change(
 def _render_rules(content: str) -> list[str]:
     """Render each rule line as GitHub would read it."""
     lines = []
+    split = content.split("\n")
     for number, pattern, owners, valid in rule_lines(content):
         if valid:
             lines.append(f"{number}: {pattern} → {' '.join(owners) or '(no owners)'}")
         else:
-            lines.append(f"{number}: skipped")
+            raw = split[number - 1]
+            line = raw[:-1] if raw.endswith("\r") else raw
+            lines.append(f"{number}: not valid for this mode: {line}")
     return lines
 
 
@@ -570,6 +573,8 @@ def _run(args: argparse.Namespace, stdin: Any, cwd: Path) -> str:
     states = {path: _decode_current(raw[path]) for path in raw}
     current_raw = raw[target]
     current = "absent" if current_raw is None else _digest(current_raw)
+    if command == "write" and current != args.current:
+        raise Refusal("target-changed")
 
     inserted_at: int | None = None
     if kind == "governance":
@@ -592,18 +597,28 @@ def _run(args: argparse.Namespace, stdin: Any, cwd: Path) -> str:
             raise Refusal("not-a-link-line")
         current_text = states[target] or ""
         after = args.after_line
+        # Strip leading zeros first: int() refuses very long digit strings.
+        number = (after.lstrip("0") or "0") if after is not None else ""
         if (
             after is None
             or _DIGITS.fullmatch(after) is None
-            or int(after) > _line_count(current_text)
+            or len(number) > 18
+            or int(number) > _line_count(current_text)
         ):
             raise Refusal("bad-line-number")
         if _charter_links_to_governance(current_text, charter_dir):
             raise Refusal("charter-already-links")
         link = text[:-1] if text.endswith("\n") else text
-        proposed_text = _insert_link(current_text, link, int(after))
-        inserted_at = int(after) + 1
+        proposed_text = _insert_link(current_text, link, int(number))
+        inserted_at = int(number) + 1
     proposed_bytes = proposed_text.encode("utf-8", errors="surrogateescape")
+    if kind != "charter" and current_raw is None:
+        try:
+            os.lstat(root / posixpath.dirname(target))
+        except FileNotFoundError as exc:
+            raise Refusal("parent-missing") from exc
+        except OSError as exc:
+            raise Refusal("unsafe-path") from exc
 
     reason: str | None = None
     if kind == "codeowners" and is_ownership_change(states, target, proposed_text):
@@ -623,8 +638,6 @@ def _run(args: argparse.Namespace, stdin: Any, cwd: Path) -> str:
 
     if _digest(proposed_bytes) != args.proposed:
         raise Refusal("bytes-differ-from-preview")
-    if current != args.current:
-        raise Refusal("target-changed")
     if reason is not None and approved_by is None:
         raise Refusal("approval-required")
     helper = _get_file_safety()
@@ -634,7 +647,7 @@ def _run(args: argparse.Namespace, stdin: Any, cwd: Path) -> str:
             root, root / target, proposed_bytes, expect_sha256=expect
         )
     except helper.UnsafeContentError as exc:
-        raise Refusal("target-changed") from exc
+        raise Refusal("write-failed") from exc
     return f"written: {target} {_digest(proposed_bytes)}\n"
 
 

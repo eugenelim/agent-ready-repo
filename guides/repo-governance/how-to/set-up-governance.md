@@ -69,6 +69,8 @@ When your charter has no link to `GOVERNANCE.md`, the agent can propose one line
 
 `CODEOWNERS` goes in the file GitHub already reads, else in `.github/`, else at the repository root. GitHub applies the last matching rule, so the agent treats a change to the ordered rules, not to comments or blank lines, as an ownership change. Handles look like `@alice` or `@acme/docs`. A pattern with a backslash or unusual whitespace is refused, because GitHub may read it differently from the preview.
 
+The script creates no folders. If the target's folder, such as `.github/`, does not exist, it refuses with `parent-missing` and writes nothing; the agent offers a target whose folder exists. If a write starts and fails (`write-failed`), the target may hold partial content, so the agent shows you what it holds now and stops.
+
 ## What it will not do
 
 It writes nowhere but `GOVERNANCE.md`, the charter link and the `CODEOWNERS` locations, and only inside the Git working tree. It does not read Git history to guess maintainers. What it writes is a draft: your maintainers adopt it through your normal review.

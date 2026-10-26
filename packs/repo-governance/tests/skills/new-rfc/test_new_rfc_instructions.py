@@ -119,6 +119,18 @@ def test_governance_section_pins_ac_0114() -> None:
     assert "Pass the proposed input to `preview` and `write` as a quoted heredoc (`<<'EOF'`) at the end of the same command, never through a pipe, a file redirect or a temporary file." in GOVERNANCE
 
 
+def test_governance_section_pins_ac_0118() -> None:
+    assert "`write-failed` means the write did not complete and the target may hold partial content: run `show`, tell the user what the target holds now, and stop." in GOVERNANCE
+
+
+def test_governance_section_pins_ac_0119() -> None:
+    assert "When any line of the proposed input is exactly `EOF`, do not run `preview` or `write`; return the draft as text and ask for a change." in GOVERNANCE
+
+
+def test_governance_section_pins_ac_0122() -> None:
+    assert "`parent-missing` means the target's folder does not exist and this mode creates no folders: say so and offer a target whose folder exists." in GOVERNANCE
+
+
 def _asset(name: str) -> tuple[str, str]:
     raw = (ASSETS / name).read_text(encoding="utf-8")
     assert "<maintainer-handle>" in raw

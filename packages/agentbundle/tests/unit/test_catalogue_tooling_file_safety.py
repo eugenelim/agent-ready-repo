@@ -535,7 +535,20 @@ def test_failed_update_restores_original(tmp_path, monkeypatch, walk_mode, faili
     original = b"original bytes that are long"
     target.write_bytes(original)
     counter = {"n": 0}
-    monkeypatch.setattr(os, failing, _fail_once(getattr(os, failing), counter))
+    if failing == "write":
+        real_write = os.write
+
+        def partial_then_fail(descriptor: int, data) -> int:
+            # Part of the data reaches the file first, so only the restore can undo it.
+            counter["n"] += 1
+            if counter["n"] == 1:
+                real_write(descriptor, bytes(data)[:2])
+                raise OSError("injected failure")
+            return real_write(descriptor, data)
+
+        monkeypatch.setattr(os, "write", partial_then_fail)
+    else:
+        monkeypatch.setattr(os, failing, _fail_once(getattr(os, failing), counter))
     with pytest.raises(UnsafeContentError):
         write_confined(tmp_path, target, b"short", expect_sha256=_digest(original))
     monkeypatch.undo()
