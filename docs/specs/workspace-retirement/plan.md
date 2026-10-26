@@ -164,6 +164,20 @@ Owned by: T1
 
 **Done when:** the fixture test reds before the fact-set change and passes after, the real-repository record test passes, and any text added to the errata entry carries the Approver's sign-off.
 
+### T7: Equivalence rules, against fixtures and the real record
+
+**Depends on:** T6
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0023, AC-0024, AC-0025, AC-0026, AC-0018, AC-0022.
+- The fixtures plant each violation: an Equivalence section with no table, a table with a header and no rows, a table missing the Authority column, a row whose Slice is not a slice number, a Result outside the two words, an Evidence cell naming an untracked path, an `accepted removal` row linking a Draft RFC, one linking an anchor whose section does not name its Case text, and a `reproduced` row whose Authority is not `none`.
+- The real record's Equivalence rows, which the brief's slice 2 writes, pass every rule.
+- Goal-based, for AC-0022: the AC-0017 step collects the Equivalence tests with no skip condition, and a run of it on a scratch clone whose record carries one Equivalence row with an untracked Evidence path fails.
+
+**Done when:** each fixture test reds before its rule exists and passes after, the real-repository record test passes, and the planted-row run of the step fails.
+
 ## Rollout
 
 - **Delivery:** one pull request. The check blocks a pull request that adds a registry mention outside an inventoried directory, and one that removes, renames, or deletes the last mention in a file a row names.
@@ -180,3 +194,5 @@ Owned by: T1
 - 2026-10-25: plan approved by eugenelim
 - 2026-10-25: spec amendment approved by eugenelim (Never-do rule admits the lifecycle moves the spec's status forces; AC-0011 fact set adds five legacy entry keys)
 - 2026-10-25: plan amendment approved by eugenelim (T5 reopened and rewritten; T6 added)
+- 2026-10-26: spec amendment approved by eugenelim (AC-0023 to AC-0026 for § Equivalence; AC-0018 and AC-0022 reopened)
+- 2026-10-26: plan amendment approved by eugenelim (T7 added)

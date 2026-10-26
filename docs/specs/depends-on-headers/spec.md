@@ -1,7 +1,7 @@
 # Spec: Dependency edges on the waiting item
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-25 by eugenelim, spec and plan, after clean spec-stage shaping, adversarial, and security reviews; review records under `.context/reviews/`. Re-approved 2026-10-25 by eugenelim after controlled amendment 1 (`notes/verification-ledger.md` § Amendment 1), clean on adversarial review of the amendment.
+- **Approved:** 2026-10-25 by eugenelim, spec and plan, after clean spec-stage shaping, adversarial, and security reviews; review records under `.context/reviews/`. Re-approved 2026-10-25 by eugenelim after controlled amendment 1 (`notes/verification-ledger.md` § Amendment 1), clean on adversarial review of the amendment. Re-approved 2026-10-26 after controlled amendment 2 (`notes/verification-ledger.md` § Amendment 2).
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, `Depends on:` with RFC-0103 typed references on the waiting item; D1, a writer stops only with its contract), RFC-0105 (D3, the behavioral-equivalence gate), RFC-0103 (D1, the `<kind>:<slug>` reference and the refusal of an ambiguous name), ADR-0103 (the completion receipt's fields and outcome vocabulary), ADR-0074 (standard-library skill scripts)
@@ -35,7 +35,7 @@ A maintainer or agent records that one piece of work waits for another by editin
 - The migration of this repository's 113 typed `needs` edges into the headers of their 78 waiting files, and `needs = []` on those entries — `workspace.toml` and the waiting files.
 - Four registered Shipped specs' free-text `Depends on:` lines, normalized by hand to typed references.
 - The blocking equivalence record — `docs/specs/workspace-retirement/retirement-record.md` § Equivalence, by a controlled amendment of the `workspace-retirement` spec.
-- An RFC-0106 errata entry for the three behaviors that cannot be kept: the cooled waiting item's edges; the pruned captured item settled by a completion receipt; and the cooled target named by an unreadable slug, which is a cooled intent or a cooled brief whose `Slug:` differs from its file stem.
+- An RFC-0106 errata entry for the four behaviors that cannot be kept: the cooled waiting item, whose edges are not read, so a live member of a cycle through it can become dispatchable; the pruned captured item settled by a completion receipt; the cooled target named by an unreadable slug, which is a cooled intent or a cooled brief whose `Slug:` differs from its file stem; and the cooled captured item without a membership.
 - A new ADR that supersedes ADR-0103 D6 in part, moving the receipt's carrier.
 - Every live instruction that tells an author to write a `needs` edge or a receipt on one — the sites AC-0018 lists.
 
@@ -46,7 +46,7 @@ A maintainer or agent records that one piece of work waits for another by editin
 | Interface compatibility: the header grammar authors write | Applicable: a new published preamble field pair | `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md` § Spec metadata contract, the spec template, and `guides/core/reference/workspace-toml-schema.md` § `needs` | Platform Core maintainer | The grammar text matches the terms and AC-0004; AC-0018 passes | Each surface names both fields and the repair |
 | User documentation: how an adopter moves their edges | Applicable: adopters upgrade by running the repair | `packs/core/.apm/skills/workspace-status/references/mutate.md` § Repair subcommands and `docs/product/workspace-toml-deps.md` | Platform Core maintainer | The `needs-to-header` operation and its confirmation are described | The text names the command, its confirmation, and its edge comparison |
 | Decision rationale: equivalence evidence | Applicable: RFC-0105 D3 gate 3 | `docs/specs/workspace-retirement/retirement-record.md` § Equivalence | Platform Core maintainer | The amended `workspace-retirement` check passes | Every case in AC-0014 has a row |
-| Decision rationale: removal authority for the cooled waiting item, the receipt-settled pruned captured item, and the cooled target named by an unreadable slug | Applicable: three behaviors are dropped | `docs/rfc/0106-stop-registering-derivable-work.md` § Errata | Platform Core maintainer, as RFC-0106 Approver | A dated entry naming all three cases | The three Equivalence rows link it |
+| Decision rationale: removal authority for the cooled waiting item, the receipt-settled pruned captured item, the cooled target named by an unreadable slug, and the cooled captured item without a membership | Applicable: four behaviors are dropped | `docs/rfc/0106-stop-registering-derivable-work.md` § Errata | Platform Core maintainer, as RFC-0106 Approver | A dated entry naming all four cases | The four Equivalence rows link it |
 | Decision rationale: the receipt's carrier | Applicable: ADR-0103 D6 names the `workspace.toml` edge as the carrier, and ADR-0117 D3 admits errata only for a clarification | A new ADR under `docs/adr/` with `Supersedes in part: ADR-0103 D6`, mirrored by `Superseded in part` on ADR-0103, citing RFC-0106 D3 | Platform Core maintainer | The ADR is Accepted; `lint-adr-shape.py docs/adr` passes | Both supersession fields resolve |
 | Current product truth: contracts that say an edge is a `needs` entry | Applicable: inventory rows with owner 2 | ADR-0110, CAP-0004, FEAT-0002, `packs/architect/DESIGN.md`, `guides/architect/how-to/establish-reference-architecture.md`, and the `cooling-brief-child-scope-closure` and `dependency-scoped-completion-receipts` spec directories | Platform Core maintainer | Each states the header as the edge's home, or its inventory row moves to the slice that still owns its registry fact | `test_workspace_retirement_inventory.py` passes |
 | Maintainer procedure: where `close-work` keeps a receipt | Applicable: a live instruction changes | `packs/core/.apm/skills/close-work/SKILL.md` | Platform Core maintainer | AC-0018 passes | The instruction names `Dependency receipts:` |
@@ -152,6 +152,7 @@ Each criterion from AC-0001 to AC-0011 and from AC-0019 to AC-0031 is a rule the
   - the cooled dependency;
   - the cooled waiting item;
   - the cooled target named by an unreadable slug: a cooled intent, or a cooled brief whose `Slug:` differs from its file stem;
+  - the cooled captured item without a membership;
   - the brief child scope;
   - the dependency cycle;
   - the unmigrated `needs` refusal;

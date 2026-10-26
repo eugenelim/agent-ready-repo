@@ -223,8 +223,8 @@ Owned by: T3, T4
 **Tests:**
 - Criteria: AC-0014.
 - Amend `docs/specs/workspace-retirement/spec.md` and `plan.md` through the work-loop controlled-amendment path. Add criteria for § Equivalence: a table with columns Case, Slice, Result, Evidence, and Authority; Result is `reproduced` or `accepted removal`; Evidence names a path `git ls-files` lists; and an `accepted removal` row's Authority meets AC-0014's and AC-0015's link rules with Case text in place of Fact text. Extend `test_workspace_retirement_inventory.py` to enforce them, with one planted-violation fixture per rule.
-- Draft the RFC-0106 errata entry for the cooled waiting item, the pruned captured item settled by a completion receipt, and the cooled target named by an unreadable slug (a cooled intent, or a cooled brief whose `Slug:` differs from its file stem), and ask the Approver to sign its wording (spec Ask-first).
-- Write the eleven Equivalence rows. Correct the nine Disposition Home cells the spec's Ask-first names (four `crossRepoNeed.*`, five `localNeed.receipt*`), to the waiting item's `Depends on:` and `Dependency receipts:` lines.
+- Draft the RFC-0106 errata entry naming, verbatim and in lowercase, the four accepted-removal cases of AC-0014: the cooled waiting item, with its fail-open effect on a cycle through it stated; the pruned captured item settled by a completion receipt; the cooled target named by an unreadable slug, with the completed-receipt exception stated; and the cooled captured item without a membership. Ask the Approver to sign its wording (spec Ask-first).
+- Write the twelve Equivalence rows, one per AC-0014 case, each Case cell being that case's name up to any colon. Correct the nine Disposition Home cells the spec's Ask-first names (four `crossRepoNeed.*`, five `localNeed.receipt*`), to the waiting item's `Depends on:` and `Dependency receipts:` lines.
 
 **Done when:** the amended check passes against this repository, and the errata entry carries the Approver's sign-off.
 
@@ -246,3 +246,5 @@ Owned by: T3, T4
 - 2026-10-25: plan approved by eugenelim
 - 2026-10-25: spec amendment approved by eugenelim (amendment 1: navigate-intents finding-table copy; cooled target named by an unreadable slug)
 - 2026-10-25: plan amendment approved by eugenelim (T3 and T7 tests extended for amendment 1)
+- 2026-10-26: spec amendment approved by eugenelim (amendment 2: the cooled captured item without a membership; the cooled waiting item's effect stated)
+- 2026-10-26: plan amendment approved by eugenelim (T7 errata and row counts for amendment 2)
