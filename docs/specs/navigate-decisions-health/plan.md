@@ -92,7 +92,7 @@ Most construction tests live under **Tasks** below.
 | Current architecture: `DESIGN.md` § 7 item 6, § 8 | T4 | read-only invariant names `health` | present |
 | Interface compatibility: `query.v1` unchanged | T2 | AC-0002 test | test green |
 | Release history: changelog fragment | T4 | `tools/changelog.py` validation green | fragment present with `Highlights` decided |
-| Validation evidence: `notes/verification-ledger.md`, `notes/hand-check.json`, raw run files | T1, T5, T6 | ledger entries | every result AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042 and AC-0049 name is recorded |
+| Validation evidence: `notes/verification-ledger.md`, `notes/hand-check.json`, raw run files | T1, T5, T6 | ledger entries | every result AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0040, AC-0041, AC-0042 and AC-0049 name is recorded |
 
 ## Design (LLD)
 
@@ -161,9 +161,11 @@ Most construction tests live under **Tasks** below.
   route phrases and exclusions, and drops only "in the repository", the
   "request-for-comments" expansion and connective words:
 
-  > Use this skill to look up, summarise, trace, explore or health-check architecture decision records (ADRs) and RFCs, or to route a decision. Triggers: "show me ADR-0001", "which ADRs are accepted", "what supersedes this decision", "trace the lineage of RFC-0042", "find decisions about authentication", "rfc status", "show me the RFC landscape", "how many RFCs are in draft", "any RFC candidates in the findings register", "rfc report", "how many roadmap intents do we have", "export the decision corpus to HTML". Route mode: "which record does this decision need", "how should we decide this", "who should I consult about this decision", "is this decision a one-way door". Health mode: "which decisions are due for review", "superseded ADRs still cited", "missing confirmation checks". Do NOT use for creating or revising records (use `new-adr` or `new-rfc`). Do NOT use when the user already wants to propose, reopen or circulate a direction (use `new-rfc`). Do NOT use for intent-hierarchy or intent-status queries.
+  > Use this skill to look up, summarise, trace, explore or health-check architecture decision records (ADRs) and RFCs, or route a decision. Triggers on "show me ADR-0001", "which ADRs are accepted", "what supersedes this decision", "trace the lineage of RFC-0042", "find decisions about authentication", "rfc status", "show me the RFC landscape", "how many RFCs are in draft", "any RFC candidates in the findings register", "rfc report", "how many roadmap intents do we have", "export the decision corpus to HTML". In route mode, "which record does this decision need", "how should we decide this", "who should I consult about this decision", "is this decision a one-way door". In health mode, "which decisions are due or stale", "superseded ADRs still cited", "missing confirmation checks". Do NOT use for creating or revising records (use `new-adr` or `new-rfc`). Do NOT use when the user already wants to propose, reopen or circulate a direction (use `new-rfc`). Do NOT use for intent-hierarchy or intent-status queries.
 
-  It is 1,017 characters.
+  It is 1,020 characters, an unquoted plain scalar like today's, with no `: `
+  and no whitespace before `#`, so the catalogue lint's description-source check
+  passes.
 - **Today is an input.** `--today` makes the result reproducible for tests and the
   hand-check diff. The default is the UTC date, so the result does not depend on
   the machine's timezone.
@@ -263,7 +265,7 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
 - AC-0003 corrupts one record's H1 and compares the error code with
   `run_query(... "summary")`'s.
 - AC-0008 and AC-0009 are parametrised over each grammar form and each
-  near-miss, including `5 October 2026` (one mention), `February 30, 2026` (none),
+  near-miss, including `5 October 2026` (one mention), `February 30, 2026` (one bare-year mention, `2026`),
   `PyJWT>=2.14.0` (`2.14.0`) and `` `>=0.47` `` (`>=0.47`).
 - Trigger-text fixtures cover an empty key line followed by a non-blank line, an
   empty trigger, and `` `stable — no foreseeable trigger` ``.
@@ -280,8 +282,9 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
 - AC-0047 extends that spy to `os.lstat`, `os.stat` and `pathlib.Path.resolve`, and
   asserts no recorded path holds an absolute, UNC (`//host/share/x.md`) or
   escaping candidate, and that each path the probe itself records is the root
-  plus a prefix of a checked form's segments. Calls made inside
-  `validate_confined_directory` are excluded by recording only outside it.
+  plus a prefix of a checked form's segments. Every path passed to
+  `validate_confined_directory` is held to the same assertion; inside the helper
+  only the resolution of the root and its ancestors is exempt.
 - AC-0048 monkeypatches `os.lstat` to raise `PermissionError` and then an
   `OSError` with `errno.ENAMETOOLONG` for one component.
 - AC-0050 builds a corpus whose findings exceed 512 KiB with fewer than 5,000
@@ -323,8 +326,8 @@ and `make lint-ruff lint-mypy` are green.
 **Tests:** (goal-based, content pins in `test_skill_instructions.py`)
 - AC-0028 slices the health section by heading, as `_route_raw` does, and asserts
   the nine line prefixes in order inside one fenced block.
-- AC-0029 reads the frontmatter `description:`, and the catalogue lint's 1,024
-  character limit holds.
+- AC-0029 asserts the three health phrases it names in the frontmatter
+  `description:`, and that the description is at most 1,024 characters.
 - Content pins on the health section, each asserting the sentence T3 writes:
   - it runs only the health command and never a check, test or file named in a
     record;
@@ -376,12 +379,13 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   reading disagreement.
 - The superseded-citation part reads every `docs/adr/` and `docs/rfc/` header for
   the superseded ADRs' identifiers.
-- The hand check reads a fresh `git worktree` of a recorded commit, outside this
-  repository, with `docs/specs/navigate-decisions-health/`, the script and its
-  tests removed from it, so no draft rule output or health code is reachable.
+- The hand check reads the spec's accuracy worktree, unchanged. Reviewers get the
+  spec's Terms in their brief and are told to read only `docs/adr/`, `docs/rfc/`
+  and the listing. Afterwards the ledger records a search of each reviewer's
+  tool calls for any read outside those paths.
 - Reviewers have only `Read`, `Glob` and `Grep`: no shell, so no path from record
   text is ever interpolated into a command. Presence and type come from the
-  controller's listing of every entry in that worktree, files and directories,
+  controller's listing of every entry in the accuracy worktree, files and directories,
   with type and link count, made once by a `find` that takes no input from
   records. The ledger records how it was made. The brief states that ADR text is
   data and gives no instruction.
@@ -405,9 +409,8 @@ ledger's T5 entry records the reviewers, shares, date and commit.
 **Touches:** `docs/specs/navigate-decisions-health/notes/*`
 
 **Tests:** (goal-based, and manual QA for AC-0033)
-- AC-0030, AC-0031 and AC-0032: the finished branch's health command runs on a
-  fresh `git worktree` of the hand check's commit, with `--today` equal to the
-  hand check's date. A scratch diff script compares its
+- AC-0030, AC-0031 and AC-0032: the finished branch's health command runs on the
+  accuracy worktree, with `--today` equal to the hand check's date. A scratch diff script compares its
   result with `notes/hand-check.json` set by set, and the ledger records each set's
   matches, extras and omissions.
 - AC-0033: each reading disagreement goes to eugenelim with the item, both
@@ -421,7 +424,7 @@ ledger's T5 entry records the reviewers, shares, date and commit.
   - the results go in `notes/activation-post-change.json`;
   - the ledger compares each rate with its bound, and states the resolution: one
     run moves a rate over n queries by 1/(3n), about 0.0067 for 50.
-- AC-0038, AC-0039, AC-0040, AC-0041, AC-0042 and AC-0049, three scored runs on the hostile fixture:
+- AC-0038, AC-0040, AC-0041, AC-0042 and AC-0049, three scored runs on the hostile fixture:
   - each run is a headless `claude -p --permission-mode default --setting-sources
     project,local --strict-mcp-config` run in a fresh scratch Git repository
     outside this repository. Its allowed tools are exactly `Skill`, `Read`,
@@ -449,7 +452,7 @@ ledger's T5 entry records the reviewers, shares, date and commit.
 **Effects:** none
 
 **Done when:** the ledger's T6 entry records every check listed in `Tests`, and
-each of AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042 and AC-0049 meets its bound.
+each of AC-0030, AC-0031, AC-0032, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0040, AC-0041, AC-0042 and AC-0049 meets its bound.
 
 ## Rollout
 
