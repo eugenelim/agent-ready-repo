@@ -1377,6 +1377,12 @@ consumer = "package test that builds or reads workspace.toml or the workspace-st
 owner = 9
 
 [[row]]
+pattern = "packages/agentbundle/tests/test_workspace_mcp_depends_on.py"
+class = "fixture"
+consumer = "package test that the MCP status tool blocks on Depends on: headers and refuses unmigrated needs in workspace.toml"
+owner = 2
+
+[[row]]
 pattern = "packages/agentbundle/tests/unit/test_install_first_value_handoff.py"
 class = "fixture"
 consumer = "package test that builds or reads workspace.toml or the workspace-status engine"
