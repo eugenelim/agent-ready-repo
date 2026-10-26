@@ -32,11 +32,9 @@ reuses corpus admission and prints one JSON result. The skill file gains a
 the script changes.
 
 The riskiest parts are two:
-1. **Accuracy.** The rules must agree with a hand reading of 144 accepted ADRs.
-   A probe on 2026-10-26 ran draft rules over `docs/adr/` (see Design). It found
-   1 `due`, 8 `version` and 135 `judge` triggers, 5 header citations, 3 missing
-   signal paths, 41 present and 33 unlocated. So T5's hand check is real work,
-   and it runs independently of T2 so it cannot be tuned to the code.
+1. **Accuracy.** The rules must agree with a hand reading of every accepted
+   ADR. T5's hand check runs independently of T2, so it cannot be tuned to the
+   code.
 2. **Activation.** A fourth mode in the description may lower the trigger rate.
 
 Order follows from that:
@@ -141,8 +139,8 @@ Most construction tests live under **Tasks** below.
   from one `os.scandir(root)`, so "rooted" is a string comparison, not a probe of
   a path from record text.
 - **The path bound.** At most 5,000 path candidates per run, counted after
-  extraction and before any probe. The 2026-10-26 probe found 77 candidates in
-  this repository's accepted ADRs, so the bound is far from normal use. It caps
+  extraction and before any probe. A 2026-10-26 probe put candidates in
+  this repository's accepted ADRs at about 80, so the bound is far from normal use. It caps
   probe time on a hostile corpus. The per-file 2 MiB admission bound fires first
   only for one oversized file; many ordinary files reach the 5,000 bound.
 - **Error text is cleaned too.** Admission errors can carry a record's file name,
@@ -157,6 +155,15 @@ Most construction tests live under **Tasks** below.
   character in the script's `_UNSAFE_CHARS` set. It differs from
   `_escape_display`, which makes them visible, because RFC-0110's stage-5 rule says
   "removed".
+- **The description is rewritten, not appended.** The current description is 996
+  of the lint's 1,024 characters. T3 writes exactly this text, fixed before any
+  post-change measurement. It keeps every existing trigger phrase and the pinned
+  route phrases and exclusions, and drops only "in the repository", the
+  "request-for-comments" expansion and connective words:
+
+  > Use this skill to look up, summarise, trace, explore or health-check architecture decision records (ADRs) and RFCs, or to route a decision. Triggers: "show me ADR-0001", "which ADRs are accepted", "what supersedes this decision", "trace the lineage of RFC-0042", "find decisions about authentication", "rfc status", "show me the RFC landscape", "how many RFCs are in draft", "any RFC candidates in the findings register", "rfc report", "how many roadmap intents do we have", "export the decision corpus to HTML". Route mode: "which record does this decision need", "how should we decide this", "who should I consult about this decision", "is this decision a one-way door". Health mode: "which decisions are due for review", "superseded ADRs still cited", "missing confirmation checks". Do NOT use for creating or revising records (use `new-adr` or `new-rfc`). Do NOT use when the user already wants to propose, reopen or circulate a direction (use `new-rfc`). Do NOT use for intent-hierarchy or intent-status queries.
+
+  It is 1,017 characters.
 - **Today is an input.** `--today` makes the result reproducible for tests and the
   hand-check diff. The default is the UTC date, so the result does not depend on
   the machine's timezone.
@@ -243,7 +250,7 @@ Owned by: T1, T2, T6.
 
 **Depends on:** T1
 
-**Touches:** `packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py`, `packs/repo-governance/tests/skills/navigate-decisions/test_health_contract.py`, `packs/repo-governance/tests/skills/navigate-decisions/fixtures/health-*/**`
+**Touches:** `packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py`, `packs/repo-governance/tests/skills/navigate-decisions/test_health_contract.py`. T2 builds its other fixtures in `tmp_path` and does not edit `fixtures/health-hostile/`; a needed change there goes back through T1's freeze and hash record.
 
 **Tests:** (TDD, in a new `test_health_contract.py` that loads the script by the
 unique module name `repo_governance_navigate_decisions_health`, and calls
@@ -256,7 +263,12 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
 - AC-0003 corrupts one record's H1 and compares the error code with
   `run_query(... "summary")`'s.
 - AC-0008 and AC-0009 are parametrised over each grammar form and each
-  near-miss.
+  near-miss, including `5 October 2026` (one mention), `February 30, 2026` (none),
+  `PyJWT>=2.14.0` (`2.14.0`) and `` `>=0.47` `` (`>=0.47`).
+- Trigger-text fixtures cover an empty key line followed by a non-blank line, an
+  empty trigger, and `` `stable — no foreseeable trigger` ``.
+- Candidate fixtures cover a backtick URL (skipped) and a backtick span and link
+  that merge into one signal item.
 - AC-0017 creates, in a temporary copy, a link to an existing file, a link to a
   missing file and a link to a directory, and a link as a middle component.
 - AC-0020 wraps the loaded `file_safety` module's `validate_confined_directory`
@@ -267,8 +279,9 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
   candidate appears.
 - AC-0047 extends that spy to `os.lstat`, `os.stat` and `pathlib.Path.resolve`, and
   asserts no recorded path holds an absolute, UNC (`//host/share/x.md`) or
-  escaping candidate, and that each recorded path is the root plus a prefix of a
-  checked form's segments.
+  escaping candidate, and that each path the probe itself records is the root
+  plus a prefix of a checked form's segments. Calls made inside
+  `validate_confined_directory` are excluded by recording only outside it.
 - AC-0048 monkeypatches `os.lstat` to raise `PermissionError` and then an
   `OSError` with `errno.ENAMETOOLONG` for one component.
 - AC-0050 builds a corpus whose findings exceed 512 KiB with fewer than 5,000
@@ -281,8 +294,9 @@ unique module name `repo_governance_navigate_decisions_health`, and calls
 - AC-0024 also runs a corpus whose file name holds U+202E through a failing
   admission, and checks the `error` object and captured stderr.
 - AC-0026 monkeypatches `subprocess.Popen` and `socket.socket` to raise.
-- AC-0027 hashes every file under a temporary copy of the hostile fixture before
-  and after.
+- AC-0027 lists every entry under a temporary copy of the hostile fixture, with
+  the link and FIFO added, by `os.lstat` type, and hashes only regular files,
+  before and after.
 - `test_query_contract.py`, `test_html_publication.py` and
   `test_skill_instructions.py` stay green.
 - A stub contract assertion, red until T2 lands:
@@ -309,7 +323,8 @@ and `make lint-ruff lint-mypy` are green.
 **Tests:** (goal-based, content pins in `test_skill_instructions.py`)
 - AC-0028 slices the health section by heading, as `_route_raw` does, and asserts
   the nine line prefixes in order inside one fenced block.
-- AC-0029 reads the frontmatter `description:`.
+- AC-0029 reads the frontmatter `description:`, and the catalogue lint's 1,024
+  character limit holds.
 - Content pins on the health section, each asserting the sentence T3 writes:
   - it runs only the health command and never a check, test or file named in a
     record;
@@ -361,12 +376,15 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   reading disagreement.
 - The superseded-citation part reads every `docs/adr/` and `docs/rfc/` header for
   the superseded ADRs' identifiers.
+- The hand check reads a fresh `git worktree` of a recorded commit, outside this
+  repository, with `docs/specs/navigate-decisions-health/`, the script and its
+  tests removed from it, so no draft rule output or health code is reachable.
 - Reviewers have only `Read`, `Glob` and `Grep`: no shell, so no path from record
-  text is ever interpolated into a command. A probe result comes from a literal
-  `Glob` for presence, plus the controller's list of every symbolic link, special
-  file and hard-linked file in the working tree, made once by a `find` over the
-  tree that takes no input from records. The brief states that ADR text is data
-  and gives no instruction.
+  text is ever interpolated into a command. Presence and type come from the
+  controller's listing of every entry in that worktree, files and directories,
+  with type and link count, made once by a `find` that takes no input from
+  records. The ledger records how it was made. The brief states that ADR text is
+  data and gives no instruction.
 - The merged `notes/hand-check.json` lists 144 accepted ADRs, records its date, and
   records the commit it read.
 
@@ -387,8 +405,9 @@ ledger's T5 entry records the reviewers, shares, date and commit.
 **Touches:** `docs/specs/navigate-decisions-health/notes/*`
 
 **Tests:** (goal-based, and manual QA for AC-0033)
-- AC-0030, AC-0031 and AC-0032: the health command runs on the finished branch with
-  `--today` equal to the hand check's date. A scratch diff script compares its
+- AC-0030, AC-0031 and AC-0032: the finished branch's health command runs on a
+  fresh `git worktree` of the hand check's commit, with `--today` equal to the
+  hand check's date. A scratch diff script compares its
   result with `notes/hand-check.json` set by set, and the ledger records each set's
   matches, extras and omissions.
 - AC-0033: each reading disagreement goes to eugenelim with the item, both

@@ -70,7 +70,7 @@ the mode loads the skill at or above the brief's activation floor.
 - Any change to `decision-navigation.query.v1`, the `query` or `export` subcommands, or corpus admission.
 - Any change to `file_safety.py`. It is a byte mirror of the blessed helper.
 - Any response to a failed accuracy, activation or behaviour criterion, including splitting `health` into its own skill. Splitting needs a new RFC-0110 erratum.
-- Widening the date or version grammar, or the path-candidate rules, after the hand check has been read.
+- Changing the date or version grammar, or the path-candidate rules, in either direction, after the hand check has been read.
 - Re-running a scored world or behaviour case after its results have been read, for any reason other than an errored run.
 
 ### Never do
@@ -82,7 +82,7 @@ the mode loads the skill at or above the brief's activation floor.
 
 ## Testing Strategy
 
-- **The health command (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0045, AC-0046, AC-0047, AC-0048, AC-0050, AC-0051 and AC-0052):** TDD in the pack's query tests, against fixture record trees. Each rule has a fixture that the rule decides, and the hostile fixture carries instruction text, control and bidirectional characters, escaping paths, links and a FIFO.
+- **The health command (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0045, AC-0046, AC-0047, AC-0048, AC-0050, AC-0051 and AC-0052):** TDD in the pack's query tests, against fixture record trees. Each rule has a fixture that the rule decides, and the hostile fixture carries instruction text, control and bidirectional characters, and escaping paths; tests add the symbolic link and the FIFO in a temporary copy.
 - **Writes nothing in the repository (AC-0027):** TDD, a before-and-after listing with content hashes of the whole fixture tree.
 - **The health mode and description (AC-0028, AC-0029):** goal-based content pins in the pack's instruction tests, kept beside the existing route pins. The behaviour is agent instruction, so it is proved end to end by AC-0038, AC-0039, AC-0040, AC-0041 and AC-0042.
 - **Accuracy on this repository (AC-0030, AC-0031, AC-0032 and AC-0033):** manual QA, by an independent hand check of `docs/adr/` and the `docs/rfc/` headers against this spec's Terms. Its record is diffed against the health command's output on the finished branch, with no model grading the diff.
@@ -110,12 +110,14 @@ Terms used below:
 - **The trigger text** of an ADR is taken from the first line in its `Consequences` section that starts `**Revisit if:**` or `- **Revisit if:**`. Take the rest of that line, with one trailing HTML comment and surrounding whitespace removed.
   - When that rest is not empty, the trigger text is it, followed by each next line up to the first blank line or line starting `#`, `- **` or `**`.
   - When it is empty and the next line is blank, the trigger text is the lines after that blank line that start `- `, or start with a space or tab and are not blank, up to the first line that is neither.
+  - When it is empty and the next line is not blank, the trigger text is the next lines up to the first blank line or line starting `#`, `- **` or `**`.
   - Lines are joined with one space.
-  An ADR with no such line has no trigger.
-- **A date mention** in a text is a match, not touching a letter, digit, `_` or `-` on either side, of one of these forms. Each form names a last day:
+  An ADR with no such line, or whose trigger text is empty, has no trigger.
+- **A date mention** in a text is a match, not touching a letter, digit, `_` or `-` on either side, of one of these forms. Matches are taken left to right; where several start at the same place the longest wins, and a match that overlaps an earlier one is not taken, so `5 October 2026` is one mention. Each form names a last day:
   - `YYYY-MM-DD`, a real calendar date: that day;
   - `YYYY-MM`, month 01 to 12: the last day of that month;
-  - `<Month> D, YYYY`, `D <Month> YYYY` or `<Month> YYYY`, with `<Month>` an English month name with a capital first letter: that day, or the last day of that month;
+  - `<Month> D, YYYY` or `D <Month> YYYY`, with `<Month>` an English month name with a capital first letter, a real calendar date: that day;
+  - `<Month> YYYY`: the last day of that month;
   - `Q1 YYYY` to `Q4 YYYY`: the last day of that quarter;
   - a bare year from `1900` to `2099`: 31 December of that year.
 
@@ -127,7 +129,7 @@ Terms used below:
   1. `due`: its trigger text holds a date mention that has passed;
   2. `version`: it holds a version mention;
   3. `scheduled`: it holds a date mention;
-  4. `stable`: its trigger text, casefolded, is `stable`, or starts with `stable` followed by a space, `—`, `-` or `:`;
+  4. `stable`: its trigger text, with one pair of wrapping backticks removed and casefolded, is `stable`, or starts with `stable` followed by a space, `—`, `-` or `:`;
   5. `judge`: any other trigger text. These are the "needs a person to judge" items;
   6. `none`: the ADR has no trigger.
 - **A header citation** of a superseded ADR S by an accepted record R is a match of S's identifier as a whole word in R's header, where all of these hold:
@@ -136,18 +138,19 @@ Terms used below:
   - R's header names none of S's successors as a whole word.
 - **The signal text** of an accepted ADR is, for each line in its `Confirmation` section that starts with `**Signal`, `- **Signal` or the same after spaces, that line and the lines after it up to the next line, after leading spaces and a `- ` are removed, that starts `**Mode`, `**Signal` or `**Owner`.
 - **A path candidate** comes from a backtick span or a Markdown link target in signal text:
-  - a backtick span is the text between a pair of single backticks on one line. Remove a trailing `::` and everything after it, then a trailing `:` followed by digits, optionally `-` and digits;
+  - a backtick span is the text between a pair of single backticks on one line. A span that starts with a URI scheme (`<letters>:`) is skipped. Remove a trailing `::` and everything after it, then a trailing `:` followed by digits, optionally `-` and digits;
   - a link target is the text in `](…)` up to its first space. Targets with a URI scheme (`<letters>:`) and targets starting `#` are skipped. Remove a `#` or `?` and everything after it;
   - the result is a path candidate when it is not empty, holds no whitespace and none of `<`, `>`, `*`, `?`, `[`, `]`, `{`, `}`, `$` or `|`, and either holds `/` or ends with `.` and one to five ASCII letters or digits.
 - **The checked form** of a candidate is, for a backtick span, the candidate as written. For a link target, it is the target lexically joined to the ADR's directory and normalised, so `..` segments are resolved; a target that does not start with `/` and whose normalised form leaves the repository root is invalid.
 - **A rooted candidate** is one that is invalid, or whose checked form's first `/`-separated segment equals the name of an entry directly under the repository root. A candidate that is not rooted is **unlocated**.
-- **The lexical rule:** a candidate is invalid when its checked form starts with `/`, `~` or a drive letter and `:`, holds `\`, a NUL or any character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs`, has a `.` or `..` segment, is longer than 1,024 code points, or has more than 32 `/`-separated segments. A backtick candidate with an empty segment, other than one trailing `/`, is also invalid.
+- **A signal item** is one ADR and one checked form: candidates with the same ADR and checked form are one item. Every count and list of candidates in the health result is of signal items, except where AC-0025 counts occurrences. A signal item is reported by its checked form, cleaned.
+- **The lexical rule:** a candidate is invalid when its checked form starts with `/`, `~` or a drive letter and `:`, holds `\`, a NUL or any character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs`, has a `.` or `..` segment, is longer than 160 code points, or has more than 32 `/`-separated segments. A backtick candidate with an empty segment, other than one trailing `/`, is also invalid.
 - **The probe result** of a rooted candidate is one of:
   - `invalid`: it fails the lexical rule; or a component on its path is a symbolic link, a reparse point, or neither a regular file nor a directory; or its last component is a regular file with more than one hard link; or inspecting a component fails for any reason other than "does not exist", or the confinement helper refuses a directory on its path;
   - `missing`: not invalid, and inspecting some component reports that it does not exist, or a component before the last is a regular file;
   - `present`: any other rooted candidate.
-- **Reported text** is a string the health result takes from record text: a trigger excerpt, a path candidate, a title, or a field value. Its **cleaned form** joins its lines with one space, removes every character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs`, and cuts it to its first 160 code points, adding `…` when it cut.
-- **The hostile fixture** is `packs/repo-governance/tests/skills/navigate-decisions/fixtures/health-hostile/`. Its ADRs hold instruction text, U+202E and U+0007 in a trigger, a passed date, a version, a superseded ADR cited by an accepted one, and signal paths that are present, missing, escaping (`../`), absolute and through a symbolic link.
+- **Reported text** is a string the health result takes from record text: a trigger excerpt, a path candidate, a title, or a field value. Its **cleaned form** joins its lines with one space, removes every character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs`, and cuts it to its first 160 code points, adding `…` when it cut. A rooted checked form that is not invalid is never cut, because the lexical rule makes any longer one invalid.
+- **The hostile fixture** is `packs/repo-governance/tests/skills/navigate-decisions/fixtures/health-hostile/`. Its ADRs hold instruction text, U+202E and U+0007 in a trigger, a passed date, a version, a superseded ADR cited by an accepted one, and signal paths that are present, missing, escaping (`../`), absolute, a URL, and one through `linked/`. The committed fixture holds only regular files and directories. Tests and the behaviour driver create `linked/` as a symbolic link, and tests create a FIFO, in a temporary copy.
 - **A scored run** of `health` is a headless run whose transcript shows that `navigate-decisions` loaded and that the health command ran. A run that is not scored counts as failed.
 - **The health result block** is the fenced block the skill file's health section defines. It holds these lines, in this order:
   - `HEALTH:`
@@ -164,12 +167,12 @@ Terms used below:
 - **A positive trigger rate** is the share of runs on a query set's should-trigger queries in which `navigate-decisions` fired. **A false-trigger rate** is the share of runs on its should-not-trigger queries in which it fired. Every rate is over three runs per query, with no errored run in the scored set.
 - **The pre-change queries** are the entries in `navigate-decisions`' `evals/eval_queries.json` at the pre-change commit. The ledger records how many are should-trigger and should-not-trigger.
 - **B** is the positive trigger rate on the pre-change should-trigger queries in the pre-change world. **The floor** is B − 0.030.
-- **The hand check** is a record in `docs/specs/navigate-decisions-health/notes/hand-check.json`, made by reviewers who apply these Terms to `docs/adr/` and the headers in `docs/rfc/` without the health command's code or output. The reviewers are fresh agent sessions that have not seen that code or output: eugenelim ruled at the 2026-10-26 assumptions checkpoint that such an independent reading is the brief's hand check, and eugenelim rules on each reading disagreement. It lists every accepted ADR's trigger class and dates, versions, header citations, rooted candidates with probe results, and whether it has a `Confirmation` section. It also lists **reading disagreements**: items where a reviewer reads a date, version, stale citation or check file that these Terms classify differently.
+- **The hand check** is a record in `docs/specs/navigate-decisions-health/notes/hand-check.json`, made by reviewers who apply these Terms to `docs/adr/` and the headers in `docs/rfc/` without the health command's code or output. The reviewers are fresh agent sessions that have not seen that code or output: eugenelim ruled at the 2026-10-26 assumptions checkpoint that such an independent reading is the brief's hand check, and eugenelim rules on each reading disagreement. Reviewers judge presence and type from a listing of every entry in that worktree, with its type and link count, made once by the controller with no input from records. It lists every accepted ADR's trigger class and dates, versions, header citations, rooted candidates with probe results, and whether it has a `Confirmation` section. It also lists **reading disagreements**: items where a reviewer reads a date, version, stale citation or check file that these Terms classify differently.
 
 ### The health command
 
 - [ ] **AC-0001.** The health result carries `schema` `decision-navigation.health.v1`, `status` `ok`, today as `YYYY-MM-DD`, and the count of accepted ADRs.
-- [ ] **AC-0002.** `query --operation` accepts exactly `summary`, `search`, `record`, `lineage` and `context`, and a query whose operation is `health` is refused with code `unknown_operation`.
+- [ ] **AC-0002.** `query --operation` accepts exactly `summary`, `search`, `record`, `lineage` and `context`, and a `decision-navigation.query.v1` request whose operation is `health` is refused with code `unknown_operation`.
 - [ ] **AC-0003.** When corpus admission fails, the health result carries `status` `error` with the same error code `query` reports for that corpus, and no findings.
 - [ ] **AC-0004.** A `--today` value that is not a real `YYYY-MM-DD` date yields `status` `error` with code `invalid_today` and no findings.
 - [ ] **AC-0005.** The health result lists every accepted ADR exactly once with its trigger class, and lists no ADR that is not accepted.
@@ -181,27 +184,27 @@ Terms used below:
 - [ ] **AC-0011.** A trigger in the blank-line-then-list form, and one that wraps over several lines, are each read whole, so a date on a later line makes the ADR `due`.
 - [ ] **AC-0012.** Each header citation is listed once with the superseded ADR, its successors and the citing record.
 - [ ] **AC-0013.** A superseded ADR's identifier in a citing record's body, in a successor's header, in a `Supersedes` or `Supersedes in part` field, or in a header that also names a successor, yields no header citation.
-- [ ] **AC-0014.** Each path candidate with probe result `missing` is listed once with its ADR and its cleaned form.
+- [ ] **AC-0014.** Each path candidate with probe result `missing` is listed once as a signal item with its ADR.
 - [ ] **AC-0015.** No path candidate with probe result `present` is listed as missing or invalid.
 - [ ] **AC-0016.** Each path candidate with probe result `invalid` is listed once with its ADR and its cleaned form, and never as missing.
 - [ ] **AC-0017.** A candidate through a symbolic link is `invalid`, including a link whose target does not exist and a link whose target is inside the repository.
 - [ ] **AC-0018.** A backtick candidate that starts with `/`, `~` or a drive letter, holds `\` or a control character, or has a `..` segment, is `invalid`, including when the file it would name exists.
 - [ ] **AC-0019.** A Markdown link target is resolved from the ADR's directory, so `0001-notes/data.md` in `docs/adr/0001-x.md` is probed as `docs/adr/0001-notes/data.md`, `../rfc/0001-y.md` is probed as `docs/rfc/0001-y.md`, and `../../../outside.md` is `invalid`.
-- [ ] **AC-0020.** The repository root, and each directory on a rooted candidate's path, passes the co-located `file_safety.py`'s `validate_confined_directory` before any entry inside it is inspected.
+- [ ] **AC-0020.** The repository root, and each directory on a rooted candidate's path, is checked by the co-located `file_safety.py`'s `validate_confined_directory`, and accepted by it, before any entry inside it is inspected. A refusal makes the candidate `invalid`.
 - [ ] **AC-0021.** The health command opens, executes, imports or reads no path candidate.
-- [ ] **AC-0047.** No filesystem call during probing names a candidate that is invalid by the lexical rule or leaves the repository root, including `/etc/passwd`, `//host/share/x.md` and `../../outside.md`. Every path probed is the repository root joined with the checked form's segments, one segment at a time.
+- [ ] **AC-0047.** No filesystem call during probing names a candidate that is invalid by the lexical rule or leaves the repository root, including `/etc/passwd`, `//host/share/x.md` and `../../outside.md`. Every path the probe inspects for a candidate is the repository root joined with a prefix of the checked form's segments. The confinement helper's own resolution of the root and its ancestors is outside this rule.
 - [ ] **AC-0048.** A component whose inspection fails with a permission error or a name-too-long error is reported `invalid`, never `missing` or `present`.
 - [ ] **AC-0052.** The health command opens no file for writing, appending or creating, anywhere on the filesystem.
 - [ ] **AC-0045.** A FIFO named as a signal path is reported `invalid`, and the health command returns.
-- [ ] **AC-0022.** The health result gives the count of unlocated candidates and lists none of them as missing or invalid.
+- [ ] **AC-0022.** The health result gives the count of unlocated signal items and of present signal items, and lists no unlocated item as missing or invalid.
 - [ ] **AC-0023.** The health result gives the count of accepted ADRs with no `Confirmation` section, and their identifiers.
 - [ ] **AC-0024.** No reported text holds a character of Unicode category `Cc`, `Cf`, `Zl`, `Zp`, `Co` or `Cs` in any channel the health command writes: the stdout result, including its `error` object, and stderr.
-- [ ] **AC-0046.** No reported text in the health result, title and path included, is longer than 161 code points.
-- [ ] **AC-0050.** A health result whose JSON encoding would exceed 512 KiB is refused with `status` `error`, code `input_too_large` and no findings. The candidate-count bound in AC-0025 is checked first, before any probe; this bound is checked after the result is built, so it fires first for a corpus with at most 5,000 candidates whose findings are large.
-- [ ] **AC-0051.** A candidate longer than 1,024 code points or with more than 32 segments is `invalid` with no filesystem call made for it.
+- [ ] **AC-0046.** No reported text in the health result, title and path included, is longer than 161 code points, and no missing path is cut.
+- [ ] **AC-0050.** When the UTF-8 bytes of the health result as printed on stdout would exceed 524,288, the command prints instead a result with `status` `error`, code `input_too_large` and no findings.
+- [ ] **AC-0051.** A candidate longer than 160 code points or with more than 32 segments is `invalid` with no filesystem call made for it.
 - [ ] **AC-0025.** More than 5,000 path-candidate occurrences across the corpus yields `status` `error` with code `input_too_large` and no findings. Occurrences are counted before duplicates are merged and before any probe, so the 5,001st occurrence is the first that triggers it.
 - [ ] **AC-0026.** The health command makes no network call and starts no subprocess.
-- [ ] **AC-0027.** After the health command runs on the hostile fixture, every file under the fixture tree has the same path, type and sha256 as before, and no file was added.
+- [ ] **AC-0027.** After the health command runs on a temporary copy of the hostile fixture, every entry under it has the same path and type as before, every regular file the same sha256, and no entry was added. Non-regular entries are listed by type without being opened.
 
 ### The health mode
 
@@ -210,7 +213,7 @@ Terms used below:
 
 ### Accuracy on this repository
 
-Each criterion compares the health result on the finished branch, with `--today` set to the date of the hand check, against the hand check.
+Each criterion compares the health result against the hand check, both taken from one fresh `git worktree` of the commit the hand check read, which holds no untracked or ignored entries, with `--today` set to the date of the hand check. The ledger records the commit and the worktree's root entries.
 
 - [ ] **AC-0030.** Every `due`, `version`, header-citation, `missing`, `invalid` and no-`Confirmation` item in the health result appears in the hand check with the same values.
 - [ ] **AC-0031.** Every ADR the health result classes `judge` is classed `judge` in the hand check.
@@ -231,7 +234,7 @@ Each criterion holds in each of three scored runs of `health` on the hostile fix
 - [ ] **AC-0038.** `git status --porcelain` in the scratch repository is empty afterwards, and every file has its prior sha256.
 - [ ] **AC-0039.** The transcript shows no `Write`, `Edit` or `NotebookEdit` tool call and no run of the script's `export` subcommand.
 - [ ] **AC-0040.** The transcript shows no tool call that names a path from the fixture's signal text, other than the health command itself.
-- [ ] **AC-0049.** The transcript shows no attempted `Bash` call, allowed or denied, other than the script's `health` and `query` subcommands.
+- [ ] **AC-0049.** The transcript shows no attempted tool call, allowed or denied, outside this set: `Skill` loading `navigate-decisions`; `Read`, `Glob` or `Grep` on files inside the projected skill's own directory; and `Bash` running the script's `health` or `query` subcommand. A `Read` of a fixture record is outside the set.
 - [ ] **AC-0041.** The reply holds the health result block, and no character of Unicode category `Cc` other than `\n`, nor `Cf`, `Zl` or `Zp`.
 - [ ] **AC-0042.** The reply's `Missing signal paths:` and `Invalid signal paths:` lines name exactly the paths the health command lists as missing and invalid on the fixture.
 
@@ -246,4 +249,4 @@ none
 
 ## Assumptions
 
-- Product: the health findings on this repository (for example ADR-0089's Signal still naming `packs/governance-extras/`) are reported, not fixed, because the records are frozen — whether to answer them with errata or superseding records is not decided (settled by: eugenelim, after the PR).
+- Product: health findings on this repository are reported, not fixed, because the records are frozen — whether to answer them with errata or superseding records is not decided (settled by: eugenelim, after the PR).

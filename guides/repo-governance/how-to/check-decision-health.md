@@ -38,7 +38,7 @@ HEALTH:
 - **Versions to compare** name a version, such as `1.0` or `v2`. The agent cannot tell offline whether that version has shipped, so you compare it.
 - **Superseded still cited** lists accepted records whose header still points to a superseded ADR without naming the ADR that replaced it.
 - **Missing signal paths** are files or folders that an ADR's `Confirmation` signal names and the repository does not have.
-- **Invalid signal paths** are paths the agent refused to look at, because they leave the repository or pass through a link. That is not the same as missing.
+- **Invalid signal paths** are paths the agent refused to look at, because they leave the repository, pass through a link, or are too long. That is not the same as missing.
 - **No Confirmation** counts accepted ADRs with no `Confirmation` section.
 - **Needs a person to judge** lists the remaining `Revisit if:` lines. They name no date or version, so only a reader can say whether they have come true.
 
