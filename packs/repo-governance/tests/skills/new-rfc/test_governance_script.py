@@ -1271,3 +1271,9 @@ def test_ac_0106_very_long_after_line_is_a_refusal(
                       *extra, stdin=LINK.encode())
         assert result.code == 3 and result.refusal == "bad-line-number"
         assert result.err == ""
+
+
+def test_ac_0031_arguments_decoded_by_a_non_utf8_locale_are_recovered() -> None:
+    escaped = b"ok \xc3\xa9".decode("ascii", "surrogateescape")
+    assert GOV._utf8_argv(["--approved-by", escaped]) == ["--approved-by", "ok é"]
+    assert GOV._utf8_argv(["plain"]) == ["plain"]

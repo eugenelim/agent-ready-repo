@@ -696,5 +696,16 @@ class _BytesStdin:
         return self._data if size < 0 else self._data[:size]
 
 
+def _utf8_argv(raw: list[str]) -> list[str]:
+    """Recover UTF-8 arguments that a non-UTF-8 locale decoded with surrogate escapes."""
+    recovered = []
+    for arg in raw:
+        try:
+            recovered.append(os.fsencode(arg).decode("utf-8"))
+        except UnicodeDecodeError:
+            recovered.append(arg)
+    return recovered
+
+
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main(_utf8_argv(sys.argv[1:])))
