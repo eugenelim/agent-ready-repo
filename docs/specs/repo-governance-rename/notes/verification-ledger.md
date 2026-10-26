@@ -39,3 +39,25 @@ The sentences appear because the fixture recorded both packs from `pre`, not fro
 reporting catalogue. The integration suite
 `packages/agentbundle/tests/integration/test_rename_hint_cli.py` covers the same-source
 case on the local-path, git and release-archive shapes.
+
+## T6 / AC-0024, AC-0029, AC-0032: observed end-to-end steps and seed survival
+
+Run on macOS on 2026-10-25 against throwaway fixture catalogues (local paths): `governance-extras` 1.0.3 and
+`iac-terraform` 0.1.12 installed for `claude-code` from `pre`, `docs/adr/README.md` edited by hand,
+then the hint from `upgrade --pack governance-extras --scope repo --root <repo> post` was run step by step
+with `--yes` and no `--force`. Both fixture packs ship a `seeds/docs/adr/README.md`. Paths below use `<tmp>`.
+
+```
+1. agentbundle uninstall --pack governance-extras --scope repo --root <tmp>/repo
+   -> exit 0: uninstall: 2 removed, 1 kept
+              uninstall: keeping adopter-edited file: docs/adr/README.md
+2. agentbundle install --pack repo-governance --scope repo --adapter claude-code --output <tmp>/repo <tmp>/post
+   -> exit 0: installed: repo-governance @ repo via claude-code
+              install: delivered 1 seed(s) for pack repo-governance; 1 collided with your edits and were kept as *.upstream.<ext> companions
+3. agentbundle upgrade --pack iac-terraform --scope repo --root <tmp>/repo <tmp>/post
+   -> exit 0: upgraded: iac-terraform @ repo 0.1.12 -> 0.2.0
+```
+
+Seed survival: the Plan's risk did not occur. The uninstall keeps an adopter-edited seed, and the reinstall
+leaves it untouched and writes the shipped text beside it as `docs/adr/README.upstream.md`. The edited
+`README.md` still read `ADOPTER EDIT` after step 3. `test_recorded_pre_rename_archive_migrates` asserts both files.
