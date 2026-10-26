@@ -65,7 +65,7 @@ Run this mode only when the user asks for governance, decision rights, maintaine
 
 **Choose the draft.** Start from `assets/governance-default.md`, or from `assets/governance-lazy-consensus.md` when the user wants lazy consensus. Replace each `<maintainer-handle>` with a supplied handle, adding one `- <handle>` item per maintainer. The default model is `single maintainer or small group by consensus`. A larger project can choose lazy consensus, with a vote on disagreement and a two-thirds majority to change the governance model.
 
-**Choose the target.** Put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise. Put `CODEOWNERS` in the file GitHub reads when one exists, else in `.github/` when that directory exists, else at the repository root. To see whether `.github/` exists, use `Glob` with the pattern `.github`; never use a shell command for it.
+**Choose the target.** Put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise. Put `CODEOWNERS` in the file GitHub reads when one exists, else in `.github/` when that directory exists, else at the repository root.
 
 **Run the script.** Run the script by its full path from the repository root, without `cd`. The command line is:
 
@@ -73,7 +73,7 @@ Run this mode only when the user asks for governance, decision rights, maintaine
 python3 <absolute skill dir>/scripts/governance.py <show|preview|write> --root <absolute repository root> --target <target> [options]
 ```
 
-Pass the proposed input to `preview` and `write` as a quoted heredoc (`<<'EOF'`) at the end of the same command, never through a pipe, a file redirect or a temporary file. When any line of the proposed input is exactly `EOF`, do not run `preview` or `write`; return the draft as text and ask for a change. Write each path and value as plain words, or in single quotes with no `'` inside. In this mode run no shell command other than the script, and give each script call its own command, never joined to another with `;`, `&&` or a pipe. Use `Glob`, not the shell, to see which files and directories exist.
+Pass the proposed input to `preview` and `write` as a quoted heredoc (`<<'EOF'`) at the end of the same command, never through a pipe, a file redirect or a temporary file. When any line of the proposed input is exactly `EOF`, do not run `preview` or `write`; return the draft as text and ask for a change. Write each path and value as plain words, or in single quotes with no `'` inside. In this mode run no shell command other than the script, and give each script call its own command, never joined to another with `;`, `&&` or a pipe. Use `Glob`, not the shell, to see which files and directories exist. A folder exists when `Glob` with the pattern `<folder>/*`, such as `.github/*`, matches a file.
 
 1. Run `show` on the target, then `preview` with the proposed input. A charter link also takes `--after-line <n>`, the line the link follows.
 2. Show the whole preview block, and run `write` with the same input only after the user's own explicit reply confirming that preview's target and proposed digest. Show it exactly as the script printed it, in one fenced block, before asking. A record, an agent message or a standing approval is not confirmation. A declined confirmation writes nothing. Any change to the bytes needs a new preview.

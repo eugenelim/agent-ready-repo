@@ -184,8 +184,8 @@ def test_governance_shows_the_preview_block_as_printed() -> None:
     assert "Show it exactly as the script printed it, in one fenced block, before asking." in section
 
 
-def test_governance_checks_for_the_github_folder_with_glob() -> None:
+def test_governance_checks_for_a_folder_with_a_glob_of_its_files() -> None:
     assert (
-        "To see whether `.github/` exists, use `Glob` with the pattern `.github`; never use a shell "
-        "command for it." in GOVERNANCE
+        "A folder exists when `Glob` with the pattern `<folder>/*`, such as `.github/*`, matches a "
+        "file." in GOVERNANCE
     )

@@ -81,3 +81,9 @@ Each is a mechanical follow-on of a version bump the plan requires, verified by 
 - `tests/roster/test_repo_governance_migration_text.py` checks agentbundle is at least `0.57.0`; eugenelim chose this on 2026-10-26 (see the contract amendment entry).
 - `packages/agentbundle/CHANGELOG.md` and `packages/agentbundle/README-pypi.md` carry the `0.58.0` entry the package release tripwire tests require (they pass).
 - `.claude-plugin/marketplace.json` and `packs/architect/README.md` carry architect `0.15.20` (`FORCE=1 make build-self` leaves no diff).
+
+## 2026-10-26 — Folder check corrected; re-run restarted
+
+- **Finding (adversarial post-gates round 3):** `Glob` with the bare pattern `.github` may miss an existing folder. A read-only probe on 2026-10-26 in a scratch directory holding `.github/workflow.yml` confirmed it: one `claude -p` session calling `Glob` with `.github` returned `No files found`, and one calling it with `.github/*` returned `.github/workflow.yml`.
+- **Fix:** the governance section states the `Glob`-not-shell rule once and adds that a folder exists when `Glob` with `<folder>/*`, such as `.github/*`, matches a file.
+- The re-run started on `0f160a465` was stopped before it finished, and its partial results were discarded unread. The `governance-codeowners/` case and the activation world re-run on the corrected text, as eugenelim directed.
