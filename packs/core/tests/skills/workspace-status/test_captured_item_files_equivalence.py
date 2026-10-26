@@ -619,6 +619,17 @@ def test_reconciliation_never_reads_a_linked_record(
     assert not any(b"SECRET-EDGE" in chunk for chunk in reads)
 
 
+def _spelled(path: str, spelling: str) -> str:
+    """`path` under another spelling a filesystem may map onto the same file."""
+    directory, _, name = path.rpartition("/")
+    return {
+        "canonical": path,
+        "case-variant": "D" + path[1:],
+        "file-name-case": f"{directory}/{name.upper()}",
+        "trailing-dot": f"{directory}./{name}",
+    }[spelling]
+
+
 def _non_member_link_repo(
     tmp_path: Path, linked: str, spelling: str = "canonical"
 ) -> tuple[Path, str, Path]:
@@ -630,7 +641,7 @@ def _non_member_link_repo(
     filesystem.
     """
     path = _note_path("loose", True)
-    named = path if spelling == "canonical" else "D" + path[1:]
+    named = _spelled(path, spelling)
     cooled_path = _note_path("cooled-note")
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -654,7 +665,9 @@ def _non_member_link_repo(
 
 @pytest.mark.skipif(_RECORD, reason="recording")
 @pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
-@pytest.mark.parametrize("spelling", ["canonical", "case-variant"])
+@pytest.mark.parametrize(
+    "spelling", ["canonical", "case-variant", "file-name-case", "trailing-dot"]
+)
 def test_kind_lookup_never_reads_a_linked_non_member_file(
     tmp_path: Path, reads: list[bytes], linked: str, spelling: str
 ) -> None:
@@ -668,7 +681,9 @@ def test_kind_lookup_never_reads_a_linked_non_member_file(
 
 @pytest.mark.skipif(_RECORD, reason="recording")
 @pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
-@pytest.mark.parametrize("spelling", ["canonical", "case-variant"])
+@pytest.mark.parametrize(
+    "spelling", ["canonical", "case-variant", "file-name-case", "trailing-dot"]
+)
 def test_satisfaction_probe_never_reads_a_linked_non_member_file(
     tmp_path: Path, reads: list[bytes], linked: str, spelling: str
 ) -> None:
@@ -682,6 +697,28 @@ def test_satisfaction_probe_never_reads_a_linked_non_member_file(
     metadata = ENGINE._artifact_metadata({}, probe, repo, registered=False)
     assert metadata is not None and metadata.exists and not metadata.readable
     assert not any(b"SECRET-NON-MEMBER" in chunk for chunk in reads)
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize("spelling", ["case-variant", "file-name-case", "trailing-dot"])
+def test_a_cooled_captured_file_named_by_another_spelling_is_never_read(
+    tmp_path: Path, reads: list[bytes], spelling: str
+) -> None:
+    """Another spelling of a cooled captured-item file is refused, never opened."""
+    case = _dependent_case(
+        "cooled-captured", "defect", "Open", "backlog.open", "cooled-captured", False,
+        cooled=True, migrated=True,
+    )
+    path = case.depends_on
+    files = dict(case.files)
+    files[path] = files[path] + "- **Detail:** SECRET-COOLED\n"
+    _write_repo(tmp_path, dataclasses.replace(
+        case, files=files, depends_on=_spelled(path, spelling)
+    ))
+    reads.clear()
+    result = observe(tmp_path)
+    assert not any(b"SECRET-COOLED" in chunk for chunk in reads)
+    assert result["dispatchable"][WAITER] is False
 
 
 @pytest.mark.skipif(_RECORD, reason="recording")

@@ -2522,20 +2522,17 @@ def _artifact_metadata(
             return None
         if form == "migrated":
             return _captured_record_metadata(root, entry)
-    elif _names_captured_dir(entry.path):
-        # A probe of a file in the captured-item directory is a confined read too.
-        # Another spelling of the directory would reach the same file on a
-        # case-insensitive filesystem and miss the cooled check, so it is refused.
-        if not entry.path.startswith(f"{_CAPTURED_DIR}/"):
+    else:
+        # A probe of a file in the captured-item directory is a confined read
+        # too, and only under the file's exact name; any other spelling of it is
+        # refused, so the outcome does not depend on the filesystem.
+        spelling = _captured_dir_spelling(entry.path)
+        if spelling == "variant":
             return ArtifactMetadata(
                 path=entry.path, kind=entry.kind, status=None, exists=True, readable=False
             )
-        if _captured_membership_form(entry.path) == "migrated":
+        if spelling == "canonical":
             return _captured_record_metadata(root, entry)
-        if os.path.lexists(root / entry.path) and _migration_file_bytes(root, entry.path) is None:
-            return ArtifactMetadata(
-                path=entry.path, kind=entry.kind, status=None, exists=True, readable=False
-            )
     return _metadata_from_root(root, entry)
 
 
@@ -3331,9 +3328,20 @@ def build_resolution_index(
     )
 
 
-def _names_captured_dir(path: str) -> bool:
-    """Whether `path` lies in the captured-item directory under any letter case."""
-    return path.casefold().startswith(f"{_CAPTURED_DIR}/")
+def _captured_dir_spelling(path: str) -> str | None:
+    """How `path` names the captured-item directory, if it names it at all.
+
+    `canonical` is a captured-item file name directly in the directory, spelled
+    exactly. `variant` is any other path that a case-insensitive or
+    trailing-dot-dropping filesystem could map into the directory; it is
+    refused, because it would reach a captured file under a name the confined
+    reader and the cooled check do not compare. `None` is a path elsewhere.
+    """
+    folded = "/".join(part.rstrip(".").casefold() for part in path.split("/"))
+    if not folded.startswith(f"{_CAPTURED_DIR}/"):
+        return None
+    name = path[len(_CAPTURED_DIR) + 1:] if path.startswith(f"{_CAPTURED_DIR}/") else ""
+    return "canonical" if _CAPTURED_FILE_RE.fullmatch(name) else "variant"
 
 
 def _is_captured_item_reference(item: str) -> bool:
@@ -3785,6 +3793,11 @@ def _resolve_header_item(
     member_kind = membership_kinds.get(item)
     if member_kind:
         return (member_kind, item, ""), None
+    spelling = _captured_dir_spelling(item)
+    if spelling == "variant":
+        return None, _header_finding(
+            "unreadable_artifact", waiting_path, "captured item unreadable", item
+        )
     captured_file = _confined_artifact_path(root, item)
     if captured_file is None:
         return ("", item, ""), None
@@ -3798,14 +3811,9 @@ def _resolve_header_item(
     kind = ""
     if captured_file not in cooled:
         try:
-            if _names_captured_dir(item):
-                # A file in the captured-item directory is read only as a confined
-                # file, and only under the directory's own spelling.
-                content = (
-                    _migration_file_bytes(root, item)
-                    if item.startswith(f"{_CAPTURED_DIR}/")
-                    else None
-                )
+            if spelling == "canonical":
+                # A captured-item file is read only as a confined file.
+                content = _migration_file_bytes(root, item)
                 if content is None:
                     raise OSError(item)
                 text = content.decode("utf-8", errors="replace")
