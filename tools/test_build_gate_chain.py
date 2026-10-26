@@ -924,6 +924,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-lint-adapter-layer-boundary.py",
     "tools/lint-pack-dependency-declaration.py",
     "tools/test-lint-pack-dependency-declaration.py",
+    "tools/lint-pack-renames.py",
+    "tools/test-lint-pack-renames.py",
     "tools/lint-generated-path-ownership.py",
     "tools/test-lint-generated-path-ownership.py",
 ]
