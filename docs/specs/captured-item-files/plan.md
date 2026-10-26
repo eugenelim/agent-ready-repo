@@ -1,7 +1,7 @@
 # Plan: Captured items in their own files
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and D3; RFC-0105 D3; RFC-0103 D1; ADR-0053 D9; ADR-0074.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`: `_parse_preamble_fields`, `_iter_preamble_lines`, `_artifact_metadata`, `_append_lifecycle_findings`, `_dependency_is_satisfied`, `_resolve_header_item`, `build_resolution_index`, `_confined_artifact_path`, `check_shaping_guard`, and `run_canonical_reconciliation`.
@@ -239,3 +239,6 @@ Owned by: T2
 - **Assigned slugs read oddly for shared files.** `agentbundle`, `loop-cohort`, and `manifest-example` name a defect by the file it was filed against. The owner sees every slug in the plan, and a later rename is a hand edit of one file and one `path`.
 
 ## Changelog
+
+- 2026-10-26: spec approved by eugenelim
+- 2026-10-26: plan approved by eugenelim

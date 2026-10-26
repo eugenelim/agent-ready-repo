@@ -2672,6 +2672,12 @@ consumer = "Depends on: header edges on the waiting item, the unmigrated needs r
 owner = 2
 
 [[row]]
+pattern = "docs/specs/captured-item-files/*"
+class = "contract"
+consumer = "captured items in their own files: the file shape and reader, the unmigrated captured-item refusal, and the captured-to-file repair"
+owner = 3
+
+[[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
 class = "contract"
 consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces"

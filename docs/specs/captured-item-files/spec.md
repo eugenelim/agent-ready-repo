@@ -1,6 +1,7 @@
 # Spec: Captured items in their own files
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-26 by eugenelim, spec and plan, after spec-stage shaping, adversarial, and security reviews over seven rounds ending clean; review records under `.context/reviews/captured-item-files-spec-20261026T0431/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, a captured item's own file with `Status:`, `Kind:`, and `Type:` lines and the migration's kind assignment; D1, the shaping-item guard's replacement and the rule that a writer stops only with its contract), RFC-0105 (D3, the behavioral-equivalence gate), RFC-0103 (D1, the typed `Parent intent:` reference), ADR-0053 (D9, OKR gaps routed to `frame-situation` by their `strategy` type), ADR-0074 (standard-library skill scripts)
