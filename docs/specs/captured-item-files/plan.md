@@ -226,6 +226,21 @@ Owned by: T2
 
 **Done when:** the amended check passes against this repository.
 
+### T9: Review corrections
+
+**Depends on:** T8
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0021, AC-0024, AC-0027, AC-0028, AC-0041, and the Always-do rules on confined reads and cooled bodies.
+- A directory flush that cannot open its directory is a no-op, so a registry replace or record create that has landed is never reported unapplied; a test forces the directory open to fail and asserts `applied: true`, the written registry, and the kept record.
+- A cooled membership's file names nothing, and the `dependency-headers-unread` and `deferral-anchors-unread` findings name each unread path; tests keep the cooled file readable and assert, through a read spy, that its bytes are never returned, and that a cooled membership no longer refuses other operations.
+- The linked-record tests point each symlink at an in-repository file carrying the marker, and fail on the code before the confined reads.
+- A dependency item naming a non-member file in `docs/product/captured/` is read only as a confined file, in the kind lookup and in the satisfaction probe; symlink and hard-link-to-cooled tests cover both paths.
+
+**Done when:** each test reds before its fix and passes after, and the GATES suites pass.
+
 ## Rollout
 
 - **Delivery:** one pull request. The reader, the refusal, the repair, the writers, and this repository's migration ship together, so no captured item is refused on a tree that has not been migrated.
@@ -244,3 +259,5 @@ Owned by: T2
 - 2026-10-26: plan approved by eugenelim
 - 2026-10-26: spec amendment approved by eugenelim (amendment 1: AC-0037's Case cell is cut at the first colon outside a code span)
 - 2026-10-26: plan amendment approved by eugenelim (amendment 1: no task change; T8 resumes)
+- 2026-10-26: spec amendment approved by eugenelim (amendment 2: AC-0021 gains the fail-closed refusals for unread deferral markers and unread dependency headers; a cooled membership's file names nothing)
+- 2026-10-26: plan amendment approved by eugenelim (amendment 2: T9 added for the review corrections)
