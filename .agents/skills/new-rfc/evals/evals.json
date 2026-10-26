@@ -184,6 +184,15 @@
         "Chooses the decision weight from the template's own light, standard and heavy definitions",
         "Lists follow-on work in the completion receipt instead of registering it in a queue"
       ]
+    },
+    {
+      "id": 14,
+      "prompt": "I am not sure whether this change needs an RFC, an ADR or nothing. Help me write it up.",
+      "expected_output": "Because the route is unclear, the skill points to `navigate-decisions route` to decide where the record belongs before drafting an RFC.",
+      "assertions": [
+        "Points to `navigate-decisions route` because the route is unclear",
+        "Does not start drafting the RFC before the route is settled"
+      ]
     }
   ]
 }
