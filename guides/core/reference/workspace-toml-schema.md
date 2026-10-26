@@ -80,7 +80,7 @@ fields plus a repository-relative `path`, a closed external `locator`, or both:
 | `kind` | string | `intent`, `research`, `design`, `brief`, `spec`, or `defect`. |
 | `source` | table | Minimal provenance used for display and reconciliation. |
 | `summary` | string | Non-empty display text. Non-semantic. |
-| `needs` | array | Typed hard dependencies. Empty when unblocked by other artifacts. |
+| `needs` | array | Must be empty (`[]`). A dependency edge lives in the waiting item's `Depends on:` header. A non-empty array is repair input only. |
 
 Unknown fields fail the target contract. Requirements, acceptance criteria,
 field ownership maps, source-decision history, credentials, and raw source
@@ -95,7 +95,7 @@ when untouched legacy prose remains elsewhere.
 | `path` and dependency paths | 1–1,000 characters |
 | External `locator.value` | 3–1,000 characters |
 | `summary` | 1–500 characters |
-| `needs` | 0–50 records |
+| `needs` | 0 records (repair input may hold up to 50) |
 | `source.ref` | 1–1,000 characters when present |
 | `source.revision` | 1–200 characters when present |
 | `source.coordination` | 1–300 characters when present |
@@ -177,38 +177,42 @@ artifact kind, lifecycle membership, or processor.
 
 ## Dependencies
 
-`needs` is an array of typed hard dependencies. A local dependency names the
-required artifact kind and canonical local path:
+A dependency is written on the waiting item, never in the registry. The edge
+lives in two header lines of the file the entry's `path` names (a spec, brief,
+intent, or captured item):
 
-```toml
-needs = [
-  { type = "local", kind = "design", path = "docs/product/design/workspace-routing.md" },
-]
+```markdown
+- **Depends on:** spec:workspace-routing, brief:account-recovery
+- **Dependency receipts:** spec:account-recovery completion account-recovery-42 completed release commit:0123456789abcdef0123456789abcdef01234567
 ```
 
-A local dependency on a delivery whose entry and artifact have been removed can
-carry a completion receipt on the citing edge:
+`Depends on:` holds comma-separated items. Each item is a typed reference,
+`spec:<slug>`, `brief:<slug>`, or `<intent kind>:<slug>` (`intent`, `outcome`,
+`opportunity`, or `capability`), or a captured-item path. A line that starts
+with `none` adds no item.
 
-```toml
-needs = [
-  { type = "local", kind = "design", path = "docs/product/design/account-recovery.md", receipt = { delivery_id = "account-recovery-42", outcome = "completed", completion_event = "release", evidence_ref = "commit:0123456789abcdef0123456789abcdef01234567" } },
-]
-```
+`Dependency receipts:` holds comma-separated receipts, each for one item of the
+same file:
 
-The receipt requires exactly `delivery_id`, `outcome`, `completion_event`, and
-`evidence_ref`. A `defect`-kind need may not carry one.
+- `<reference> completion <delivery_id> <outcome> <completion_event> <evidence_ref>`
+  keeps a completion receipt for a delivery whose entry and artifact were removed.
+  It needs exactly those four values. A captured-item reference may not carry one.
+- `<reference> coordination <remote_kind> <receipt_id> <accepted_revision>` pins a
+  cross-repository dependency on a `brief:` reference.
+
+A bad item or receipt gives `invalid_dependency`.
+
+The registry `needs` field stays `[]`. An entry that still carries `needs` gets
+an `unmigrated_needs` finding and is not dispatchable. `workspace-status
+repair-plan` and `repair-apply` move each edge into its header, after you
+confirm the exact plan.
 
 A cross-repository dependency is satisfied only by a reviewed local receipt in
-the containing brief. The dependency pins the local brief path, receipt id, and
-accepted revision:
+the containing brief. The waiting item's `Depends on:` line names the brief, and
+its coordination receipt on the `Dependency receipts:` line pins the receipt id
+and accepted revision.
 
-```toml
-needs = [
-  { type = "cross-repo", kind = "brief", path = "docs/product/briefs/account-recovery.md", containing_brief = "docs/product/briefs/account-recovery.md", receipt_id = "remote-prereq", accepted_revision = "remote-rev-9" },
-]
-```
-
-When a cross-repository dependency names a containing brief, that local brief
+When a coordination receipt names a containing brief, that local brief
 must contain exactly one fenced block whose info string is exactly
 `toml coordination-receipts`. The block is parsed as TOML; surrounding prose and
 other fenced blocks are inert.
@@ -373,6 +377,8 @@ finding identifier as a path only after confirming it is one.
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
+| `invalid_dependency` | A `Depends on:` item or a `Dependency receipts:` line in the waiting item's header is not valid: the item is neither a typed reference nor a captured-item path, it names more than one target, a captured item has no kind, or a receipt does not match a listed item. | Rewrite the item as a typed reference or a captured-item path, or correct its receipt, in the waiting item's header. |
+| `unmigrated_needs` | The registry entry still carries a non-empty `needs` array. The entry is not dispatchable, whatever its header says. | Move the entry's needs into the waiting item's `Depends on:` header with `workspace-status repair-plan`, then `repair-apply`. |
 | `invalid_receipt` | Cross-repository receipt is incomplete, mismatched, or conflicted. | Replace it with a reviewed receipt matching the pinned dependency. |
 | `invalid_completion_receipt` | A local completion receipt has the wrong fields, value types, grammar, or outcome. | Replace it with a valid reviewed completion receipt for that dependency. |
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
@@ -484,7 +490,7 @@ and never deletes the canonical artifact.
 
 ## Compaction
 
-A shipped entry may be removed while a live `needs` edge references it when
+A shipped entry may be removed while a live `Depends on:` edge references it when
 every such edge carries a valid completion receipt whose `outcome` is
 `completed`. No open parent may reference the entry, and closure evidence must
 be durable in the canonical artifacts. Compaction removes only the index entry.

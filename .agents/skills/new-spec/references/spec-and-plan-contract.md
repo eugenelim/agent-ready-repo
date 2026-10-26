@@ -96,6 +96,17 @@ mechanical rule.
   both: [§ Superseding a frozen document](#superseding-a-frozen-document).
   The linter reads only the leading token — it truncates at the first ` (`,
   ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
+- **Dependency edges.** A spec records what it waits for on its own
+  `- **Depends on:**` header line: comma-separated typed references
+  (`spec:<slug>`, `brief:<slug>`, or `<intent kind>:<slug>`) or a captured-item
+  path, or `none`. An optional `- **Dependency receipts:**` line beside it
+  holds one receipt per cited reference, either
+  `<reference> completion <delivery_id> <outcome> <completion_event> <evidence_ref>`
+  or, for a `brief:` reference only,
+  `<reference> coordination <remote_kind> <receipt_id> <accepted_revision>`.
+  Both lines sit in the preamble, before the first `## ` heading. The registry
+  entry's `needs` stays `[]`; `workspace-status repair-plan` and `repair-apply`
+  move an older entry's `needs` into these lines.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
 - **Acceptance Criteria opt-out.** A spec that intentionally has no

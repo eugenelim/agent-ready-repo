@@ -234,6 +234,8 @@ identifier to the repository root without checking it is a path first.
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
+| `invalid_dependency` | A `Depends on:` item or a `Dependency receipts:` line in the waiting item's header is not valid: the item is neither a typed reference nor a captured-item path, it names more than one target, a captured item has no kind, or a receipt does not match a listed item. | Rewrite the item as a typed reference or a captured-item path, or correct its receipt, in the waiting item's header. |
+| `unmigrated_needs` | The registry entry still carries a non-empty `needs` array. The entry is not dispatchable, whatever its header says. | Move the entry's needs into the waiting item's `Depends on:` header with `workspace-status repair-plan`, then `repair-apply`. |
 | `invalid_receipt` | Cross-repository receipt is incomplete, mismatched, or conflicted. | Replace it with a reviewed receipt matching the pinned dependency. |
 | `invalid_completion_receipt` | A local completion receipt has the wrong fields, value types, grammar, or outcome. | Replace it with a valid reviewed completion receipt for that dependency. |
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
@@ -354,6 +356,8 @@ anyway shows the reader a blank where a name should be.
   - `brief:` — scope to the owning initiative's `brief_queue` only (filter `initiatives[]` by `slug == owning-ini`, since `initiatives[]` carries `slug` not `ini_slug`). `ready`, scalar `executing`, and `shipped` satisfy the dependency; `draft` is `queued`, `executing` is `in-progress`, and `withdrawn` or `cancelled` remains unsatisfied without a progress annotation.
   - Cross-initiative prefix (e.g. `ini-002:work:spec/foo`) — strip the `ini-NNN:` prefix to get the named initiative; resolve the remainder as above using that initiative's `ini_slug`.
   - Not found by any path (dependency belongs to a paused initiative) → omit the status annotation.
+
+**Where an edge lives.** A dependency is a `Depends on:` line in the waiting item's own header: comma-separated typed references (`spec:<slug>`, `brief:<slug>`, `<intent kind>:<slug>`) or a captured-item path. A `Dependency receipts:` line beside it holds each completion or coordination receipt. The registry entry's `needs` stays `[]`; an entry that still carries `needs` gets an `unmigrated_needs` finding and is not dispatchable until `workspace-status repair-plan` and `repair-apply` move its edges into headers. The `blocking_needs` lists below name the header edges that block.
 
 **Needs-resolution modes (`analyze_bounded` / `is_need_satisfied`):** `workspace_status()` (used by workspace-mcp) calls `analyze_bounded(autonomous_dispatch=True)`, which applies conservative semantics. All other callers use `autonomous_dispatch=False` (default, human-session semantics). The difference:
 

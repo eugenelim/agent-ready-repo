@@ -99,14 +99,15 @@ downstream brief or spec can name it as a hard dependency:
 { path = "docs/product/design/payment-routing.md", kind = "design", source = { mode = "repo-origin" }, summary = "How payment routing splits across the two providers", needs = [] },
 ```
 
-Then add the artifact to the downstream work's `needs` array. That work remains
-blocked until the design artifact lands:
+Then add the artifact to the downstream work's own `Depends on:` header line.
+That work remains blocked until the design artifact lands:
 
-```toml
-needs = [
-  { type = "local", kind = "design", path = "docs/product/design/payment-routing.md" },
-]
+```markdown
+- **Depends on:** docs/product/design/payment-routing.md
 ```
+
+The path is a captured-item reference: its kind, `design`, comes from the
+registry entry above. The downstream entry's `needs` stays `[]`.
 
 ## Verify
 
