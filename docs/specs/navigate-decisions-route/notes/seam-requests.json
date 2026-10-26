@@ -1,0 +1,101 @@
+[
+  {
+    "id": "S01",
+    "source_eval": "7",
+    "request": "We need to implement the retry behaviour that RFC-0001 already approved.",
+    "expected": [
+      "PR",
+      "reuse",
+      "reference"
+    ]
+  },
+  {
+    "id": "S02",
+    "source_eval": "7",
+    "request": "We have settled on PostgreSQL over MySQL for the reporting store after comparing both; the choice is made.",
+    "expected": [
+      "ADR"
+    ]
+  },
+  {
+    "id": "S03",
+    "source_eval": "7",
+    "request": "We have decided to replace our earlier choice of Redis for web sessions (ADR-0002) with signed cookies; the decision is settled.",
+    "expected": [
+      "ADR"
+    ]
+  },
+  {
+    "id": "S04",
+    "source_eval": "7",
+    "request": "Several teams disagree on how services should version their public APIs, the direction is still open, and every owner has to agree.",
+    "expected": [
+      "RFC"
+    ]
+  },
+  {
+    "id": "S05",
+    "source_eval": "8",
+    "request": "This repository has one maintainer. Change the charter's mission to serve a different kind of user.",
+    "expected": [
+      "RFC"
+    ]
+  },
+  {
+    "id": "S06",
+    "source_eval": "8",
+    "request": "This repository has one maintainer. Change who is allowed to approve pull requests.",
+    "expected": [
+      "RFC"
+    ]
+  },
+  {
+    "id": "S07",
+    "source_eval": "11",
+    "request": "I want to propose that services share one logging library.",
+    "expected": [
+      "reuse",
+      "reference"
+    ]
+  },
+  {
+    "id": "S08",
+    "source_eval": "11",
+    "request": "Add CSV export to the reports page; the behaviour is agreed and needs acceptance criteria written down.",
+    "expected": [
+      "spec"
+    ]
+  },
+  {
+    "id": "S09",
+    "source_eval": "11",
+    "request": "Rename a private helper in the parser module; no behaviour changes.",
+    "expected": [
+      "PR"
+    ]
+  },
+  {
+    "id": "S10",
+    "source_eval": "11",
+    "request": "Track the work to upgrade our test runner next quarter.",
+    "expected": [
+      "issue"
+    ]
+  },
+  {
+    "id": "S11",
+    "source_eval": "11",
+    "request": "One team owns the orders service and still has to choose its architecture: event sourcing or plain CRUD. No one else is affected.",
+    "expected": [
+      "architect-design"
+    ]
+  },
+  {
+    "id": "S12",
+    "source_eval": "11",
+    "request": "Try a new linter on one package for two weeks; we drop it if it raises more than five false positives a day.",
+    "expected": [
+      "time-bounded trial"
+    ]
+  }
+]
