@@ -1761,6 +1761,16 @@ def canonical_repository_identity(
                 path=entry.path, kind=entry.kind, status=None, exists=True
             )
             status_fingerprint = _UNMIGRATED_IDENTITY_MARKER
+        elif _captured_membership_form(entry.path) == "migrated":
+            # A record reads only through the confined reader; one it cannot
+            # read contributes a constant marker, never another file's content.
+            metadata = _captured_record_metadata(root, entry)
+            finding = metadata.captured_finding
+            status_fingerprint = (
+                _NONCONFINED_IDENTITY_MARKER
+                if finding is not None and finding.code == "unreadable_artifact"
+                else None
+            )
         else:
             metadata = _metadata_from_root(root, entry)
             status_fingerprint = None
@@ -2129,6 +2139,7 @@ _COOLING_MODULE_CALLABLES = ("load_record", "is_due")
 # may not read.
 _UNMIGRATED_IDENTITY_MARKER = "unmigrated"
 _COOLED_IDENTITY_MARKER = "cooled"
+_NONCONFINED_IDENTITY_MARKER = "nonconfined"
 
 # Every attribute _cooling_projection reads off an accepted record. A record
 # missing one raises AttributeError from inside the projection, which the
@@ -2473,19 +2484,10 @@ def _captured_membership_form(path: str | None) -> str | None:
 def _captured_record_metadata(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata:
     """Metadata for a migrated captured membership, read from its record."""
     path = entry.path or ""
-    artifact_path = _confined_artifact_path(root, path)
-    if artifact_path is None:
-        return ArtifactMetadata(
-            path=path, kind=entry.kind, status=None, exists=False,
-            readable=False, invalid_path=True,
-        )
-    presence = _path_presence(artifact_path)
-    if presence == "missing":
+    # Presence is decided without following a link: a linked or dangling record
+    # is present, and the confined reader below reports it unreadable.
+    if not os.path.lexists(root / path):
         return ArtifactMetadata(path=path, kind=entry.kind, status=None, exists=False)
-    if presence == "unreadable":
-        return ArtifactMetadata(
-            path=path, kind=entry.kind, status=None, exists=True, readable=False
-        )
     # Not cooled by construction: every caller skips a cooled membership first.
     item, finding = read_captured_item(root, path.rpartition("/")[2], frozenset())
     if finding is not None:

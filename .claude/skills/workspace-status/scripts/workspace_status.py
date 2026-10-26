@@ -1480,6 +1480,8 @@ def _apply_operations(
         )
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
             fh.write(serialized)
+            fh.flush()
+            os.fsync(fh.fileno())
         # Preserve original mode; set after fd close (cross-platform — os.fchmod is Unix-only)
         Path(tmp_path).chmod(orig_mode)
         # Re-hash immediately before replace to detect concurrent writes that
@@ -1514,6 +1516,7 @@ def _apply_operations(
                 raise RuntimeError("workspace_concurrent_write")
         Path(tmp_path).replace(workspace_path)
         tmp_path = None
+        _fsync_directory(workspace_path.parent)
     finally:
         if tmp_path is not None:
             with contextlib.suppress(OSError):
@@ -2519,44 +2522,64 @@ def _registry_fingerprint(item: _CapturedItem) -> str:
     ).encode("ascii")).hexdigest()
 
 
-def _deferral_anchors(root: Path, cooled: frozenset[Path]) -> frozenset[str]:
-    """Every `(deferred: <anchor>)` a spec carries; a cooled spec is never opened."""
+def _deferral_anchors(
+    root: Path, cooled: frozenset[Path]
+) -> tuple[frozenset[str], bool]:
+    """Every `(deferred: <anchor>)` a spec carries, and whether every spec was read.
+
+    A cooled spec is never opened. A spec that could not be read, or a
+    `docs/specs` that could not be listed, makes the answer incomplete.
+    """
+    if not os.path.lexists(root / "docs/specs"):
+        return frozenset(), True
     specs = _engine.confine_migration_path(root, "docs/specs")
-    anchors: set[str] = set()
     if specs is None:
-        return frozenset()
+        return frozenset(), False
     try:
         names = sorted(entry.name for entry in os.scandir(specs) if entry.is_dir())
     except OSError:
-        return frozenset()
+        return frozenset(), False
+    anchors: set[str] = set()
+    complete = True
     for name in names:
         relative = f"docs/specs/{name}/spec.md"
+        if not os.path.lexists(root / relative):
+            continue
         if _engine._confined_artifact_path(root, relative) in cooled:
+            complete = False
             continue
         data = _engine._migration_file_bytes(root, relative)
         if data is None:
+            complete = False
             continue
         anchors.update(_CAPTURED_DEFERRED_RE.findall(data.decode("utf-8", errors="replace")))
-    return frozenset(anchors)
+    return frozenset(anchors), complete
 
 
 def _dependency_items_by_path(
     root: Path, memberships: list, cooled: frozenset[Path]
-) -> dict[str, set[str]]:
-    """Each path a dependency item names, with the memberships that name it."""
+) -> tuple[dict[str, set[str]], frozenset[str]]:
+    """Each path a dependency item names, with the memberships that name it.
+
+    Also returns the paths of the memberships whose own header could not be
+    read; a cooled membership's file is never opened.
+    """
     named: dict[str, set[str]] = {}
+    unread: set[str] = set()
     for membership in memberships:
         for dep in membership.entry.needs:
             named.setdefault(dep.path, set()).add(membership.entry.path or "")
         path = membership.entry.path
-        if (
-            path is None
-            or _engine._captured_membership_form(path) == "unmigrated"
-            or _engine._membership_is_cooled(membership, root, cooled)
-        ):
+        if path is None:
+            continue
+        if _engine._membership_is_cooled(membership, root, cooled):
+            unread.add(path)
+            continue
+        if not os.path.lexists(root / path):
             continue
         data = _engine._migration_file_bytes(root, path)
         if data is None:
+            unread.add(path)
             continue
         for name, value, _wrapped in _engine._header_field_lines(
             data.decode("utf-8", errors="replace")
@@ -2564,7 +2587,7 @@ def _dependency_items_by_path(
             if name == "depends on" and value.split()[:1] and value.split()[0].lower() != "none":
                 for item in _engine._split_items(value):
                     named.setdefault(item, set()).add(path)
-    return named
+    return named, frozenset(unread)
 
 
 def _captured_finding(item: _CapturedItem, reason: str, slug: str = "") -> dict:
@@ -2783,8 +2806,11 @@ def _plan_membership_item(context: dict, item: _CapturedItem):
         context["named"] = _dependency_items_by_path(
             root, context["memberships"], context["cooled"]
         )
-    if context["named"].get(path, set()) - {path}:
+    named, unread_headers = context["named"]
+    if named.get(path, set()) - {path}:
         return "source-is-dependency-target"
+    if unread_headers - {path}:
+        return "dependency-headers-unread"
     if _source_status_conflict(item.collection, item.kind, text):
         return "status-conflict"
     common = _plan_common_fields(context, item)
@@ -2793,8 +2819,12 @@ def _plan_membership_item(context: dict, item: _CapturedItem):
     if context["anchors"] is None:
         context["anchors"] = _deferral_anchors(root, context["cooled"])
     stem = PurePosixPath(path.rsplit("/", 1)[-1]).stem
-    if item.final != stem and stem in context["anchors"]:
-        return "deferral-anchor"
+    anchors, anchors_complete = context["anchors"]
+    if item.final != stem:
+        if stem in anchors:
+            return "deferral-anchor"
+        if not anchors_complete:
+            return "deferral-anchors-unread"
     status = "Closed" if item.collection == "backlog.closed" else "Open"
     resolution = (
         _engine._parse_preamble_fields(text).get("resolution") if status == "Closed" else None
@@ -2828,7 +2858,7 @@ def _plan_legacy_item(context: dict, item: _CapturedItem):
     type_ = raw.get("type") if "type" in raw else None
     if "kind" in raw or "type" not in raw:
         kind = "defect"
-    elif type_ in _LEGACY_KIND_BY_TYPE:
+    elif isinstance(type_, str) and type_ in _LEGACY_KIND_BY_TYPE:
         kind = _LEGACY_KIND_BY_TYPE[type_]
     else:
         kind = ""
@@ -3064,6 +3094,10 @@ def _write_record(root: Path, record_path: str, data: bytes) -> str:
         raise _CapturedRefusal("record_write_failed") from None
     finally:
         os.close(descriptor)
+    try:
+        _fsync_directory(target.parent)
+    except OSError:
+        raise _CapturedRefusal("record_write_failed") from None
     if _engine._migration_file_bytes(root, record_path) != data:
         raise _CapturedRefusal("record_read_back_failed")
     return "created"
@@ -3413,6 +3447,15 @@ def _migration_load_ledger(root: Path) -> tuple[dict[str, object] | None, str | 
     return ledger, None
 
 
+def _fsync_directory(directory: Path) -> None:
+    """Flush a directory's entries so a created or renamed file survives a crash."""
+    directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
 def _migration_failure(failure_point: str | None, point: str) -> None:
     """Raise at a named deterministic transaction seam for construction tests."""
     if failure_point == point:
@@ -3445,14 +3488,7 @@ def _migration_atomic_replace(
         _migration_failure(failure_point, f"{stage}_replace_before")
         temp_path.replace(path)
         _migration_failure(failure_point, f"{stage}_replace_after")
-        directory_fd = os.open(
-            path.parent,
-            os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
-        )
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+        _fsync_directory(path.parent)
     finally:
         with contextlib.suppress(FileNotFoundError, OSError):
             temp_path.unlink()

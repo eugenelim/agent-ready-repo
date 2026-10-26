@@ -1,0 +1,17 @@
+{
+  "skill_name": "frame-situation",
+  "evals": [
+    {
+      "id": "captured-item-record-suggestion",
+      "prompt": "Frame this signal and suggest the item to track it: support tickets about exporting data have tripled this year.",
+      "expected_output": "The artifact's Suggested captured item section gives a captured-item record for docs/product/captured/<slug>.md, with Status Open, Kind design, and a Detail line naming situation-framing.md, plus the canonical five-field entry that registers that record path. It directs the user to register both through work-intake and writes nothing to workspace.toml or docs/product/captured/.",
+      "assertions": [
+        "Suggests a record at docs/product/captured/<slug>.md with Status, Kind, and Detail lines",
+        "The Detail line names situation-framing.md",
+        "The registry entry's path is the record path, with kind, source, summary, and needs",
+        "Does not offer the short slug-and-type entry as the registration",
+        "Directs registration through work-intake and does not write workspace.toml or docs/product/captured/"
+      ]
+    }
+  ]
+}

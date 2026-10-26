@@ -496,6 +496,95 @@ def test_unreadable_record_gives_only_its_finding(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize("linked", ["outside", "dangling"])
+def test_linked_or_dangling_record_gives_only_unreadable_artifact(
+    tmp_path: Path, linked: str
+) -> None:
+    """AC-0008, AC-0041: a record linked outside the repository, or dangling, is unreadable."""
+    path = _note_path("single", True)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_repo(repo, _single_record_case("defect", _note("defect", "Open")))
+    (repo / path).unlink()
+    target = tmp_path / "elsewhere.md"
+    if linked == "outside":
+        target.write_text(_note("defect", "Open"), encoding="utf-8")
+    (repo / path).symlink_to(target)
+    assert observe(repo)["findings"] == [["unreadable_artifact", path]]
+
+
+def _identity(root: Path, reads: list[bytes] | None = None) -> str:
+    """The routing identity; `reads` is cleared once the reconciliation has run."""
+    workspace = ENGINE.parse_workspace(root / "workspace.toml")
+    cooled, _ = ENGINE._resolve_cooled_state(root)
+    canonical = ENGINE.run_canonical_reconciliation(workspace, root, cooled)
+    if reads is not None:
+        reads.clear()
+    return ENGINE.canonical_repository_identity(workspace, canonical, root)
+
+
+@pytest.fixture
+def reads(monkeypatch: pytest.MonkeyPatch) -> list[bytes]:
+    """Every chunk `os.read` and `Path.read_text` return."""
+    seen: list[bytes] = []
+    real_read, real_text = os.read, pathlib.Path.read_text
+
+    def spy_read(fd, length):  # type: ignore[no-untyped-def]
+        chunk = real_read(fd, length)
+        seen.append(chunk)
+        return chunk
+
+    def spy_text(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        text = real_text(self, *args, **kwargs)
+        seen.append(text.encode("utf-8"))
+        return text
+
+    monkeypatch.setattr(os, "read", spy_read)
+    monkeypatch.setattr(pathlib.Path, "read_text", spy_text)
+    return seen
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
+@pytest.mark.parametrize("linked", ["symlink", "hard-link-to-cooled"])
+def test_identity_never_reads_a_linked_record(
+    tmp_path: Path, reads: list[bytes], linked: str
+) -> None:
+    """AC-0041: the routing identity reads a record only through the confined reader."""
+    path = _note_path("single", True)
+    cooled_path = _note_path("cooled-note")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    cooled_case = _dependent_case(
+        "cooled", "defect", "Open", "backlog.open", "cooled-note", False, cooled=True
+    )
+    single = _single_record_case("defect", _note("defect", "Open"))
+    _write_repo(repo, dataclasses.replace(
+        single,
+        files={**single.files, **cooled_case.files},
+        extras=single.extras + cooled_case.extras,
+    ))
+    (repo / path).unlink()
+    if linked == "symlink":
+        target = tmp_path / "elsewhere.md"
+        target.write_text(_note("defect", "Open"), encoding="utf-8")
+        (repo / path).symlink_to(target)
+    else:
+        target = repo / cooled_path
+        os.link(target, repo / path)
+
+    def body(marker: str) -> None:
+        target.write_text(
+            _note("defect", "Open") + f"- **Detail:** {marker}\n", encoding="utf-8"
+        )
+
+    body("SECRET-ONE")
+    first = _identity(repo, reads)
+    assert not any(b"SECRET-ONE" in chunk for chunk in reads)
+    body("SECRET-TWO")
+    assert _identity(repo) == first
+
+
+@pytest.mark.skipif(_RECORD, reason="recording")
 def test_missing_record_is_a_missing_artifact(tmp_path: Path) -> None:
     """A registered record that does not exist keeps `missing_artifact`."""
     path = _note_path("single", True)

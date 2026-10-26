@@ -13,6 +13,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import stat
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -1290,3 +1291,164 @@ def test_write_record_refuses_a_link_in_any_directory_segment(tmp_path: Path, li
     Path(repo / linked).symlink_to(target)
     assert write_record_reason(repo) == "record_directory_unsafe"
     assert not any(elsewhere.rglob("r.md"))
+
+
+# ── Review fixes: dependency headers, odd types, fail-closed reads, durability ─
+
+
+def test_a_note_named_by_an_unmigrated_notes_header_is_refused_and_the_namer_is_planned(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # AC-0021 refuses the path a dependency item of another membership names,
+    # so the named note (b) is refused and the naming note (a) is planned.
+    a, b = f"{NOTES}/a.md", f"{NOTES}/b.md"
+    repo = make_repo(
+        tmp_path,
+        {a: note(extra=f"- **Depends on:** {b}\n"), b: note()},
+        open_=[entry(a), entry(b)],
+    )
+    data = plan(repo, capsys)
+    assert [op["source_path"] for op in captured_ops(data)] == [a]
+    refused = [f for f in captured_findings(data) if f["reason"] == "source-is-dependency-target"]
+    assert [f["spec_path"] for f in refused] == [b]
+
+
+@pytest.mark.parametrize("raw_type", ['["x"]', "{a = 1}"])
+def test_a_non_string_legacy_type_is_unassignable_and_the_rest_is_planned(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], raw_type: str
+) -> None:
+    repo = make_repo(
+        tmp_path,
+        open_=[f'{{slug = "odd", type = {raw_type}}}', legacy("fine", summary="ok")],
+    )
+    data = plan(repo, capsys)
+    assert reasons(data) == ["legacy-kind-unassignable"]
+    assert slugs(data) == {"fine"}
+
+
+def renamed_pair(root: Path, extra_files: dict[str, str]) -> Path:
+    """Two notes whose slugs gain a prefix, so each differs from its stem."""
+    paths = ["docs/p/a/ledger.md", "docs/p/b/ledger.md"]
+    return make_repo(
+        root,
+        {**{p: note() for p in paths}, **extra_files},
+        open_=[entry(p) for p in paths],
+    )
+
+
+def test_a_cooled_spec_is_not_opened_and_refuses_each_renamed_slug(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    spec = "docs/specs/z/spec.md"
+    repo = renamed_pair(tmp_path, {
+        spec: spec_text("z", "- AC (deferred: ledger)\n"),
+        "docs/lifecycle/z.json": lifecycle_record("z", spec),
+    })
+    (repo / spec).chmod(0)
+    try:
+        data = plan(repo, capsys)
+    finally:
+        (repo / spec).chmod(0o644)
+    assert captured_ops(data) == []
+    assert reasons(data).count("deferral-anchors-unread") == 2
+
+
+def unreadable_spec_cases(root: Path, case: str) -> Path:
+    if case == "unlistable-specs":
+        repo = renamed_pair(root / "repo", {})
+        outside = root / "elsewhere"
+        (outside / "z").mkdir(parents=True)
+        (repo / "docs/specs").symlink_to(outside)
+        return repo
+    repo = renamed_pair(root, {"docs/specs/z/spec.md": spec_text("z")})
+    os.link(repo / "docs/specs/z/spec.md", root / "second-link")
+    return repo
+
+
+@pytest.mark.parametrize("case", ["unlistable-specs", "hard-linked-spec"])
+def test_an_unreadable_spec_or_specs_directory_refuses_each_renamed_slug(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], case: str
+) -> None:
+    repo = unreadable_spec_cases(tmp_path, case)
+    data = plan(repo, capsys)
+    assert captured_ops(data) == []
+    assert "deferral-anchors-unread" in reasons(data)
+
+
+def test_a_slug_equal_to_its_stem_still_migrates_when_the_anchors_are_incomplete(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = one_defect(tmp_path)
+    write(repo, "docs/specs/z/spec.md", spec_text("z"))
+    os.link(repo / "docs/specs/z/spec.md", tmp_path / "second-link")
+    data = plan(repo, capsys)
+    assert slugs(data) == {"d1"}
+    assert captured_findings(data) == []
+
+
+def test_a_cooled_memberships_header_refuses_each_membership_operation(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cooled = f"{NOTES}/cooled.md"
+    repo = make_repo(
+        tmp_path, {f"{NOTES}/n.md": note(), cooled: note()},
+        open_=[entry(f"{NOTES}/n.md"), entry(cooled)],
+    )
+    write(repo, "docs/lifecycle/cooled.json", lifecycle_record("cooled", cooled))
+    (repo / cooled).chmod(0)
+    try:
+        data = plan(repo, capsys)
+    finally:
+        (repo / cooled).chmod(0o644)
+    assert captured_ops(data) == []
+    assert reasons(data) == ["dependency-headers-unread"]
+
+
+def test_an_unreadable_memberships_file_refuses_each_other_membership_operation(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(
+        tmp_path, {f"{NOTES}/n.md": note(), f"{NOTES}/m.md": note()},
+        open_=[entry(f"{NOTES}/n.md"), entry(f"{NOTES}/m.md")],
+    )
+    os.link(repo / NOTES / "m.md", tmp_path / "second-link")
+    data = plan(repo, capsys)
+    assert captured_ops(data) == []
+    by_path = {f["spec_path"]: f["reason"] for f in captured_findings(data)}
+    assert by_path == {
+        f"{NOTES}/n.md": "dependency-headers-unread",
+        f"{NOTES}/m.md": "source-unreadable",
+    }
+
+
+def test_apply_makes_records_and_the_registry_durable_in_order(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = one_defect(tmp_path)
+    plan(repo, capsys)
+    captured_dir = repo / "docs/product/captured"
+    real_fsync, real_replace = os.fsync, os.replace
+    events: list[tuple[str, int | None]] = []
+
+    def spy_fsync(fd: int) -> None:
+        info = os.fstat(fd)
+        events.append(("fsync-dir" if stat.S_ISDIR(info.st_mode) else "fsync-file", info.st_ino))
+        real_fsync(fd)
+
+    def spy_replace(src: Any, dst: Any, *args: Any, **kwargs: Any) -> None:
+        events.append(("replace", None))
+        real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "fsync", spy_fsync)
+    monkeypatch.setattr(os, "replace", spy_replace)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    kinds = [kind for kind, _ in events]
+    captured_ino, root_ino = captured_dir.stat().st_ino, repo.stat().st_ino
+    assert ("fsync-dir", captured_ino) in events
+    first_replace = kinds.index("replace")
+    # Record file, then its directory, then the registry's temp file, then the
+    # replace, then the registry's directory.
+    assert kinds[:first_replace] == ["fsync-file", "fsync-dir", "fsync-file"]
+    assert events[1] == ("fsync-dir", captured_ino)
+    assert events[first_replace + 1:] == [("fsync-dir", root_ino)]
