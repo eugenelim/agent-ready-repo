@@ -112,7 +112,7 @@ Each is a mechanical follow-on of a version bump the plan requires, verified by 
   - AC-0123 and AC-0124 pass in all 3 EOF runs.
   - **AC-0095 passes** with this entry.
 - **Unscored check:** one run on a copy of `governance-codeowners/` whose `.github/` holds only `workflows/ci.yml` (`notes/behaviour/attempt-3-unscored-github-folder/`) previewed `.github/CODEOWNERS` with exactly the user's two rules and made no tool call outside the allowed set.
-- **Redaction:** transcripts have home paths, the OS username, temporary-directory prefixes, UUID-shaped identifiers and non-placeholder email addresses replaced; a search over `notes/` for the username, `/Users/`, `var/folders`, `/private/tmp` and the account email domain finds nothing.
+- **Redaction:** transcripts have home paths, the OS username, temporary-directory prefixes, UUID-shaped identifiers and non-placeholder email addresses replaced; a search of the run files under `notes/behaviour/` and `notes/activation-*.json` for the username, `/Users/`, `var/folders`, `/private/tmp` and the account email domain finds nothing.
 
 ## 2026-10-26 — Release checks
 
