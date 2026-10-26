@@ -1076,11 +1076,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `861eb168…`.
 # Re-pinned for the pack rename: the navigate-decisions suite path changed, no
 # line was added, removed or reordered.
+# Re-pinned 2026-10-26 for the repo-governance new-rfc pack suite. Sole cause:
+# one line, `$(PYTHON) -m pytest packs/repo-governance/tests/skills/new-rfc/ -q`,
+# added to `run-test-suite` directly after the navigate-decisions line. Prior
+# pins were current: `_effective_composition_errors()` over this Makefile with
+# exactly that line deleted returns no errors against `611639cf…` and `38091777…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "611639cfb369fbf5ad0361f686d0a22986503bf61e6433e2865fb082c4ab1f8a"
+    "ccd2669c5610379b0643b1359cbed62f15a37d1275c0a38a3511234ef6808840"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "38091777be8ad65cf551fe1533b522c9b03e3f5dc721332a5a9d160f02a5dea7"
+    "c311c2a99ccef2dffd110538066fa9af84bd3a94df8fd3be937a66ed4f7dfca6"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
