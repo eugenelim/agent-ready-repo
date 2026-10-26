@@ -1,6 +1,6 @@
 # ADR-0148: The completion receipt rides on the waiting item's `Dependency receipts:` header line
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-26
 - **Areas:** workspace, contracts
 - **Reversibility:** low
