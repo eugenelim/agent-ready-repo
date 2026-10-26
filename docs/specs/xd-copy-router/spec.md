@@ -8,6 +8,7 @@
 - **Discovery:** [`experience-design-consolidation-analysis.md`](../../product/research/experience-design-consolidation-analysis.md)
 - **Contract:** none
 - **Shape:** ui
+- **Depends on:** spec:xd-genre-router
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

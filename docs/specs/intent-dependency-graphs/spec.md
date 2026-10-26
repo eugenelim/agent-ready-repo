@@ -12,6 +12,7 @@
 - **Discovery:** none
 - **Contract:** none — the navigator's versioned query envelope is contracted here and in the inherited navigator spec.
 - **Shape:** mixed
+- **Depends on:** spec:intent-navigation, spec:intent-navigation-export
 
 > **Spec contract:** Agent Rules, Testing Strategy, and Acceptance Criteria define this delivery's obligations. Outcome, What Changes, Durable Outputs, Follow-ons, and Assumptions orient the work. The plan owns construction strategy.
 

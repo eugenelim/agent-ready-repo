@@ -8,6 +8,7 @@
 - **Discovery:** `intent:portable-agent-plugin-projection`
 - **Contract:** `contracts/distribution-routes.toml`; `contracts/distribution-routes.schema.json`; `contracts/agent-plugin-extension-namespaces.toml`; `contracts/agent-plugin-extension-namespaces.schema.json`; `contracts/vendor/agent-plugins/1.0.0/plugin.schema.json`; `contracts/vendor/agent-plugins/1.0.0/mcp.schema.json`; `contracts/vendor/agent-plugins/1.0.0/LICENSE.md`; `contracts/vendor/agent-plugins/1.0.0/PROVENANCE.md`
 - **Shape:** integration
+- **Depends on:** spec:distribution-route-contract
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

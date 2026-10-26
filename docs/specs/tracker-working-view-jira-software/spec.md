@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:tracker-projection-profile-table, spec:bounded-remote-create-action
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

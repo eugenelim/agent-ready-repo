@@ -164,8 +164,10 @@ jobs:
       # a `lint` extra). Without it those modules fail at import rather than
       # skipping, which the SKIPPED grep below would not catch. Verified, not
       # inferred.
-      - name: Install agentbundle (editable) + pytest + pyyaml
-        run: python -m pip install -e packages/credbroker -e packages/agentbundle pytest 'pyyaml>=6.0'
+      # tomlkit is workspace-status's declared repair-apply dependency
+      # (packs/core/AGENTS.md); the pack suite's repair tests write through it.
+      - name: Install agentbundle (editable) + pytest + pyyaml + tomlkit
+        run: python -m pip install -e packages/credbroker -e packages/agentbundle pytest 'pyyaml>=6.0' 'tomlkit==0.15.1'
       - name: Run repo/pack hook suites (Linux)
         # Pack tests live outside the runtime payload, and a skill directory gets
         # its own pytest process unless it is named in a compatibility class

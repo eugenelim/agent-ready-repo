@@ -13,6 +13,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/distribution-routes.toml` (read; not modified)
 - **Shape:** mixed
+- **Depends on:** spec:portable-agent-plugin-projection
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/jsonschema/knowledge-captured-observation.schema.json` (consumed unchanged)
 - **Shape:** integration
+- **Depends on:** spec:project-knowledge-foundation
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

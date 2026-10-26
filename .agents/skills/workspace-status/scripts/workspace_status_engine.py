@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import errno
 import hashlib
 import importlib
 import importlib.util
@@ -42,6 +43,7 @@ import stat
 import sys
 import time
 import tomllib
+from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -124,6 +126,14 @@ _FINDING_NEXT_ACTIONS = {
     "unsatisfied_dependency": "Complete or explicitly revise the dependency.",
     "missing_dependency": "Materialize or correct the dependency target.",
     "dependency_cycle": "Break the cycle through an explicit plan change.",
+    "invalid_dependency": (
+        "Rewrite the item as a typed reference or a captured-item path, "
+        "or correct its receipt, in the waiting item's header."
+    ),
+    "unmigrated_needs": (
+        "Move the entry's needs into the waiting item's Depends on: header "
+        "with workspace-status repair-plan, then repair-apply."
+    ),
     "invalid_receipt": (
         "Replace it with a reviewed receipt matching the pinned dependency."
     ),
@@ -381,6 +391,12 @@ class CanonicalWorkspaceResult:
     # each artifact by reading its body, which silently reopened every cooled
     # spec.md and plan.md on all four ordinary-orientation surfaces.
     cooled: frozenset[Path] = frozenset()
+    # Each non-cooled local membership's header edges, keyed by waiting path.
+    # They, not `entry.needs`, are what blocks and what the routing identity
+    # fingerprints.
+    header_edges: dict[str, tuple[Dependency, ...]] = dataclasses.field(
+        default_factory=dict
+    )
 
 
 @dataclasses.dataclass
@@ -1677,7 +1693,10 @@ def canonical_repository_identity(
         entry = membership.entry
         source = dataclasses.asdict(entry.source)
         needs = sorted(
-            (dataclasses.asdict(need) for need in entry.needs),
+            (
+                dataclasses.asdict(need)
+                for need in result.header_edges.get(entry.path or "", ())
+            ),
             key=lambda need: json.dumps(need, sort_keys=True),
         )
         entry_identity = entry.path
@@ -1885,12 +1904,17 @@ def _confined_briefs_path(root: Path, rel_path: str) -> bool:
         return False
 
 
-def _parse_preamble_fields(text: str) -> dict[str, str]:
-    fields: dict[str, str] = {}
+def _iter_preamble_lines(text: str) -> Iterator[str]:
+    """Yield each preamble line with HTML comments hidden, in order.
+
+    The preamble is the lines before the first `## ` heading, outside fenced
+    blocks. A line that a fence or a multi-line comment hides is yielded as an
+    empty string, so a caller that asks what directly follows a line never sees
+    past hidden text.
+    """
     fence_char: str | None = None
     fence_min_len = 0
     in_ml_comment = False
-    field_re = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
     for line in text.splitlines():
         if not in_ml_comment:
             fm = _FENCE_RE.match(line)
@@ -1900,25 +1924,36 @@ def _parse_preamble_fields(text: str) -> dict[str, str]:
                 length = len(marker)
                 if fence_char is None:
                     fence_char, fence_min_len = char, length
+                    yield ""
                     continue
                 rest = line[fm.end():]
                 if char == fence_char and length >= fence_min_len and not rest.strip():
                     fence_char, fence_min_len = None, 0
+                    yield ""
                     continue
         if fence_char is not None:
+            yield ""
             continue
         if in_ml_comment:
             if "-->" in line:
                 remainder = line[line.index("-->") + 3:]
                 remainder_clean = _HTML_COMMENT_RE.sub("", remainder)
                 in_ml_comment = "<!--" in remainder_clean
+            yield ""
             continue
         if _SECTION_HEADING_RE.match(line):
-            break
+            return
         clean = _HTML_COMMENT_RE.sub("", line)
         if "<!--" in clean:
             clean = clean[:clean.index("<!--")]
             in_ml_comment = True
+        yield clean
+
+
+def _parse_preamble_fields(text: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    field_re = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
+    for clean in _iter_preamble_lines(text):
         match = field_re.match(clean)
         if match:
             fields.setdefault(match.group("name").strip().lower(), match.group("value").strip())
@@ -2292,6 +2327,23 @@ def _resolved_provenance_parent(
     return _normalized_brief_pointer(normalized)
 
 
+def _path_presence(path: Path) -> str:
+    """Return `present`, `missing`, or `unreadable` for one confined path.
+
+    `Path.exists()` swallows every `OSError` on newer interpreters, which would
+    report a file under an unsearchable directory as missing. `stat` raises on
+    every supported version, so only an absent name or one the filesystem
+    cannot hold reads as missing; any other failure is an unreadable artifact.
+    """
+    try:
+        path.stat()
+    except OSError as exc:
+        if exc.errno in (errno.ENOENT, errno.ENOTDIR, errno.ENAMETOOLONG, errno.EINVAL):
+            return "missing"
+        return "unreadable"
+    return "present"
+
+
 def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata | None:
     artifact_path = _confined_artifact_path(root, entry.path)
     if artifact_path is None:
@@ -2303,7 +2355,16 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
             readable=False,
             invalid_path=True,
         )
-    if not artifact_path.exists():
+    presence = _path_presence(artifact_path)
+    if presence == "unreadable":
+        return ArtifactMetadata(
+            path=entry.path,
+            kind=entry.kind,
+            status=None,
+            exists=True,
+            readable=False,
+        )
+    if presence == "missing":
         return ArtifactMetadata(path=entry.path, kind=entry.kind, status=None, exists=False)
     try:
         text = artifact_path.read_text(encoding="utf-8", errors="replace")
@@ -2988,12 +3049,15 @@ def _dependency_is_satisfied(
     return False, _finding("unsatisfied_dependency", dep.path, "dependency not terminal")
 
 
-def _dependency_cycles(memberships: list[WorkspaceMembership]) -> set[str]:
+def _dependency_cycles(
+    memberships: list[WorkspaceMembership],
+    header_edges: dict[str, tuple[Dependency, ...]],
+) -> set[str]:
     graph: dict[str, list[str]] = {}
     paths = {membership.entry.path for membership in memberships}
     for membership in memberships:
         graph[membership.entry.path] = [
-            dep.path for dep in membership.entry.needs
+            dep.path for dep in header_edges.get(membership.entry.path, ())
             if dep.type == "local" and dep.path in paths
         ]
     visiting: set[str] = set()
@@ -3015,6 +3079,451 @@ def _dependency_cycles(memberships: list[WorkspaceMembership]) -> set[str]:
     for path in graph:
         visit(path, [path])
     return cycles
+
+
+# ── Header dependencies ──────────────────────────────────────────────────────
+#
+# A waiting item's `- **Depends on:**` and `- **Dependency receipts:**` preamble
+# lines are the one place an edge is written. The reader below turns them into
+# the same `Dependency` values a typed `needs` entry produced, so every
+# satisfaction rule and receipt validator runs unchanged on its output.
+
+_TYPED_REFERENCE_RE = re.compile(
+    r"(?P<kind>spec|brief|intent|outcome|opportunity|capability):"
+    r"(?P<slug>[a-z0-9][a-z0-9-]*)"
+)
+_CAPTURED_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
+_LIVE_INTENT_NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.md")
+_COORDINATION_TOKEN_RE = re.compile(r"[A-Za-z0-9._:/@+-]{1,200}")
+_HEADER_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
+_BRIEFS_DIR = "docs/product/briefs"
+_INTENTS_DIR = "docs/product/intents"
+
+
+@dataclasses.dataclass(frozen=True)
+class ResolutionIndex:
+    """Brief slugs and live-intent `(kind, slug)` pairs, built once per run.
+
+    A directory whose listing failed, or one of whose admitted entries could not
+    be read, is flagged unreadable: a reference into it is never a missing target.
+    """
+
+    briefs: dict[str, tuple[str, ...]]
+    intents: dict[tuple[str, str], tuple[str, ...]]
+    briefs_unreadable: bool = False
+    intents_unreadable: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class HeaderDependencies:
+    """One waiting item's header edges and the findings its header earned."""
+
+    dependencies: tuple[Dependency, ...]
+    findings: tuple[RoutingFinding, ...]
+
+
+def _normalized_field_value(value: str | None, *, first_word: bool = False) -> str:
+    """A preamble field value with one pair of surrounding backticks stripped.
+
+    The preamble walk already hides HTML comments. `Kind:` and `Level:` take
+    their first word.
+    """
+    text = (value or "").strip()
+    if len(text) >= 2 and text[0] == "`" and text[-1] == "`":
+        text = text[1:-1]
+    if first_word:
+        words = text.split()
+        return words[0] if words else ""
+    return text
+
+
+def _intent_kind(fields: dict[str, str]) -> str:
+    kind = _normalized_field_value(fields.get("kind"), first_word=True)
+    if kind in ("outcome", "opportunity"):
+        return kind
+    if _normalized_field_value(fields.get("level"), first_word=True) == "capability":
+        return "capability"
+    return "intent"
+
+
+def _admitted_directory_names(root: Path, relative_dir: str) -> list[str] | None:
+    """Names in `relative_dir` that match the live intent name pattern.
+
+    `[]` when the directory is absent, `None` when it cannot be listed or its
+    resolved location leaves the repository.
+    """
+    directory = root / relative_dir
+    if _path_presence(directory) == "missing" and not directory.is_symlink():
+        return []
+    try:
+        root_resolved = root.resolve()
+        resolved = directory.resolve()
+        resolved.relative_to(root_resolved)
+        if resolved == root_resolved or not resolved.is_dir():
+            return None
+        names = sorted(entry.name for entry in resolved.iterdir())
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return [name for name in names if _LIVE_INTENT_NAME_RE.fullmatch(name)]
+
+
+def _read_directory_entry(root: Path, relative_dir: str, name: str) -> str | None:
+    """Read one admitted entry, or `None` when it is refused or unreadable."""
+    relative = f"{relative_dir}/{name}"
+    if relative_dir == _BRIEFS_DIR and not _confined_briefs_path(root, relative):
+        return None
+    candidate = _confined_artifact_path(root, relative)
+    if candidate is None:
+        return None
+    try:
+        candidate.relative_to((root.resolve() / relative_dir).resolve())
+        if not candidate.is_file():
+            return None
+        return candidate.read_text(encoding="utf-8", errors="replace")
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def build_resolution_index(
+    root: Path, *, cooled: frozenset[Path] = frozenset()
+) -> ResolutionIndex:
+    """List `docs/product/briefs/` and `docs/product/intents/` once.
+
+    A cooled entry's body is never opened: a cooled brief is indexed by its file
+    stem and a cooled intent is left out, since neither can be matched by a
+    `Slug:` field it was not allowed to read.
+    """
+    briefs: dict[str, list[str]] = {}
+    intents: dict[tuple[str, str], list[str]] = {}
+    unreadable = {_BRIEFS_DIR: False, _INTENTS_DIR: False}
+    for relative_dir in (_BRIEFS_DIR, _INTENTS_DIR):
+        names = _admitted_directory_names(root, relative_dir)
+        if names is None:
+            unreadable[relative_dir] = True
+            continue
+        for name in names:
+            relative = f"{relative_dir}/{name}"
+            if _confined_artifact_path(root, relative) in cooled:
+                if relative_dir == _BRIEFS_DIR:
+                    briefs.setdefault(name.removesuffix(".md"), []).append(relative)
+                continue
+            text = _read_directory_entry(root, relative_dir, name)
+            if text is None:
+                unreadable[relative_dir] = True
+                continue
+            fields = _parse_preamble_fields(text)
+            slug = _normalized_field_value(fields.get("slug"))
+            if relative_dir == _BRIEFS_DIR:
+                if "slug" not in fields:
+                    slug = name.removesuffix(".md")
+                briefs.setdefault(slug, []).append(relative)
+            elif "tombstone" not in fields and slug:
+                intents.setdefault((_intent_kind(fields), slug), []).append(relative)
+    return ResolutionIndex(
+        briefs={key: tuple(paths) for key, paths in briefs.items()},
+        intents={key: tuple(paths) for key, paths in intents.items()},
+        briefs_unreadable=unreadable[_BRIEFS_DIR],
+        intents_unreadable=unreadable[_INTENTS_DIR],
+    )
+
+
+def _is_captured_item_reference(item: str) -> bool:
+    parts = item.split("/")
+    if any(
+        part in (".", "..") or _CAPTURED_SEGMENT_RE.fullmatch(part) is None
+        for part in parts
+    ):
+        return False
+    if len(parts) == 4 and parts[:2] == ["docs", "specs"] and parts[3] == "spec.md":
+        return False
+    return parts[:3] not in (
+        _BRIEFS_DIR.split("/"),
+        _INTENTS_DIR.split("/"),
+    )
+
+
+def _echoable_reference(item: str) -> str:
+    """The item as a finding may echo it, or `""` when it must be withheld."""
+    if _TYPED_REFERENCE_RE.fullmatch(item) is None and not _is_captured_item_reference(
+        item
+    ):
+        return ""
+    return _bounded_finding_identifier(item)
+
+
+def _header_finding(
+    code: str, waiting_path: str, reason: str, item: str | None = None
+) -> RoutingFinding:
+    echoed = _echoable_reference(item) if item is not None else ""
+    return _finding(
+        code,
+        _bounded_finding_identifier(waiting_path),
+        f"{reason}: {echoed}" if echoed else reason,
+    )
+
+
+def _header_field_lines(text: str) -> list[tuple[str, str, bool]]:
+    """Every `Depends on:` and `Dependency receipts:` preamble line.
+
+    Each is `(lowercased name, value, followed by an indented non-blank line)`.
+    """
+    lines = list(_iter_preamble_lines(text))
+    found: list[tuple[str, str, bool]] = []
+    for position, line in enumerate(lines):
+        match = _HEADER_FIELD_RE.match(line)
+        if not match:
+            continue
+        name = match.group("name").strip().lower()
+        if name not in ("depends on", "dependency receipts"):
+            continue
+        following = lines[position + 1] if position + 1 < len(lines) else ""
+        wrapped = following[:1] in (" ", "\t") and following.strip() != ""
+        found.append((name, match.group("value").strip(), wrapped))
+    return found
+
+
+def _split_items(value: str) -> list[str]:
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def _parse_receipt_line(
+    waiting_path: str,
+    item: str,
+    items: set[str],
+    receipts: dict[str, tuple[str, tuple[str, ...]]],
+) -> RoutingFinding | None:
+    """Validate one receipt; record it under its reference when it is sound."""
+    tokens = item.split()
+    reference = tokens[0]
+    keyword = tokens[1] if len(tokens) > 1 else ""
+    refuse = lambda reason: _header_finding(  # noqa: E731
+        "invalid_dependency", waiting_path, f"dependency receipt {reason}", reference
+    )
+    if keyword not in ("completion", "coordination"):
+        return refuse("has an unknown keyword")
+    if len(tokens) != (6 if keyword == "completion" else 5):
+        return refuse("has the wrong token count")
+    if reference not in items:
+        return refuse("names no dependency item")
+    if reference in receipts:
+        return refuse("repeats a reference")
+    typed = _TYPED_REFERENCE_RE.fullmatch(reference)
+    if keyword == "coordination":
+        if typed is None or typed.group("kind") != "brief":
+            return refuse("coordination applies to a brief reference only")
+        remote_kind, receipt_id, revision = tokens[2:]
+        if remote_kind not in ("brief", "spec"):
+            return _header_finding(
+                "invalid_entry", waiting_path, "cross-repo need kind is invalid", reference
+            )
+        for value in (receipt_id, revision):
+            if _COORDINATION_TOKEN_RE.fullmatch(value) is None:
+                return _header_finding(
+                    "invalid_entry", waiting_path, "receipt value is invalid", reference
+                )
+    elif typed is None and _is_captured_item_reference(reference):
+        return refuse("completion does not apply to a captured item")
+    receipts[reference] = (keyword, tuple(tokens[2:]))
+    return None
+
+
+def _brief_path_for(slug: str, index: ResolutionIndex) -> str:
+    matches = index.briefs.get(slug, ())
+    return matches[0] if len(matches) == 1 else f"{_BRIEFS_DIR}/{slug}.md"
+
+
+def read_header_dependencies(
+    root: Path,
+    waiting_path: str,
+    *,
+    index: ResolutionIndex,
+    membership_kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> HeaderDependencies:
+    """Read one waiting item's header edges.
+
+    `membership_kinds` maps each canonical membership path to its `kind`. A
+    cooled waiting item is never opened and contributes nothing. A missing or
+    unconfined waiting item contributes nothing here: reconciliation reports it.
+    """
+    waiting_file = _confined_artifact_path(root, waiting_path)
+    if waiting_file is None or waiting_file in cooled:
+        return HeaderDependencies((), ())
+    presence = _path_presence(waiting_file)
+    if presence == "missing":
+        return HeaderDependencies((), ())
+    unreadable = HeaderDependencies(
+        (), (_header_finding("unreadable_artifact", waiting_path, "waiting item unreadable"),)
+    )
+    if presence == "unreadable":
+        return unreadable
+    try:
+        text = waiting_file.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return unreadable
+    return header_dependencies_from_text(
+        root,
+        waiting_path,
+        text,
+        index=index,
+        membership_kinds=membership_kinds,
+        cooled=cooled,
+    )
+
+
+def header_dependencies_from_text(
+    root: Path,
+    waiting_path: str,
+    text: str,
+    *,
+    index: ResolutionIndex,
+    membership_kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> HeaderDependencies:
+    """Read header edges from a waiting item's text.
+
+    The same rules `read_header_dependencies` applies to the file, so the repair
+    can check what a planned header would read as before it writes one.
+    """
+    findings: list[RoutingFinding] = []
+    items: list[str] = []
+    receipt_lines: list[str] = []
+    for name, value, wrapped in _header_field_lines(text):
+        if wrapped:
+            label = "Depends on:" if name == "depends on" else "Dependency receipts:"
+            findings.append(
+                _header_finding(
+                    "invalid_dependency",
+                    waiting_path,
+                    f"an indented line follows {label} and would be dropped",
+                )
+            )
+        if name == "dependency receipts":
+            receipt_lines.extend(_split_items(value))
+        elif value.split()[:1] and value.split()[0].lower() != "none":
+            items.extend(_split_items(value))
+    item_set = set(items)
+    receipts: dict[str, tuple[str, tuple[str, ...]]] = {}
+    for line in receipt_lines:
+        finding = _parse_receipt_line(waiting_path, line, item_set, receipts)
+        if finding is not None:
+            findings.append(finding)
+    dependencies: list[Dependency] = []
+    for item in items:
+        target, finding = _resolve_header_item(
+            root, waiting_path, item, index, membership_kinds, cooled
+        )
+        if finding is not None:
+            findings.append(finding)
+        if target is None:
+            continue
+        kind, path, brief_slug = target
+        receipt = receipts.get(item)
+        if receipt is not None and receipt[0] == "coordination" and brief_slug:
+            remote_kind, receipt_id, revision = receipt[1]
+            brief_path = _brief_path_for(brief_slug, index)
+            dependencies.append(
+                Dependency(
+                    type="cross-repo",
+                    kind=remote_kind,
+                    path=brief_path,
+                    containing_brief=brief_path,
+                    receipt_id=receipt_id,
+                    accepted_revision=revision,
+                )
+            )
+            continue
+        completion: dict[str, str] | str | None = None
+        if receipt is not None and receipt[0] == "completion":
+            delivery_id, outcome, event, evidence = receipt[1]
+            completion = {
+                "delivery_id": delivery_id,
+                "outcome": outcome,
+                "completion_event": event,
+                "evidence_ref": evidence,
+            }
+            if not all(
+                _is_bounded_text(value, _COMPLETION_RECEIPT_MAX_FIELD_LENGTH)
+                for value in completion.values()
+            ):
+                completion = _MALFORMED_COMPLETION_RECEIPT
+        dependencies.append(
+            Dependency(type="local", kind=kind, path=path, receipt=completion)
+        )
+    return HeaderDependencies(tuple(dependencies), tuple(findings))
+
+
+def _resolve_header_item(
+    root: Path,
+    waiting_path: str,
+    item: str,
+    index: ResolutionIndex,
+    membership_kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> tuple[tuple[str, str, str] | None, RoutingFinding | None]:
+    """Resolve one item to `(kind, path, brief slug or "")`, or a finding.
+
+    A typed reference with no target keeps the path the satisfaction logic needs
+    to report it missing, and a captured item with no file and no membership
+    keeps its path with no kind.
+    """
+    typed = _TYPED_REFERENCE_RE.fullmatch(item)
+    if typed is not None:
+        ref_kind, slug = typed.group("kind", "slug")
+        if ref_kind == "spec":
+            return ("spec", f"docs/specs/{slug}/spec.md", ""), None
+        if ref_kind == "brief":
+            unreadable, matches = index.briefs_unreadable, index.briefs.get(slug, ())
+            kind = "brief"
+        else:
+            unreadable = index.intents_unreadable
+            matches = index.intents.get((ref_kind, slug), ())
+            kind = "intent"
+        if unreadable:
+            return None, _header_finding(
+                "unreadable_artifact", waiting_path, "dependency directory unreadable", item
+            )
+        if len(matches) > 1:
+            return None, _header_finding(
+                "invalid_dependency", waiting_path, "dependency reference is ambiguous", item
+            )
+        return (kind, matches[0] if matches else item, slug if kind == "brief" else ""), None
+    if not _is_captured_item_reference(item):
+        return None, _header_finding(
+            "invalid_dependency",
+            waiting_path,
+            "dependency item is neither a typed reference nor a captured-item path",
+            item,
+        )
+    member_kind = membership_kinds.get(item)
+    if member_kind:
+        return (member_kind, item, ""), None
+    captured_file = _confined_artifact_path(root, item)
+    if captured_file is None:
+        return ("", item, ""), None
+    captured_presence = _path_presence(captured_file)
+    if captured_presence == "unreadable":
+        return None, _header_finding(
+            "unreadable_artifact", waiting_path, "captured item unreadable", item
+        )
+    if captured_presence == "missing":
+        return ("", item, ""), None
+    kind = ""
+    if captured_file not in cooled:
+        try:
+            text = captured_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None, _header_finding(
+                "unreadable_artifact", waiting_path, "captured item unreadable", item
+            )
+        kind = _normalized_field_value(
+            _parse_preamble_fields(text).get("kind"), first_word=True
+        )
+    if kind not in WORKSPACE_ARTIFACT_KINDS:
+        return None, _header_finding(
+            "invalid_dependency", waiting_path, "captured item has no kind", item
+        )
+    return (kind, item, ""), None
 
 
 def _legacy_canonical_alias(entry: LegacyWorkspaceEntry) -> str | None:
@@ -3543,6 +4052,75 @@ def _structural_findings(
     return findings
 
 
+def _header_edges_by_path(
+    memberships: list[WorkspaceMembership],
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> dict[str, HeaderDependencies]:
+    """Read each non-cooled local membership's header once, by waiting path.
+
+    A cooled membership is never opened and contributes no entry. Without a
+    root nothing can be read, so no edge exists.
+    """
+    if root is None:
+        return {}
+    waiting = [
+        membership for membership in memberships
+        if membership.entry.path is not None
+        and not _membership_is_cooled(membership, root, cooled)
+    ]
+    if not waiting:
+        return {}
+    index = build_resolution_index(root, cooled=cooled)
+    kinds = {
+        membership.entry.path: membership.entry.kind
+        for membership in memberships
+        if membership.entry.path is not None
+    }
+    headers: dict[str, HeaderDependencies] = {}
+    for membership in waiting:
+        path = membership.entry.path
+        assert path is not None
+        if path not in headers:
+            headers[path] = read_header_dependencies(
+                root, path, index=index, membership_kinds=kinds, cooled=cooled
+            )
+    return headers
+
+
+def _apply_header_edges_to_legacy_view(
+    initiatives: list[Initiative], workspace: dict, root: Path, cooled: frozenset[Path]
+) -> None:
+    """Show each header edge of a canonical membership as the string a typed
+    `needs` edge showed, and drop that entry's registry needs from this view.
+
+    The string never resolves, so the legacy lists treat a header edge exactly
+    as they treated a typed `needs` edge. Making it resolve would change
+    behavior outside the header switch.
+    """
+    memberships = [
+        membership
+        for membership in _extract_canonical_memberships(workspace)[0]
+        if membership.entry.path is not None
+    ]
+    if not memberships:
+        return
+    counts = {
+        path: len(header.dependencies)
+        for path, header in _header_edges_by_path(memberships, root, cooled).items()
+    }
+    canonical_paths = {membership.entry.path for membership in memberships}
+    for ini in initiatives:
+        for entry in (*ini.work.queue, *ini.work.active, *ini.work.shipped):
+            if entry.path in canonical_paths:
+                entry.needs = ["unsupported-typed-need"] * counts.get(entry.path, 0)
+        for shaping_entry in (*ini.shaping.active, *ini.shaping.backlog):
+            if shaping_entry.slug in canonical_paths:
+                shaping_entry.needs = (
+                    ["unsupported-typed-need"] * counts.get(shaping_entry.slug, 0)
+                )
+
+
 def evaluate_dispatch(
     membership: WorkspaceMembership,
     workspace: dict,
@@ -3556,8 +4134,13 @@ def evaluate_dispatch(
     cooled: frozenset[Path] = frozenset(),
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
+    header: HeaderDependencies | None = None,
 ) -> DispatchEvaluation:
-    """Evaluate the positive T2 dispatch predicate for one canonical membership."""
+    """Evaluate the positive T2 dispatch predicate for one canonical membership.
+
+    `header` holds the waiting item's dependency edges. `entry.needs` decides
+    nothing: a non-empty array only earns `unmigrated_needs`.
+    """
     entry = membership.entry
     if entry.path is None:
         return DispatchEvaluation(
@@ -3596,7 +4179,16 @@ def evaluate_dispatch(
             findings.append(_finding("invalid_artifact_path", entry.path, "spec path shape"))
         if metadata.status != "Approved":
             findings.append(_finding("unapproved_spec", entry.path, "spec is not Approved"))
-    for dep in entry.needs:
+    if entry.needs:
+        findings.append(_finding("unmigrated_needs", entry.path, "registry needs"))
+    for header_finding in (header.findings if header is not None else ()):
+        if header_finding.code == "unreadable_artifact" and any(
+            existing.code == header_finding.code and existing.path == header_finding.path
+            for existing in findings
+        ):
+            continue
+        findings.append(header_finding)
+    for dep in (header.dependencies if header is not None else ()):
         satisfied, finding = _dependency_is_satisfied(
             dep,
             workspace,
@@ -3608,7 +4200,13 @@ def evaluate_dispatch(
             cooled_scope_unknown=cooled_scope_unknown,
         )
         if not satisfied and finding is not None:
-            findings.append(finding)
+            # The path came from a header item, so it is bounded like any other
+            # echoed value: a failing path loses its content, not its code.
+            findings.append(
+                dataclasses.replace(
+                    finding, path=_bounded_finding_identifier(finding.path)
+                )
+            )
     dispatchable = (
         entry.kind == "spec"
         and membership.collection == "work.queue"
@@ -3729,7 +4327,9 @@ def run_canonical_reconciliation(
         _finding("duplicate_membership", path, "duplicate lifecycle entry")
         for path in sorted(parse_only_duplicate_paths)
     ]
-    cycle_paths = _dependency_cycles(local_memberships)
+    headers = _header_edges_by_path(local_memberships, root, cooled)
+    header_edges = {path: header.dependencies for path, header in headers.items()}
+    cycle_paths = _dependency_cycles(local_memberships, header_edges)
     brief_child_states, briefs_with_cooled_children, cooled_scope_unknown = (
         _brief_child_spec_states(
             local_memberships, workspace, root, cooled,
@@ -3786,6 +4386,10 @@ def run_canonical_reconciliation(
                 # which are still owed whatever the artifact's own state
                 # is.
                 cooled_membership_findings.extend(member_findings)
+        if membership_cooled and membership.entry.needs:
+            cooled_membership_findings.append(
+                _finding("unmigrated_needs", membership.entry.path, "registry needs")
+            )
     evaluations = [
         evaluate_dispatch(
             membership,
@@ -3800,6 +4404,7 @@ def run_canonical_reconciliation(
             cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
             cooled_scope_unknown=cooled_scope_unknown,
+            header=headers.get(membership.entry.path or ""),
         )
         for membership in memberships
         if not _membership_is_cooled(membership, root, cooled)
@@ -3823,6 +4428,7 @@ def run_canonical_reconciliation(
         findings=findings,
         evaluations=evaluations,
         dispatch_by_path=dispatch_by_path,
+        header_edges=header_edges,
     )
 
 
@@ -4585,6 +5191,7 @@ def analyze(
     else:
         workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
+    _apply_header_edges_to_legacy_view(initiatives, workspace, root, cooled)
 
     all_classifications: list[EntryClassification] = []
     all_shaping: list[ShapingClassification] = []
@@ -4653,6 +5260,7 @@ def analyze_bounded(
     workspace_path = root / "workspace.toml"
     workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
+    _apply_header_edges_to_legacy_view(initiatives, workspace, root, cooled)
 
     all_classifications: list[EntryClassification] = []
     all_shaping: list[ShapingClassification] = []
@@ -5083,7 +5691,14 @@ def _repair_entry_eligibility(
         blocking_codes = {
             finding.code for finding in [*eval_findings, *result_findings]
         }
-        if blocking_codes - {"impossible_transition", "unapproved_spec"}:
+        # A registry `needs` array travels with the moved entry untouched, so
+        # `unmigrated_needs` does not stop the move. The edge migration is its
+        # own repair.
+        if blocking_codes - {
+            "impossible_transition",
+            "unapproved_spec",
+            "unmigrated_needs",
+        }:
             return False, "type2-queue-canonical-blocked"
         # Defence in depth: canonical reconciliation already refuses dispatch
         # while a historical alias survives, but the repair seam also checks so

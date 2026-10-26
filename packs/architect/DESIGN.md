@@ -291,7 +291,7 @@ exactly two routes:
   `close-work` offers this. `new-spec` and `work-loop` then read it only when an
   `AGENTS.md` maps that source.
 
-A `workspace.toml` `needs` entry naming the design only orders work: it keeps a
+A `Depends on:` header line naming the design only orders work: it keeps a
 brief or spec blocked until the design lands and carries no content. Core reads
 only mapped architecture sources, so a future-state design never becomes a
 second architecture authority beside the system that actually runs.

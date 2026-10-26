@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:tracker-projection-profile-table, spec:bounded-remote-create-action, spec:tracker-working-view-jira-software
 
 
 > **Spec contract:** this document defines what "done" means. The implementing

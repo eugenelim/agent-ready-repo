@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/delivery/` (consumes `security-event.v1`, `security-capability.v1`, `safe-process.v1`, `containment-attestation.v1`, and `execution-supervisor-core`'s `execution-request.v1` and `execution-result.v1` unchanged)
 - **Shape:** service
+- **Depends on:** spec:execution-supervisor-core
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

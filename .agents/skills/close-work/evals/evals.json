@@ -58,14 +58,17 @@
     {
       "id": 10,
       "prompt": "Reconcile the completion receipt and live dependencies in this workspace. State the receipt contract before proposing any closeout.",
-      "expected_output": "The agent identifies the citing local need in workspace.toml as the completion receipt's carrier. It states that outcome is restricted to completed, abandoned, or superseded, and that delivery_id, completion_event, and evidence_ref use the lifecycle record's published grammars. It does not move the receipt to a delivery record or a separate receipt store.",
+      "expected_output": "The agent identifies the citing item's `Dependency receipts:` preamble line, beside its `Depends on:` line, as the completion receipt's carrier. It states that outcome is restricted to completed, abandoned, or superseded, and that delivery_id, completion_event, and evidence_ref use the lifecycle record's published grammars. It does not move the receipt to a delivery record or a separate receipt store.",
       "assertions": [
-        "Names the citing local need as the receipt carrier",
+        "Names the citing item's Dependency receipts line as the receipt carrier",
         "States the completed, abandoned, and superseded outcome vocabulary",
         "Uses the lifecycle record's published grammars for the other three fields",
         "Does not create a separate receipt store"
       ],
-      "files": ["evals/files/completion-receipt/workspace.toml"]
+      "files": [
+        "evals/files/completion-receipt/workspace.toml",
+        "evals/files/completion-receipt/docs/specs/dependant/spec.md"
+      ]
     },
     {
       "id": 11,

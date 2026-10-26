@@ -8,6 +8,7 @@
   [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
 - **Parent intent:** none
   [`docs/product/intents/cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
+- **Depends on:** brief:phase-scoped-policy-delivery
 
 ## Outcome
 

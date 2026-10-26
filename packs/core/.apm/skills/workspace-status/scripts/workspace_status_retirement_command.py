@@ -37,6 +37,7 @@ candidates = _load_sibling(
     "workspace_status_retirement_candidates",
     "workspace_status_retirement_candidates.py",
 )
+engine = _load_sibling("workspace_status_engine", "workspace_status_engine.py")
 contract = _load_sibling(
     "workspace_status_retirement_contract", "workspace_status_retirement_contract.py"
 )
@@ -185,6 +186,47 @@ def _append_blocker(
         item["declared_by"] = sorted(set(declared_by))
     if item not in reasons:
         reasons.append(item)
+
+
+def _unreadable_input(waiting_path: str, detail: str) -> str:
+    """Name the input behind one reader `unreadable_artifact` finding."""
+    reason, _, item = detail.partition(": ")
+    if reason == "dependency directory unreadable" and item:
+        return "docs/product/briefs" if item.startswith("brief:") else "docs/product/intents"
+    if reason == "captured item unreadable" and item:
+        return item
+    return waiting_path
+
+
+def _header_needed_by(
+    root: Path, workspace: dict
+) -> tuple[dict[str, list[str]], list[str]]:
+    """Map each spec slug to the live waiting items whose header names it.
+
+    Edges come from each waiting item's `Depends on:` line through the engine's
+    reader. The second value lists every input the reader could not read,
+    named as itself: the waiting item, a dependency directory, or a captured
+    item. Any of them could hide an edge, so the caller refuses for every slug.
+    """
+    memberships = [
+        membership
+        for membership in engine._extract_canonical_memberships(workspace)[0]
+        if membership.entry.path is not None
+    ]
+    needed_by: dict[str, list[str]] = {}
+    unreadable: list[str] = []
+    headers = engine._header_edges_by_path(memberships, root, frozenset())
+    for waiting_path, header in headers.items():
+        for finding in header.findings:
+            if finding.code == "unreadable_artifact":
+                unreadable.append(_unreadable_input(waiting_path, finding.detail))
+        for dependency in header.dependencies:
+            slug = candidates._slug_from_spec_path(dependency.path)
+            if dependency.kind == "spec" and slug is not None:
+                needed_by.setdefault(slug, []).append(
+                    f"{waiting_path} depends on {dependency.path}"
+                )
+    return needed_by, sorted(set(unreadable))
 
 
 def retirement_candidates_document(
@@ -345,7 +387,11 @@ def retirement_candidates_document(
         if status is not None and status[0] == "Shipped":
             shipped_briefs.append((path, body))
 
-    needed_by, bad_needs = candidates.build_needed_by_index(workspace or {})
+    # Registry `needs` no longer carries edges: only its shape is still checked.
+    _, bad_needs = candidates.build_needed_by_index(workspace or {})
+    needed_by, unreadable_headers = _header_needed_by(root, workspace or {})
+    for waiting_path in unreadable_headers:
+        refuse("input-unreadable", waiting_path)
     inflight, bad_collections = candidates.build_inflight_index(workspace or {})
     for source in sorted(bad_needs):
         refuse("needs-shape-unrecognised", "workspace.toml", declared_at=source)

@@ -14,6 +14,7 @@
   obligation and the contract change it needs belong to the slice that completes
   the eight profiles.
 - **Shape:** mixed
+- **Depends on:** spec:agent-skill-engineering-languages-and-execution
 
 > **Hard dependency.** The corpus and languages slices are Shipped. This slice
 > admits four of the eleven taxonomy leaves reserved for runtime composition and

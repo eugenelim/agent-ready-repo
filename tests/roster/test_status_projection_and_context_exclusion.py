@@ -83,6 +83,23 @@ def _spec(root: Path, slug: str, *, status: str = "Approved", brief: str = "none
     (directory / "plan.md").write_text("# Plan\n", encoding="utf-8")
 
 
+def _depend_on(root: Path, slug: str, *refs: str, receipts: str = "") -> None:
+    """Record a spec's dependencies in its own `Depends on:` header.
+
+    `receipts` is the text of a `Dependency receipts:` line, when one is needed.
+    The lines go directly after the spec's `Brief:` line, inside the preamble.
+    """
+    spec = root / "docs/specs" / slug / "spec.md"
+    lines = [f"- **Depends on:** {', '.join(refs)}\n"]
+    if receipts:
+        lines.append(f"- **Dependency receipts:** {receipts}\n")
+    text = spec.read_text(encoding="utf-8")
+    marker = "- **Brief:**"
+    start = text.index(marker)
+    end = text.index("\n", start) + 1
+    spec.write_text(text[:end] + "".join(lines) + text[end:], encoding="utf-8")
+
+
 def _workspace(
     root: Path,
     *,
@@ -90,6 +107,7 @@ def _workspace(
     active: str = "",
     shipped: str = "",
     status: str = "active",
+    backlog_open: str = "",
 ) -> None:
     """Write one active initiative using already-rendered TOML work entries."""
     (root / "workspace.toml").write_text(
@@ -103,7 +121,8 @@ def _workspace(
         f"shipped = [{shipped}]\n\n"
         "[\"ini-002\".shaping_queue]\n"
         "active = []\n"
-        "backlog = []\n",
+        "backlog = []\n"
+        + (f"\n[backlog]\nopen = [{backlog_open}]\nclosed = []\n" if backlog_open else ""),
         encoding="utf-8",
     )
 
@@ -663,13 +682,13 @@ def test_installed_skills_tree_still_reaches_its_sibling(tmp_path) -> None:
 
 def test_cooled_body_never_reaches_the_output(tmp_path, engine) -> None:
     """AC13: canonical dependency probes do not read cooled artifacts."""
-    needs = '[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]'
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
     cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
     for root in (control, cooled):
         _spec(root, "alpha", brief="COOLSENTINEL42")
         _spec(root, "beta")
-        _workspace(root, queue=_entry("beta", needs=needs))
+        _depend_on(root, "beta", "spec:alpha")
+        _workspace(root, queue=_entry("beta"))
 
     control_json = _reconcile_json(control, engine)
     cooled_json = _reconcile_json(cooled, engine)
@@ -683,13 +702,8 @@ def test_cooled_dependency_does_not_block_its_dependant(tmp_path, engine) -> Non
     root = _tree(tmp_path, records=[_record()], specs=())
     _spec(root, "alpha")
     _spec(root, "beta")
-    _workspace(
-        root,
-        queue=_entry(
-            "beta",
-            needs='[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]',
-        ),
-    )
+    _depend_on(root, "beta", "spec:alpha")
+    _workspace(root, queue=_entry("beta"))
 
     ready = _reconcile_json(root, engine)["canonical"]["ready"]
     assert [item["path"] for item in ready] == ["docs/specs/beta/spec.md"]
@@ -924,10 +938,10 @@ def test_cooling_never_satisfies_a_blocked_dependency(tmp_path, engine) -> None:
     root = _tree(tmp_path, records=[_record()], specs=())
     _spec(root, "alpha")
     _spec(root, "beta")
-    needs = '[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]'
+    _depend_on(root, "beta", "spec:alpha")
     _workspace(
         root,
-        queue=", ".join([_entry("alpha"), _entry("alpha"), _entry("beta", needs=needs)]),
+        queue=", ".join([_entry("alpha"), _entry("alpha"), _entry("beta")]),
     )
 
     canonical = _reconcile_json(root, engine)["canonical"]
@@ -942,18 +956,47 @@ def test_cooling_never_satisfies_a_blocked_dependency(tmp_path, engine) -> None:
     control = _tree(tmp_path / "control", records=[_record()], specs=())
     _spec(control, "alpha")
     _spec(control, "beta")
-    _workspace(control, queue=", ".join([_entry("alpha"), _entry("beta", needs=needs)]))
+    _depend_on(control, "beta", "spec:alpha")
+    _workspace(control, queue=", ".join([_entry("alpha"), _entry("beta")]))
     control_ready = [item["path"] for item in _reconcile_json(control, engine)["canonical"]["ready"]]
     assert control_ready == ["docs/specs/beta/spec.md"]
 
 
+DEFECT_PATH = "docs/backlog/alpha.md"
+
+
+def _defect_fixture(base: Path, *, cooled: bool) -> Path:
+    """A queued spec waiting on an open defect, itself cooled when asked.
+
+    A defect is a captured item, so the header names its path. Its registered
+    `backlog.open` membership gives the reference its kind without opening a
+    cooled body.
+    """
+    root = _tree(
+        base,
+        records=[_record(locator=DEFECT_PATH)] if cooled else [],
+        specs=(),
+        lifecycle=cooled,
+    )
+    defect = root / DEFECT_PATH
+    defect.parent.mkdir(parents=True, exist_ok=True)
+    defect.write_text("# Defect\n\n- **Status:** Open\n- **Kind:** defect\n", encoding="utf-8")
+    _spec(root, "beta")
+    _depend_on(root, "beta", DEFECT_PATH)
+    _workspace(
+        root,
+        queue=_entry("beta"),
+        backlog_open=(
+            f'{{path = "{DEFECT_PATH}", kind = "defect", '
+            'source = {mode = "repo-origin"}, summary = "fixture", needs = []}'
+        ),
+    )
+    return root
+
+
 def test_cooling_never_satisfies_an_unclosed_defect_dependency(tmp_path, engine) -> None:
     """AC56: a cooled defect still requires backlog.closed membership."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _spec(root, "beta")
-    dependency = '[{type = "local", kind = "defect", path = "docs/specs/alpha/spec.md"}]'
-    _workspace(root, queue=_entry("beta", needs=dependency))
+    root = _defect_fixture(tmp_path, cooled=True)
 
     ready = _reconcile_json(root, engine)["canonical"]["ready"]
     assert all(item["path"] != "docs/specs/beta/spec.md" for item in ready)
@@ -969,6 +1012,10 @@ def test_cooling_never_satisfies_an_unclosed_defect_dependency(tmp_path, engine)
 def _cross_repo_fixture(root: Path, *, cooled: bool, brief_on_disk: bool = True) -> Path:
     """Build a queued spec needing a cross-repo receipt carried by a brief."""
     _spec(root, "beta")
+    _depend_on(
+        root, "beta", "brief:gamma",
+        receipts="brief:gamma coordination brief r1 rev1",
+    )
     brief = root / "docs/product/briefs/gamma.md"
     brief.parent.mkdir(parents=True, exist_ok=True)
     if brief_on_disk:
@@ -978,18 +1025,7 @@ def _cross_repo_fixture(root: Path, *, cooled: bool, brief_on_disk: bool = True)
         directory.mkdir(parents=True, exist_ok=True)
         record = _record(delivery_id="gamma", locator="docs/product/briefs/gamma.md")
         (directory / "gamma.json").write_text(json.dumps(record), encoding="utf-8")
-    _workspace(
-        root,
-        queue=_entry(
-            "beta",
-            needs=(
-                '[{type = "cross-repo", kind = "brief", '
-                'path = "docs/product/briefs/gamma.md", '
-                'containing_brief = "docs/product/briefs/gamma.md", '
-                'receipt_id = "r1", accepted_revision = "rev1"}]'
-            ),
-        ),
-    )
+    _workspace(root, queue=_entry("beta"))
     return root
 
 
@@ -1094,24 +1130,14 @@ def test_repository_identity_does_not_read_cooled_bodies(tmp_path, engine, monke
 
 def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monkeypatch) -> None:
     """Mutation guard: the defect probe avoids cooled artifact metadata reads."""
-    control = _tree(tmp_path / "control", lifecycle=False, specs=())
-    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
-    for root in (control, cooled):
-        _spec(root, "alpha")
-        _spec(root, "beta")
-        _workspace(
-            root,
-            queue=_entry(
-                "beta",
-                needs='[{type = "local", kind = "defect", path = "docs/specs/alpha/spec.md"}]',
-            ),
-        )
+    control = _defect_fixture(tmp_path / "control", cooled=False)
+    cooled = _defect_fixture(tmp_path / "cooled", cooled=True)
     real = engine._metadata_from_root
     seen: list[str] = []
 
     def probe(root_arg, entry):
         """Record the synthetic dependency target before its metadata is read."""
-        if entry.path == "docs/specs/alpha/spec.md":
+        if entry.path == DEFECT_PATH:
             seen.append(entry.path)
         return real(root_arg, entry)
 
@@ -1119,7 +1145,9 @@ def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monke
     engine.run_canonical_reconciliation(
         engine.parse_workspace(control / "workspace.toml"), control
     )
-    assert seen == ["docs/specs/alpha/spec.md"]
+    # The defect is also a registered membership, so the control reads it more
+    # than once; the control only has to prove the probe is reachable.
+    assert seen, "control never read the defect; the probe proves nothing"
     seen.clear()
     engine.run_canonical_reconciliation(
         engine.parse_workspace(cooled / "workspace.toml"),
@@ -1149,13 +1177,8 @@ def test_alias_declared_dependency_does_not_read_its_body(tmp_path, engine) -> N
             root / "docs/specs/alpha", target_is_directory=True
         )
         _spec(root, "beta")
-        _workspace(
-            root,
-            queue=_entry(
-                "beta",
-                needs='[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]',
-            ),
-        )
+        _depend_on(root, "beta", "spec:alpha")
+        _workspace(root, queue=_entry("beta"))
         return root
 
     control = json.dumps(_reconcile_json(build(tmp_path / "control", lifecycle=False), engine))
@@ -1674,6 +1697,7 @@ def test_non_boolean_visibility_fact_is_refused(engine) -> None:
 # ── AC59: brief child scope ────────────────────────────────────────────────────
 
 BRIEF_PATH = "docs/product/briefs/brief-1.md"
+BRIEF_REF = "brief:brief-1"  # the brief has no `Slug:`, so its file stem names it
 
 
 def _brief_body(root: Path, *, status: str = "Shipped") -> None:
@@ -1725,11 +1749,12 @@ def _brief_workspace(
         f'summary = "fixture", needs = []}}'
     )
     dep_entry = (
-        f'{{path = "docs/specs/dependant/spec.md", kind = "spec", '
-        f'source = {{mode = "repo-origin"}}, '
-        f'summary = "fixture", '
-        f'needs = [{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]}}'
+        '{path = "docs/specs/dependant/spec.md", kind = "spec", '
+        'source = {mode = "repo-origin"}, '
+        'summary = "fixture", needs = []}'
     )
+    if include_dependant:
+        _depend_on(root, "dependant", BRIEF_REF)
     brief_entry = (
         f'{{path = "{BRIEF_PATH}", kind = "brief", '
         f'source = {{mode = "repo-origin"}}, summary = "fixture", needs = []}}'
@@ -2060,10 +2085,10 @@ def test_unrelated_cooled_spec_affects_different_initiative_brief(
         f'source = {{mode = "repo-origin", parent = "{BRIEF_PATH}"}}, '
         f'summary = "fixture", needs = []}}'
     )
+    _depend_on(root, "dependant", BRIEF_REF)
     dep_entry = (
-        f'{{path = "docs/specs/dependant/spec.md", kind = "spec", '
-        f'source = {{mode = "repo-origin"}}, summary = "fixture", '
-        f'needs = [{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]}}'
+        '{path = "docs/specs/dependant/spec.md", kind = "spec", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = []}'
     )
     brief_entry = (
         f'{{path = "{BRIEF_PATH}", kind = "brief", '

@@ -7,6 +7,7 @@
 - **Discovery:** intent:catalogue-wave5-release-integrity
 - **Contract:** none — `catalogue-manifest.json` and the `catalogue package` JSON output have no schema file; AC-0001, AC-0002, AC-0013 and AC-0018 pin their shape, and the reference guides in Durable Outputs describe it.
 - **Shape:** service
+- **Depends on:** spec:catalogue-wave4-semantic-contracts-index
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

@@ -4,6 +4,7 @@
 - **Status:** Draft
 - **Level:** capability
 - **Owner:** eugenelim
+- **Depends on:** capability:project-knowledge-engineering-operational-integrations
 
 ## Outcome
 

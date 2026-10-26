@@ -291,7 +291,7 @@ for its capability children.** STRAT-0001's Horizon states that "each capability
 below is independently enterable and independently valuable." This intent's
 three children are chained — flow visibility has nothing to observe until work
 is intent-backed, and the review has no forecast to read until flow exists. That
-dependency is recorded in `workspace.toml` as `needs` edges, not only in prose.
+dependency is recorded in each waiting child's `Depends on:` header, not only in prose.
 A chain is the signature of architectural slices of one buildable thing, which
 is what a capability parent is for; independent bets are what a strategy parent
 is for. This intent's cut is the first.

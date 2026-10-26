@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/delivery/` (canonical bundle; Slice 2 review schemas planned)
 - **Shape:** service
+- **Depends on:** spec:acceptance-authority-and-evidence
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

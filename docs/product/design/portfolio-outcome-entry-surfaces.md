@@ -1,6 +1,7 @@
 # Portfolio outcome entry surfaces
 
 - **Status:** Draft
+- **Depends on:** spec:portfolio-pack-first-value-contract, spec:portfolio-first-run-pilot-architect, spec:portfolio-first-run-pilot-figma
 
 ## Outcome
 

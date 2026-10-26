@@ -6,6 +6,7 @@
 - **Status:** Draft
 - **Source / provenance:** [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
 - **Parent intent:** intent:cross-adapter-behavior-enforcement
+- **Depends on:** brief:universal-implementer-dispatch
 
 ## Outcome
 

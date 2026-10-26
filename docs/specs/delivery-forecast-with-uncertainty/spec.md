@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:flow-distribution-sample-honest
 
 
 > **Spec contract:** this document defines what "done" means. The implementing

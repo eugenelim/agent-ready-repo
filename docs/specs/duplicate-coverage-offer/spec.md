@@ -9,6 +9,7 @@
 - **Constrained by:**
   - docs/product/research/sub-spec-work-items-survey.md § Refuted approaches — path proximity is refuted as a candidate mechanism and is not re-proposed
   - docs/product/intents/CAP-0005-work-item-capture-and-disposition.md § Assumptions — a terminal disposition, once recorded, is not replaced by a conflicting one
+- **Depends on:** spec:work-item-promotion-handoff
 
 ## Objective
 

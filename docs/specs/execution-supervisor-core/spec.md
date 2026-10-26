@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/delivery/` (canonical bundle; this spec adds `task-contract.v1`, `execution-request.v1`, `execution-result.v1`, `mechanical-journal.v1`, and `effect-resolution.v1`); `contracts/jsonschema/loop-run-event.schema.json` (consumed unchanged); `<spec>/.supervisor/run.json` fields (defined here)
 - **Shape:** service
+- **Depends on:** spec:acceptance-authority-and-evidence, spec:structured-review-boundary
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

@@ -1,129 +1,103 @@
-# workspace.toml — Dependency model reference
+# Dependency edges — header reference
 
-`workspace.toml` uses an inline dependency notation on queue entries to
-declare coordination constraints between work items. This document explains
-the notation in full. The authoritative source for D7 (dependency model) and
-D9 (shaping-type prefixes) is
-[RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md); this doc is the
-quick reference. See `workspace.toml` in the repo root for a lived example.
+A piece of work records that it waits for another by one line in its own file:
+the `Depends on:` header. `workspace-status` reads that line and blocks the work
+until each item it names is satisfied. The registry entry in `workspace.toml`
+holds no edge: its `needs` stays `[]`.
+
+The design is RFC-0106 D3. The receipt's carrier is recorded in the ADR that
+supersedes ADR-0103 D6 in part. The guide
+[`workspace-toml-schema.md`](../../guides/core/reference/workspace-toml-schema.md)
+is the adopter-facing reference. `workspace.toml` in the repository root is the
+lived example.
 
 ---
 
-## Entry format
+## Where the lines go
 
-A queue entry is either a bare string (no dependencies) or an inline TOML
-object with `path` and `needs` keys (with dependencies):
+Both lines go in the preamble of the file the registry entry's `path` names
+(a spec, brief, intent, or captured item). The preamble is every line before the
+first `## ` heading, outside fenced blocks, with HTML comments hidden.
 
-```toml
-# String — no dependencies; can start immediately
-"spec/my-feature"
-
-# Inline object — has dependencies; blocked until needs resolves
-{path = "spec/my-feature", needs = "work:spec/prerequisite"}
-
-# Multiple dependencies — needs is a list of strings
-{path = "spec/my-feature", needs = ["work:spec/a", "brief:docs/product/briefs/b.md"]}
+```markdown
+- **Depends on:** spec:workspace-core, brief:platform-core
+- **Dependency receipts:** spec:retired-delivery completion retired-42 completed release commit:0123456789abcdef0123456789abcdef01234567
 ```
 
-`needs` is a string or a list of strings. Each string uses a prefix to
-identify the queue type and target.
+---
+
+## `Depends on:`
+
+The line holds comma-separated items. Empty items are dropped. A line whose first
+word is `none` adds no item. Each item is one of:
+
+| Item | Meaning |
+| --- | --- |
+| `spec:<slug>` | the spec at `docs/specs/<slug>/spec.md` |
+| `brief:<slug>` | the delivery brief whose `Slug:` is `<slug>` |
+| `<intent kind>:<slug>` | the live intent of that kind with that `Slug:`; the kind is `intent`, `outcome`, `opportunity`, or `capability` |
+| a captured-item path | a repository path such as `docs/product/design/payment-routing.md`; its kind comes from its registry entry, or from its own `Kind:` line when it has none |
+
+A slug is one or more lowercase letters, digits, and hyphens, starting with a
+letter or digit. A repository path to a spec, brief, or intent is not a
+captured-item path: write the typed reference instead.
+
+An item that is neither form, names more than one target, or is a captured item
+with no kind gives an `invalid_dependency` finding, and the work is not
+dispatchable. A wrapped line gives the same finding, so keep each line on one
+line.
 
 ---
 
-## Cross-queue prefix forms (for `[work]` queue entries)
+## `Dependency receipts:`
 
-These prefixes are used in `["ini-NNN".work].queue` entries to express
-dependencies on items in different queues (RFC-0064 D7):
+The line holds comma-separated receipts, each for an item of the same file, with
+tokens separated by whitespace:
 
-| Prefix | Meaning | Example |
-| --- | --- | --- |
-| `work:<path>` | depends on a work-queue entry at the given spec path | `"work:spec/m1-workspace-core"` |
-| `shape:<slug>` | depends on a shaping-queue entry (an upstream PE artifact) | `"shape:nontechnical-pack-first-value-rollout"` |
-| `brief:<path>` | depends on a brief-queue entry at the given brief path | `"brief:docs/product/briefs/platform-core.md"` |
+- `<reference> completion <delivery_id> <outcome> <completion_event> <evidence_ref>`
+  settles a dependency whose delivery shipped and was then removed from the
+  registry. The `outcome` is `completed`, `abandoned`, or `superseded`. A
+  captured-item reference may not carry one.
+- `<reference> coordination <remote_kind> <receipt_id> <accepted_revision>`
+  pins a cross-repository dependency on a `brief:` reference. The brief holds the
+  matching reviewed `toml coordination-receipts` block.
 
----
-
-## Shaping-type prefix forms (for `[shaping_queue]` cross-type deps)
-
-These prefixes are used within `["ini-NNN".shaping_queue]` entries to
-express dependencies across shaping subtypes (RFC-0064 D9):
-
-| Prefix | Meaning | Example |
-| --- | --- | --- |
-| `research:<slug>` | depends on a research entry (desk-research pack output) | `"research:adopter-persona"` |
-| `strategy:<slug>` | depends on a strategy/shaping entry at the given slug | `"strategy:STRAT-0001-graph-powered-sdlc"` |
+A second receipt for the same reference, or a receipt whose reference is not an
+item of the same `Depends on:` line, gives `invalid_dependency`.
 
 ---
 
-## Valid `shaping_queue` entry types
+## What blocks
 
-Each `{slug = "...", type = "..."}` entry in a `shaping_queue` must use one of
-these types (RFC-0067 §B3):
+The satisfaction rules are unchanged from the registry form: a spec, brief, or
+intent is satisfied at its terminal state, a defect when it is closed, and a
+removed delivery by its valid completion receipt. Only the place the edge is read
+from moved. A dependency cycle among non-cooled items gives `dependency_cycle`.
+A cooled waiting item contributes no edge.
 
-| Type | Skill routed by `workspace-status` | Notes |
-| --- | --- | --- |
-| `shape` (default) | `intent frame` | Default when `type` is absent |
-| `research` | `desk-research-project-start` | Requires desk-research pack |
-| `strategy` | `frame-situation` (PE pack — M2); interim: `intent frame` | |
-| `signal` | no action — surfaces in "active context" only | Ongoing; does not graduate |
-| `design` | `experience-status` (requires experience-design pack); fallback: `journey-mapping` | RFC-0067 §B3 |
+Agents read `workspace-status` output to decide what to work on next. They do not
+enforce the graph themselves.
 
 ---
 
-## Cross-initiative prefix
+## Legacy `needs` is repair input only
 
-To express a dependency on a work entry owned by a *different* initiative,
-prefix the initiative slug before the queue type:
+Older registry entries carry `needs` as a string, a list of strings, or typed
+records. No reader derives a dependency from them. An entry that still carries a
+non-empty `needs` gets `unmigrated_needs` and is not dispatchable, whatever its
+header says.
 
-```
-"ini-NNN:work:<path>"
-```
+To move the edges:
 
-Example — a feature in ini-003 depends on workspace-core from ini-002:
+1. Run `workspace-status repair-plan`. It writes `.workspace-repair-plan.json`
+   with one `needs-to-header` operation for each waiting item, holding the
+   header lines it will add. An edge the header cannot hold as the same edge
+   becomes a manual finding that names the waiting path.
+2. Read the plan and confirm that exact plan.
+3. Run `workspace-status repair-apply`. It adds the lines, sets each migrated
+   entry to `needs = []`, and compares the header edges read before and after
+   the write with the registry edges. It exits non-zero when they differ.
 
-```toml
-# In ["ini-003".work].queue:
-{path = "spec/ini-003-feature",
- needs = "ini-002:work:spec/m1-workspace-core"}
-```
-
-The initiative slug matches the TOML section key (`["ini-002"]`) in
-`workspace.toml`.
-
----
-
-## Display surface
-
-**`workspace-status`** is the skill that reads `workspace.toml`, resolves the
-declared dependency DAG, and surfaces:
-
-- Items whose `needs` are all in `shipped` → **ready to start**
-- Items with at least one `needs` not yet shipped → **blocked** (with reason)
-- Items with no `needs` or all satisfied — and that are in parallel with the
-  current `active` item → **parallel candidates**
-
-Agents read the `workspace-status` output to decide what to work on next.
-They do not enforce the DAG themselves; `workspace-status` is the sole
-resolution surface.
-
----
-
-## Deferred: `work-loop` DAG enforcement
-
-`work-loop` enforcement of the dependency DAG (blocking EXECUTE when an
-entry's `needs` are not yet shipped) is deferred to a **post-M1 milestone**
-per RFC-0064 D7. Until that milestone ships:
-
-- `workspace-status` surfaces ready/blocked/parallel status — agents read it.
-- `work-loop` does **not** automatically block when a `needs` dep is unmet.
-- Teams rely on `workspace-status` output and human judgment to sequence work.
-
-This reference doc does not create a false expectation: the deferred
-enforcement means the `needs` field today is a *declared intent*, not a
-runtime guard.
-
----
-
-*See also:* [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md) §D7
-(dependency model) and §D9 (shaping-type prefixes) for the full design
-rationale. `workspace.toml` in the repo root is the lived example.
+A cooled waiting item gets a `needs-drop-cooled` operation instead: its edges
+are dropped, because a cooled item contributes none. The full steps are in the
+`workspace-status` skill's `references/mutate.md`.

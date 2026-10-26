@@ -5,6 +5,7 @@
 - **Level:** capability
 - **Owner:** eugenelim
 - **Decomposed:** 2026-09-10 children
+- **Depends on:** spec:portfolio-first-run-pilot-architect, spec:portfolio-first-run-pilot-figma
 
 ## Outcome
 

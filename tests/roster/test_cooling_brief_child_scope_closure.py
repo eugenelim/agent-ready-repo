@@ -249,10 +249,10 @@ def test_unestablished_scope_does_not_refuse_a_non_brief_dependency(
     wave6._spec(root, "child", status="Shipped", brief="none")
     wave6._spec(root, "second", status="Approved", brief="none")
     _cool(root, "child")
-    needs = f'[{{type = "local", kind = "spec", path = "{CHILD_PATH}"}}]'
+    wave6._depend_on(root, "second", "spec:child")
     _multi_workspace(root, specs=[
         (CHILD_PATH, "shipped", None, "[]"),
-        (SECOND_PATH, "queue", None, needs),
+        (SECOND_PATH, "queue", None, "[]"),
     ])
     result = wave6._reconcile_canonical(root, engine)
     assert SECOND_PATH in _ready(result)
@@ -394,7 +394,7 @@ def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"
     `_brief_child_scope_is_valid`, because the brief's only child contributes no
     state. Both cases depend on that arm, so a change to it will surface here.
     """
-    def spec_entry(path, parent, needs="[]"):
+    def spec_entry(path, parent, needs="[]"):  # needs stays empty: edges are headers
         clause = f', parent = "{parent}"' if parent is not None else ""
         return (f'{{path = "{path}", kind = "spec", '
                 f'source = {{mode = "repo-origin"{clause}}}, '
@@ -402,8 +402,8 @@ def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"
 
     queue = []
     if dep_kind == "brief":
-        needs = f'[{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]'
-        queue.append(spec_entry(DEPENDANT_PATH, None, needs))
+        wave6._depend_on(root, "dependant", wave6.BRIEF_REF)
+        queue.append(spec_entry(DEPENDANT_PATH, None))
     shipped = [spec_entry(CHILD_PATH, child_parent)]
     for path, parent in extra_specs:
         queue.append(spec_entry(path, parent))
@@ -520,7 +520,7 @@ def _membership_form_fixture(root, engine, *, brief_entry_form, child_parent):
         "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
     )
     wave6._spec(root, "dependant", status="Approved", brief="none")
-    needs = f'[{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]'
+    wave6._depend_on(root, "dependant", wave6.BRIEF_REF)
     canonical_brief = (
         f'{{path = "{BRIEF_PATH}", kind = "brief", '
         'source = {mode = "repo-origin"}, summary = "fixture", needs = []}'
@@ -550,7 +550,7 @@ def _membership_form_fixture(root, engine, *, brief_entry_form, child_parent):
         'milestone = "M1"', '', '["ini-002".work]',
         f'queue = [{{path = "{DEPENDANT_PATH}", kind = "spec", '
         'source = {mode = "repo-origin"}, summary = "fixture", '
-        f'needs = {needs}}}]', 'active = []',
+        'needs = []}]', 'active = []',
         f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
         f'source = {{mode = "repo-origin", parent = "{child_parent}"}}, '
         'summary = "fixture", needs = []}]', '',

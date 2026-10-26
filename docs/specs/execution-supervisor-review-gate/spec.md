@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** `contracts/delivery/` (consumes Slice 2's `review-subject.v1`, `review-obligation.v1`, `review-report.v1`, `finding-assessment.v1`, and `finding-disposition.v1` unchanged; amends `execution-supervisor-core`'s `execution-request.v1` and `execution-result.v1` additively, with new optional fields only, for the reviewer-selection exchange and `human-decision` results); `packs/core/.apm/skills/work-loop/review-rules.json` and `delivery/review-selections.jsonl` (defined here)
 - **Shape:** service
+- **Depends on:** spec:execution-supervisor-core
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

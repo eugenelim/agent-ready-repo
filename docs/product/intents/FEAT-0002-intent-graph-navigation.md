@@ -62,7 +62,7 @@ The grammar has shipped. `resolve_endpoint` in `lint-traceability.py` now refuse
 
 Making feature intents graph nodes could turn every collision into a refusal. The 2026-10-07 De-risk record shows it does not. No navigator edge uses a bare slug, and a resolver scoped to each field's target type meets none of the 18.
 
-This dependency is recorded here and in the parent's decomposition log rather than as a `needs` edge, because the intended delivery order already places the grammar first and a blocking edge would add nothing the order does not already give.
+This dependency is recorded here and in the parent's decomposition log rather than as a `Depends on:` edge, because the intended delivery order already places the grammar first and a blocking edge would add nothing the order does not already give.
 
 ## Settled design decisions
 
@@ -195,7 +195,7 @@ These challenge settled design decisions or sit with another intent, so they are
 - **Settled decision 1's cost reason is false at today's scale; the decision still stands.** The reason says header-only derivation is "roughly an order of magnitude cheaper" than a whole-file walk and "well under a second". Measured, header-only and whole-file reads cost the same, and confined derivation takes about 1.5 s. The other three reasons each suffice alone. A 1–4 s agent-invoked query also fits ADR-0007's agent-invoked posture.
 - **Settled decision 2's falsifier is weaker than written.** It says the cost model inverts if graph metadata moves into prose. At this scale cost does not depend on bytes read, so that is not the failure mode. The guardrail still stands on its other effect: the query returns no artifact bodies.
 - **Slug uniqueness is gated only by `build-check`.** The docs workflow's corpus lint misses a duplicate intent slug. C1 relies on that uniqueness, so this is input for the spec, or for whoever owns `intent_corpus_lint.py`.
-- **Dependency edges lose their enforceable home when `workspace.toml` retires.** Three intent `Depends on:` fields defer to `needs` entries on the workspace registration. That is [FEAT-0034](FEAT-0034-workspace-registry-retirement.md)'s state-disposition gate under RFC-0105 D3, not this intent's.
+- **Dependency edges have one enforceable home: the waiting item's `Depends on:` header.** Three intent `Depends on:` fields once deferred to `needs` entries on the workspace registration; the `needs-to-header` repair moves such edges into headers. That move is [FEAT-0034](FEAT-0034-workspace-registry-retirement.md)'s state-disposition gate under RFC-0105 D3, not this intent's.
 
 ### Validation hook
 

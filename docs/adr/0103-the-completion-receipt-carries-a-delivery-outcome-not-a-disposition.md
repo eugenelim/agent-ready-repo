@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0148 D6
 - **Related:** RFC-0096 §6 and §7 (the receipt's four fields and its per-citation lifetime)
 
 ## Decision summary

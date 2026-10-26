@@ -1756,7 +1756,10 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
     # (T7 canonical explain tests):
     #   test_canonical_explain_ambiguous_returns_both_initiatives
     #   test_canonical_explain_matched_item_has_documented_keys
-    assert len(cli_contract) == len(direct_cli_nodes) == 168
+    # Re-pinned 2026-10-26: 168 -> 169. One addition, no removals, no renames:
+    #   test_explain_refuses_an_entry_still_carrying_needs
+    # It pins the unmigrated_needs refusal once blocking reads Depends on:.
+    assert len(cli_contract) == len(direct_cli_nodes) == 169
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1979,7 +1982,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
 
     # Same delta as the re-pin note above; both literals move together.
     # Same delta as the re-pin note above; both literals move together.
-    assert len(direct_ids) == 168
+    assert len(direct_ids) == 169
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 

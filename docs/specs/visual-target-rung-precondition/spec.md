@@ -10,6 +10,7 @@
 - **Discovery:** [`visual-target-confirmation/notes/carrier-inventory.md`](../visual-target-confirmation/notes/carrier-inventory.md)
 - **Contract:** none
 - **Shape:** mixed
+- **Depends on:** spec:visual-target-field
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
