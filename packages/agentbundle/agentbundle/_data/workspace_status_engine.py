@@ -3328,6 +3328,30 @@ def read_header_dependencies(
         return HeaderDependencies(
             (), (_header_finding("unreadable_artifact", waiting_path, "waiting item unreadable"),)
         )
+    return header_dependencies_from_text(
+        root,
+        waiting_path,
+        text,
+        index=index,
+        membership_kinds=membership_kinds,
+        cooled=cooled,
+    )
+
+
+def header_dependencies_from_text(
+    root: Path,
+    waiting_path: str,
+    text: str,
+    *,
+    index: ResolutionIndex,
+    membership_kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> HeaderDependencies:
+    """Read header edges from a waiting item's text.
+
+    The same rules `read_header_dependencies` applies to the file, so the repair
+    can check what a planned header would read as before it writes one.
+    """
     findings: list[RoutingFinding] = []
     items: list[str] = []
     receipt_lines: list[str] = []

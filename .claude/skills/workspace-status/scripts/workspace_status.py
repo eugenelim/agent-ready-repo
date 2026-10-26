@@ -53,6 +53,7 @@ _PUBLIC_PATH_CHARS = frozenset(
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-/"
 )
 _ENGINE_BOUND = False
+_engine: Any = None
 analyze: Any = None
 analyze_bounded: Any = None
 explain_item: Any = None
@@ -131,6 +132,7 @@ def _bind_engine() -> bool:
             sys.modules.pop(partial, None)
         return False
     globals().update({
+        "_engine": engine_mod,
         "analyze": engine_mod.analyze,
         "analyze_bounded": engine_mod.analyze_bounded,
         "explain_item": engine_mod.explain_item,
@@ -208,7 +210,12 @@ _SUBCOMMANDS = frozenset({
     "retirement-candidates",
 })
 _DEFAULT_PLAN_FILE = ".workspace-repair-plan.json"
-_VALID_OPERATION_TYPES = frozenset({"queue-to-shipped", "queue-remove"})
+_VALID_OPERATION_TYPES = frozenset({
+    "queue-to-shipped",
+    "queue-remove",
+    "needs-to-header",
+    "needs-drop-cooled",
+})
 
 
 class UnsafeMigrationPathError(RuntimeError):
@@ -1091,7 +1098,9 @@ def _build_explain_json(root: Path, result, selector: str, explain_result: dict)
     }
 
 
-def _build_repair_plan_json(root: Path, result, plan) -> dict:
+def _build_repair_plan_json(
+    root: Path, result, plan, workspace_bytes: bytes | None = None
+) -> dict:
     base = _build_json(root, result, "repair-plan")
     canonical_failed = any(
         finding["code"] in {"invalid_workspace", "configuration_mismatch"}
@@ -1127,6 +1136,14 @@ def _build_repair_plan_json(root: Path, result, plan) -> dict:
             f"{item['list_name']}:{public_path}"
         )
         manual_findings.append(item)
+    if not canonical_failed:
+        if workspace_bytes is None:
+            workspace_bytes = _migration_read_bytes(root, "workspace.toml")
+        if workspace_bytes is None:
+            raise UnsafeMigrationPathError
+        needs_operations, needs_findings = _build_needs_operations(root, workspace_bytes)
+        automatic_operations.extend(needs_operations)
+        manual_findings.extend(needs_findings)
     base["workspace_fingerprint"] = plan.workspace_fingerprint
     base["automatic_operations"] = automatic_operations
     base["manual_findings"] = manual_findings
@@ -1192,6 +1209,11 @@ def _validate_plan_structure(data: dict) -> str | None:
         spec_status = op.get("spec_status", "")
         if not isinstance(op_type, str) or op_type not in _VALID_OPERATION_TYPES:
             return "plan_invalid"
+        if op_type in _NEEDS_OPERATION_TYPES:
+            needs_reason = _validate_needs_operation(op)
+            if needs_reason:
+                return needs_reason
+            continue
         if not spec_path or not isinstance(spec_path, str):
             return "plan_invalid"
         if not ini_slug or not isinstance(ini_slug, str):
@@ -1224,6 +1246,7 @@ def _apply_operations(
     operations: list[dict],
     workspace_toml_bytes: bytes,
     workspace_path: Path,
+    edge_report: dict | None = None,
 ) -> tuple[int, list[dict], bytes | None]:
     """Apply automatic operations using tomlkit. Returns (applied, per_operation, written_bytes).
 
@@ -1238,6 +1261,12 @@ def _apply_operations(
     applied = 0
     per_op: list[dict] = []
     applied_spec_checks: list[tuple[str, str, str, Path, str, str | None]] = []
+    needs_operations = [
+        op for op in operations if op.get("operation_type") in _NEEDS_OPERATION_TYPES
+    ]
+    operations = [
+        op for op in operations if op.get("operation_type") not in _NEEDS_OPERATION_TYPES
+    ]
 
     for op in operations:
         spec_path = op["spec_path"]
@@ -1370,6 +1399,18 @@ def _apply_operations(
         ))
         applied += 1
 
+    # Waiting files are replaced first, one atomic replace each; `needs` is
+    # cleared in the one workspace.toml write below, only for operations that
+    # applied. An interruption in between leaves `needs` in place.
+    if needs_operations:
+        needs_per_op, needs_applied, report = _apply_needs_operations(
+            root, doc, workspace_toml_bytes, needs_operations
+        )
+        per_op.extend(needs_per_op)
+        applied += needs_applied
+        if edge_report is not None:
+            edge_report.update(report)
+
     # Only write when at least one operation succeeded
     if applied == 0:
         return applied, per_op, None
@@ -1426,6 +1467,749 @@ def _apply_operations(
                 Path(tmp_path).unlink()
 
     return applied, per_op, written_bytes
+
+
+# ── needs-to-header repair ────────────────────────────────────────────────────
+#
+# `repair-plan` turns each canonical membership's typed `needs` edges into
+# `Depends on:` and `Dependency receipts:` items for its waiting item, and
+# `repair-apply` writes them. A cooled membership's file is never opened: its
+# `needs` are dropped and reported.
+
+_NEEDS_TO_HEADER = "needs-to-header"
+_NEEDS_DROP_COOLED = "needs-drop-cooled"
+_NEEDS_OPERATION_TYPES = frozenset({_NEEDS_TO_HEADER, _NEEDS_DROP_COOLED})
+_NEEDS_FINDING_TYPE = 4
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+_INTENTS_PARTS = ["docs", "product", "intents"]
+
+
+class _NeedsRefusal(Exception):
+    """One registry edge (or its waiting item) the repair will not express."""
+
+    def __init__(self, reason: str, target: str = "") -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.target = target
+
+
+def _has_control_character(value: str) -> bool:
+    return any(char < " " or char == "\x7f" for char in value)
+
+
+def _dependency_tokens(dep) -> list[str] | None:
+    """The receipt tokens a registry edge carries, or `None` when it has none."""
+    if dep.type == "cross-repo":
+        tokens = ["coordination", dep.kind, dep.receipt_id, dep.accepted_revision]
+        if any(
+            _engine._COORDINATION_TOKEN_RE.fullmatch(token) is None
+            for token in tokens[2:]
+        ):
+            raise _NeedsRefusal("receipt-off-grammar", dep.path)
+        return tokens
+    receipt = dep.receipt
+    if receipt is None:
+        return None
+    if not isinstance(receipt, dict):
+        raise _NeedsRefusal("receipt-off-grammar", dep.path)
+    tokens = [
+        "completion",
+        receipt["delivery_id"],
+        receipt["outcome"],
+        receipt["completion_event"],
+        receipt["evidence_ref"],
+    ]
+    if any(
+        not token or "," in token or any(char.isspace() for char in token)
+        for token in tokens[1:]
+    ):
+        raise _NeedsRefusal("receipt-off-grammar", dep.path)
+    return tokens
+
+
+def _target_reference(root: Path, dep, index) -> str:
+    """The typed reference for a spec, brief, or intent target, else its path."""
+    path = dep.path
+    parts = path.split("/")
+    if dep.type == "cross-repo" or dep.kind == "brief":
+        slug = next((s for s, paths in index.briefs.items() if path in paths), None)
+        if slug is None:
+            raise _NeedsRefusal("missing-brief-target", path)
+        return f"brief:{slug}"
+    if (
+        dep.kind == "spec"
+        and len(parts) == 4
+        and parts[:2] == ["docs", "specs"]
+        and parts[3] == "spec.md"
+    ):
+        return f"spec:{parts[2]}"
+    if dep.kind == "intent" and len(parts) == 4 and parts[:3] == _INTENTS_PARTS:
+        for (kind, slug), paths in index.intents.items():
+            if path in paths:
+                return f"{kind}:{slug}"
+        file_path = _engine._confined_artifact_path(root, path)
+        exists = file_path is not None and file_path.exists()
+        raise _NeedsRefusal(
+            "intent-target-unusable" if exists else "missing-intent-target", path
+        )
+    return path
+
+
+def _read_single_edge(
+    root: Path,
+    waiting_path: str,
+    reference: str,
+    tokens: list[str] | None,
+    index,
+    kinds: dict[str, str],
+    cooled: frozenset[Path],
+):
+    """Read one edge as the engine reads a header holding only that edge."""
+    text = f"- **Depends on:** {reference}\n"
+    if tokens is not None:
+        text += f"- **Dependency receipts:** {reference} {' '.join(tokens)}\n"
+    return _engine.header_dependencies_from_text(
+        root,
+        waiting_path,
+        text,
+        index=index,
+        membership_kinds=kinds,
+        cooled=cooled,
+    )
+
+
+def _same_edge(dep, parsed) -> str | None:
+    """`None` when the engine reads `parsed` as the registry edge `dep`."""
+    if parsed.type != dep.type or parsed.path != dep.path:
+        return "edge-not-expressible"
+    if dep.type == "cross-repo":
+        same = (
+            parsed.kind == dep.kind
+            and parsed.containing_brief == dep.containing_brief
+            and parsed.receipt_id == dep.receipt_id
+            and parsed.accepted_revision == dep.accepted_revision
+        )
+        return None if same else "edge-not-expressible"
+    if parsed.kind and parsed.kind != dep.kind:
+        return "kind-mismatch"
+    if parsed.receipt != dep.receipt:
+        if parsed.receipt == _engine._MALFORMED_COMPLETION_RECEIPT:
+            return "receipt-off-grammar"
+        return "edge-not-expressible"
+    return None
+
+
+def _derive_needs_edges(
+    root: Path,
+    waiting_path: str,
+    entry,
+    index,
+    kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> list[tuple[str, list[str] | None]]:
+    """Derive `(reference, receipt tokens)` for each registry edge, in order.
+
+    Raises `_NeedsRefusal` for an edge the header cannot hold as the same edge.
+    """
+    edges: list[tuple[str, list[str] | None]] = []
+    seen: dict[str, list[str] | None] = {}
+    for dep in entry.needs:
+        if dep.type == "cross-repo" and dep.path != dep.containing_brief:
+            raise _NeedsRefusal("cross-repo-path-mismatch", dep.path)
+        tokens = _dependency_tokens(dep)
+        reference = _target_reference(root, dep, index)
+        if dep.type == "local" and reference == dep.path and tokens is not None:
+            raise _NeedsRefusal("captured-item-receipt", dep.path)
+        if reference in seen:
+            if seen[reference] != tokens:
+                raise _NeedsRefusal("duplicate-reference", dep.path)
+            continue
+        parsed = _read_single_edge(
+            root, waiting_path, reference, tokens, index, kinds, cooled
+        )
+        if parsed.findings or len(parsed.dependencies) != 1:
+            raise _NeedsRefusal("edge-not-expressible", dep.path)
+        reason = _same_edge(dep, parsed.dependencies[0])
+        if reason is not None:
+            raise _NeedsRefusal(reason, dep.path)
+        seen[reference] = tokens
+        edges.append((reference, tokens))
+    return edges
+
+
+def _best_effort_edges(entry, index) -> list[tuple[str, list[str] | None]]:
+    """Registry edges for a cooled membership, which no refusal rule governs."""
+    edges: list[tuple[str, list[str] | None]] = []
+    for dep in entry.needs:
+        try:
+            reference = _target_reference(Path(), dep, index)
+        except _NeedsRefusal:
+            reference = dep.path
+        try:
+            tokens = _dependency_tokens(dep)
+        except _NeedsRefusal:
+            tokens = None
+        edges.append((reference, tokens))
+    return edges
+
+
+def _edge_dicts(
+    waiting_path: str, edges: list[tuple[str, list[str] | None]]
+) -> list[dict]:
+    return [
+        {"waiting_path": waiting_path, "reference": reference, "receipt": tokens}
+        for reference, tokens in edges
+    ]
+
+
+def _edge_key(edge: dict) -> tuple:
+    receipt = edge["receipt"]
+    return (
+        edge["waiting_path"],
+        edge["reference"],
+        tuple(receipt) if receipt is not None else None,
+    )
+
+
+# Echo rules: each part of an echoed value is judged alone, and a part that
+# fails is withheld as an empty string while the others still appear.
+
+def _echo_path(path: object, member_paths: frozenset[str] | None) -> str:
+    if not isinstance(path, str):
+        return ""
+    if member_paths is not None and path not in member_paths:
+        return ""
+    return _engine._bounded_finding_identifier(path)
+
+
+def _echo_reference(reference: object) -> str:
+    return _engine._echoable_reference(reference) if isinstance(reference, str) else ""
+
+
+def _receipt_token_valid(keyword: str, position: int, token: object) -> bool:
+    if not isinstance(token, str):
+        return False
+    if position == 0:
+        return token in ("completion", "coordination")
+    if keyword == "completion":
+        if position == 1:
+            return re.fullmatch(_engine._COMPLETION_RECEIPT_DELIVERY_ID_RE, token) is not None
+        if position == 2:
+            return token in _engine._COMPLETION_RECEIPT_OUTCOMES
+        if position == 3:
+            return token in _engine._COMPLETION_RECEIPT_EVENTS
+        if position == 4:
+            return re.fullmatch(_engine._COMPLETION_RECEIPT_EVIDENCE_REF_RE, token) is not None
+        return False
+    if keyword == "coordination":
+        if position == 1:
+            return token in ("brief", "spec")
+        if position in (2, 3):
+            return _engine._COORDINATION_TOKEN_RE.fullmatch(token) is not None
+    return False
+
+
+def _echo_tokens(tokens: object) -> list[str] | None:
+    if not isinstance(tokens, list):
+        return None
+    keyword = tokens[0] if tokens and isinstance(tokens[0], str) else ""
+    return [
+        _engine._bounded_finding_identifier(token)
+        if _receipt_token_valid(keyword, position, token)
+        else ""
+        for position, token in enumerate(tokens)
+    ]
+
+
+def _echo_edge(edge: dict, member_paths: frozenset[str] | None) -> dict:
+    return {
+        "waiting_path": _echo_path(edge.get("waiting_path"), member_paths),
+        "reference": _echo_reference(edge.get("reference")),
+        "receipt": _echo_tokens(edge.get("receipt")),
+    }
+
+
+def _echo_target(value: object) -> str:
+    """A refused edge's target: a reference, or a plain repository path."""
+    if not isinstance(value, str) or not value:
+        return ""
+    reference = _echo_reference(value)
+    if reference:
+        return reference
+    if all(char in _PUBLIC_PATH_CHARS for char in value):
+        return _engine._bounded_finding_identifier(value)
+    return ""
+
+
+def _echo_repair_plan(data: dict) -> dict:
+    """The plan as stdout shows it; the plan file keeps every value as derived."""
+    operations = data.get("automatic_operations", [])
+    if not any(op.get("operation_type") in _NEEDS_OPERATION_TYPES for op in operations):
+        return data
+    echoed: list[dict] = []
+    for op in operations:
+        if op.get("operation_type") not in _NEEDS_OPERATION_TYPES:
+            echoed.append(op)
+            continue
+        item = dict(op)
+        item["waiting_path"] = _echo_path(op["waiting_path"], None)
+        for key in ("registry_edges", "dropped_cooled"):
+            if key in item:
+                item[key] = [_echo_edge(edge, None) for edge in op[key]]
+        if "depends_on_items" in item:
+            item["depends_on_items"] = [_echo_reference(i) for i in op["depends_on_items"]]
+        if "receipt_items" in item:
+            item["receipt_items"] = [
+                " ".join(
+                    [_echo_reference(receipt.split(" ", 1)[0])]
+                    + (_echo_tokens(receipt.split(" ")[1:]) or [])
+                )
+                for receipt in op["receipt_items"]
+            ]
+        echoed.append(item)
+    return {**data, "automatic_operations": echoed}
+
+
+# ── Plan ──────────────────────────────────────────────────────────────────────
+
+def _needs_membership_context(root: Path, workspace_bytes: bytes):
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    memberships = _engine._extract_canonical_memberships(workspace)[0]
+    cooled, cooling_findings = _engine._resolve_cooled_state(root)
+    index = _engine.build_resolution_index(root, cooled=cooled)
+    kinds = {
+        m.entry.path: m.entry.kind for m in memberships if m.entry.path is not None
+    }
+    return memberships, cooled, cooling_findings, index, kinds
+
+
+def _needs_manual_finding(membership, reason: str, target: str = "") -> dict:
+    path = membership.entry.path or ""
+    shown = _echo_path(path, None)
+    ini_slug = _public_ini_slug(membership.ini_slug, allow_empty=True)
+    return {
+        "finding_type": _NEEDS_FINDING_TYPE,
+        "spec_path": shown,
+        "spec_status": "",
+        "ini_slug": ini_slug,
+        "list_name": membership.collection,
+        "reason": reason,
+        "edge": {"waiting_path": shown, "reference": _echo_target(target)},
+        "finding_id": (
+            f"type{_NEEDS_FINDING_TYPE}:{ini_slug}:{membership.collection}:{shown}:{reason}"
+        ),
+    }
+
+
+def _preamble_anchor_ok(text: str) -> bool:
+    """True when the preamble has a `- **Field:**` line to anchor a header on."""
+    return _insert_header_items(text, [], []) is not None and not any(
+        wrapped for _name, _value, wrapped in _engine._header_field_lines(text)
+    )
+
+
+def _build_needs_operations(root: Path, workspace_bytes: bytes) -> tuple[list[dict], list[dict]]:
+    """Plan `needs-to-header` and `needs-drop-cooled` operations."""
+    memberships, cooled, cooling_findings, index, kinds = _needs_membership_context(
+        root, workspace_bytes
+    )
+    candidates = [m for m in memberships if m.entry.path is not None and m.entry.needs]
+    if not candidates:
+        return [], []
+    path_counts: dict[str, int] = {}
+    for membership in memberships:
+        if membership.entry.path is not None:
+            path_counts[membership.entry.path] = path_counts.get(membership.entry.path, 0) + 1
+    cooling_unavailable = any(
+        finding.code == "cooling_state_unavailable" for finding in cooling_findings
+    )
+    operations: list[dict] = []
+    manual: list[dict] = []
+    for membership in candidates:
+        path = membership.entry.path
+        assert path is not None
+        if path_counts[path] > 1:
+            manual.append(_needs_manual_finding(membership, "duplicate-membership"))
+            continue
+        if cooling_unavailable:
+            manual.append(_needs_manual_finding(membership, "cooling-state-unavailable"))
+            continue
+        if _engine._membership_is_cooled(membership, root, cooled):
+            edges = _edge_dicts(path, _best_effort_edges(membership.entry, index))
+            operations.append({
+                "operation_type": _NEEDS_DROP_COOLED,
+                "waiting_path": path,
+                "dropped_cooled": edges,
+            })
+            continue
+        if _has_control_character(path):
+            manual.append(_needs_manual_finding(membership, "waiting-path-control-character"))
+            continue
+        try:
+            edges_raw = _derive_needs_edges(
+                root, path, membership.entry, index, kinds, cooled
+            )
+        except _NeedsRefusal as refusal:
+            manual.append(_needs_manual_finding(membership, refusal.reason, refusal.target))
+            continue
+        data = _engine._migration_file_bytes(root, path)
+        try:
+            text = data.decode("utf-8") if data is not None else None
+        except UnicodeDecodeError:
+            text = None
+        if data is None or text is None:
+            manual.append(_needs_manual_finding(membership, "waiting-item-unreadable"))
+            continue
+        if not _preamble_anchor_ok(text):
+            manual.append(_needs_manual_finding(membership, "waiting-item-not-writable"))
+            continue
+        operations.append({
+            "operation_type": _NEEDS_TO_HEADER,
+            "waiting_path": path,
+            "waiting_sha256": hashlib.sha256(data).hexdigest(),
+            "registry_edges": _edge_dicts(path, edges_raw),
+            "depends_on_items": [reference for reference, _ in edges_raw],
+            "receipt_items": [
+                f"{reference} {' '.join(tokens)}"
+                for reference, tokens in edges_raw
+                if tokens is not None
+            ],
+        })
+    return operations, manual
+
+
+# ── Apply ─────────────────────────────────────────────────────────────────────
+
+def _insert_header_items(
+    text: str,
+    items: list[str],
+    receipts: list[tuple[str, list[str]]],
+) -> tuple[str, bool] | None:
+    """Add `items` and `receipts` to the preamble, skipping those already there.
+
+    Returns `(new text, changed)`, or `None` when the preamble has no
+    `- **Field:**` line to anchor on. Only the lines it adds or extends change.
+    """
+    lines = text.splitlines(keepends=True)
+    clean = list(_engine._iter_preamble_lines(text))
+    present_items: set[str] = set()
+    present_receipts: set[str] = set()
+    last_field: int | None = None
+    last_depends: int | None = None
+    last_receipts: int | None = None
+    for position, line in enumerate(clean):
+        match = _engine._HEADER_FIELD_RE.match(line)
+        if match is None:
+            continue
+        last_field = position
+        name = match.group("name").strip().lower()
+        value = match.group("value").strip()
+        words = value.split()
+        if name == "depends on" and words and words[0].lower() != "none":
+            present_items.update(_engine._split_items(value))
+            last_depends = position
+        elif name == "dependency receipts":
+            for receipt in _engine._split_items(value):
+                tokens = receipt.split()
+                if tokens:
+                    present_receipts.add(tokens[0])
+            if words and words[0].lower() != "none":
+                last_receipts = position
+    if last_field is None:
+        return None
+    new_items = [item for item in items if item not in present_items]
+    new_receipts = [
+        f"{reference} {' '.join(tokens)}"
+        for reference, tokens in receipts
+        if reference not in present_receipts
+    ]
+    if not new_items and not new_receipts:
+        return text, False
+
+    def extend(position: int, additions: list[str]) -> None:
+        body = lines[position].rstrip("\r\n")
+        terminator = lines[position][len(body):]
+        cut = body.find("<!--")
+        head, tail = (body, "") if cut == -1 else (body[:cut].rstrip(), " " + body[cut:])
+        lines[position] = f"{head}, {', '.join(additions)}{tail}{terminator}"
+
+    added: list[str] = []
+    if new_items:
+        if last_depends is not None:
+            extend(last_depends, new_items)
+        else:
+            added.append(f"- **Depends on:** {', '.join(new_items)}")
+    if new_receipts:
+        if last_receipts is not None:
+            extend(last_receipts, new_receipts)
+        else:
+            added.append(f"- **Dependency receipts:** {', '.join(new_receipts)}")
+    if added:
+        end = last_field
+        while (
+            end + 1 < len(clean)
+            and lines[end + 1][:1] in (" ", "\t")
+            and lines[end + 1].strip()
+        ):
+            end += 1
+        eol = "\r\n" if "\r\n" in text else "\n"
+        if lines[end].endswith(("\n", "\r")):
+            lines[end + 1:end + 1] = [line + eol for line in added]
+        else:
+            lines[end] = lines[end] + eol + eol.join(added)
+    return "".join(lines), True
+
+
+def _raw_header_edges(waiting_path: str, text: str) -> list[dict]:
+    """Every item of the waiting item's `Depends on:` lines, with its receipt."""
+    items: list[str] = []
+    receipts: dict[str, list[str]] = {}
+    for name, value, _wrapped in _engine._header_field_lines(text):
+        if name == "dependency receipts":
+            for receipt in _engine._split_items(value):
+                tokens = receipt.split()
+                if tokens and tokens[0] not in receipts:
+                    receipts[tokens[0]] = tokens[1:]
+        elif value.split()[:1] and value.split()[0].lower() != "none":
+            items.extend(_engine._split_items(value))
+    ordered = list(dict.fromkeys(items))
+    return _edge_dicts(waiting_path, [(item, receipts.get(item)) for item in ordered])
+
+
+def _read_header_edges(
+    root: Path, waiting_path: str, text: str, index, kinds, cooled
+) -> list[dict]:
+    """The edges the engine reads from the text: items it accepts, alone."""
+    accepted: list[dict] = []
+    for edge in _raw_header_edges(waiting_path, text):
+        parsed = _read_single_edge(
+            root, waiting_path, edge["reference"], edge["receipt"], index, kinds, cooled
+        )
+        if not parsed.findings and len(parsed.dependencies) == 1:
+            accepted.append(edge)
+    return accepted
+
+
+def _replace_waiting_file(
+    root: Path, relative_path: str, expected_sha256: str, data: bytes
+) -> None:
+    """Replace one waiting item through the confined, identity-checked path."""
+    target = confine_migration_path(root, relative_path, require_file=True)
+    if target is None:
+        raise _NeedsRefusal("unsafe_waiting_path")
+    current = _engine._migration_file_bytes(root, relative_path)
+    if current is None or hashlib.sha256(current).hexdigest() != expected_sha256:
+        raise _NeedsRefusal("waiting_item_changed")
+    _migration_atomic_replace(target, data, stage="waiting", failure_point=None)
+
+
+def _entries_with_path(doc, waiting_path: str) -> list:
+    """Every registry entry in the document whose `path` is `waiting_path`."""
+    lists: list = []
+    for section_name, list_names in _engine._TOP_LEVEL_ENTRY_COLLECTIONS.items():
+        section = doc.get(section_name)
+        if hasattr(section, "get"):
+            lists.extend(section.get(name) for name in list_names)
+    for key in doc:
+        section = doc[key]
+        if not (isinstance(key, str) and key.startswith("ini-") and hasattr(section, "get")):
+            continue
+        for section_name, list_names in _engine._INITIATIVE_ENTRY_COLLECTIONS.items():
+            sub = section.get(section_name)
+            if hasattr(sub, "get"):
+                lists.extend(sub.get(name) for name in list_names)
+    found = []
+    for entries in lists:
+        if entries is None or isinstance(entries, (str, dict)) or not hasattr(entries, "__iter__"):
+            continue
+        for entry in entries:
+            if hasattr(entry, "get") and entry.get("path") == waiting_path:
+                found.append(entry)
+    return found
+
+
+def _clear_needs(doc, waiting_path: str) -> bool:
+    found = _entries_with_path(doc, waiting_path)
+    if len(found) != 1 or not hasattr(found[0].get("needs"), "clear"):
+        return False
+    found[0]["needs"].clear()
+    return True
+
+
+def _apply_needs_operations(
+    root: Path, doc, workspace_bytes: bytes, operations: list[dict]
+) -> tuple[list[dict], int, dict]:
+    """Apply the needs operations: waiting files first, then clear `needs` in `doc`."""
+    memberships, cooled, _findings, index, kinds = _needs_membership_context(
+        root, workspace_bytes
+    )
+    member_paths = frozenset(
+        m.entry.path for m in memberships if m.entry.path is not None
+    )
+    per_op: list[dict] = []
+    applied = 0
+    before: list[dict] = []
+    registry: list[dict] = []
+    dropped: list[dict] = []
+    after: list[dict] = []
+
+    for op in operations:
+        path = op["waiting_path"]
+        shown = _echo_path(path, member_paths)
+
+        def refuse(reason: str, shown: str = shown) -> None:
+            per_op.append({"path": shown, "applied": False, "reason": reason})
+
+        matches = [m for m in memberships if m.entry.path == path]
+        if len(matches) != 1:
+            refuse("waiting_path_not_membership")
+            continue
+        membership = matches[0]
+        is_cooled = _engine._membership_is_cooled(membership, root, cooled)
+        if op["operation_type"] == _NEEDS_DROP_COOLED:
+            if not is_cooled:
+                refuse("no_longer_cooled")
+                continue
+            edges = _edge_dicts(path, _best_effort_edges(membership.entry, index))
+            if edges != op["dropped_cooled"]:
+                refuse("registry_edges_changed")
+                continue
+            if not _clear_needs(doc, path):
+                refuse("entry_not_found")
+                continue
+            dropped.extend(edges)
+            per_op.append({"path": shown, "applied": True})
+            applied += 1
+            continue
+        if is_cooled:
+            refuse("waiting_path_not_membership")
+            continue
+        try:
+            derived = _derive_needs_edges(
+                root, path, membership.entry, index, kinds, cooled
+            )
+        except _NeedsRefusal:
+            refuse("items_changed")
+            continue
+        registry_edges = _edge_dicts(path, derived)
+        if (
+            registry_edges != op["registry_edges"]
+            or [reference for reference, _ in derived] != op["depends_on_items"]
+            or [
+                f"{reference} {' '.join(tokens)}"
+                for reference, tokens in derived
+                if tokens is not None
+            ] != op["receipt_items"]
+        ):
+            refuse("items_changed")
+            continue
+        data = _engine._migration_file_bytes(root, path)
+        if data is None:
+            refuse("unsafe_waiting_path")
+            continue
+        if hashlib.sha256(data).hexdigest() != op["waiting_sha256"]:
+            refuse("waiting_item_changed")
+            continue
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            refuse("waiting_item_not_writable")
+            continue
+        if not _preamble_anchor_ok(text):
+            refuse("waiting_item_not_writable")
+            continue
+        before_edges = _raw_header_edges(path, text)
+        inserted = _insert_header_items(
+            text,
+            [reference for reference, _ in derived],
+            [(reference, tokens) for reference, tokens in derived if tokens is not None],
+        )
+        assert inserted is not None
+        new_text, changed = inserted
+        if changed:
+            try:
+                _replace_waiting_file(root, path, op["waiting_sha256"], new_text.encode("utf-8"))
+            except _NeedsRefusal as refusal:
+                refuse(refusal.reason)
+                continue
+            except OSError:
+                refuse("waiting_write_failed")
+                continue
+        read_back = _engine._migration_file_bytes(root, path)
+        try:
+            back_text = read_back.decode("utf-8") if read_back is not None else None
+        except UnicodeDecodeError:
+            back_text = None
+        if back_text is None:
+            refuse("read_back_failed")
+            continue
+        after_edges = _read_header_edges(root, path, back_text, index, kinds, cooled)
+        expected = {_edge_key(e) for e in before_edges} | {_edge_key(e) for e in registry_edges}
+        before.extend(before_edges)
+        registry.extend(registry_edges)
+        after.extend(after_edges)
+        if {_edge_key(e) for e in after_edges} != expected:
+            refuse("edge_mismatch")
+            continue
+        if not _clear_needs(doc, path):
+            refuse("entry_not_found")
+            continue
+        per_op.append({"path": shown, "applied": True})
+        applied += 1
+
+    expected_all = {_edge_key(e) for e in before} | {_edge_key(e) for e in registry}
+    report = {
+        "header_edges_before": [_echo_edge(e, member_paths) for e in before],
+        "registry_edges": [_echo_edge(e, member_paths) for e in registry],
+        "dropped_cooled": [_echo_edge(e, member_paths) for e in dropped],
+        "header_edges_after": [_echo_edge(e, member_paths) for e in after],
+        "edges_equal": {_edge_key(e) for e in after} == expected_all,
+    }
+    return per_op, applied, report
+
+
+def _validate_needs_operation(op: dict) -> str | None:
+    """Shape-check one needs operation; its content is re-derived at apply."""
+    path = op.get("waiting_path")
+    if not path or not isinstance(path, str):
+        return "plan_invalid"
+    if "\\" in path or (len(path) >= 2 and path[1] == ":") or _has_control_character(path):
+        return "plan_invalid"
+    if ".." in PurePosixPath(path).parts or PurePosixPath(path).is_absolute():
+        return "plan_invalid"
+
+    def edges_ok(value: object) -> bool:
+        return isinstance(value, list) and all(
+            isinstance(edge, dict)
+            and isinstance(edge.get("waiting_path"), str)
+            and isinstance(edge.get("reference"), str)
+            and (
+                edge.get("receipt") is None
+                or (
+                    isinstance(edge["receipt"], list)
+                    and all(isinstance(token, str) for token in edge["receipt"])
+                )
+            )
+            for edge in value
+        )
+
+    def strings_ok(value: object) -> bool:
+        return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+    if op["operation_type"] == _NEEDS_DROP_COOLED:
+        if "waiting_sha256" in op or not edges_ok(op.get("dropped_cooled")):
+            return "plan_invalid"
+        return None
+    sha = op.get("waiting_sha256")
+    if (
+        not isinstance(sha, str)
+        or _SHA256_RE.fullmatch(sha) is None
+        or not edges_ok(op.get("registry_edges"))
+        or not strings_ok(op.get("depends_on_items"))
+        or not strings_ok(op.get("receipt_items"))
+    ):
+        return "plan_invalid"
+    return None
 
 
 # ── Legacy migration transaction ─────────────────────────────────────────────
@@ -2872,9 +3656,10 @@ def main(argv: list[str] | None = None) -> int:
                 cooling_enabled=False,
             )
             plan = compute_repair_plan(result, workspace_toml, workspace_fingerprint=_plan_ws_fp)
-            data = _build_repair_plan_json(root, result, plan)
-            # Emit stdout first — plan JSON always available even if file write fails
-            _emit(data)
+            data = _build_repair_plan_json(root, result, plan, _plan_ws_bytes)
+            # Emit stdout first — plan JSON always available even if file write fails.
+            # Echoed parts follow the echo rules; the plan file below keeps them whole.
+            _emit(_echo_repair_plan(data))
             # Persisted plan must not contain workspace_root (an absolute path that
             # would violate the privacy policy if a custom --plan-file is committed).
             # repair-apply derives the root from --root at invocation time; it never
@@ -3174,9 +3959,10 @@ def main(argv: list[str] | None = None) -> int:
                     })
                     return 2
                 before_digest = actual_fp
+                edge_report: dict = {}
                 try:
                     applied, per_op, written_bytes = _apply_operations(
-                        root, ops, workspace_bytes, workspace_write_target
+                        root, ops, workspace_bytes, workspace_write_target, edge_report
                     )
                 except (OSError, RuntimeError) as _ae:
                     # mkstemp/write/chmod/replace failure OR concurrent-write
@@ -3216,8 +4002,9 @@ def main(argv: list[str] | None = None) -> int:
                     "after_workspace_digest": after_digest,
                     "operations_applied": applied,
                     "per_operation": per_op,
+                    **edge_report,
                 })
-                return 0
+                return 0 if edge_report.get("edges_equal", True) else 1
             finally:
                 if lock_fd >= 0:
                     with contextlib.suppress(OSError):
