@@ -1,7 +1,7 @@
 # Plan: navigate-decisions health mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness rule, pack-test boundary, UTF-8 stream rule); `docs/specs/decision-navigation/spec.md` fixes `decision-navigation.query.v1` at five operations, so `health` is a sibling subcommand like `export`; `navigate_decisions.py` `_admit_corpus` and `_parse_record_text` are the corpus path health reuses; `packs/repo-governance/tests/skills/navigate-decisions/test_query_contract.py` (module loaded by unique name) and `test_skill_instructions.py` (section-sliced content pins) are the construction paths; `docs/specs/navigate-decisions-route/notes/verification-ledger.md` is the activation and behaviour-run precedent. Uncertainty: whether a fourth mode in the description holds the trigger rate, which only T6 can show.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -385,11 +385,12 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   `git status --porcelain --ignored`.
 - The hand check reads the accuracy worktree, unchanged. Reviewers get the
   spec's Terms in their brief and are told to read only `docs/adr/`, `docs/rfc/`
-  and the listing. Afterwards the ledger records a search of each reviewer's
-  tool calls for any read outside those paths. A share with such a read is
-  discarded and redone by a fresh reviewer.
-- Reviewers have only `Read`, `Glob` and `Grep`: no shell, so no path from record
-  text is ever interpolated into a command. Presence and type come from the
+  and the listing. Reviewers are general-purpose agent sessions told to use only
+  `Read`, `Glob` and `Grep`, so no path from record text is ever interpolated
+  into a command. Afterwards the ledger records a search of each reviewer's
+  transcript for any `Bash` call and any read outside `docs/adr/`, `docs/rfc/`,
+  the listing and the rules file. A share with either is discarded and redone
+  by a fresh reviewer. Presence and type come from the
   controller's listing of every entry in the accuracy worktree, files and directories,
   with type and link count, made once by a `find` that takes no input from
   records. The ledger records how it was made. The brief states that ADR text is
@@ -485,6 +486,9 @@ A pack release with no infrastructure, migration or sequencing. Adopters receive
 - **Activation runs hit host usage limits.** The precedent lost runs to limits.
   The full-query re-run rule keeps scoring honest, and the cost is wall time:
   about 474 runs over T1 and T6.
+- **Reader tool surface.** No agent type in the host has exactly `Read`, `Glob`
+  and `Grep` and will do the hand check, so the readers are instructed and their
+  transcripts audited rather than mechanically restricted.
 - **Hand-check cost.** 144 ADRs read by hand is the largest single task. Splitting
   it into shares keeps each reviewer's context small.
 
