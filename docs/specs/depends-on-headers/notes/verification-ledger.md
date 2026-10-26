@@ -28,3 +28,8 @@ Execution observations recorded during the build. The spec and plan stay pinned;
 - **Completed evidence.** T1 = commit `80c39a40f`; T2 = commit `155f213d8`.
 - **Widened in review.** The amendment's adversarial review found the same cause for a cooled brief whose `Slug:` differs from its file stem: the index admits a cooled brief by stem alone, so a `brief:<Slug>` reference to it has no target once it cools. Both cases are one recorded removal, "the cooled target named by an unreadable slug". No brief in this repository has a `Slug:` that differs from its stem.
 - **Deferred Nit (amendment review round 4).** A cooled brief with no `Slug:` field is named in neither AC-0003's cooled-brief case nor AC-0014's removal; it matches by stem and so behaves like AC-0003's case. Every live brief carries a `Slug:` line. Deferred with citation `.context/reviews/d123e014-033a-4fba-a583-8efe9ee0a4a4/9-pre-execute-adversarial-reviewer-raw.md`; T3 covers it with the cooled brief case.
+
+## For T7
+
+- 2026-10-25: a cooled captured item with no registry membership is `invalid_dependency` in header form, because its `Kind:` line is never read; a `needs` edge to a non-defect one was satisfied by its lifecycle record. This is a fourth difference of the same kind as the cooled target named by an unreadable slug, and it goes into the RFC-0106 errata entry and an Equivalence row for the Approver's signature. No live edge targets one.
+- 2026-10-25: an escaping brief target gives `unreadable_artifact` (AC-0027) where the `needs` form gave `invalid_artifact_path`; both block. The Equivalence record notes the code change.
