@@ -1696,12 +1696,29 @@ def test_s016_ignores_continuation_of_a_key_line_with_a_value(tmp_path):
     assert not found
 
 
-def test_s016_pass_is_linear_on_repeated_comment_openers(tmp_path):
+def test_s016_scan_grows_linearly_on_repeated_comment_openers(tmp_path):
+    """The Consulted scan is linear on unclosed `<!--`: 4x the input stays well under 16x the time."""
     import time
 
-    body = "- **Consulted:** " + "<!-- " * 8000 + "\n"
-    text = "# ADR-0001: T\n\n" + body
     lint = _load_lint()
-    start = time.perf_counter()
-    lint._consulted_raw_lines(text)
-    assert time.perf_counter() - start < 2
+
+    def cost(n: int) -> float:
+        text = "# ADR-0001: T\n\n- **Consulted:** " + "<!-- " * n + "\n"
+        best = float("inf")
+        for _ in range(3):
+            start = time.perf_counter()
+            lint._consulted_raw_lines(text)
+            best = min(best, time.perf_counter() - start)
+        return best
+
+    small, large = cost(20000), cost(80000)
+    assert large < max(small, 1e-4) * 8
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", "   ", "<!-- c -->", " <!-- a --> x <!-- b --> ", "<!---->", "<!-->", "<!--->", "@a", "@a <!-- c -->", "<!-- open"],
+)
+def test_s016_emptiness_check_matches_strip_comment(value):
+    lint = _load_lint()
+    assert lint._is_empty_or_comment(value) == (not lint._strip_comment(value))

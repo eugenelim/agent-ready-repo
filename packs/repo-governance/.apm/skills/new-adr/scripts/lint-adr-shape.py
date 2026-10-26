@@ -308,9 +308,21 @@ def _consulted_raw_lines(text: str) -> list[str]:
         m = _CONSULTED_KEY_RE.match(line)
         if m:
             found.append(line)
-            if not _strip_comment(line[m.end():]):
+            if _is_empty_or_comment(line[m.end():]):
                 found.extend(_continuation_lines(lines, i)[0])
     return found
+
+
+def _is_empty_or_comment(value: str) -> bool:
+    """Return True when `_strip_comment(value)` would be empty, in linear time.
+
+    `_strip_comment`'s lazy regex rescans to the end of the line from every
+    unclosed `<!--`, which is quadratic on hostile input. A value strips to
+    nothing exactly when it is blank, or starts with `<!--` and ends with a
+    `-->` that does not overlap the opener.
+    """
+    v = value.strip()
+    return not v or (v.startswith("<!--") and v.endswith("-->") and len(v) >= 7)
 
 
 def _parse(path: Path, text: str) -> _Record:

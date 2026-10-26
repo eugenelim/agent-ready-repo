@@ -42,7 +42,7 @@ def test_handle_and_role_are_defined() -> None:
 
 
 def test_record_identifiers_stay_allowed_in_consulted() -> None:
-    assert "Record identifiers (ADR, RFC or spec) stay allowed in `Consulted`." in TEXT
+    assert "Record identifiers (ADR, RFC or spec) stay allowed in `Consulted`." in STEP4
 
 
 def test_template_comment_names_allowed_values_and_forbids_email() -> None:
