@@ -228,6 +228,23 @@ Owned by: T3, T4
 
 **Done when:** the amended check passes against this repository, and the errata entry carries the Approver's sign-off.
 
+### T8: Code-review corrections
+
+**Depends on:** T6
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0010, AC-0020, AC-0021, AC-0024, AC-0025, AC-0026, AC-0028, and the Never-do rule on shipped readers of typed `needs` content.
+- `workspace_status_retirement_candidates.py`'s `needed-by` blocker takes its edges from each waiting item's header through the engine's reader, not from registry `needs`; a test plants a Shipped spec named only as `spec:<slug>` in a live waiting item's `Depends on:` line and asserts it is not eligible, with `needed-by` as the blocker.
+- Under its lock, `repair-apply` refuses every needs operation, keeping each entry's `needs`, with reason `cooling_state_unavailable` when the apply-time cooled state cannot be read; a test makes the lifecycle state unreadable between plan and apply, for a `needs-to-header` and a `needs-drop-cooled` operation.
+- Extending a `Depends on:` line whose value carries an HTML comment keeps every existing item and adds the new ones; a fixture with a leading comment asserts the read-back equals the expected union, and a rerun is a no-op.
+- A waiting item whose preamble holds no `- **Field:**` line gains its `Depends on:` line before its first `## ` heading; a test migrates one.
+- A dependency finding whose path comes from a header item applies AC-0028's 200-character and no-control-character rule; a test plants an oversized typed and an oversized captured item resolving to a missing target and asserts the path is withheld and the code kept.
+- `repair-plan` refuses, with a manual finding, a waiting path two canonical memberships name, and every edge when the cooled state cannot be read; a test each. The duplicate-path test makes one of the two memberships cooled and asserts no operation of any type for the path, and its planted break runs the cooled branch before the duplicate check.
+
+**Done when:** each test of a fixed defect reds before its fix and passes after; each test of the two `repair-plan` refusals, which the code already makes, is shown to fail against a planted break of that refusal, recorded in the ledger; the GATES suites pass; and `make build-self-dry-run` passes.
+
 ## Rollout
 
 - **Delivery:** one pull request. The reader, the refusal, the repair, and this repository's migration ship together, so the repository never has a `needs` edge that blocks nothing.
@@ -248,3 +265,5 @@ Owned by: T3, T4
 - 2026-10-25: plan amendment approved by eugenelim (T3 and T7 tests extended for amendment 1)
 - 2026-10-26: spec amendment approved by eugenelim (amendment 2: the cooled captured item without a membership; the cooled waiting item's effect stated)
 - 2026-10-26: plan amendment approved by eugenelim (T7 errata and row counts for amendment 2)
+- 2026-10-26: spec amendment approved by eugenelim (amendment 3: AC-0020 names the duplicate-path and unreadable-cooling refusals)
+- 2026-10-26: plan amendment approved by eugenelim (T8 added for the post-gates review corrections)
