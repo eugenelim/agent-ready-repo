@@ -1,7 +1,7 @@
 # Plan: navigate-decisions route mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, eval-harness rule, pack-test boundary); `packs/core/.apm/skills/new-spec/SKILL.md` links into a sibling skill (`../work-loop/references/...`), the precedent for citing `new-rfc` step 0 by link; `packs/repo-governance/tests/skills/navigate-decisions/test_skill_instructions.py` is the content-pin construction path; `docs/specs/intent-longer-and-supervised-verbs/notes/verification-ledger.md` is the activation-measurement precedent. Uncertainty: whether a broader description holds its trigger rate, which only T6 can show.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -374,3 +374,6 @@ line-separator and bidirectional-control characters AC-0025 names.
   time.
 
 ## Changelog
+
+- 2026-10-26: spec approved by eugenelim
+- 2026-10-26: plan approved by eugenelim
