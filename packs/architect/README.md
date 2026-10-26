@@ -56,4 +56,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Details
 
-Scope: user (default), repo · Version: 0.15.19 · Source: [packs/architect](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/architect)
+Scope: user (default), repo · Version: 0.15.20 · Source: [packs/architect](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/architect)

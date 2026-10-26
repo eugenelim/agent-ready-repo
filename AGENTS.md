@@ -154,7 +154,8 @@ External quality gate: none declared.
   keyring, then dotfile/vault without crossing a process boundary to an LLM.
 - Filesystem confinement: `agentbundle.catalogue_tooling.file_safety`—
   `validate_confined_directory`, `list_confined_regular_files`,
-  `read_confined_regular_file`, and `sha256_confined_regular_file`; violations
+  `read_confined_regular_file`, `sha256_confined_regular_file`, and
+  `write_confined_regular_file`; violations
   raise `UnsafeContentError`.
 - Outbound HTTP: no blessed helper is declared.
 

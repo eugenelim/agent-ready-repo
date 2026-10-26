@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.58.0] — 2026-10-26
+
+### Added
+
+- `write_confined_regular_file` in the shared file-safety helper creates a
+  missing file, or rewrites an existing one in place when it still has the
+  digest you expect. It refuses links, special files and paths outside the
+  root, and restores the original bytes if a write fails.
+
+Engine-Change-RFC: RFC-0110
+
 ## [0.57.0] — 2026-10-25
 
 ### Added

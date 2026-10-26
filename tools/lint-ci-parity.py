@@ -700,6 +700,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest contract backward-traceability registry (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest new-rfc governance surfaces (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest navigate-decisions file_safety mirror (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest repair-round predicate parity (spec contract vs shipped guard)":
@@ -1088,6 +1090,7 @@ _GATE_MAIN_CHECKS = (
     "pytest experience-design output-addressing contracts (roster-owned)",
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
+    "pytest new-rfc governance surfaces (roster-owned)",
     "pytest navigate-decisions file_safety mirror (roster-owned)",
     "pytest repair-round predicate parity (spec contract vs shipped guard)",
     "pytest spec-retirement candidate contract (roster-owned)",

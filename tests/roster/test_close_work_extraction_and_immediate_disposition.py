@@ -40,9 +40,9 @@ EXPECTED_SCHEMA_SHA256 = (
 # blessed helper is byte-identical to the canonical one, so its provenance is an
 # audit trail: state what moved the bytes, and nothing else.
 #
-# Two widenings have moved it, both keyword-only and both defaulting to None, so
-# each was backward compatible and the duplicate was re-synced rather than
-# diverged:
+# Three changes have moved it. The first two are widenings, keyword-only and
+# defaulting to None, so each was backward compatible and the duplicate was
+# re-synced rather than diverged:
 #
 #   1. main's `feat(agentbundle): add portable Agent Plugin projection` added
 #      `max_files` and `max_depth`.
@@ -50,12 +50,14 @@ EXPECTED_SCHEMA_SHA256 = (
 #      asymmetry` added `max_entries`, because `max_files` alone leaves a
 #      directory-only tree unbounded between close-work's preflight and its
 #      materialising walk.
+#   3. `write_confined_regular_file` added the confined create-or-update write
+#      operation; it is a new function, so every existing signature is unchanged.
 #
 # close-work's single call site now passes `max_files` and `max_entries` by
 # keyword (`_confined_target_set` in close_work.py), asserted structurally by
 # `test_materialising_walk_carries_both_preflight_bounds` in the pack suite.
 EXPECTED_FILE_SAFETY_SHA256 = (
-    "ecfcae51e3b1dd54f97083c3ceb165e01ebdbb25d014e26213a0f3320986d161"
+    "c8cd2edbc70fb35fc5c3388679539df9612999d76278a4a2eed7f5200653c71e"
 )
 
 
