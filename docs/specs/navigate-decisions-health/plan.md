@@ -415,8 +415,8 @@ is green, and `agentbundle catalogue lint --root . --deep` reports no new findin
   result per share.
 - After any void share, and after the last share, the ledger records
   `git status --porcelain --ignored` of the accuracy worktree. When it is not
-  empty, T5 stops, the ledger records what the void share ran, and eugenelim
-  directs the next step.
+  empty, T5 stops, the ledger records what the share run just before it ran,
+  void or not, and eugenelim directs the next step.
 - The merged `notes/hand-check.json` lists every accepted ADR, records the one
   `today` value all reviewers applied, and records the commit it read.
 
