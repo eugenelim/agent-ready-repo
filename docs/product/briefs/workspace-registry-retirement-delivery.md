@@ -6,7 +6,7 @@
 - **Status:** Executing
 - **Cut-closed:** <!-- Required before Status: Shipped, refused while Status: Draft. -->
 - **Ready confirmed:** 2026-10-25 by the repository owner, after a clean independent delivery-brief shaping review of git blob `1af95a54bf2decb6ece31d7c3a4acb866e1f1e69`.
-- **Slices confirmed:** 2026-10-25 by the repository owner: candidate slices 1 to 9, in the order listed. Slice 1 is materialized first, because its inventory settles questions the later slices depend on; each later slice is materialized as a spec when it is picked up.
+- **Slices confirmed:** 2026-10-25 by the repository owner: candidate slices 1 to 9, in the order listed. Slice 1 is materialized first, because its inventory settles questions the later slices depend on; each later slice is materialized as a spec when it is picked up. Amended 2026-10-26 by the repository owner: the two-week trial cut, slice 5 shrunk to a script run once before each registration stop, and the appetite cut from about five weeks to about three, after a clean independent delivery-brief shaping review of git blob `1fb9d8d2c234e74aabd608c77e590581e18c8744`.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0034-workspace-registry-retirement.md`](../intents/FEAT-0034-workspace-registry-retirement.md), decomposed to this brief by the owner on 2026-10-25.
 - **Parent intent:** intent:workspace-registry-retirement
 
@@ -18,8 +18,7 @@ Today every coordination change edits one shared file, `workspace.toml`. A maint
 
 - Every `needs` edge in the registry at migration time appears as a `Depends on:` header on the waiting item, in an edge-for-edge comparison.
 - Every captured item in the registry at migration time lives in its own file with a `Status:` line.
-- Over two weeks after registration stops, the weekly registry comparison finds no failing difference.
-- Over the same two weeks, no file other than the artifacts themselves has more merge conflicts than `workspace.toml` had in the two weeks before the stop.
+- Run just before each registration stop, the registry comparison finds no failing difference.
 - The dispatch replay finds no spec whose ready or active result differs from `canonical.ready` or `canonical.active` without an accepted removal entry.
 - An adopter's registry converts with one repair run. Every behavior that is not carried over is named in the retirement spec with its removal authority.
 
@@ -34,7 +33,7 @@ FEAT-0034's [de-risk record](../intents/FEAT-0034-workspace-registry-retirement.
 - `Depends on:` on specs and briefs, and its reader. The canonical reconciliation blocks on `Depends on:` instead of `needs`, with the blocking equivalence record.
 - The captured-item file shape (`Status:`, `Kind:`, and `Type:` where a shaping type exists) and its reader. `work-loop`'s shaping-item guard routes a captured-item file that carries a `Type:` line, as RFC-0106 D1 says. Every captured-item writer moves to writing these files and stops registering them: `work-intake`, and producers such as `run-okr-cascade` jointly with the producing pack.
 - An optional priority header field and its reader.
-- The weekly registry comparison defined in FEAT-0034 § Registry comparison, owned here.
+- The registry comparison defined in FEAT-0034 § Registry comparison, run as slice 5 says.
 - Removal of the first-in-list `next_queue` and `next_shape` suggestions.
 - Stopping each registration writer, with the amendment to the contract that requires it in the same release, citing RFC-0106 D1:
   - ADR-0119 D4 and FEAT-0001's lockstep rename, for intents;
@@ -62,7 +61,7 @@ FEAT-0034's [de-risk record](../intents/FEAT-0034-workspace-registry-retirement.
 
 ## Constraints / Appetite
 
-Appetite: about five weeks, set by the owner on 2026-10-25. That is about two and a half weeks for slices 1 to 8, then the fixed two-week trial, then about half a week for slice 9. If slices 1 to 8 run past three and a half weeks, re-cut the remaining slices rather than extend. The basis is the pace of the [intent navigation](intent-navigation-delivery.md) and [intent identity](intent-identity-and-registration.md) briefs.
+Appetite: about three weeks, set by the owner on 2026-10-26. That is about two and a half weeks for slices 1 to 8, then about half a week for slice 9. If slices 1 to 8 run past about three weeks, re-cut the remaining slices rather than extend. The basis is the pace of the [intent navigation](intent-navigation-delivery.md) and [intent identity](intent-identity-and-registration.md) briefs.
 
 - Every registry writer stays until the release that amends the contract requiring it (FEAT-0034 C5, RFC-0106 D1).
 - A type's registration stops only when every responsibility RFC-0106 D1's table lists for its entries has shipped a replacement.
@@ -76,7 +75,7 @@ Appetite: about five weeks, set by the owner on 2026-10-25. That is about two an
 - **Dispatch equivalence is untested.** The 2026-10-08 de-risk tested orientation only. The dispatch replay may find a case the headers cannot reproduce, for example a cross-repository dependency settled by a coordination receipt. A failure keeps spec registration in place.
 - **External adopters are invisible from here.** The no-seam decision drops behavior that lives outside tracked files. Each such removal needs accepted authority, and upgrade notes are only the notice.
 - **The suggestions are the only known use of list order.** The inventory may find another. That would need a disposition before the suggestions are removed.
-- **Contention may move rather than vanish.** The merge-conflict metric checks for a new hot file. A generated assembly step would fail it.
+- **Contention may move rather than vanish.** No metric measures a new hot file after the stops. The non-goal against a replacement registry, generated index, or assembly step is the guard, and review checks each slice against it.
 - **Five accepted contracts still require registration.** RFC-0106 D1 names them: RFC-0064 D4 and its writer rows, the brief-coverage rule, FEAT-0005, FEAT-0001, and ADR-0119 D4. Each writer slice is blocked until its contract is amended. Those amendments are governance work, not code.
 
 ## Delivery slices
@@ -87,11 +86,11 @@ Numbers give the delivery order. Slices 2 to 6 may start once slice 1 lands, and
 2. **Dependency edges on the waiting item.** `Depends on:` on specs and briefs, and its reader. The canonical reconciliation blocks on `Depends on:` and refuses unmigrated `needs` content. The slice adds the repair step that migrates `needs` edges, and runs it here with an edge-for-edge comparison. Its blocking equivalence record goes into the retirement spec. It covers the coordination receipt, the pruned target, the defect, and the cooled dependency.
 3. **Captured items in their own files.** The file shape, its reader, its repair step, and shaping-item routing from a file that carries a `Type:` line. Every captured-item writer then moves to the file and stops registering, with the contract amendment that requires it. That writer stop depends on slices 2 and 5.
 4. **Priority header field.** The optional field and its reader. No repair step is needed, because the registry stores no priority today.
-5. **Registry comparison.** Depends on the navigator's outstanding-work view from the [intent navigation brief](intent-navigation-delivery.md). The weekly comparison and its cadence.
+5. **Registry comparison.** Depends on the navigator's outstanding-work view from the [intent navigation brief](intent-navigation-delivery.md). A script that compares the navigator's outstanding work with the registry and classes each difference, as FEAT-0034 § Registry comparison defines. It runs once just before each registration stop: captured items in slice 3, intents and briefs in slice 7, and specs in slice 8. It has no weekly cadence and no CI job. Each run's result is recorded in the spec that stops that registration. A failing difference keeps that type's registration, under FEAT-0034 § Validation hook.
 6. **Suggestions removed.** Remove `next_queue` and `next_shape`, under RFC-0106 D3.
 7. **Intent and brief registration stops.** Depends on slices 2, 3, 5, and 6, and on the navigator's outstanding-work view from the [intent navigation brief](intent-navigation-delivery.md). Amend ADR-0119 D4, FEAT-0001's lockstep rename, RFC-0064's `receive-brief` writer row, and FEAT-0005's terminal move for intents and briefs. Stop every writer of intent and brief entries, including `close-work`'s collection moves for them.
-8. **Dispatch from headers.** Depends on slices 2, 5, 6, and 7, and on the navigator's outstanding-work view. Header-derived readiness, list-and-ask, removal of `unregistered_work`, and brief coverage taken from `Brief:` alone, with whatever slice 1 found left to change. The dispatch replay goes into the retirement spec. Spec registration stops only if the replay passes. RFC-0064 D4, its `work-loop` writer rows, the brief-coverage rule, and FEAT-0005's terminal move for specs are amended in the same release, and `close-work` stops moving spec entries. The two-week trial starts when this slice ships.
-9. **Compatibility closure and deletion.** Gated on the trial and all four RFC-0105 D3 gates. Shrink `workspace-status` to the repair, publish the upgrade notes, and move seeds, manifests, and operative references. Complete the closure checklist and record the certification in the retirement spec and the retiring change. Then delete `workspace.toml`.
+8. **Dispatch from headers.** Depends on slices 2, 5, 6, and 7, and on the navigator's outstanding-work view. Header-derived readiness, list-and-ask, removal of `unregistered_work`, and brief coverage taken from `Brief:` alone, with whatever slice 1 found left to change. The dispatch replay goes into the retirement spec. Spec registration stops only if the replay passes. RFC-0064 D4, its `work-loop` writer rows, the brief-coverage rule, and FEAT-0005's terminal move for specs are amended in the same release, and `close-work` stops moving spec entries.
+9. **Compatibility closure and deletion.** Gated on all four RFC-0105 D3 gates. Shrink `workspace-status` to the repair, publish the upgrade notes, and move seeds, manifests, and operative references. Complete the closure checklist and record the certification in the retirement spec and the retiring change. Then delete `workspace.toml`.
 
 ## Spec map
 
