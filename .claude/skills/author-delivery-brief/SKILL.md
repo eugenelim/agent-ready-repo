@@ -104,6 +104,11 @@ appropriate.
 7. Return the Draft path and stop. Create mode does not set `Status: Ready`;
    continue is the only mode that sets `Status: Ready` after human confirmation.
 
+A brief's preamble may carry a `- **Priority:** <value>` line, one of `urgent`,
+`high`, `medium`, `low`. A brief with no line has no priority. The field never
+decides readiness, dispatch, or order of work, and `lint-priority-field.py`
+validates it.
+
 ## Project-knowledge non-gate
 
 `Status: Draft` completion is not a stable semantic gate. Create mode does not

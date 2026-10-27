@@ -32,7 +32,9 @@ fresh exact confirmation.
 A remembered item that is not an intent is written as its own file at
 `docs/product/captured/<slug>.md`, with `Status:`, `Kind:`, and the optional
 `Type:`, `Resolution:`, `Parent intent:`, and `Detail:` lines and its summary under
-`## Summary`. Its index entry's `path` is that file. A captured item registered
+`## Summary`. An optional `Priority:` line takes one of `urgent`, `high`,
+`medium`, `low`; an item with no line has no priority, and the field never
+decides readiness, dispatch, or order of work. Its index entry's `path` is that file. A captured item registered
 at any other path is reported as unmigrated; `workspace-status repair-plan`
 moves it.
 
