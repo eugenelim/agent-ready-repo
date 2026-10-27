@@ -67,8 +67,6 @@ backlog = [
 # table here is not coerced: the engine accepts only a str or a list, so a table
 # raises invalid_workspace, which then stamps every canonical entry in the file.
 executing = [
-  # Executing 2026-10-25: repo-governance-rename reached Implementing.
-  {path = "docs/product/briefs/repo-governance-pack.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0110-repo-governance-pack.md", revision = "sha256-bytes-v1:598d683510c1b9f3842065a6a03c9837e7cb312c484a67d26b86359ff10ac8b6"}, summary = "Rename governance-extras to repo-governance 2.0.0 with an installer rename hint, then add navigate-decisions route and health modes and a new-rfc governance mode; stage 4 is cut", needs = []},
   # Advanced from draft on 2026-09-11 when slice A6 shipped: a Draft brief
   # with a Shipped child is refused by lint-brief-coverage, and an Executing
   # brief in the draft collection is an impossible_transition.
@@ -234,6 +232,7 @@ draft     = [
 # `ref` and `parent`, and dropping it would orphan those references.
 shipped   = [
   {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
+  {path = "docs/product/briefs/repo-governance-pack.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0110-repo-governance-pack.md", revision = "sha256-bytes-v1:598d683510c1b9f3842065a6a03c9837e7cb312c484a67d26b86359ff10ac8b6"}, summary = "Shipped 2026-10-26: repo-governance 2.0.0 to 2.3.0 with the rename hint and the route, health and governance modes; stage 4 is cut", needs = []},
 ]
 
 ["ini-002".work]
