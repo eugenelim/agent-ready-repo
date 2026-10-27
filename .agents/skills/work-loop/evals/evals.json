@@ -1392,6 +1392,17 @@
         "Response says work-loop is for build items only",
         "Response does not consult a registry shaping queue or backlog list for the match"
       ]
+    },
+    {
+      "id": "argless-start-priority-never-changes-pick",
+      "prompt": "You start work-loop with no argument. The `workspace-status` output lists two specs with `canonical.ready` status, in this order: `docs/specs/alpha/` whose header carries `Priority: low`, then `docs/specs/beta/` whose header carries `Priority: urgent`. Which spec do you select?",
+      "files": [],
+      "expected_output": "Select `docs/specs/alpha/`, the first `canonical.ready` item. `Priority:` is informational only: it never decides readiness, dispatch, or order, so the urgent spec does not jump ahead of the low one.",
+      "assertions": [
+        "Response selects `docs/specs/alpha/`, the first canonical.ready item",
+        "Response says Priority does not change the pick or order",
+        "Response does not select `docs/specs/beta/` because of its urgent priority"
+      ]
     }
   ]
 }
