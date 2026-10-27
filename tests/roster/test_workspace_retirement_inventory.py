@@ -1671,6 +1671,12 @@ def test_ac0027_intended_change_with_an_empty_case(tmp_path: Path) -> None:
     _only(_intended_check(tmp_path, _intended_row(Case="")), "AC-0027")
 
 
+def test_ac0028_closed_captured_item_of_another_kind_is_on_the_list(tmp_path: Path) -> None:
+    case = "the closed captured item of another kind"
+    rfc = _INTENDED_RFC.replace("matches nothing else", case)
+    assert _intended_check(tmp_path, _intended_row(Case=f"`{case}`"), rfc) == []
+
+
 def test_ac0028_intended_change_outside_the_list(tmp_path: Path) -> None:
     rfc = _INTENDED_RFC.replace("matches nothing else", "the defect")
     row = _intended_row(Case="`the defect`")
