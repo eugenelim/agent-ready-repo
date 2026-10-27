@@ -6,7 +6,7 @@ Living design reference for the product-strategy pack. Records the philosophy, p
 
 ## TL;DR
 
-`product-strategy` is the strategy seat upstream of every product initiative. It runs three pillars — market and competitive analysis, UX strategy, and content strategy — each producing committed artifacts in `docs/product/shaping/` that downstream packs read by path. The PRFAQ is the altitude-0 forcing function: the most tangible first step, and the artifact every initiative brief traces its strategic rationale back to. The OKR cascade is the bridge to `product-engineering` (gap entries feed the PE shaping queue). `ux-strategy.md` and `content-strategy.md` are the bridge to `experience-design` (read by `journey-mapping` and `content-design`). No growth tooling, no primary research production, no per-surface content design — those belong downstream.
+`product-strategy` is the strategy seat upstream of every product initiative. It runs three pillars — market and competitive analysis, UX strategy, and content strategy — each producing committed artifacts in `docs/product/shaping/` that downstream packs read by path. The PRFAQ is the altitude-0 forcing function: the most tangible first step, and the artifact every initiative brief traces its strategic rationale back to. The OKR cascade is the bridge to `product-engineering` (gap files feed PE shaping). `ux-strategy.md` and `content-strategy.md` are the bridge to `experience-design` (read by `journey-mapping` and `content-design`). No growth tooling, no primary research production, no per-surface content design — those belong downstream.
 
 ---
 
@@ -25,7 +25,7 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 
 ### Why upstream of everything
 
-Strategy artifacts — the SWOT, the PRFAQ, the OKR cascade, the UX strategy — are pre-conditions for product engineering and design, not concurrent activities. Running `journey-mapping` without a UX strategy is possible, but the output is grounded in the journey author's assumptions rather than a committed experience direction. Running `frame-situation` without OKR-derived gaps means the shaping queue fills with team-driven work that may not connect to company objectives.
+Strategy artifacts — the SWOT, the PRFAQ, the OKR cascade, the UX strategy — are pre-conditions for product engineering and design, not concurrent activities. Running `journey-mapping` without a UX strategy is possible, but the output is grounded in the journey author's assumptions rather than a committed experience direction. Running `frame-situation` without OKR-derived gaps means the shaping list fills with team-driven work that may not connect to company objectives.
 
 This pack's position upstream of both `product-engineering` and `experience-design` is the architectural invariant. Skills in this pack write artifacts that downstream packs read by path; this is a one-way dependency. No skill in this pack reads from the PE or experience-design packs.
 
@@ -49,7 +49,7 @@ Seven skills produce the situation picture and routing artifacts:
 | `run-porters-five-forces` | Porter's Five Forces | `competitive-landscape.md` |
 | `run-bcg-matrix` | BCG Matrix — Stars, Cash Cows, Question Marks, Dogs | `portfolio-position.md` |
 | `run-swot` | SWOT — Strengths, Weaknesses, Opportunities, Threats | `swot-analysis.md` |
-| `run-okr-cascade` | OKR cascade — company → team → shaping-queue gaps | `okr-cascade.md` + `workspace.toml` entries |
+| `run-okr-cascade` | OKR cascade — company → team → strategy gaps | `okr-cascade.md` + one gap file per gap |
 | `write-prfaq` | PRFAQ — press release + FAQ as altitude-0 forcing function | `prfaq.md` |
 | `synthesize-stakeholder-research` | Research synthesis — strategic narrative by theme | `stakeholder-synthesis.md` |
 
@@ -89,7 +89,7 @@ Teams that run market analysis first often use the analysis to confirm a concept
 
 ### The gap-routing contract
 
-`run-okr-cascade` is the primary bridge from this pack to `product-engineering`. Its output is not just a document — it is a workspace state change. Each identified gap becomes a `{type = "strategy"}` entry in the active initiative's `["ini-NNN".shaping_queue].backlog` array in `workspace.toml`.
+`run-okr-cascade` is the primary bridge from this pack to `product-engineering`. Its output is not just a document — each identified gap becomes its own captured-item file at `docs/product/captured/<gap-slug>.md` with `Kind: intent` and `Type: strategy`, and nothing is added to `workspace.toml`.
 
 The PE pack's `workspace-status` reads these entries and surfaces them as strategy-driven shaping items. The PE pack's `frame-situation` picks them up and shapes them into briefs. This cross-pack routing is documented in each skill's `references/cross-pack-routing.md`.
 
@@ -129,9 +129,9 @@ Each skill references its source framework by name (SWOT, Porter's Five Forces, 
 
 ## 7. Safety invariants
 
-1. **No skill writes to downstream pack output paths.** Skills in this pack write only to `docs/product/shaping/` (or the configured strategy output path). No skill writes to `docs/design/`, initiative task lists, or any PE-owned path other than the shaping-queue backlog array in `workspace.toml`.
+1. **No skill writes to downstream pack output paths.** Skills in this pack write only to `docs/product/shaping/` (or the configured strategy output path). No skill writes to `docs/design/`, initiative task lists, or any PE-owned path other than the gap files under `docs/product/captured/`.
 
-2. **The cascade writes gaps, not features.** `run-okr-cascade` outputs `{type = "strategy"}` gap entries. It does not output `{type = "feature"}` entries or write to `work_queue`. Gap entries are for `frame-situation` to shape into briefs; they are not execution-ready tasks.
+2. **The cascade writes gaps, not features.** `run-okr-cascade` outputs `Type: strategy` gap files. It does not output feature items or write to `work_queue`. Gap files are for `frame-situation` to shape into briefs; they are not execution-ready tasks.
 
 3. **Artifacts commit before downstream use.** No downstream pack references a strategy artifact that has not been committed to `docs/product/shaping/`. An uncommitted SWOT is not a strategic anchor.
 
