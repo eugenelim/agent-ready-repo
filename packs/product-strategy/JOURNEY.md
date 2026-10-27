@@ -10,7 +10,7 @@ contract:
   useItWhen: "You're building the committed strategy layer — market analysis, altitude-0 direction, and OKR-derived gap routing — upstream of any product initiative."
   youType: "Run an OKR cascade from our company OKRs."
   youProvide: "Company OKRs, any prior desk-research outputs, and the scope of the initiative or strategic question to address."
-  youReceive: "Committed SWOT, PRFAQ, OKR-derived gap entries in workspace.toml, ux-strategy.md, and content-strategy.md."
+  youReceive: "Committed SWOT, PRFAQ, OKR-derived gap files under docs/product/captured/, ux-strategy.md, and content-strategy.md."
   yourDecisions:
     - "Approve the market situation picture"
     - "Approve the PRFAQ"
@@ -19,7 +19,7 @@ contract:
     - approve-strategy-situation
     - approve-prfaq
     - approve-okr-cascade
-whatChanges: "After installing product-strategy, every initiative starts with a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market situation (PESTLE, Porter's, BCG, SWOT), altitude-0 direction (PRFAQ), OKR routing to the PE shaping queue, and the UX and content strategy anchors the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` — the shared path downstream packs reference by name. The OKR cascade writes directly to `workspace.toml`, where product engineers pick up strategy-driven shaping items via `workspace-status`."
+whatChanges: "After installing product-strategy, every initiative starts with a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market situation (PESTLE, Porter's, BCG, SWOT), altitude-0 direction (PRFAQ), OKR gap files for product-engineering shaping, and the UX and content strategy anchors the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` — the shared path downstream packs reference by name. The OKR cascade writes one captured-item file per gap under `docs/product/captured/`, where product engineers pick up strategy-driven shaping items via `workspace-status`."
 skills:
   - name: synthesize-stakeholder-research
     description: "Converts desk-research project outputs into a strategic narrative by theme — committed as stakeholder-synthesis.md. Surfaces a 'run desk-research project first' prompt if no research inputs are found."
@@ -40,7 +40,7 @@ skills:
     description: "Authors a press release + FAQ as the altitude-0 forcing function — the imagined future press release that anchors initiative briefs and lets the team trace every shaping decision back to the original vision."
     humanTouches: 1
   - name: run-okr-cascade
-    description: "Cascades company OKRs to team level, identifies gaps between current state and OKR targets, and routes each gap as a strategy-type entry into workspace.toml for the PE pack's frame-situation to pick up."
+    description: "Cascades company OKRs to team level, identifies gaps between current state and OKR targets, and writes each gap as its own file under docs/product/captured/ for the PE pack's frame-situation to pick up."
     humanTouches: 1
   - name: define-ux-strategy
     description: "Produces a committed ux-strategy.md (vision → goals+measures → plan) using the NN/g three-layer model and Gothelf/Seiden OKR-linked UX framing — the experience anchor that journey-mapping and user-flow read from."
@@ -78,16 +78,16 @@ humanGates:
   - id: approve-okr-cascade
     globalGate: null
     label: "Approve the OKR cascade"
-    trigger: "After run-okr-cascade identifies gaps and before writing strategy-type entries to workspace.toml"
+    trigger: "After run-okr-cascade identifies gaps and before writing the gap files"
     duration: "10–15 minutes"
     whatToCheck:
       - "Does the OKR cascade identify actual gaps between current state and each target — not features the team wants to build regardless?"
-      - "Are the gaps ranked — does the highest-weight OKR produce the highest-priority gap entries?"
+      - "Are the gaps ranked — does the highest-weight OKR produce the highest-priority gap files?"
       - "Is each gap specific enough for frame-situation to scope into a shaping brief, or is it too vague to act on?"
       - "Are there OKR targets vague enough that the cascade missed important gaps — should any OKRs be tightened before the cascade completes?"
-    whatGoodLooksLike: "A set of 3–7 gap entries that a product engineer could pick up from workspace-status and route directly into frame-situation — specific, ranked by OKR weight, and traceable to a named target."
-    whatBadLooksLike: "More than 10 gap entries without priority ranking. Or gaps so broad that frame-situation would need to re-scope them from scratch before shaping could begin — a sign the OKR targets aren't specific enough."
-    consequence: "The cascade write is a shared state change — gap entries appear in workspace-status and signal to product engineers what strategy-driven work to shape next. Approving vague or unranked gaps means the shaping queue fills with work of unclear strategic priority."
+    whatGoodLooksLike: "A set of 3–7 gap files that a product engineer could pick up from workspace-status and route directly into frame-situation — specific, ranked by OKR weight, and traceable to a named target."
+    whatBadLooksLike: "More than 10 gap files without priority ranking. Or gaps so broad that frame-situation would need to re-scope them from scratch before shaping could begin — a sign the OKR targets aren't specific enough."
+    consequence: "The cascade write is a shared state change — gap files appear in workspace-status and signal to product engineers what strategy-driven work to shape next. Approving vague or unranked gaps means the shaping list fills with work of unclear strategic priority."
 typicalSession:
   agentTurns: "8–20"
   humanTouches: 3
@@ -106,7 +106,7 @@ relatedJourneys:
 | `run-porters-five-forces` | Map competitive forces: supplier/buyer power, new entrants, substitutes, rivalry |
 | `run-bcg-matrix` | Position each initiative in the portfolio: Stars, Cash Cows, Question Marks, Dogs |
 | `run-swot` | Synthesize the situation picture: Strengths, Weaknesses, Opportunities, Threats |
-| `run-okr-cascade` | Cascade OKRs, identify gaps, and route them to the PE shaping queue |
+| `run-okr-cascade` | Cascade OKRs, identify gaps, and write each as a gap file for PE shaping |
 | `write-prfaq` | Draft the press release + FAQ before the product exists |
 | `synthesize-stakeholder-research` | Synthesize desk-research outputs into a strategic narrative by theme |
 | `define-ux-strategy` | Set the experience vision, goals, and plan — upstream of journey-mapping |
@@ -163,9 +163,9 @@ write-prfaq
 
 ---
 
-### 3. Cascade OKRs to the shaping queue
+### 3. Cascade OKRs into gap files
 
-Type `run-okr-cascade`; the agent derives team-level OKRs from company targets, identifies gaps between current state and each target, and prepares strategy-type entries for `workspace.toml`.
+Type `run-okr-cascade`; the agent derives team-level OKRs from company targets, identifies gaps between current state and each target, and prepares one gap file per gap under `docs/product/captured/`.
 
 ```text
 run-okr-cascade
@@ -176,11 +176,11 @@ run-okr-cascade
   activation-depth      3 features in 14 days     High
   channel-enterprise    ARR from enterprise        Medium
 
-  Approve and write to workspace.toml? ›
+  Approve and write the gap files? ›
 ```
 
 - **You decide:** approve the gap list — confirm each gap reflects an actual OKR delta, is ranked by OKR weight, and is specific enough for `frame-situation` to scope without re-scoping from scratch.
-- **Output:** `docs/product/shaping/okr-cascade.md` and strategy-type entries in `workspace.toml` — gaps product engineers pick up from `workspace-status`.
+- **Output:** `docs/product/shaping/okr-cascade.md` and one gap file per gap under `docs/product/captured/` — gaps product engineers pick up from `workspace-status`.
 - **State:** confirmed-write
 
 ---

@@ -35,12 +35,12 @@ The agent writes `prfaq.md`, a press release and two FAQs, so the customer benef
 
 ## Route it to work
 
-To turn the approved direction into team goals and queued work, ask:
+To turn the approved direction into team goals and gap files, ask:
 
 ```text
-Cascade our company OKRs to team level, identify the gaps, and route them to the shaping queue.
+Cascade our company OKRs to team level, identify the gaps, and write each gap as a file.
 ```
 
-The agent writes `okr-cascade.md` and adds each gap to `workspace.toml`, the file where the repository tracks planned work, so `core` must be installed. Read those entries before you approve, because a vague gap becomes a queued item someone else must interpret. For UX and content, ask for `define-ux-strategy` and `define-content-strategy`.
+The agent writes `okr-cascade.md` and one file per gap under `docs/product/captured/`. Read those files before you approve, because a vague gap becomes an item someone else must interpret. For UX and content, ask for `define-ux-strategy` and `define-content-strategy`.
 
-Next, [shape a feature](../../product-engineering/how-to/shape-a-feature-intent.md) from one of the queued gaps.
+Next, [shape a feature](../../product-engineering/how-to/shape-a-feature-intent.md) from one of the gap files.

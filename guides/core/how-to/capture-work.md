@@ -61,6 +61,8 @@ of the schema reference.
 Run `workspace-status`. The artifact should appear in the lifecycle state
 chosen by `work-intake`; remembered work remains Draft and non-dispatchable.
 The artifact must exist before its schema-valid workspace entry is registered.
+A remembered defect, design, or research item is its own file under
+`docs/product/captured/` and has no workspace entry.
 
 See [Use work intake](../../_shared/how-to/use-work-intake.md)
 for the current workflow and [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)

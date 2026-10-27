@@ -61,7 +61,12 @@ def _spec(root: Path, name: str, status: str | None = "Implementing") -> Path:
 def _captured(root: Path, slug: str, status: str = "Open") -> Path:
     path = root / "docs/product/captured" / f"{slug}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"# {slug}\n\n- **Status:** {status}\n- **Kind:** intent\n", encoding="utf-8")
+    # A Closed captured item of any kind carries a Resolution: line.
+    resolution = "- **Resolution:** fixed\n" if status == "Closed" else ""
+    path.write_text(
+        f"# {slug}\n\n- **Status:** {status}\n- **Kind:** intent\n{resolution}",
+        encoding="utf-8",
+    )
     return path
 
 

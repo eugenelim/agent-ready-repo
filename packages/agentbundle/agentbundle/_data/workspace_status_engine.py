@@ -3019,6 +3019,12 @@ def _dependency_is_satisfied(
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
 ) -> tuple[bool, RoutingFinding | None]:
+    """Decide whether one dependency is satisfied, or return the finding why not.
+
+    A captured-item file that no membership names settles by its own `Status:`
+    and `Resolution:`; every other dependency follows its membership or its
+    artifact's terminal state.
+    """
     if (
         dep.type != "cross-repo"
         and any(
@@ -3080,6 +3086,31 @@ def _dependency_is_satisfied(
     matches = by_path.get(dep.path, [])
     if matches and not any(match.entry.kind == dep.kind for match in matches):
         return False, _finding("unsatisfied_dependency", dep.path, "dependency kind mismatch")
+    if (
+        not matches
+        and root is not None
+        and dep.kind
+        and _captured_dir_spelling(dep.path) == "canonical"
+        and not cooled_dependency
+    ):
+        # An unregistered captured item settles by its own file: one read, and
+        # only `Closed` with `Resolution: fixed` satisfies.
+        item, finding = read_captured_item(
+            root, dep.path[len(_CAPTURED_DIR) + 1:], cooled
+        )
+        if finding is not None:
+            return False, finding
+        if item.get("cooled") or "status" not in item:
+            # The reader re-checks the cooled set; a path that became cooled
+            # between the two checks is refused without opening the file.
+            return False, _finding(
+                "unsatisfied_dependency", dep.path, "captured item became cooled"
+            )
+        if item["status"] == "Closed" and item["resolution"] == "fixed":
+            return True, None
+        return False, _finding(
+            "unsatisfied_dependency", dep.path, "captured item is not closed as fixed"
+        )
     if dep.kind == "defect" and not any(
         match.collection == "backlog.closed" for match in matches
     ):
@@ -3419,6 +3450,8 @@ def _captured_field_value(raw: str, name: str) -> str:
 def parse_captured_item(text: str) -> tuple[dict[str, str | None] | None, str | None]:
     """Check one captured-item file's preamble against the grammar.
 
+    `Resolution:` is required exactly when `Status:` is `Closed`, for every kind.
+
     Returns `(fields, None)` when valid and `(None, <first failing field>)`
     otherwise. Field lines are counted here through `_iter_preamble_lines`,
     because `_parse_preamble_fields` keeps only the first value of a repeat.
@@ -3449,7 +3482,7 @@ def parse_captured_item(text: str) -> tuple[dict[str, str | None] | None, str | 
         if key == "type" and found and value not in _SHAPING_TYPE_ROUTES:
             return None, label
         if key == "resolution":
-            required = kind == "defect" and status == "Closed"
+            required = status == "Closed"
             if required != bool(found) or (
                 found and value not in _CAPTURED_RESOLUTIONS
             ):

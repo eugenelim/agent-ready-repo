@@ -743,6 +743,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_captured_item_files_instructions.py
 
+      # AC-0011, AC-0012, AC-0014 and AC-0015 of captured-item-registration-stop:
+      # no writer, suggester or guide tells anyone to register a captured item,
+      # and the governing errata name the gap file. Sits ABOVE the bulk tests/ step.
+      - name: pytest captured-item registration stop (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_captured_item_registration_stop.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a

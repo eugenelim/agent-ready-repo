@@ -29,14 +29,18 @@ is read-only at the tracker boundary. Local refresh decisions and any supported
 remote coordination action are separate effects; the latter needs its own
 fresh exact confirmation.
 
-A remembered item that is not an intent is written as its own file at
-`docs/product/captured/<slug>.md`, with `Status:`, `Kind:`, and the optional
-`Type:`, `Resolution:`, `Parent intent:`, and `Detail:` lines and its summary under
-`## Summary`. An optional `Priority:` line takes one of `urgent`, `high`,
+A remembered defect, design, or research item is written as its own file at
+`docs/product/captured/<slug>.md` and has no index entry. The file carries
+`Status:`, `Kind:`, and the optional `Type:`, `Parent intent:`, and `Detail:`
+lines, a `Resolution:` line exactly when `Status:` is `Closed`, and its summary
+under `## Summary`. An optional `Priority:` line takes one of `urgent`, `high`,
 `medium`, `low`; an item with no line has no priority, and the field never
-decides readiness, dispatch, or order of work. Its index entry's `path` is that file. A captured item registered
-at any other path is reported as unmigrated; `workspace-status repair-plan`
-moves it.
+decides readiness, dispatch, or order of work. A downstream item names the file
+in its own `Depends on:` header, and the dependency settles when the file is
+`Closed` with `Resolution: fixed`. An older captured item that still has an index
+entry keeps it until the item closes; closing it deletes the entry in the same
+change as the file's `Status:` edit. One registered at any other path is reported
+as unmigrated; `workspace-status repair-plan` moves it.
 
 Former legacy workspace entries surface as `unsupported_legacy` findings and
 are never dispatchable. Rewrite each in canonical form by hand. Migration

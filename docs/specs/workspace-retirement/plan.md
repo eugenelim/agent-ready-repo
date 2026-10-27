@@ -191,6 +191,20 @@ Owned by: T1
 
 **Done when:** each fixture test reds before its rule exists and passes after, and the real-repository record test passes.
 
+### T9: The closed captured item of another kind
+
+**Depends on:** T8
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0028, AC-0018, AC-0022.
+- A fixture `intended change` row whose Case text is `the closed captured item of another kind`, linking an Accepted RFC section that names it, passes; the existing `the defect` row outside the list still fails.
+- The real record's Equivalence rows, which the brief's slice 3 registration stop writes, pass every rule.
+- Goal-based, for AC-0022: the AC-0017 step collects the AC-0028 tests with no skip condition, and a run of it on a scratch clone whose record carries one `intended change` row with a Case text outside the list fails.
+
+**Done when:** the new fixture test reds before the list admits the case and passes after, the real-repository record test passes, and the planted-row run of the step fails.
+
 ## Rollout
 
 - **Delivery:** one pull request. The check blocks a pull request that adds a registry mention outside an inventoried directory, and one that removes, renames, or deletes the last mention in a file a row names.
@@ -211,3 +225,5 @@ Owned by: T1
 - 2026-10-26: plan amendment approved by eugenelim (T7 added)
 - 2026-10-26: spec amendment approved by eugenelim (AC-0024 admits `intended change`; AC-0026 governs its Authority; AC-0027 and AC-0028 added; AC-0018 and AC-0022 reopened)
 - 2026-10-26: plan amendment approved by eugenelim (T8 added)
+- 2026-10-27: spec amendment approved by eugenelim (AC-0028 admits `the closed captured item of another kind`; AC-0018, AC-0022, and AC-0028 reopened)
+- 2026-10-27: plan amendment approved by eugenelim (T9 added)

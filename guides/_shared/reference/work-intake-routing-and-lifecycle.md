@@ -52,7 +52,7 @@ owned.
 | One coherent outcome needing several specs | brief | `brief_queue.draft` | `author-delivery-brief create` | Yes for drafting; not for implementation |
 | Cross-repository outcome | one linked local brief per repository | `brief_queue.draft` | `author-delivery-brief create` | Yes for each local slice |
 | Unrelated collection or incoherent view | separate units, view-only result, or Draft with named gaps | none or non-dispatchable Draft | `none` | No |
-| Regression with durable expected-behavior evidence | defect context | `backlog.open` | `bug-fix` | Yes after context exists |
+| Regression with durable expected-behavior evidence | captured-item file under `docs/product/captured/` | none | `bug-fix` | Yes after context exists |
 | Claimed defect without that evidence | Draft with a named evidence gap | non-dispatchable | `none` | No |
 
 A title, item count, tracker object type, hierarchy position, label, workspace
@@ -61,7 +61,9 @@ comment, or previous collection cannot override these routes.
 ## Remember and status
 
 Remember materializes the smallest safe Draft artifact, registers it after the
-artifact exists, and stops.
+artifact exists, and stops. A remembered defect, design, or research item is the
+exception: it is written as its own file under `docs/product/captured/` and gets
+no registry entry. Closing it is an edit to that file alone.
 
 Status delegates to `workspace-status`. It performs no intake classification
 and no mutation. Canonical, legacy, duplicate, invalid, and refresh findings
@@ -112,7 +114,10 @@ Core-only routing uses no network. Tracker adapters enforce their declared
 page, item, byte, timeout, retry, backoff, destination, and capability limits.
 Artifact and workspace paths must remain repository-confined. Registration
 occurs only after artifact creation; processor dispatch occurs only after both
-are durable and reconciled.
+are durable and reconciled. A route that registers nothing, such as a defect
+start or a remembered defect, design, or research item, writes only its
+captured-item file and dispatches, if it dispatches at all, once that file is
+durable.
 
 ## See also
 

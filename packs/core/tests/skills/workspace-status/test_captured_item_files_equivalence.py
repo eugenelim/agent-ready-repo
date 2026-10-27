@@ -431,9 +431,9 @@ CONFLICTS = [
     (_conflict_case("closed-record-in-open", "defect", "Closed", "backlog.open", "fixed"),
      "defect-closed-in-open"),
     (_conflict_case("closed-record-in-shaping-backlog", "design", "Closed",
-                    "shaping_queue.backlog"), None),
+                    "shaping_queue.backlog", "fixed"), None),
     (_conflict_case("closed-record-in-shaping-active", "design", "Closed",
-                    "shaping_queue.active"), None),
+                    "shaping_queue.active", "fixed"), None),
     (_conflict_case("open-record-in-closed", "defect", "Open", "backlog.closed"),
      "defect-open-in-closed"),
 ]

@@ -176,8 +176,8 @@ owner = 9
 [[row]]
 pattern = "docs/adr/0053-product-strategy-pack-scope-and-discipline-boundaries.md"
 class = "contract"
-consumer = "ADR-0053 D9: run-okr-cascade writes gaps to workspace.toml and frame-situation reads them"
-owner = 3
+consumer = "ADR-0053 D9 body still states the OKR gap handoff through workspace.toml; the errata supersedes it"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/0054-session-arc-verb-taxonomy-and-pack-type-classification.md"
@@ -291,7 +291,7 @@ owner = 9
 pattern = "docs/architecture/work-intake-and-artifact-routing.md"
 class = "guide"
 consumer = "architecture page: work-intake routes, workspace-status reads and reconciles"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "docs/architecture/workspace-mcp/design.md"
@@ -339,7 +339,7 @@ owner = "none"
 pattern = "docs/guides/reference/work-intake-maintenance.md"
 class = "guide"
 consumer = "maintainer reference for the work-intake and workspace-status ownership split"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "docs/knowledge/observations/antipattern/2026-08.jsonl"
@@ -548,8 +548,8 @@ owner = "none"
 [[row]]
 pattern = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"
 class = "contract"
-consumer = "FEAT-0007: promotion routing that reads workspace-status scripts"
-owner = 3
+consumer = "FEAT-0007: promotion routing that registers intent, brief, and spec entries and reads workspace-status scripts"
+owner = 7
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"
@@ -848,8 +848,8 @@ owner = 2
 [[row]]
 pattern = "docs/rfc/0063-product-strategy-pack.md"
 class = "contract"
-consumer = "RFC-0063: the OKR cascade appends gaps to the shaping queue in workspace.toml"
-owner = 3
+consumer = "RFC-0063 body still states the OKR gap handoff through the shaping queue in workspace.toml; the errata supersedes it"
+owner = 9
 
 [[row]]
 pattern = "docs/rfc/0067-session-arc-conventions-and-pack-workflow-guide.md"
@@ -1059,13 +1059,13 @@ owner = 9
 pattern = "guides/_shared/how-to/use-work-intake.md"
 class = "guide"
 consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "guides/_shared/reference/work-intake-routing-and-lifecycle.md"
 class = "guide"
 consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "guides/architect/how-to/establish-reference-architecture.md"
@@ -1119,7 +1119,7 @@ owner = 9
 pattern = "guides/core/how-to/capture-work.md"
 class = "guide"
 consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "guides/core/how-to/close-and-disposition-work.md"
@@ -1137,7 +1137,7 @@ owner = 7
 pattern = "guides/core/how-to/migrate-capture-work.md"
 class = "guide"
 consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "guides/core/how-to/navigate-intents.md"
@@ -1174,13 +1174,13 @@ reads_order = true
 pattern = "guides/core/how-to/start-or-remember-work.md"
 class = "guide"
 consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "guides/core/reference/work-intake-routing-and-lifecycle.md"
 class = "guide"
 consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "guides/core/reference/workspace-toml-schema.md"
@@ -1244,21 +1244,9 @@ consumer = "how-to or reference telling agents how to register or route work thr
 owner = 7
 
 [[row]]
-pattern = "guides/product-strategy/explanation/why-strategy-is-its-own-seat.md"
-class = "guide"
-consumer = "guide telling readers to run workspace-status or read workspace.toml"
-owner = 9
-
-[[row]]
 pattern = "guides/product-strategy/how-to/cascade-okrs-into-the-shaping-queue.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 3
-
-[[row]]
-pattern = "guides/product-strategy/how-to/set-the-direction.md"
-class = "guide"
-consumer = "guide telling readers to run workspace-status or read workspace.toml"
+consumer = "guide stating that a gap is a file and nothing is added to workspace.toml"
 owner = 9
 
 [[row]]
@@ -1295,7 +1283,7 @@ owner = 9
 pattern = "packages/agentbundle/agentbundle/_data/work_intake_refresh.py"
 class = "writer"
 consumer = "packaged work-intake refresh coordinator that validates intake through workspace-status and edits workspace.toml"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "packages/agentbundle/agentbundle/_data/workspace_status_engine.py"
@@ -1517,20 +1505,14 @@ owner = 9
 [[row]]
 pattern = "packs/product-strategy/DESIGN.md"
 class = "guide"
-consumer = "product-strategy design: run-okr-cascade writes workspace.toml shaping entries"
-owner = 3
+consumer = "product-strategy design: gaps are captured-item files that workspace-status reads; the pack pitch still names workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "packs/product-strategy/JOURNEY.md"
 class = "promise"
-consumer = "published product-strategy journey: OKR gap entries land in workspace.toml"
-owner = 3
-
-[[row]]
-pattern = "packs/product-strategy/README.md"
-class = "promise"
-consumer = "published product-strategy readme: run-okr-cascade writes strategy entries to workspace.toml"
-owner = 3
+consumer = "published product-strategy journey: gap files surface through workspace-status; the pitch still names the workspace.toml queue"
+owner = 9
 
 [[row]]
 pattern = "tests/fixtures/install_snapshot/core.paths.txt"
@@ -1540,6 +1522,12 @@ owner = 9
 
 [[row]]
 pattern = "tests/roster/test_agent_skill_engineering_consumer_integrations.py"
+class = "fixture"
+consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
+owner = 9
+
+[[row]]
+pattern = "tests/roster/test_captured_item_registration_stop.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
 owner = 9
@@ -1590,7 +1578,7 @@ owner = 9
 pattern = "tests/roster/test_github_refresh_processor.py"
 class = "fixture"
 consumer = "roster test test_github_refresh_processor.py that exercises the registry consumers of its feature"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_repo_governance_standalone_install.py"
@@ -1608,13 +1596,13 @@ owner = 9
 pattern = "tests/roster/test_jira_refresh_processor.py"
 class = "fixture"
 consumer = "roster test test_jira_refresh_processor.py that exercises the registry consumers of its feature"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_linear_refresh_processor.py"
 class = "fixture"
 consumer = "roster test test_linear_refresh_processor.py that exercises the registry consumers of its feature"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_repo_governance_rename_completeness.py"
@@ -1656,7 +1644,7 @@ owner = 9
 pattern = "tests/roster/test_shaping_handoff_pack_surface.py"
 class = "fixture"
 consumer = "roster test test_shaping_handoff_pack_surface.py that exercises the registry consumers of its feature"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_spec_retirement_candidates_cli.py"
@@ -1698,13 +1686,13 @@ owner = 9
 pattern = "tests/roster/test_work_intake_migration_contracts.py"
 class = "fixture"
 consumer = "roster test test_work_intake_migration_contracts.py that exercises the registry consumers of its feature"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_work_intake_refresh_coordinator.py"
 class = "fixture"
 consumer = "roster test test_work_intake_refresh_coordinator.py that exercises the registry consumers of its feature"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_workspace_initiative_provenance.py"
@@ -1853,8 +1841,8 @@ owner = 9
 [[row]]
 pattern = "web/src/content/journeys/product-strategy.md"
 class = "promise"
-consumer = "published product-strategy journey: OKR gap entries land in workspace.toml"
-owner = 3
+consumer = "published product-strategy journey: gap files surface through workspace-status; the pitch still names the workspace.toml queue"
+owner = 9
 
 [[row]]
 pattern = "web/src/content/packs/github.md"
@@ -1964,8 +1952,8 @@ owner = 8
 [[row]]
 pattern = "packs/core/.apm/skills/work-intake/*"
 class = "writer"
-consumer = "work-intake routing, refresh, and capture that read and write workspace.toml"
-owner = 3
+consumer = "work-intake routing, refresh, and capture that still register intent, brief, and spec entries in workspace.toml"
+owner = 7
 
 [[row]]
 pattern = "packs/core/.apm/skills/author-delivery-brief/*"
@@ -2042,32 +2030,32 @@ owner = 9
 [[row]]
 pattern = "packs/product-engineering/.apm/skills/diverge-solutions/*"
 class = "guide"
-consumer = "skill step that suggests a workspace.toml shaping entry without writing it"
-owner = 3
+consumer = "skill rule that never writes workspace.toml; an example still suggests an initiative shaping section"
+owner = 9
 
 [[row]]
 pattern = "packs/product-engineering/.apm/skills/frame-situation/*"
 class = "guide"
-consumer = "skill step that suggests a workspace.toml entry without writing it"
-owner = 3
+consumer = "skill rule that never writes workspace.toml and suggests a captured-item file instead"
+owner = 9
 
 [[row]]
 pattern = "packs/product-engineering/.apm/skills/lean-canvas/*"
 class = "guide"
 consumer = "skill step that suggests a workspace.toml initiative section without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "packs/product-engineering/.apm/skills/map-capabilities/*"
 class = "guide"
 consumer = "skill step that suggests a workspace.toml transition without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "packs/product-engineering/.apm/skills/place-bet/*"
 class = "guide"
 consumer = "skill step that suggests a workspace.toml transition without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "packs/product-engineering/.apm/skills/identify-opportunities/*"
@@ -2083,9 +2071,9 @@ owner = 9
 
 [[row]]
 pattern = "packs/product-strategy/.apm/skills/run-okr-cascade/*"
-class = "writer"
-consumer = "run-okr-cascade appends strategy gaps to the shaping queue in workspace.toml"
-owner = 3
+class = "guide"
+consumer = "run-okr-cascade rule that a gap is a file and workspace.toml is not edited; its routing note names workspace-status"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/workspace-status/*"
@@ -2114,8 +2102,8 @@ owner = 8
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/*"
 class = "fixture"
-consumer = "work-intake tests that build workspace.toml for routing, capture, and refresh"
-owner = 3
+consumer = "work-intake tests that build workspace.toml for intent, brief, and spec routing, rename, and refresh"
+owner = 7
 
 [[row]]
 pattern = "packs/core/tests/skills/author-delivery-brief/*"
@@ -2243,14 +2231,14 @@ source = "packs/core/.apm/skills/project-knowledge/*"
 pattern = ".claude/skills/work-intake/*"
 class = "projection"
 consumer = "generated .claude projection of the work-intake skill"
-owner = 3
+owner = 7
 source = "packs/core/.apm/skills/work-intake/*"
 
 [[row]]
 pattern = ".agents/skills/work-intake/*"
 class = "projection"
 consumer = "generated .agents projection of the work-intake skill"
-owner = 3
+owner = 7
 source = "packs/core/.apm/skills/work-intake/*"
 
 [[row]]
@@ -2435,13 +2423,13 @@ owner = "none"
 pattern = "docs/specs/capture-work-alias-removal/*"
 class = "contract"
 consumer = "capture-work alias removal: workspace-status migration planning and ledger over workspace.toml"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/capture-work/*"
 class = "contract"
 consumer = "capture-work contract: queue writes and the workspace-status build/shape/brief labels"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "docs/specs/catalogue-curation-qa-coverage/*"
@@ -2693,6 +2681,12 @@ owner = 2
 pattern = "docs/specs/captured-item-files/*"
 class = "contract"
 consumer = "captured items in their own files: the file shape and reader, the unmigrated captured-item refusal, and the captured-to-file repair"
+owner = 3
+
+[[row]]
+pattern = "docs/specs/captured-item-registration-stop/*"
+class = "contract"
+consumer = "captured-item registration stop: writers write only the file, the closed-state rule, and the rule that closing a registered item deletes its entry"
 owner = 3
 
 [[row]]
@@ -3167,19 +3161,19 @@ owner = "none"
 pattern = "docs/specs/m1-governance-integration/*"
 class = "contract"
 consumer = "frame-intent queue prompt and degradation when workspace.toml is absent"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/m2-diverge-solutions/*"
 class = "contract"
 consumer = "diverge-solutions suggests a workspace.toml entry without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/m2-frame-situation/*"
 class = "contract"
 consumer = "frame-situation suggests a workspace.toml entry without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/m2-identify-opportunities/*"
@@ -3191,19 +3185,19 @@ owner = 9
 pattern = "docs/specs/m2-lean-canvas-and-initiative-brief/*"
 class = "contract"
 consumer = "lean-canvas suggests the workspace.toml initiative section without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/m2-map-capabilities/*"
 class = "contract"
 consumer = "map-capabilities suggests a workspace.toml transition without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/m2-place-bet/*"
 class = "contract"
 consumer = "place-bet suggests a workspace.toml transition without writing it"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/m3-desk-research-rename/*"
@@ -3281,7 +3275,7 @@ owner = 9
 pattern = "docs/specs/new-rfc-followon-queue-write/*"
 class = "contract"
 consumer = "new-rfc guard that checks workspace.toml before queuing follow-on specs"
-owner = 3
+owner = 8
 
 [[row]]
 pattern = "docs/specs/nonjson-guard-all-read-paths/*"
@@ -3293,7 +3287,7 @@ owner = "none"
 pattern = "docs/specs/normalized-intake-workspace-contracts/*"
 class = "contract"
 consumer = "normalized intake and workspace.toml seed and schema contracts"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/npm-dependabot-wiring/*"
@@ -3443,7 +3437,7 @@ owner = "none"
 pattern = "docs/specs/product-strategy-pack/*"
 class = "contract"
 consumer = "run-okr-cascade appends gap entries to the shaping queue in workspace.toml"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/product-strategy-web-journey/*"
@@ -3485,7 +3479,7 @@ owner = "none"
 pattern = "docs/specs/queue-add/*"
 class = "contract"
 consumer = "queue-add: comment-preserving workspace.toml queue writes and their diagnostics"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/reclassified-lifecycle-result/*"
@@ -3779,7 +3773,7 @@ owner = "none"
 pattern = "docs/specs/tracker-refresh-writeback/*"
 class = "contract"
 consumer = "tracker refresh coordinator results consumed by workspace-status"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/two-sided-prune-closure-invariant/*"
@@ -3839,13 +3833,13 @@ owner = "none"
 pattern = "docs/specs/work-intake-migration-docs/*"
 class = "contract"
 consumer = "work-intake migration of workspace.toml entries and its adopter route"
-owner = 3
+owner = 9
 
 [[row]]
 pattern = "docs/specs/work-intake-surface/*"
 class = "contract"
 consumer = "work-intake surface: workspace-status passthrough and unchanged workspace.toml checksum"
-owner = 3
+owner = 7
 
 [[row]]
 pattern = "docs/specs/work-item-capture/*"

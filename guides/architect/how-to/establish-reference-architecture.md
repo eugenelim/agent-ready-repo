@@ -90,13 +90,13 @@ Write a solution reference architecture for this coordinating repo.
 
 The agent reads the federated catalog, contract homes, decisions, and links to each component repo's `reference.md`. It asks for any component or boundary it cannot find rather than inventing one. It proposes each section for you to accept, edit, or decline, and writes nothing until you confirm.
 
-## Register the artifact
+## Record the artifact
 
 After the architecture artifact exists, write a captured-item record for it at
-`docs/product/captured/payment-routing.md`, then register that record in
-`workspace.toml` so a downstream brief or spec can name it as a hard dependency.
-The record's `Detail:` names the design doc, and the design doc itself stays
-where it is:
+`docs/product/captured/payment-routing.md` so a downstream brief or spec can name
+it as a hard dependency. The record is its own file and gets no `workspace.toml`
+entry. Its `Detail:` names the design doc, and the design doc itself stays where
+it is:
 
 ```markdown
 # Payment routing
@@ -110,13 +110,7 @@ where it is:
 How payment routing splits across the two providers
 ```
 
-The registry entry points at the record, not at the design doc:
-
-```toml
-{ path = "docs/product/captured/payment-routing.md", kind = "design", source = { mode = "repo-origin" }, summary = "How payment routing splits across the two providers", needs = [] },
-```
-
-Then add the record to the downstream work's own `Depends on:` header line.
+Then add the record's path to the downstream work's own `Depends on:` header line.
 That work remains blocked until the design is settled:
 
 ```markdown
@@ -124,7 +118,8 @@ That work remains blocked until the design is settled:
 ```
 
 The path is a captured-item reference: its kind, `design`, comes from the
-record and the registry entry above. The downstream entry's `needs` stays `[]`.
+record. The dependency settles when you close the record: set `Status: Closed` and
+add `Resolution: fixed`.
 
 ## Verify
 
@@ -138,8 +133,9 @@ However you got there, you're done when:
 ## What you have now
 
 You have a committed, truthful reference architecture at the destination your
-repository resolved for `current-architecture`. Register a downstream design as
-a dependency when it must land before a brief or spec can proceed.
+repository resolved for `current-architecture`. When a brief or spec must wait
+for the design, name its captured-item file in that brief's or spec's
+`Depends on:` line.
 
 ## See also
 

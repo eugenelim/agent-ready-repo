@@ -338,3 +338,35 @@ def test_symlink_loop_stops_before_any_callback(tmp_path: Path) -> None:
 
     assert result.status is transaction.TransactionStatus.INVALID_TARGET
     assert trace == []
+
+
+def test_no_registration_step_writes_dispatches_and_leaves_workspace_untouched(
+    tmp_path: Path,
+) -> None:
+    transaction = _load_transaction_module()
+    repository_root, configured_parent, artifact_target = _transaction_paths(tmp_path)
+    workspace = tmp_path / "workspace.toml"
+    workspace.write_bytes(b"[backlog]\nopen = []\n")
+    before = workspace.read_bytes()
+    trace: list[str] = []
+
+    def materialize(target: Path) -> None:
+        trace.append("materialize")
+        assert (tmp_path / transaction.WORKSPACE_LOCK_FILE).exists()
+        target.write_text("artifact", encoding="utf-8")
+
+    result = transaction.run_intake_transaction(
+        repository_root=repository_root,
+        configured_parent=configured_parent,
+        artifact_target=artifact_target,
+        materialize_artifact=materialize,
+        rollback_partial_state=lambda: trace.append("rollback"),
+        record_reconciliation=lambda stage: trace.append("reconcile"),
+        dispatch_processor=lambda: trace.append("dispatch"),
+    )
+
+    assert result.status is transaction.TransactionStatus.COMMITTED
+    assert trace == ["materialize", "dispatch"]
+    assert (tmp_path / artifact_target).read_text(encoding="utf-8") == "artifact"
+    assert not (tmp_path / transaction.WORKSPACE_LOCK_FILE).exists()
+    assert workspace.read_bytes() == before

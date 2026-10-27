@@ -30,11 +30,12 @@ next workflow step.
 Routing is deterministic from content and altitude. A minimal opportunity
 becomes an intent, one independently shippable contract becomes a spec, a
 coherent multi-spec outcome becomes a brief, and cited regression evidence
-becomes defect context. Ambiguous work remains Draft or produces one bounded
+becomes a defect file under `docs/product/captured/`. Ambiguous work remains Draft or produces one bounded
 question; it never becomes ready by inference.
 
 The write order is an invariant: materialize the confined artifact, register a
-schema-valid workspace entry, then dispatch. A failure before durable
+schema-valid workspace entry when the route registers one, then dispatch. A
+defect, design, or research item registers nothing. A failure before durable
 registration leaves no executable state. `workspace-status` remains the
 read-side authority for reconciliation and workspace state.
 
@@ -304,7 +305,7 @@ Items flow left to right: from backlog → shaping → work → done. `workspace
 **A session closes captured follow-ons with `work-intake remember`.** An owner
 explicitly requests capture when a follow-on, excluded scope, or discovered
 issue should survive the session; it then becomes a canonical Draft artifact
-plus a schema-valid, non-dispatchable `workspace.toml` entry. Work excluded
+plus, for an intent, brief, or spec, a schema-valid, non-dispatchable `workspace.toml` entry; a defect, design, or research follow-on is its own file under `docs/product/captured/` with no entry. Work excluded
 without that request is acknowledged in the PR or final summary, not made
 durable by default.
 
@@ -400,8 +401,8 @@ These constraints must never be violated by any skill in the core pack or any sk
 5. **The loop cannot modify its own termination criteria.** The done-checklist is fixed by the skill, not by the loop's runtime judgments about what "done" should mean for this particular task.
 
 6. **`work-intake remember` runs at session end.** Follow-ons discovered during
-   the loop become canonical Draft artifacts and structured workspace entries,
-   not comments or chat-only reminders. Silently dropping scope creep findings
+   the loop become canonical Draft artifacts, with a structured workspace entry for an
+   intent, brief, or spec, not comments or chat-only reminders. Silently dropping scope creep findings
    is not a valid optimization.
 
 ---
