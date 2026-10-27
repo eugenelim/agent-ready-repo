@@ -962,15 +962,15 @@ def test_cooling_never_satisfies_a_blocked_dependency(tmp_path, engine) -> None:
     assert control_ready == ["docs/specs/beta/spec.md"]
 
 
-DEFECT_PATH = "docs/backlog/alpha.md"
+DEFECT_PATH = "docs/product/captured/alpha.md"
 
 
 def _defect_fixture(base: Path, *, cooled: bool) -> Path:
     """A queued spec waiting on an open defect, itself cooled when asked.
 
-    A defect is a captured item, so the header names its path. Its registered
-    `backlog.open` membership gives the reference its kind without opening a
-    cooled body.
+    A defect is a captured item, so the header names its path, a record in
+    `docs/product/captured/`. Its registered `backlog.open` membership gives the
+    reference its kind without opening a cooled body.
     """
     root = _tree(
         base,
@@ -1141,12 +1141,21 @@ def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monke
             seen.append(entry.path)
         return real(root_arg, entry)
 
+    real_record = engine._captured_record_metadata
+
+    def probe_record(root_arg, entry):
+        """A captured-item file's probe reads through its record reader."""
+        if entry.path == DEFECT_PATH:
+            seen.append(entry.path)
+        return real_record(root_arg, entry)
+
     monkeypatch.setattr(engine, "_metadata_from_root", probe)
+    monkeypatch.setattr(engine, "_captured_record_metadata", probe_record)
     engine.run_canonical_reconciliation(
         engine.parse_workspace(control / "workspace.toml"), control
     )
-    # The defect is also a registered membership, so the control reads it more
-    # than once; the control only has to prove the probe is reachable.
+    # The control reaches the probe through the dependency on an unclosed
+    # defect; it only has to prove the probe is reachable.
     assert seen, "control never read the defect; the probe proves nothing"
     seen.clear()
     engine.run_canonical_reconciliation(

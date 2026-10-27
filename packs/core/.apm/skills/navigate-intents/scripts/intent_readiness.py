@@ -67,6 +67,13 @@ _KNOWN_FINDINGS: dict[str, str] = {
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
     "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
+    "invalid_captured_item": (
+        "Fix the named field of that captured-item file, then rerun reconciliation."
+    ),
+    "unmigrated_captured_item": (
+        "Run workspace-status repair-plan to move this captured item into its "
+        "own file under docs/product/captured/."
+    ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
     "unregistered_work": "Register or reconcile the canonical entry explicitly.",

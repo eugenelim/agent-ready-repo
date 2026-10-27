@@ -101,6 +101,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | --- | --- |
 | `workspace-retirement` | <auto> |
 | `depends-on-headers` | <auto> |
+| `captured-item-files` | <auto> |
 
 ## Governance references (optional)
 

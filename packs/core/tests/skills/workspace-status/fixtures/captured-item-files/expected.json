@@ -1,0 +1,164 @@
+{
+  "defect-closed-declined": {
+    "dispatchable": {
+      "docs/backlog/d-declined.md": false
+    },
+    "findings": []
+  },
+  "defect-closed-fixed": {
+    "dispatchable": {
+      "docs/backlog/d-fixed.md": false
+    },
+    "findings": []
+  },
+  "defect-closed-in-open": {
+    "dispatchable": {
+      "docs/backlog/d-closed-open.md": false
+    },
+    "findings": [
+      [
+        "impossible_transition",
+        "docs/backlog/d-closed-open.md"
+      ]
+    ]
+  },
+  "defect-closed-superseded": {
+    "dispatchable": {
+      "docs/backlog/d-superseded.md": false
+    },
+    "findings": []
+  },
+  "defect-no-status-open": {
+    "dispatchable": {
+      "docs/backlog/d-nostatus.md": false
+    },
+    "findings": []
+  },
+  "defect-open-in-closed": {
+    "dispatchable": {
+      "docs/backlog/d-open-closed.md": false
+    },
+    "findings": [
+      [
+        "impossible_transition",
+        "docs/backlog/d-open-closed.md"
+      ]
+    ]
+  },
+  "depends-on-cooled-defect-closed-member": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": []
+  },
+  "depends-on-cooled-defect-no-closed-member": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/backlog/d-cooled-loose.md"
+      ]
+    ]
+  },
+  "depends-on-cooled-design": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": []
+  },
+  "depends-on-defect-declined": {
+    "dispatchable": {
+      "docs/backlog/d-dep-declined.md": false,
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/backlog/d-dep-declined.md"
+      ]
+    ]
+  },
+  "depends-on-defect-fixed": {
+    "dispatchable": {
+      "docs/backlog/d-dep-fixed.md": false,
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": []
+  },
+  "depends-on-defect-superseded": {
+    "dispatchable": {
+      "docs/backlog/d-dep-superseded.md": false,
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/backlog/d-dep-superseded.md"
+      ]
+    ]
+  },
+  "depends-on-design-approved": {
+    "dispatchable": {
+      "docs/backlog/g-dep-approved.md": false,
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "impossible_transition",
+        "docs/backlog/g-dep-approved.md"
+      ],
+      [
+        "unsatisfied_dependency",
+        "docs/backlog/g-dep-approved.md"
+      ]
+    ]
+  },
+  "depends-on-design-draft": {
+    "dispatchable": {
+      "docs/backlog/g-dep-draft.md": false,
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/backlog/g-dep-draft.md"
+      ]
+    ]
+  },
+  "design-approved-in-open": {
+    "dispatchable": {
+      "docs/backlog/g-approved-open.md": false
+    },
+    "findings": [
+      [
+        "impossible_transition",
+        "docs/backlog/g-approved-open.md"
+      ]
+    ]
+  },
+  "design-approved-in-shaping-backlog": {
+    "dispatchable": {
+      "docs/backlog/g-approved-shaping.md": false
+    },
+    "findings": [
+      [
+        "impossible_transition",
+        "docs/backlog/g-approved-shaping.md"
+      ]
+    ]
+  },
+  "design-draft-in-open": {
+    "dispatchable": {
+      "docs/backlog/g-draft-open.md": false
+    },
+    "findings": []
+  },
+  "design-draft-in-shaping-backlog": {
+    "dispatchable": {
+      "docs/backlog/g-draft-shaping.md": false
+    },
+    "findings": []
+  }
+}

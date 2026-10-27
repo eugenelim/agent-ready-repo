@@ -362,6 +362,8 @@ finding identifier as a path only after confirming it is one.
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
+| `invalid_captured_item` | A captured-item file breaks its field grammar. | Fix the named field of that captured-item file, then rerun reconciliation. |
+| `unmigrated_captured_item` | A captured item is registered at a path outside `docs/product/captured/`. | Run workspace-status repair-plan to move this captured item into its own file under docs/product/captured/. |
 | `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
 | `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
 | `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |
@@ -423,6 +425,32 @@ intended behavior. Closed defect contexts record exactly one resolution:
 
 Defects stay in the repository-level backlog. They are routed to the bug-fix
 workflow, not directly to implementation queue dispatch.
+
+### The captured-item file
+
+A remembered item that is not an intent lives in its own file at
+`docs/product/captured/<slug>.md`, where `<slug>` is lowercase letters, digits,
+and single hyphens. A defect is one kind of captured item. Its registry entry
+points at that file, not at the note that holds the context. The file starts
+with a `# ` title and then these preamble lines, each at most once:
+
+| Field | Values |
+| --- | --- |
+| `Status:` (required) | `Open` or `Closed` |
+| `Kind:` (required) | `defect`, `design`, `research`, or `intent` |
+| `Type:` | a shaping type: `shape`, `research`, `strategy`, `design`, or `signal` |
+| `Resolution:` | `fixed`, `declined`, or `superseded`; present exactly when a defect is `Closed` |
+| `Parent intent:` | a typed reference of kind `intent`, `outcome`, `opportunity`, or `capability` |
+| `Detail:` | the repository-relative path of the note that owns the context |
+
+The summary goes under a `## Summary` heading after the preamble, where it can
+never add or replace a field. A file that breaks these rules gives an
+`invalid_captured_item` finding. A captured item registered at any other path
+gives `unmigrated_captured_item` until `workspace-status repair-plan` moves it.
+
+```toml
+{ path = "docs/product/captured/export-drops-empty-names.md", kind = "defect", source = { mode = "repo-origin" }, summary = "Nightly export drops rows with an empty name", needs = [] }
+```
 
 ## Legacy Forms
 

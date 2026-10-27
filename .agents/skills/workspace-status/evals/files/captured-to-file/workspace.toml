@@ -1,0 +1,6 @@
+[backlog]
+open = [
+  {path = "docs/product/notes/flaky-export.md", kind = "defect", source = {mode = "repo-origin"}, summary = "The export job fails on every second run.", needs = []},
+  {slug = "pricing-gap", type = "strategy", summary = "No view of how pricing moves the retention outcome."},
+]
+closed = []

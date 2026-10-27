@@ -51,6 +51,10 @@ MANIFEST: dict[str, tuple[str, str]] = {
     "guides/core/explanation/why-a-brief-layer.md": ("instruction", ""),
     "guides/product-engineering/reference/intent-fields-and-modes.md": ("instruction", ""),
     "guides/product-engineering/how-to/shape-a-product-strategy.md": ("instruction", ""),
+    S + "work-intake/SKILL.md": ("instruction", ""),
+    S + "work-intake/references/lifecycle-index.md": ("instruction", ""),
+    S + "workspace-status/references/mutate.md": ("instruction", ""),
+    "guides/core/reference/workspace-toml-schema.md": ("instruction", ""),
     S + "navigate-intents/SKILL.md": (
         "excluded", "describes which pointer fields the reader follows; writes none"),
     S + "workspace-status/references/agentbundle-layout.md": (

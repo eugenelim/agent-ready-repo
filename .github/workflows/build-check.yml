@@ -725,6 +725,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_depends_on_headers_instructions.py
 
+      # AC-0040 of captured-item-files: the work-loop Step 0 shaping-item guard
+      # paragraph reads `captured.items` and names no registry collection. Sits
+      # ABOVE the bulk tests/ step, which also collects it, for named attribution.
+      - name: pytest captured-item files instructions (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_captured_item_files_instructions.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a

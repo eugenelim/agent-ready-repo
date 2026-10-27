@@ -50,6 +50,7 @@ _MODULE_NAME = "workspace_status_engine_depends_on_headers_equivalence"
 
 WAITER = "docs/specs/waiter/spec.md"
 PEER = "docs/specs/peer/spec.md"
+CAPTURED_DIR = "docs/product/captured"
 BRIEF_DIR = "docs/product/briefs"
 INTENT_DIR = "docs/product/intents"
 RECEIPT_BLOCK_OK = "remote-rev-9"
@@ -225,13 +226,13 @@ def _build_cases() -> list[Case]:
         ))
 
     # Defect targets.
-    closed = "docs/backlog/defect-closed.md"
+    closed = f"{CAPTURED_DIR}/defect-closed.md"
     cases.append(_simple(
         "defect-closed-member", "defect", closed, closed,
         {closed: "# Defect\n\n- **Status:** Closed\n- **Resolution:** fixed\n- **Kind:** defect\n"},
         extras=(("backlog", "closed", _entry(closed, "defect")),),
     ))
-    opened = "docs/backlog/defect-open.md"
+    opened = f"{CAPTURED_DIR}/defect-open.md"
     cases.append(_simple(
         "defect-open-member", "defect", opened, opened,
         {opened: "# Defect\n\n- **Status:** Open\n- **Kind:** defect\n"},
@@ -451,6 +452,19 @@ def _expected() -> dict[str, Any]:
     return json.loads(_EXPECTED_PATH.read_text(encoding="utf-8"))
 
 
+def _moved(case: Case, record: dict[str, Any]) -> dict[str, Any]:
+    """The frozen outcome with each captured defect at its record path.
+
+    The record was taken with the defect notes under `docs/backlog/`. They now sit
+    in `docs/product/captured/`, because an unmigrated captured item is refused.
+    """
+    if case.case_id not in ("defect-closed-member", "defect-open-member"):
+        return record
+    return json.loads(
+        json.dumps(record).replace("docs/backlog/defect-", f"{CAPTURED_DIR}/defect-")
+    )
+
+
 def _at_the_reference(case: Case, record: dict[str, Any]) -> dict[str, Any]:
     """The frozen outcome, with a missing brief or intent target placed at its reference.
 
@@ -477,7 +491,7 @@ def test_header_form_reproduces_the_frozen_needs_outcome(
     """AC-0003, AC-0007: a header edge gives the finding codes, dispatchability and
     legacy lists the same edge gave as a typed `needs` entry."""
     observed = observe_case(tmp_path, case, "header")
-    assert observed == _at_the_reference(case, _expected()[case.case_id])
+    assert observed == _at_the_reference(case, _moved(case, _expected()[case.case_id]))
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case.case_id for case in CASES])

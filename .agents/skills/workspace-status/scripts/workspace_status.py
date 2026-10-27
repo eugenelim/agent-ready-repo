@@ -215,6 +215,7 @@ _VALID_OPERATION_TYPES = frozenset({
     "queue-remove",
     "needs-to-header",
     "needs-drop-cooled",
+    "captured-to-file",
 })
 
 
@@ -455,6 +456,23 @@ def _canonical_finding_dict(f) -> dict:
         "dispatchable": f.dispatchable,
         "next_action": f.next_action,
     }
+
+
+def _captured_projection(root: Path, cooled: frozenset[Path]) -> dict:
+    """The `captured` object, from the directory listing and cooled set only."""
+    listing = _engine.list_captured_items(root, cooled)
+    findings = []
+    for found in listing.findings:
+        item = {
+            "code": found.code,
+            "path": found.path,
+            "dispatchable": found.dispatchable,
+            "next_action": found.next_action,
+        }
+        if found.code == "invalid_captured_item":
+            item["field"] = found.detail
+        findings.append(item)
+    return {"items": listing.items, "findings": findings}
 
 
 def _canonical_failure_payload(mode: str, code: str = "configuration_mismatch") -> dict:
@@ -1069,6 +1087,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
         },
     }
     if mode in {"status", "reconcile"}:
+        output["captured"] = _captured_projection(root, result.cooled)
         cooling = _cooling_projection(result)
         unreadable = cooling.pop("_unreadable")
         output["cooling"] = cooling
@@ -1144,6 +1163,11 @@ def _build_repair_plan_json(
         needs_operations, needs_findings = _build_needs_operations(root, workspace_bytes)
         automatic_operations.extend(needs_operations)
         manual_findings.extend(needs_findings)
+        captured_operations, captured_findings = _build_captured_operations(
+            root, workspace_bytes
+        )
+        automatic_operations.extend(captured_operations)
+        manual_findings.extend(captured_findings)
     base["workspace_fingerprint"] = plan.workspace_fingerprint
     base["automatic_operations"] = automatic_operations
     base["manual_findings"] = manual_findings
@@ -1214,6 +1238,11 @@ def _validate_plan_structure(data: dict) -> str | None:
             if needs_reason:
                 return needs_reason
             continue
+        if op_type == _CAPTURED_TO_FILE:
+            captured_reason = _validate_captured_operation(op)
+            if captured_reason:
+                return captured_reason
+            continue
         if not spec_path or not isinstance(spec_path, str):
             return "plan_invalid"
         if not ini_slug or not isinstance(ini_slug, str):
@@ -1264,9 +1293,18 @@ def _apply_operations(
     needs_operations = [
         op for op in operations if op.get("operation_type") in _NEEDS_OPERATION_TYPES
     ]
-    operations = [
-        op for op in operations if op.get("operation_type") not in _NEEDS_OPERATION_TYPES
+    captured_operations = [
+        op for op in operations if op.get("operation_type") == _CAPTURED_TO_FILE
     ]
+    operations = [
+        op for op in operations
+        if op.get("operation_type") not in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE}
+    ]
+    # Re-derived before any write of this run, so a source an earlier operation
+    # in the same plan rewrites cannot change what the records are checked against.
+    captured_plan = (
+        _plan_captured_items(root, workspace_toml_bytes) if captured_operations else None
+    )
 
     for op in operations:
         spec_path = op["spec_path"]
@@ -1411,11 +1449,26 @@ def _apply_operations(
         if edge_report is not None:
             edge_report.update(report)
 
+    # Records are created first; `doc` is written once below, so an interruption
+    # between the two leaves records that the rerun re-derives and keeps.
+    if captured_plan is not None:
+        captured_per_op, captured_applied, captured_report = _apply_captured_operations(
+            root, doc, captured_operations, captured_plan
+        )
+        per_op.extend(captured_per_op)
+        applied += captured_applied
+        if edge_report is not None:
+            for key in ("header_edges_before", "header_edges_after"):
+                captured_report[key] = edge_report.get(key, []) + captured_report[key]
+            edge_report.update(captured_report)
+
     # Only write when at least one operation succeeded
     if applied == 0:
         return applied, per_op, None
 
     serialized = tomlkit.dumps(doc)
+    if serialized.encode("utf-8") == workspace_toml_bytes:
+        return applied, per_op, None
     written_bytes = serialized.encode("utf-8")
     tmp_path = None
     try:
@@ -1427,6 +1480,8 @@ def _apply_operations(
         )
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
             fh.write(serialized)
+            fh.flush()
+            os.fsync(fh.fileno())
         # Preserve original mode; set after fd close (cross-platform — os.fchmod is Unix-only)
         Path(tmp_path).chmod(orig_mode)
         # Re-hash immediately before replace to detect concurrent writes that
@@ -1461,6 +1516,7 @@ def _apply_operations(
                 raise RuntimeError("workspace_concurrent_write")
         Path(tmp_path).replace(workspace_path)
         tmp_path = None
+        _fsync_directory(workspace_path.parent)
     finally:
         if tmp_path is not None:
             with contextlib.suppress(OSError):
@@ -1744,10 +1800,17 @@ def _echo_target(value: object) -> str:
 def _echo_repair_plan(data: dict) -> dict:
     """The plan as stdout shows it; the plan file keeps every value as derived."""
     operations = data.get("automatic_operations", [])
-    if not any(op.get("operation_type") in _NEEDS_OPERATION_TYPES for op in operations):
+    findings = data.get("manual_findings", [])
+    if not any(
+        op.get("operation_type") in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE}
+        for op in operations
+    ) and not any(f.get("finding_type") == _CAPTURED_FINDING_TYPE for f in findings):
         return data
     echoed: list[dict] = []
     for op in operations:
+        if op.get("operation_type") == _CAPTURED_TO_FILE:
+            echoed.append(_echo_captured_operation(op))
+            continue
         if op.get("operation_type") not in _NEEDS_OPERATION_TYPES:
             echoed.append(op)
             continue
@@ -1767,7 +1830,14 @@ def _echo_repair_plan(data: dict) -> dict:
                 for receipt in op["receipt_items"]
             ]
         echoed.append(item)
-    return {**data, "automatic_operations": echoed}
+    return {
+        **data,
+        "automatic_operations": echoed,
+        "manual_findings": [
+            _echo_captured_finding(f) if f.get("finding_type") == _CAPTURED_FINDING_TYPE else f
+            for f in findings
+        ],
+    }
 
 
 # ── Plan ──────────────────────────────────────────────────────────────────────
@@ -2231,6 +2301,981 @@ def _validate_needs_operation(op: dict) -> str | None:
     return None
 
 
+# ── captured-to-file repair ───────────────────────────────────────────────────
+#
+# `repair-plan` turns each captured item at migration into one record under
+# `docs/product/captured/`; `repair-apply` writes the records, then re-points the
+# migrated memberships' `path` in one `workspace.toml` write. A source file is
+# only ever read, and no file is ever deleted.
+
+_CAPTURED_TO_FILE = "captured-to-file"
+_CAPTURED_FINDING_TYPE = 5
+_CAPTURED_LEGACY_COLLECTIONS = frozenset({
+    "backlog.open",
+    "backlog.closed",
+    "shaping_queue.backlog",
+    "shaping_queue.active",
+})
+_CAPTURED_RECORD_KINDS = frozenset({"defect", "design", "research", "intent"})
+_CAPTURED_SHAPING_TYPES = frozenset({"shape", "research", "strategy", "design", "signal"})
+_LEGACY_KIND_BY_TYPE = {
+    "shape": "intent",
+    "strategy": "intent",
+    "research": "research",
+    "design": "design",
+}
+_CAPTURED_TERMINAL_BY_KIND = {
+    "intent": frozenset({"Accepted", "Fulfilled"}),
+    "research": frozenset({"Complete"}),
+    "design": frozenset({"Approved"}),
+}
+_CAPTURED_RESOLUTION_VALUES = frozenset({"fixed", "declined", "superseded"})
+_CAPTURED_DEFERRED_RE = re.compile(r"\(deferred:\s*([A-Za-z0-9][A-Za-z0-9._\-]*)\s*\)")
+_CAPTURED_RECORD_PATH_RE = re.compile(r"docs/product/captured/[a-z0-9][a-z0-9-]*\.md")
+_CAPTURED_ABSENT = object()
+
+
+class _CapturedRefusal(Exception):
+    """One operation `repair-apply` refuses; nothing is changed for it."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclasses.dataclass
+class _CapturedItem:
+    """One captured item at migration: a membership or a legacy slug-only entry."""
+
+    form: str  # "legacy", "unmigrated", or "migrated"
+    collection: str
+    ini_slug: str
+    index: int
+    raw: Any
+    path: str = ""
+    kind: str = ""
+    membership: Any = None
+    cooled: bool = False
+    base_slugs: tuple[str, ...] = ()
+    final: str = ""
+
+
+@dataclasses.dataclass
+class _CapturedPlan:
+    """What the planner derived: operations, findings, and the items it read."""
+
+    operations: list[dict]
+    findings: list[dict]
+    items: list[_CapturedItem]
+    cooling_unavailable: bool
+    cooled_sources: frozenset[str]
+
+
+def _raw_registry_entries(workspace: dict):
+    """Yield `(initiative slug, collection, index, raw entry)` for every list entry."""
+    for section_name, names in _engine._TOP_LEVEL_ENTRY_COLLECTIONS.items():
+        section = workspace.get(section_name)
+        if isinstance(section, dict):
+            for name in names:
+                entries = section.get(name)
+                if isinstance(entries, list):
+                    label = _engine._collection_label(section_name, name)
+                    for position, raw in enumerate(entries):
+                        yield "", label, position, raw
+    for key, section in workspace.items():
+        if not (isinstance(key, str) and _engine._CANONICAL_INITIATIVE_RE.fullmatch(key)):
+            continue
+        if not isinstance(section, dict):
+            continue
+        for section_name, names in _engine._INITIATIVE_ENTRY_COLLECTIONS.items():
+            sub = section.get(section_name)
+            if not isinstance(sub, dict):
+                continue
+            for name in names:
+                entries = sub.get(name)
+                if isinstance(entries, list):
+                    label = _engine._collection_label(section_name, name)
+                    for position, raw in enumerate(entries):
+                        yield key, label, position, raw
+
+
+def _captured_base_slug(path: str) -> str:
+    """A source file's name without its last extension, as a record slug."""
+    stem = PurePosixPath(path.rsplit("/", 1)[-1]).stem
+    return re.sub(r"[^a-z0-9]+", "-", stem.lower()).strip("-")
+
+
+def _captured_slug_prefix(source_path: str) -> str:
+    """The directory name that disambiguates a colliding or empty base slug."""
+    parents = source_path.split("/")[:-1]
+    if parents and parents[-1] == "notes":
+        parents = parents[:-1]
+    return parents[-1] if parents else ""
+
+
+def _captured_title(slug: str) -> str:
+    text = slug.replace("-", " ")
+    return text[:1].upper() + text[1:]
+
+
+def _has_non_lf_control(value: str) -> bool:
+    # The C0 and C1 control characters; a line feed is allowed in a summary.
+    return any(
+        (char < " " and char != "\n") or "\x7f" <= char <= "\x9f" for char in value
+    )
+
+
+def _captured_slug_valid(slug: str) -> bool:
+    return _engine._CAPTURED_FILE_RE.fullmatch(f"{slug}.md") is not None
+
+
+def _captured_record_text(
+    slug: str,
+    status: str,
+    kind: str,
+    type_: str | None,
+    resolution: str | None,
+    parent_intent: str | None,
+    detail: str | None,
+    header_lines: list[str],
+    summary: str,
+) -> str:
+    """Render the record's fields in their fixed order; the summary sits under its own heading."""
+    lines = [f"# {_captured_title(slug)}", "", f"- **Status:** {status}", f"- **Kind:** {kind}"]
+    if type_ is not None:
+        lines.append(f"- **Type:** {type_}")
+    if resolution is not None:
+        lines.append(f"- **Resolution:** {resolution}")
+    if parent_intent is not None:
+        lines.append(f"- **Parent intent:** {parent_intent}")
+    if detail is not None:
+        lines.append(f"- **Detail:** {detail}")
+    lines.extend(header_lines)
+    if summary:
+        lines.extend(["", "## Summary", "", summary.rstrip("\n")])
+    return "\n".join(lines) + "\n"
+
+
+def _copied_header(text: str) -> tuple[list[str], list[str], list[str]]:
+    """The source's dependency lines, verbatim, with the items and receipts they hold."""
+    lines: list[str] = []
+    items: list[str] = []
+    receipts: list[str] = []
+    for name, value, _wrapped in _engine._header_field_lines(text):
+        label = "Depends on" if name == "depends on" else "Dependency receipts"
+        lines.append(f"- **{label}:** {value}".rstrip())
+        if name == "dependency receipts":
+            receipts.extend(_engine._split_items(value))
+        elif value.split()[:1] and value.split()[0].lower() != "none":
+            items.extend(_engine._split_items(value))
+    return lines, items, receipts
+
+
+def _source_status_conflict(collection: str, kind: str, text: str) -> bool:
+    """True when the source's own `Status:` breaks its collection's rule."""
+    status = _engine._parse_generic_status(text, kind)
+    if collection == "backlog.open":
+        return status == "Closed" if kind == "defect" else status != "Draft"
+    if collection in ("shaping_queue.backlog", "shaping_queue.active"):
+        return status in _CAPTURED_TERMINAL_BY_KIND.get(kind, frozenset())
+    if collection == "backlog.closed" and kind == "defect":
+        resolution = _engine._parse_preamble_fields(text).get("resolution")
+        return status != "Closed" or resolution not in _CAPTURED_RESOLUTION_VALUES
+    return False
+
+
+def _live_intent_reference(index, path: object) -> str | None:
+    """The typed reference of the one live intent at `path`, else `None`."""
+    if not isinstance(path, str):
+        return None
+    for (kind, slug), paths in index.intents.items():
+        if paths == (path,):
+            return f"{kind}:{slug}"
+    return None
+
+
+def _captured_record_occupant(root: Path, record_path: str, cooled: frozenset[Path]):
+    """`_CAPTURED_ABSENT`, the record's bytes, or `None` when it cannot be read."""
+    try:
+        os.lstat(root / record_path)
+    except FileNotFoundError:
+        return _CAPTURED_ABSENT
+    except OSError:
+        return None
+    if _engine._confined_artifact_path(root, record_path) in cooled:
+        return None
+    return _engine._migration_file_bytes(root, record_path)
+
+
+def _registry_fingerprint(item: _CapturedItem) -> str:
+    return hashlib.sha256(json.dumps(
+        {
+            "ini_slug": item.ini_slug,
+            "collection": item.collection,
+            "index": item.index,
+            "entry": item.raw,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        default=str,
+    ).encode("ascii")).hexdigest()
+
+
+def _deferral_anchors(
+    root: Path, cooled: frozenset[Path]
+) -> tuple[frozenset[str], tuple[str, ...]]:
+    """Every `(deferred: <anchor>)` a spec carries, and each path that was not read.
+
+    A cooled spec is never opened. A spec that could not be read, or a
+    `docs/specs` that could not be listed, is named among the unread paths.
+    """
+    if not os.path.lexists(root / "docs/specs"):
+        return frozenset(), ()
+    specs = _engine.confine_migration_path(root, "docs/specs")
+    if specs is None:
+        return frozenset(), ("docs/specs",)
+    try:
+        names = sorted(entry.name for entry in os.scandir(specs) if entry.is_dir())
+    except OSError:
+        return frozenset(), ("docs/specs",)
+    anchors: set[str] = set()
+    unread: list[str] = []
+    for name in names:
+        relative = f"docs/specs/{name}/spec.md"
+        if not os.path.lexists(root / relative):
+            continue
+        if _engine._confined_artifact_path(root, relative) in cooled:
+            unread.append(relative)
+            continue
+        data = _engine._migration_file_bytes(root, relative)
+        if data is None:
+            unread.append(relative)
+            continue
+        anchors.update(_CAPTURED_DEFERRED_RE.findall(data.decode("utf-8", errors="replace")))
+    return frozenset(anchors), tuple(unread)
+
+
+def _dependency_items_by_path(
+    root: Path, memberships: list, cooled: frozenset[Path]
+) -> tuple[dict[str, set[str]], frozenset[str]]:
+    """Each path a dependency item names, with the memberships that name it.
+
+    Also returns the paths of the memberships whose own header could not be
+    read. A cooled membership's file is never opened and names nothing.
+    """
+    named: dict[str, set[str]] = {}
+    unread: set[str] = set()
+    for membership in memberships:
+        for dep in membership.entry.needs:
+            named.setdefault(dep.path, set()).add(membership.entry.path or "")
+        path = membership.entry.path
+        if path is None:
+            continue
+        if _engine._membership_is_cooled(membership, root, cooled):
+            continue
+        if not os.path.lexists(root / path):
+            continue
+        data = _engine._migration_file_bytes(root, path)
+        if data is None:
+            unread.add(path)
+            continue
+        for name, value, _wrapped in _engine._header_field_lines(
+            data.decode("utf-8", errors="replace")
+        ):
+            if name == "depends on" and value.split()[:1] and value.split()[0].lower() != "none":
+                for item in _engine._split_items(value):
+                    named.setdefault(item, set()).add(path)
+    return named, frozenset(unread)
+
+
+def _captured_finding(
+    item: _CapturedItem, reason: str, slug: str = "", unread_paths: tuple[str, ...] = ()
+) -> dict:
+    record_path = f"{_engine._CAPTURED_DIR}/{slug}.md" if slug else ""
+    named = item.path or (item.raw.get("slug", "") if isinstance(item.raw, dict) else "")
+    extra = {"unread_paths": list(unread_paths)} if unread_paths else {}
+    return {
+        **extra,
+        "finding_type": _CAPTURED_FINDING_TYPE,
+        "spec_path": item.path,
+        "spec_status": "",
+        "ini_slug": item.ini_slug,
+        "list_name": item.collection,
+        "reason": reason,
+        "slug": slug,
+        "record_path": record_path,
+        "entry_index": item.index,
+        "finding_id": (
+            f"type{_CAPTURED_FINDING_TYPE}:{item.ini_slug}:{item.collection}:{named}:{reason}"
+        ),
+    }
+
+
+def _plan_captured_items(root: Path, workspace_bytes: bytes) -> _CapturedPlan:
+    """Derive every `captured-to-file` operation and refusal from the current tree.
+
+    Every base slug is computed in one pass before any operation is built, so a
+    slug does not depend on which operations a run happens to emit.
+    """
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    memberships = _engine._extract_canonical_memberships(workspace)[0]
+    cooled, cooling_findings = _engine._resolve_cooled_state(root)
+    cooling_unavailable = any(
+        finding.code == "cooling_state_unavailable" for finding in cooling_findings
+    )
+    raw_entries = {
+        (ini, collection, position): raw
+        for ini, collection, position, raw in _raw_registry_entries(workspace)
+    }
+    path_counts: dict[str, int] = {}
+    for membership in memberships:
+        if membership.entry.path is not None:
+            path_counts[membership.entry.path] = path_counts.get(membership.entry.path, 0) + 1
+
+    items: list[_CapturedItem] = []
+    for membership in memberships:
+        path = membership.entry.path
+        form = _engine._captured_membership_form(path)
+        if form is None or path is None:
+            continue
+        items.append(_CapturedItem(
+            form=form,
+            collection=membership.collection,
+            ini_slug=membership.ini_slug,
+            index=membership.entry_index,
+            raw=raw_entries.get(
+                (membership.ini_slug, membership.collection, membership.entry_index)
+            ),
+            path=path,
+            kind=membership.entry.kind,
+            membership=membership,
+            cooled=(
+                form == "unmigrated"
+                and _engine._membership_is_cooled(membership, root, cooled)
+            ),
+        ))
+    for (ini, collection, position), raw in raw_entries.items():
+        if (
+            collection in _CAPTURED_LEGACY_COLLECTIONS
+            and isinstance(raw, dict)
+            and isinstance(raw.get("slug"), str)
+            and "path" not in raw
+            and raw.get("kind", "defect") == "defect"
+        ):
+            items.append(_CapturedItem(
+                form="legacy", collection=collection, ini_slug=ini, index=position, raw=raw
+            ))
+
+    # One pass: every item's base slugs, then the finals.
+    for item in items:
+        if item.form == "legacy":
+            item.base_slugs = (item.raw["slug"],)
+            item.final = item.raw["slug"]
+        elif item.form == "migrated":
+            file_slug = item.path.rpartition("/")[2].removesuffix(".md")
+            slugs = [file_slug]
+            record, _finding = _engine.read_captured_item(root, f"{file_slug}.md", cooled)
+            detail = record.get("detail") if isinstance(record, dict) else None
+            if isinstance(detail, str):
+                slugs.append(_captured_base_slug(detail))
+            item.base_slugs = tuple(slugs)
+            item.final = file_slug
+        else:
+            item.base_slugs = (_captured_base_slug(item.path),)
+    owners: dict[str, set[int]] = {}
+    for position, item in enumerate(items):
+        for slug in item.base_slugs:
+            owners.setdefault(slug, set()).add(position)
+    for position, item in enumerate(items):
+        if item.form != "unmigrated":
+            continue
+        base = item.base_slugs[0]
+        if base == "" or owners.get(base, set()) - {position}:
+            item.final = f"{_captured_slug_prefix(item.path)}-{base}"
+        else:
+            item.final = base
+    final_counts: dict[str, int] = {}
+    for item in items:
+        final_counts[item.final] = final_counts.get(item.final, 0) + 1
+
+    operations: list[dict] = []
+    findings: list[dict] = []
+    context = {
+        "root": root,
+        "index": _engine.build_resolution_index(root, cooled=cooled),
+        "cooled": cooled,
+        "cooling_unavailable": cooling_unavailable,
+        "path_counts": path_counts,
+        "final_counts": final_counts,
+        "memberships": memberships,
+        "named": None,
+        "anchors": None,
+    }
+    for item in items:
+        if item.form == "migrated" or item.cooled:
+            continue
+        if item.form == "legacy":
+            outcome = _plan_legacy_item(context, item)
+        else:
+            outcome = _plan_membership_item(context, item)
+        if isinstance(outcome, (str, tuple)):
+            reason, unread = (outcome, ()) if isinstance(outcome, str) else outcome
+            findings.append(_captured_finding(
+                item, reason, item.final if _captured_slug_valid(item.final) else "", unread
+            ))
+        elif outcome is not None:
+            operations.append(outcome)
+    operations.sort(key=lambda op: op["record_path"])
+    return _CapturedPlan(
+        operations=operations,
+        findings=findings,
+        items=items,
+        cooling_unavailable=cooling_unavailable,
+        cooled_sources=frozenset(item.path for item in items if item.cooled),
+    )
+
+
+def _plan_common_fields(context: dict, item: _CapturedItem) -> str | None:
+    """Checks both item forms share: slug, summary, and the live intent."""
+    if not _captured_slug_valid(item.final):
+        return "slug-invalid"
+    if context["final_counts"][item.final] > 1:
+        return "slug-collision"
+    return None
+
+
+def _derive_record(
+    context: dict,
+    item: _CapturedItem,
+    status: str,
+    kind: str,
+    type_: str | None,
+    resolution: str | None,
+    detail: str | None,
+    header_lines: list[str],
+) -> tuple[str | None, str | None]:
+    """Build the record text, or refuse. Returns `(text, refusal reason)`."""
+    raw = item.raw if isinstance(item.raw, dict) else {}
+    summary = raw.get("summary", "")
+    if not isinstance(summary, str):
+        return None, "summary-not-text"
+    if _has_non_lf_control(summary):
+        return None, "summary-control-character"
+    parent: str | None = None
+    if "intent" in raw:
+        parent = _live_intent_reference(context["index"], raw["intent"])
+        if parent is None:
+            return None, "intent-not-live"
+    text = _captured_record_text(
+        item.final, status, kind, type_, resolution, parent, detail, header_lines, summary
+    )
+    fields, _failing = _engine.parse_captured_item(text)
+    expected = {
+        "status": status,
+        "kind": kind,
+        "type": type_,
+        "resolution": resolution,
+        "parent_intent": parent,
+        "detail": detail,
+    }
+    if fields != expected:
+        return None, "record-read-back"
+    return text, None
+
+
+def _plan_membership_item(context: dict, item: _CapturedItem):
+    """An operation, a refusal reason, or `None` for an item needing nothing."""
+    root: Path = context["root"]
+    membership = item.membership
+    path = item.path
+    if context["cooling_unavailable"]:
+        return "cooling-state-unavailable"
+    if context["path_counts"][path] > 1:
+        return "duplicate-membership"
+    if item.kind not in _CAPTURED_RECORD_KINDS:
+        return "kind-not-captured"
+    if membership.entry.needs:
+        return "typed-needs-remain"
+    if not os.path.lexists(root / path):
+        return "source-missing"
+    data = _engine._migration_file_bytes(root, path)
+    try:
+        text = data.decode("utf-8") if data is not None else None
+    except UnicodeDecodeError:
+        text = None
+    if data is None or text is None:
+        return "source-unreadable"
+    if context["named"] is None:
+        context["named"] = _dependency_items_by_path(
+            root, context["memberships"], context["cooled"]
+        )
+    named, unread_headers = context["named"]
+    if named.get(path, set()) - {path}:
+        return "source-is-dependency-target"
+    if unread_headers - {path}:
+        return "dependency-headers-unread", tuple(sorted(unread_headers - {path}))
+    if _source_status_conflict(item.collection, item.kind, text):
+        return "status-conflict"
+    common = _plan_common_fields(context, item)
+    if common is not None:
+        return common
+    if context["anchors"] is None:
+        context["anchors"] = _deferral_anchors(root, context["cooled"])
+    stem = PurePosixPath(path.rsplit("/", 1)[-1]).stem
+    anchors, unread_specs = context["anchors"]
+    if item.final != stem:
+        if stem in anchors:
+            return "deferral-anchor"
+        if unread_specs:
+            return "deferral-anchors-unread", unread_specs
+    status = "Closed" if item.collection == "backlog.closed" else "Open"
+    resolution = (
+        _engine._parse_preamble_fields(text).get("resolution") if status == "Closed" else None
+    )
+    header_lines, depends_on_items, receipt_items = _copied_header(text)
+    record_text, reason = _derive_record(
+        context, item, status, item.kind, None, resolution, path, header_lines
+    )
+    if reason is not None or record_text is None:
+        return reason or "record-read-back"
+    record_path = f"{_engine._CAPTURED_DIR}/{item.final}.md"
+    occupant = _captured_record_occupant(root, record_path, context["cooled"])
+    if occupant is not _CAPTURED_ABSENT and occupant != record_text.encode("utf-8"):
+        return "record-differs"
+    return {
+        "operation_type": _CAPTURED_TO_FILE,
+        "record_path": record_path,
+        "record_text": record_text,
+        "entry_locator": {"collection": item.collection, "index": item.index},
+        "source_path": path,
+        "source_sha256": hashlib.sha256(data).hexdigest(),
+        "registry_fingerprint": _registry_fingerprint(item),
+        "depends_on_items": depends_on_items,
+        "receipt_items": receipt_items,
+    }
+
+
+def _plan_legacy_item(context: dict, item: _CapturedItem):
+    root: Path = context["root"]
+    raw = item.raw
+    type_ = raw.get("type") if "type" in raw else None
+    if "kind" in raw or "type" not in raw:
+        kind = "defect"
+    elif isinstance(type_, str) and type_ in _LEGACY_KIND_BY_TYPE:
+        kind = _LEGACY_KIND_BY_TYPE[type_]
+    else:
+        kind = ""
+    item.kind = kind
+    common = _plan_common_fields(context, item)
+    if common is not None:
+        return common
+    if not kind:
+        return "legacy-kind-unassignable"
+    type_line = type_ if isinstance(type_, str) and type_ in _CAPTURED_SHAPING_TYPES else None
+    status = "Closed" if item.collection == "backlog.closed" else "Open"
+    record_text, reason = _derive_record(
+        context, item, status, kind, type_line, None, None, []
+    )
+    if reason is not None or record_text is None:
+        return reason or "record-read-back"
+    record_path = f"{_engine._CAPTURED_DIR}/{item.final}.md"
+    occupant = _captured_record_occupant(root, record_path, context["cooled"])
+    if occupant is _CAPTURED_ABSENT:
+        return {
+            "operation_type": _CAPTURED_TO_FILE,
+            "record_path": record_path,
+            "record_text": record_text,
+            "entry_locator": {"collection": item.collection, "index": item.index},
+            "slug": item.final,
+        }
+    if occupant == record_text.encode("utf-8"):
+        return None
+    return "record-differs"
+
+
+def _build_captured_operations(
+    root: Path, workspace_bytes: bytes
+) -> tuple[list[dict], list[dict]]:
+    """Plan `captured-to-file` operations and their manual findings."""
+    plan = _plan_captured_items(root, workspace_bytes)
+    return plan.operations, plan.findings
+
+
+# Echo rules for the captured-to-file values: each is judged alone against its
+# position's grammar, and a value that fails appears as an empty string. A
+# record's text and a summary are free text and appear whole; `_emit` escapes
+# every control and non-ASCII character in them.
+
+def _echo_valid(value: object, pattern: re.Pattern[str] | frozenset[str]) -> str:
+    if not isinstance(value, str) or len(value) > 200 or _has_control_character(value):
+        return ""
+    if isinstance(pattern, frozenset):
+        return value if value in pattern else ""
+    return value if pattern.fullmatch(value) else ""
+
+
+def _echo_slug(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value if _captured_slug_valid(value) and len(value) <= 200 else ""
+
+
+def _echo_sha(value: object) -> str:
+    return _echo_valid(value, _SHA256_RE)
+
+
+def _echo_collection(value: object) -> str:
+    names = {
+        _engine._collection_label(section, name)
+        for table in (_engine._TOP_LEVEL_ENTRY_COLLECTIONS, _engine._INITIATIVE_ENTRY_COLLECTIONS)
+        for section, section_names in table.items()
+        for name in section_names
+    }
+    return _echo_valid(value, frozenset(names))
+
+
+def _echo_index(value: object) -> int:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+
+
+def _echo_locator(value: object) -> dict:
+    locator = value if isinstance(value, dict) else {}
+    return {
+        "collection": _echo_collection(locator.get("collection")),
+        "index": _echo_index(locator.get("index")),
+    }
+
+
+def _echo_receipt_item(receipt: object) -> str:
+    if not isinstance(receipt, str):
+        return ""
+    reference, _, rest = receipt.partition(" ")
+    tokens = _echo_tokens(rest.split(" ")) if rest else []
+    return " ".join([_echo_reference(reference)] + (tokens or []))
+
+
+def _echo_captured_operation(op: dict) -> dict:
+    item = dict(op)
+    item["record_path"] = _echo_reference(op.get("record_path"))
+    if "slug" in item:
+        item["slug"] = _echo_slug(op["slug"])
+    if "source_path" in item:
+        item["source_path"] = _echo_reference(op["source_path"])
+        item["source_sha256"] = _echo_sha(op.get("source_sha256"))
+        item["registry_fingerprint"] = _echo_sha(op.get("registry_fingerprint"))
+        item["depends_on_items"] = [_echo_reference(i) for i in op.get("depends_on_items", [])]
+        item["receipt_items"] = [_echo_receipt_item(r) for r in op.get("receipt_items", [])]
+    item["entry_locator"] = _echo_locator(op.get("entry_locator"))
+    return item
+
+
+_REPOSITORY_PATH_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
+
+
+def _echo_repository_path(path: object) -> str:
+    """A path that is `/`-separated plain segments, or `""`."""
+    if not isinstance(path, str) or len(path) > 200:
+        return ""
+    parts = path.split("/")
+    if any(
+        part in (".", "..") or _REPOSITORY_PATH_SEGMENT_RE.fullmatch(part) is None
+        for part in parts
+    ):
+        return ""
+    return path
+
+
+def _echo_captured_finding(finding: dict) -> dict:
+    item = dict(finding)
+    item["spec_path"] = _echo_reference(finding.get("spec_path"))
+    item["slug"] = _echo_slug(finding.get("slug"))
+    item["record_path"] = _echo_reference(finding.get("record_path"))
+    item["list_name"] = _echo_collection(finding.get("list_name"))
+    item["ini_slug"] = _public_ini_slug(finding.get("ini_slug"), allow_empty=True)
+    item["entry_index"] = _echo_index(finding.get("entry_index"))
+    if "unread_paths" in finding:
+        item["unread_paths"] = [_echo_repository_path(p) for p in finding["unread_paths"]]
+    named = item["spec_path"] or item["slug"]
+    item["finding_id"] = (
+        f"type{_CAPTURED_FINDING_TYPE}:{item['ini_slug']}:{item['list_name']}:"
+        f"{named}:{finding.get('reason', '')}"
+    )
+    return item
+
+
+def _echo_record_edge(edge: dict) -> dict:
+    return {
+        "waiting_path": _echo_reference(edge.get("waiting_path")),
+        "reference": _echo_reference(edge.get("reference")),
+        "receipt": _echo_tokens(edge.get("receipt")),
+    }
+
+
+def _captured_report_echo(report: dict) -> dict:
+    return {
+        "captured_before": [
+            {
+                "slug": _echo_slug(entry["slug"]),
+                "kind": _echo_valid(entry["kind"], _engine._CAPTURED_KINDS),
+                "source_path": (
+                    _echo_reference(entry["source_path"])
+                    if entry["source_path"] is not None else None
+                ),
+            }
+            for entry in report["captured_before"]
+        ],
+        "captured_after": [
+            {
+                "slug": _echo_slug(entry["slug"]),
+                "status": _echo_valid(entry.get("status"), _engine._CAPTURED_STATUSES),
+                "kind": _echo_valid(entry.get("kind"), _engine._CAPTURED_KINDS),
+                "type": (
+                    _echo_valid(entry["type"], frozenset(_engine._SHAPING_TYPE_ROUTES))
+                    if entry.get("type") is not None else None
+                ),
+                "resolution": (
+                    _echo_valid(entry["resolution"], _engine._CAPTURED_RESOLUTIONS)
+                    if entry.get("resolution") is not None else None
+                ),
+                "parent_intent": (
+                    _echo_reference(entry["parent_intent"])
+                    if entry.get("parent_intent") is not None else None
+                ),
+                "detail": (
+                    _echo_reference(entry["detail"]) if entry.get("detail") is not None else None
+                ),
+            }
+            for entry in report["captured_after"]
+        ],
+        "header_edges_before": [_echo_record_edge(e) for e in report["header_edges_before"]],
+        "header_edges_after": [_echo_record_edge(e) for e in report["header_edges_after"]],
+        "captured_equal": report["captured_equal"],
+    }
+
+
+# ── Apply ─────────────────────────────────────────────────────────────────────
+
+def _ensure_record_directory(root: Path) -> str | None:
+    """Create `docs/product/captured/` through the segment check; re-check it after."""
+    resolved_root = root.resolve()
+    relative = ""
+    for part in _engine._CAPTURED_DIR.split("/"):
+        relative = f"{relative}/{part}" if relative else part
+        if _engine.confine_migration_path(root, relative) is None:
+            return "record_directory_unsafe"
+        target = resolved_root / relative
+        try:
+            try:
+                info = os.lstat(target)
+            except FileNotFoundError:
+                target.mkdir(mode=0o755)
+                info = os.lstat(target)
+        except OSError:
+            return "record_directory_unsafe"
+        if not stat.S_ISDIR(info.st_mode):
+            return "record_directory_unsafe"
+    final = _engine.confine_migration_path(root, _engine._CAPTURED_DIR)
+    if final is None or not final.is_dir():
+        return "record_directory_unsafe"
+    return None
+
+
+def _write_all(descriptor: int, data: bytes) -> None:
+    view = memoryview(data)
+    while view:
+        view = view[os.write(descriptor, view):]
+
+
+def _write_record(root: Path, record_path: str, data: bytes) -> str:
+    """Create one record by an exclusive create, or keep an identical confined one.
+
+    Returns `created` or `kept`; raises `_CapturedRefusal` for anything else.
+    """
+    reason = _ensure_record_directory(root)
+    if reason is not None:
+        raise _CapturedRefusal(reason)
+    target = root.resolve() / record_path
+    if os.path.lexists(target):
+        if _engine._migration_file_bytes(root, record_path) == data:
+            return "kept"
+        raise _CapturedRefusal("record_path_occupied")
+    if _engine.confine_migration_path(root, record_path) is None:
+        raise _CapturedRefusal("record_directory_unsafe")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(target, flags, 0o600)
+    except FileExistsError:
+        raise _CapturedRefusal("record_path_occupied") from None
+    except OSError:
+        raise _CapturedRefusal("record_write_failed") from None
+    try:
+        _write_all(descriptor, data)
+        os.fsync(descriptor)
+    except OSError:
+        raise _CapturedRefusal("record_write_failed") from None
+    finally:
+        os.close(descriptor)
+    try:
+        _fsync_directory(target.parent)
+    except OSError:
+        raise _CapturedRefusal("record_write_failed") from None
+    if _engine._migration_file_bytes(root, record_path) != data:
+        raise _CapturedRefusal("record_read_back_failed")
+    return "created"
+
+
+def _captured_mismatch_reason(op: dict, plan: _CapturedPlan) -> str | None:
+    """`None` when `op` is exactly an operation re-derived now, else why not."""
+    if op in plan.operations:
+        return None
+    if plan.cooling_unavailable and "source_path" in op:
+        return "cooling_state_unavailable"
+    for key in ("source_path", "slug", "record_path"):
+        value = op.get(key)
+        candidate = next(
+            (d for d in plan.operations if isinstance(value, str) and d.get(key) == value), None
+        )
+        if candidate is None:
+            continue
+        if candidate.get("source_sha256") != op.get("source_sha256"):
+            return "source_changed"
+        if candidate.get("registry_fingerprint") != op.get("registry_fingerprint"):
+            return "registry_changed"
+        return "operation_changed"
+    if op.get("source_path") in plan.cooled_sources:
+        return "membership_cooled"
+    # The record path now holds something the planned bytes do not match.
+    if any(
+        f["reason"] == "record-differs" and f["record_path"] == op.get("record_path")
+        for f in plan.findings
+    ):
+        return "record_path_occupied"
+    return "operation_changed"
+
+
+def _apply_captured_operations(
+    root: Path, doc, operations: list[dict], plan: _CapturedPlan
+) -> tuple[list[dict], int, dict]:
+    """Write each record, then re-point its membership's `path` in `doc`.
+
+    `plan` was derived before any write of this run. The caller holds the shared
+    writer lock and writes `doc` once afterwards.
+    """
+    per_op: list[dict] = []
+    applied = 0
+    written: list[tuple[dict, bytes, str | None]] = []
+    for op in operations:
+        shown = _echo_reference(op.get("record_path"))
+        reason = _captured_mismatch_reason(op, plan)
+        if reason is not None:
+            per_op.append({"path": shown, "applied": False, "reason": reason})
+            continue
+        data = op["record_text"].encode("utf-8")
+        try:
+            outcome = _write_record(root, op["record_path"], data)
+        except _CapturedRefusal as refusal:
+            per_op.append({"path": shown, "applied": False, "reason": refusal.reason})
+            continue
+        source_text: str | None = None
+        if "source_path" in op:
+            found = _entries_with_path(doc, op["source_path"])
+            if len(found) != 1:
+                per_op.append({"path": shown, "applied": False, "reason": "entry_not_found"})
+                continue
+            found[0]["path"] = op["record_path"]
+            source_bytes = _engine._migration_file_bytes(root, op["source_path"])
+            if source_bytes is not None and (
+                hashlib.sha256(source_bytes).hexdigest() == op["source_sha256"]
+            ):
+                source_text = source_bytes.decode("utf-8", errors="replace")
+        written.append((op, data, source_text))
+        per_op.append({"path": shown, "applied": True, "record": outcome})
+        applied += 1
+
+    equal = True
+    after: list[dict] = []
+    edges_before: list[dict] = []
+    edges_after: list[dict] = []
+    for op, data, source_text in written:
+        record_path = op["record_path"]
+        slug = record_path.rpartition("/")[2].removesuffix(".md")
+        planned, _failing = _engine.parse_captured_item(data.decode("utf-8"))
+        back_bytes = _engine._migration_file_bytes(root, record_path)
+        try:
+            back_text = back_bytes.decode("utf-8") if back_bytes is not None else None
+        except UnicodeDecodeError:
+            back_text = None
+        back, _back_failing = (
+            _engine.parse_captured_item(back_text) if back_text is not None else (None, "")
+        )
+        after.append({"slug": slug, **(back or {})})
+        if back is None or back != planned:
+            equal = False
+        before_set = (
+            _raw_header_edges(record_path, source_text) if source_text is not None
+            else ([] if "source_path" not in op else None)
+        )
+        after_set = _raw_header_edges(record_path, back_text) if back_text is not None else None
+        if before_set is None or after_set is None:
+            equal = False
+            continue
+        edges_before.extend(before_set)
+        edges_after.extend(after_set)
+        if {_edge_key(e) for e in before_set} != {_edge_key(e) for e in after_set}:
+            equal = False
+    report = {
+        "captured_before": [
+            {
+                "slug": item.final,
+                "kind": item.kind,
+                "source_path": item.path if item.form == "unmigrated" else None,
+            }
+            for item in plan.items
+        ],
+        "captured_after": after,
+        "header_edges_before": edges_before,
+        "header_edges_after": edges_after,
+        "captured_equal": equal,
+    }
+    return per_op, applied, _captured_report_echo(report)
+
+
+def _validate_captured_operation(op: dict) -> str | None:
+    """Shape-check one `captured-to-file` operation; its content is re-derived at apply."""
+
+    def strings_ok(value: object) -> bool:
+        return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+    record_path = op.get("record_path")
+    locator = op.get("entry_locator")
+    if (
+        not isinstance(record_path, str)
+        or _CAPTURED_RECORD_PATH_RE.fullmatch(record_path) is None
+        or not isinstance(op.get("record_text"), str)
+        or not isinstance(locator, dict)
+        or not isinstance(locator.get("collection"), str)
+        or not isinstance(locator.get("index"), int)
+        or isinstance(locator.get("index"), bool)
+    ):
+        return "plan_invalid"
+    if "source_path" in op:
+        if (
+            "slug" in op
+            or not isinstance(op["source_path"], str)
+            or not isinstance(op.get("source_sha256"), str)
+            or _SHA256_RE.fullmatch(op["source_sha256"]) is None
+            or not isinstance(op.get("registry_fingerprint"), str)
+            or _SHA256_RE.fullmatch(op["registry_fingerprint"]) is None
+            or not strings_ok(op.get("depends_on_items"))
+            or not strings_ok(op.get("receipt_items"))
+        ):
+            return "plan_invalid"
+    elif not isinstance(op.get("slug"), str):
+        return "plan_invalid"
+    return None
+
+
 # ── Legacy migration transaction ─────────────────────────────────────────────
 
 _MIGRATION_LEDGER_FILE = ".workspace-migrations.json"
@@ -2424,6 +3469,25 @@ def _migration_load_ledger(root: Path) -> tuple[dict[str, object] | None, str | 
     return ledger, None
 
 
+def _fsync_directory(directory: Path) -> None:
+    """Flush a directory's entries so a created or renamed file survives a crash.
+
+    Where a directory cannot be opened or flushed, such as on Windows or on a
+    filesystem without directory fsync, the flush is skipped: the file or rename
+    it follows has already landed, so it is never reported as unapplied.
+    """
+    try:
+        directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    except OSError:
+        return
+    try:
+        os.fsync(directory_fd)
+    except OSError:
+        pass
+    finally:
+        os.close(directory_fd)
+
+
 def _migration_failure(failure_point: str | None, point: str) -> None:
     """Raise at a named deterministic transaction seam for construction tests."""
     if failure_point == point:
@@ -2456,14 +3520,7 @@ def _migration_atomic_replace(
         _migration_failure(failure_point, f"{stage}_replace_before")
         temp_path.replace(path)
         _migration_failure(failure_point, f"{stage}_replace_after")
-        directory_fd = os.open(
-            path.parent,
-            os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
-        )
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+        _fsync_directory(path.parent)
     finally:
         with contextlib.suppress(FileNotFoundError, OSError):
             temp_path.unlink()
@@ -4023,7 +5080,12 @@ def main(argv: list[str] | None = None) -> int:
                     "per_operation": per_op,
                     **edge_report,
                 })
-                return 0 if edge_report.get("edges_equal", True) else 1
+                return (
+                    0
+                    if edge_report.get("edges_equal", True)
+                    and edge_report.get("captured_equal", True)
+                    else 1
+                )
             finally:
                 if lock_fd >= 0:
                     with contextlib.suppress(OSError):
@@ -4092,7 +5154,15 @@ def main(argv: list[str] | None = None) -> int:
                 f"workspace-status: {code}: {type(exc).__name__}",
                 file=sys.stderr,
             )
-        _emit(_canonical_failure_payload(subcommand, code))
+        payload = _canonical_failure_payload(subcommand, code)
+        if subcommand in {"status", "reconcile"}:
+            # The listing never reads the registry, so a failed registry
+            # still gets the same `captured` object.
+            with contextlib.suppress(Exception):
+                payload["captured"] = _captured_projection(
+                    root, _engine._resolve_cooled_state(root)[0]
+                )
+        _emit(payload)
         return 2
 
 

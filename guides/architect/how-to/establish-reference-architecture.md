@@ -92,22 +92,39 @@ The agent reads the federated catalog, contract homes, decisions, and links to e
 
 ## Register the artifact
 
-After the architecture artifact exists, register it in `workspace.toml` so a
-downstream brief or spec can name it as a hard dependency:
-
-```toml
-{ path = "docs/product/design/payment-routing.md", kind = "design", source = { mode = "repo-origin" }, summary = "How payment routing splits across the two providers", needs = [] },
-```
-
-Then add the artifact to the downstream work's own `Depends on:` header line.
-That work remains blocked until the design artifact lands:
+After the architecture artifact exists, write a captured-item record for it at
+`docs/product/captured/payment-routing.md`, then register that record in
+`workspace.toml` so a downstream brief or spec can name it as a hard dependency.
+The record's `Detail:` names the design doc, and the design doc itself stays
+where it is:
 
 ```markdown
-- **Depends on:** docs/product/design/payment-routing.md
+# Payment routing
+
+- **Status:** Open
+- **Kind:** design
+- **Detail:** docs/product/design/payment-routing.md
+
+## Summary
+
+How payment routing splits across the two providers
+```
+
+The registry entry points at the record, not at the design doc:
+
+```toml
+{ path = "docs/product/captured/payment-routing.md", kind = "design", source = { mode = "repo-origin" }, summary = "How payment routing splits across the two providers", needs = [] },
+```
+
+Then add the record to the downstream work's own `Depends on:` header line.
+That work remains blocked until the design is settled:
+
+```markdown
+- **Depends on:** docs/product/captured/payment-routing.md
 ```
 
 The path is a captured-item reference: its kind, `design`, comes from the
-registry entry above. The downstream entry's `needs` stays `[]`.
+record and the registry entry above. The downstream entry's `needs` stays `[]`.
 
 ## Verify
 

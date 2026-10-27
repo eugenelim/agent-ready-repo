@@ -1,7 +1,7 @@
 # Spec: Workspace retirement record
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-25 by eugenelim, spec and plan; re-approved the same day after a controlled amendment (Never-do rule admits forced lifecycle moves; AC-0011 adds five legacy entry keys; T5 reopened; T6 added), clean on spec-mode shaping and adversarial review of the amendment; review records under `.context/reviews/`. Re-approved 2026-10-26 by eugenelim after a controlled amendment by the brief's slice 2 (AC-0023 to AC-0026 govern § Equivalence; AC-0018 and AC-0022 reopen; T7 added), clean on adversarial review; records under `.context/reviews/`.
+- **Approved:** 2026-10-25 by eugenelim, spec and plan; re-approved the same day after a controlled amendment (Never-do rule admits forced lifecycle moves; AC-0011 adds five legacy entry keys; T5 reopened; T6 added), clean on spec-mode shaping and adversarial review of the amendment; review records under `.context/reviews/`. Re-approved 2026-10-26 by eugenelim after a controlled amendment by the brief's slice 2 (AC-0023 to AC-0026 govern § Equivalence; AC-0018 and AC-0022 reopen; T7 added), clean on adversarial review; records under `.context/reviews/`. Re-approved 2026-10-26 by eugenelim after a controlled amendment by the brief's slice 3 (AC-0024 admits `intended change`; AC-0026 governs its Authority; AC-0027 and AC-0028 added; AC-0018 and AC-0022 reopen; T8 added), clean on adversarial review after three rounds; records under `.context/reviews/retirement-amendment-slice3/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, the four retirement gates and the one retirement specification), RFC-0106 (D1, its responsibility table and the contracts to amend; D3, where residual facts live), RFC-0055 (errata entries on an Accepted RFC)
@@ -73,7 +73,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Testing Strategy
 
 - **Inventory rules (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0019, AC-0021): TDD.** Each rule is a compressible invariant over a file list and a parsed TOML document, so a fixture repository with one planted violation per rule reds each test before the rule exists.
-- **Record rules (AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0023, AC-0024, AC-0025, AC-0026): TDD.** A fixture schema, registry, record, and RFC with one planted violation per rule red each test.
+- **Record rules (AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028): TDD.** A fixture schema, registry, record, and RFC with one planted violation per rule red each test.
 - **Per-pull-request wiring (AC-0017, AC-0022): goal-based.** A test reads the workflow file, and one run of the step on a checkout with a planted unrowed mention fails.
 - **The real inventory and record (AC-0018): goal-based.** The same checks run against this repository and pass.
 
@@ -93,7 +93,7 @@ Terms used below:
 - **Case text.** A Case cell with backtick code-span markers removed.
 - **Slice numbers.** The numbers of the numbered items under the brief's `## Delivery slices` heading.
 
-Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026 is a rule the check enforces: given an input that breaks it, the check fails and names the offending path, row, or fact.
+Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0028 is a rule the check enforces: given an input that breaks it, the check fails and names the offending path, row, or fact.
 
 - [x] **AC-0001.** `inventory.toml` parses with `tomllib` and holds a non-empty array of tables named `row`. Each row has a non-empty string `pattern`, a `class`, a non-empty string `consumer`, and an `owner`. A row may carry a boolean `reads_order`.
 - [x] **AC-0002.** Every row's `class` is one of the ten classes.
@@ -118,12 +118,14 @@ Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026
 - [x] **AC-0016.** The Home cell of the `spec registration as brief coverage evidence` row names at least one path, resolved from the repository root, that `git ls-files` lists, or is exactly `nothing`.
 - [x] **AC-0017.** `.github/workflows/build-check.yml` triggers on `pull_request`, and holds a step that runs `python -m pytest tests/roster/test_workspace_retirement_inventory.py`. Neither the step nor its job carries `continue-on-error:`. The job carries no `if:`, and the step's `if:`, when present, is exactly `!cancelled() && steps.python.conclusion == 'success'`, the condition its neighbouring roster steps use. The workflow carries no `paths` or `paths-ignore` filter.
 - [x] **AC-0021.** The governing row of each contract RFC-0106 D1 names is a `contract` row: `docs/rfc/0064-ini-001-ai-native-ecosystem.md`, `docs/product/AGENTS.md`, `docs/product/intents/FEAT-0005-lifecycle-and-closure.md`, `docs/product/intents/FEAT-0001-intent-identity-and-registration.md`, and `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`.
-- [x] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
+- [x] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0028 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
 - [x] **AC-0023.** § Equivalence holds a Markdown table with the columns Case, Slice, Result, Evidence, and Authority, with at least one row.
-- [x] **AC-0024.** Every Equivalence row's Slice is a slice number, and its Result is `reproduced` or `accepted removal`.
+- [x] **AC-0024.** Every Equivalence row's Slice is a slice number, and its Result is `reproduced`, `accepted removal`, or `intended change`.
+- [x] **AC-0027.** Every Equivalence row's Case text is non-empty.
+- [x] **AC-0028.** Every `intended change` row's Case text is one of these, and no other: `entries that carry no kind`, from RFC-0106 D3's kind assignment by the migration; `a captured-item file that carries a Type: line`, the change RFC-0106 D1 calls intended; and `matches nothing else`, the limit D1 sets on that guard. A further intended change needs an amendment of this list.
 - [x] **AC-0025.** Every Equivalence row's Evidence cell names at least one path, resolved from the repository root, that `git ls-files` lists.
-- [x] **AC-0026.** Every `accepted removal` row's Authority cell meets AC-0014 and AC-0015, with the row's Case text in place of the row's Fact text; the section side of AC-0015 is unchanged. Every `reproduced` row's Authority cell is exactly `none`.
-- [x] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0026.
+- [x] **AC-0026.** Every `accepted removal` or `intended change` row's Authority cell meets AC-0014 and AC-0015, with the row's Case text in place of the row's Fact text; the section side of AC-0015 is unchanged. Every `reproduced` row's Authority cell is exactly `none`.
+- [x] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0028.
 
 ## Follow-ons
 

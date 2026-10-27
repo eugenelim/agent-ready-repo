@@ -106,6 +106,13 @@ _FINDING_NEXT_ACTIONS = {
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
     "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
+    "invalid_captured_item": (
+        "Fix the named field of that captured-item file, then rerun reconciliation."
+    ),
+    "unmigrated_captured_item": (
+        "Run workspace-status repair-plan to move this captured item into its "
+        "own file under docs/product/captured/."
+    ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
     "unregistered_work": "Register or reconcile the canonical entry explicitly.",
@@ -361,6 +368,10 @@ class ArtifactMetadata:
     resolution: str | None = None
     authority_status: dict[str, object] | None = None
     authority_error: str | None = None
+    # Set only for a migrated captured membership, from its record: the record's
+    # `Kind:`, or the one finding an invalid or unreadable record gives.
+    captured_kind: str | None = None
+    captured_finding: RoutingFinding | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1743,6 +1754,23 @@ def canonical_repository_identity(
                 path=entry.path, kind=entry.kind, status=None, exists=True
             )
             status_fingerprint = _COOLED_IDENTITY_MARKER
+        elif _captured_membership_form(entry.path) == "unmigrated":
+            # An unmigrated captured item's file is never opened: its identity
+            # comes from its membership and a constant marker.
+            metadata = ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True
+            )
+            status_fingerprint = _UNMIGRATED_IDENTITY_MARKER
+        elif _captured_membership_form(entry.path) == "migrated":
+            # A record reads only through the confined reader; one it cannot
+            # read contributes a constant marker, never another file's content.
+            metadata = _captured_record_metadata(root, entry)
+            finding = metadata.captured_finding
+            status_fingerprint = (
+                _NONCONFINED_IDENTITY_MARKER
+                if finding is not None and finding.code == "unreadable_artifact"
+                else None
+            )
         else:
             metadata = _metadata_from_root(root, entry)
             status_fingerprint = None
@@ -2109,7 +2137,9 @@ _COOLING_MODULE_CALLABLES = ("load_record", "is_due")
 # Stands in for a cooled artifact's status fingerprint. The identity must still
 # change when a workspace entry changes, and must not depend on a body this run
 # may not read.
+_UNMIGRATED_IDENTITY_MARKER = "unmigrated"
 _COOLED_IDENTITY_MARKER = "cooled"
+_NONCONFINED_IDENTITY_MARKER = "nonconfined"
 
 # Every attribute _cooling_projection reads off an accepted record. A record
 # missing one raises AttributeError from inside the projection, which the
@@ -2436,14 +2466,74 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
     )
 
 
+def _captured_membership_form(path: str | None) -> str | None:
+    """Classify a canonical membership's path from the path alone, opening nothing.
+
+    `None` is a path that is not a captured-item reference; `migrated` names a
+    captured-item file directly in the captured-item directory; anything else
+    that is a captured-item reference is `unmigrated`.
+    """
+    if path is None or not _is_captured_item_reference(path):
+        return None
+    directory, _, name = path.rpartition("/")
+    if directory == _CAPTURED_DIR and _CAPTURED_FILE_RE.fullmatch(name):
+        return "migrated"
+    return "unmigrated"
+
+
+def _captured_record_metadata(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata:
+    """Metadata for a migrated captured membership, read from its record."""
+    path = entry.path or ""
+    # Presence is decided without following a link: a linked or dangling record
+    # is present, and the confined reader below reports it unreadable.
+    if not os.path.lexists(root / path):
+        return ArtifactMetadata(path=path, kind=entry.kind, status=None, exists=False)
+    # Not cooled by construction: every caller skips a cooled membership first.
+    item, finding = read_captured_item(root, path.rpartition("/")[2], frozenset())
+    if finding is not None:
+        return ArtifactMetadata(
+            path=path, kind=entry.kind, status=None, exists=True,
+            readable=finding.code != "unreadable_artifact",
+            captured_finding=finding,
+        )
+    return ArtifactMetadata(
+        path=path, kind=entry.kind, status=item["status"], exists=True,
+        resolution=item["resolution"], captured_kind=item["kind"],
+    )
+
+
 def _artifact_metadata(
     _workspace: dict,
     entry: WorkspaceEntry,
     root: Path | None,
+    *,
+    registered: bool = True,
 ) -> ArtifactMetadata | None:
-    if root is not None:
-        return _metadata_from_root(root, entry)
-    return None
+    """Read an artifact's metadata. `registered` is False for a dependency probe.
+
+    A registered, non-cooled captured membership reads from its record when
+    migrated and is not opened at all when unmigrated.
+    """
+    if root is None:
+        return None
+    if registered:
+        form = _captured_membership_form(entry.path)
+        if form == "unmigrated":
+            return None
+        if form == "migrated":
+            return _captured_record_metadata(root, entry)
+    else:
+        # A probe of a file in the captured-item directory is a confined read
+        # too, and only under the file's exact name; any other spelling of it is
+        # refused, so the outcome does not depend on the filesystem.
+        spelling = _captured_dir_spelling(entry.path)
+        if spelling == "variant":
+            return ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True, readable=False
+            )
+        if spelling == "canonical":
+            return _captured_record_metadata(root, entry)
+    return _metadata_from_root(root, entry)
 
 
 def _metadata_from_membership(membership: WorkspaceMembership) -> ArtifactMetadata | None:
@@ -2871,6 +2961,8 @@ def _dependency_metadata_safety_finding(
     metadata: ArtifactMetadata | None,
     root: Path | None,
 ) -> RoutingFinding | None:
+    if metadata is not None and metadata.captured_finding is not None:
+        return metadata.captured_finding
     if metadata is not None and metadata.invalid_path:
         return _finding("invalid_artifact_path", path, "dependency path")
     if metadata is None or not metadata.exists:
@@ -2927,6 +3019,15 @@ def _dependency_is_satisfied(
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
 ) -> tuple[bool, RoutingFinding | None]:
+    if (
+        dep.type != "cross-repo"
+        and any(
+            _captured_membership_form(match.entry.path) == "unmigrated"
+            for match in by_path.get(dep.path, [])
+        )
+        and not (root is not None and _confined_artifact_path(root, dep.path) in cooled)
+    ):
+        return False, _finding("unsatisfied_dependency", dep.path, "captured item unmigrated")
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
     # Fail closed when a brief's child scope is unknown. A cooled child may
@@ -2993,7 +3094,7 @@ def _dependency_is_satisfied(
             summary="dependency probe",
             needs=[],
         )
-        metadata = _artifact_metadata(workspace, probe, root)
+        metadata = _artifact_metadata(workspace, probe, root, registered=False)
         safety_finding = _dependency_metadata_safety_finding(
             dep.path, dep.kind, metadata, root
         )
@@ -3021,7 +3122,7 @@ def _dependency_is_satisfied(
             summary="dependency probe",
             needs=[],
         )
-        metadata = _artifact_metadata(workspace, probe, root)
+        metadata = _artifact_metadata(workspace, probe, root, registered=False)
     safety_finding = _dependency_metadata_safety_finding(
         dep.path, dep.kind, metadata, root
     )
@@ -3227,6 +3328,22 @@ def build_resolution_index(
     )
 
 
+def _captured_dir_spelling(path: str) -> str | None:
+    """How `path` names the captured-item directory, if it names it at all.
+
+    `canonical` is a captured-item file name directly in the directory, spelled
+    exactly. `variant` is any other path that a case-insensitive or
+    trailing-dot-dropping filesystem could map into the directory; it is
+    refused, because it would reach a captured file under a name the confined
+    reader and the cooled check do not compare. `None` is a path elsewhere.
+    """
+    folded = "/".join(part.rstrip(".").casefold() for part in path.split("/"))
+    if not folded.startswith(f"{_CAPTURED_DIR}/"):
+        return None
+    name = path[len(_CAPTURED_DIR) + 1:] if path.startswith(f"{_CAPTURED_DIR}/") else ""
+    return "canonical" if _CAPTURED_FILE_RE.fullmatch(name) else "variant"
+
+
 def _is_captured_item_reference(item: str) -> bool:
     parts = item.split("/")
     if any(
@@ -3249,6 +3366,184 @@ def _echoable_reference(item: str) -> str:
     ):
         return ""
     return _bounded_finding_identifier(item)
+
+
+# The captured-item file grammar and the listing of its directory. A captured
+# item is one file in `_CAPTURED_DIR`; its preamble fields say what it is. The
+# listing is built from the directory and the cooled set only, never from the
+# registry, so two registries over one tree give one listing.
+_CAPTURED_DIR = "docs/product/captured"
+_CAPTURED_FILE_RE = re.compile(r"[a-z0-9][a-z0-9-]*\.md")
+_CAPTURED_STATUSES = frozenset({"Open", "Closed"})
+_CAPTURED_KINDS = frozenset({"defect", "design", "research", "intent"})
+_CAPTURED_RESOLUTIONS = frozenset({"fixed", "declined", "superseded"})
+_CAPTURED_PARENT_KINDS = frozenset({"intent", "outcome", "opportunity", "capability"})
+# Each shaping type routes to a skill, in the order the spec lists them.
+_SHAPING_TYPE_ROUTES = {
+    "shape": "intent",
+    "research": "desk-research-project-start",
+    "strategy": "frame-situation",
+    "design": "experience-status",
+    "signal": "(signal — no action)",
+}
+# The captured-item fields, in the order the first failing one is named.
+_CAPTURED_FIELD_ORDER = (
+    ("status", "Status"),
+    ("kind", "Kind"),
+    ("type", "Type"),
+    ("resolution", "Resolution"),
+    ("parent intent", "Parent intent"),
+    ("detail", "Detail"),
+)
+
+
+@dataclasses.dataclass(frozen=True)
+class CapturedListing:
+    """The `captured` object: one entry per file, and the findings they give."""
+
+    items: list[dict[str, Any]]
+    findings: tuple[RoutingFinding, ...]
+
+
+def _captured_field_value(raw: str, name: str) -> str:
+    """A preamble field's value: backticks off once, first word for `Kind`."""
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == "`" and value[-1] == "`":
+        value = value[1:-1].strip()
+    if name == "kind":
+        words = value.split()
+        value = words[0] if words else ""
+    return value
+
+
+def parse_captured_item(text: str) -> tuple[dict[str, str | None] | None, str | None]:
+    """Check one captured-item file's preamble against the grammar.
+
+    Returns `(fields, None)` when valid and `(None, <first failing field>)`
+    otherwise. Field lines are counted here through `_iter_preamble_lines`,
+    because `_parse_preamble_fields` keeps only the first value of a repeat.
+    """
+    values: dict[str, list[str]] = {}
+    for line in _iter_preamble_lines(text):
+        match = _HEADER_FIELD_RE.match(line)
+        if match:
+            name = match.group("name").strip().lower()
+            values.setdefault(name, []).append(
+                _captured_field_value(match.group("value"), name)
+            )
+
+    def single(name: str) -> str | None:
+        found = values.get(name, [])
+        return found[0] if len(found) == 1 else None
+
+    status, kind = single("status"), single("kind")
+    for key, label in _CAPTURED_FIELD_ORDER:
+        found = values.get(key, [])
+        value = single(key)
+        if len(found) > 1:
+            return None, label
+        if key == "status" and value not in _CAPTURED_STATUSES:
+            return None, label
+        if key == "kind" and value not in _CAPTURED_KINDS:
+            return None, label
+        if key == "type" and found and value not in _SHAPING_TYPE_ROUTES:
+            return None, label
+        if key == "resolution":
+            required = kind == "defect" and status == "Closed"
+            if required != bool(found) or (
+                found and value not in _CAPTURED_RESOLUTIONS
+            ):
+                return None, label
+        if key == "parent intent" and found:
+            typed = _TYPED_REFERENCE_RE.fullmatch(value or "")
+            if typed is None or typed.group("kind") not in _CAPTURED_PARENT_KINDS:
+                return None, label
+        if key == "detail" and found and not _is_captured_item_reference(value or ""):
+            return None, label
+    return {
+        "status": status,
+        "kind": kind,
+        "type": single("type"),
+        "resolution": single("resolution"),
+        "parent_intent": single("parent intent"),
+        "detail": single("detail"),
+    }, None
+
+
+def _captured_finding(code: str, path: str, field: str = "") -> RoutingFinding:
+    """A finding that echoes `path` only when it fits the reference grammar."""
+    return _finding(code, _echoable_reference(path), field)
+
+
+def read_captured_item(
+    root: Path, name: str, cooled: frozenset[Path]
+) -> tuple[dict[str, Any], RoutingFinding | None]:
+    """List one captured-item file, `name` being a name in the file grammar.
+
+    A cooled file is never opened. Any other is read through the identity-checked
+    reader, so a link, a non-regular file, or a swap between check and open is
+    unreadable and none of its content is used.
+    """
+    relative = f"{_CAPTURED_DIR}/{name}"
+    entry: dict[str, Any] = {"path": relative, "slug": name.removesuffix(".md")}
+    if _confined_artifact_path(root, relative) in cooled:
+        return {**entry, "cooled": True}, None
+    content = _migration_file_bytes(root, relative)
+    try:
+        text = content.decode("utf-8") if content is not None else None
+    except UnicodeDecodeError:
+        text = None
+    if text is None:
+        return (
+            {**entry, "unreadable": True},
+            _captured_finding("unreadable_artifact", relative),
+        )
+    fields, failing = parse_captured_item(text)
+    if fields is None:
+        return (
+            {**entry, "invalid": True},
+            _captured_finding("invalid_captured_item", relative, failing or ""),
+        )
+    routed = fields["type"]
+    return {
+        **entry,
+        "status": fields["status"],
+        "kind": fields["kind"],
+        "type": routed,
+        "routes_to": _SHAPING_TYPE_ROUTES[routed] if routed else None,
+        "resolution": fields["resolution"],
+        "parent_intent": fields["parent_intent"],
+        "detail": fields["detail"],
+    }, None
+
+
+def list_captured_items(root: Path, cooled: frozenset[Path]) -> CapturedListing:
+    """List the captured-item directory, one entry per captured-item file."""
+    unreadable = CapturedListing(
+        [], (_captured_finding("unreadable_artifact", _CAPTURED_DIR),)
+    )
+    directory = confine_migration_path(root, _CAPTURED_DIR)
+    if directory is None:
+        return unreadable
+    try:
+        if not os.path.lexists(directory):
+            return CapturedListing([], ())
+        if not stat.S_ISDIR(directory.lstat().st_mode):
+            return unreadable
+        names = sorted(
+            entry.name for entry in directory.iterdir()
+            if _CAPTURED_FILE_RE.fullmatch(entry.name)
+        )
+    except OSError:
+        return unreadable
+    items: list[dict[str, Any]] = []
+    findings: list[RoutingFinding] = []
+    for name in names:
+        item, finding = read_captured_item(root, name, cooled)
+        items.append(item)
+        if finding is not None:
+            findings.append(finding)
+    return CapturedListing(items, tuple(findings))
 
 
 def _header_finding(
@@ -3498,6 +3793,11 @@ def _resolve_header_item(
     member_kind = membership_kinds.get(item)
     if member_kind:
         return (member_kind, item, ""), None
+    spelling = _captured_dir_spelling(item)
+    if spelling == "variant":
+        return None, _header_finding(
+            "unreadable_artifact", waiting_path, "captured item unreadable", item
+        )
     captured_file = _confined_artifact_path(root, item)
     if captured_file is None:
         return ("", item, ""), None
@@ -3511,7 +3811,14 @@ def _resolve_header_item(
     kind = ""
     if captured_file not in cooled:
         try:
-            text = captured_file.read_text(encoding="utf-8", errors="replace")
+            if spelling == "canonical":
+                # A captured-item file is read only as a confined file.
+                content = _migration_file_bytes(root, item)
+                if content is None:
+                    raise OSError(item)
+                text = content.decode("utf-8", errors="replace")
+            else:
+                text = captured_file.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return None, _header_finding(
                 "unreadable_artifact", waiting_path, "captured item unreadable", item
@@ -3801,6 +4108,39 @@ def _append_impossible_transition(
         findings.append(_finding("impossible_transition", entry.path, detail))
 
 
+def _append_captured_lifecycle_findings(
+    findings: list[RoutingFinding],
+    membership: WorkspaceMembership,
+    metadata: ArtifactMetadata,
+) -> None:
+    """Check a migrated captured membership against its record's `Status:`."""
+    entry = membership.entry
+    collection = membership.collection
+    if metadata.captured_kind != entry.kind:
+        findings.append(_finding("impossible_transition", entry.path, "captured kind"))
+    elif metadata.status == "Closed" and collection in {
+        "backlog.open",
+        "shaping_queue.backlog",
+        "shaping_queue.active",
+    }:
+        findings.append(
+            _finding("impossible_transition", entry.path, "captured status is Closed")
+        )
+    elif collection == "backlog.closed":
+        if entry.kind != "defect":
+            findings.append(
+                _finding("impossible_transition", entry.path, "closed backlog kind")
+            )
+        elif metadata.status != "Closed" or metadata.resolution not in {
+            "fixed",
+            "declined",
+            "superseded",
+        }:
+            findings.append(
+                _finding("impossible_transition", entry.path, "closed defect status")
+            )
+
+
 def _append_lifecycle_findings(
     findings: list[RoutingFinding],
     membership: WorkspaceMembership,
@@ -3808,6 +4148,9 @@ def _append_lifecycle_findings(
 ) -> None:
     entry = membership.entry
     collection = membership.collection
+    if metadata.captured_kind is not None:
+        _append_captured_lifecycle_findings(findings, membership, metadata)
+        return
     if collection == "backlog.open":
         if entry.kind == "defect":
             if metadata.status == "Closed":
@@ -3996,6 +4339,15 @@ def _structural_findings(
         # as a `provenance_mismatch`, which is how a cooled defect came to
         # block its own live dependants.
         return findings
+    if _captured_membership_form(entry.path) == "unmigrated":
+        # Judged from the path alone: the file is never opened.
+        findings.append(
+            _finding("unmigrated_captured_item", entry.path, "captured item unmigrated")
+        )
+        return findings
+    if metadata is not None and metadata.captured_finding is not None:
+        findings.append(metadata.captured_finding)
+        return findings
     if metadata is not None and metadata.invalid_path:
         findings.append(_finding("invalid_artifact_path", entry.path, "artifact path"))
         return findings
@@ -4004,6 +4356,12 @@ def _structural_findings(
         return findings
     if not metadata.readable:
         findings.append(_finding("unreadable_artifact", entry.path, "artifact is unreadable"))
+        return findings
+    if metadata.captured_kind is not None:
+        # A record carries no provenance, plan, or authority block: only the
+        # lifecycle rule applies.
+        if not skip_status_lifecycle:
+            _append_lifecycle_findings(findings, membership, metadata)
         return findings
     if metadata.authority_error is not None:
         findings.append(
@@ -4068,6 +4426,7 @@ def _header_edges_by_path(
         membership for membership in memberships
         if membership.entry.path is not None
         and not _membership_is_cooled(membership, root, cooled)
+        and _captured_membership_form(membership.entry.path) != "unmigrated"
     ]
     if not waiting:
         return {}
@@ -4081,10 +4440,29 @@ def _header_edges_by_path(
     for membership in waiting:
         path = membership.entry.path
         assert path is not None
-        if path not in headers:
-            headers[path] = read_header_dependencies(
-                root, path, index=index, membership_kinds=kinds, cooled=cooled
+        if path in headers:
+            continue
+        if _captured_membership_form(path) == "migrated":
+            # A captured record is read only as a confined file, so a link or a
+            # hard link to a cooled body is never opened; its lifecycle check
+            # already reports it unreadable.
+            content = _migration_file_bytes(root, path)
+            headers[path] = (
+                HeaderDependencies((), ())
+                if content is None
+                else header_dependencies_from_text(
+                    root,
+                    path,
+                    content.decode("utf-8", errors="replace"),
+                    index=index,
+                    membership_kinds=kinds,
+                    cooled=cooled,
+                )
             )
+            continue
+        headers[path] = read_header_dependencies(
+            root, path, index=index, membership_kinds=kinds, cooled=cooled
+        )
     return headers
 
 
@@ -5424,7 +5802,7 @@ def get_active_specs(initiatives: list[Initiative]) -> list[tuple[str, str]]:
 # ── work-loop shaping-item guard helper ──────────────────────────────────────
 
 # Explicitly recognised shaping types. Only entries with one of these types
-# in [backlog].open are treated as shaping work by check_shaping_guard.
+# in [backlog].open feed the `shaping.top_level_backlog` status key.
 # Untyped entries (ordinary build-backlog items) are excluded.
 _SHAPING_TYPES: frozenset[str] = frozenset(
     {"shape", "research", "strategy", "signal", "design"}
@@ -5490,39 +5868,40 @@ def extract_top_level_backlog(workspace: dict) -> list[ShapingEntry]:
     return entries
 
 
-_SHAPING_TYPE_TO_SKILL: dict[str, str] = {
-    "shape":    "intent",
-    "research": "desk-research-project-start",
-    "strategy": "frame-situation",
-    "design":   "experience-status",
-    "signal":   "(signal — no action)",
-}
+@dataclasses.dataclass(frozen=True)
+class ShapingGuardRefusal:
+    """The guard's refusal: the captured-item file named an invalid or unreadable record.
+
+    `finding` is that file's own `invalid_captured_item` or `unreadable_artifact`
+    finding, so the caller surfaces it rather than guessing at the slug.
+    """
+
+    finding: RoutingFinding
 
 
 def check_shaping_guard(
-    spec_slug: str,
-    initiatives: list[Initiative],
-    top_level_backlog: list[ShapingEntry] | None = None,
-) -> str | None:
-    """Return the routing skill if spec_slug is in a shaping queue; None otherwise.
+    root: Path, slug: str, cooled: frozenset[Path]
+) -> str | ShapingGuardRefusal | None:
+    """Guard a slug against shaping work, reading only its captured-item file.
 
-    work-loop checks this guard at Step 0 (SKILL.md §0 step 2). Checks:
-      - active initiatives' [shaping_queue].active and .backlog
-      - top-level [backlog].open typed entries (pass via extract_top_level_backlog)
-
-    Only active initiatives are checked; paused/closed/complete initiatives are skipped.
-    If the spec is a shaping item, work-loop stops and suggests the appropriate skill.
+    Returns the routed skill when `docs/product/captured/<slug>.md` is a valid,
+    non-cooled file with a `Type:` line, a `ShapingGuardRefusal` carrying the
+    file's finding when it is invalid or unreadable, and `None` when it is valid
+    with no `Type:`, cooled, or absent. A slug outside the file name grammar
+    returns `None` with no file opened. No registry entry is read.
     """
-    for ini in initiatives:
-        if ini.status != "active":
-            continue
-        for entry in ini.shaping.active + ini.shaping.backlog:
-            if entry.slug == spec_slug:
-                return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "intent")
-    for entry in (top_level_backlog or []):
-        if entry.slug == spec_slug:
-            return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "intent")
-    return None
+    name = f"{slug}.md"
+    if _CAPTURED_FILE_RE.fullmatch(name) is None:
+        return None
+    relative = f"{_CAPTURED_DIR}/{name}"
+    # lexists, not exists: a dangling link is present, and reads as unreadable.
+    if not os.path.lexists(root / relative):
+        return None
+    item, finding = read_captured_item(root, name, cooled)
+    if finding is not None:
+        return ShapingGuardRefusal(finding)
+    routed = item.get("routes_to")
+    return routed if isinstance(routed, str) else None
 
 
 def normalize_for_shaping_guard(raw_path: str) -> str:

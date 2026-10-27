@@ -219,6 +219,8 @@ identifier to the repository root without checking it is a path first.
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
 | `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
+| `invalid_captured_item` | A captured-item file breaks its field grammar. | Fix the named field of that captured-item file, then rerun reconciliation. |
+| `unmigrated_captured_item` | A captured item is registered at a path outside `docs/product/captured/`. | Run workspace-status repair-plan to move this captured item into its own file under docs/product/captured/. |
 | `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
 | `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
 | `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |
@@ -241,10 +243,8 @@ identifier to the repository root without checking it is a path first.
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
 | `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is missing or inconsistent. | Install or select a consistent versioned configuration, then rerun. |
 
-For an unsupported object that carries a safe single-segment `slug`, the
-`unsupported_legacy` finding preserves that slug as its identifier. This makes
-manual-routing inventories attributable without treating the object as
-supported or dispatchable.
+For an unsupported object with a safe single-segment `slug`, `unsupported_legacy`
+keeps that slug as its identifier; the object is still never dispatchable.
 
 ### Surface results
 
@@ -317,7 +317,7 @@ the only cleanup writer. It preserves the complete structured entry when moving
 Shipped queue work, removes only explicitly eligible Archived queue work, keeps
 active-list findings manual, revalidates canonical eligibility, and performs a
 comment-preserving atomic write. Never edit `workspace.toml` directly as a
-fallback for a skipped or manual finding.
+fallback for a skipped or manual finding. Captured items registered outside `docs/product/captured/` are refused with `unmigrated_captured_item` until the `captured-to-file` repair moves them; `status` lists every captured-item file under its `captured` section.
 
 **Main output sections:**
 

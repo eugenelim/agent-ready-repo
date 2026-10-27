@@ -194,11 +194,15 @@ If `workspace.toml` is present, read it and Surface an orientation block:
      requirements from comments, summaries, list order, or surrounding prose.
 
 Then apply the **Shaping-item guard** when a workspace-resolved or supplied slug
-exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Check all active
-initiatives' `[shaping_queue].active`, `.backlog`, and `[backlog].open` typed
-entries for a slug match. On match, stop: "This is a `[shape]` item (`type =
-<subtype>`); use `<skill>` — `work-loop` is for build items only."
-(shape→`intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
+exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Match it against
+`captured.items` in the `workspace-status` status output. When the matching item
+has a non-null `routes_to`, stop: "This is a shaping item (`Type: <type>`); use
+`<skill>` — `work-loop` is for build items only." (`routes_to` names the skill:
+shape→`intent`; research→`desk-research-project-start`;
+strategy→`frame-situation`; design→`experience-status`.) A `signal` item →
+"Monitoring signal — `work-loop` is for build items only." When the matching
+item is `invalid` or `unreadable`, stop and surface its finding from
+`captured.findings`. Otherwise continue.
 
 After orientation, route by invocation shape. **Order matters: an explicit
 current request is decided before the workspace-dispatch branches, which exist
@@ -413,7 +417,7 @@ failure runs `wave reopen`, fires `gates-failed` (which records the attempt),
 and returns to EXECUTE. Commands and the accounting
 precondition: load [`references/full-mode-engine.md`](references/full-mode-engine.md)
 § *GATES — wave routing*.
-**Pre-existing failure triage.** Failure on a file not in the diff = pre-existing (file-not-in-diff is confirmation enough). If the failing file IS in the diff but failure looks unrelated, confirm with `git show HEAD:<file>` or a worktree-check (not a stash — the stash stack is shared across worktrees). Pre-existing: grep `[backlog].open` for the test/file name; if no entry exists, add `{slug = "pre-existing-…", source = "pre-flight/<iso-date>"}` with a cold-start-sufficient comment, treat as known-skip (continue, don't go to FIX). If the diff made the failure worse → in-scope, go to FIX. Full schema and three-condition heuristic: [`references/pre-flight-failures.md`](references/pre-flight-failures.md).
+**Pre-existing failure triage.** Failure on a file not in the diff = pre-existing (file-not-in-diff is confirmation enough). If the failing file IS in the diff but failure looks unrelated, confirm with `git show HEAD:<file>` or a worktree-check (not a stash — the stash stack is shared across worktrees). Pre-existing: grep `docs/product/captured/` and `[backlog].open` for the test/file name; if no captured-item file exists, write `docs/product/captured/pre-existing-<short-name>.md` (`Kind: defect`, `Status: Open`) and register that path as a canonical `[backlog].open` entry, treat as known-skip (continue, don't go to FIX). If the diff made the failure worse → in-scope, go to FIX. Full schema and three-condition heuristic: [`references/pre-flight-failures.md`](references/pre-flight-failures.md).
 
 **Mechanical doc-drift check.** `scripts/lint-spec-status.py` (sibling to `loop-cohort.py`) checks: status vocabulary, every AC checked at a new ship transition, dangling references (warn-only), and historical deferral anchors in `[backlog].open`. A `(deferred: <slug>)` marker no longer makes a newly shipped AC valid. Run at the finish-time checklist (below). No-ops without Python. Do not wire into `pre-pr.py`. Warn-only findings are counted, not listed, unless you pass `--verbose`; a run with a hard violation always lists everything.
 
