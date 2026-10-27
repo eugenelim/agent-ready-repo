@@ -3,6 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
+- **Amended in part by:** [next-item-suggestions-removal](../next-item-suggestions-removal/spec.md) — its Choice 1 criterion, replaced by that spec's AC-0002; its Choice 2 and Choice 3 criteria, removed by that spec's AC-0001; its Objective's ceiling of "up to four choices" and "up to four content choices", removed because AC-0002 there gives each active spec its own choice; and its Testing Strategy fixture cases A-installed, A-absent, B and D, as far as each expects a queue-item or shaping-item choice, as that spec's `Amends:` line states.
 - **Constrained by:** RFC-0064 (workspace.toml schema — queue resolution DAG drives choice derivation); `spec/spec-A-workspace-status-rename` (Shipped — dependency satisfied)
 - **Brief:** none
 - **Discovery:** none

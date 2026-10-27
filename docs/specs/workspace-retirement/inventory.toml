@@ -84,6 +84,12 @@ consumer = "merge-driver wiring for the packaged workspace-status engine copies"
 owner = 9
 
 [[row]]
+pattern = ".workspace-prune-protected.toml"
+class = "fixture"
+consumer = "prune-protection list naming workspace-status spec directories that roster tests cite"
+owner = 9
+
+[[row]]
 pattern = ".github/dependabot.yml"
 class = "guide"
 consumer = "comment naming the workspace.toml backlog entry that owns a dependency-audit gap"
@@ -424,6 +430,12 @@ pattern = "docs/product/briefs/workspace-registry-retirement-delivery.md"
 class = "contract"
 consumer = "live delivery brief for retiring workspace.toml"
 owner = 9
+
+[[row]]
+pattern = "docs/product/changelog.d/30bfb581-099d-4380-ba8f-9cf70ea33468.md"
+class = "historical"
+consumer = "released changelog entry that cites the registry"
+owner = "none"
 
 [[row]]
 pattern = "docs/product/changelog.d/64d96e94-7868-46fc-9091-6356a930eb6e.md"
@@ -1288,7 +1300,7 @@ owner = 3
 [[row]]
 pattern = "packages/agentbundle/agentbundle/_data/workspace_status_engine.py"
 class = "reader"
-consumer = "packaged copy of the workspace-status engine: parses workspace.toml, orders ready work, emits next_queue and next_shape"
+consumer = "packaged copy of the workspace-status engine: parses workspace.toml, orders ready work"
 owner = 9
 reads_order = true
 
@@ -2684,6 +2696,12 @@ consumer = "captured items in their own files: the file shape and reader, the un
 owner = 3
 
 [[row]]
+pattern = "docs/specs/next-item-suggestions-removal/*"
+class = "contract"
+consumer = "slice 6 spec: removes the first-in-list next-item suggestions from the workspace-status orient run"
+owner = 6
+
+[[row]]
 pattern = "docs/specs/priority-header-field/*"
 class = "contract"
 consumer = "the optional Priority: header field and its reader, which no registry or dispatch reader consults"
@@ -3862,9 +3880,8 @@ owner = 9
 [[row]]
 pattern = "docs/specs/workspace-status-next-actions/*"
 class = "contract"
-consumer = "workspace-status next-actions procedure that picks next_queue and next_shape"
-owner = 6
-reads_order = true
+consumer = "workspace-status next-actions procedure: active-spec, parallel-session and work-intake choices"
+owner = 9
 
 [[row]]
 pattern = "docs/specs/workspace-status-progressive-disclosure/*"

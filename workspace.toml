@@ -2482,6 +2482,8 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 6 of `workspace-registry-retirement-delivery`; Shipped 2026-10-27, moved from `active` with the spec `Shipped` and the plan `Done`
+  { path = "docs/specs/next-item-suggestions-removal/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Next-item suggestions removed: workspace-status Next-actions drops the first-in-list next_queue and next_shape choices and offers each active spec as its own choice", needs = [] },
   # Slice 2 of `workspace-registry-retirement-delivery`; Shipped 2026-10-26, moved from `active` with the spec `Shipped` and the plan `Done`.
   { path = "docs/specs/depends-on-headers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Dependency edges on the waiting item: Depends on: headers and their reader, the unmigrated needs refusal, and the needs-to-header repair", needs = [] },
   # Slice 3 of `workspace-registry-retirement-delivery`; Shipped 2026-10-26, moved from `active` with the spec `Shipped` and the plan `Done`.

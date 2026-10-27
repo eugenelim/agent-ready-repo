@@ -434,14 +434,10 @@ Using the JSON data from Step 1 — do not re-read `workspace.toml` or recompute
 
 From the JSON result:
 
-- `active_spec` = first entry in `canonical.active` (if any)
-- `next_queue` = first entry in `canonical.ready` (JSON field, already resolved; first in list order)
+- `active` = all entries in `canonical.active`
 - `unblocked` = all entries in `canonical.ready`
-- `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` AND for which `shaping.active_entries` contains an entry matching all of `slug`, `ini_slug`, and `entry_type` (a signal named `x` in active does not make a non-signal `x` in ready count as active); fall back to the first `shaping.ready` non-signal entry with no such full match (backlog-ready)
 
-If `canonical.blocked` or `canonical.findings` is non-empty for a candidate,
-surface the stable `code`, `path`, and `next_action`; do not select it as
-`next_queue` or `active_spec`.
+Ready to start already lists every ready item with its command, so the user picks among them.
 
 **Path resolution:** entries in `canonical.ready`, `canonical.active`, etc. carry a `path` field (e.g. `"docs/specs/<slug>/spec.md"`). Strip `docs/specs/` and trailing `/spec.md` to get the slug; use `docs/specs/<slug>/` for file-system commands.
 
@@ -472,9 +468,7 @@ When the graph was rendered, offer a parallel-session choice as the **first** nu
 
 Emit the following choices in order. Omit any whose source is empty; renumber sequentially. The parallel-session offer from 5c (when present) occupies the first slot and the remaining choices follow.
 
-- **Active spec:** `work-loop docs/specs/<slug>/` — continue active spec. Present when `active_spec` is non-empty.
-- **Next queue item:** `work-loop docs/specs/<slug>/` — next unblocked queue item. Present when `next_queue` is non-empty.
-- **First shaping item:** skill command per Step 3 routing table for the entry's type. Present when `next_shape` is non-empty. If the required pack is not installed, emit `requires \`<pack-name>\` pack — install to work this item` instead of the skill command.
+- **Active spec:** one numbered choice for each entry in `canonical.active`: `work-loop docs/specs/<slug>/` — continue this active spec. Present when `active` is non-empty.
 - **Start or remember work (always — final choice):** `work-intake`
 
 ## Never
