@@ -38,3 +38,7 @@ AC-0005's pins were recorded once from the engine at `dd4f7038c`:
 - A cooled unregistered file gives `invalid_dependency` on the waiter, because its kind is never read.
 
 `test_workspace_status_engine_autonomous.py::test_t2_positive_dispatch_and_reconciliation_surface` plants a registered `Closed` design record. It gains `Resolution: fixed`, as the equivalence cases do, and keeps `impossible_transition`.
+
+## T5: the errata entries
+
+The owner, eugenelim, approved the wording of all four entries on 2026-10-27 before they were committed: ADR-0053 § Errata, RFC-0063 § Errata, RFC-0083 § Errata, and RFC-0106 § Errata. Each is committed exactly as approved. `lint-adr-shape.py docs/adr` and both record-index checks pass.
