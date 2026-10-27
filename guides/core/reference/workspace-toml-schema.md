@@ -256,12 +256,12 @@ Priority, affinity, rationale, and suggested order are not dependencies.
 ## Lifecycle Membership
 
 Membership is lifecycle state. A target entry appears in exactly one lifecycle
-collection.
+collection. A new captured item, meaning a defect, design, or research item, gets no entry; the defect, `research`, and `design` rows below describe only entries registered before captured items moved to their own files.
 
 | Collection | Valid artifacts | Meaning |
 | --- | --- | --- |
 | `[backlog].open` | Draft artifacts and open defect contexts | Visible, not dispatchable. |
-| `[backlog].closed` | Retained captures and closed defect contexts | Closed defect resolution is `fixed`, `declined`, or `superseded`. |
+| `[backlog].closed` | Retained captures and closed defect contexts already in this collection | Closed defect resolution is `fixed`, `declined`, or `superseded`. Closing a captured item that is still registered deletes its entry instead of moving it here. |
 | `["ini-NNN".shaping_queue].backlog` | `intent`, `research`, `design` | Waiting for shaping, research, or design processing. |
 | `["ini-NNN".shaping_queue].active` | `intent`, `research`, `design` | Currently being processed outside implementation work. |
 | `["ini-NNN".brief_queue].draft` | `brief` | Draft brief; no child is `Implementing` or `Shipped`. |

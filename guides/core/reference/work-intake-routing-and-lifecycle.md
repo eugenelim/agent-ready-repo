@@ -25,7 +25,7 @@ delegation from neutral intake is the same route, not a second public answer.
 
 | User intent | Result |
 | --- | --- |
-| Start or do work | Select one artifact route, write it, register it, then invoke the owning processor when dispatchable |
+| Start or do work | Select one artifact route, write it, register it, then invoke the owning processor when dispatchable. A defect start writes only its captured-item file under `docs/product/captured/` and registers nothing |
 | Remember work | Write and register a Draft, non-dispatchable artifact; stop before implementation. A defect, design, or research item is written as its own file under `docs/product/captured/` with no entry |
 | Inspect status | Return `workspace-status` lifecycle, findings, and next actions without mutation |
 | Refresh requirements | Resolve an existing registered artifact and exact configured profile processor, then present a reviewed field delta |
@@ -170,7 +170,9 @@ Reads: normalized request fields, the repository root, configured artifact
 parent, existing target, `workspace.toml`, and status output.
 
 Writes: at most one confined canonical artifact followed by its schema-valid
-workspace entry. Dispatch starts only after both are durable. If registration
+workspace entry. Dispatch starts only after both are durable. A route that
+registers nothing, such as a defect start, writes only its artifact and
+dispatches once that artifact is durable. If registration
 fails, the artifact is rolled back when safe; otherwise it remains explicitly
 non-dispatchable for reconciliation.
 

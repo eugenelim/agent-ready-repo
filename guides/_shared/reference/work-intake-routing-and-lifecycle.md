@@ -114,7 +114,10 @@ Core-only routing uses no network. Tracker adapters enforce their declared
 page, item, byte, timeout, retry, backoff, destination, and capability limits.
 Artifact and workspace paths must remain repository-confined. Registration
 occurs only after artifact creation; processor dispatch occurs only after both
-are durable and reconciled.
+are durable and reconciled. A route that registers nothing, such as a defect
+start or a remembered defect, design, or research item, writes only its
+captured-item file and dispatches, if it dispatches at all, once that file is
+durable.
 
 ## See also
 

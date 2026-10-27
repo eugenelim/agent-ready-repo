@@ -34,8 +34,11 @@ For durable work, Core writes the artifact first, then adds the `workspace.toml`
 entry:
 
 - one independently shippable change becomes a spec and plan;
-- work that spans several changes or repositories becomes a delivery brief;
-- cited regression evidence starts diagnosis before implementation.
+- work that spans several changes or repositories becomes a delivery brief.
+
+Cited regression evidence is written as its own file under
+`docs/product/captured/`, with no entry, and diagnosis starts before
+implementation.
 
 You decide only at real gates: clarify an ambiguous route, approve a brief,
 approve a spec or plan, or make the final merge decision.

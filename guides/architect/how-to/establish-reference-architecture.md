@@ -90,7 +90,7 @@ Write a solution reference architecture for this coordinating repo.
 
 The agent reads the federated catalog, contract homes, decisions, and links to each component repo's `reference.md`. It asks for any component or boundary it cannot find rather than inventing one. It proposes each section for you to accept, edit, or decline, and writes nothing until you confirm.
 
-## Register the artifact
+## Record the artifact
 
 After the architecture artifact exists, write a captured-item record for it at
 `docs/product/captured/payment-routing.md` so a downstream brief or spec can name
@@ -133,8 +133,9 @@ However you got there, you're done when:
 ## What you have now
 
 You have a committed, truthful reference architecture at the destination your
-repository resolved for `current-architecture`. Register a downstream design as
-a dependency when it must land before a brief or spec can proceed.
+repository resolved for `current-architecture`. When a brief or spec must wait
+for the design, name its captured-item file in that brief's or spec's
+`Depends on:` line.
 
 ## See also
 
