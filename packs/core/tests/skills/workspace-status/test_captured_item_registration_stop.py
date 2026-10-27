@@ -345,3 +345,15 @@ def test_waiter_finding_names_only_the_dependency(tmp_path: Path) -> None:
     _plant(tmp_path, _unregistered("design", "Open", None))
     output = _run_status(tmp_path)
     assert [f["code"] for f in _named(output, LOOSE)] == ["unsatisfied_dependency"]
+
+
+def test_a_path_cooled_between_the_two_checks_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The reader's own cooled re-check refuses the dependency without raising."""
+    _write_repo(tmp_path, _unregistered("design", "Closed", "fixed"))
+    cooled_entry = {"path": LOOSE, "slug": "loose", "cooled": True}
+    monkeypatch.setattr(
+        _H.ENGINE, "read_captured_item", lambda *_args: (cooled_entry, None)
+    )
+    assert observe(tmp_path) == _unsatisfied()
