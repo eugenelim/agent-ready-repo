@@ -833,6 +833,8 @@ EXPECTED_SCRIPT_STEPS = [
     "packs/core/tests/skills/work-loop/test_lint_graph_pointers.py",
     "tests/roster/test_graph_pointer_authoring.py",
     ".claude/skills/work-loop/scripts/lint-graph-pointers.py",
+    "packs/core/tests/skills/work-loop/test_lint_priority_field.py",
+    ".claude/skills/work-loop/scripts/lint-priority-field.py",
     "packs/repo-governance/tests/skills/new-adr/test_next_ordinal.py",
     ".claude/skills/new-adr/scripts/next-ordinal.py",
     ".claude/skills/new-adr/scripts/index-records.py",
@@ -1392,6 +1394,11 @@ class BuildCheckChainTest(unittest.TestCase):
             if cwd is None and ".claude/skills/work-loop/scripts/lint-graph-pointers.py" in argv
         )
         self.assertEqual(pointer_argv[-4:], ["--root", ".", "--base-ref", "origin/main"])
+        priority_argv = next(
+            argv for argv, cwd in seen
+            if cwd is None and ".claude/skills/work-loop/scripts/lint-priority-field.py" in argv
+        )
+        self.assertEqual(priority_argv[-2:], ["--root", "."])
         adr_shape_argv = next(
             argv for argv, cwd in seen
             if cwd is None and ".claude/skills/new-adr/scripts/lint-adr-shape.py" in argv

@@ -279,6 +279,17 @@ def build_check(args: argparse.Namespace) -> int:
             ".claude", "skills", "work-loop", "scripts", "lint-graph-pointers.py",
             args=("--root", ".", "--base-ref", "origin/main"),
         ),
+        # Optional Priority: header field. The whole corpus is checked, because
+        # a bad value is wrong wherever it lands and the walk is cheap.
+        _pytest_step(
+            "test-lint-priority-field",
+            "packs", "core", "tests", "skills", "work-loop", "test_lint_priority_field.py",
+        ),
+        _script_step(
+            "lint-priority-field",
+            ".claude", "skills", "work-loop", "scripts", "lint-priority-field.py",
+            args=("--root", "."),
+        ),
         # Decision-record ordinal uniqueness. A duplicate ordinal is invisible
         # inside the branch that creates it — it exists only against the default
         # branch — so no review round can catch it and this gate is the control.
