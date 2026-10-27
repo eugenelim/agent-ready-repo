@@ -1,7 +1,7 @@
 # Plan: Captured items stop being registered
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and D3; RFC-0105 D3; ADR-0053 D9; RFC-0063 D9; RFC-0083 § 6 and § 8; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`: `parse_captured_item`, `read_captured_item`, `_dependency_is_satisfied`, `_resolve_header_item`, and `_dependency_terminal_satisfied`.

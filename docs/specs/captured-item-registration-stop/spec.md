@@ -1,6 +1,6 @@
 # Spec: Captured items stop being registered
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-27 by eugenelim, spec and plan, after three rounds of spec-stage shaping and adversarial review with every sustained finding repaired and adjudicated; review records under `.context/reviews/captured-item-registration-stop-spec-r1/` to `-r3/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -100,21 +100,21 @@ Each criterion from AC-0001 to AC-0006 is a rule the engine enforces. Given an i
 
 **The closed state**
 
-- [ ] **AC-0001.** A captured-item file whose `Status:` is `Closed` and that has no `Resolution:` line, or whose `Status:` is `Open` and that has one, gives `invalid_captured_item` naming `Resolution`, whatever its `Kind:` and whether or not a registry entry names it. Every other rule of the captured-item grammar is unchanged.
-- [ ] **AC-0002.** A dependency item that names a non-cooled unregistered captured item is satisfied exactly when that file is valid, its `Status:` is `Closed`, and its `Resolution:` is `fixed`, whatever its `Kind:`.
-- [ ] **AC-0003.** Such a dependency on a valid file that is `Open`, or `Closed` with `Resolution:` `declined` or `superseded`, gives `unsatisfied_dependency` and is not satisfied.
-- [ ] **AC-0004.** Such a dependency on a confined, canonically spelled file whose `Kind:` is a captured kind and that is otherwise invalid gives that file's `invalid_captured_item` finding and is not satisfied.
-- [ ] **AC-0005.** A dependency item that names an unregistered captured-item path that is cooled, missing, not a confined file, unreadable, spelled other than canonically, or whose `Kind:` is not a captured kind gives the result it gives at commit `dd4f7038c`, with and without a completion receipt; a cooled file is never opened.
-- [ ] **AC-0006.** A valid unregistered captured item gives no finding naming its path in `workspace-status status` output, in `captured.findings` or in the canonical findings, whatever its `Status:`, `Kind:`, and `Type:`, and even when its own `Depends on:` line names a missing target or forms a cycle, apart from the dependency findings AC-0003 and AC-0004 set for a waiter that names it.
-- [ ] **AC-0007.** `packs/core/tests/skills/workspace-status/fixtures/captured-item-files/expected.json`, `fixtures/depends-on-headers/expected.json`, and `fixtures/depends-on-headers/expected-cooled-brief.json` are byte-identical to their state at commit `dd4f7038c`, and the suites that compare against them pass. The only case those suites change is a registered `Closed` non-defect record gaining a `Resolution:` line, and each such case keeps its result at `dd4f7038c`.
+- [x] **AC-0001.** A captured-item file whose `Status:` is `Closed` and that has no `Resolution:` line, or whose `Status:` is `Open` and that has one, gives `invalid_captured_item` naming `Resolution`, whatever its `Kind:` and whether or not a registry entry names it. Every other rule of the captured-item grammar is unchanged.
+- [x] **AC-0002.** A dependency item that names a non-cooled unregistered captured item is satisfied exactly when that file is valid, its `Status:` is `Closed`, and its `Resolution:` is `fixed`, whatever its `Kind:`.
+- [x] **AC-0003.** Such a dependency on a valid file that is `Open`, or `Closed` with `Resolution:` `declined` or `superseded`, gives `unsatisfied_dependency` and is not satisfied.
+- [x] **AC-0004.** Such a dependency on a confined, canonically spelled file whose `Kind:` is a captured kind and that is otherwise invalid gives that file's `invalid_captured_item` finding and is not satisfied.
+- [x] **AC-0005.** A dependency item that names an unregistered captured-item path that is cooled, missing, not a confined file, unreadable, spelled other than canonically, or whose `Kind:` is not a captured kind gives the result it gives at commit `dd4f7038c`, with and without a completion receipt; a cooled file is never opened.
+- [x] **AC-0006.** A valid unregistered captured item gives no finding naming its path in `workspace-status status` output, in `captured.findings` or in the canonical findings, whatever its `Status:`, `Kind:`, and `Type:`, and even when its own `Depends on:` line names a missing target or forms a cycle, apart from the dependency findings AC-0003 and AC-0004 set for a waiter that names it.
+- [x] **AC-0007.** `packs/core/tests/skills/workspace-status/fixtures/captured-item-files/expected.json`, `fixtures/depends-on-headers/expected.json`, and `fixtures/depends-on-headers/expected-cooled-brief.json` are byte-identical to their state at commit `dd4f7038c`, and the suites that compare against them pass. The only case those suites change is a registered `Closed` non-defect record gaining a `Resolution:` line, and each such case keeps its result at `dd4f7038c`.
 
 **The writers**
 
-- [ ] **AC-0008.** `route_intake` returns `lifecycle_membership` `none` and a `mutation` that does not contain `register` for a `remember` signal whose `artifact_kind` is `defect`, `design`, or `research`, and for a `start` signal whose `artifact_kind` is `defect`. It returns the same `Route` as at commit `dd4f7038c` for every other signal, including a `remember` signal for an intent, a brief, or a spec.
-- [ ] **AC-0009.** For the `defect` start route, `route_intake` still returns the processor `bug-fix`.
-- [ ] **AC-0010.** The defect case of `packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json`, and of the intake matrix of `jira-brief-intake`, `jira-align-brief-intake`, `github-brief-intake`, and `linear-brief-intake`, expects the route AC-0008 and AC-0009 set and an `artifact` under `docs/product/captured/`, and each matrix's comparison suite passes.
-- [ ] **AC-0020.** `run_intake_transaction`, given no registration step, takes the writer lock, materializes the artifact, and dispatches the processor, and leaves `workspace.toml` byte-identical; given a registration step, it behaves as at commit `dd4f7038c`.
-- [ ] **AC-0011.** No file in the closed list below holds a line that contains `docs/product/captured/` together with `path =`, `path=`, `[backlog].open`, or `shaping_queue`. Read with each run of whitespace, line breaks included, as one space, none holds any of these phrases: `Do not stop registering`, `register its path`, `register that path`, `registers that path`, `register that record`, `registers that file's path`, `entry that registers`, `Entry that registers`, `writes the record and the entry`, `writes the record and adds`, `registered by`, `is registered in`, `TOML entry`, `then register it`, `register it through`, `Its index entry's`, or `Its registry entry points at that file`. None of the six listed files under `packs/product-strategy/` or `packs/product-engineering/` holds `shaping_queue` on any line. The closed list is:
+- [x] **AC-0008.** `route_intake` returns `lifecycle_membership` `none` and a `mutation` that does not contain `register` for a `remember` signal whose `artifact_kind` is `defect`, `design`, or `research`, and for a `start` signal whose `artifact_kind` is `defect`. It returns the same `Route` as at commit `dd4f7038c` for every other signal, including a `remember` signal for an intent, a brief, or a spec.
+- [x] **AC-0009.** For the `defect` start route, `route_intake` still returns the processor `bug-fix`.
+- [x] **AC-0010.** The defect case of `packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json`, and of the intake matrix of `jira-brief-intake`, `jira-align-brief-intake`, `github-brief-intake`, and `linear-brief-intake`, expects the route AC-0008 and AC-0009 set and an `artifact` under `docs/product/captured/`, and each matrix's comparison suite passes.
+- [x] **AC-0020.** `run_intake_transaction`, given no registration step, takes the writer lock, materializes the artifact, and dispatches the processor, and leaves `workspace.toml` byte-identical; given a registration step, it behaves as at commit `dd4f7038c`.
+- [x] **AC-0011.** No file in the closed list below holds a line that contains `docs/product/captured/` together with `path =`, `path=`, `[backlog].open`, or `shaping_queue`. Read with each run of whitespace, line breaks included, as one space, none holds any of these phrases: `Do not stop registering`, `register its path`, `register that path`, `registers that path`, `register that record`, `registers that file's path`, `entry that registers`, `Entry that registers`, `writes the record and the entry`, `writes the record and adds`, `registered by`, `is registered in`, `TOML entry`, `then register it`, `register it through`, `Its index entry's`, or `Its registry entry points at that file`. None of the six listed files under `packs/product-strategy/` or `packs/product-engineering/` holds `shaping_queue` on any line. The closed list is:
   - `packs/core/.apm/skills/work-intake/SKILL.md`;
   - `packs/core/.apm/skills/work-intake/references/lifecycle-index.md`;
   - `packs/core/.apm/skills/work-loop/SKILL.md`;
@@ -128,8 +128,8 @@ Each criterion from AC-0001 to AC-0006 is a rule the engine enforces. Given an i
   - `guides/architect/how-to/establish-reference-architecture.md`;
   - `guides/core/reference/workspace-toml-schema.md`;
   - `guides/core/how-to/start-or-remember-work.md`.
-- [ ] **AC-0012.** `packs/product-strategy/.apm/skills/run-okr-cascade/SKILL.md` and `references/cross-pack-routing.md` name neither `workspace.toml` nor `shaping_queue`, and the skill still names `Kind: intent` and `Type: strategy` for each gap file.
-- [ ] **AC-0014.** Read with each run of whitespace as one space, none of these files holds `{type = "strategy"}`, `shaping_queue`, `gap entries in workspace.toml`, `` `workspace.toml` entries ``, `` `workspace.toml` snippet ``, `workspace.toml suggestion`, `` strategy entries in `workspace.toml` ``, `strategy-type entry`, or `` adds each gap to `workspace.toml` ``, and `guides/_shared/reference/work-intake-routing-and-lifecycle.md` holds no `` | defect context | `backlog.open` | ``:
+- [x] **AC-0012.** `packs/product-strategy/.apm/skills/run-okr-cascade/SKILL.md` and `references/cross-pack-routing.md` name neither `workspace.toml` nor `shaping_queue`, and the skill still names `Kind: intent` and `Type: strategy` for each gap file.
+- [x] **AC-0014.** Read with each run of whitespace as one space, none of these files holds `{type = "strategy"}`, `shaping_queue`, `gap entries in workspace.toml`, `` `workspace.toml` entries ``, `` `workspace.toml` snippet ``, `workspace.toml suggestion`, `` strategy entries in `workspace.toml` ``, `strategy-type entry`, or `` adds each gap to `workspace.toml` ``, and `guides/_shared/reference/work-intake-routing-and-lifecycle.md` holds no `` | defect context | `backlog.open` | ``:
   - `guides/core/explanation/role-journeys.md`;
   - `guides/product-engineering/how-to/frame-a-situation.md`;
   - `guides/product-strategy/how-to/cascade-okrs-into-the-shaping-queue.md`;
@@ -143,21 +143,21 @@ Each criterion from AC-0001 to AC-0006 is a rule the engine enforces. Given an i
 
 **Governance and the retirement record**
 
-- [ ] **AC-0015.** Each of these § Errata sections holds an entry dated on or after 2026-10-27 that links RFC-0106, names `docs/product/captured/`, and names each passage listed for it:
+- [x] **AC-0015.** Each of these § Errata sections holds an entry dated on or after 2026-10-27 that links RFC-0106, names `docs/product/captured/`, and names each passage listed for it:
   - `docs/adr/0053-product-strategy-pack-scope-and-discipline-boundaries.md`: D9 and § Cross-pack routing contract, with `Type: strategy`;
   - `docs/rfc/0063-product-strategy-pack.md`: the Reviewer brief's Decision, D9, the `run-okr-cascade` row of § Skill set (v1), steps 4 and 5 of § Cross-pack routing contract, its diagram, and its Boundary, with `Type: strategy`;
   - `docs/rfc/0083-work-intake-and-artifact-routing.md`: § 6's start route, its remember route, and its flow; and § 8's `[backlog].open` and `[backlog].closed` rows, its sentence that an unassigned artifact appears only in `[backlog].open`, its sentence that defect contexts stay in the repository-level backlog, its defect move, and its defect dependency rule.
-- [ ] **AC-0016.** `docs/specs/workspace-retirement/retirement-record.md` § Equivalence holds one slice-3 row for each of these cases, its Case cell being the case's name, under the criteria the amended `workspace-retirement` spec states:
+- [x] **AC-0016.** `docs/specs/workspace-retirement/retirement-record.md` § Equivalence holds one slice-3 row for each of these cases, its Case cell being the case's name, under the criteria the amended `workspace-retirement` spec states:
   - `the unregistered captured-item listing`, as `reproduced`;
   - `the closed defect without a membership`, as `reproduced`;
   - `the closed captured item of another kind`, as `intended change`, whose Authority is an RFC-0106 § Errata entry naming that case;
   - `the unregistered captured item's own dependencies`, as `accepted removal`, whose Authority is an RFC-0106 § Errata entry naming that case.
-- [ ] **AC-0017.** In `docs/specs/workspace-retirement/inventory.toml`, no row whose `pattern` lies outside `docs/specs/captured-item-files/` and `docs/specs/captured-item-registration-stop/` carries `owner = 3`, and the inventory check passes.
-- [ ] **AC-0018.** `docs/specs/captured-item-registration-stop/notes/verification-ledger.md` holds one run of `python3 tools/compare-registry.py --root .` on this spec's branch before its first writer change: the full default output, its exit code `0`, the commit it ran at, and that commit's merge base with `origin/main`.
+- [x] **AC-0017.** In `docs/specs/workspace-retirement/inventory.toml`, no row whose `pattern` lies outside `docs/specs/captured-item-files/` and `docs/specs/captured-item-registration-stop/` carries `owner = 3`, and the inventory check passes.
+- [x] **AC-0018.** `docs/specs/captured-item-registration-stop/notes/verification-ledger.md` holds one run of `python3 tools/compare-registry.py --root .` on this spec's branch before its first writer change: the full default output, its exit code `0`, the commit it ran at, and that commit's merge base with `origin/main`.
 
 **This repository**
 
-- [ ] **AC-0019.** Over this repository's tree at the implementing pull request's head commit, the engine at that commit and the engine at commit `dd4f7038c` report the same `canonical.ready`, `canonical.active`, and `canonical.blocked` paths, the same canonical findings by code and path, and the same `captured` object.
+- [x] **AC-0019.** Over this repository's tree at the implementing pull request's head commit, the engine at that commit and the engine at commit `dd4f7038c` report the same `canonical.ready`, `canonical.active`, and `canonical.blocked` paths, the same canonical findings by code and path, and the same `captured` object.
 
 ## Follow-ons
 
