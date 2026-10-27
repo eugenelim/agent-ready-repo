@@ -1626,7 +1626,7 @@ def test_csp_all_directives_present(tmp_path: pathlib.Path) -> None:
     required = [
         "default-src 'none'",
         "script-src 'sha256-",
-        "style-src 'unsafe-inline'",
+        "style-src 'sha256-",
         "base-uri 'none'",
         "form-action 'none'",
     ]
@@ -2179,3 +2179,268 @@ def test_bounded_export_keeps_a_multi_line_header_value(tmp_path: pathlib.Path) 
     data = _extract_json_data(pathlib.Path(result["path"]).read_text(encoding="utf-8"))
     fields = {f["label"]: f["raw_value"] for f in data["records"][0]["header_fields"]}
     assert fields["Related"] == "ADR-0002 (first line\n  continues here)", fields
+
+
+# ── decision-view-style: one hashed style from the shared base and layout ─────
+
+
+def _style_blocks(html: str) -> list[str]:
+    return re.findall(r"<style[^>]*>(.*?)</style>", html, re.DOTALL)
+
+
+def _read_asset(name: str) -> str:
+    return (SCRIPTS / "explorer_assets" / name).read_text(encoding="utf-8")
+
+
+def test_single_style_is_base_then_layout(tmp_path: pathlib.Path) -> None:
+    """AC-0001: exactly one style element, the base text then the layout text."""
+    html = _html(tmp_path)
+    assert html.count("<style") == 1
+    assert _style_blocks(html) == [_read_asset("view-base.css") + _read_asset("explorer.css")]
+
+
+def test_style_src_is_one_digest_of_the_style_text(tmp_path: pathlib.Path) -> None:
+    """AC-0002: style-src is exactly the style digest; no unsafe-inline or unsafe-eval."""
+    html = _html(tmp_path)
+    m = re.search(r'http-equiv="Content-Security-Policy"[^>]*content="([^"]*)"', html)
+    assert m, "CSP not found"
+    csp = m.group(1)
+    css = _style_blocks(html)[0]
+    digest = base64.b64encode(hashlib.sha256(css.encode("utf-8")).digest()).decode("ascii")
+    assert re.search(r"style-src ([^;]*)", csp).group(1) == f"'sha256-{digest}'"
+    assert "unsafe-inline" not in csp
+    assert "unsafe-eval" not in csp
+
+
+def test_no_style_attribute_url_or_import(tmp_path: pathlib.Path) -> None:
+    """AC-0004: no style= attribute in the page; no url( or @import in either stylesheet."""
+    html = _html(tmp_path)
+    assert not re.search(r"\sstyle\s*=", html, re.IGNORECASE)
+    for name in ("view-base.css", "explorer.css"):
+        css = _read_asset(name).lower()
+        assert "url(" not in css, name
+        assert "@import" not in css, name
+
+
+# ── decision-view-style: shared header and the system theme ───────────────────
+
+
+def _snapshot_text(html: str) -> str:
+    """Return the text content of the header's snapshot line (`p#meta`), unescaped."""
+    from html.parser import HTMLParser
+
+    class _P(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__()
+            self.depth = 0
+            self.out: list[str] = []
+
+        def handle_starttag(self, tag: str, attrs: list) -> None:
+            if self.depth:
+                self.depth += 1
+            elif tag == "p" and ("id", "meta") in attrs:
+                self.depth = 1
+
+        def handle_endtag(self, tag: str) -> None:
+            if self.depth:
+                self.depth -= 1
+
+        def handle_data(self, data: str) -> None:
+            if self.depth:
+                self.out.append(data)
+
+    p = _P()
+    p.feed(html)
+    return "".join(p.out)
+
+
+def test_no_theme_switch_or_count_tiles(tmp_path: pathlib.Path) -> None:
+    """AC-0007: no theme switch, no count tiles, and no localStorage in the script."""
+    html = _html(tmp_path)
+    assert 'id="theme-toggle"' not in html
+    assert 'id="stat-cards"' not in html
+    assert "data-theme-choice" not in html
+    assert "localStorage" not in _extract_runtime_js(html)
+
+
+def test_snapshot_line_holds_the_boundary_notice(tmp_path: pathlib.Path) -> None:
+    """AC-0022: the snapshot line contains the exact BOUNDARY_NOTICE string."""
+    assert NAV.BOUNDARY_NOTICE in _snapshot_text(_html(tmp_path))
+
+
+def test_snapshot_line_counts_equal_the_summary(tmp_path: pathlib.Path) -> None:
+    """AC-0024: the snapshot line names the total and each kind's count, singular or plural."""
+    html = _html(tmp_path)
+    summary = _extract_json_data(html)["summary"]
+    text = _snapshot_text(html)
+    by_kind = summary["by_kind"]
+    assert f"{sum(by_kind.values())} record" in text, text
+    for kind, n in by_kind.items():
+        assert f"{n} {kind}{'' if n == 1 else 's'}" in text, (kind, text)
+
+
+# ── decision-view-style: layout-file and script rules ─────────────────────────
+
+_NAMED_COLOURS = frozenset(
+    "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown "  # noqa: SIM905
+    "burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan "
+    "darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid "
+    "darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet "
+    "deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro "
+    "ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki "
+    "lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow "
+    "lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray "
+    "lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine "
+    "mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise "
+    "mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab "
+    "orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru "
+    "pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown "
+    "seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan "
+    "teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen".split()
+)
+_COLOUR_FUNCTION = re.compile(r"(?<![\w-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark)\(")
+_CSS_COLOUR_VALUE = re.compile(
+    r"#[0-9a-fA-F]{3,8}\b|" + _COLOUR_FUNCTION.pattern + r"|(?<![\w-])(?:"
+    + "|".join(sorted(_NAMED_COLOURS | {"transparent", "currentcolor"}))
+    + r")(?![\w-])"
+)
+_SCRIPT_NAMES = ("explorer.js", "lineage.js", "markdown.js")
+
+
+def _css_declarations(css: str) -> list[tuple[str, str]]:
+    """Return each (property, value) pair of a stylesheet, comments removed, at any depth."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    pairs = []
+    for chunk in re.split(r"[{};]", css):
+        if ":" in chunk and not chunk.strip().startswith(("@", "&")):
+            prop, value = chunk.split(":", 1)
+            prop = prop.strip().lower()
+            if re.fullmatch(r"-{0,2}[a-z][\w-]*", prop):  # a declaration, not a selector like `a:hover`
+                pairs.append((prop, " ".join(value.split())))
+    return pairs
+
+
+def _layout_violations(css: str) -> list[str]:
+    """Name each declaration the layout file may not make (AC-0005)."""
+    found = []
+    for prop, value in _css_declarations(css):
+        if prop.startswith("--"):
+            found.append(f"custom property {prop}")
+        if _CSS_COLOUR_VALUE.search(value):
+            found.append(f"colour in {prop}: {value}")
+        if prop in ("font", "font-family", "font-weight", "box-shadow") or re.match(r"(?:transition|animation)", prop):
+            found.append(f"{prop} belongs to the base")
+        if prop == "border-radius" and re.sub(r"var\(--r-\d\)|\b0\b|\s", "", value):
+            found.append(f"border-radius {value}")
+    return found
+
+
+def test_layout_file_declares_no_colour_font_shadow_motion_or_token() -> None:
+    """AC-0005: the layout file arranges only; the lint can fail on every form it bans."""
+    assert _layout_violations(_read_asset("explorer.css")) == []
+    for bad in (
+        "--x: 1px", "color: #fff", "background: rgb(0 0 0)", "border-color: red", "color: hsl(1 2% 3%)",
+        "color: oklch(1 0 0)", "background: transparent", "font-weight: 600", "font-family: serif",
+        "font: 12px serif", "box-shadow: none", "border-radius: 4px", "transition: color 1s",
+        "animation-name: a", "border: 1px solid white",
+    ):
+        assert _layout_violations(f".a {{ {bad}; }}"), bad
+    assert _layout_violations(".a { border-radius: var(--r-2); padding: var(--s-1); stroke: var(--c-accent); }") == []
+
+
+def _strip_js_comments(src: str) -> tuple[str, list[str]]:
+    """Return the script without comments, and its string literals.
+
+    A small scanner: it keeps strings and regular-expression literals intact so a quote inside a
+    pattern does not open a string.
+    """
+    out: list[str] = []
+    strings: list[str] = []
+    i, n = 0, len(src)
+    last = ""  # last significant character, to tell a regex from a division
+    while i < n:
+        ch = src[i]
+        two = src[i : i + 2]
+        if two == "//":
+            while i < n and src[i] != "\n":
+                i += 1
+        elif two == "/*":
+            i = src.index("*/", i + 2) + 2
+        elif ch in "'\"`":
+            j = i + 1
+            while j < n and src[j] != ch:
+                j += 2 if src[j] == "\\" else 1
+            strings.append(src[i + 1 : j])
+            out.append(src[i : j + 1])
+            i, last = j + 1, ch
+        elif ch == "/" and (last == "" or last in "(,=:[!&|?{};+-*%<>~^"):
+            j, in_class = i + 1, False
+            while j < n and (in_class or src[j] != "/"):
+                if src[j] == "\\":
+                    j += 1
+                elif src[j] == "[":
+                    in_class = True
+                elif src[j] == "]":
+                    in_class = False
+                j += 1
+            out.append(src[i : j + 1])
+            i, last = j + 1, "/"
+        else:
+            out.append(ch)
+            if not ch.isspace():
+                last = ch
+            i += 1
+    return "".join(out), strings
+
+
+def _script_sources() -> dict[str, tuple[str, list[str]]]:
+    return {name: _strip_js_comments(_read_asset(name)) for name in _SCRIPT_NAMES}
+
+
+def test_script_comment_stripper_keeps_strings_and_patterns() -> None:
+    """The scanner drops comments only: quotes inside a pattern or string do not end it."""
+    code, strings = _strip_js_comments("var a='//x'; // gone\nvar r=/[\"']+/g; /* gone */ var b=\"#fff\";")
+    assert "gone" not in code
+    assert strings == ["//x", "#fff"]
+    assert "/[\"']+/g" in code
+
+
+def test_scripts_hold_no_colour_literal() -> None:
+    """AC-0006: no hex, colour function or named colour (bar none, transparent, currentColor) in any script."""
+    for name, (code, strings) in _script_sources().items():
+        for s in strings:
+            assert not re.search(r"#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?![0-9a-fA-F\w])", s), (name, s)
+            assert s.strip().lower() not in _NAMED_COLOURS, (name, s)
+        assert not re.search(r"(?<![\w$.-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(", code), name
+    # The checks can fail.
+    code, strings = _strip_js_comments("sa(e,'fill','#1d4ed8');sa(e,'stroke','white');x=rgba(1,2,3,.5);")
+    assert any(re.search(r"#[0-9a-fA-F]{6}", s) for s in strings)
+    assert "white" in strings
+    assert re.search(r"(?<![\w$.-])rgba?\(", code)
+
+
+def test_scripts_set_no_font_attribute() -> None:
+    """AC-0021: no script names font-family, font-weight, font-size or font as an attribute."""
+    for name, (_code, strings) in _script_sources().items():
+        assert not [s for s in strings if s.strip() in ("font-family", "font-weight", "font-size", "font")], name
+
+
+def test_scripts_write_no_inline_style() -> None:
+    """AC-0020: no `.style` token, no `cssText`, and no 'style' string literal in any script."""
+    for name, (code, strings) in _script_sources().items():
+        assert not re.search(r"\.style\b", code), name
+        assert "cssText" not in code, name
+        assert "style" not in strings, name
+
+
+def test_snapshot_line_reads_like_the_intents_view(tmp_path: pathlib.Path) -> None:
+    """The snapshot line reads "Read-only snapshot generated <time> UTC. N records: A and B." and then the boundary sentence."""
+    html = _html(tmp_path)
+    by_kind = _extract_json_data(html)["summary"]["by_kind"]
+    named = [f"{n} {k}{'' if n == 1 else 's'}" for k, n in by_kind.items()]
+    breakdown = ", ".join(named[:-1]) + f" and {named[-1]}" if len(named) > 1 else named[0]
+    expected = (
+        r"Read-only snapshot generated \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC\. "
+        + f"{sum(by_kind.values())} records: {re.escape(breakdown)}\\. {re.escape(NAV.BOUNDARY_NOTICE)}"
+    )
+    assert re.fullmatch(expected, _snapshot_text(html)), _snapshot_text(html)

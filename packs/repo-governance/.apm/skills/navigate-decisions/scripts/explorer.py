@@ -597,7 +597,8 @@ def _build_html(
 ) -> str:
     """Build the complete self-contained HTML string."""
     # Load CSS and JS assets from explorer_assets/ via the confined file_safety helper.
-    css_content = _load_asset("explorer.css")
+    # One style element: the shared base, then this page's layout, nothing between.
+    css_content = _load_asset("view-base.css") + _load_asset("explorer.css")
     md_content = _load_asset("markdown.js")
     lineage_content = _load_asset("lineage.js")
     js_content = _load_asset("explorer.js")
@@ -605,10 +606,12 @@ def _build_html(
     script_body = "\n" + md_content + lineage_content + js_content + "\n"
     # The browser hashes every byte between <script> and </script>.
     js_hash = _csp_hash(script_body)
+    # The same holds for the style element: its content is hashed byte for byte.
+    css_hash = _csp_hash(css_content)
     csp = (
         f"default-src 'none'; "
         f"script-src 'sha256-{js_hash}'; "
-        f"style-src 'unsafe-inline'; "
+        f"style-src 'sha256-{css_hash}'; "
         f"base-uri 'none'; "
         f"form-action 'none'"
     )
@@ -631,13 +634,23 @@ def _build_html(
 
     counts = summary.get("by_kind", {})
     total = sum(counts.values())
-    mode_notice = (
-        '<div class="mode-notice">'
+    notice_html = (
+        '<p class="notice">'
         "Bounded export: full record inventory and graph included; "
         "bodies and attachments omitted with source handoff."
-        "</div>"
+        "</p>\n"
         if mode == "bounded"
         else ""
+    )
+    stamp = now.strftime("%Y-%m-%d %H:%M UTC")
+    # One snapshot line, worded like the intents view: time, counts, boundary.
+    kinds = [f"{n} {_html_escape(str(k))}{'' if n == 1 else 's'}" for k, n in counts.items()]
+    if len(kinds) > 1:
+        kinds = [", ".join(kinds[:-1]) + f" and {kinds[-1]}"]
+    breakdown = f": {kinds[0]}" if kinds else ""
+    snapshot = (
+        f"Read-only snapshot generated {stamp}. "
+        f"{total} record{'' if total == 1 else 's'}{breakdown}. {_html_escape(boundary)}"
     )
     reg = summary.get("register_files", {})
 
@@ -665,74 +678,72 @@ def _build_html(
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{title}</title>\n"
-        f"<style>\n{css_content}</style>\n"
+        f"<style>{css_content}</style>\n"
         "</head>\n"
         "<body>\n"
-        '<div aria-live="polite" aria-atomic="true" id="live-region" class="sr-only"></div>\n'
+        '<div aria-live="polite" aria-atomic="true" id="live-region" '
+        'class="visually-hidden"></div>\n'
         '<script type="application/json" id="nav-data">\n'
         f"{json_data}\n"
         "</script>\n"
-        '<div id="app">\n'
-        '<header id="app-header">\n'
-        '<div class="eyebrow-row">\n'
-        '<div class="grad-mark" aria-hidden="true"></div>\n'
-        '<span class="eyebrow">DECISION CORPUS &middot; ADR &amp; RFC</span>\n'
-        '<div id="theme-toggle" class="theme-toggle" role="group" aria-label="Colour theme">\n'
-        '<button type="button" data-theme-choice="auto" aria-pressed="true">Auto</button>\n'
-        '<button type="button" data-theme-choice="light" aria-pressed="false">Light</button>\n'
-        '<button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>\n'
+        '<header id="app-header" class="page-header">\n'
+        '<div class="title-row">\n'
+        '<h1 class="page-title">Decision records</h1>\n'
+        '<div id="kind-filter" class="seg" role="group" aria-label="Filter by kind">'
+        '<span class="seg-label">Kind</span>'
+        '<button type="button" class="seg-btn" data-kind="" aria-pressed="true">All</button>'
+        '<button type="button" class="seg-btn" data-kind="ADR" aria-pressed="false">ADR</button>'
+        '<button type="button" class="seg-btn" data-kind="RFC" aria-pressed="false">RFC</button>'
         "</div>\n"
-        "</div>\n"
-        '<h1><span class="title-gradient">Decision Records</span> &mdash; Navigator</h1>\n'
-        f'<p class="lede">{total} records &middot; read-only snapshot</p>\n'
-        f'<div class="info-panel">{_html_escape(boundary)}</div>\n'
-        f"{mode_notice}\n"
-        "</header>\n"
-        '<div class="stat-cards" id="stat-cards"></div>\n'
-        '<div class="controls">\n'
-        '<div id="kind-filter" class="kind-pills" role="group" aria-label="Filter by kind">\n'
-        '<button class="kind-pill active" data-kind="" aria-pressed="true">All</button>\n'
-        '<button class="kind-pill" data-kind="ADR" aria-pressed="false">ADR</button>\n'
-        '<button class="kind-pill" data-kind="RFC" aria-pressed="false">RFC</button>\n'
-        "</div>\n"
-        '<label class="ctrl-label">Status '
+        '<div class="filter-pick"><label class="field" for="status-filter">Status</label>'
         '<select id="status-filter">'
-        '<option value="">All statuses</option></select></label>\n'
-        '<label class="ctrl-label">Search IDs, titles, statuses '
-        '<input type="search" id="search-input" '
-        'placeholder="e.g. ADR-0098 or 98"></label>\n'
-        '<nav aria-label="Views">\n'
-        '<button id="btn-list">List</button>\n'
-        '<button id="btn-graph">Graph</button>\n'
-        '<button id="btn-context">Context</button>\n'
-        '<button id="btn-detail">Detail</button>\n'
-        "</nav>\n"
-        '<button id="expand-all-btn" class="pill-btn">Expand all</button>\n'
+        '<option value="">All statuses</option></select></div>\n'
+        '<div class="search"><label for="search-input">Search IDs, titles, statuses</label>'
+        '<input type="search" id="search-input" class="control" autocomplete="off" '
+        'placeholder="Search IDs, titles, statuses"></div>\n'
         "</div>\n"
-        '<main id="app-main">\n'
+        f'<p id="meta" class="meta">{snapshot}</p>\n'
+        f"{notice_html}"
+        "</header>\n"
+        '<div id="app" class="app">\n'
+        '<main id="app-main" class="zones">\n'
+        '<section class="worklist" aria-label="Decision records">\n'
+        '<div class="tools">\n'
+        '<nav class="seg" aria-label="Views">'
+        '<button type="button" id="btn-list" class="seg-btn">List</button>'
+        '<button type="button" id="btn-graph" class="seg-btn">Graph</button>'
+        '<button type="button" id="btn-context" class="seg-btn">Context</button>'
+        "</nav>\n"
+        '<button type="button" id="expand-all-btn" class="seg-btn">Expand all</button>\n'
+        "</div>\n"
+        '<details id="key" class="key"><summary>Key</summary>'
+        '<dl class="key-list">\n'
+        '<div class="fact"><dt>Checked (solid left border)</dt><dd>Both sides of the'
+        " supersession entry confirm the edge.</dd></div>\n"
+        '<div class="fact"><dt>Candidate/Unresolved (dashed left border)</dt><dd>Only'
+        " one side declares, or the endpoint is missing.</dd></div>\n"
+        '<div class="fact"><dt>Contextual (dotted left border)</dt><dd>A Related field'
+        " reference. Not checked lineage.</dd></div>\n"
+        '<div class="fact"><dt>Navigation only (double left border)</dt><dd>A caller'
+        " assertion. Non-authoritative view input.</dd></div>\n"
+        "</dl></details>\n"
+        '<p id="list-count" class="meta list-count"></p>\n'
         '<div id="view-list" role="region" aria-label="Corpus list"></div>\n'
         '<div id="view-graph" role="region" aria-label="Lifecycle graph" hidden></div>\n'
         '<div id="view-context" role="region" aria-label="Guidance context" hidden></div>\n'
-        '<div id="view-detail" role="region" aria-label="Record detail" hidden></div>\n'
-        "</main>\n"
-        '<footer id="app-footer">\n'
-        "<details><summary>Legend</summary><ul>\n"
-        "<li><strong>Checked (solid left border):</strong> Both sides of the"
-        " supersession entry confirm the edge.</li>\n"
-        "<li><strong>Candidate/Unresolved (dashed left border):</strong> Only"
-        " one side declares, or the endpoint is missing.</li>\n"
-        "<li><strong>Contextual (dotted left border):</strong> A Related field"
-        " reference. Not checked lineage.</li>\n"
-        "<li><strong>Navigation only (double left border):</strong> A caller"
-        " assertion. Non-authoritative view input.</li>\n"
-        "</ul></details>\n"
-        "<details><summary>Support reference inventory</summary>"
+        '<details class="key foot-details"><summary>Support reference inventory</summary>'
         f"<ul><li>RFC candidates register: {rfc_count}</li>"
         f"<li>Roadmap intents register: {roadmap_count}</li></ul>"
         '<div id="sup-inv"></div>'
         "</details>\n"
-        "<details><summary>Provenance</summary><pre id=\"prov-pre\"></pre></details>\n"
-        "</footer>\n"
+        '<details class="key foot-details"><summary>Provenance</summary>'
+        '<pre id="prov-pre" class="value"></pre></details>\n'
+        "</section>\n"
+        '<aside class="detail" aria-label="Record detail">\n'
+        '<button type="button" id="back-btn" class="back-link">Back to list</button>\n'
+        '<div id="detail-body"></div>\n'
+        "</aside>\n"
+        "</main>\n"
         "</div>\n"
         f"<script>{script_body}</script>\n"
         "</body>\n"

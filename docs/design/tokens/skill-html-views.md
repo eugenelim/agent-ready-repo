@@ -202,4 +202,4 @@ The glyph is hidden from assistive tech, and the word is read. Each view maps it
 ## Unresolved
 
 - None for `explain-diff`: RFC-0108 D2 has its publisher inject this base as trusted bytes and hash the joined style.
-- Data-visualisation colours for `navigate-decisions`' lineage diagram beyond accent and neutrals. Its own adoption slice decides them, under this floor.
+- Data-visualisation colours for `navigate-decisions`' lineage diagram beyond the roles it uses today: `--c-muted` for checked edges, `--c-accent` for partial edges and the picked node, `--c-subtle` for unresolved and contextual edges, `--c-active` for caller-asserted edges, `--c-warn` for cycles, and `--c-accent-bg` for node fills. A new diagram hue is decided under this floor.

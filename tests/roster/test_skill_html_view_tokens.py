@@ -158,3 +158,17 @@ def test_state_mark_backgrounds_differ() -> None:
         {"--c-a": "#eee", "--c-b": "#eee"},
     )
     assert len(set(same.values())) < len(same)
+
+
+def test_navigate_decisions_base_copy_is_canonical_and_checked() -> None:
+    """The navigate-decisions copy is byte-identical and the parity tool finds it."""
+    import sys
+
+    sys.path.insert(0, str(_ROOT / "tools"))
+    try:
+        import check_view_base_parity as parity
+    finally:
+        sys.path.remove(str(_ROOT / "tools"))
+    copy = Path("packs/repo-governance/.apm/skills/navigate-decisions/scripts/explorer_assets/view-base.css")
+    assert (_ROOT / copy).read_bytes() == (_ASSETS / "view-base.css").read_bytes()
+    assert copy in parity.find_copies(_ROOT)
