@@ -119,6 +119,17 @@
         "Flags speculative scale unsupported by a named quality attribute and credible constraint",
         "Recommends removal of unsupported complexity or claims rather than expanding the design"
       ]
+    },
+    {
+      "id": "design-doc-module-red-flags",
+      "prompt": "Review this subsystem design. Callers must call open, configure, run and close in order to import one file; two modules each keep their own copy of the job status; the contract table has no caller's view; and its only alternatives are the same design on two different queue libraries.",
+      "expected_output": "architect-review returns severity-tagged findings for the shallow interface, the split ownership of job status, the contract written only from the provider's side, and the alternatives that are variants of one shape.",
+      "assertions": [
+        "Flags the open/configure/run/close sequence as a shallow module and suggests one operation behind one call",
+        "Flags the two copies of job status as split ownership needing one owner",
+        "Flags the contract that shows no caller call sites",
+        "Flags the queue-library alternatives as variants of one shape rather than a different whole shape"
+      ]
     }
   ]
 }
