@@ -1617,6 +1617,12 @@ consumer = "roster test that reads workspace.toml or the workspace-status engine
 owner = 9
 
 [[row]]
+pattern = "tests/roster/test_priority_field_never_read.py"
+class = "fixture"
+consumer = "roster test that scans the workspace-status engine and its packaged copy for the Priority field name"
+owner = 4
+
+[[row]]
 pattern = "tests/roster/test_reclassified_lifecycle_result.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
