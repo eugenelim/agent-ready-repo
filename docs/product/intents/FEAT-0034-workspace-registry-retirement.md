@@ -8,7 +8,7 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:workspace-coordination-reorganization
 - **De-risked:** 2026-10-08
-- **Shaping-reviewed:** 2026-10-26
+- **Shaping-reviewed:** 2026-10-27
 - **Decomposed:** 2026-10-25 brief
 
 ## Outcome
@@ -225,17 +225,18 @@ validation_hook:
 
 ### Registry comparison, owned here
 
-Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it measures the registry, not the navigator. The comparison the validation hook names compares `navigate-intents`' `outstanding` result with every `workspace.toml` entry in a non-terminal collection, and classes each difference.
+Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it measures the registry, not the navigator. The comparison the validation hook names compares the outstanding work the artifacts themselves show with every `workspace.toml` entry in a non-terminal collection, and classes each difference. On 2026-10-27 the owner, eugenelim, added captured-item files to the outstanding side, so the captured-item registration stop is tested too.
 
+- **Outstanding side:** every item in `navigate-intents`' `outstanding` result, and every captured-item file in `docs/product/captured/` whose own `Status:` is `Open`. A captured-item file whose `Status:` is `Closed` is terminal. A registry entry names a captured-item file by its `path`, or by a `{slug = ...}` table with no `path` whose slug is the file's name without `.md`. A captured-item file that cannot be read as one refuses the whole comparison, as a malformed intent, brief, or spec refuses the navigator's result.
 - **Non-terminal collections:** `backlog.open`, `shaping_queue.backlog`, `shaping_queue.active`, `brief_queue.draft`, `brief_queue.ready`, `brief_queue.executing`, `work.queue`, and `work.active`.
 - **Terminal collections:** `work.shipped`, `brief_queue.shipped`, `brief_queue.withdrawn`, `brief_queue.cancelled`, and `backlog.closed`.
 - **Allowed differences:**
-  - `captured_item` — a registry-only entry that names no intent, brief, or spec file;
-  - `legacy_shape` — a registry-only bare `spec/<slug>` string or `{slug = ...}` table;
+  - `captured_item` — a registry-only entry whose `path` names an existing file that is not an intent, brief, spec, or captured-item file;
+  - `legacy_shape` — a registry-only bare `spec/<slug>` string, or a `{slug = ...}` table that names no captured-item file;
   - `registry_stale` — a registry-only entry whose file exists and whose own `Status:` is terminal;
-  - `registry_closed_stale` — a result item whose own `Status:` is not terminal and which appears only in terminal collections;
-  - `registry_omission` — a result item absent from every collection.
-- **Failing differences:** a registry-only entry whose file's own `Status:` is not terminal, and a result item whose own `Status:` is terminal.
+  - `registry_closed_stale` — an outstanding-side item that appears only in terminal collections;
+  - `registry_omission` — an outstanding-side item absent from every collection.
+- **Failing differences:** a registry-only entry whose file's own `Status:` is not terminal, an outstanding-side item whose own `Status:` is terminal, and any difference no allowed class names, such as an entry whose file is missing or unreadable.
 
 The specification this intent decomposes into owns the comparison's implementation. It runs once just before each registration stop, with no weekly cadence and no CI job.
 
@@ -254,7 +255,7 @@ The specification this intent decomposes into owns the comparison's implementati
 
 ## Shaping review
 
-The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`. A third isolated intent-mode review completed cleanly on 2026-10-25 after the owner decisions and the decomposition were added, at git blob `3e1458113de342b7a1b16d434b451ef484dfc33b`, the text before this sentence. Adding these binding sentences is nonmaterial. A fourth isolated intent-mode review completed cleanly on 2026-10-26 after the owner cut the two-week trial, at git blob `2f048765b59bf83af47238d5346ad27ba6da8a89`, the text before this sentence and the Shaping-reviewed date.
+The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`. A third isolated intent-mode review completed cleanly on 2026-10-25 after the owner decisions and the decomposition were added, at git blob `3e1458113de342b7a1b16d434b451ef484dfc33b`, the text before this sentence. Adding these binding sentences is nonmaterial. A fourth isolated intent-mode review completed cleanly on 2026-10-26 after the owner cut the two-week trial, at git blob `2f048765b59bf83af47238d5346ad27ba6da8a89`, the text before this sentence and the Shaping-reviewed date. A fifth isolated intent-mode review completed cleanly on 2026-10-27 after the owner added captured-item files to the registry comparison, at git blob `9f71bd8d75a18a716b30cdd5ed8a6febcc1803f4`, the text before this sentence and the Shaping-reviewed date.
 
 ## Decomposition
 

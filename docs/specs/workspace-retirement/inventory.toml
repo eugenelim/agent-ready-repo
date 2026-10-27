@@ -2708,6 +2708,24 @@ consumer = "the optional Priority: header field and its reader, which no registr
 owner = 4
 
 [[row]]
+pattern = "docs/specs/registry-comparison/*"
+class = "contract"
+consumer = "the registry comparison: FEAT-0034's classes over the navigator's outstanding work, captured-item files, and workspace.toml, run once before each registration stop"
+owner = 5
+
+[[row]]
+pattern = "tools/compare-registry.py"
+class = "reader"
+consumer = "the registry comparison tool: reads workspace.toml read-only to compare it with the navigator's outstanding work"
+owner = 5
+
+[[row]]
+pattern = "tools/test_compare_registry.py"
+class = "fixture"
+consumer = "the registry comparison suite: its fixture registries are workspace.toml-shaped files the comparison reads"
+owner = 5
+
+[[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
 class = "contract"
 consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces"
