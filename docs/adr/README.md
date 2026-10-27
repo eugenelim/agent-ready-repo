@@ -150,3 +150,4 @@
 | 0146 | [Accept the mcp session-exhaustion advisory in the SAST toolchain until Semgrep allows a fixed mcp](0146-accept-mcp-session-exhaustion-advisory-in-the-sast-toolchain.md) | Accepted | 2026-10-15 |
 | 0147 | [Accept the opentelemetry-api tracestate advisory in the SAST toolchain until Semgrep allows a fixed release](0147-accept-the-otel-tracestate-advisory-in-the-sast-toolchain.md) | Accepted | 2026-10-24 |
 | 0148 | [The completion receipt rides on the waiting item's `Dependency receipts:` header line](0148-completion-receipt-rides-on-the-waiting-items-header.md) | Accepted | 2026-10-26 |
+| 0149 | [Accept three mcp client and bearer-auth advisories in the SAST toolchain until Semgrep allows a fixed mcp](0149-accept-three-mcp-client-and-auth-advisories-in-the-sast-toolchain.md) | Accepted | 2026-10-27 |
