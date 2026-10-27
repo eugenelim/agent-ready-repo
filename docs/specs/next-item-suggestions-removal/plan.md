@@ -1,7 +1,7 @@
 # Plan: Next-item suggestions removed
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/.apm/skills/workspace-status/SKILL.md` § Next-actions (the only home of `next_queue` and `next_shape`); `packs/core/tests/skills/workspace-status/test_priority_field_invariance.py` (a pack test over one skill's own files); `docs/specs/workspace-retirement/retirement-record.md` § Equivalence and `tests/roster/test_workspace_retirement_inventory.py` (the rules a new row must meet); `docs/specs/intent-view-session-start/spec.md` (the `Amended in part by:` header form).
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -115,3 +115,5 @@ Owned by: T1, T2
 ## Changelog
 
 - 2026-10-27: drafted.
+- 2026-10-27: spec approved by eugenelim.
+- 2026-10-27: plan approved by eugenelim.

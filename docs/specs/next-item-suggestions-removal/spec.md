@@ -1,6 +1,7 @@
 # Spec: Next-item suggestions removed
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-27 by eugenelim, spec and plan, after spec-stage shaping and adversarial reviews over five rounds ending clean; review records under `.context/reviews/slice6-spec-r1/` to `slice6-spec-r5/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, which authorises removing the first-in-list `next_queue` and `next_shape` suggestions, and which says selecting among several ready specs always lists them and asks)
