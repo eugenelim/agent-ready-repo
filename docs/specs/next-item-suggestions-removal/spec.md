@@ -1,6 +1,6 @@
 # Spec: Next-item suggestions removed
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-27 by eugenelim, spec and plan, after spec-stage shaping and adversarial reviews over five rounds ending clean; review records under `.context/reviews/slice6-spec-r1/` to `slice6-spec-r5/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

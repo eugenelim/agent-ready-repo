@@ -2460,10 +2460,10 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
-  # Slice 6 of `workspace-registry-retirement-delivery`; Approved 2026-10-27
-  { path = "docs/specs/next-item-suggestions-removal/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Next-item suggestions removed: workspace-status Next-actions drops the first-in-list next_queue and next_shape choices and offers each active spec as its own choice", needs = [] },
 ]
 active  = [
+  # Slice 6 of `workspace-registry-retirement-delivery`; Approved 2026-10-27 and moved from `queue` when it became Implementing the same day
+  { path = "docs/specs/next-item-suggestions-removal/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Next-item suggestions removed: workspace-status Next-actions drops the first-in-list next_queue and next_shape choices and offers each active spec as its own choice", needs = [] },
   # Slice 1 of `workspace-registry-retirement-delivery`; Approved 2026-10-25 and moved from `queue` when it became Implementing the same day.
   { path = "docs/specs/workspace-retirement/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The workspace retirement record: a per-PR-checked consumer inventory and the per-fact disposition, with removal authority, that RFC-0105 D3 requires", needs = [] },
 ]
