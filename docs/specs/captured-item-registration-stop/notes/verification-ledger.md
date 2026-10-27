@@ -26,3 +26,15 @@ workspace.toml sha256 b16a4b52934a492a2b05caf191b942890f82d375815539aa4d758c3790
 ```
 
 The 48 `registry_omission` rows are outstanding items that no registry entry names. That class is allowed and never failing.
+
+## T2: the grammar and the closed state
+
+Implemented in `f7d99bd90` (red), `d5617b253` (engine), `f8e7a36ce` (core 3.1.25), and `e4c002566` (packaged and projected copies). The three frozen fixtures are byte-identical to `dd4f7038c`.
+
+AC-0005's pins were recorded once from the engine at `dd4f7038c`:
+
+- A missing captured-item path with no receipt gives `missing_dependency` on the path.
+- A missing path with a completion receipt gives `invalid_dependency` on the waiter and `missing_dependency` on the path, because the header reader refuses a completion receipt on a captured-item reference. No receipt settles a captured-item dependency at either commit.
+- A cooled unregistered file gives `invalid_dependency` on the waiter, because its kind is never read.
+
+`test_workspace_status_engine_autonomous.py::test_t2_positive_dispatch_and_reconciliation_surface` plants a registered `Closed` design record. It gains `Resolution: fixed`, as the equivalence cases do, and keeps `impossible_transition`.
