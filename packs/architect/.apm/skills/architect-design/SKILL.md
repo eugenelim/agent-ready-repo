@@ -275,6 +275,8 @@ real choice remains, create no new artifact.
    table. Where the model names internal modules, packages, or interfaces,
    screen every candidate shape, and then the chosen one, against
    `references/module-design-red-flags.md`.
+   If a flag rules out the shape the user agreed at Stage 0, take that back to
+   the user rather than swapping in another shape.
 
 6. **Self-check against the rubric** in `references/design-doc-rubric.md`.
    Walk it line by line; fix what fails before showing the draft. Before the

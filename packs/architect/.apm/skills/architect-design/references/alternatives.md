@@ -50,8 +50,10 @@ owners, or data flows count. Variants of one shape do not: the same shape with
 a different library, a renamed module, or a tweak inside one element is a
 detail of that shape, not an alternative to it.
 
-At least one alternative in the document is a different whole shape. When the
-constraints leave only one viable shape, say so directly: "this was the only
+Where the document has an alternatives section, at least one alternative in it
+is a different whole shape. An architecture-change design has no such section,
+so its second shape lives in the Stage-0 concept. When the constraints leave
+only one viable shape, say so directly: "this was the only
 viable shape because …", naming the constraint that rules the others out.
 
 ## Pattern: "what we're not doing"
