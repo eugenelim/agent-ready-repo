@@ -1,6 +1,6 @@
 # Spec: Captured items stop being registered
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-27 by eugenelim, spec and plan, after three rounds of spec-stage shaping and adversarial review with every sustained finding repaired and adjudicated; review records under `.context/reviews/captured-item-registration-stop-spec-r1/` to `-r3/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
