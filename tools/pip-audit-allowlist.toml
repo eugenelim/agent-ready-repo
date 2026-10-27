@@ -138,3 +138,63 @@ A Semgrep release permits opentelemetry-api>=1.45.1, and tools/requirements-sast
 allows that release. pip-audit then stops reporting this id and the gate exits 2
 naming this entry for removal.
 """
+
+# Three more mcp advisories, 2026-10-27 (ADR-0149): the same `mcp==1.29.0` pin
+# keeps the fixed 1.30.0 out of reach.
+[[allow]]
+id       = "CVE-2026-116684"
+package  = "mcp"
+fixed_in = "1.30.0"
+reason   = """
+Server bearer authentication does not check a token's audience, so where one
+authorization server issues tokens for several services, a token for another
+service is accepted. Reached only through `AuthSettings` with a
+`token_verifier`. In Semgrep 1.182.1 both are built only by `setup_mcp_server`,
+from the `semgrep mcp` subcommand. `make sast` runs `run-semgrep-gate.py` with
+`--config` flags and source paths; it never invokes `semgrep mcp` and starts no
+server, and nothing else here imports `mcp`.
+Verified 2026-10-27; the finding and call paths are recorded in ADR-0149.
+"""
+unblocked_when = """
+A Semgrep release permits mcp>=1.30.0 (or 2.2.0), and tools/requirements-sast.txt
+allows that release. pip-audit then stops reporting this id and the gate exits 2
+naming this entry for removal.
+"""
+
+[[allow]]
+id       = "CVE-2026-116685"
+package  = "mcp"
+fixed_in = "1.30.0"
+reason   = """
+The Streamable HTTP and SSE client transports, and the OAuth client providers,
+follow cross-origin redirects carrying custom headers and, on a 307 or 308, the
+request body. Reached only from an MCP client. Semgrep 1.182.1 uses `mcp` only as
+a server and constructs no client session or client transport. `make sast` runs
+`run-semgrep-gate.py` with `--config` flags and source paths and opens no MCP
+client, and nothing else here imports `mcp`.
+Verified 2026-10-27; the finding and call paths are recorded in ADR-0149.
+"""
+unblocked_when = """
+A Semgrep release permits mcp>=1.30.0 (or 2.2.0), and tools/requirements-sast.txt
+allows that release. pip-audit then stops reporting this id and the gate exits 2
+naming this entry for removal.
+"""
+
+[[allow]]
+id       = "CVE-2026-116686"
+package  = "mcp"
+fixed_in = "1.30.0"
+reason   = """
+The client validates `call_tool` results against a server's `outputSchema` with
+a resolver that fetches any unresolved `$ref` URL or local file. Reached only
+from an MCP client calling a tool. Semgrep 1.182.1 constructs no MCP client and
+never calls `call_tool`. `make sast` runs `run-semgrep-gate.py` with `--config`
+flags and source paths and opens no MCP client, and nothing else here imports
+`mcp`.
+Verified 2026-10-27; the finding and call paths are recorded in ADR-0149.
+"""
+unblocked_when = """
+A Semgrep release permits mcp>=1.30.0 (or 2.2.0), and tools/requirements-sast.txt
+allows that release. pip-audit then stops reporting this id and the gate exits 2
+naming this entry for removal.
+"""
