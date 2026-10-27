@@ -8,7 +8,7 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:workspace-coordination-reorganization
 - **De-risked:** 2026-10-08
-- **Shaping-reviewed:** 2026-10-26
+- **Shaping-reviewed:** 2026-10-27
 - **Decomposed:** 2026-10-25 brief
 
 ## Outcome
@@ -255,7 +255,7 @@ The specification this intent decomposes into owns the comparison's implementati
 
 ## Shaping review
 
-The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`. A third isolated intent-mode review completed cleanly on 2026-10-25 after the owner decisions and the decomposition were added, at git blob `3e1458113de342b7a1b16d434b451ef484dfc33b`, the text before this sentence. Adding these binding sentences is nonmaterial. A fourth isolated intent-mode review completed cleanly on 2026-10-26 after the owner cut the two-week trial, at git blob `2f048765b59bf83af47238d5346ad27ba6da8a89`, the text before this sentence and the Shaping-reviewed date.
+The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`. A third isolated intent-mode review completed cleanly on 2026-10-25 after the owner decisions and the decomposition were added, at git blob `3e1458113de342b7a1b16d434b451ef484dfc33b`, the text before this sentence. Adding these binding sentences is nonmaterial. A fourth isolated intent-mode review completed cleanly on 2026-10-26 after the owner cut the two-week trial, at git blob `2f048765b59bf83af47238d5346ad27ba6da8a89`, the text before this sentence and the Shaping-reviewed date. A fifth isolated intent-mode review completed cleanly on 2026-10-27 after the owner added captured-item files to the registry comparison, at git blob `9f71bd8d75a18a716b30cdd5ed8a6febcc1803f4`, the text before this sentence and the Shaping-reviewed date.
 
 ## Decomposition
 

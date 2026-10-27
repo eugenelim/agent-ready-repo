@@ -1717,6 +1717,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / Pull-request template installer and "
             "release checker"
         ),
+    'tools/test_compare_registry.py':
+        NO_PR_GATE(
+            "Tests a maintainer-run comparison that has no CI job by owner decision "
+            "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
+            "through the dispatch-only test-corpus.yml."
+        ),
     'tools/test_intent_corpus_gate.py':
         NO_PR_GATE(
             "Asserts docs.yml's lint-intent-corpus job still invokes the intent "

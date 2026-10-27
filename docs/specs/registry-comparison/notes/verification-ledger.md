@@ -9,3 +9,8 @@ Execution observations for `docs/specs/registry-comparison/`. The spec and plan 
 - **Envelope item type.** The envelope check also refuses an item whose `type` is not `intent`, `brief`, or `spec`. That is a refusal (exit 2), so it fails closed.
 - **Typed-file read bound.** A typed-file target is read with a 64 MiB cap. A larger file is `unclassified`.
 - **Refusal input names.** `workspace.toml`, `navigator`, `graph`, `captured-items`, `arguments`, and `internal`.
+
+## T2 — records and wiring
+
+- **Registry placement.** T2's Tests name `ini-002`'s `work` collection. The slice siblings live under `ini-010` (`workspace-retirement` in `active`, `priority-header-field` in `shipped`), so this spec's entry is in `ini-010.work.active`. `lint-brief-coverage.py --root .` exits 0 and lists `registry-comparison: Implementing` under the brief, which is the check T2 names. `workspace_status.py --root .` places the spec in `canonical.active` with no finding.
+- **Checks.** `tests/roster/test_workspace_retirement_inventory.py`: 120 passed. `tools/test-lint-ci-parity.py`: 218 cases passed. `tools/lint-ci-parity.py`: exit 0 (under the gate venv; bare `python3` lacks PyYAML).
