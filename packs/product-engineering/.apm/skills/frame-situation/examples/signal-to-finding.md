@@ -111,13 +111,8 @@ the skill becomes available.
 
 Record at `docs/product/captured/agent-skill-discovery-gap.md`: `Status: Open`,
 `Kind: design`, and `Detail: docs/product/shaping/agent-skill-discovery-gap/situation-framing.md`,
-with the finding under `## Summary`. Entry that registers it:
-
-```toml
-{path = "docs/product/captured/agent-skill-discovery-gap.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
-```
-
-Register through `work-intake`, which writes the record and the entry.
+with the finding under `## Summary`. Capture it through `work-intake`, which
+writes the file.
 ```
 
 ---
@@ -138,13 +133,6 @@ The agent prints the record text:
 Agents cannot discover which skill fits the work in front of them
 ```
 
-and the entry that registers it:
-
-```toml
-{path = "docs/product/captured/agent-skill-discovery-gap.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
-```
-
-> Register this through `work-intake`, which writes the record and adds the
-> entry to your active initiative's `["ini-NNN".shaping_queue]` backlog. Once
-> registered, `workspace-status` will surface it as a ready shaping item pointing
-> to `identify-opportunities`.
+> Capture this through `work-intake`, which writes the file at
+> `docs/product/captured/agent-skill-discovery-gap.md`. Shaping resumes at
+> `identify-opportunities`.
