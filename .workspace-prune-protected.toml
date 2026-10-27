@@ -30,6 +30,7 @@ protected = [
   "docs/specs/blocked",
   "docs/specs/broken",
   "docs/specs/caf",
+  "docs/specs/captured-item-registration-stop",
   "docs/specs/canonical",
   "docs/specs/catalogue-sync-apply",
   "docs/specs/catalogue-sync-dry-run",
