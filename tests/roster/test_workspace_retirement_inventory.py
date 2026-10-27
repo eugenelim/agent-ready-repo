@@ -257,6 +257,20 @@ def _wildcard_violation(repo: _Repo, where: str, pattern: str, cls: str) -> Viol
     )
 
 
+def _valid_row_indexes(rows: list[dict[str, Any]]) -> list[int]:
+    """Indexes of rows with a non-empty pattern and a string class, in file order."""
+    return [
+        i
+        for i, r in enumerate(rows)
+        if _nonempty_str(r.get("pattern")) and isinstance(r.get("class"), str)
+    ]
+
+
+def _governing_index(rows: list[dict[str, Any]], valid: list[int], path: str) -> int | None:
+    """The first valid row, in file order, whose pattern matches ``path``."""
+    return next((i for i in valid if fnmatch.fnmatchcase(path, rows[i]["pattern"])), None)
+
+
 def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]:
     """Apply AC-0001 to AC-0009, AC-0019 and AC-0021 to ``root``."""
     try:
@@ -278,11 +292,7 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
     def label(i: int) -> str:
         return f"row[{i}] {rows[i].get('pattern')!r}"
 
-    valid = [
-        i
-        for i, r in enumerate(rows)
-        if _nonempty_str(r.get("pattern")) and isinstance(r.get("class"), str)
-    ]
+    valid = _valid_row_indexes(rows)
     for i, row in enumerate(rows):
         violations += _structure_violations(i, row)
     for i in valid:
@@ -328,7 +338,7 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
                 )
 
     def governing(path: str) -> int | None:
-        return next((i for i in valid if fnmatch.fnmatchcase(path, rows[i]["pattern"])), None)
+        return _governing_index(rows, valid, path)
 
     exact = {rows[i]["pattern"] for i in valid}
     scanned = _scanned_set(repo, exact)
@@ -523,13 +533,15 @@ def _split_row(line: str) -> list[str]:
     return [c.replace("\\|", "|").strip() for c in cells]
 
 
-def _disposition_rows(section: str) -> tuple[list[dict[str, str]], str | None]:
-    """The Disposition table's rows keyed by column, or (rows, reason) when unusable."""
+def _disposition_rows(
+    section: str, columns: tuple[str, ...] = _COLUMNS
+) -> tuple[list[dict[str, str]], str | None]:
+    """A record table's rows keyed by column, or (rows, reason) when unusable."""
     table = [ln for ln in section.splitlines() if ln.lstrip().startswith("|")]
     if not table:
         return [], "no Markdown table"
     header = [_fact_text(c) for c in _split_row(table[0])]
-    missing = [c for c in _COLUMNS if c not in header]
+    missing = [c for c in columns if c not in header]
     if missing:
         return [], f"table lacks column(s) {', '.join(missing)}"
     rows = []
@@ -1808,36 +1820,20 @@ def _inventory_rows() -> list[dict[str, Any]]:
 
 
 def _governing_row(path: str) -> dict[str, Any]:
-    """The first inventory row, in file order, whose pattern matches ``path``."""
-    return next(r for r in _inventory_rows() if fnmatch.fnmatchcase(path, r["pattern"]))
+    """The governing inventory row of ``path``, as the inventory check decides it."""
+    rows = _inventory_rows()
+    index = _governing_index(rows, _valid_row_indexes(rows), path)
+    assert index is not None, path
+    return rows[index]
 
 
 def _equivalence_rows() -> list[dict[str, str]]:
     text = DEFAULT_RECORD.read_text(encoding="utf-8")
     heads = _headings(text)
     at = next(i for i, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Equivalence")
-    rows, reason = _disposition_rows_for(_section(text, heads, at), _EQ_COLUMNS)
+    rows, reason = _disposition_rows(_section(text, heads, at), _EQ_COLUMNS)
     assert reason is None, reason
     return rows
-
-
-def _disposition_rows_for(
-    section: str, columns: tuple[str, ...]
-) -> tuple[list[dict[str, str]], str | None]:
-    """Parse a record table like ``_disposition_rows`` does, for the given columns."""
-    table = [ln for ln in section.splitlines() if ln.lstrip().startswith("|")]
-    header = [_fact_text(c) for c in _split_row(table[0])]
-    missing = [c for c in columns if c not in header]
-    if missing:
-        return [], f"table lacks column(s) {', '.join(missing)}"
-    rows = []
-    for line in table[1:]:
-        cells = _split_row(line)
-        if cells and all(_ROW_SEPARATOR.match(c) for c in cells):
-            continue
-        cells += [""] * (len(header) - len(cells))
-        rows.append({name: cells[i] for i, name in enumerate(header)})
-    return rows, None
 
 
 def test_slice6_ac0004_equivalence_row_records_the_accepted_removal() -> None:

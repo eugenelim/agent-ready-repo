@@ -437,7 +437,7 @@ From the JSON result:
 - `active` = all entries in `canonical.active`
 - `unblocked` = all entries in `canonical.ready`
 
-Never single out one item because it comes first in a list. Ready to start already lists every ready item with its command, so the user picks among them.
+Ready to start already lists every ready item with its command, so the user picks among them.
 
 **Path resolution:** entries in `canonical.ready`, `canonical.active`, etc. carry a `path` field (e.g. `"docs/specs/<slug>/spec.md"`). Strip `docs/specs/` and trailing `/spec.md` to get the slug; use `docs/specs/<slug>/` for file-system commands.
 
