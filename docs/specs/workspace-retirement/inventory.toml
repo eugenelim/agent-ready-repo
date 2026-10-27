@@ -1244,22 +1244,10 @@ consumer = "how-to or reference telling agents how to register or route work thr
 owner = 7
 
 [[row]]
-pattern = "guides/product-strategy/explanation/why-strategy-is-its-own-seat.md"
-class = "guide"
-consumer = "guide telling readers to run workspace-status or read workspace.toml"
-owner = 9
-
-[[row]]
 pattern = "guides/product-strategy/how-to/cascade-okrs-into-the-shaping-queue.md"
 class = "guide"
 consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
 owner = 3
-
-[[row]]
-pattern = "guides/product-strategy/how-to/set-the-direction.md"
-class = "guide"
-consumer = "guide telling readers to run workspace-status or read workspace.toml"
-owner = 9
 
 [[row]]
 pattern = "guides/product-strategy/reference/frameworks-and-artifacts.md"
@@ -1527,12 +1515,6 @@ consumer = "published product-strategy journey: OKR gap entries land in workspac
 owner = 3
 
 [[row]]
-pattern = "packs/product-strategy/README.md"
-class = "promise"
-consumer = "published product-strategy readme: run-okr-cascade writes strategy entries to workspace.toml"
-owner = 3
-
-[[row]]
 pattern = "tests/fixtures/install_snapshot/core.paths.txt"
 class = "fixture"
 consumer = "install snapshot listing the seeded workspace.toml path"
@@ -1540,6 +1522,12 @@ owner = 9
 
 [[row]]
 pattern = "tests/roster/test_agent_skill_engineering_consumer_integrations.py"
+class = "fixture"
+consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
+owner = 9
+
+[[row]]
+pattern = "tests/roster/test_captured_item_registration_stop.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
 owner = 9

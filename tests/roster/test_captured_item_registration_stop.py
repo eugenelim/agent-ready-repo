@@ -197,8 +197,8 @@ def test_errata_entry_names_every_amended_passage(rel: str) -> None:
             continue
         flat = " ".join(entry.split())
         missing = [p for p in _ERRATA[rel] if p not in flat]
-        if "rfc/0106-" in entry or "0106-stop-registering-derivable-work" in entry:
-            if "docs/product/captured/" in flat and not missing:
-                return
+        links_rfc = "0106-stop-registering-derivable-work" in entry
+        if links_rfc and "docs/product/captured/" in flat and not missing:
+            return
         problems.append(f"{match.group(1)} entry: missing {missing}")
     raise AssertionError(f"{rel}: no qualifying errata entry; {problems}")
