@@ -292,6 +292,17 @@
         "Does not write the intent's file path",
         "Says a research or notes source stays a repository-relative path"
       ]
+    },
+    {
+      "id": "design-decision-names-its-falsifying-assumption",
+      "prompt": "You are filling the `### Design decisions` sub-section of a plan. The load-bearing choice is to keep session tokens in an in-process map rather than a shared store. What should the entry contain?",
+      "files": [],
+      "expected_output": "The choice, the rejected alternative (a shared store) with one line of why, and the assumption the choice rests on: for example, that only one process ever serves a given session. If the build proves that false, the choice is wrong. The entry also traces to the acceptance criteria and contracts it serves and names its owning tasks.",
+      "assertions": [
+        "Response records the rejected alternative with a reason",
+        "Response names the assumption that would make the choice wrong if the build disproved it",
+        "Response keeps the Traces to and Owned by fields"
+      ]
     }
   ]
 }
