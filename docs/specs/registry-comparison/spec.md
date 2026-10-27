@@ -1,6 +1,6 @@
 # Spec: Registry comparison
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-27 by eugenelim, spec and plan, after spec-stage shaping and adversarial reviews over five rounds ending clean, with the FEAT-0034 amendment clean in intent review; review records under `.context/reviews/0a169cc7-b068-428f-aae2-8b3eb35b48dc/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -93,37 +93,37 @@ Terms used below:
 
 Classification is per target. Every entry naming a target is judged together, over the union of their collections, and each entry with no target is judged alone.
 
-- [ ] **AC-0001.** `python3 tools/compare-registry.py --root DIR` reads its registry, `DIR/workspace.toml`, and its captured-item files from `DIR`.
-- [ ] **AC-0017.** The tool runs the navigator `packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py` found from the tool's own location, never from `DIR`, with `--root DIR`.
-- [ ] **AC-0002.** An outstanding item registered in at least one non-terminal collection, with a non-terminal own status, gives no difference row. Neither does a target or no-target entry whose collections are all terminal and that is not an outstanding item's path.
-- [ ] **AC-0003.** An outstanding item whose own status is terminal gives one failing `result_terminal` row, whatever its collections.
-- [ ] **AC-0004.** An outstanding item with a non-terminal own status, registered only in terminal collections, gives one `registry_closed_stale` row.
-- [ ] **AC-0005.** An outstanding item with a non-terminal own status, registered in no collection, gives one `registry_omission` row.
-- [ ] **AC-0006.** These are the rows for an entry in at least one non-terminal collection that is not an outstanding item's path. A string that the engine's `_is_legacy_spec_path` accepts gives `legacy_shape`. So does a table with a `slug`, no `path`, and no captured-item file for that slug.
-- [ ] **AC-0007.** Such an entry whose target is canonical and exists as a regular file that is neither a typed file nor a captured-item file gives `captured_item`.
-- [ ] **AC-0008.** Such an entry whose target is a canonical typed file or captured-item file with a terminal own status gives `registry_stale`.
-- [ ] **AC-0009.** Such an entry whose target is a canonical typed file or captured-item file with a non-terminal own status gives a failing `registry_live_only` row.
-- [ ] **AC-0010.** Every other such entry gives a failing `unclassified` row. That covers a target that is not canonical, is missing, is a link, is not a regular file, or resolves outside the root; a typed file that cannot be read or is not UTF-8; and an entry with no target that AC-0006 does not class.
-- [ ] **AC-0011.** Entries that share a target give one row for that target, holding the union of their collections. Each entry with no target in a non-terminal collection gives its own row.
-- [ ] **AC-0012.** By default the tool prints these stdout lines and nothing else:
+- [x] **AC-0001.** `python3 tools/compare-registry.py --root DIR` reads its registry, `DIR/workspace.toml`, and its captured-item files from `DIR`.
+- [x] **AC-0017.** The tool runs the navigator `packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py` found from the tool's own location, never from `DIR`, with `--root DIR`.
+- [x] **AC-0002.** An outstanding item registered in at least one non-terminal collection, with a non-terminal own status, gives no difference row. Neither does a target or no-target entry whose collections are all terminal and that is not an outstanding item's path.
+- [x] **AC-0003.** An outstanding item whose own status is terminal gives one failing `result_terminal` row, whatever its collections.
+- [x] **AC-0004.** An outstanding item with a non-terminal own status, registered only in terminal collections, gives one `registry_closed_stale` row.
+- [x] **AC-0005.** An outstanding item with a non-terminal own status, registered in no collection, gives one `registry_omission` row.
+- [x] **AC-0006.** These are the rows for an entry in at least one non-terminal collection that is not an outstanding item's path. A string that the engine's `_is_legacy_spec_path` accepts gives `legacy_shape`. So does a table with a `slug`, no `path`, and no captured-item file for that slug.
+- [x] **AC-0007.** Such an entry whose target is canonical and exists as a regular file that is neither a typed file nor a captured-item file gives `captured_item`.
+- [x] **AC-0008.** Such an entry whose target is a canonical typed file or captured-item file with a terminal own status gives `registry_stale`.
+- [x] **AC-0009.** Such an entry whose target is a canonical typed file or captured-item file with a non-terminal own status gives a failing `registry_live_only` row.
+- [x] **AC-0010.** Every other such entry gives a failing `unclassified` row. That covers a target that is not canonical, is missing, is a link, is not a regular file, or resolves outside the root; a typed file that cannot be read or is not UTF-8; and an entry with no target that AC-0006 does not class.
+- [x] **AC-0011.** Entries that share a target give one row for that target, holding the union of their collections. Each entry with no target in a non-terminal collection gives its own row.
+- [x] **AC-0012.** By default the tool prints these stdout lines and nothing else:
   - `registry comparison: pass` when no row is failing, otherwise `registry comparison: fail`;
   - then one line `<class> <count>` for each of `captured_item`, `legacy_shape`, `registry_stale`, `registry_closed_stale`, `registry_omission`, `registry_live_only`, `result_terminal`, and `unclassified`, in that order, zeros included;
   - then one line `FAIL <class> <target> <location> <collections>` per failing row, in row order, with the row's `target`, `location`, and `collections` each written as `json.dumps` with `ensure_ascii=True` writes it;
   - then `commit <git rev-parse HEAD in DIR, or "unknown">`;
   - then `workspace.toml sha256 <hex digest of its bytes>`.
-- [ ] **AC-0018.** With `--format json`, it prints one JSON object instead of AC-0012's lines. The object has `schema` set to `registry-comparison.v1`, `result` set to `pass` or `fail`, `counts` with all eight classes, `differences` holding every row in row order, and `inputs` holding `commit`, `workspace_sha256`, and the navigator's `provenance.generated_at`.
-- [ ] **AC-0013.** It exits 0 when no row is failing and 1 when any row is failing.
-- [ ] **AC-0019.** In each case below it exits 2 and prints one stderr line `refused: <input>: <reason>`, with nothing on stdout. The inputs are checked in this order, and the first refusal wins:
+- [x] **AC-0018.** With `--format json`, it prints one JSON object instead of AC-0012's lines. The object has `schema` set to `registry-comparison.v1`, `result` set to `pass` or `fail`, `counts` with all eight classes, `differences` holding every row in row order, and `inputs` holding `commit`, `workspace_sha256`, and the navigator's `provenance.generated_at`.
+- [x] **AC-0013.** It exits 0 when no row is failing and 1 when any row is failing.
+- [x] **AC-0019.** In each case below it exits 2 and prints one stderr line `refused: <input>: <reason>`, with nothing on stdout. The inputs are checked in this order, and the first refusal wins:
   1. `workspace.toml` is missing, is a link, is not a regular file, is not UTF-8, or does not parse as TOML; or a section or initiative table the engine's tables place is present but is not a table; or a collection is present but is not an array.
   2. The navigator exits non-zero, or its output is not a JSON object with `schema` `intent-navigation.query.v1`, `status` `ok`, and `placed` and `no_parent` arrays whose items each carry string `id`, `type`, and `status`.
   3. The navigator's graph cannot be derived, or an outstanding item's id has no path in it.
   4. The captured-item directory exists but cannot be listed, or a captured-item file is unreadable or invalid by `workspace-status`'s captured-item reader, whether or not an entry names it.
 
   A command-line usage error exits 2 the same way, with `<input>` `arguments`. Any other error also exits 2, with `<input>` `internal`, never 1.
-- [ ] **AC-0020.** `--help` names the eight classes, which of them fail, and the three exit codes.
-- [ ] **AC-0014.** A run leaves every file under `DIR` byte-identical and creates no file there or anywhere else, bytecode included.
-- [ ] **AC-0015.** `docs/specs/registry-comparison/notes/verification-ledger.md` records one run of the tool over this repository. It holds the run's full default output and exit code, the commit it ran at on this spec's branch, and that commit's merge base with `origin/main`. When that run has a failing row, the ledger also names the owner's disposition of each failing row.
-- [ ] **AC-0016.** `docs/specs/workspace-retirement/inventory.toml` governs `tools/compare-registry.py`, `tools/test_compare_registry.py`, and `docs/specs/registry-comparison/*` by rows with owner 5, and `tests/roster/test_workspace_retirement_inventory.py` passes.
+- [x] **AC-0020.** `--help` names the eight classes, which of them fail, and the three exit codes.
+- [x] **AC-0014.** A run leaves every file under `DIR` byte-identical and creates no file there or anywhere else, bytecode included.
+- [x] **AC-0015.** `docs/specs/registry-comparison/notes/verification-ledger.md` records one run of the tool over this repository. It holds the run's full default output and exit code, the commit it ran at on this spec's branch, and that commit's merge base with `origin/main`. When that run has a failing row, the ledger also names the owner's disposition of each failing row.
+- [x] **AC-0016.** `docs/specs/workspace-retirement/inventory.toml` governs `tools/compare-registry.py`, `tools/test_compare_registry.py`, and `docs/specs/registry-comparison/*` by rows with owner 5, and `tests/roster/test_workspace_retirement_inventory.py` passes.
 
 ## Follow-ons
 

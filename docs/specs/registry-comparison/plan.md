@@ -1,7 +1,7 @@
 # Plan: Registry comparison
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tools/AGENTS.md` (pure-stdlib tools; the `lint-ci-parity.py` suite roster); `tools/check_closure_terminality_parity.py`, a repository tool that imports sibling skills by path, and `tools/check_view_base_parity.py`, which imports `agentbundle.catalogue_tooling.file_safety`; their tests `tools/test_check_closure_terminality_parity.py` (the `_load` helper over `importlib.util.spec_from_file_location`).
 
 > **Plan contract:** this is the implementation strategy. It may change
