@@ -257,6 +257,20 @@ def _wildcard_violation(repo: _Repo, where: str, pattern: str, cls: str) -> Viol
     )
 
 
+def _valid_row_indexes(rows: list[dict[str, Any]]) -> list[int]:
+    """Indexes of rows with a non-empty pattern and a string class, in file order."""
+    return [
+        i
+        for i, r in enumerate(rows)
+        if _nonempty_str(r.get("pattern")) and isinstance(r.get("class"), str)
+    ]
+
+
+def _governing_index(rows: list[dict[str, Any]], valid: list[int], path: str) -> int | None:
+    """The first valid row, in file order, whose pattern matches ``path``."""
+    return next((i for i in valid if fnmatch.fnmatchcase(path, rows[i]["pattern"])), None)
+
+
 def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]:
     """Apply AC-0001 to AC-0009, AC-0019 and AC-0021 to ``root``."""
     try:
@@ -278,11 +292,7 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
     def label(i: int) -> str:
         return f"row[{i}] {rows[i].get('pattern')!r}"
 
-    valid = [
-        i
-        for i, r in enumerate(rows)
-        if _nonempty_str(r.get("pattern")) and isinstance(r.get("class"), str)
-    ]
+    valid = _valid_row_indexes(rows)
     for i, row in enumerate(rows):
         violations += _structure_violations(i, row)
     for i in valid:
@@ -328,7 +338,7 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
                 )
 
     def governing(path: str) -> int | None:
-        return next((i for i in valid if fnmatch.fnmatchcase(path, rows[i]["pattern"])), None)
+        return _governing_index(rows, valid, path)
 
     exact = {rows[i]["pattern"] for i in valid}
     scanned = _scanned_set(repo, exact)
@@ -523,13 +533,15 @@ def _split_row(line: str) -> list[str]:
     return [c.replace("\\|", "|").strip() for c in cells]
 
 
-def _disposition_rows(section: str) -> tuple[list[dict[str, str]], str | None]:
-    """The Disposition table's rows keyed by column, or (rows, reason) when unusable."""
+def _disposition_rows(
+    section: str, columns: tuple[str, ...] = _COLUMNS
+) -> tuple[list[dict[str, str]], str | None]:
+    """A record table's rows keyed by column, or (rows, reason) when unusable."""
     table = [ln for ln in section.splitlines() if ln.lstrip().startswith("|")]
     if not table:
         return [], "no Markdown table"
     header = [_fact_text(c) for c in _split_row(table[0])]
-    missing = [c for c in _COLUMNS if c not in header]
+    missing = [c for c in columns if c not in header]
     if missing:
         return [], f"table lacks column(s) {', '.join(missing)}"
     rows = []
@@ -1796,3 +1808,68 @@ def test_ac0017_wiring_rules(change: tuple[str, str], problem: str) -> None:
 def test_ac0017_quoted_on_key_is_read() -> None:
     assert workflow_wiring_violations(_GOOD_WORKFLOW.replace("on:\n", '"on":\n', 1)) == []
     assert workflow_wiring_violations("jobs: {}\n") == ["workflow has no top-level `on:` block"]
+
+
+# ───────────────── slice 6: the first-in-list suggestions removal ─────────────────
+
+_SLICE6_CASE = "the first-in-list next_queue and next_shape suggestions"
+
+
+def _inventory_rows() -> list[dict[str, Any]]:
+    return tomllib.loads(DEFAULT_INVENTORY.read_text(encoding="utf-8"))["row"]
+
+
+def _governing_row(path: str) -> dict[str, Any]:
+    """The governing inventory row of ``path``, as the inventory check decides it."""
+    rows = _inventory_rows()
+    index = _governing_index(rows, _valid_row_indexes(rows), path)
+    assert index is not None, path
+    return rows[index]
+
+
+def _equivalence_rows() -> list[dict[str, str]]:
+    text = DEFAULT_RECORD.read_text(encoding="utf-8")
+    heads = _headings(text)
+    at = next(i for i, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Equivalence")
+    rows, reason = _disposition_rows(_section(text, heads, at), _EQ_COLUMNS)
+    assert reason is None, reason
+    return rows
+
+
+def test_slice6_ac0004_equivalence_row_records_the_accepted_removal() -> None:
+    """next-item-suggestions-removal AC-0004."""
+    matches = [r for r in _equivalence_rows() if _fact_text(r["Case"]) == _SLICE6_CASE]
+    assert len(matches) == 1
+    row = matches[0]
+    assert _fact_text(row["Slice"]) == "6"
+    assert _fact_text(row["Result"]) == "accepted removal"
+    targets = _LINK.findall(row["Authority"])
+    assert any(
+        t.endswith(
+            "0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply"
+        )
+        for t in targets
+    ), targets
+
+
+def test_slice6_ac0005_removal_spec_is_a_slice_six_contract_row() -> None:
+    """next-item-suggestions-removal AC-0005."""
+    row = _governing_row("docs/specs/next-item-suggestions-removal/spec.md")
+    assert row["class"] == "contract"
+    assert row["owner"] == 6
+
+
+def test_slice6_ac0006_amended_spec_no_longer_reads_order() -> None:
+    """next-item-suggestions-removal AC-0006."""
+    row = _governing_row("docs/specs/workspace-status-next-actions/spec.md")
+    assert row.get("reads_order") is not True
+
+
+def test_slice6_ac0007_no_consumer_names_the_removed_fields() -> None:
+    """next-item-suggestions-removal AC-0007."""
+    named = [
+        r["pattern"]
+        for r in _inventory_rows()
+        if "next_queue" in r["consumer"] or "next_shape" in r["consumer"]
+    ]
+    assert named == []
