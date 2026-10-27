@@ -1,26 +1,5 @@
 !function(){
 'use strict';
-// ── Colour theme: Auto follows the system; Light and Dark override it. ──────
-var THEME_KEY='decision-nav-theme';
-var darkMq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
-function storedTheme(){
-try{var v=localStorage.getItem(THEME_KEY);return v==='light'||v==='dark'?v:'auto';}
-catch(se){return 'auto';}}
-function applyTheme(choice){
-var dark=choice==='dark'||(choice==='auto'&&!!(darkMq&&darkMq.matches));
-document.documentElement.setAttribute('data-theme',dark?'dark':'light');
-document.querySelectorAll('[data-theme-choice]').forEach(function(b){
-b.setAttribute('aria-pressed',b.getAttribute('data-theme-choice')===choice?'true':'false');});}
-var themeChoice=storedTheme();
-applyTheme(themeChoice);
-if(darkMq&&darkMq.addEventListener)darkMq.addEventListener('change',function(){
-if(themeChoice==='auto')applyTheme('auto');});
-document.querySelectorAll('[data-theme-choice]').forEach(function(b){
-b.addEventListener('click',function(){
-themeChoice=b.getAttribute('data-theme-choice');
-try{if(themeChoice==='auto')localStorage.removeItem(THEME_KEY);
-else localStorage.setItem(THEME_KEY,themeChoice);}catch(se){}
-applyTheme(themeChoice);});});
 var dataEl=document.getElementById('nav-data');
 var D;
 try{D=JSON.parse(dataEl?dataEl.textContent:'');}
@@ -58,8 +37,9 @@ function shownId(x){var t=V(String(x));return t.length>64?t.slice(0,63)+'…':t;
 function claimText(u){
 if(typeof u==='string')return V(u);
 return u?(u.display_value||V(u.raw_value||u.by||'')):'';}
-var state={view:'list',sel:null,kind:'',status:'',q:''};
-var VALID_VIEWS=['list','graph','context','detail'];
+// picked: a record was chosen, so below 40rem the detail zone replaces the list zone.
+var state={view:'list',sel:null,picked:false,kind:'',status:'',q:''};
+var VALID_VIEWS=['list','graph','context'];
 var statusMap={};
 records.forEach(function(r){
 var l=r.lifecycle;if(!l||l.missing)return;
@@ -83,55 +63,42 @@ function attr(e,k,v){if(v!=null)e.setAttribute(k,v);return e;}
 function btn(cls,txt,handler){
 var b=el('button',cls,txt);b.addEventListener('click',handler);return b;}
 function updateLive(msg){if(liveEl)liveEl.textContent=msg;}
-// Map lifecycle raw_value to a status CSS class
-function statusClass(rv){
-if(!rv)return'status-default';
-var v=rv.toLowerCase();
-if(v.indexOf('accepted')>=0||v.indexOf('active')>=0)return'status-accepted';
-if(v.indexOf('proposed')>=0||v.indexOf('draft')>=0||v.indexOf('open')>=0)return'status-proposed';
-if(v.indexOf('superseded')>=0)return'status-superseded';
-if(v.indexOf('deprecated')>=0||v.indexOf('rejected')>=0||v.indexOf('withdrawn')>=0)return'status-deprecated';
-return'status-default';}
-// ── Stat cards ───────────────────────────────────────────────────────────────
-function renderStatCards(){
-var sc=document.getElementById('stat-cards');if(!sc)return;
-sc.textContent='';
-var bk=(D.summary&&D.summary.by_kind)||{};
-var unresCnt=(D.summary&&D.summary.unresolved_reference_count)||0;
-var supCnt=records.filter(function(r){return r.superseded_by&&r.superseded_by.length>0;}).length;
-var stats=[
-  {n:records.length,l:'total'},
-  {n:bk.ADR||0,l:'ADRs'},
-  {n:bk.RFC||0,l:'RFCs'},
-  {n:supCnt,l:'superseded'},
-  {n:unresCnt,l:'unresolved'}];
-stats.forEach(function(s){
-var card=document.createElement('div');card.className='stat-card';
-var num=document.createElement('div');num.className='stat-num';
-num.textContent=String(s.n);
-var lbl=document.createElement('div');lbl.className='stat-label';
-lbl.textContent=s.l;
-card.appendChild(num);card.appendChild(lbl);sc.appendChild(card);});}
+// Lifecycle mark: the first run of letters in the raw value picks one of four marks.
+var MARK_OF={accepted:'approved',experimental:'active',proposed:'draft',draft:'draft',
+open:'draft',final:'draft',superseded:'done',deprecated:'done',rejected:'done',withdrawn:'done'};
+var MARK_GLYPH={active:'●',approved:'◆',draft:'◇',done:'✓'};
+function markName(rec){
+var l=rec.lifecycle;if(!l||l.missing)return'draft';
+var w=/[A-Za-z]+/.exec(l.raw_value||'');
+var m=w?MARK_OF[w[0].toLowerCase()]:null;return m||'draft';}
+function markEl(rec){
+var l=rec.lifecycle,m=markName(rec);
+var e=el('span','mark');e.setAttribute('data-mark',m);
+var g=el('span','mark-g',MARK_GLYPH[m]);g.setAttribute('aria-hidden','true');
+e.appendChild(g);
+e.appendChild(document.createTextNode(!l||l.missing?'No status':(l.display_value||l.raw_value||'No status')));
+return e;}
 // ── Kind pill helper ─────────────────────────────────────────────────────────
 function setKindPill(kind){
 if(!kindEl)return;
-kindEl.querySelectorAll('button.kind-pill').forEach(function(b){
-var bk=b.getAttribute('data-kind')||'';
-if(bk===kind){b.classList.add('active');}
-else{b.classList.remove('active');}
-b.setAttribute('aria-pressed',bk===kind?'true':'false');});}
+kindEl.querySelectorAll('button[data-kind]').forEach(function(b){
+b.setAttribute('aria-pressed',(b.getAttribute('data-kind')||'')===kind?'true':'false');});}
 // ── Routing ──────────────────────────────────────────────────────────────────
 function parseHash(){
+state.sel=null;state.picked=false;
 try{
 var h=location.hash.slice(1);
-if(!h){state.view='list';state.sel=null;return;}
+if(!h){state.view='list';return;}
 var i=h.indexOf('/');
 var v=i<0?h:h.slice(0,i);
-if(VALID_VIEWS.indexOf(v)<0){state.view='list';state.sel=null;return;}
-state.view=v;state.sel=null;
+// #detail/<id> keeps the current view (List on a cold load) and picks the record.
+if(v!=='detail'){
+if(VALID_VIEWS.indexOf(v)<0){state.view='list';return;}
+state.view=v;}
 if(i>=0){try{state.sel=decodeURIComponent(h.slice(i+1));}
 catch(ue){state.sel=null;}}
-}catch(ex){state.view='list';state.sel=null;}}
+state.picked=state.sel!==null;
+}catch(ex){state.view='list';state.sel=null;state.picked=false;}}
 function pushState(){
 var h='#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel):'');
 if(location.hash!==h)history.pushState(null,'',h);}
@@ -158,34 +125,64 @@ function focusViewHeading(){
 var c=document.getElementById('view-'+state.view);if(!c)return;
 var h=c.querySelector('h2,h1');
 if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
+function focusDetailHeading(){
+var h=document.querySelector('#detail-body h2');
+if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
+function focusRow(){
+var rows=document.querySelectorAll('#view-list button.row-link');
+for(var i=0;i<rows.length;i++){
+if(rows[i].getAttribute('data-id')===state.sel){rows[i].focus();return true;}}
+return false;}
+// With the list zone hidden (one column) focus follows the pick into the detail.
+function focusAfterPick(){
+var wl=document.querySelector('.worklist');
+if(state.picked&&wl&&wl.offsetParent===null)focusDetailHeading();
+else if(state.picked&&state.view==='list'&&focusRow())return;
+else focusViewHeading();}
+// Pick a record in a view; the view stays current. 'detail' means the current view.
 function navigate(view,id){
-state.view=view;if(id!==undefined)state.sel=id;pushState();render();focusViewHeading();}
-function render(){
+state.view=view==='detail'?state.view:view;
+if(id!==undefined){state.sel=id;state.picked=id!==null;}
+pushState();render();focusAfterPick();}
+function switchView(v){
+state.view=v;state.picked=false;pushState();render();focusViewHeading();}
+function render(onlyView){
 VALID_VIEWS.forEach(function(v){
 var b=document.getElementById('btn-'+v);
 if(b){if(state.view===v){b.setAttribute('aria-current','page');}
-else{b.removeAttribute('aria-current');}}});
-VALID_VIEWS.forEach(function(v){
+else{b.removeAttribute('aria-current');}}
 var d=document.getElementById('view-'+v);
 if(d)d.hidden=state.view!==v;});
+var zones=document.getElementById('app-main');
+if(zones){if(state.picked)zones.setAttribute('data-picked','');
+else zones.removeAttribute('data-picked');}
 var c=document.getElementById('view-'+state.view);
 if(!c)return;c.textContent='';
-
+var cnt=document.getElementById('list-count');if(cnt)cnt.textContent='';
 if(state.view==='list')renderList(c);
 else if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
-else if(state.view==='detail')renderDetail(c);
-syncExpandLabel(c);}
-// The Expand all button names the action it will take on this view.
-function syncExpandLabel(c){
+if(!onlyView){
+renderDetail(document.getElementById('detail-body'));
+var pr=state.picked&&state.sel?records.find(function(r){return r.id===state.sel;}):null;
+if(pr)updateLive(pr.id+': '+(pr.display_title||pr.title));}
+syncExpandLabel();}
+// Expand all acts on the sections of the current view and of the detail zone.
+function openable(){
+var out=[];
+['view-'+state.view,'detail-body'].forEach(function(id){
+var e=document.getElementById(id);
+if(e)e.querySelectorAll('details').forEach(function(d){out.push(d);});});
+return out;}
+function syncExpandLabel(){
 var b=document.getElementById('expand-all-btn');if(!b)return;
-var d=c.querySelectorAll('details'),all=d.length>0;
+var d=openable(),all=d.length>0;
 for(var i=0;i<d.length;i++){if(!d[i].open){all=false;break;}}
 b.textContent=all?'Collapse all':'Expand all';}
 // ── Supersession banner ──────────────────────────────────────────────────────
 function supBanner(entry,isDetail){
 var div=document.createElement('div');
-div.className='supersede-banner';div.setAttribute('role','note');
+div.className='notice supersede-banner';div.setAttribute('role','note');
 div.appendChild(document.createTextNode(entry.partial?'Superseded in part by ':'Superseded by '));
 var a=document.createElement('a');
 a.href='#detail/'+encodeURIComponent(entry.by);a.textContent=entry.by;
@@ -208,47 +205,49 @@ var msg=records.length===0?
 activeFilters.length>0?
 'No records match '+activeFilters.join(', ')+'.':
 'No records match the active filters.';
-c.appendChild(el('p','empty-msg',msg));
+c.appendChild(el('p','empty-msg empty',msg));
 if(activeFilters.length>0){
 var rb=btn('reset-btn','Reset filters',function(){
 state.q='';state.kind='';state.status='';
 if(searchEl)searchEl.value='';
 setKindPill('');
 if(statusEl)statusEl.value='';
-render();focusViewHeading();});
+render(true);focusViewHeading();});
 c.appendChild(rb);}
 updateLive(msg);return;}
-var ul=el('ul','record-list');
+var ul=el('ul','rows record-list');
 fr.forEach(function(r){
 // Strike-through is reserved for full supersession; a record superseded only
 // in part stays in force and gets the lighter "in part" treatment.
 var supAll=r.superseded_by||[];
 var supCls=supAll.some(function(s){return !s.partial;})?' is-superseded':
 supAll.length?' is-superseded-part':'';
-var liCls='record-item'+(r.id===state.sel?' selected':'')+supCls;
-var li=el('li',liCls);
-var b=el('button','record-btn');
+var li=el('li','row'+supCls);
+// One button per row: title first, then the lifecycle mark, then kind and id.
+var b=el('button','row-link');b.type='button';
+b.setAttribute('data-id',r.id);
 if(r.id===state.sel)b.setAttribute('aria-current','true');
-var ridEl=el('span','rid',r.id);
-var ttEl=el('span','rtitle',r.display_title||r.title);
-var badge=el('span','badge badge-'+r.kind.toLowerCase(),r.kind);
-var lcv=(r.lifecycle&&!r.lifecycle.missing&&r.lifecycle.raw_value)||null;
-var stEl=el('span','rstatus '+statusClass(lcv),lc(r));
-var chev=el('span','chevron','▼');
-b.appendChild(ridEl);b.appendChild(ttEl);b.appendChild(badge);b.appendChild(stEl);b.appendChild(chev);
-// Supersession banners from checked relationships only
+b.appendChild(el('span','c-title c-name',r.display_title||r.title));
+b.appendChild(markEl(r));
+var ctx=el('span','c-context');
+ctx.appendChild(document.createTextNode(r.kind+' · '));
+ctx.appendChild(el('span','value rid',r.id));
+b.appendChild(ctx);
 var supBy=r.superseded_by||[];
 var unresClaims=r.unresolved_claims||[];
-b.addEventListener('click',function(){navigate('detail',r.id);});
+b.addEventListener('click',function(){navigate('list',r.id);});
 li.appendChild(b);
+// The marker follows the button inside the row, never inside the button.
 if(supBy.length>0){
 supBy.forEach(function(s){li.appendChild(supBanner(s,false));});}
 else if(unresClaims.length>0){
-var sb2=document.createElement('div');sb2.className='supersede-banner is-unresolved';sb2.setAttribute('role','note');
+var sb2=document.createElement('div');sb2.className='notice supersede-banner is-unresolved';sb2.setAttribute('role','note');
 sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+claimText(unresClaims[0])));
 li.appendChild(sb2);}
 ul.appendChild(li);});
 c.appendChild(ul);
+var cnt=document.getElementById('list-count');
+if(cnt)cnt.textContent=fr.length+' of '+records.length+' records shown';
 updateLive(fr.length+' of '+records.length+' records shown.');}
 // ── Graph view ───────────────────────────────────────────────────────────────
 function renderGraph(c){
@@ -272,7 +271,7 @@ var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
 var h2=el('h2',null,rec?'Guidance context: '+rec.id:'Guidance context');
 c.appendChild(h2);
 if(!rec){
-c.appendChild(el('p','empty-msg',state.sel?
+c.appendChild(el('p','empty-msg empty',state.sel?
 shownId(state.sel)+' is not in this export.':
 'Select a record from the corpus list, then switch to this view.'));
 updateLive('');return;}
@@ -284,7 +283,7 @@ return r.trust_class==='contextual'&&(r.from===rec.id||r.to===rec.id);});
 c.appendChild(el('h3',null,
 'Contextual references — Related field (weaker than checked lineage)'));
 if(ctx.length===0){
-c.appendChild(el('p','empty-msg','No contextual references for this record.'));}
+c.appendChild(el('p','empty-msg empty','No contextual references for this record.'));}
 else{
 var ul=el('ul','ctx-list');
 ctx.forEach(function(r){
@@ -294,7 +293,7 @@ var label=dir+' '+V(peer||'?')+' [contextual · '+r.resolution_state+']';
 var li=el('li',null);
 var admitted=records.find(function(x){return x.id===peer;});
 if(admitted){
-var b=btn('ctx-btn',label,function(){navigate('detail',peer);});
+var b=btn('ctx-btn',label,function(){navigate('context',peer);});
 li.appendChild(b);}
 else{li.textContent=label+' — not admitted';}
 ul.appendChild(li);});
@@ -304,12 +303,12 @@ return r.trust_class==='navigation_only'
 &&(r.from===rec.id||r.to===rec.id);});
 c.appendChild(el('h3',null,'Caller assertions (non-authoritative view input)'));
 if(asserts.length===0){
-c.appendChild(el('p','empty-msg','No caller assertions embedded for this record.'));}
+c.appendChild(el('p','empty-msg empty','No caller assertions embedded for this record.'));}
 else{
 var ul2=el('ul','assert-list');
 asserts.forEach(function(a){
 var li=el('li',null);
-var tlEl=el('span','trust-label','[navigation_only · caller_asserted]');
+var tlEl=el('span','trust-label chip','[navigation_only · caller_asserted]');
 li.appendChild(tlEl);
 li.appendChild(document.createTextNode(' '));
 li.appendChild(document.createTextNode(a.display_raw_value||V(a.raw_value||'')));
@@ -321,13 +320,18 @@ updateLive('');}
 // ── Detail view ──────────────────────────────────────────────────────────────
 function renderDetail(c){
 var rec=state.sel?records.find(function(r){return r.id===state.sel;}):null;
-var h2=el('h2',null,rec?rec.id+': '+(rec.display_title||rec.title):'Record detail');
-h2.className='detail-heading';c.appendChild(h2);
+c.textContent='';
+var h2=el('h2',null,rec?(rec.display_title||rec.title):'Record detail');
+h2.className='detail-heading focus-target';c.appendChild(h2);
 if(!rec){
-var p=el('p','empty-msg');
+var p=el('p','empty');
 if(state.sel){p.textContent=shownId(state.sel)+' is not in this export.';}
 else{p.textContent='Select a record from the corpus list to see its detail.';}
-c.appendChild(p);updateLive('');return;}
+c.appendChild(p);return;}
+// The state line: the lifecycle mark, then the kind and the id.
+var sl0=el('p','state-line');sl0.appendChild(markEl(rec));
+var sctx=el('span','c-context');sctx.appendChild(document.createTextNode(rec.kind+' · '));
+sctx.appendChild(el('span','value',rec.id));sl0.appendChild(sctx);c.appendChild(sl0);
 // Supersession banners from checked relationships only — at top of detail
 var supBy=rec.superseded_by||[];
 var unresClaims=rec.unresolved_claims||[];
@@ -335,7 +339,7 @@ if(supBy.length>0){
 supBy.forEach(function(s){c.appendChild(supBanner(s,true));});}
 else if(unresClaims.length>0){
 unresClaims.forEach(function(u){
-var div=document.createElement('div');div.className='supersede-banner';div.setAttribute('role','note');
+var div=document.createElement('div');div.className='notice supersede-banner';div.setAttribute('role','note');
 div.appendChild(document.createTextNode('Unresolved supersession claim: '+claimText(u)));
 c.appendChild(div);});}
 var tbl=el('table','meta-table');
@@ -345,10 +349,10 @@ var metaRows=[['Kind',rec.kind],['Status',lc(rec)],['Source',V(rec.source)]];
 if(hf&&hf.label&&!(hf.label.toLowerCase()==='status'&&statusShownAs(hf,rec)))metaRows.push([V(hf.label),hf.display_value!=null?hf.display_value:V(hf.raw_value||'')]);});
 metaRows.forEach(function(row){
 var tr=document.createElement('tr');
-var th=el('th',null,row[0]);var td=el('td',null,row[1]);
+var th=el('th','part-head',row[0]);var td=el('td',null,row[1]);
 tr.appendChild(th);tr.appendChild(td);tbl.appendChild(tr);});
 var slTr=document.createElement('tr');
-var slTh=el('th',null,'Source link');var slTd=el('td',null);
+var slTh=el('th','part-head','Source link');var slTd=el('td',null);
 var sl=makeLink(rec.source);
 if(sl){slTd.appendChild(sl);}
 else{slTd.textContent=V(rec.source)+' (remote not on allowlist — inert provenance)';}
@@ -366,7 +370,7 @@ var rSum=el('summary',null,rSummary);rDet.appendChild(rSum);
 var ul=el('ul','rel-list');
 recRels.forEach(function(r){
 var li=el('li','rel-item rel-'+r.trust_class.replace(/_/g,'-'));
-var tlEl=el('span','trust-label','['+r.trust_class+' · '+r.resolution_state+']');
+var tlEl=el('span','trust-label chip','['+r.trust_class+' · '+r.resolution_state+']');
 li.appendChild(tlEl);
 var scope=r.scope&&r.scope.length?r.scope.join(', '):'';
 if(r.relation==='supersedes_in_part'&&!(r.scope&&r.scope.length))
@@ -391,10 +395,10 @@ srUl.appendChild(li);});
 srDet.appendChild(srUl);c.appendChild(srDet);}
 c.appendChild(el('h3',null,'Record body'+(mode==='bounded'?' (omitted in bounded mode)':'')));
 var body=rec.body;
-if(!body){c.appendChild(el('p','empty-msg','Body not available.'));}
+if(!body){c.appendChild(el('p','empty','Body not available.'));}
 else if(!body.available){
 var reason=body.omission_reason||'not_available';
-var notice=el('p','bounded-notice');
+var notice=el('p','bounded-notice notice');
 if(reason==='bounded_mode'||reason==='not_requested'){
 notice.textContent='Body omitted in bounded mode. ';
 if(body.source_action){
@@ -414,48 +418,50 @@ var bd=el('details','body-details');bd.open=true;
 var bs=el('summary',null,'Record content ('+content.length+' chars)');
 bd.appendChild(bs);
 var sec=document.createElement('section');
-sec.setAttribute('aria-label','Record content');
+sec.setAttribute('aria-label','Record content');sec.setAttribute('tabindex','0');
 sec.className='record-content';
 renderMarkdown(content,sec);
 bd.appendChild(sec);bodyEl=bd;}
 else{
 var sec2=document.createElement('section');
-sec2.setAttribute('aria-label','Record content');
+sec2.setAttribute('aria-label','Record content');sec2.setAttribute('tabindex','0');
 sec2.className='record-content';
 renderMarkdown(content,sec2);
 bodyEl=sec2;}
-c.appendChild(bodyEl);}
-updateLive(rec.id+': '+(rec.display_title||rec.title));}
+c.appendChild(bodyEl);}}
 // ── Event bindings ───────────────────────────────────────────────────────────
 VALID_VIEWS.forEach(function(v){
 var b=document.getElementById('btn-'+v);
-if(b)b.addEventListener('click',function(){navigate(v,state.sel);});});
+if(b)b.addEventListener('click',function(){switchView(v);});});
 if(searchEl)searchEl.addEventListener('input',function(){
-state.q=this.value;render();});
-// Kind filter: pill buttons (not a select)
+state.q=this.value;render(true);});
+// Kind filter: a segmented control of buttons
 if(kindEl){
-kindEl.querySelectorAll('button.kind-pill').forEach(function(b){
+kindEl.querySelectorAll('button[data-kind]').forEach(function(b){
 b.addEventListener('click',function(){
 state.kind=b.getAttribute('data-kind')||'';
 setKindPill(state.kind);
-render();});});}
+render(true);});});}
 if(statusEl)statusEl.addEventListener('change',function(){
-state.status=this.value;render();});
-// Expand-all pill: toggles all <details> in the current view
+state.status=this.value;render(true);});
+// Expand all: toggles every section in the current view and the detail zone
 var expandAllBtn=document.getElementById('expand-all-btn');
 if(expandAllBtn){
 expandAllBtn.addEventListener('click',function(){
-var viewEl=document.getElementById('view-'+state.view);if(!viewEl)return;
-var dets=viewEl.querySelectorAll('details');
+var dets=openable();
 if(!dets.length)return; // nothing to expand on this view; keep the label
 var allOpen=true;
 for(var di=0;di<dets.length;di++){if(!dets[di].open){allOpen=false;break;}}
 for(var dj=0;dj<dets.length;dj++){dets[dj].open=!allOpen;}
 expandAllBtn.textContent=allOpen?'Expand all':'Collapse all';});}
 var mainEl=document.getElementById('app-main');
-if(mainEl)mainEl.addEventListener('toggle',function(){
-var cv=document.getElementById('view-'+state.view);if(cv)syncExpandLabel(cv);},true);
-window.addEventListener('popstate',function(){parseHash();render();focusViewHeading();});
+if(mainEl)mainEl.addEventListener('toggle',syncExpandLabel,true);
+// Back to list (one column): show the list zone again in the view that was current.
+var backBtn=document.getElementById('back-btn');
+if(backBtn)backBtn.addEventListener('click',function(){
+state.picked=false;render(true);
+if(!(state.view==='list'&&focusRow()))focusViewHeading();});
+window.addEventListener('popstate',function(){parseHash();render();focusAfterPick();});
 var provPre=document.getElementById('prov-pre');
 if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);
 var supInvEl=document.getElementById('sup-inv');
@@ -469,6 +475,5 @@ li.appendChild(document.createTextNode(V(sr.path)+' ['+sr.kind+']'));
 siUl.appendChild(li);});}
 supInvEl.appendChild(siUl);}
 // ── Boot ─────────────────────────────────────────────────────────────────────
-renderStatCards();
 parseHash();render();
 }();

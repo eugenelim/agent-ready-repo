@@ -177,29 +177,30 @@ function addDefs(svg,pfx){
   var m1=svgEl('marker');
   sa(m1,'id',pfx+'af');sa(m1,'markerWidth','10');sa(m1,'markerHeight','7');
   sa(m1,'refX','9');sa(m1,'refY','3.5');sa(m1,'orient','auto');sa(m1,'markerUnits','userSpaceOnUse');
-  var p1=svgEl('polygon');sa(p1,'points','0 0, 10 3.5, 0 7');sa(p1,'fill','#374151');
+  var p1=svgEl('polygon');sa(p1,'points','0 0, 10 3.5, 0 7');sa(p1,'class','ln-edge-checked');
   m1.appendChild(p1);d.appendChild(m1);
   // Open arrowhead (unresolved)
   var m2=svgEl('marker');
   sa(m2,'id',pfx+'ao');sa(m2,'markerWidth','10');sa(m2,'markerHeight','7');
   sa(m2,'refX','9');sa(m2,'refY','3.5');sa(m2,'orient','auto');sa(m2,'markerUnits','userSpaceOnUse');
   var p2=svgEl('polyline');sa(p2,'points','0 0, 10 3.5, 0 7');sa(p2,'fill','none');
-  sa(p2,'stroke','#9ca3af');sa(p2,'stroke-width','1.5');m2.appendChild(p2);d.appendChild(m2);
+  sa(p2,'class','ln-edge-unresolved');sa(p2,'stroke-width','1.5');m2.appendChild(p2);d.appendChild(m2);
   // Hollow arrowhead (asserted)
   var m3=svgEl('marker');
   sa(m3,'id',pfx+'ah');sa(m3,'markerWidth','10');sa(m3,'markerHeight','7');
   sa(m3,'refX','9');sa(m3,'refY','3.5');sa(m3,'orient','auto');sa(m3,'markerUnits','userSpaceOnUse');
-  var p3=svgEl('polygon');sa(p3,'points','0 0, 10 3.5, 0 7');sa(p3,'fill','white');
-  sa(p3,'stroke','#a78bfa');sa(p3,'stroke-width','1.2');m3.appendChild(p3);d.appendChild(m3);
+  var p3=svgEl('polygon');sa(p3,'points','0 0, 10 3.5, 0 7');sa(p3,'class','ln-edge-asserted');
+  sa(p3,'stroke-width','1.2');m3.appendChild(p3);d.appendChild(m3);
   svg.appendChild(d);
 }
 
 // ── Bezier edge between two points
-function drawEdge(g,x1,y1,x2,y2,stroke,sw,dash,markerEnd){
+// `tone` names one of the ln-edge-* classes; the layout file maps it to a colour token.
+function drawEdge(g,x1,y1,x2,y2,tone,sw,dash,markerEnd){
   var path=svgEl('path');
   var cx=(x1+x2)/2;
   sa(path,'d','M '+x1+','+y1+' C '+cx+','+y1+' '+cx+','+y2+' '+x2+','+y2);
-  sa(path,'fill','none');sa(path,'stroke',stroke||'#374151');
+  sa(path,'fill','none');sa(path,'class',tone||'ln-edge-checked');
   sa(path,'stroke-width',sw||'2');
   if(dash)sa(path,'stroke-dasharray',dash);
   if(markerEnd)sa(path,'marker-end',markerEnd);
@@ -316,7 +317,7 @@ function placeLabels(g,edges,keyHost){
   var widths={},probes=[];
   var measure=function(s){
     if(s in widths)return;widths[s]=0;
-    var m=svgEl('text');sa(m,'font-size','10');sa(m,'font-weight','600');
+    var m=svgEl('text');sa(m,'class','ln-label field');
     m.textContent=s;g.appendChild(m);probes.push([s,m]);
   };
   jobs.forEach(function(j){if(j.txt.length<=MAX_LABEL)measure(j.txt);});
@@ -339,7 +340,7 @@ function placeLabels(g,edges,keyHost){
   });
   draws.forEach(function(d){drawLabel(g,d.j,d.shown,d.box);});
   if(key.length&&keyHost){
-    var ol=document.createElement('ol');ol.className='lineage-key';
+    var ol=document.createElement('ol');ol.className='lineage-key meta';
     ol.setAttribute('aria-label','Edge labels shown as numbers');
     key.forEach(function(k){
       var li=document.createElement('li');li.value=+k.num;
@@ -408,16 +409,16 @@ function chooseSpot(grid,vb,j,w,anyRecord){
   return box;
 }
 function drawLabel(g,j,shown,box){
-  var fill=j.fill||'#4b5563';
+  var tone=j.fill||'ln-edge-unresolved';
   var plate=svgEl('rect');
   sa(plate,'x',box.x);sa(plate,'y',box.y);sa(plate,'width',box.w);sa(plate,'height',box.h);
-  sa(plate,'rx','3');sa(plate,'fill','#ffffff');sa(plate,'stroke',fill);sa(plate,'stroke-width','0.75');
+  sa(plate,'rx','3');sa(plate,'class','ln-plate '+tone);sa(plate,'stroke-width','0.75');
   g.appendChild(plate);
   var t=svgEl('text');
   if(j.path.dataset&&j.path.dataset.rel)t.dataset.for=j.path.dataset.rel;
   sa(t,'x',box.x+box.w/2);sa(t,'y',box.y+box.h/2);
-  sa(t,'dominant-baseline','middle');sa(t,'text-anchor','middle');sa(t,'font-size','10');
-  sa(t,'font-weight','600');sa(t,'fill',fill);sa(t,'class','edge-label');
+  sa(t,'dominant-baseline','middle');sa(t,'text-anchor','middle');
+  sa(t,'class','edge-label ln-label field '+tone);
   t.appendChild(document.createTextNode(shown));
   g.appendChild(t);
 }
@@ -439,43 +440,42 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   sa(g,'role','button');sa(g,'tabindex',isSel?'0':'-1');
   sa(g,'aria-label',nid+': '+titleTxt+', '+lcv+(SUP_TEXT[isOld||'']||''));
   g.dataset.nodeId=nid;
+  if(isSel)sa(g,'aria-current','true');
   var rect=svgEl('rect');
   sa(rect,'x',x);sa(rect,'y',y);sa(rect,'width',nw);sa(rect,'height',nh);sa(rect,'rx','6');
   if(isSel){
-    sa(rect,'fill','#1d4ed8');sa(rect,'stroke','#1e40af');sa(rect,'stroke-width','2');
+    sa(rect,'class','ln-node ln-node-focus');sa(rect,'stroke-width','2');
   }else if(isOld){
-    sa(rect,'fill','none');sa(rect,'stroke','#9ca3af');
+    sa(rect,'class','ln-node ln-node-old');
     sa(rect,'stroke-width','1.5');sa(rect,'stroke-dasharray','4 3');
   }else{
-    sa(rect,'fill','#f8faff');sa(rect,'stroke','#c7d2fe');sa(rect,'stroke-width','1.5');
+    sa(rect,'class','ln-node');sa(rect,'stroke-width','1.5');
   }
   g.appendChild(rect);
   if(isSel&&isOld){
     // The selected record keeps its supersession cue as a dashed outer ring.
-    var ring=svgEl('rect');sa(ring,'class','sup-ring');
-    sa(ring,'x',x-4);sa(ring,'y',y-4);sa(ring,'width',nw+8);sa(ring,'height',nh+8);sa(ring,'rx','8');
-    sa(ring,'fill','none');sa(ring,'stroke','#6b7280');sa(ring,'stroke-width','1.5');sa(ring,'stroke-dasharray','4 3');
+    var ring=svgEl('rect');    sa(ring,'x',x-4);sa(ring,'y',y-4);sa(ring,'width',nw+8);sa(ring,'height',nh+8);sa(ring,'rx','8');
+    sa(ring,'fill','none');sa(ring,'class','sup-ring ln-edge-unresolved');sa(ring,'stroke-width','1.5');sa(ring,'stroke-dasharray','4 3');
     g.appendChild(ring);
   }
-  var fs1=Math.max(9,Math.round(10*scale)),fs2=Math.max(8,Math.round(9*scale));
+  // Type sizes live in the layout file; the atlas's smaller nodes take the same classes in a smaller wrapper.
+  var onSel=isSel?' ln-on-focus':'';
   var idt=svgEl('text');
   sa(idt,'x',x+6);sa(idt,'y',y+nh*0.42);
-  sa(idt,'font-family','ui-monospace,monospace');sa(idt,'font-size',fs1+'');
-  sa(idt,'fill',isSel?'#fff':'#1d4ed8');
+  sa(idt,'class','ln-id value'+onSel);
   if(isOld==='full')sa(idt,'text-decoration','line-through');
   else if(isOld==='part')sa(idt,'text-decoration','underline');
   idt.textContent=nid;g.appendChild(idt);
   if(nh>28){
     var ttt=svgEl('text');
     sa(ttt,'x',x+6);sa(ttt,'y',y+nh*0.75);
-    sa(ttt,'font-size',fs2+'');
-    sa(ttt,'fill',isSel?'rgba(255,255,255,.75)':'#4b5563');
+    sa(ttt,'class','ln-title'+onSel);
     ttt.textContent=shortT;g.appendChild(ttt);
   }
   if(isCyc){
     var cb=svgEl('text');
-    sa(cb,'x',x+nw-4);sa(cb,'y',y+fs1+2);
-    sa(cb,'text-anchor','end');sa(cb,'font-size',fs2+'');sa(cb,'fill',isSel?'#fde68a':'#b45309');
+    sa(cb,'x',x+nw-4);sa(cb,'y',y+Math.max(9,Math.round(10*scale))+2);
+    sa(cb,'text-anchor','end');sa(cb,'class','ln-badge'+onSel);
     cb.textContent='cycle';g.appendChild(cb);
   }
   var titleEl=svgEl('title');titleEl.textContent=nid+': '+titleTxt+' ('+lcv+')';
@@ -486,19 +486,19 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   var fr=svgEl('g');fr.setAttribute('class','focus-ring');
   var fo=svgEl('rect');
   sa(fo,'x',x-9);sa(fo,'y',y-9);sa(fo,'width',nw+18);sa(fo,'height',nh+18);
-  sa(fo,'rx','12');sa(fo,'fill','none');sa(fo,'stroke','#111827');sa(fo,'stroke-width','2');
+  sa(fo,'rx','12');sa(fo,'fill','none');sa(fo,'class','ln-focus-outer');sa(fo,'stroke-width','2');
   var fi=svgEl('rect');
   sa(fi,'x',x-7);sa(fi,'y',y-7);sa(fi,'width',nw+14);sa(fi,'height',nh+14);
-  sa(fi,'rx','10');sa(fi,'fill','none');sa(fi,'stroke','#f59e0b');sa(fi,'stroke-width','2');
+  sa(fi,'rx','10');sa(fi,'fill','none');sa(fi,'class','ln-focus-inner');sa(fi,'stroke-width','2');
   fr.appendChild(fo);fr.appendChild(fi);
-  fr.style.display='none';g.appendChild(fr);
+  fr.setAttribute('hidden','');g.appendChild(fr);
   g.addEventListener('click',function(){navigate_fn('graph',nid);});
   g.addEventListener('keydown',function(e){
     if((e.key==='Enter'||e.key===' ')&&!e.shiftKey){e.preventDefault();navigate_fn('graph',nid);}
     else if(e.key==='Enter'&&e.shiftKey){e.preventDefault();navigate_fn('detail',nid);}
   });
-  g.addEventListener('focus',function(){fr.style.display='';});
-  g.addEventListener('blur',function(){fr.style.display='none';});
+  g.addEventListener('focus',function(){fr.removeAttribute('hidden');});
+  g.addEventListener('blur',function(){fr.setAttribute('hidden','');});
   svg.appendChild(g);
   return g;
 }
@@ -558,7 +558,7 @@ function rovingTab(nodeGs,np,chainCheckedRels){
 
 // ── Legend
 function appendLegend(container){
-  var d=document.createElement('details');d.className='lineage-legend';
+  var d=document.createElement('details');d.className='lineage-legend meta';
   var s=document.createElement('summary');s.textContent='Diagram legend';d.appendChild(s);
   var ul=document.createElement('ul');
   ['Checked full: solid line, filled arrowhead',
@@ -613,7 +613,7 @@ function appendExtrasText(ul,extras){
 
 // ── Text equivalent (synchronized list of nodes and relationships)
 function appendTextEquiv(container,chainNodes,chainCheckedRels,extras,allRecords,sccList,n2s,navigate){
-  var det=document.createElement('details');det.className='lineage-text';
+  var det=document.createElement('details');det.className='lineage-text meta';
   var s=document.createElement('summary');s.textContent='Lineage as text';det.appendChild(s);
   // On narrow screens the scaled-down diagram is hard to read, so lead with the text.
   if(window.matchMedia&&window.matchMedia('(max-width:40rem)').matches)det.open=true;
@@ -697,7 +697,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   var capId=pfx+'cap';
 
   // Caption (visible, referenced by aria-labelledby)
-  var cap=document.createElement('div');cap.className='lineage-caption';
+  var cap=document.createElement('div');cap.className='lineage-caption field';
   cap.id=capId;
   cap.textContent='Lineage: '+selectedId+' · '+cn.length+' records in chain';
   container.appendChild(cap);
@@ -721,7 +721,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     if(!fp||!tp)return;
     var isCyc=fp.scc===tp.scc;
     var isPartial=r.relation==='supersedes_in_part';
-    var stroke=isPartial?'#1d4ed8':'#374151';
+    var stroke=isPartial?'ln-edge-partial':'ln-edge-checked';
     if(isCyc){
       // Arc to the right of the nodes
       var xn=PX+fp.col*(NW+XG)+NW+3;
@@ -733,10 +733,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       var arcX=xn+(twin&&r.from>r.to?80:50),arcY=(y1c+y2c)/2;
       var arc=svgEl('path');
       sa(arc,'d','M '+xn+','+y1c+' Q '+arcX+','+arcY+' '+xn+','+y2c);
-      sa(arc,'fill','none');sa(arc,'stroke','#374151');sa(arc,'stroke-width','1.5');
+      sa(arc,'fill','none');sa(arc,'class','ln-edge-checked');sa(arc,'stroke-width','1.5');
       sa(arc,'stroke-dasharray','8 4');sa(arc,'marker-end','url(#'+pfx+'af)');
       arc.dataset.rel=relKey(r);eg.appendChild(arc);
-      edgeLabel(lg,xn,y1c,xn,y2c,'cycle','#b45309',arc);
+      edgeLabel(lg,xn,y1c,xn,y2c,'cycle','ln-cycle',arc);
     }else{
       // FROM is newer (right), TO is older (left)
       var x1=PX+fp.col*(NW+XG),y1=PY+fp.row*(NH+YG)+ports[ri].y1;
@@ -744,10 +744,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       var edgePath=drawEdge(eg,x1,y1,x2,y2,stroke,isPartial?'4':'2',null,'url(#'+pfx+'af)');
       edgePath.dataset.rel=relKey(r);
       // Partial supersession reads as a hollow double line, not colour alone.
-      if(isPartial)drawEdge(eg,x1,y1,x2,y2,'#ffffff','1.5',null,null).setAttribute('data-inner','part');
+      if(isPartial)drawEdge(eg,x1,y1,x2,y2,'ln-edge-inner','1.5',null,null).setAttribute('data-inner','part');
       if(isPartial){
         var sc2='in part · '+(r.scope&&r.scope.length?r.scope.join(', '):'scope not stated');
-        edgeLabel(lg,x1,y1,x2,y2,sc2,'#1d4ed8',edgePath);
+        edgeLabel(lg,x1,y1,x2,y2,sc2,'ln-edge-partial',edgePath);
       }
     }
   });
@@ -770,18 +770,18 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     if(!np[peerId])sats.push({r:r,kind:r.from===selectedId?'as':'asIn'});
   });
   var SAT_STYLE={
-    one:{box:'#9ca3af',line:'#9ca3af',dash:'6 4',mark:'ao',label:'one-sided',fill:'#4b5563',text:'#4b5563'},
-    as:{box:'#a78bfa',line:'#a78bfa',dash:'8 3 2 3',mark:'ah',label:'asserted',fill:'#6d28d9',text:'#6d28d9'},
-    asIn:{box:'#a78bfa',line:'#a78bfa',dash:'8 3 2 3',mark:'ah',label:'asserted',fill:'#6d28d9',text:'#6d28d9'}
+    one:{tone:'ln-edge-unresolved',dash:'6 4',mark:'ao',label:'one-sided'},
+    as:{tone:'ln-edge-asserted',dash:'8 3 2 3',mark:'ah',label:'asserted'},
+    asIn:{tone:'ln-edge-asserted',dash:'8 3 2 3',mark:'ah',label:'asserted'}
   };
   sats.forEach(function(s){
     var st0=SAT_STYLE[s.kind],sx=satX,sy=satY;satY+=NH+YG;s.mid=sy+NH/2;
     var sg=svgEl('rect');sa(sg,'x',sx);sa(sg,'y',sy);sa(sg,'width',Math.round(NW*0.78));sa(sg,'height',NH);
-    sa(sg,'rx','4');sa(sg,'fill','none');sa(sg,'stroke',st0.box);sa(sg,'stroke-dasharray',s.kind==='one'?'5 3':st0.dash);
+    sa(sg,'rx','4');sa(sg,'fill','none');sa(sg,'class',st0.tone);sa(sg,'stroke-dasharray',s.kind==='one'?'5 3':st0.dash);
     eg.appendChild(sg);
     lg._blockBoxes.push({x:sx-2,y:sy-2,w:Math.round(NW*0.78)+4,h:NH+4});
     var st=svgEl('text');sa(st,'x',sx+5);sa(st,'y',sy+NH/2);
-    sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill',st0.text);
+    sa(st,'dominant-baseline','middle');sa(st,'class','ln-sat-text '+st0.tone);
     var r=s.r;
     st.textContent=(s.kind==='one'?(r.display_to||r.to):
       (r.from===selectedId?(r.display_to||r.to):(r.display_from||r.from)))||'?';
@@ -796,7 +796,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var bp=svgEl('path');
     sa(bp,'d','M '+sx+','+sy+' L '+sx+','+busY+' L '+busX+','+busY+
       ' M '+busX+','+lo+' L '+busX+','+hi);
-    sa(bp,'fill','none');sa(bp,'stroke','#9ca3af');sa(bp,'stroke-width','1');
+    sa(bp,'fill','none');sa(bp,'class','ln-edge-context');sa(bp,'stroke-width','1');
     bp.dataset.trunk='bus';g.appendChild(bp);
   };
   if(sp&&sats.length)bus(sats.map(function(s){return s.mid;}),eg);
@@ -807,10 +807,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     mine.forEach(function(s){
       var br=svgEl('path');
       sa(br,'d',kind==='asIn'?'M '+satX+','+s.mid+' L '+busX+','+s.mid:'M '+busX+','+s.mid+' L '+satX+','+s.mid);
-      sa(br,'fill','none');sa(br,'stroke',st0.line);sa(br,'stroke-width','1.5');
+      sa(br,'fill','none');sa(br,'class',st0.tone);sa(br,'stroke-width','1.5');
       sa(br,'stroke-dasharray',st0.dash);sa(br,'marker-end','url(#'+pfx+st0.mark+')');
       br.dataset.rel=relKey(s.r);br.dataset.sat=kind;eg.appendChild(br);
-      edgeLabel(lg,busX,s.mid,satX,s.mid,st0.label,st0.fill,br);
+      edgeLabel(lg,busX,s.mid,satX,s.mid,st0.label,st0.tone,br);
     });
   });
 
@@ -833,10 +833,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     sa(ap,'d',fpA.col===tpA.col?'M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+ty+' L '+tx+','+ty:
       'M '+fx+','+fy+' L '+gf+','+fy+' L '+gf+','+gapY+' L '+gt+','+gapY+
       ' L '+gt+','+ty+' L '+tx+','+ty);
-    sa(ap,'fill','none');sa(ap,'stroke','#7c3aed');sa(ap,'stroke-width','1.5');
+    sa(ap,'fill','none');sa(ap,'class','ln-edge-asserted');sa(ap,'stroke-width','1.5');
     sa(ap,'stroke-dasharray','8 3 2 3');sa(ap,'marker-end','url(#'+pfx+'ah)');
     ap.dataset.rel=relKey(r);eg.appendChild(ap);
-    edgeLabel(lg,fx,fy,gt,ty,'asserted','#7c3aed',ap);
+    edgeLabel(lg,fx,fy,gt,ty,'asserted','ln-edge-asserted',ap);
   });
 
   svg.appendChild(eg);svg.appendChild(lg);
@@ -844,7 +844,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   // Contextual edges (hidden by default, separate group) hang off the same
   // bus. Label placement counts their lines even while hidden, so showing
   // them never puts a line across a label.
-  var ctxG=svgEl('g');sa(ctxG,'aria-hidden','true');ctxG.style.display='none';
+  var ctxG=svgEl('g');sa(ctxG,'aria-hidden','true');ctxG.setAttribute('hidden','');
   var ctxX=satX,ctxY=satY,seenCtx={},ctxNP={},ctxYs=[];
   ctxRels.forEach(function(r){
     var pid=r.from===selectedId?r.to:r.from;
@@ -852,10 +852,10 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     seenCtx[pid]=1;ctxNP[pid]={x:ctxX,y:ctxY};ctxY+=Math.round(NH*0.75)+YG;
     var sr=svgEl('rect');sa(sr,'x',ctxX);sa(sr,'y',ctxNP[pid].y);
     sa(sr,'width',Math.round(NW*0.82));sa(sr,'height',Math.round(NH*0.75));
-    sa(sr,'rx','4');sa(sr,'fill','#f9fafb');sa(sr,'stroke','#9ca3af');sa(sr,'stroke-dasharray','2 3');
+    sa(sr,'rx','4');sa(sr,'class','ln-node-context');sa(sr,'stroke-dasharray','2 3');
     ctxG.appendChild(sr);
     var st=svgEl('text');sa(st,'x',ctxX+5);sa(st,'y',ctxNP[pid].y+Math.round(NH*0.4));
-    sa(st,'dominant-baseline','middle');sa(st,'font-size','10');sa(st,'fill','#4b5563');
+    sa(st,'dominant-baseline','middle');sa(st,'class','ln-sat-text ln-edge-context');
     st.textContent=pid;ctxG.appendChild(st);
     ctxYs.push(ctxNP[pid].y+Math.round(NH*0.4));
   });
@@ -868,7 +868,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       var cy=cp.y+Math.round(NH*0.4);
       var ep=svgEl('path');
       sa(ep,'d','M '+clx+','+cy+' L '+cp.x+','+cy);
-      sa(ep,'fill','none');sa(ep,'stroke','#9ca3af');sa(ep,'stroke-width','1');
+      sa(ep,'fill','none');sa(ep,'class','ln-edge-context');sa(ep,'stroke-width','1');
       sa(ep,'stroke-dasharray','2 3');ep.dataset.rel=relKey(r);ep.dataset.sat='ctx';ctxG.appendChild(ep);
     });
   }
@@ -890,10 +890,12 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
 
   // Scrollable wrapper
   var wrap=document.createElement('div');
-  var axis=document.createElement('p');axis.className='lineage-axis';
+  var axis=document.createElement('p');axis.className='lineage-axis meta';
   axis.textContent='← Older (superseded)  ·  arrows read “supersedes”  ·  Newer (superseding) →';
   container.appendChild(axis);
-  wrap.className='lineage-wrap';wrap.style.overflowX='auto';wrap.style.maxWidth='100%';
+  wrap.className='lineage-wrap';
+  // A scrolling region the keyboard can reach, with a name.
+  sa(wrap,'tabindex','0');sa(wrap,'role','group');sa(wrap,'aria-label','Lineage diagram of '+selectedId+', scrollable');
   wrap.appendChild(svg);container.appendChild(wrap);
   placeLabels(lg,[eg,ctxG],container);
 
@@ -906,7 +908,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     var shown=false;
     ctxBtn.addEventListener('click',function(){
       shown=!shown;
-      ctxG.style.display=shown?'':'none';
+      if(shown)ctxG.removeAttribute('hidden');else ctxG.setAttribute('hidden','');
       var h=shown?svgHctx:svgH;sa(svg,'height',h);sa(svg,'viewBox','0 0 '+svgW+' '+h);
       ctxBtn.setAttribute('aria-expanded',shown?'true':'false');
       ctxBtn.textContent=(shown?'Hide':'Show')+' '+ctxRels.length
@@ -950,7 +952,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
   container.appendChild(grid);
   chains.forEach(function(cn){
     var card=document.createElement('div');card.className='chain-card';
-    var lbl=document.createElement('div');lbl.className='chain-card-label';
+    var lbl=document.createElement('div');lbl.className='chain-card-label field';
     var cRels=allRels.filter(function(r){
       return r.trust_class==='checked'&&cn.indexOf(r.from)>=0&&cn.indexOf(r.to)>=0;
     });
@@ -982,21 +984,21 @@ function renderAtlas(container,allRels,allRecords,navigate){
         var ax=cx+Math.round(xg*0.6),ay=(cy1+cy2)/2;
         var arc=svgEl('path');
         sa(arc,'d','M '+cx+','+cy1+' Q '+ax+','+ay+' '+cx+','+cy2);
-        sa(arc,'fill','none');sa(arc,'stroke','#374151');sa(arc,'stroke-width','1.5');
+        sa(arc,'fill','none');sa(arc,'class','ln-edge-checked');sa(arc,'stroke-width','1.5');
         sa(arc,'stroke-dasharray','6 3');sa(arc,'marker-end','url(#'+pfx+'af)');
         arc.dataset.rel=relKey(r);eg2.appendChild(arc);
-        var cl=svgEl('text');sa(cl,'x',ax+3);sa(cl,'y',ay);sa(cl,'font-size','9');
-        sa(cl,'fill','#b45309');cl.textContent='cycle';eg2.appendChild(cl);
+        var cl=svgEl('text');sa(cl,'x',ax+3);sa(cl,'y',ay);
+        sa(cl,'class','ln-badge ln-cycle');cl.textContent='cycle';eg2.appendChild(cl);
         return;
       }
       var x1=PX+fp.col*(nw+xg),y1=PY+fp.row*(nh+yg)+ports2[ri].y1;
       var x2=PX+tp.col*(nw+xg)+nw,y2=PY+tp.row*(nh+yg)+ports2[ri].y2;
       var partA=r.relation==='supersedes_in_part';
-      var aP=drawEdge(eg2,x1,y1,x2,y2,partA?'#1d4ed8':'#374151',partA?'3.5':'1.5',null,'url(#'+pfx+'af)');
+      var aP=drawEdge(eg2,x1,y1,x2,y2,partA?'ln-edge-partial':'ln-edge-checked',partA?'3.5':'1.5',null,'url(#'+pfx+'af)');
       aP.dataset.rel=relKey(r);
       if(partA){
-        drawEdge(eg2,x1,y1,x2,y2,'#ffffff','1.2',null,null).setAttribute('data-inner','part');
-        edgeLabel(lg2,x1,y1,x2,y2,'in part','#1d4ed8',aP);
+        drawEdge(eg2,x1,y1,x2,y2,'ln-edge-inner','1.2',null,null).setAttribute('data-inner','part');
+        edgeLabel(lg2,x1,y1,x2,y2,'in part','ln-edge-partial',aP);
       }
     });
     svg.appendChild(eg2);svg.appendChild(lg2);
@@ -1009,7 +1011,8 @@ function renderAtlas(container,allRels,allRecords,navigate){
       sa(g,'tabindex','0');
     });
     var wrap2=document.createElement('div');
-    wrap2.className='chain-svg-wrap';wrap2.style.overflowX='auto';
+    wrap2.className='chain-svg-wrap';
+    sa(wrap2,'tabindex','0');sa(wrap2,'role','group');sa(wrap2,'aria-label','Chain diagram of '+cn.join(', ')+', scrollable');
     wrap2.appendChild(svg);card.appendChild(wrap2);
     grid.appendChild(card);
     placeLabels(lg2,eg2,card);
