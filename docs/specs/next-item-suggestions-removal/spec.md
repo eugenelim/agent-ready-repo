@@ -1,6 +1,6 @@
 # Spec: Next-item suggestions removed
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-27 by eugenelim, spec and plan, after spec-stage shaping and adversarial reviews over five rounds ending clean; review records under `.context/reviews/slice6-spec-r1/` to `slice6-spec-r5/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -78,13 +78,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 **Next-actions section.** The text of `packs/core/.apm/skills/workspace-status/SKILL.md` from the line `### Next-actions` up to the next line that starts with `## `.
 
-- [ ] **AC-0001.** No line of `SKILL.md` contains `next_queue` or `next_shape`, and the Next-actions section contains neither `Next queue item` nor `First shaping item`.
-- [ ] **AC-0002.** The Next-actions section defines the active-spec choice as one numbered choice for each entry in `canonical.active`, and contains no `first entry in`.
-- [ ] **AC-0003.** The Next-actions section still contains its `5b`, `5c`, and `5d` steps and its final `work-intake` choice.
-- [ ] **AC-0004.** The retirement record's § Equivalence holds a row whose Case text is `the first-in-list next_queue and next_shape suggestions`, with Slice `6`, Result `accepted removal`, and an Authority link to RFC-0106 D3.
-- [ ] **AC-0005.** In `inventory.toml`, the governing row of `docs/specs/next-item-suggestions-removal/spec.md` is a `contract` row with owner `6`.
-- [ ] **AC-0006.** In `inventory.toml`, the governing row of `docs/specs/workspace-status-next-actions/spec.md` carries no `reads_order = true`.
-- [ ] **AC-0007.** No `consumer` in `inventory.toml` contains `next_queue` or `next_shape`.
+- [x] **AC-0001.** No line of `SKILL.md` contains `next_queue` or `next_shape`, and the Next-actions section contains neither `Next queue item` nor `First shaping item`.
+- [x] **AC-0002.** The Next-actions section defines the active-spec choice as one numbered choice for each entry in `canonical.active`, and contains no `first entry in`.
+- [x] **AC-0003.** The Next-actions section still contains its `5b`, `5c`, and `5d` steps and its final `work-intake` choice.
+- [x] **AC-0004.** The retirement record's § Equivalence holds a row whose Case text is `the first-in-list next_queue and next_shape suggestions`, with Slice `6`, Result `accepted removal`, and an Authority link to RFC-0106 D3.
+- [x] **AC-0005.** In `inventory.toml`, the governing row of `docs/specs/next-item-suggestions-removal/spec.md` is a `contract` row with owner `6`.
+- [x] **AC-0006.** In `inventory.toml`, the governing row of `docs/specs/workspace-status-next-actions/spec.md` carries no `reads_order = true`.
+- [x] **AC-0007.** No `consumer` in `inventory.toml` contains `next_queue` or `next_shape`.
 
 ## Assumptions
 
