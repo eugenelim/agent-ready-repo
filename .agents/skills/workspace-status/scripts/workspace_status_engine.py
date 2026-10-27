@@ -3100,6 +3100,12 @@ def _dependency_is_satisfied(
         )
         if finding is not None:
             return False, finding
+        if item.get("cooled") or "status" not in item:
+            # The reader re-checks the cooled set; a path that became cooled
+            # between the two checks is refused without opening the file.
+            return False, _finding(
+                "unsatisfied_dependency", dep.path, "captured item became cooled"
+            )
         if item["status"] == "Closed" and item["resolution"] == "fixed":
             return True, None
         return False, _finding(

@@ -132,7 +132,7 @@ fit that shape, materialize the context-owning artifact first and point to it.
 An entry that this workflow creates or updates adopts the terse form.
 
 A captured item is a defect, design, or research item, or an OKR gap with
-`Kind: intent`, that is not itself an intent, brief, or spec. It is its own file
+`Kind: intent`, that is not an intent, brief, or spec artifact. It is its own file
 at `docs/product/captured/<slug>.md`, where `<slug>` is lowercase letters,
 digits, and single hyphens, and it gets no `workspace.toml` entry. Write that
 file and edit nothing else; its own `Status:` line is its lifecycle state. Never
