@@ -2684,6 +2684,12 @@ consumer = "captured items in their own files: the file shape and reader, the un
 owner = 3
 
 [[row]]
+pattern = "docs/specs/next-item-suggestions-removal/*"
+class = "contract"
+consumer = "slice 6 spec: removes the first-in-list next-item suggestions from the workspace-status orient run"
+owner = 6
+
+[[row]]
 pattern = "docs/specs/priority-header-field/*"
 class = "contract"
 consumer = "the optional Priority: header field and its reader, which no registry or dispatch reader consults"
