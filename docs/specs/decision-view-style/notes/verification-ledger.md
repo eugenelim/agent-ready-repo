@@ -102,9 +102,9 @@ Base commit: eeaa73deb
 | Export | Commit | Command | Bytes | Records | ADR / RFC | Accepted / Superseded / Rejected | Relationships |
 | --- | --- | --- | ---: | ---: | --- | --- | ---: |
 | Base | eeaa73deb | `python3 packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py export --root . --destination /private/tmp/ndlook --name decisions.html` | 6,667,215 | 257 | 148 / 109 | 253 / 3 / 1 | 878 |
-| Final | HEAD of this branch, 2026-10-27 | same, `--name decisions-final.html` | 6,673,369 | 257 | 148 / 109 | 253 / 3 / 1 | 878 |
+| Final | 5df3d5a57 (final code commit), 2026-10-27 | same, `--name decisions-final.html` | 6,674,372 | 257 | 148 / 109 | 253 / 3 / 1 | 878 |
 
-Every count matches; the file grows by 6,154 bytes.
+Every count matches; the file grows by 7,157 bytes.
 
 ## Screenshots (AC-0018)
 
@@ -115,4 +115,23 @@ Every count matches; the file grows by 6,154 bytes.
 - `make build-self`: regenerated the `.agents/` and `.claude/` projections; a second run leaves no diff.
 - `uv run --with ruff ruff check .`: pass. `uv run --with mypy python tools/lint-mypy.py`: no issues in 156 files.
 - `python3 tools/changelog.py validate`: exit 0.
-- Review round 2 fixes: a `#detail/<id>` entry is rewritten with `history.replaceState` to the view it opened in (`test_back_to_an_old_detail_bookmark_restores_the_view_it_opened_in`); lineage nodes suppress the CSS outline in favour of their own ring (`test_a_focused_lineage_node_shows_one_focus_ring`); modified or non-primary clicks on supersession links keep the browser's default. Both new browser tests fail against the previous `explorer.js` and `explorer.css` and pass now.
+- Review round 2 fixes: a `#detail/<id>` entry is rewritten with `history.replaceState` to the view it opened in (`test_back_to_an_old_detail_bookmark_restores_the_view_it_opened_in`); lineage nodes suppress the CSS outline in favour of their own ring (checked on the focused graph by `test_a_focused_lineage_node_shows_one_focus_ring`; the atlas shares the rule but has no check of its own); modified or non-primary clicks on supersession links keep the browser's default. Both new browser tests fail against the previous `explorer.js` and `explorer.css` and pass now.
+
+## Experience review (AC-0018)
+
+- Reviewer: the `experience-reviewer` definition at `packs/experience-design/.apm/agents/experience-reviewer.md`, run in a forked general-purpose agent because the experience-design pack's agent is not installed in this repository's harness. Seeded with the screenshot matrix, the `skill-html-views` direction and token file, RFC-0108 D1 rules 3, 4, 5, 8, 9 and 10, and the navigate-intents export as comparator.
+- Round 1 (2026-10-27): 6 Major, 7 Minor, 3 Nit raised; after adjudication 1 Major sustained (graph nodes led with ids, type below the shared scale), 7 Minor, 1 Nit; 7 refuted against the spec, AC-0025, AC-0013 and AC-0022.
+- Round 2 (2026-10-27), over the repair: every sustained finding fixed; 0 Blocker, 0 Major; 2 Minor, of which 1 sustained (two focus rings on a lineage node, fixed in 5df3d5a57) and 1 refuted (disabled Expand all uses the shared `.seg-btn:disabled` rule).
+- Result: no Major or Blocker remains after adjudication.
+
+## Owner approval (AC-0019)
+
+- 2026-10-27: eugenelim approved the real export at the final code commit 5df3d5a57 as matching the navigate-intents view's visual identity, after opening both exports side by side in a browser.
+
+## Review record
+
+- Spec stage: shaping review clean after 4 rounds; adversarial review clean after 3 rounds (one Nit deferred: the `lifecycle-marks` fixture lacked a `Draft` record, since added); secure-design review clean after 2 rounds.
+- Code stage round 1: adversarial (2 Blocker, 5 Concern, 2 Nit sustained), frontend (1 Blocker, 1 Major, 5 Minor sustained), experience (1 Major, 7 Minor, 1 Nit sustained), security (1 Concern sustained); fixed in 59396c1db.
+- Round 2: adversarial 1 Blocker and 4 Nit sustained; frontend and experience 1 Minor sustained; security 1 Nit (pre-existing inherited-name lookups in `chainOf` and `statusMap`, outside this change, not acted on); fixed in 5df3d5a57.
+- Round 3: adversarial clean after adjudication.
+- `frontend-reviewer` and `experience-reviewer` ran from their pack definitions in a forked general-purpose agent, because neither agent is installed in this repository's harness.

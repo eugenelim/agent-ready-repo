@@ -1,7 +1,7 @@
 # Plan: Decision view style
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** RFC-0108 D2 and `docs/design/tokens/skill-html-views.md` § Layout and § State marks (source); `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py` lines 187–200, which joins `view-base.css` and `view.css` into one hashed style (analogous implementation); `packs/core/tests/skills/navigate-intents/view_browser_checks.py` and `docs/specs/intent-view-source-and-style/` (tests and precedent criteria); `tools/check_view_base_parity.py` (construction path). Deviation: the decisions view has no question rail in this slice, so it uses the worklist tracks without the rail column.
 
 > **Plan contract:** this is the implementation strategy. It may change

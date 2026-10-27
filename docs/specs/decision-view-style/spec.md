@@ -1,6 +1,6 @@
 # Spec: Decision view style
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0108 (D1 rules 3, 4, 5, 8, 9 and 10; D2), RFC-0105
@@ -82,44 +82,44 @@ Unless a criterion names another fixture, it is checked on a full export of the 
 
 ### Policy and join
 
-- [ ] **AC-0001.** The export contains exactly one `<style>` element, and its content is the UTF-8 text of the explorer's `view-base.css`, then the text of its decisions layout file, with nothing between them.
-- [ ] **AC-0002.** The content-security policy's `style-src` is exactly one `'sha256-…'` source equal to the base64 SHA-256 of that `<style>` element's content, and the policy contains neither `'unsafe-inline'` nor `'unsafe-eval'` anywhere.
-- [ ] **AC-0003.** The explorer's `view-base.css` is byte-identical to the canonical copy, and `tools/check_view_base_parity.py` reports it among the files it checks.
-- [ ] **AC-0004.** The emitted HTML contains no `style=` attribute, and neither stylesheet contains `url(` or `@import`, compared case-insensitively.
-- [ ] **AC-0020.** The explorer's scripts, comments removed, contain no `.style` token, no `cssText`, and no `'style'` or `"style"` string literal.
-- [ ] **AC-0027.** Across the width and theme matrix, in each view, after a record is picked, the Graph view's contextual relationships are shown and a diagram node has focus, no element in the document carries a `style` attribute.
+- [x] **AC-0001.** The export contains exactly one `<style>` element, and its content is the UTF-8 text of the explorer's `view-base.css`, then the text of its decisions layout file, with nothing between them.
+- [x] **AC-0002.** The content-security policy's `style-src` is exactly one `'sha256-…'` source equal to the base64 SHA-256 of that `<style>` element's content, and the policy contains neither `'unsafe-inline'` nor `'unsafe-eval'` anywhere.
+- [x] **AC-0003.** The explorer's `view-base.css` is byte-identical to the canonical copy, and `tools/check_view_base_parity.py` reports it among the files it checks.
+- [x] **AC-0004.** The emitted HTML contains no `style=` attribute, and neither stylesheet contains `url(` or `@import`, compared case-insensitively.
+- [x] **AC-0020.** The explorer's scripts, comments removed, contain no `.style` token, no `cssText`, and no `'style'` or `"style"` string literal.
+- [x] **AC-0027.** Across the width and theme matrix, in each view, after a record is picked, the Graph view's contextual relationships are shown and a diagram node has focus, no element in the document carries a `style` attribute.
 
 ### Layout file rules
 
-- [ ] **AC-0005.** The decisions layout file declares no colour literal (hex, `rgb(`, `hsl(`, any other CSS colour function, or a named colour), no `font-family`, `font-weight` or `font` shorthand, no `box-shadow`, no `border-radius` whose value is not a `var(--r-` reference, no `transition*` or `animation*` property, and no `--` custom property.
-- [ ] **AC-0006.** The explorer's scripts, comments removed, contain no colour literal in any form: no `#` followed by 3, 4, 6 or 8 hex digits inside a string, no `rgb(`, `rgba(`, `hsl(`, `hsla(`, `hwb(`, `lab(`, `lch(`, `oklab(`, `oklch(` or `color(`, and no CSS named colour as a whole string literal other than `none`, `transparent` and `currentColor`.
-- [ ] **AC-0021.** The explorer's scripts set no `font-family`, `font-weight`, `font-size` or `font` attribute on any element.
-- [ ] **AC-0007.** The export contains no element with the id `theme-toggle` or `stat-cards`, no `data-theme-choice` attribute, and no `localStorage` token in its script.
-- [ ] **AC-0024.** The header's snapshot line's text contains the export's total record count and, for each kind in the export's `summary.by_kind`, its count followed by the kind's name, singular for a count of one and plural otherwise ("1 ADR", "109 RFCs"), each equal to the export's `summary`.
-- [ ] **AC-0022.** The header's snapshot line contains, as an exact substring of its text content, the `BOUNDARY_NOTICE` string defined in `navigate_decisions.py`.
+- [x] **AC-0005.** The decisions layout file declares no colour literal (hex, `rgb(`, `hsl(`, any other CSS colour function, or a named colour), no `font-family`, `font-weight` or `font` shorthand, no `box-shadow`, no `border-radius` whose value is not a `var(--r-` reference, no `transition*` or `animation*` property, and no `--` custom property.
+- [x] **AC-0006.** The explorer's scripts, comments removed, contain no colour literal in any form: no `#` followed by 3, 4, 6 or 8 hex digits inside a string, no `rgb(`, `rgba(`, `hsl(`, `hsla(`, `hwb(`, `lab(`, `lch(`, `oklab(`, `oklch(` or `color(`, and no CSS named colour as a whole string literal other than `none`, `transparent` and `currentColor`.
+- [x] **AC-0021.** The explorer's scripts set no `font-family`, `font-weight`, `font-size` or `font` attribute on any element.
+- [x] **AC-0007.** The export contains no element with the id `theme-toggle` or `stat-cards`, no `data-theme-choice` attribute, and no `localStorage` token in its script.
+- [x] **AC-0024.** The header's snapshot line's text contains the export's total record count and, for each kind in the export's `summary.by_kind`, its count followed by the kind's name, singular for a count of one and plural otherwise ("1 ADR", "109 RFCs"), each equal to the export's `summary`.
+- [x] **AC-0022.** The header's snapshot line contains, as an exact substring of its text content, the `BOUNDARY_NOTICE` string defined in `navigate_decisions.py`.
 
 ### Rendered page
 
-- [ ] **AC-0008.** Across the width and theme matrix, in each view, the list zone and the detail zone each compute a non-zero `border-radius` and a `box-shadow` other than `none`, and every list row computes `box-shadow` as `none` or as inset shadows only.
-- [ ] **AC-0009.** At 1280, 1680 and 2560 CSS px, with a record picked, the detail zone's left edge is at or right of the list zone's right edge and their vertical extents overlap; at 320 CSS px, with a record picked, the detail zone's top edge is at or below the list zone's bottom edge, or the list zone is hidden.
-- [ ] **AC-0010.** Across the width and theme matrix, in each view, with the first row picked, no element inside the list zone or the detail zone has a `getBoundingClientRect()` extending more than 1 CSS px past the left or right edge of its zone, and the document's `scrollWidth` does not exceed the viewport width. The one exception is a descendant of a diagram scroll container: an element whose computed `overflow-x` is `auto` or `scroll`, that has `tabindex="0"` and an accessible name; that container itself meets the edge test.
-- [ ] **AC-0011.** At 2560 CSS px, the union of the header and the two zones spans the viewport width less at most twice the `--s-5` page padding plus 2 CSS px.
-- [ ] **AC-0012.** In every list row, the record's title is the first text in DOM order, and the record id appears in the same row only after it.
-- [ ] **AC-0013.** Every list row and the detail state line carry one `.mark` element whose `data-mark` follows this map from the lifecycle value's first run of letters, compared case-insensitively: `accepted` → `approved`; `experimental` → `active`; `proposed`, `draft`, `open` and `final` → `draft`; `superseded`, `deprecated`, `rejected` and `withdrawn` → `done`; any other word, and no lifecycle value, → `draft`. Its visible text is a glyph hidden from assistive technology, then the record's lifecycle `display_value`, or "No status" when there is none. Checked on the `mixed` fixture, which holds `Accepted (superseded in part by ADR-0020 for D3)`, and on a `lifecycle-marks` fixture holding one record for each of `accepted` (lowercase), `Experimental`, `Proposed`, `Open`, `Final Comment Period`, `Superseded`, `Deprecated`, `Rejected`, `Withdrawn`, an unknown word, and no status line.
-- [ ] **AC-0014.** Across the width and theme matrix, in each view, every text element, SVG `text` included and measured against its SVG background, in the header, the list zone and the detail zone has a contrast ratio of at least 4.5:1 against its background, and the border of the search field, of every `select` and of every bordered `button` has at least 3:1.
-- [ ] **AC-0015.** With `prefers-reduced-motion: reduce`, every rendered element computes every `transition-duration` and `animation-duration` as `0s`; with `no-preference`, a list row computes a `transition-duration` greater than `0s`.
+- [x] **AC-0008.** Across the width and theme matrix, in each view, the list zone and the detail zone each compute a non-zero `border-radius` and a `box-shadow` other than `none`, and every list row computes `box-shadow` as `none` or as inset shadows only.
+- [x] **AC-0009.** At 1280, 1680 and 2560 CSS px, with a record picked, the detail zone's left edge is at or right of the list zone's right edge and their vertical extents overlap; at 320 CSS px, with a record picked, the detail zone's top edge is at or below the list zone's bottom edge, or the list zone is hidden.
+- [x] **AC-0010.** Across the width and theme matrix, in each view, with the first row picked, no element inside the list zone or the detail zone has a `getBoundingClientRect()` extending more than 1 CSS px past the left or right edge of its zone, and the document's `scrollWidth` does not exceed the viewport width. The one exception is a descendant of a diagram scroll container: an element whose computed `overflow-x` is `auto` or `scroll`, that has `tabindex="0"` and an accessible name; that container itself meets the edge test.
+- [x] **AC-0011.** At 2560 CSS px, the union of the header and the two zones spans the viewport width less at most twice the `--s-5` page padding plus 2 CSS px.
+- [x] **AC-0012.** In every list row, the record's title is the first text in DOM order, and the record id appears in the same row only after it.
+- [x] **AC-0013.** Every list row and the detail state line carry one `.mark` element whose `data-mark` follows this map from the lifecycle value's first run of letters, compared case-insensitively: `accepted` → `approved`; `experimental` → `active`; `proposed`, `draft`, `open` and `final` → `draft`; `superseded`, `deprecated`, `rejected` and `withdrawn` → `done`; any other word, and no lifecycle value, → `draft`. Its visible text is a glyph hidden from assistive technology, then the record's lifecycle `display_value`, or "No status" when there is none. Checked on the `mixed` fixture, which holds `Accepted (superseded in part by ADR-0020 for D3)`, and on a `lifecycle-marks` fixture holding one record for each of `accepted` (lowercase), `Experimental`, `Proposed`, `Open`, `Final Comment Period`, `Superseded`, `Deprecated`, `Rejected`, `Withdrawn`, an unknown word, and no status line.
+- [x] **AC-0014.** Across the width and theme matrix, in each view, every text element, SVG `text` included and measured against its SVG background, in the header, the list zone and the detail zone has a contrast ratio of at least 4.5:1 against its background, and the border of the search field, of every `select` and of every bordered `button` has at least 3:1.
+- [x] **AC-0015.** With `prefers-reduced-motion: reduce`, every rendered element computes every `transition-duration` and `animation-duration` as `0s`; with `no-preference`, a list row computes a `transition-duration` greater than `0s`.
 
-- [ ] **AC-0023.** Across the width and theme matrix, in the Graph view, every SVG element under the diagram computes a `fill` and a `stroke` that is `none` or, under colour equality, equals one of the `--c-` custom properties declared on `:root` in that theme.
+- [x] **AC-0023.** Across the width and theme matrix, in the Graph view, every SVG element under the diagram computes a `fill` and a `stroke` that is `none` or, under colour equality, equals one of the `--c-` custom properties declared on `:root` in that theme.
 
-- [ ] **AC-0025.** With a record picked whose body holds headings, every heading element inside the record-content container computes a `font-size` smaller than both the page `h1`'s and the detail heading's.
-- [ ] **AC-0026.** At 320 CSS px, with a record picked from any view and the list zone hidden, the detail zone holds a button named "Back to list" that, activated by Enter or Space, shows the list zone again in the view that was current; when that view is List or Graph, the picked record's list row or diagram node carries `aria-current="true"`.
+- [x] **AC-0025.** With a record picked whose body holds headings, every heading element inside the record-content container computes a `font-size` smaller than both the page `h1`'s and the detail heading's.
+- [x] **AC-0026.** At 320 CSS px, with a record picked from any view and the list zone hidden, the detail zone holds a button named "Back to list" that, activated by Enter or Space, shows the list zone again in the view that was current; when that view is List or Graph, the picked record's list row or diagram node carries `aria-current="true"`.
 
 ### Regression and review
 
-- [ ] **AC-0016.** Every test in `test_html_publication.py`, `test_query_contract.py` and `browser_checks.py` at the base commit passes against this change unedited, except tests the verification ledger lists one by one. Each listed test names the shipped `decision-navigation` criterion it verified and the replacing assertion that still verifies that criterion against the new markup; a test may be removed without replacement only when what it checks is the theme switch, the count tiles or the Detail tab, which this spec removes.
-- [ ] **AC-0017.** An export over this repository at the final code commit shows the same record count, the same count per kind and per lifecycle value, and the same number of relationships as an export at the base commit, and the ledger records both commands, file sizes and counts.
-- [ ] **AC-0018.** An `experience-reviewer` pass over screenshots of the real export across the width and theme matrix, against RFC-0108 D1 rules 3, 4, 5, 8, 9 and 10 and the `skill-html-views` direction's ranked goals, leaves no Major or Blocker finding after adjudication, recorded in the ledger.
-- [ ] **AC-0019.** The owner records in the ledger, with the date, that the real export at the final code commit matches the `navigate-intents` view's visual identity.
+- [x] **AC-0016.** Every test in `test_html_publication.py`, `test_query_contract.py` and `browser_checks.py` at the base commit passes against this change unedited, except tests the verification ledger lists one by one. Each listed test names the shipped `decision-navigation` criterion it verified and the replacing assertion that still verifies that criterion against the new markup; a test may be removed without replacement only when what it checks is the theme switch, the count tiles or the Detail tab, which this spec removes.
+- [x] **AC-0017.** An export over this repository at the final code commit shows the same record count, the same count per kind and per lifecycle value, and the same number of relationships as an export at the base commit, and the ledger records both commands, file sizes and counts.
+- [x] **AC-0018.** An `experience-reviewer` pass over screenshots of the real export across the width and theme matrix, against RFC-0108 D1 rules 3, 4, 5, 8, 9 and 10 and the `skill-html-views` direction's ranked goals, leaves no Major or Blocker finding after adjudication, recorded in the ledger.
+- [x] **AC-0019.** The owner records in the ledger, with the date, that the real export at the final code commit matches the `navigate-intents` view's visual identity.
 
 ## Follow-ons
 
