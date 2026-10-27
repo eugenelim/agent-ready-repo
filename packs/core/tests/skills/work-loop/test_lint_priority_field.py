@@ -7,12 +7,11 @@ trees.
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
-
-import os
 
 import pytest
 
