@@ -408,6 +408,7 @@ _INTENDED_CASES = frozenset({
     "entries that carry no kind",
     "a captured-item file that carries a Type: line",
     "matches nothing else",
+    "the closed captured item of another kind",
 })
 _CATEGORIES = frozenset({
     "canonical artifact metadata",
