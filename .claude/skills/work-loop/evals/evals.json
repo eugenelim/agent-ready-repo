@@ -1403,6 +1403,29 @@
         "Response says Priority does not change the pick or order",
         "Response does not select `docs/specs/beta/` because of its urgent priority"
       ]
+    },
+    {
+      "id": "blocked-design-misfit-is-a-shape-sign",
+      "prompt": "You are running a full-mode work-loop. The implementer for T3 returns `blocked` with a `design-misfit` deviation: the only way to finish the task is to add a lock around a cache that the plan's Design (LLD) says has a single writer. T4 is next in the schedule. What do you do?",
+      "files": [],
+      "expected_output": "Treat the blocked misfit as a sign that the design shape is wrong, and because the single-writer assumption is a settled decision in the approved Design (LLD), act on this one sign without waiting for another. Do not dispatch T4, and do not answer by revising or redispatching only T3. Surface the evidence — the lock T3 would need, and the single-writer assumption in the named Design (LLD) sub-section — and wait for the owner. If the owner agrees, take the controlled amendment and redesign from what was built, keeping completed task sections sealed and making the new design smaller before it grows.",
+      "assertions": [
+        "Response does not dispatch T4 before the owner decides",
+        "Response does not fix the problem by revising or redispatching only T3",
+        "Response names the single-writer assumption in the Design (LLD) as the falsified decision",
+        "Response routes an agreed redesign through the controlled amendment, not a direct edit to the sealed plan"
+      ]
+    },
+    {
+      "id": "single-special-case-is-not-a-shape-signal",
+      "prompt": "During a work-loop, one task needed a special-case branch for leap years in a date calculation. No other task has needed a workaround, and gates pass. Should you stop and Surface that the design shape is wrong?",
+      "files": [],
+      "expected_output": "No. One sign in one place is not a pattern, and a branch that mirrors a real case in the domain is not a design fault. Record it if it deviated from the task body and continue; act only when signs repeat across unrelated tasks or trace back to one design decision.",
+      "assertions": [
+        "Response does not stop the loop or Surface a design-shape problem",
+        "Response says a single sign is not a pattern",
+        "Response distinguishes domain complexity from a design fault"
+      ]
     }
   ]
 }
