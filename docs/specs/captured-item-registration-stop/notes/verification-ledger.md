@@ -56,3 +56,16 @@ AC-0019 live comparison, run at head `80cef728d` over this worktree's tree. A sc
 | `captured` object (77 items) | 77 | 77 | identical |
 
 Result: identical on every compared field.
+
+## Code review and the final comparison
+
+Code review ran in two rounds over `origin/main...HEAD`, with records under `.context/reviews/captured-item-registration-stop-code-r1/` and `-r2/`.
+
+- **Round 1:** the adversarial, security, and quality reviewers reported 1, 0, and 1 blockers, 4, 0, and 3 concerns, and 4, 1, and 3 nits. The adjudicator sustained 2 concerns and 6 nits and refuted the rest, including both blockers. The quality blocker was refuted because the one-step `Resolution:` rule is the owner's settled decision. The adversarial blocker was refuted because shipping the spec is a finish step.
+- **Repairs:** the controller applied the sustained fixes itself, as `work-loop`'s FIX step allows for a short fix. The task's dispatch record carries `human-directed` because the receipt schema has no controller-applied reason.
+  - `c93323151`: an unregistered captured-item dependency that becomes cooled between the two cooled checks fails closed, with a test that failed on the earlier engine.
+  - `026282e34`: the guide and skill wording.
+  - `3ec135ced`: the regenerated copies.
+- **Round 2:** the adversarial review was clean. The security review was clean with a `## Not checked` footer, which the adjudicator found holds no finding.
+
+AC-0019 was re-run at head `2dc1e1b5db0cd0737caa5f450056cd6e78d46071`, after the spec shipped. `workspace_status.py status --root .` ran from a detached worktree of `dd4f7038c` and from the head, each with `python3 -I`, over the head's tree. The results are identical: ready 0, active 2, blocked 28, canonical findings 65 by code and path, and 77 captured items. This ledger section is the only later change, and the engine reads no file under `notes/`.
