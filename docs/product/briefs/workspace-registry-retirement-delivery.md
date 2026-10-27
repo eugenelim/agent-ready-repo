@@ -104,6 +104,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `priority-header-field` | <auto> |
 | `registry-comparison` | <auto> |
 | `next-item-suggestions-removal` | <auto> |
+| `captured-item-registration-stop` | <auto> |
 
 ## Governance references (optional)
 

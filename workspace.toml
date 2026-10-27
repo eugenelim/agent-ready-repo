@@ -2460,6 +2460,8 @@ backlog = [
 # only, `Status` untouched, recorded in that plan's own changelog. Nothing is
 # owed here before this item starts.
 queue   = [
+  # Slice 3 (second half) of `workspace-registry-retirement-delivery`; Approved 2026-10-27.
+  { path = "docs/specs/captured-item-registration-stop/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Captured items stop being registered: every captured-item writer writes only its file, a closed captured item settles a dependency through its own Status: and Resolution:, and the contracts that required registration are amended", needs = [] },
 ]
 active  = [
   # Slice 1 of `workspace-registry-retirement-delivery`; Approved 2026-10-25 and moved from `queue` when it became Implementing the same day.

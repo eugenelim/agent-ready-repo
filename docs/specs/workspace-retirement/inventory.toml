@@ -2696,6 +2696,12 @@ consumer = "captured items in their own files: the file shape and reader, the un
 owner = 3
 
 [[row]]
+pattern = "docs/specs/captured-item-registration-stop/*"
+class = "contract"
+consumer = "captured-item registration stop: writers write only the file, the closed-state rule, and the rule that closing a registered item deletes its entry"
+owner = 3
+
+[[row]]
 pattern = "docs/specs/next-item-suggestions-removal/*"
 class = "contract"
 consumer = "slice 6 spec: removes the first-in-list next-item suggestions from the workspace-status orient run"
