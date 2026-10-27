@@ -14,7 +14,9 @@ The check reads four kinds of artifact under DIR:
 
 Every other entry is ignored. In the preamble of each artifact (the lines
 before the first `## ` heading, outside fenced blocks, with HTML comments
-hidden) a `- **Priority:** <value>` line is valid when its value is exactly
+hidden; a fence opens on three or more backticks or tildes indented at most
+three spaces and closes on a run of the same character at least as long with
+nothing after it) a `- **Priority:** <value>` line is valid when its value is exactly
 `urgent`, `high`, `medium`, or `low`. A trailing HTML comment and one pair of
 surrounding backticks are not part of the value. An artifact with no such line,
 or whose value is empty, has no priority and is valid. Each artifact gives at
@@ -28,9 +30,12 @@ its only reader. Nothing is written to the repository.
 
 Output: one `<path>: <code>` line on stdout per violation, sorted by path, and
 nothing else. A refusal prints one `<code>: <path>` line on stderr and nothing
-on stdout. Codes: `unsafe-artifact` (a symlink, a non-regular file or
-directory), `resource-limit` (a walk bound exceeded), `invalid-utf8`.
-A carrier directory that does not exist is skipped.
+on stdout. Codes: `unsafe-artifact` (a carrier that is a symlink, or is not
+a regular file or directory), `resource-limit` (a walk bound exceeded),
+`invalid-utf8`, `root-invalid` (DIR is not a directory), and `internal-error`
+(an unexpected failure; its path is `.`).
+A carrier directory that does not exist is skipped. Each carrier directory
+is listed one level deep, so the depth bound is never reached.
 
 Exit codes: 0 complete check with no violations; 1 one or more violations;
 2 refusal or incomplete check.
@@ -69,7 +74,7 @@ _CAPTURED_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 
 _HEADING_PREFIX = "## "
 _PRIORITY_LINE_RE = re.compile(r"^- \*\*Priority:\*\*\s*(.*)$")
-_FENCE_MARKERS = ("```", "~~~")
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 
 # Directory parts and name grammar per flat carrier; specs are handled separately.
 _FLAT_CARRIERS: dict[str, tuple[tuple[str, ...], re.Pattern[str]]] = {
@@ -129,8 +134,7 @@ def _get_file_safety() -> Any:
     required = {
         "UnsafeContentError",
         "BoundExceeded",
-        "walk_confined_regular_files",
-        "list_confined_directories",
+        "validate_confined_directory",
         "read_confined_regular_file",
     }
     if required - set(vars(mod)):
@@ -176,23 +180,35 @@ def _clean(value: str) -> str:
 
 
 def _priority_lines(text: str) -> list[str]:
-    """Field values of every active `Priority:` preamble line, in order."""
+    """Field values of every active `Priority:` preamble line, in order.
+
+    A fence opens on a run of three or more backticks or tildes indented at most
+    three spaces, and closes only on a run of the same character at least as
+    long with nothing after it, so a shorter or info-string marker inside a
+    fence does not close it.
+    """
     values: list[str] = []
     inside_comment = False
-    fence = ""
+    fence_char = ""
+    fence_len = 0
     for line in text.splitlines():
-        if fence:
-            if line.lstrip().startswith(fence):
-                fence = ""
+        if not inside_comment:
+            fence = _FENCE_RE.match(line)
+            if fence:
+                marker = fence.group(1)
+                if not fence_char:
+                    fence_char, fence_len = marker[0], len(marker)
+                    continue
+                if (
+                    marker[0] == fence_char
+                    and len(marker) >= fence_len
+                    and not line[fence.end():].strip()
+                ):
+                    fence_char, fence_len = "", 0
+                    continue
+        if fence_char:
             continue
-        was_inside = inside_comment
         visible, inside_comment = _visible_line(line, inside_comment)
-        if not was_inside:
-            opener = visible.lstrip()
-            marker = next((m for m in _FENCE_MARKERS if opener.startswith(m)), "")
-            if marker:
-                fence = marker
-                continue
         if visible.startswith(_HEADING_PREFIX):
             break
         match = _PRIORITY_LINE_RE.match(visible)
@@ -273,45 +289,74 @@ def _decide(
     return None
 
 
+def _is_link_like(inspected: os.stat_result) -> bool:
+    """A symlink, or a Windows reparse point such as a junction."""
+    attribute = getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    return _stat.S_ISLNK(inspected.st_mode) or bool(
+        getattr(inspected, "st_file_attributes", 0) & attribute
+    )
+
+
+def _carrier_entries(
+    fs: Any, root: Path, directory: Path, pattern: re.Pattern[str], budget: _Budget
+) -> list[tuple[Path, os.stat_result]]:
+    """The entries directly in `directory` whose names match `pattern`.
+
+    Every entry seen counts against the entry bound as it is listed, so an
+    oversized directory refuses before it is held in memory. Entries whose
+    names do not match are never inspected further, so a link or special file
+    that is not a carrier cannot refuse the run.
+    """
+    label = directory.relative_to(root).as_posix()
+    try:
+        fs.validate_confined_directory(root, directory)
+    except fs.UnsafeContentError as exc:
+        raise Refusal("unsafe-artifact", label) from exc
+    matched: list[tuple[Path, os.stat_result]] = []
+    try:
+        with os.scandir(directory) as iterator:
+            for entry in iterator:
+                budget.entries_left -= 1
+                if budget.entries_left < 0:
+                    raise Refusal("resource-limit", label)
+                if not pattern.fullmatch(entry.name):
+                    continue
+                path = Path(entry.path)
+                matched.append((path, entry.stat(follow_symlinks=False)))
+    except OSError as exc:
+        raise Refusal("unsafe-artifact", label) from exc
+    return sorted(matched, key=lambda item: item[0].name)
+
+
 def _flat_carriers(
     fs: Any, root: Path, directory: Path, pattern: re.Pattern[str], budget: _Budget
 ) -> list[Path]:
     """The carrier files directly in one flat carrier directory."""
     label = directory.relative_to(root).as_posix()
-    try:
-        walk = fs.walk_confined_regular_files(
-            root, directory, max_entries=budget.entries_left,
-            max_files=budget.files_left, max_depth=MAX_DEPTH,
-        )
-    except fs.BoundExceeded as exc:
-        raise Refusal("resource-limit", label) from exc
-    except fs.UnsafeContentError as exc:
-        raise Refusal("unsafe-artifact", label) from exc
-    budget.entries_left -= walk.entries_seen
-    budget.files_left -= len(walk.files)
-    return [
-        path for path in walk.files
-        if path.parent == directory and pattern.fullmatch(path.name)
-    ]
+    carriers: list[Path] = []
+    for path, inspected in _carrier_entries(fs, root, directory, pattern, budget):
+        if _is_link_like(inspected) or not _stat.S_ISREG(inspected.st_mode):
+            raise Refusal("unsafe-artifact", path.relative_to(root).as_posix())
+        budget.files_left -= 1
+        if budget.files_left < 0:
+            raise Refusal("resource-limit", label)
+        carriers.append(path)
+    return carriers
 
 
 def _spec_carriers(fs: Any, root: Path, directory: Path, budget: _Budget) -> list[Path]:
     """Each `<dir>/spec.md` one level under the specs directory.
 
-    Only the spec directories themselves are inspected, so a link-like entry
-    deeper inside a spec directory, such as under its notes, is never reached.
+    Only the spec directories themselves are inspected, so an entry deeper
+    inside a spec directory, such as under its notes, is never reached.
     """
     label = directory.relative_to(root).as_posix()
-    try:
-        children = fs.list_confined_directories(root, directory)
-    except fs.UnsafeContentError as exc:
-        raise Refusal("unsafe-artifact", label) from exc
     carriers: list[Path] = []
-    for child in children:
-        budget.entries_left -= 1
-        if budget.entries_left < 0:
-            raise Refusal("resource-limit", label)
-        if not _SPEC_DIR_RE.fullmatch(child.name):
+    for child, inspected in _carrier_entries(fs, root, directory, _SPEC_DIR_RE, budget):
+        rel = child.relative_to(root).as_posix()
+        if _is_link_like(inspected):
+            raise Refusal("unsafe-artifact", rel)
+        if not _stat.S_ISDIR(inspected.st_mode):
             continue
         spec = child / "spec.md"
         try:
@@ -319,9 +364,9 @@ def _spec_carriers(fs: Any, root: Path, directory: Path, budget: _Budget) -> lis
         except FileNotFoundError:
             continue
         except OSError as exc:
-            raise Refusal("unsafe-artifact", spec.relative_to(root).as_posix()) from exc
-        if _stat.S_ISLNK(st.st_mode) or not _stat.S_ISREG(st.st_mode):
-            raise Refusal("unsafe-artifact", spec.relative_to(root).as_posix())
+            raise Refusal("unsafe-artifact", f"{rel}/spec.md") from exc
+        if _is_link_like(st) or not _stat.S_ISREG(st.st_mode):
+            raise Refusal("unsafe-artifact", f"{rel}/spec.md")
         budget.files_left -= 1
         if budget.files_left < 0:
             raise Refusal("resource-limit", label)
