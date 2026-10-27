@@ -302,6 +302,11 @@ FIRST_TOOL_BATCH = (
     # (`:385`) is deliberately not extended, because the controls it guards
     # are themselves gated by docs.yml's lint-intent-corpus job.
     "tools/test_intent_corpus_gate.py",
+    # Added 2026-10-27 with the registry comparison (spec registry-comparison).
+    # Membership only: appended to this existing batch, so no group count moves.
+    # `lint-ci-parity` disposes it NO_PR_GATE: the comparison has no CI job by
+    # owner decision (FEAT-0034 § Registry comparison).
+    "tools/test_compare_registry.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -1081,11 +1086,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # added to `run-test-suite` directly after the navigate-decisions line. Prior
 # pins were current: `_effective_composition_errors()` over this Makefile with
 # exactly that line deleted returns no errors against `611639cf…` and `38091777…`.
+# Re-pinned 2026-10-27 for the registry comparison suite. Sole cause: the path
+# `tools/test_compare_registry.py` appended to the tools batch that ends with
+# `tools/test_intent_corpus_gate.py`; no line was added, removed or reordered.
+# Prior pins were current: origin/main's Makefile, which lacks only that path,
+# passes this test against `ccd2669c…` and `c311c2a9…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "ccd2669c5610379b0643b1359cbed62f15a37d1275c0a38a3511234ef6808840"
+    "aefb240472c8ad5720c19410ed3a517b4ad7b5e281e85cea5d8b61f7c5e8f8cd"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "c311c2a99ccef2dffd110538066fa9af84bd3a94df8fd3be937a66ed4f7dfca6"
+    "2716968f266cbf08bd6c260743ec2c8a96814747873cff0901e231d338c55042"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
