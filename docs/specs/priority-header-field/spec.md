@@ -1,6 +1,7 @@
 # Spec: Priority header field
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-27 by eugenelim, spec and plan, after spec-stage shaping and adversarial reviews over five rounds ending clean; review records under `.context/reviews/priority-spec-20261026/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, a human priority is a header field on the item, never a position in a shared list), ADR-0074 (standard-library skill scripts)

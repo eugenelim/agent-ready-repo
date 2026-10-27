@@ -2462,6 +2462,8 @@ backlog = [
 queue   = [
 ]
 active  = [
+  # Slice 4 of `workspace-registry-retirement-delivery`; Approved 2026-10-27 and Implementing the same day.
+  { path = "docs/specs/priority-header-field/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The optional Priority: header field on intents, briefs, specs and captured items, its reader and lint, and the guard that nothing ordering work reads it", needs = [] },
   # Slice 1 of `workspace-registry-retirement-delivery`; Approved 2026-10-25 and moved from `queue` when it became Implementing the same day.
   { path = "docs/specs/workspace-retirement/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The workspace retirement record: a per-PR-checked consumer inventory and the per-fact disposition, with removal authority, that RFC-0105 D3 requires", needs = [] },
 ]
