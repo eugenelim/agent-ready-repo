@@ -120,8 +120,11 @@ _START_ROUTES = {
     "intent": ("shaping_queue.backlog", "intake-intent"),
     "spec": ("work.queue", "new-spec"),
     "brief": ("brief_queue.draft", "author-delivery-brief create"),
-    "defect": ("backlog.open", "bug-fix"),
+    "defect": ("none", "bug-fix"),
 }
+
+# Captured-item kinds are written as their own file and never registered.
+_UNREGISTERED_KINDS = frozenset({"defect", "design", "research"})
 
 
 def route_intake(
@@ -174,6 +177,10 @@ def route_intake(
 
     if signals.action == "remember":
         processor = "intake-intent" if signals.artifact_kind == "intent" else "none"
+        if signals.artifact_kind in _UNREGISTERED_KINDS:
+            return _route(
+                signals, "none", processor, "materialize-draft-non-dispatchable"
+            )
         return _route(
             signals,
             "backlog.open",
@@ -185,7 +192,12 @@ def route_intake(
         raise ValueError("unsupported intake routing signals")
 
     membership, processor = _START_ROUTES[signals.artifact_kind]
-    return _route(signals, membership, processor, "materialize-and-register")
+    mutation = (
+        "materialize-and-dispatch"
+        if signals.artifact_kind in _UNREGISTERED_KINDS
+        else "materialize-and-register"
+    )
+    return _route(signals, membership, processor, mutation)
 
 
 def route_handoff(

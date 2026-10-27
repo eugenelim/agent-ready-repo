@@ -40,12 +40,16 @@ def run_intake_transaction(
     configured_parent: str,
     artifact_target: str,
     materialize_artifact: Callable[[Path], None],
-    register_workspace_entry: Callable[[], None],
     rollback_partial_state: Callable[[], None],
     record_reconciliation: Callable[[str], None],
     dispatch_processor: Callable[[], None],
+    register_workspace_entry: Callable[[], None] | None = None,
 ) -> TransactionResult:
-    """Materialize, register, then dispatch one durable artifact route.
+    """Materialize, optionally register, then dispatch one durable artifact route.
+
+    With no ``register_workspace_entry`` the transaction takes the lock,
+    materializes, releases the lock, and dispatches: no registration stage runs
+    and so no registration rollback applies.
 
     Callers supply idempotent rollback and reconciliation operations appropriate
     to their workspace writer. Exception values are intentionally not returned,
@@ -88,14 +92,15 @@ def run_intake_transaction(
                 record_reconciliation=record_reconciliation,
             )
 
-        try:
-            register_workspace_entry()
-        except Exception:
-            return _recover_partial_state(
-                failed_stage="registration_write",
-                rollback_partial_state=rollback_partial_state,
-                record_reconciliation=record_reconciliation,
-            )
+        if register_workspace_entry is not None:
+            try:
+                register_workspace_entry()
+            except Exception:
+                return _recover_partial_state(
+                    failed_stage="registration_write",
+                    rollback_partial_state=rollback_partial_state,
+                    record_reconciliation=record_reconciliation,
+                )
     finally:
         with contextlib.suppress(FileNotFoundError):
             lock_path.unlink()
