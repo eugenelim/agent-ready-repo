@@ -70,7 +70,9 @@ var MARK_GLYPH={active:'●',approved:'◆',draft:'◇',done:'✓'};
 function markName(rec){
 var l=rec.lifecycle;if(!l||l.missing)return'draft';
 var w=/[A-Za-z]+/.exec(l.raw_value||'');
-var m=w?MARK_OF[w[0].toLowerCase()]:null;return m||'draft';}
+// Only the map's own names count; an inherited one such as "constructor" is a draft.
+var k=w?w[0].toLowerCase():'';
+return Object.prototype.hasOwnProperty.call(MARK_OF,k)?MARK_OF[k]:'draft';}
 function markEl(rec){
 var l=rec.lifecycle,m=markName(rec);
 var e=el('span','mark');e.setAttribute('data-mark',m);
@@ -84,23 +86,25 @@ if(!kindEl)return;
 kindEl.querySelectorAll('button[data-kind]').forEach(function(b){
 b.setAttribute('aria-pressed',(b.getAttribute('data-kind')||'')===kind?'true':'false');});}
 // ── Routing ──────────────────────────────────────────────────────────────────
+// A history entry is #<view>[/<id>[/unpicked]]: the id with no suffix is picked (the
+// detail replaces the list below 40rem); the suffix marks a selection that is not picked.
 function parseHash(){
 state.sel=null;state.picked=false;
 try{
 var h=location.hash.slice(1);
 if(!h){state.view='list';return;}
-var i=h.indexOf('/');
-var v=i<0?h:h.slice(0,i);
+var parts=h.split('/');
+var v=parts[0];
 // #detail/<id> keeps the current view (List on a cold load) and picks the record.
 if(v!=='detail'){
 if(VALID_VIEWS.indexOf(v)<0){state.view='list';return;}
 state.view=v;}
-if(i>=0){try{state.sel=decodeURIComponent(h.slice(i+1));}
+if(parts.length>1){try{state.sel=decodeURIComponent(parts[1]);}
 catch(ue){state.sel=null;}}
-state.picked=state.sel!==null;
+state.picked=state.sel!==null&&parts[2]!=='unpicked';
 }catch(ex){state.view='list';state.sel=null;state.picked=false;}}
 function pushState(){
-var h='#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel):'');
+var h='#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel)+(state.picked?'':'/unpicked'):'');
 if(location.hash!==h)history.pushState(null,'',h);}
 function filtered(){return records.filter(function(r){
 if(state.kind&&r.kind!==state.kind)return false;
@@ -178,6 +182,7 @@ function syncExpandLabel(){
 var b=document.getElementById('expand-all-btn');if(!b)return;
 var d=openable(),all=d.length>0;
 for(var i=0;i<d.length;i++){if(!d[i].open){all=false;break;}}
+b.disabled=d.length===0;
 b.textContent=all?'Collapse all':'Expand all';}
 // ── Supersession banner ──────────────────────────────────────────────────────
 function supBanner(entry,isDetail){
@@ -186,6 +191,8 @@ div.className='notice supersede-banner';div.setAttribute('role','note');
 div.appendChild(document.createTextNode(entry.partial?'Superseded in part by ':'Superseded by '));
 var a=document.createElement('a');
 a.href='#detail/'+encodeURIComponent(entry.by);a.textContent=entry.by;
+// Follow the link in the view that is current, with the target picked.
+a.addEventListener('click',function(e){e.preventDefault();navigate('detail',entry.by);});
 div.appendChild(a);
 if(entry.partial){
 var sc=entry.scope&&entry.scope.length?'('+entry.scope.join(', ')+')':'(scope not stated)';
@@ -254,7 +261,7 @@ function renderGraph(c){
 var h2=el('h2',null,'Lifecycle graph');c.appendChild(h2);
 if(state.sel){
 // Focused view: SVG lineage diagram for the selected record
-var back=el('button','atlas-back pill-btn','← All chains');back.type='button';
+var back=el('button','atlas-back','← All chains');back.type='button';
 back.addEventListener('click',function(){navigate('graph',null);});
 c.appendChild(back);
 Lineage.renderFocused(c,state.sel,rels,records,navigate);
@@ -349,10 +356,10 @@ var metaRows=[['Kind',rec.kind],['Status',lc(rec)],['Source',V(rec.source)]];
 if(hf&&hf.label&&!(hf.label.toLowerCase()==='status'&&statusShownAs(hf,rec)))metaRows.push([V(hf.label),hf.display_value!=null?hf.display_value:V(hf.raw_value||'')]);});
 metaRows.forEach(function(row){
 var tr=document.createElement('tr');
-var th=el('th','part-head',row[0]);var td=el('td',null,row[1]);
+var th=el('th','field',row[0]);var td=el('td',null,row[1]);
 tr.appendChild(th);tr.appendChild(td);tbl.appendChild(tr);});
 var slTr=document.createElement('tr');
-var slTh=el('th','part-head','Source link');var slTd=el('td',null);
+var slTh=el('th','field','Source link');var slTd=el('td',null);
 var sl=makeLink(rec.source);
 if(sl){slTd.appendChild(sl);}
 else{slTd.textContent=V(rec.source)+' (remote not on allowlist — inert provenance)';}
@@ -459,7 +466,7 @@ if(mainEl)mainEl.addEventListener('toggle',syncExpandLabel,true);
 // Back to list (one column): show the list zone again in the view that was current.
 var backBtn=document.getElementById('back-btn');
 if(backBtn)backBtn.addEventListener('click',function(){
-state.picked=false;render(true);
+state.picked=false;pushState();render(true);
 if(!(state.view==='list'&&focusRow()))focusViewHeading();});
 window.addEventListener('popstate',function(){parseHash();render();focusAfterPick();});
 var provPre=document.getElementById('prov-pre');

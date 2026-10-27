@@ -9,10 +9,10 @@
 .page-header { padding: var(--s-3) var(--s-5) var(--s-2); border-bottom-width: 1px; border-bottom-style: solid; }
 .title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); }
 .page-title { display: inline-flex; align-items: center; gap: var(--s-2); }
-.search { display: flex; flex-direction: row; align-items: center; gap: var(--s-1); flex: 1 1 16rem; max-width: 32rem; margin-left: auto; position: relative; }
+.search { display: flex; flex-direction: row; align-items: center; gap: var(--s-1); flex: 1 1 100%; position: relative; }
 .search label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .search .control { width: 100%; height: 2.25rem; padding-left: 2.1rem; }
-.filter-pick { display: flex; flex-direction: row; align-items: center; gap: var(--s-2); min-width: 0; max-width: 100%; }
+.filter-pick { display: flex; flex-direction: row; align-items: center; gap: var(--s-2); min-width: 0; max-width: 100%; flex: 1 1 11rem; }
 .filter-pick select { min-width: 0; max-width: min(100%, 18rem); }
 #meta { margin: var(--s-1) 0 0; }
 button, select, input { padding: 0 var(--s-3); }
@@ -20,6 +20,7 @@ select { padding-right: 1.9rem; }
 summary { display: list-item; padding: var(--s-1) 0; }
 .notice { padding: var(--s-2) var(--s-3); }
 .page-header .notice { margin: var(--s-2) 0 0; }
+.detail .notice { margin: 0 0 var(--s-2); }
 
 .app { padding: var(--s-5); }
 .zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
@@ -59,7 +60,7 @@ button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var
 .c-context .value { overflow-wrap: normal; white-space: nowrap; }
 .row.is-superseded .rid { text-decoration: line-through; }
 .row.is-superseded-part .rid { text-decoration: underline; text-underline-offset: 3px; }
-.row > .notice { margin: 0 var(--s-3) var(--s-2); border-radius: 0 var(--r-2) var(--r-2) 0; }
+.row > .notice { margin: 0 var(--s-3) var(--s-2); }
 .notice a { display: inline-flex; align-items: center; min-height: 1.5rem; }
 .mark { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.05rem 0.55rem 0.05rem 0.45rem; width: fit-content; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .state-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); margin: 0 0 var(--s-2); }
@@ -77,22 +78,22 @@ button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var
 .lt-node-btn:hover, .edge-btn:hover { text-decoration: underline; }
 .graph-note { margin: var(--s-1) 0 var(--s-3); color: var(--c-muted); }
 .atlas-back { margin: 0 0 var(--s-2); }
-.rel-item { padding: var(--s-1) var(--s-2); border-radius: var(--r-1); margin-bottom: var(--s-1); font-size: 0.8rem; word-break: break-all; background: var(--c-canvas); }
+.rel-item { padding: var(--s-1) var(--s-2); border-radius: var(--r-1); margin-bottom: var(--s-1); word-break: break-all; background: var(--c-canvas); }
 .rel-checked { border-left: 4px solid var(--c-ok); }
 .rel-candidate { border-left: 4px dashed var(--c-warn); }
-.rel-contextual { border-left: 4px dotted var(--c-active); }
+.rel-contextual { border-left: 4px dotted var(--c-subtle); }
 .rel-navigation-only { border-left: 4px double var(--c-rule-strong); }
 .trust-label { padding: 0.1rem 0.3rem; margin-right: var(--s-1); white-space: nowrap; }
 .trust-source { color: var(--c-muted); }
 .bounded-notice { margin: var(--s-2) 0; padding: var(--s-2) var(--s-3); }
 
 /* ---- Detail card */
-.meta-table { border-collapse: separate; border-spacing: 0; margin-bottom: var(--s-3); width: 100%; border: 1px solid var(--c-rule); border-radius: var(--r-2); overflow: hidden; }
+.meta-table { border-collapse: separate; border-spacing: 0; margin-bottom: var(--s-3); width: 100%; border: 1px solid var(--c-rule); border-radius: var(--r-2); }
 .meta-table th, .meta-table td { padding: var(--s-1) var(--s-3); text-align: left; vertical-align: top; border-bottom: 1px solid var(--c-rule); overflow-wrap: anywhere; white-space: pre-wrap; }
 .meta-table tr:last-child th, .meta-table tr:last-child td { border-bottom-width: 0; }
 .meta-table th { white-space: nowrap; width: 7rem; }
-.rel-details, .sr-details, .body-details { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); overflow: hidden; }
-.rel-details > summary, .sr-details > summary, .body-details > summary { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-3); background: var(--c-canvas); list-style: none; }
+.rel-details, .sr-details, .body-details { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
+.rel-details > summary, .sr-details > summary, .body-details > summary { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-3); background: var(--c-canvas); border-radius: var(--r-1); list-style: none; }
 .rel-details > summary::-webkit-details-marker, .sr-details > summary::-webkit-details-marker, .body-details > summary::-webkit-details-marker { display: none; }
 .rel-details > summary::after, .sr-details > summary::after, .body-details > summary::after { content: "\25BE"; color: var(--c-muted); }
 .rel-details[open] > summary::after, .sr-details[open] > summary::after, .body-details[open] > summary::after { content: "\25B4"; }
@@ -102,11 +103,11 @@ button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var
 /* ---- Record content: a uniform 2px border, distinct from the 4px evidence rails */
 .record-content { border: 2px solid var(--c-rule); border-radius: var(--r-1); padding: var(--s-3) var(--s-4); background: var(--c-canvas); overflow-x: auto; max-width: 100%; line-height: 1.6; }
 .record-content h3, .record-content h4 { margin: var(--s-3) 0 var(--s-1); }
-.record-content h5, .record-content h6 { font-size: 0.875rem; margin: var(--s-2) 0 var(--s-1); }
+.record-content h5, .record-content h6 { margin: var(--s-2) 0 var(--s-1); }
 .record-content p { margin: var(--s-1) 0; }
 .record-content ul, .record-content ol { margin: var(--s-1) 0; padding-left: var(--s-5); }
 .record-content li { margin: 0.12rem 0; }
-.record-content pre { font-size: 0.8rem; background: var(--c-raised); padding: var(--s-2) var(--s-3); border-radius: var(--r-1); overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: var(--s-1) 0; }
+.record-content pre { background: var(--c-raised); padding: var(--s-2) var(--s-3); border-radius: var(--r-1); overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: var(--s-1) 0; }
 .record-content code { background: var(--c-raised); padding: 0.1em 0.25em; border-radius: var(--r-1); }
 .record-content pre code { background: none; padding: 0; font-size: inherit; }
 .record-content blockquote { margin: var(--s-2) 0; padding: var(--s-2) var(--s-3); background: var(--c-accent-bg); border-radius: var(--r-1); font-style: italic; color: var(--c-muted); border: none; }
@@ -120,7 +121,7 @@ button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var
 /* ---- Lineage diagram: scroll wrappers and captions. The diagram's own colours are set by lineage.js. */
 .lineage-caption { margin-bottom: var(--s-1); font-style: italic; }
 .lineage-wrap { overflow-x: auto; max-width: 100%; margin-bottom: var(--s-2); }
-.lineage-wrap svg, .chain-svg-wrap svg { display: block; max-width: 100%; height: auto; }
+.lineage-wrap svg, .chain-svg-wrap svg { display: block; }
 .lineage-axis { margin: var(--s-1) 0; white-space: pre-wrap; }
 .lineage-key { margin: var(--s-1) 0 var(--s-2) var(--s-5); }
 .lineage-legend, .lineage-text { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin: var(--s-2) 0; }
@@ -128,14 +129,14 @@ button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var
 .lineage-legend ul, .lineage-text ul { margin: var(--s-1) 0 var(--s-1) var(--s-5); padding: 0; }
 .lineage-legend li, .lineage-text li { margin: 0.15rem 0; }
 .chain-atlas { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: flex-start; }
-.chain-card { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); overflow: hidden; }
+.chain-card { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
 .chain-atlas .chain-card { flex: 1 1 auto; max-width: 100%; margin: 0; }
-.chain-card-label { padding: var(--s-1) var(--s-2); border-bottom: 1px solid var(--c-rule); background: var(--c-canvas); }
+.chain-card-label { padding: var(--s-1) var(--s-2); border-bottom: 1px solid var(--c-rule); background: var(--c-canvas); border-radius: var(--r-1); }
 .chain-svg-wrap { overflow-x: auto; max-width: 100%; padding: var(--s-2); }
 .ctx-toggle { margin: var(--s-1) 0; }
 
-/* The diagram: shapes draw no fill and no stroke until a class below picks a token, and its type sizes
-   follow the nodes' scale. Weight and family come from the shared classes the script adds. */
+/* The diagram: shapes draw no fill and no stroke until a class below picks a token. Size, weight and family
+   come from the shared type classes the script adds. */
 .lineage-wrap svg, .chain-svg-wrap svg { fill: none; stroke: none; }
 .ln-edge-checked { stroke: var(--c-muted); }
 .ln-edge-partial { stroke: var(--c-accent); }
@@ -150,24 +151,20 @@ rect.ln-node { fill: var(--c-accent-bg); stroke: var(--c-rule-strong); }
 rect.ln-node-old { fill: none; stroke: var(--c-subtle); }
 rect.ln-node-focus { fill: var(--c-accent); stroke: var(--c-accent); }
 rect.ln-node-context { fill: var(--c-canvas); stroke: var(--c-subtle); }
-.ln-focus-outer { stroke: var(--c-text); }
-.ln-focus-inner { stroke: var(--c-warn); }
+.ln-focus { stroke: var(--c-accent); }
 text.ln-edge-checked, text.ln-edge-partial, text.ln-edge-unresolved, text.ln-edge-context,
 text.ln-edge-asserted, text.ln-cycle { stroke: none; }
 text.ln-edge-partial { fill: var(--c-accent); }
-text.ln-edge-unresolved, text.ln-edge-context, text.ln-title { fill: var(--c-muted); }
+text.ln-edge-unresolved, text.ln-edge-context { fill: var(--c-muted); }
+text.ln-title { fill: var(--c-text); }
 text.ln-edge-asserted { fill: var(--c-active); }
 text.ln-cycle, text.ln-badge { fill: var(--c-warn); }
 text.ln-id { fill: var(--c-accent); }
 text.ln-on-focus { fill: var(--c-bg); }
-.ln-label { font-size: 0.625rem; }
-.ln-sat-text, .ln-id { font-size: 0.625rem; }
-.ln-title, .ln-badge { font-size: 0.5625rem; }
-.chain-svg-wrap .ln-id { font-size: 0.5625rem; }
-.chain-svg-wrap .ln-title, .chain-svg-wrap .ln-badge { font-size: 0.5rem; }
 
 /* ---- Width tracks: one column below 40rem, the detail replacing the list once a record is picked. */
 @media (min-width: 40rem) {
+  .search { flex: 1 1 16rem; max-width: 32rem; }
   .zones { grid-template-columns: minmax(0, 3fr) minmax(22rem, 2fr); }
   .zones[data-picked] .worklist, .zones:not([data-picked]) .detail { display: block; }
   .back-link { display: none; }
@@ -179,15 +176,15 @@ text.ln-on-focus { fill: var(--c-bg); }
 @media (min-width: 120rem) {
   .zones { grid-template-columns: minmax(0, 1fr) clamp(28rem, 30%, 40rem); }
 }
+/* A list zone wide enough for three tracks lays a row out in one line. */
+@container (min-width: 36rem) {
+  button.row-link { grid-template-columns: minmax(10rem, 1fr) 8.5rem minmax(12rem, 1fr); }
+}
 /* From 120rem the name cell stops growing so the state stays near the name. */
 @media (min-width: 120rem) {
   @container (min-width: 36rem) {
     button.row-link { grid-template-columns: minmax(10rem, 34rem) 8.5rem minmax(12rem, 1fr); }
   }
-}
-/* A list zone wide enough for three tracks lays a row out in one line. */
-@container (min-width: 36rem) {
-  button.row-link { grid-template-columns: minmax(10rem, 1fr) 8.5rem minmax(12rem, 1fr); }
 }
 @container (max-width: 24rem) {
   .meta-table th, .meta-table td { display: block; width: auto; }

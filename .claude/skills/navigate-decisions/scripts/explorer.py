@@ -689,6 +689,9 @@ def _build_html(
         '<header id="app-header" class="page-header">\n'
         '<div class="title-row">\n'
         '<h1 class="page-title">Decision records</h1>\n'
+        '<div class="search"><label for="search-input">Search IDs, titles, statuses</label>'
+        '<input type="search" id="search-input" class="control" autocomplete="off" '
+        'placeholder="Search IDs, titles, statuses"></div>\n'
         '<div id="kind-filter" class="seg" role="group" aria-label="Filter by kind">'
         '<span class="seg-label">Kind</span>'
         '<button type="button" class="seg-btn" data-kind="" aria-pressed="true">All</button>'
@@ -698,9 +701,6 @@ def _build_html(
         '<div class="filter-pick"><label class="field" for="status-filter">Status</label>'
         '<select id="status-filter">'
         '<option value="">All statuses</option></select></div>\n'
-        '<div class="search"><label for="search-input">Search IDs, titles, statuses</label>'
-        '<input type="search" id="search-input" class="control" autocomplete="off" '
-        'placeholder="Search IDs, titles, statuses"></div>\n'
         "</div>\n"
         f'<p id="meta" class="meta">{snapshot}</p>\n'
         f"{notice_html}"
