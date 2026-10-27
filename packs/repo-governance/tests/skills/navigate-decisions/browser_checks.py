@@ -467,7 +467,7 @@ def test_supersession_banners_in_list_and_detail(
     banner.wait_for()
     assert "Superseded in part by ADR-0020 (D3)" in (banner.inner_text() or "")
     banner.get_by_text("ADR-0020").first.click()
-    page.wait_for_function("() => location.hash === '#detail/ADR-0020'")  # type: ignore[union-attr]
+    page.wait_for_function("() => location.hash === '#list/ADR-0020'")  # type: ignore[union-attr]
     assert not page._errors  # type: ignore[attr-defined]
 
 
@@ -1644,7 +1644,7 @@ def test_supersession_state_is_named_and_marked_in_both_graph_views(
     page.wait_for_selector(".chain-card svg")
     deco = page.evaluate(
         """() => Object.fromEntries(['ADR-0001', 'ADR-0002', 'ADR-0020'].map(id =>
-          [id, document.querySelector(`.chain-card [data-node-id="${id}"] text`)
+          [id, document.querySelector(`.chain-card [data-node-id="${id}"] text.ln-id`)
             .getAttribute('text-decoration')]))"""
     )
     assert deco == {"ADR-0001": "underline", "ADR-0002": "line-through", "ADR-0020": None}, deco
@@ -1855,10 +1855,11 @@ def test_in_chain_assertion_never_passes_beneath_a_node(
 def test_expand_all_label_is_unchanged_on_a_view_without_sections(
     browser: object, export_mixed: pathlib.Path
 ) -> None:
-    """R4-FE-4: on the list view there is nothing to expand, so the label stays."""
+    """R4-FE-4: on the list view there is nothing to expand, so the control is disabled and
+    the label stays."""
     page = _open_page(browser, export_mixed)
     page.wait_for_selector("li.row")
-    page.click("#expand-all-btn")
+    assert page.locator("#expand-all-btn").is_disabled()
     assert page.locator("#expand-all-btn").text_content() == "Expand all"
 
 
@@ -1974,7 +1975,7 @@ def test_partial_id_underline_style_matches_across_views(
     assert style == ["underline", "solid"], style
     _navigate_graph(page, "ADR-0001")
     deco = page.evaluate(
-        "() => document.querySelector('#view-graph [data-node-id=\"ADR-0001\"] text')"
+        "() => document.querySelector('#view-graph [data-node-id=\"ADR-0001\"] text.ln-id')"
         ".getAttribute('text-decoration')"
     )
     assert deco == "underline", deco
@@ -2175,7 +2176,7 @@ def test_partial_id_is_underlined_in_the_atlas(
     _navigate_graph(page)
     page.wait_for_selector(".chain-card svg")
     deco = page.evaluate(
-        "() => document.querySelector('.chain-card [data-node-id=\"ADR-0001\"] text')"
+        "() => document.querySelector('.chain-card [data-node-id=\"ADR-0001\"] text.ln-id')"
         ".getAttribute('text-decoration')"
     )
     assert deco == "underline", deco
@@ -3051,24 +3052,18 @@ def test_search_by_record_id(
 def test_search_label_names_ids_titles_statuses(
     browser: object, export_search: pathlib.Path
 ) -> None:
-    """The search box's visible label and its computed accessible name both
-    mention IDs, titles, and statuses, and the name contains the label."""
+    """The search box's placeholder, the text a sighted user sees in it, names IDs,
+    titles and statuses, and its computed accessible name names them too and
+    contains the label."""
     page = _open_page(browser, export_search)
     page.wait_for_selector("li.row")
 
-    # Visible label text — the label names the input through its `for` attribute
+    placeholder = page.locator("#search-input").get_attribute("placeholder") or ""
+    for word in ("ids", "titles", "statuses"):
+        assert word in placeholder.lower(), (word, placeholder)
     label_text = page.evaluate(
         "() => { const lbl = document.querySelector('label[for=search-input]');"
         " return lbl ? lbl.textContent.trim() : ''; }"
-    )
-    assert "IDs" in label_text or "ids" in label_text.lower(), (
-        f"visible label must mention IDs; got {label_text!r}"
-    )
-    assert "title" in label_text.lower(), (
-        f"visible label must mention titles; got {label_text!r}"
-    )
-    assert "status" in label_text.lower(), (
-        f"visible label must mention statuses; got {label_text!r}"
     )
 
     # Computed accessible name, as assistive technology reads it. It must
@@ -3349,8 +3344,15 @@ def test_every_row_and_the_detail_line_carry_one_mark_by_the_lifecycle_map(
         assert line == want, (rec["id"], line)
         assert page.locator("#detail-body .notice .mark").count() == 0  # type: ignore[union-attr]
     if fixture_name == "export_marks":
+        by_id = {r["id"]: _expected_mark(r)[0] for r in records}
+        assert by_id["ADR-0011"] == "draft", by_id  # "Constructor" is no inherited-name mark
+        constructor = page.evaluate(  # type: ignore[union-attr]
+            "() => document.querySelector('.row-link[data-id=\"ADR-0011\"]')"
+            ".parentElement.querySelector('.mark').dataset.mark"
+        )
+        assert constructor == "draft", constructor
         assert seen == {"active", "approved", "draft", "done"}, seen
-        assert len(records) == 12
+        assert len(records) == 13  # AC-0013's 11 values plus Draft and Constructor
     else:
         assert "approved" in seen
 
@@ -3512,7 +3514,7 @@ def test_text_and_control_borders_have_enough_contrast(
 
 
 @pytest.mark.parametrize("scheme", _SCHEMES)
-@pytest.mark.parametrize("width", (320, 1280))
+@pytest.mark.parametrize("width", _WIDTHS)
 def test_diagram_shapes_draw_only_in_token_colours(
     browser: object, zone_export: pathlib.Path, width: int, scheme: str
 ) -> None:
@@ -3563,3 +3565,234 @@ def test_lineage_scroll_wrappers_are_named_keyboard_regions(
     for w in focused + atlas:
         assert w["tab"] == "0" and w["role"] == "group" and w["name"], w
         assert w["overflow"] == "auto", w
+
+
+# ── decision-view-style review fixes: history, clipping, node size, header ────
+
+
+def _hash_state(page: object) -> dict[str, object]:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        """() => ({ hash: location.hash,
+          view: ['list', 'graph', 'context'].find(v =>
+            document.getElementById('btn-' + v).getAttribute('aria-current') === 'page'),
+          picked: document.getElementById('app-main').hasAttribute('data-picked'),
+          listShown: getComputedStyle(document.querySelector('.worklist')).display !== 'none',
+          detailShown: getComputedStyle(document.querySelector('.detail')).display !== 'none' })"""
+    )
+
+
+def _first_superseded(page: object) -> tuple[str, str]:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        """() => { const r = JSON.parse(document.getElementById('nav-data').textContent)
+            .records.find(r => (r.superseded_by || []).some(s => !s.partial));
+          return [r.id, r.superseded_by.find(s => !s.partial).by]; }"""
+    )
+
+
+def test_history_returns_to_the_view_recorded_with_each_entry(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """Every back and forward entry restores the view and the picked state recorded with it:
+    a supersession link follows the current view, and Back and forward agree."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    old, new = _first_superseded(page)
+    _show(page, "graph", old)
+    page.locator("#detail-body .supersede-banner a").first.click()
+    page.wait_for_function("(id) => location.hash.includes(id)", arg=new)
+    after_link = _hash_state(page)
+    assert after_link["view"] == "graph" and after_link["picked"], after_link
+    page.click("#btn-list")
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    listed = _hash_state(page)
+    assert listed["view"] == "list" and not listed["picked"], listed
+    page.go_back()
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")
+    assert _hash_state(page) == after_link
+    page.go_forward()
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    assert _hash_state(page) == listed
+    page.go_back()
+    page.go_back()
+    page.wait_for_function("(id) => location.hash.includes(id)", arg=old)
+    assert _hash_state(page)["view"] == "graph"
+    context.close()
+
+
+def test_history_after_back_to_list_keeps_the_list_zone_at_320(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """At 320: pick a row, Back to list, Graph, then back and forward; the entry recorded
+    with no pick shows the list zone, never the detail."""
+    context = browser.new_context(viewport={"width": 320, "height": 800}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    page.locator("li.row .row-link").first.click()
+    page.wait_for_selector("#app-main[data-picked]")
+    picked = _hash_state(page)
+    assert picked["detailShown"] and not picked["listShown"], picked
+    page.click("#back-btn")
+    page.wait_for_selector("#app-main:not([data-picked])")
+    unpicked = _hash_state(page)
+    assert unpicked["listShown"] and not unpicked["detailShown"], unpicked
+    page.click("#btn-graph")
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")
+    graph = _hash_state(page)
+    assert graph["listShown"] and not graph["detailShown"], graph
+    page.go_back()
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    assert _hash_state(page) == unpicked
+    page.go_back()
+    page.wait_for_selector("#app-main[data-picked]")
+    assert _hash_state(page) == picked
+    page.go_forward()
+    page.go_forward()
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")
+    assert _hash_state(page) == graph
+    context.close()
+
+
+def test_an_old_detail_bookmark_still_opens_the_record(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """A `#detail/<id>` bookmark opens in the List view with the record picked."""
+    context = browser.new_context(viewport={"width": 320, "height": 800}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}#detail/ADR-0001")
+    page.wait_for_selector("#detail-body .state-line")
+    state = _hash_state(page)
+    assert state["view"] == "list" and state["picked"] and state["detailShown"], state
+    context.close()
+
+
+_OUTLINE_CLIP_JS = """(el) => {
+  const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+  const grow = parseFloat(cs.outlineWidth) + parseFloat(cs.outlineOffset);
+  const box = { l: r.left - grow, t: r.top - grow, r: r.right + grow, b: r.bottom + grow };
+  const clipped = [];
+  for (let a = el.parentElement; a; a = a.parentElement) {
+    const o = getComputedStyle(a);
+    if (o.overflowX === 'visible' && o.overflowY === 'visible') continue;
+    const p = a.getBoundingClientRect();
+    if (box.l < p.left - 0.5 || box.t < p.top - 0.5 || box.r > p.right + 0.5
+        || box.b > p.bottom + 0.5)
+      clipped.push(a.localName + '.' + a.className);
+  }
+  return { grow, clipped }; }"""
+
+
+@pytest.mark.parametrize("width", (320, 1280))
+def test_focus_outlines_are_not_clipped_by_an_ancestor(
+    browser: object, tmp_path_factory: pytest.TempPathFactory, width: int
+) -> None:
+    """A focused Relationships summary and a focused record-content region each have their
+    whole outline inside every ancestor that clips."""
+    export = _publish_with(
+        tmp_path_factory,
+        f"outline_clip_{width}",
+        [
+            (1, "Old", "- **Status:** Accepted\n- **Superseded by:** ADR-0002\n"),
+            (2, "New", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+        ],
+        [],
+    )
+    context = browser.new_context(viewport={"width": width, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export}")
+    page.wait_for_selector("li.row")
+    _show(page, "list", "ADR-0001")
+    page.wait_for_selector("#detail-body .rel-details > summary")
+    page.wait_for_selector("#detail-body section.record-content")
+    for sel in ("#detail-body .rel-details > summary", "#detail-body section.record-content"):
+        page.locator(sel).focus()
+        page.keyboard.press("Shift+Tab")
+        page.keyboard.press("Tab")  # focus-visible by keyboard
+        info = page.evaluate(_OUTLINE_CLIP_JS, page.locator(sel).element_handle())
+        assert info["grow"] >= 4, (sel, info)
+        assert info["clipped"] == [], (sel, info)
+    context.close()
+
+
+@pytest.mark.parametrize("width", (320, 1280))
+def test_diagram_nodes_hold_their_size_and_their_text(
+    browser: object, zone_export: pathlib.Path, width: int
+) -> None:
+    """Every diagram node is at least 24 by 24 CSS px; its first text is its record's title
+    and the id follows; node text is at least the shared label size."""
+    page = _zone_page(browser, zone_export, width, "light", "graph")
+    if page.locator("#back-btn").is_visible():  # one column: a pick hides the list zone
+        page.click("#back-btn")
+    seen = 0
+    for _ in range(2):  # the focused chain, then the atlas
+        info = page.evaluate(
+            """() => { const recs = JSON.parse(
+                document.getElementById('nav-data').textContent).records;
+              const p = document.createElement('span'); p.style.font = 'var(--t-label)';
+              document.body.appendChild(p);
+              const label = parseFloat(getComputedStyle(p).fontSize); p.remove();
+              const gs = [...document.querySelectorAll('#view-graph svg [role=button]')];
+              return { label, nodes: gs.map(g => {
+                const r = g.getBoundingClientRect();
+                const rec = recs.find(x => x.id === g.dataset.nodeId);
+                const texts = [...g.querySelectorAll('text')];
+                return { id: g.dataset.nodeId, w: r.width, h: r.height,
+                  first: texts[0].textContent, title: rec.display_title || rec.title,
+                  idAt: texts.findIndex(t => t.textContent === g.dataset.nodeId),
+                  sizes: texts.map(t => parseFloat(getComputedStyle(t).fontSize)) }; }) }; }"""
+        )
+        for node in info["nodes"]:
+            assert node["w"] >= 24 and node["h"] >= 24, node
+            head = node["first"].removesuffix("…")
+            assert node["title"].startswith(head) and head, node
+            assert node["idAt"] > 0, node
+            assert min(node["sizes"]) >= info["label"] - 0.01, (info["label"], node)
+        seen += len(info["nodes"])
+        if not page.locator("button.atlas-back").count():
+            break
+        page.evaluate("() => document.querySelector('button.atlas-back').click()")
+        page.wait_for_selector(".chain-card svg")
+    assert seen or zone_export.name.startswith("hostile"), zone_export
+    page.context.close()
+
+
+def test_name_track_stops_growing_at_2560(browser: object, export_mixed: pathlib.Path) -> None:
+    """From 120rem the row's name track is at most 34rem."""
+    context = browser.new_context(viewport={"width": 2560, "height": 1200}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    track = page.evaluate(
+        "() => parseFloat(getComputedStyle(document.querySelector('.row-link'))"
+        ".gridTemplateColumns.split(' ')[0])"
+    )
+    assert track <= 34 * 16 + 0.5, track
+    context.close()
+
+
+def test_header_order_and_expand_all_state(browser: object, export_mixed: pathlib.Path) -> None:
+    """The header reads title, search, Kind, Status; Expand all is disabled while nothing
+    can expand and enabled once a record with sections is shown."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    order = page.evaluate(
+        """() => ['.page-title', '#search-input', '#kind-filter', '#status-filter'].map(s => {
+          const r = document.querySelector(s).getBoundingClientRect();
+          return [r.top, r.left]; })"""
+    )
+    ids = page.evaluate(
+        """() => { const q = s => document.querySelector(s);
+          const pairs = [['.page-title', '#search-input'], ['#search-input', '#kind-filter'],
+            ['#kind-filter', '#status-filter']];
+          return pairs.map(([a, b]) => !!(q(a).compareDocumentPosition(q(b))
+            & Node.DOCUMENT_POSITION_FOLLOWING)); }"""
+    )
+    assert ids == [True, True, True], ids
+    assert order[1][0] <= order[2][0] + 1, order  # the search sits on or above the filters
+    assert page.locator("#search-input").get_attribute("placeholder")
+    assert page.locator("#expand-all-btn").is_disabled()
+    page.locator("li.row .row-link").first.click()
+    page.wait_for_selector("#detail-body details")
+    assert page.locator("#expand-all-btn").is_enabled()

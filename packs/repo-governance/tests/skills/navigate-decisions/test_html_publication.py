@@ -2330,7 +2330,7 @@ def _layout_violations(css: str) -> list[str]:
             found.append(f"colour in {prop}: {value}")
         if prop in ("font", "font-family", "font-weight", "box-shadow") or re.match(r"(?:transition|animation)", prop):
             found.append(f"{prop} belongs to the base")
-        if prop == "border-radius" and re.sub(r"var\(--r-\d\)|\b0\b|\s", "", value):
+        if prop == "border-radius" and re.sub(r"var\(--r-\d\)|\s", "", value):
             found.append(f"border-radius {value}")
     return found
 
@@ -2342,7 +2342,7 @@ def test_layout_file_declares_no_colour_font_shadow_motion_or_token() -> None:
         "--x: 1px", "color: #fff", "background: rgb(0 0 0)", "border-color: red", "color: hsl(1 2% 3%)",
         "color: oklch(1 0 0)", "background: transparent", "font-weight: 600", "font-family: serif",
         "font: 12px serif", "box-shadow: none", "border-radius: 4px", "transition: color 1s",
-        "animation-name: a", "border: 1px solid white",
+        "animation-name: a", "border: 1px solid white", "border-radius: 0", "border-radius: 0 var(--r-2) var(--r-2) 0",
     ):
         assert _layout_violations(f".a {{ {bad}; }}"), bad
     assert _layout_violations(".a { border-radius: var(--r-2); padding: var(--s-1); stroke: var(--c-accent); }") == []

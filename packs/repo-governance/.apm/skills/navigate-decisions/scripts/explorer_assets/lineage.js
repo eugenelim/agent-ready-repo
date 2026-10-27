@@ -8,10 +8,11 @@ var Lineage=(function(){'use strict';
 var NS='http://www.w3.org/2000/svg';
 function svgEl(t){return document.createElementNS(NS,t);}
 function sa(e,k,v){e.setAttribute(k,String(v));return e;}
-var NW=160,NH=48,XG=112,YG=16,PX=20,PY=20;
+// A node holds its title (up to two lines) above its id, both in the shared type sizes.
+var NW=184,NH=60,XG=140,YG=16,PX=20,PY=20;
 // Satellites sit SAT_GAP further out, so each branch into one is long enough
 // for its label.
-var SAT_GAP=40,SAT_BRANCH=96,CYCLE_ROOM=96;
+var SAT_GAP=40,SAT_BRANCH=96,CYCLE_ROOM=120;
 
 // ── Connected component over checked edges (undirected)
 function chainOf(startId,rels){
@@ -317,7 +318,7 @@ function placeLabels(g,edges,keyHost){
   var widths={},probes=[];
   var measure=function(s){
     if(s in widths)return;widths[s]=0;
-    var m=svgEl('text');sa(m,'class','ln-label field');
+    var m=svgEl('text');sa(m,'class','ln-label ctx-tag');
     m.textContent=s;g.appendChild(m);probes.push([s,m]);
   };
   jobs.forEach(function(j){if(j.txt.length<=MAX_LABEL)measure(j.txt);});
@@ -418,7 +419,7 @@ function drawLabel(g,j,shown,box){
   if(j.path.dataset&&j.path.dataset.rel)t.dataset.for=j.path.dataset.rel;
   sa(t,'x',box.x+box.w/2);sa(t,'y',box.y+box.h/2);
   sa(t,'dominant-baseline','middle');sa(t,'text-anchor','middle');
-  sa(t,'class','edge-label ln-label field '+tone);
+  sa(t,'class','edge-label ln-label ctx-tag '+tone);
   t.appendChild(document.createTextNode(shown));
   g.appendChild(t);
 }
@@ -430,12 +431,19 @@ function supState(rec){
 }
 var SUP_TEXT={'':'',part:', superseded in part',full:', superseded'};
 
+// Split a title into at most two lines of `cpl` characters, breaking at a space where there is one.
+function titleLines(t,cpl){
+  if(t.length<=cpl)return[t];
+  var cut=t.lastIndexOf(' ',cpl);if(cut<cpl/2)cut=cpl;
+  var first=t.slice(0,cut).trimEnd(),rest=t.slice(cut).trimStart();
+  return[first,rest.length>cpl?rest.slice(0,cpl-1)+'…':rest];
+}
+
 // ── Node group (<g role="button">)
 function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   var lcv=(rec&&rec.lifecycle&&!rec.lifecycle.missing&&(rec.lifecycle.display_value||rec.lifecycle.raw_value))||'(missing)';
   var titleTxt=(rec&&(rec.display_title||rec.title))||'';
-  var maxT=Math.max(Math.floor(nw/7)-2,8);
-  var shortT=titleTxt.length>maxT?titleTxt.slice(0,maxT-1)+'…':titleTxt;
+  var tl=titleLines(titleTxt,Math.max(Math.floor((nw-14)/7),8));
   var g=svgEl('g');
   sa(g,'role','button');sa(g,'tabindex',isSel?'0':'-1');
   sa(g,'aria-label',nid+': '+titleTxt+', '+lcv+(SUP_TEXT[isOld||'']||''));
@@ -460,37 +468,34 @@ function drawNode(svg,nid,x,y,nw,nh,rec,isSel,isCyc,isOld,scale,navigate_fn){
   }
   // Type sizes live in the layout file; the atlas's smaller nodes take the same classes in a smaller wrapper.
   var onSel=isSel?' ln-on-focus':'';
+  // The title leads, over up to two lines; the id follows as secondary text on the last line.
+  var idY=y+(tl.length>1?nh-9:Math.round(nh*0.78));
+  tl.forEach(function(line,li){
+    var ttt=svgEl('text');
+    sa(ttt,'x',x+7);sa(ttt,'y',y+(tl.length>1?16+li*15:Math.round(nh*0.38)));
+    sa(ttt,'class','ln-title meta'+onSel);
+    ttt.textContent=line;g.appendChild(ttt);
+  });
   var idt=svgEl('text');
-  sa(idt,'x',x+6);sa(idt,'y',y+nh*0.42);
+  sa(idt,'x',x+7);sa(idt,'y',idY);
   sa(idt,'class','ln-id value'+onSel);
   if(isOld==='full')sa(idt,'text-decoration','line-through');
   else if(isOld==='part')sa(idt,'text-decoration','underline');
   idt.textContent=nid;g.appendChild(idt);
-  if(nh>28){
-    var ttt=svgEl('text');
-    sa(ttt,'x',x+6);sa(ttt,'y',y+nh*0.75);
-    sa(ttt,'class','ln-title'+onSel);
-    ttt.textContent=shortT;g.appendChild(ttt);
-  }
   if(isCyc){
     var cb=svgEl('text');
-    sa(cb,'x',x+nw-4);sa(cb,'y',y+Math.max(9,Math.round(10*scale))+2);
-    sa(cb,'text-anchor','end');sa(cb,'class','ln-badge'+onSel);
+    sa(cb,'x',x+nw-7);sa(cb,'y',idY);
+    sa(cb,'text-anchor','end');sa(cb,'class','ln-badge ctx-tag'+onSel);
     cb.textContent='cycle';g.appendChild(cb);
   }
   var titleEl=svgEl('title');titleEl.textContent=nid+': '+titleTxt+' ('+lcv+')';
   g.appendChild(titleEl);
-  // Visible focus ring
-  // A dark outer ring guarantees 3:1 on the light canvas; the amber inner ring
-  // keeps the familiar focus colour. Both sit outside the supersession ring.
+  // Visible focus ring: the shared treatment, a 2px accent ring set clear of the supersession ring.
   var fr=svgEl('g');fr.setAttribute('class','focus-ring');
   var fo=svgEl('rect');
-  sa(fo,'x',x-9);sa(fo,'y',y-9);sa(fo,'width',nw+18);sa(fo,'height',nh+18);
-  sa(fo,'rx','12');sa(fo,'fill','none');sa(fo,'class','ln-focus-outer');sa(fo,'stroke-width','2');
-  var fi=svgEl('rect');
-  sa(fi,'x',x-7);sa(fi,'y',y-7);sa(fi,'width',nw+14);sa(fi,'height',nh+14);
-  sa(fi,'rx','10');sa(fi,'fill','none');sa(fi,'class','ln-focus-inner');sa(fi,'stroke-width','2');
-  fr.appendChild(fo);fr.appendChild(fi);
+  sa(fo,'x',x-8);sa(fo,'y',y-8);sa(fo,'width',nw+16);sa(fo,'height',nh+16);
+  sa(fo,'rx','12');sa(fo,'fill','none');sa(fo,'class','ln-focus');sa(fo,'stroke-width','2');
+  fr.appendChild(fo);
   fr.setAttribute('hidden','');g.appendChild(fr);
   g.addEventListener('click',function(){navigate_fn('graph',nid);});
   g.addEventListener('keydown',function(e){
@@ -730,7 +735,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
       // The two arcs of a two-record cycle bulge by different amounts, so
       // each keeps its own line and label.
       var twin=chainCheckedRels.some(function(o){return o.from===r.to&&o.to===r.from;});
-      var arcX=xn+(twin&&r.from>r.to?80:50),arcY=(y1c+y2c)/2;
+      var arcX=xn+(twin&&r.from>r.to?96:64),arcY=(y1c+y2c)/2;
       var arc=svgEl('path');
       sa(arc,'d','M '+xn+','+y1c+' Q '+arcX+','+arcY+' '+xn+','+y2c);
       sa(arc,'fill','none');sa(arc,'class','ln-edge-checked');sa(arc,'stroke-width','1.5');
@@ -781,7 +786,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     eg.appendChild(sg);
     lg._blockBoxes.push({x:sx-2,y:sy-2,w:Math.round(NW*0.78)+4,h:NH+4});
     var st=svgEl('text');sa(st,'x',sx+5);sa(st,'y',sy+NH/2);
-    sa(st,'dominant-baseline','middle');sa(st,'class','ln-sat-text '+st0.tone);
+    sa(st,'dominant-baseline','middle');sa(st,'class','ln-sat-text value '+st0.tone);
     var r=s.r;
     st.textContent=(s.kind==='one'?(r.display_to||r.to):
       (r.from===selectedId?(r.display_to||r.to):(r.display_from||r.from)))||'?';
@@ -855,7 +860,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
     sa(sr,'rx','4');sa(sr,'class','ln-node-context');sa(sr,'stroke-dasharray','2 3');
     ctxG.appendChild(sr);
     var st=svgEl('text');sa(st,'x',ctxX+5);sa(st,'y',ctxNP[pid].y+Math.round(NH*0.4));
-    sa(st,'dominant-baseline','middle');sa(st,'class','ln-sat-text ln-edge-context');
+    sa(st,'dominant-baseline','middle');sa(st,'class','ln-sat-text value ln-edge-context');
     st.textContent=pid;ctxG.appendChild(st);
     ctxYs.push(ctxNP[pid].y+Math.round(NH*0.4));
   });
@@ -902,7 +907,7 @@ function renderFocused(container,selectedId,allRels,allRecords,navigate){
   // Contextual toggle
   if(ctxRels.length>0){
     var ctxBtn=document.createElement('button');
-    ctxBtn.className='ctx-toggle pill-btn';
+    ctxBtn.className='ctx-toggle';
     ctxBtn.setAttribute('aria-expanded','false');
     ctxBtn.textContent='Show '+ctxRels.length+' contextual link'+(ctxRels.length!==1?'s':'');
     var shown=false;
@@ -945,7 +950,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
     empty.textContent='No checked supersession chains in this corpus.';
     container.appendChild(empty);return;
   }
-  var scale=0.8;
+  var scale=0.9;
   var nw=Math.round(NW*scale),nh=Math.round(NH*scale);
   var xg=Math.round(XG*scale),yg=Math.round(YG*scale);
   var grid=document.createElement('div');grid.className='chain-atlas';
@@ -988,7 +993,7 @@ function renderAtlas(container,allRels,allRecords,navigate){
         sa(arc,'stroke-dasharray','6 3');sa(arc,'marker-end','url(#'+pfx+'af)');
         arc.dataset.rel=relKey(r);eg2.appendChild(arc);
         var cl=svgEl('text');sa(cl,'x',ax+3);sa(cl,'y',ay);
-        sa(cl,'class','ln-badge ln-cycle');cl.textContent='cycle';eg2.appendChild(cl);
+        sa(cl,'class','ln-badge ctx-tag ln-cycle');cl.textContent='cycle';eg2.appendChild(cl);
         return;
       }
       var x1=PX+fp.col*(nw+xg),y1=PY+fp.row*(nh+yg)+ports2[ri].y1;
