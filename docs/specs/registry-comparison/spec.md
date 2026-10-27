@@ -68,7 +68,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Never do
 
 - Write any file, `workspace.toml` and bytecode included. The comparison only reads.
-- Add a CI job, a schedule, or a `make` target that runs the comparison (FEAT-0034 § Registry comparison).
+- Add a CI job, a schedule, or a `make` target that runs the comparison over this repository (FEAT-0034 § Registry comparison; the brief's slice 5; owner decision, 2026-10-27). The tool's own fixture suite in `make test` is not such a target.
 - Change `navigate-intents`, `workspace-status`, `close-work`, or any pack, or copy any of their rules into the tool.
 - Add a dependency, a top-level directory, or a new module boundary.
 
