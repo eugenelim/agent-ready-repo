@@ -85,6 +85,7 @@ protected = [
   "docs/specs/loop-tooling-mandated-writes",
   "docs/specs/missing",
   "docs/specs/neighbour",
+  "docs/specs/next-item-suggestions-removal",
   "docs/specs/normalized-intake-workspace-contracts",
   "docs/specs/not-a-real-spec",
   "docs/specs/not-chosen",
@@ -129,5 +130,6 @@ protected = [
   "docs/specs/work-intake-migration-docs",
   "docs/specs/work-item-capture",
   "docs/specs/workspace-retirement",
+  "docs/specs/workspace-status-next-actions",
   "docs/specs/x",
 ]

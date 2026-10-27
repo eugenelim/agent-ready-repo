@@ -65,7 +65,7 @@ No metric checks that another file becomes the hot file. The brief's non-goal ag
 
 None open. The [retirement record](../../specs/workspace-retirement/retirement-record.md) and its [inventory](../../specs/workspace-retirement/inventory.toml) answered both questions this intent carried into decomposition on 2026-10-25.
 
-- **Where list order is read.** Seven consumers read registry array order, each marked `reads_order = true` in the inventory: the `workspace-status` skill and its packaged engine copy (`next_queue`, `next_shape`), `work-loop`'s argless first-ready start, the `navigate-intents` readiness bridge, the `workspace-status-next-actions` spec, and two core guides that tell a reader to take the first ready item. The `entry position` row of the record's [Disposition](../../specs/workspace-retirement/retirement-record.md#disposition) removes it under the RFC-0106 errata entry of 2026-10-25.
+- **Where list order is read.** Six consumers read registry array order, each marked `reads_order = true` in the inventory: the `workspace-status` skill and its packaged engine copy, `work-loop`'s argless first-ready start, the `navigate-intents` readiness bridge, and two core guides that tell a reader to take the first ready item. The `entry position` row of the record's [Disposition](../../specs/workspace-retirement/retirement-record.md#disposition) removes it under the RFC-0106 errata entry of 2026-10-25.
 - **Which other contracts need amending.** Beyond the five RFC-0106 D1 names, the inventory's `contract` rows name every live artifact that states a current registry rule: further RFCs and ADRs, Shipped and live spec directories, intents, and briefs, each with the brief slice that amends it as its owner.
 
 ## Cascading intent impacts

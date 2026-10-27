@@ -1796,3 +1796,84 @@ def test_ac0017_wiring_rules(change: tuple[str, str], problem: str) -> None:
 def test_ac0017_quoted_on_key_is_read() -> None:
     assert workflow_wiring_violations(_GOOD_WORKFLOW.replace("on:\n", '"on":\n', 1)) == []
     assert workflow_wiring_violations("jobs: {}\n") == ["workflow has no top-level `on:` block"]
+
+
+# ───────────────── slice 6: the first-in-list suggestions removal ─────────────────
+
+_SLICE6_CASE = "the first-in-list next_queue and next_shape suggestions"
+
+
+def _inventory_rows() -> list[dict[str, Any]]:
+    return tomllib.loads(DEFAULT_INVENTORY.read_text(encoding="utf-8"))["row"]
+
+
+def _governing_row(path: str) -> dict[str, Any]:
+    """The first inventory row, in file order, whose pattern matches ``path``."""
+    return next(r for r in _inventory_rows() if fnmatch.fnmatchcase(path, r["pattern"]))
+
+
+def _equivalence_rows() -> list[dict[str, str]]:
+    text = DEFAULT_RECORD.read_text(encoding="utf-8")
+    heads = _headings(text)
+    at = next(i for i, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Equivalence")
+    rows, reason = _disposition_rows_for(_section(text, heads, at), _EQ_COLUMNS)
+    assert reason is None, reason
+    return rows
+
+
+def _disposition_rows_for(
+    section: str, columns: tuple[str, ...]
+) -> tuple[list[dict[str, str]], str | None]:
+    """Parse a record table like ``_disposition_rows`` does, for the given columns."""
+    table = [ln for ln in section.splitlines() if ln.lstrip().startswith("|")]
+    header = [_fact_text(c) for c in _split_row(table[0])]
+    missing = [c for c in columns if c not in header]
+    if missing:
+        return [], f"table lacks column(s) {', '.join(missing)}"
+    rows = []
+    for line in table[1:]:
+        cells = _split_row(line)
+        if cells and all(_ROW_SEPARATOR.match(c) for c in cells):
+            continue
+        cells += [""] * (len(header) - len(cells))
+        rows.append({name: cells[i] for i, name in enumerate(header)})
+    return rows, None
+
+
+def test_slice6_ac0004_equivalence_row_records_the_accepted_removal() -> None:
+    """next-item-suggestions-removal AC-0004."""
+    matches = [r for r in _equivalence_rows() if _fact_text(r["Case"]) == _SLICE6_CASE]
+    assert len(matches) == 1
+    row = matches[0]
+    assert _fact_text(row["Slice"]) == "6"
+    assert _fact_text(row["Result"]) == "accepted removal"
+    targets = _LINK.findall(row["Authority"])
+    assert any(
+        t.endswith(
+            "0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply"
+        )
+        for t in targets
+    ), targets
+
+
+def test_slice6_ac0005_removal_spec_is_a_slice_six_contract_row() -> None:
+    """next-item-suggestions-removal AC-0005."""
+    row = _governing_row("docs/specs/next-item-suggestions-removal/spec.md")
+    assert row["class"] == "contract"
+    assert row["owner"] == 6
+
+
+def test_slice6_ac0006_amended_spec_no_longer_reads_order() -> None:
+    """next-item-suggestions-removal AC-0006."""
+    row = _governing_row("docs/specs/workspace-status-next-actions/spec.md")
+    assert row.get("reads_order") is not True
+
+
+def test_slice6_ac0007_no_consumer_names_the_removed_fields() -> None:
+    """next-item-suggestions-removal AC-0007."""
+    named = [
+        r["pattern"]
+        for r in _inventory_rows()
+        if "next_queue" in r["consumer"] or "next_shape" in r["consumer"]
+    ]
+    assert named == []

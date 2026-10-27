@@ -32,7 +32,7 @@ Each fact the registry holds has one row: where it lives after retirement, who o
 | `crossRepoNeed.path` | canonical artifact metadata | the typed reference in `Depends on:` on the waiting item | 2 | [RFC-0106 D3](../../rfc/0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply) |
 | `crossRepoNeed.receipt_id` | canonical artifact metadata | the waiting item's `Dependency receipts:` coordination receipt line | 2 | [RFC-0106 D3](../../rfc/0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply) |
 | `crossRepoNeed.type` | canonical artifact metadata | the waiting item's `Depends on:` reference type | 2 | [RFC-0106 D3](../../rfc/0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply) |
-| `entry position` | deliberate removal | removed: read today by `guides/core/how-to/start-a-project.md`, `guides/core/tutorials/your-first-workspace.md`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`, `packs/core/.apm/skills/workspace-status/*`, `packs/core/.apm/skills/work-loop/*`, `docs/specs/workspace-status-next-actions/*`. The argless `work-loop` start lists the ready specs and asks (slice 8), and slice 6 removes `next_queue` and `next_shape`. An optional priority header (slice 4) is the only order a human may record | 8 | [RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata) |
+| `entry position` | deliberate removal | removed: read today by `guides/core/how-to/start-a-project.md`, `guides/core/tutorials/your-first-workspace.md`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`, `packs/core/.apm/skills/workspace-status/*`, `packs/core/.apm/skills/work-loop/*`. The argless `work-loop` start lists the ready specs and asks (slice 8), and the `workspace-status` Next-actions list picks nothing by position (slice 6). An optional priority header (slice 4) is the only order a human may record | 8 | [RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata) |
 | `entry.kind` | canonical artifact metadata | the artifact's type from its location and header; for a captured item, the `Kind:` line of `docs/product/captured/<slug>.md` | 3 | [RFC-0106 D3](../../rfc/0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply) |
 | `entry.locator` | externally owned projection | the external system the locator names; no live entry sets one | 9 | [RFC-0106 D1](../../rfc/0106-stop-registering-derivable-work.md#d1--retire-registration-one-responsibility-at-a-time) |
 | `entry.needs` | canonical artifact metadata | `Depends on:` header on the waiting item, as RFC-0103 typed references | 2 | [RFC-0106 D3](../../rfc/0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply) |
@@ -67,7 +67,7 @@ Each fact the registry holds has one row: where it lives after retirement, who o
 
 ## Equivalence
 
-Slice 2 of the delivery brief records here that each dependency-edge behavior either carries over to the `Depends on:` header or is an accepted removal. Slice 3 records its captured-item rows, and slice 8 adds its rows.
+Slice 2 of the delivery brief records here that each dependency-edge behavior either carries over to the `Depends on:` header or is an accepted removal. Slice 3 records its captured-item rows, slice 6 records the removal of the first-in-list suggestions, and slice 8 adds its rows.
 
 | Case | Slice | Result | Evidence | Authority |
 | --- | --- | --- | --- | --- |
@@ -91,6 +91,7 @@ Slice 2 of the delivery brief records here that each dependency-edge behavior ei
 | entries that carry no `kind` | 3 | intended change | `packs/core/tests/skills/workspace-status/test_captured_item_files_repair.py`, `docs/specs/captured-item-files/notes/verification-ledger.md` | [RFC-0106 D3](../../rfc/0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply) |
 | a captured-item file that carries a `Type:` line | 3 | intended change | `packs/core/tests/skills/workspace-status/test_captured_item_files_reader.py`, `tests/roster/test_captured_item_files_instructions.py` | [RFC-0106 D1](../../rfc/0106-stop-registering-derivable-work.md#d1--retire-registration-one-responsibility-at-a-time) |
 | `matches nothing else` | 3 | intended change | `packs/core/tests/skills/workspace-status/test_captured_item_files_reader.py`, `tools/test_workspace_status.py` | [RFC-0106 D1](../../rfc/0106-stop-registering-derivable-work.md#d1--retire-registration-one-responsibility-at-a-time) |
+| the first-in-list `next_queue` and `next_shape` suggestions | 6 | accepted removal | `packs/core/tests/skills/workspace-status/test_next_actions_suggestions_removed.py` | [RFC-0106 D3](../../rfc/0106-stop-registering-derivable-work.md#d3--per-item-homes-for-what-headers-cannot-yet-supply) |
 
 ## Compatibility closure
 
