@@ -2678,6 +2678,12 @@ consumer = "captured items in their own files: the file shape and reader, the un
 owner = 3
 
 [[row]]
+pattern = "docs/specs/priority-header-field/*"
+class = "contract"
+consumer = "the optional Priority: header field and its reader, which no registry or dispatch reader consults"
+owner = 4
+
+[[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
 class = "contract"
 consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces"
