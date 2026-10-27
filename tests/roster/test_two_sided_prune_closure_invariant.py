@@ -1505,10 +1505,15 @@ def test_existing_subcommands_are_unchanged(
     commands = (("status",), ("reconcile",), ("explain", "--item", "docs/specs/chosen/spec.md"), ("selected-membership", "--spec-dir", "docs/specs/chosen"))
     expected = [_cli_at(base_cli, root, *command) for command in commands]
     actual = [_cli(root, *command) for command in commands]
-    # `status` and `reconcile` gain the `captured` listing, which is built from
+    # `status` and `reconcile` carry the `captured` listing, which is built from
     # the captured-item directory and not from the registry; all else is equal.
+    # HEAD always carries it. A base from before it shipped does not, and a base
+    # after it does, so the base side drops it only where present.
     for _code, payload, _ in actual:
         if payload.get("mode") in {"status", "reconcile"}:
+            assert payload.pop("captured") == {"items": [], "findings": []}
+    for _code, payload, _ in expected:
+        if payload.get("mode") in {"status", "reconcile"} and "captured" in payload:
             assert payload.pop("captured") == {"items": [], "findings": []}
     assert actual == expected
 
