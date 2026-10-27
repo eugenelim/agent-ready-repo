@@ -2188,8 +2188,17 @@ def _style_blocks(html: str) -> list[str]:
     return re.findall(r"<style[^>]*>(.*?)</style>", html, re.DOTALL)
 
 
+_ASSET_PATHS = {
+    "view-base.css": SCRIPTS / "explorer_assets/view-base.css",
+    "explorer.css": SCRIPTS / "explorer_assets/explorer.css",
+    "explorer.js": SCRIPTS / "explorer_assets/explorer.js",
+    "lineage.js": SCRIPTS / "explorer_assets/lineage.js",
+    "markdown.js": SCRIPTS / "explorer_assets/markdown.js",
+}
+
+
 def _read_asset(name: str) -> str:
-    return (SCRIPTS / "explorer_assets" / name).read_text(encoding="utf-8")
+    return _ASSET_PATHS[name].read_text(encoding="utf-8")
 
 
 def test_single_style_is_base_then_layout(tmp_path: pathlib.Path) -> None:
