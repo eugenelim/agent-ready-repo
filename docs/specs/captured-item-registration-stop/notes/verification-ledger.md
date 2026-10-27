@@ -42,3 +42,17 @@ AC-0005's pins were recorded once from the engine at `dd4f7038c`:
 ## T5: the errata entries
 
 The owner, eugenelim, approved the wording of all four entries on 2026-10-27 before they were committed: ADR-0053 § Errata, RFC-0063 § Errata, RFC-0083 § Errata, and RFC-0106 § Errata. Each is committed exactly as approved. `lint-adr-shape.py docs/adr` and both record-index checks pass.
+
+## T7: closeout
+
+AC-0019 live comparison, run at head `80cef728d` over this worktree's tree. A scratch script under `.context/` ran the engine from a detached `dd4f7038c` checkout and the head engine, each as `python3 -I <engine>/packs/core/.apm/skills/workspace-status/scripts/workspace_status.py status --root <head tree root>`, and compared the AC-0019 fields.
+
+| Field | `dd4f7038c` | head | Result |
+| --- | --- | --- | --- |
+| `canonical.ready` paths | 0 | 0 | identical |
+| `canonical.active` paths | 3 | 3 | identical |
+| `canonical.blocked` paths | 28 | 28 | identical |
+| `canonical.findings` by (code, path) | 65 | 65 | identical |
+| `captured` object (77 items) | 77 | 77 | identical |
+
+Result: identical on every compared field.
