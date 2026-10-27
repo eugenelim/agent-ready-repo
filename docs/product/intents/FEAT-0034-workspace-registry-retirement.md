@@ -8,7 +8,7 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:workspace-coordination-reorganization
 - **De-risked:** 2026-10-08
-- **Shaping-reviewed:** 2026-10-25
+- **Shaping-reviewed:** 2026-10-26
 - **Decomposed:** 2026-10-25 brief
 
 ## Outcome
@@ -50,6 +50,16 @@ eugenelim (owner) settled three questions before decomposition.
 1. **Priority is an optional header field on the item.** An item with no priority field has no priority. The field exists so a sync to a delivery tracker can send this repository's own priority. It never decides readiness, dispatch, or order of work. This applies [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D3. A dependency stays `Depends on:` on the waiting item, under the same decision.
 2. **No compatibility seam.** After its replacement ships, no shipped skill other than the repair reads the old `workspace.toml` shape. A reader may still refuse unmigrated content and name the repair, so blocking never lapses. Adopters upgrade by running the repair in a session, which moves their registry content into headers and per-item files. That repair is how RFC-0105 D3's fourth gate closes for legacy entries. Behavior that lives only outside tracked files is not carried over. Each such removal still needs accepted authority under RFC-0105 D3, recorded in the retirement spec. Upgrade notes are the notice, not the authority.
 3. **`workspace-status` shrinks to the repair, then retires.** Its orientation job moves to `navigate-intents`, and its dispatch job moves to `work-loop`. The repair stays as long as adopters need it. A later release retires the skill name cleanly under RFC-0067.
+
+## Owner decision, 2026-10-26
+
+eugenelim (owner) cut the staged two-week trial from the first validation hook. The registry is no longer watched for two weeks after registration stops, and the merge-conflict count is dropped. What stays:
+
+- the edge-for-edge `needs` comparison, part (b) of the hook;
+- the registry comparison in [§ Registry comparison](#registry-comparison-owned-here), run once just before each registration stop instead of weekly;
+- the second hook, the dispatch replay, and RFC-0105 D3's four gates before deletion.
+
+No metric checks that another file becomes the hot file. The brief's non-goal against a replacement registry, generated index, or assembly step is the guard.
 
 ## Unresolved questions
 
@@ -199,9 +209,9 @@ Desk evidence settles where each fact can live. It does not show that work stays
 
 ```
 validation_hook:
-  assumption: With registration stopped for anything the headers supply, dependency edges on the waiting artifact and captured items in their own files keep coordination safe, and no repository-wide mutable file takes the registry's place.
-  kill_condition: Proceed to delete the registry only if, over at least two weeks of normal work after derivable registration stops, (a) no maintainer or agent session misses outstanding work that navigate-intents should have listed, checked weekly against the registry comparison defined below, (b) no needs edge is lost in the move to headers, checked by an edge-for-edge comparison, and (c) no single file other than the artifacts themselves shows up in more merge conflicts than workspace.toml did over the two weeks before the stop.
-  activity: to-validate. A staged trial run by the owner after navigate-intents ships, with the comparisons scaffolded by plan-validation. Not run. External adopters stay outside this trial and are covered by RFC-0105 D3's compatibility-closure gate.
+  assumption: With registration stopped for anything the headers supply, dependency edges on the waiting artifact and captured items in their own files keep coordination safe.
+  kill_condition: Keep a type's registration, and so the registry, if (a) the registry comparison defined below, run once just before that type's registration stops, finds a failing difference, or (b) any needs edge is lost in the move to headers, checked by an edge-for-edge comparison.
+  activity: to-validate. Part (b) is the dependency-edge slice's comparison, recorded in the retirement record's Equivalence section. Part (a) runs before each registration stop, and its result is recorded in the specification that stops that registration. External adopters are outside both checks and are covered by RFC-0105 D3's compatibility-closure gate.
 ```
 
 A second hook covers dispatch, which the 2026-10-08 de-risk did not test:
@@ -215,7 +225,7 @@ validation_hook:
 
 ### Registry comparison, owned here
 
-Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it measures the registry, not the navigator. The weekly comparison the validation hook names compares `navigate-intents`' `outstanding` result with every `workspace.toml` entry in a non-terminal collection, and classes each difference.
+Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it measures the registry, not the navigator. The comparison the validation hook names compares `navigate-intents`' `outstanding` result with every `workspace.toml` entry in a non-terminal collection, and classes each difference.
 
 - **Non-terminal collections:** `backlog.open`, `shaping_queue.backlog`, `shaping_queue.active`, `brief_queue.draft`, `brief_queue.ready`, `brief_queue.executing`, `work.queue`, and `work.active`.
 - **Terminal collections:** `work.shipped`, `brief_queue.shipped`, `brief_queue.withdrawn`, `brief_queue.cancelled`, and `backlog.closed`.
@@ -227,7 +237,7 @@ Moved from the `intent-navigation` spec on 2026-10-08 by the owner, because it m
   - `registry_omission` — a result item absent from every collection.
 - **Failing differences:** a registry-only entry whose file's own `Status:` is not terminal, and a result item whose own `Status:` is terminal.
 
-The specification this intent decomposes into owns the comparison's implementation and its run cadence.
+The specification this intent decomposes into owns the comparison's implementation. It runs once just before each registration stop, with no weekly cadence and no CI job.
 
 ### RFC-0106 inputs
 
@@ -244,7 +254,7 @@ The specification this intent decomposes into owns the comparison's implementati
 
 ## Shaping review
 
-The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`. A third isolated intent-mode review completed cleanly on 2026-10-25 after the owner decisions and the decomposition were added, at git blob `3e1458113de342b7a1b16d434b451ef484dfc33b`, the text before this sentence. Adding these binding sentences is nonmaterial.
+The isolated intent-mode review completed cleanly on 2026-10-02 at revision `sha256:1c3a2709165c3c9b629ba5f490308b1fec4f4a9aef34e39f29dc6cb582a9d29a`, and again on 2026-10-08 after the de-risk record and the RFC-0106 inputs were added, at git blob `9244d5ca1f158b5923edbe9c6d653c110f407c14`. A third isolated intent-mode review completed cleanly on 2026-10-25 after the owner decisions and the decomposition were added, at git blob `3e1458113de342b7a1b16d434b451ef484dfc33b`, the text before this sentence. Adding these binding sentences is nonmaterial. A fourth isolated intent-mode review completed cleanly on 2026-10-26 after the owner cut the two-week trial, at git blob `2f048765b59bf83af47238d5346ad27ba6da8a89`, the text before this sentence and the Shaping-reviewed date.
 
 ## Decomposition
 
@@ -259,8 +269,8 @@ RFC-0105 D3 asks for one retirement specification holding the inventory, the dis
 - **By fact class, then by writer.** The fact-class slices come first: dependency edges on the waiting item (C1), captured items in their own files with shaping-item routing (C2), the priority field, and removal of the first-in-list suggestions (C3). Each ships with its replacement in place. The writer slices follow, one per artifact type: intents and briefs, then spec dispatch. `close-work`'s collection moves stop with each type's registration, as RFC-0106 D1 requires, so closure has no slice of its own. A type's writer stops only after every responsibility its entries feed has a replacement, under RFC-0106 D1. Dispatch goes last because it is the only switch with no desk evidence yet.
 - **Each slice adds its step to the repair.** No compatibility seam means the repair is the migration. A slice that moves a fact class also adds that move to the repair and runs it on this repository first. There is no separate migration slice to drift from the readers.
 - **Blocking moves in one step.** The dependency slice switches the canonical reconciliation from `needs` to `Depends on:` and carries the blocking equivalence cases. Unmigrated `needs` content makes it refuse and name the repair, so a dependency never lapses between slices.
-- **The registry comparison is its own slice.** The two-week trial in § Validation hook needs it before any registration stops.
-- **Deletion is the last slice.** It waits for the trial and the dispatch replay to pass, and for every operative reference, seed, and manifest to be moved.
+- **The registry comparison is its own slice.** § Validation hook runs it before each registration stop, so it ships before the first one.
+- **Deletion is the last slice.** It waits for the dispatch replay to pass, and for every operative reference, seed, and manifest to be moved.
 
 ### Branches considered and dropped
 
