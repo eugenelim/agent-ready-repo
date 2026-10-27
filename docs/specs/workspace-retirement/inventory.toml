@@ -432,6 +432,12 @@ consumer = "live delivery brief for retiring workspace.toml"
 owner = 9
 
 [[row]]
+pattern = "docs/product/changelog.d/30bfb581-099d-4380-ba8f-9cf70ea33468.md"
+class = "historical"
+consumer = "released changelog entry that cites the registry"
+owner = "none"
+
+[[row]]
 pattern = "docs/product/changelog.d/64d96e94-7868-46fc-9091-6356a930eb6e.md"
 class = "historical"
 consumer = "released changelog entry that cites the registry"
