@@ -93,19 +93,33 @@ same value as that option's `name` field). Sections: Opportunity, Options
 (one entry per option, each with name, Approach, Key bets list, Trade-offs, Feasibility (optional), Status),
 Recommendation (option name + rationale), Residual bets (what must hold
 across options regardless of which is selected), Step 2 readiness (include
-only when proceeding without a step-2 artifact), Suggested workspace.toml
-entry. Status values the skill writes: `recommended` (one option only),
+only when proceeding without a step-2 artifact), Suggested captured item. Status values the skill writes: `recommended` (one option only),
 `parked`, `rejected`. `selected` is the PE's post-emission value — not
 written by this skill.
 
-**6. Suggest workspace.toml entry.** Print a canonical five-field entry — a
-short `{slug, type}` entry is the legacy shape, is never dispatchable, and old
-shaping entries still appear in the information-only shaping lists until
-rewritten — then direct the user to register it through `work-intake` or to
-add it by hand. Do not write to `workspace.toml`.
+**6. Suggest a captured item.** The suggestion is a captured-item record at
+`docs/product/captured/<slug>.md` whose `Detail:` names `solution-options.md`,
+and the canonical five-field entry that registers that path. A short slug-and-type
+entry is the legacy shape, is never dispatchable, and old shaping entries still
+appear in the information-only shaping lists until rewritten. Direct the user to
+register it through `work-intake`, which writes the record and the entry. An
+entry added by hand must point at that record, not at `solution-options.md`. Do
+not write to `workspace.toml` or to `docs/product/captured/`.
+
+```markdown
+# <Slug with spaces>
+
+- **Status:** Open
+- **Kind:** design
+- **Detail:** <output_dir>/shaping/<slug>/solution-options.md
+
+## Summary
+
+<the chosen option in one line>
+```
 
 ```toml
-{path = "<output_dir>/shaping/<slug>/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the chosen option in one line>", needs = []},
+{path = "docs/product/captured/<slug>.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the chosen option in one line>", needs = []},
 ```
 
 ## Anti-patterns to refuse

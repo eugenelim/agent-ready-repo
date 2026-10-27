@@ -107,25 +107,44 @@ the functional, emotional, and social jobs of the people affected by the signal
 — grounding solution divergence in real user needs. Resume shaping there when
 the skill becomes available.
 
-## Suggested workspace.toml entry
+## Suggested captured item
+
+Record at `docs/product/captured/agent-skill-discovery-gap.md`: `Status: Open`,
+`Kind: design`, and `Detail: docs/product/shaping/agent-skill-discovery-gap/situation-framing.md`,
+with the finding under `## Summary`. Entry that registers it:
+
 ```toml
-{path = "docs/product/shaping/agent-skill-discovery-gap/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
+{path = "docs/product/captured/agent-skill-discovery-gap.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
 ```
-Register through `work-intake`, or add to the `["ini-NNN".shaping_queue]`
-backlog by hand.
+
+Register through `work-intake`, which writes the record and the entry.
 ```
 
 ---
 
-## Step 6 — Workspace.toml suggestion printed
+## Step 6 — Captured item suggestion printed
 
-The agent prints:
+The agent prints the record text:
 
-```toml
-{path = "docs/product/shaping/agent-skill-discovery-gap/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
+```markdown
+# Agent skill discovery gap
+
+- **Status:** Open
+- **Kind:** design
+- **Detail:** docs/product/shaping/agent-skill-discovery-gap/situation-framing.md
+
+## Summary
+
+Agents cannot discover which skill fits the work in front of them
 ```
 
-> Add this to your active initiative's `["ini-NNN".shaping_queue]` backlog in
-> `workspace.toml`. Register it through `work-intake`, or edit by hand. Once
-> added, `workspace-status` will surface it as a ready shaping item pointing to
-> `identify-opportunities`.
+and the entry that registers it:
+
+```toml
+{path = "docs/product/captured/agent-skill-discovery-gap.md", kind = "design", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
+```
+
+> Register this through `work-intake`, which writes the record and adds the
+> entry to your active initiative's `["ini-NNN".shaping_queue]` backlog. Once
+> registered, `workspace-status` will surface it as a ready shaping item pointing
+> to `identify-opportunities`.

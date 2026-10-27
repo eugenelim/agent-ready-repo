@@ -9,9 +9,9 @@
 1. **Input:** Company OKRs (strategist-supplied or read from `docs/product/shaping/`); portfolio position from `portfolio-position.md` if available.
 2. **Cascade:** `run-okr-cascade` derives team-level OKRs from company OKRs and identifies gaps between current state and OKR targets.
 3. **Committed artifact:** `okr-cascade.md` written to `docs/product/shaping/` with company OKRs, derived team OKRs, and gap registry.
-4. **Gap entry format:** Each gap is written as a canonical five-field entry — `{path = "<output_dir>/shaping/<gap-slug>/gap.md", kind = "intent", source = {mode = "repo-origin"}, summary = "<the gap in one line>", needs = []}`. `needs` is present and empty for a no-dependency entry; a literal `needs = "nothing"` is a malformed value superseded by this contract. The short `{slug, type}` form is legacy and is never dispatchable.
+4. **Gap file and entry format:** Each gap is written as a captured-item file at `docs/product/captured/<gap-slug>.md` holding `Status: Open`, `Kind: intent`, and `Type: strategy`, with the one-line gap under `## Summary`. It is registered as a canonical five-field entry — `{path = "docs/product/captured/<gap-slug>.md", kind = "intent", source = {mode = "repo-origin"}, summary = "<the gap in one line>", needs = []}`. `needs` is present and empty for a no-dependency entry; a literal `needs = "nothing"` is a malformed value superseded by this contract. The short slug-and-type form is legacy and is never dispatchable.
 5. **Shaping queue target:** Gaps are appended to the active initiative's `["ini-NNN".shaping_queue].backlog` array in `workspace.toml`. "Active" means `status = "active"` in the `["ini-NNN"]` section header. If exactly one section is active, it is used automatically. If multiple are active, the skill elicits the target from the user before appending.
-6. **Handoff:** The product engineer (or the same person in the next session) invokes `frame-situation` on each `{type = "strategy"}` queue entry; `frame-situation` routes the gap through the six-step shaping sequence producing a DoR-compliant brief in `[brief_queue]`.
+6. **Handoff:** The product engineer (or the same person in the next session) invokes `frame-situation` on each queue entry whose captured-item file has `Type: strategy`; `frame-situation` routes the gap through the six-step shaping sequence producing a DoR-compliant brief in `[brief_queue]`.
 7. **Absent PE pack diagnostic:** If `frame-situation` is not found in the installed skills, the skill surfaces: `"frame-situation not found — install PE pack to route OKR gaps into the shaping sequence"` rather than failing silently.
 
 ## Boundary
@@ -22,7 +22,7 @@
 
 ## `workspace-status` routing
 
-`workspace-status` (core pack) routes `{type = "strategy"}` entries to `frame-situation` (PE pack — M2) or `intent frame` as interim. This routing was updated as part of this pack's M4 implementation.
+`workspace-status` (core pack) routes a captured-item file with `Type: strategy` to `frame-situation` (PE pack — M2) or `intent frame` as interim. This routing was updated as part of this pack's M4 implementation.
 
 ## Co-install note
 
