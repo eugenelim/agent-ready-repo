@@ -3668,6 +3668,46 @@ def test_an_old_detail_bookmark_still_opens_the_record(
     context.close()
 
 
+def test_back_to_an_old_detail_bookmark_restores_the_view_it_opened_in(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """Load `#detail/<id>`, switch to Graph, go Back: List with the record picked."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}#detail/ADR-0001")
+    page.wait_for_selector("#detail-body .state-line")
+    page.click("#btn-graph")
+    page.wait_for_function("location.hash.indexOf('#graph/') === 0")
+    page.go_back()
+    page.wait_for_function("location.hash.indexOf('#graph/') !== 0")
+    state = _hash_state(page)
+    assert state["view"] == "list" and state["picked"], state
+    context.close()
+
+
+def test_a_focused_lineage_node_shows_one_focus_ring(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """A keyboard-focused node draws its SVG accent ring and no CSS outline."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}#graph/ADR-0001")
+    node = page.locator('.lineage-wrap g[role="button"]').first
+    node.wait_for()
+    node.focus()
+    page.keyboard.press("Shift+Tab")
+    page.keyboard.press("Tab")
+    focused = page.evaluate(
+        "() => { const g = document.activeElement;"
+        " const ring = g.querySelector('.focus-ring');"
+        " return { role: g.getAttribute('role'), outline: getComputedStyle(g).outlineStyle,"
+        " ringShown: !!ring && !ring.hasAttribute('hidden') }; }"
+    )
+    assert focused["role"] == "button", focused
+    assert focused["outline"] == "none" and focused["ringShown"], focused
+    context.close()
+
+
 _OUTLINE_CLIP_JS = """(el) => {
   const cs = getComputedStyle(el), r = el.getBoundingClientRect();
   const grow = parseFloat(cs.outlineWidth) + parseFloat(cs.outlineOffset);

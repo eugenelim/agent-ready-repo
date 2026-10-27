@@ -152,6 +152,8 @@ rect.ln-node-old { fill: none; stroke: var(--c-subtle); }
 rect.ln-node-focus { fill: var(--c-accent); stroke: var(--c-accent); }
 rect.ln-node-context { fill: var(--c-canvas); stroke: var(--c-subtle); }
 .ln-focus { stroke: var(--c-accent); }
+/* A node draws its own 2px accent ring, clear of the supersession ring, so the outline would double it. */
+.lineage-wrap g[role="button"]:focus-visible, .chain-svg-wrap g[role="button"]:focus-visible { outline: none; }
 text.ln-edge-checked, text.ln-edge-partial, text.ln-edge-unresolved, text.ln-edge-context,
 text.ln-edge-asserted, text.ln-cycle { stroke: none; }
 text.ln-edge-partial { fill: var(--c-accent); }

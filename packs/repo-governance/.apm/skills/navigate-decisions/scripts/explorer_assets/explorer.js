@@ -102,9 +102,13 @@ state.view=v;}
 if(parts.length>1){try{state.sel=decodeURIComponent(parts[1]);}
 catch(ue){state.sel=null;}}
 state.picked=state.sel!==null&&parts[2]!=='unpicked';
+// A #detail/<id> entry is rewritten to the view it opened in, so history restores that view.
+if(v==='detail')history.replaceState(null,'',stateHash());
 }catch(ex){state.view='list';state.sel=null;state.picked=false;}}
+function stateHash(){
+return '#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel)+(state.picked?'':'/unpicked'):'');}
 function pushState(){
-var h='#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel)+(state.picked?'':'/unpicked'):'');
+var h=stateHash();
 if(location.hash!==h)history.pushState(null,'',h);}
 function filtered(){return records.filter(function(r){
 if(state.kind&&r.kind!==state.kind)return false;
@@ -192,7 +196,10 @@ div.appendChild(document.createTextNode(entry.partial?'Superseded in part by ':'
 var a=document.createElement('a');
 a.href='#detail/'+encodeURIComponent(entry.by);a.textContent=entry.by;
 // Follow the link in the view that is current, with the target picked.
-a.addEventListener('click',function(e){e.preventDefault();navigate('detail',entry.by);});
+a.addEventListener('click',function(e){
+// A modified or non-primary click keeps the browser's own link handling.
+if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+e.preventDefault();navigate('detail',entry.by);});
 div.appendChild(a);
 if(entry.partial){
 var sc=entry.scope&&entry.scope.length?'('+entry.scope.join(', ')+')':'(scope not stated)';
