@@ -51,9 +51,10 @@ Each flag is a reason to revise the shape or reject it.
 Record the screen in the sections the template already has. Do not add a
 section for it.
 
-- A repaired flag changes the structural model or the contract table. Its
-  rationale names the flag it avoids.
-- A flag kept on purpose is a risk. Name the flag, why the shape keeps it, and
-  what catches the misuse it invites.
-- A rejected candidate shape that failed on a flag goes under the alternatives,
-  with the flag as its rejection reason.
+- A repaired flag changes the structural model or the contract table. No
+  separate record is needed.
+- A flag kept on purpose is named once, in the rationale of the structural
+  section — Structural Model, or Structural Change in an architecture-change
+  design. Say why the shape keeps it and what catches the misuse it invites.
+- Where the document has an alternatives list, a rejected candidate shape that
+  failed on a flag goes there, with the flag as its rejection reason.

@@ -54,12 +54,25 @@ check under those headings reaches it, and their absence is never a finding.
 
 - [ ] Names the trust boundaries the design crosses.
 - [ ] *(subsystem, architecture change)* Where the model names internal
-      modules or interfaces, none shows a module design red flag left
-      unrecorded: a shallow module, leaked internal decision, temporal
-      decomposition, pass-through method, split ownership, two ways to do
-      one task, importable internals, or a hand-synced list. A flag kept on
-      purpose is recorded as a risk with what catches its misuse; an
-      unrecorded one is a finding.
+      modules or interfaces, no module design red flag appears unrecorded.
+      A flag kept on purpose is named in this section's rationale with what
+      catches its misuse; an unrecorded one is a finding. The flags:
+      - **Shallow module** — callers call several methods in order to finish
+        one operation, or options expose internal stages.
+      - **Information leakage** — one internal decision, such as a storage
+        schema or wire format, appears in two or more modules.
+      - **Temporal decomposition** — modules split by when code runs (load,
+        check, transform, save), each repeating the same representation.
+      - **Pass-through method** — a method forwards its arguments unchanged
+        to another of the same shape.
+      - **Split ownership** — two modules write the same state, or each
+        keeps its own copy.
+      - **Two ways to do one task** — more than one route to the same
+        result, so each keeps gaining callers.
+      - **Importable internals** — outside code can import a module's
+        internals, which then become interface.
+      - **Hand-synced list** — the same items listed in several places, with
+        nothing failing when the lists disagree.
 - [ ] Every diagram states the one named question it answers and its
       zoom level — a reader landing on the diagram alone knows what
       it is for without reading the surrounding prose first.
@@ -82,10 +95,11 @@ check under those headings reaches it, and their absence is never a finding.
 - [ ] *(architecture change)* Each contract change names its change
       type, the baseline it is measured against, compatibility during
       the transition, and how the change is enforced and verified.
-- [ ] *(subsystem, architecture change)* A new or widened contract shows
-      two or three call sites a real caller would write, and the contract
-      table agrees with them. A contract with no caller's view was designed
-      from the provider's side, and that is a finding.
+- [ ] *(subsystem, architecture change)* Each new or widened contract
+      shows two or three call sites a real caller would write, in this
+      section's rationale, and the contract table agrees with them. A
+      contract with no caller's view was designed from the provider's side,
+      and that is a finding.
 - [ ] Each stated invariant names what enforces it. An invariant with
       no enforcement is an aspiration, and saying so is the finding.
 

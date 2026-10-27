@@ -65,9 +65,9 @@ check under those headings reaches it.
 - [ ] Removes unsupported future-proofing. Reuses an existing capability unless
       a current need justifies adding a new mechanism.
 - [ ] *(subsystem, architecture change)* Where the model names internal
-      modules or interfaces, the shape was screened against
-      `module-design-red-flags.md`. Each flag is repaired, or kept on
-      purpose and recorded as a risk with what catches its misuse.
+      modules or interfaces, no flag from `module-design-red-flags.md`
+      appears unrecorded. A flag kept on purpose is named in this
+      section's rationale with what catches its misuse.
 
 ## Runtime Model
 
@@ -83,9 +83,9 @@ check under those headings reaches it.
 - [ ] *(architecture change)* Each contract change names its change type,
       the baseline it is measured against, compatibility during the
       transition, and how it is enforced and verified.
-- [ ] *(subsystem, architecture change)* A new or widened contract shows
-      two or three call sites a real caller would write, and the contract
-      table agrees with them.
+- [ ] *(subsystem, architecture change)* Each new or widened contract
+      shows two or three call sites a real caller would write, in this
+      section's rationale, and the contract table agrees with them.
 
 ## Data and State
 

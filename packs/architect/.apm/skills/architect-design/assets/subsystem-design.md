@@ -74,10 +74,6 @@ flowchart TB
 not coarser, not finer — and why the relationships shown are the ones that
 matter at this zoom.>
 
-<Name any module design red flag this shape avoids or keeps on purpose —
-shallow module, leaked decision, split ownership, or a hand-synced list — and
-what catches the misuse a kept flag invites.>
-
 ## 3. Runtime Model
 
 How does this subsystem behave at runtime, on the normal path and when
@@ -129,10 +125,6 @@ how would a violation be caught?
 <Explain why each invariant is load-bearing — what breaks silently downstream
 if it stops holding, and why the named enforcement mechanism is sufficient
 rather than aspirational.>
-
-<Show two or three call sites a real caller would write against the main
-contract. The table is derived from these; where they disagree, the table
-changes.>
 
 ## 5. Data and State
 
