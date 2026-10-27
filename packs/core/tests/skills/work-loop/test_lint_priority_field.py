@@ -12,6 +12,8 @@ from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 
+import os
+
 import pytest
 
 _SCRIPT = (
@@ -219,7 +221,62 @@ def test_symlinked_file_refuses(
     (tmp_path / INTENT).symlink_to(target)
     code, out, err = _run(tmp_path, capsys)
     assert (code, out) == (2, "")
-    assert err == "unsafe-artifact: docs/product/intents\n"
+    assert err == f"unsafe-artifact: {INTENT}\n"
+
+
+@pytest.mark.parametrize(
+    ("opener", "inner", "closer"),
+    [
+        ("````", "```", "````"),
+        ("```", "```python", "```"),
+        ("~~~~", "~~~ trailing", "~~~~"),
+    ],
+)
+def test_fence_closes_only_on_a_matching_marker(opener: str, inner: str, closer: str) -> None:
+    text = f"# T\n\n{opener}\n{inner}\n- **Priority:** bogus\n{closer}\n- **Priority:** low\n"
+    assert lint.read_priority(text) == "low"
+
+
+def test_a_marker_indented_four_spaces_opens_no_fence() -> None:
+    text = "# T\n\n    ```\n- **Priority:** bogus\n"
+    with pytest.raises(lint.PriorityError) as excinfo:
+        lint.read_priority(text)
+    assert excinfo.value.code == "invalid_priority"
+
+
+def test_non_carrier_entries_in_a_flat_directory_are_ignored(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write(tmp_path, INTENT, _doc("- **Priority:** low"))
+    intents = tmp_path / "docs/product/intents"
+    (intents / "_link.md").symlink_to(tmp_path / INTENT)
+    os.mkfifo(intents / "pipe")
+    _write(tmp_path, "docs/product/intents/sub/b.md", _doc("- **Priority:** bogus"))
+    (intents / "sub" / "c.md").symlink_to(tmp_path / INTENT)
+    assert _run(tmp_path, capsys) == (0, "", "")
+
+
+def test_a_symlinked_spec_directory_refuses(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write(tmp_path, "real/spec.md", _doc("- **Priority:** low"))
+    (tmp_path / "docs/specs").mkdir(parents=True)
+    (tmp_path / "docs/specs/linked").symlink_to(tmp_path / "real")
+    (tmp_path / "docs/specs/_skip").symlink_to(tmp_path / "real")
+    code, out, err = _run(tmp_path, capsys)
+    assert (code, out) == (2, "")
+    assert err == "unsafe-artifact: docs/specs/linked\n"
+
+
+def test_plain_entries_in_the_specs_directory_count_against_the_entry_bound(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for index in range(5):
+        _write(tmp_path, f"docs/specs/note-{index}.txt", "x")
+    monkeypatch.setattr(lint, "MAX_ENTRIES", 4)
+    code, out, err = _run(tmp_path, capsys)
+    assert (code, out) == (2, "")
+    assert err == "resource-limit: docs/specs\n"
 
 
 def test_symlinked_carrier_directory_refuses(
@@ -304,7 +361,7 @@ def test_refusal_after_violation_leaves_stdout_empty(
     code, out, err = _run(tmp_path, capsys)
     assert raised == ["invalid_priority"]
     assert (code, out) == (2, "")
-    assert err == "unsafe-artifact: docs/product/briefs\n"
+    assert err == "unsafe-artifact: docs/product/briefs/b.md\n"
 
 
 def test_absent_carrier_directories_are_not_a_refusal(

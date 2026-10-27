@@ -1686,8 +1686,10 @@ _WORK_LOOP_CONTRACT_HASH = (
 # gains a bullet that runs `lint-priority-field.py` over the corpus. Reviewed
 # as the pin requires, and the engine needs no edit: the bullet runs a
 # read-only lint, writes no spec.md field, and mutates no workspace.toml array.
+# Re-pinned again the same day: the bullet's exit-1 advice now names the fix for
+# each code. Same review result, and the engine needs no edit.
 _WORK_LOOP_FINISH_HASH = (
-    "9be2303045a193e4a65e2d2e13fef3132bbe44b97c164b6faf1217522f1320bf"
+    "2f7f3d8408e4fc0fa35323a3ceb6d05df501f67cf347444e15f3afa2a0544303"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
