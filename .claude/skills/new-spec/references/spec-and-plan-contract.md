@@ -107,6 +107,11 @@ mechanical rule.
   Both lines sit in the preamble, before the first `## ` heading. The registry
   entry's `needs` stays `[]`; `workspace-status repair-plan` and `repair-apply`
   move an older entry's `needs` into these lines.
+- **Priority.** A spec may record a human priority on its own
+  `- **Priority:** <value>` header line, in the preamble, where the value is one
+  of `urgent`, `high`, `medium`, `low`. A spec with no line has no priority. The
+  field never decides readiness, dispatch, or order of work; the work-loop lint
+  `lint-priority-field.py` refuses a repeated line or any other value.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
 - **Acceptance Criteria opt-out.** A spec that intentionally has no

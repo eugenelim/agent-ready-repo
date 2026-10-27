@@ -1617,6 +1617,12 @@ consumer = "roster test that reads workspace.toml or the workspace-status engine
 owner = 9
 
 [[row]]
+pattern = "tests/roster/test_priority_field_never_read.py"
+class = "fixture"
+consumer = "roster test that scans the workspace-status engine and its packaged copy for the Priority field name"
+owner = 4
+
+[[row]]
 pattern = "tests/roster/test_reclassified_lifecycle_result.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
@@ -2676,6 +2682,12 @@ pattern = "docs/specs/captured-item-files/*"
 class = "contract"
 consumer = "captured items in their own files: the file shape and reader, the unmigrated captured-item refusal, and the captured-to-file repair"
 owner = 3
+
+[[row]]
+pattern = "docs/specs/priority-header-field/*"
+class = "contract"
+consumer = "the optional Priority: header field and its reader, which no registry or dispatch reader consults"
+owner = 4
 
 [[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
