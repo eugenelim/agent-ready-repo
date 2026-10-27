@@ -1682,8 +1682,12 @@ _WORK_LOOP_CONTRACT_HASH = (
 # intent-valued Discovery beside the intent and brief pointers. Reviewed as the
 # pin requires, and the engine needs no edit: the bullet still runs the same
 # read-only lint, writes no spec.md field, and mutates no workspace.toml array.
+# Re-pinned 2026-10-27 for the Priority field check: "Artifacts consistent"
+# gains a bullet that runs `lint-priority-field.py` over the corpus. Reviewed
+# as the pin requires, and the engine needs no edit: the bullet runs a
+# read-only lint, writes no spec.md field, and mutates no workspace.toml array.
 _WORK_LOOP_FINISH_HASH = (
-    "3a0e440c7820ee39662e18f63de5cec533e1a5a844fd6d6cbefadf03fed8219a"
+    "9be2303045a193e4a65e2d2e13fef3132bbe44b97c164b6faf1217522f1320bf"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

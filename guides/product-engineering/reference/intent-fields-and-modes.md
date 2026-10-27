@@ -95,6 +95,7 @@ additions keep working.
 | `Decomposed` | constrained when present | the literal `no`, or an ISO 8601 calendar date written `YYYY-MM-DD` followed by exactly one of `children`, `brief`, `spec`, `direct-light`, `closed-empty` |
 | `Governed by` | unconstrained | the governing decision this intent answers to |
 | `Parent intent` | unconstrained | back-link to the intent this was decomposed from; omit at the top of the tree |
+| `Priority` | unconstrained | one of `urgent`, `high`, `medium`, `low`. An intent with no line has no priority. The field never decides readiness, dispatch, or order of work. The work-loop `lint-priority-field.py` validates it; `intent_shape.py` does not |
 | `Milestone` | unconstrained | where this sits in an implementation sequence |
 | `Type` | retired | use `Kind` |
 | `Raised` | retired | use `De-risked` or `Shaping-reviewed` for a dated fact |

@@ -660,6 +660,10 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest graph-pointer authoring sources (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest priority field never-read guard (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest priority field documentation surfaces (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest lint-traceability intent parity vs the real corpus (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest typed-ordinal owner parity and equivalence (roster-owned)":
@@ -1057,6 +1061,8 @@ _GATE_MAIN_CHECKS = (
     "pytest confluence-crawler SSO suites (atlassian-sso-cookie)",
     "pytest spec-authority note live/seed parity (roster-owned)",
     "pytest graph-pointer authoring sources (roster-owned)",
+    "pytest priority field never-read guard (roster-owned)",
+    "pytest priority field documentation surfaces (roster-owned)",
     "pytest lint-traceability intent parity vs the real corpus (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
     "pytest execution-supervisor emitted-record parity (roster-owned)",
