@@ -1,6 +1,7 @@
 # Spec: Registry comparison
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-27 by eugenelim, spec and plan, after spec-stage shaping and adversarial reviews over five rounds ending clean, with the FEAT-0034 amendment clean in intent review; review records under `.context/reviews/0a169cc7-b068-428f-aae2-8b3eb35b48dc/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D1, a type's registration stops only when its replacements have shipped), RFC-0105 (D3, the behavioral-equivalence gate)
