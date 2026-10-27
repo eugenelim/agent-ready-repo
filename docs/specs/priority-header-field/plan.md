@@ -1,7 +1,7 @@
 # Plan: Priority header field
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/scripts/lint-graph-pointers.py` (preamble reader, confined walk, refusal codes, exit 0/1/2) and its suite `packs/core/tests/skills/work-loop/test_lint_graph_pointers.py`; `tools/repo/build_gate_chain.py` (gate step wiring); `tests/roster/test_close_work_extraction_and_immediate_disposition.py::test_wave4_excludes_later_wave_and_history_rewrite_behaviour` (an AST guard that shipped source never names a token).
 
 > **Plan contract:** this is the implementation strategy. It may change

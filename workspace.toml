@@ -2462,8 +2462,6 @@ backlog = [
 queue   = [
 ]
 active  = [
-  # Slice 4 of `workspace-registry-retirement-delivery`; Approved 2026-10-27 and Implementing the same day.
-  { path = "docs/specs/priority-header-field/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The optional Priority: header field on intents, briefs, specs and captured items, its reader and lint, and the guard that nothing ordering work reads it", needs = [] },
   # Slice 1 of `workspace-registry-retirement-delivery`; Approved 2026-10-25 and moved from `queue` when it became Implementing the same day.
   { path = "docs/specs/workspace-retirement/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The workspace retirement record: a per-PR-checked consumer inventory and the per-fact disposition, with removal authority, that RFC-0105 D3 requires", needs = [] },
 ]
@@ -2488,6 +2486,8 @@ shipped = [
   { path = "docs/specs/depends-on-headers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Dependency edges on the waiting item: Depends on: headers and their reader, the unmigrated needs refusal, and the needs-to-header repair", needs = [] },
   # Slice 3 of `workspace-registry-retirement-delivery`; Shipped 2026-10-26, moved from `active` with the spec `Shipped` and the plan `Done`.
   { path = "docs/specs/captured-item-files/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Captured items in their own files: the file shape and its reader, the unmigrated captured-item refusal, file-based shaping-item routing, and the captured-to-file repair", needs = [] },
+  # Slice 4 of `workspace-registry-retirement-delivery`; Shipped 2026-10-27, moved from `active` with the spec `Shipped` and the plan `Done`.
+  { path = "docs/specs/priority-header-field/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The optional Priority: header field on intents, briefs, specs and captured items, its reader and lint, and the guard that nothing ordering work reads it", needs = [] },
   { path = "docs/specs/intent-view-record-owners/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md"}, summary = "Carry each record's Owner: header through the intent derivation and query, show it on every intent view row, and narrow every question to one owner with a page-wide Owner control", needs = [] },
   # Shipped 2026-10-21 as core 3.1.15: the intent view readiness bridge (slice 11b of
   # intent-navigation-delivery). Evidence is in its notes/verification-ledger.md.
