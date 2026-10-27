@@ -267,6 +267,13 @@ real choice remains, create no new artifact.
    Embed Mermaid diagrams where structural reasoning genuinely needs a
    picture — not as decoration.
 
+   When a subsystem or architecture-change design names internal modules,
+   packages, or interfaces, write each contract from the caller's side first:
+   draft two or three call sites a real caller would write, then derive the
+   contract from them, and change the contract rather than the call sites when
+   they disagree. Screen every candidate shape, and then the chosen one,
+   against `references/module-design-red-flags.md`.
+
 6. **Self-check against the rubric** in `references/design-doc-rubric.md`.
    Walk it line by line; fix what fails before showing the draft. Before the
    draft is shown, report every gate's result by identifier and verdict —

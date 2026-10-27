@@ -269,6 +269,17 @@
         "States the net monthly change in the totals, shows per-environment totals, and uses USD unless the user names another currency",
         "Raises any physical choice that contradicts the design as a design finding instead of silently changing it"
       ]
+    },
+    {
+      "id": "subsystem-module-shape-screen",
+      "prompt": "Design the import pipeline subsystem for our catalogue service. It loads vendor files, validates them, normalizes records, and saves them. Other modules will call it.",
+      "expected_output": "A subsystem design whose contract section shows two or three caller call sites the contract table is derived from, whose structure is screened against the module design red flags, and whose alternatives include a structurally different whole shape.",
+      "assertions": [
+        "Shows two or three call sites from a real caller's side and keeps the contract table consistent with them",
+        "Rejects or justifies a load/validate/normalize/save split by run order instead of silently adopting it",
+        "Keeps vendor wire formats off the public interface and gives each piece of state one owner",
+        "Includes at least one alternative with a different whole shape, not a variant of the chosen one, or states why only one shape is viable"
+      ]
     }
   ]
 }

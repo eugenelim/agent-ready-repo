@@ -71,6 +71,9 @@ flowchart TB
 why a modified element's new shape is compatible with everything the baseline
 says still calls it.>
 
+<Name any module design red flag the change removes, introduces, or keeps on
+purpose, and what catches the misuse a kept flag invites.>
+
 ## 3. Runtime Change
 
 How do runtime paths differ from the baseline, including any temporary
@@ -121,6 +124,10 @@ change, and how does that affect every existing party?
 <Explain why the compatibility rule during transition is sufficient — what an
 existing caller that has not yet migrated would observe, and why that
 observation is safe.>
+
+<For a new or widened contract, show two or three call sites a real caller
+would write against it. The table is derived from these; where they
+disagree, the table changes.>
 
 ## 5. Data/State Migration
 

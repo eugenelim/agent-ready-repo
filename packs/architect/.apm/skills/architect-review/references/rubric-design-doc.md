@@ -53,6 +53,13 @@ check under those headings reaches it, and their absence is never a finding.
 ## Structural Model
 
 - [ ] Names the trust boundaries the design crosses.
+- [ ] *(subsystem, architecture change)* Where the model names internal
+      modules or interfaces, none shows a module design red flag left
+      unrecorded: a shallow module, leaked internal decision, temporal
+      decomposition, pass-through method, split ownership, two ways to do
+      one task, importable internals, or a hand-synced list. A flag kept on
+      purpose is recorded as a risk with what catches its misuse; an
+      unrecorded one is a finding.
 - [ ] Every diagram states the one named question it answers and its
       zoom level — a reader landing on the diagram alone knows what
       it is for without reading the surrounding prose first.
@@ -75,6 +82,10 @@ check under those headings reaches it, and their absence is never a finding.
 - [ ] *(architecture change)* Each contract change names its change
       type, the baseline it is measured against, compatibility during
       the transition, and how the change is enforced and verified.
+- [ ] *(subsystem, architecture change)* A new or widened contract shows
+      two or three call sites a real caller would write, and the contract
+      table agrees with them. A contract with no caller's view was designed
+      from the provider's side, and that is a finding.
 - [ ] Each stated invariant names what enforces it. An invariant with
       no enforcement is an aspiration, and saying so is the finding.
 
@@ -106,6 +117,10 @@ check under those headings reaches it, and their absence is never a finding.
       engineer might have chosen.
 - [ ] Each alternative has a *rejection reason*, not a dismissal.
 - [ ] No strawmen.
+- [ ] At least one alternative is a structurally different whole shape,
+      not a variant of the chosen one — or the section states why the
+      chosen shape was the only viable one. A list of variants of one
+      shape is a finding.
 - [ ] At least three risks (two if the design is genuinely small).
 - [ ] Each risk is paired with a mitigation, or explicitly marked as
       *accepted unmitigated* with the reason.
