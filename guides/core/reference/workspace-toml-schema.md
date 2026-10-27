@@ -423,23 +423,23 @@ error signature, source provenance, and a durable citation establishing the
 intended behavior. Closed defect contexts record exactly one resolution:
 `fixed`, `declined`, or `superseded`.
 
-Defects stay in the repository-level backlog. They are routed to the bug-fix
-workflow, not directly to implementation queue dispatch.
+A new defect is a captured-item file (below) with no registry entry. It is
+routed to the bug-fix workflow, not directly to implementation queue dispatch.
 
 ### The captured-item file
 
-A remembered item that is not an intent lives in its own file at
-`docs/product/captured/<slug>.md`, where `<slug>` is lowercase letters, digits,
-and single hyphens. A defect is one kind of captured item. Its registry entry
-points at that file, not at the note that holds the context. The file starts
-with a `# ` title and then these preamble lines, each at most once:
+A captured item is a defect, design, or research item, or an OKR gap with
+`Kind: intent`. It lives in its own file at `docs/product/captured/<slug>.md`,
+where `<slug>` is lowercase letters, digits, and single hyphens, and it has no
+registry entry. The file starts with a `# ` title and then these preamble lines,
+each at most once:
 
 | Field | Values |
 | --- | --- |
 | `Status:` (required) | `Open` or `Closed` |
 | `Kind:` (required) | `defect`, `design`, `research`, or `intent` |
 | `Type:` | a shaping type: `shape`, `research`, `strategy`, `design`, or `signal` |
-| `Resolution:` | `fixed`, `declined`, or `superseded`; present exactly when a defect is `Closed` |
+| `Resolution:` | `fixed`, `declined`, or `superseded`; present exactly when the item is `Closed`, of any kind |
 | `Parent intent:` | a typed reference of kind `intent`, `outcome`, `opportunity`, or `capability` |
 | `Detail:` | the repository-relative path of the note that owns the context |
 
@@ -448,9 +448,13 @@ never add or replace a field. A file that breaks these rules gives an
 `invalid_captured_item` finding. A captured item registered at any other path
 gives `unmigrated_captured_item` until `workspace-status repair-plan` moves it.
 
-```toml
-{ path = "docs/product/captured/export-drops-empty-names.md", kind = "defect", source = { mode = "repo-origin" }, summary = "Nightly export drops rows with an empty name", needs = [] }
-```
+Close an item by editing its file: set `Status: Closed` and add `Resolution:`.
+A `Closed` item without `Resolution:`, or an `Open` item with one, gives
+`invalid_captured_item`. A downstream item names the file in its own `Depends on:`
+header, and the dependency settles when the file is valid, `Closed`, and
+`Resolution: fixed`. An older captured item may still have a registry entry. Closing
+it deletes that entry in the same change as the file's `Status:` edit; the entry
+is never moved to `[backlog].closed`.
 
 ## Legacy Forms
 

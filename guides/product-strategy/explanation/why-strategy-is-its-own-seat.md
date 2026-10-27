@@ -67,12 +67,11 @@ without the strategy seat and each one invents its own missing context, silently
 and inconsistently.
 
 The seam that makes this concrete is the OKR cascade. `run-okr-cascade` does not
-only write a document. It emits `{type = "strategy"}` gaps into the
-`shaping_queue` backlog in `workspace.toml`, and the product-engineering pack's
-`frame-situation` reads that backlog as its shaping queue. So a company objective
-that has no product answer yet becomes a typed entry that the downstream pack
-picks up as work to shape. The cascade is the wire; `workspace.toml` is the
-socket. That is how an upstream strategy decision reaches the build loop without
+only write a document. It writes each gap as its own captured-item file
+under `docs/product/captured/` with `Type: strategy`, and the product-engineering
+pack's `frame-situation` shapes each such file. So a company objective that has no
+product answer yet becomes a gap file that the downstream pack picks up as work to
+shape. The cascade is the wire; the gap file is the socket. That is how an upstream strategy decision reaches the build loop without
 a human copying it across by hand.
 
 ## What the seat deliberately excludes

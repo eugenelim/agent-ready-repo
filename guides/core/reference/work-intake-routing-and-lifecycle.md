@@ -26,7 +26,7 @@ delegation from neutral intake is the same route, not a second public answer.
 | User intent | Result |
 | --- | --- |
 | Start or do work | Select one artifact route, write it, register it, then invoke the owning processor when dispatchable |
-| Remember work | Write and register a Draft, non-dispatchable artifact; stop before implementation |
+| Remember work | Write and register a Draft, non-dispatchable artifact; stop before implementation. A defect, design, or research item is written as its own file under `docs/product/captured/` with no entry |
 | Inspect status | Return `workspace-status` lifecycle, findings, and next actions without mutation |
 | Refresh requirements | Resolve an existing registered artifact and exact configured profile processor, then present a reviewed field delta |
 | Admit a shaping handoff | Validate bounded context, resolve its semantic destination, and continue through an existing brief or spec processor |
@@ -46,7 +46,7 @@ delegation from neutral intake is the same route, not a second public answer.
 | Request naming `intake-intent` directly, any `Level` | Intent at `docs/product/intents/<slug>.md`, noting that no ordinal was allocated | Draft, non-dispatchable | `intake-intent` |
 | One independently shippable contract | Spec at `docs/specs/<slug>/spec.md` | Ready only after approval and a sibling plan | `new-spec` |
 | Coherent multi-spec outcome | Brief at `docs/product/briefs/<slug>.md` | Draft, non-dispatchable | `author-delivery-brief create` |
-| Cited regression or defect evidence | Defect context | Ready only after canonical context exists | `bug-fix` |
+| Cited regression or defect evidence | Captured-item file at `docs/product/captured/<slug>.md`, with no entry | Ready only after canonical context exists | `bug-fix` |
 | Incomplete or ambiguous input | Draft artifact with named gaps, or one clarifying question | Non-dispatchable | None |
 
 A Ready brief may contain zero specs. It records a viable outcome and remains
@@ -111,7 +111,9 @@ For follow-ons and remembered work, `work-intake` materializes the canonical
 artifact first. The `workspace.toml` entry is only a terse live pointer:
 minimal provenance, one short current/next summary, and hard dependencies. It
 does not store rationale, chronology, review findings, suggested order, copied
-source text, or procedures.
+source text, or procedures. A defect, design, or research item has no entry at
+all: its own file under `docs/product/captured/` is the record, and a
+downstream item's `Depends on:` header names it.
 
 ## Completion and closeout
 

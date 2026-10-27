@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** You hold a raw signal — market observation, OKR gap, user pain, or engineering finding — and need to classify it and find the right PE-sequence entry point before committing to any solution.
 **Prerequisites:** `product-engineering` pack installed; a signal with a subject, an observation, and a symptom or consequence (no prior shaping artifacts required).
-**Result:** A classified signal with a Wardley capability assessment, a recommended shaping-sequence entry point, and a `workspace.toml` snippet to queue the item for the next step.
+**Result:** A classified signal with a Wardley capability assessment, a recommended shaping-sequence entry point, and a suggested captured-item file to track the item for the next step.
 
 **Goal:** You have a raw signal — a market observation, an OKR gap, user pain
 patterns, an engineering finding — and you need to decide what kind of thing
@@ -85,37 +85,23 @@ is differentiating.
 
 ---
 
-## What to do with the workspace.toml suggestion
+## What to do with the captured-item suggestion
 
-After `frame-situation` completes, the skill prints a TOML snippet. A
-dispatchable entry carries the five canonical fields — `path`, `kind`, `source`,
-`summary`, and `needs`:
+After `frame-situation` completes, the skill prints the text of a captured-item
+file: a note at `docs/product/captured/<slug>.md` with `Status: Open`,
+`Kind: design`, a `Detail:` line naming the situation framing, and the finding in
+one line under `## Summary`. The file is the whole record, so nothing is added to
+`workspace.toml`.
 
-```toml
-{path = "docs/product/intents/agent-skill-discovery-gap.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
+To keep it, ask the agent to capture it. It routes through `work-intake`, which
+writes the file for you:
+
+```text
+Remember the situation finding for agent skill discovery.
 ```
 
-Add this to your active initiative's `[shaping_queue]` backlog in
-`workspace.toml`. Two ways:
-
-1. **Ask the agent** — it routes through `work-intake`, which writes the
-   canonical artifact and registers the entry for you:
-
-   ```text
-   Remember the situation finding for agent skill discovery as shaping work.
-   ```
-
-2. **Manual edit** — open `workspace.toml`, find `["ini-NNN".shaping_queue]`, and
-   add the entry to the `backlog` array.
-
-A short `{slug = "...", type = "shape"}` entry is the former legacy shape. It
-surfaces as `unsupported_legacy` in `workspace-status` and is never
-dispatchable. Old shaping entries still appear in the information-only shaping
-lists until rewritten.
-
-Once you add the canonical entry, `workspace-status` will surface it as a ready
-item and suggest running `identify-opportunities` (or the appropriate
-entry-point skill).
+You can also save the printed text at that path yourself. When the item is done,
+set `Status: Closed` and add `Resolution:` to the same file.
 
 ---
 
@@ -123,10 +109,9 @@ entry-point skill).
 
 - `intent frame` — for feature-scoped or known-outcome work
 - `identify-opportunities` — step 2 of the shaping sequence
-- `work-intake` — the front door for registering an entry in
-  `workspace.toml [shaping_queue]`
+- `work-intake` — the front door for capturing the suggested item as a file
 
 ## What you have now
 
 - A classified signal with a Wardley capability assessment and a recommended entry point into the shaping sequence.
-- Register its canonical artifact through `work-intake`, then follow the recommended next shaping skill.
+- Capture its suggested file through `work-intake`, then follow the recommended next shaping skill.
