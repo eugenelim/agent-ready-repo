@@ -6,8 +6,8 @@ Execution observations for `docs/specs/registry-comparison/`. The spec and plan 
 
 - **Bytecode check scope.** The AC-0014 prefix check ignores cache files whose mirrored path contains `/site-packages/`. The local gate venv lives at `.context/venv`, under the repository root, and its `_distutils_hack` `.pth` startup hook caches a file before any tool code runs. That write is the interpreter's, not the tool's. The control run that loads `closure_terminality.py` without the flag is still flagged on both the resolved and as-invoked roots.
 - **Non-UTF-8 typed file.** AC-0010's non-UTF-8 case is tested through `classify`. A non-UTF-8 spec in a fixture tree makes the navigator itself refuse (`delivery_incomplete`), so the CLI reaches AC-0019's navigator refusal first.
-- **Envelope item type.** The envelope check also refuses an item whose `type` is not `intent`, `brief`, or `spec`. That is a refusal (exit 2), so it fails closed.
-- **Typed-file read bound.** A typed-file target is read with a 64 MiB cap. A larger file is `unclassified`.
+- **Read bound.** A typed-file target is read with a 64 MiB cap, and a larger one is `unclassified`. A non-typed target's content is never read: the confined reader runs with a zero cap, so every confinement and regular-file check runs, and the bound refusal that follows marks it `captured_item` at any size.
+- **Exact spelling.** Every part of a target must equal a real directory entry name exactly, so a case or normalization alias of a file on an insensitive filesystem counts as missing and is `unclassified` (owner decision, 2026-10-27, from the post-gates security review).
 - **Refusal input names.** `workspace.toml`, `navigator`, `graph`, `captured-items`, `arguments`, and `internal`.
 
 ## T2 — records and wiring

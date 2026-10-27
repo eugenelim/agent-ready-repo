@@ -57,6 +57,7 @@ if str(AGENTBUNDLE) not in sys.path:
     sys.path.insert(0, str(AGENTBUNDLE))
 
 from agentbundle.catalogue_tooling.file_safety import (  # noqa: E402
+    BoundExceeded,
     UnsafeContentError,
     read_confined_regular_file,
 )
@@ -95,7 +96,6 @@ NAVIGATOR_TIMEOUT_S = 120
 MAX_FILE_BYTES = 64 * 1024 * 1024
 _CAPTURED_DIR = "docs/product/captured"
 _STATUS_LINE = re.compile(r"^- \*\*Status:\*\*(.*)$", re.MULTILINE)
-_OUTSTANDING_TYPES = ("intent", "brief", "spec")
 
 
 class Refusal(Exception):
@@ -297,8 +297,6 @@ def check_envelope(envelope: object) -> tuple[list[dict[str, str]], str]:
                 isinstance(item.get(field), str) for field in ("id", "type", "status")
             ):
                 raise Refusal("navigator", f"a {key} item lacks string id, type, and status")
-            if item["type"] not in _OUTSTANDING_TYPES:
-                raise Refusal("navigator", f"a {key} item has an unknown type")
             items.append(item)
     provenance = envelope.get("provenance")
     stamp = provenance.get("generated_at") if isinstance(provenance, dict) else None
@@ -336,6 +334,24 @@ def _is_canonical(target: str) -> bool:
     return all(part not in ("", ".", "..") for part in target.split("/"))
 
 
+def _spelled_as_on_disk(root: Path, target: str) -> bool:
+    """Whether every part of *target* equals a real directory entry name exactly.
+
+    A case- or normalization-insensitive filesystem opens `Docs/x.md` as
+    `docs/x.md`. Classing by the written path would then let an alias of a live
+    typed file pass as `captured_item`, so any other spelling counts as missing.
+    """
+    directory = root
+    for part in target.split("/"):
+        try:
+            if part not in {entry.name for entry in directory.iterdir()}:
+                return False
+        except OSError:
+            return False
+        directory = directory / part
+    return True
+
+
 def _typed_kind(target: str) -> str | None:
     """The typed-file kind for a canonical target (workspace-retirement Terms)."""
     parts = PurePosixPath(target).parts
@@ -370,11 +386,21 @@ def _classify_target(root: Path, target: str, collections: set[str],
         status = str(item["status"])
         cls = "registry_stale" if status == "Closed" else "registry_live_only"
         return _row(cls, target, "", collections, status=status)
-    try:
-        raw = read_confined_regular_file(root, root / target, max_bytes=MAX_FILE_BYTES)
-    except (UnsafeContentError, OSError, ValueError):
+    if not _spelled_as_on_disk(root, target):
         return unclassified()
     kind = _typed_kind(target)
+    try:
+        # A non-typed file's content is never needed: a zero cap still runs every
+        # confinement and regular-file check, then stops before reading.
+        raw = read_confined_regular_file(
+            root, root / target, max_bytes=MAX_FILE_BYTES if kind else 0
+        )
+    except BoundExceeded:
+        if kind is None:
+            return _row("captured_item", target, "", collections)
+        return unclassified()
+    except (UnsafeContentError, OSError, ValueError):
+        return unclassified()
     if kind is None:
         return _row("captured_item", target, "", collections)
     try:

@@ -274,10 +274,10 @@ def test_top_level_location_has_no_initiative(tmp_path):
 
 
 def test_missing_path_target_and_no_target_entry_stay_distinct_and_ordered(tmp_path):
-    _registry(tmp_path, _entries("work.queue", _path("ini-001.work.queue[0]"), "{ kind = 1 }"))
+    _registry(tmp_path, _entries("work.queue", "{ kind = 1 }", _path("ini-001.work.queue[0]")))
     rows = _rows(tmp_path)
     assert [(r["class"], r["target"], r["location"]) for r in rows] == [
-        ("unclassified", "", "ini-001.work.queue[1]"),
+        ("unclassified", "", "ini-001.work.queue[0]"),
         ("unclassified", "ini-001.work.queue[0]", ""),
     ]
 
@@ -548,3 +548,36 @@ def test_graph_paths_refuses_a_malformed_corpus(tmp_path):
     with pytest.raises(tool.Refusal) as caught:
         tool.graph_paths(tmp_path)
     assert caught.value.input_name == "graph"
+
+
+def test_non_typed_file_over_the_read_cap_is_still_captured_item(tmp_path, monkeypatch):
+    tool = _tool()
+    monkeypatch.setattr(tool, "MAX_FILE_BYTES", 4)
+    note = tmp_path / "docs" / "design" / "note.md"
+    note.parent.mkdir(parents=True)
+    note.write_text("longer than four bytes\n", encoding="utf-8")
+    _spec(tmp_path, "big", status="Draft")
+    registry = {"ini-001": {"work": {"queue": [
+        {"path": "docs/design/note.md"}, {"path": "docs/specs/big/spec.md"},
+    ]}}}
+    assert [(r.cls, r.target) for r in tool.classify(registry, [], [], tmp_path)] == [
+        ("captured_item", "docs/design/note.md"),
+        ("unclassified", "docs/specs/big/spec.md"),
+    ]
+
+
+def test_alias_spelling_of_a_live_typed_file_is_unclassified(tmp_path):
+    _spec(tmp_path, "live", status="Draft")
+    probe = tmp_path / "DOCS"
+    if not probe.exists():
+        pytest.skip("case-sensitive filesystem: an alias spelling cannot open the file")
+    tool = _tool()
+    registry = {"ini-001": {"work": {"queue": [{"path": "DOCS/specs/live/spec.md"}]}}}
+    assert [r.cls for r in tool.classify(registry, [], [], tmp_path)] == ["unclassified"]
+
+
+def test_exact_spelling_check_rejects_a_case_alias_on_any_filesystem(tmp_path):
+    _spec(tmp_path, "live", status="Draft")
+    tool = _tool()
+    assert tool._spelled_as_on_disk(tmp_path, "docs/specs/live/spec.md")
+    assert not tool._spelled_as_on_disk(tmp_path, "DOCS/specs/live/spec.md")
