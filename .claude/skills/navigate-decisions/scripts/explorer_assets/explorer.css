@@ -25,7 +25,7 @@ summary { display: list-item; padding: var(--s-1) 0; }
 .app { padding: var(--s-5); }
 
 /* ---- Question rail: groups of tabs above the zones, one column beside them from 90rem. */
-.questions { margin: 0 0 var(--s-4); min-width: 0; }
+.questions { min-width: 0; }
 .question-list { list-style: none; margin: 0; padding: 0; gap: var(--s-1); }
 .rail-group { margin: 0; }
 .question-link { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); min-height: var(--target); padding: var(--s-2) var(--s-3); }
@@ -46,7 +46,7 @@ summary { display: list-item; padding: var(--s-1) 0; }
 .group-head { margin: var(--s-3) 0 var(--s-1); padding: 0 var(--s-3); }
 .area-group { margin: var(--s-2) 0 0; }
 
-/* The view switch, Expand all and the Key sit above the views, inside the list zone. */
+/* Expand all, then the Key, sit above the views, inside the list zone. */
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-2); }
 .seg { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-1); }
 .seg-btn { padding: 0 var(--s-2); white-space: nowrap; }
@@ -209,7 +209,6 @@ text.ln-on-focus { fill: var(--c-bg); }
 }
 @media (min-width: 90rem) {
   .app { display: grid; grid-template-columns: 16.5rem minmax(0, 1fr); gap: var(--s-4); }
-  .questions { margin: 0; }
   .rail { display: block; }
   .question-list { display: block; }
   .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
