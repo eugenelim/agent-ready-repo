@@ -1024,5 +1024,5 @@ function renderAtlas(container,allRels,allRecords,navigate){
   });
 }
 
-return{renderFocused:renderFocused,renderAtlas:renderAtlas};
+return{renderFocused:renderFocused,renderAtlas:renderAtlas,allChains:allChains};
 })();
