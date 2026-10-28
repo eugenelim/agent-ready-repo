@@ -292,7 +292,9 @@ function parkTools(){
 if(!toolsEl||!keyEl||!toolsHome)return;
 var wl=toolsHome.parentNode;wl.insertBefore(toolsEl,toolsHome);wl.insertBefore(keyEl,toolsHome);}
 function placeTools(c){
-var head=c.querySelector('.list-head');if(!head||!toolsEl||!keyEl)return;
+// The guidance context has no list head: its heading and record line stand in for one.
+var head=c.querySelector('.list-head')||c.querySelector('.ctx-record')||c.querySelector('h2');
+if(!head||!toolsEl||!keyEl)return;
 head.parentNode.insertBefore(keyEl,head.nextSibling);head.parentNode.insertBefore(toolsEl,keyEl);}
 function syncExpandLabel(){
 var b=document.getElementById('expand-all-btn');if(!b)return;
