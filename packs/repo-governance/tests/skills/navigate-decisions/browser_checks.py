@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import importlib.util
 import pathlib
+import re
 import sys
 import time
 
@@ -216,11 +217,11 @@ def test_no_network_requests(browser: object, export_mixed: pathlib.Path) -> Non
 
 
 def test_hash_routing_empty_hash_shows_list(browser: object, export_mixed: pathlib.Path) -> None:
-    """QE-14/FE-F1: Back from a detail route to the no-hash entry shows the list."""
+    """QE-14/FE-F1: Back from a detail route to the no-hash entry shows the default list."""
     page = _open_page(browser, export_mixed)
     page.locator(".row-link").first.click()
     page.wait_for_selector("#detail-body h2.detail-heading")
-    assert page.locator("#view-list").is_visible(), "the list stays beside the detail"
+    assert page.locator("#view-recent").is_visible(), "the list stays beside the detail"
     assert page.locator("#detail-body h2.detail-heading").text_content() != "Record detail"
     page.go_back()
     page.wait_for_function(
@@ -228,7 +229,7 @@ def test_hash_routing_empty_hash_shows_list(browser: object, export_mixed: pathl
         " === 'Record detail'"
     )
     assert page.evaluate("location.hash") == ""
-    assert page.locator("#view-list h2").text_content() == "Corpus list"
+    assert page.locator("#view-recent h2").text_content() == "Decided records"
     assert page.locator("#app-main[data-picked]").count() == 0
 
 
@@ -260,8 +261,8 @@ def test_hash_routing_uri_error_safe(browser: object, export_mixed: pathlib.Path
 def test_aria_current_on_nav_buttons(browser: object, export_mixed: pathlib.Path) -> None:
     """FE-F9: View nav buttons use aria-current='page', not aria-pressed."""
     page = _open_page(browser, export_mixed)
-    # List button must have aria-current=page (it is the initial view).
-    list_btn = page.locator("#btn-list")
+    # The Recently decided link must have aria-current=page (it is the initial view).
+    list_btn = page.locator("#q-recent")
     current = list_btn.get_attribute("aria-current")
     assert current == "page", f"list button must have aria-current='page'; got {current!r}"
     # Must not have aria-pressed.
@@ -273,7 +274,7 @@ def test_focus_moves_to_view_heading(browser: object, export_mixed: pathlib.Path
     """FE-F2: Focus moves to the view's h2 heading after navigation."""
     page = _open_page(browser, export_mixed)
     # Click graph button to navigate.
-    page.locator("#btn-graph").click()
+    page.locator("#q-graph").click()
     page.wait_for_timeout(200)
     # The focused element should be the h2 inside #view-graph.
     focused_tag = page.evaluate("document.activeElement.tagName.toLowerCase()")
@@ -456,7 +457,8 @@ def test_supersession_banners_in_list_and_detail(
     """AC-0025: checked supersession shows a banner in the list row and the detail
     view, with partial scope, and its link opens the superseding record."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.row")  # type: ignore[union-attr]
+    page.evaluate("() => { location.hash = '#list'; }")  # type: ignore[union-attr]
+    page.wait_for_selector("#view-list li.row")  # type: ignore[union-attr]
     list_text = " | ".join(
         page.locator("#view-list .supersede-banner").all_inner_texts()  # type: ignore[union-attr]
     )
@@ -1322,7 +1324,7 @@ def test_reset_filters_keeps_keyboard_focus(browser: object, export_mixed: pathl
     focused = page.evaluate(
         "() => [document.activeElement.tagName, document.activeElement.textContent]"
     )
-    assert focused == ["H2", "Corpus list"], focused
+    assert focused == ["H2", "Decided records"], focused
 
 
 def test_strike_through_marks_full_supersession_only(
@@ -3235,7 +3237,10 @@ def test_back_to_list_returns_to_the_current_view_at_320(
     assert page.evaluate(  # type: ignore[union-attr]
         "() => getComputedStyle(document.querySelector('.worklist')).display"
     ) != "none"
-    assert page.get_attribute(f"#btn-{view}", "aria-current") == "page"  # type: ignore[union-attr]
+    if view == "context":
+        assert _current_links(page) == []
+    else:
+        assert page.get_attribute(f"#q-{view}", "aria-current") == "page"  # type: ignore[union-attr]
     if view == "list":
         assert page.locator("#view-list .row-link[aria-current=true]").count() == 1  # type: ignore[union-attr]
     if view == "graph":
@@ -3573,8 +3578,8 @@ def test_lineage_scroll_wrappers_are_named_keyboard_regions(
 def _hash_state(page: object) -> dict[str, object]:
     return page.evaluate(  # type: ignore[union-attr, no-any-return]
         """() => ({ hash: location.hash,
-          view: ['list', 'graph', 'context'].find(v =>
-            document.getElementById('btn-' + v).getAttribute('aria-current') === 'page'),
+          view: (document.querySelector('#question-list a[aria-current=page]')
+            || { id: 'q-context' }).id.slice(2),
           picked: document.getElementById('app-main').hasAttribute('data-picked'),
           listShown: getComputedStyle(document.querySelector('.worklist')).display !== 'none',
           detailShown: getComputedStyle(document.querySelector('.detail')).display !== 'none' })"""
@@ -3604,7 +3609,7 @@ def test_history_returns_to_the_view_recorded_with_each_entry(
     page.wait_for_function("(id) => location.hash.includes(id)", arg=new)
     after_link = _hash_state(page)
     assert after_link["view"] == "graph" and after_link["picked"], after_link
-    page.click("#btn-list")
+    page.click("#q-list")
     page.wait_for_function("() => !document.getElementById('view-list').hidden")
     listed = _hash_state(page)
     assert listed["view"] == "list" and not listed["picked"], listed
@@ -3638,12 +3643,12 @@ def test_history_after_back_to_list_keeps_the_list_zone_at_320(
     page.wait_for_selector("#app-main:not([data-picked])")
     unpicked = _hash_state(page)
     assert unpicked["listShown"] and not unpicked["detailShown"], unpicked
-    page.click("#btn-graph")
+    page.click("#q-graph")
     page.wait_for_function("() => !document.getElementById('view-graph').hidden")
     graph = _hash_state(page)
     assert graph["listShown"] and not graph["detailShown"], graph
     page.go_back()
-    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    page.wait_for_function("() => !document.getElementById('view-recent').hidden")
     assert _hash_state(page) == unpicked
     page.go_back()
     page.wait_for_selector("#app-main[data-picked]")
@@ -3676,7 +3681,7 @@ def test_back_to_an_old_detail_bookmark_restores_the_view_it_opened_in(
     page = context.new_page()
     page.goto(f"file://{export_mixed}#detail/ADR-0001")
     page.wait_for_selector("#detail-body .state-line")
-    page.click("#btn-graph")
+    page.click("#q-graph")
     page.wait_for_function("location.hash.indexOf('#graph/') === 0")
     page.go_back()
     page.wait_for_function("location.hash.indexOf('#graph/') !== 0")
@@ -3836,3 +3841,415 @@ def test_header_order_and_expand_all_state(browser: object, export_mixed: pathli
     page.locator("li.row .row-link").first.click()
     page.wait_for_selector("#detail-body details")
     assert page.locator("#expand-all-btn").is_enabled()
+
+
+# ── decision-view-questions T1: the question rail, route grammar and list head ──
+
+_RAIL = (
+    ("Decisions", "recent", "Recently decided", "What was decided most recently?"),
+    ("Decisions", "deciding", "Still being decided", "What is still being decided?"),
+    ("Changes", "replaced", "Replaced", "Which decisions were replaced?"),
+    ("Changes", "graph", "Lineage", "How did decisions replace each other?"),
+    ("Browse", "areas", "By area", "What does each area hold?"),
+    ("Browse", "list", "Browse all", "Browse every record"),
+)
+_HEADS = {
+    "recent": ("Decided records", "Newest decision first (ADR Date, RFC Date closed)"),
+    "deciding": ("Records still open", "Oldest first (ADR Date, RFC Date opened)"),
+    "replaced": (
+        "Replaced records",
+        "Replaced in full first, then in part; by id within each",
+    ),
+    "graph": ("Lifecycle graph", "Largest chain first, then by lowest record number"),
+    "areas": ("Records by area", "Areas A to Z; newest decision first within each"),
+    "list": ("All records", "By kind, then number"),
+}
+_DECIDED_WORDS = {"accepted", "superseded", "deprecated", "rejected", "withdrawn"}
+_DECIDING_WORDS = {"draft", "proposed", "open", "final", "experimental"}
+
+
+def _island(page: object) -> dict[str, object]:
+    """The page's data island, parsed by the browser's JSON reader only."""
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        "() => JSON.parse(document.getElementById('nav-data').textContent)"
+    )
+
+
+def _word(rec: dict[str, object]) -> str | None:
+    """A record's word: the first run of letters in its lifecycle raw value, lowercased."""
+    life = rec.get("lifecycle") or {}
+    raw = life.get("raw_value") if isinstance(life, dict) and not life.get("missing") else None
+    found = re.search(r"[A-Za-z]+", raw or "")
+    return found.group(0).lower() if found else None
+
+
+def _areas_of(rec: dict[str, object]) -> list[str]:
+    """A record's areas, as the spec's Terms define them."""
+    for field in rec.get("header_fields") or []:  # type: ignore[attr-defined]
+        if str(field.get("label", "")).lower() == "areas":
+            out: list[str] = []
+            for part in str(field.get("display_value") or "").split(","):
+                part = part.strip()
+                if part and part not in out:
+                    out.append(part)
+            return out
+    return []
+
+
+def _chain_count(data: dict[str, object]) -> int:
+    """Connected groups of two or more records joined by checked relationships."""
+    parent: dict[str, str] = {}
+
+    def find(x: str) -> str:
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for rel in data["relationships"]:  # type: ignore[attr-defined]
+        if rel["trust_class"] == "checked":
+            parent[find(rel["from"])] = find(rel["to"])
+    return len({find(x) for x in list(parent)})
+
+
+def _rail_counts(data: dict[str, object]) -> dict[str, int]:
+    """The five rail counts computed from the data island."""
+    recs = data["records"]  # type: ignore[assignment]
+    return {
+        "recent": sum(1 for r in recs if _word(r) in _DECIDED_WORDS),  # type: ignore[attr-defined]
+        "deciding": sum(1 for r in recs if _word(r) in _DECIDING_WORDS),  # type: ignore[attr-defined]
+        "replaced": sum(1 for r in recs if r.get("superseded_by")),  # type: ignore[attr-defined]
+        "graph": _chain_count(data),
+        "areas": len({a for r in recs for a in _areas_of(r)}),  # type: ignore[attr-defined]
+    }
+
+
+def _visible_regions(page: object) -> list[str]:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        "() => ['recent','deciding','replaced','graph','areas','list','context']"
+        ".filter(v => !document.getElementById('view-' + v).hidden)"
+    )
+
+
+def _is_picked(page: object) -> bool:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        "() => document.getElementById('app-main').hasAttribute('data-picked')"
+    )
+
+
+def _current_links(page: object) -> list[str]:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        "() => [...document.querySelectorAll('#question-list a[aria-current]')].map(a => a.id)"
+    )
+
+
+def test_rail_holds_six_links_under_three_headings_with_full_questions(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0001: labels, order, group headings and each link's description."""
+    page = _open_page(browser, export_mixed)
+    info = page.evaluate(
+        """() => { const nav = document.querySelector('nav#questions-nav.questions');
+          const rail = nav && nav.querySelector('div#question-list.rail');
+          if (!rail) return null;
+          return { label: nav.getAttribute('aria-label'),
+            groups: [...rail.querySelectorAll('h2.rail-group')].map(h => h.textContent),
+            links: [...rail.querySelectorAll('a.question-link')].map(a => ({
+              id: a.id, href: a.getAttribute('href'),
+              name: a.querySelector('.q-name').textContent,
+              desc: document.getElementById(a.getAttribute('aria-describedby')).textContent,
+              group: a.closest('ul').previousElementSibling.textContent })) }; }"""
+    )
+    assert info, "no rail"
+    assert info["label"] == "Questions"
+    assert info["groups"] == ["Decisions", "Changes", "Browse"]
+    assert [
+        (link["group"], link["id"], link["name"], link["desc"]) for link in info["links"]
+    ] == [(g, f"q-{k}", label, q) for g, k, label, q in _RAIL]
+    assert [link["href"] for link in info["links"]] == [f"#{k}" for _, k, _, _ in _RAIL]
+    assert page.locator(".worklist .tools nav.seg").count() == 0
+    assert page.locator("#btn-list, #btn-graph, #btn-context").count() == 0
+    page.context.close()
+
+
+def test_rail_counts_match_the_data_and_ignore_search_and_filters(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0002: five counts, none on Browse all, unchanged by search, Kind and Status."""
+    page = _open_page(browser, export_mixed)
+    want = _rail_counts(_island(page))
+
+    def shown() -> dict[str, str | None]:
+        return page.evaluate(  # type: ignore[no-any-return]
+            """() => Object.fromEntries([...document.querySelectorAll('a.question-link')]
+              .map(a => {
+              const c = a.querySelector('.q-count');
+              return [a.id.slice(2), c ? c.textContent : null]; }))"""
+        )
+
+    expect = {k: str(v) for k, v in want.items()} | {"list": None}
+    assert shown() == expect
+    page.fill("#search-input", "zzzzz-no-match")
+    assert shown() == expect
+    page.fill("#search-input", "ADR-0001")
+    page.click('#kind-filter button[data-kind="RFC"]')
+    page.select_option("#status-filter", index=1)
+    assert shown() == expect
+    page.context.close()
+
+
+def test_the_page_opens_on_recently_decided(browser: object, export_mixed: pathlib.Path) -> None:
+    """AC-0003: no hash shows the Recently decided list and marks its link."""
+    page = _open_page(browser, export_mixed)
+    assert _visible_regions(page) == ["recent"]
+    assert _current_links(page) == ["q-recent"]
+    assert page.get_attribute("#q-recent", "aria-current") == "page"
+    page.context.close()
+
+
+@pytest.mark.parametrize("view", ("graph", "list"))
+def test_list_head_reads_question_then_heading_then_sort_line(
+    browser: object, export_mixed: pathlib.Path, view: str
+) -> None:
+    """AC-0004 (Browse all and Lineage): the region's head in DOM order."""
+    page = _open_page(browser, export_mixed)
+    page.evaluate(f"() => {{ location.hash = '#{view}'; }}")
+    page.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
+    head = page.evaluate(
+        f"""() => {{ const r = document.getElementById('view-{view}');
+          const q = r.querySelector('p.list-question'), h = r.querySelector('h2.list-title'),
+            s = r.querySelector('.list-sort');
+          const after = (a, b) =>
+            !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+          return {{ q: q && q.textContent, h: h && h.textContent, s: s && s.textContent,
+            order: !!q && !!h && !!s && after(q, h) && after(h, s),
+            label: r.getAttribute('aria-label'), role: r.getAttribute('role'),
+            h2s: r.querySelectorAll('h2').length }}; }}"""
+    )
+    heading, sort = _HEADS[view]
+    question = next(q for _, k, _, q in _RAIL if k == view)
+    assert head["q"] == question and head["h"] == heading and head["s"] == sort, head
+    assert head["order"] and head["role"] == "region" and head["label"] == heading, head
+    assert head["h2s"] == 1, head
+    page.context.close()
+
+
+def test_lineage_shows_every_chain_and_browse_all_every_record_in_export_order(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0011, AC-0012."""
+    page = _open_page(browser, export_mixed)
+    data = _island(page)
+    page.evaluate("() => { location.hash = '#graph'; }")
+    page.wait_for_selector("#view-graph .chain-card svg")
+    assert page.locator("#view-graph .chain-card").count() == _chain_count(data)
+    page.evaluate("() => { location.hash = '#list'; }")
+    page.wait_for_selector("#view-list .row-link")
+    rows = page.eval_on_selector_all(
+        "#view-list .row-link", "els => els.map(e => e.getAttribute('data-id'))"
+    )
+    assert rows == [r["id"] for r in data["records"]]  # type: ignore[attr-defined]
+    page.context.close()
+
+
+_ROUTES = (
+    ("#recent", "recent", None, False),
+    ("#deciding", "deciding", None, False),
+    ("#replaced", "replaced", None, False),
+    ("#graph", "graph", None, False),
+    ("#areas", "areas", None, False),
+    ("#list", "list", None, False),
+    ("#list/ADR-0002", "list", "ADR-0002", True),
+    ("#recent/ADR-0002/unpicked", "recent", "ADR-0002", False),
+    ("#graph/ADR-0002", "graph", "ADR-0002", True),
+    ("#areas/ADR-0002/unpicked", "areas", "ADR-0002", False),
+    ("#bogus-view/ADR-0002", "list", None, False),
+    ("#constructor", "list", None, False),
+    ("#__proto__/ADR-0002", "list", None, False),
+)
+
+
+@pytest.mark.parametrize(("route", "view", "sel", "picked"), _ROUTES)
+def test_every_route_form_opens_its_question(
+    browser: object,
+    export_mixed: pathlib.Path,
+    route: str,
+    view: str,
+    sel: str | None,
+    picked: bool,
+) -> None:
+    """AC-0014: question keys, their selection forms, an unknown first part."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(f"file://{export_mixed}{route}")
+    page.wait_for_selector(f"#view-{view}:not([hidden])")
+    assert _visible_regions(page) == [view]
+    assert _current_links(page) == [f"q-{view}"]
+    assert _is_picked(page) is picked
+    detail = page.locator("#detail-body h2").text_content()
+    assert (detail != "Record detail") is (sel is not None), detail
+    assert not errors, errors
+    context.close()
+
+
+def test_a_cold_detail_link_opens_browse_all_with_the_record_picked_and_is_rewritten(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0014: `#detail/<id>` on a cold load."""
+    context = browser.new_context(viewport={"width": 320, "height": 800}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}#detail/ADR-0002")
+    page.wait_for_selector("#detail-body .state-line")
+    assert _visible_regions(page) == ["list"]
+    assert _current_links(page) == ["q-list"]
+    assert page.evaluate("() => location.hash") == "#list/ADR-0002"
+    assert page.evaluate("() => document.getElementById('app-main').hasAttribute('data-picked')")
+    context.close()
+
+
+def test_context_routes_show_guidance_and_mark_no_rail_link(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0015: `#context/<id>` and bare `#context`."""
+    page = _open_page(browser, export_mixed)
+    page.evaluate("() => { location.hash = '#context/ADR-0001'; }")
+    page.wait_for_function("() => !document.getElementById('view-context').hidden")
+    assert "Guidance context: ADR-0001" in (page.locator("#view-context").text_content() or "")
+    assert _current_links(page) == []
+    page.evaluate("() => { location.hash = '#context'; }")
+    page.wait_for_function(
+        "() => document.getElementById('view-context').textContent.includes('Pick')"
+    )
+    assert _visible_regions(page) == ["context"]
+    assert "Pick a record, then choose Guidance context in its detail." in (
+        page.locator("#view-context").text_content() or ""
+    )
+    assert _current_links(page) == []
+    page.context.close()
+
+
+@pytest.mark.parametrize("how", ("Enter", "click"))
+def test_rail_activation_shows_the_list_focuses_its_heading_and_keeps_the_selection(
+    browser: object, export_mixed: pathlib.Path, how: str
+) -> None:
+    """AC-0016: focus, unpicked selection, one history entry per route change, Back."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    _show(page, "list", "ADR-0001")
+    before = page.evaluate("() => history.length")
+
+    def activate(key: str) -> None:
+        if how == "Enter":
+            page.focus(f"#q-{key}")
+            page.keyboard.press("Enter")
+        else:
+            page.click(f"#q-{key}")
+
+    activate("graph")
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")
+    focus = page.evaluate(
+        "() => [document.activeElement.tagName, document.activeElement.closest('[id^=view-]').id]"
+    )
+    assert focus == ["H2", "view-graph"], focus
+    assert page.evaluate("() => location.hash") == "#graph/ADR-0001/unpicked"
+    assert page.evaluate("() => history.length") == before + 1
+    assert not _is_picked(page)
+    assert "ADR-0001" in (page.locator("#detail-body .state-line").text_content() or "")
+    activate("graph")  # the same route: no new entry
+    assert page.evaluate("() => history.length") == before + 1
+    page.go_back()
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    assert page.evaluate("() => location.hash") == "#list/ADR-0001"
+    assert _current_links(page) == ["q-list"]
+    assert page.evaluate("() => document.getElementById('app-main').hasAttribute('data-picked')")
+    context.close()
+
+
+def test_the_default_page_is_recent_so_activating_it_adds_no_entry(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0016: the empty hash is the Recently decided route."""
+    page = _open_page(browser, export_mixed)
+    before = page.evaluate("() => history.length")
+    page.click("#q-recent")
+    assert page.evaluate("() => history.length") == before
+    page.context.close()
+
+
+@pytest.mark.parametrize("width", _WIDTHS)
+def test_rail_rectangles_at_each_width(
+    browser: object, export_mixed: pathlib.Path, width: int
+) -> None:
+    """AC-0022: beside the zones from 90rem, a tab row above them below it."""
+    context = browser.new_context(viewport={"width": width, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    info = page.evaluate(
+        """() => { const rc = s => document.querySelector(s).getBoundingClientRect();
+          const rail = rc('#question-list'), list = rc('.worklist'), zones = rc('#app-main');
+          const links = [...document.querySelectorAll('a.question-link')]
+            .map(a => a.getBoundingClientRect());
+          return { rail: { l: rail.left, r: rail.right, t: rail.top, b: rail.bottom,
+              w: rail.width },
+            list: { l: list.left, t: list.top, b: list.bottom },
+            zonesTop: zones.top, tops: links.map(x => Math.round(x.top)),
+            rem: parseFloat(getComputedStyle(document.documentElement).fontSize) }; }"""
+    )
+    rail, lst = info["rail"], info["list"]
+    if width >= 1680:
+        assert rail["r"] <= lst["l"] + 0.5, info
+        assert abs(rail["w"] - 16.5 * info["rem"]) <= 1, info
+        assert rail["t"] < lst["b"] and lst["t"] < rail["b"], info
+    elif width == 1280:
+        assert len(set(info["tops"])) == 1, info
+        assert rail["b"] <= info["zonesTop"] + 0.5, info
+    else:
+        assert rail["b"] <= info["zonesTop"] + 0.5, info
+    context.close()
+
+
+_RAIL_JS = """() => { const nav = document.getElementById('questions-nav');
+  const nr = nav.getBoundingClientRect(), bad = [], small = [];
+  const rgb = s => (s.match(/[\\d.]+/g) || []).map(Number);
+  const lum = c => { const v = c.slice(0, 3).map(x => { x /= 255;
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+  const backdrop = e => { for (let n = e; n && n.nodeType === 1; n = n.parentElement) {
+      const c = rgb(getComputedStyle(n).backgroundColor);
+      if (c.length >= 3 && (c.length < 4 || c[3] > 0)) return c; }
+    return rgb(getComputedStyle(document.body).backgroundColor); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  for (const e of nav.querySelectorAll('*')) {
+    const r = e.getBoundingClientRect();
+    if (r.width <= 1 && r.height <= 1) continue;
+    if (r.left < nr.left - 1 || r.right > nr.right + 1) bad.push(['edge', e.className]);
+    const own = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+    if (own) { const q = ratio(rgb(getComputedStyle(e).color), backdrop(e));
+      if (q < 4.5) bad.push(['contrast', e.className, Math.round(q * 100) / 100]); }
+  }
+  for (const a of nav.querySelectorAll('a.question-link')) {
+    const r = a.getBoundingClientRect();
+    if (r.width < 24 || r.height < 24) small.push([a.id, r.width, r.height]); }
+  return { bad, small, scroll: document.documentElement.scrollWidth, view: innerWidth,
+    links: nav.querySelectorAll('a.question-link').length }; }"""
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_IDS)
+def test_rail_fits_reads_and_is_large_enough_across_the_matrix(
+    browser: object, zone_export: pathlib.Path, width: int, scheme: str
+) -> None:
+    """AC-0023: no element past the rail's edge, no sideways page scroll, text at 4.5:1,
+    every link at least 24 by 24 CSS px."""
+    page = _zone_page(browser, zone_export, width, scheme, "list")
+    info = page.evaluate(_RAIL_JS)  # type: ignore[union-attr]
+    assert info["links"] == 6, info
+    assert info["bad"] == [] and info["small"] == [], info
+    assert info["scroll"] <= info["view"], info
+    page.context.close()  # type: ignore[union-attr]

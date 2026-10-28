@@ -38,8 +38,10 @@ function claimText(u){
 if(typeof u==='string')return V(u);
 return u?(u.display_value||V(u.raw_value||u.by||'')):'';}
 // picked: a record was chosen, so below 40rem the detail zone replaces the list zone.
-var state={view:'list',sel:null,picked:false,kind:'',status:'',q:''};
-var VALID_VIEWS=['list','graph','context'];
+var state={view:'recent',sel:null,picked:false,kind:'',status:'',q:''};
+// A literal array checked by indexOf, so a key such as "constructor" is never a view.
+// The first six are the rail's questions; context is reached from a record's detail.
+var VALID_VIEWS=['recent','deciding','replaced','graph','areas','list','context'];
 var statusMap={};
 records.forEach(function(r){
 var l=r.lifecycle;if(!l||l.missing)return;
@@ -80,6 +82,89 @@ var g=el('span','mark-g',MARK_GLYPH[m]);g.setAttribute('aria-hidden','true');
 e.appendChild(g);
 e.appendChild(document.createTextNode(!l||l.missing?'No status':(l.display_value||l.raw_value||'No status')));
 return e;}
+// ── Questions ────────────────────────────────────────────────────────────────
+// One table holds each question's words, so a label lives once. A lookup walks the array.
+var QUESTIONS=[
+{key:'recent',label:'Recently decided',name:'What was decided most recently?',
+heading:'Decided records',sort:'Newest decision first (ADR Date, RFC Date closed)',
+empty:'No record has a decided status: Accepted, Superseded, Deprecated, Rejected or Withdrawn.'},
+{key:'deciding',label:'Still being decided',name:'What is still being decided?',
+heading:'Records still open',sort:'Oldest first (ADR Date, RFC Date opened)',
+empty:'Nothing is being decided: no record has a Draft, Proposed, Open, Final Comment Period or Experimental status.'},
+{key:'replaced',label:'Replaced',name:'Which decisions were replaced?',
+heading:'Replaced records',sort:'Replaced in full first, then in part; by id within each',
+empty:'No record is replaced in full or in part.'},
+{key:'graph',label:'Lineage',name:'How did decisions replace each other?',
+heading:'Lifecycle graph',sort:'Largest chain first, then by lowest record number',empty:''},
+{key:'areas',label:'By area',name:'What does each area hold?',
+heading:'Records by area',sort:'Areas A to Z; newest decision first within each',
+empty:'No record has an Areas field.'},
+{key:'list',label:'Browse all',name:'Browse every record',
+heading:'All records',sort:'By kind, then number',
+empty:'No canonical ADR or RFC records were admitted. Check the corpus boundary.'}];
+var RAIL_GROUPS=[
+{key:'decisions',label:'Decisions',questions:['recent','deciding']},
+{key:'changes',label:'Changes',questions:['replaced','graph']},
+{key:'browse',label:'Browse',questions:['areas','list']}];
+function question(key){
+for(var i=0;i<QUESTIONS.length;i++){if(QUESTIONS[i].key===key)return QUESTIONS[i];}
+return null;}
+// Membership words: own keys only, so a lifecycle word such as "constructor" is plain data.
+function wordSet(words){
+var m=Object.create(null);words.forEach(function(w){m[w]=true;});return m;}
+var DECIDED=wordSet(['accepted','superseded','deprecated','rejected','withdrawn']);
+var DECIDING=wordSet(['draft','proposed','open','final','experimental']);
+function hasOwn(m,k){return Object.prototype.hasOwnProperty.call(m,k);}
+// A record's word: the first run of letters in its lifecycle value, lowercased.
+function wordOf(rec){
+var l=rec.lifecycle;if(!l||l.missing)return'';
+var w=/[A-Za-z]+/.exec(l.raw_value||'');
+return w?w[0].toLowerCase():'';}
+function isDecided(rec){return hasOwn(DECIDED,wordOf(rec));}
+function isDeciding(rec){return hasOwn(DECIDING,wordOf(rec));}
+// A record's areas: the comma-separated parts of its first Areas field, trimmed, without
+// empty parts or repeats.
+function areasOf(rec){
+var hf=Array.isArray(rec.header_fields)?rec.header_fields:[],out=[];
+for(var i=0;i<hf.length;i++){
+if(hf[i]&&String(hf[i].label).toLowerCase()==='areas'){
+String(hf[i].display_value!=null?hf[i].display_value:'').split(',').forEach(function(p){
+p=p.trim();if(p&&out.indexOf(p)<0)out.push(p);});
+break;}}
+return out;}
+// The count beside a question: unchanged by search and filters.
+function questionCount(key){
+if(key==='recent')return records.filter(isDecided).length;
+if(key==='deciding')return records.filter(isDeciding).length;
+if(key==='replaced')return records.filter(function(r){return(r.superseded_by||[]).length>0;}).length;
+if(key==='graph')return Lineage.allChains(rels).length;
+if(key==='areas'){
+var seen=Object.create(null),n=0;
+records.forEach(function(r){areasOf(r).forEach(function(a){if(!hasOwn(seen,a)){seen[a]=true;n++;}});});
+return n;}
+return null;}
+// The links are built once, so a focused link keeps focus across routes; a render only moves aria-current.
+function buildRail(){
+var rail=document.getElementById('question-list');if(!rail)return;
+RAIL_GROUPS.forEach(function(g){
+var head=el('h2','rail-group',g.label);head.id='rail-'+g.key;rail.appendChild(head);
+var ul=el('ul','question-list');ul.setAttribute('aria-labelledby',head.id);
+g.questions.forEach(function(key){
+var q=question(key);
+var li=el('li','question');
+var a=el('a','question-link');a.id='q-'+q.key;a.setAttribute('href','#'+q.key);
+a.appendChild(el('span','q-name',q.label));
+var n=questionCount(q.key);
+if(n!==null)a.appendChild(el('span','q-count',String(n)));
+// The full question is the link's description, so the visible name can stay short.
+var why=el('span','visually-hidden',q.name);why.id='q-desc-'+q.key;
+a.setAttribute('aria-describedby',why.id);
+// A modified or non-primary click keeps the browser's own link handling.
+a.addEventListener('click',function(e){
+if(e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+e.preventDefault();switchView(q.key);});
+li.appendChild(a);li.appendChild(why);ul.appendChild(li);});
+rail.appendChild(ul);});}
 // ── Kind pill helper ─────────────────────────────────────────────────────────
 function setKindPill(kind){
 if(!kindEl)return;
@@ -92,11 +177,12 @@ function parseHash(){
 state.sel=null;state.picked=false;
 try{
 var h=location.hash.slice(1);
-if(!h){state.view='list';return;}
+if(!h){state.view='recent';return;}
 var parts=h.split('/');
 var v=parts[0];
-// #detail/<id> keeps the current view (List on a cold load) and picks the record.
-if(v!=='detail'){
+// #detail/<id> opens Browse all with the record picked; an unknown first part opens it with nothing.
+if(v==='detail')state.view='list';
+else{
 if(VALID_VIEWS.indexOf(v)<0){state.view='list';return;}
 state.view=v;}
 if(parts.length>1){try{state.sel=decodeURIComponent(parts[1]);}
@@ -109,7 +195,8 @@ function stateHash(){
 return '#'+state.view+(state.sel?'/'+encodeURIComponent(state.sel)+(state.picked?'':'/unpicked'):'');}
 function pushState(){
 var h=stateHash();
-if(location.hash!==h)history.pushState(null,'',h);}
+// The empty hash is the Recently decided route, so that route adds no entry.
+if((location.hash||'#recent')!==h)history.pushState(null,'',h);}
 function filtered(){return records.filter(function(r){
 if(state.kind&&r.kind!==state.kind)return false;
 if(state.status&&(r.lifecycle.missing||
@@ -137,15 +224,17 @@ function focusDetailHeading(){
 var h=document.querySelector('#detail-body h2');
 if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
 function focusRow(){
-var rows=document.querySelectorAll('#view-list button.row-link');
+var rows=document.querySelectorAll('#view-'+state.view+' button.row-link');
 for(var i=0;i<rows.length;i++){
 if(rows[i].getAttribute('data-id')===state.sel){rows[i].focus();return true;}}
 return false;}
 // With the list zone hidden (one column) focus follows the pick into the detail.
+// Every view but Lineage and the guidance context is a list of rows.
+function isListView(v){return v!=='graph'&&v!=='context';}
 function focusAfterPick(){
 var wl=document.querySelector('.worklist');
 if(state.picked&&wl&&wl.offsetParent===null)focusDetailHeading();
-else if(state.picked&&state.view==='list'&&focusRow())return;
+else if(state.picked&&isListView(state.view)&&focusRow())return;
 else focusViewHeading();}
 // Pick a record in a view; the view stays current. 'detail' means the current view.
 function navigate(view,id){
@@ -156,7 +245,7 @@ function switchView(v){
 state.view=v;state.picked=false;pushState();render();focusViewHeading();}
 function render(onlyView){
 VALID_VIEWS.forEach(function(v){
-var b=document.getElementById('btn-'+v);
+var b=document.getElementById('q-'+v);
 if(b){if(state.view===v){b.setAttribute('aria-current','page');}
 else{b.removeAttribute('aria-current');}}
 var d=document.getElementById('view-'+v);
@@ -166,10 +255,9 @@ if(zones){if(state.picked)zones.setAttribute('data-picked','');
 else zones.removeAttribute('data-picked');}
 var c=document.getElementById('view-'+state.view);
 if(!c)return;c.textContent='';
-var cnt=document.getElementById('list-count');if(cnt)cnt.textContent='';
-if(state.view==='list')renderList(c);
-else if(state.view==='graph')renderGraph(c);
+if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
+else renderList(c,state.view);
 if(!onlyView){
 renderDetail(document.getElementById('detail-body'));
 var pr=state.picked&&state.sel?records.find(function(r){return r.id===state.sel;}):null;
@@ -206,9 +294,19 @@ var sc=entry.scope&&entry.scope.length?'('+entry.scope.join(', ')+')':'(scope no
 div.appendChild(document.createTextNode(' '+sc));}
 return div;}
 // ── List view ────────────────────────────────────────────────────────────────
-function renderList(c){
+// A list's head: its full question, its heading, how it is sorted and, for a list of
+// records, how many of them the search and filters leave.
+function listHead(c,q,count){
+var d=el('div','list-head');
+d.appendChild(el('p','list-question',q.name));
+d.appendChild(el('h2','list-title',q.heading));
+d.appendChild(el('p','meta list-sort',q.sort));
+if(count!=null)d.appendChild(el('p','meta list-count',count));
+c.appendChild(d);}
+// Until each question builds its own rows, every list shows the narrowed corpus.
+function renderList(c,key){
 var fr=filtered();
-var h2=el('h2',null,'Corpus list');c.appendChild(h2);
+listHead(c,question(key),fr.length+' of '+records.length+' records shown');
 if(fr.length===0){
 var activeFilters=[];
 if(state.q)activeFilters.push('search: "'+state.q+'"');
@@ -249,7 +347,7 @@ ctx.appendChild(el('span','value rid',r.id));
 b.appendChild(ctx);
 var supBy=r.superseded_by||[];
 var unresClaims=r.unresolved_claims||[];
-b.addEventListener('click',function(){navigate('list',r.id);});
+b.addEventListener('click',function(){navigate(key,r.id);});
 li.appendChild(b);
 // The marker follows the button inside the row, never inside the button.
 if(supBy.length>0){
@@ -260,12 +358,10 @@ sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+claimT
 li.appendChild(sb2);}
 ul.appendChild(li);});
 c.appendChild(ul);
-var cnt=document.getElementById('list-count');
-if(cnt)cnt.textContent=fr.length+' of '+records.length+' records shown';
 updateLive(fr.length+' of '+records.length+' records shown.');}
 // ── Graph view ───────────────────────────────────────────────────────────────
 function renderGraph(c){
-var h2=el('h2',null,'Lifecycle graph');c.appendChild(h2);
+listHead(c,question('graph'));
 if(state.sel){
 // Focused view: SVG lineage diagram for the selected record
 var back=el('button','atlas-back','← All chains');back.type='button';
@@ -287,7 +383,7 @@ c.appendChild(h2);
 if(!rec){
 c.appendChild(el('p','empty-msg empty',state.sel?
 shownId(state.sel)+' is not in this export.':
-'Select a record from the corpus list, then switch to this view.'));
+'Pick a record, then choose Guidance context in its detail.'));
 updateLive('');return;}
 var ctxHead=el('p','ctx-record',(rec.display_title||rec.title)+' · '+lc(rec));
 c.appendChild(ctxHead);
@@ -444,9 +540,6 @@ renderMarkdown(content,sec2);
 bodyEl=sec2;}
 c.appendChild(bodyEl);}}
 // ── Event bindings ───────────────────────────────────────────────────────────
-VALID_VIEWS.forEach(function(v){
-var b=document.getElementById('btn-'+v);
-if(b)b.addEventListener('click',function(){switchView(v);});});
 if(searchEl)searchEl.addEventListener('input',function(){
 state.q=this.value;render(true);});
 // Kind filter: a segmented control of buttons
@@ -474,7 +567,7 @@ if(mainEl)mainEl.addEventListener('toggle',syncExpandLabel,true);
 var backBtn=document.getElementById('back-btn');
 if(backBtn)backBtn.addEventListener('click',function(){
 state.picked=false;pushState();render(true);
-if(!(state.view==='list'&&focusRow()))focusViewHeading();});
+if(!(isListView(state.view)&&focusRow()))focusViewHeading();});
 window.addEventListener('popstate',function(){parseHash();render();focusAfterPick();});
 var provPre=document.getElementById('prov-pre');
 if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);
@@ -489,5 +582,6 @@ li.appendChild(document.createTextNode(V(sr.path)+' ['+sr.kind+']'));
 siUl.appendChild(li);});}
 supInvEl.appendChild(siUl);}
 // ── Boot ─────────────────────────────────────────────────────────────────────
+buildRail();
 parseHash();render();
 }();

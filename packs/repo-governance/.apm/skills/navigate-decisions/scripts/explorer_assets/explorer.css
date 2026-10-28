@@ -23,6 +23,17 @@ summary { display: list-item; padding: var(--s-1) 0; }
 .detail .notice { margin: 0 0 var(--s-2); }
 
 .app { padding: var(--s-5); }
+
+/* ---- Question rail: groups of tabs above the zones, one column beside them from 90rem. */
+.questions { margin: 0 0 var(--s-4); min-width: 0; }
+.question-list { list-style: none; margin: 0; padding: 0; gap: var(--s-1); }
+.rail-group { margin: 0; }
+.question-link { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); min-height: var(--target); padding: var(--s-2) var(--s-3); }
+.q-count { text-align: center; padding: 0.05rem 0.4rem; flex: none; min-width: 2rem; }
+.question-list ~ .question-list { margin-top: var(--s-2); }
+.list-head { padding: 0 0 var(--s-3); border-bottom-width: 1px; border-bottom-style: solid; }
+.list-question, .list-sort { margin: 0; }
+.list-title { margin: var(--s-1) 0; }
 .zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 .worklist, .detail { border-width: 1px; border-style: solid; min-width: 0; }
 .worklist { padding: var(--s-4) var(--s-4) var(--s-2); container-type: inline-size; }
@@ -31,7 +42,7 @@ summary { display: list-item; padding: var(--s-1) 0; }
 .back-link { margin: 0 0 var(--s-3); }
 .zones[data-picked] .worklist { display: none; }
 .zones:not([data-picked]) .detail { display: none; }
-.list-count { margin: var(--s-1) 0 var(--s-2); }
+.list-count { margin: var(--s-1) 0 0; }
 
 /* The view switch, Expand all and the Key sit above the views, inside the list zone. */
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-2); }
@@ -166,14 +177,36 @@ text.ln-on-focus { fill: var(--c-bg); }
 
 /* ---- Width tracks: one column below 40rem, the detail replacing the list once a record is picked. */
 @media (min-width: 40rem) {
+  .rail { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+  .question-list { display: flex; flex-wrap: wrap; }
+  .question-list ~ .question-list { margin-top: 0; }
   .search { flex: 1 1 16rem; max-width: 32rem; }
   .zones { grid-template-columns: minmax(0, 3fr) minmax(22rem, 2fr); }
   .zones[data-picked] .worklist, .zones:not([data-picked]) .detail { display: block; }
   .back-link { display: none; }
   .detail { position: sticky; top: var(--s-5); align-self: start; max-height: calc(100vh - 2 * var(--s-5)); overflow: auto; }
 }
+/* Groups of tabs wrapping onto several rows are set apart by a wider gap; one row uses a hairline. */
+@media (min-width: 40rem) and (max-width: 65.99rem) {
+  .question-list ~ .question-list { margin-left: var(--s-3); }
+}
+/* Six tabs in three groups stay on one row from 66rem: the links shrink and wrap their names instead. */
+@media (min-width: 66rem) and (max-width: 89.99rem) {
+  .rail, .question-list { flex-wrap: nowrap; }
+  .rail { gap: var(--s-3); }
+  .question-list, .question { min-width: 0; }
+  .question-list { flex: 0 1 auto; }
+  .question-list ~ .question-list { padding-left: var(--s-3); border-left-width: 1px; border-left-style: solid; }
+}
 @media (min-width: 90rem) {
+  .app { display: grid; grid-template-columns: 16.5rem minmax(0, 1fr); gap: var(--s-4); }
+  .questions { margin: 0; }
+  .rail { display: block; }
+  .question-list { display: block; }
   .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
+  /* The rail sets the row's height here; a short list card keeps its own height instead of stretching to it. */
+  .worklist { align-self: start; }
+  .q-count { min-width: 2.25rem; }
 }
 @media (min-width: 120rem) {
   .zones { grid-template-columns: minmax(0, 1fr) clamp(28rem, 30%, 40rem); }
