@@ -29,8 +29,8 @@ A full-mode `work-loop` plan reaches approval carrying test intent — behavior,
 ## What Changes
 
 - `work-loop` PLAN step 7's TDD bullet, step 8, EXECUTE's TDD line, and DECIDE's ledger routing — the red test moves to EXECUTE; a `stub` fence is not required in the approved plan but still feeds supervisor red proof; `implementation-discovered` is the one marker.
-- `work-loop/references/tdd-stubs.md` — rewritten around writing and proving the red test at EXECUTE; the `stub` fence grammar is kept as the supervisor's red-proof input, carried in the approved task while the plan is locked as a whole and written into the task at task start once in-envelope revision is available.
-- `work-loop/references/delivery-contract-lifecycle.md` — the ledger route keys on `implementation-discovered` for a seam or a design means while the plan is locked as a whole.
+- `work-loop/references/tdd-stubs.md` — rewritten around writing and proving the red test at EXECUTE; the `stub` fence grammar is kept as the supervisor's red-proof input, carried in the approved task.
+- `work-loop/references/delivery-contract-lifecycle.md` — the ledger route keys on `implementation-discovered` for a seam or a design means.
 - `new-spec` SKILL.md — the claim-routing table sends a mechanism-only, unprotected claim to its two exception rows and defines the protected classes once; the Testing Strategy pointer drops plan-owned stub code.
 - `new-spec/assets/plan.md` and `assets/spec.md` — `## Design (LLD)` owns mechanism and the marker; Agent Rules excludes mechanism; the task template drops the required stub.
 - `new-spec/references/spec-and-plan-contract.md` and `agents/quality-engineer.md` — their restatements of the PLAN-time stub follow.
@@ -91,8 +91,7 @@ A full-mode `work-loop` plan reaches approval carrying test intent — behavior,
 - [ ] **AC-0006.** `references/tdd-stubs.md` states that an import failure of the not-yet-written target counts as red, and that any other collection, import, or setup error, or a timeout, does not.
 - [ ] **AC-0007.** `references/tdd-stubs.md` states that, where a spec exists, the red's command and failing output go to the verification ledger.
 - [ ] **AC-0008.** `references/tdd-stubs.md` states that the approved plan does not require a `stub` fence.
-- [ ] **AC-0009.** `references/tdd-stubs.md` states that, where a supervisor run executes a TDD task, the plan author carries its fence in the approved task while the plan is locked as a whole.
-- [ ] **AC-0009a.** `references/tdd-stubs.md` states that, where the supervisor accepts in-envelope task revisions, the fence is written into the task as a revision when the task starts.
+- [ ] **AC-0009.** `references/tdd-stubs.md` states that, where a supervisor run executes a TDD task, the plan author carries its fence in the approved task.
 - [ ] **AC-0009b.** `references/tdd-stubs.md` states that a supervisor task without a fence gets no engine-observed red proof and that EXECUTE's red-first rule still applies to it.
 - [ ] **AC-0010.** `references/tdd-stubs.md` states that a fence the supervisor refuses as `stub-not-red` is either made to fail for the intended reason or removed.
 
@@ -109,8 +108,7 @@ In this group, "the routing section" is `new-spec` SKILL.md from the `load-beari
 - [ ] **AC-0016.** The routing section states that a claim about a protected class's property settles before approval.
 - [ ] **AC-0017.** The routing section states that the means delivering a protected property lives in the plan's `## Design (LLD)`.
 - [ ] **AC-0018.** `assets/plan.md`'s `## Design (LLD)` section, up to `### Design decisions`, states that mechanism lives there.
-- [ ] **AC-0019.** The same section states that a means no code grounds yet is marked `implementation-discovered` and that, while the plan is locked as a whole, its chosen means and any correction go to the verification ledger.
-- [ ] **AC-0019a.** The same section states that, where in-envelope task revision is available, that revision carries the correction instead of the ledger.
+- [ ] **AC-0019.** The same section states that a means no code grounds yet is marked `implementation-discovered` and that its chosen means and any correction go to the verification ledger.
 - [ ] **AC-0020.** `assets/spec.md`'s `## Agent Rules` section, up to `### Always do`, states that a syscall, flag, helper name, or exact write order is mechanism that belongs in the plan's `## Design (LLD)`.
 
 ### Guides and architecture
@@ -133,6 +131,7 @@ In this group, "the routing section" is `new-spec` SKILL.md from the `load-beari
 
 ## Follow-ons
 
+- eugenelim, `execution-supervisor-cutover`: when the whole-plan lock retires, move a supervisor task's `stub` fence into a task-start revision written by the trusted controller before it dispatches the implementer attempt (ADR-0144 D11 refuses a worker-written plan change), and route an `implementation-discovered` design means and its corrections through the in-envelope working-plan change instead of the verification ledger (ADR-0150 D3 and D5 leave both to the cutover).
 - eugenelim: the supervisor's `stub-not-red` refusal and the module docstring in `packs/core/.apm/skills/work-loop/scripts/_supervisor_tdd.py` still ask for a `no stub` disposition; rewording them to "remove the fence or make it fail" is a script change this spec does not make.
 - eugenelim: the in-progress `work-loop-evidence-modes` spec restates the PLAN-time plan stub in its AC-0003 and AC-0020; its author rewords them on rebase.
 

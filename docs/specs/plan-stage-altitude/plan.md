@@ -29,7 +29,7 @@ whole.
 
 ## Constraints
 
-- ADR-0150 D1 to D7; ADR-0144 (supervisor red-before-green guard and in-envelope task change), which ADR-0150 D3 and D5 keep.
+- ADR-0150 D1 to D7; ADR-0144 (supervisor red-before-green guard, which ADR-0150 D3 keeps fed; its cutover owns the post-lock routes).
 - `packs/AGENTS.md`: bump `pack.toml` and `plugin.json` together; update the eval harness; self-host after `.apm/` edits; no internal record citations under `packs/` (ADR-0150 is cited only from `docs/` and tests).
 - `work-loop` PLAN step 7 is also edited by the in-progress `work-loop-evidence-modes` spec; this change touches only the TDD bullet's stub clause in step 7.
 
@@ -57,7 +57,7 @@ whole.
 procedure; SKILL.md step 8 and EXECUTE carry one sentence each and point at it.
 The reference keeps stub-fullness (full assertion where the criterion pins
 behavior, shape assertion otherwise), earning a red, stack detection, and the
-`stub` fence grammar as the supervisor's red-proof input (carried in the approved task while the plan is locked whole, written into the task at task start once in-envelope revision exists); it drops the PLAN-time
+`stub` fence grammar as the supervisor's red-proof input, carried in the approved task; it drops the PLAN-time
 parse/generate/validate/record phases and the `STUB: AC<n>` plan marker. Its
 worked example keeps counting the target's import failure as red.
 
@@ -81,8 +81,6 @@ gains one sentence sending a mechanism to `## Design (LLD)` with its means
 marked `implementation-discovered`. A paragraph after the table names the five
 protected classes and the property-versus-means split. `new-spec` step 7's
 "protected risk class" is left as it is.
-
-**Correction route by lock state.** The plan template and `delivery-contract-lifecycle.md` send an `implementation-discovered` correction to the verification ledger while the plan is locked as a whole, and to an in-envelope task revision where one is available. Shipped text names the condition, not a release or internal record.
 
 **Ledger record of the red.** The EXECUTE red's command and failing output go to
 the verification ledger where a spec exists, which keeps the auditable record the
