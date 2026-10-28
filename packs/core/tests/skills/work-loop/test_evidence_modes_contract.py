@@ -264,11 +264,11 @@ def test_t5_new_eval_cases_exist_with_required_fields() -> None:
             assert isinstance(case["assertions"], list) and case["assertions"]
 
 
-def test_t5_pack_versions_are_3_1_27() -> None:
+def test_t5_pack_versions_match() -> None:
+    """The two version fields move together; a literal value would red on every later bump."""
     manifest = tomllib.loads((_PACK / "pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads((_PACK / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
-    assert manifest["pack"]["version"] == "3.1.27"
-    assert plugin["version"] == "3.1.27"
+    assert manifest["pack"]["version"] == plugin["version"]
 
 
 def test_t2_step_1b_renders_as_its_own_block() -> None:
