@@ -24,7 +24,7 @@
 
 ## Outcome
 
-A full-mode `work-loop` plan reaches approval carrying test intent — behavior, boundary, verification mode — rather than test code, and the red test is written and proven red at EXECUTE. A mechanism claim whose falsehood could move only the mechanism, and on which no protected class (security boundary, data loss or durability, migration or persisted state, public interface, irreversible operation) depends, lives in the plan's design, where a post-approval correction is a verification-ledger observation rather than an amendment; every other load-bearing claim still settles before approval.
+A full-mode `work-loop` plan reaches approval carrying test intent — behavior, boundary, verification mode — rather than test code, and the red test is written and proven red at EXECUTE. A mechanism claim whose falsehood could move only the mechanism, and on which no protected class (security boundary, data loss or durability, migration or persisted state, public interface, irreversible operation) depends, lives in the plan's design when no test can decide it, where a post-approval correction is a verification-ledger observation rather than an amendment, and is settled in code when a test can decide it and undoing it is reversible; every other load-bearing claim still settles before approval.
 
 ## What Changes
 
