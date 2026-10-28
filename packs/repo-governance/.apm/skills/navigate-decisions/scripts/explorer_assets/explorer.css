@@ -103,13 +103,22 @@ button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var
 .meta-table th, .meta-table td { padding: var(--s-1) var(--s-3); text-align: left; vertical-align: top; border-bottom: 1px solid var(--c-rule); overflow-wrap: anywhere; white-space: pre-wrap; }
 .meta-table tr:last-child th, .meta-table tr:last-child td { border-bottom-width: 0; }
 .meta-table th { white-space: nowrap; width: 7rem; }
-.rel-details, .sr-details, .body-details { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
-.rel-details > summary, .sr-details > summary, .body-details > summary { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-3); background: var(--c-canvas); border-radius: var(--r-1); list-style: none; }
-.rel-details > summary::-webkit-details-marker, .sr-details > summary::-webkit-details-marker, .body-details > summary::-webkit-details-marker { display: none; }
-.rel-details > summary::after, .sr-details > summary::after, .body-details > summary::after { content: "\25BE"; color: var(--c-muted); }
-.rel-details[open] > summary::after, .sr-details[open] > summary::after, .body-details[open] > summary::after { content: "\25B4"; }
+.rel-details, .sr-details, .body-details, .all-fields { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
+.rel-details > summary, .sr-details > summary, .body-details > summary, .all-fields > summary { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-3); background: var(--c-canvas); border-radius: var(--r-1); list-style: none; }
+.rel-details > summary::-webkit-details-marker, .sr-details > summary::-webkit-details-marker, .body-details > summary::-webkit-details-marker, .all-fields > summary::-webkit-details-marker { display: none; }
+.rel-details > summary::after, .sr-details > summary::after, .body-details > summary::after, .all-fields > summary::after { content: "\25BE"; color: var(--c-muted); }
+.rel-details[open] > summary::after, .sr-details[open] > summary::after, .body-details[open] > summary::after, .all-fields[open] > summary::after { content: "\25B4"; }
 .rel-details > .rel-list, .sr-details > ul { padding: var(--s-2) var(--s-3); }
 .sr-details > ul { margin: 0; list-style: none; }
+.all-fields { margin-top: var(--s-3); }
+.all-fields > .meta-table { margin: 0; border-width: 0; }
+
+/* ---- Detail lead: what it replaced, its facts and its links sit above the record content. */
+.replaces-line, .facts-line { margin: 0 0 var(--s-2); overflow-wrap: anywhere; }
+.replaces-line a, .detail-links a { display: inline-flex; align-items: center; min-height: 1.5rem; }
+.detail-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-4); margin: 0 0 var(--s-3); }
+.detail-links .source-path { overflow-wrap: anywhere; min-width: 0; }
+.list-summary { margin: var(--s-3) 0 0; padding: var(--s-2) var(--s-3); }
 
 /* ---- Record content: a uniform 2px border, distinct from the 4px evidence rails */
 .record-content { border: 2px solid var(--c-rule); border-radius: var(--r-1); padding: var(--s-3) var(--s-4); background: var(--c-canvas); overflow-x: auto; max-width: 100%; line-height: 1.6; }

@@ -1460,6 +1460,8 @@ def test_detail_shows_every_header_field_exactly(
     page = _open_page(browser, export_bidi_paths)
     page.wait_for_selector("li.row")
     page.evaluate("() => { location.hash = '#detail/ADR-0002'; }")
+    page.wait_for_selector("#detail-body details.all-fields")
+    page.locator("#detail-body details.all-fields > summary").click()
     page.wait_for_selector("#detail-body .meta-table")
     rows = page.evaluate(
         """() => [...document.querySelectorAll('#detail-body .meta-table tr')]
@@ -2022,6 +2024,7 @@ def test_wrapped_status_shows_its_own_row(
             "?.includes(rid)",
             arg=rid,
         )
+        page.locator("#detail-body details.all-fields > summary").click()
         counts[rid] = page.evaluate(
             """() => [...document.querySelectorAll('#detail-body .meta-table tr')]
               .filter(tr => tr.cells[0].textContent === 'Status').length"""
@@ -2219,7 +2222,7 @@ def test_hostile_status_line_detail_renders_in_linear_time(
           location.hash = '#detail/ADR-0001'; }, 0); }"""
     )
     # A super-linear regression fails here by name instead of hanging the run.
-    page.wait_for_selector("#detail-body .meta-table", timeout=6000)
+    page.wait_for_selector("#detail-body .meta-table", state="attached", timeout=6000)
     elapsed = page.evaluate("() => performance.now() - window.__t0")
     assert elapsed < 2000, elapsed
 
@@ -4947,3 +4950,380 @@ def test_by_area_list_meets_the_matrix_checks_with_every_section_open(
     """decision-view-style AC-0008, 0010, 0014 and 0027, with "each view" extended to By area:
     the slice-1 checks run over the `questions` export with every section open."""
     check(browser, export_questions, width, scheme, "areas")  # type: ignore[operator]
+
+
+# ── Decision view questions, T3: the detail leads with its state ──────────────
+
+_PARTS_JS = """() => [...document.getElementById('detail-body').children].map(n => {
+  const t = n.localName;
+  if (t === 'h2') return 'heading';
+  if (n.matches('.state-line')) return 'state';
+  if (n.matches('.supersede-banner')) return 'notice';
+  if (n.matches('.replaces-line')) return 'replaces';
+  if (n.matches('.facts-line')) return 'facts';
+  if (n.matches('.detail-links')) return 'links';
+  if (t === 'h3') return 'content-head';
+  if (n.matches('section.record-content, details.body-details')) return 'content';
+  if (n.matches('details.rel-details')) return 'relationships';
+  if (n.matches('details.sr-details')) return 'support';
+  if (n.matches('details.all-fields')) return 'all-fields';
+  return 'other:' + t + '.' + n.className; })"""
+
+
+def _open_detail(page: object, key: str, record_id: str) -> None:
+    """Route to a record in a view and wait for its detail."""
+    _go(page, key, record_id)
+    page.wait_for_function(  # type: ignore[union-attr]
+        "(id) => document.querySelector('#detail-body .state-line')?.textContent.includes(id)",
+        arg=record_id,
+    )
+
+
+def _record(data: dict[str, object], record_id: str) -> dict[str, object]:
+    return next(r for r in data["records"] if r["id"] == record_id)  # type: ignore[attr-defined, no-any-return]
+
+
+def _replaces_text(data: dict[str, object], rec: dict[str, object]) -> str | None:
+    """The Replaces line for a record, from its checked supersession relationships."""
+    names = []
+    for rel in data["relationships"]:  # type: ignore[attr-defined]
+        if rel["trust_class"] != "checked" or rel["from"] != rec["id"]:
+            continue
+        if rel["relation"] == "supersedes":
+            names.append(rel["to"])
+        elif rel["relation"] == "supersedes_in_part":
+            scope = ", ".join(rel.get("scope") or []) or "scope not stated"
+            names.append(f"{rel['to']} in part ({scope})")
+    return "Replaces " + ", ".join(names) if names else None
+
+
+def _facts_text(rec: dict[str, object]) -> str | None:
+    """The facts line: the opened date for a being-decided record, else the decision date;
+    then the areas."""
+    deciding = _word(rec) in _DECIDING_WORDS
+    date = _opened_date(rec) if deciding else _decision_date(rec)
+    parts = []
+    if date:
+        parts.append(("Opened " if deciding else "Decided ") + date)
+    if _areas_of(rec):
+        parts.append("Areas: " + ", ".join(_areas_of(rec)))
+    return " · ".join(parts) if parts else None
+
+
+def _expected_parts(data: dict[str, object], rec: dict[str, object]) -> list[str]:
+    sup = rec.get("superseded_by") or []
+    notices = len(sup) if sup else len(rec.get("unresolved_claims") or [])
+    out = ["heading", "state"] + ["notice"] * notices
+    if _replaces_text(data, rec):
+        out.append("replaces")
+    if _facts_text(rec):
+        out.append("facts")
+    out += ["links", "content-head", "content"]
+    if any(r["from"] == rec["id"] or r["to"] == rec["id"] for r in data["relationships"]):  # type: ignore[attr-defined]
+        out.append("relationships")
+    if rec.get("support_refs"):
+        out.append("support")
+    return out + ["all-fields"]
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "record_id"),
+    (
+        ("export_mixed", "ADR-0001"),
+        ("export_mixed", "ADR-0020"),
+        ("export_questions", "ADR-0001"),
+        ("export_questions", "ADR-0006"),
+        ("export_questions", "ADR-0004"),
+    ),
+)
+def test_detail_parts_come_in_the_lead_order(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str, record_id: str
+) -> None:
+    """AC-0018: heading, state, notices, Replaces, facts, links, content, then the sections."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    page.wait_for_selector("li.row")
+    data = _island(page)
+    rec = _record(data, record_id)
+    _open_detail(page, "list", record_id)
+    assert page.evaluate(_PARTS_JS) == _expected_parts(data, rec)  # type: ignore[union-attr]
+    for sel, want in (
+        ("#detail-body .replaces-line", _replaces_text(data, rec)),
+        ("#detail-body .facts-line", _facts_text(rec)),
+    ):
+        loc = page.locator(sel)  # type: ignore[union-attr]
+        if want is None:
+            assert loc.count() == 0, sel
+        else:
+            assert loc.text_content() == want, (sel, loc.text_content())
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_mixed_records_show_their_state_notice_and_replaces_line(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0018: ADR-0001 is partly replaced, so it has a notice and no Replaces line; ADR-0020
+    replaces part of it, so its Replaces line links ADR-0001 with the scope."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    _open_detail(page, "list", "ADR-0001")
+    parts = page.evaluate(_PARTS_JS)  # type: ignore[union-attr]
+    assert "notice" in parts and "replaces" not in parts, parts
+    _open_detail(page, "list", "ADR-0020")
+    line = page.locator("#detail-body .replaces-line")  # type: ignore[union-attr]
+    assert line.text_content() == "Replaces ADR-0001 in part (D3)"
+    link = line.locator("a")
+    assert link.get_attribute("href") == "#detail/ADR-0001"
+    link.click()
+    page.wait_for_function(  # type: ignore[union-attr]
+        "() => document.querySelector('#detail-body .state-line').textContent.includes('ADR-0001')"
+    )
+    assert page.evaluate("location.hash") == "#list/ADR-0001"  # type: ignore[union-attr]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_a_modified_click_on_a_replaces_link_keeps_the_browser_handling(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0018: only an unmodified primary click navigates in the page."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    _open_detail(page, "list", "ADR-0020")
+    prevented = page.evaluate(  # type: ignore[union-attr]
+        """() => { const a = document.querySelector('#detail-body .replaces-line a');
+          const ev = new MouseEvent('click', {bubbles: true, cancelable: true, ctrlKey: true});
+          a.dispatchEvent(ev); return ev.defaultPrevented; }"""
+    )
+    assert prevented is False
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "record_id"),
+    (("export_mixed", "ADR-0001"), ("export_mixed", "ADR-0020"), ("export_questions", "ADR-0001")),
+)
+def test_all_header_fields_is_closed_and_holds_the_shipped_rows(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str, record_id: str
+) -> None:
+    """AC-0019: a closed details with the header-field table, rows unchanged."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    page.wait_for_selector("li.row")
+    data = _island(page)
+    rec = _record(data, record_id)
+    _open_detail(page, "list", record_id)
+    det = page.locator("#detail-body details.all-fields")  # type: ignore[union-attr]
+    assert det.count() == 1 and det.get_attribute("open") is None
+    assert det.locator("> summary").text_content() == "All header fields"
+    assert page.locator("#detail-body .meta-table").is_visible() is False  # type: ignore[union-attr]
+    det.locator("> summary").click()
+    rows = page.evaluate(  # type: ignore[union-attr]
+        """() => [...document.querySelectorAll('#detail-body details.all-fields > .meta-table tr')]
+          .map(tr => [tr.cells[0].textContent, tr.cells[1].textContent])"""
+    )
+    labels = [r[0] for r in rows]
+    assert labels[:3] == ["Kind", "Status", "Source"] and labels[-1] == "Source link", labels
+    assert rows[0][1] == rec["kind"] and rows[2][1] == rec["source"]
+    shown = [(r[0], r[1]) for r in rows[3:-1]]
+    want = [
+        (f["label"], f["display_value"])
+        for f in rec["header_fields"]  # type: ignore[attr-defined]
+        if f["label"].lower() != "status"
+    ]
+    assert [s for s in shown if s[0] != "Status"] == want, shown
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_expand_all_counts_the_all_fields_section(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0019: Expand all opens the detail's All header fields too."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    _open_detail(page, "list", "ADR-0001")
+    page.click("#expand-all-btn")
+    assert page.locator("#detail-body details.all-fields[open]").count() == 1  # type: ignore[union-attr]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_detail_links_switch_view_and_keep_the_selection_at_1280(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0020: Lineage focuses the Graph view on the record; Guidance context follows."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    _open_detail(page, "list", "ADR-0001")
+    links = page.locator("#detail-body .detail-links a")  # type: ignore[union-attr]
+    assert links.all_inner_texts()[:2] == ["Lineage", "Guidance context"]
+    links.nth(0).click()
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")  # type: ignore[union-attr]
+    assert page.locator("#view-graph .atlas-back").count() == 1  # type: ignore[union-attr]
+    assert page.evaluate("location.hash") == "#graph/ADR-0001/unpicked"  # type: ignore[union-attr]
+    assert _current_links(page) == ["q-graph"]
+    assert page.locator("#detail-body .state-line").text_content().find("ADR-0001") >= 0  # type: ignore[union-attr]
+    page.locator("#detail-body .detail-links a").nth(1).click()  # type: ignore[union-attr]
+    page.wait_for_function("() => !document.getElementById('view-context').hidden")  # type: ignore[union-attr]
+    assert page.locator("#view-context h2").text_content() == "Guidance context: ADR-0001"  # type: ignore[union-attr]
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize(("index", "view"), ((0, "graph"), (1, "context")))
+def test_detail_links_show_the_list_zone_in_place_of_the_detail_at_320(
+    browser: object, export_mixed: pathlib.Path, index: int, view: str
+) -> None:
+    """AC-0020: at 320 px either link replaces the detail with the list zone."""
+    page = _narrow_page(browser, export_mixed, "ADR-0001", "list")
+    page.locator("#detail-body .detail-links a").nth(index).click()  # type: ignore[union-attr]
+    page.wait_for_function(  # type: ignore[union-attr]
+        f"() => !document.getElementById('view-{view}').hidden"
+    )
+    assert not _is_picked(page)
+    assert page.locator(".worklist").is_visible()  # type: ignore[union-attr]
+    assert not page.locator(".detail").is_visible()  # type: ignore[union-attr]
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def _chain_stats(data: dict[str, object]) -> tuple[int, int]:
+    """Chains and the records in them, from checked relationships."""
+    groups: dict[str, set[str]] = {}
+    for rel in data["relationships"]:  # type: ignore[attr-defined]
+        if rel["trust_class"] != "checked":
+            continue
+        merged = groups.get(rel["from"], {rel["from"]}) | groups.get(rel["to"], {rel["to"]})
+        for member in merged:
+            groups[member] = merged
+    chains = {frozenset(g) for g in groups.values() if len(g) >= 2}
+    return len(chains), sum(len(c) for c in chains)
+
+
+def _plural(n: int, noun: str) -> str:
+    return f"{n} {noun}" + ("" if n == 1 else "s")
+
+
+def _expected_summary(
+    data: dict[str, object], key: str, search: str = "", kind: str = "", status: str = ""
+) -> str | None:
+    """The 'In this list' line for a list after narrowing, or None when it has no line."""
+    recs = {str(r["id"]): r for r in data["records"]}  # type: ignore[attr-defined]
+    if key == "graph":
+        chains, linked = _chain_stats(data)
+        return (
+            f"In this list: {_plural(chains, 'chain')} joining {_plural(linked, 'record')}."
+            if chains
+            else None
+        )
+    sections = _expected_sections(data, key)
+    kept = [
+        [head, [i for i in ids if _matches(recs[i], search, kind, status)]]  # type: ignore[union-attr]
+        for head, ids in sections
+    ]
+    ids = list(dict.fromkeys(i for _, group in kept for i in group))
+    if not ids:
+        return None
+    counts: dict[str, int] = {}
+    for i in ids:
+        counts[str(recs[i]["kind"])] = counts.get(str(recs[i]["kind"]), 0) + 1
+    out = "In this list: " + ", ".join(_plural(counts[k], k) for k in sorted(counts))
+    if key == "replaced":
+        full = [
+            i for i in ids if any(not s["partial"] for s in recs[i].get("superseded_by") or [])
+        ]
+        out += f"; {len(full)} replaced in full and {len(ids) - len(full)} in part"
+    if key == "areas":
+        out += "; " + _plural(sum(1 for _, group in kept if group), "area section")
+    return out + "."
+
+
+def _summary_text(page: object) -> str | None:
+    loc = page.locator("#detail-body .list-summary")  # type: ignore[union-attr]
+    return loc.text_content() if loc.count() == 1 else None
+
+
+@pytest.mark.parametrize("key", ("recent", "deciding", "replaced", "graph", "areas", "list"))
+@pytest.mark.parametrize("fixture_name", ("export_questions", "export_mixed"))
+def test_empty_detail_summarises_the_current_list(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str, key: str
+) -> None:
+    """AC-0021: with nothing selected the detail shows the prompt and the list's summary."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    page.wait_for_selector("li.row")
+    data = _island(page)
+    _go(page, key)
+    assert page.locator("#detail-body > h2").text_content() == "Record detail"  # type: ignore[union-attr]
+    assert page.locator("#detail-body .note").text_content() == "Pick a record to see its detail."  # type: ignore[union-attr]
+    assert _summary_text(page) == _expected_summary(data, key)
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("key", ("recent", "deciding", "replaced", "areas", "list"))
+def test_the_summary_follows_search_and_filters_and_goes_when_nothing_is_left(
+    browser: object, export_questions: pathlib.Path, key: str
+) -> None:
+    """AC-0021: the line counts the records left after narrowing; none left, no line."""
+    page = _open_page(browser, export_questions)
+    page.wait_for_selector("li.row")
+    data = _island(page)
+    _go(page, key)
+    page.fill("#search-input", "gateway")
+    assert _summary_text(page) == _expected_summary(data, key, search="gateway")
+    page.fill("#search-input", "")
+    page.click("#kind-filter button[data-kind='RFC']")
+    assert _summary_text(page) == _expected_summary(data, key, kind="RFC")
+    page.click("#kind-filter button[data-kind='']")
+    page.fill("#search-input", "zzz no such record")
+    assert page.locator("#detail-body .list-summary").count() == 0  # type: ignore[union-attr]
+    assert page.locator("#detail-body .note").text_content() == "Pick a record to see its detail."  # type: ignore[union-attr]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_the_guidance_context_with_nothing_selected_has_the_prompt_and_no_summary(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0021: no `.list-summary` in the guidance context."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    page.evaluate("() => { location.hash = '#context'; }")  # type: ignore[union-attr]
+    page.wait_for_function("() => !document.getElementById('view-context').hidden")  # type: ignore[union-attr]
+    assert page.locator("#detail-body .note").text_content() == "Pick a record to see its detail."  # type: ignore[union-attr]
+    assert page.locator("#detail-body .list-summary").count() == 0  # type: ignore[union-attr]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_hostile_area_names_show_literally_in_the_facts_line(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0024: the hostile area names are text in the facts line and add no element."""
+    page = _open_page(browser, export_questions)
+    dialogs: list[str] = []
+    page.on("dialog", lambda d: dialogs.append(d.message))
+    page.wait_for_selector("li.row")
+    data = _island(page)
+    _open_detail(page, "areas", "ADR-0004")
+    facts = page.locator("#detail-body .facts-line")  # type: ignore[union-attr]
+    assert facts.text_content() == _facts_text(_record(data, "ADR-0004"))
+    assert "<img src=x onerror=alert(1)>, constructor, __proto__" in (facts.text_content() or "")
+    assert facts.evaluate("e => e.children.length") == 0
+    assert page.locator("#detail-body :is(img, script, svg)").count() == 0  # type: ignore[union-attr]
+    assert dialogs == [] and page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_back_to_list_in_by_area_with_a_hostile_record_picked_at_320(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0024: at 320 px Back to list in By area raises no error and meets AC-0017."""
+    page = _narrow_page(browser, export_questions, "ADR-0004", "areas")
+    assert page.locator("#detail-body .facts-line").count() == 1  # type: ignore[union-attr]
+    page.get_by_role("button", name="Back to list").click()  # type: ignore[union-attr]
+    info = page.evaluate(_FOCUS_JS % ("'areas'", "'areas'"))  # type: ignore[union-attr]
+    assert info["id"] == "ADR-0004" and info["cur"] == "true" and info["first"], info
+    assert (
+        page.eval_on_selector_all(  # type: ignore[union-attr]
+            "#view-areas details", "els => els.filter(e => e.open).length"
+        )
+        == 3
+    )
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
