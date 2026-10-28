@@ -1,6 +1,6 @@
 # Spec: Preservation records through the acceptance evaluator
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -137,7 +137,7 @@ Terms:
 
 ### Valid samples
 
-- [ ] **AC-0001.** For each of the six properties, the property record passes
+- [x] **AC-0001.** For each of the six properties, the property record passes
   `validate_property_dict`, each receipt passes `validate_receipt_dict`, both
   carry exactly the required fields of their canonical schema file and no other
   top-level field, and the store verdict is `supported` on every member of
@@ -145,27 +145,27 @@ Terms:
 
 ### Rejections
 
-- [ ] **AC-0002.** Missing required term: the lifecycle property requires the
+- [x] **AC-0002.** Missing required term: the lifecycle property requires the
   four terms create, update, delete, and rebuild under `all`. With the delete
   receipt absent, the store verdict is `insufficient`.
-- [ ] **AC-0003.** Wrong subject: a passing receipt whose `lineage.criterion_ref`
+- [x] **AC-0003.** Wrong subject: a passing receipt whose `lineage.criterion_ref`
   names a different property leaves the store verdict `insufficient` with an
   empty `receipt_refs`. A passing receipt bound to a different subject's
   acceptance fingerprint also decides `insufficient` with an empty
   `receipt_refs`.
-- [ ] **AC-0004.** Stale receipt: for each of the six samples, when every
+- [x] **AC-0004.** Stale receipt: for each of the six samples, when every
   receipt carries an earlier acceptance fingerprint of the same subject, the
   store verdict is `insufficient` with an empty `receipt_refs`.
-- [ ] **AC-0005.** Unsupported outcome: in the ordinary-calls sample, a fresh
+- [x] **AC-0005.** Unsupported outcome: in the ordinary-calls sample, a fresh
   receipt with outcome `unknown`, which the term's `outcomes` does not list,
   decides `insufficient`, and its `receipt_id` is in `receipt_refs`.
-- [ ] **AC-0006.** Contradiction: in the ordinary-calls sample, a fresh
+- [x] **AC-0006.** Contradiction: in the ordinary-calls sample, a fresh
   `supported-review-failure` receipt decides `contradicted` even though the
   satisfying receipt is also fresh.
 
 ### Mutations
 
-- [ ] **AC-0007.** For each of the six valid samples, each change below, made
+- [x] **AC-0007.** For each of the six valid samples, each change below, made
   alone, moves the store verdict from `supported` to the named verdict with the
   named `receipt_refs`:
   - the representative receipt's outcome set to `unknown` → `insufficient`;
@@ -183,13 +183,13 @@ Terms:
 
 ### Bounded work
 
-- [ ] **AC-0008.** The invalidation-budget property requires a `command-result`
+- [x] **AC-0008.** The invalidation-budget property requires a `command-result`
   term with outcome `within-budget`. A receipt with `over-budget` decides
   `insufficient`.
 
 ### Observed limits
 
-- [ ] **AC-0009.** The suite pins each limit the `Contract-fit result` section
+- [x] **AC-0009.** The suite pins each limit the `Contract-fit result` section
   names, on the ordinary-calls sample, through `evaluate_verdict`:
   - a receipt with a different `producer.class` decides `supported`;
   - a receipt with a different `observation.type` decides `supported`;
@@ -205,9 +205,9 @@ Terms:
 
 ### Record and scope
 
-- [ ] **AC-0010.** The `Contract-fit result` section states "Existing contract
+- [x] **AC-0010.** The `Contract-fit result` section states "Existing contract
   sufficient" and the full tested revision.
-- [ ] **AC-0011.** The scope check, `git diff --name-only "$(git merge-base origin/main HEAD)" HEAD`
+- [x] **AC-0011.** The scope check, `git diff --name-only "$(git merge-base origin/main HEAD)" HEAD`
   run after every change is committed, lists only paths under
   `packs/core/tests/`, `docs/specs/grounding-preservation-contract-proof/`,
   `docs/product/briefs/repository-grounding-preservation.md`, and

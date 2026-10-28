@@ -10,9 +10,9 @@
   plus the acceptance-centered work-loop architecture and brief at pi-mono
   revision `a673299cea2e2cd070b1649827b2b5a78ca4f42f`.
 
-> **Slice cut.** The owner confirmed all four slices, C0 to C3, on
-> 2026-10-28. Only C0 has a spec. C1, C2, and C3 are confirmed but not started;
-> each enters the `Spec map` when its spec is authored.
+> **Slice cut.** The confirmed slices are recorded under
+> [Confirmed delivery slices](#confirmed-delivery-slices). A slice enters the
+> `Spec map` when its spec is authored.
 
 ## Outcome
 
@@ -385,9 +385,10 @@ its required input above is met.
 ## Materialization dependencies
 
 - The pinned pi-mono revision is provisional design provenance for this brief.
-  C0 replaces it with the merged acceptance-centered Slice 1 revision: Slice 1
-  shipped in `9d39eae8b`, and C0 is authored and tested against
-  `42d02f315f22c4f25653644212c7615ada79f1d7`, which contains it.
+  C0 replaces it with a merged revision that contains acceptance-centered
+  Slice 1, [`acceptance-authority-and-evidence`](../../specs/acceptance-authority-and-evidence/spec.md):
+  C0 is authored and tested against
+  `42d02f315f22c4f25653644212c7615ada79f1d7`.
 - C3 must record the merged acceptance-centered Slice 2 revision and its final
   typed report vocabulary before its spec is authored.
 - An inexpressible C0 sample is a stop condition and upstream amendment, not

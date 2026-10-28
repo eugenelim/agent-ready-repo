@@ -1,7 +1,7 @@
 # Plan: Preservation records through the acceptance evaluator
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** none — non-structural. The suite follows the loader
   and fixture pattern of `packs/core/tests/skills/work-loop/test_acceptance.py`
   and `test_evidence_store.py`.
@@ -88,3 +88,4 @@ and `workspace-status` report clean for this spec and brief.
 ## Changelog
 
 - 2026-10-28: spec and plan approved by the owner (Platform Core) after clean shaping and adversarial reviews.
+- 2026-10-28: done; T1 and T2 complete.
