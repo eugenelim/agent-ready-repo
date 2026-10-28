@@ -42,8 +42,8 @@ Even a one-line fix benefits from walking this discipline; it forces
 the question "is this fixing the cause or hiding it?"
 
 Once the cause is established, the fix runs through `work-loop`. Its
-PLAN materialization rule decides where the red test lives, and steps 8
-to 11 below bind that run. This skill is for bug fixes, not
+EXECUTE writes step 2's red test at its real test path and proves it red
+again before the fix, and steps 8 to 11 below bind that run. This skill is for bug fixes, not
 opportunistic restructuring.
 
 ## Procedure
@@ -171,7 +171,7 @@ risk is controlled.
    If the red test also passes under a symptom-only change, sharpen the
    test before proceeding.
 
-10. **Regression test stays.** The test `work-loop` materializes from
+10. **Regression test stays.** The test `work-loop` writes at EXECUTE from
     step 2 stays in the suite and closes the coverage gap from step 6. It
     pins the missing invariant, not only the observed input.
 

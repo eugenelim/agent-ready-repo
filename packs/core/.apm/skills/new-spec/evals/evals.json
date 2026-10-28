@@ -140,12 +140,12 @@
     {
       "id": "tdd-stub-proof-belongs-to-work-loop-plan",
       "prompt": "While drafting a new spec, a TDD-mode acceptance criterion is concrete enough to test. Should new-spec create the failing test now, and what does the later work-loop do with it?",
-      "expected_output": "new-spec performs a pointer/self-check only and creates no repository test file. Work-loop PLAN owns the exact stub code in `plan.md` and validates syntax plus the intended red from disposable scratch with no repository test file. After full mode enters `CODE-IMPLEMENTATION`, EXECUTE must materialize the approved stub unchanged, verify byte identity, and continue red-green-refactor.",
+      "expected_output": "new-spec performs a pointer/self-check only and creates no repository test file. The work-loop plan carries the behavior, the boundary, and the verification mode in the task's `Tests:` entry, and no test code. The red test is written at EXECUTE, at the real test location, and proven red for the intended reason before production code changes; red-green-refactor follows.",
       "assertions": [
-        "Keeps new-spec at pointer and stubbability self-check scope",
-        "Routes exact plan-contained code and disposable validation to work-loop PLAN",
-        "Creates no repository test file before CODE-IMPLEMENTATION",
-        "Materializes the approved code unchanged during EXECUTE"
+        "Keeps new-spec at pointer and testability self-check scope",
+        "Routes the behavior, boundary, and verification mode to the work-loop plan's `Tests:` entry, with no test code",
+        "Creates no repository test file during spec drafting",
+        "Says the red test is written at EXECUTE and proven red before production code changes"
       ]
     },
     {
