@@ -36,3 +36,22 @@ All tests are in `browser_checks.py`. The List / Graph / Context switch is gone,
 - T2 gates, run unfiltered at the T2 commit: ruff check pass; mypy pass (156 files); `python3 -m pytest packs/repo-governance/tests/skills/navigate-decisions/ tests/roster/test_skill_html_view_tokens.py` 403 passed; `check_view_base_parity.py` ok; `lint-pack-test-boundary.py` passed; `browser_checks.py` on bundled Chromium 558 passed in 290 s (416 at T1, 142 new).
 - T3 wrote 34 new browser tests first (detail part order, All header fields, the two links at 1280 and 320, the list summary for each list and under narrowing, hostile areas in the facts line, Back to list at 320). Run against the T2 page, 36 of the new and repointed tests failed; the three that passed hold on either page (the context no-summary case and two Back to list cases). The three tests that read the header table while it was closed are listed above. The empty detail now also re-renders on a search or filter change while nothing is selected, so its summary follows narrowing.
 - T3 gates, run unfiltered: ruff check pass; mypy pass (156 files); `python3 -m pytest packs/repo-governance/tests/skills/navigate-decisions/ tests/roster/test_skill_html_view_tokens.py` 403 passed; `check_view_base_parity.py` ok; `browser_checks.py` on bundled Chromium 592 passed in 307 s (558 at T2, 34 new).
+
+## Real-export comparison (AC-0027)
+
+| Export | Commit | Command | Bytes | Records | ADR / RFC | Accepted / Superseded / Rejected | Relationships |
+| --- | --- | --- | ---: | ---: | --- | --- | ---: |
+| Base | 47e1b2836 (checked out as a scratch worktree) | `python3 packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py export --root /private/tmp/ndq/base-wt --destination /private/tmp/ndq/cmp --name base.html` | 6,706,491 | 258 | 149 / 109 | 254 / 3 / 1 | 883 |
+| Final | 520986b62 (HEAD with the 2.5.0 projections) | same, `--root .` and `--name head.html` | 6,705,049 | 258 | 149 / 109 | 254 / 3 / 1 | 883 |
+
+Every count matches (records, kinds, lifecycle values, relationships); the file shrinks by 1,442 bytes. Counts come from the `nav-data` JSON island of each file.
+
+## Screenshots (AC-0028 evidence)
+
+`notes/screens/<width>-<theme>-first.png` (no hash, the first screen) and `<width>-<theme>-picked.png` (first Recently decided row clicked), true viewports of 320x800, 1280x900, 1680x1000 and 2560x1200, light and dark: 16 files, from the final export (`/private/tmp/ndq/cmp/head.html`), captured with Playwright's bundled Chromium.
+
+## Build and lint (T4)
+
+- `make build-self`: regenerated the `.agents/` and `.claude/` projections (committed); a second run leaves no diff.
+- `uv run --with ruff ruff check .`, `uv run --with mypy python tools/lint-mypy.py`, the navigate-decisions suites with the two roster tests and `test_skill_html_view_tokens.py`, `python3 tools/check_view_base_parity.py` and `python3 tools/changelog.py validate`: see the T4 report; all exit 0.
+- Edited-test list checked by comparing function ASTs against 47e1b2836: 18 changed functions and the `_ZONE_VIEWS` constant, all in `browser_checks.py`, all in the table above. `test_html_publication.py` and `test_query_contract.py` have no changed function.
