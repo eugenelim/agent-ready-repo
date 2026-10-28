@@ -544,6 +544,8 @@ def _repo_root(cwd: Path | None) -> Path:
     except git.SupervisorGitError as exc:
         if exc.code == "denied-git-unavailable":
             raise UsageError(f"cannot find the repository root: {exc}") from exc
+        if exc.code == "unsupported-git-version":
+            raise UsageError(f"{exc.code}: {exc}") from exc
         raise UsageError("run from inside a Git repository") from exc
 
 

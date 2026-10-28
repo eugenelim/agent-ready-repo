@@ -588,3 +588,50 @@ def test_a_system_filter_runs_in_no_helper_call(
         ) is not None
         ws.git.run("diff", "HEAD~1", "HEAD")
     assert sorted(p.name for p in marks.iterdir()) == []
+
+
+# ── The helper's environment needs Git 2.32 to honour GIT_CONFIG_GLOBAL ─────
+
+
+@pytest.mark.parametrize(("banner", "refused"), [
+    (b"git version 2.31.8\n", True),
+    (b"git version 1.9.0\n", True),
+    (b"not a version banner\n", True),
+    (b"git version 2.32.0\n", False),
+    (b"git version 2.47.1.windows.1\n", False),
+    (b"git version 3.0.0\n", False),
+])
+def test_a_git_older_than_2_32_is_refused_before_discovery(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, banner: bytes, refused: bool) -> None:
+    repo = h.make_repo(tmp_path)
+    real = _git_module._launch
+
+    def _version_banner(argv: list[str], **kwargs: Any) -> Any:
+        if argv[-1:] == ["version"]:
+            return subprocess.CompletedProcess(argv, 0, banner, b"")
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(_git_module, "_launch", _version_banner)
+    if refused:
+        with pytest.raises(_git_module.SupervisorGitError) as caught:
+            _git_module.discover(repo)
+        assert caught.value.code == "unsupported-git-version"
+    else:
+        assert _git_module.discover(repo).root == repo.resolve()
+
+
+def test_every_verb_reports_an_old_git_by_its_own_code(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    real = _git_module._launch
+
+    def _old_git(argv: list[str], **kwargs: Any) -> Any:
+        if argv[-1:] == ["version"]:
+            return subprocess.CompletedProcess(argv, 0, b"git version 2.31.8\n", b"")
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(_git_module, "_launch", _old_git)
+    code, out = h.run_cli(repo, "status", h.SPEC_DIR)
+    assert code != 0
+    assert "unsupported-git-version" in out["detail"], out
+    assert "2.32" in out["detail"], out

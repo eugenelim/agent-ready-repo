@@ -250,15 +250,18 @@ line-ending and `core.excludesFile` settings, and turns off hooks, fsmonitor,
 external diff, textconv, replace refs, signing, and every filter that
 repository config defines. Before each call it checks Git control state by
 direct file reads: against the open attempt's manifest when one exists, and
-otherwise against the Git and common directories pinned at admission. It also
-refuses if `info/grafts` exists. Each invocation starts with the helper's
-Git-directory discovery, which carries the helper-call environment and fixed
-flags; it runs before anything is pinned, so it has no control state to compare
-yet, and its result becomes the pins. The only `git` calls outside the helper
+otherwise against the Git and common directories this invocation's discovery
+pinned. It also refuses if `info/grafts` exists. Each invocation first refuses
+`unsupported-git-version` on a Git older than 2.32, which would not honour an
+empty `GIT_CONFIG_GLOBAL`. It then runs the helper's Git-directory discovery,
+which carries the helper-call environment and fixed flags; it runs before
+anything is pinned, so it has no control state to compare yet, and its result
+becomes the pins. The only `git` calls outside the helper
 are two config reads that run no configured code: the effective config at
-admission, and the commit identity once per run. Both carry the out-of-helper
-form, which forwards the host's config-location variables and sets no flags of
-its own. `start` refuses with
+admission, and the commit identity once per run. Both pass the pinned
+`--git-dir` and none of the helper's fixed flags, check control state first, and
+carry the out-of-helper environment form that the
+[spec's Launch grants section](../specs/execution-supervisor-attempt-security/spec.md#launch-grants) states. `start` refuses with
 `unsupported-git-config` when repository config sets a code-running key, or
 when any config scope defines a filter that an attributes file uses.
 
@@ -280,9 +283,12 @@ every installed `scripts/` file and of the two policy files in the store. Every
 entry point compares them before it imports a sibling and refuses
 `supervisor-changed` on a mismatch, and each sets no-bytecode so a planted
 `.pyc` never runs. A run with an open or uncleared refused attempt guards every
-spec in the work tree. When `HEAD` holds the Core work-loop source and the
-installed skill differs, `next` emits one `regenerate` request. The supervisor
-admits it only when every installed file equals that source, then re-pins.
+spec in the work tree. When `HEAD` holds the Core work-loop source, review
+readiness holds, and the installed skill differs, `next` emits one `regenerate`
+request. The supervisor admits it only when every installed file equals that
+source, then re-pins. When the installed skill is tracked in the work tree,
+`next` answers `uncommitted-changes` until the controller commits the
+regenerated skill.
 
 **Untrusted code.** Under an `untrusted` classification with no verified
 containment, the supervisor launches no red proof or scratch receipt, emits no
@@ -292,7 +298,7 @@ containment, the supervisor launches no red proof or scratch receipt, emits no
 lists, and refuses the rest before reading any state. The table is the
 [spec's Result acceptance table](../specs/execution-supervisor-attempt-security/spec.md#result-acceptance):
 
-| Request kind | Facts the result may assert | Everything else |
+| Request kind (from `execution-supervisor-core`) | Facts the result may assert | Everything else |
 | --- | --- | --- |
 | `implement-task` | The controller-run gate outcome only; the supervisor computes the change set | Refused |
 | `write-stub` | Nothing; the supervisor computes the change set and runs the red proof | Refused |
@@ -309,8 +315,9 @@ An extra fact refuses `result-fact-refused`. An unknown kind refuses
 
 **Launch grants.** No supervisor launch goes through the process primitive, so
 none records a `safe-process.v1` record or a `security-capability.v1` grant. The
-[spec's Launch grants table](../specs/execution-supervisor-attempt-security/spec.md#launch-grants) states the rows each kind will
-adopt; adopting them is owned by
+[spec's Launch grants table](../specs/execution-supervisor-attempt-security/spec.md#launch-grants) holds each launch kind's grant
+row. Only the `git` row's Environment column is adopted today; the rest is owned
+by
 [`supervisor-launch-routing-for-plan-authored-commands`](../product/intents/supervisor-launch-routing-for-plan-authored-commands.md).
 
 `red-proof` and `scratch` are unrouted because the interpreter a plan-authored

@@ -165,6 +165,13 @@ PR #1585 left one gap open against AC-0018. `accept_facts` admitted a `review-ro
 
 `discover` in `_supervisor_git.py` runs `git rev-parse` before any directory is pinned, so it cannot pass `--git-dir` or compare control state. It carries the helper-call environment and fixed flags. The owner (eugenelim) classed it as the helper's first call, not as a third out-of-helper call. AC-0010's pre-check has no baseline until discovery returns the pins it then holds every later call to.
 
+## Handoff: what the cutover's supervisor reference must carry
+
+The spec's User documentation row hands `execution-supervisor-cutover` the unsupported Git configurations for its supervisor reference. They are:
+
+- **Refused at `start` with `unsupported-git-config`** (AC-0009): a code-running Git setting in repository or worktree config, as the spec's definition lists, and a filter defined in any config scope that an attributes file Git reads for the worktree uses. Git LFS is the common case.
+- **A usage error from every verb**: Git older than 2.32, which does not honour the empty `GIT_CONFIG_GLOBAL` the helper sets. The verb prints `{"error": "usage"}` with a `detail` starting `unsupported-git-version`, and exits 2. It is not a `refusal` object.
+
 ## Acceptance evidence
 
 Every test below lives in `packs/core/tests/skills/work-loop/`. The integration suites run only with `WORK_SUPERVISOR_INTEGRATION=1`; CI runs them in the `Gate A-supervisor` lane of `catalogue-tooling-ci-gates.yml`.
@@ -174,7 +181,7 @@ The binding runs are on `main` at `449151c4c` (2026-10-28):
 - `catalogue-tooling-ci-gates.yml` run 40636854667: `Gate A-supervisor` and both `Gate A-packs` lanes passed.
 - `build-check-windows.yml` run 40636854664: `test_process_safety_windows.py` gave 18 passed in 27.6 s on `windows-latest`.
 
-The closeout branch reran every suite below locally on macOS, Python 3.11, with the integration lane on.
+The closeout branch's code head ran 28 suites locally (the work-loop supervisor, process-safety, security-primitive, containment-broker, and evidence-store suites, the evidence-modes and narrow-full-mode contract suites, and the four pre-PR hook and workspace-bridge suites the cutover's first task added) on macOS with Python 3.11 and the integration lane on: 1,134 passed and 20 skipped in 16 min 4 s on 2026-10-29, rebased on `main` at `53952ccb1`. That run includes AC-0018's report-and-selection case. The pull request's `Gate A-supervisor` lane is the CI run at the same head.
 
 ### Attempt checks and residue
 
@@ -196,7 +203,7 @@ The closeout branch reran every suite below locally on macOS, Python 3.11, with 
 | Criterion | Evidence |
 | --- | --- |
 | AC-0009 | VI-5010: `test_supervisor_git.py::test_start_refuses_a_code_running_key_in_repository_config`, `test_every_listed_code_running_key_is_refused_by_name_never_by_value`, `test_start_refuses_a_code_running_key_in_worktree_config`, `test_start_refuses_a_global_filter_that_an_attributes_file_uses`, `test_start_refuses_a_global_filter_kept_under_xdg_config_home`, `test_a_global_filter_that_no_attribute_uses_does_not_refuse`; VI-5044: `test_start_refuses_a_system_filter_that_an_attributes_file_uses` |
-| AC-0010 | VI-5011: `test_planted_code_runs_nothing_during_any_supervisor_git_call`, `test_carried_autocrlf_stages_the_bytes_plain_git_add_stages`, `test_a_global_excludes_file_is_carried_into_the_change_set_read` (a user `core.excludesFile` keeps its file out of the change set; removing the carry turns it red); the open-attempt pre-check by VI-5020's gitfile and packed-ref cases |
+| AC-0010 | VI-5011: `test_planted_code_runs_nothing_during_any_supervisor_git_call`, `test_carried_autocrlf_stages_the_bytes_plain_git_add_stages`, `test_a_global_excludes_file_is_carried_into_the_change_set_read` (a user `core.excludesFile` keeps its file out of the change set; removing the carry turns it red), `test_a_git_older_than_2_32_is_refused_before_discovery` (the version floor that makes an empty `GIT_CONFIG_GLOBAL` effective), `test_every_verb_reports_an_old_git_by_its_own_code` (the CLI names that refusal); the open-attempt pre-check by VI-5020's gitfile and packed-ref cases |
 | AC-0011 | VI-5011: `test_planted_code_runs_nothing_during_any_supervisor_git_call` (hook, fsmonitor, filter, textconv, external diff, SSH signing, include) |
 | AC-0012 | VI-5012: `test_a_replaced_supervisor_commit_is_read_as_the_original`, `test_a_graft_is_never_read`, `test_a_message_preserving_rebase_still_reads_the_supervisor_commits`; open-attempt clause by VI-5020's `test_a_packed_ref_move_is_refused_at_report`, `test_a_gitfile_or_commondir_aimed_at_a_decoy_is_never_admitted`, `test_an_attempt_already_reported_stays_closed_after_a_message_preserving_rebase` |
 
@@ -230,6 +237,6 @@ The closeout branch reran every suite below locally on macOS, Python 3.11, with 
 ### Plan Done-when checks
 
 - **Architecture review (2026-10-28).** A design review of the "Execution supervisor controls" section of `docs/architecture/runtime-security-primitives.md` returned SHIP WITH CHANGES. After adjudication it held four findings, all fixed in this change. The page's Result acceptance table now carries the spec's nine rows and three columns, so the page's tables match the spec's. Discovery and the two config reads are described in their own environment forms. The Launch grants references and the owning intent are linked. The control-state check names the open attempt's manifest as its baseline.
-- **T5 security review (2026-10-28).** No clean T5 result had been recorded in PR #1585, so security-reviewer reviewed T5's controls at this change's head. After adjudication it held one Nit and no Blocker or Concern. The Nit, deferred: the helper relies on Git 2.32 or later to honour an empty `GIT_CONFIG_GLOBAL`, and no version floor is checked, so on Git 2.31 a helper call still reads the user's global config. AC-0009's filter refusal and the fixed `-c` overrides leave no code-running path in that case.
+- **T5 security review (2026-10-28).** No clean T5 result had been recorded in PR #1585, so security-reviewer reviewed T5's controls at this change's head. After adjudication it held one Nit and no Blocker or Concern. The Nit: the helper relies on Git 2.32 or later to honour an empty `GIT_CONFIG_GLOBAL`, and no version floor was checked, so on Git 2.31 a helper call still read the user's global config, against AC-0010. The owner (eugenelim) chose a checked floor on 2026-10-28: discovery now refuses `unsupported-git-version` on a Git older than 2.32, before any other `git` call.
 - T5's architecture page and changelog fragment make no claim that a `red-proof` or `scratch` launch is routed through the primitive, records a grant, or runs with a bounded environment. The page's "Launch grants" paragraph states that no supervisor launch goes through the process primitive.
 - AC-0019 appears outside this spec only in `docs/product/intents/supervisor-launch-routing-for-plan-authored-commands.md`, the intent that owns it. That line records the removal; it does not claim the criterion is live. The owner (eugenelim) accepted that reference against this clause on 2026-10-28.
