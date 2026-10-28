@@ -6,7 +6,8 @@
 
 ## Changes
 
-1. A `stub` fence leaves the approved plan but is written into the task as a task revision when the task starts, so the supervisor observes red before green.
-2. The `implementation-discovered` → verification-ledger route for a design means applies while the whole-plan lock exists; after cutover, ADR-0144's in-envelope task change carries the correction. ADR-0150 cites ADR-0144 rather than adding a second rule.
+1. A `stub` fence is not required content of the approved plan, but where a supervisor run executes a TDD task the plan author carries it in that task, so the supervisor still observes red before green (ADR-0150 D3).
+2. An `implementation-discovered` means and its corrections go to the verification ledger (ADR-0150 D5).
+3. Both post-lock routes — a controller-written task-start fence revision and the in-envelope working-plan change for a design correction — are left to `execution-supervisor-cutover`, recorded as a Follow-on in `spec.md`. ADR-0150 cites ADR-0144 and states no rule for them.
 
 No task had started; no evidence is carried.
