@@ -207,9 +207,9 @@ reason             — error reason string when applied:false (top-level field, 
 - `spec_status_unreadable` — spec.md not found or Status field missing
 - `initiative_not_found` — ini_slug absent from workspace.toml
 - `entry_not_found_in_queue` — path no longer in the queue (already removed or never present)
-- `entry_locator_mismatch` — an `intent-brief-drop` entry at the planned locator no longer has the planned path, kind, or fingerprint
-- `entry_not_droppable` — an `intent-brief-drop` entry no longer qualifies (not a repo-origin intent or brief under its directory)
-- `entry_not_found` — an `intent-brief-drop` entry is gone from `workspace.toml` at apply time
-- `entry_has_needs` — an `intent-brief-drop` entry still has `needs` after the needs operations ran; resolve them, then re-plan
+- `entry_locator_mismatch` — the registry read under the lock holds no entry at an `intent-brief-drop` operation's planned locator, including an entry that is gone, or holds one whose path, kind, or fingerprint differs from the plan
+- `entry_not_droppable` — the entry at the planned locator matches the plan but is no longer a repo-origin intent under `docs/product/intents/` or brief under `docs/product/briefs/`
+- `entry_not_found` — the editable `workspace.toml` has no matching table at the planned locator although the parsed registry does, or an earlier operation in the same run already claimed or removed that entry
+- `entry_has_needs` — the entry still has `needs` after the needs operations ran; resolve them, then re-plan
 
 **`.workspace-repair-plan.json` and temp files** — both are written inside the repo root. Add them to `.gitignore` to avoid accidental commits (the temp files are cleaned up automatically on success).
