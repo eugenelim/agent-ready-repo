@@ -14,3 +14,13 @@
   | Reserved `supported-review-failure` term always added | 2 | 53 |
 
 - `make lint-ruff lint-mypy`: pass.
+
+## 2026-10-28 — T2
+
+- AC-0010: the `Contract-fit result` section states "Existing contract
+  sufficient" and `42d02f315f22c4f25653644212c7615ada79f1d7`.
+- AC-0011: `git diff --name-only "$(git merge-base origin/main HEAD)" HEAD` on
+  the committed branch lists six paths, all allowed: the brief,
+  `workspace.toml`, the test module, and this spec's `spec.md`, `plan.md`, and
+  `notes/verification-ledger.md`. No path is under `packs/*/.apm/` or
+  `packs/*/seeds/`.
