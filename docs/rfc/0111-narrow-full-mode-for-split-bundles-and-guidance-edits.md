@@ -1,10 +1,10 @@
 # RFC-0111: Narrow full mode for independent bundles and plain guidance edits
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-10-28
-- **Date closed:**
+- **Date closed:** 2026-10-28
 - **Decision weight:** standard (it changes a shipped governance workflow that adopters run, but not the charter, maintainer authority, a security trust model, or a stable compatibility promise)
 - **Related:** [ADR-0088](../adr/0088-risk-triggers-have-a-single-documented-home.md) (the risk-trigger block has one home), [RFC-0094](0094-direct-light-execution-without-durable-planning-artifacts.md) (light work runs with no durable spec), [RFC-0099](0099-cut-before-adding-and-artifact-shaping.md) (cut before adding, and every spec-plan approval gate stays), [work-loop-evidence-modes](../specs/work-loop-evidence-modes/spec.md) (the spec behind PR #1635, which added a spike rule, a bug-fix handoff, two verification modes and proof by a run to `work-loop`)
 
