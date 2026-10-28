@@ -2,7 +2,7 @@
 
 - **Status:** Shipped (the verification ledger's security-review-stop-rule register anchor
   [`acceptance-authority-and-evidence-verification-ledger`](../../product/captured/acceptance-authority-and-evidence-verification-ledger.md)
-  was closed as fixed in Core 3.1.28; not a supersession — every decision here stands)
+  was closed as fixed in Core 3.1.34; not a supersession — every decision here stands)
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0005, ADR-0061, ADR-0125

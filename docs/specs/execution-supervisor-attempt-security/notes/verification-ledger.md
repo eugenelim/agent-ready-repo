@@ -1,6 +1,6 @@
 # Verification ledger: execution supervisor attempt security
 
-All five tasks are built. T1 began as a probe inside PR #1557 (`execution-supervisor-core`); T1 to T5 shipped together in PR #1585 as Core 3.1.18 on 2026-10-24. The [acceptance evidence](#acceptance-evidence) section maps every criterion to the test that proves it.
+All five tasks are built. T1 began as a probe inside PR #1557 (`execution-supervisor-core`); T1 to T5 were released together in PR #1585 as Core 3.1.18 on 2026-10-24. The spec shipped in Core 3.1.34 on 2026-10-29, which closed AC-0018's last gap and checked every criterion. The [acceptance evidence](#acceptance-evidence) section maps every criterion to the test that proves it.
 
 ## T1: Windows launches run in a breakaway-denied Job Object
 
