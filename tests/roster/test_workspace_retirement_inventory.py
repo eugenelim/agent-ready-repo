@@ -409,6 +409,8 @@ _INTENDED_CASES = frozenset({
     "a captured-item file that carries a Type: line",
     "matches nothing else",
     "the closed captured item of another kind",
+    "the child-state check on a brief that never had an entry",
+    "the cooled child of a brief that never had an entry",
 })
 _CATEGORIES = frozenset({
     "canonical artifact metadata",
@@ -1674,6 +1676,17 @@ def test_ac0027_intended_change_with_an_empty_case(tmp_path: Path) -> None:
 
 def test_ac0028_closed_captured_item_of_another_kind_is_on_the_list(tmp_path: Path) -> None:
     case = "the closed captured item of another kind"
+    rfc = _INTENDED_RFC.replace("matches nothing else", case)
+    assert _intended_check(tmp_path, _intended_row(Case=f"`{case}`"), rfc) == []
+
+
+@pytest.mark.parametrize("case", [
+    "the child-state check on a brief that never had an entry",
+    "the cooled child of a brief that never had an entry",
+])
+def test_ac0028_never_registered_brief_cases_are_on_the_list(
+    tmp_path: Path, case: str
+) -> None:
     rfc = _INTENDED_RFC.replace("matches nothing else", case)
     assert _intended_check(tmp_path, _intended_row(Case=f"`{case}`"), rfc) == []
 

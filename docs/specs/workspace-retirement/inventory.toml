@@ -24,14 +24,14 @@ owner = 8
 [[row]]
 pattern = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md"
 class = "contract"
-consumer = "FEAT-0001 contract: the intent rename keeps workspace.toml registrations in lockstep"
-owner = 7
+consumer = "FEAT-0001 contract: the rename repoints workspace.toml text that names the old path; amended so a repo-origin intent needs no entry"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md"
 class = "contract"
-consumer = "ADR-0119 D4: intent lifecycle is read from the workspace record"
-owner = 7
+consumer = "ADR-0119 D4, superseded in part: a tracker-origin intent still registers with no initiative bucket"
+owner = 9
 
 [[row]]
 pattern = "workspace.toml"
@@ -260,8 +260,8 @@ owner = 9
 [[row]]
 pattern = "docs/adr/0134-intent-rename-sealed-identity-bound-transaction.md"
 class = "contract"
-consumer = "ADR-0134: the intent rename transaction updates workspace.toml registrations"
-owner = 7
+consumer = "ADR-0134: the rename transaction edits workspace.toml only where it names the source, by mode fixed at the base commit"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/README.md"
@@ -290,8 +290,8 @@ owner = 9
 [[row]]
 pattern = "docs/architecture/work-intake-and-artifact-routing.md"
 class = "guide"
-consumer = "architecture page: work-intake routes, workspace-status reads and reconciles"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "docs/architecture/workspace-mcp/design.md"
@@ -338,8 +338,8 @@ owner = "none"
 [[row]]
 pattern = "docs/guides/reference/work-intake-maintenance.md"
 class = "guide"
-consumer = "maintainer reference for the work-intake and workspace-status ownership split"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "docs/knowledge/observations/antipattern/2026-08.jsonl"
@@ -548,8 +548,8 @@ owner = "none"
 [[row]]
 pattern = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"
 class = "contract"
-consumer = "FEAT-0007: promotion routing that registers intent, brief, and spec entries and reads workspace-status scripts"
-owner = 7
+consumer = "FEAT-0007: promotion routing that still registers spec entries and reads workspace-status scripts"
+owner = 8
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"
@@ -1058,14 +1058,14 @@ owner = 9
 [[row]]
 pattern = "guides/_shared/how-to/use-work-intake.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "guides/_shared/reference/work-intake-routing-and-lifecycle.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "guides/architect/how-to/establish-reference-architecture.md"
@@ -1118,8 +1118,8 @@ owner = 9
 [[row]]
 pattern = "guides/core/how-to/capture-work.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "guides/core/how-to/close-and-disposition-work.md"
@@ -1130,8 +1130,8 @@ owner = 8
 [[row]]
 pattern = "guides/core/how-to/intake-an-external-brief.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "guides/core/how-to/migrate-capture-work.md"
@@ -1173,14 +1173,14 @@ reads_order = true
 [[row]]
 pattern = "guides/core/how-to/start-or-remember-work.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 8
 
 [[row]]
 pattern = "guides/core/reference/work-intake-routing-and-lifecycle.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "guides/core/reference/workspace-toml-schema.md"
@@ -1240,8 +1240,8 @@ owner = 9
 [[row]]
 pattern = "guides/product-engineering/how-to/rename-an-intent.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 7
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
+owner = 8
 
 [[row]]
 pattern = "guides/product-strategy/how-to/cascade-okrs-into-the-shaping-queue.md"
@@ -1841,14 +1841,14 @@ owner = 9
 [[row]]
 pattern = "web/src/content/packs/github.md"
 class = "promise"
-consumer = "published pack page: receive-brief updates workspace.toml when a brief enters the queue"
-owner = 7
+consumer = "published pack page: a tracker-origin brief is registered in workspace.toml when it enters the queue"
+owner = 9
 
 [[row]]
 pattern = "web/src/content/packs/linear.md"
 class = "promise"
-consumer = "published pack page: receive-brief updates workspace.toml when a brief enters the queue"
-owner = 7
+consumer = "published pack page: a tracker-origin brief is registered in workspace.toml when it enters the queue"
+owner = 9
 
 [[row]]
 pattern = "web/src/test/rendered-output.test.ts"
@@ -1866,56 +1866,56 @@ reads_order = true
 [[row]]
 pattern = "packs/core/.apm/skills/work-intake/scripts/intent_rename.py"
 class = "writer"
-consumer = "intent rename transaction that edits workspace.toml registrations in lockstep"
-owner = 7
+consumer = "intent rename transaction that repoints workspace.toml text naming the old path, by registry mode"
+owner = 9
 
 [[row]]
 pattern = "packs/core/.apm/skills/work-intake/scripts/intent_rename_request.py"
 class = "writer"
-consumer = "intent rename transaction that edits workspace.toml registrations in lockstep"
-owner = 7
+consumer = "intent rename request checks that read workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/test_intent_rename_allocation.py"
 class = "fixture"
-consumer = "intent rename test that builds a workspace.toml registering the source intent"
-owner = 7
+consumer = "intent rename test that builds a workspace.toml naming the source intent by entry or citation"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/test_intent_rename_citations.py"
 class = "fixture"
-consumer = "intent rename test that builds a workspace.toml registering the source intent"
-owner = 7
+consumer = "intent rename test that builds a workspace.toml naming the source intent by entry or citation"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/test_intent_rename_installed_surface.py"
 class = "fixture"
-consumer = "intent rename test that builds a workspace.toml registering the source intent"
-owner = 7
+consumer = "intent rename test that builds a workspace.toml naming the source intent by entry or citation"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/test_intent_rename_recovery.py"
 class = "fixture"
-consumer = "intent rename test that builds a workspace.toml registering the source intent"
-owner = 7
+consumer = "intent rename test that builds a workspace.toml naming the source intent by entry or citation"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/test_intent_rename_request.py"
 class = "fixture"
-consumer = "intent rename test that builds a workspace.toml registering the source intent"
-owner = 7
+consumer = "intent rename test that builds a workspace.toml naming the source intent by entry or citation"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/test_intent_rename_resolution.py"
 class = "fixture"
-consumer = "intent rename test that builds a workspace.toml registering the source intent"
-owner = 7
+consumer = "intent rename test that builds a workspace.toml naming the source intent by entry or citation"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/test_intent_rename_transaction.py"
 class = "fixture"
-consumer = "intent rename test that builds a workspace.toml registering the source intent"
-owner = 7
+consumer = "intent rename test that builds a workspace.toml naming the source intent by entry or citation"
+owner = 9
 
 [[row]]
 pattern = "packs/core/.apm/skills/workspace-status/*"
@@ -1934,7 +1934,7 @@ reads_order = true
 [[row]]
 pattern = "packs/core/.apm/skills/close-work/*"
 class = "writer"
-consumer = "close-work closure index and collection moves for workspace.toml registrations"
+consumer = "close-work closure index, spec collection moves, and the tracker-origin brief terminal move in workspace.toml"
 owner = 8
 
 [[row]]
@@ -1946,8 +1946,8 @@ owner = 8
 [[row]]
 pattern = "packs/core/.apm/skills/work-intake/*"
 class = "writer"
-consumer = "work-intake routing, refresh, and capture that still register intent, brief, and spec entries in workspace.toml"
-owner = 7
+consumer = "work-intake routing, refresh, and capture that still register spec and tracker-origin entries in workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "packs/core/.apm/skills/intake-intent/*"
@@ -1972,7 +1972,7 @@ source = "packs/core/.apm/skills/intake-intent/*"
 [[row]]
 pattern = "packs/core/.apm/skills/author-delivery-brief/*"
 class = "writer"
-consumer = "author-delivery-brief registration and Draft-to-Ready move of a brief entry in workspace.toml"
+consumer = "author-delivery-brief registration and Draft-to-Ready move of a tracker-origin brief entry in workspace.toml"
 owner = 8
 
 [[row]]
@@ -2116,8 +2116,8 @@ owner = 8
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/*"
 class = "fixture"
-consumer = "work-intake tests that build workspace.toml for intent, brief, and spec routing, rename, and refresh"
-owner = 7
+consumer = "work-intake tests that build workspace.toml for spec and tracker-origin routing, rename, and refresh"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/author-delivery-brief/*"
@@ -2245,14 +2245,14 @@ source = "packs/core/.apm/skills/project-knowledge/*"
 pattern = ".claude/skills/work-intake/*"
 class = "projection"
 consumer = "generated .claude projection of the work-intake skill"
-owner = 7
+owner = 9
 source = "packs/core/.apm/skills/work-intake/*"
 
 [[row]]
 pattern = ".agents/skills/work-intake/*"
 class = "projection"
 consumer = "generated .agents projection of the work-intake skill"
-owner = 7
+owner = 9
 source = "packs/core/.apm/skills/work-intake/*"
 
 [[row]]
@@ -2443,7 +2443,7 @@ owner = 9
 pattern = "docs/specs/capture-work/*"
 class = "contract"
 consumer = "capture-work contract: queue writes and the workspace-status build/shape/brief labels"
-owner = 7
+owner = 8
 
 [[row]]
 pattern = "docs/specs/catalogue-curation-qa-coverage/*"
@@ -2995,19 +2995,19 @@ owner = "none"
 pattern = "docs/specs/intent-reference-grammar-migration/*"
 class = "contract"
 consumer = "typed reference grammar read by the workspace-status engine on dispatch"
-owner = 7
+owner = 8
 
 [[row]]
 pattern = "docs/specs/intent-rename-transaction/*"
 class = "contract"
 consumer = "rename transaction contract: workspace.toml is edited last under the seal"
-owner = 7
+owner = 9
 
 [[row]]
 pattern = "docs/specs/intent-renumber-and-reissue/*"
 class = "contract"
 consumer = "renumber contract: workspace.toml is edited in the same transaction as the rename"
-owner = 7
+owner = 9
 
 [[row]]
 pattern = "docs/specs/intent-short-route/*"
@@ -3235,7 +3235,7 @@ owner = "none"
 pattern = "docs/specs/m5-linear-brief-intake-and-sync/*"
 class = "contract"
 consumer = "linear brief intake: register under the brief queue and hand off to receive-brief"
-owner = 7
+owner = 9
 
 [[row]]
 pattern = "docs/specs/m5-tracker-guides/*"
@@ -3859,7 +3859,7 @@ owner = 9
 pattern = "docs/specs/work-intake-surface/*"
 class = "contract"
 consumer = "work-intake surface: workspace-status passthrough and unchanged workspace.toml checksum"
-owner = 7
+owner = 8
 
 [[row]]
 pattern = "docs/specs/work-item-capture/*"

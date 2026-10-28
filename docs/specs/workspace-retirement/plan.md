@@ -205,6 +205,19 @@ Owned by: T1
 
 **Done when:** the new fixture test reds before the list admits the case and passes after, the real-repository record test passes, and the planted-row run of the step fails.
 
+### T10: The never-registered brief cases
+
+**Depends on:** T9
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0028, AC-0018, AC-0022.
+- A fixture `intended change` row whose Case text is `the child-state check on a brief that never had an entry`, and one whose Case text is `the cooled child of a brief that never had an entry`, each linking an Accepted RFC section that names it, passes; the existing `the defect` row outside the list still fails.
+- The real record's Equivalence rows, which the brief's slice 7 registration stop writes, pass every rule.
+
+**Done when:** the new fixture tests red before the list admits the cases and pass after, and the real-repository record test passes.
+
 ## Rollout
 
 - **Delivery:** one pull request. The check blocks a pull request that adds a registry mention outside an inventoried directory, and one that removes, renames, or deletes the last mention in a file a row names.
@@ -227,3 +240,5 @@ Owned by: T1
 - 2026-10-26: plan amendment approved by eugenelim (T8 added)
 - 2026-10-27: spec amendment approved by eugenelim (AC-0028 admits `the closed captured item of another kind`; AC-0018, AC-0022, and AC-0028 reopened)
 - 2026-10-27: plan amendment approved by eugenelim (T9 added)
+- 2026-10-28: spec amendment approved by eugenelim (AC-0028 admits the two never-registered brief cases; AC-0018, AC-0022, and AC-0028 reopened and closed again)
+- 2026-10-28: plan amendment approved by eugenelim (T10 added)
