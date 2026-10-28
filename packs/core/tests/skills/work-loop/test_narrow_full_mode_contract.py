@@ -5,11 +5,13 @@ on, so a rule removed or moved out of the procedure an agent follows turns a
 test red. Sections are whitespace-flattened, so a re-wrap is not a failure.
 """
 
+import json
 from pathlib import Path
 
 _SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
 _WORK_LOOP = _SKILL_DIR / "SKILL.md"
 _LIGHT_MODE = _SKILL_DIR / "references" / "light-mode.md"
+_EVALS = _SKILL_DIR / "evals" / "evals.json"
 
 
 def _section(text: str, start: str, end: str) -> str:
@@ -186,3 +188,44 @@ def test_t2_guidance_edit_section_and_durability_row() -> None:
         matching[0],
         ("**tool surface**", "**authority or gate**", "**security boundary**", "**published schema**"),
     )
+
+
+def _evals() -> dict[str, dict]:
+    data = json.loads(_EVALS.read_text(encoding="utf-8"))
+    return {case["id"]: case for case in data["evals"]}
+
+
+def test_t3_nine_new_evals_carry_their_verdict_phrases() -> None:
+    verdicts = {
+        "bundle-split-independent-tasks": "one unit per task",
+        "bundle-unsplittable-shared-file": "full mode",
+        "bundle-late-unit-strays": "whole bundle",
+        "guidance-edit-plain-runs-light": "light mode",
+        "guidance-new-file-fires-structural": "structural trigger",
+        "guidance-edit-tool-surface": "full mode",
+        "guidance-edit-authority-or-gate": "full mode",
+        "guidance-edit-security-boundary": "full mode",
+        "guidance-edit-published-schema": "full mode",
+    }
+    cases = _evals()
+    for case_id, phrase in verdicts.items():
+        assert case_id in cases, case_id
+        case = cases[case_id]
+        for field in ("id", "prompt", "expected_output", "assertions"):
+            assert field in case, (case_id, field)
+        assert isinstance(case["assertions"], list) and case["assertions"], case_id
+        assert phrase in case["expected_output"], (case_id, phrase)
+    assert "content-pin" in cases["guidance-edit-plain-runs-light"]["expected_output"]
+
+
+def test_t3_modify_not_touch_eval_states_the_narrowed_rule() -> None:
+    case = _evals()["risk-trigger-modify-not-touch"]
+    phrases = ("existing agent guidance", "only when it changes", "policy", "interface document")
+    _assert_contains(case["expected_output"], phrases)
+    assert any(all(p in entry for p in phrases) for entry in case["assertions"])
+    whole = json.dumps(case, ensure_ascii=False)
+    for banned in (
+        "so editing it fires the trigger",
+        "agent guidance, policy, an interface document -- fires the trigger",
+    ):
+        assert banned not in whole, banned
