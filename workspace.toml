@@ -54,12 +54,7 @@ backlog = [
   # unsatisfied_dependency, which was wrong -- the relationship is shared evidence,
   # not sequencing, and the retrospective spikes run today. Cross-referenced in
   # prose instead.
-  {path = "docs/product/intents/agent-loop-escalation-recovery.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Decide what a work-loop does when PLAN, EXECUTE, GATES, or REVIEW discovers the contract above it is wrong -- which artifact level to return to and on what signal, against six competing hypotheses none of which is validated, plus the detection half that is small enough to ship on its own", needs = []},
-  {path = "docs/product/intents/nontechnical-pack-first-value-rollout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Shape independently shippable first-value adoption slices for the remaining Level B packs", needs = []},
   {path = "docs/product/captured/portfolio-outcome-entry-surfaces.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Design outcome-led portfolio entry surfaces without duplicating renderer or site-system ownership", needs = []},
-  {path = "docs/product/intents/project-knowledge-engineering-operational-integrations.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0077-distill-knowledge.md", revision = "sha256-bytes-v1:94de8754c752838d99562a6b5bbcfbaf64ed688072d0e26149063f5fbac81016"}, summary = "Shape project-knowledge handoffs for engineering and operational workflows", needs = []},
-  {path = "docs/product/intents/project-knowledge-adoption-closeout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0077-distill-knowledge.md", revision = "sha256-bytes-v1:94de8754c752838d99562a6b5bbcfbaf64ed688072d0e26149063f5fbac81016"}, summary = "Shape the evidence and decision contract for portable project-knowledge adoption closeout", needs = []},
-  {path = "docs/product/intents/project-knowledge-measured-follow-ons.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0077-distill-knowledge.md", revision = "sha256-bytes-v1:94de8754c752838d99562a6b5bbcfbaf64ed688072d0e26149063f5fbac81016"}, summary = "Use adoption-closeout evidence to decide whether any of four conditional project-knowledge extensions should activate", needs = []},
 ]
 
 ["ini-002".brief_queue]
@@ -70,20 +65,17 @@ executing = [
   # Advanced from draft on 2026-09-11 when slice A6 shipped: a Draft brief
   # with a Shipped child is refused by lint-brief-coverage, and an Executing
   # brief in the draft collection is an impossible_transition.
-  {path = "docs/product/briefs/agent-authoring-input-quality.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Author specs and plans that a review loop converges on: a failure-point rubric, independently testable acceptance-criteria set construction with no fixed count cap, a delegation anchor, corpus-relative sizing discipline, the step-5a satisfiability widening, and a conditional ownership survey", needs = []},
   # Executing 2026-09-09. Ready -> Executing when its first mapped spec,
   # install-to-ship-walkthrough (slice S1), reached Shipped; a brief with a
   # Shipped child is Executing, not Shipped. S2 is Shipped; S3-S5 are
   # review-clean registered Drafts. Ready again 2026-09-09 earlier
   # the same day after the material affordance-slice amendment passed a fresh
   # shaping review and the owner explicitly confirmed its boundaries.
-  {path = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/product/intents/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:d0ff456f4541b9d2b06819ac7b886ffdfe670f08772f1a4791c3b8eece213cf3"}, summary = "Make one install-to-ship SDLC walkthrough obvious from the landing page and close the remaining guide affordance gaps", needs = []},
   # Ready 2026-09-03. Draft -> Ready after a revision-bound clean shaping review
   # (three finding rounds, then a scoped verification pass) and the owner's
   # explicit confirmation. Slice U1 was confirmed separately the same day and is
   # registered in this initiative's work.queue; the brief stays Ready until that
   # spec reaches Implementing, at which point it becomes Executing.
-  {path = "docs/product/briefs/universal-implementer-dispatch.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Route every spec-backed plan task through the implementer agent sequentially and move implementation logic out of work-loop's SKILL.md, creating the dispatch envelope policy delivery needs", needs = []},
   # Executing 2026-09-03. Ready -> Executing when phase-policy-registry-and-selector
   # reached Implementing; a brief with an Implementing child is Executing by the
   # author-delivery-brief lifecycle. Draft -> Ready earlier the same day after a
@@ -91,13 +83,8 @@ executing = [
   # verification passes) and the owner's explicit confirmation. The gating
   # amendment the sibling recorded as owed is discharged in the same change: D3
   # gates on U1 and D2 on S1, at slice granularity. D2 and D3 stay unconfirmed.
-  {path = "docs/product/briefs/phase-scoped-policy-delivery.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Key policy-family selection to the recorded FSM phase and inline the matching families into the acting agent's brief, extending the existing module-index mechanism", needs = []},
-  {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
-  {path = "docs/product/briefs/acceptance-centered-work-loop.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/architecture/acceptance-centered-work-loop.md", revision = "sha256-set-v1:0ca1b837a37254fdf6279e18f4ed01c6ff96ea8fd1d207b8c780e6aa4d994d02"}, summary = "Replace workflow-engine authority with an acceptance-centered, runtime-neutral work loop through eight independently shippable slices", needs = []},
-  { path = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/rfc/0107-verb-mode-shaping-and-intake-with-slice-handover.md", revision = "sha256-bytes-v1:827618ab6cfc5ca9d160ab1aee5779d02841245bf41f77d7a0d9b5c664f47c4b" }, summary = "Deliver RFC-0107: one verb-mode intent skill for shaping, intent and brief authoring as work-intake modes, and a component-slice handover from a value-stream meta-repo to component repos", needs = [] },
 ]
 ready     = [
-  {path = "docs/product/briefs/repository-grounding-preservation.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make Core recognize shared-substrate changes, derive bounded disposable consumer maps, and require preservation evidence without adapt-to-project, code intelligence, Pi, or whole-repository ingestion", needs = []},
   # Ready 2026-10-10 on a revision-bound `Clean` shaping review and human confirmation.
   # Zero specs; the slice cut is a separate confirmation. Platform Core owns the Core
   # half (work-intake, handover contract); the product-engineering waves ride with it.
@@ -106,7 +93,6 @@ draft     = [
   # Logged to shape 2026-09-03 out of universal-implementer-dispatch U1 delivery:
   # eight structural facts were learned by failing a gate. Derived-vs-accreted is
   # the unmade decision; the owner ruled out a hand-maintained index.
-  {path = "docs/product/briefs/internal-repo-topology.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/product/briefs/universal-implementer-dispatch.md", revision = "sha256-bytes-v1:da5dba1805619b36228067d456e1be6a96b0b89975536f9c0fe4a2fb2e62e698"}, summary = "Give agents this repository's structural topology up front -- generated-vs-source, content pins, published trees, bare-identifier fields -- derived or accreted rather than hand-maintained", needs = []},
   # Split 2026-09-02 at 5ff0d3b19. One brief became three. The predecessor had
   # outgrown its shape by accumulating scope rather than prose: it went from
   # (rubric + pressure test + survey + measurement) to (+ two more readiness
@@ -162,12 +148,9 @@ draft     = [
   # the validator that makes arrival provable.
   # universal-implementer-dispatch moved to `ready` 2026-09-03; the three briefs
   # below still `needs` it, and a Ready predecessor satisfies that edge.
-  {path = "docs/product/briefs/spec-author-agent.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give spec authoring a dispatched agent so the SPEC-PLAN phases have an envelope, reusing the implementer's delivery and enforcement path", needs = []},
   # phase-scoped-policy-delivery moved to `executing` 2026-09-03; policy-arrival-
   # validator below still `needs` it, and an open predecessor satisfies that edge.
-  {path = "docs/product/briefs/policy-arrival-validator.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make policy delivery provable: a deterministic check that every phase-selected family has a verdict, with a precise-family compliance branch that can block", needs = []},
   #
-  {path = "docs/product/briefs/multi-adapter-eval-runner.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Add a Codex detector so activation can be measured on a non-Claude model, keeping the default adapter and the scheduled workflow unchanged", needs = []},
   #
   #
   # A -- keeps the predecessor's slug and file. Two artifacts outside this
@@ -219,20 +202,15 @@ draft     = [
   # owed before the slices that depend on them -- the brief records those two as
   # documentation, not unknowns. `continue` owns Ready after the owner closes
   # the two open decisions.
-  {path = "docs/product/briefs/work-loop-next-action.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Give a work-loop turn one authoritative next action from persisted state, and decide separately what owns stopping a non-converging authoring loop", needs = []},
   # Returned from `shipped` 2026-09-23: both briefs carry an EMPTY Spec map,
   # so `Shipped` was never eligible — a brief is delivered only when its map
   # is non-empty and every mapped spec is Shipped.
-  {path = "docs/product/briefs/guidance-activation-measurement.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Measure whether the written-guidance mechanism binds -- graded on what an author produced while a rule was in context rather than on whether it was loaded -- across a mandatory local stratum of six named rules and a portability stratum of pinned adopter repositories, reported separately and never blended", needs = []},
-  {path = "docs/product/briefs/stage-input-readiness.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Make each authoring handoff ask whether the next stage can work from its input and record the answer: a pre-creation pressure test with a redirect to brief authoring, a bounded-spike disposition for an open unknown, readiness checks at new-spec's input and at the spec-and-plan handoff, and a readiness gate sequenced ahead of review", needs = []},
 ]
 # tech-site-completion is Status: Shipped, so `ready` was an impossible
 # transition. It moves to the engine's terminal brief collection rather than
 # leaving the lifecycle: nine shipped specs below still name this brief as both
 # `ref` and `parent`, and dropping it would orphan those references.
 shipped   = [
-  {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
-  {path = "docs/product/briefs/repo-governance-pack.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0110-repo-governance-pack.md", revision = "sha256-bytes-v1:598d683510c1b9f3842065a6a03c9837e7cb312c484a67d26b86359ff10ac8b6"}, summary = "Shipped 2026-10-26: repo-governance 2.0.0 to 2.3.0 with the rename hint and the route, health and governance modes; stage 4 is cut", needs = []},
 ]
 
 ["ini-002".work]
@@ -660,7 +638,7 @@ shipped = [
   {path = "docs/specs/xd-skill-boundaries/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-skill-boundaries", needs = []},
 ]
 ["ini-003".brief_queue]
-executing = [{path = "docs/product/briefs/experience-design-skill-consolidation.md", kind = "brief", source = {mode = "repo-origin"}, summary = "Fold the experience-design pack from twenty registrations to twelve: six genre skills plus information-architecture into one genre-aware skill, then the three copy-layer skills into one with three modes, with every surface genre reachable from the frontend pre-flight", needs = []}]
+executing = []
 ready     = []
 draft     = [
 ]
@@ -668,9 +646,6 @@ draft     = [
 ["ini-003".shaping_queue]
 active  = []
 backlog = [
-  {path = "docs/product/intents/xd-state-reviewer-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0071-digital-experience-doctrine.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Evaluate applicable experience states with a three-pass reviewer and reproducible visual, task, and accessibility evidence", needs = []},
-  {path = "docs/product/intents/cross-pack-experience-eval.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0071-digital-experience-doctrine.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Prove the digital-product workflow across canonical sources, adapter projections, live host activation, handoffs, artifacts, and journey outcomes", needs = []},
-  {path = "docs/product/intents/digital-product-guides-update.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0071-digital-experience-doctrine.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Publish verified pack indexes, one host-neutral digital-product tutorial, host overlays, and versioned adapter compatibility guidance", needs = []},
 ]
 
 # Repo-level backlog — open work not scoped to any active initiative.
@@ -923,18 +898,13 @@ open = [
   # infra loop works for the six mapped domains. Unblock: an owner decision on (2), since
   # deleting versus implementing that claim changes whether (3) is a gap or by design.
   {path = "docs/product/captured/manifest-example.md", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token. The third defect, infra-decisions.md's false seven-to-eight correspondence claim, was fixed by b59becf26 on 2026-09-24", needs = []},
-  {path = "docs/product/intents/CAP-0008-loop-telemetry-governance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Keep the shipped loop telemetry contract and the future INI-005 vocabulary truthful without inventing sender or endpoint work", needs = []},
-  {path = "docs/product/intents/FEAT-0015-loop-telemetry-event-vocabulary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/research/loop-telemetry-event-derivability.md"}, summary = "Reconcile ecosystem-overview.md's eight loop-telemetry event names with the six the work-loop can actually emit, rather than adding events to match the vocabulary", needs = []},
   {path = "docs/product/captured/loop-telemetry-export-verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Decide whether a waived work-loop base-freshness check should leave a durable marker on the run, so a later reader can tell a verified base from one accepted on authority", needs = []},
-  {path = "docs/product/intents/FEAT-0016-loop-telemetry-contract-corrections.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/notes/verification-ledger.md"}, summary = "Decide whether to amend AC-0031's four-of-six gate enumeration or accept the verification-ledger correction as the durable account", needs = []},
-  {path = "docs/product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/credential-pack-defaults-projection.md"}, summary = "Let an enterprise catalogue bake a telemetry endpoint once so its users export with zero setup, via the RFC-0101 pack-defaults cascade and the stdlib-readable projection the credential intent also needs", needs = []},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
   # there now would widen a contract whose criteria set is already the largest in the corpus. The document-contract
   # probe carries a security question -- it would execute a consumer's parse mode --
   # that is settled before building, not during.
-  {path = "docs/product/intents/grounding-probe-extensions.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/research/repository-grounding-probes-survey.md"}, summary = "Add authority-and-projection closure and the executable document-contract check to the grounding explorer", needs = []},
   # Registered rather than folded into A6 because the surfaces are different and
   # the protocol must not gain a second home: A6 owns the eight responses and
   # ships them into new-spec, the authoring side. shaping-reviewer and the pack
@@ -1016,7 +986,6 @@ open = [
   # Mechanism and measurement: captured observation
   # kco-202609-eedad38fd2209acf34ec0420454aff1af6624a058c89124f1b77e8b48f5a8f52
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
-  {path = "docs/product/intents/semgrep-registry-ruleset-pinning.md", kind = "intent", source = {mode = "repo-origin", ref = "Makefile"}, summary = "Pin or vendor the p/python and p/security-audit registry rulesets so a slow rule cannot red the SAST gate on code the diff never touched", needs = []},
   # Registered rather than landed because the rule has two candidate owners and
   # splitting it across both would duplicate it: packs/AGENTS.md owns authoring
   # in a compiled pack, work-loop owns the wave and gate mechanics that decide
@@ -1024,7 +993,6 @@ open = [
   # delivery. Mechanism: captured observation
   # kco-202609-3f7fc5a7b47a27460eb6d6f831de80119400924c8dd9b5d5fa09b2c88f863bc8
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
-  {path = "docs/product/intents/projected-tree-planning-doctrine.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/plan.md"}, summary = "A planner can tell which guards read the compiled projection and which read authored sources, and places the recompile in the task that makes the last authored edit", needs = []},
   # Cut from spec/desk-research-build-handover on 2026-09-09 by owner scope
   # decision, not missed. That slice guards one pack's inline links at source;
   # this is the general, emitted-side control. It matters because
@@ -1035,7 +1003,6 @@ open = [
   # Mechanism and measurement: captured observation
   # kco-202609-43b240cb94a85bb57b6c908b7e4cdaf71a4845bdd3c591750d02d42c083ed0ba
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
-  {path = "docs/product/intents/emitted-guide-link-fallback-detector.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/desk-research-build-handover/spec.md"}, summary = "Assert that no page emitted from guides/ carries an external blob locator pointing back under guides/, so an unresolvable in-tree link cannot be laundered past the internal link audit", needs = []},
   # Observed 2026-09-16 during the stasis-stop-retirement run, on a full
   # packs/core/tests/skills/work-loop/ pass sharing the machine with two other
   # suites under memory pressure. 2 of 8 concurrent record-attempt calls failed
@@ -1074,53 +1041,32 @@ open = [
   # 2026-09-02. Re-gates them: the policy validator is the activation
   # measurement's compliance test, so enforcement precedes measurement.
   # Load-bearing unknown: no host is known to admit a blocking hook verdict.
-  {path = "docs/product/intents/cross-adapter-behavior-enforcement.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Make a published behavior control run regardless of model or host by putting it on the pre-execution path rather than in prose: a structured policy primitive an adopter can extend, a blocking control whose per-host contract is established first, and a multi-adapter runner so a non-Claude model can be measured at all", needs = []},
   {path = "docs/product/captured/review-findings.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of nine adjudicated findings on the withdrawn cooling-scope-closure amendment remain open; the file records each closure with its evidence. Open: a plan whose Done-when requires editing a hash-frozen plan.md, which nothing detects at approval time; and AC31 being unable to fail when the release surfaces agree at a version whose published code differs from what ships. Both need an owner decision rather than a repair", needs = []},
   {path = "docs/product/captured/dependency-scoped-completion-receipts-follow-ons.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of three RFC-0096 receipt follow-ons stay open. Entry-removal precondition: reassigned to rfc0096-wave7c-pruning -- stranding harm refuted by measurement, but nothing makes the file and entry removals atomic and a record field cannot supply that. Cooled cross-repo deferral slug: still Wave 7b's. Reclassified schema gap: closed by docs/specs/reclassified-lifecycle-result/. Both settled in rfc0096-wave7c-lifecycle-record-decisions.md; the linked notes file is frozen, so status lives here", needs = []},
   {path = "docs/product/captured/reclaim-residual.md", kind = "defect", source = {mode = "repo-origin"}, summary = "A state-lock reclaim's identity check and its rename are two operations, so a holder acquiring between them is displaced and reports StateLockLost having done nothing wrong. Not closable by checking harder -- POSIX has no rename-if-unchanged. Atomic takeover is disproved and recorded: rename replaces unconditionally, so every contender with the same stale snapshot wins in turn, measured at three to five holders. The note carries the forced-interleaving reproduction", needs = []},
   {path = "docs/product/captured/reclassified-lifecycle-result-follow-ons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Two RFC-0096 Wave 7c follow-ons. (1) rfc0096-wave7c-pruning: a pruning session must prove its own precondition -- an artifact's file and its workspace entry must be removed together -- and nothing makes the two removals atomic. (2) Moving AC23-pinned files falsifies cooling-scope-closure's AC23 TITLE and its Durable Outputs line \"neither may change\"; the AC body still holds, so the repair is a retitle. Caused by this delivery and Wave 7b; its owner restates it. RFC-0096:380 names the slice", needs = []},
   {path = "docs/product/captured/cooling-brief-child-scope-closure-follow-ons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Two open RFC-0096 Wave 7b follow-ons. A declared-empty source.parent on a cooled entry is trusted not verified, needing a closeout-time writer in close-work. An interrupted run of the shared-test dedup guard strands collectable test files in the repository root, which gitignore hides but does not prevent. Two are closed: the pack-script citation conflict, and the two AC17 test names that contradicted their bodies, renamed in the live tests on 2026-09-30", needs = []},
   # Unblocks when: promoted through normal intake into a controlled benchmark.
-  {path = "docs/product/intents/code-graph-review-benchmark.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-loop-review-verdicts/notes/code-graph-code-review-effectiveness-survey.md", revision = "local-2026-08-23"}, summary = "Benchmark repository-native targeted exploration against graph-assisted code review before adopting graph infrastructure", needs = []},
 
   # The current cognitive-load slice uses one tool-neutral lookup. This intent
   # owns native adapter projections and their singleton-conflict contract.
-  {path = "docs/product/intents/catalogue-rules-primitive.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/cognitive-load-reduction/notes/guidance-pointer-patterns-survey.md", revision = "local-2026-08-27"}, summary = "Add a portable rules primitive with native adapter projections and safe context-file fallbacks", needs = []},
-
-  {path = "docs/product/intents/CAP-0009-first-class-distribution-routes.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md"}, summary = "Evolve first-class distribution routes through one declared contract, same-wave primitive parity, and evidence-backed route profiles", needs = []},
-  {path = "docs/product/intents/FEAT-0020-distribution-route-set-opening.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Open the route set so a route needs no schema entry, with confinement for the values the per-route pins currently fix", needs = []},
-  {path = "docs/product/intents/FEAT-0021-canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = []},
-  {path = "docs/product/intents/FEAT-0022-codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = []},
-  {path = "docs/product/intents/FEAT-0023-kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = []},
-  {path = "docs/product/intents/FEAT-0024-claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = []},
   # Unblocks when the current Kiro contract is reacquired and the migration
   # receives its own approved spec.
-  {path = "docs/product/intents/kiro-hook-schema-v1.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Migrate direct Kiro hook projection to the standalone v1 schema", needs = []},
   # Unblocks when each runtime contract is reacquired and the output boundary is
   # approved.
-  {path = "docs/product/intents/adapter-hook-context-output.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Render session-start context through each adapter's documented output protocol", needs = []},
   # Unblocks when runtime root semantics are reacquired and the command strategy
   # is approved.
-  {path = "docs/product/intents/root-stable-hook-dispatch.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Make Claude Code and Codex repository hook dispatch root-stable", needs = []},
-  {path = "docs/product/intents/route-decision-analysis-depth.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/distribution-route-registry/spec.md"}, summary = "Give the route-decision checker cross-module depth under its own contract: follow route values across module boundaries, derive the discriminator field set from the route types, cover projector-identity and .get() dispatch, and derive the single-route exemption from the registration the lookup resolves through -- each exemption pinned by a mutation. Split out of distribution-route-registry after five review rounds in which each widening opened the next round's hole", needs = []},
   # Unblocks when: someone decides whether the seal should admit a prose-only
   # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
   # blocked mid-run and landed only after an owner-authorized cohort re-seal.
   {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract requires in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
-
-  {path = "docs/product/intents/ci-gate-main-runtime-budget.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Bring gate-main within its shipped 200-second budget after a docs-only run measured 302 seconds and localized 201 seconds to two steps", needs = []},
   {path = "docs/product/captured/ci-gate-parallelization-critical-path-measurement.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen deferral identity and completed docs-only CI measurement while the 302-second gate-main miss moves to its runtime-budget intent", needs = []},
 
   {path = "docs/product/captured/pre-existing-enterprise-agentbundle-full-suite.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/local-ci-orchestration/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Run the complete AgentBundle suite in a supported profile that permits its isolated trust-store and key-material fixtures", needs = []},
   {path = "docs/product/captured/rfc0088-native-addon-confinement-bypass.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round15-reference-consumer/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Test native-addon confinement before any supported RFC-0088 configuration is permitted to grant Node's addon flag", needs = []},
   {path = "docs/product/captured/rfc0088-r12-fact-negative-tests-red.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round15-reference-consumer/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Reacquire the authoritative out-of-tree round-12 negative-test apparatus and record a current-versus-clean-checkout differential", needs = []},
-
-  {path = "docs/product/intents/sso-browser-state-protection.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Persistent SSO browser state is time-bounded, minimally stored, serialized across browser launches, and protected by measured keychain and recapture budgets", needs = []},
-  {path = "docs/product/intents/credential-pack-defaults-projection.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Credential-pack catalogue defaults reach standard-library-only scripts without becoming trusted sign-in or automatic-refresh authority", needs = []},
-  {path = "docs/product/intents/sso-cookie-lint-contract-wording.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Catalogue lint wording forbids automatic SSO setup while preserving the shipped non-mutating check carve-out", needs = []},
-  {path = "docs/product/intents/workspace-mcp-production-readiness.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Workspace-MCP reaches production readiness through Stage 1 behavioral proof, non-breaking Claude permission projection, and canonical brief-queue exposure", needs = []},
   {path = "docs/product/captured/sso-recapture-audit-sink.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen recapture-audit deferral identity while its outcome is owned by the SSO contention and audit-trail intent", needs = []},
   {path = "docs/product/captured/pack-dependency-scope-qualifier.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen pack-dependency qualifier identity while its outcome is owned by agentbundle install integrity", needs = []},
   {path = "docs/product/captured/browser-state-lifetime.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen browser-state lifetime identity while its outcome is owned by SSO browser-state protection", needs = []},
@@ -1175,8 +1121,6 @@ open = [
   {path = "docs/product/captured/artifactory-first-publish-gesture.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/agentbundle-wheel-release/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Have an authorized owner configure the Artifactory Actions secrets and record the first tagged package upload without exposing credentials", needs = []},
   {path = "docs/product/captured/extraction-msg-realworld-sample.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/extraction-msg-to-markdown-python-contract/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Run the shipped message converter against approved PII-free real-world MSG and EML samples and record both manual fidelity reviews", needs = []},
 
-  {path = "docs/product/intents/role-journey-agent-swarm-section.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/journeys/engineer-scales-to-swarm.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Extend the core Agent role journey with coordinated headless CLI swarm guidance after the source journey has an approved contract", needs = []},
-
   {path = "docs/product/captured/plugin-root-name-collision-guard.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/claude-plugins-manifest-correctness/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the plugin-root collision deferral identity while its accepted intent owns the contract-derived pre-write guard", needs = []},
 
   # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
@@ -1184,8 +1128,6 @@ open = [
   # from this repo only; it is never installed into an adopter repo, so it
   # carries none of the shipped-artifact exposure that motivates the entries
   # above. Revisit only if web/ ever gains a server-side runtime.
-
-  {path = "docs/product/intents/tracker-refresh-trusted-authority-inputs.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Tracker refresh receives trusted scope, lifecycle and capability state, and explicit projection-repair confirmation before affected writes", needs = []},
   {path = "docs/product/captured/workspace-anchor-staleness-invariant.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0083-work-intake-and-artifact-routing.md", revision = "sha256-bytes-v1:8176272b14747e07e70beb752d6b709ccac502c284a9c114ae03c0cb48312a9d"}, summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions", needs = []},
 
   {path = "docs/product/captured/catalogue-trust-store-trust-settings.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/catalogue-corporate-trust-store/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the Never Trust deferral identity while its accepted intent owns macOS trust-settings enforcement", needs = []},
@@ -1718,7 +1660,6 @@ open = [
   # product wants an illustrative register (it currently has none).
   # Unblocks when: ready now.
   # Closed 2026-08-17 to docs/design/principles/tech-site.md.
-  {path = "docs/product/intents/selftest-untracked-plant-window.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/lint-performance-p0/spec.md", revision = "sha256-bytes-v1:9bf95e7308260b96ba5456eb61aab8d5ab45b9fe32091c3092571ef02c724a0e"}, summary = "Remove the live-worktree plant window without losing end-to-end catalogue boundary proof", needs = []},
 
   # Surfaced while specing knowledge-enquiry-scope-reachability, and required by
   # that spec's round-2 review (Concern 12) before it can pin selection-level
@@ -1731,8 +1672,6 @@ open = [
   # the envelope, most likely by narrowing `tools` and re-scoping corpus-wide topics.
   # Unblocks when: knowledge-enquiry-scope-reachability ships, since its matcher
   # decides which topics land in which tier.
-  {path = "docs/product/intents/knowledge-topic-scope-granularity.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Curate topic scopes so a specificity tier fits the bounded enquiry envelope", needs = []},
-  {path = "docs/product/intents/spec-review-validation-guidance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "Align standalone new-spec review with existing measurement and adjudication controls, add finding-origin attribution, and surface lint gate scope", needs = []},
 
   # PINNED, like the 34 marker-pinned entries above, but by a different mechanism:
   # `tests/roster/test_credential_broker_contract_docs.py::test_ac42_roadmap_entry_carries_manual_qa_matrix`
@@ -1761,55 +1700,6 @@ open = [
   # is kept as a `### <slug>` heading in its intent, so `grep -r '<slug>'
   # docs/product/intents/` finds the work. Those sit under `packs/`, one in a
   # protected tree whose landing commit needs an `Engine-Change-RFC:` trailer.
-  {path = "docs/product/intents/adopter-catalogue-test-command.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0071-pack-runtime-export-boundary-and-test-placement.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Catalogue adopters can run the tests they receive through one canonical command that discovers pack and conformance suites from the ADR-0071 layout, preserves one process per skill, and keeps test dependencies development-only", needs = []},
-  {path = "docs/product/intents/agent-skill-engineering-guide-slice.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/agent-skill-engineering-foundation/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "The agent-skill-engineering pack has a dedicated guide that its site record links to", needs = []},
-  {path = "docs/product/intents/agentbundle-install-artifact-layout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/engine-export-boundary/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "`agentbundle install` preserves compatible installation artifacts without pack conflicts", needs = []},
-  {path = "docs/product/intents/agentbundle-install-integrity.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "`agentbundle install`, uninstall, and upgrade preserve installed-pack integrity through dependency provenance, serialized state changes, and pre-render pack refusal", needs = []},
-  {path = "docs/product/intents/agentbundle-verify-fail-open-closure.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/agentbundle-engine-stragglers/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "`agentbundle catalogue verify` reports bounded diagnostics whenever pack-schema validation or version-parity inputs cannot be validated", needs = []},
-  {path = "docs/product/intents/argv-path-boundary-validator-sweep.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/pack-script-root-boundary-validation/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "The remaining argv-to-path boundaries use the repository validator before untrusted command-line values become filesystem paths", needs = []},
-  {path = "docs/product/intents/authoring-doctrine-reseal-and-replication.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Maintainers can govern authoring contracts through evidence-backed, RFC-0099-compliant rules", needs = []},
-  {path = "docs/product/intents/binder-publishing-build-spec.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/architecture/binder-publishing/README.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "The planned binder-publishing design has an implementation build specification beyond its existing gate-propagation contract", needs = []},
-  {path = "docs/product/intents/brief-backlink-provenance-lints.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/traceability-lint/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Brief backlink lints resolve canonical local paths and advise authors when legacy slug form remains in use", needs = []},
-  {path = "docs/product/intents/catalogue-archive-guide-corpus.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/documentation-entry-navigation/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Source-flavor catalogue archives include the adopter guide corpus under a decided archive layout and prove the package and install contract", needs = []},
-  {path = "docs/product/intents/changelog-marooned-entry-promotion.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0095-changelog-entry-obligation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Every released changelog entry is a free-standing version section that publishes to `/now/`, while genuinely unreleased content remains under the first `[Unreleased]` heading", needs = []},
-  {path = "docs/product/intents/checked-then-reopened-path-confinement.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Confinement-sensitive operations hold verified directory or file objects rather than reopening a path that a concurrent writer can replace", needs = []},
-  {path = "docs/product/intents/ci-parity-linter-scope.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/local-gate-ci-parity/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Each newly admitted CI workflow has a local-correspondence check and a workflow-specific exemption inventory", needs = []},
-  {path = "docs/product/intents/claude-marketplace-pack-identity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/claude-plugin-route-scope/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Each Claude marketplace pack has an independently identifiable and recoverable content digest compatible with the upstream marketplace schema", needs = []},
-  {path = "docs/product/intents/credential-broker-bounded-modes-and-errors.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Credential-broker capture and refresh expose explicit operator modes and bounded caller-facing failures", needs = []},
-  {path = "docs/product/intents/credential-operator-guide.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/architecture/credentials.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "An operator can store a credential by following a dedicated credential-broker setup guide", needs = []},
-  {path = "docs/product/intents/digital-product-maker-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Digital product makers have a portable profile for the complete four-discipline toolkit", needs = []},
-  {path = "docs/product/intents/discovery-sidecar-drift-hard-fail.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0048-autonomous-product-team-operating-model.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Traceability lint rejects a discovery sidecar whose on-disk edge set drifts from `_state/traceability.json`", needs = []},
-  {path = "docs/product/intents/experience-reviewer-content-brief-scope.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0062-content-design-and-copy-direction-skills.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "`experience-reviewer` reviews the content briefs produced by `content-design`", needs = []},
-  {path = "docs/product/intents/gates-that-read-clean-while-gating-nothing.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/semgrep-selftest-batching/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Each affected gate rejects its declared failure condition instead of reporting a clean result that proves nothing", needs = []},
-  {path = "docs/product/intents/growth-strategy-pack-charter.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "The company OS has a charter decision that determines whether a dedicated growth strategy pack can be scoped and proposed", needs = []},
-  {path = "docs/product/intents/guide-sidebar-label-ordering.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/guide-metadata-completion/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Maintainers can adopt a curated guide title without unintentionally reordering the guide's sidebar kind bucket", needs = []},
-  {path = "docs/product/intents/installed-skill-governance-inventory.md", kind = "intent", source = {mode = "repo-origin", ref = "workspace.toml", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Installed skills have a declared governance record that accounts for content identity, scan status, and the skill version that instructed an agent action", needs = []},
-  {path = "docs/product/intents/live-adapter-and-client-smoke-evidence.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/claude-plugin-route-scope/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Maintainers have dated, reproducible live-client evidence for generated adapter artifacts and client marketplace behavior, including recovery paths and stated client limitations", needs = []},
-  {path = "docs/product/intents/live-credential-transcripts.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/atlassian-sso-cookie/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Credential and SSO-cookie flows have the live platform evidence needed to complete their deferred validation decisions", needs = []},
-  {path = "docs/product/intents/loop-state-lock-cross-spec-serialization.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/loop-cohort-state-lock/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Work-loop state recovery and its repo-global event outbox can be operated concurrently without one spec's transition mutating another spec's in-flight state, with the lock failure and reclaim cases proved by deterministic evidence", needs = []},
-  {path = "docs/product/intents/marketplace-config-single-authority.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/marketplace-generator-single-source/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Maintainers can set the marketplace branch and description in `catalogue.toml`, and every public render path uses those values after the `toml_emit.py` main-scaffold default has been decided", needs = []},
-  {path = "docs/product/intents/marketplace-ingress-validation.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/marketplace-generator-single-source/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Marketplace ingress rejects invalid Git references and empty configured branch values before a fork can resolve an install route to upstream", needs = []},
-  {path = "docs/product/intents/native-platform-verification-coverage.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/remote-ci-verification-parity.md"}, summary = "Native Windows and macOS verification gets a coverage contract worth dispatching: host-dependent checks, an explicit expected-skip set, and a classification enforced only where a mechanism can decide it", needs = []},
-  {path = "docs/product/intents/roster-suite-parallel-execution.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/remote-ci-verification-parity.md"}, summary = "The roster suite runs 2.5x faster in parallel but at least one case reads the live working tree, so a peer worker reds a clean tree: measured 540s serial vs 218s at four workers, wait-bound rather than CPU-bound, no lease contention, and test_workspace_status_projection.py confirmed non-isolated", needs = []},
-  {path = "docs/product/intents/dispatch-workflow-posture-assertions.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/intents/remote-ci-verification-parity.md"}, summary = "The two dispatch-only workflows have no posture assertions of their own: actionlint and zizmor verify their present state but nothing pins their trigger set, absent inputs, read-only token, timeout or runner label against drift, and the repo-wide excessive-permissions pass is scoped to three named files with the broad scanner floor above that finding class", needs = []},
-  {path = "docs/product/intents/pack-eval-rollout-completion.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0037-pack-activation-evals.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Eligible pack skills have stable behavior coverage and the remaining pack-eval rollout decisions are ready for their next dedicated slices", needs = []},
-  {path = "docs/product/intents/plugin-publish-trust-boundary.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/claude-plugin-route-scope/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Marketplace publication has an independently reviewable actor boundary, an approver preview, and current live-control evidence", needs = []},
-  {path = "docs/product/intents/project-knowledge-retryable-capture-handling.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Workflows handle retryable project-knowledge capture timeouts through a bounded recovery path without silent loops or changed diagnostic semantics", needs = []},
-  {path = "docs/product/intents/pytest-tmpdir-worktree-attribution.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0097-agent-skill-engineering.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Pytest temporary trees can be attributed to their worktree and reclaimed when that worktree is dead, while single-checkout behavior remains unchanged", needs = []},
-  {path = "docs/product/intents/FEAT-0025-registry-acquired-mcp-servers.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "MCP servers acquired from package registries have an approved acquisition and execution trust model", needs = []},
-  {path = "docs/product/intents/required-check-and-deploy-ordering.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Repository controls preserve trustworthy pull-request gating and current Pages publication", needs = []},
-  {path = "docs/product/intents/CAP-0010-rfc0088-browser-follow-on-specs.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "The RFC-0088 browser pilot has owned evidence and delivery-contract follow-ons for exposure, privacy, signing, operating cost, foundation delivery, result policy, and repair tooling", needs = []},
-  {path = "docs/product/intents/FEAT-0026-rfc0088-exposure-and-privacy-anchoring.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "RFC-0088's browser-endpoint exposure and cross-round term identity claims have evidence at their stated boundaries", needs = []},
-  {path = "docs/product/intents/FEAT-0027-rfc0088-signing-and-cost-observations.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "RFC-0088 has the missing dated observations for signing-identity update survival and destination-group interactive sign-in cost", needs = []},
-  {path = "docs/product/intents/FEAT-0028-rfc0088-browser-delivery-specifications.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Author RFC-0088's three separately gated browser-pilot delivery specifications after the boundary evidence is settled", needs = []},
-  {path = "docs/product/intents/CAP-0011-optional-code-intelligence-composition.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0079-codebase-context-pack.md", revision = "working-tree-2026-10-04"}, summary = "Core repository inquiries can use suitable exposed code intelligence through native provider surfaces while remaining complete without a provider", needs = []},
-  {path = "docs/product/intents/sast-scanner-coverage-expansion.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/pack-script-root-boundary-validation/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Shipped JavaScript receives Semgrep and CodeQL analysis, and the repository can make CodeQL findings merge-blocking when remote branch protection permits it", needs = []},
-  {path = "docs/product/intents/scanner-suppression-and-pin-hygiene.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/build-check-coverage-gaps/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "SAST and npm-audit suppressions and the package installs that support their gates have explicit, durable integrity and expiry controls", needs = []},
-  {path = "docs/product/intents/skill-description-semantic-drift-gate.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/local-gate-ci-parity/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Skill descriptions retain valid activation and handoff semantics as the catalogue and Codex skills-context budget evolve", needs = []},
-  {path = "docs/product/intents/sso-store-contention-and-audit-trail.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/sso-store-transition-serialization/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "An unattended SSO re-authentication can retain its recapture record, recover correctly from short store contention, and have its macOS keychain timing evidenced", needs = []},
-  {path = "docs/product/intents/test-runner-boundary-completion.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/build-check-coverage-gaps/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Every in-scope tool and end-to-end test has an invoked runner or an explicit, recorded no-runner contract", needs = []},
-  {path = "docs/product/intents/tracker-writeback-result-contracts.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Tracker write-back boundaries reject receipt-shaped impostors and expose deliberate, closed result-code vocabularies for each processor result type", needs = []},
-  {path = "docs/product/intents/workflow-posture-harness-consolidation.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "768c0a90b87e635220c3c784d7cdae67644d7e1d"}, summary = "Workflow-posture checks use a maintainable shared harness and structural workflow parsing where appropriate, while each workflow's distinct security assertions and mutation contract remain intact", needs = []},
   # The build intent for the team-orientation design packet, Draft since
   # 2026-09-04 and never registered -- so workspace-status could not see it and
   # three artifacts were written this session against surfaces it already owns
@@ -1829,7 +1719,6 @@ open = [
   # externally for being treated as a catalogue. Next: narrow the outcome to the
   # influencer tier, name gatekeeper artifacts out of scope, ship the two-way
   # surfaces first; one-way items still withheld.
-  {path = "docs/product/intents/cohort-orientation-surfaces.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/design/discovery/team-orientation-build-handoff.md", revision = "sha256-bytes-v1:fb74c0f2034dd6a0422b958b56f89a8abec66b48ec15becdf46509b92c70eadc"}, summary = "An adoption champion can understand the operating model from the published surfaces and re-explain it to an engineer and a platform team; gatekeeper evidence (TCO, exit path, SBOM) is explicitly out of scope", needs = []},
   # The claude-plugins route declares agent = native and the Claude Code
   # adapter projects agent -> .claude/agents/, so sub-agents ship in the plugin.
   # On the Claude apps chat surface they are present, listed and unrunnable.
@@ -1860,7 +1749,6 @@ open = [
   # can exist until portfolio-pack-first-value-contract's owner decides the
   # vocabulary. Then run one dated Claude-apps install-to-first-value probe before
   # scoping the smallest guide consumer.
-  {path = "docs/product/intents/claude-apps-first-value-entry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "A non-technical adopter reaches a no-terminal route from the public site; both Desktop surfaces are admitted, with the Code tab recommended because nothing degrades there and the chat surface's sub-agent gap disclosed rather than repaired", needs = []},
   # The Draft slice of the intent directly above, carrying 22 criteria and 6
   # tasks. It was authored and reviewed but never registered, so nothing
   # scheduled it and any amendment would have landed on an untracked spec.
@@ -1894,7 +1782,6 @@ open = [
   # SOURCE_MODES admits only repo-origin and tracker-origin, so the document's
   # own chat-only provenance lives in its Source block, not here -- the same
   # shape the other chat-only intents use. Unblocks now; no dependency.
-  {path = "docs/product/intents/skill-sequence-wayfinding.md", kind = "intent", source = {mode = "repo-origin"}, summary = "A practitioner knows what to run next and where they are in the sequence, from the surface they are already on, agreeing with the sequence their pack declares", needs = []},
 
   # Found 2026-09-15 by the quality-engineer pass on the unknown-dependency
   # refusal (core 2.26.8). Four functions in `loop-cohort.py` run the same
@@ -2221,8 +2108,6 @@ open = [
   # here rather than in a brief_queue because every brief_queue is per-initiative while these are Draft
   # specs, and backlog.open is the only initiative-free collection that admits them. `needs` is empty:
   # the Spec map above carries the sequencing as planning guidance, and a Draft spec blocks nothing.
-  { path = "docs/product/intents/FEAT-0004-single-ladder-migration.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Reduce the two competing ladders to one by extracting the remaining initiative and shaping content to intents, retiring both folders, and removing initiative as an ownership boundary; blocked on an initiative-free home for a non-Draft artifact", needs = [] },
-  { path = "docs/product/intents/CAP-0003-workspace-coordination-reorganization.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Stop repository coordination depending on one large frequently edited workspace.toml while dispatch, provenance, lifecycle, and dependency safety stay intact; carries the parent's two de-risk constraints and needs its own de-risk before decomposition", needs = [] },
   # Delivery-system coexistence — CAP-0004's family. The capability and its
   # three feature intents are Accepted and their three briefs are Ready, so all
   # six are de-registered: backlog.open admits a non-defect entry only at Draft.
@@ -2242,7 +2127,6 @@ open = [
   { path = "docs/specs/flow-distribution-sample-honest/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/delivery-state-and-flow-visibility.md", parent = "docs/product/briefs/delivery-state-and-flow-visibility.md" }, summary = "Cycle time, throughput and percentiles over those observations, reporting the strongest claim the sample supports and naming it", needs = [] },
   { path = "docs/specs/delivery-forecast-with-uncertainty/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "A delivery forecast carrying its range and its sample, distinguishable from a committed date", needs = [] },
   { path = "docs/specs/progress-review-two-answers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "Place the forecast beside the intent's declared outcome, read verbatim from its Outcome section, with both separations intact", needs = [] },
-  { path = "docs/product/intents/FEAT-0035-decision-context-checks.md", kind = "intent", source = { mode = "repo-origin", ref = "docs/product/intents/CAP-0002-decision-graph.md" }, summary = "Test lightweight decision-context checks that cite bounded reference policy without inferring applicability, enforcing behavior, or burdening ordinary maintenance", needs = [] },
   # Work-item capture and disposition — delivery for CAP-0005 and its four
   # feature intents, all Accepted and therefore de-registered. These specs are
   # where the work stays visible. Each names exactly one parent feature intent
@@ -2320,7 +2204,6 @@ draft     = []
 ["ini-007".shaping_queue]
 active = []
 backlog = [
-  {path = "docs/product/intents/catalogue-wave9-migration-closeout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md", revision = "a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f"}, summary = "Close the first-party catalogue migration after release and discovery outcomes are complete", needs = []},
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 # ini-009 · Agent Skill Engineering
@@ -2346,7 +2229,6 @@ milestone = "M3/M4 · continuing through the open slices recorded in the brief; 
 
 ["ini-009".brief_queue]
 executing = [
-  { path = "docs/product/briefs/agent-skill-engineering.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/rfc/0097-agent-skill-engineering.md", revision = "sha256-bytes-v1:bcafd5c77e8a849d831b8a8a47aaeeda24f35d124e423ec28ccacb0146c23098" }, summary = "Deliver the agent-skill-engineering pack, corpus, integrations, and repository adaptation", needs = [] },
 ]
 ready = []
 draft = []
@@ -2396,14 +2278,12 @@ milestone = "Bridge · registration alias for STRAT-0001 until FEAT-0004 retires
 ["ini-010".brief_queue]
 executing = [
   # Executing 2026-10-25: slice 1 (`workspace-retirement`) started; Ready the same day with all nine slices confirmed.
-  { path = "docs/product/briefs/workspace-registry-retirement-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0034-workspace-registry-retirement.md" }, summary = "Coordinate repository work from the artifacts themselves: move dependencies, captured items, and priority into headers and per-item files, stop each registry writer with its contract amendment, and retire workspace.toml", needs = [] },
   # Moved to `executing` 2026-09-24 when slice 1 started, briefly back to `ready`
   # while its spec was parked for a material amendment, and back to `executing`
   # when that amendment was re-approved the same day. Membership and the brief's
   # own `Status:` line always move together -- the canonical reconciliation
   # raises `impossible_transition` on a contradiction between the artifact's
   # status and its collection.
-  { path = "docs/product/briefs/intent-lifecycle-and-closure.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md" }, summary = "Give an intent and a brief a terminal status set through a workflow on recorded evidence: the state table and legal transitions, a three-way refuse/not-eligible/eligible closure check, the evidence packet and closure record, the brief cut-closed declaration, and migration of the intents that reached Fulfilled without Accepted", needs = [] },
 ]
 # Ready 2026-09-23, confirmed by the lifecycle owner on a `Findings` result
 # rather than a `Clean` one; the brief's `Ready confirmed:` line records that
@@ -2418,10 +2298,8 @@ draft = []
 # Delivered 2026-10-03: all eight slices shipped; moved from `executing` with
 # the brief's `Status: Shipped` and `Cut-closed:` record.
 shipped = [
-  { path = "docs/product/briefs/intent-identity-and-registration.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md" }, summary = "Deliver deterministic intent placement, safe admission, typed filename-prefix ordinal identity, the intent metadata shape contract, and shaping-progress preamble fields; Ready 2026-09-20 bound to a Clean independent review over five confirmed slices", needs = [] },
   # Delivered 2026-10-22: all 15 slices shipped; moved from `executing` with
   # the brief's `Status: Shipped` and `Cut-closed:` record.
-  { path = "docs/product/briefs/intent-navigation-delivery.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0002-intent-graph-navigation.md" }, summary = "See every intent and its artifact-backed outstanding work from preamble headers: navigate-intents, close-work convergence, related edges, the offline view, well-formed pointers, lint parity, and intent dependency graphs", needs = [] },
 ]
 
 ["ini-010".shaping_queue]

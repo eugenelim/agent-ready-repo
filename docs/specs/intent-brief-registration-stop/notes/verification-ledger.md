@@ -45,3 +45,14 @@ On 2026-10-27 the owner, eugenelim, approved all ten wordings as drafted, and ea
 On 2026-10-28, during T3, the owner, eugenelim, decided that the `intent-brief-drop` repair does not drop a captured membership (an entry whose `path` lies under `docs/product/captured/`), even when its `kind` is `intent`. That keeps slice 3's RFC-0083 erratum, under which an already registered captured item keeps its entry until the registry is retired. The spec's "Repo-origin intent or brief entry" term is narrowed to say so. This repository holds no such entry: its 95 intent entries all point under `docs/product/intents/` and its 23 brief entries under `docs/product/briefs/`.
 
 On 2026-10-28, after the amendment's review, the owner chose the positive rule: the repair drops a repo-origin entry only when it is `kind = "intent"` with a path under `docs/product/intents/` or `kind = "brief"` with a path under `docs/product/briefs/`, so every captured item keeps its entry, including one the same run moves into `docs/product/captured/`. The owner also approved this sentence, added to RFC-0083's 2026-10-27 slice-7 erratum: "An entry that points at a captured item, including one whose `kind` is `intent`, is not removed; it keeps its entry until the registry is retired."
+
+## T7: the repair on this repository
+
+On 2026-10-28 the owner, eugenelim, saw the whole plan and approved applying it.
+
+- **Plan:** `repair-plan --root .`, `plan_id` `cb07e11d98013c69914733a90f4645baaca2b24a00f2d276c239a5c1518cd1e8`, read against `workspace.toml` SHA-256 `af96f57ad2fd053d1acf260e6c5dd97a785437eb1855b794ff5c1210dab847f0`. It held 118 operations, every one `intent-brief-drop`: 95 for intents and 23 for briefs. Its one manual finding, `type1-untracked` for `spec/plan-evolution-experiments`, predates this slice and is untouched.
+- **Apply:** `repair-apply --root . --plan-file <that plan> --yes`, run with `tomlkit` 0.15.1 available, returned `applied: true` with `operations_applied: 118`, every operation applied and none refused, and moved `workspace.toml` from SHA-256 `af96f57a…` to `006e75bf51bbffab648aa6874905a341754cb4f49c01ffa73ed00a8fda8ae3e9`. The pre-repair file is kept under `.context/` for T9's comparison.
+- **Entries removed:** 118, 95 intent and 23 brief entries. The diff removes only entry lines and blank lines, and turns one `executing` list into `executing = []`; no comment line is removed.
+- **Second plan:** a following `repair-plan` holds no `intent-brief-drop` operation.
+
+`tests/roster/test_workspace_initiative_provenance.py` is deleted with its inventory row. It cross-checked a spec entry's initiative against its brief's `brief_queue` membership, so with no repo-origin brief entry it reaches nothing; initiative membership is a deliberate removal in the retirement record.

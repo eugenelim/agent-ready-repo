@@ -1695,12 +1695,6 @@ consumer = "roster test test_work_intake_refresh_coordinator.py that exercises t
 owner = 9
 
 [[row]]
-pattern = "tests/roster/test_workspace_initiative_provenance.py"
-class = "fixture"
-consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
-owner = 9
-
-[[row]]
 pattern = "tests/roster/test_workspace_retirement_inventory.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
@@ -3992,3 +3986,9 @@ pattern = "docs/specs/xd-skill-boundaries/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
+
+[[row]]
+pattern = "tests/roster/test_intent_brief_registration_stop.py"
+class = "fixture"
+consumer = "roster check that writers stop registering repo-origin intents and briefs, and that the governance entries name the stop"
+owner = 9
