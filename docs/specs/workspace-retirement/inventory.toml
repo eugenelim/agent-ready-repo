@@ -2920,6 +2920,12 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
+pattern = "docs/specs/grounding-preservation-contract-proof/*"
+class = "historical"
+consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
+owner = "none"
+
+[[row]]
 pattern = "docs/specs/guide-callout-inventory/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"

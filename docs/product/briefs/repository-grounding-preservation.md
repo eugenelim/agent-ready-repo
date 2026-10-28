@@ -3,16 +3,16 @@
 - **Slug:** `repository-grounding-preservation`
 - **Received:** 2026-10-01
 - **Owner:** Platform Core
-- **Status:** Ready
+- **Status:** Executing
 - **Cut-closed:** <!-- Set only after the final slice cut and its evidence are confirmed. -->
 - **Source / provenance:** Maintainer corrections to `mikeparcewski/wicked-estate`
   PR 207, comparing original commit `3124d82` with corrected commit `3257648`,
   plus the acceptance-centered work-loop architecture and brief at pi-mono
   revision `a673299cea2e2cd070b1649827b2b5a78ca4f42f`.
 
-> **Ready boundary.** This brief records the outcome, contract-fit spike, and
-> unconfirmed candidate slices. It creates no delivery spec. The `Spec map`
-> stays empty until the owner separately confirms a slice cut.
+> **Slice cut.** The confirmed slices are recorded under
+> [Confirmed delivery slices](#confirmed-delivery-slices). A slice enters the
+> `Spec map` when its spec is authored.
 
 ## Outcome
 
@@ -173,9 +173,10 @@ Do not pre-author the Slice 1 producer vocabulary or the Slice 2 report fields
 here. Those are inputs from the other brief. Guessing them would create a
 parallel contract and turn a light measurement change into a full amendment.
 
-## Candidate delivery slices — not confirmed
+## Confirmed delivery slices
 
-The four candidates below are outcome slices, not component batches. Each can
+The owner confirmed this four-slice cut on 2026-10-28, separately from the
+Ready transition. The four slices below are outcome slices, not component batches. Each can
 ship with its own observable proof and leave the repository usable. Their labels
 are local to this brief and do not renumber the acceptance-centered work.
 
@@ -335,8 +336,8 @@ green without optional packs.
    boundary, then completes before acceptance-centered Slice 4 supervisor
    inversion.
 
-No candidate is confirmed by this ordering. A Ready transition and a later,
-separate owner decision still control which candidate becomes a spec.
+Confirming the cut does not start a slice. Each slice gets its spec only when
+its required input above is met.
 
 ## Relationships to existing work
 
@@ -383,15 +384,16 @@ separate owner decision still control which candidate becomes a spec.
 
 ## Materialization dependencies
 
-- The pinned pi-mono revision is accepted as provisional design provenance for
-  this brief. C0 must replace it with the merged acceptance-centered Slice 1
-  revision before its spec is authored.
+- The pinned pi-mono revision is provisional design provenance for this brief.
+  C0 replaces it with a merged revision that contains acceptance-centered
+  Slice 1, [`acceptance-authority-and-evidence`](../../specs/acceptance-authority-and-evidence/spec.md):
+  C0 is authored and tested against
+  `42d02f315f22c4f25653644212c7615ada79f1d7`.
 - C3 must record the merged acceptance-centered Slice 2 revision and its final
   typed report vocabulary before its spec is authored.
 - An inexpressible C0 sample is a stop condition and upstream amendment, not
   permission for C1 to invent a parallel acceptance contract.
-- Candidate details above are authoring packets, not confirmed slices. The
-  owner confirms the Ready transition first and the slice cut separately.
+- Each slice's details above are its authoring packet for `new-spec`.
 
 ## Rabbit holes
 
@@ -413,4 +415,4 @@ separate owner decision still control which candidate becomes a spec.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
+| `grounding-preservation-contract-proof` | <auto> |
