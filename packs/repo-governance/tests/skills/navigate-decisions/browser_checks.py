@@ -2222,7 +2222,8 @@ def test_hostile_status_line_detail_renders_in_linear_time(
           location.hash = '#detail/ADR-0001'; }, 0); }"""
     )
     # A super-linear regression fails here by name instead of hanging the run.
-    page.wait_for_selector("#detail-body .meta-table", state="attached", timeout=6000)
+    # The visible state line prints the hostile value, so layout is inside the bound.
+    page.wait_for_selector("#detail-body .state-line", state="visible", timeout=6000)
     elapsed = page.evaluate("() => performance.now() - window.__t0")
     assert elapsed < 2000, elapsed
 
@@ -4443,7 +4444,8 @@ def _matches(rec: dict[str, object], search: str, kind: str, status: str) -> boo
 _STRUCT_JS = """(key) => { const r = document.getElementById('view-' + key); const out = [];
   const ids = n => [...n.querySelectorAll('.row-link')].map(b => b.dataset.id);
   for (const n of r.children) {
-    if (n.classList.contains('list-head')) continue;
+    // The list head and the shared controls placed after it (Expand all, the Key) are not rows.
+    if (n.classList.contains('list-head') || n.matches('.tools, #key')) continue;
     if (n.matches('h3.group-head')) out.push({ head: n.textContent });
     else if (n.matches('ul.rows')) out.push({ ids: ids(n) });
     else if (n.matches('details.key.area-group')) out.push({
@@ -4587,7 +4589,7 @@ def test_an_empty_question_shows_its_own_text_never_the_no_match_message(
     assert page.locator(f"#view-{key} p.empty").all_inner_texts() == [_EMPTY_TEXT[key]]  # type: ignore[union-attr]
     assert "No records match" not in page.inner_text(f"#view-{key}")  # type: ignore[union-attr]
     assert page.locator(f"#view-{key} .reset-btn").count() == 0  # type: ignore[union-attr]
-    assert page.locator(f"#view-{key} details, #view-{key} .group-head").count() == 0  # type: ignore[union-attr]
+    assert page.locator(f"#view-{key} details:not(#key), #view-{key} .group-head").count() == 0  # type: ignore[union-attr]
     assert page._errors == []  # type: ignore[attr-defined]
     page.context.close()  # type: ignore[union-attr]
 
@@ -4652,7 +4654,9 @@ def test_by_area_has_one_closed_section_per_area_in_name_order(
     assert len(narrowed) < len(sections) and narrowed
     page.fill("#search-input", "")
     page.click("#expand-all-btn")
-    assert page.eval_on_selector_all("#view-areas details", "els => els.every(e => e.open)")
+    assert page.eval_on_selector_all(
+        "#view-areas details.area-group", "els => els.every(e => e.open)"
+    )
     assert page._errors == []  # type: ignore[attr-defined]
     page.context.close()  # type: ignore[union-attr]
 
@@ -4793,13 +4797,13 @@ def test_back_to_list_in_by_area_focuses_the_first_row_and_opens_its_sections(
     opens every section holding it, with no page error, hostile area names included."""
     page = _narrow_page(browser, export_questions, record_id, "areas")
     assert page.eval_on_selector_all(  # type: ignore[union-attr]
-        "#view-areas details", "els => els.every(e => !e.open)"
+        "#view-areas details.area-group", "els => els.every(e => !e.open)"
     )
     page.get_by_role("button", name="Back to list").click()  # type: ignore[union-attr]
     info = page.evaluate(_FOCUS_JS % ("'areas'", "'areas'"))  # type: ignore[union-attr]
     assert info["id"] == record_id and info["cur"] == "true" and info["first"], info
     opened = page.eval_on_selector_all(  # type: ignore[union-attr]
-        "#view-areas details",
+        "#view-areas details.area-group",
         "els => els.filter(e => e.open).map(e => e.querySelector('summary').textContent)",
     )
     assert [o.rsplit(" (", 1)[0] for o in opened] == sorted(closed, key=lambda a: (a.lower(), a))
@@ -4827,10 +4831,14 @@ def test_hostile_area_names_are_sections_of_literal_text_and_add_no_elements(
     dialogs: list[str] = []
     page.on("dialog", lambda d: dialogs.append(d.message))
     _go(page, "areas", "ADR-0004")
-    sums = page.locator("#view-areas details > summary").all_inner_texts()  # type: ignore[union-attr]
+    sums = page.locator("#view-areas details.area-group > summary").all_inner_texts()  # type: ignore[union-attr]
     for name in ("<img src=x onerror=alert(1)>", "constructor", "__proto__"):
         assert f"{name} (1)" in sums, sums
-    tags = set(page.eval_on_selector_all("#view-areas *", "els => els.map(e => e.localName)"))
+    tags = set(
+        page.eval_on_selector_all(
+            "#view-areas *", "els => els.filter(e => !e.closest('#key')).map(e => e.localName)"
+        )
+    )
     assert tags <= {
         "div",
         "p",
@@ -5321,9 +5329,77 @@ def test_back_to_list_in_by_area_with_a_hostile_record_picked_at_320(
     assert info["id"] == "ADR-0004" and info["cur"] == "true" and info["first"], info
     assert (
         page.eval_on_selector_all(  # type: ignore[union-attr]
-            "#view-areas details", "els => els.filter(e => e.open).length"
+            "#view-areas details.area-group", "els => els.filter(e => e.open).length"
         )
         == 3
     )
     assert page._errors == []  # type: ignore[attr-defined]
     page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.fixture(scope="module")
+def export_huge_areas(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """One ADR whose Areas field holds 50,000 distinct 36-character parts (near 2 MiB)."""
+    parts = ", ".join(f"area-{k:06d}-{'x' * 24}" for k in range(50_000))
+    root = tmp_path_factory.mktemp("huge_areas_fixture")
+    _build_corpus(root, [(1, "Huge areas", f"- **Status:** Accepted\n- **Areas:** {parts}\n")])
+    return _export(tmp_path_factory, root, "huge_areas")
+
+
+def test_a_near_cap_areas_field_renders_the_rail_and_by_area_in_linear_time(
+    browser: object, export_huge_areas: pathlib.Path
+) -> None:
+    """A hostile near-2 MiB Areas field costs linear time: the rail counts its 50,000
+    areas and the By area list renders within a fixed budget, with no page error."""
+    page = _open_page(browser, export_huge_areas)
+    page.wait_for_function(  # type: ignore[union-attr]
+        "() => (document.querySelector('#q-areas .q-count') || {}).textContent === '50000'",
+        timeout=5000,
+    )
+    start = time.monotonic()
+    page.evaluate("() => { location.hash = '#areas'; }")  # type: ignore[union-attr]
+    page.wait_for_function(  # type: ignore[union-attr]
+        "() => document.querySelectorAll('#view-areas details.area-group').length === 50000",
+        timeout=5000,
+    )
+    elapsed_ms = (time.monotonic() - start) * 1000
+    assert elapsed_ms < 5000, f"By area rendered in {elapsed_ms:.0f} ms"
+    assert page._errors == [], page._errors  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize(("index", "view"), ((0, "graph"), (1, "context")))
+def test_a_detail_link_opened_as_a_new_page_shows_the_list_zone_at_320(
+    browser: object, export_mixed: pathlib.Path, index: int, view: str
+) -> None:
+    """AC-0020: the link's own target, opened cold (new tab, copied link), selects the
+    record without picking it, so at 320 px the list zone shows in place of the detail."""
+    page = _narrow_page(browser, export_mixed, "ADR-0001", "list")
+    href = page.locator("#detail-body .detail-links a").nth(index).get_attribute("href")  # type: ignore[union-attr]
+    assert href == f"#{view}/ADR-0001/unpicked", href
+    context = browser.new_context(  # type: ignore[union-attr]
+        viewport={"width": 320, "height": 800}, offline=True
+    )
+    cold = context.new_page()
+    cold.goto(f"file://{export_mixed}{href}")
+    cold.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
+    assert cold.locator(".worklist").is_visible()
+    assert not cold.locator(".detail").is_visible()
+    context.close()
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_a_damaged_export_hides_the_empty_questions_rail(
+    browser: object, export_mixed: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    """With an unreadable data island the alert stands alone: the Questions landmark,
+    which would hold no links, is hidden."""
+    html = export_mixed.read_text(encoding="utf-8")
+    start = html.index('<script type="application/json" id="nav-data">')
+    end = html.index("</script>", start)
+    damaged = html[:start] + '<script type="application/json" id="nav-data">{bad' + html[end:]
+    target = tmp_path / "damaged-rail.html"
+    target.write_text(damaged, encoding="utf-8")
+    page = _open_page(browser, target)
+    page.locator('#app-main [role="alert"]').wait_for()  # type: ignore[union-attr]
+    assert page.get_attribute("#questions-nav", "hidden") is not None  # type: ignore[union-attr]
+    assert not page._errors  # type: ignore[attr-defined]

@@ -9,6 +9,7 @@ main.textContent='';
 var ep=document.createElement('div');ep.className='error-panel';ep.setAttribute('role','alert');
 ep.textContent='This export is damaged: its embedded data could not be read ('+String(e)+
 '). Run the export again to get a fresh copy.';
+var qn=document.getElementById('questions-nav');if(qn)qn.hidden=true;
 main.appendChild(ep);
 return;}
 var records=D.records||[],rels=D.relationships||[],mode=D.mode||'full';
@@ -123,13 +124,13 @@ return w?w[0].toLowerCase():'';}
 function isDecided(rec){return hasOwn(DECIDED,wordOf(rec));}
 function isDeciding(rec){return hasOwn(DECIDING,wordOf(rec));}
 // A record's areas: the comma-separated parts of its first Areas field, trimmed, without
-// empty parts or repeats.
+// empty parts or repeats. An own-key set keeps a huge hostile field linear in its length.
 function areasOf(rec){
-var hf=Array.isArray(rec.header_fields)?rec.header_fields:[],out=[];
+var hf=Array.isArray(rec.header_fields)?rec.header_fields:[],out=[],seen=Object.create(null);
 for(var i=0;i<hf.length;i++){
 if(hf[i]&&String(hf[i].label).toLowerCase()==='areas'){
 String(hf[i].display_value!=null?hf[i].display_value:'').split(',').forEach(function(p){
-p=p.trim();if(p&&out.indexOf(p)<0)out.push(p);});
+p=p.trim();if(p&&!hasOwn(seen,p)){seen[p]=1;out.push(p);}});
 break;}}
 return out;}
 // The count beside a question: unchanged by search and filters.
@@ -143,7 +144,7 @@ var seen=Object.create(null),n=0;
 records.forEach(function(r){areasOf(r).forEach(function(a){if(!hasOwn(seen,a)){seen[a]=true;n++;}});});
 return n;}
 return null;}
-// The links are built once, so a focused link keeps focus across routes; a render only moves aria-current.
+// The links are built once; a render only moves aria-current, and activation moves focus to the list heading.
 function buildRail(){
 var rail=document.getElementById('question-list');if(!rail)return;
 RAIL_GROUPS.forEach(function(g){
@@ -264,11 +265,12 @@ var zones=document.getElementById('app-main');
 if(zones){if(state.picked)zones.setAttribute('data-picked','');
 else zones.removeAttribute('data-picked');}
 var c=document.getElementById('view-'+state.view);
-if(!c)return;c.textContent='';
+if(!c)return;parkTools();c.textContent='';
 listInfo=null;
 if(state.view==='graph')renderGraph(c);
 else if(state.view==='context')renderContext(c);
 else renderList(c,state.view);
+placeTools(c);
 // With nothing selected the detail summarises the list, so a search or filter refreshes it too.
 if(!onlyView||!state.sel){
 renderDetail(document.getElementById('detail-body'));
@@ -280,8 +282,18 @@ function openable(){
 var out=[];
 ['view-'+state.view,'detail-body'].forEach(function(id){
 var e=document.getElementById(id);
-if(e)e.querySelectorAll('details').forEach(function(d){out.push(d);});});
+if(e)e.querySelectorAll('details').forEach(function(d){if(d!==keyEl)out.push(d);});});
 return out;}
+// Expand all and the Key follow the list head, as in the intents view: they move into the
+// current region after its head, and back to their place before a region is cleared.
+var toolsEl=document.querySelector('.worklist > .tools'),keyEl=document.getElementById('key');
+var toolsHome=keyEl?keyEl.nextSibling:null;
+function parkTools(){
+if(!toolsEl||!keyEl||!toolsHome)return;
+var wl=toolsHome.parentNode;wl.insertBefore(toolsEl,toolsHome);wl.insertBefore(keyEl,toolsHome);}
+function placeTools(c){
+var head=c.querySelector('.list-head');if(!head||!toolsEl||!keyEl)return;
+head.parentNode.insertBefore(keyEl,head.nextSibling);head.parentNode.insertBefore(toolsEl,keyEl);}
 function syncExpandLabel(){
 var b=document.getElementById('expand-all-btn');if(!b)return;
 var d=openable(),all=d.length>0;
@@ -554,7 +566,8 @@ e.preventDefault();navigate('detail',id);});
 return a;}
 // A link to another view of the selected record: the selection stays, so that view focuses it.
 function viewLink(text,view,id){
-var a=el('a',null,text);a.setAttribute('href','#'+view+'/'+encodeURIComponent(id));
+var a=el('a',null,text);// The target is the entry a click pushes: the record selected, not picked.
+a.setAttribute('href','#'+view+'/'+encodeURIComponent(id)+'/unpicked');
 a.addEventListener('click',function(e){
 if(!plainClick(e))return;
 e.preventDefault();switchView(view);});
