@@ -210,9 +210,24 @@ def test_waiter_on_unregistered_brief_with_bad_child_scope_is_blocked(tmp_path):
 
 **Done when:** the inventory test passes and the amended `workspace-retirement` spec carries the owner's re-approval.
 
+### T10: Deferral anchors resolve to an intent or brief file
+
+**Depends on:** T7
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0035.
+- `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py` gains planted cases. Red first, because today's lint reads no intent or brief file: an anchor resolved by an open intent file, by an open brief file, and by an intent file whose preamble is `Draft` and whose body holds a later `- **Status:** Fulfilled` line. Regression guards, each a violation before and after unless noted: an anchor resolved by a `[backlog].open` entry (resolves); an in-root symbolic link at `docs/product/intents/<anchor>.md` whose target is a regular `Draft` intent file; an intent file in each of `Fulfilled`, `Withdrawn`, `Cancelled`, and `Superseded` and a brief file in each of `Shipped`, `Withdrawn`, and `Cancelled`; a tombstone-shaped intent file with no `Status:` field; an intent file whose only `- **Status:** Draft` line follows a `## ` heading, which a whole-file reader would wrongly accept; and an anchor nothing resolves. The existing invariant (iv) cases pass unchanged.
+- The check uses `lstat` and the lint's `--root` confinement, not `_confined_file`, which follows links; it reads the file through the lint's size-guarded `_read` and takes the status with `parse_status` and `extract_status_token`, so only the preamble field counts.
+- The invariant (iv) violation text, the module docstring, and the `_repo_wide_findings` docstring say that an open intent or brief file also resolves an anchor.
+- `python3 '<work-loop skill>/scripts/lint-spec-status.py' --root .` reports no hard violation over this repository.
+
+**Done when:** the new cases red before the change and pass after, the existing lint suite passes, and the projections match after `make build-self`.
+
 ### T9: Closeout
 
-**Depends on:** T4, T5, T7, T8
+**Depends on:** T4, T5, T7, T8, T10
 
 **Mode:** manual QA for AC-0032; goal-based for the gates
 
@@ -241,3 +256,5 @@ def test_waiter_on_unregistered_brief_with_bad_child_scope_is_blocked(tmp_path):
 - 2026-10-27: plan approved by eugenelim
 - 2026-10-28: spec re-approved by eugenelim after the controlled amendment keeping captured items out of the drop
 - 2026-10-28: plan re-approved by eugenelim
+- 2026-10-28: spec re-approved by eugenelim after the controlled amendment adding AC-0035 (deferral anchors resolve through an open intent or brief file)
+- 2026-10-28: plan re-approved by eugenelim (T10 added)

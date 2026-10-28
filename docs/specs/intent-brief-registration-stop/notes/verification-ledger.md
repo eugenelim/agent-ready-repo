@@ -66,3 +66,5 @@ On 2026-10-28 the owner, eugenelim, re-approved the `workspace-retirement` spec 
 ## Controlled amendment: deferral anchors resolve to an intent or brief file
 
 On 2026-10-28, after T7, the spec-status lint's invariant (iv) failed once: `docs/specs/m6-role-journey-guides/spec.md` cites `(deferred: role-journey-agent-swarm-section)`, which resolved only through that intent's `[backlog].open` entry, and the repair removed it. The inventory did not list `lint-spec-status.py` as a reader of intent entries. The owner, eugenelim, chose to have the lint also resolve an anchor that names an existing file `docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`, through a new criterion and task.
+
+On 2026-10-28, after the amendment's review, the owner narrowed the rule: an intent or brief file resolves a deferral anchor only while its `Status:` is not terminal (an intent not `Fulfilled`, `Withdrawn`, `Cancelled`, or `Superseded`; a brief not `Shipped`, `Withdrawn`, or `Cancelled`), so closing it still invalidates every deferral that cites it.
