@@ -24,7 +24,8 @@ In this order:
 
 1. `AGENTS.md` — project conventions, including every scoped `AGENTS.md` on
    the path to the files you change. The
-   verification-mode discipline (TDD / goal-based / visual-manual)
+   verification-mode discipline (the modes `work-loop` PLAN step 7
+   defines)
    applies to your task too.
 2. The targeted spec at `docs/specs/<feature>/spec.md`.
 3. The targeted plan at `docs/specs/<feature>/plan.md`, focusing on the

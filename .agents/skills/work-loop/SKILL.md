@@ -1,6 +1,6 @@
 ---
 name: work-loop
-description: "Use when implementing or resuming a non-trivial repository change: a feature, behavior-changing fix, refactor, migration, framework or dependency upgrade, schema or API change, performance work, infrastructure or build-system change, reversion, or an existing build spec under `docs/specs/`. Also use for bare continuation commands ('resume', 'continue', 'keep going', 'pick up where I left off', 'let's get going') when conversation or workspace context identifies active build work. Do not use for shaping, research, strategy, product planning, design exploration, monitoring or status-only work, review-only, explanation-only, specification-authoring-only, spike-only or throwaway exploration, or trivial edits that are cosmetic, tightly local, behavior-preserving, and have obvious verification."
+description: "Use when implementing or resuming a non-trivial repository change: a feature, a fix whose cause is established (use `bug-fix` first to diagnose a defect whose cause is not), refactor, migration, framework or dependency upgrade, schema or API change, performance work, infrastructure or build-system change, reversion, or an existing build spec under `docs/specs/`. Also use for bare continuation commands ('resume', 'continue', 'keep going', 'pick up where I left off', 'let's get going') when conversation or workspace context identifies active build work. Do not use for shaping, research, strategy, product planning, design exploration, monitoring or status-only work, review-only, explanation-only, specification-authoring-only, spike-only or throwaway exploration, or trivial edits that are cosmetic, tightly local, behavior-preserving, and have obvious verification."
 allowed-tools: Read Write Edit Bash Agent
 metadata:
   type: skill
@@ -126,6 +126,12 @@ when everything it touches is unchanged.
   mechanism or where the boundary falls, the trigger fires. Being able to
   state the verification does not settle it — a defect can have an exact
   regression test and an unpredictable cause.
+  Before this trigger fires on unfamiliarity alone, you may run one spike to
+  ground the design: a throwaway script or sketch outside the tracked tree,
+  held to `new-spec`'s side-effect-free probe constraint, and never committed.
+  Record what it observed as the grounding above. A spike settles only this
+  trigger; every other trigger is decided on the real change, and the real
+  change runs the normal loop.
 - **Multi-person** — multiple implementers or external collaborators must
   coordinate the work. Mandatory automated reviewers do not count.
 - **Multi-feature or dependent tasks** — it decomposes a multi-feature
@@ -258,6 +264,9 @@ path, and a named uncertainty or deviation; a non-structural plan may say
 `Repository anchors: none — non-structural`. Existing plans without the field
 remain valid: treat missing metadata as a warning or named assurance gap, not a
 hard failure. Never require whole-repository ingestion or a new durable file.
+
+1b. **Route an undiagnosed defect through `bug-fix` first.** When the request reports a defect whose cause is not established, run `bug-fix` diagnosis first. Diagnosis earns the red regression test's red from disposable scratch, whatever mode follows. Mode selection then decides only how the test is materialized: full mode records it as the task's plan stub, and light mode writes it at its real test path during EXECUTE. It is never a repository test file during PLAN.
+
 2. **Select light or full mode** (see [Select: light or full mode](#select-light-or-full-mode)). With an existing spec, retain its spec/plan lifecycle, workspace reconciliation, and governing authority. Without one, select direct-light only after its decision record establishes every eligibility conjunct; otherwise invoke `new-spec`. Full mode requires complete ACs and Testing Strategy. Do not recreate or replace an adequate existing spec.
 3. Use the existing plan's task list when a plan exists. For direct-light, use the bounded active-session task and verification plan; do not create a sibling plan.
 4. Use extended thinking for architecturally significant work.
@@ -278,11 +287,13 @@ hard failure. Never require whole-repository ingestion or a new durable file.
    - **TDD** — compressible invariant (pure functions, state machines, protocols). When a spec and plan exist, record ACs + Testing Strategy and exact stub code in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
    - **Goal-based check** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
    - **Visual / manual QA** — any artifact a user invokes directly (CLI, library API, agent, UI, service endpoint). Exercise the real built artifact end-to-end through the documented happy path; record observed output (stdout, exit code, returned value, on-screen result). Never let a passing unit gate stand in for real invocation. For UI work specifically: check after each task that modifies user-visible state — screenshot or eval the real webview; UI matches backend is the bar. A blank footer, a lying status banner, or a missing row is a bug to file-and-fix even when the backend is healthy. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
+   - **Behavior pin** — a behavior-preserving restructure (refactor, move, rename, dedupe). Pin current observable behavior before any structure moves; type check and lint are not a pin. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
+   - **Measurement** — a change whose claim is a number (latency, throughput, size, runtime). Baseline first, same command both sides, report one vetted number. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
    - **infra/deploy** — layered GATES sequence: static preflight < plan/preview < idempotent convergent apply < active end-to-end smoke < rollback. Full doctrine: [`references/infra-verification.md`](references/infra-verification.md).
 
    **Confirm the mechanism exists before claiming the mode — task zero if it doesn't.** Applies equally across all modes and light and full mode alike.
 
-8. **Design construction tests up front.** When a plan exists, write `Tests:` in `plan.md` before EXECUTE begins. For direct-light, record the verification plan in the session before EXECUTE. Can't state the test or verification → task is too vague, sharpen first. For TDD tasks, put the exact stub code in `plan.md`, then compile and earn its red from disposable scratch; do not create a repository test file during PLAN (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). Goal-based and manual-QA tasks record `no stub (mode)`. Light mode skips stubs.
+8. **Design construction tests up front.** When a plan exists, write `Tests:` in `plan.md` before EXECUTE begins. For direct-light, record the verification plan in the session before EXECUTE. Can't state the test or verification → task is too vague, sharpen first. For TDD tasks, put the exact stub code in `plan.md`, then compile and earn its red from disposable scratch; do not create a repository test file during PLAN (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). Every mode in PLAN step 7 other than TDD records `no stub (mode)`, including behavior pin and measurement. Light mode skips stubs.
 
 8a. **Anchor-test sweep.** Before writing code, grep the test suite for tests that hash, snapshot, or count the exact content of the files you'll edit (patterns: `hashlib`, `sha`, `==` on file content, `len(lines)`, counted assertions). These contract-anchor tests pin the artifact's content and must be updated when the content changes. Discovering them mid-EXECUTE causes false GATES failures — factor them into the task list now.
 
@@ -352,6 +363,8 @@ Match discipline to verification mode:
 - **TDD** — red-green-refactor; commit each step if non-trivial. After the full-mode engine enters `CODE-IMPLEMENTATION`, materialize the approved stub from `plan.md` unchanged in the repository test location, verify byte identity, prove the intended red, and then fill deferred assertions; don't rewrite from scratch. Direct-light writes its red test here because it has no durable plan stub.
 - **Goal-based check** — write code, run the `Done when:` one-liner.
 - **Visual / manual QA** — implement, exercise the real artifact end-to-end, record observed output.
+- **Behavior pin** — pin green on the base commit first, keep it green after each step, revert a restructure that removes no branch, layer, or invalid state.
+- **Measurement** — baseline on the base commit, then the after run with the same command, data, and environment.
 - **infra/deploy** — implement, then drive the deploy and read real environment output (run apply, smoke probe, log pull, teardown; read their actual output — don't reason about what they'd say). Anti-pattern: a human pasting deploy errors back by hand. Craft in [`references/infra-verification.md`](references/infra-verification.md).
 
 **Controlled full-mode amendment:** use the exact authority, evidence, recovery, reapproval, and rescheduling [contract](references/delivery-contract-lifecycle.md).
@@ -804,6 +817,7 @@ runs after the loop closes, under [Capture](#capture).
 ## FIX
 
 1. Read the sustained finding from the adjudication artifact carefully; fix the established defect, not the symptom. Never route a refuted or indeterminate source finding into FIX.
+   A sustained finding carrying a command: run the command before the fix and record it failing, then run it after the fix and record it passing. A command that passes before the fix is Surfaced instead of fixed. Failing means its exit status or printed output shows the defect; passing means it no longer does.
 2. Split by shape: if diagnosing the failure hands you a ≤30-line fix (a missing flag, a wrong base URL, a leaked interval), implement it yourself, test it, commit it — diagnosis is the fix. If the fix is a well-specced multi-file unit, write a complete brief and dispatch it. Orchestrator context is the most expensive resource; spend it on diagnosis and judgment, not bulk edits.
 3. Re-run GATES. Every fix gets the same adversarial verification as worker output — run the suite it could plausibly break. When CI disagrees with your machine, believe CI and reproduce in a clean clone before concluding anything.
 4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
@@ -858,7 +872,7 @@ Load when the predicate fires; don't load speculatively.
 | Predicate | Reference |
 |-----------|-----------|
 | Deciding direct-light eligibility, or light mode selected | [`references/light-mode.md`](references/light-mode.md) |
-| Task picks Visual / manual QA mode | [`references/verification-modes.md`](references/verification-modes.md) |
+| Task picks Visual / manual QA, Behavior pin, or Measurement mode | [`references/verification-modes.md`](references/verification-modes.md) |
 | Task is infra-flavored | [`references/infra-verification.md`](references/infra-verification.md) |
 | A task needs local-infra-equivalents | [`fidelity-ladder`](../operational-safety/references/fidelity-ladder.md) |
 | TDD mode, need red stub mechanics | [`references/tdd-stubs.md`](references/tdd-stubs.md) |

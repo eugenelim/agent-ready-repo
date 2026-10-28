@@ -80,6 +80,16 @@
         "Caller evidence is planned or gathered through repository-exploration or repository search, and no caller location is stated that the inputs do not support",
         "The fix decision stays with bug-fix; caller evidence is treated as evidence, not as the decision"
       ]
+    },
+    {
+      "id": "fix-hands-off-to-work-loop",
+      "prompt": "I found why checkout totals are off by a cent: the tax is rounded before the discount is applied. Go ahead and fix it.",
+      "expected_output": "After diagnosis the fix runs through work-loop. Step 2's red was earned in scratch during diagnosis; work-loop materializes the test in the form its selected mode requires, and that materialized test stays in the suite.",
+      "assertions": [
+        "Response runs the fix through work-loop after diagnosis",
+        "Response says the step 2 red was earned in scratch",
+        "Response says the test work-loop materializes stays in the suite"
+      ]
     }
   ]
 }
