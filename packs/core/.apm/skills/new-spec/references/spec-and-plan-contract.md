@@ -227,7 +227,7 @@ the artifacts that verify it have different shapes and different lifecycles:
 
 - **The contract** lives in `spec.md` — Acceptance Criteria name the
   observable outcomes; Testing Strategy names the verification mode for
-  each (TDD / goal-based check / visual / manual QA); Agent Rules names the
+  each (a mode `work-loop` PLAN step 7 defines); Agent Rules names the
   rails. Any valid implementation must satisfy every criterion. The
   contract is stable against *implementation* change (that's the whole
   point); it evolves with *spec* (behavioural) change during the spec's

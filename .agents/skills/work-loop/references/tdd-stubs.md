@@ -1,9 +1,10 @@
 # TDD stub generation — turning a TDD-mode AC into a compilable red test
 
 Loaded on demand from `work-loop` PLAN's *Design tests up front* step, in
-**full mode** only, for **TDD-mode tasks** only. Goal-based and manual-QA tasks
-generate no stub — they record `no stub (mode)` in their `Tests:` subsection and
-move on. Light mode's lean path runs none of this.
+**full mode** only, for **TDD-mode tasks** only. Every mode in `work-loop`
+PLAN step 7 other than TDD (goal-based, visual / manual QA, behavior pin,
+measurement, infra/deploy) generates no stub — it records `no stub (mode)` in
+its `Tests:` subsection and moves on. Light mode's lean path runs none of this.
 
 This reference turns the loop's existing "write construction tests up front"
 obligation from behaviour-restating *prose* into exact, executable test code in
@@ -294,5 +295,5 @@ when they conflict or are absent:
   coexist on one spec.
 - **No new artifact, no new gate.** Stubs ride the existing per-task `Tests:`
   subsections and the existing plan-approval / pre-EXECUTE-review flow.
-- **Full-mode, TDD-tasks-only.** Goal-based and manual-QA tasks, and all of
-  light mode, generate nothing here.
+- **Full-mode, TDD-tasks-only.** Every mode in `work-loop` PLAN step 7 other
+  than TDD, and all of light mode, generates nothing here.

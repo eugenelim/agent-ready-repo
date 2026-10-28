@@ -706,14 +706,11 @@ def _build_html(
         f"{notice_html}"
         "</header>\n"
         '<div id="app" class="app">\n'
+        '<nav id="questions-nav" class="questions" aria-label="Questions">'
+        '<div id="question-list" class="rail"></div></nav>\n'
         '<main id="app-main" class="zones">\n'
         '<section class="worklist" aria-label="Decision records">\n'
         '<div class="tools">\n'
-        '<nav class="seg" aria-label="Views">'
-        '<button type="button" id="btn-list" class="seg-btn">List</button>'
-        '<button type="button" id="btn-graph" class="seg-btn">Graph</button>'
-        '<button type="button" id="btn-context" class="seg-btn">Context</button>'
-        "</nav>\n"
         '<button type="button" id="expand-all-btn" class="seg-btn">Expand all</button>\n'
         "</div>\n"
         '<details id="key" class="key"><summary>Key</summary>'
@@ -727,9 +724,12 @@ def _build_html(
         '<div class="fact"><dt>Navigation only (double left border)</dt><dd>A caller'
         " assertion. Non-authoritative view input.</dd></div>\n"
         "</dl></details>\n"
-        '<p id="list-count" class="meta list-count"></p>\n'
-        '<div id="view-list" role="region" aria-label="Corpus list"></div>\n'
+        '<div id="view-recent" role="region" aria-label="Decided records"></div>\n'
+        '<div id="view-deciding" role="region" aria-label="Records still open" hidden></div>\n'
+        '<div id="view-replaced" role="region" aria-label="Replaced records" hidden></div>\n'
         '<div id="view-graph" role="region" aria-label="Lifecycle graph" hidden></div>\n'
+        '<div id="view-areas" role="region" aria-label="Records by area" hidden></div>\n'
+        '<div id="view-list" role="region" aria-label="All records" hidden></div>\n'
         '<div id="view-context" role="region" aria-label="Guidance context" hidden></div>\n'
         '<details class="key foot-details"><summary>Support reference inventory</summary>'
         f"<ul><li>RFC candidates register: {rfc_count}</li>"

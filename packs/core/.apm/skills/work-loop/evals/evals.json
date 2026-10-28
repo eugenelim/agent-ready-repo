@@ -1427,6 +1427,49 @@
         "Response says a single sign is not a pattern",
         "Response distinguishes domain complexity from a design fault"
       ]
+    },
+    {
+      "id": "unfamiliar-design-bounded-spike",
+      "prompt": "I need to add streaming uploads to our storage layer, but I've never used the multipart API this vendor SDK exposes and the docs are thin. Can you get this started?",
+      "expected_output": "Treat the SDK as an Unfamiliar trigger. Run one bounded spike outside the tracked tree to observe the real API, never commit it, and record what it observed as the grounding. The spike settles only the Unfamiliar trigger; every other risk trigger is still evaluated on its own and the work continues through the normal spec and plan path.",
+      "assertions": [
+        "Response runs at most one bounded spike located outside the tracked tree",
+        "Response says the spike is never committed",
+        "Response records what the spike observed as the grounding for the design",
+        "Response says the spike settles only the Unfamiliar trigger and other risk triggers are still evaluated"
+      ]
+    },
+    {
+      "id": "undiagnosed-defect-routes-to-bug-fix",
+      "prompt": "Our invoice export sometimes drops the last line item and I have no idea why. Please fix it.",
+      "expected_output": "The cause is not yet known, so route to bug-fix first and diagnose before planning the change. Bug-fix earns its red in disposable scratch, then hands the fix to work-loop, which materializes the test according to the verification mode work-loop PLAN selects.",
+      "assertions": [
+        "Response routes the undiagnosed defect to bug-fix and diagnoses before choosing a fix",
+        "Response earns the failing test (red) in scratch during diagnosis",
+        "Response hands the fix to work-loop, which materializes the test according to the selected mode"
+      ]
+    },
+    {
+      "id": "refactor-behavior-pin-mode",
+      "prompt": "Please split the 600-line pricing module into smaller modules without changing what it does.",
+      "expected_output": "Choose the behavior-pin mode. Write tests that pin current behavior and show them passing on the base commit before any structure moves, then refactor with the pin as the safety net. Because the pin passes by design there is no red, so the plan records the stub as `no stub (mode)`.",
+      "assertions": [
+        "Response selects a behavior-pin mode for the behavior-preserving refactor",
+        "Response shows the pin passing on the base commit before any structure moves",
+        "Response records `no stub (mode)` because a pin has no red to earn"
+      ]
+    },
+    {
+      "id": "perf-claim-measurement-mode",
+      "prompt": "The report query feels slow. Rewrite it with a better index strategy and tell me it's at least 30% faster.",
+      "expected_output": "Choose the measurement mode. Take a baseline from the base commit, then compare base and change over at least five alternating runs, and report the median, the range, and the run count rather than a single timing. A measurement has no red to earn, so the stub is recorded as `no stub (mode)`.",
+      "assertions": [
+        "Response selects a measurement mode for the performance claim",
+        "Response takes the baseline from the base commit",
+        "Response uses at least five alternating runs of base and change",
+        "Response reports the median, range, and run count",
+        "Response records `no stub (mode)`"
+      ]
     }
   ]
 }

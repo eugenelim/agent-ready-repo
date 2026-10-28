@@ -126,7 +126,7 @@ the plan's `## Design (LLD)`, not here.
 ## Testing Strategy
 
 Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
+`work-loop` skill's PLAN step 7 defines the modes; common ones:
 
 - **TDD** — for logic with a compressible invariant.
 - **Goal-based check** — a one-liner verifies the outcome (a build
@@ -135,7 +135,7 @@ Name the verification mode(s) this spec uses. The
   outcome, for UX flows.
 
 A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
+under, and why. These modes are the *altitude* of a check, not its
 *surface*: a goal-based or manual-QA behavior may be verified by an
 **integration** test (two components together) or an **end-to-end (E2E)**
 test (the whole journey, as the user drives it) rather than a unit test —

@@ -1,9 +1,10 @@
 # TDD red test — writing and proving the red at EXECUTE
 
 Loaded on demand from `work-loop` PLAN's *Design tests up front* step and from
-EXECUTE's TDD line, in **full mode** only, for **TDD-mode tasks** only.
-Goal-based and manual-QA tasks write no red test. Light mode's lean path runs
-none of this.
+EXECUTE's TDD line, in **full mode** only, for **TDD-mode tasks** only. Every
+mode in `work-loop` PLAN step 7 other than TDD (goal-based, visual / manual QA,
+behavior pin, measurement, infra/deploy) writes no red test here. Light mode's
+lean path runs none of this.
 
 A red test is an executable claim that fails; a prose mirror of the acceptance
 criterion is not. At PLAN, a TDD task's `Tests:` names the behavior, the
@@ -176,5 +177,5 @@ when they conflict or are absent:
   implementation, from code + spec. Both can coexist on one spec.
 - **No new artifact, no new gate.** The red test lives in the repository test
   tree; the coverage signal is the set of `Tests:` subsections.
-- **Full-mode, TDD-tasks-only.** Goal-based and manual-QA tasks, and all of
-  light mode, write nothing here.
+- **Full-mode, TDD-tasks-only.** Every mode in `work-loop` PLAN step 7 other
+  than TDD, and all of light mode, writes nothing here.
