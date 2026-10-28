@@ -1,7 +1,7 @@
 # Plan: work-loop narrow full mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0111 § Proposal and § Follow-on artifacts (the authority for the wording); ADR-0088 and `tools/lint-agents-md.py` check 10g (the block's single home); `packs/AGENTS.md` (version bump, self-host, eval harness); `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py` as the analogous section-scoped pin; uncertainty — none, the change is prose plus tests.
 
 > **Plan contract:** this is the implementation strategy. It may change
