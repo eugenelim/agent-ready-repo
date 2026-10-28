@@ -49,7 +49,7 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 **Does it find market data on its own?** No. The situation tools use the information you provide. Pair it with Desk Research for sourced evidence.
 
-**Does it change my backlog?** `run-okr-cascade` writes the gaps it finds as strategy entries in `workspace.toml`, after you approve.
+**Does it change my backlog?** `run-okr-cascade` writes each gap it finds as its own file under `docs/product/captured/`, after you approve.
 
 ## Details
 

@@ -115,7 +115,7 @@ If your pack has a `*-status` skill, register it so that `workspace-status` can 
 
 **How to register:**
 
-1. Choose a `shaping_queue` type string for your pack. This string appears in `workspace.toml` entries for your pack's shaping items (for example, `design` for the experience-design pack, `research` for the desk-research pack).
+1. Choose a `shaping_queue` type string for your pack. This string is the `Type:` line of each captured-item file under `docs/product/captured/` for your pack's shaping items (for example, `design` for the experience-design pack, `research` for the desk-research pack); entries registered before captured items moved to their own files carry it in `workspace.toml`.
 
 2. Add a routing entry in the `workspace-status` skill's routing table: `type = "<your-type>"` → `<your-pack>-status`.
 

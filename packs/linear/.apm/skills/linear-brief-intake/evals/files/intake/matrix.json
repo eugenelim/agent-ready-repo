@@ -304,17 +304,17 @@
       },
       "routing_signals": {
         "action": "start",
-        "artifact": "docs/product/defects/login-timeout.md",
+        "artifact": "docs/product/captured/login-timeout.md",
         "artifact_kind": "defect",
         "authority_mode": "tracker-origin"
       },
       "expected_route": {
-        "artifact": "docs/product/defects/login-timeout.md",
+        "artifact": "docs/product/captured/login-timeout.md",
         "artifact_kind": "defect",
-        "lifecycle_membership": "backlog.open",
+        "lifecycle_membership": "none",
         "processor": "bug-fix",
         "authority_mode": "tracker-origin",
-        "mutation": "materialize-and-register"
+        "mutation": "materialize-and-dispatch"
       }
     },
     {

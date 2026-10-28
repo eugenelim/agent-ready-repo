@@ -102,7 +102,9 @@ The Status column is derived from each spec; it is not hand-edited.
 | `depends-on-headers` | <auto> |
 | `captured-item-files` | <auto> |
 | `priority-header-field` | <auto> |
+| `registry-comparison` | <auto> |
 | `next-item-suggestions-removal` | <auto> |
+| `captured-item-registration-stop` | <auto> |
 
 ## Governance references (optional)
 

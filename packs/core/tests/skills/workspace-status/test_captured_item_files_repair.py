@@ -1561,3 +1561,34 @@ def test_apply_makes_records_and_the_registry_durable_in_order(
     assert kinds[:first_replace] == ["fsync-file", "fsync-dir", "fsync-file"]
     assert events[1] == ("fsync-dir", captured_ino)
     assert events[first_replace + 1:] == [("fsync-dir", root_ino)]
+
+
+# ── A closed design note: `Resolution:` is required for every kind ───────────
+
+
+def test_closed_design_note_without_resolution_is_a_manual_finding(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = f"{NOTES}/gap.md"
+    repo = make_repo(
+        tmp_path, {path: note(status="Closed", extra="- **Kind:** design")},
+        closed=[entry(path, "design")],
+    )
+    data = plan(repo, capsys)
+    assert captured_ops(data) == []
+    assert [f["reason"] for f in captured_findings(data)] == ["record-read-back"]
+
+
+def test_closed_design_note_with_a_resolution_migrates(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = f"{NOTES}/gap.md"
+    repo = make_repo(
+        tmp_path,
+        {path: note(status="Closed", resolution="fixed", extra="- **Kind:** design")},
+        closed=[entry(path, "design")],
+    )
+    data = plan(repo, capsys)
+    [op] = captured_ops(data)
+    assert captured_findings(data) == []
+    assert "- **Resolution:** fixed\n" in op["record_text"]

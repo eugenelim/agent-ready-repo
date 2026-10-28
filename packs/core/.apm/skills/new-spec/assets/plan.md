@@ -128,6 +128,9 @@ Delete every sub-heading the shape doesn't select. -->
 ### Design decisions
 <!-- optional — the load-bearing choices and the alternatives rejected, one line
 of why each. Traces to: <AC(s) this satisfies> · <contracts/… it implements>. -->
+<!-- For each choice, name the assumption it rests on: the fact that, if the
+build proves it false, makes the choice wrong (for example, "this state has
+one writer"). -->
 <!-- Owned by: <task ID(s) that implement this sub-section, e.g. T3, T4a>. -->
 
 ### Data & schema

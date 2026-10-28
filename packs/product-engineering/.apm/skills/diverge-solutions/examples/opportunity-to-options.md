@@ -202,14 +202,8 @@ option selection.
 
 Record at `docs/product/captured/pe-shaping-memory.md`: `Status: Open`,
 `Kind: design`, and `Detail: docs/product/shaping/pe-shaping-memory/solution-options.md`,
-with the chosen option under `## Summary`. Entry that registers it, for the
-`[ini-NNN.shaping_queue]` backlog:
-
-```toml
-{path = "docs/product/captured/pe-shaping-memory.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
-```
-
-Register through `work-intake`, which writes the record and the entry.
+with the chosen option under `## Summary`. Capture it through `work-intake`,
+which writes the file.
 ```
 
 ---
@@ -230,10 +224,5 @@ The agent prints the record text:
 Shaping context is lost between sessions
 ```
 
-and the entry that registers it in the `[ini-NNN.shaping_queue]` backlog:
-
-```toml
-{path = "docs/product/captured/pe-shaping-memory.md", kind = "design", source = {mode = "repo-origin"}, summary = "Shaping context is lost between sessions", needs = []},
-```
-
-Register it through `work-intake`, which writes the record and the entry.
+Capture it through `work-intake`, which writes the file at
+`docs/product/captured/pe-shaping-memory.md`.

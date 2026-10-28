@@ -1774,6 +1774,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
     write_artifact(
         "docs/product/captured/shaping-closed.md",
         status="Closed",
+        resolution="fixed",
         extra="- **Kind:** design\n",
     )
     shaping_eval = mod.run_canonical_reconciliation(

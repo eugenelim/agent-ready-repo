@@ -143,14 +143,24 @@ def test_resolution_out_of_set() -> None:
     assert _failing("- **Status:** Closed", KIND, "- **Resolution:** wontfix") == "Resolution"
 
 
-def test_resolution_on_closed_non_defect_is_invalid() -> None:
+@pytest.mark.parametrize("kind", ["design", "research", "intent"])
+def test_resolution_on_closed_non_defect_is_valid(kind: str) -> None:
     assert _failing(
-        "- **Status:** Closed", "- **Kind:** design", "- **Resolution:** fixed"
+        "- **Status:** Closed", f"- **Kind:** {kind}", "- **Resolution:** fixed"
+    ) is None
+
+
+@pytest.mark.parametrize("kind", ["design", "research", "intent"])
+def test_closed_non_defect_needs_a_resolution(kind: str) -> None:
+    assert _failing("- **Status:** Closed", f"- **Kind:** {kind}") == "Resolution"
+
+
+@pytest.mark.parametrize("kind", ["design", "research", "intent"])
+def test_resolution_on_open_non_defect_is_invalid(kind: str) -> None:
+    """Regression pin: this case is already invalid for a defect, and for these kinds."""
+    assert _failing(
+        OPEN, f"- **Kind:** {kind}", "- **Resolution:** fixed"
     ) == "Resolution"
-
-
-def test_closed_non_defect_needs_no_resolution() -> None:
-    assert _failing("- **Status:** Closed", "- **Kind:** design") is None
 
 
 @pytest.mark.parametrize("value", [

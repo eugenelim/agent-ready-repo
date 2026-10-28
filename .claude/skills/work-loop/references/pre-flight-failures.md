@@ -3,7 +3,7 @@
 > **Loaded when:** a gate fails on a file not in the diff — the "Pre-existing
 > failure triage" paragraph in `work-loop` SKILL.md step 3 (GATES) tells you to
 > load this reference for the full schema and heuristics.
-> **What this is:** the complete doctrine behind that paragraph — entry schema,
+> **What this is:** the complete doctrine behind that paragraph — file schema,
 > detection methods, known-skip heuristic, "made it worse" test, deduplication,
 > and examples.
 
@@ -34,10 +34,10 @@ in the diff but the failure looks unrelated to your change:
 When the primary heuristic is unambiguous (the failing file is clearly not in
 the diff), skip confirmation — the worktree-check is an extra step, not the rule.
 
-## Captured-item file and backlog entry
+## Captured-item file
 
-A pre-existing failure is a defect captured in its own file, then registered by
-that file's path.
+A pre-existing failure is a defect captured in its own file. Nothing is added to
+`workspace.toml`.
 
 ```markdown
 # Pre-existing test validate empty
@@ -51,10 +51,6 @@ test_validate_empty_input in tests/test_validator.py fails at HEAD: the conftest
 fixture is broken and the test fails on import before the assertion fires.
 Fix: repair the fixture setup in conftest.py. Captured 2026-07-22. Unblocks
 when someone picks up the test-health cleanup.
-```
-
-```toml
-{ path = "docs/product/captured/pre-existing-test-validate-empty.md", kind = "defect", source = { mode = "repo-origin" }, summary = "Repair the broken conftest fixture behind test_validate_empty_input", needs = [] }
 ```
 
 **File name**: `docs/product/captured/pre-existing-<short-name>.md`. The name
@@ -71,13 +67,12 @@ condition would unblock addressing it, and the ISO 8601 date (for example
 `2026-07-22`) the failure was first captured. A months-old date is a staleness
 signal for the next agent who picks it up.
 
-**Entry**: all five fields, `path`, `kind`, `source`, `summary`, and `needs`.
-`path` is the captured-item file, `kind` is `defect`, and `summary` is one short
-present-tense line.
+**Closing**: when the failure is fixed, set `Status: Closed` and add a
+`Resolution:` line (`fixed`, `declined`, or `superseded`) in the same file.
 
 ## Known-skip heuristic
 
-Once a captured-item file is registered in `[backlog].open`, treat the matching failure as a
+Once a captured-item file exists with `Status: Open`, treat the matching failure as a
 known-skip for the rest of the session — do not go to FIX. All three conditions
 must hold:
 

@@ -89,7 +89,7 @@ body, execution root, spec path, plan path, or verification mode.
   than the task's `Approach:`, **implement the lighter rung** — `Approach:` is
   working material an implementer corrects in place, not contract — provided the
   task's `Done when:` still holds, and record the substitution under
-  \"Deviations from the task body\". None of this overrides an explicit
+  \"Deviations from the task body\" as a `lighter-rung` deviation. None of this overrides an explicit
   requirement, a recorded decision, or a trust-boundary control.
 - **Gates:** run the project's lint, typecheck, and test commands as
   documented in `AGENTS.md` and the project's root README. Capture
@@ -137,7 +137,12 @@ terse — the supervisor reads N reports in one context.
 - tests: pass | fail (<one-line reason if fail>)
 
 **Deviations from the task body**
-<bullet list, or \"none\">
+<bullet list, or \"none\". Start a bullet with its kind when one fits:
+`lighter-rung` — you used a lighter ladder rung than `Approach:` named, and
+`Done when:` still holds; or `design-misfit` — the code proved false
+something the plan's design assumed. For a misfit, name the assumption and
+what the code needed instead. Any other deviation, such as a different file
+path or test location, stays an untagged bullet.>
 
 **Bundled fixes:**
 <bullet list of ride-alongs landed under the carve-out, or \"none\". An
@@ -159,7 +164,10 @@ only when the brief was silent on the carve-out.>
   assigned execution root, no blockers.
 - **`blocked`** — you can't proceed without a decision the supervisor
   or a human must make (ambiguous spec, missing dependency, plan-task
-  pre-condition unmet). Explain.
+  pre-condition unmet). Explain. A `design-misfit` you could get past only
+  with a workaround the design did not plan for — a cast, a special-case
+  branch, a lock, or a caller learning internals — is `blocked`, not
+  `ready`: that choice belongs to whoever owns the design.
 - **`failed`** — you tried, gates don't pass (or `Done when:` isn't
   satisfied even though gates do), and the cause isn't a decision
   someone else needs to make — no route you can see satisfies the task's

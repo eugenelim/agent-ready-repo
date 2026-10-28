@@ -103,6 +103,67 @@ decision and execution falsifies it, the plan is wrong and takes the controlled
 amendment procedure above. The verification ledger is not a route for a
 settled decision that execution falsified.
 
+## When the design shape is wrong
+
+The paragraph above covers one approved decision that the build disproves.
+That is a plan error on its own, and one is enough. A `design-misfit`
+deviation whose assumption is a settled decision in the approved
+`## Design (LLD)` is that case: take the steps below at once, without waiting
+for a second sign. A verification-ledger entry may record it, but never
+resolves it; only the amendment does.
+
+This section also covers the harder case. Each deviation looks local, yet a
+run of them shares a cause, which means the design itself has the wrong
+shape. Fixing each instance on its own hides that.
+
+Look for these signs after each task's gates pass, and again before review:
+
+- The same workaround appears in tasks that have nothing else in common.
+- Unrelated cases each need their own special-case branch.
+- Code compiles only through escape hatches: casts, untyped values, or
+  optional fields that are always set in practice.
+- A lock, retry, or sync step appears around state the design called private
+  or single-owner.
+- A caller works only if it knows rules the interface was meant to hide.
+- Two or more `design-misfit` deviations name the same cause.
+
+An implementer report of `blocked` that carries a `design-misfit` counts as a
+sign as soon as it arrives, even though its task never merged. Do not answer
+it by revising only that task.
+
+One sign in one place is not enough. Some problems are messy by nature: a
+branch that mirrors a real case in the domain is not a design fault. Act when
+a sign repeats across unrelated tasks, or when different signs trace back to
+one design decision.
+
+When the pattern holds:
+
+1. Stop starting new tasks. More code on the same shape only adds to what has
+   to be undone.
+2. Surface the evidence: each sign, where it appeared, and the design decision
+   they share. When the plan has a `## Design (LLD)`, name the sub-section and
+   the assumption it rested on. Wait for the owner.
+3. If the owner agrees the shape is wrong, take the controlled amendment
+   above. Redesign from what was actually built, as if the constraints the
+   build revealed had been known from the start. Do not patch only the line
+   the build disproved.
+4. Make the new design smaller than the old one before it grows. Removing or
+   merging the parts that existed only to work around the old shape comes
+   first, as new unfinished tasks; the amendment rule above keeps completed
+   task sections sealed.
+
+Light mode has no amendment event, whether its plan is a spec on disk or,
+for direct-light, held only in the session. Its one task is the whole change,
+so watch for signs inside it: the same workaround across its files, escape
+hatches, or an unplanned lock. When they appear, or when the build disproves
+a settled decision in an on-disk plan, Surface the evidence and wait instead
+of taking steps 3 and 4. If the redesign fires a risk trigger, the work moves
+to full mode by the usual rule.
+
+The owner may decide the shape stands. Record that decision and the signs it
+covered in the resolve-vs-surface disposition record, so a later round does
+not raise them again.
+
 ## Completion evidence handoff
 
 Before declaring an implementation review unit complete, prepare a bounded handoff

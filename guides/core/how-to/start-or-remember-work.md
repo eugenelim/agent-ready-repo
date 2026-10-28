@@ -34,8 +34,11 @@ For durable work, Core writes the artifact first, then adds the `workspace.toml`
 entry:
 
 - one independently shippable change becomes a spec and plan;
-- work that spans several changes or repositories becomes a delivery brief;
-- cited regression evidence starts diagnosis before implementation.
+- work that spans several changes or repositories becomes a delivery brief.
+
+Cited regression evidence is written as its own file under
+`docs/product/captured/`, with no entry, and diagnosis starts before
+implementation.
 
 You decide only at real gates: clarify an ambiguous route, approve a brief,
 approve a spec or plan, or make the final merge decision.
@@ -92,7 +95,7 @@ To park something that is not an intent, such as a defect or a research question
 Remember this for later: the nightly export drops rows with an empty name.
 ```
 
-Core writes the item as its own file under `docs/product/captured/`, then registers that file's path in `workspace.toml`.
+Core writes the item as its own file under `docs/product/captured/` and adds nothing to `workspace.toml`. To close it later, set the file's `Status:` to `Closed` and add `Resolution:` (`fixed`, `declined`, or `superseded`). A downstream item that lists the file in its `Depends on:` header is unblocked once the file is `Closed` with `Resolution: fixed`. If the item still has an older registry entry, delete that entry in the same change.
 
 If your repository already registered captured items at other paths, upgrade `core` and run the repair once:
 

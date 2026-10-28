@@ -78,14 +78,12 @@ provides. Do not block artifact emission. Apply the same degrade if
 Artifact shape: frontmatter (`type: situation-framing`, `slug`, `signal`, `date`,
 `finding-type`, `shaping-entry`), then sections — Signal, Finding, Wardley
 Assessment table, Recommended Entry Point, Step 2 readiness (when absent),
-Suggested captured item (record text, TOML entry, and direction to register it
-through `work-intake`).
+Suggested captured item (the file's text and direction to capture it through
+`work-intake`).
 
 **6. Suggest a captured item.** The suggestion is a captured-item record at
-`docs/product/captured/<slug>.md` whose `Detail:` names `situation-framing.md`,
-and the canonical five-field entry that registers that path. A short slug-and-type
-entry is the legacy shape and is never dispatchable. Old shaping entries still
-appear in the information-only shaping lists until rewritten.
+`docs/product/captured/<slug>.md` whose `Detail:` names `situation-framing.md`.
+The file is the whole suggestion; it needs no index entry.
 
 ```markdown
 # <Slug with spaces>
@@ -99,14 +97,8 @@ appear in the information-only shaping lists until rewritten.
 <the finding in one line>
 ```
 
-```toml
-{path = "docs/product/captured/<slug>.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the finding in one line>", needs = []},
-```
-
-Direct the user to register it through `work-intake`, which writes the record
-and the entry in the `["ini-NNN".shaping_queue]` backlog. An entry added by hand
-must point at that record, not at `situation-framing.md`. Do **not** write to
-`workspace.toml` or to `docs/product/captured/`.
+Direct the user to capture it through `work-intake`, which writes the file. Do
+**not** write to `workspace.toml` or to `docs/product/captured/` yourself.
 
 ## Anti-patterns to refuse
 

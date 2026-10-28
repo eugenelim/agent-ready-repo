@@ -25,13 +25,13 @@ Seven skills.
 | `run-porters-five-forces` | Porter's Five Forces — Supplier Power, Buyer Power, New Entrants, Substitutes, Rivalry | `competitive-landscape.md` | `docs/product/shaping/` |
 | `run-pestle-analysis` | PESTLE — Political, Economic, Social, Technological, Legal, Environmental | `macro-environment.md` | `docs/product/shaping/` |
 | `run-bcg-matrix` | BCG Matrix — Stars, Cash Cows, Question Marks, Dogs | `portfolio-position.md` | `docs/product/shaping/` |
-| `run-okr-cascade` | OKR cascade — company → team → shaping-queue gaps | `okr-cascade.md` plus `workspace.toml` entries | `docs/product/shaping/` (and `workspace.toml`) |
+| `run-okr-cascade` | OKR cascade — company → team → strategy gaps | `okr-cascade.md` plus one gap file per gap | `docs/product/shaping/` (gap files in `docs/product/captured/`) |
 | `write-prfaq` | PRFAQ — press release plus FAQ as altitude-0 forcing function | `prfaq.md` | `docs/product/shaping/` |
 | `synthesize-stakeholder-research` | Research synthesis — strategic narrative by theme across stakeholder groups | `stakeholder-synthesis.md` | `docs/product/shaping/` |
 
-`run-okr-cascade` writes two outputs: the `okr-cascade.md` artifact, and
-`{type = "strategy"}` entries appended to `["ini-NNN".shaping_queue].backlog` in
-`workspace.toml`.
+`run-okr-cascade` writes two outputs: the `okr-cascade.md` artifact, and one
+captured-item file per gap at `docs/product/captured/<gap-slug>.md` with
+`Kind: intent` and `Type: strategy`. Nothing is added to `workspace.toml`.
 
 ## Pillar 2 — UX strategy
 

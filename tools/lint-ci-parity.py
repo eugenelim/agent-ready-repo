@@ -726,6 +726,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest captured-item files instructions (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest captured-item registration stop (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual-target guide excerpt (roster-owned)":
@@ -1111,6 +1113,7 @@ _GATE_MAIN_CHECKS = (
     "pytest workspace retirement inventory (roster-owned)",
     "pytest depends-on headers instructions (roster-owned)",
     "pytest captured-item files instructions (roster-owned)",
+    "pytest captured-item registration stop (roster-owned)",
     "pytest closure guide surface (roster-owned)",
     "pytest visual-target guide excerpt (roster-owned)",
     "pytest visual-target release surface (roster-owned)",
@@ -1716,6 +1719,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED(
             "build-check.yml / gate-main / Pull-request template installer and "
             "release checker"
+        ),
+    'tools/test_compare_registry.py':
+        NO_PR_GATE(
+            "Tests a maintainer-run comparison that has no CI job by owner decision "
+            "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
+            "through the dispatch-only test-corpus.yml."
         ),
     'tools/test_intent_corpus_gate.py':
         NO_PR_GATE(

@@ -32,7 +32,7 @@ already have. Intake distinguishes these common shapes:
 | One coherent outcome needing several specs | Draft brief through `author-delivery-brief create` |
 | A cross-repository outcome | One linked local brief per repository |
 | Unrelated items or an incoherent view | Separate units, view-only, or one clarification |
-| A regression with durable expected-behavior evidence | Defect context through `bug-fix` |
+| A regression with durable expected-behavior evidence | Defect file under `docs/product/captured/` through `bug-fix` |
 
 Tracker object type, list size, comments, labels, and hierarchy do not select
 the route. A claimed defect without durable expected-behavior evidence remains
@@ -51,7 +51,9 @@ Remember that export retries need idempotent replay. Do not implement it now.
 ```
 
 The agent creates the smallest safe Draft artifact, registers a
-non-dispatchable entry, and stops. Use `work-intake` in new prompts.
+non-dispatchable entry, and stops. A defect, design, or research item is
+different: the agent writes it as its own file under `docs/product/captured/` and
+adds no entry. Use `work-intake` in new prompts.
 
 ## Inspect or triage the workspace
 

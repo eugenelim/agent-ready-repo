@@ -1,6 +1,6 @@
 # Spec: Captured items in their own files
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [captured-item-registration-stop's spec](../captured-item-registration-stop/spec.md) — AC-0001's `Resolution:` bullet: `Resolution:` is now required on every `Closed` captured item whatever its `Kind:`; everything else in this spec stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-26 by eugenelim, spec and plan, after spec-stage shaping, adversarial, and security reviews over seven rounds ending clean; review records under `.context/reviews/captured-item-files-spec-20261026T0431/`. Re-approved 2026-10-26 by eugenelim after controlled amendment 1 (`notes/verification-ledger.md` § Amendment 1: AC-0037's Case-cell rule), clean on adversarial review of the amendment apart from one deferred nit. Re-approved 2026-10-26 by eugenelim after controlled amendment 2 (`notes/verification-ledger.md` § Amendment 2: AC-0021's fail-closed refusals; T9 added), clean on adversarial review of the amendment; records under `.context/reviews/captured-item-files-amendment2/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

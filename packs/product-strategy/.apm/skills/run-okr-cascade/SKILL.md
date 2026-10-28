@@ -1,11 +1,11 @@
 ---
 name: run-okr-cascade
-description: Use when a strategist needs to cascade company OKRs to team level and identify strategic gaps for the product-engineering shaping queue. Triggers on "run an OKR cascade", "I need to cascade company OKRs", "align team OKRs to company goals", "identify OKR gaps", "what are we missing to hit our objectives". Produces okr-cascade.md and one captured-item file per gap, registered in the shaping queue. Do NOT use for per-feature goal-setting — cascade is org-wide alignment, not product backlog prioritization.
+description: Use when a strategist needs to cascade company OKRs to team level and identify strategic gaps for product-engineering shaping. Triggers on "run an OKR cascade", "I need to cascade company OKRs", "align team OKRs to company goals", "identify OKR gaps", "what are we missing to hit our objectives". Produces okr-cascade.md and one captured-item file per gap. Do NOT use for per-feature goal-setting — cascade is org-wide alignment, not product backlog prioritization.
 ---
 
 # Skill: run-okr-cascade
 
-Produces an **OKR cascade** — company Objectives and Key Results aligned to team-level OKRs, with strategic gaps identified and routed to the PE pack's shaping queue via `workspace.toml`. The cross-pack routing contract is documented in `references/cross-pack-routing.md`. See `references/agentbundle-layout.md` for artifact path.
+Produces an **OKR cascade** — company Objectives and Key Results aligned to team-level OKRs, with strategic gaps identified and handed to the PE pack as one captured-item file each. The cross-pack routing contract is documented in `references/cross-pack-routing.md`. See `references/agentbundle-layout.md` for artifact path.
 
 ## Output rendering
 
@@ -33,7 +33,7 @@ Table — When presenting several items that share the same fields, render a Mar
 ## When to invoke
 
 1. **Company OKRs exist or can be elicited** — either as an existing artifact in `docs/product/shaping/` or supplied by the strategist inline.
-2. **You need gap identification for PE framing** — the primary output is the gap files and their shaping-queue entries, not just the cascade document.
+2. **You need gap identification for PE framing** — the primary output is the gap files, not just the cascade document.
 3. **No current OKR cascade exists for this cycle** — amend rather than restart.
 
 ## Procedure
@@ -42,12 +42,11 @@ Table — When presenting several items that share the same fields, render a Mar
 2. **Derive team-level OKRs.** For each company Objective, derive the corresponding team-level Objective and Key Results that roll up to it. The team-level KRs must be measurable at the team's scope. Flag any company Objective that has no credible team-level expression — that is a gap.
 3. **Identify strategic gaps.** A gap is any company Objective or Key Result that has no current team-level owner, no credible delivery path, or a current-state vs. target delta that requires new strategic investment. Name each gap with a slug (kebab-case, one to four words).
 4. **Commit `okr-cascade.md`.** Resolve the artifact path per `references/agentbundle-layout.md`. Write `okr-cascade.md` with frontmatter `type: okr-cascade` to the resolved path. Include: company OKRs, derived team OKRs per objective, and a gap registry (slug + description + which KR it is blocking).
-5. **Resolve target initiative.** Read `workspace.toml` for `["ini-NNN"]` sections with `status = "active"`. If exactly one is active, use it. If multiple are active, list them and ask: "Which initiative should these OKR gaps be routed to?" Do not proceed until the user confirms.
-6. **Write each gap as a captured-item file, then register it.** For each named gap, write `docs/product/captured/<gap-slug>.md` with the title `# <Gap slug with spaces>`, then these preamble lines — `Status: Open`, `Kind: intent`, and `Type: strategy` — and the gap in one line under a `## Summary` heading. `Type: strategy` is what routes the gap to `frame-situation`, so write it on every gap file. Then append a canonical five-field entry for that path to the active initiative's `["ini-NNN".shaping_queue].backlog` array — `{path = "docs/product/captured/<gap-slug>.md", kind = "intent", source = {mode = "repo-origin"}, summary = "<the gap in one line>", needs = []}`. A short slug-and-type entry is the legacy shape and is never dispatchable, so an entry written that way would never surface as ready work. If `workspace.toml` is absent, surface: "workspace.toml not found — create it or supply the target initiative manually."
-7. **Emit the PE-pack diagnostic if needed.** If `frame-situation` is not found in the installed skills, surface: "frame-situation not found — install PE pack to route OKR gaps into the shaping sequence."
+5. **Write each gap as a captured-item file.** For each named gap, write `docs/product/captured/<gap-slug>.md` with the title `# <Gap slug with spaces>`, then these preamble lines — `Status: Open`, `Kind: intent`, and `Type: strategy` — and the gap in one line under a `## Summary` heading. `Type: strategy` is what routes the gap to `frame-situation`, so write it on every gap file. The file is the whole handoff: write nothing else for the gap, and do not add the gap to any index or queue.
+6. **Emit the PE-pack diagnostic if needed.** If `frame-situation` is not found in the installed skills, surface: "frame-situation not found — install PE pack to route OKR gaps into the shaping sequence."
 
 ## Anti-patterns
 
 - **Cascading to features.** OKR cascade aligns the organization to strategic objectives; it does not produce a feature backlog. Feature-level goals belong in `intent frame`, not here.
-- **Skipping gap identification.** A cascade without gaps is a reporting exercise. The gaps are the deliverable — they become the captured-item files and shaping-queue entries the PE pack acts on.
-- **Assuming a single initiative.** Always check `workspace.toml` for the active initiative count before appending. Appending to the wrong initiative produces routing errors that are hard to detect later.
+- **Skipping gap identification.** A cascade without gaps is a reporting exercise. The gaps are the deliverable — they become the captured-item files the PE pack acts on.
+- **Registering a gap elsewhere.** A gap is its one file under `docs/product/captured/`. Copying it into an index or queue makes a second record that can drift from the file.

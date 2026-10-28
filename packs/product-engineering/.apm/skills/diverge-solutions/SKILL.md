@@ -98,13 +98,10 @@ only when proceeding without a step-2 artifact), Suggested captured item. Status
 written by this skill.
 
 **6. Suggest a captured item.** The suggestion is a captured-item record at
-`docs/product/captured/<slug>.md` whose `Detail:` names `solution-options.md`,
-and the canonical five-field entry that registers that path. A short slug-and-type
-entry is the legacy shape, is never dispatchable, and old shaping entries still
-appear in the information-only shaping lists until rewritten. Direct the user to
-register it through `work-intake`, which writes the record and the entry. An
-entry added by hand must point at that record, not at `solution-options.md`. Do
-not write to `workspace.toml` or to `docs/product/captured/`.
+`docs/product/captured/<slug>.md` whose `Detail:` names `solution-options.md`.
+The file is the whole suggestion; it needs no index entry. Direct the user to
+capture it through `work-intake`, which writes the file. Do not write to
+`workspace.toml` or to `docs/product/captured/` yourself.
 
 ```markdown
 # <Slug with spaces>
@@ -116,10 +113,6 @@ not write to `workspace.toml` or to `docs/product/captured/`.
 ## Summary
 
 <the chosen option in one line>
-```
-
-```toml
-{path = "docs/product/captured/<slug>.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the chosen option in one line>", needs = []},
 ```
 
 ## Anti-patterns to refuse

@@ -534,6 +534,37 @@
           "workspace-status error:"
         ]
       }
+    },
+    {
+      "id": 20,
+      "prompt": "Show workspace status and tell me whether the dependant spec can start. It depends on a captured defect that is already closed.",
+      "expected_output": "The agent invokes the workspace-status backend and reports docs/specs/dependant/spec.md as ready and dispatchable. The captured item docs/product/captured/export-drops-empty-names.md has no workspace.toml entry, is Closed with Resolution: fixed, so the dependency is settled by its own file. The agent reports no finding for the captured item and does not ask for a registry entry.",
+      "assertions": [
+        "Invokes the backend rather than parsing the captured-item file independently",
+        "Reports docs/specs/dependant/spec.md as ready",
+        "Explains that the dependency settles because the captured file is Closed with Resolution: fixed",
+        "Reports no unsatisfied_dependency or invalid_captured_item finding",
+        "Does not ask for a workspace.toml entry for the captured item"
+      ],
+      "files": [
+        "evals/files/closed-captured-dependency/workspace.toml",
+        "evals/files/closed-captured-dependency/docs/specs/dependant/spec.md",
+        "evals/files/closed-captured-dependency/docs/specs/dependant/plan.md",
+        "evals/files/closed-captured-dependency/docs/product/captured/export-drops-empty-names.md"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": [
+          "docs/specs/dependant/spec.md",
+          "docs/product/captured/export-drops-empty-names.md"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "workspace-status error:",
+          "unsatisfied_dependency",
+          "invalid_captured_item"
+        ]
+      }
     }
   ]
 }
